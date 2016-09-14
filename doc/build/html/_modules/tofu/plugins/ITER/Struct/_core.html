@@ -1,0 +1,238 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>tofu.plugins.ITER.Struct._core &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="../../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="../../../../../index.html" />
+    <link rel="up" title="Module code" href="../../../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.plugins.ITER.Struct._core</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Created on Wed Mar  5 10:42:24 2014</span>
+
+<span class="sd">@author: didiervezinet</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dtm</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+<span class="c"># ToFu-specific</span>
+<span class="kn">import</span> <span class="nn">tofu.defaults</span> <span class="k">as</span> <span class="nn">tfd</span>
+<span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
+<span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">_path</span> <span class="k">as</span> <span class="n">_tfiter_path</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">Ves</span> <span class="k">as</span> <span class="n">tfiterVes</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Didier Vezinet&quot;</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;plot&quot;</span><span class="p">]</span>
+
+
+
+<span class="n">_Exp</span> <span class="o">=</span> <span class="s">&#39;ITER&#39;</span>
+
+<span class="n">SavePathInp</span> <span class="o">=</span> <span class="s">&#39;/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu/tofu/plugins/ITER/Struct/Inputs/&#39;</span>
+<span class="n">SavePathObj</span> <span class="o">=</span> <span class="s">&#39;/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu/tofu/plugins/ITER/Struct/Objects/&#39;</span>
+
+
+
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">#                   Struct creation and plotting</span>
+<span class="c">############################################################################</span>
+
+
+
+<div class="viewcode-block" id="plot"><a class="viewcode-back" href="../../../../../Auto_tofu.plugins.ITER.html#tofu.plugins.ITER.Struct.plot">[docs]</a><span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="n">Elt</span><span class="o">=</span><span class="s">&#39;BPV&#39;</span><span class="p">,</span> <span class="n">EltStruct</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">,</span> <span class="n">EltVes</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">,</span> <span class="n">Lax</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Proj</span><span class="o">=</span><span class="s">&quot;Cross&quot;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">SavePathInp</span><span class="o">=</span><span class="n">SavePathInp</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span>
+         <span class="n">Ves</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">NameVes</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">SavePathVes</span><span class="o">=</span><span class="k">None</span><span class="p">,</span>
+         <span class="n">skiprows</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s">&#39;#&#39;</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s">&#39;mm&#39;</span><span class="p">,</span>
+         <span class="n">dtime</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtFormat</span><span class="o">=</span><span class="n">tfd</span><span class="o">.</span><span class="n">dtmFormat</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create and plot the required Struct object on the required axes</span>
+
+<span class="sd">    The coordinates of the polygons of the Struct objects are taken from SavePathInp</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Elt :           str</span>
+<span class="sd">        Flag indicating which elements to plot, one capital letter per element</span>
+<span class="sd">            - &#39;B&#39; : the Beams</span>
+<span class="sd">            - &#39;P&#39; : the ports</span>
+<span class="sd">            - &#39;V&#39; : the associated Ves object</span>
+<span class="sd">    Lax :           None / plt.Axes / list</span>
+<span class="sd">        If provided, the axes or list of axes on which the poloidal and / or horizontal projections of the structure elements shall be plotted</span>
+<span class="sd">    shot :          int</span>
+<span class="sd">        A shot number, to be used as a reference point in time, marking from when the provided geometry is valid</span>
+<span class="sd">    SavePathInp :   None / str</span>
+<span class="sd">        If provided, forces the routine to search for the input file at SavePathInp, if not provided SavePathInp is automatically set to default (i.e. tofu/plugin/Ves/Inputs/)</span>
+<span class="sd">    SavePathObj :   None / str</span>
+<span class="sd">        (optional) Absolute path where the created object will be saved</span>
+<span class="sd">    Ves :           None / :class:`tofu.geom.Ves`</span>
+<span class="sd">        If provided, associates the Struct objects with this Ves object, otherwise a default Ves is loaded from SavePathVes if provided</span>
+<span class="sd">    NameVes :       str</span>
+<span class="sd">        Use if Ves is not provided, fed to tofu.plugins.ITER.Ves.load() for loading a default Ves</span>
+<span class="sd">    SavePathVes :   None / str</span>
+<span class="sd">        If provided, path from which a default Ves object can be loaded</span>
+<span class="sd">    skiprows :      int</span>
+<span class="sd">        Parameter fed to np.loadtxt() for reading the polygon from a txt file</span>
+<span class="sd">    comments :      str</span>
+<span class="sd">        Parameter fed to np.loadtxt() for reading the polygon from a txt file</span>
+<span class="sd">    units :         str</span>
+<span class="sd">        Flag indicating in which units the input polygon is provided (in [&#39;m&#39;,&#39;cm&#39;,&#39;mm&#39;])</span>
+<span class="sd">    dtime :         None / dtm.datetime</span>
+<span class="sd">        A datetime instance used for labelling the created instance (mostly used for debugging)</span>
+<span class="sd">    dtFormat :      str</span>
+<span class="sd">        The format of the labelling (mostly used for debugging)</span>
+<span class="sd">    dtimeIn :       bool</span>
+<span class="sd">        Flag indicating whether to include the label in the file name (mostly used for debugging)</span>
+<span class="sd">    Test :          bool</span>
+<span class="sd">        Flag indicating whether the inpurts should be checked for conformity</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    LS :            list</span>
+<span class="sd">        The list of all created :class:`tofu.geom.Struct` instances</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">Test</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Elt</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg Elt must be a str !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">,</span> <span class="s">&quot;Arg shot must be a int !&quot;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">SavePathInp</span><span class="p">]]),</span> <span class="s">&quot;Args [SavePathInp] must be str !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">units</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">units</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;m&#39;</span><span class="p">,</span><span class="s">&#39;cm&#39;</span><span class="p">,</span><span class="s">&#39;mm&#39;</span><span class="p">],</span> <span class="s">&quot;Arg units must be in [&#39;m&#39;,&#39;cm&#39;,&#39;mm&#39;] !&quot;</span>
+        <span class="k">assert</span> <span class="n">dtime</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">dtime</span><span class="p">)</span> <span class="ow">is</span> <span class="n">dtm</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span> <span class="s">&quot;Arg dtime must be a dtm.datetime !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dtFormat</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg dtFormat must be a str !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dtimeIn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">,</span> <span class="s">&quot;Arg dtimeIn must be a bool !&quot;</span>
+
+    <span class="c"># Get default path for loading inputs and saving object</span>
+    <span class="k">if</span> <span class="n">SavePathInp</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathInp</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="s">&#39;/tofu/plugins/&#39;</span><span class="o">+</span><span class="n">_Exp</span><span class="o">+</span><span class="s">&#39;/Struct/Inputs/&#39;</span>
+
+    <span class="c"># Load Ves if necessary</span>
+    <span class="k">if</span> <span class="n">Ves</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">Ves</span> <span class="o">=</span> <span class="n">tfiterVes</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="n">NameVes</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathVes</span><span class="p">)</span>
+
+    <span class="c"># Get polygons and info</span>
+    <span class="n">LS</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">ld</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">SavePathInp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;P&#39;</span> <span class="ow">in</span> <span class="n">Elt</span><span class="p">:</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">ll</span> <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="n">ld</span> <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">ll</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;PoloidalCurvesCoordinates_&#39;</span><span class="p">,</span><span class="s">&#39;.csv&#39;</span><span class="p">]])</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">ll</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;_Poloidal&#39;</span><span class="p">,</span><span class="s">&#39;_BM&#39;</span><span class="p">]])])</span>
+        <span class="n">NB</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NB</span><span class="p">):</span>
+            <span class="n">ind1</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;PoloidalCurvesCoordinates_&#39;</span><span class="p">)</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="s">&#39;PoloidalCurvesCoordinates_&#39;</span><span class="p">)</span>
+            <span class="n">ind2</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;.csv&#39;</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">ind1</span><span class="p">:</span><span class="n">ind2</span><span class="p">]</span>
+            <span class="n">Poly</span><span class="p">,</span> <span class="n">addInfo</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">get_PolyFromPolyFileObj</span><span class="p">(</span><span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">SavePathInp</span><span class="o">=</span><span class="n">SavePathInp</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s">&#39;#&#39;</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">shape0</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">ss</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Struct</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">Ves</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;ITER&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">addInfo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">ss</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">_USRdict</span><span class="p">[</span><span class="n">dd</span><span class="p">]</span> <span class="o">=</span> <span class="n">addInfo</span><span class="p">[</span><span class="n">dd</span><span class="p">]</span>
+            <span class="n">LS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s">&#39;B&#39;</span> <span class="ow">in</span> <span class="n">Elt</span><span class="p">:</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">ll</span> <span class="k">for</span> <span class="n">ll</span> <span class="ow">in</span> <span class="n">ld</span> <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">ll</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;PoloidalCurvesCoordinates_&#39;</span><span class="p">,</span><span class="s">&#39;_BM&#39;</span><span class="p">,</span><span class="s">&#39;.csv&#39;</span><span class="p">]])</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">ll</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;_Poloidal&#39;</span><span class="p">]])])</span>
+        <span class="n">NB</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">L</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NB</span><span class="p">):</span>
+            <span class="n">ind1</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;_BM&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span>
+            <span class="n">ind2</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;.csv&#39;</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">ind1</span><span class="p">:</span><span class="n">ind2</span><span class="p">]</span>
+            <span class="n">Poly</span><span class="p">,</span> <span class="n">addInfo</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">get_PolyFromPolyFileObj</span><span class="p">(</span><span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">SavePathInp</span><span class="o">=</span><span class="n">SavePathInp</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s">&#39;#&#39;</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">shape0</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">ss</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Struct</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">Ves</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;ITER&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">addInfo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">ss</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">_USRdict</span><span class="p">[</span><span class="n">dd</span><span class="p">]</span> <span class="o">=</span> <span class="n">addInfo</span><span class="p">[</span><span class="n">dd</span><span class="p">]</span>
+            <span class="n">LS</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span>
+
+    <span class="c"># Plot</span>
+    <span class="k">if</span> <span class="s">&#39;V&#39;</span> <span class="ow">in</span> <span class="n">Elt</span><span class="p">:</span>
+        <span class="n">Lax</span> <span class="o">=</span> <span class="n">Ves</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="n">Lax</span><span class="p">,</span> <span class="n">Proj</span><span class="o">=</span><span class="n">Proj</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="n">EltVes</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">LS</span><span class="p">)):</span>
+        <span class="n">Lax</span> <span class="o">=</span> <span class="n">LS</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="n">Lax</span><span class="p">,</span> <span class="n">Proj</span><span class="o">=</span><span class="n">Proj</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="n">EltStruct</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Lax</span><span class="p">,</span> <span class="n">LS</span></div>
+
+
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

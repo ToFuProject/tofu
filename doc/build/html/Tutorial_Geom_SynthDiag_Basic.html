@@ -1,0 +1,186 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>How to compute integrated signal from synthetic emissivity &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="how-to-compute-integrated-signal-from-synthetic-emissivity">
+<h1>How to compute integrated signal from synthetic emissivity<a class="headerlink" href="#how-to-compute-integrated-signal-from-synthetic-emissivity" title="Permalink to this headline">¶</a></h1>
+<p>We are assuming here that you have access to an existing geometry (i.e. to <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Detect" title="tofu.geom.Detect"><code class="xref py py-class docutils literal"><span class="pre">Detect</span></code></a> or <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">GDetect</span></code></a> objects that you or someone else created or that you can load).
+It if is not the case you should first create the geometry you need, by following the <a class="reference external" href="Tutorial_Geom_HowToCreateGeometry.html">basic</a> geometry tutorial.</p>
+<p>We are also assuming that you have a code that can produce as output a simulated isotropic emissivity. Either directly or by spacial interpolation, you should be able to write a python function that computes an emissivity value in any arbitrary point inside the vessel volume.</p>
+<p>As a prerequisite load the necessary modules:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">ion</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># tofu-specific</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
+</pre></div>
+</div>
+<div class="section" id="writing-the-input-function">
+<h2>Writing the input function<a class="headerlink" href="#writing-the-input-function" title="Permalink to this headline">¶</a></h2>
+<p>In the following, all is done assuming <strong>gd</strong> is a <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">GDetect</span></code></a> object, but the same would apply if it is just a <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Detect" title="tofu.geom.Detect"><code class="xref py py-class docutils literal"><span class="pre">Detect</span></code></a> object.
+If the <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">GDetect</span></code></a> object you want to use is not already existing in your session, you can load it (with its absolute path and file name) using the <code class="xref py py-meth docutils literal"><span class="pre">tofu.pathfile.Open()</span></code> function or a dedicated plugin function.</p>
+<p>Instances of <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">GDetect</span></code></a> have a method called <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect.calc_Sig" title="tofu.geom.GDetect.calc_Sig"><code class="xref py py-meth docutils literal"><span class="pre">calc_Sig()</span></code></a>, which takes as input <strong>ff</strong> a python function able to evaluate the emissivity value in any number of points provided in 3D cartesian coordinates.</p>
+<dl class="docutils">
+<dt>This function should obey the following constraints:</dt>
+<dd><ul class="first last simple">
+<li>It is a callable with one input argument and optionally keyword arguments</li>
+<li>The input argument is a (3,N) numpy.ndarray, where N is the number of points at which one wants to evaluate the emissivity, provided in 3D cartesian coordinates (X,Y,Z)</li>
+</ul>
+</dd>
+</dl>
+<p>Hence, suppose that we simulate a 2D (i.e.: invariant along the 3rd dimension) gaussian emissivity centered on point (2.,0.), we can define ff as</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">ff</span><span class="p">(</span><span class="n">Pts</span><span class="p">,</span> <span class="n">A</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">DR</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">DZ</span><span class="o">=</span><span class="mf">1.</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">Pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">Pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">Z</span> <span class="o">=</span> <span class="n">Pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">Emiss</span> <span class="o">=</span> <span class="n">A</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">R</span><span class="o">-</span><span class="mf">2.</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">DR</span><span class="o">**</span><span class="mi">2</span> <span class="o">-</span> <span class="p">(</span><span class="n">Z</span><span class="o">-</span><span class="mf">0.</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">DZ</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">Emiss</span>
+</pre></div>
+</div>
+<dl class="docutils">
+<dt>What will happen when we feed ff to <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect.calc_Sig" title="tofu.geom.GDetect.calc_Sig"><code class="xref py py-meth docutils literal"><span class="pre">calc_Sig()</span></code></a> depends on the choice of method for the integration:</dt>
+<dd><ul class="first last simple">
+<li>If we want a volumic integration, the VOS of each detector will be discretized and ff will be called to evaluate the emissivity at each point before perfoming the integration</li>
+<li>If a Line Of Sight integration is desired, only the LOS is discretized for integration and the result is multiplied by the etendue</li>
+</ul>
+</dd>
+</dl>
+<p>By default, the method uses a pre-computed discretization of the VOS (because re-computing the solid angle for each point every time is costly), but this feature can be suppressed by setting PreComp=False if you want to use customized integration parameters.
+For example, in both cases, the numerical integration can be done by choosing the resolution of the discretization, or by using an iterative algorithm that only stops when the required relative error on the integral value is reached.
+In our case:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Compute synthetic signal using a volume approach with resolution-fixed numerical integration method</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sigVOS</span><span class="p">,</span> <span class="n">ldet</span> <span class="o">=</span> <span class="n">gd</span><span class="o">.</span><span class="n">calc_Sig</span><span class="p">(</span><span class="n">ff</span><span class="p">,</span> <span class="n">extargs</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;A&#39;</span><span class="p">:</span><span class="mf">1.</span><span class="p">,</span><span class="s">&#39;DR&#39;</span><span class="p">:</span><span class="mf">1.</span><span class="p">,</span><span class="s">&#39;DZ&#39;</span><span class="p">:</span><span class="mf">1.</span><span class="p">},</span> <span class="n">Method</span><span class="o">=</span><span class="s">&#39;Vol&#39;</span><span class="p">,</span> <span class="n">Mode</span><span class="o">=</span><span class="s">&#39;simps&#39;</span><span class="p">,</span> <span class="n">PreComp</span><span class="o">=</span><span class="k">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sigLOS</span><span class="p">,</span> <span class="n">ldet</span> <span class="o">=</span> <span class="n">gd</span><span class="o">.</span><span class="n">calc_Sig</span><span class="p">(</span><span class="n">ff</span><span class="p">,</span> <span class="n">extargs</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;A&#39;</span><span class="p">:</span><span class="mf">1.</span><span class="p">},</span> <span class="n">Method</span><span class="o">=</span><span class="s">&#39;LOS&#39;</span><span class="p">,</span> <span class="n">Mode</span><span class="o">=</span><span class="s">&#39;quad&#39;</span><span class="p">,</span> <span class="n">PreComp</span><span class="o">=</span><span class="k">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">sigVOS</span><span class="p">,</span> <span class="n">sigLOS</span>
+<span class="go">[[  1.31675917e-06   1.40620027e-06]] [[  1.31408026e-06   1.39941326e-06]]</span>
+</pre></div>
+</div>
+<p>Notice that when using the &#8216;quad&#8217; numerical integration method, only one extra argument can be passed on to ff.
+Notice the small differences in the volume and LOS approaches, due to the small non-zero second derivative of the emissivity field and to boundary effects (where there is small partial obstruction of the VOS).</p>
+</div>
+<div class="section" id="if-your-code-gives-a-tabulated-emissivity-field">
+<h2>If your code gives a tabulated emissivity field<a class="headerlink" href="#if-your-code-gives-a-tabulated-emissivity-field" title="Permalink to this headline">¶</a></h2>
+<p>Then you simply have to include an intermediate function that interpolates your emissivity field to compute it at any point. Like in the following example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">ff</span><span class="p">(</span><span class="n">Pts</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">Pts</span><span class="p">[</span><span class="mi">0</span><span class="p">,:],</span><span class="n">Pts</span><span class="p">[</span><span class="mi">1</span><span class="p">,:])</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">Z</span> <span class="o">=</span> <span class="n">Pts</span><span class="p">[</span><span class="mi">2</span><span class="p">,:]</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">Emiss</span> <span class="o">=</span> <span class="n">ff_interp</span><span class="p">(</span><span class="n">R</span><span class="p">,</span><span class="n">Z</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">return</span> <span class="n">Emiss</span>
+</pre></div>
+</div>
+<p>Where ff_interp() is an interpolating function using tabulated output from your code.</p>
+</div>
+<div class="section" id="plotting-the-result">
+<h2>Plotting the result<a class="headerlink" href="#plotting-the-result" title="Permalink to this headline">¶</a></h2>
+<p>The <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect.plot_Sig" title="tofu.geom.GDetect.plot_Sig"><code class="xref py py-meth docutils literal"><span class="pre">plot_Sig()</span></code></a> method provides a way of plotting the result, either by feeding it the output signal of <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect.calc_Sig" title="tofu.geom.GDetect.calc_Sig"><code class="xref py py-meth docutils literal"><span class="pre">calc_Sig()</span></code></a> or directly <strong>ff</strong> (in which case it simply calls <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect.plot_Sig" title="tofu.geom.GDetect.plot_Sig"><code class="xref py py-meth docutils literal"><span class="pre">plot_Sig()</span></code></a> for you).
+This feature is only available for <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">GDetect</span></code></a> objects since the signal of a single detector is just a single value that does not really require plotting...</p>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="index.html">Homepage</a></li>
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">How to compute integrated signal from synthetic emissivity</a><ul>
+<li><a class="reference internal" href="#writing-the-input-function">Writing the input function</a></li>
+<li><a class="reference internal" href="#if-your-code-gives-a-tabulated-emissivity-field">If your code gives a tabulated emissivity field</a></li>
+<li><a class="reference internal" href="#plotting-the-result">Plotting the result</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Tutorial_Geom_SynthDiag_Basic.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

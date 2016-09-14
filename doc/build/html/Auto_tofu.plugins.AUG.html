@@ -1,0 +1,281 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4.1.1. AUG &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="index.html" />
+    <link rel="up" title="4. tofu.plugins" href="Auto_tofu.plugins.html" />
+    <link rel="next" title="4.1.2. ITER" href="Auto_tofu.plugins.ITER.html" />
+    <link rel="prev" title="4. tofu.plugins" href="Auto_tofu.plugins.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.plugins.ITER.html" title="4.1.2. ITER"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.plugins.html" title="4. tofu.plugins"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="Auto_tofu.plugins.html" accesskey="U">4. <strong>tofu.plugins</strong></a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="aug">
+<span id="overview"></span><h1>4.1.1. <strong>AUG</strong><a class="headerlink" href="#aug" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-tofu.plugins.AUG.Ves">
+<span id="aug-ves"></span><h2>4.1.1.1. <strong>AUG.Ves</strong><a class="headerlink" href="#module-tofu.plugins.AUG.Ves" title="Permalink to this headline">¶</a></h2>
+<p>Contains all functions specific to the AUG vessel (creating the Ves object from Inputs, loading pre-created Ves objects...)</p>
+<dl class="function">
+<dt id="tofu.plugins.AUG.Ves.load">
+<code class="descclassname">tofu.plugins.AUG.Ves.</code><code class="descname">load</code><span class="sig-paren">(</span><em>Name='V1'</em>, <em>SavePathObj=None</em>, <em>Root='/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu'</em>, <em>Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/AUG/Ves/_core.html#load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.AUG.Ves.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load and return the selected Ves object (selected by name or file name)</p>
+<p>Several Ves object might exist for the same experiment depending changes to the experiment in time for example
+This function loads the one specified by its name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Name</strong> (<em>str / list</em>) &#8211; Name of the file to be loaded, or a subset of this name or a list of subsets, the file with a name matching all the subsets will be loaded. An error is issued in case of ambiguity</li>
+<li><strong>SavePathObj</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Absolute path where the objects can be found, if None sets to default</li>
+<li><strong>Root</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; If SavePathObj=None, a default value is created by appending &#8216;/tofu/plugins/AUG/Ves/Objects/&#8217; to Root</li>
+<li><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the inputs should be tested for conformity</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>Ves</strong> (<a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Ves</span></code></a>) &#8211; The loaded Ves object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-tofu.plugins.AUG.SXR.geom">
+<span id="aug-sxr-geom"></span><h2>4.1.1.2. <strong>AUG.SXR.geom</strong><a class="headerlink" href="#module-tofu.plugins.AUG.SXR.geom" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tofu.plugins.AUG.SXR.geom.create">
+<code class="descclassname">tofu.plugins.AUG.SXR.geom.</code><code class="descname">create</code><span class="sig-paren">(</span><em>shot=0, VesName='V1', SavePathObj=None, Root='/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu', forceshot=False, overwrite=False, save=True, dtime=None, dtFormat='D%Y%m%d_T%H%M%S', CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True, Calc=True, Verb=True, Etend_Method='quad', Etend_RelErr=0.001, Etend_dX12=[0.01, 0.01], Etend_dX12Mode='rel', Etend_Ratio=0.02, Colis=True, LOSRef='Cart', Cone_DRY=0.0025, Cone_DXTheta=0.0030679615757712823, Cone_DZ=0.0025, Cone_NPsi=20, Cone_Nk=60</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/AUG/SXR/geom/_core.html#create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.AUG.SXR.geom.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create, save and return all the GDetect objects relevant for the input shot, unless already created for a relevant reference shot</p>
+<p>Create the <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> objects (i.e.: the cameras, which are groups of detectors) from geometry taken from CSX disgnostic for the proposed shot or earlier (looks for the oldest version of the matching geometry) and stores them in the SavePathObj.</p>
+<p>All extra arguments are fed to <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Detect" title="tofu.geom.Detect"><code class="xref py py-class docutils literal"><span class="pre">Detect</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>shot</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Shot number for which to build the geometry</li>
+<li><strong>VesName</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name of the tfg.Ves object to be fed as an input to the <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> objects</li>
+<li><strong>SavePathObj</strong> (<em>None / str</em>) &#8211; Absolute path where the created <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> objects should be saved (if save=True), if None the default is used</li>
+<li><strong>Root</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; If SavePathObj=None, a default value is created by appending &#8216;/tofu/plugins/AUG/SXR/geom/Objects/&#8217; to Root</li>
+<li><strong>forceshot</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the shot number shall be downgraded to the oldest shot with the same geometry (False) or whether the provided shot number shall be enforced (True, for all camera heads)</li>
+<li><strong>overwrite</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether new <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> objects shall be computed (and possibly saved) when similar ones already exist (True)</li>
+<li><strong>save</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether to save the created <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> objects (in SavePathObj)</li>
+<li><strong>dtime</strong> (<em>None / dtm.datetime</em>) &#8211; If provided (i.e.: not None), used as a label of the created <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> objects (mostly used for debugging)</li>
+<li><strong>dtFormat</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The time format to be used for labelling the created <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> objects (mostly used for debugging)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>LGD</strong> (<em>list</em>) &#8211; A list of all the created tfg.GDetect objects</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.plugins.AUG.SXR.geom.load">
+<code class="descclassname">tofu.plugins.AUG.SXR.geom.</code><code class="descname">load</code><span class="sig-paren">(</span><em>Cams=None</em>, <em>shot=None</em>, <em>SavePathObj=None</em>, <em>Root='/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu'</em>, <em>sort=False</em>, <em>out='full'</em>, <em>Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/AUG/SXR/geom/_core.html#load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.AUG.SXR.geom.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load and return the desired <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">GDetect</span></code></a> objects (i.e.: camera heads)</p>
+<p>Directly fecthes and loads the desired <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">GDetect</span></code></a> objects.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>Cams</strong> (<em>str / list</em>) &#8211; A name or a list of names of the camera heads to be loaded (available are [&#8216;F&#8217;,&#8217;G&#8217;,&#8217;H1&#8217;,&#8217;H2&#8217;,&#8217;H3&#8217;,&#8217;I1&#8217;,&#8217;I2&#8217;,&#8217;I3&#8217;,&#8217;J1&#8217;,&#8217;J2&#8217;,&#8217;J3&#8217;,&#8217;K1&#8217;,&#8217;K2&#8217;,&#8217;L&#8217;,&#8217;M&#8217;])</li>
+<li><strong>shot</strong> (<em>int / float / np.float</em>) &#8211; A shot number indicating which version of the geometry should be loaded (the )</li>
+<li><strong>SavePathObj</strong> (<em>None / str</em>) &#8211; Absolute path where the created <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> objects should be saved (if save=True), if None the default is used</li>
+<li><strong>Root</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; If SavePathObj=None, a default value is created by appending &#8216;/tofu/plugins/AUG/SXR/geom/Objects/&#8217; to Root</li>
+<li><strong>sort</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the loaded <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> objects shall be returned sorted by alphabetical order of the names (True) or in the same order as asked in Cams (False)</li>
+<li><strong>out</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating whether the object should be loaded completely (&#8216;full&#8217;), in a light dismissing the heaviest attributes (&#8216;light&#8217;) or whether only the Id or a list of Id should be returned (&#8216;Id&#8217;), valid only for &#8216;.npz&#8217;</li>
+<li><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the inputs should be tested for conformity</li>
+<li><strong>Returns</strong> &#8211; </li>
+<li><strong>--------</strong> &#8211; </li>
+<li><strong>LGD</strong> (list / <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a>) &#8211; The loaded <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a>, returned as a single object if Cams was provided as a single name, as a list otherwise</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-tofu.plugins.AUG.SXR.data">
+<span id="aug-sxr-data"></span><h2>4.1.1.3. <strong>AUG.SXR.data</strong><a class="headerlink" href="#module-tofu.plugins.AUG.SXR.data" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tofu.plugins.AUG.SXR.data.load">
+<code class="descclassname">tofu.plugins.AUG.SXR.data.</code><code class="descname">load</code><span class="sig-paren">(</span><em>shot=None</em>, <em>Names=None</em>, <em>Mode='SSX'</em>, <em>Dt=None</em>, <em>Join=True</em>, <em>tRef='fmin'</em>, <em>Method='interp'</em>, <em>NoGeom=True</em>, <em>Tofu=True</em>, <em>Verb=True</em>, <em>Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/AUG/SXR/data/_core.html#load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.AUG.SXR.data.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load SXR data from the AUG database and returns it either as numpy arrays or a ToFu-compatible object with appropriate methods</p>
+<p>Part of the difficulty is that all channels do not have the same sampling frequency and time vector.
+Hence, there is an option to uniformize the time base.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>shot</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Shot number for which the SXR data should be loaded</li>
+<li><strong>Names</strong> (<em>None / str / list</em>) &#8211; If provided, data is loaded only for the specified channel(s)</li>
+<li><strong>Mode</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating whether data should be loaded from a down-sampled database (&#8216;SSX&#8217;, , faster loading) or from the complete database ( depending on the channel)</li>
+<li><strong>Dt</strong> (<em>None / iterable</em>) &#8211; If provided, a len()=2 iterable giving the time interval of interest (recommended to avoid very large data files)</li>
+<li><strong>Join</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag, useful when Mode=&#8217;SX&#8217;, indicating whether the different time bases of the channels shall be uniformized</li>
+<li><strong>tRef</strong> (<em>None / str / np.ndarray</em>) &#8211; <dl class="docutils">
+<dt>Flag or time vector, useful when Mode=&#8217;SX&#8217; and Join=True, indicating which time basis should be used as a reference</dt>
+<dd><ul class="first last">
+<li>&#8216;fmin&#8217;: the time vector of the channel presenting the smallest sampling frequency is used as a reference</li>
+<li>&#8216;fmax&#8217;: the time vector of the channel presenting the highest sampling frequency is used as a reference</li>
+<li>any channel name: the time vector of the specifiec channel is used as a reference</li>
+<li>np.ndarray: the provided time vector is used as a reference</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><strong>Method</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag, usefule when Mode=&#8217;SX&#8217; and Join=True, indicating how the</li>
+<li><strong>NoGeom</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; <dl class="docutils">
+<dt>Flag indicating whether the data should be stripped of its geometrical calibration factor (thus being expressed in W instead of W/m2), to allow for:</dt>
+<dd><ul class="first last">
+<li>Application of a tofu-computed etendue in case of a LOS approach</li>
+<li>Direct use of the signal in case of a VOS approach</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><strong>Tofu</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the loaded data should be returned as (SXR, t, Names) where the first two are np.ndarrays and Names is a list or as a tofu.data.PreData object</li>
+<li><strong>Verb</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether extra comments should be printed to give feedback on the progress of the routine</li>
+<li><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the inputs should be tested for conformity</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>out</strong> (<em>tuple / tofu.data.PreData</em>)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="indices-and-tables">
+<h2>4.1.1.4. Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="index.html">Homepage</a></li>
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4.1.1. <strong>AUG</strong></a><ul>
+<li><a class="reference internal" href="#module-tofu.plugins.AUG.Ves">4.1.1.1. <strong>AUG.Ves</strong></a></li>
+<li><a class="reference internal" href="#module-tofu.plugins.AUG.SXR.geom">4.1.1.2. <strong>AUG.SXR.geom</strong></a></li>
+<li><a class="reference internal" href="#module-tofu.plugins.AUG.SXR.data">4.1.1.3. <strong>AUG.SXR.data</strong></a></li>
+<li><a class="reference internal" href="#indices-and-tables">4.1.1.4. Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Auto_tofu.plugins.html"
+                        title="previous chapter">4. <strong>tofu.plugins</strong></a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Auto_tofu.plugins.ITER.html"
+                        title="next chapter">4.1.2. <strong>ITER</strong></a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Auto_tofu.plugins.AUG.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.plugins.ITER.html" title="4.1.2. ITER"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.plugins.html" title="4. tofu.plugins"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="Auto_tofu.plugins.html" >4. <strong>tofu.plugins</strong></a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,605 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>2. tofu.treat &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="index.html" />
+    <link rel="next" title="3. tofu.pathfile" href="Auto_tofu.pathfile.html" />
+    <link rel="prev" title="1. tofu.geom" href="Auto_tofu.geom.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.pathfile.html" title="3. tofu.pathfile"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.geom.html" title="1. tofu.geom"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-tofu.treat">
+<span id="tofu-treat"></span><span id="overview"></span><h1>2. <strong>tofu.treat</strong><a class="headerlink" href="#module-tofu.treat" title="Permalink to this headline">¶</a></h1>
+<p>Provide data handling class and methods (storing, processing, plotting...)</p>
+<dl class="class">
+<dt id="tofu.treat.PreData">
+<em class="property">class </em><code class="descclassname">tofu.treat.</code><code class="descname">PreData</code><span class="sig-paren">(</span><em>data</em>, <em>t=None</em>, <em>Chans=None</em>, <em>Id=None</em>, <em>Exp='AUG'</em>, <em>shot=None</em>, <em>Diag='SXR'</em>, <em>dtime=None</em>, <em>dtimeIn=False</em>, <em>SavePath=None</em>, <em>LIdDet=None</em>, <em>DtRef=None</em>, <em>MovMeanfreq=100</em>, <em>Resamp=True</em>, <em>interpkind='linear'</em>, <em>indOut=None</em>, <em>indCorr=None</em>, <em>DF=None</em>, <em>Harm=True</em>, <em>DFEx=None</em>, <em>HarmEx=True</em>, <em>lt=[]</em>, <em>lNames=[]</em>, <em>Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData" title="Permalink to this definition">¶</a></dt>
+<dd><p>A class defining a data-handling object, data is stored as read-only attribute, copies of it can be modified, methods for plotting, saving...</p>
+<p>The name of the class refers to Pre-treatment Data (i.e.: in the context of tomography, data that is pre-treated before being fed to an inversion algorithm).
+ToFu provide a generic data-handling class, which comes a robust data storing policy: the input data is stored in a read-only attribute and the data-processing methods are used on a copy (e.g.: for computing the SVD, Fourier transform, shorten the time interval of interest, eliminate some channels...).
+Furthermore, methods for interactive plotting are provided as well as a saving method</p>
+<dl class="docutils">
+<dt>obj</dt>
+ <span class="classifier-delimiter">:</span> <span class="classifier">PreData</span><dd>The created instance</dd>
+</dl>
+<dl class="method">
+<dt id="tofu.treat.PreData.Corr_add">
+<code class="descname">Corr_add</code><span class="sig-paren">(</span><em>Val=[], LCrit=['Name', 'Cam', 'CamHead'], indCorr=None, Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.Corr_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.Corr_add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add channels to the list of channels that are thought to need correction</p>
+<p>When a channel is suspected to need correction (mismatching retrofit due for example to wrong calibration), it can be included in a dedicated correction list.
+Channels in this list can then be discarded for the inversion, a correction coefficient can be computed from the retrofit, and the inversion can be re-done using this correction coefficient.
+This list works like the list of excluded / corrupted channels self.Out_list()</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>Val</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Fed to self.select(), list of values for criteria in LCrit that should be used to exclude channels (e.g.: list of channel names of camera names)</li>
+<li><strong>LCrit</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Fed to self.select(), list of criteria against which to select the channels matching the values in Val (should be attributes of <a class="reference internal" href="Auto_tofu.pathfile.html#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal"><span class="pre">tofu.pathfile.ID</span></code></a> or of its USRdict attribute)</li>
+<li><strong>indCorr</strong> (<em>None / np.ndarray</em>) &#8211; Alternatively, you can directly pass a (N,) bool array whereN matches the number of channels and True means that a channel should be excluded, thus setting self._indCorr</li>
+<li><strong>Calc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the calculation should be triggered immediately</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.Corr_list">
+<code class="descname">Corr_list</code><span class="sig-paren">(</span><em>Out='Name'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.Corr_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.Corr_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the list of channel names needing correction</p>
+<p>This lists the channels indicated by self._indOut, populated using self.Out_add() and de-populated using self.In_add().
+The output can be returned as a list of channel Names</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Out</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating in which form to return the output (fed to <a class="reference internal" href="#tofu.treat.PreData.select" title="tofu.treat.PreData.select"><code class="xref py py-meth docutils literal"><span class="pre">select()</span></code></a>)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>L</strong> (<em>list</em>) &#8211; List of excluded channels in the required form</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.Corr_remove">
+<code class="descname">Corr_remove</code><span class="sig-paren">(</span><em>Val=[], LCrit=['Name', 'Cam', 'CamHead'], Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.Corr_remove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.Corr_remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add channels to the list of channels to be re-inserted as valid channels</p>
+<p>Works like self.In_add() (i.e.: opposite of self.Corr_add())</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>Val</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Fed to self.select(), list of values for criteria in LCrit that should be used to exclude channels (e.g.: list of channel names of camera names)</li>
+<li><strong>LCrit</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Fed to self.select(), list of criteria against which to select the channels matching the values in Val (should be attributes of <a class="reference internal" href="Auto_tofu.pathfile.html#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal"><span class="pre">tofu.pathfile.ID</span></code></a> or of its USRdict attribute)</li>
+<li><strong>indCorr</strong> (<em>None / np.ndarray</em>) &#8211; Alternatively, you can directly pass a (N,) bool array whereN matches the number of channels and True means that a channel should be excluded, thus setting self._indCorr</li>
+<li><strong>Calc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the calculation should be triggered immediately</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.In_add">
+<code class="descname">In_add</code><span class="sig-paren">(</span><em>LVal=[], LCrit=['Name', 'Cam', 'CamHead'], Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.In_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.In_add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add channels to the list of channels to be re-included as valid channels</p>
+<p>Provides a mechanism opposite to <a class="reference internal" href="#tofu.treat.PreData.Out_add" title="tofu.treat.PreData.Out_add"><code class="xref py py-meth docutils literal"><span class="pre">Out_add()</span></code></a>.
+We you change your mind about a series of channel and think they should be re-included as valid, pass them to this method using the same arguments as self.Out_add()</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>Val</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Fed to self.select(), list of values for criteria in LCrit that should be used to exclude channels (e.g.: list of channel names of camera names)</li>
+<li><strong>LCrit</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Fed to self.select(), list of criteria against which to select the channels matching the values in Val (should be attributes of <a class="reference internal" href="Auto_tofu.pathfile.html#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal"><span class="pre">tofu.pathfile.ID</span></code></a> or of its USRdict attribute)</li>
+<li><strong>indOut</strong> (<em>None / np.ndarray</em>) &#8211; Alternatively, you can directly pass a (N,) bool array whereN matches the number of channels and True means that a channel should be excluded, thus setting self._indOut</li>
+<li><strong>Calc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the calculation should be triggered immediately</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.In_list">
+<code class="descname">In_list</code><span class="sig-paren">(</span><em>Out='Name'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.In_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.In_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the list of included channel names (considered valid)</p>
+<p>The equivalent of <a class="reference internal" href="#tofu.treat.PreData.Out_list" title="tofu.treat.PreData.Out_list"><code class="xref py py-meth docutils literal"><span class="pre">Out_list()</span></code></a>, but this time returning the complementary list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Out</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating in which form to return the output (fed to <a class="reference internal" href="#tofu.treat.PreData.select" title="tofu.treat.PreData.select"><code class="xref py py-meth docutils literal"><span class="pre">select()</span></code></a>)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>L</strong> (<em>list</em>) &#8211; List of excluded channels in the required form</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.Out_add">
+<code class="descname">Out_add</code><span class="sig-paren">(</span><em>Val=[], LCrit=['Name', 'Cam', 'CamHead'], indOut=None, Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.Out_add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.Out_add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add desired channels to the list of channels to be excluded</p>
+<p>It is possible to store a list a list of channels that are thought to be corrupted or more generally that, after closer inspection, are considered not fit.
+This list is then automatically passed on to further ToFu objects (e.g.: for inversions), so that the corresponding data is excluded from all further processes.
+PreData provides methods to append channel names to this list (in fact you can even exclude whole cameras).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>Val</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Fed to self.select(), list of values for criteria in LCrit that should be used to exclude channels (e.g.: list of channel names of camera names)</li>
+<li><strong>LCrit</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Fed to self.select(), list of criteria against which to select the channels matching the values in Val (should be attributes of <a class="reference internal" href="Auto_tofu.pathfile.html#tofu.pathfile.ID" title="tofu.pathfile.ID"><code class="xref py py-class docutils literal"><span class="pre">tofu.pathfile.ID</span></code></a> or of its USRdict attribute)</li>
+<li><strong>indOut</strong> (<em>None / np.ndarray</em>) &#8211; Alternatively, you can directly pass a (N,) bool array whereN matches the number of channels and True means that a channel should be excluded, thus setting self._indOut</li>
+<li><strong>Calc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the calculation should be triggered immediately</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.Out_list">
+<code class="descname">Out_list</code><span class="sig-paren">(</span><em>Out='Name'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.Out_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.Out_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the list of excluded channel names (considered corrupted)</p>
+<p>This lists the channels indicated by self._indOut, populated using self.Out_add() and de-populated using self.In_add().
+The output can be returned as a list of channel Names</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>Out</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating in which form to return the output (fed to <a class="reference internal" href="#tofu.treat.PreData.select" title="tofu.treat.PreData.select"><code class="xref py py-meth docutils literal"><span class="pre">select()</span></code></a>)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>L</strong> (<em>list</em>) &#8211; List of excluded channels in the required form</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.interp">
+<code class="descname">interp</code><span class="sig-paren">(</span><em>lt=[]</em>, <em>lNames=[]</em>, <em>Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.interp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.interp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform linear interpolation of data at chosen times for chosen channels</p>
+<p>As opposed to self.set_t(), this method shall be used to interpolate data of a small number of channels at a small sumber of time points.
+Use this to correct a small number of time points that are clearly corrupted when you think the rest shall be preserved.</p>
+<p>!!! This is done with respect to the reference time vector and dataset, to avoid propagating errors through later data treatment (use self.plot(V=&#8217;Ref&#8217;) to plot the reference data set) !!!</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>lt</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Times at which linear interpolation should be performed</li>
+<li><strong>lNames</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; <dl class="docutils">
+<dt>Channels for which interpolation should be performed, one element per corresponding time point, elements can be:</dt>
+<dd><ul class="first last">
+<li>list of str: list of channel names that should be interpolated for the corresponding time point</li>
+<li>str: single channel name that should be interpolated for the corresponding time point</li>
+<li>&#8216;All&#8217;: all channels should be interpolated for the corresponding time point</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><strong>Calc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether data should be updated immediately</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<dl class="docutils">
+<dt>&gt;&gt; obj.interp(lt=[2.55, 5.10, 6.84], lNames=[[&#8216;H_021&#8217;,&#8217;J_014&#8217;], &#8216;F_10&#8217;, &#8216;All&#8217;], Calc=True)</dt>
+<dd>Will perform interpolation for 2 channels for the first time point, for one channel for the second, and for all channels for the last time point</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the signal in an interactive window, no arguments needed</p>
+<p>Plot an interactive matplotlib window to explore the data</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the figure should be the size of a a4 sheet of paper (to facilitate printing)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><strong>Lax</strong> (<em>list</em>) &#8211; List of plt.Axes on which the plots are made</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.plot_fft">
+<code class="descname">plot_fft</code><span class="sig-paren">(</span><em>Val=None</em>, <em>Crit='Name'</em>, <em>V='simple'</em>, <em>tselect=None</em>, <em>Fselect=None</em>, <em>PreExp=None</em>, <em>PostExp=None</em>, <em>Log='or'</em>, <em>InOut='In'</em>, <em>SpectNorm=True</em>, <em>DTF=None</em>, <em>RatDef=100.0</em>, <em>Inst=True</em>, <em>MainF=True</em>, <em>ylim=(None</em>, <em>None)</em>, <em>cmap=&lt;matplotlib.colors.LinearSegmentedColormap object&gt;</em>, <em>a4=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.plot_fft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.plot_fft" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the power spectrum (fft) of the chosen signals</p>
+<p>Computes the fft of the data and plots the power spectrum, normalized or not, for the chosen channels</p>
+<p>Parameters Val, Crit, PreExp, PostExp, Log and InOut are for channel selection and are fed to <a class="reference internal" href="#tofu.treat.PreData.select" title="tofu.treat.PreData.select"><code class="xref py py-meth docutils literal"><span class="pre">select()</span></code></a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>V</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating whether the plot should be interactive, values in [&#8216;simple&#8217;,&#8217;inter&#8217;]</li>
+<li><strong>tselect</strong> (<em>None /</em>) &#8211; </li>
+<li><strong>Fselect</strong> (<em>None /</em>) &#8211; </li>
+<li><strong>SpectNorm</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag, if True the power spectrum is normalised to its maximum at each time step (default: True)</li>
+<li><strong>DTF</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Size (in seconds) of the running time window to be used for the windowed fft</li>
+<li><strong>RatDef</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Used if DTF not provided, the number by which the total signal duration is divided to get a time window</li>
+<li><strong>Inst</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag, if true, the average of the signal is substracted at each time step to emphasize high frequencies (higher than the one associated to the running time window, default: True)</li>
+<li><strong>MainF</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag</li>
+<li><strong>ylim</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#tuple" title="(in Python v2.7)"><em>tuple</em></a>) &#8211; Each limit which is not None is fed to plt.Axes.set_ylim()</li>
+<li><strong>a4</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag, if true the figure is sized so as to fill a a4 paper sheet</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>Lax</strong> (<em>list</em>) &#8211; List of plt.Axes on which the plots were made</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.plot_svd">
+<code class="descname">plot_svd</code><span class="sig-paren">(</span><em>Modes=10</em>, <em>NRef=None</em>, <em>a4=False</em>, <em>Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.plot_svd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.plot_svd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot the chosen modes (topos and chronos) of the svd of the data, and the associated spectrum on a separate figure</p>
+<p>Performs a svd of the data and plots the singular values, the temporal and spacial modes</p>
+<dl class="docutils">
+<dt>Modes</dt>
+ <span class="classifier-delimiter">:</span> <span class="classifier">int / iterable</span><dd><dl class="first last docutils">
+<dt>Index of the modes to be plotted, the modes and sorted in decreasing order of singular value</dt>
+<dd><ul class="first last simple">
+<li>int : plots all modes in range(0,Modes)</li>
+<li>iterable : plots all modes whose index is contained in Modes</li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>NRef</dt>
+ <span class="classifier-delimiter">:</span> <span class="classifier">None</span><dd>Number of columns in the plot, if None set to len(Modes)/2 (i.e.: 2 modes plotted per axes)</dd>
+<dt>a4</dt>
+ <span class="classifier-delimiter">:</span> <span class="classifier">bool</span><dd>Flag indicating whether the figure should be the size of a a4 sheet of paper (to facilitate printing)</dd>
+<dt>Test</dt>
+ <span class="classifier-delimiter">:</span> <span class="classifier">bool</span><dd>Flag indicating whether the inputs should be tested for conformity</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><strong>Lax</strong> (<em>list</em>) &#8211; List of plt.Axes on which the plots were made</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.save">
+<code class="descname">save</code><span class="sig-paren">(</span><em>SaveName=None</em>, <em>Path=None</em>, <em>Mode='npz'</em>, <em>compressed=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save the object in folder Name, under file name SaveName, using specified mode</p>
+<p>Most tofu objects can be saved automatically as numpy arrays (.npz, recommended) at the default location (recommended) by simply calling self.save()</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>SaveName</strong> (<em>None / str</em>) &#8211; The name to be used for the saved file, if None (recommended) uses self.Id.SaveName</li>
+<li><strong>Path</strong> (<em>None / str</em>) &#8211; Path specifying where to save the file, if None (recommended) uses self.Id.SavePath</li>
+<li><strong>Mode</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag specifying whether to save the object as a numpy array file (&#8216;.npz&#8217;, recommended) or an object using cPickle (not recommended, heavier and may cause retro-compatibility issues)</li>
+<li><strong>compressed</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag, used when Mode=&#8217;npz&#8217;, indicating whether to use np.savez or np.savez_compressed (slower saving and loading but smaller files)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.select">
+<code class="descname">select</code><span class="sig-paren">(</span><em>Val=None</em>, <em>Crit='Name'</em>, <em>PreExp=None</em>, <em>PostExp=None</em>, <em>Log='any'</em>, <em>InOut='In'</em>, <em>Out=&lt;type 'bool'&gt;</em>, <em>ToIn=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a sub-set of the data (channels-wise selection)</p>
+<p>Return an array of indices of channels selected according to the chosen criteria with chosen values
+Use either Val or (PreExp and PostExp)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Val</strong> (<em>list or str</em>) &#8211; List of values that the chosen criteria must match (converted to one-item list if str)</li>
+<li><strong>Crit</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Criterion used to select some channels, must be among their tfpf.ID class attributes (e.g.: &#8216;Name&#8217;, &#8216;SaveName&#8217;...) or IFTF.ID.USRdict (&#8216;Cam&#8217;,...)</li>
+<li><strong>PreExp</strong> (<em>list or str</em>) &#8211; List of str expressions to be fed to eval(PreExp[ii]+&#8221; Detect.Crit &#8220;+PostExp[ii]) or eval(PreExp[ii]+&#8221; Detect.USRdict.Crit &#8220;+PostExp[ii])</li>
+<li><strong>PostExp</strong> (<em>list or str</em>) &#8211; List of str expressions to be fed to eval(PreExp[ii]+&#8221; Detect.Crit &#8220;+PostExp[ii]) or eval(PreExp[ii]+&#8221; Detect.USRdict.Crit &#8220;+PostExp[ii])</li>
+<li><strong>Log</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag (&#8216;or&#8217; or &#8216;and&#8217;) indicating whether to select the channels matching all criteria or any</li>
+<li><strong>InOut</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag (&#8216;In&#8217; or &#8216;Out&#8217;) indicating whether to select all channels matching the criterion, or all except those</li>
+<li><strong>Out</strong> (<em>type or str</em>) &#8211; Flag (bool, int or an attribute of tfpf.ID or tfpf.ID.USRdict) indicating whether to return an array of boolean indices or int indices, or a list of the chosen attributes (e.g.: &#8216;Name&#8217;)</li>
+<li><strong>ToIn</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether indices should be returned with respect to the channels that are considered as included only (see obj.In_list() to see these channels)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>ind</strong> (<em>np.ndarray</em>) &#8211; Indices of the selected channels, as a bool or int array</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<dl class="docutils">
+<dt>&gt;&gt; ind = TFT.PreData.select(Val=[&#8216;H&#8217;,&#8217;J&#8217;], Crit=&#8217;Cam&#8217;, Log=&#8217;any&#8217;, InOut=&#8217;In&#8217;, Out=bool)</dt>
+<dd>Will return a bool array of the indices of all channels for which &#8216;Cam&#8217; is &#8216;H&#8217; or &#8216;J&#8217;</dd>
+<dt>&gt;&gt; ind = PreData.select(Crit=&#8217;Name&#8217;, PreExp=[&#8220;&#8216;F&#8217; in &#8221;, &#8220;&#8216;6&#8217; in &#8220;], Log=&#8217;and&#8217;, InOut=&#8217;In&#8217;, Out=int)</dt>
+<dd>Will return an int array of indices of all channels for which &#8216;F&#8217; and &#8216;6&#8217; are both included in the name</dd>
+<dt>&gt;&gt; ind = PreData.select(Crit=&#8217;CamHead&#8217;, PreExp=[&#8220;&#8216;F&#8217; in &#8221;, &#8220;&#8216;2&#8217; in &#8220;], Log=&#8217;any&#8217;, InOut=&#8217;Out&#8217;, Out=&#8217;Name&#8217;)</dt>
+<dd>Will return the names (as a list) of all channels except those that have a camera head name that includes a &#8216;F&#8217; or a &#8216;2&#8217; (i.e.: except camera heads &#8216;F&#8217; and &#8216;H2&#8217;, &#8216;I2&#8217;, &#8216;J2&#8217;, &#8216;K2&#8217;)</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.set_Dt">
+<code class="descname">set_Dt</code><span class="sig-paren">(</span><em>Dt=None</em>, <em>Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.set_Dt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.set_Dt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the time interval to which the data should be limited (does not affect the reference data)</p>
+<p>While the original data set and time base are always preserved in the background, you can change your mind and focus on a smaller interval included in the original one.
+This can be convenient for applying data treatment (SVD, fft...) to parts of the signal lifetime only.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>Dt</strong> (<em>None / list</em>) &#8211; The time interval of interest, as a list of len()=2 in increasing values</li>
+<li><strong>Calc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the calculation should be triggered immediately</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.set_PhysNoise">
+<code class="descname">set_PhysNoise</code><span class="sig-paren">(</span><em>Mode='svd', Phys=[0, 1, 2, 3, 4, 5, 6, 7], DF=[10000.0, 11000.0], DFEx=None, Harm=True, HarmEx=True, Deg=0, Nbin=3, LimRatio=0.05, Plot=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.set_PhysNoise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.set_PhysNoise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use a svd or a fft to estimate the physical part of the signal and the part which can be assimilated to noise, then uses specified degree for polynomial noise model</p>
+<p>This method provides an easy way to compute the noise level on each channel.
+It can be done in 2 different ways:</p>
+<blockquote>
+<div><ul class="simple">
+<li>&#8216;svd&#8217;: you have to provide the mode numbers that you think can be considered as physical, the signal will be re-constructed from these and the rest discarded as noise</li>
+<li>&#8216;fft&#8217;: you have to provide the frequency window that you think is physical (optionaly the higher harmonics can be included), the signal is re-constructed via inverse fourier and the rest discarded as noise</li>
+</ul>
+</div></blockquote>
+<p>To help you decide which mode numbers of frequency interval to use, you can preliminarily use self.plot_svd() and self.plot_fft() to visualize the decompositions.</p>
+<p>Note : this is only used to compute a noise estimate, stored separately, the total original signal is preserved</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>Mode</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating with which method should the noise be estimated (&#8216;svd&#8217; or &#8216;fft&#8217;)</li>
+<li><strong>list</strong> (<em>DFEx</em>) &#8211; Modes to be extracted from the svd (default: first 8 modes), use method .plot_svd() to choose the modes</li>
+<li><strong>list</strong> &#8211; 2 values delimiting a frequency interval (in Hz) from which to extract signal using a fft and rfft</li>
+<li><strong>bool</strong> (<em>Plot</em>) &#8211; Flag, if True all the available higher harmonics of FreqIn will also be included in the physical signal</li>
+<li><strong>list</strong> &#8211; 2 values delimiting a frequency interval (in Hz) that shall be avoided in the physical signal (relevant if some high harmonics of DF intersect DFEx)</li>
+<li><strong>bool</strong> &#8211; Flag, if True all the available higher harmonics of Freqout will also be avoided in the physical signal</li>
+<li><strong>int</strong> (<em>Nbin</em>) &#8211; Degree to be used for the polynomial noise model</li>
+<li><strong>int</strong> &#8211; Number of bins to be used for evaluating the noise (std) at various signal values</li>
+<li><strong>float</strong> (<em>LimRatio</em>) &#8211; Ratio ... to be finished...</li>
+<li><strong>bool</strong> &#8211; Flag, if True the histogram of the estimated noise is plotted</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<dl class="docutils">
+<dt>&gt;&gt; obj.set_PhysNoise(Mode=&#8217;svd&#8217;, Phys=[0,1,2,3,4,5], Deg=0)</dt>
+<dd>Will take the first 6 modes of the signal svd and consider as physical, the rest is used to compute a constant (Deg=0) noise estimate on each channel</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.set_Resamp">
+<code class="descname">set_Resamp</code><span class="sig-paren">(</span><em>t=None</em>, <em>f=None</em>, <em>Method='movavrg'</em>, <em>interpkind='linear'</em>, <em>Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.set_Resamp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.set_Resamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Re-sample the data and time vector</p>
+<dl class="docutils">
+<dt>Use a new time vector that can either be:</dt>
+<dd><ul class="first last simple">
+<li>provided directly (if t is not None)</li>
+<li>computed from an input sampling frequency (if f is not None)</li>
+</ul>
+</dd>
+</dl>
+<p>If but t and f are provided, t is used as the time vector and f is only used for the moving average</p>
+<p>Then, the data is re-computed on this new time vector using either interpolation (&#8216;interp&#8217;) or moving average (&#8216;movavrg&#8217;)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>t</strong> (<em>None / np.ndarray</em>) &#8211; </li>
+<li><strong>f</strong> (<em>None / int / float</em>) &#8211; </li>
+<li><strong>Method</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; </li>
+<li><strong>Resamp</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; </li>
+<li><strong>interpkind</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; </li>
+<li><strong>Calc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the calculation should be triggered immediately</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.set_fft">
+<code class="descname">set_fft</code><span class="sig-paren">(</span><em>DF=None</em>, <em>Harm=True</em>, <em>DFEx=None</em>, <em>HarmEx=True</em>, <em>Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.set_fft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.set_fft" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the FFT-filtered signal (and the rest) in the chosen frequency window (in Hz) and in all the higher harmonics (optional)</p>
+<p>Can also exclude a given interval and its higher harmonics from the filtering (optional)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>DF</strong> (<em>iterable</em>) &#8211; Iterable of len()=2, containing the lower and upper bounds of the frequency interval (Hz) to be used for filtering</li>
+<li><strong>Harm</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; If True all the higher harmonics of the interval DF will also be included</li>
+<li><strong>DFEx</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; List or tuple of len()=2, containing the lower and upper bounds of the frequency interval to be excluded from filtering (in case it overlaps with some high harmonics of DF)</li>
+<li><strong>HarmEx</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; If True all the higher harmonics of the interval DFEx will also be excluded</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="tofu.treat.PreData.substract_Dt">
+<code class="descname">substract_Dt</code><span class="sig-paren">(</span><em>tsub=None</em>, <em>Calc=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/treat/_core.html#PreData.substract_Dt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.treat.PreData.substract_Dt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allows subtraction of data at one time step from all data</p>
+<p>Can be convenient for plotting background-subtracted signal (background meaning signal before a reference time step).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>tsub</strong> (<em>int / float / iterable</em>) &#8211; <dl class="docutils">
+<dt>A time value, or a time interval indicating which part of the signal is to be considered as reference and subtracted from the rest</dt>
+<dd><ul class="first last">
+<li>int / float :</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><strong>Calc</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether data should be updated immediately</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<div class="section" id="indices-and-tables">
+<h2>2.1. Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="index.html">Homepage</a></li>
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">2. <strong>tofu.treat</strong></a><ul>
+<li><a class="reference internal" href="#indices-and-tables">2.1. Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Auto_tofu.geom.html"
+                        title="previous chapter">1. <strong>tofu.geom</strong></a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Auto_tofu.pathfile.html"
+                        title="next chapter">3. <strong>tofu.pathfile</strong></a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Auto_tofu.treat.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.pathfile.html" title="3. tofu.pathfile"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.geom.html" title="1. tofu.geom"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

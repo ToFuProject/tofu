@@ -1,0 +1,383 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>4.1.2. ITER &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="index.html" />
+    <link rel="up" title="4. tofu.plugins" href="Auto_tofu.plugins.html" />
+    <link rel="prev" title="4.1.1. AUG" href="Auto_tofu.plugins.AUG.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.plugins.AUG.html" title="4.1.1. AUG"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="Auto_tofu.plugins.html" accesskey="U">4. <strong>tofu.plugins</strong></a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="iter">
+<span id="overview"></span><h1>4.1.2. <strong>ITER</strong><a class="headerlink" href="#iter" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-tofu.plugins.ITER.Ves">
+<span id="iter-ves"></span><h2>4.1.2.1. <strong>ITER.Ves</strong><a class="headerlink" href="#module-tofu.plugins.ITER.Ves" title="Permalink to this headline">¶</a></h2>
+<p>Contains all functions specific to the AUG vessel (creating the Ves object from Inputs, loading pre-created Ves objects...)</p>
+<p>Created on Wed May 18 2016</p>
+<p>&#64;version: 0.9
+&#64;author: didiervezinet
+&#64;author_email: <a class="reference external" href="mailto:didier&#46;vezinet&#37;&#52;&#48;gmail&#46;com">didier<span>&#46;</span>vezinet<span>&#64;</span>gmail<span>&#46;</span>com</a></p>
+<dl class="function">
+<dt id="tofu.plugins.ITER.Ves.create">
+<code class="descclassname">tofu.plugins.ITER.Ves.</code><code class="descname">create</code><span class="sig-paren">(</span><em>Name='ITER_D_2N9J75 v1.7-1', Poly=['PoloidalCurvesCoordinates', 'ITER', '2N9J75', 'csv'], shot=0, SavePathInp=None, SavePathObj=None, Root='/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu', save=True, skiprows=4, comments='#', units='mm', dtime=None, dtFormat='D%Y%m%d_T%H%M%S', dtimeIn=False, Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/ITER/Ves/_core.html#create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.ITER.Ves.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create and save a Ves object from givn input file or Ves object</p>
+<p>A Ves object can be created from an input file, a np.ndarray or another <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">Ves</span></code></a> object</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The name to be given to the created Ves instance</li>
+<li><strong>Poly</strong> (None / str / <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Ves</span></code></a> / np.ndarray) &#8211; <dl class="docutils">
+<dt>The source where the polygon is to be found, either:</dt>
+<dd><ul class="first last">
+<li>str: the name of a file containing the coordinates of a polygon to be loaded with <code class="xref py py-meth docutils literal"><span class="pre">numpy.loadtxt()</span></code></li>
+<li>A <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Ves</span></code></a> object: to re-use its Poly attribute and build one with different name</li>
+<li>np.ndarray: an 2-dimensional array containing the 2D cartesian coordinates of a polygon</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><strong>shot</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; A shot number, to be used as a reference point in time, marking from when the provided geometry is valid</li>
+<li><strong>SavePathInp</strong> (<em>None / str</em>) &#8211; If provided, forces the routine to search for the input file at SavePathInp, if not provided SavePathInp is automatically set to default (i.e. tofu/plugin/Ves/Inputs/)</li>
+<li><strong>SavePathObj</strong> (<em>None / str</em>) &#8211; If provided, forces the routine to save the created instance at SavePathObj, if not provided SavePathObj is automatically set to default (i.e. tofu/plugin/Ves/Objects/)</li>
+<li><strong>Root</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; If SavePathObj=None, a default value is created by appending &#8216;/tofu/plugins/ITER/Ves/Objects/&#8217; to Root</li>
+<li><strong>save</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the created Ves instance shall be saved automatically (in SavePathObj)</li>
+<li><strong>skiprows</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Parameter fed to np.loadtxt() for reading the polygon from a txt file</li>
+<li><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Parameter fed to np.loadtxt() for reading the polygon from a txt file</li>
+<li><strong>units</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating in which units the input polygon is provided (in [&#8216;m&#8217;,&#8217;cm&#8217;,&#8217;mm&#8217;])</li>
+<li><strong>dtime</strong> (<em>None / dtm.datetime</em>) &#8211; A datetime instance used for labelling the created instance (mostly used for debugging)</li>
+<li><strong>dtFormat</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The format of the labelling (mostly used for debugging)</li>
+<li><strong>dtimeIn</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether to include the label in the file name (mostly used for debugging)</li>
+<li><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the inpurts should be checked for conformity</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>Ves</strong> (<a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Ves</span></code></a>) &#8211; The created tfg.Ves instance</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.plugins.ITER.Ves.load">
+<code class="descclassname">tofu.plugins.ITER.Ves.</code><code class="descname">load</code><span class="sig-paren">(</span><em>Name=None</em>, <em>SavePathObj=None</em>, <em>Root='/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu'</em>, <em>Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/ITER/Ves/_core.html#load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.ITER.Ves.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load and return the selected Ves object (selected by name or file name)</p>
+<p>Several Ves object might exist for the same experiment depending changes to the experiment in time for example
+This function loads the one specified by its name.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Name</strong> (<em>str / list</em>) &#8211; Name of the file to be loaded, or a subset of this name or a list of subsets, the file with a name matching all the subsets will be loaded. An error is issued in case of ambiguity (no or several matches)</li>
+<li><strong>SavePathObj</strong> (<em>None / str</em>) &#8211; Absolute path where the objects can be found, if None sets to default</li>
+<li><strong>Root</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; If SavePathObj=None, a default value is created by appending &#8216;/tofu/plugins/AUG/Ves/Objects/&#8217; to Root</li>
+<li><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the inputs should be tested for conformity</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>Ves</strong> (<a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Ves</span></code></a>) &#8211; The loaded Ves object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-tofu.plugins.ITER.Struct">
+<span id="iter-struct"></span><h2>4.1.2.2. <strong>ITER.Struct</strong><a class="headerlink" href="#module-tofu.plugins.ITER.Struct" title="Permalink to this headline">¶</a></h2>
+<p>Contains all functions specific to the ITER structural elements</p>
+<dl class="function">
+<dt id="tofu.plugins.ITER.Struct.plot">
+<code class="descclassname">tofu.plugins.ITER.Struct.</code><code class="descname">plot</code><span class="sig-paren">(</span><em>Elt='BPV'</em>, <em>EltStruct='P'</em>, <em>EltVes='P'</em>, <em>Lax=None</em>, <em>Proj='Cross'</em>, <em>shot=0</em>, <em>SavePathInp='/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu/tofu/plugins/ITER/Struct/Inputs/'</em>, <em>SavePathObj='/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu/tofu/plugins/ITER/Struct/Objects/'</em>, <em>Ves=None</em>, <em>NameVes=None</em>, <em>SavePathVes=None</em>, <em>skiprows=0</em>, <em>comments='#'</em>, <em>units='mm'</em>, <em>dtime=None</em>, <em>dtFormat='D%Y%m%d_T%H%M%S'</em>, <em>dtimeIn=False</em>, <em>Test=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/ITER/Struct/_core.html#plot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.ITER.Struct.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create and plot the required Struct object on the required axes</p>
+<p>The coordinates of the polygons of the Struct objects are taken from SavePathInp</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Elt</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; <dl class="docutils">
+<dt>Flag indicating which elements to plot, one capital letter per element</dt>
+<dd><ul class="first last">
+<li>&#8216;B&#8217; : the Beams</li>
+<li>&#8216;P&#8217; : the ports</li>
+<li>&#8216;V&#8217; : the associated Ves object</li>
+</ul>
+</dd>
+</dl>
+</li>
+<li><strong>Lax</strong> (<em>None / plt.Axes / list</em>) &#8211; If provided, the axes or list of axes on which the poloidal and / or horizontal projections of the structure elements shall be plotted</li>
+<li><strong>shot</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; A shot number, to be used as a reference point in time, marking from when the provided geometry is valid</li>
+<li><strong>SavePathInp</strong> (<em>None / str</em>) &#8211; If provided, forces the routine to search for the input file at SavePathInp, if not provided SavePathInp is automatically set to default (i.e. tofu/plugin/Ves/Inputs/)</li>
+<li><strong>SavePathObj</strong> (<em>None / str</em>) &#8211; (optional) Absolute path where the created object will be saved</li>
+<li><strong>Ves</strong> (None / <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Ves</span></code></a>) &#8211; If provided, associates the Struct objects with this Ves object, otherwise a default Ves is loaded from SavePathVes if provided</li>
+<li><strong>NameVes</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Use if Ves is not provided, fed to tofu.plugins.ITER.Ves.load() for loading a default Ves</li>
+<li><strong>SavePathVes</strong> (<em>None / str</em>) &#8211; If provided, path from which a default Ves object can be loaded</li>
+<li><strong>skiprows</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Parameter fed to np.loadtxt() for reading the polygon from a txt file</li>
+<li><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Parameter fed to np.loadtxt() for reading the polygon from a txt file</li>
+<li><strong>units</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating in which units the input polygon is provided (in [&#8216;m&#8217;,&#8217;cm&#8217;,&#8217;mm&#8217;])</li>
+<li><strong>dtime</strong> (<em>None / dtm.datetime</em>) &#8211; A datetime instance used for labelling the created instance (mostly used for debugging)</li>
+<li><strong>dtFormat</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The format of the labelling (mostly used for debugging)</li>
+<li><strong>dtimeIn</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether to include the label in the file name (mostly used for debugging)</li>
+<li><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the inpurts should be checked for conformity</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>LS</strong> (<em>list</em>) &#8211; The list of all created <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Struct" title="tofu.geom.Struct"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Struct</span></code></a> instances</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-tofu.plugins.ITER.Bolo.geom">
+<span id="iter-bolo-geom"></span><h2>4.1.2.3. <strong>ITER.Bolo.geom</strong><a class="headerlink" href="#module-tofu.plugins.ITER.Bolo.geom" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="tofu.plugins.ITER.Bolo.geom.create_Apert">
+<code class="descclassname">tofu.plugins.ITER.Bolo.geom.</code><code class="descname">create_Apert</code><span class="sig-paren">(</span><em>Name</em>, <em>Ves</em>, <em>Poly</em>, <em>shot=0</em>, <em>SavePathVes='/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Objects_ITER/'</em>, <em>SavePathObj='/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Objects_ITER/'</em>, <em>SavePathInp='/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Inputs_ITER/'</em>, <em>comments='#'</em>, <em>skiprows=0</em>, <em>units='m'</em>, <em>save=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/ITER/Bolo/geom/_core.html#create_Apert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.ITER.Bolo.geom.create_Apert" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Apert object (i.e.: aperture) with specified Name from either a file (.dat,.txt,.csv) or directly from a (2,N) or (N,2) numpy array
+Object is created, Saved in SavePathObj and returned
+If an input file is specified and the file name does not include an absolute path, the path specified in SavePathInp is used</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name of the object to be created</li>
+<li><strong>Ves</strong> (str / <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Ves</span></code></a>) &#8211; Ves object to which the aperture is associated, a file name can also be used if the Ves object was previously Saved</li>
+<li><strong>Poly</strong> (<em>str / np.ndarray</em>) &#8211; Numpy array or input file name (fed to numpy.loadtxt) used to specify the polygon to be used (should be (2,N) or (N,2) for N points)</li>
+<li><strong>shot</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Shot number from which the provided geometry is valid (useful for geometry changes bewteen campaigns)</li>
+<li><strong>SavePathVes</strong> (<em>None / str</em>) &#8211; (optional) if Ves is a str (i.e.: file name) or a list (i.e.: list of strings contained in the file name), specifies the path at which the file is to be found</li>
+<li><strong>SavePathObj</strong> (<em>None / str</em>) &#8211; (optional) Absolute path where the created object will be saved</li>
+<li><strong>SavePathInp</strong> (<em>None / str</em>) &#8211; (optional) Absolute path where the input file is to be found</li>
+<li><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; (optional) str specifying the flag for comments in the Poly file (if Poly is a file name), fed to numpy.loadtxt</li>
+<li><strong>skiprows</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; (optional) number of rows to be skipped in the Poly file (if Poly is a file name), fed to numpy.loadtxt</li>
+<li><strong>units</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating in which units the input polygon is provided (in [&#8216;m&#8217;,&#8217;cm&#8217;,&#8217;mm&#8217;])</li>
+<li><strong>save</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; (optional) Flag indicating whether the created object should be Saved</li>
+<li><strong>Test</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the inputs should be tested for conformity</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>Apert</strong> (<a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Apert" title="tofu.geom.Apert"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Apert</span></code></a>) &#8211; The created Apert object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.plugins.ITER.Bolo.geom.create_Detect">
+<code class="descclassname">tofu.plugins.ITER.Bolo.geom.</code><code class="descname">create_Detect</code><span class="sig-paren">(</span><em>Name, Ves, Poly, LApert, shot=0, SavePathVes='/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Objects_ITER/', SavePathObj='/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Objects_ITER/', SavePathInp='/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Inputs_ITER/', comments='#', skiprows=0, Cone_DRY=0.0025, Cone_DXTheta=0.0030679615757712823, Cone_DZ=0.0025, Cone_NPsi=20, Cone_Nk=60, Synth_dX12=[0.005, 0.005], Synth_dX12Mode='abs', Synth_ds=0.005, Synth_dsMode='abs', Synth_Colis=True, Calc=True, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True, save=True, save_SynthDiag=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/ITER/Bolo/geom/_core.html#create_Detect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.ITER.Bolo.geom.create_Detect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Detect" title="tofu.geom.Detect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Detect</span></code></a> object (i.e.: detector) with specified Name from either a file (.dat,.txt,.csv) or directly from a (2,N) or (N,2) numpy array
+Object is created, optionally Saved in SavePathObj and returned
+If an input file is specified and the file name does not include an absolute path, the path specified in SavePathInp is used</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name of the object to be created</li>
+<li><strong>Ves</strong> (<a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.Ves</span></code></a> or str) &#8211; Ves object to which the aperture is associated, a file name can also be used if the Ves object was previously Saved</li>
+<li><strong>Poly</strong> (<em>str or np.ndarray</em>) &#8211; Numpy array or input file name (fed to numpy.loadtxt) used to specify the polygon to be used (should be (2,N) or (N,2) for N points)</li>
+<li><strong>LApert</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; List of Apert objects to be associated to the detector</li>
+<li><strong>SavePathVes</strong> (<em>None / str</em>) &#8211; (optional) if Ves is a str (i.e.: file name) or a list (i.e.: list of strings contained in the file name), specifies the path at which the file is to be found</li>
+<li><strong>SavePathObj</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; (optional) Absolute path where the created object will be Saved</li>
+<li><strong>SavePathInp</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; (optional) Absolute path where the input file is to be found</li>
+<li><strong>comments</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; (optional) str specifying the flag for comments in the Poly file (if Poly is a file name), fed to numpy.loadtxt</li>
+<li><strong>skiprows</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; (optional) number of rows to be skipped in the Poly file (if Poly is a file name), fed to numpy.loadtxt</li>
+<li><strong>save</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; (optional) Flag indicating whether the created object should be Saved</li>
+<li><strong>save_SynthDiag</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; (optional) Flag indicating whether the pre-computed synthetic diagnostic mesh should also be saved (larger files) or whether it should be recomputed upon loading</li>
+<li><strong>compute the VOS, tofu tests all points inside a 3D grid to see if each point is visible from the detector through the apertures or not</strong> (<em>To</em>) &#8211; </li>
+<li><strong>Cone_DR</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Resolution of the grid in the R direction, in meters</li>
+<li><strong>Cone_DTheta</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Resolution of the grid in the toroidal direction, in radians</li>
+<li><strong>Cone_DZ</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Resolution of the grid in the Z direction, in meters</li>
+<li><strong>the particular case when the LOS of the detector lies entirely inside one poloidal cross-section (e.g.</strong> (<em>In</em>) &#8211; </li>
+<li><strong>also computes the integral in the toroidal direction of the solid angle on a regular mesh (for faster computation of the geometry assuming toroidaly invariant basis functions)</strong> (<em>tofu</em>) &#8211; </li>
+<li><strong>regular mesh is defined in 2D, by the distance between a mesh point and the detector (k) and by the poloidal angle between the LOS and the line going from the detector to the mesh point (psi)</strong> (<em>This</em>) &#8211; </li>
+<li><strong>Cone_NPsi</strong> (<em>20</em>) &#8211; Number of points of the regular mesh in psi direction (angle)</li>
+<li><strong>Cone_Nk</strong> (<em>60</em>) &#8211; Number of points of the regular mesh in k direction (distance)</li>
+<li><strong>compute synthetic signal faster for any simulated emissivity, tofu can pre-compute a 3D mesh of the VOS and store it, with the associates solid angles</strong> (<em>To</em>) &#8211; </li>
+<li><strong>3D mesh is computed with respect to the LOS. One coordinate (s) is the distance along the LOS, the two others (1 and 2) are the distances in directions perpendicular to the LOS</strong> (<em>This</em>) &#8211; </li>
+<li><strong>Synth_dX12</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; Resolution of the mesh in the two directions perpendicular to the LOS</li>
+<li><strong>Synth_dX12Mode</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating whether dX12 is an absolute value (&#8216;abs&#8217;, in meters) or a fraction of the maximum local with of the VOS (&#8216;rel&#8217;)</li>
+<li><strong>Synth_ds</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Resolution of the mesh in the direction parallel to the LOS</li>
+<li><strong>Synth_dsMode</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Flag indicating whether ds is an absolute value (&#8216;abs&#8217;, in meters) or a fraction of the maximum local with of the VOS (&#8216;rel&#8217;)</li>
+<li><strong>Synth_Colis</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; Flag indicating whether the collision detection should be activated</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>Detect</strong> (<em>TFG.Detect</em>) &#8211; The created TFG.Detect object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.plugins.ITER.Bolo.geom.create_GDetect">
+<code class="descclassname">tofu.plugins.ITER.Bolo.geom.</code><code class="descname">create_GDetect</code><span class="sig-paren">(</span><em>Name</em>, <em>LDetect</em>, <em>SavePathObj='/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Objects_ITER/'</em>, <em>save=True</em>, <em>save_SynthDiag=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/ITER/Bolo/geom/_core.html#create_GDetect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.ITER.Bolo.geom.create_GDetect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> object (i.e.: group of detectors, or camera) with specified Name from a list of Detect objects
+Object is created, optionally Saved in SavePathObj and returned</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name of the object to be created</li>
+<li><strong>LDetect</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#list" title="(in Python v2.7)"><em>list</em></a>) &#8211; List of already-created Detect objects</li>
+<li><strong>SavePathObj</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; (optional) Absolute path where the created object will be Saved</li>
+<li><strong>save</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; (optional) Flag indicating whether the created object should be Saved</li>
+<li><strong>save_SynthDiag</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; (optional) Flag indicating whether the pre-computed synthetic diagnostic mesh should also be saved (larger files) or whether it should be recomputed upon loading</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><strong>GD</strong> (<a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a>) &#8211; The created object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="tofu.plugins.ITER.Bolo.geom.load">
+<code class="descclassname">tofu.plugins.ITER.Bolo.geom.</code><code class="descname">load</code><span class="sig-paren">(</span><em>Name</em>, <em>Cls='GDetect'</em>, <em>SavePathObj='/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Objects_ITER/'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/tofu/plugins/ITER/Bolo/geom/_core.html#load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#tofu.plugins.ITER.Bolo.geom.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the desired object, identified by name and saving path</p>
+<p>Searches in SavePathObj a ToFu object of the specified class (Cls) saved under the specified name (Name).
+If a single match is found, the object is loaded and returned, otherwise an error is raised</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>Name</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Name of the object</li>
+<li><strong>Cls</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Class of the object, in [&#8216;Ves&#8217;,&#8217;Apert&#8217;,&#8217;Detect&#8217;,&#8217;GDetect&#8217;]</li>
+<li><strong>SavePathObj</strong> (<a class="reference external" href="https://docs.python.org/2/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Path under which the object is to be found</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="indices-and-tables">
+<h2>4.1.2.4. Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="index.html">Homepage</a></li>
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4.1.2. <strong>ITER</strong></a><ul>
+<li><a class="reference internal" href="#module-tofu.plugins.ITER.Ves">4.1.2.1. <strong>ITER.Ves</strong></a></li>
+<li><a class="reference internal" href="#module-tofu.plugins.ITER.Struct">4.1.2.2. <strong>ITER.Struct</strong></a></li>
+<li><a class="reference internal" href="#module-tofu.plugins.ITER.Bolo.geom">4.1.2.3. <strong>ITER.Bolo.geom</strong></a></li>
+<li><a class="reference internal" href="#indices-and-tables">4.1.2.4. Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Auto_tofu.plugins.AUG.html"
+                        title="previous chapter">4.1.1. <strong>AUG</strong></a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Auto_tofu.plugins.ITER.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="Auto_tofu.plugins.AUG.html" title="4.1.1. AUG"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="Auto_tofu.plugins.html" >4. <strong>tofu.plugins</strong></a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

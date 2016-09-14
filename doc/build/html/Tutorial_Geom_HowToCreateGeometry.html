@@ -1,0 +1,292 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>How to create a diagnostic geometry &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="how-to-create-a-diagnostic-geometry">
+<h1>How to create a diagnostic geometry<a class="headerlink" href="#how-to-create-a-diagnostic-geometry" title="Permalink to this headline">¶</a></h1>
+<p>It is the geometry module that provides all the necessary tools for creating a new diagnostic.
+A diagnostic comprises a set of detectors (ToFu creates one object for each detector and you can then group them into a larger object to represent cameras).
+Each detector is basically defined by its active surface, which should be a planar polygon, and by a set of optics through which it &#8216;sees&#8217; the plasma.
+The optics can be a converging spherical lens or an arbitrary number of apertures (of arbitrary shape).
+Each detector is also assigned to a vessel, which defines the linear or toroidal volume in which the plasma can exist.</p>
+<p>The following guides you through the creation of these objects in the famous &#8216;hello-world&#8217; example:</p>
+<p>To find out more about what you can do with the geometry module check out the <a class="reference external" href="Tutorial_Geom_Advanced.html">advanced</a> tutorial.</p>
+<p>As a pre-requisite, let&#8217;s load some basic useful libraries in a ipython session, as well as the geometry module of ToFu:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">ion</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># tofu-specific</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+</pre></div>
+</div>
+<div class="section" id="creating-plotting-and-saving-a-vessel">
+<h2>Creating, plotting and saving a vessel<a class="headerlink" href="#creating-plotting-and-saving-a-vessel" title="Permalink to this headline">¶</a></h2>
+<p>If a vessel object does not exist yet, you have to create one (otherwise you can just load it an existing one).
+A vessel object is basically defined by a 2D simple polygon (i.e.: non self-intersecting), that is then expanded linearly or toroidally depending on the desired configuration.
+This polygon limits the volume available for the plasma, where the emissivity can be non-zero. It is typically defined by the inner wall in a tokamak.</p>
+<p>Let&#8217;s define the polygon limiting the vessel as a circle with a divertor-like shape at the bottom:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Define the center, radius and lower limit</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">R0</span><span class="p">,</span> <span class="n">Z0</span><span class="p">,</span> <span class="n">rad</span><span class="p">,</span> <span class="n">ZL</span> <span class="o">=</span> <span class="mf">2.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.85</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Define the key points in the divertor region below ZL</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Div_R</span><span class="p">,</span> <span class="n">Div_Z</span> <span class="o">=</span> <span class="p">[</span><span class="n">R0</span><span class="o">-</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">R0</span><span class="p">,</span> <span class="n">R0</span><span class="o">+</span><span class="mf">0.2</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.2</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.9</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.2</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Find the angles corresponding to ZL and span the rest</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">thet1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arcsin</span><span class="p">((</span><span class="n">ZL</span><span class="o">-</span><span class="n">Z0</span><span class="p">)</span><span class="o">/</span><span class="n">rad</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">thet2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">-</span> <span class="n">thet1</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">thet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">thet1</span><span class="p">,</span><span class="n">thet2</span><span class="p">,</span><span class="mi">100</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Assemble the polygon</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">poly_R</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">R0</span><span class="o">+</span><span class="n">rad</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">thet</span><span class="p">),</span> <span class="n">Div_R</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">poly_Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Z0</span><span class="o">+</span><span class="n">rad</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">thet</span><span class="p">),</span> <span class="n">Div_Z</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Plot for checking</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">facecolor</span><span class="o">=</span><span class="s">&#39;w&#39;</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span><span class="mi">6</span><span class="p">)),</span> <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">poly_R</span><span class="p">,</span> <span class="n">poly_Z</span><span class="p">),</span> <span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s">&#39;equal&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="figure align-center" id="id1">
+<a class="reference internal image-reference" href="_images/Fig_Tutor_Geom_Basic_01.png"><img alt="Polygon used for defining the vaccum vessel where the plasma may live" src="_images/Fig_Tutor_Geom_Basic_01.png" style="width: 300.0px; height: 300.0px;" /></a>
+<p class="caption"><span class="caption-text">Polygon used for defining the vaccum vessel where the plasma may live</span></p>
+</div>
+<p>Notice that the polygon does not have to be closed, ToFu will anyway check that and close it automatically if necessary</p>
+<p>Now let&#8217;s feed this 2D polygon to the appropriate ToFu class and specify that it should be a toroidal type (if linear type is chosen, the length should be specified by the &#8216;DLong&#8217; keyword argument).
+ToFu also asks for a name to be associated to this instance, and an experiment (&#8216;Exp&#8217;) and a shot number (useful when the same experiment changes geometry in time).</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Create a toroidal Ves instance with name &#39;World&#39;, associated to experiment &#39;Misc&#39; (for &#39;Miscellaneous&#39;) and shot number 0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ves</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Ves</span><span class="p">(</span><span class="s">&#39;HelloWorld&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">poly_R</span><span class="p">,</span><span class="n">poly_Z</span><span class="p">],</span> <span class="n">Type</span><span class="o">=</span><span class="s">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;Misc&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now the vessel instance is created. I provides you with several key attributes and methods (see <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Ves" title="tofu.geom.Ves"><code class="xref py py-class docutils literal"><span class="pre">Ves</span></code></a> for details).
+Among them the Id attribute is itself a class instance that contains all useful information about this vessel instance for identification, saving... In particular, that&#8217;s where the name, the default saving path, the Type, the experiment, the shot number... are all stored.
+A default name for saving was also created that automatically includes not only the name you gave but also the module from which this instance was created (tofu.geom or tfg), the type of object, the experiment, the shot number...
+This recommended default pattern is useful for quick identification of saved object, it is advised not to modify it.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span> <span class="n">ves</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">SaveName</span>
+<span class="go">TFG_VesTor_Misc_World_sh0</span>
+</pre></div>
+</div>
+<p>Now, we can simply visualise the created vessel by using the dedicated method (keyword argument &#8216;Elt&#8217; specifies the elements of the instance we want to plot, typically one letter corresponds to one element, here we just want the polygon):</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Plot the polygon, by default in two projections (cross-section and horizontal) and return the list of axes</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Lax</span> <span class="o">=</span> <span class="n">ves</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Elt</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="figure align-center" id="id2">
+<a class="reference internal image-reference" href="_images/Fig_Tutor_Geom_Basic_02.png"><img alt="The created vessel instance, plotted in cross-section and horizontal projections" src="_images/Fig_Tutor_Geom_Basic_02.png" style="width: 600.0px; height: 300.0px;" /></a>
+<p class="caption"><span class="caption-text">The created vessel instance, plotted in cross-section and horizontal projections</span></p>
+</div>
+<p>Since the vessel is an important object (it defines where the plasma can live), all the other ToFu objects rely on it. It is thus important that you save it so that it can be used by other ToFu objects when necessary.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ves</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">Path</span><span class="o">=</span><span class="s">&#39;./&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This method will save the instance as a numpy compressed file (.npz), using the path and file name found in ves.Id.SavePath and ves.Id.SaveName.
+While it is highly recommended to stick to the default value for the SaveName, but you can easily modify the saving path if you want by specifying it using keyword argument Path.</p>
+</div>
+<div class="section" id="creating-plotting-and-saving-structural-elements">
+<h2>Creating, plotting and saving structural elements<a class="headerlink" href="#creating-plotting-and-saving-structural-elements" title="Permalink to this headline">¶</a></h2>
+<p>Unlike the vessel, which is important for physics reasons, the structural elements that ToFu allows to create are purely for illustrative purposes. They are entirely passive and have no effect whatsoever on the computation of the volume of sight of the detectors or on the plasma volume and are just made available for illustrations.</p>
+<p>Like for a vessel, a structural element is mostly defined by a 2D polygon. If a vessel instance is provided, the type of the structural element (toroidal or linear) is automatically the same as the type of the vessel, otherwise the type must be specified.
+For plotting, structural elements that enclose the entirety of a vessel are automatically transparent, and gray if they don&#8217;t.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Define two polygons, one that does not enclose the vessel and one that does</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">thet</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="mf">2.</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span><span class="mi">100</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">poly1</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">2.5</span><span class="p">,</span><span class="mf">3.5</span><span class="p">,</span><span class="mf">3.5</span><span class="p">,</span><span class="mf">2.5</span><span class="p">],[</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.5</span><span class="p">,</span><span class="mf">0.5</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">poly2</span> <span class="o">=</span> <span class="p">[</span><span class="n">R0</span><span class="o">+</span><span class="mf">1.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">thet</span><span class="p">),</span><span class="mf">1.5</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">thet</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Create the structural elements with the appropriate ToFu class, specifying the experiment and a shot number for keeping track of changes</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s1</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Struct</span><span class="p">(</span><span class="s">&#39;S1&#39;</span><span class="p">,</span> <span class="n">poly1</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">ves</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;Misc&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s2</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Struct</span><span class="p">(</span><span class="s">&#39;S2&#39;</span><span class="p">,</span> <span class="n">poly2</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">ves</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;Misc&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Plot them on top of the vessel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Lax</span> <span class="o">=</span> <span class="n">ves</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Elt</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Re-use the same list of axes to overlay the plots</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Lax</span> <span class="o">=</span> <span class="n">s1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="n">Lax</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Lax</span> <span class="o">=</span> <span class="n">s2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="n">Lax</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="figure align-center" id="id3">
+<a class="reference internal image-reference" href="_images/Fig_Tutor_Geom_Basic_03.png"><img alt="The created structural elements, plotted over the structural elements on both projections" src="_images/Fig_Tutor_Geom_Basic_03.png" style="width: 600.0px; height: 300.0px;" /></a>
+<p class="caption"><span class="caption-text">The created structural elements, plotted over the structural elements on both projections</span></p>
+</div>
+<p>It is not necessary for ToFu (since structural elements are used by no other objects) but for convenience you can save a structral element using the same save() method as for any other object.</p>
+</div>
+<div class="section" id="creating-apertures">
+<h2>Creating apertures<a class="headerlink" href="#creating-apertures" title="Permalink to this headline">¶</a></h2>
+<p>An aperture is also mosly defined by a planar polygon, except that the polygon coordinates should be provided in 3D cartesian coordinates (even though the polygon is planar, it mey not live in the same plane as other apertures or as the detector).</p>
+<p>We can easily define two different polygons for two different apertures</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Define the planes in which they will live by a point (O) and a vector (n)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">O1</span><span class="p">,</span> <span class="n">n1</span> <span class="o">=</span> <span class="p">(</span><span class="mf">3.0</span><span class="p">,</span><span class="mf">0.00</span><span class="p">,</span><span class="mf">0.52</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.1</span><span class="p">,</span><span class="o">-</span><span class="mf">0.9</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">O2</span><span class="p">,</span> <span class="n">n2</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.9</span><span class="p">,</span><span class="mf">0.01</span><span class="p">,</span><span class="mf">0.48</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">0.0</span><span class="p">,</span><span class="o">-</span><span class="mf">1.0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Compute local orthogonal basis vectors in the planes</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e11</span><span class="p">,</span> <span class="n">e21</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">n1</span><span class="p">,(</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">n2</span><span class="p">,(</span><span class="mf">0.</span><span class="p">,</span><span class="mf">0.</span><span class="p">,</span><span class="mf">1.</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e12</span><span class="p">,</span> <span class="n">e22</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">e11</span><span class="p">,</span><span class="n">n1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">e21</span><span class="p">,</span><span class="n">n2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Normalize</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e11</span><span class="p">,</span> <span class="n">e12</span> <span class="o">=</span> <span class="n">e11</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e11</span><span class="p">),</span> <span class="n">e12</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e12</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e21</span><span class="p">,</span> <span class="n">e22</span> <span class="o">=</span> <span class="n">e21</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e21</span><span class="p">),</span> <span class="n">e22</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e22</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Implement the planar polygons 2D coordinates</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p1_2D</span> <span class="o">=</span> <span class="mf">0.005</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p2_2D</span> <span class="o">=</span> <span class="mf">0.01</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Compute the 3D coordinates</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p1</span> <span class="o">=</span> <span class="p">[</span><span class="n">O1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">e11</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">p1_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e12</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">p1_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">O1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">e11</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">p1_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e12</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">p1_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">O1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">e11</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">p1_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e12</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">p1_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p2</span> <span class="o">=</span> <span class="p">[</span><span class="n">O2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">e21</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">p2_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e22</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">p2_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">O2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">e21</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">p2_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e22</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">p2_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">O2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">e21</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">p2_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e22</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">p2_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Create the apertures, specifying also the diagnostic the apertures belong to</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a1</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Apert</span><span class="p">(</span><span class="s">&#39;A1&#39;</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">ves</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;Misc&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;misc&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">a2</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Apert</span><span class="p">(</span><span class="s">&#39;A2&#39;</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">ves</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;Misc&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;misc&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Plot them, both the polygon and the vector, with the associated vessel (using EltVes), in 3D</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Lax</span> <span class="o">=</span> <span class="n">a1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Elt</span><span class="o">=</span><span class="s">&#39;PV&#39;</span><span class="p">,</span> <span class="n">EltVes</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Lax</span> <span class="o">=</span> <span class="n">a2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="n">Lax</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s">&#39;PV&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="figure align-center" id="id4">
+<a class="reference internal image-reference" href="_images/Fig_Tutor_Geom_Basic_04.png"><img alt="The created apertures, plotted over the vessel on both projections" src="_images/Fig_Tutor_Geom_Basic_04.png" style="width: 600.0px; height: 300.0px;" /></a>
+<p class="caption"><span class="caption-text">The created apertures, plotted over the vessel on both projections</span></p>
+</div>
+<p>ToFu allows you to save the apertures, if you wish, but if you created then only to pass tem on to detectors, you can also skip saving them. Indeed, once the detector associated to these apertures is created, you will save the detector object instead, and ToFu will automatically store all information about the apertures (everything necessary to re-create them when loading the detector object).</p>
+</div>
+<div class="section" id="creating-plotting-and-saving-detectors-objects">
+<h2>Creating, plotting and saving detectors objects<a class="headerlink" href="#creating-plotting-and-saving-detectors-objects" title="Permalink to this headline">¶</a></h2>
+<p>A detector object is defined in the same way as an aperture, except that it needs to know which optics it is associated to. The optics can be either a converging spherical lens or, as in this case, a list of apertures.
+In the folloing we will thus create two detectors (re-using the same planes as for the apertures for simplicity, but they could lie in any plane).</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Choose different reference points for the 2 planes</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Od1</span><span class="p">,</span> <span class="n">Od2</span> <span class="o">=</span> <span class="p">(</span><span class="mf">3.05</span><span class="p">,</span><span class="mf">0.00</span><span class="p">,</span><span class="mf">0.54</span><span class="p">),</span> <span class="p">(</span><span class="mf">3.05</span><span class="p">,</span><span class="mf">0.00</span><span class="p">,</span><span class="mf">0.50</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Implement the planar polygons 2D coordinates</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pd1_2D</span> <span class="o">=</span> <span class="mf">0.005</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pd2_2D</span> <span class="o">=</span> <span class="mf">0.005</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">,</span><span class="mf">1.</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Compute the 3D coordinates</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pd1</span> <span class="o">=</span> <span class="p">[</span><span class="n">Od1</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">e11</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">pd1_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e12</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">pd1_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">Od1</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">e11</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">pd1_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e12</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">pd1_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">Od1</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">e11</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">pd1_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e12</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">pd1_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pd2</span> <span class="o">=</span> <span class="p">[</span><span class="n">Od2</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">e21</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">pd2_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e22</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="n">pd2_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">Od2</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">e21</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">pd2_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e22</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="n">pd2_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:],</span> <span class="n">Od2</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">e21</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">pd2_2D</span><span class="p">[</span><span class="mi">0</span><span class="p">,:]</span> <span class="o">+</span> <span class="n">e22</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">pd2_2D</span><span class="p">[</span><span class="mi">1</span><span class="p">,:]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Create the detectors, specifying also the diagnostic and the Optics</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d1</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Detect</span><span class="p">(</span><span class="s">&#39;D1&#39;</span><span class="p">,</span> <span class="n">pd1</span><span class="p">,</span> <span class="n">Optics</span><span class="o">=</span><span class="p">[</span><span class="n">a1</span><span class="p">,</span><span class="n">a2</span><span class="p">],</span> <span class="n">Ves</span><span class="o">=</span><span class="n">ves</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;Misc&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;misc&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">d2</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Detect</span><span class="p">(</span><span class="s">&#39;D2&#39;</span><span class="p">,</span> <span class="n">pd2</span><span class="p">,</span> <span class="n">Optics</span><span class="o">=</span><span class="p">[</span><span class="n">a2</span><span class="p">],</span> <span class="n">Ves</span><span class="o">=</span><span class="n">ves</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;Misc&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;misc&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The computation of the detectors may take a while (~3 min) because ToFu automatically computes the natural Line Of Sight (LOS) and its etendue, the Volume Of Sight (VOS), a pre-computed 3D grid of the VOS for faster computation of synthetic signal...
+Some of these automatic computations can be de-activacted using the proper keyword arguments, or the resolution of the discretization can downgraded for faster computation (see <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.Detect" title="tofu.geom.Detect"><code class="xref py py-class docutils literal"><span class="pre">Detect</span></code></a> for details).</p>
+<p>A Detect object is at the core of the added value of ToFu: all relevant quantities are automatically computed, and can be obtained and plotted via attributes and methods.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Plot the detectors, specifying we want not only the polygon but also the perpendicular vector and the viewing cone (&#39;C&#39;), as well as elements of the LOS, Optics and vessel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Lax</span> <span class="o">=</span> <span class="n">d1</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Elt</span><span class="o">=</span><span class="s">&#39;PVC&#39;</span><span class="p">,</span> <span class="n">EltOptics</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">,</span> <span class="n">EltLOS</span><span class="o">=</span><span class="s">&#39;L&#39;</span><span class="p">,</span> <span class="n">EltVes</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Lax</span> <span class="o">=</span> <span class="n">d2</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Lax</span><span class="o">=</span><span class="n">Lax</span><span class="p">,</span> <span class="n">Elt</span><span class="o">=</span><span class="s">&#39;PVC&#39;</span><span class="p">,</span> <span class="n">EltOptics</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">,</span> <span class="n">EltLOS</span><span class="o">=</span><span class="s">&#39;L&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="figure align-center" id="id5">
+<a class="reference internal image-reference" href="_images/Fig_Tutor_Geom_Basic_05.png"><img alt="The created detectors, with associated apertures and vessel, on both projections" src="_images/Fig_Tutor_Geom_Basic_05.png" style="width: 600.0px; height: 300.0px;" /></a>
+<p class="caption"><span class="caption-text">The created detectors, with associated apertures and vessel, on both projections</span></p>
+</div>
+<p>Using d1.save() would save detector 1 and all necessary info about its associated optics (i.e.:apertures) will also be included in the file so it is not necessary to save the apertures separately (unless you need to for something else).
+Usually, tomography diagnostics do not have a few but many different detectors, grouped in cameras (often a group of detectors sharing a common aperture).
+ToFu provides an GDetect object that allows you to group a list of detectors and treat them like a single object (each method is automatically applied to all the detectors included in the GDetect object).</p>
+</div>
+<div class="section" id="creating-plotting-and-saving-gdetect-objects">
+<h2>Creating, plotting and saving GDetect objects<a class="headerlink" href="#creating-plotting-and-saving-gdetect-objects" title="Permalink to this headline">¶</a></h2>
+<p>Once several Detect objects are created, they can be fed to a GDetect object to be handle as a single object.</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="c"># Create the group of detectors by feeding a list of detectors</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">gd</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">GDetect</span><span class="p">(</span><span class="s">&#39;GD&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">d1</span><span class="p">,</span><span class="n">d2</span><span class="p">],</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;Misc&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c"># Plot the group of detectors as a single set</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Lax</span> <span class="o">=</span> <span class="n">gd</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">Elt</span><span class="o">=</span><span class="s">&#39;PVC&#39;</span><span class="p">,</span> <span class="n">EltOptics</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">,</span> <span class="n">EltLOS</span><span class="o">=</span><span class="s">&#39;L&#39;</span><span class="p">,</span> <span class="n">EltVes</span><span class="o">=</span><span class="s">&#39;P&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The last command yields the same result as the previous figure.</p>
+<p>Congratulations ! You completed the basic tutorial for getting started and creating your own geometry, take you time now to explore all the methods and attributes of the classes introduced in <a class="reference internal" href="Auto_tofu.geom.html#module-tofu.geom" title="tofu.geom"><code class="xref py py-mod docutils literal"><span class="pre">tofu.geom</span></code></a>.</p>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="index.html">Homepage</a></li>
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">How to create a diagnostic geometry</a><ul>
+<li><a class="reference internal" href="#creating-plotting-and-saving-a-vessel">Creating, plotting and saving a vessel</a></li>
+<li><a class="reference internal" href="#creating-plotting-and-saving-structural-elements">Creating, plotting and saving structural elements</a></li>
+<li><a class="reference internal" href="#creating-apertures">Creating apertures</a></li>
+<li><a class="reference internal" href="#creating-plotting-and-saving-detectors-objects">Creating, plotting and saving detectors objects</a></li>
+<li><a class="reference internal" href="#creating-plotting-and-saving-gdetect-objects">Creating, plotting and saving GDetect objects</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Tutorial_Geom_HowToCreateGeometry.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>tofu.plugins.ITER.Bolo.geom._core &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="../../../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../../',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="../../../../../../index.html" />
+    <link rel="up" title="Module code" href="../../../../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.plugins.ITER.Bolo.geom._core</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Created on Wed Mar  5 10:42:24 2014</span>
+
+<span class="sd">@author: didiervezinet</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dtm</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<span class="c"># ToFu-specific</span>
+<span class="kn">import</span> <span class="nn">tofu.defaults</span> <span class="k">as</span> <span class="nn">tfd</span>
+<span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
+<span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+<span class="kn">from</span> <span class="nn">...</span> <span class="k">import</span> <span class="n">_path</span> <span class="k">as</span> <span class="n">_tfiter_path</span>
+<span class="kn">from</span> <span class="nn">...</span> <span class="k">import</span> <span class="n">Ves</span> <span class="k">as</span> <span class="n">tfiterVes</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Didier Vezinet&quot;</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;create_Apert&quot;</span><span class="p">,</span><span class="s">&quot;create_Detect&quot;</span><span class="p">,</span><span class="s">&quot;create_GDetect&quot;</span><span class="p">,</span> <span class="s">&quot;load&quot;</span><span class="p">]</span>
+
+
+<span class="n">Exp</span> <span class="o">=</span> <span class="s">&#39;ITER&#39;</span>
+
+<span class="n">SavePathObj</span> <span class="o">=</span> <span class="s">&#39;/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Objects_ITER/&#39;</span>
+<span class="n">SavePathInp</span> <span class="o">=</span> <span class="s">&#39;/afs/ipp-garching.mpg.de/home/g/gav/ToFu_ITER/Inputs_ITER/&#39;</span>
+
+
+
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c"># --------- Objects creation -------</span>
+<span class="c">############################################################################</span>
+
+
+<div class="viewcode-block" id="create_Apert"><a class="viewcode-back" href="../../../../../../Auto_tofu.plugins.ITER.html#tofu.plugins.ITER.Bolo.geom.create_Apert">[docs]</a><span class="k">def</span> <span class="nf">create_Apert</span><span class="p">(</span><span class="n">Name</span><span class="p">,</span> <span class="n">Ves</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">SavePathVes</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">SavePathInp</span><span class="o">=</span><span class="n">SavePathInp</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s">&#39;#&#39;</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s">&#39;m&#39;</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a Apert object (i.e.: aperture) with specified Name from either a file (.dat,.txt,.csv) or directly from a (2,N) or (N,2) numpy array</span>
+<span class="sd">    Object is created, Saved in SavePathObj and returned</span>
+<span class="sd">    If an input file is specified and the file name does not include an absolute path, the path specified in SavePathInp is used</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Name :          str</span>
+<span class="sd">        Name of the object to be created</span>
+<span class="sd">    Ves :           str / :class:`tofu.geom.Ves`</span>
+<span class="sd">        Ves object to which the aperture is associated, a file name can also be used if the Ves object was previously Saved</span>
+<span class="sd">    Poly :          str / np.ndarray</span>
+<span class="sd">        Numpy array or input file name (fed to numpy.loadtxt) used to specify the polygon to be used (should be (2,N) or (N,2) for N points)</span>
+<span class="sd">    shot :          int</span>
+<span class="sd">        Shot number from which the provided geometry is valid (useful for geometry changes bewteen campaigns)</span>
+<span class="sd">    SavePathVes :   None / str</span>
+<span class="sd">        (optional) if Ves is a str (i.e.: file name) or a list (i.e.: list of strings contained in the file name), specifies the path at which the file is to be found</span>
+<span class="sd">    SavePathObj :   None / str</span>
+<span class="sd">        (optional) Absolute path where the created object will be saved</span>
+<span class="sd">    SavePathInp :   None / str</span>
+<span class="sd">        (optional) Absolute path where the input file is to be found</span>
+<span class="sd">    comments :      str</span>
+<span class="sd">        (optional) str specifying the flag for comments in the Poly file (if Poly is a file name), fed to numpy.loadtxt</span>
+<span class="sd">    skiprows :      int</span>
+<span class="sd">        (optional) number of rows to be skipped in the Poly file (if Poly is a file name), fed to numpy.loadtxt</span>
+<span class="sd">    units :         str</span>
+<span class="sd">        Flag indicating in which units the input polygon is provided (in [&#39;m&#39;,&#39;cm&#39;,&#39;mm&#39;])</span>
+<span class="sd">    save :          bool</span>
+<span class="sd">        (optional) Flag indicating whether the created object should be Saved</span>
+<span class="sd">    Test :          bool</span>
+<span class="sd">        Flag indicating whether the inputs should be tested for conformity</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Apert :         :class:`tofu.geom.Apert`</span>
+<span class="sd">        The created Apert object</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">Test</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg Name must be a str !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Ves</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="n">tfg</span><span class="o">.</span><span class="n">Ves</span><span class="p">,</span><span class="nb">str</span><span class="p">],</span> <span class="s">&quot;Ves must be specified (tfg.Ves or file name) !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Poly</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">list</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="s">&quot;Poly must be specified (np.ndarray or file name) !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">,</span> <span class="s">&quot;Arg shot must be a int !&quot;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">SavePathVes</span><span class="p">,</span><span class="n">SavePathInp</span><span class="p">,</span><span class="n">SavePathObj</span><span class="p">]]),</span> <span class="s">&quot;Args [SavePathInp,SavePathObj] must be str !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">save</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">,</span> <span class="s">&quot;Arg save must be a bool !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">units</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">units</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;m&#39;</span><span class="p">,</span><span class="s">&#39;cm&#39;</span><span class="p">,</span><span class="s">&#39;mm&#39;</span><span class="p">],</span> <span class="s">&quot;Arg units must be in [&#39;m&#39;,&#39;cm&#39;,&#39;mm&#39;] !&quot;</span>
+
+    <span class="c"># Get default path for loading inputs and saving object</span>
+    <span class="c">#SavePathObj, SavePathInp = _get_defaultsSavePathsdtime(SavePathObj=SavePathObj, SavePathInp=SavePathInp, Type=&#39;Object&#39;)</span>
+    <span class="k">if</span> <span class="n">SavePathInp</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathInp</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="s">&#39;/tofu/plugins/&#39;</span><span class="o">+</span><span class="n">_Exp</span><span class="o">+</span><span class="s">&#39;/Bolo/geom/Inputs/&#39;</span>
+    <span class="k">if</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathObj</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="s">&#39;/tofu/plugins/&#39;</span><span class="o">+</span><span class="n">_Exp</span><span class="o">+</span><span class="s">&#39;/Bolo/geom/Objects/&#39;</span>
+
+    <span class="c"># Loading the Ves object</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">Ves</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="o">.</span><span class="n">list</span><span class="p">]:</span>
+        <span class="n">Ves</span> <span class="o">=</span> <span class="n">tfiterVes</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="n">Ves</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathVes</span><span class="p">)</span>
+
+    <span class="c"># Get polygon and info</span>
+    <span class="n">Poly</span><span class="p">,</span> <span class="n">addInfo</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">get_PolyFromPolyFileObj</span><span class="p">(</span><span class="n">Poly</span><span class="p">,</span> <span class="n">SavePathInp</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">comments</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="n">skiprows</span><span class="p">,</span> <span class="n">shape0</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="c"># Create Apert object</span>
+    <span class="n">Apert</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Apert</span><span class="p">(</span><span class="n">Name</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">Ves</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;ITER&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;Bolo&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="s">&#39;C&#39;</span><span class="p">,</span> <span class="n">Clock</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">)</span>
+
+    <span class="c"># Add info about input to Id</span>
+    <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">addInfo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">Apert</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">_USRdict</span><span class="p">[</span><span class="n">dd</span><span class="p">]</span> <span class="o">=</span> <span class="n">addInfo</span><span class="p">[</span><span class="n">dd</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">Apert</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">Apert</span></div>
+
+
+
+
+
+
+<div class="viewcode-block" id="create_Detect"><a class="viewcode-back" href="../../../../../../Auto_tofu.plugins.ITER.html#tofu.plugins.ITER.Bolo.geom.create_Detect">[docs]</a><span class="k">def</span> <span class="nf">create_Detect</span><span class="p">(</span><span class="n">Name</span><span class="p">,</span> <span class="n">Ves</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">LApert</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">SavePathVes</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">SavePathInp</span><span class="o">=</span><span class="n">SavePathInp</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s">&#39;#&#39;</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                  <span class="n">Cone_DRY</span><span class="o">=</span><span class="mf">0.0025</span><span class="p">,</span> <span class="n">Cone_DXTheta</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">1024.</span><span class="p">,</span> <span class="n">Cone_DZ</span><span class="o">=</span><span class="mf">0.0025</span><span class="p">,</span> <span class="n">Cone_NPsi</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">Cone_Nk</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span>
+                  <span class="n">Synth_dX12</span><span class="o">=</span><span class="p">[</span><span class="mf">0.005</span><span class="p">,</span> <span class="mf">0.005</span><span class="p">],</span> <span class="n">Synth_dX12Mode</span><span class="o">=</span><span class="s">&#39;abs&#39;</span><span class="p">,</span> <span class="n">Synth_ds</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span> <span class="n">Synth_dsMode</span><span class="o">=</span><span class="s">&#39;abs&#39;</span><span class="p">,</span> <span class="n">Synth_Colis</span><span class="o">=</span><span class="k">True</span><span class="p">,</span>
+                  <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcEtend</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcSpanImp</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcCone</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcPreComp</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">save_SynthDiag</span><span class="o">=</span><span class="k">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a :class:`tofu.geom.Detect` object (i.e.: detector) with specified Name from either a file (.dat,.txt,.csv) or directly from a (2,N) or (N,2) numpy array</span>
+<span class="sd">    Object is created, optionally Saved in SavePathObj and returned</span>
+<span class="sd">    If an input file is specified and the file name does not include an absolute path, the path specified in SavePathInp is used</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Name :          str</span>
+<span class="sd">        Name of the object to be created</span>
+<span class="sd">    Ves :           :class:`tofu.geom.Ves` or str</span>
+<span class="sd">        Ves object to which the aperture is associated, a file name can also be used if the Ves object was previously Saved</span>
+<span class="sd">    Poly :          str or np.ndarray</span>
+<span class="sd">        Numpy array or input file name (fed to numpy.loadtxt) used to specify the polygon to be used (should be (2,N) or (N,2) for N points)</span>
+<span class="sd">    LApert :        list</span>
+<span class="sd">        List of Apert objects to be associated to the detector</span>
+<span class="sd">    SavePathVes :   None / str</span>
+<span class="sd">        (optional) if Ves is a str (i.e.: file name) or a list (i.e.: list of strings contained in the file name), specifies the path at which the file is to be found</span>
+<span class="sd">    SavePathObj :   str</span>
+<span class="sd">        (optional) Absolute path where the created object will be Saved</span>
+<span class="sd">    SavePathInp :   str</span>
+<span class="sd">        (optional) Absolute path where the input file is to be found</span>
+<span class="sd">    comments :      str</span>
+<span class="sd">        (optional) str specifying the flag for comments in the Poly file (if Poly is a file name), fed to numpy.loadtxt</span>
+<span class="sd">    skiprows :      int</span>
+<span class="sd">        (optional) number of rows to be skipped in the Poly file (if Poly is a file name), fed to numpy.loadtxt</span>
+<span class="sd">    save :          bool</span>
+<span class="sd">        (optional) Flag indicating whether the created object should be Saved</span>
+<span class="sd">    save_SynthDiag :    bool</span>
+<span class="sd">        (optional) Flag indicating whether the pre-computed synthetic diagnostic mesh should also be saved (larger files) or whether it should be recomputed upon loading</span>
+
+<span class="sd">    To compute the VOS, tofu tests all points inside a 3D grid to see if each point is visible from the detector through the apertures or not</span>
+<span class="sd">    Cone_DR :        float</span>
+<span class="sd">        Resolution of the grid in the R direction, in meters</span>
+<span class="sd">    Cone_DTheta :    float</span>
+<span class="sd">        Resolution of the grid in the toroidal direction, in radians</span>
+<span class="sd">    Cone_DZ :        float</span>
+<span class="sd">        Resolution of the grid in the Z direction, in meters</span>
+
+<span class="sd">    In the particular case when the LOS of the detector lies entirely inside one poloidal cross-section (e.g.: tomography diagnostics),</span>
+<span class="sd">    tofu also computes the integral in the toroidal direction of the solid angle on a regular mesh (for faster computation of the geometry assuming toroidaly invariant basis functions)</span>
+<span class="sd">    This regular mesh is defined in 2D, by the distance between a mesh point and the detector (k) and by the poloidal angle between the LOS and the line going from the detector to the mesh point (psi)</span>
+<span class="sd">    Cone_NPsi :      20</span>
+<span class="sd">        Number of points of the regular mesh in psi direction (angle)</span>
+<span class="sd">    Cone_Nk :        60</span>
+<span class="sd">        Number of points of the regular mesh in k direction (distance)</span>
+
+<span class="sd">    To compute synthetic signal faster for any simulated emissivity, tofu can pre-compute a 3D mesh of the VOS and store it, with the associates solid angles</span>
+<span class="sd">    This 3D mesh is computed with respect to the LOS. One coordinate (s) is the distance along the LOS, the two others (1 and 2) are the distances in directions perpendicular to the LOS</span>
+<span class="sd">    Synth_dX12 :      list</span>
+<span class="sd">        Resolution of the mesh in the two directions perpendicular to the LOS</span>
+<span class="sd">    Synth_dX12Mode :  str</span>
+<span class="sd">        Flag indicating whether dX12 is an absolute value (&#39;abs&#39;, in meters) or a fraction of the maximum local with of the VOS (&#39;rel&#39;)</span>
+<span class="sd">    Synth_ds :        float</span>
+<span class="sd">        Resolution of the mesh in the direction parallel to the LOS</span>
+<span class="sd">    Synth_dsMode :    str</span>
+<span class="sd">        Flag indicating whether ds is an absolute value (&#39;abs&#39;, in meters) or a fraction of the maximum local with of the VOS (&#39;rel&#39;)</span>
+<span class="sd">    Synth_Colis :     bool</span>
+<span class="sd">        Flag indicating whether the collision detection should be activated</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Detect :           TFG.Detect</span>
+<span class="sd">        The created TFG.Detect object</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">Test</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg Name must be a str !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Ves</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="n">tfg</span><span class="o">.</span><span class="n">Ves</span><span class="p">,</span><span class="nb">str</span><span class="p">],</span> <span class="s">&quot;Ves must be specified (tfg.Ves or file name) !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Poly</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="p">,</span><span class="nb">list</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="s">&quot;Poly must be specified (np.ndarray or file name) !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">LApert</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="n">TFG</span><span class="o">.</span><span class="n">Apert</span><span class="p">,</span><span class="nb">str</span><span class="p">]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">LApert</span><span class="p">]),</span> <span class="s">&quot;Arg LApert must be a list of apertures, specified by file name or directly TFG.Apert !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">,</span> <span class="s">&quot;Arg shot must be a int !&quot;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">SavePathVes</span><span class="p">,</span><span class="n">SavePathInp</span><span class="p">,</span><span class="n">SavePathObj</span><span class="p">]]),</span> <span class="s">&quot;Args [SavePathInp,SavePathObj] must be str !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">save</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">,</span> <span class="s">&quot;Arg save must be a bool !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">units</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">units</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;m&#39;</span><span class="p">,</span><span class="s">&#39;cm&#39;</span><span class="p">,</span><span class="s">&#39;mm&#39;</span><span class="p">],</span> <span class="s">&quot;Arg units must be in [&#39;m&#39;,&#39;cm&#39;,&#39;mm&#39;] !&quot;</span>
+
+
+    <span class="c"># Get default path for loading inputs and saving object</span>
+    <span class="c">#SavePathObj, SavePathInp = _get_defaultsSavePathsdtime(SavePathObj=SavePathObj, SavePathInp=SavePathInp, Type=&#39;Object&#39;)</span>
+    <span class="k">if</span> <span class="n">SavePathInp</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathInp</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="s">&#39;/tofu/plugins/&#39;</span><span class="o">+</span><span class="n">_Exp</span><span class="o">+</span><span class="s">&#39;/Bolo/geom/Inputs/&#39;</span>
+    <span class="k">if</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathObj</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="s">&#39;/tofu/plugins/&#39;</span><span class="o">+</span><span class="n">_Exp</span><span class="o">+</span><span class="s">&#39;/Bolo/geom/Objects/&#39;</span>
+
+    <span class="c"># Loading the Ves object</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">Ves</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">str</span><span class="o">.</span><span class="n">list</span><span class="p">]:</span>
+        <span class="n">Ves</span> <span class="o">=</span> <span class="n">tfiterVes</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="n">Ves</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathVes</span><span class="p">)</span>
+
+    <span class="c"># Loading apertures</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">LApert</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">LApert</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">PathFileExt</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">_get_PathFileExt_FromName</span><span class="p">(</span><span class="n">LApert</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">Path</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">Lstr</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;TFG_Apert&#39;</span><span class="p">,</span><span class="s">&#39;ITER&#39;</span><span class="p">,</span><span class="s">&#39;Bolo&#39;</span><span class="p">,</span><span class="n">LApert</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span><span class="s">&#39;.npz&#39;</span><span class="p">])</span>
+            <span class="n">LApert</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">PathFileExt</span><span class="p">)</span>
+
+    <span class="c"># Get polygon and info</span>
+    <span class="n">Poly</span><span class="p">,</span> <span class="n">addInfo</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">get_PolyFromPolyFileObj</span><span class="p">(</span><span class="n">Poly</span><span class="p">,</span> <span class="n">SavePathInp</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">comments</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="n">skiprows</span><span class="p">,</span> <span class="n">shape0</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="c"># Create Detect</span>
+    <span class="n">Detect</span> <span class="o">=</span> <span class="n">TFG</span><span class="o">.</span><span class="n">Detect</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">Ves</span><span class="p">,</span> <span class="n">LApert</span><span class="o">=</span><span class="n">LApert</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;ITER&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;Bolo&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span>
+                        <span class="n">Cone_DRY</span><span class="o">=</span><span class="n">Cone_DRY</span><span class="p">,</span> <span class="n">Cone_DXTheta</span><span class="o">=</span><span class="n">Cone_DXTheta</span><span class="p">,</span> <span class="n">Cone_DZ</span><span class="o">=</span><span class="n">Cone_DZ</span><span class="p">,</span> <span class="n">Cone_NPsi</span><span class="o">=</span><span class="n">Cone_NPsi</span><span class="p">,</span> <span class="n">Cone_Nk</span><span class="o">=</span><span class="n">Cone_Nk</span><span class="p">,</span>
+                        <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcEtend</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcSpanImp</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcCone</span><span class="o">=</span><span class="n">CalcCone</span><span class="p">,</span> <span class="n">CalcPreComp</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">)</span>
+
+    <span class="c"># Now compute the pre-computed mesh for synthetic signal, with default or specified parameters</span>
+    <span class="k">if</span> <span class="n">CalcPreComp</span><span class="p">:</span>
+        <span class="n">LPar</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;dX12&#39;</span><span class="p">:</span><span class="n">Synth_dX12</span><span class="p">,</span> <span class="s">&#39;dX12Mode&#39;</span><span class="p">:</span><span class="n">Synth_dX12Mode</span><span class="p">,</span> <span class="s">&#39;ds&#39;</span><span class="p">:</span><span class="n">Synth_ds</span><span class="p">,</span> <span class="s">&#39;dsMode&#39;</span><span class="p">:</span><span class="n">Synth_dsMode</span><span class="p">,</span> <span class="s">&#39;Colis&#39;</span><span class="p">:</span><span class="n">Synth_Colis</span><span class="p">}</span>
+        <span class="n">Detect</span><span class="o">.</span><span class="n">set_SigPrecomp</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">Detect</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">Detect</span></div>
+
+
+
+
+
+
+
+<div class="viewcode-block" id="create_GDetect"><a class="viewcode-back" href="../../../../../../Auto_tofu.plugins.ITER.html#tofu.plugins.ITER.Bolo.geom.create_GDetect">[docs]</a><span class="k">def</span> <span class="nf">create_GDetect</span><span class="p">(</span><span class="n">Name</span><span class="p">,</span> <span class="n">LDetect</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">save_SynthDiag</span><span class="o">=</span><span class="k">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a :class:`tofu.geom.GDetect` object (i.e.: group of detectors, or camera) with specified Name from a list of Detect objects</span>
+<span class="sd">    Object is created, optionally Saved in SavePathObj and returned</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Name :          str</span>
+<span class="sd">        Name of the object to be created</span>
+<span class="sd">    LDetect :       list</span>
+<span class="sd">        List of already-created Detect objects</span>
+<span class="sd">    SavePathObj :   str</span>
+<span class="sd">        (optional) Absolute path where the created object will be Saved</span>
+<span class="sd">    save :          bool</span>
+<span class="sd">        (optional) Flag indicating whether the created object should be Saved</span>
+<span class="sd">    save_SynthDiag :    bool</span>
+<span class="sd">        (optional) Flag indicating whether the pre-computed synthetic diagnostic mesh should also be saved (larger files) or whether it should be recomputed upon loading</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    GD :            :class:`tofu.geom.GDetect`</span>
+<span class="sd">        The created object</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathObj</span> <span class="o">=</span> <span class="n">shot</span><span class="o">=</span><span class="n">LDetect</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">SavePath</span>
+
+    <span class="n">GD</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">GDetect</span><span class="p">(</span><span class="n">Name</span><span class="p">,</span> <span class="n">LDetect</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;ITER&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;Bolo&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">LDetect</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">shot</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">GD</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">SynthDiag</span><span class="o">=</span><span class="n">save_SynthDiag</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">GD</span></div>
+
+
+
+<div class="viewcode-block" id="load"><a class="viewcode-back" href="../../../../../../Auto_tofu.plugins.ITER.html#tofu.plugins.ITER.Bolo.geom.load">[docs]</a><span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">Name</span><span class="p">,</span> <span class="n">Cls</span><span class="o">=</span><span class="s">&#39;GDetect&#39;</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Load the desired object, identified by name and saving path</span>
+
+<span class="sd">    Searches in SavePathObj a ToFu object of the specified class (Cls) saved under the specified name (Name).</span>
+<span class="sd">    If a single match is found, the object is loaded and returned, otherwise an error is raised</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Name :      str</span>
+<span class="sd">        Name of the object</span>
+<span class="sd">    Cls :       str</span>
+<span class="sd">        Class of the object, in [&#39;Ves&#39;,&#39;Apert&#39;,&#39;Detect&#39;,&#39;GDetect&#39;]</span>
+<span class="sd">    SavePathObj :   str</span>
+<span class="sd">        Path under which the object is to be found</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">LD</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">SavePathObj</span><span class="p">)</span>
+    <span class="n">LD</span> <span class="o">=</span> <span class="p">[</span><span class="n">ff</span> <span class="k">for</span> <span class="n">ff</span> <span class="ow">in</span> <span class="n">LD</span> <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">ff</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;TFG_&#39;</span><span class="p">,</span><span class="s">&#39;ITER&#39;</span><span class="p">,</span><span class="s">&#39;Bolo&#39;</span><span class="p">,</span><span class="n">Cls</span><span class="p">,</span><span class="n">Name</span><span class="p">,</span><span class="s">&#39;.npz&#39;</span><span class="p">]])]</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">LD</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">,</span> <span class="s">&quot;Several or no matching file for &quot;</span><span class="o">+</span><span class="n">Name</span><span class="o">+</span><span class="s">&quot; of class &quot;</span><span class="o">+</span><span class="n">Cls</span><span class="o">+</span><span class="s">&quot; in &quot;</span><span class="o">+</span><span class="n">SavePathObj</span>
+
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">SavePathObj</span><span class="o">+</span><span class="n">LD</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">obj</span></div>
+
+
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>tofu.plugins.AUG.SXR.data._core &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="../../../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../../',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="../../../../../../index.html" />
+    <link rel="up" title="Module code" href="../../../../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.plugins.AUG.SXR.data._core</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provide basic python routines for load AUG SXR data in a ToFu-compatible format</span>
+
+<span class="sd">@author: didiervezinet</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">itertools</span> <span class="k">as</span> <span class="nn">itt</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="c"># import scipy.interpolate as scpinterp</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dtm</span>
+
+<span class="c"># ToFu specific</span>
+<span class="kn">import</span> <span class="nn">tofu.defaults</span> <span class="k">as</span> <span class="nn">tfd</span>
+<span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
+<span class="kn">import</span> <span class="nn">tofu.helper</span> <span class="k">as</span> <span class="nn">tfh</span>
+<span class="kn">import</span> <span class="nn">tofu.treat</span> <span class="k">as</span> <span class="nn">tft</span>
+<span class="kn">from</span> <span class="nn">...</span> <span class="k">import</span> <span class="n">_path</span> <span class="k">as</span> <span class="n">_tfaug_path</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">_helper</span> <span class="k">as</span> <span class="n">tfaugSXRh</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">geom</span> <span class="k">as</span> <span class="n">tfaugsxrg</span>
+
+<span class="c"># AUG specific</span>
+<span class="kn">import</span> <span class="nn">dd</span>
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Didier Vezinet&quot;</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;load&quot;</span><span class="p">]</span>
+
+
+
+
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">#       Default path for PreData saving</span>
+<span class="c">############################################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_get_defaultsSavePathsdtime</span><span class="p">(</span><span class="n">SavePathObj</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">SavePathInp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtFormat</span><span class="o">=</span><span class="n">tfd</span><span class="o">.</span><span class="n">dtmFormat</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s">&#39;Object&#39;</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">SavePathObj</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg SavePathObj must be a str !&quot;</span>
+    <span class="k">assert</span> <span class="n">SavePathInp</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">SavePathInp</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg SavePathInp must be a str !&quot;</span>
+    <span class="k">assert</span> <span class="n">dtime</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">dtime</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dtime</span><span class="p">,</span><span class="n">dtm</span><span class="o">.</span><span class="n">datetime</span><span class="p">),</span> <span class="s">&quot;Arg dtime must be a str or a dtm.datetime instance !&quot;</span>
+    <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dtFormat</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg dtFormat must be a str !&quot;</span>
+    <span class="n">RP</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">Find_Rootpath</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">SavePathInp</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathInp</span> <span class="o">=</span> <span class="n">RP</span><span class="o">+</span><span class="s">&#39;/Inputs_&#39;</span><span class="o">+</span><span class="n">Exp</span><span class="o">+</span><span class="s">&#39;/&#39;</span>
+    <span class="k">if</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathObj</span> <span class="o">=</span> <span class="n">RP</span><span class="o">+</span><span class="s">&#39;/Objects_&#39;</span><span class="o">+</span><span class="n">Exp</span><span class="o">+</span><span class="s">&#39;/&#39;</span> <span class="k">if</span> <span class="n">Type</span><span class="o">==</span><span class="s">&#39;Object&#39;</span> <span class="k">else</span> <span class="n">RP</span><span class="o">+</span><span class="s">&#39;/Outputs_&#39;</span><span class="o">+</span><span class="n">Exp</span><span class="o">+</span><span class="s">&#39;/&#39;</span>
+    <span class="k">if</span> <span class="n">dtime</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">dtime</span> <span class="o">=</span> <span class="n">dtm</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">dtime</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">dtime</span> <span class="o">=</span> <span class="n">dtm</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">dtime</span><span class="p">,</span><span class="n">dtFormat</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">SavePathObj</span><span class="p">,</span> <span class="n">SavePathInp</span><span class="p">,</span> <span class="n">dtime</span>
+
+
+
+
+
+
+
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">#       Data loading</span>
+<span class="c">############################################################################</span>
+
+
+<div class="viewcode-block" id="load"><a class="viewcode-back" href="../../../../../../Auto_tofu.plugins.AUG.html#tofu.plugins.AUG.SXR.data.load">[docs]</a><span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">shot</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Names</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Mode</span><span class="o">=</span><span class="s">&#39;SSX&#39;</span><span class="p">,</span> <span class="n">Dt</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Join</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">tRef</span><span class="o">=</span><span class="s">&#39;fmin&#39;</span><span class="p">,</span> <span class="n">Method</span><span class="o">=</span><span class="s">&#39;interp&#39;</span><span class="p">,</span> <span class="n">NoGeom</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">Tofu</span><span class="o">=</span><span class="k">True</span><span class="p">,</span>
+
+        <span class="n">Verb</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>    <span class="c"># Add kwdarg tRef to decide which time base to use</span>
+    <span class="sd">&quot;&quot;&quot; Load SXR data from the AUG database and returns it either as numpy arrays or a ToFu-compatible object with appropriate methods</span>
+
+
+<span class="sd">    Part of the difficulty is that all channels do not have the same sampling frequency and time vector.</span>
+<span class="sd">    Hence, there is an option to uniformize the time base.</span>
+
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    shot :      int</span>
+<span class="sd">        Shot number for which the SXR data should be loaded</span>
+<span class="sd">    Names :     None / str / list</span>
+<span class="sd">        If provided, data is loaded only for the specified channel(s)</span>
+<span class="sd">    Mode :      str</span>
+<span class="sd">        Flag indicating whether data should be loaded from a down-sampled database (&#39;SSX&#39;, , faster loading) or from the complete database ( depending on the channel)</span>
+<span class="sd">    Dt :        None / iterable</span>
+<span class="sd">        If provided, a len()=2 iterable giving the time interval of interest (recommended to avoid very large data files)</span>
+<span class="sd">    Join :      bool</span>
+<span class="sd">        Flag, useful when Mode=&#39;SX&#39;, indicating whether the different time bases of the channels shall be uniformized</span>
+<span class="sd">    tRef :      None / str / np.ndarray</span>
+<span class="sd">        Flag or time vector, useful when Mode=&#39;SX&#39; and Join=True, indicating which time basis should be used as a reference</span>
+<span class="sd">            - &#39;fmin&#39;: the time vector of the channel presenting the smallest sampling frequency is used as a reference</span>
+<span class="sd">            - &#39;fmax&#39;: the time vector of the channel presenting the highest sampling frequency is used as a reference</span>
+<span class="sd">            - any channel name: the time vector of the specifiec channel is used as a reference</span>
+<span class="sd">            - np.ndarray: the provided time vector is used as a reference</span>
+<span class="sd">    Method :    str</span>
+<span class="sd">        Flag, usefule when Mode=&#39;SX&#39; and Join=True, indicating how the</span>
+<span class="sd">    NoGeom :    bool</span>
+<span class="sd">        Flag indicating whether the data should be stripped of its geometrical calibration factor (thus being expressed in W instead of W/m2), to allow for:</span>
+<span class="sd">            - Application of a tofu-computed etendue in case of a LOS approach</span>
+<span class="sd">            - Direct use of the signal in case of a VOS approach</span>
+<span class="sd">    Tofu :      bool</span>
+<span class="sd">        Flag indicating whether the loaded data should be returned as (SXR, t, Names) where the first two are np.ndarrays and Names is a list or as a tofu.data.PreData object</span>
+<span class="sd">    Verb :      bool</span>
+<span class="sd">        Flag indicating whether extra comments should be printed to give feedback on the progress of the routine</span>
+<span class="sd">    Test :      bool</span>
+<span class="sd">        Flag indicating whether the inputs should be tested for conformity</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    out :       tuple / tofu.data.PreData</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">Test</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">,</span> <span class="s">&quot;Arg shot must be a int !&quot;</span>
+        <span class="k">assert</span> <span class="n">Names</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">Names</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">Names</span><span class="p">,</span><span class="s">&#39;__iter__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">Names</span><span class="p">])),</span> <span class="s">&quot;Arg Names must be a str or an iterable of str (channel names) !&quot;</span>
+        <span class="k">assert</span> <span class="n">Mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;SSX&#39;</span><span class="p">,</span><span class="s">&#39;SX&#39;</span><span class="p">],</span> <span class="s">&quot;Arg Mode must be in [&#39;SSX&#39;,&#39;SX&#39;] !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Join</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">,</span> <span class="s">&quot;Arg Join must be a bool !&quot;</span>
+        <span class="k">assert</span> <span class="n">Dt</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="n">Dt</span><span class="p">,</span><span class="s">&#39;__iter__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">Dt</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">float</span><span class="p">,</span><span class="nb">int</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span> <span class="k">for</span> <span class="n">dt</span> <span class="ow">in</span> <span class="n">Dt</span><span class="p">])</span> <span class="ow">and</span> <span class="n">Dt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">&lt;</span><span class="n">Dt</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="s">&quot;Arg Dt be an iterable of len()==2 with increasing values !&quot;</span>
+        <span class="k">assert</span> <span class="n">tRef</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">tRef</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">tRef</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="ow">and</span> <span class="n">tRef</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span><span class="p">),</span> <span class="s">&quot;Arg tRef must be a str or a 1D np.ndarray !&quot;</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">tRef</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="ow">and</span> <span class="n">Dt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="k">None</span><span class="p">),</span> <span class="s">&quot;Conflicting time interval between Dt and tRef !&quot;</span>
+        <span class="k">assert</span> <span class="n">Method</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;interp&#39;</span><span class="p">],</span> <span class="s">&quot;Arg Method must be in [&#39;interp&#39;] !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">NoGeom</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">,</span> <span class="s">&quot;Arg NoGeom must be a bool !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Tofu</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">,</span> <span class="s">&quot;Arg ToFu must be a bool !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Verb</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">,</span> <span class="s">&quot;Arg Verb must be a bool !&quot;</span>
+
+    <span class="c"># Pre-formatting input</span>
+    <span class="k">if</span> <span class="n">Mode</span><span class="o">==</span><span class="s">&#39;SSX&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">NoGeom</span><span class="p">:</span>
+        <span class="n">Names</span> <span class="o">=</span> <span class="p">[</span><span class="n">Names</span><span class="p">]</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">Names</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">else</span> <span class="n">Names</span>
+        <span class="n">Names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tfaugSXRh</span><span class="o">.</span><span class="n">_CamHeads</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">Names</span> <span class="ow">is</span> <span class="k">None</span> <span class="k">else</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Names</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">Dict</span> <span class="o">=</span> <span class="n">tfaugSXRh</span><span class="o">.</span><span class="n">_WhichSX</span><span class="p">(</span><span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">Names</span><span class="o">=</span><span class="n">Names</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="n">Verb</span><span class="p">)</span>
+        <span class="n">Names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">NN</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Names</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">NN</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">,</span> <span class="s">&quot;None of the desired channels available for {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">tRef</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">Dt</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">tRef</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">tRef</span><span class="p">)]</span>
+    <span class="n">Dtlarge</span> <span class="o">=</span> <span class="p">[</span><span class="n">Dt</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">Dt</span><span class="p">),</span> <span class="n">Dt</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mf">0.1</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">Dt</span><span class="p">)]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">Dt</span> <span class="ow">is</span> <span class="k">None</span> <span class="k">else</span> <span class="k">None</span>
+
+    <span class="c"># Loading</span>
+
+    <span class="c"># Use diagnostic SSX (down-sampled data)</span>
+    <span class="k">if</span> <span class="n">Mode</span><span class="o">==</span><span class="s">&#39;SSX&#39;</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Names</span> <span class="o">=</span> <span class="n">_load_SSX</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">Names</span><span class="p">,</span> <span class="n">NN</span><span class="p">,</span> <span class="n">Dt</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s">&quot;    Could not load SSX for &quot;</span><span class="p">,</span> <span class="n">shot</span><span class="p">)</span>
+            <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Names</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)),</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">)),</span> <span class="p">[]</span>
+
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">Names</span><span class="p">)</span><span class="o">==</span><span class="n">SXR</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;        There seems to be a mistake in the number of channels !&quot;</span>
+        <span class="n">indt</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="o">&gt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t</span><span class="o">&lt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[(</span><span class="n">t</span><span class="o">&gt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t</span><span class="o">&lt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+
+    <span class="c"># Use diagnostic SX.</span>
+    <span class="k">elif</span> <span class="n">Mode</span><span class="o">==</span><span class="s">&#39;SX&#39;</span><span class="p">:</span>
+
+        <span class="n">Ldiags</span> <span class="o">=</span> <span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="n">nn</span><span class="p">][</span><span class="s">&#39;Diag&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">Names</span><span class="p">]</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">Ldiags</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="ow">is</span> <span class="k">None</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">ind</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s">&quot;    Could not find &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">([</span><span class="n">Names</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)</span> <span class="k">if</span> <span class="n">ind</span><span class="p">[</span><span class="n">ii</span><span class="p">]])</span><span class="o">+</span><span class="s">&quot; in the SX shotfiles for {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shot</span><span class="p">))</span>
+
+        <span class="n">Names</span> <span class="o">=</span> <span class="p">[</span><span class="n">Names</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">ind</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span>
+        <span class="n">Ldiags</span> <span class="o">=</span> <span class="p">[</span><span class="n">Ldiags</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">ind</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span>
+        <span class="n">NN</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Names</span><span class="p">)</span>
+
+        <span class="n">Ldiagsu</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">Ldiags</span><span class="p">)))</span>
+        <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="k">None</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)],</span> <span class="p">[</span><span class="k">None</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)]</span>
+        <span class="n">dtl</span> <span class="o">=</span> <span class="n">Dtlarge</span> <span class="k">if</span> <span class="n">Join</span> <span class="k">else</span> <span class="n">Dt</span>    <span class="c"># To have margin (for boundary effects) for unifying the time basis</span>
+        <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s">&quot;---------------------------------------------------------&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Ldiagsu</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">_load_SX</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">Ldiagsu</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">Names</span><span class="p">,</span> <span class="n">NN</span><span class="p">,</span> <span class="n">Ldiags</span><span class="p">,</span> <span class="n">dtl</span><span class="p">,</span> <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s">&quot;    Could not load &quot;</span><span class="o">+</span><span class="n">Ldiagsu</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">+</span><span class="s">&quot; for &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">shot</span><span class="p">))</span>
+
+        <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">ii</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">SXR</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="ow">is</span> <span class="k">None</span><span class="p">]</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">]</span>
+        <span class="n">Names</span> <span class="o">=</span> <span class="p">[</span><span class="n">Names</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">]</span>
+        <span class="n">SXR</span> <span class="o">=</span> <span class="p">[</span><span class="n">SXR</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">]</span>
+        <span class="n">NN</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Names</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Join</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s">&quot;---------------------------------------------------------&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s">&quot;    Unifying the time bases&quot;</span><span class="p">)</span>
+            <span class="n">tRef</span> <span class="o">=</span> <span class="n">_get_tRef</span><span class="p">(</span><span class="n">Names</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tRef</span><span class="p">)</span>
+            <span class="n">tRef</span> <span class="o">=</span> <span class="n">tRef</span><span class="p">[(</span><span class="n">tRef</span><span class="o">&gt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">tRef</span><span class="o">&lt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+            <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">_Unify</span><span class="p">(</span><span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tRef</span><span class="p">,</span> <span class="n">Method</span><span class="o">=</span><span class="n">Method</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">Tofu</span><span class="p">:</span>
+            <span class="n">Tofu</span> <span class="o">=</span> <span class="k">False</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;ToFu output can only be issued if Join=True !&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">NoGeom</span> <span class="ow">and</span> <span class="n">NN</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">FourPiOnEt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">Dict</span><span class="p">[</span><span class="n">nn</span><span class="p">][</span><span class="s">&#39;MULTIA02&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">Names</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">SXR</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">:</span>
+            <span class="n">SXR</span> <span class="o">=</span> <span class="p">[</span><span class="n">SXR</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">/</span><span class="n">FourPiOnEt</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">SXR</span> <span class="o">=</span> <span class="n">SXR</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diag</span><span class="p">(</span><span class="mf">1.</span><span class="o">/</span><span class="n">FourPiOnEt</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">Tofu</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">(</span><span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Names</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">_create_PreData</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Names</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">tRef</span><span class="p">,</span> <span class="n">Method</span><span class="p">,</span> <span class="n">NoGeom</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+
+
+
+
+
+
+<span class="k">def</span> <span class="nf">_load_SSX</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">Names</span><span class="p">,</span> <span class="n">NN</span><span class="p">,</span> <span class="n">Dt</span><span class="p">):</span>
+    <span class="n">sh</span> <span class="o">=</span> <span class="n">dd</span><span class="o">.</span><span class="n">shotfile</span><span class="p">(</span><span class="s">&#39;SSX&#39;</span><span class="p">,</span><span class="n">shot</span><span class="p">)</span>
+    <span class="n">sxr</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="k">None</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)],</span> <span class="p">[</span><span class="k">None</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">load</span> <span class="o">=</span> <span class="n">sh</span><span class="p">(</span><span class="n">Names</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="n">load</span><span class="o">.</span><span class="n">time</span>
+            <span class="n">indin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">time</span><span class="o">.</span><span class="n">size</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">Dt</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+                <span class="n">indin</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">&gt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">time</span><span class="o">&lt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">indin</span><span class="p">):</span>
+                    <span class="n">indin</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">time</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Dt</span><span class="p">)))[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]]</span> <span class="o">=</span> <span class="k">True</span>
+            <span class="n">t</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="p">[</span><span class="n">indin</span><span class="p">]</span>
+            <span class="n">sxr</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">load</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">indin</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s">&quot;        Could not load SSX &quot;</span><span class="o">+</span><span class="n">Names</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">+</span><span class="s">&quot; for &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">shot</span><span class="p">))</span>
+    <span class="n">sh</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">ind</span> <span class="o">=</span> <span class="p">[</span><span class="n">ii</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">t</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="ow">is</span> <span class="k">None</span><span class="p">]</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">tt</span><span class="o">==</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">t</span><span class="p">]),</span> <span class="s">&quot;   SSX do not have same time base for all channels in &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">Names</span> <span class="o">=</span> <span class="p">[</span><span class="n">Names</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">]</span>
+    <span class="n">SXR</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">sxr</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">ind</span><span class="p">])</span><span class="o">.</span><span class="n">T</span>
+    <span class="k">return</span> <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Names</span>
+
+
+
+<span class="k">def</span> <span class="nf">_load_SX</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">diag</span><span class="p">,</span> <span class="n">Names</span><span class="p">,</span> <span class="n">NN</span><span class="p">,</span> <span class="n">Ldiags</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+    <span class="n">inds</span> <span class="o">=</span> <span class="p">[</span><span class="n">jj</span> <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">NN</span><span class="p">)</span> <span class="k">if</span> <span class="n">Ldiags</span><span class="p">[</span><span class="n">jj</span><span class="p">]</span><span class="o">==</span><span class="n">diag</span><span class="p">]</span>
+    <span class="n">sh</span> <span class="o">=</span> <span class="n">dd</span><span class="o">.</span><span class="n">shotfile</span><span class="p">(</span><span class="n">diag</span><span class="p">,</span> <span class="n">shot</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">inds</span><span class="p">)):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">load</span> <span class="o">=</span> <span class="n">sh</span><span class="p">(</span><span class="n">Names</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">jj</span><span class="p">]])</span>
+            <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="n">Names</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">jj</span><span class="p">]],</span> <span class="n">end</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="p">)</span>
+                <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+            <span class="n">time</span> <span class="o">=</span> <span class="n">load</span><span class="o">.</span><span class="n">time</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">Dt</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+                <span class="n">indin</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">&gt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">time</span><span class="o">&lt;=</span><span class="n">Dt</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">indin</span><span class="p">):</span>
+                    <span class="n">indin</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">time</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">Dt</span><span class="p">)))[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">]]</span> <span class="o">=</span> <span class="k">True</span>
+            <span class="n">t</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">jj</span><span class="p">]]</span> <span class="o">=</span> <span class="n">time</span><span class="p">[</span><span class="n">indin</span><span class="p">]</span>
+            <span class="n">SXR</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">jj</span><span class="p">]]</span> <span class="o">=</span> <span class="n">load</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">indin</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="n">end</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s">&quot;        Could not load &quot;</span><span class="o">+</span><span class="n">diag</span><span class="o">+</span><span class="s">&quot; &quot;</span><span class="o">+</span><span class="n">Names</span><span class="p">[</span><span class="n">inds</span><span class="p">[</span><span class="n">jj</span><span class="p">]]</span><span class="o">+</span><span class="s">&quot; for {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shot</span><span class="p">),</span> <span class="n">end</span><span class="o">=</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="n">end</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="n">sh</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span>
+
+
+
+
+
+
+
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">#           Secondary routines</span>
+<span class="c">############################################################################</span>
+
+<span class="k">def</span> <span class="nf">_get_tRef</span><span class="p">(</span><span class="n">Names</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tRef</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">tRef</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">tRef</span><span class="o">==</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">tRef</span><span class="p">),</span> <span class="s">&quot;Arg tRef must be a vector of increasing values !&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">tRef</span> <span class="ow">in</span> <span class="n">Names</span> <span class="ow">or</span> <span class="n">tRef</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;fmin&#39;</span><span class="p">,</span><span class="s">&#39;fmax&#39;</span><span class="p">],</span> <span class="s">&quot;Arg tRef must be a channel name or in [&#39;fmin&#39;,&#39;fmax&#39;] !&quot;</span>
+        <span class="k">if</span> <span class="n">tRef</span> <span class="ow">in</span> <span class="n">Names</span><span class="p">:</span>
+            <span class="n">tRef</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="n">Names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">tRef</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lf</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">tt</span><span class="p">))</span> <span class="k">for</span> <span class="n">tt</span> <span class="ow">in</span> <span class="n">t</span><span class="p">]</span>
+            <span class="n">tRef</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">lf</span><span class="p">))]</span> <span class="k">if</span> <span class="n">tRef</span><span class="o">==</span><span class="s">&#39;fmin&#39;</span> <span class="k">else</span> <span class="n">t</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">lf</span><span class="p">))]</span>
+    <span class="k">return</span> <span class="n">tRef</span>
+
+
+
+<span class="k">def</span> <span class="nf">_Unify</span><span class="p">(</span><span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tRef</span><span class="p">,</span> <span class="n">Method</span><span class="o">=</span><span class="s">&#39;interp&#39;</span><span class="p">):</span>
+    <span class="n">SXRref</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">tRef</span><span class="o">.</span><span class="n">size</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">SXR</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">Method</span><span class="o">==</span><span class="s">&#39;interp&#39;</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">SXR</span><span class="p">)):</span>
+            <span class="n">SXRref</span><span class="p">[:,</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">tRef</span><span class="p">,</span> <span class="n">t</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">SXR</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">SXRref</span><span class="p">,</span> <span class="n">tRef</span>
+
+
+
+
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c"># --------- Objects creation -------</span>
+<span class="c">############################################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_create_PreData</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Names</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">Dt</span><span class="p">,</span> <span class="n">tRef</span><span class="p">,</span> <span class="n">Method</span><span class="p">,</span> <span class="n">NoGeom</span><span class="p">,</span>
+                    <span class="n">Name</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Root</span><span class="o">=</span><span class="n">_tfaug_path</span><span class="o">.</span><span class="n">_Root</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="k">True</span><span class="p">,</span>
+                    <span class="n">SXInfo</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">Filt</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">TorPos</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">NamesOut</span><span class="o">=</span><span class="p">[],</span>
+                    <span class="n">CorrDef</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">NamesCorr</span><span class="o">=</span><span class="p">[],</span>
+                    <span class="n">Test</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the data from AUG shotfile for chosen shot and time interval, resampled with chosen frequency and using chosen diagnostic and return it as a TFT.PreData object</span>
+
+<span class="sd">    Paramaters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Name            str,    user-defined name to be given to the dataset for customization, advised to leave None (default) which automatically include useful information</span>
+<span class="sd">    shot            int,    shot number to be used for shotfile loading</span>
+<span class="sd">    Dt              list,   bounds of the time interval to which data should be restricted in seconds (default : [0,10])</span>
+<span class="sd">    MovMeanFreq     float,  frequency to used for resampling of the data in Hz (default 200.e3)</span>
+<span class="sd">    Diag            str,    diagnostic name to be used for shotfile loading, for SXR on AUG one can choose between &#39;SSX&#39; and &#39;SX&#39; (default)</span>
+<span class="sd">    Exp             str,    experiment name used shotfile loading (default: &#39;AUG&#39;)</span>
+<span class="sd">    NamesOut        list,   names of the SXR channels to be left out of the data because they are thought to be corrupted or useless (default : [])</span>
+<span class="sd">    OutChanDef      bool,   flag indicating whereas the default selection of corrupted channels shall be used (default : True)</span>
+<span class="sd">    SXInfo          bool,   flag indicating whereas the default selection of corrupted channels shall use info available from SXinfo (default : True)</span>
+<span class="sd">    Filt            bool,   flag indicating whether the default selection of corrupted channels shall use info regarding the filter type of each diode (default : True)</span>
+<span class="sd">    TorPos          bool,   flag indicating whether the default selection of corrupted channels shall use info regarding the toroidal position of each channel (default : True)</span>
+<span class="sd">    Resamp          bool,   flag indicating whether data shall be resampled (default : True)</span>
+<span class="sd">    interpkind      str,    type of interpolation to be used for the resampling (default : &#39;linear&#39;)</span>
+<span class="sd">    CorrDef         bool,   flag indicating whereas the default selection of channels needing correction shall be used (default : True)</span>
+<span class="sd">    NamesCorr       list,   names of the SXR channels that are thought to be needing automated correction by retrofit (default : [])</span>
+<span class="sd">    SavePathObj     str,    absolute path of the AUG ToFu objects (TFG.Tor and TFG.GDetect) to be used (default : None =&gt; automatic)</span>
+<span class="sd">    SavePathInp     str,    absolute path of the ...</span>
+<span class="sd">    dtimeObj        dtm.datetime object indicating the kind of kind of SXR diagnostic geometry that should be used (default : None =&gt; automatic)</span>
+<span class="sd">    dtFormat        str,    format to be used in the file names for the dtime indication (default : &quot;D%Y%m%d_T%H%M%S&quot;)</span>
+<span class="sd">    Test            bool,   flag indicating whether inputs shall be tested for consistency</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Pre :           TFT.PreData</span>
+<span class="sd">        Object containing the prepared data, additional treatments can be done using the object methods (channel selection, noise estimation...)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">Test</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">SXR</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="s">&quot;Arg SXR must be a np.ndarray !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="ow">is</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="n">SXR</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s">&quot;Arg t must be a time vector with size=SXR.shape[0] !&quot;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">SXInfo</span><span class="p">,</span><span class="n">Filt</span><span class="p">,</span><span class="n">TorPos</span><span class="p">]]),</span> <span class="s">&quot;Args [OutChanDef,SXInfo,Filt,TorPos] must be bools !&quot;</span>
+        <span class="k">assert</span> <span class="n">NamesOut</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">NamesOut</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">nn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">NamesOut</span><span class="p">])),</span> <span class="s">&quot;Arg NamesOut must be a list of Names !&quot;</span>
+
+
+    <span class="c"># Get pathfileext of geometry files to pass to PreData in case of data plotting with geometry</span>
+    <span class="n">CamHs</span> <span class="o">=</span> <span class="n">tfaugSXRh</span><span class="o">.</span><span class="n">_CamHeads</span><span class="p">()</span>
+    <span class="n">CamHs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">CamHs</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">Names</span><span class="p">])))</span>
+    <span class="n">LIdDet</span> <span class="o">=</span> <span class="n">tfaugsxrg</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">Cams</span><span class="o">=</span><span class="n">CamHs</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s">&#39;Id&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">CamHs</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">LIdDet</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">itt</span><span class="o">.</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">([</span><span class="n">idg</span><span class="o">.</span><span class="n">get_LObjasLId</span><span class="p">(</span><span class="n">Cls</span><span class="o">=</span><span class="s">&#39;Detect&#39;</span><span class="p">)[</span><span class="s">&#39;Detect&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">idg</span> <span class="ow">in</span> <span class="n">LIdDet</span><span class="p">]))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">LIdDet</span> <span class="o">=</span> <span class="n">LIdDet</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_LObjasLId</span><span class="p">(</span><span class="n">Cls</span><span class="o">=</span><span class="s">&#39;Detect&#39;</span><span class="p">)[</span><span class="s">&#39;Detect&#39;</span><span class="p">]</span>
+    <span class="n">LIdDet</span> <span class="o">=</span> <span class="p">[</span><span class="n">idd</span> <span class="k">for</span> <span class="n">idd</span> <span class="ow">in</span> <span class="n">LIdDet</span> <span class="k">if</span> <span class="n">idd</span><span class="o">.</span><span class="n">Name</span> <span class="ow">in</span> <span class="n">Names</span><span class="p">]</span>
+
+    <span class="c"># Path for saving PreData object</span>
+    <span class="k">if</span> <span class="n">SavePath</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePath</span> <span class="o">=</span> <span class="n">Root</span><span class="o">+</span><span class="s">&#39;/tofu/plugins/AUG/SXR/data/Outputs/&#39;</span>
+
+    <span class="c"># Loading data in tft.PreData object</span>
+    <span class="n">USRdict</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;Mode&#39;</span><span class="p">:</span><span class="n">Mode</span><span class="p">,</span> <span class="s">&#39;Dt&#39;</span><span class="p">:</span><span class="n">Dt</span><span class="p">,</span> <span class="s">&#39;tRef&#39;</span><span class="p">:</span><span class="n">tRef</span><span class="p">,</span> <span class="s">&#39;Method&#39;</span><span class="p">:</span><span class="n">Method</span><span class="p">,</span> <span class="s">&#39;NoGeom&#39;</span><span class="p">:</span><span class="n">NoGeom</span><span class="p">}</span>
+
+    <span class="c"># Creating the PreData object</span>
+    <span class="n">Pre</span> <span class="o">=</span> <span class="n">tft</span><span class="o">.</span><span class="n">PreData</span><span class="p">(</span><span class="n">SXR</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">Chans</span><span class="o">=</span><span class="n">Names</span><span class="p">,</span> <span class="n">Id</span><span class="o">=</span><span class="n">Name</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">,</span> <span class="n">LIdDet</span><span class="o">=</span><span class="n">LIdDet</span><span class="p">,</span> <span class="n">DtRef</span><span class="o">=</span><span class="n">Dt</span><span class="p">)</span>
+    <span class="n">Pre</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">set_USRdict</span><span class="p">(</span><span class="n">USRdict</span><span class="p">)</span>
+
+    <span class="c"># Getting Default corrupted channels out</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">SXInfo</span><span class="p">,</span><span class="n">Filt</span><span class="p">,</span><span class="n">TorPos</span><span class="p">]):</span>
+        <span class="n">LOut</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;Cam&#39;</span><span class="p">:[],</span> <span class="s">&#39;CamHead&#39;</span><span class="p">:[],</span> <span class="s">&#39;Name&#39;</span><span class="p">:[]}</span>
+        <span class="n">Lout</span> <span class="o">=</span> <span class="n">_GetDefOutChannels</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">Pre</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">LObj</span><span class="p">[</span><span class="s">&#39;Detect&#39;</span><span class="p">],</span> <span class="n">LOut</span><span class="p">,</span> <span class="n">SXInfo</span><span class="o">=</span><span class="n">SXInfo</span><span class="p">,</span> <span class="n">Filt</span><span class="o">=</span><span class="n">Filt</span><span class="p">,</span> <span class="n">TorPos</span><span class="o">=</span><span class="n">TorPos</span><span class="p">)</span>
+        <span class="n">NamesOut</span> <span class="o">=</span> <span class="n">NamesOut</span><span class="o">+</span><span class="n">Lout</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">LOut</span><span class="p">[</span><span class="s">&#39;CamHead&#39;</span><span class="p">]</span>
+    <span class="n">Pre</span><span class="o">.</span><span class="n">Out_add</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">NamesOut</span><span class="p">))),</span> <span class="n">LCrit</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">,</span><span class="s">&#39;Cam&#39;</span><span class="p">,</span><span class="s">&#39;CamHead&#39;</span><span class="p">])</span>
+
+
+    <span class="c"># Getting defaults Corr channels</span>
+    <span class="n">Corr</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;Cam&#39;</span><span class="p">:[],</span> <span class="s">&#39;CamHead&#39;</span><span class="p">:[],</span> <span class="s">&#39;Name&#39;</span><span class="p">:[]}</span>
+    <span class="k">if</span> <span class="n">CorrDef</span><span class="p">:</span>
+        <span class="n">Corr</span> <span class="o">=</span> <span class="n">_GetCorrChannels</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">Corr</span><span class="p">)</span>
+        <span class="n">NamesCorr</span> <span class="o">=</span> <span class="n">NamesCorr</span><span class="o">+</span><span class="n">Corr</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">Corr</span><span class="p">[</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">Corr</span><span class="p">[</span><span class="s">&#39;CamHead&#39;</span><span class="p">]</span>
+    <span class="n">Pre</span><span class="o">.</span><span class="n">Corr_add</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">NamesCorr</span><span class="p">))),</span> <span class="n">LCrit</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">,</span><span class="s">&#39;Cam&#39;</span><span class="p">,</span><span class="s">&#39;CamHead&#39;</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">Pre</span>
+
+
+
+
+
+
+
+
+
+<span class="k">def</span> <span class="nf">_GetDefOutChannels</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">LObjDet</span><span class="p">,</span> <span class="n">LOut</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Cam&#39;</span><span class="p">:[],</span><span class="s">&#39;CamHead&#39;</span><span class="p">:[],</span><span class="s">&#39;Name&#39;</span><span class="p">:[]},</span> <span class="n">SXInfo</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">Filt</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">TorPos</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">TorPos</span><span class="p">:</span>
+        <span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;F&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">Filt</span><span class="p">:</span>
+        <span class="n">Filt</span> <span class="o">=</span> <span class="p">[(</span><span class="n">usr</span><span class="p">[</span><span class="s">&#39;FiltMat&#39;</span><span class="p">],</span><span class="n">usr</span><span class="p">[</span><span class="s">&#39;FiltThick&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">usr</span> <span class="ow">in</span> <span class="n">LObjDet</span><span class="p">[</span><span class="s">&#39;USRdict&#39;</span><span class="p">]]</span>
+        <span class="n">Filtu</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">Filt</span><span class="p">))</span>
+        <span class="n">FiltRef</span> <span class="o">=</span> <span class="p">[</span><span class="n">Filt</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span> <span class="k">for</span> <span class="n">ff</span> <span class="ow">in</span> <span class="n">Filtu</span><span class="p">]</span>
+        <span class="n">FiltRef</span> <span class="o">=</span> <span class="n">Filtu</span><span class="p">[</span><span class="n">FiltRef</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">FiltRef</span><span class="p">))]</span>
+        <span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">LObjDet</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">LObjDet</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">]))</span> <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">LObjDet</span><span class="p">[</span><span class="s">&#39;USRdict&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;FiltMat&#39;</span><span class="p">],</span><span class="n">LObjDet</span><span class="p">[</span><span class="s">&#39;USRdict&#39;</span><span class="p">][</span><span class="n">ii</span><span class="p">][</span><span class="s">&#39;FiltThick&#39;</span><span class="p">])</span><span class="o">==</span><span class="n">FiltRef</span><span class="p">]</span>
+    <span class="c"># The rest is taken from SXinfo (update regularly)</span>
+    <span class="k">if</span> <span class="n">SXInfo</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">31679</span><span class="p">:</span>
+            <span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;F_019&#39;</span><span class="p">,</span> <span class="s">&#39;J_057&#39;</span><span class="p">,</span><span class="s">&#39;J_058&#39;</span><span class="p">,</span><span class="s">&#39;J_059&#39;</span><span class="p">,</span><span class="s">&#39;J_060&#39;</span><span class="p">,</span> <span class="s">&#39;J_079&#39;</span><span class="p">,</span><span class="s">&#39;J_082&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">25987</span><span class="p">:</span>
+            <span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;K_020&#39;</span><span class="p">,</span><span class="s">&#39;K_049&#39;</span><span class="p">,</span><span class="s">&#39;K_058&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">26663</span><span class="p">:</span>
+            <span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;K_057&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">27489</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;=</span> <span class="mi">31621</span><span class="p">:</span>
+            <span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;I_061&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">30506</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;=</span> <span class="mi">31549</span><span class="p">:</span>
+            <span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;I_060&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">25823</span>  <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;=</span> <span class="mi">25890</span><span class="p">:</span>
+            <span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;L&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">30161</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;=</span> <span class="mi">30425</span><span class="p">:</span>
+            <span class="n">LOut</span><span class="p">[</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;H&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">LOut</span>
+
+
+
+
+
+<span class="k">def</span> <span class="nf">_GetCorrChannels</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">Corr</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Name&#39;</span><span class="p">:[],</span><span class="s">&#39;Cam&#39;</span><span class="p">:[],</span><span class="s">&#39;CamHead&#39;</span><span class="p">:[]}):</span>
+    <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">30446</span><span class="p">:</span>
+        <span class="n">Corr</span><span class="p">[</span><span class="s">&#39;CamHead&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;H2&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">shot</span> <span class="o">==</span> <span class="mi">25854</span><span class="p">:</span>
+        <span class="n">Corr</span><span class="p">[</span><span class="s">&#39;CamHead&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="p">[</span><span class="s">&#39;J2&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">31802</span><span class="p">:</span>
+        <span class="n">Corr</span><span class="p">[</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="s">&#39;L&#39;</span>
+        <span class="n">Corr</span><span class="p">[</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="s">&#39;M&#39;</span>
+    <span class="k">return</span> <span class="n">Corr</span>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

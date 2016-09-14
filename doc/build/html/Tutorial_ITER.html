@@ -1,0 +1,143 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ITER-specific tutorial &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="iter-specific-tutorial">
+<h1>ITER-specific tutorial<a class="headerlink" href="#iter-specific-tutorial" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="how-to-access-the-tofu-library">
+<h2>How to access the ToFu library<a class="headerlink" href="#how-to-access-the-tofu-library" title="Permalink to this headline">¶</a></h2>
+<p>The plugin for ITER is hosted on the theory (Tok) clusters of the Max-Planck Institute for Plasma Physics (IPP) in Garching.
+If you have an account in IPP, you can then connect to one of the tok clusters where the library is hosted, via the command:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">ssh</span> <span class="n">toki01</span>
+</pre></div>
+</div>
+<p>Enter your password and then you need to load the module in the terminal</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">module</span> <span class="n">load</span> <span class="n">tofu</span>
+</pre></div>
+</div>
+<p>You may need to load other modules on which ToFu depends (see the <a class="reference external" href="Dependencies.html">dependencies</a>).</p>
+<p>You can then start a ipython console and load the AUG plugin for ToFu:</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">tofu.plugins.ITER</span> <span class="k">as</span> <span class="nn">tfITER</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="how-to-load-existing-geometry">
+<h2>How to load existing geometry<a class="headerlink" href="#how-to-load-existing-geometry" title="Permalink to this headline">¶</a></h2>
+<p>You can now load the geometry that was already computed and stored for some diagnostics (only the Soft X-Ray diagnostic at this date).
+In general loading the geometry means using a method of the plugin that will load and return a list of <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> instances.
+On AUG, each <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> instance corresponds to a camera head.
+Since the geometry (position, aperture size...) of each camera head may change in time (changes are sometimes implemented between experimental campaigns), you can specify a shot number and the plugin will return the latest geometry that was computed before that shot number (only a few have been computed so far, but more will come).</p>
+<div class="highlight-default"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">LGD</span> <span class="o">=</span> <span class="n">tfAUG</span><span class="o">.</span><span class="n">SXR</span><span class="o">.</span><span class="n">geom</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">shot</span><span class="o">=</span><span class="mi">31801</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This command returns a list of <a class="reference internal" href="Auto_tofu.geom.html#tofu.geom.GDetect" title="tofu.geom.GDetect"><code class="xref py py-class docutils literal"><span class="pre">tofu.geom.GDetect</span></code></a> instances with the latest geometry computed before shot 31801.</p>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference external" href="index.html">Homepage</a></li>
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">ITER-specific tutorial</a><ul>
+<li><a class="reference internal" href="#how-to-access-the-tofu-library">How to access the ToFu library</a></li>
+<li><a class="reference internal" href="#how-to-load-existing-geometry">How to load existing geometry</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Tutorial_ITER.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">tofu v1.1</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>
