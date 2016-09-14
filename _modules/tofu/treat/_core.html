@@ -1,0 +1,796 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>tofu.treat._core &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.treat._core</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provide data handling class and methods (storing, processing, plotting...)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+
+
+<span class="c"># ToFu-specific</span>
+<span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_compute</span> <span class="k">as</span> <span class="n">_tft_c</span>
+<span class="kn">from</span> <span class="nn">.</span> <span class="k">import</span> <span class="n">_plot</span> <span class="k">as</span> <span class="n">_tft_p</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Didier Vezinet&quot;</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;PreData&quot;</span><span class="p">]</span>
+
+
+
+<div class="viewcode-block" id="PreData"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData">[docs]</a><span class="k">class</span> <span class="nc">PreData</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A class defining a data-handling object, data is stored as read-only attribute, copies of it can be modified, methods for plotting, saving...</span>
+
+<span class="sd">    The name of the class refers to Pre-treatment Data (i.e.: in the context of tomography, data that is pre-treated before being fed to an inversion algorithm).</span>
+<span class="sd">    ToFu provide a generic data-handling class, which comes a robust data storing policy: the input data is stored in a read-only attribute and the data-processing methods are used on a copy (e.g.: for computing the SVD, Fourier transform, shorten the time interval of interest, eliminate some channels...).</span>
+<span class="sd">    Furthermore, methods for interactive plotting are provided as well as a saving method</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    -----------</span>
+
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">    --------</span>
+<span class="sd">    obj :       PreData</span>
+<span class="sd">        The created instance</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+
+
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Chans</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Id</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="k">None</span><span class="p">,</span>
+                 <span class="n">LIdDet</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">DtRef</span><span class="o">=</span><span class="k">None</span><span class="p">,</span>
+                 <span class="n">MovMeanfreq</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">Resamp</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">interpkind</span><span class="o">=</span><span class="s">&#39;linear&#39;</span><span class="p">,</span> <span class="n">indOut</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">indCorr</span><span class="o">=</span><span class="k">None</span><span class="p">,</span>
+
+                 <span class="n">DF</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Harm</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">DFEx</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">HarmEx</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">lt</span><span class="o">=</span><span class="p">[],</span> <span class="n">lNames</span><span class="o">=</span><span class="p">[],</span>
+                 <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Done</span> <span class="o">=</span> <span class="k">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_Id</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="n">Diag</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="n">dtime</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="n">dtimeIn</span><span class="p">,</span> <span class="n">Dt</span><span class="o">=</span><span class="n">Dt</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">Chans</span><span class="o">=</span><span class="n">Chans</span><span class="p">,</span> <span class="n">DtRef</span><span class="o">=</span><span class="n">DtRef</span><span class="p">,</span> <span class="n">LIdDet</span><span class="o">=</span><span class="n">LIdDet</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_timeResamp</span><span class="p">(</span><span class="n">MovMeanfreq</span><span class="p">,</span> <span class="n">Resamp</span><span class="o">=</span><span class="n">Resamp</span><span class="p">,</span> <span class="n">interpkind</span><span class="o">=</span><span class="n">interpkind</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="n">Test</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">Out_add</span><span class="p">(</span><span class="n">indOut</span><span class="o">=</span><span class="n">indOut</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Corr_add</span><span class="p">(</span><span class="n">indCorr</span><span class="o">=</span><span class="n">indCorr</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">substract_Dt</span><span class="p">(</span><span class="n">DtRef</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_fft</span><span class="p">(</span><span class="n">DF</span><span class="o">=</span><span class="n">DF</span><span class="p">,</span> <span class="n">Harm</span><span class="o">=</span><span class="n">Harm</span><span class="p">,</span> <span class="n">DFEx</span><span class="o">=</span><span class="n">DFEx</span><span class="p">,</span> <span class="n">HarmEx</span><span class="o">=</span><span class="n">HarmEx</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span><span class="n">lt</span><span class="o">=</span><span class="n">lt</span><span class="p">,</span> <span class="n">lNames</span><span class="o">=</span><span class="n">lNames</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Calc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_doAll</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PhysNoise</span> <span class="o">=</span> <span class="k">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_NoiseModel</span> <span class="o">=</span> <span class="k">None</span>
+
+
+
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Done</span> <span class="o">=</span> <span class="k">True</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">Id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">Exp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">Exp</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">shot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">shot</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">t</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">Dt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dt</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">Chans</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Chans</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">svd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_svd</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">FFT</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FFT</span>
+
+
+    <span class="k">def</span> <span class="nf">_check_inputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Id</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="k">None</span><span class="p">):</span>
+        <span class="n">_PreData_check_inputs</span><span class="p">(</span><span class="n">Id</span><span class="o">=</span><span class="n">Id</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_set_Id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Val</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Dt</span><span class="o">=</span><span class="k">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Done</span><span class="p">:</span>
+            <span class="n">Out</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">_get_FromItself</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="p">,{</span><span class="s">&#39;Exp&#39;</span><span class="p">:</span><span class="n">Exp</span><span class="p">,</span> <span class="s">&#39;Diag&#39;</span><span class="p">:</span><span class="n">Diag</span><span class="p">,</span> <span class="s">&#39;shot&#39;</span><span class="p">:</span><span class="n">shot</span><span class="p">,</span> <span class="s">&#39;dtime&#39;</span><span class="p">:</span><span class="n">dtime</span><span class="p">,</span> <span class="s">&#39;_dtimeIn&#39;</span><span class="p">:</span><span class="n">dtimeIn</span><span class="p">,</span> <span class="s">&#39;SavePath&#39;</span><span class="p">:</span><span class="n">SavePath</span><span class="p">})</span>
+            <span class="n">Exp</span><span class="p">,</span> <span class="n">Diag</span><span class="p">,</span> <span class="n">shot</span><span class="p">,</span> <span class="n">dtime</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="p">,</span> <span class="n">SavePath</span> <span class="o">=</span> <span class="n">Out</span><span class="p">[</span><span class="s">&#39;Exp&#39;</span><span class="p">],</span> <span class="n">Out</span><span class="p">[</span><span class="s">&#39;Diag&#39;</span><span class="p">],</span> <span class="n">Out</span><span class="p">[</span><span class="s">&#39;shot&#39;</span><span class="p">],</span> <span class="n">Out</span><span class="p">[</span><span class="s">&#39;dtime&#39;</span><span class="p">],</span> <span class="n">Out</span><span class="p">[</span><span class="s">&#39;dtimeIn&#39;</span><span class="p">],</span> <span class="n">Out</span><span class="p">[</span><span class="s">&#39;SavePath&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">Val</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+            <span class="n">Val</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">get_DefName</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">Dt</span><span class="o">=</span><span class="n">Dt</span><span class="p">)</span>
+        <span class="n">tfpf</span><span class="o">.</span><span class="n">_check_NotNone</span><span class="p">({</span><span class="s">&#39;Id&#39;</span><span class="p">:</span><span class="n">Val</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_inputs</span><span class="p">(</span><span class="n">Id</span><span class="o">=</span><span class="n">Val</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">Val</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="n">tfpf</span><span class="o">.</span><span class="n">_check_NotNone</span><span class="p">({</span><span class="s">&#39;Exp&#39;</span><span class="p">:</span><span class="n">Exp</span><span class="p">,</span> <span class="s">&#39;Diag&#39;</span><span class="p">:</span><span class="n">Diag</span><span class="p">,</span> <span class="s">&#39;shot&#39;</span><span class="p">:</span><span class="n">shot</span><span class="p">,</span> <span class="s">&#39;dtimeIn&#39;</span><span class="p">:</span><span class="n">dtimeIn</span><span class="p">})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_check_inputs</span><span class="p">(</span><span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="n">Diag</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="n">dtime</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="n">dtimeIn</span><span class="p">)</span>
+            <span class="n">Val</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">ID</span><span class="p">(</span><span class="s">&#39;PreData&#39;</span><span class="p">,</span> <span class="n">Val</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="n">Type</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePath</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="n">dtime</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="n">dtimeIn</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span> <span class="o">=</span> <span class="n">Val</span>
+
+    <span class="k">def</span> <span class="nf">_set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Chans</span><span class="p">,</span> <span class="n">DtRef</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">LIdDet</span><span class="o">=</span><span class="k">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_inputs</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">Chans</span><span class="o">=</span><span class="n">Chans</span><span class="p">,</span> <span class="n">DtRef</span><span class="o">=</span><span class="n">DtRef</span><span class="p">,</span> <span class="n">LIdDet</span><span class="o">=</span><span class="n">LIdDet</span><span class="p">)</span>
+
+        <span class="n">OutRef</span><span class="p">,</span> <span class="n">Out</span><span class="p">,</span> <span class="n">Outind</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">_PreData_set_data</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">Chans</span><span class="p">,</span> <span class="n">DtRef</span><span class="o">=</span><span class="n">DtRef</span><span class="p">,</span> <span class="n">LIdDet</span><span class="o">=</span><span class="n">LIdDet</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dataRef</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tRef</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ChanRef</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NChanRef</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LIdDetRef</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DtRef</span> <span class="o">=</span> <span class="n">OutRef</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Chans</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NChans</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LIdDet</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dt</span> <span class="o">=</span> <span class="n">Out</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indCorr</span> <span class="o">=</span> <span class="n">Outind</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LIdDetRef</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">set_LObj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_LIdDetRef</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="PreData.set_Dt"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.set_Dt">[docs]</a>    <span class="k">def</span> <span class="nf">set_Dt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Dt</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Set the time interval to which the data should be limited (does not affect the reference data)</span>
+
+<span class="sd">        While the original data set and time base are always preserved in the background, you can change your mind and focus on a smaller interval included in the original one.</span>
+<span class="sd">        This can be convenient for applying data treatment (SVD, fft...) to parts of the signal lifetime only.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Dt :    None / list</span>
+<span class="sd">            The time interval of interest, as a list of len()=2 in increasing values</span>
+<span class="sd">        Calc :  bool</span>
+<span class="sd">            Flag indicating whether the calculation should be triggered immediately</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_inputs</span><span class="p">(</span><span class="n">Dt</span><span class="o">=</span><span class="n">Dt</span><span class="p">)</span>
+        <span class="c"># assert Dt is None or (hasattr(Dt,&#39;__getitem__&#39;) and len(Dt)==2), &quot;Arg Dt must be a len==2 list, tuple or np.ndarray !&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Dt</span> <span class="o">=</span> <span class="n">Dt</span>
+        <span class="k">if</span> <span class="n">Calc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_doAll</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="PreData.set_Resamp"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.set_Resamp">[docs]</a>    <span class="k">def</span> <span class="nf">set_Resamp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Method</span><span class="o">=</span><span class="s">&#39;movavrg&#39;</span><span class="p">,</span> <span class="n">interpkind</span><span class="o">=</span><span class="s">&#39;linear&#39;</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Re-sample the data and time vector</span>
+
+<span class="sd">        Use a new time vector that can either be:</span>
+<span class="sd">            - provided directly (if t is not None)</span>
+<span class="sd">            - computed from an input sampling frequency (if f is not None)</span>
+<span class="sd">        If but t and f are provided, t is used as the time vector and f is only used for the moving average</span>
+
+<span class="sd">        Then, the data is re-computed on this new time vector using either interpolation (&#39;interp&#39;) or moving average (&#39;movavrg&#39;)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        t :             None / np.ndarray</span>
+
+<span class="sd">        f :             None / int / float</span>
+
+<span class="sd">        Method :        str</span>
+
+<span class="sd">        Resamp :        bool</span>
+
+<span class="sd">        interpkind :    str</span>
+
+<span class="sd">        Calc :          bool</span>
+<span class="sd">            Flag indicating whether the calculation should be triggered immediately</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_check_inputs</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span> <span class="n">f</span><span class="o">=</span><span class="n">f</span><span class="p">,</span> <span class="n">Method</span><span class="o">=</span><span class="n">Method</span><span class="p">,</span> <span class="n">Resamp</span><span class="o">=</span><span class="n">Resamp</span><span class="p">,</span> <span class="n">interpkind</span><span class="o">=</span><span class="n">interpkind</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="n">Calc</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Resamp_t</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Resamp_f</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Resamp_Method</span> <span class="o">=</span> <span class="n">Method</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Resamp_interpkind</span> <span class="o">=</span> <span class="n">interpkind</span>
+        <span class="k">if</span> <span class="n">Calc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_doAll</span><span class="p">()</span></div>
+
+
+
+
+<div class="viewcode-block" id="PreData.select"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.select">[docs]</a>    <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="s">&#39;Name&#39;</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">PostExp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="s">&#39;any&#39;</span><span class="p">,</span> <span class="n">InOut</span><span class="o">=</span><span class="s">&#39;In&#39;</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span> <span class="n">ToIn</span><span class="o">=</span><span class="k">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return a sub-set of the data (channels-wise selection)</span>
+
+<span class="sd">        Return an array of indices of channels selected according to the chosen criteria with chosen values</span>
+<span class="sd">        Use either Val or (PreExp and PostExp)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Val :       list or str</span>
+<span class="sd">            List of values that the chosen criteria must match (converted to one-item list if str)</span>
+<span class="sd">        Crit :      str</span>
+<span class="sd">            Criterion used to select some channels, must be among their tfpf.ID class attributes (e.g.: &#39;Name&#39;, &#39;SaveName&#39;...) or IFTF.ID.USRdict (&#39;Cam&#39;,...)</span>
+<span class="sd">        PreExp :    list or str</span>
+<span class="sd">            List of str expressions to be fed to eval(PreExp[ii]+&quot; Detect.Crit &quot;+PostExp[ii]) or eval(PreExp[ii]+&quot; Detect.USRdict.Crit &quot;+PostExp[ii])</span>
+<span class="sd">        PostExp :   list or str</span>
+<span class="sd">            List of str expressions to be fed to eval(PreExp[ii]+&quot; Detect.Crit &quot;+PostExp[ii]) or eval(PreExp[ii]+&quot; Detect.USRdict.Crit &quot;+PostExp[ii])</span>
+<span class="sd">        Log :       str</span>
+<span class="sd">            Flag (&#39;or&#39; or &#39;and&#39;) indicating whether to select the channels matching all criteria or any</span>
+<span class="sd">        InOut :     str</span>
+<span class="sd">            Flag (&#39;In&#39; or &#39;Out&#39;) indicating whether to select all channels matching the criterion, or all except those</span>
+<span class="sd">        Out :       type or str</span>
+<span class="sd">            Flag (bool, int or an attribute of tfpf.ID or tfpf.ID.USRdict) indicating whether to return an array of boolean indices or int indices, or a list of the chosen attributes (e.g.: &#39;Name&#39;)</span>
+<span class="sd">        ToIn :      bool</span>
+<span class="sd">            Flag indicating whether indices should be returned with respect to the channels that are considered as included only (see obj.In_list() to see these channels)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        ind :       np.ndarray</span>
+<span class="sd">            Indices of the selected channels, as a bool or int array</span>
+
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt; ind = TFT.PreData.select(Val=[&#39;H&#39;,&#39;J&#39;], Crit=&#39;Cam&#39;, Log=&#39;any&#39;, InOut=&#39;In&#39;, Out=bool)</span>
+<span class="sd">           Will return a bool array of the indices of all channels for which &#39;Cam&#39; is &#39;H&#39; or &#39;J&#39;</span>
+<span class="sd">        &gt;&gt; ind = PreData.select(Crit=&#39;Name&#39;, PreExp=[&quot;&#39;F&#39; in &quot;, &quot;&#39;6&#39; in &quot;], Log=&#39;and&#39;, InOut=&#39;In&#39;, Out=int)</span>
+<span class="sd">           Will return an int array of indices of all channels for which &#39;F&#39; and &#39;6&#39; are both included in the name</span>
+<span class="sd">        &gt;&gt; ind = PreData.select(Crit=&#39;CamHead&#39;, PreExp=[&quot;&#39;F&#39; in &quot;, &quot;&#39;2&#39; in &quot;], Log=&#39;any&#39;, InOut=&#39;Out&#39;, Out=&#39;Name&#39;)</span>
+<span class="sd">           Will return the names (as a list) of all channels except those that have a camera head name that includes a &#39;F&#39; or a &#39;2&#39; (i.e.: except camera heads &#39;F&#39; and &#39;H2&#39;, &#39;I2&#39;, &#39;J2&#39;, &#39;K2&#39;)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">ToIn</span><span class="p">:</span>
+            <span class="n">LD</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">LObj</span><span class="p">[</span><span class="s">&#39;Detect&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">LD</span><span class="p">[</span><span class="n">kk</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">LObj</span><span class="p">[</span><span class="s">&#39;Detect&#39;</span><span class="p">][</span><span class="n">kk</span><span class="p">][</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="p">(</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span><span class="p">)</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]]</span>
+            <span class="k">return</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">SelectFromIdLObj</span><span class="p">(</span><span class="n">LD</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="n">Val</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">Crit</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="n">PreExp</span><span class="p">,</span> <span class="n">PostExp</span><span class="o">=</span><span class="n">PostExp</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="n">Log</span><span class="p">,</span> <span class="n">InOut</span><span class="o">=</span><span class="n">InOut</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="n">Out</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">SelectFromIdLObj</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">LObj</span><span class="p">[</span><span class="s">&#39;Detect&#39;</span><span class="p">],</span> <span class="n">Val</span><span class="o">=</span><span class="n">Val</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">Crit</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="n">PreExp</span><span class="p">,</span> <span class="n">PostExp</span><span class="o">=</span><span class="n">PostExp</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="n">Log</span><span class="p">,</span> <span class="n">InOut</span><span class="o">=</span><span class="n">InOut</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="n">Out</span><span class="p">)</span></div>
+
+
+
+
+<div class="viewcode-block" id="PreData.Out_add"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.Out_add">[docs]</a>    <span class="k">def</span> <span class="nf">Out_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="p">[],</span> <span class="n">LCrit</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">,</span><span class="s">&#39;Cam&#39;</span><span class="p">,</span><span class="s">&#39;CamHead&#39;</span><span class="p">],</span> <span class="n">indOut</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Add desired channels to the list of channels to be excluded</span>
+
+<span class="sd">        It is possible to store a list a list of channels that are thought to be corrupted or more generally that, after closer inspection, are considered not fit.</span>
+<span class="sd">        This list is then automatically passed on to further ToFu objects (e.g.: for inversions), so that the corresponding data is excluded from all further processes.</span>
+<span class="sd">        PreData provides methods to append channel names to this list (in fact you can even exclude whole cameras).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Val :      list</span>
+<span class="sd">            Fed to self.select(), list of values for criteria in LCrit that should be used to exclude channels (e.g.: list of channel names of camera names)</span>
+<span class="sd">        LCrit :     list</span>
+<span class="sd">            Fed to self.select(), list of criteria against which to select the channels matching the values in Val (should be attributes of :class:`tofu.pathfile.ID` or of its USRdict attribute)</span>
+<span class="sd">        indOut :    None / np.ndarray</span>
+<span class="sd">            Alternatively, you can directly pass a (N,) bool array whereN matches the number of channels and True means that a channel should be excluded, thus setting self._indOut</span>
+<span class="sd">        Calc :      bool</span>
+<span class="sd">            Flag indicating whether the calculation should be triggered immediately</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">indOut</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indOut</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">indOut</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span><span class="o">==</span><span class="s">&#39;bool&#39;</span> <span class="ow">and</span> <span class="n">indOut</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">indOut</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="bp">self</span><span class="o">.</span><span class="n">_NChanRef</span><span class="p">,</span> <span class="s">&quot;Arg indOut must be a (N,) np.ndarray of bool !&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span> <span class="o">=</span> <span class="n">indOut</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">LVal</span><span class="o">==</span><span class="p">[]:</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">LCrit</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">_NChanRef</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">LCrit</span><span class="p">)):</span>
+                <span class="n">ind</span><span class="p">[</span><span class="n">ii</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="n">Val</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">LCrit</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">InOut</span><span class="o">=</span><span class="s">&#39;In&#39;</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Calc</span> <span class="o">&amp;</span> <span class="p">(</span><span class="ow">not</span> <span class="n">Val</span><span class="o">==</span><span class="p">[]</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">indOut</span> <span class="ow">is</span> <span class="k">None</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_doAll</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PreData.In_add"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.In_add">[docs]</a>    <span class="k">def</span> <span class="nf">In_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">LVal</span><span class="o">=</span><span class="p">[],</span> <span class="n">LCrit</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">,</span><span class="s">&#39;Cam&#39;</span><span class="p">,</span><span class="s">&#39;CamHead&#39;</span><span class="p">],</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Add channels to the list of channels to be re-included as valid channels</span>
+
+<span class="sd">        Provides a mechanism opposite to :meth:`~tofu.treat.PreData.Out_add()`.</span>
+<span class="sd">        We you change your mind about a series of channel and think they should be re-included as valid, pass them to this method using the same arguments as self.Out_add()</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Val :      list</span>
+<span class="sd">            Fed to self.select(), list of values for criteria in LCrit that should be used to exclude channels (e.g.: list of channel names of camera names)</span>
+<span class="sd">        LCrit :     list</span>
+<span class="sd">            Fed to self.select(), list of criteria against which to select the channels matching the values in Val (should be attributes of :class:`tofu.pathfile.ID` or of its USRdict attribute)</span>
+<span class="sd">        indOut :    None / np.ndarray</span>
+<span class="sd">            Alternatively, you can directly pass a (N,) bool array whereN matches the number of channels and True means that a channel should be excluded, thus setting self._indOut</span>
+<span class="sd">        Calc :      bool</span>
+<span class="sd">            Flag indicating whether the calculation should be triggered immediately</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">LVal</span><span class="o">==</span><span class="p">[]:</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">LCrit</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">_NChanRef</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">LCrit</span><span class="p">)):</span>
+                <span class="n">ind</span><span class="p">[</span><span class="n">ii</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="n">LVal</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">LCrit</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">InOut</span><span class="o">=</span><span class="s">&#39;Out&#39;</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">Calc</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_doAll</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PreData.Out_list"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.Out_list">[docs]</a>    <span class="k">def</span> <span class="nf">Out_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="s">&#39;Name&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return the list of excluded channel names (considered corrupted)</span>
+
+<span class="sd">        This lists the channels indicated by self._indOut, populated using self.Out_add() and de-populated using self.In_add().</span>
+<span class="sd">        The output can be returned as a list of channel Names</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Out :       str</span>
+<span class="sd">            Flag indicating in which form to return the output (fed to :meth:`~tofu.treat.PreData.select()`)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        L :         list</span>
+<span class="sd">            List of excluded channels in the required form</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Out</span><span class="o">=</span><span class="n">Out</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="p">[</span><span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">L</span><span class="p">))</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="n">L</span></div>
+
+<div class="viewcode-block" id="PreData.In_list"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.In_list">[docs]</a>    <span class="k">def</span> <span class="nf">In_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="s">&#39;Name&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return the list of included channel names (considered valid)</span>
+
+<span class="sd">        The equivalent of :meth:`~tofu.treat.PreData.Out_list()`, but this time returning the complementary list</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Out :       str</span>
+<span class="sd">            Flag indicating in which form to return the output (fed to :meth:`~tofu.treat.PreData.select()`)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        L :         list</span>
+<span class="sd">            List of excluded channels in the required form</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Out</span><span class="o">=</span><span class="n">Out</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="p">[</span><span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">L</span><span class="p">))</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="n">L</span></div>
+
+<div class="viewcode-block" id="PreData.interp"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.interp">[docs]</a>    <span class="k">def</span> <span class="nf">interp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lt</span><span class="o">=</span><span class="p">[],</span> <span class="n">lNames</span><span class="o">=</span><span class="p">[],</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Perform linear interpolation of data at chosen times for chosen channels</span>
+
+<span class="sd">        As opposed to self.set_t(), this method shall be used to interpolate data of a small number of channels at a small sumber of time points.</span>
+<span class="sd">        Use this to correct a small number of time points that are clearly corrupted when you think the rest shall be preserved.</span>
+
+<span class="sd">        !!! This is done with respect to the reference time vector and dataset, to avoid propagating errors through later data treatment (use self.plot(V=&#39;Ref&#39;) to plot the reference data set) !!!</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        lt :        list</span>
+<span class="sd">            Times at which linear interpolation should be performed</span>
+<span class="sd">        lNames :    list</span>
+<span class="sd">            Channels for which interpolation should be performed, one element per corresponding time point, elements can be:</span>
+<span class="sd">                - list of str: list of channel names that should be interpolated for the corresponding time point</span>
+<span class="sd">                - str: single channel name that should be interpolated for the corresponding time point</span>
+<span class="sd">                - &#39;All&#39;: all channels should be interpolated for the corresponding time point</span>
+<span class="sd">        Calc :      bool</span>
+<span class="sd">            Flag indicating whether data should be updated immediately</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt; obj.interp(lt=[2.55, 5.10, 6.84], lNames=[[&#39;H_021&#39;,&#39;J_014&#39;], &#39;F_10&#39;, &#39;All&#39;], Calc=True)</span>
+<span class="sd">           Will perform interpolation for 2 channels for the first time point, for one channel for the second, and for all channels for the last time point</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_interp_lt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interp_lNames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interp_UNames</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">_PreData_interp</span><span class="p">(</span><span class="n">lt</span><span class="o">=</span><span class="n">lt</span><span class="p">,</span> <span class="n">lNames</span><span class="o">=</span><span class="n">lNames</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">Calc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_doAll</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PreData.substract_Dt"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.substract_Dt">[docs]</a>    <span class="k">def</span> <span class="nf">substract_Dt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tsub</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Allows subtraction of data at one time step from all data</span>
+
+<span class="sd">        Can be convenient for plotting background-subtracted signal (background meaning signal before a reference time step).</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        tsub :     int / float / iterable</span>
+<span class="sd">            A time value, or a time interval indicating which part of the signal is to be considered as reference and subtracted from the rest</span>
+<span class="sd">                - int / float :</span>
+<span class="sd">        Calc :      bool</span>
+<span class="sd">            Flag indicating whether data should be updated immediately</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">tsub</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">tsub</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">,</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="s">&quot;Arg tsub must be a time value (int,float) or a time interval (list,tuple,np.ndarray) !&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="n">tsub</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">float</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">tsub</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tsub</span><span class="p">)</span><span class="o">==</span><span class="mi">2</span> <span class="ow">and</span> <span class="n">tsub</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">&gt;</span><span class="n">tsub</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">tsub</span><span class="p">)</span><span class="o">&gt;</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">)),</span> <span class="s">&quot;Arg tsub must be an increasing time interval larger than the signal time reolsution !&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Subtract_tsub</span> <span class="o">=</span> <span class="n">tsub</span>
+        <span class="k">if</span> <span class="n">Calc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_doAll</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="PreData.set_fft"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.set_fft">[docs]</a>    <span class="k">def</span> <span class="nf">set_fft</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">DF</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Harm</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">DFEx</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">HarmEx</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return the FFT-filtered signal (and the rest) in the chosen frequency window (in Hz) and in all the higher harmonics (optional)</span>
+
+<span class="sd">        Can also exclude a given interval and its higher harmonics from the filtering (optional)</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        DF :        iterable</span>
+<span class="sd">            Iterable of len()=2, containing the lower and upper bounds of the frequency interval (Hz) to be used for filtering</span>
+<span class="sd">        Harm :      bool</span>
+<span class="sd">            If True all the higher harmonics of the interval DF will also be included</span>
+<span class="sd">        DFEx :      list</span>
+<span class="sd">            List or tuple of len()=2, containing the lower and upper bounds of the frequency interval to be excluded from filtering (in case it overlaps with some high harmonics of DF)</span>
+<span class="sd">        HarmEx :    bool</span>
+<span class="sd">            If True all the higher harmonics of the interval DFEx will also be excluded</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FFTPar</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;DF&#39;</span><span class="p">:</span><span class="n">DF</span><span class="p">,</span> <span class="s">&#39;Harm&#39;</span><span class="p">:</span><span class="n">Harm</span><span class="p">,</span> <span class="s">&#39;DFEx&#39;</span><span class="p">:</span><span class="n">DFEx</span><span class="p">,</span> <span class="s">&#39;HarmEx&#39;</span><span class="p">:</span><span class="n">HarmEx</span><span class="p">}</span>
+        <span class="k">if</span> <span class="n">Calc</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_doAll</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_doAll</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Centralizes all the computations, run everytime something is updated (time interval, valid channels, resampling, subtraction, fft...) &quot;&quot;&quot;</span>
+
+        <span class="c"># Get the list of channels considered valid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Chans</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">In_list</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_NChans</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataRef</span><span class="p">[:,</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span><span class="p">]</span>
+
+        <span class="c"># Interp of individual corrupted time points (must be done on reference data and time vector to be robust)</span>
+        <span class="n">unames</span> <span class="o">=</span> <span class="p">[</span><span class="n">nn</span> <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interp_UNames</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">nn</span><span class="o">==</span><span class="s">&#39;All&#39;</span><span class="p">]</span>
+        <span class="n">inds</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="n">nn</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="s">&#39;Name&#39;</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)[</span><span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">_indOut</span><span class="p">]</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">unames</span><span class="p">]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">_PreData_doAll_interp</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tRef</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interp_lt</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interp_lNames</span><span class="p">,</span> <span class="n">unames</span><span class="p">,</span> <span class="n">inds</span><span class="p">)</span>
+
+        <span class="c"># Time re-sampling</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">_PreData_doAll_Resamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DtRef</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tRef</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Resamp_t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Resamp_f</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Resamp_Method</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Resamp_interpkind</span><span class="p">)</span>
+
+        <span class="c"># Subtracting reference time</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">_PreData_doAll_Subtract</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Subtract_tsub</span><span class="p">)</span>
+
+        <span class="c"># Performing fft</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">_PreData_doAll_FFT</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FFTPar</span><span class="p">)</span>
+
+        <span class="c"># Focus on time interval (only for visualization)</span>
+        <span class="n">indt</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span><span class="o">&gt;=</span><span class="bp">self</span><span class="o">.</span><span class="n">_Dt</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">t</span><span class="o">&lt;=</span><span class="bp">self</span><span class="o">.</span><span class="n">_Dt</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dt</span> <span class="ow">is</span> <span class="k">None</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">t</span><span class="o">.</span><span class="n">size</span><span class="p">,),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">indt</span><span class="p">,:],</span> <span class="n">t</span><span class="p">[</span><span class="n">indt</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="PreData.Corr_add"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.Corr_add">[docs]</a>    <span class="k">def</span> <span class="nf">Corr_add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="p">[],</span> <span class="n">LCrit</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">,</span><span class="s">&#39;Cam&#39;</span><span class="p">,</span><span class="s">&#39;CamHead&#39;</span><span class="p">],</span> <span class="n">indCorr</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Add channels to the list of channels that are thought to need correction</span>
+
+<span class="sd">        When a channel is suspected to need correction (mismatching retrofit due for example to wrong calibration), it can be included in a dedicated correction list.</span>
+<span class="sd">        Channels in this list can then be discarded for the inversion, a correction coefficient can be computed from the retrofit, and the inversion can be re-done using this correction coefficient.</span>
+<span class="sd">        This list works like the list of excluded / corrupted channels self.Out_list()</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Val :      list</span>
+<span class="sd">            Fed to self.select(), list of values for criteria in LCrit that should be used to exclude channels (e.g.: list of channel names of camera names)</span>
+<span class="sd">        LCrit :     list</span>
+<span class="sd">            Fed to self.select(), list of criteria against which to select the channels matching the values in Val (should be attributes of :class:`tofu.pathfile.ID` or of its USRdict attribute)</span>
+<span class="sd">        indCorr :    None / np.ndarray</span>
+<span class="sd">            Alternatively, you can directly pass a (N,) bool array whereN matches the number of channels and True means that a channel should be excluded, thus setting self._indCorr</span>
+<span class="sd">        Calc :      bool</span>
+<span class="sd">            Flag indicating whether the calculation should be triggered immediately</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">indCorr</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">indCorr</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">and</span> <span class="n">indCorr</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">name</span><span class="o">==</span><span class="s">&#39;bool&#39;</span> <span class="ow">and</span> <span class="n">indCorr</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">indCorr</span><span class="o">.</span><span class="n">size</span><span class="o">==</span><span class="bp">self</span><span class="o">.</span><span class="n">_NChanRef</span><span class="p">,</span> <span class="s">&quot;Arg indCorr must be a (N,) np.ndarray of bool !&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_indCorr</span> <span class="o">=</span> <span class="n">indCorr</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">LVal</span><span class="o">==</span><span class="p">[]:</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">LCrit</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">_NChanRef</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">LCrit</span><span class="p">)):</span>
+                <span class="n">ind</span><span class="p">[</span><span class="n">ii</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="n">LVal</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">LCrit</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">InOut</span><span class="o">=</span><span class="s">&#39;In&#39;</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_indCorr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indCorr</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PreData.Corr_remove"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.Corr_remove">[docs]</a>    <span class="k">def</span> <span class="nf">Corr_remove</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="p">[],</span> <span class="n">LCrit</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;Name&#39;</span><span class="p">,</span><span class="s">&#39;Cam&#39;</span><span class="p">,</span><span class="s">&#39;CamHead&#39;</span><span class="p">],</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Add channels to the list of channels to be re-inserted as valid channels</span>
+
+<span class="sd">        Works like self.In_add() (i.e.: opposite of self.Corr_add())</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Val :      list</span>
+<span class="sd">            Fed to self.select(), list of values for criteria in LCrit that should be used to exclude channels (e.g.: list of channel names of camera names)</span>
+<span class="sd">        LCrit :     list</span>
+<span class="sd">            Fed to self.select(), list of criteria against which to select the channels matching the values in Val (should be attributes of :class:`tofu.pathfile.ID` or of its USRdict attribute)</span>
+<span class="sd">        indCorr :    None / np.ndarray</span>
+<span class="sd">            Alternatively, you can directly pass a (N,) bool array whereN matches the number of channels and True means that a channel should be excluded, thus setting self._indCorr</span>
+<span class="sd">        Calc :      bool</span>
+<span class="sd">            Flag indicating whether the calculation should be triggered immediately</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">LVal</span><span class="o">==</span><span class="p">[]:</span>
+            <span class="n">ind</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">LCrit</span><span class="p">),</span><span class="bp">self</span><span class="o">.</span><span class="n">_NChanRef</span><span class="p">),</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">LCrit</span><span class="p">)):</span>
+                <span class="n">ind</span><span class="p">[</span><span class="n">ii</span><span class="p">,:]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="n">LVal</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">LCrit</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">InOut</span><span class="o">=</span><span class="s">&#39;Out&#39;</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_indCorr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indCorr</span> <span class="o">&amp;</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">ind</span><span class="p">,</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PreData.Corr_list"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.Corr_list">[docs]</a>    <span class="k">def</span> <span class="nf">Corr_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="s">&#39;Name&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Return the list of channel names needing correction</span>
+
+<span class="sd">        This lists the channels indicated by self._indOut, populated using self.Out_add() and de-populated using self.In_add().</span>
+<span class="sd">        The output can be returned as a list of channel Names</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Out :       str</span>
+<span class="sd">            Flag indicating in which form to return the output (fed to :meth:`~tofu.treat.PreData.select()`)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        L :         list</span>
+<span class="sd">            List of excluded channels in the required form</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Out</span><span class="o">=</span><span class="n">Out</span><span class="p">)</span>
+        <span class="n">L</span> <span class="o">=</span> <span class="p">[</span><span class="n">L</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">L</span><span class="p">))</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indCorr</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span>
+        <span class="k">return</span> <span class="n">L</span></div>
+
+<div class="viewcode-block" id="PreData.set_PhysNoise"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.set_PhysNoise">[docs]</a>    <span class="k">def</span> <span class="nf">set_PhysNoise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Mode</span><span class="o">=</span><span class="s">&#39;svd&#39;</span><span class="p">,</span> <span class="n">Phys</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">8</span><span class="p">),</span> <span class="n">DF</span><span class="o">=</span><span class="p">[</span><span class="mf">10.e3</span><span class="p">,</span><span class="mf">11.e3</span><span class="p">],</span> <span class="n">DFEx</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Harm</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">HarmEx</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">Deg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">Nbin</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">LimRatio</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">Plot</span><span class="o">=</span><span class="k">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Use a svd or a fft to estimate the physical part of the signal and the part which can be assimilated to noise, then uses specified degree for polynomial noise model</span>
+
+<span class="sd">        This method provides an easy way to compute the noise level on each channel.</span>
+<span class="sd">        It can be done in 2 different ways:</span>
+<span class="sd">            - &#39;svd&#39;: you have to provide the mode numbers that you think can be considered as physical, the signal will be re-constructed from these and the rest discarded as noise</span>
+<span class="sd">            - &#39;fft&#39;: you have to provide the frequency window that you think is physical (optionaly the higher harmonics can be included), the signal is re-constructed via inverse fourier and the rest discarded as noise</span>
+
+<span class="sd">        To help you decide which mode numbers of frequency interval to use, you can preliminarily use self.plot_svd() and self.plot_fft() to visualize the decompositions.</span>
+
+<span class="sd">        Note : this is only used to compute a noise estimate, stored separately, the total original signal is preserved</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Mode :      str</span>
+<span class="sd">            Flag indicating with which method should the noise be estimated (&#39;svd&#39; or &#39;fft&#39;)</span>
+<span class="sd">        Phys        list</span>
+<span class="sd">            Modes to be extracted from the svd (default: first 8 modes), use method .plot_svd() to choose the modes</span>
+<span class="sd">        DF          list</span>
+<span class="sd">            2 values delimiting a frequency interval (in Hz) from which to extract signal using a fft and rfft</span>
+<span class="sd">        Harm        bool</span>
+<span class="sd">            Flag, if True all the available higher harmonics of FreqIn will also be included in the physical signal</span>
+<span class="sd">        DFEx        list</span>
+<span class="sd">            2 values delimiting a frequency interval (in Hz) that shall be avoided in the physical signal (relevant if some high harmonics of DF intersect DFEx)</span>
+<span class="sd">        HarmEx      bool</span>
+<span class="sd">            Flag, if True all the available higher harmonics of Freqout will also be avoided in the physical signal</span>
+<span class="sd">        Deg         int</span>
+<span class="sd">            Degree to be used for the polynomial noise model</span>
+<span class="sd">        Nbin        int</span>
+<span class="sd">            Number of bins to be used for evaluating the noise (std) at various signal values</span>
+<span class="sd">        LimRatio    float</span>
+<span class="sd">            Ratio ... to be finished...</span>
+<span class="sd">        Plot        bool</span>
+<span class="sd">            Flag, if True the histogram of the estimated noise is plotted</span>
+
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt; obj.set_PhysNoise(Mode=&#39;svd&#39;, Phys=[0,1,2,3,4,5], Deg=0)</span>
+<span class="sd">            Will take the first 6 modes of the signal svd and consider as physical, the rest is used to compute a constant (Deg=0) noise estimate on each channel</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">Mode</span><span class="o">==</span><span class="s">&#39;svd&#39;</span><span class="p">:</span>
+            <span class="n">Physic</span><span class="p">,</span> <span class="n">Noise</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">SVDExtractPhysNoise</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">ModesPhys</span><span class="o">=</span><span class="n">Phys</span><span class="p">)</span>
+            <span class="n">Param</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;Phys&#39;</span><span class="p">:</span><span class="n">Phys</span><span class="p">}</span>
+        <span class="k">elif</span> <span class="n">Mode</span><span class="o">==</span><span class="s">&#39;FFT&#39;</span><span class="p">:</span>
+            <span class="n">Physic</span><span class="p">,</span> <span class="n">Noise</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">FourierExtract</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">DF</span><span class="o">=</span><span class="n">DF</span><span class="p">,</span> <span class="n">DFEx</span><span class="o">=</span><span class="n">DFEx</span><span class="p">,</span> <span class="n">Harm</span><span class="o">=</span><span class="n">Harm</span><span class="p">,</span> <span class="n">HarmEx</span><span class="o">=</span><span class="n">HarmEx</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="k">True</span><span class="p">)</span>
+            <span class="n">Param</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;DF&#39;</span><span class="p">:</span><span class="n">DF</span><span class="p">,</span> <span class="s">&#39;DFEx&#39;</span><span class="p">:</span><span class="n">DFEx</span><span class="p">,</span> <span class="s">&#39;Harm&#39;</span><span class="p">:</span><span class="n">Harm</span><span class="p">,</span> <span class="s">&#39;HarmEx&#39;</span><span class="p">:</span><span class="n">HarmEx</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PhysNoise</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;Mode&#39;</span><span class="p">:</span><span class="n">Mode</span><span class="p">,</span> <span class="s">&#39;Param&#39;</span><span class="p">:</span><span class="n">Param</span><span class="p">,</span> <span class="s">&#39;Physic&#39;</span><span class="p">:</span><span class="n">Physic</span><span class="p">,</span> <span class="s">&#39;Noise&#39;</span><span class="p">:</span><span class="n">Noise</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_set_NoiseModel</span><span class="p">(</span><span class="n">Deg</span><span class="o">=</span><span class="n">Deg</span><span class="p">,</span> <span class="n">Nbin</span><span class="o">=</span><span class="n">Nbin</span><span class="p">,</span> <span class="n">LimRatio</span><span class="o">=</span><span class="n">LimRatio</span><span class="p">,</span> <span class="n">Plot</span><span class="o">=</span><span class="n">Plot</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_set_NoiseModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Deg</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">Nbin</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">LimRatio</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">Plot</span><span class="o">=</span><span class="k">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Fit the noise as a function of the physical part of the signal by a polynomial, using np.polyfit and the noise level estimated from self.set_PhysNoise()</span>
+
+<span class="sd">        After the physical part of the data has been extracted with self.set_PhysNoise(), this function provides tools for estimating how the noise level varies with the signal value (i.e. fixed noise vs signal-dependent noise).</span>
+<span class="sd">        It fits the noise vs data plot to give a least-square noise model.</span>
+<span class="sd">        If you want a constant noise model, just use Deg=0.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Deg :       int</span>
+<span class="sd">            Degree to be used for the polynomial noise model</span>
+<span class="sd">        Nbin :      int</span>
+<span class="sd">            Number of bins to be used for evaluating the noise (std) at various signal values</span>
+<span class="sd">        LimRatio :  float</span>
+<span class="sd">            Ratio ...</span>
+<span class="sd">        Plot :      bool</span>
+<span class="sd">            Flag, if True the histogram of the estimated noise is plotted</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_NoiseModel</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Noise</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NoiseCoefs</span> <span class="o">=</span> <span class="n">_tft_c</span><span class="o">.</span><span class="n">_PreData_set_NoiseModel</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="PreData.plot"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.plot">[docs]</a>    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a4</span><span class="o">=</span><span class="k">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Plot the signal in an interactive window, no arguments needed</span>
+
+<span class="sd">        Plot an interactive matplotlib window to explore the data</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        a4 :        bool</span>
+<span class="sd">            Flag indicating whether the figure should be the size of a a4 sheet of paper (to facilitate printing)</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Lax :   list</span>
+<span class="sd">            List of plt.Axes on which the plots are made</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Lax</span> <span class="o">=</span> <span class="n">_tft_p</span><span class="o">.</span><span class="n">Plot_Signal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Chans</span><span class="p">,</span> <span class="n">nMax</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shot</span><span class="p">,</span> <span class="n">a4</span><span class="o">=</span><span class="n">a4</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Lax</span></div>
+
+
+<div class="viewcode-block" id="PreData.plot_svd"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.plot_svd">[docs]</a>    <span class="k">def</span> <span class="nf">plot_svd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Modes</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">NRef</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">a4</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Plot the chosen modes (topos and chronos) of the svd of the data, and the associated spectrum on a separate figure</span>
+
+<span class="sd">        Performs a svd of the data and plots the singular values, the temporal and spacial modes</span>
+
+<span class="sd">        Paramaters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        Modes :     int / iterable</span>
+<span class="sd">            Index of the modes to be plotted, the modes and sorted in decreasing order of singular value</span>
+<span class="sd">                - int : plots all modes in range(0,Modes)</span>
+<span class="sd">                - iterable : plots all modes whose index is contained in Modes</span>
+<span class="sd">        NRef :      None</span>
+<span class="sd">            Number of columns in the plot, if None set to len(Modes)/2 (i.e.: 2 modes plotted per axes)</span>
+<span class="sd">        a4 :        bool</span>
+<span class="sd">            Flag indicating whether the figure should be the size of a a4 sheet of paper (to facilitate printing)</span>
+<span class="sd">        Test :      bool</span>
+<span class="sd">            Flag indicating whether the inputs should be tested for conformity</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Lax :   list</span>
+<span class="sd">            List of plt.Axes on which the plots were made</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">Lax</span> <span class="o">=</span> <span class="n">_tft_p</span><span class="o">.</span><span class="n">SVDNoisePlot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">Modes</span><span class="o">=</span><span class="n">Modes</span><span class="p">,</span> <span class="n">NRef</span><span class="o">=</span><span class="n">NRef</span><span class="p">,</span> <span class="n">a4</span><span class="o">=</span><span class="n">a4</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="n">Test</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Lax</span></div>
+
+
+<div class="viewcode-block" id="PreData.plot_fft"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.plot_fft">[docs]</a>    <span class="k">def</span> <span class="nf">plot_fft</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="s">&#39;Name&#39;</span><span class="p">,</span> <span class="n">V</span><span class="o">=</span><span class="s">&#39;simple&#39;</span><span class="p">,</span> <span class="n">tselect</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Fselect</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">PostExp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="s">&#39;or&#39;</span><span class="p">,</span> <span class="n">InOut</span><span class="o">=</span><span class="s">&#39;In&#39;</span><span class="p">,</span> <span class="n">SpectNorm</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">DTF</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">RatDef</span><span class="o">=</span><span class="mf">100.</span><span class="p">,</span> <span class="n">Inst</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">MainF</span><span class="o">=</span><span class="k">True</span><span class="p">,</span>
+                 <span class="n">ylim</span><span class="o">=</span><span class="p">(</span><span class="k">None</span><span class="p">,</span><span class="k">None</span><span class="p">),</span> <span class="n">cmap</span><span class="o">=</span><span class="n">plt</span><span class="o">.</span><span class="n">cm</span><span class="o">.</span><span class="n">gray_r</span><span class="p">,</span> <span class="n">a4</span><span class="o">=</span><span class="k">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Plot the power spectrum (fft) of the chosen signals</span>
+
+<span class="sd">        Computes the fft of the data and plots the power spectrum, normalized or not, for the chosen channels</span>
+
+<span class="sd">        Parameters Val, Crit, PreExp, PostExp, Log and InOut are for channel selection and are fed to :meth:`~tofu.treat.PreData.select()`</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        V :         str</span>
+<span class="sd">            Flag indicating whether the plot should be interactive, values in [&#39;simple&#39;,&#39;inter&#39;]</span>
+<span class="sd">        tselect :   None /</span>
+
+<span class="sd">        Fselect :   None /</span>
+
+<span class="sd">        SpectNorm : bool</span>
+<span class="sd">            Flag, if True the power spectrum is normalised to its maximum at each time step (default: True)</span>
+<span class="sd">        DTF :       float</span>
+<span class="sd">            Size (in seconds) of the running time window to be used for the windowed fft</span>
+<span class="sd">        RatDef :    float</span>
+<span class="sd">            Used if DTF not provided, the number by which the total signal duration is divided to get a time window</span>
+<span class="sd">        Inst :      bool</span>
+<span class="sd">            Flag, if true, the average of the signal is substracted at each time step to emphasize high frequencies (higher than the one associated to the running time window, default: True)</span>
+<span class="sd">        MainF :     bool</span>
+<span class="sd">            Flag</span>
+<span class="sd">        ylim :      tuple</span>
+<span class="sd">            Each limit which is not None is fed to plt.Axes.set_ylim()</span>
+<span class="sd">        a4 :        bool</span>
+<span class="sd">            Flag, if true the figure is sized so as to fill a a4 paper sheet</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        Lax :       list</span>
+<span class="sd">            List of plt.Axes on which the plots were made</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="n">Val</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">Crit</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="n">PreExp</span><span class="p">,</span> <span class="n">PostExp</span><span class="o">=</span><span class="n">PostExp</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="n">Log</span><span class="p">,</span> <span class="n">InOut</span><span class="o">=</span><span class="n">InOut</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">ToIn</span><span class="o">=</span><span class="k">True</span><span class="p">)</span>
+        <span class="n">Lax</span> <span class="o">=</span> <span class="n">_tft_p</span><span class="o">.</span><span class="n">_PreData_plot_fft</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Chans</span><span class="p">,</span> <span class="n">V</span><span class="p">,</span> <span class="n">ind</span><span class="p">,</span> <span class="n">Inst</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">DTF</span><span class="p">,</span> <span class="n">RatDef</span><span class="p">,</span> <span class="n">SpectNorm</span><span class="p">,</span> <span class="n">cmap</span><span class="p">,</span> <span class="n">ylim</span><span class="p">,</span> <span class="n">tselect</span><span class="p">,</span> <span class="n">Fselect</span><span class="p">,</span> <span class="n">a4</span><span class="o">=</span><span class="k">False</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Lax</span></div>
+
+    <span class="k">def</span> <span class="nf">_plot_NoiseVSPhys</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">Val</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="s">&#39;Name&#39;</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">PostExp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="s">&#39;any&#39;</span><span class="p">,</span> <span class="n">a4</span><span class="o">=</span><span class="k">False</span><span class="p">):</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="n">Val</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">Crit</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="n">PreExp</span><span class="p">,</span> <span class="n">PostExp</span><span class="o">=</span><span class="n">PostExp</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="n">Log</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">ToIn</span><span class="o">=</span><span class="k">True</span><span class="p">)</span>
+        <span class="n">LNames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">Val</span><span class="o">=</span><span class="n">Val</span><span class="p">,</span> <span class="n">Crit</span><span class="o">=</span><span class="n">Crit</span><span class="p">,</span> <span class="n">PreExp</span><span class="o">=</span><span class="n">PreExp</span><span class="p">,</span> <span class="n">PostExp</span><span class="o">=</span><span class="n">PostExp</span><span class="p">,</span> <span class="n">Log</span><span class="o">=</span><span class="n">Log</span><span class="p">,</span> <span class="n">Out</span><span class="o">=</span><span class="s">&#39;Name&#39;</span><span class="p">,</span> <span class="n">ToIn</span><span class="o">=</span><span class="k">True</span><span class="p">)</span>
+        <span class="n">Coefs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NoiseCoefs</span><span class="p">[:,</span><span class="n">ind</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NoiseCoefs</span><span class="o">.</span><span class="n">ndim</span><span class="o">==</span><span class="mi">2</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NoiseCoefs</span><span class="p">[</span><span class="n">ind</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">Plot_Noise</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_PhysNoise</span><span class="p">[</span><span class="s">&#39;Phys&#39;</span><span class="p">][:,</span><span class="n">ind</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PhysNoise</span><span class="p">[</span><span class="s">&#39;Noise&#39;</span><span class="p">][:,</span><span class="n">ind</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NoiseCoefs</span><span class="p">[:,</span><span class="n">ind</span><span class="p">],</span> <span class="n">LNames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_NoiseModel</span><span class="p">[</span><span class="s">&#39;Deg&#39;</span><span class="p">],</span> <span class="n">a4</span><span class="o">=</span><span class="n">a4</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PreData.save"><a class="viewcode-back" href="../../../Auto_tofu.treat.html#tofu.treat.PreData.save">[docs]</a>    <span class="k">def</span> <span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Path</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Mode</span><span class="o">=</span><span class="s">&#39;npz&#39;</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="k">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Save the object in folder Name, under file name SaveName, using specified mode</span>
+
+<span class="sd">        Most tofu objects can be saved automatically as numpy arrays (.npz, recommended) at the default location (recommended) by simply calling self.save()</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        SaveName :  None / str</span>
+<span class="sd">            The name to be used for the saved file, if None (recommended) uses self.Id.SaveName</span>
+<span class="sd">        Path :      None / str</span>
+<span class="sd">            Path specifying where to save the file, if None (recommended) uses self.Id.SavePath</span>
+<span class="sd">        Mode :      str</span>
+<span class="sd">            Flag specifying whether to save the object as a numpy array file (&#39;.npz&#39;, recommended) or an object using cPickle (not recommended, heavier and may cause retro-compatibility issues)</span>
+<span class="sd">        compressed :    bool</span>
+<span class="sd">            Flag, used when Mode=&#39;npz&#39;, indicating whether to use np.savez or np.savez_compressed (slower saving and loading but smaller files)</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tfpf</span><span class="o">.</span><span class="n">Save_Generic</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="n">SaveName</span><span class="p">,</span> <span class="n">Path</span><span class="o">=</span><span class="n">Path</span><span class="p">,</span> <span class="n">Mode</span><span class="o">=</span><span class="n">Mode</span><span class="p">,</span> <span class="n">compressed</span><span class="o">=</span><span class="n">compressed</span><span class="p">)</span></div></div>
+
+
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

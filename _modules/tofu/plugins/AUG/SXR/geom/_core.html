@@ -1,0 +1,751 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>tofu.plugins.AUG.SXR.geom._core &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="../../../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../../',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="../../../../../../index.html" />
+    <link rel="up" title="Module code" href="../../../../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.plugins.AUG.SXR.geom._core</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provides the basic ToFu geometry handling for the SXR diagnostic of AUG</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+
+<span class="kn">import</span> <span class="nn">itertools</span> <span class="k">as</span> <span class="nn">itt</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dtm</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+
+
+<span class="c"># ToFu specific</span>
+<span class="kn">import</span> <span class="nn">tofu.defaults</span> <span class="k">as</span> <span class="nn">tfd</span>
+<span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
+<span class="kn">import</span> <span class="nn">tofu.helper</span> <span class="k">as</span> <span class="nn">tfh</span>
+<span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+<span class="kn">from</span> <span class="nn">...</span> <span class="k">import</span> <span class="n">Ves</span> <span class="k">as</span> <span class="n">tfaugVes</span>
+<span class="kn">from</span> <span class="nn">...</span> <span class="k">import</span> <span class="n">_path</span> <span class="k">as</span> <span class="n">_tfaug_path</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">_helper</span> <span class="k">as</span> <span class="n">tfaugSXRh</span>
+
+
+<span class="c"># AUG specific</span>
+<span class="kn">import</span> <span class="nn">dd</span>
+
+<span class="n">__author__</span> <span class="o">=</span>    <span class="s">&quot;D. Vezinet&quot;</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;create&quot;</span><span class="p">,</span><span class="s">&quot;load&quot;</span><span class="p">,</span><span class="s">&quot;get_GeomFromShot&quot;</span><span class="p">]</span>
+
+
+<span class="n">_addpath</span> <span class="o">=</span> <span class="s">&#39;/tofu/plugins/AUG/SXR/geom&#39;</span>
+
+
+<span class="c">#########################################################</span>
+<span class="c">#########################################################</span>
+<span class="c">### Storing changes in geometry in a dictionary #########</span>
+<span class="c">#########################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_compareDictChan</span><span class="p">(</span><span class="n">Dict1</span><span class="p">,</span> <span class="n">Dict2</span><span class="p">):</span>
+    <span class="n">Crit</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;FiltThick&#39;</span><span class="p">,</span><span class="s">&#39;RPINHOLE&#39;</span><span class="p">,</span><span class="s">&#39;ZPINHOLE&#39;</span><span class="p">,</span><span class="s">&#39;REND&#39;</span><span class="p">,</span><span class="s">&#39;ZEND&#39;</span><span class="p">,</span><span class="s">&#39;Tor_Pos&#39;</span><span class="p">,</span><span class="s">&#39;CAMANGLE&#39;</span><span class="p">,</span><span class="s">&#39;P_Length&#39;</span><span class="p">,</span><span class="s">&#39;P_Width&#39;</span><span class="p">,</span><span class="s">&#39;Foc_Len&#39;</span><span class="p">,</span><span class="s">&#39;D_Length&#39;</span><span class="p">,</span><span class="s">&#39;D_Width&#39;</span><span class="p">,</span><span class="s">&#39;D_Gap&#39;</span><span class="p">,</span><span class="s">&#39;MULTIA02&#39;</span><span class="p">]</span>
+    <span class="n">Lim</span> <span class="o">=</span> <span class="p">[</span><span class="mf">5.e-6</span><span class="p">,</span> <span class="mf">0.5e-3</span><span class="p">,</span> <span class="mf">0.5e-3</span><span class="p">,</span> <span class="mf">0.5e-3</span><span class="p">,</span> <span class="mf">0.5e-3</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">,</span> <span class="mf">1.e6</span><span class="p">]</span>
+    <span class="n">CritCh</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">Change</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">Names1</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Dict1</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">Names2</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Dict2</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">Names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">Names1</span><span class="o">+</span><span class="n">Names2</span><span class="p">)))</span>
+
+    <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">Names</span><span class="p">:</span>
+        <span class="n">Change</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">Names1</span><span class="p">:</span>
+            <span class="n">Change</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dict2</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">Names2</span><span class="p">:</span>
+            <span class="n">Change</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span> <span class="o">=</span> <span class="n">Dict1</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Crit</span><span class="p">)):</span>
+                <span class="n">diff</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Dict1</span><span class="p">[</span><span class="n">nn</span><span class="p">][</span><span class="n">Crit</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span><span class="o">-</span><span class="n">Dict2</span><span class="p">[</span><span class="n">nn</span><span class="p">][</span><span class="n">Crit</span><span class="p">[</span><span class="n">ii</span><span class="p">]]))</span>
+                <span class="k">if</span> <span class="n">diff</span> <span class="o">&gt;</span> <span class="n">Lim</span><span class="p">[</span><span class="n">ii</span><span class="p">]:</span>
+                    <span class="n">Change</span><span class="p">[</span><span class="n">nn</span><span class="p">][</span><span class="n">Crit</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span> <span class="o">=</span> <span class="n">diff</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Change</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">Change</span><span class="p">[</span><span class="n">nn</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">Change</span>
+
+
+
+<span class="k">def</span> <span class="nf">_get_GeomFromShot_CSX</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">Nums</span><span class="p">,</span> <span class="n">CamH</span><span class="p">,</span> <span class="n">Chan</span><span class="o">=</span><span class="s">&#39;CamHeads&#39;</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">Chan</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;All&#39;</span><span class="p">,</span><span class="s">&#39;CamHeads&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">Chan</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">Chan</span><span class="p">])),</span> <span class="s">&quot;Arg Chan must be in [&#39;All&#39;,&#39;CamHeads&#39;] or a list of channel names !&quot;</span>
+
+    <span class="n">DictChan</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">sh</span> <span class="o">=</span> <span class="n">dd</span><span class="o">.</span><span class="n">shotfile</span><span class="p">(</span><span class="s">&#39;CSX&#39;</span><span class="p">,</span><span class="n">shot</span><span class="p">)</span>
+
+    <span class="c"># Which channels shall be used for the testing</span>
+    <span class="k">if</span> <span class="n">Chan</span><span class="o">==</span><span class="s">&#39;All&#39;</span><span class="p">:</span>
+        <span class="n">Dir</span> <span class="o">=</span> <span class="n">sh</span><span class="o">.</span><span class="n">getObjectNames</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">Chan</span><span class="o">==</span><span class="s">&#39;CamHeads&#39;</span><span class="p">:</span>  <span class="c"># One per camera head</span>
+        <span class="n">Dir</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;CF_020&#39;</span><span class="p">,</span><span class="s">&#39;CG_020&#39;</span><span class="p">,</span><span class="s">&#39;CH_020&#39;</span><span class="p">,</span><span class="s">&#39;CH_052&#39;</span><span class="p">,</span><span class="s">&#39;CH_087&#39;</span><span class="p">,</span><span class="s">&#39;CI_016&#39;</span><span class="p">,</span><span class="s">&#39;CI_052&#39;</span><span class="p">,</span><span class="s">&#39;CI_091&#39;</span><span class="p">,</span><span class="s">&#39;CJ_017&#39;</span><span class="p">,</span><span class="s">&#39;CJ_052&#39;</span><span class="p">,</span><span class="s">&#39;CJ_087&#39;</span><span class="p">,</span><span class="s">&#39;CK_020&#39;</span><span class="p">,</span><span class="s">&#39;CK_055&#39;</span><span class="p">,</span><span class="s">&#39;CL_020&#39;</span><span class="p">,</span><span class="s">&#39;CM_020&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>   <span class="c"># Custom</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Chan</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">Chan</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">==</span><span class="s">&#39;C&#39;</span><span class="p">:</span>
+                <span class="n">Chan</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="s">&#39;C&#39;</span><span class="o">+</span><span class="n">Chan</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span>
+        <span class="n">Dir</span> <span class="o">=</span> <span class="n">Chan</span>
+    <span class="n">Dir</span> <span class="o">=</span> <span class="p">[</span><span class="n">Dir</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Dir</span><span class="p">))</span> <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">Dir</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;C&#39;</span><span class="p">,</span><span class="s">&#39;_&#39;</span><span class="p">]])</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="n">nn</span> <span class="ow">in</span> <span class="n">Nums</span> <span class="k">for</span> <span class="n">nn</span> <span class="ow">in</span> <span class="n">Dir</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="o">-</span><span class="mi">3</span><span class="p">:]])]</span>
+
+    <span class="c"># Do the testing</span>
+    <span class="n">LNames</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Dir</span><span class="p">)):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">Name</span> <span class="o">=</span> <span class="n">Dir</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="n">load</span> <span class="o">=</span> <span class="n">sh</span><span class="p">(</span><span class="s">&#39;C&#39;</span><span class="o">+</span><span class="n">Name</span><span class="p">)</span>
+            <span class="n">Diag</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">load</span><span class="p">[</span><span class="s">&#39;SX_DIAG&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">load</span><span class="p">[</span><span class="s">&#39;SX_DIAG&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">load</span><span class="p">[</span><span class="s">&#39;SX_DIAG&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">Diag</span><span class="o">==</span><span class="s">&#39;000&#39;</span> <span class="ow">and</span> <span class="n">Name</span> <span class="ow">in</span> <span class="n">CamH</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">tfaugSXRh</span><span class="o">.</span><span class="n">_get_DictChanFromload</span><span class="p">(</span><span class="n">DictChan</span><span class="p">,</span> <span class="n">Name</span><span class="p">,</span> <span class="n">load</span><span class="p">,</span> <span class="n">CamH</span><span class="p">,</span> <span class="n">Diag</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s">&quot;        Done for &quot;</span><span class="o">+</span><span class="n">Name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="n">sh</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">DictChan</span>
+
+
+<span class="k">def</span> <span class="nf">_get_GeomFromShot_CSXscan</span><span class="p">(</span> <span class="n">Lshots</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">22000</span><span class="p">,</span><span class="mi">40000</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span> <span class="n">Chan</span><span class="o">=</span><span class="s">&#39;CamHeads&#39;</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="k">True</span> <span class="p">):</span>
+
+    <span class="n">CamH</span> <span class="o">=</span> <span class="n">tfaugSXRh</span><span class="o">.</span><span class="n">_CamHeads</span><span class="p">()</span>
+
+    <span class="n">DictShot</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">DictChan0</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">DictChan1</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">init</span> <span class="o">=</span> <span class="k">True</span>
+    <span class="n">Nums</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+    <span class="n">Change</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">Inshots</span> <span class="o">=</span> <span class="p">[</span><span class="k">True</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">Lshots</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Lshots</span><span class="p">)):</span>
+        <span class="n">shot</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Lshots</span><span class="p">[</span><span class="n">ii</span><span class="p">])</span>
+        <span class="n">success</span> <span class="o">=</span> <span class="k">False</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="n">success</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">init</span><span class="p">:</span>
+                    <span class="n">DictChan0</span> <span class="o">=</span> <span class="n">_get_GeomFromShot_CSX</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">Nums</span><span class="p">,</span> <span class="n">CamH</span><span class="p">,</span> <span class="n">Chan</span><span class="o">=</span><span class="n">Chan</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="n">Verb</span><span class="p">)</span>
+                    <span class="n">init</span> <span class="o">=</span> <span class="k">False</span>
+                    <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s">&quot;    Initiated with shot {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shot</span><span class="p">))</span>
+                    <span class="n">minshot</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+                    <span class="n">Lshots</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">shot</span><span class="o">&gt;</span><span class="n">minshot</span><span class="p">:</span>
+                    <span class="n">DictChan1</span> <span class="o">=</span> <span class="n">_get_GeomFromShot_CSX</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">Nums</span><span class="p">,</span> <span class="n">CamH</span><span class="p">,</span> <span class="n">Chan</span><span class="o">=</span><span class="n">Chan</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="n">Verb</span><span class="p">)</span>
+                    <span class="n">change</span> <span class="o">=</span> <span class="n">_compareDictChan</span><span class="p">(</span><span class="n">DictChan0</span><span class="p">,</span> <span class="n">DictChan1</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">change</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+                        <span class="n">Change</span><span class="p">[</span><span class="n">shot</span><span class="p">]</span> <span class="o">=</span> <span class="n">change</span>
+                        <span class="n">DictChan0</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">DictChan1</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s">&quot;    Change detected for shot {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shot</span><span class="p">))</span>
+                    <span class="n">minshot</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+                    <span class="n">Lshots</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">Inshots</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="o">=</span> <span class="k">False</span>
+                <span class="n">success</span> <span class="o">=</span> <span class="k">True</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ii</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">Lshots</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">shot</span> <span class="o">=</span> <span class="n">shot</span><span class="o">-</span><span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">shot</span> <span class="o">=</span> <span class="n">shot</span><span class="o">+</span><span class="mi">1</span>
+    <span class="n">Lshots</span> <span class="o">=</span> <span class="p">[</span><span class="n">Lshots</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Lshots</span><span class="p">))</span> <span class="k">if</span> <span class="n">Inshots</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="n">Change</span><span class="p">,</span> <span class="n">Lshots</span>
+
+
+
+<span class="k">def</span> <span class="nf">get_GeomFromShot</span><span class="p">(</span> <span class="n">shot_init</span><span class="o">=</span><span class="mi">22006</span><span class="p">,</span> <span class="n">shot_end</span><span class="o">=</span><span class="mi">33730</span><span class="p">,</span> <span class="n">Ds</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">Chan</span><span class="o">=</span><span class="s">&#39;CamHeads&#39;</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="k">True</span> <span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Scan the database using diagnostic &#39;CSX&#39; to identify the shots where changes were made to the SXR diagnostic</span>
+
+<span class="sd">    The geometry of a diagnostic changes from year to year due to improvements, adjustments...</span>
+<span class="sd">    It is necessary to know from which shot a new geometry is valid.</span>
+<span class="sd">    This function uses the &#39;CSX&#39; data to scan the stored geometry (and other parameters) of all channels of the SXR diagnostic on a large span of shots to identify the first shots presenting changes.</span>
+<span class="sd">    Beware... it is long (typically several hours for a scann of all channels on a span of several thousands of shots).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    shot_init :     int</span>
+<span class="sd">        The first shot of the interval to be scanned</span>
+<span class="sd">    shot_end :      int</span>
+<span class="sd">        The last shot of the interval to be scanned</span>
+<span class="sd">    Ds :            10*int</span>
+<span class="sd">        The step by which the shot numbers will be increased for scanning (initial value, an algorithm then reduces it by dividing by 10 successively to focus on the identified changes)</span>
+<span class="sd">    Verb :          bool</span>
+<span class="sd">        Flag indicating whether some extra comments should be printed</span>
+<span class="sd">    save :          bool</span>
+<span class="sd">        Flag indicating whether the result should be saved</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Change :        dict</span>
+<span class="sd">        A dictionary of changes, where the keys are the shot numbers identified as first to change and where the values are themselves dictionaries of the changes implemented</span>
+<span class="sd">    Array :        np.ndarray</span>
+<span class="sd">        (2,N) np.ndarray where the first line is the list of shots tested in the last iteration and the second line is 0 or 1 (1 if changes are observed between the corresponding shot and its predecessor)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">Lshots</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">shot_init</span><span class="p">,</span> <span class="n">shot_end</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">Ds</span><span class="p">)</span><span class="o">+</span><span class="p">[</span><span class="n">shot_end</span><span class="p">])))</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Ds</span><span class="p">)</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">ds</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s">&quot;    In: &quot;</span><span class="p">,</span> <span class="n">Lshots</span><span class="p">)</span>
+        <span class="n">Change</span><span class="p">,</span> <span class="n">Lshots</span> <span class="o">=</span> <span class="n">_get_GeomFromShot_CSXscan</span><span class="p">(</span> <span class="n">Lshots</span><span class="p">,</span> <span class="n">Chan</span><span class="o">=</span><span class="n">Chan</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="n">Verb</span> <span class="p">)</span>
+        <span class="n">Lshots</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">Lshots</span><span class="p">)))</span>
+        <span class="n">Lch</span> <span class="o">=</span> <span class="n">Change</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+
+        <span class="n">Array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">Lshots</span><span class="p">,</span> <span class="p">[</span><span class="n">ii</span> <span class="ow">in</span> <span class="n">Lch</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="n">Lshots</span><span class="p">]])</span>
+        <span class="k">if</span> <span class="n">Verb</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s">&quot;    Out: &quot;</span><span class="p">,</span> <span class="n">Array</span><span class="p">)</span>
+
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">/</span><span class="mi">10</span>
+        <span class="k">if</span> <span class="n">ds</span><span class="o">&gt;=</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">Lshots</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">itt</span><span class="o">.</span><span class="n">chain</span><span class="o">.</span><span class="n">from_iterable</span><span class="p">([</span><span class="nb">range</span><span class="p">(</span><span class="n">Lshots</span><span class="p">[</span><span class="n">ii</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span><span class="n">Lshots</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">ds</span><span class="p">)</span><span class="o">+</span><span class="p">[</span><span class="n">Lshots</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Lshots</span><span class="p">))</span> <span class="k">if</span> <span class="n">Array</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="n">ii</span><span class="p">]]))))</span>
+
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">Chanstr</span> <span class="o">=</span> <span class="n">Chan</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">Chan</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">else</span> <span class="s">&#39;Custom&#39;</span>
+        <span class="n">Name</span> <span class="o">=</span> <span class="s">&#39;Changes_&#39;</span><span class="o">+</span><span class="n">Chanstr</span><span class="o">+</span><span class="s">&#39;_shot{0}-{1}_Ds{2}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shot_init</span><span class="p">,</span><span class="n">shot_end</span><span class="p">,</span><span class="n">Ds</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">_tfaug_path</span><span class="o">.</span><span class="n">_Root</span><span class="o">+</span><span class="s">&#39;/tofu/plugins/AUG/SXR/geom/&#39;</span><span class="o">+</span><span class="n">Name</span><span class="o">+</span><span class="s">&#39;.npz&#39;</span><span class="p">,</span> <span class="n">Change</span><span class="o">=</span><span class="p">[</span><span class="n">Change</span><span class="p">],</span> <span class="n">Array</span><span class="o">=</span><span class="n">Array</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Change</span><span class="p">,</span> <span class="n">Array</span>
+
+
+
+
+
+
+<span class="c">#########################################################</span>
+<span class="c">#########################################################</span>
+<span class="c">### Using the dictionary to determine relevant shots ####</span>
+<span class="c">#########################################################</span>
+
+
+
+<span class="k">def</span> <span class="nf">_get_GeomFromShot_New</span><span class="p">(</span><span class="n">shot</span><span class="p">,</span> <span class="n">chfile</span><span class="o">=</span><span class="s">&#39;Changes_CamHeads_shot22006-33730_Ds1000.npz&#39;</span><span class="p">,</span> <span class="n">chpath</span><span class="o">=</span><span class="n">_tfaug_path</span><span class="o">.</span><span class="n">_Root</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return the last reference geometry shot depending on the input shot and on the Change dictionary selected</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    shot :      int</span>
+<span class="sd">        Shot for which the user wants to know which geometry to use</span>
+<span class="sd">    chfile :    str</span>
+<span class="sd">        Name of the Changes dictionary to be used</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Rshot:      int</span>
+<span class="sd">        Reference geometry shot corresponding to the input shot</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">shot_init</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">chfile</span><span class="p">[</span><span class="n">chfile</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;_shot&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">5</span><span class="p">:</span><span class="n">chfile</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)])</span>
+    <span class="n">shot_end</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">chfile</span><span class="p">[</span><span class="n">chfile</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="n">chfile</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)</span><span class="o">+</span><span class="mi">6</span><span class="p">])</span>
+    <span class="k">assert</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="n">shot_init</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;=</span> <span class="n">shot_end</span><span class="p">,</span> <span class="s">&quot;Geometry not computed yet !&quot;</span>
+
+    <span class="c"># Loading the Changes dictionary</span>
+    <span class="n">Change</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">chpath</span><span class="o">+</span><span class="n">_addpath</span><span class="o">+</span><span class="s">&#39;/&#39;</span><span class="o">+</span><span class="n">chfile</span><span class="p">)[</span><span class="s">&#39;Change&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">lshots</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">Change</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">lshots</span><span class="p">)</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">lshots</span><span class="p">),</span> <span class="s">&quot;Geometry not computed yet (stored shots in Changes) !&quot;</span>
+    <span class="n">Rshot</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">lshots</span><span class="p">[</span><span class="n">lshots</span><span class="o">&lt;=</span><span class="n">shot</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="n">Rshot</span>
+
+
+<span class="k">def</span> <span class="nf">_get_RectifiedFromShot</span><span class="p">(</span><span class="n">shot</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Get the real lower shot number from CSX</span>
+
+<span class="sd">    Check whether the desired shot number is available in the database of CSX diagnostic, if not return the first following one which is</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    -----------</span>
+<span class="sd">    shot :      int</span>
+<span class="sd">        Desired shot number to be checked</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    shotbis :   int</span>
+<span class="sd">        Closest valid shot number</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Done</span> <span class="o">=</span> <span class="k">False</span>
+    <span class="n">shotbis</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="n">Done</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sh</span> <span class="o">=</span> <span class="n">dd</span><span class="o">.</span><span class="n">shotfile</span><span class="p">(</span><span class="s">&#39;CSX&#39;</span><span class="p">,</span><span class="n">shotbis</span><span class="p">)</span>
+            <span class="n">Done</span> <span class="o">=</span> <span class="k">True</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">shotbis</span> <span class="o">=</span> <span class="n">shotbis</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">sh</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">shotbis</span>
+
+
+<span class="k">def</span> <span class="nf">_get_Tiles_FromShot</span><span class="p">(</span><span class="n">shot</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return the list of camera heads that should be affected by view-limiting tiles depending on the shot number</span>
+
+<span class="sd">    In theory, the limiting tiles were removed after #31802, but in practice the gap was probably just widened (but how much ?)</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    shot :  int</span>
+<span class="sd">        The shot number for which to return the list</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Tiles :     list</span>
+<span class="sd">        The list of camera heads with limiting tiles</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">Tiles</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;F&#39;</span><span class="p">,</span><span class="s">&#39;G&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">shot</span><span class="o">&lt;</span><span class="mi">31802</span><span class="p">:</span>
+        <span class="n">Tiles</span> <span class="o">=</span> <span class="n">Tiles</span> <span class="o">+</span> <span class="p">[</span><span class="s">&#39;L&#39;</span><span class="p">,</span><span class="s">&#39;M&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">Tiles</span>
+
+
+
+
+<span class="c"># Old, mot used any more (keep for backward compatibility and double checks)</span>
+<span class="k">def</span> <span class="nf">_get_GeomFromShot</span><span class="p">(</span><span class="n">shot</span><span class="p">):</span>     <span class="c"># Deprecated</span>
+    <span class="sd">&quot;&quot;&quot; Deprecated &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">shot</span><span class="o">&gt;=</span><span class="mi">24190</span><span class="p">,</span> <span class="s">&quot;Geometry not computed yet !&quot;</span>
+    <span class="k">if</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">24190</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;</span> <span class="mi">24492</span><span class="p">:</span>     <span class="c"># Lower bound not adjusted to minimum !</span>
+        <span class="n">shot</span><span class="p">,</span> <span class="n">LCamH</span> <span class="o">=</span> <span class="mi">24190</span><span class="p">,</span> <span class="s">&quot;All&quot;</span>
+    <span class="k">elif</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">24492</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;</span> <span class="mi">25962</span><span class="p">:</span>
+        <span class="n">shot</span><span class="p">,</span> <span class="n">LCamH</span> <span class="o">=</span> <span class="mi">24492</span><span class="p">,</span> <span class="s">&quot;All&quot;</span>
+    <span class="k">elif</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">25962</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;</span> <span class="mi">27439</span><span class="p">:</span>
+        <span class="n">shot</span><span class="p">,</span> <span class="n">LCamH</span> <span class="o">=</span> <span class="mi">25962</span><span class="p">,</span> <span class="s">&quot;All&quot;</span>
+    <span class="k">elif</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">27439</span> <span class="ow">and</span> <span class="n">shot</span> <span class="o">&lt;</span> <span class="mi">31802</span><span class="p">:</span>
+        <span class="n">shot</span><span class="p">,</span> <span class="n">LCamH</span> <span class="o">=</span> <span class="mi">27439</span><span class="p">,</span> <span class="s">&quot;All&quot;</span>
+    <span class="k">elif</span> <span class="n">shot</span> <span class="o">&gt;=</span> <span class="mi">31802</span><span class="p">:</span>   <span class="c">#Upper bound to be updated !</span>
+        <span class="n">shot</span><span class="p">,</span> <span class="n">LCamH</span> <span class="o">=</span> <span class="mi">31802</span><span class="p">,</span> <span class="p">[</span><span class="s">&#39;L&#39;</span><span class="p">,</span><span class="s">&#39;M&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">shot</span><span class="p">,</span> <span class="n">LCamH</span>
+
+
+
+
+
+
+<span class="c">#########################################################</span>
+<span class="c">#########################################################</span>
+<span class="c">### Helper routines to find out which cameras have already been created ####</span>
+<span class="c">#########################################################</span>
+
+
+
+
+
+
+
+<span class="k">def</span> <span class="nf">_listavailCams</span><span class="p">(</span><span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Root</span><span class="o">=</span><span class="n">_tfaug_path</span><span class="o">.</span><span class="n">_Root</span><span class="p">,</span> <span class="n">shotstr</span><span class="o">=</span><span class="s">&#39;_sh&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return a dictionary listing, for each camera head (keys), the shot numbers for which it was already created</span>
+
+<span class="sd">    A GDetect object is created for each camera head, and several versions of it exist depending on the shot number because of geometry changes in time</span>
+<span class="sd">    This routine tells you, for each camera head, for which shots it was already created</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Exp :           str</span>
+<span class="sd">        The experiment, here always &#39;AUG&#39;</span>
+<span class="sd">    Diag :          str</span>
+<span class="sd">        The diagnostic, here always &#39;SXR&#39;</span>
+<span class="sd">    SavePathObj :   None / str</span>
+<span class="sd">        The path where to look for already created GDetect objects, if None takes default</span>
+<span class="sd">    Root : str</span>
+<span class="sd">        The root path to which &#39;/tofu/plugins/AUG/SXR/geom/Objects/&#39; will be appended to build a default path if SavePathObj is None</span>
+<span class="sd">    shotstr :       str</span>
+<span class="sd">        The string pattern used to identify the shot number in the file names</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    DC :    dict</span>
+<span class="sd">        The dictionary containing all relevant info</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathObj</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="n">_addpath</span><span class="o">+</span> <span class="s">&#39;/Objects/&#39;</span>
+
+    <span class="n">kstr</span> <span class="o">=</span> <span class="s">&#39;TFG_GDetect_&#39;</span><span class="o">+</span><span class="n">Exp</span><span class="o">+</span><span class="s">&#39;_Dg&#39;</span><span class="o">+</span><span class="n">Diag</span><span class="o">+</span><span class="s">&#39;_&#39;</span>
+    <span class="n">LC</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">SavePathObj</span><span class="p">)</span>
+    <span class="n">LC</span> <span class="o">=</span> <span class="p">[</span><span class="n">cc</span> <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">LC</span> <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">cc</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">kstr</span><span class="p">,</span><span class="n">shotstr</span><span class="p">,</span><span class="s">&#39;.npz&#39;</span><span class="p">]])]</span>
+    <span class="n">DC</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">LC</span><span class="p">)):</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">LC</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">shotstr</span><span class="p">)</span>
+        <span class="n">shot</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">LC</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">ind</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">shotstr</span><span class="p">):</span><span class="n">ind</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">shotstr</span><span class="p">)</span><span class="o">+</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">ind</span> <span class="o">=</span> <span class="n">LC</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">kstr</span><span class="p">)</span>
+        <span class="n">strtemp</span> <span class="o">=</span> <span class="n">LC</span><span class="p">[</span><span class="n">ii</span><span class="p">][</span><span class="n">ind</span><span class="o">+</span><span class="nb">len</span><span class="p">(</span><span class="n">kstr</span><span class="p">):]</span>
+        <span class="n">indbis</span> <span class="o">=</span> <span class="n">strtemp</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)</span>
+        <span class="n">CamH</span> <span class="o">=</span> <span class="n">strtemp</span><span class="p">[:</span><span class="n">indbis</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">CamH</span> <span class="ow">in</span> <span class="n">DC</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">DC</span><span class="p">[</span><span class="n">CamH</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">DC</span><span class="p">[</span><span class="n">CamH</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">DC</span>
+
+
+
+
+
+
+
+<span class="c">#########################################################</span>
+<span class="c">#########################################################</span>
+<span class="c">######## Create cameras (apertures + detectors) #########</span>
+<span class="c">#########################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_getLApert</span><span class="p">(</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">dd</span><span class="p">,</span> <span class="n">Ves</span><span class="p">,</span> <span class="n">shot</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="p">,</span> <span class="n">dtime</span><span class="p">,</span> <span class="n">dtFormat</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">,</span> <span class="n">Tiles</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;F&#39;</span><span class="p">,</span><span class="s">&#39;G&#39;</span><span class="p">,</span><span class="s">&#39;L&#39;</span><span class="p">,</span><span class="s">&#39;M&#39;</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot; Return the list of apertures associated to a specific SXR channel</span>
+
+<span class="sd">    In AUG, each camera head is associated to a single aperture (data stored in CSX)</span>
+<span class="sd">    However, for some camera heads, a fraction of the VOS might be obstructed by</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Dict :          dict</span>
+<span class="sd">        Dictionary with all info from CSX, issued by :meth:`~tofu.plugins.AUG.SXR._helper._WhichSX()`</span>
+<span class="sd">    dd :            str</span>
+<span class="sd">        Key to Dict, should be a channel name</span>
+<span class="sd">    Ves :           :class:`tofu.geom.Ves`</span>
+<span class="sd">        The Ves instance with which to build the Apert objects</span>
+<span class="sd">    shot :          int</span>
+<span class="sd">        The shot number with which to build the Apert objects</span>
+<span class="sd">    SavePathObj :   None / str</span>
+<span class="sd">        The SavePath where the Apert objects should be saved (None recommended for default)</span>
+<span class="sd">    dtime :         dtm.datetime</span>
+<span class="sd">        A dtm.datetime object for identifying the create Apert objects (mostly for debugging)</span>
+<span class="sd">    dtFormat :      str</span>
+<span class="sd">        A str flag indicating the format with which dtime should be written in the automatically generated SaveName (if necessary)</span>
+<span class="sd">    Exp :           str</span>
+<span class="sd">        The experiment flag on which the Apert objects are created, should be the same as for Ves</span>
+<span class="sd">    Tiles :      bool</span>
+<span class="sd">        Flag indicating the list of caamera heads for which an additional aperture should be built from tiles (can be de-activated simply by removing the concerned camera head from the list)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    ------</span>
+<span class="sd">    LApert :        list</span>
+<span class="sd">        List of apertures, created using the data available in CSX via Dict</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;RPINHOLE&#39;</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;ZPINHOLE&#39;</span><span class="p">]])</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;REND&#39;</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;ZEND&#39;</span><span class="p">]])</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Tor_Pos&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CAMANGLE&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.</span>
+
+    <span class="n">PolyApert</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">tfh</span><span class="o">.</span><span class="n">PolyFromLine</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;P_Length&#39;</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;P_Width&#39;</span><span class="p">]</span><span class="o">*</span><span class="mf">1.e-3</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">-</span><span class="n">A</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">M</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">A</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&lt;</span> <span class="mf">1.e-10</span><span class="p">,</span> <span class="s">&quot;Something wrong with Apert poly !&quot;</span>
+    <span class="n">IdApert0</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">ID</span><span class="p">(</span><span class="s">&#39;Apert&#39;</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CamHead&#39;</span><span class="p">],</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="n">dtime</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">LObj</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtFormat</span><span class="o">=</span><span class="n">dtFormat</span><span class="p">,</span>
+                       <span class="n">USRdict</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Cam&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Cam&#39;</span><span class="p">],</span> <span class="s">&#39;CamHead&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CamHead&#39;</span><span class="p">],</span> <span class="s">&#39;FiltMat&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;FiltMat&#39;</span><span class="p">],</span> <span class="s">&#39;FiltThick&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;FiltThick&#39;</span><span class="p">]})</span>
+    <span class="n">Apert0</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Apert</span><span class="p">(</span><span class="n">IdApert0</span><span class="p">,</span> <span class="n">PolyApert</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">Ves</span><span class="p">)</span>
+    <span class="n">LApert</span><span class="p">,</span> <span class="n">LIdApert</span> <span class="o">=</span> <span class="p">[</span><span class="n">Apert0</span><span class="p">],</span> <span class="p">[</span><span class="n">IdApert0</span><span class="p">]</span>
+
+    <span class="c"># Add extra apertures (space between tiles) for the relevant cameras</span>
+    <span class="k">if</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CamHead&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">Tiles</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span><span class="o">==</span><span class="s">&#39;F&#39;</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="mf">0.034</span>
+            <span class="n">LTor</span><span class="p">,</span> <span class="n">L2</span> <span class="o">=</span> <span class="mf">0.012</span><span class="p">,</span> <span class="mf">0.12</span>
+            <span class="n">Ang</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="n">theta</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span><span class="o">==</span><span class="s">&#39;G&#39;</span><span class="p">:</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="mf">0.034</span>
+            <span class="n">LTor</span><span class="p">,</span> <span class="n">L2</span> <span class="o">=</span> <span class="mf">0.0117</span><span class="p">,</span> <span class="mf">0.12</span>
+            <span class="n">Ang</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="o">-</span><span class="n">theta</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Cam&#39;</span><span class="p">]</span><span class="o">==</span><span class="s">&#39;L&#39;</span><span class="p">:</span>
+            <span class="n">d</span>  <span class="o">=</span> <span class="mf">0.040</span>
+            <span class="n">LTor</span><span class="p">,</span> <span class="n">L2</span> <span class="o">=</span> <span class="mf">0.0064</span><span class="p">,</span> <span class="mf">0.2</span>
+            <span class="n">Ang</span> <span class="o">=</span> <span class="o">-</span><span class="mf">36.9</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">d</span>  <span class="o">=</span> <span class="mf">0.036</span>
+            <span class="n">LTor</span><span class="p">,</span> <span class="n">L2</span> <span class="o">=</span> <span class="mf">0.0054</span><span class="p">,</span> <span class="mf">0.15</span>
+            <span class="n">Ang</span> <span class="o">=</span> <span class="mf">16.75</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.</span>
+        <span class="n">C</span> <span class="o">=</span> <span class="n">tfh</span><span class="o">.</span><span class="n">RZ2XYZ_1D</span><span class="p">(</span><span class="n">A</span><span class="p">,</span><span class="n">phi</span><span class="p">)</span> <span class="o">+</span> <span class="n">d</span><span class="o">*</span><span class="n">Apert0</span><span class="o">.</span><span class="n">nIn</span>
+        <span class="n">e2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cross</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span><span class="mi">0</span><span class="p">]),</span><span class="n">Apert0</span><span class="o">.</span><span class="n">nIn</span><span class="p">)</span>
+        <span class="n">e2</span> <span class="o">=</span> <span class="n">e2</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">e2</span><span class="p">)</span>
+        <span class="n">nP</span> <span class="o">=</span> <span class="n">Apert0</span><span class="o">.</span><span class="n">nIn</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">Ang</span><span class="p">)</span> <span class="o">+</span> <span class="n">e2</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">Ang</span><span class="p">)</span>
+        <span class="n">PolyApert</span> <span class="o">=</span> <span class="n">tfh</span><span class="o">.</span><span class="n">RectFromPlaneCenter</span><span class="p">(</span><span class="n">C</span><span class="p">,</span> <span class="n">nP</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi</span><span class="p">),</span><span class="mi">0</span><span class="p">]),</span> <span class="n">LTor</span><span class="p">,</span> <span class="n">L2</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="k">True</span><span class="p">)</span>
+        <span class="n">LIdApert</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tfpf</span><span class="o">.</span><span class="n">ID</span><span class="p">(</span><span class="s">&#39;Apert&#39;</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CamHead&#39;</span><span class="p">]</span><span class="o">+</span><span class="s">&quot;_Tiles&quot;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="n">dtime</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">Exp</span><span class="p">,</span> <span class="n">LObj</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtFormat</span><span class="o">=</span><span class="n">dtFormat</span><span class="p">,</span>
+                                <span class="n">USRdict</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Cam&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Cam&#39;</span><span class="p">],</span><span class="s">&#39;CamHead&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CamHead&#39;</span><span class="p">],</span><span class="s">&#39;FiltMat&#39;</span><span class="p">:</span><span class="k">None</span><span class="p">,</span><span class="s">&#39;FiltThick&#39;</span><span class="p">:</span><span class="k">None</span><span class="p">}))</span>
+        <span class="n">Apert1</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Apert</span><span class="p">(</span><span class="n">LIdApert</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">PolyApert</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">Ves</span><span class="p">)</span>
+        <span class="n">LApert</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Apert1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">LApert</span>
+
+
+
+
+<div class="viewcode-block" id="create"><a class="viewcode-back" href="../../../../../../Auto_tofu.plugins.AUG.html#tofu.plugins.AUG.SXR.geom.create">[docs]</a><span class="k">def</span> <span class="nf">create</span><span class="p">(</span><span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">VesName</span><span class="o">=</span><span class="s">&#39;V1&#39;</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Root</span><span class="o">=</span><span class="n">_tfaug_path</span><span class="o">.</span><span class="n">_Root</span><span class="p">,</span> <span class="n">forceshot</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtFormat</span><span class="o">=</span><span class="n">tfd</span><span class="o">.</span><span class="n">dtmFormat</span><span class="p">,</span>
+           <span class="n">CalcEtend</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcSpanImp</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcCone</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">CalcPreComp</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="k">True</span><span class="p">,</span>
+           <span class="n">Etend_Method</span><span class="o">=</span><span class="s">&#39;quad&#39;</span><span class="p">,</span> <span class="n">Etend_RelErr</span><span class="o">=</span><span class="mf">1.e-3</span><span class="p">,</span> <span class="n">Etend_dX12</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">,</span><span class="mf">0.01</span><span class="p">],</span> <span class="n">Etend_dX12Mode</span><span class="o">=</span><span class="s">&#39;rel&#39;</span><span class="p">,</span> <span class="n">Etend_Ratio</span><span class="o">=</span><span class="mf">0.02</span><span class="p">,</span> <span class="n">Colis</span><span class="o">=</span><span class="k">True</span><span class="p">,</span> <span class="n">LOSRef</span><span class="o">=</span><span class="s">&#39;Cart&#39;</span><span class="p">,</span>
+           <span class="n">Cone_DRY</span><span class="o">=</span><span class="mf">0.0025</span><span class="p">,</span> <span class="n">Cone_DXTheta</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">1024.</span><span class="p">,</span> <span class="n">Cone_DZ</span><span class="o">=</span><span class="mf">0.0025</span><span class="p">,</span> <span class="n">Cone_NPsi</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">Cone_Nk</span><span class="o">=</span><span class="mi">60</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create, save and return all the GDetect objects relevant for the input shot, unless already created for a relevant reference shot</span>
+
+<span class="sd">    Create the :class:`tofu.geom.GDetect` objects (i.e.: the cameras, which are groups of detectors) from geometry taken from CSX disgnostic for the proposed shot or earlier (looks for the oldest version of the matching geometry) and stores them in the SavePathObj.</span>
+
+<span class="sd">    All extra arguments are fed to :class:`~tofu.geom.Detect`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    shot : int</span>
+<span class="sd">        Shot number for which to build the geometry</span>
+<span class="sd">    VesName : str</span>
+<span class="sd">        Name of the tfg.Ves object to be fed as an input to the :class:`tofu.geom.GDetect` objects</span>
+<span class="sd">    SavePathObj : None / str</span>
+<span class="sd">        Absolute path where the created :class:`tofu.geom.GDetect` objects should be saved (if save=True), if None the default is used</span>
+<span class="sd">    Root : str</span>
+<span class="sd">        If SavePathObj=None, a default value is created by appending &#39;/tofu/plugins/AUG/SXR/geom/Objects/&#39; to Root</span>
+<span class="sd">    forceshot : bool</span>
+<span class="sd">        Flag indicating whether the shot number shall be downgraded to the oldest shot with the same geometry (False) or whether the provided shot number shall be enforced (True, for all camera heads)</span>
+<span class="sd">    overwrite : bool</span>
+<span class="sd">        Flag indicating whether new :class:`tofu.geom.GDetect` objects shall be computed (and possibly saved) when similar ones already exist (True)</span>
+<span class="sd">    save : bool</span>
+<span class="sd">        Flag indicating whether to save the created :class:`tofu.geom.GDetect` objects (in SavePathObj)</span>
+<span class="sd">    dtime : None / dtm.datetime</span>
+<span class="sd">        If provided (i.e.: not None), used as a label of the created :class:`tofu.geom.GDetect` objects (mostly used for debugging)</span>
+<span class="sd">    dtFormat : str</span>
+<span class="sd">        The time format to be used for labelling the created :class:`tofu.geom.GDetect` objects (mostly used for debugging)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    LGD : list</span>
+<span class="sd">        A list of all the created tfg.GDetect objects</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># Pre-formatting inputs</span>
+    <span class="k">if</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathObj</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="n">_addpath</span> <span class="o">+</span> <span class="s">&#39;/Objects/&#39;</span>
+
+    <span class="c"># LMNoTile = _get_LMTilesFromShot(shot)  # Deprecated, replace by proper scanning / refit of several successive shots</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">forceshot</span><span class="p">:</span>
+        <span class="c">#shot, LCamH = _get_GeomFromShot(shot)</span>
+        <span class="n">shot</span> <span class="o">=</span> <span class="n">_get_GeomFromShot_New</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+    <span class="c">#else:</span>
+    <span class="c">#    LCamH = &quot;All&quot;</span>
+    <span class="c">#if not LCamH==&quot;All&quot;:</span>
+    <span class="c">#    assert LCamH in CamHeads or all([cc in CamHeads for cc in LCamH])</span>
+    <span class="c">#else:</span>
+    <span class="c">#    LCamH = CamHeads</span>
+    <span class="n">shot</span> <span class="o">=</span> <span class="n">_get_RectifiedFromShot</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+
+    <span class="n">Dict</span> <span class="o">=</span> <span class="n">tfaugSXRh</span><span class="o">.</span><span class="n">_WhichSX</span><span class="p">(</span><span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">)</span>
+    <span class="n">Ves</span> <span class="o">=</span> <span class="n">tfaugVes</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">VesName</span><span class="p">)</span>
+
+    <span class="n">Tiles</span> <span class="o">=</span> <span class="n">_get_Tiles_FromShot</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span>
+
+    <span class="c"># Computing and saving</span>
+    <span class="n">UnCamH</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CamHead&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">Dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()])))</span>
+    <span class="n">ListGDPre</span> <span class="o">=</span> <span class="n">_listavailCams</span><span class="p">(</span><span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">Root</span><span class="o">=</span><span class="n">Root</span><span class="p">,</span> <span class="n">shotstr</span><span class="o">=</span><span class="s">&#39;_sh&#39;</span><span class="p">)</span>
+    <span class="n">LGD</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">UnCamH</span><span class="p">)):</span>
+        <span class="n">cond0</span> <span class="o">=</span> <span class="n">overwrite</span>
+        <span class="n">cond1</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">UnCamH</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span> <span class="ow">in</span> <span class="n">ListGDPre</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">shot</span> <span class="ow">in</span> <span class="n">ListGDPre</span><span class="p">[</span><span class="n">UnCamH</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">cond0</span><span class="p">,</span> <span class="n">cond1</span><span class="p">]):</span>
+            <span class="n">lds</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">dd</span> <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">Dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CamHead&#39;</span><span class="p">]</span><span class="o">==</span><span class="n">UnCamH</span><span class="p">[</span><span class="n">ii</span><span class="p">]])</span>
+            <span class="n">LApert</span> <span class="o">=</span> <span class="n">_getLApert</span><span class="p">(</span><span class="n">Dict</span><span class="p">,</span> <span class="n">lds</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">Ves</span><span class="p">,</span> <span class="n">shot</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="p">,</span> <span class="n">dtime</span><span class="p">,</span> <span class="n">dtFormat</span><span class="p">,</span> <span class="n">Tiles</span><span class="o">=</span><span class="n">Tiles</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">)</span>
+            <span class="n">LD</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">lds</span><span class="p">:</span>
+                <span class="n">Id</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">ID</span><span class="p">(</span><span class="s">&#39;Detect&#39;</span><span class="p">,</span> <span class="n">dd</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">SaveName</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="n">dtime</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">,</span> <span class="n">LObj</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtFormat</span><span class="o">=</span><span class="n">dtFormat</span><span class="p">,</span>
+                             <span class="n">USRdict</span><span class="o">=</span><span class="p">{</span><span class="s">&#39;Cam&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Cam&#39;</span><span class="p">],</span> <span class="s">&#39;CamHead&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CamHead&#39;</span><span class="p">],</span> <span class="s">&#39;Diag&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Diag&#39;</span><span class="p">],</span> <span class="s">&#39;Sig&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Sig&#39;</span><span class="p">],</span> <span class="s">&#39;Num&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Num&#39;</span><span class="p">],</span> <span class="s">&#39;FiltMat&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;FiltMat&#39;</span><span class="p">],</span> <span class="s">&#39;FiltThick&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;FiltThick&#39;</span><span class="p">],</span>
+                                      <span class="s">&#39;Sampl&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Sampling&#39;</span><span class="p">],</span> <span class="s">&#39;Address&#39;</span><span class="p">:</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Address&#39;</span><span class="p">]})</span>
+
+                <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;RPINHOLE&#39;</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;ZPINHOLE&#39;</span><span class="p">]])</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;REND&#39;</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;ZEND&#39;</span><span class="p">]])</span>
+                <span class="n">phi</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Tor_Pos&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.</span>
+                <span class="n">theta</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;CAMANGLE&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.</span>
+
+                <span class="n">RIn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">LApert</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">BaryS</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">LApert</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">nIn</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">LApert</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">BaryS</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="n">LApert</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">nIn</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">LApert</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">BaryS</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">LApert</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">BaryS</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">Sgn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">RIn</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="n">LApert</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">nIn</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">))</span>
+                <span class="n">P</span> <span class="o">=</span> <span class="n">A</span> <span class="o">-</span> <span class="n">Sgn</span><span class="o">*</span><span class="mf">1.e-3</span><span class="o">*</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;Foc_Len&#39;</span><span class="p">]</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)])</span>
+                <span class="n">DTor</span><span class="p">,</span> <span class="n">DPol</span><span class="p">,</span> <span class="n">DGap</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="mf">1.e-3</span><span class="o">*</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;D_Length&#39;</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="mf">1.e-3</span><span class="o">*</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;D_Width&#39;</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="mf">1.e-3</span><span class="o">*</span><span class="n">Dict</span><span class="p">[</span><span class="n">dd</span><span class="p">][</span><span class="s">&#39;D_Gap&#39;</span><span class="p">])</span>
+                <span class="n">Poly</span><span class="p">,</span> <span class="n">M</span> <span class="o">=</span> <span class="n">tfh</span><span class="o">.</span><span class="n">PolyFromLine</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">P</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span> <span class="n">DTor</span><span class="p">,</span> <span class="n">DPol</span><span class="p">)</span>
+                <span class="n">DD</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">hypot</span><span class="p">(</span><span class="n">M</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="n">M</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">-</span><span class="n">P</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">M</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">-</span><span class="n">P</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">nn</span> <span class="o">=</span> <span class="n">DD</span><span class="o">/</span><span class="p">(</span><span class="n">DGap</span><span class="o">+</span><span class="n">DPol</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nn</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">nn</span><span class="p">))</span><span class="o">&lt;</span><span class="mf">0.017</span><span class="p">,</span> <span class="s">&quot;Inconsistent location of center for &quot;</span><span class="o">+</span><span class="n">dd</span><span class="o">+</span><span class="s">&quot;, abs(nn-round(nn)) = &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">nn</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">nn</span><span class="p">)))</span><span class="o">+</span><span class="s">&quot; with nn = &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nn</span><span class="p">)</span>
+
+                <span class="n">Det</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Detect</span><span class="p">(</span><span class="n">Id</span><span class="p">,</span> <span class="n">Poly</span><span class="p">,</span> <span class="n">Optics</span><span class="o">=</span><span class="n">LApert</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="n">Ves</span><span class="p">,</span> <span class="n">Sino_RefPt</span><span class="o">=</span><span class="k">None</span><span class="p">,</span>
+                                 <span class="n">CalcEtend</span><span class="o">=</span><span class="n">CalcEtend</span><span class="p">,</span> <span class="n">CalcSpanImp</span><span class="o">=</span><span class="n">CalcSpanImp</span><span class="p">,</span> <span class="n">CalcCone</span><span class="o">=</span><span class="n">CalcCone</span><span class="p">,</span> <span class="n">CalcPreComp</span><span class="o">=</span><span class="n">CalcPreComp</span><span class="p">,</span> <span class="n">Calc</span><span class="o">=</span><span class="n">Calc</span><span class="p">,</span> <span class="n">Verb</span><span class="o">=</span><span class="n">Verb</span><span class="p">,</span>
+                                 <span class="n">Etend_Method</span><span class="o">=</span><span class="n">Etend_Method</span><span class="p">,</span> <span class="n">Etend_RelErr</span><span class="o">=</span><span class="n">Etend_RelErr</span><span class="p">,</span> <span class="n">Etend_dX12</span><span class="o">=</span><span class="n">Etend_dX12</span><span class="p">,</span> <span class="n">Etend_dX12Mode</span><span class="o">=</span><span class="n">Etend_dX12Mode</span><span class="p">,</span> <span class="n">Etend_Ratio</span><span class="o">=</span><span class="n">Etend_Ratio</span><span class="p">,</span> <span class="n">Colis</span><span class="o">=</span><span class="n">Colis</span><span class="p">,</span> <span class="n">LOSRef</span><span class="o">=</span><span class="n">LOSRef</span><span class="p">,</span>
+                                 <span class="n">Cone_DRY</span><span class="o">=</span><span class="n">Cone_DRY</span><span class="p">,</span> <span class="n">Cone_DXTheta</span><span class="o">=</span><span class="n">Cone_DXTheta</span><span class="p">,</span> <span class="n">Cone_DZ</span><span class="o">=</span><span class="n">Cone_DZ</span><span class="p">,</span> <span class="n">Cone_NPsi</span><span class="o">=</span><span class="n">Cone_NPsi</span><span class="p">,</span> <span class="n">Cone_Nk</span><span class="o">=</span><span class="n">Cone_Nk</span><span class="p">,</span>
+                                 <span class="n">arrayorder</span><span class="o">=</span><span class="s">&#39;C&#39;</span><span class="p">,</span> <span class="n">Clock</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">)</span>
+
+                <span class="n">LD</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Det</span><span class="p">)</span>
+
+            <span class="n">GD</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">GDetect</span><span class="p">(</span><span class="n">UnCamH</span><span class="p">[</span><span class="n">ii</span><span class="p">],</span> <span class="n">LDetect</span><span class="o">=</span><span class="n">LD</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">Sino_RefPt</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">LOSRef</span><span class="o">=</span><span class="s">&#39;Cart&#39;</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="s">&#39;C&#39;</span><span class="p">,</span> <span class="n">Clock</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+                <span class="n">GD</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">SynthDiag</span><span class="o">=</span><span class="k">True</span><span class="p">)</span>
+            <span class="n">LGD</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GD</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">LGD</span></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<span class="c">#########################################################</span>
+<span class="c">#########################################################</span>
+<span class="c">############ Loading tools ##############################</span>
+<span class="c">#########################################################</span>
+
+
+<div class="viewcode-block" id="load"><a class="viewcode-back" href="../../../../../../Auto_tofu.plugins.AUG.html#tofu.plugins.AUG.SXR.geom.load">[docs]</a><span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">Cams</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Root</span><span class="o">=</span><span class="n">_tfaug_path</span><span class="o">.</span><span class="n">_Root</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="s">&#39;full&#39;</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Load and return the desired :class:`~tofu.geom.GDetect` objects (i.e.: camera heads)</span>
+
+<span class="sd">    Directly fecthes and loads the desired :class:`~tofu.geom.GDetect` objects.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Cams :          str / list</span>
+<span class="sd">        A name or a list of names of the camera heads to be loaded (available are [&#39;F&#39;,&#39;G&#39;,&#39;H1&#39;,&#39;H2&#39;,&#39;H3&#39;,&#39;I1&#39;,&#39;I2&#39;,&#39;I3&#39;,&#39;J1&#39;,&#39;J2&#39;,&#39;J3&#39;,&#39;K1&#39;,&#39;K2&#39;,&#39;L&#39;,&#39;M&#39;])</span>
+<span class="sd">    shot : int / float / np.float</span>
+<span class="sd">        A shot number indicating which version of the geometry should be loaded (the )</span>
+<span class="sd">    SavePathObj :   None / str</span>
+<span class="sd">        Absolute path where the created :class:`tofu.geom.GDetect` objects should be saved (if save=True), if None the default is used</span>
+<span class="sd">    Root : str</span>
+<span class="sd">        If SavePathObj=None, a default value is created by appending &#39;/tofu/plugins/AUG/SXR/geom/Objects/&#39; to Root</span>
+<span class="sd">    sort :          bool</span>
+<span class="sd">        Flag indicating whether the loaded :class:`tofu.geom.GDetect` objects shall be returned sorted by alphabetical order of the names (True) or in the same order as asked in Cams (False)</span>
+<span class="sd">    out :           str</span>
+<span class="sd">        Flag indicating whether the object should be loaded completely (&#39;full&#39;), in a light dismissing the heaviest attributes (&#39;light&#39;) or whether only the Id or a list of Id should be returned (&#39;Id&#39;), valid only for &#39;.npz&#39;</span>
+<span class="sd">    Test :          bool</span>
+<span class="sd">        Flag indicating whether the inputs should be tested for conformity</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    --------</span>
+<span class="sd">    LGD :           list / :class:`tofu.geom.GDetect`</span>
+<span class="sd">        The loaded :class:`tofu.geom.GDetect`, returned as a single object if Cams was provided as a single name, as a list otherwise</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">Test</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">Cams</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">Cams</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">Cams</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">Cams</span><span class="p">])),</span> <span class="s">&quot;Arg Cams must be a str or a list of such !&quot;</span>
+        <span class="k">assert</span> <span class="n">shot</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="nb">float</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">float</span><span class="p">],</span> <span class="s">&quot;Arg shot must be a int !&quot;</span>
+
+    <span class="c"># Pre-formatting inputs</span>
+    <span class="n">Flagstr</span> <span class="o">=</span> <span class="k">False</span>
+    <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">Cams</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="n">Cams</span> <span class="o">=</span> <span class="p">[</span><span class="n">Cams</span><span class="p">]</span>
+        <span class="n">Flagstr</span> <span class="o">=</span> <span class="k">True</span>
+    <span class="k">if</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathObj</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="n">_addpath</span> <span class="o">+</span> <span class="s">&#39;/Objects/&#39;</span>
+
+    <span class="c"># List available cameras heads, sort and select the relevant files</span>
+    <span class="n">DC</span> <span class="o">=</span> <span class="n">_listavailCams</span><span class="p">(</span><span class="n">Exp</span><span class="o">=</span><span class="s">&#39;AUG&#39;</span><span class="p">,</span> <span class="n">Diag</span><span class="o">=</span><span class="s">&#39;SXR&#39;</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">,</span> <span class="n">Root</span><span class="o">=</span><span class="n">Root</span><span class="p">,</span> <span class="n">shotstr</span><span class="o">=</span><span class="s">&#39;_sh&#39;</span><span class="p">)</span>
+    <span class="n">Cams</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">DC</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="k">if</span> <span class="n">Cams</span> <span class="ow">is</span> <span class="k">None</span> <span class="k">else</span> <span class="n">Cams</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">cc</span> <span class="ow">in</span> <span class="n">DC</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">Cams</span><span class="p">]),</span> <span class="s">&quot;Some Cams asked for are not available in &quot;</span><span class="o">+</span><span class="n">SavePathObj</span>
+    <span class="n">Cams</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">Cams</span><span class="p">)</span> <span class="k">if</span> <span class="n">sort</span> <span class="k">else</span> <span class="n">Cams</span>
+
+    <span class="c"># Loading</span>
+    <span class="n">LGD</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="nb">len</span><span class="p">(</span><span class="n">Cams</span><span class="p">)):</span>
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">DC</span><span class="p">[</span><span class="n">Cams</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span> <span class="k">if</span> <span class="n">shot</span> <span class="ow">is</span> <span class="k">None</span> <span class="k">else</span> <span class="p">[</span><span class="n">sh</span> <span class="k">for</span> <span class="n">sh</span> <span class="ow">in</span> <span class="n">DC</span><span class="p">[</span><span class="n">Cams</span><span class="p">[</span><span class="n">ii</span><span class="p">]]</span> <span class="k">if</span> <span class="n">sh</span><span class="o">&lt;</span><span class="n">shot</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sh</span><span class="p">)</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s">&quot;    Camera &quot;</span><span class="o">+</span><span class="n">Cams</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">+</span><span class="s">&quot; could not be loaded because it was only computed for later shots !&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sh</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">sh</span><span class="p">)</span>
+            <span class="n">ff</span> <span class="o">=</span> <span class="s">&#39;TFG_GDetect_AUG_DgSXR_&#39;</span><span class="o">+</span><span class="n">Cams</span><span class="p">[</span><span class="n">ii</span><span class="p">]</span><span class="o">+</span><span class="s">&#39;_sh&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">sh</span><span class="p">)</span><span class="o">+</span><span class="s">&#39;.npz&#39;</span>
+            <span class="n">gd</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">SavePathObj</span> <span class="o">+</span> <span class="n">ff</span><span class="p">,</span> <span class="n">out</span><span class="o">=</span><span class="n">out</span><span class="p">)</span>
+            <span class="n">LGD</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="n">gd</span> <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">LGD</span><span class="p">)</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">LGD</span> <span class="o">=</span> <span class="n">LGD</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">Flagstr</span> <span class="k">else</span> <span class="n">LGD</span>
+    <span class="k">return</span> <span class="n">LGD</span></div>
+
+
+
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>

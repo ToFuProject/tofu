@@ -1,0 +1,260 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>tofu.plugins.AUG.Ves._core &mdash; tofu v1.1</title>
+    
+    <link rel="stylesheet" href="../../../../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../../',
+        VERSION:     '1.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="tofu v1.1" href="../../../../../index.html" />
+    <link rel="up" title="Module code" href="../../../../index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for tofu.plugins.AUG.Ves._core</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="c">#! /usr/bin/python</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Provide all necessary modules for dealing with AUG-specific data (geometry, diag and signal names...)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="k">as</span> <span class="nn">dtm</span>
+
+<span class="c"># ToFu specific</span>
+<span class="kn">import</span> <span class="nn">tofu.defaults</span> <span class="k">as</span> <span class="nn">tfd</span>
+<span class="kn">import</span> <span class="nn">tofu.pathfile</span> <span class="k">as</span> <span class="nn">tfpf</span>
+<span class="kn">import</span> <span class="nn">tofu.geom</span> <span class="k">as</span> <span class="nn">tfg</span>
+<span class="kn">from</span> <span class="nn">..</span> <span class="k">import</span> <span class="n">_path</span> <span class="k">as</span> <span class="n">_tfaug_path</span>
+
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Didier Vezinet&quot;</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;_create&quot;</span><span class="p">,</span><span class="s">&quot;load&quot;</span><span class="p">]</span>
+
+
+
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">#       Pre-set default SavePathIn, SavePathObj and SavePathOut</span>
+<span class="c">############################################################################</span>
+
+
+
+
+
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">############################################################################</span>
+<span class="c">#                   Ves creation and loading</span>
+<span class="c">############################################################################</span>
+
+
+<span class="k">def</span> <span class="nf">_create</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="s">&#39;V1&#39;</span><span class="p">,</span> <span class="n">Ves</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">SavePathInp</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Root</span><span class="o">=</span><span class="n">_tfaug_path</span><span class="o">.</span><span class="n">_Root</span><span class="p">,</span> <span class="n">save</span><span class="o">=</span><span class="k">True</span><span class="p">,</span>
+           <span class="n">skiprows</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="s">&#39;#&#39;</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="s">&quot;m&quot;</span><span class="p">,</span>
+           <span class="n">dtime</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">dtFormat</span><span class="o">=</span><span class="n">tfd</span><span class="o">.</span><span class="n">dtmFormat</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create and save a Ves object from givn input file or Ves object</span>
+
+<span class="sd">    A Ves object can be created from an input file, a np.ndarray or another :class:`~tofu.geom.Ves` object</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Name :          str</span>
+<span class="sd">        The name to be given to the created Ves instance</span>
+<span class="sd">    Ves :           None / str / :class:`tofu.geom.Ves` / np.ndarray</span>
+<span class="sd">        The source where the polygon is to be found, either:</span>
+<span class="sd">            - str: the name of a file containing the coordinates of a polygon to be loaded with :meth:`numpy.loadtxt()`</span>
+<span class="sd">            - A :class:`tofu.geom.Ves` object: to re-use its Poly attribute and build one with different name</span>
+<span class="sd">            - np.ndarray: an 2-dimensional array containing the 2D cartesian coordinates of a polygon</span>
+<span class="sd">    shot :          int</span>
+<span class="sd">        A shot number, to be used as a reference point in time, marking from when the provided geometry is valid</span>
+<span class="sd">    SavePathInp :   None / str</span>
+<span class="sd">        If provided, forces the routine to search for the input file at SavePathInp, if not provided SavePathInp is automatically set to default (i.e. tofu/plugin/Ves/Inputs/)</span>
+<span class="sd">    SavePathObj :   None / str</span>
+<span class="sd">        If provided, forces the routine to save the created instance at SavePathObj, if not provided SavePathObj is automatically set to default (i.e. tofu/plugin/Ves/Objects/)</span>
+<span class="sd">    Root :          str</span>
+<span class="sd">        If SavePathObj=None, a default value is created by appending &#39;/tofu/plugins/AUG/Ves/Objects/&#39; to Root</span>
+<span class="sd">    save :          bool</span>
+<span class="sd">        Flag indicating whether the created Ves instance shall be saved automatically (in SavePathObj)</span>
+<span class="sd">    skiprows :      int</span>
+<span class="sd">        Parameter fed to np.loadtxt() for reading the polygon from a txt file</span>
+<span class="sd">    comments :      str</span>
+<span class="sd">        Parameter fed to np.loadtxt() for reading the polygon from a txt file</span>
+<span class="sd">    units :         str</span>
+<span class="sd">        Flag indicating in which units the input polygon is provided (in [&#39;m&#39;,&#39;cm&#39;,&#39;mm&#39;])</span>
+<span class="sd">    dtime :         None / dtm.datetime</span>
+<span class="sd">        A datetime instance used for labelling the created instance (mostly used for debugging)</span>
+<span class="sd">    dtFormat :      str</span>
+<span class="sd">        The format of the labelling (mostly used for debugging)</span>
+<span class="sd">    dtimeIn :       bool</span>
+<span class="sd">        Flag indicating whether to include the label in the file name (mostly used for debugging)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Ves :           tfg.Ves</span>
+<span class="sd">        The created tfg.Ves instance</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">Test</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg Name must be a str !&quot;</span>
+        <span class="k">assert</span> <span class="n">Ves</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">Ves</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="n">tfg</span><span class="o">.</span><span class="n">Ves</span><span class="p">,</span><span class="nb">str</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span> <span class="s">&quot;Arg Ves must be a :class:`~tofu.geom.Ves` instance, a file name or a np.ndarray !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">shot</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">int</span><span class="p">,</span> <span class="s">&quot;Arg shot must be a int !&quot;</span>
+        <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="p">[</span><span class="n">SavePathInp</span><span class="p">,</span><span class="n">SavePathObj</span><span class="p">]]),</span> <span class="s">&quot;Args [SavePathInp,SavePathObj] must be str !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">save</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">,</span> <span class="s">&quot;Arg save must be a bool !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">units</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">units</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&#39;m&#39;</span><span class="p">,</span><span class="s">&#39;cm&#39;</span><span class="p">,</span><span class="s">&#39;mm&#39;</span><span class="p">],</span> <span class="s">&quot;Arg units must be in [&#39;m&#39;,&#39;cm&#39;,&#39;mm&#39;] !&quot;</span>
+        <span class="k">assert</span> <span class="n">dtime</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">dtime</span><span class="p">)</span> <span class="ow">is</span> <span class="n">dtm</span><span class="o">.</span><span class="n">datetime</span><span class="p">,</span> <span class="s">&quot;Arg dtime must be a dtm.datetime !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dtFormat</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg dtFormat must be a str !&quot;</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">dtimeIn</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">bool</span><span class="p">,</span> <span class="s">&quot;Arg dtimeIn must be a bool !&quot;</span>
+
+    <span class="k">if</span> <span class="n">SavePathInp</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathInp</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="s">&#39;/tofu/plugins/AUG/Ves/Inputs/&#39;</span>
+    <span class="k">if</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathObj</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="s">&#39;/tofu/plugins/AUG/Ves/Objects/&#39;</span>
+
+
+    <span class="c"># Get default paths and dtime</span>
+    <span class="n">dtime</span><span class="p">,</span> <span class="n">dtFormat</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">get_Default_dtimeFmt</span><span class="p">(</span><span class="n">dtime</span><span class="o">=</span><span class="n">dtime</span><span class="p">,</span> <span class="n">dtFormat</span><span class="o">=</span><span class="n">dtFormat</span><span class="p">)</span>
+
+    <span class="c"># Get default Ves</span>
+    <span class="n">Ves</span> <span class="o">=</span> <span class="n">SavePathInp</span><span class="o">+</span><span class="s">&#39;AUG_Ves.txt&#39;</span> <span class="k">if</span> <span class="n">Ves</span> <span class="ow">is</span> <span class="k">None</span> <span class="k">else</span> <span class="n">Ves</span>
+
+    <span class="c"># Create ID object for Ves</span>
+    <span class="n">Ves</span><span class="p">,</span> <span class="n">addInfo</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">get_PolyFromPolyFileObj</span><span class="p">(</span><span class="n">Ves</span><span class="p">,</span> <span class="n">SavePathInp</span><span class="p">,</span> <span class="n">units</span><span class="o">=</span><span class="n">units</span><span class="p">,</span> <span class="n">comments</span><span class="o">=</span><span class="n">comments</span><span class="p">,</span> <span class="n">skiprows</span><span class="o">=</span><span class="n">skiprows</span><span class="p">)</span>
+    <span class="n">Ves</span> <span class="o">=</span> <span class="n">tfg</span><span class="o">.</span><span class="n">Ves</span><span class="p">(</span><span class="n">Name</span><span class="p">,</span> <span class="n">Ves</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="s">&#39;Tor&#39;</span><span class="p">,</span> <span class="n">Sino_RefPt</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Sino_NP</span><span class="o">=</span><span class="n">tfd</span><span class="o">.</span><span class="n">TorNP</span><span class="p">,</span> <span class="n">Clock</span><span class="o">=</span><span class="k">False</span><span class="p">,</span> <span class="n">arrayorder</span><span class="o">=</span><span class="s">&#39;C&#39;</span><span class="p">,</span> <span class="n">Exp</span><span class="o">=</span><span class="n">_Exp</span><span class="p">,</span> <span class="n">shot</span><span class="o">=</span><span class="n">shot</span><span class="p">,</span> <span class="n">dtime</span><span class="o">=</span><span class="n">dtime</span><span class="p">,</span> <span class="n">dtimeIn</span><span class="o">=</span><span class="n">dtimeIn</span><span class="p">,</span> <span class="n">SavePath</span><span class="o">=</span><span class="n">SavePathObj</span><span class="p">)</span>
+
+    <span class="c"># Add info about input to Id</span>
+    <span class="k">for</span> <span class="n">dd</span> <span class="ow">in</span> <span class="n">addInfo</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+        <span class="n">Ves</span><span class="o">.</span><span class="n">Id</span><span class="o">.</span><span class="n">_USRdict</span><span class="p">[</span><span class="n">dd</span><span class="p">]</span> <span class="o">=</span> <span class="n">addInfo</span><span class="p">[</span><span class="n">dd</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">save</span><span class="p">:</span>
+        <span class="n">Ves</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">Ves</span>
+
+
+
+<div class="viewcode-block" id="load"><a class="viewcode-back" href="../../../../../Auto_tofu.plugins.AUG.html#tofu.plugins.AUG.Ves.load">[docs]</a><span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="n">Name</span><span class="o">=</span><span class="s">&#39;V1&#39;</span><span class="p">,</span> <span class="n">SavePathObj</span><span class="o">=</span><span class="k">None</span><span class="p">,</span> <span class="n">Root</span><span class="o">=</span><span class="n">_tfaug_path</span><span class="o">.</span><span class="n">_Root</span><span class="p">,</span> <span class="n">Test</span><span class="o">=</span><span class="k">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Load and return the selected Ves object (selected by name or file name)</span>
+
+<span class="sd">    Several Ves object might exist for the same experiment depending changes to the experiment in time for example</span>
+<span class="sd">    This function loads the one specified by its name.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    Name :          str / list</span>
+<span class="sd">        Name of the file to be loaded, or a subset of this name or a list of subsets, the file with a name matching all the subsets will be loaded. An error is issued in case of ambiguity</span>
+<span class="sd">    SavePathObj :   str</span>
+<span class="sd">        Absolute path where the objects can be found, if None sets to default</span>
+<span class="sd">    Root :          str</span>
+<span class="sd">        If SavePathObj=None, a default value is created by appending &#39;/tofu/plugins/AUG/Ves/Objects/&#39; to Root</span>
+<span class="sd">    Test :          bool</span>
+<span class="sd">        Flag indicating whether the inputs should be tested for conformity</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Ves :           :class:`tofu.geom.Ves`</span>
+<span class="sd">        The loaded Ves object</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">Test</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">type</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">([</span><span class="nb">type</span><span class="p">(</span><span class="n">ss</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">Name</span><span class="p">])),</span> <span class="s">&quot;Arg Name must be a str or a list of str !&quot;</span>
+        <span class="k">assert</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">SavePathObj</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span><span class="p">,</span> <span class="s">&quot;Arg SavePathObj must be a str !&quot;</span>
+
+    <span class="k">if</span> <span class="n">SavePathObj</span> <span class="ow">is</span> <span class="k">None</span><span class="p">:</span>
+        <span class="n">SavePathObj</span> <span class="o">=</span> <span class="n">Root</span> <span class="o">+</span> <span class="s">&#39;/tofu/plugins/AUG/Ves/Objects/&#39;</span>
+
+    <span class="n">Name</span> <span class="o">=</span> <span class="p">[</span><span class="n">Name</span><span class="p">]</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">str</span> <span class="k">else</span> <span class="n">Name</span>
+    <span class="n">lobj</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">SavePathObj</span><span class="p">)</span>
+    <span class="n">lobj</span> <span class="o">=</span> <span class="p">[</span><span class="n">ff</span> <span class="k">for</span> <span class="n">ff</span> <span class="ow">in</span> <span class="n">lobj</span> <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">ss</span> <span class="ow">in</span> <span class="n">ff</span> <span class="k">for</span> <span class="n">ss</span> <span class="ow">in</span> <span class="n">Name</span><span class="p">])]</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">lobj</span><span class="p">)</span><span class="o">==</span><span class="mi">1</span><span class="p">,</span> <span class="s">&quot;Several possible matching files for &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span><span class="o">+</span><span class="s">&quot; in &quot;</span><span class="o">+</span><span class="n">SavePathObj</span>
+
+    <span class="n">Ves</span> <span class="o">=</span> <span class="n">tfpf</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">SavePathObj</span><span class="o">+</span><span class="n">lobj</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">Ves</span></div>
+
+
+
+
+
+
+
+
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../../index.html">tofu v1.1</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2016, Didier VEZINET.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.5.
+    </div>
+  </body>
+</html>
