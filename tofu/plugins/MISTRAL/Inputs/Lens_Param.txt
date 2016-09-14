@@ -1,4 +1,0 @@
-# Radius
-0.003600
-# Focal length
-0.010900

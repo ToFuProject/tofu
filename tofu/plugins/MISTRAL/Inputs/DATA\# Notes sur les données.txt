@@ -1,5 +1,0 @@
--Sensor_postition :
-une colonne = (x; y; theta) = position du capteur (x; y), et angle de la ligne de visée par rapport à l'horizontal.
-
--Data :
-une ligne = une série de données pour les 32 capteurs.
