@@ -28,6 +28,7 @@ The others, while operational, are not user-friendly and documented yet, they wi
 
 The geometry module is sufficient for diagnostic designing and for a synthetic diagnostic approach (i.e.: computing the integrated signal from a simulated 2D or 3D emissivity).
 This geometry module allows in particular:
+
 * To handle linear and toroidal vaccum vessels
 * To define apertures and detectors as planar polygons of arbitrary shapes, or to define a spherical converging lens and a circular detector in its focal plane.
 * To assign an arbitrary number of apertures to each detector (and the apertures do not have to stand in parallel planes)
