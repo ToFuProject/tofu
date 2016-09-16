@@ -3318,7 +3318,7 @@ class Detect(object):
 
 
 
-    def save(self,SaveName=None,Path=None,Mode='npz', compressed=False, SynthDiag=False):
+    def save(self,SaveName=None,Path=None,Mode='npz', compressed=False, SynthDiag=True):
         """ Save the object in folder Name, under file name SaveName, using specified mode
 
         Most tofu objects can be saved automatically as numpy arrays (.npz, recommended) at the default location (recommended) by simply calling self.save()
@@ -4046,7 +4046,7 @@ class GDetect(object):
         return ax
 
 
-    def save(self,SaveName=None,Path=None,Mode='npz', compressed=False, SynthDiag=False):
+    def save(self,SaveName=None,Path=None,Mode='npz', compressed=False, SynthDiag=True):
         """ Save the object in folder Name, under file name SaveName, using specified mode
 
         Most tofu objects can be saved automatically as numpy arrays (.npz, recommended) at the default location (recommended) by simply calling self.save()
