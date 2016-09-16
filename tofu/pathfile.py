@@ -1142,7 +1142,7 @@ def open_np_IdObj(LCls=None,LIdArr=None,LIdUSR=None):
 
 def _tryloadVes(Id, Ves=None):
     if not Ves is None:
-        if type(Ves) is TFG.Ves and Id.LObj['Ves']['SavePath'][0]==Ves.Id.SavePath and Id.LObj['Ves']['SaveName'][0]==Ves.Id.SaveName:
+        if Ves.Id.Cls=='Ves' and Id.LObj['Ves']['SavePath'][0]==Ves.Id.SavePath and Id.LObj['Ves']['SaveName'][0]==Ves.Id.SaveName:
             return Ves
     else:
         try:
