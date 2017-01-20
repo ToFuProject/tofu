@@ -2677,7 +2677,7 @@ class Detect(object):
         self._SynthDiag_Points, self._SynthDiag_SAng, self._SynthDiag_Vect, self._SynthDiag_dV = None, None, None, None
 
     def calc_Sig(self, ff, extargs={}, Method='Vol', Mode='simps', PreComp=True,
-            epsrel=tfd.DetSynthEpsrel, dX12=tfd.DetSynthdX12, dX12Mode=tfd.DetSynthdX12Mode, ds=tfd.DetSynthds, dsMode=tfd.DetSynthdsMode, MarginS=tfd.DetSynthMarginS, Colis=tfd.DetCalcSAngVectColis,  Test=True):
+            epsrel=tfd.DetSynthEpsrel, dX12=tfd.DetSynthdX12, dX12Mode=tfd.DetSynthdX12Mode, ds=tfd.DetSynthds, dsMode=tfd.DetSynthdsMode, MarginS=tfd.DetSynthMarginS, Colis=tfd.DetCalcSAngVectColis, LOSRef=None,  Test=True):
         """ Return the signal computed from an input emissivity function, using a 3D or LOS method
 
         The synthetic signal resulting from a simulated emissivity can be computed automatically in several ways.
@@ -2722,17 +2722,17 @@ class Detect(object):
         # * ff(Pts, Vect), where Vect is a np.ndarray of shape=(3,N) with the (X,Y,Z) coordinates of a vector indicating the direction in which photons are emitted
         if PreComp and not Method=='LOS':
             assert not self._SynthDiag_ds is None, "The precomputed matrix shall be computed before using it..... "
-
+        LOSRef = self._LOSRef if LOSRef is None else LOSRef
         LOPolys = [oo.Poly for oo in self.Optics]
         LOBaryS = [oo.BaryS for oo in self.Optics]
         LOnIns = [oo.nIn for oo in self.Optics]
-        LOSD = self.LOS[self._LOSRef]['LOS'].D
-        LOSu = self.LOS[self._LOSRef]['LOS'].u
-        LOSkPIn = self.LOS[self._LOSRef]['LOS'].kPIn
-        LOSkPOut = self.LOS[self._LOSRef]['LOS'].kPOut
-        LOSEtend = self.LOS[self._LOSRef]['Etend']
+        LOSD = self.LOS[LOSRef]['LOS'].D
+        LOSu = self.LOS[LOSRef]['LOS'].u
+        LOSkPIn = self.LOS[LOSRef]['LOS'].kPIn
+        LOSkPOut = self.LOS[LOSRef]['LOS'].kPOut
+        LOSEtend = self.LOS[LOSRef]['Etend']
         thet = np.linspace(0.,2.*np.pi,self.Poly.shape[1])
-        CrossRef = np.arctan2(self.LOS[self._LOSRef]['PRef'][1],self.LOS[self._LOSRef]['PRef'][0]) if self.Ves.Type=='Tor' else self.LOS[self._LOSRef]['PRef'][0]
+        CrossRef = np.arctan2(self.LOS[LOSRef]['PRef'][1],self.LOS[LOSRef]['PRef'][0]) if self.Ves.Type=='Tor' else self.LOS[LOSRef]['PRef'][0]
 
         Sig = _tfg_c._Detect_SigSynthDiag(ff, extargs=extargs, Method=Method, Mode=Mode, PreComp=PreComp,
             DPoly=self.Poly, DBaryS=self.BaryS, DnIn=self.nIn, LOPolys=LOPolys, LOBaryS=LOBaryS, LOnIns=LOnIns, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng,
@@ -3705,7 +3705,7 @@ class GDetect(object):
         return SA, Nb, Pts
 
     def calc_Sig(self, ff, extargs={}, Method='Vol', Mode='simps', PreComp=True,
-                 epsrel=tfd.DetSynthEpsrel, dX12=tfd.DetSynthdX12, dX12Mode=tfd.DetSynthdX12Mode, ds=tfd.DetSynthds, dsMode=tfd.DetSynthdsMode, MarginS=tfd.DetSynthMarginS, Colis=tfd.DetCalcSAngVectColis,  Test=True,
+                 epsrel=tfd.DetSynthEpsrel, dX12=tfd.DetSynthdX12, dX12Mode=tfd.DetSynthdX12Mode, ds=tfd.DetSynthds, dsMode=tfd.DetSynthdsMode, MarginS=tfd.DetSynthMarginS, Colis=tfd.DetCalcSAngVectColis, LOSRef=None,  Test=True,
                  ind=None, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In'):
         """ Applies :meth:`~tofu.geom.Detect.calc_Sig` to all :class:`~tofu.geom.Detect` instances
 
@@ -3714,7 +3714,7 @@ class GDetect(object):
 
         """
         GD, Leg, LOSRef = _tfg_p._get_LD_Leg_LOSRef(self, LOSRef=self._LOSRef, ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut)
-        Sig = [dd.calc_Sig(ff, extargs=extargs, Method=Method, Mode=Mode, PreComp=PreComp, epsrel=epsrel, dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, Colis=Colis,Test=Test) for dd in GD]
+        Sig = [dd.calc_Sig(ff, extargs=extargs, Method=Method, Mode=Mode, PreComp=PreComp, epsrel=epsrel, dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, Colis=Colis, LOSRef=LOSRef, Test=Test) for dd in GD]
         return np.vstack(Sig).T, GD
 
 
@@ -4007,7 +4007,7 @@ class GDetect(object):
 
 
     def plot_Sig(self, ffSig, extargs={}, Method='Vol', Mode='simps', ax=None, Leg='', Sdict=tfd.GDetSigd, LegDict=tfd.TorLegd, draw=True, a4=False, Test=True,
-                 PreComp=True, epsrel=tfd.DetSynthEpsrel, dX12=tfd.DetSynthdX12, dX12Mode=tfd.DetSynthdX12Mode, ds=tfd.DetSynthds, dsMode=tfd.DetSynthdsMode, MarginS=tfd.DetSynthMarginS, Colis=tfd.DetCalcSAngVectColis,
+                 PreComp=True, epsrel=tfd.DetSynthEpsrel, dX12=tfd.DetSynthdX12, dX12Mode=tfd.DetSynthdX12Mode, ds=tfd.DetSynthds, dsMode=tfd.DetSynthdsMode, MarginS=tfd.DetSynthMarginS, Colis=tfd.DetCalcSAngVectColis, LOSRef=None,
                  ind=None, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In'):
         """ Plot the ignal computed for each or a subset of the :class:`~tofu.geom.Detect` instances
 
@@ -4042,7 +4042,7 @@ class GDetect(object):
         """
         assert type(ffSig) is np.ndarray or hasattr(ffSig,'__call__'), "Arg ffSig must be either pre-computed np.ndarray of signals or a callable function for computing it (fed to GDetect.calc_Sig()) !"
         if type(ffSig) is not np.ndarray:
-            ffSig, GD = self.calc_Sig(ffSig, extargs=extargs, Method=Method, Mode=Mode, PreComp=PreComp, epsrel=epsrel, dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, Colis=Colis,  Test=Test)
+            ffSig, GD = self.calc_Sig(ffSig, extargs=extargs, Method=Method, Mode=Mode, PreComp=PreComp, epsrel=epsrel, dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, Colis=Colis, LOSRef=LOSRef, Test=Test)
         else:
             GD, Leg, LOSRef = _tfg_p._get_LD_Leg_LOSRef(self, Leg=Leg, LOSRef=LOSRef, ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut)
             assert (ffSig.ndim==1 and ffSig.size==len(GD)) or (ffSig.ndim==2 and ffSig.shape[1]==len(GD)), "Arg ffSig does not have the good shape !"
