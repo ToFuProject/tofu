@@ -180,9 +180,9 @@ def _Ves_get_MeshCrossSection(P1Min, P1Max, P2Min, P2Max, Poly, Type, DLong=None
 
 
 
-def _LOS_calc_InOutPolProj(Type, Poly, Vin, DLong, D, uu, Name):
+def _LOS_calc_InOutPolProj(Type, Poly, Vin, DLong, D, uu, Name, Forbid=True, Margin=0.1):
     if Type=='Tor':
-        PIn, POut = GG.Calc_InOut_LOS_PIO(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(Poly), np.ascontiguousarray(Vin))
+        PIn, POut = GG.Calc_InOut_LOS_PIO(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(Poly), np.ascontiguousarray(Vin), Forbid=Forbid, Margin=Margin)
     else:
         PIn, POut = GG.Calc_InOut_LOS_PIO_Lin(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(Poly), np.ascontiguousarray(Vin), DLong)
     if np.any(np.isnan(PIn)):
@@ -505,7 +505,7 @@ def _Detect_SAngVect_Points(Pts, DPoly=None, DBaryS=None, DnIn=None, LOBaryS=Non
         indPos = SAng>0.
         if Colis and np.any(indPos):
             PtsindPos = Pts[:,indPos] if indPos.sum()>1 else Pts[:,indPos].reshape((Pts.shape[0],1))
-            indC = GG.Calc_InOut_LOS_Colis(DBaryS, PtsindPos, VPoly, VVin) if VType=='Tor' else GG.Calc_InOut_LOS_Colis_Lin(DBaryS, PtsindPos, VPoly, VVin, DLong)
+            indC = GG.Calc_InOut_LOS_Colis(DBaryS, PtsindPos, VPoly, VVin, Forbid=True,Margin=0.1) if VType=='Tor' else GG.Calc_InOut_LOS_Colis_Lin(DBaryS, PtsindPos, VPoly, VVin, DLong)
             indnul = indPos.nonzero()[0]
             SAng[indnul[~indC]] = 0.
             Vect[:,indnul[~indC]] = np.nan
@@ -612,7 +612,7 @@ def Calc_Etendue_PlaneLOS(Ps, nPs, DPoly, DBaryS, DnIn, LOPolys, LOnIns, LOSurfs
             indPos = SA>0.
             if Colis and np.any(indPos):
                 PpsindPos = Pps[:,indPos] if indPos.sum()>1 else Pps[:,indPos].reshape((Pps.shape[0],1))
-                indC = GG.Calc_InOut_LOS_Colis(PBary, PpsindPos, VPoly, VVin) if VType=='Tor' else GG.Calc_InOut_LOS_Colis_Lin(PBary, PpsindPos, VPoly, VVin, DLong)
+                indC = GG.Calc_InOut_LOS_Colis(PBary, PpsindPos, VPoly, VVin,Forbid=True,Margin=0.1) if VType=='Tor' else GG.Calc_InOut_LOS_Colis_Lin(PBary, PpsindPos, VPoly, VVin, DLong)
                 indnul = indPos.nonzero()[0]
                 SA[indnul[~indC]] = 0.
 
@@ -692,7 +692,7 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
         Lus = Lus - Ds
         Lus = Lus/(np.ones((3,1)).dot(np.sqrt(np.sum(Lus**2,axis=0,keepdims=True))))
         if VType=='Tor':
-            SIn, SOut = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin)
+            SIn, SOut = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin, Forbid=True, Margin=0.1)
         elif VType=='Lin':
             SIn, SOut = GG.Calc_InOut_LOS_PIO_Lin(Ds, Lus, VPoly, VVin, DLong)
 
@@ -735,7 +735,7 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
                 #t3 += (dtm.datetime.now()-tt).total_seconds() # DB
                 #tt = dtm.datetime.now() # DB
                 if VType=='Tor':
-                    Sin, Sout = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin)
+                    Sin, Sout = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin, Forbid=True, Margin=0.1)
                 elif VType=='Lin':
                     Sin, Sout = GG.Calc_InOut_LOS_PIO_Lin(Ds, Lus, VPoly, VVin, DLong)
                 #t4 += (dtm.datetime.now()-tt).total_seconds() # DB
@@ -1013,6 +1013,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
             uR, uZ = uR/uN, uZ/uN
             V = np.array([uR*np.cos(PPsi.flatten()) - uZ*np.sin(PPsi.flatten()), uZ*np.cos(PPsi.flatten()) + uR*np.sin(PPsi.flatten())])
             PtsRZ = np.array([RD+KK.flatten()*V[0,:], DBaryS[2]+KK.flatten()*V[1,:]])
+
             Vis = np.zeros((Nk*NPsi, NTheta))
             ind1 = _Ves_isInside(VPoly, VType, DLong, PtsRZ, In='(R,Z)')
             for ii in range(0,NTheta):
@@ -1029,7 +1030,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                                 Points[0,indSide],Points[1,indSide],Points[2,indSide], RadL, RadD, F1, np.tan(Lens_ConeHalfAng), LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=False)
                 indPos = Ind>0
                 if np.any(indPos):
-                    indC = GG.Calc_InOut_LOS_Colis(BaryS, Points[:,indPos], VPoly, VVin)
+                    indC = GG.Calc_InOut_LOS_Colis(BaryS, Points[:,indPos], VPoly, VVin, Forbid=True, Margin=0.1)
                     Ind[indPos.nonzero()[0][~indC]] = 0
                 Vis[:,ii] = Ind
             _SAngCross_Reg = True
@@ -1059,7 +1060,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                                 Points[0,indSide],Points[1,indSide],Points[2,indSide], RadL, RadD, F1, np.tan(Lens_ConeHalfAng), LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=False)
             indPos = Ind>0
             if np.any(indPos):
-                indC = GG.Calc_InOut_LOS_Colis(BaryS, Points[:,indPos], VPoly, VVin)
+                indC = GG.Calc_InOut_LOS_Colis(BaryS, Points[:,indPos], VPoly, VVin, Forbid=True, Margin=0.1)
                 Ind[indPos.nonzero()[0][~indC]] = 0
             Vis[:,ii,:] = Ind.reshape((NR,NZ))
             if ii==0 or (ii+1)%NRef==0:
@@ -1567,12 +1568,13 @@ def Calc_SynthDiag_SampleVolume(LOSD=None, LOSu=None, Span_k=None, ConeWidth_k=N
 
 
 def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=True,
-        DPoly=None, DBaryS=None, DnIn=None, LOPolys=None, LOBaryS=None, LOnIn=None, Lens_ConeTip=None, Lens_ConeHalfAng=None, RadL=None, RadD=None, F1=None, thet=np.linspace(0.,2.*np.pi,100), OpType='Apert',
-        LOSD=None, LOSu=None, LOSkPIn=None, LOSkPOut=None, LOSEtend=None, Span_k=None, ConeWidth_X1=None, ConeWidth_X2=None, SAngPlane=None, CrossRef=None,
-        Cone_PolyCrossbis=None, Cone_PolyHorbis=None, VPoly=None,  VVin=None, VType='Tor',
+        DPoly=None, DBaryS=None, DnIn=None, LOPolys=None, LOBaryS=None, LOnIns=None, Lens_ConeTip=None, Lens_ConeHalfAng=None, RadL=None, RadD=None, F1=None, thet=np.linspace(0.,2.*np.pi,100), OpType='Apert',
+        LOSD=None, LOSu=None, LOSkPIn=None, LOSkPOut=None, LOSEtend=None, Span_k=None, ConeWidth_k=None, ConeWidth_X1=None, ConeWidth_X2=None, SAngPlane=None, CrossRef=None,
+        Cone_PolyCrossbis=None, Cone_PolyHorbis=None, VPoly=None, VVin=None, DLong=None, VType='Tor',
         SynthDiag_Points=None, SynthDiag_SAng=None, SynthDiag_Vect=None, SynthDiag_dV=None,
         SynthDiag_dX12=None, SynthDiag_dX12Mode=None, SynthDiag_ds=None, SynthDiag_dsMode=None, SynthDiag_MarginS=None, SynthDiag_Colis=None,
         epsrel=None, dX12=None, dX12Mode=None, ds=None, dsMode=None, MarginS=None, Colis=True, Test=True):        # Used
+    
     if Test:
         assert hasattr(ff, '__call__'), "Arg ff must be a callable (function of one or two arguments) !"
         assert type(extargs) is dict, "Arg extargs must be a dict of keyword args for ff !"
@@ -1600,7 +1602,7 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
                     if OpType=='Apert':
                         def FF(x1,x2,s,**eargs):
                             Pt = P + s*nP + x1*e1 + x2*e2
-                            if GG.Calc_InOut_LOS_Colis_1D(P[0],P[1],P[2], Pt[0],Pt[1],Pt[2], VPoly, VVin, DLong=DLong, VType=VType):
+                            if GG.Calc_InOut_LOS_Colis_1D(P[0],P[1],P[2], Pt[0],Pt[1],Pt[2], VPoly, VVin, DLong=DLong, VType=VType, Forbid=True, Margin=0.1):
                                 SAng, Vect = GG.Calc_SAngVect_LPolys1Point_Flex(LPolys, Pt, PSA, nPSA, e1SA, e2SA, VectReturn=True)
                                 return ff(Pt,Vect,**eargs)*SAng
                             else:
@@ -1609,8 +1611,8 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
                         tanthetmax = np.tan(Lens_ConeHalfAng)
                         def FF(x1,x2,s,**eargs):
                             Pt = P + s*nP + x1*e1 + x2*e2
-                            if GG.Calc_InOut_LOS_Colis_1D(P[0],P[1],P[2], Pt[0],Pt[1],Pt[2], VPoly, VVin, DLong=DLong, VType=VType):
-                                SAng, Vect = GG.Calc_SAngVect_LPolys1Point_Flex_Lens(LOBaryS[0][0],LOBaryS[0][1],LOBaryS[0][2], Lens_ConeTip[0],Lens_ConeTip[1],Lens_ConeTip[2], LOnIn[0][0],LOnIn[0][1],LOnIn[0][2],
+                            if GG.Calc_InOut_LOS_Colis_1D(P[0],P[1],P[2], Pt[0],Pt[1],Pt[2], VPoly, VVin, DLong=DLong, VType=VType, Forbid=True, Margin=0.1):
+                                SAng, Vect = GG.Calc_SAngVect_LPolys1Point_Flex_Lens(LOBaryS[0][0],LOBaryS[0][1],LOBaryS[0][2], Lens_ConeTip[0],Lens_ConeTip[1],Lens_ConeTip[2], LOnIns[0][0],LOnIns[0][1],LOnIns[0][2],
                                         Pt[0],Pt[1],Pt[2], RadL, RadD, F1, tanthetmax, LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=True)
                                 return ff(Pt,Vect,**eargs)*SAng
                             else:
@@ -1625,7 +1627,7 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
                         tanthetmax = np.tan(Lens_ConeHalfAng)
                         def FF(x1,x2,s,**eargs):
                             Pt = P + s*nP + x1*e1 + x2*e2
-                            SAng, Vect = GG.Calc_SAngVect_LPolys1Point_Flex_Lens(LOBaryS[0][0],LOBaryS[0][1],LOBaryS[0][2], Lens_ConeTip[0],Lens_ConeTip[1],Lens_ConeTip[2], LOnIn[0][0],LOnIn[0][1],LOnIn[0][2],
+                            SAng, Vect = GG.Calc_SAngVect_LPolys1Point_Flex_Lens(LOBaryS[0][0],LOBaryS[0][1],LOBaryS[0][2], Lens_ConeTip[0],Lens_ConeTip[1],Lens_ConeTip[2], LOnIns[0][0],LOnIns[0][1],LOnIns[0][2],
                                     Pt[0],Pt[1],Pt[2], RadL, RadD, F1, tanthetmax, LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=True)
                             return ff(Pt,Vect,**eargs)*SAng
 
@@ -1634,7 +1636,7 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
                     if OpType=='Apert':
                         def FF(x1,x2,s,**eargs):
                             Pt = P + s*nP + x1*e1 + x2*e2
-                            if GG.Calc_InOut_LOS_Colis_1D(P[0],P[1],P[2], Pt[0],Pt[1],Pt[2], VPoly, VVin, DLong=DLong, VType=VType):
+                            if GG.Calc_InOut_LOS_Colis_1D(P[0],P[1],P[2], Pt[0],Pt[1],Pt[2], VPoly, VVin, DLong=DLong, VType=VType, Forbid=True, Margin=0.1):
                                 SAng = GG.Calc_SAngVect_LPolys1Point_Flex(LPolys, Pt, PSA, nPSA, e1SA, e2SA, VectReturn=False)
                                 return ff(Pt,**eargs)*SAng
                             else:
@@ -1643,8 +1645,8 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
                         tanthetmax = np.tan(Lens_ConeHalfAng)
                         def FF(x1,x2,s,**eargs):
                             Pt = P + s*nP + x1*e1 + x2*e2
-                            if GG.Calc_InOut_LOS_Colis_1D(P[0],P[1],P[2], Pt[0],Pt[1],Pt[2], VPoly, VVin, DLong=DLong, VType=VType):
-                                SAng = GG.Calc_SAngVect_LPolys1Point_Flex_Lens(LOBaryS[0][0],LOBaryS[0][1],LOBaryS[0][2], Lens_ConeTip[0],Lens_ConeTip[1],Lens_ConeTip[2], LOnIn[0][0],LOnIn[0][1],LOnIn[0][2],
+                            if GG.Calc_InOut_LOS_Colis_1D(P[0],P[1],P[2], Pt[0],Pt[1],Pt[2], VPoly, VVin, DLong=DLong, VType=VType,Forbid=True, Margin=0.1):
+                                SAng = GG.Calc_SAngVect_LPolys1Point_Flex_Lens(LOBaryS[0][0],LOBaryS[0][1],LOBaryS[0][2], Lens_ConeTip[0],Lens_ConeTip[1],Lens_ConeTip[2], LOnIns[0][0],LOnIns[0][1],LOnIns[0][2],
                                         Pt[0],Pt[1],Pt[2], RadL, RadD, F1, tanthetmax, LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=False)
                                 return ff(Pt,**eargs)*SAng
                             else:
@@ -1659,7 +1661,7 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
                         tanthetmax = np.tan(Lens_ConeHalfAng)
                         def FF(x1,x2,s,**eargs):
                             Pt = P + s*nP + x1*e1 + x2*e2
-                            SAng = GG.Calc_SAngVect_LPolys1Point_Flex_Lens(LOBaryS[0][0],LOBaryS[0][1],LOBaryS[0][2], Lens_ConeTip[0],Lens_ConeTip[1],Lens_ConeTip[2], LOnIn[0][0],LOnIn[0][1],LOnIn[0][2],
+                            SAng = GG.Calc_SAngVect_LPolys1Point_Flex_Lens(LOBaryS[0][0],LOBaryS[0][1],LOBaryS[0][2], Lens_ConeTip[0],Lens_ConeTip[1],Lens_ConeTip[2], LOnIns[0][0],LOnIns[0][1],LOnIns[0][2],
                                     Pt[0],Pt[1],Pt[2], RadL, RadD, F1, tanthetmax, LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=False)
                             return ff(Pt,**eargs)*SAng
             minx1 = lambda x: MinX1
@@ -1788,7 +1790,7 @@ def Calc_SynthDiag_GDetect(GD, ff, Method='Vol', Mode='simps', PreComp=True, eps
                     if Colis:
                         def FF(x1,x2,s,ii=ii):
                             Point = P + s*nP + x1*e1 + x2*e2
-                            if GG.Calc_InOut_LOS_Colis_1D(self._SAngPlane[0], Point, GD[ii].Ves.Poly, GD[ii].Ves._Vin):
+                            if GG.Calc_InOut_LOS_Colis_1D(self._SAngPlane[0], Point, GD[ii].Ves.Poly, GD[ii].Ves._Vin, Forbid=True, Margin=0.1):
                                 SAng, Vect = GG.Calc_SAngVect_LPolysPoints_Flex(LPolys, Point, PSA, nPSA, e1SA, e2SA)
                                 return ff(Point,Vect)*SAng
                             else:
@@ -1803,7 +1805,7 @@ def Calc_SynthDiag_GDetect(GD, ff, Method='Vol', Mode='simps', PreComp=True, eps
                     if Colis:
                         def FF(x1,x2,s,ii=ii):
                             Point = D + s*nP + x1*e1 + x2*e2
-                            if GG.Calc_InOut_LOS_Colis_1D(self._SAngPlane[0], Point, GD[ii].Ves.Poly, GD[ii].Ves._Vin):
+                            if GG.Calc_InOut_LOS_Colis_1D(self._SAngPlane[0], Point, GD[ii].Ves.Poly, GD[ii].Ves._Vin, Forbid=True, Margin=0.1):
                                 return ff(Point) * GG.Calc_SAngVect_LPolysPoints_Flex(LPolys, Point, PSA, nPSA, e1SA, e2SA)[0]
                             else:
                                 return 0.
@@ -1826,7 +1828,7 @@ def Calc_SynthDiag_GDetect(GD, ff, Method='Vol', Mode='simps', PreComp=True, eps
                     SAng[ind], Vect[:,ind] = GG.Calc_SAngVect_LPolysPoints_Flex(LPolys, Points[:,ind], GD[ii]._SAngPlane[0], GD[ii]._SAngPlane[1], GD[ii]._SAngPlane[2], GD[ii]._SAngPlane[3])
                     indPos = SAng>0.
                     if Colis and np.any(indPos):
-                        indC = GG.Calc_InOut_LOS_Colis(GD[ii]._SAngPlane[0], Points[:,indPos], GD[ii].Ves.Poly, GD[ii].Ves._Vin)
+                        indC = GG.Calc_InOut_LOS_Colis(GD[ii]._SAngPlane[0], Points[:,indPos], GD[ii].Ves.Poly, GD[ii].Ves._Vin, Forbid=True, Margin=0.1)
                         indnul = indPos.nonzero()[0]
                         SAng[indnul[~indC]] = 0.
                 Emiss = ff(Points,Vect)*SAng if Ani else ff(Points)*SAng
@@ -2237,9 +2239,9 @@ def Calc_SAngOnPlane(D,P,nP, dX12=[0.01,0.01], dX12Mode='rel', e1=None,e2=None, 
         indPos = sa>0.
         if Colis and np.any(indPos):
             if np.sum(indPos)==1:
-                indC = GG.Calc_InOut_LOS_Colis(PBary, Pps[:,indPos].reshape((3,np.sum(indPos))), D.Ves.Poly, D.Ves._Vin)
+                indC = GG.Calc_InOut_LOS_Colis(PBary, Pps[:,indPos].reshape((3,np.sum(indPos))), D.Ves.Poly, D.Ves._Vin, Forbid=True, Margin=0.1)
             else:
-                indC = GG.Calc_InOut_LOS_Colis(PBary, Pps[:,indPos], D.Ves.Poly, D.Ves._Vin)
+                indC = GG.Calc_InOut_LOS_Colis(PBary, Pps[:,indPos], D.Ves.Poly, D.Ves._Vin, Forbid=True, Margin=0.1)
             indPos = indPos.nonzero()[0]
             sa[indPos[~indC]] = 0.
         SA.append(sa)
