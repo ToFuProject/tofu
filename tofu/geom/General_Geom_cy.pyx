@@ -1116,13 +1116,77 @@ cdef Calc_InOut_LOS_Lin(DTYPE_t D0, DTYPE_t D1, DTYPE_t D2, DTYPE_t du0, DTYPE_t
     return SIn, SOut, NIn, NOut
 
 
-def Calc_InOut_LOS_PIO(np.ndarray[DTYPE_t, ndim=2] D, np.ndarray[DTYPE_t, ndim=2] du, np.ndarray[DTYPE_t, ndim=2] TPoly, np.ndarray[DTYPE_t, ndim=2] Vin):
+cdef Calc_InOut_LOS_ForbidArea_1D(DTYPE_t D0, DTYPE_t D1, DTYPE_t RMin, DTYPE_t Margin=0.1):
+    cdef DTYPE_t Ang = math.atan2(D1,D0)
+    # Add a little bit of margin to the major radius, just in case
+    cdef DTYPE_t R = math.sqrt(D0**2+D1**2)*(1+Margin*RMin)
+    cdef DTYPE_t L = math.sqrt(R**2-RMin**2)
+    # Compute new (X,Y) coordinates with the margin
+    cdef DTYPE_t X = R*math.cos(Ang), Y = R*math.sin(Ang)
+    # Compute coordinates of the 2 points where the tangents touch the inner circle
+    cdef DTYPE_t S1X = (RMin**2*X+RMin*Y*L)/R**2, S1Y = (RMin**2*Y-RMin*X*L)/R**2
+    cdef DTYPE_t S2X = (RMin**2*X-RMin*Y*L)/R**2, S2Y = (RMin**2*Y+RMin*X*L)/R**2
+    # Compute the vectors perpendicular to the 3 planes
+    cdef DTYPE_t V0X = -X, V0Y = -Y
+    cdef DTYPE_t V1X = -S1X, V1Y = -S1Y
+    cdef DTYPE_t V2X = -S2X, V2Y = -S2Y
+    # Check good orientation of vectors 1 and 2 (should be towards center)
+    #if -S1X*V1X-S1Y*V1Y<0:
+    #    V1X = -V1X
+    #    V1Y = -V1Y
+    #if -S2X*V2X-S2Y*V2Y<0:
+    #    V2X = -V2X
+    #    V2Y = -V2Y
+    return S1X,S1Y, S2X,S2Y, V0X,V0Y, V1X,V1Y, V2X,V2Y
+
+def Calc_InOut_LOS_ForbidArea_2D(np.ndarray[DTYPE_t, ndim=2] D, DTYPE_t RMin, DTYPE_t Margin=0.1):
+    cdef np.ndarray[DTYPE_t, ndim=1] Ang = np.arctan2(D[1,:],D[0,:])
+    # Add a little bit of margin to the major radius, just in case
+    cdef np.ndarray[DTYPE_t, ndim=1] R = np.hypot(D[0,:],D[1,:])*(1+Margin*RMin)
+    cdef np.ndarray[DTYPE_t, ndim=1] L = np.sqrt(R**2-RMin**2)
+    # Compute new (X,Y) coordinates with the margin
+    cdef np.ndarray[DTYPE_t, ndim=1] X = R*np.cos(Ang), Y = R*np.sin(Ang)
+    # Compute coordinates of the 2 points where the tangents touch the inner circle
+    cdef np.ndarray[DTYPE_t, ndim=2] S1 = np.array([(RMin**2*X+RMin*Y*L)/R**2, (RMin**2*Y-RMin*X*L)/R**2])
+    cdef np.ndarray[DTYPE_t, ndim=2] S2 = np.array([(RMin**2*X-RMin*Y*L)/R**2, (RMin**2*Y+RMin*X*L)/R**2])
+    # Compute the vectors perpendicular to the 3 planes
+    cdef np.ndarray[DTYPE_t, ndim=2] V0 = -np.array([X, Y])
+    cdef np.ndarray[DTYPE_t, ndim=2] V1 = -S1
+    cdef np.ndarray[DTYPE_t, ndim=2] V2 = -S2
+    # Check good orientation of vectors 1 and 2 (should be towards center)
+    #ind = -np.sum(S1*V1,axis=0)<0
+    #V1[:,ind] = -V1[:,ind]
+    #ind = -np.sum(S2*V2,axis=0)<0
+    #V2[:,ind] = -V2[:,ind]
+    return S1, S2, V0, V1, V2
+
+
+cdef Calc_InOut_LOS_ForbidArea_Check_1D(DTYPE_t PX, DTYPE_t PY, DTYPE_t S1X,DTYPE_t S1Y, DTYPE_t S2X,DTYPE_t S2Y, DTYPE_t V0X,DTYPE_t V0Y, DTYPE_t V1X,DTYPE_t V1Y, DTYPE_t V2X,DTYPE_t V2Y):
+    """ Check if a point is potentially visible (i.e.: not in the forbidden area) """
+    ind = (PX-S1X)*V0X+(PY-S1Y)*V0Y > 0 and (PX-S1X)*V1X+(PY-S1Y)*V1Y > 0 and (PX-S2X)*V2X+(PY-S2Y)*V2Y > 0
+    return not ind
+
+def Calc_InOut_LOS_ForbidArea_Check_2D(np.ndarray[DTYPE_t, ndim=2] P, np.ndarray[DTYPE_t, ndim=1] S1, np.ndarray[DTYPE_t, ndim=1] S2, np.ndarray[DTYPE_t, ndim=1] V0, np.ndarray[DTYPE_t, ndim=1]  V1, np.ndarray[DTYPE_t, ndim=1] V2):
+    """ Check if any number of points are potentially visible (i.e.: not in the forbidden area) """
+    ind0 = (P[0,:]-S1[0])*V0[0]+(P[1,:]-S1[1])*V0[1] > 0
+    ind1 = (P[0,:]-S1[0])*V1[0]+(P[1,:]-S1[1])*V1[1] > 0
+    ind2 = (P[0,:]-S2[0])*V2[0]+(P[1,:]-S2[1])*V2[1] > 0
+    # Indices of the points lying in the forbidden area
+    ind = ind0 & ind1 & ind2
+    return ~ind
+
+
+def Calc_InOut_LOS_PIO(np.ndarray[DTYPE_t, ndim=2] D, np.ndarray[DTYPE_t, ndim=2] du, np.ndarray[DTYPE_t, ndim=2] TPoly, np.ndarray[DTYPE_t, ndim=2] Vin, Forbid=True, DTYPE_t Margin=0.1):
     cdef Py_ssize_t NIn, NOut, ii, ind
     cdef Py_ssize_t NL = D.shape[1]
     cdef np.ndarray[DTYPE_t, ndim=2] SIn = np.nan*np.ones((3,NL)), SOut = np.nan*np.ones((3,NL))
     cdef list Sin, Sout
     cdef list kin, kout
     cdef DTYPE_t koutfl
+    # If Forbid, prepare the forbidden area parameters
+    if Forbid:
+        RMin = 0.95*min(np.nanmin(TPoly[0,:]), np.nanmin(np.hypot(D[0,:],D[1,:])))
+        S1, S2, V0, V1, V2 = Calc_InOut_LOS_ForbidArea_2D(D, RMin, Margin=Margin)
     for ii in xrange(0,NL):
         Sin, Sout, NIn, NOut = Calc_InOut_LOS(D[0,ii],D[1,ii],D[2,ii], du[0,ii],du[1,ii],du[2,ii], TPoly, Vin)
         if NOut>0:
@@ -1137,6 +1201,12 @@ def Calc_InOut_LOS_PIO(np.ndarray[DTYPE_t, ndim=2] D, np.ndarray[DTYPE_t, ndim=2
             if any([kk>0 and kk<koutfl for kk in kin]):
                 ind = kin.index(min([kk if kk>0 and kk<koutfl else np.inf for kk in kin]))
                 SIn[0,ii], SIn[1,ii], SIn[2,ii] = Sin[ind]
+        # If Forbid, check whether each SIn and SOut lies in the forbidden area and suppress them if so
+        if Forbid:
+            indF = Calc_InOut_LOS_ForbidArea_Check_2D(SIn, S1[:,ii], S2[:,ii], V0[:,ii], V1[:,ii], V2[:,ii])
+            SIn[:,~indF] = np.nan
+            indF = Calc_InOut_LOS_ForbidArea_Check_2D(SOut, S1[:,ii], S2[:,ii], V0[:,ii], V1[:,ii], V2[:,ii])
+            SOut[:,~indF] = np.nan
     return SIn, SOut
 
 def Calc_InOut_LOS_PIO_Lin(np.ndarray[DTYPE_t, ndim=2] D, np.ndarray[DTYPE_t, ndim=2] du, np.ndarray[DTYPE_t, ndim=2] TPoly, np.ndarray[DTYPE_t, ndim=2] Vin, list DLong):
@@ -1163,7 +1233,7 @@ def Calc_InOut_LOS_PIO_Lin(np.ndarray[DTYPE_t, ndim=2] D, np.ndarray[DTYPE_t, nd
                 SIn[0,ii], SIn[1,ii], SIn[2,ii] = Sin[ind]
     return SIn, SOut
 
-def Calc_InOut_LOS_Colis_1D(DTYPE_t BS0, DTYPE_t BS1, DTYPE_t BS2, DTYPE_t Pp0, DTYPE_t Pp1, DTYPE_t Pp2, np.ndarray[DTYPE_t, ndim=2] TPoly, np.ndarray[DTYPE_t, ndim=2] Vin, list DLong=[], str VType='Tor'):
+def Calc_InOut_LOS_Colis_1D(DTYPE_t BS0, DTYPE_t BS1, DTYPE_t BS2, DTYPE_t Pp0, DTYPE_t Pp1, DTYPE_t Pp2, np.ndarray[DTYPE_t, ndim=2] TPoly, np.ndarray[DTYPE_t, ndim=2] Vin, list DLong=[], str VType='Tor', Forbid=True, DTYPE_t Margin=0.1):
     cdef int NIn, NOut
     cdef Py_ssize_t ii
     cdef list       Sin, Sout
@@ -1179,10 +1249,17 @@ def Calc_InOut_LOS_Colis_1D(DTYPE_t BS0, DTYPE_t BS1, DTYPE_t BS2, DTYPE_t Pp0, 
         for sout in Sout:
             if (sout[0]-BS0)*du0 + (sout[1]-BS1)*du1 + (sout[2]-BS2)*du2 < kP:
                 return False
+    if VType=='Tor' and Forbid:
+        # Check if Pp is on the good side of the Torus
+        RMin = 0.95*min(np.nanmin(TPoly[0,:]),math.sqrt(BS0**2+BS1**2))
+        S1X,S1Y, S2X,S2Y, V0X,V0Y, V1X,V1Y, V2X,V2Y = Calc_InOut_LOS_ForbidArea_1D(BS0,BS1,RMin,Margin=Margin)
+        ind = Calc_InOut_LOS_ForbidArea_Check_1D(Pp0,Pp1, S1X,S1Y, S2X,S2Y, V0X,V0Y, V1X,V1Y, V2X,V2Y)
+        if not ind:
+            return False
     return True
 
 
-def Calc_InOut_LOS_Colis(DTYPE_t[::1] BaryS, np.ndarray[DTYPE_t, ndim=2] Points, np.ndarray[DTYPE_t, ndim=2] TPoly, np.ndarray[DTYPE_t, ndim=2] Vin):
+def Calc_InOut_LOS_Colis(DTYPE_t[::1] BaryS, np.ndarray[DTYPE_t, ndim=2] Points, np.ndarray[DTYPE_t, ndim=2] TPoly, np.ndarray[DTYPE_t, ndim=2] Vin, Forbid=True, DTYPE_t Margin=0.1):
     cdef int NP = Points.shape[1]
     cdef DTYPE_t BS0 = BaryS[0], BS1 = BaryS[1], BS2 = BaryS[2]
     cdef Py_ssize_t ii
@@ -1193,18 +1270,32 @@ def Calc_InOut_LOS_Colis(DTYPE_t[::1] BaryS, np.ndarray[DTYPE_t, ndim=2] Points,
     cdef tuple   du = ((Points[0,:]-BS0)/kP2, (Points[1,:]-BS1)/kP2, (Points[2,:]-BS2)/kP2)
     cdef DTYPE_t du0, du1, du2, kk
     cdef DTYPE_t[::1]  kP = (Points[0,:]-BS0)*du[0] + (Points[1,:]-BS1)*du[1] + (Points[2,:]-BS2)*du[2]
+    
+    if Forbid:
+        # Check which points are on the good side of the Torus
+        RMin = 0.95*min(np.nanmin(TPoly[0,:]),np.hypot(BaryS[0],BaryS[1]))
+        S1X,S1Y, S2X,S2Y, V0X,V0Y, V1X,V1Y, V2X,V2Y = Calc_InOut_LOS_ForbidArea_1D(BaryS[0], BaryS[1], RMin, Margin=Margin)
+        indF = Calc_InOut_LOS_ForbidArea_Check_2D(Points,
+                                                  np.array([S1X,S1Y]),np.array([S2X,S2Y]),
+                                                  np.array([V0X,V0Y]),np.array([V1X,V1Y]),
+                                                  np.array([V2X,V2Y]))
+    else:
+        indF = np.ones((NP,),dtype=bool)
 
     for ii in xrange(0,NP):
-        du0, du1, du2 = du[0][ii],du[1][ii],du[2][ii]
-        Sin, Sout, NIn, NOut = Calc_InOut_LOS(BS0,BS1,BS2, du0, du1, du2, TPoly, Vin)
-        if NOut==0:
+        if not indF[ii]:
             ind[ii] = 0
         else:
-            for sout in Sout:
-                kk = (sout[0]-BS0)*du0 + (sout[1]-BS1)*du1 + (sout[2]-BS2)*du2
-                if kk>0 and kk<kP[ii]:
-                    ind[ii] = 0
-                    break
+            du0, du1, du2 = du[0][ii],du[1][ii],du[2][ii]
+            Sin, Sout, NIn, NOut = Calc_InOut_LOS(BS0,BS1,BS2, du0, du1, du2, TPoly, Vin)
+            if NOut==0:
+                ind[ii] = 0
+            else:
+                for sout in Sout:
+                    kk = (sout[0]-BS0)*du0 + (sout[1]-BS1)*du1 + (sout[2]-BS2)*du2
+                    if kk>0 and kk<kP[ii]:
+                        ind[ii] = 0
+                        break
     return np.asarray(ind,dtype=bool)
 
 def Calc_InOut_LOS_Colis_Lin(DTYPE_t[::1] BaryS, np.ndarray[DTYPE_t, ndim=2] Points, np.ndarray[DTYPE_t, ndim=2] VPoly, np.ndarray[DTYPE_t, ndim=2] Vin, list DLong):

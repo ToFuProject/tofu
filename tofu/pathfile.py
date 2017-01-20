@@ -33,7 +33,7 @@ __all__ = ["Find_Rootpath","get_DefaultPaths","get_Default_dtimeFmt","_get_PathF
 """
 
 
-def Find_Rootpath(Path=os.getcwd(),substr='/tofu'):
+def Find_Rootpath(Path=os.getcwd(),substr='/tofu/'):
     """
     Return the absolute path of the root directory of ToFu, searching for a pattern in the provided input path
 
@@ -50,11 +50,13 @@ def Find_Rootpath(Path=os.getcwd(),substr='/tofu'):
         The absolute path containing the pattern
 
     """
+    Path = (Path+'/').replace('//','/')
     indstr = Path.find(substr)
     if indstr==-1:
         substr = substr.lower()
         indstr = Path.find(substr)
     root = Path[:indstr] + substr
+    root = root[:-1] if root[-1]=='/' else root
     return root
 
 
@@ -183,7 +185,7 @@ def get_PolyFromPolyFileObj(PolyFileObj, SavePathInp=None, units='m', comments='
         PolyFileObj = PolyFileObj.Poly
 
     Poly = np.asarray(PolyFileObj)
-    assert Poly.ndim==2 and 2 in Poly.shape and max(Poly.shape)>=3 and not np.any(np.isnan(Poly)), "Arg np.asarray(PolyFileObj) must be a (2,N) or (N,2) np.ndarray with non NaNs !"
+    assert Poly.ndim==2 and shape0 in Poly.shape and max(Poly.shape)>=3 and not np.any(np.isnan(Poly)), "Arg np.asarray(PolyFileObj) must be a (2,N) or (N,2) np.ndarray with non NaNs !"
     Poly = Poly if Poly.shape[0]==shape0 else Poly.T
     Poly = convert_units(Poly, In=units, Out='m')
     return Poly, addInfo
@@ -537,12 +539,16 @@ def SaveName_Conv(Exp, Cls, Type, Deg, Diag, Name, shot=None, dtime=None, Format
         dtime = dtm.datetime.now()
     ClsType = Cls if Type is None else Cls+Type
     if Cls=='PreData':
-        Elts = [(ClsType,''),(Exp,''),(Deg,'D'),(Diag,'Dg'),(shot,'sh'),(Name,'')]
+        Elts = [(ClsType,''),(Exp,''),(Deg,'D','01.0f'),(Diag,'Dg'),(shot,'sh','05.0f'),(Name,'')]
     else:
-        Elts = [(ClsType,''),(Exp,''),(Deg,'D'),(Diag,'Dg'),(Name,''),(shot,'sh')]
+        Elts = [(ClsType,''),(Exp,''),(Deg,'D','01.0f'),(Diag,'Dg'),(Name,''),(shot,'sh','05.0f')]
     SVN = Mod
     for ii in range(0,len(Elts)):
-        SVN = SVN + '_' + Elts[ii][1] + str(Elts[ii][0]).replace('_','') if not Elts[ii][0] is None else SVN
+        if len(Elts[ii])==3 and Elts[ii][0] is not None:
+            temp = "{0:"+Elts[ii][2]+"}"
+            SVN = SVN + '_' + Elts[ii][1] + temp.format(Elts[ii][0])
+        elif Elts[ii][0] is not None:
+            SVN = SVN + '_' + Elts[ii][1] + str(Elts[ii][0]).replace('_','')
     if dtimeIn:
         SVN = SVN+'_'+dtime.strftime(Format)
     SVN = SVN.replace('__','_')
@@ -1313,7 +1319,8 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
                 SynthDiag, Res = LDetSynthRes[ii]['SynthDiag'][0], LDetSynthRes[ii]['Res'][0]
             Optics = _tryLoadOpticsElseCreate(ddIdsave, Opt=Opt, Ves=Ves, Verb=Verb)
             Poly = LDetsave[ii]['Poly'] if type(Optics) is list else dict(Rad=float(LDetsave[ii]['Rad']),O=LDetsave[ii]['BaryS'],nIn=LDetsave[ii]['nIn'])
-            dd = TFG.Detect(ddIdsave, Poly, Optics=Optics, Ves=Ves, Sino_RefPt=Out['Sino_RefPt'], CalcEtend=False, CalcSpanImp=False, CalcCone=False, CalcPreComp=False, Calc=True, Verb=Verb,
+            Sino_RefPt = None if Out['Sino_RefPt'].shape==() else Out['Sino_RefPt']
+            dd = TFG.Detect(ddIdsave, Poly, Optics=Optics, Ves=Ves, Sino_RefPt=Sino_RefPt, CalcEtend=False, CalcSpanImp=False, CalcCone=False, CalcPreComp=False, Calc=True, Verb=Verb,
                             arrayorder=str(Out['arrayorder']), Clock=bool(Out['Clock']))
             dd = _resetDetectAttr(dd, {'LOSprops':LOSprops, 'Sino':Sino, 'Span':Span, 'Cone':Cone, 'SAng':SAng, 'SynthDiag':SynthDiag, 'Res':Res, 'Optics':Opt})
             dd._LOS_NP = LDetsave[ii]['LOSNP']

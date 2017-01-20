@@ -36,7 +36,7 @@ dtmFormat = "D%Y%m%d_T%H%M%S"
 
 
 
-AllowedExp = [None,'AUG','MISTRAL','JET','ITER','TCV','TS','Misc','Test']
+AllowedExp = [None,'AUG','MISTRAL','JET','ITER','TCV','TS','WEST','Misc','Test']
 
 """
 ###############################################################################

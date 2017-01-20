@@ -2099,6 +2099,7 @@ class Detect(object):
     def __init__(self, Id, Poly, Optics=None, Ves=None, Sino_RefPt=None, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True, Calc=True, Verb=True,
                  Etend_Method=tfd.DetEtendMethod, Etend_RelErr=tfd.DetEtendepsrel, Etend_dX12=tfd.DetEtenddX12, Etend_dX12Mode=tfd.DetEtenddX12Mode, Etend_Ratio=tfd.DetEtendRatio, Colis=True, LOSRef='Cart',
                  Cone_DRY=tfd.DetConeDRY, Cone_DXTheta=None, Cone_DZ=tfd.DetConeDZ, Cone_NPsi=20, Cone_Nk=60,
+                 SynthDiag_dX12=tfd.DetSynthdX12, SynthDiag_dX12Mode=tfd.DetSynthdX12Mode, SynthDiag_ds=tfd.DetSynthds, SynthDiag_dsMode=tfd.DetSynthdsMode, SynthDiag_MarginS=tfd.DetSynthMarginS,
                  arrayorder='C', Clock=False, Type=None, Exp=None, Diag=None, shot=None, dtime=None, dtimeIn=False, SavePath=None):
 
         self._Done = False
@@ -2122,9 +2123,9 @@ class Detect(object):
         self._set_arrayorder(arrayorder)
         if Calc:
             self._calc_All(Sino_RefPt=Sino_RefPt, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp, Verb=Verb,
-                    Etend_Method=Etend_Method, Etend_RelErr=Etend_RelErr, Etend_dX12=Etend_dX12, Etend_dX12Mode=Etend_dX12Mode, Etend_Ratio=Etend_Ratio, LOSRef=LOSRef,
-                    Cone_DRY=Cone_DRY, Cone_DXTheta=Cone_DXTheta, Cone_DZ=Cone_DZ,
-                    Cone_NPsi=Cone_NPsi, Cone_Nk=Cone_Nk, Colis=Colis)
+                           Etend_Method=Etend_Method, Etend_RelErr=Etend_RelErr, Etend_dX12=Etend_dX12, Etend_dX12Mode=Etend_dX12Mode, Etend_Ratio=Etend_Ratio, LOSRef=LOSRef,
+                           Cone_DRY=Cone_DRY, Cone_DXTheta=Cone_DXTheta, Cone_DZ=Cone_DZ, Cone_NPsi=Cone_NPsi, Cone_Nk=Cone_Nk, 
+                           SynthDiag_dX12=SynthDiag_dX12, SynthDiag_dX12Mode=SynthDiag_dX12Mode, SynthDiag_ds=SynthDiag_ds, SynthDiag_dsMode=SynthDiag_dsMode, SynthDiag_MarginS=SynthDiag_MarginS, Colis=Colis)
 
         if Verb:
             print "TFG.Detect object "+self.Id.Name+" : Created !"
@@ -2224,12 +2225,14 @@ class Detect(object):
         Etend_RelErr=None, Etend_dX12=None, Etend_dX12Mode=None, Etend_Ratio=None, Colis=None, LOSRef=None, Etend_Method=None,
         MarginRMin=None, NEdge=None, NRad=None, Nk=None,
         Cone_DRY=None, Cone_DXTheta=None, Cone_DZ=None, Cone_NPsi=None, Cone_Nk=None,
+        SynthDiag_dX12=None, SynthDiag_dX12Mode=None, SynthDiag_ds=None, SynthDiag_dsMode=None, SynthDiag_MarginS=None,
         arrayorder=None, Clock=None, SavePath=None, dtime=None, dtimeIn=None):
         _Detect_check_inputs(Id=Id, Poly=Poly, Type=Type, Optics=Optics, Vess=Ves, Sino_RefPt=Sino_RefPt, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp, Calc=Calc, Verb=Verb,
-                Etend_RelErr=Etend_RelErr, Etend_dX12=Etend_dX12, Etend_dX12Mode=Etend_dX12Mode, Etend_Ratio=Etend_Ratio, Colis=Colis, LOSRef=LOSRef, Etend_Method=Etend_Method,
-                MarginRMin=MarginRMin, NEdge=NEdge, NRad=NRad, Nk=Nk,
-                Cone_DRY=Cone_DRY, Cone_DXTheta=Cone_DXTheta, Cone_DZ=Cone_DZ, Cone_NPsi=Cone_NPsi, Cone_Nk=Cone_Nk,
-                arrayorder=arrayorder, Clock=Clock, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath, dtime=dtime, dtimeIn=dtimeIn)
+                             Etend_RelErr=Etend_RelErr, Etend_dX12=Etend_dX12, Etend_dX12Mode=Etend_dX12Mode, Etend_Ratio=Etend_Ratio, Colis=Colis, LOSRef=LOSRef, Etend_Method=Etend_Method,
+                             MarginRMin=MarginRMin, NEdge=NEdge, NRad=NRad, Nk=Nk,
+                             Cone_DRY=Cone_DRY, Cone_DXTheta=Cone_DXTheta, Cone_DZ=Cone_DZ, Cone_NPsi=Cone_NPsi, Cone_Nk=Cone_Nk,
+                             SynthDiag_dX12=SynthDiag_dX12, SynthDiag_dX12Mode=SynthDiag_dX12Mode, SynthDiag_ds=SynthDiag_ds, SynthDiag_dsMode=SynthDiag_dsMode, SynthDiag_MarginS=SynthDiag_MarginS,
+                             arrayorder=arrayorder, Clock=Clock, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath, dtime=dtime, dtimeIn=dtimeIn)
 
     def _set_Id(self, Val, Type=None, Exp=None, Diag=None, shot=None, dtime=None, dtimeIn=False, SavePath=None):
         if self._Done:
@@ -2313,19 +2316,28 @@ class Detect(object):
 
     def _calc_All(self, Sino_RefPt=None, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True,
             Etend_Method=tfd.DetEtendMethod, Etend_RelErr=tfd.DetEtendepsrel, Etend_dX12=tfd.DetEtenddX12, Etend_dX12Mode=tfd.DetEtenddX12Mode, Etend_Ratio=tfd.DetEtendRatio, Colis=tfd.DetCalcEtendColis, LOSRef='Cart',
-            Cone_DRY=tfd.DetConeDRY, Cone_DXTheta=None, Cone_DZ=tfd.DetConeDZ, Cone_NPsi=20, Cone_Nk=60, Verb=True):
+            Cone_DRY=tfd.DetConeDRY, Cone_DXTheta=None, Cone_DZ=tfd.DetConeDZ, Cone_NPsi=20, Cone_Nk=60,
+            SynthDiag_dX12=tfd.DetSynthdX12, SynthDiag_dX12Mode=tfd.DetSynthdX12Mode, SynthDiag_ds=tfd.DetSynthds, SynthDiag_dsMode=tfd.DetSynthdsMode, SynthDiag_MarginS=tfd.DetSynthMarginS, Verb=True):
 
         self._check_inputs(Sino_RefPt=Sino_RefPt, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp,
                 Etend_Method=Etend_Method, Etend_RelErr=Etend_RelErr, Etend_dX12=Etend_dX12, Etend_dX12Mode=Etend_dX12Mode, Etend_Ratio=Etend_Ratio, LOSRef=LOSRef,
-                Cone_DRY=Cone_DRY, Cone_DXTheta=Cone_DXTheta, Cone_DZ=Cone_DZ, Cone_NPsi=Cone_NPsi, Cone_Nk=Cone_Nk, Colis=Colis)
+                Cone_DRY=Cone_DRY, Cone_DXTheta=Cone_DXTheta, Cone_DZ=Cone_DZ, Cone_NPsi=Cone_NPsi, Cone_Nk=Cone_Nk,
+                SynthDiag_dX12=SynthDiag_dX12, SynthDiag_dX12Mode=SynthDiag_dX12Mode, SynthDiag_ds=SynthDiag_ds, SynthDiag_dsMode=SynthDiag_dsMode, SynthDiag_MarginS=SynthDiag_MarginS, Colis=Colis)
 
         assert self.OpticsNb>0 and not self.Ves is None, "Calculation of [LOS, Etendue, Span and Cone] not possible without Optics and Ves !"
-        self._set_SAngPnPe1e2()
+        # Check that the perpendicular vectors nIn are all pointing in the right direction, correct them if necessary
+        Ldir = [(oo.BaryS-self.BaryS)/np.linalg.norm(oo.BaryS-self.BaryS) for oo in self.Optics]
+        for ii in range(0,len(self.Optics)):
+            if np.sum(Ldir[ii]*self.Optics[ii].nIn)<0.:
+                self.Optics[ii]._nIn = -self.Optics[ii].nIn
+        self._nIn = -self.nIn if np.sum(self.nIn*Ldir[0])<0. else self.nIn
+        # Start all subsequent calculations
+	self._set_SAngPnPe1e2()
         self._set_LOS(CalcEtend=CalcEtend, Method=Etend_Method, RelErr=Etend_RelErr, dX12=Etend_dX12, dX12Mode=Etend_dX12Mode, Ratio=Etend_Ratio, Colis=Colis, LOSRef=LOSRef, Verb=Verb)
         self._set_SinoSpan(CalcSpanImp=CalcSpanImp, Sino_RefPt=Sino_RefPt)
         self._set_ConeWidthAlongLOS()
         self._set_ConePoly(CalcCone=CalcCone, DRY=Cone_DRY, DXTheta=Cone_DXTheta, DZ=Cone_DZ, NPsi=Cone_NPsi, Nk=Cone_Nk)
-        self.set_SigPrecomp(CalcPreComp=CalcPreComp)
+        self.set_SigPrecomp(CalcPreComp=CalcPreComp, dX12=SynthDiag_dX12, dX12Mode=SynthDiag_dX12Mode, ds=SynthDiag_ds, dsMode=SynthDiag_dsMode, MarginS=SynthDiag_MarginS, Colis=Colis)
 
     def _set_SAngPnPe1e2(self):
         if not self.Optics is None:
@@ -2713,7 +2725,7 @@ class Detect(object):
 
         LOPolys = [oo.Poly for oo in self.Optics]
         LOBaryS = [oo.BaryS for oo in self.Optics]
-        LOnIn = [oo.nIn for oo in self.Optics]
+        LOnIns = [oo.nIn for oo in self.Optics]
         LOSD = self.LOS[self._LOSRef]['LOS'].D
         LOSu = self.LOS[self._LOSRef]['LOS'].u
         LOSkPIn = self.LOS[self._LOSRef]['LOS'].kPIn
@@ -2723,10 +2735,10 @@ class Detect(object):
         CrossRef = np.arctan2(self.LOS[self._LOSRef]['PRef'][1],self.LOS[self._LOSRef]['PRef'][0]) if self.Ves.Type=='Tor' else self.LOS[self._LOSRef]['PRef'][0]
 
         Sig = _tfg_c._Detect_SigSynthDiag(ff, extargs=extargs, Method=Method, Mode=Mode, PreComp=PreComp,
-            DPoly=self.Poly, DBaryS=self.BaryS, DnIn=self.nIn, LOPolys=LOPolys, LOBaryS=LOBaryS, LOnIn=LOnIn, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng,
+            DPoly=self.Poly, DBaryS=self.BaryS, DnIn=self.nIn, LOPolys=LOPolys, LOBaryS=LOBaryS, LOnIns=LOnIns, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng,
             RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, thet=thet, OpType=self.OpticsType,
-            LOSD=LOSD, LOSu=LOSu, LOSkPIn=LOSkPIn, LOSkPOut=LOSkPOut, LOSEtend=LOSEtend, Span_k=self._Span_k, ConeWidth_X1=self._ConeWidth_X1, ConeWidth_X2=self._ConeWidth_X2, SAngPlane=self._SAngPlane, CrossRef=CrossRef,
-            Cone_PolyCrossbis=self._Cone_PolyCrossbis, Cone_PolyHorbis=self._Cone_PolyHorbis, VPoly=self.Ves.Poly,  VVin=self.Ves.Vin, VType=self.Ves.Type,
+            LOSD=LOSD, LOSu=LOSu, LOSkPIn=LOSkPIn, LOSkPOut=LOSkPOut, LOSEtend=LOSEtend, Span_k=self._Span_k, ConeWidth_k=self._ConeWidth_k, ConeWidth_X1=self._ConeWidth_X1, ConeWidth_X2=self._ConeWidth_X2, SAngPlane=self._SAngPlane, CrossRef=CrossRef,
+            Cone_PolyCrossbis=self._Cone_PolyCrossbis, Cone_PolyHorbis=self._Cone_PolyHorbis, VPoly=self.Ves.Poly,  VVin=self.Ves.Vin, DLong=self.Ves.DLong, VType=self.Ves.Type,
             SynthDiag_Points=self._SynthDiag_Points, SynthDiag_SAng=self._SynthDiag_SAng, SynthDiag_Vect=self._SynthDiag_Vect, SynthDiag_dV=self._SynthDiag_dV,
             SynthDiag_dX12=self._SynthDiag_dX12, SynthDiag_dX12Mode=self._SynthDiag_dX12Mode, SynthDiag_ds=self._SynthDiag_ds,
             SynthDiag_dsMode=self._SynthDiag_dsMode, SynthDiag_MarginS=self._SynthDiag_MarginS, SynthDiag_Colis=self._SynthDiag_Colis,
@@ -3374,10 +3386,11 @@ def _Detect_set_Defaults(Poly=None, Type=None, Exp=None, Diag=None, shot=None, V
 
 
 def _Detect_check_inputs(Id=None, Poly=None, Type=None, Optics=None, Vess=None, Sino_RefPt=None, Exp=None, Diag=None, shot=None, CalcEtend=None, CalcSpanImp=None, CalcCone=None, CalcPreComp=None, Calc=None, Verb=None,
-        Etend_RelErr=None, Etend_dX12=None, Etend_dX12Mode=None, Etend_Ratio=None, Colis=None, LOSRef=None, Etend_Method=None,
-        MarginRMin=None, NEdge=None, NRad=None, Nk=None,
-        Cone_DRY=None, Cone_DXTheta=None, Cone_DZ=None, Cone_NPsi=None, Cone_Nk=None,
-        arrayorder=None, Clock=None, SavePath=None, dtime=None, dtimeIn=None):
+                         Etend_RelErr=None, Etend_dX12=None, Etend_dX12Mode=None, Etend_Ratio=None, Colis=None, LOSRef=None, Etend_Method=None,
+                         MarginRMin=None, NEdge=None, NRad=None, Nk=None,
+                         Cone_DRY=None, Cone_DXTheta=None, Cone_DZ=None, Cone_NPsi=None, Cone_Nk=None,
+                         SynthDiag_dX12=None, SynthDiag_dX12Mode=None, SynthDiag_ds=None, SynthDiag_dsMode=None, SynthDiag_MarginS=None,
+                         arrayorder=None, Clock=None, SavePath=None, dtime=None, dtimeIn=None):
 
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID object !"
@@ -3414,13 +3427,13 @@ def _Detect_check_inputs(Id=None, Poly=None, Type=None, Optics=None, Vess=None, 
     if not Exp is None:
         assert Exp in tfd.AllowedExp, "Arg Exp must be in "+str(tfd.AllowedExp)+" !"
     assert Type is None or Type=='Circ', "Arg Type must be Circ or None for Detect objects !"
-    Iter2 = [Sino_RefPt,Etend_dX12]
+    Iter2 = [Sino_RefPt,Etend_dX12,SynthDiag_dX12]
     if any([not aa is None for aa in Iter2]):
         assert all([aa is None or (hasattr(aa,'__iter__') and np.asarray(aa).shape==(2,)) for aa in Iter2]), "Args [Sino_RefPt,Etend_dX12] must be an iterable with len()=2 !"
-    strs = [Etend_dX12Mode,LOSRef,Etend_Method,Diag,SavePath]
+    strs = [Etend_dX12Mode,SynthDiag_dX12Mode,SynthDiag_dsMode,LOSRef,Etend_Method,Diag,SavePath]
     if any([not aa is None for aa in strs]):
         assert all([aa is None or type(aa) is str for aa in strs]), "Args [dX12Mode,LOSRef,Method,Diag,SavePath] must all be str !"
-    floats = [Etend_RelErr,Etend_Ratio,MarginRMin,Cone_DRY,Cone_DXTheta,Cone_DZ]
+    floats = [Etend_RelErr,Etend_Ratio,MarginRMin,Cone_DRY,Cone_DXTheta,Cone_DZ,SynthDiag_ds,SynthDiag_MarginS]
     if any([not aa is None for aa in floats]):
         assert all([aa is None or type(aa) in [float,np.float64] for aa in floats]), "Args [RelErr,dX12,Ratio,MarginRMin] must all be floats !"
     ints = [shot,NEdge,NRad,Nk,Cone_NPsi,Cone_Nk]
@@ -4416,11 +4429,11 @@ def _Plot_Resolution(GLD, ax=None, Pts=None, Res=[0.01,0.01], ResMode='abs', Mod
                     ind=None, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In', Test=True):
 
     Res, LDetLim, Pts = _Calc_Resolution(GLD, Pts=Pts, Res=Res, ResMode=ResMode, Mode=Mode, Amp=Amp, Deg=Deg, steps=steps, Thres=Thres, ThresMode=ThresMode, ThresMin=ThresMin,
-                                        IntResCross=IntResCross, IntResCrossMode=IntResCrossMode, IntResLong=IntResLong, IntResLongMode=IntResLongMode,
-                                        Eq=Eq, PlotDetail=False, Cdict=Cdict, tt=tt,
-                                        ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut, Test=Test)
+                                         IntResCross=IntResCross, IntResCrossMode=IntResCrossMode, IntResLong=IntResLong, IntResLongMode=IntResLongMode,
+                                         Eq=Eq, PlotDetail=False, Cdict=Cdict, tt=tt,
+                                         ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut, Test=Test)
     ax = _tfg_p._Resolution_Plot(Pts, Res, GLD, LDetLim, ax=ax, plotfunc=plotfunc, NC=NC, CDictRes=CDictRes,
-                                ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut, Test=Test)
+                                 ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut, Test=Test)
     return ax
 
 
