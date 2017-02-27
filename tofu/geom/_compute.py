@@ -976,7 +976,7 @@ def _get_CrossHorMesh(SingPoints=None, LSpan_R=None, LSpan_Theta=None, LSpan_X=N
 
 
 def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, SAngPlane, LOSD, LOSu, LOSPIn, LOSPOut, Span_k, Span_R=None, Span_Theta=None, Span_X=None, Span_Y=None, Span_Z=None,
-            ConeWidth_k=None, ConeWidth_X1=None, ConeWidth_X2=None, Lens_ConeTip=None, Lens_ConeHalfAng=None, RadD=None, RadL=None, F1=None, VPoly=None, VVin=None, DLong=None,
+            ConeWidth_k=None, ConeWidth_X1=None, ConeWidth_X2=None, Lens_ConeTip=None, Lens_ConeHalfAng=None, RadD=None, RadL=None, F1=None, VPoly=None, VVin=None, VPolyinside=None, DLong=None,
             VType='Tor', OpType='Apert', NPsi=20, Nk=60, thet=np.linspace(0.,2.*np.pi,100),
             DXTheta=None, DRY=TFD.DetConeDRY, DZ=TFD.DetConeDZ, Test=True):       # Used
 
@@ -1015,7 +1015,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
             PtsRZ = np.array([RD+KK.flatten()*V[0,:], DBaryS[2]+KK.flatten()*V[1,:]])
 
             Vis = np.zeros((Nk*NPsi, NTheta))
-            ind1 = _Ves_isInside(VPoly, VType, DLong, PtsRZ, In='(R,Z)')
+            ind1 = _Ves_isInside(VPolyinside, VType, DLong, PtsRZ, In='(R,Z)')
             for ii in range(0,NTheta):
                 Points = np.array([PtsRZ[0,:]*np.cos(Theta[ii]), PtsRZ[0,:]*np.sin(Theta[ii]), PtsRZ[1,:]])
                 Ind = np.zeros((Nk*NPsi,),dtype=float)
@@ -1044,7 +1044,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
         Vis = np.zeros((NR, NTheta, NZ))
         RR,  ZZ  = np.tile(R,(NZ,1)).T,  np.tile(Z,(NR,1))
         RRf, ZZf = RR.flatten(),         ZZ.flatten()
-        ind1 = _Ves_isInside(VPoly, VType, DLong, np.array([RRf,ZZf]), In='(R,Z)')
+        ind1 = _Ves_isInside(VPolyinside, VType, DLong, np.array([RRf,ZZf]), In='(R,Z)')
         NRef = round(NTheta/5.)
         for ii in range(0,NTheta):
             Points = np.array([RRf*np.cos(Theta[ii]), RRf*np.sin(Theta[ii]), ZZf])
@@ -1085,7 +1085,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
             for ii in range(0,NX):
                 Points = np.array([X[ii]*np.ones((Nk*NPsi,)), PtsRZ[0,:], PtsRZ[1,:]])
                 Ind = np.zeros((Nk*NPsi,),dtype=float)
-                ind1 = _Ves_isInside(VPoly, VType, DLong, Points, In='(X,Y,Z)')
+                ind1 = _Ves_isInside(VPolyinside, VType, DLong, Points, In='(X,Y,Z)')
                 ind2 = _Detect_isOnGoodSide(Points, DBaryS, DnIn, LOBaryS, LOnIns, NbPoly=None, Log='all')
                 ind3 = _Detect_isInsideConeWidthLim(Points, LOSD, LOSu, ConeWidth_k, ConeWidth_X1, ConeWidth_X2)
                 indSide = ind1 & ind2 & ind3
@@ -1115,7 +1115,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
         for ii in range(0,NX):
             Points = np.array([X[ii]*np.ones((NY*NZ,)), YYf, ZZf])
             Ind = np.zeros((NY*NZ,),dtype=float)
-            ind1 = _Ves_isInside(VPoly, VType, DLong, Points, In='(X,Y,Z)')
+            ind1 = _Ves_isInside(VPolyinside, VType, DLong, Points, In='(X,Y,Z)')
             ind2 = _Detect_isOnGoodSide(Points, DBaryS, DnIn, LOBaryS, LOnIns, NbPoly=None, Log='all')
             ind3 = _Detect_isInsideConeWidthLim(Points, LOSD, LOSu, ConeWidth_k, ConeWidth_X1, ConeWidth_X2)
             indSide = ind1 & ind2 & ind3

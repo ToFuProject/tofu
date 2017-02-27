@@ -146,7 +146,7 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV', Pdict=tfd.TorPd, Idict=tfd.To
     return ax
 
 
-def _Plot_HorProj_Ves(V,ax=None, Elt='PI', Nstep=tfd.TorNTheta, Pdict=tfd.TorPd, Idict=tfd.TorITord, Bsdict=tfd.TorBsTord, Bvdict=tfd.TorBvTord, LegDict=tfd.TorLegd, draw=True, a4=False, Test=True):
+def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=tfd.TorNTheta, Pdict=tfd.TorPd, Idict=tfd.TorITord, Bsdict=tfd.TorBsTord, Bvdict=tfd.TorBvTord, LegDict=tfd.TorLegd, draw=True, a4=False, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -169,13 +169,15 @@ def _Plot_HorProj_Ves(V,ax=None, Elt='PI', Nstep=tfd.TorNTheta, Pdict=tfd.TorPd,
     Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False) if V.Type=='Tor' else np.linspace(V.DLong[0],V.DLong[1],num=Nstep, endpoint=True, retstep=False)
     if ax is None:
         ax = tfd.Plot_LOSProj_DefAxes('Hor', a4=a4, Type=V.Type)
+    P1Min = V._P1Min
+    P1Max = V._P1Max
     if 'P' in Elt:
         if V.Type=='Tor':
-            lx = np.concatenate((V._P1Min[0]*np.cos(Theta),np.array([np.nan]),V._P1Max[0]*np.cos(Theta)))
-            ly = np.concatenate((V._P1Min[0]*np.sin(Theta),np.array([np.nan]),V._P1Max[0]*np.sin(Theta)))
+            lx = np.concatenate((P1Min[0]*np.cos(Theta),np.array([np.nan]),P1Max[0]*np.cos(Theta)))
+            ly = np.concatenate((P1Min[0]*np.sin(Theta),np.array([np.nan]),P1Max[0]*np.sin(Theta)))
         elif V.Type=='Lin':
             lx = np.concatenate((Theta,np.array([np.nan]),Theta))
-            ly = np.concatenate((V._P1Min[0]*np.ones((Nstep,)),np.array([np.nan]),V._P1Max[0]*np.ones((Nstep,))))
+            ly = np.concatenate((P1Min[0]*np.ones((Nstep,)),np.array([np.nan]),P1Max[0]*np.ones((Nstep,))))
         ax.plot(lx,ly,label=V.Id.NameLTX,**Pdict)
     if 'I' in Elt:
         if V.Type=='Tor':

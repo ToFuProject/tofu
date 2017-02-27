@@ -974,16 +974,18 @@ def _save_np(obj, pathfileext, compressed=False):
 
     elif obj.Id.Cls=='Detect':
         LOSprops, Sino, Span, Cone, SAng, SynthDiag, Res, Optics = _convert_Detect2Ldict(obj)
+        VesCalc = {'SavePath':None} if (not hasattr(obj,'_VesCalc') or obj._VesCalc is None) else {'SavePath':obj._VesCalc.Id.SavePath, 'SaveName':obj._VesCalc.Id.SaveName}
         func(pathfileext, Idsave=Idsave, Poly=obj.Poly, Rad=obj.Rad, BaryS=obj.BaryS, nIn=obj.nIn, arrayorder=obj._arrayorder, Clock=obj._Clock, Sino_RefPt=obj.Sino_RefPt, LOSNP=[obj._LOS_NP],
-                LOSprops=[LOSprops], Sino=[Sino], Span=[Span], Cone=[Cone], SAng=[SAng], SynthDiag=[SynthDiag], Res=[Res], Optics=[Optics])
+                LOSprops=[LOSprops], Sino=[Sino], Span=[Span], Cone=[Cone], SAng=[SAng], SynthDiag=[SynthDiag], Res=[Res], Optics=[Optics], VesCalc=[VesCalc])
 
     elif obj.Id.Cls=='GDetect':
         LDetsave, LDetSynthRes = [], []
         for ii in range(0,obj.nDetect):
             ddIdsave = obj.LDetect[ii].Id.todict()
             LOSprops, Sino, Span, Cone, SAng, SynthDiag, Res, Optics = _convert_Detect2Ldict(obj.LDetect[ii])
+            VesCalc = {'SavePath':None} if (not hasattr(obj.LDetect[ii],'_VesCalc') or obj.LDetect[ii]._VesCalc is None) else {'SavePath':obj.LDetect[ii]._VesCalc.Id.SavePath, 'SaveName':obj.LDetect[ii]._VesCalc.Id.SaveName}
             dd = dict(Idsave=ddIdsave, Poly=obj.LDetect[ii].Poly, Rad=obj.LDetect[ii].Rad, BaryS=obj.LDetect[ii].BaryS, nIn=obj.LDetect[ii].nIn, arrayorder=obj._arrayorder, Clock=obj._Clock, Sino_RefPt=obj.Sino_RefPt,
-                      LOSNP=[obj.LDetect[ii]._LOS_NP], LOSprops=[LOSprops], Sino=[Sino], Span=[Span], Cone=[Cone], SAng=[SAng], Optics=[Optics])
+                      LOSNP=[obj.LDetect[ii]._LOS_NP], LOSprops=[LOSprops], Sino=[Sino], Span=[Span], Cone=[Cone], SAng=[SAng], Optics=[Optics], VesCalc=[VesCalc])
             LDetsave.append(dd)
             LDetSynthRes.append({'SynthDiag':[SynthDiag],'Res':[Res]})
         Res, lAttr = {}, dir(obj)
@@ -1292,12 +1294,16 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
 
     elif Id.Cls == 'Detect':
         Ves = _tryloadVes(Id, Ves=Ves)
+        if 'VesCalc'in Out.keys() and Out['VesCalc'][0]['SavePath'] is not None:
+            VesCalc = Open(Out['VesCalc'][0]['SavePath']+Out['VesCalc'][0]['SaveName']+'.npz')
+        else:
+            VesCalc = None
         LOSprops, Sino, Span, Cone, SAng, Opt = Out['LOSprops'][0], Out['Sino'][0], Out['Span'][0], Out['Cone'][0], Out['SAng'][0], Out['Optics'][0]
         (SynthDiag,Res) = (Out['SynthDiag'][0],Out['Res'][0]) if out=='full' else _get_light_SynthDiag_Res()
         Optics = _tryLoadOpticsElseCreate(Id, Opt=Opt, Ves=Ves, Verb=Verb)
 
         Poly = Out['Poly'] if type(Optics) is list else dict(Rad=float(Out['Rad']),O=Out['BaryS'],nIn=Out['nIn'])
-        obj = TFG.Detect(Id, Poly, Optics=Optics, Ves=Ves, Sino_RefPt=Sino['_Sino_RefPt'], CalcEtend=False, CalcSpanImp=False, CalcCone=False, CalcPreComp=False, Calc=True, Verb=Verb,
+        obj = TFG.Detect(Id, Poly, Optics=Optics, Ves=Ves, VesCalc=VesCalc, Sino_RefPt=Sino['_Sino_RefPt'], CalcEtend=False, CalcSpanImp=False, CalcCone=False, CalcPreComp=False, Calc=True, Verb=Verb,
                          arrayorder=str(Out['arrayorder']), Clock=bool(Out['Clock']))
         obj = _resetDetectAttr(obj, {'LOSprops':LOSprops, 'Sino':Sino, 'Span':Span, 'Cone':Cone, 'SAng':SAng, 'SynthDiag':SynthDiag, 'Res':Res, 'Optics':Opt})
         obj._LOS_NP = Out['LOSNP']
@@ -1314,13 +1320,17 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
             LDetSynthRes = Out['LDetSynthRes']
         for ii in range(0,len(LDetsave)):
             ddIdsave = _Id_recreateFromdict(LDetsave[ii]['Idsave'])
+            if 'VesCalc'in LDetsave[ii].keys() and LDetsave[ii]['VesCalc'][0]['SavePath'] is not None:
+                VesCalc = Open(LDetsave[ii]['VesCalc'][0]['SavePath']+LDetsave[ii]['VesCalc'][0]['SaveName']+'.npz')
+            else:
+                VesCalc = None
             LOSprops, Sino, Span, Cone, SAng, Opt = LDetsave[ii]['LOSprops'][0], LDetsave[ii]['Sino'][0], LDetsave[ii]['Span'][0], LDetsave[ii]['Cone'][0], LDetsave[ii]['SAng'][0], LDetsave[ii]['Optics'][0]
             if out=='full':
                 SynthDiag, Res = LDetSynthRes[ii]['SynthDiag'][0], LDetSynthRes[ii]['Res'][0]
             Optics = _tryLoadOpticsElseCreate(ddIdsave, Opt=Opt, Ves=Ves, Verb=Verb)
             Poly = LDetsave[ii]['Poly'] if type(Optics) is list else dict(Rad=float(LDetsave[ii]['Rad']),O=LDetsave[ii]['BaryS'],nIn=LDetsave[ii]['nIn'])
             Sino_RefPt = None if Out['Sino_RefPt'].shape==() else Out['Sino_RefPt']
-            dd = TFG.Detect(ddIdsave, Poly, Optics=Optics, Ves=Ves, Sino_RefPt=Sino_RefPt, CalcEtend=False, CalcSpanImp=False, CalcCone=False, CalcPreComp=False, Calc=True, Verb=Verb,
+            dd = TFG.Detect(ddIdsave, Poly, Optics=Optics, Ves=Ves, VesCalc=VesCalc, Sino_RefPt=Sino_RefPt, CalcEtend=False, CalcSpanImp=False, CalcCone=False, CalcPreComp=False, Calc=True, Verb=Verb,
                             arrayorder=str(Out['arrayorder']), Clock=bool(Out['Clock']))
             dd = _resetDetectAttr(dd, {'LOSprops':LOSprops, 'Sino':Sino, 'Span':Span, 'Cone':Cone, 'SAng':SAng, 'SynthDiag':SynthDiag, 'Res':Res, 'Optics':Opt})
             dd._LOS_NP = LDetsave[ii]['LOSNP']
