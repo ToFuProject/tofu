@@ -68,7 +68,7 @@ Created on Wed May 18 2016
 #__all__.extend(['geom', 'mesh', 'matcomp', 'data', 'inv'])
 
 #__name__ = ""
-#__version__ = "0.9"
+__version__ = "1.1.1"
 __author__ = "Didier Vezinet"
 __author_email__="didier.vezinet@gmail.com"
 #__date__ = "$Mar 05, 2014$"

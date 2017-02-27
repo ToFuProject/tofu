@@ -134,7 +134,6 @@ class Ves(object):
         """Return the flag indicating which order is used for multi-dimensional array attributes"""
         return self._arrayorder
 
-
     def _check_inputs(self, Id=None, Poly=None, Type=None, DLong=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, dtime=None, dtimeIn=None, SavePath=None):
         _Ves_check_inputs(Id=Id, Poly=Poly, Type=Type, DLong=DLong, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, dtime=dtime, dtimeIn=dtimeIn, SavePath=SavePath)
 
@@ -192,11 +191,12 @@ class Ves(object):
             Array of booleans of shape (N,), True if a point is inside the Ves volume
 
         """
-        return _tfg_c._Ves_isInside(self.Poly, self.Type, self.DLong, Pts, In=In)
+        ind = _tfg_c._Ves_isInside(self.Poly, self.Type, self.DLong, Pts, In=In)
+        return ind
 
     def get_InsideConvexPoly(self, RelOff=tfd.TorRelOff, ZLim='Def', Spline=True, Splprms=tfd.TorSplprms, NP=tfd.TorInsideNP, Plot=False, Test=True):
         """ Return a polygon that is a smaller and smoothed approximation of Ves.Poly, useful for excluding the divertor region in a Tokamak
-
+        
         For some uses, it can be practical to approximate the polygon defining the Ves object (which can be non-convex, like with a divertor), by a simpler, sligthly smaller and convex polygon.
         This method provides a fast solution for computing such a proxy.
 
@@ -2096,7 +2096,7 @@ class Detect(object):
 
     """
 
-    def __init__(self, Id, Poly, Optics=None, Ves=None, Sino_RefPt=None, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True, Calc=True, Verb=True,
+    def __init__(self, Id, Poly, Optics=None, Ves=None, VesCalc=None, Sino_RefPt=None, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True, Calc=True, Verb=True,
                  Etend_Method=tfd.DetEtendMethod, Etend_RelErr=tfd.DetEtendepsrel, Etend_dX12=tfd.DetEtenddX12, Etend_dX12Mode=tfd.DetEtenddX12Mode, Etend_Ratio=tfd.DetEtendRatio, Colis=True, LOSRef='Cart',
                  Cone_DRY=tfd.DetConeDRY, Cone_DXTheta=None, Cone_DZ=tfd.DetConeDZ, Cone_NPsi=20, Cone_Nk=60,
                  SynthDiag_dX12=tfd.DetSynthdX12, SynthDiag_dX12Mode=tfd.DetSynthdX12Mode, SynthDiag_ds=tfd.DetSynthds, SynthDiag_dsMode=tfd.DetSynthdsMode, SynthDiag_MarginS=tfd.DetSynthMarginS,
@@ -2119,7 +2119,7 @@ class Detect(object):
         self._set_Poly(Poly, Calc=False)
         self._initAll()
         self._set_Optics(Optics, Calc=False)
-        self._set_Ves(Ves, Calc=False)
+        self._set_Ves(Ves, VesCalc=VesCalc, Calc=False)
         self._set_arrayorder(arrayorder)
         if Calc:
             self._calc_All(Sino_RefPt=Sino_RefPt, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp, Verb=Verb,
@@ -2221,13 +2221,13 @@ class Detect(object):
         return self._SAngHor_Int
 
 
-    def _check_inputs(self, Id=None, Poly=None, Type=None, Optics=None, Ves=None, Sino_RefPt=None, Exp=None, Diag=None, shot=None, CalcEtend=None, CalcSpanImp=None, CalcCone=None, CalcPreComp=None, Calc=None, Verb=None,
+    def _check_inputs(self, Id=None, Poly=None, Type=None, Optics=None, Ves=None, VesCalc=None, Sino_RefPt=None, Exp=None, Diag=None, shot=None, CalcEtend=None, CalcSpanImp=None, CalcCone=None, CalcPreComp=None, Calc=None, Verb=None,
         Etend_RelErr=None, Etend_dX12=None, Etend_dX12Mode=None, Etend_Ratio=None, Colis=None, LOSRef=None, Etend_Method=None,
         MarginRMin=None, NEdge=None, NRad=None, Nk=None,
         Cone_DRY=None, Cone_DXTheta=None, Cone_DZ=None, Cone_NPsi=None, Cone_Nk=None,
         SynthDiag_dX12=None, SynthDiag_dX12Mode=None, SynthDiag_ds=None, SynthDiag_dsMode=None, SynthDiag_MarginS=None,
         arrayorder=None, Clock=None, SavePath=None, dtime=None, dtimeIn=None):
-        _Detect_check_inputs(Id=Id, Poly=Poly, Type=Type, Optics=Optics, Vess=Ves, Sino_RefPt=Sino_RefPt, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp, Calc=Calc, Verb=Verb,
+        _Detect_check_inputs(Id=Id, Poly=Poly, Type=Type, Optics=Optics, Vess=Ves, VesCalc=VesCalc, Sino_RefPt=Sino_RefPt, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp, Calc=Calc, Verb=Verb,
                              Etend_RelErr=Etend_RelErr, Etend_dX12=Etend_dX12, Etend_dX12Mode=Etend_dX12Mode, Etend_Ratio=Etend_Ratio, Colis=Colis, LOSRef=LOSRef, Etend_Method=Etend_Method,
                              MarginRMin=MarginRMin, NEdge=NEdge, NRad=NRad, Nk=Nk,
                              Cone_DRY=Cone_DRY, Cone_DXTheta=Cone_DXTheta, Cone_DZ=Cone_DZ, Cone_NPsi=Cone_NPsi, Cone_Nk=Cone_Nk,
@@ -2258,7 +2258,7 @@ class Detect(object):
             self._calc_All(CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp)
 
     def _initAll(self):
-        self._Ves = None
+        self._Ves, self._VesCalc = None, None
         self._Optics, self._nOptics = None, 0
         self._SAngPlane = None
         self._LOS_ApertPolyInt, self._LOS_ApertPolyInt_S, self._LOS_ApertPolyInt_BaryS, self._LOS, self._TorAngRef, self._LOS_NP = None, None, None, None, None, None
@@ -2299,15 +2299,20 @@ class Detect(object):
             self._Optics_Lens_ConeHalfAng = None
 
 
-    def _set_Ves(self, Ves, Calc=True, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True):
-        self._check_inputs(Ves=Ves, Calc=Calc, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp)
+    def _set_Ves(self, Ves, VesCalc=None, Calc=True, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True):
+        self._check_inputs(Ves=Ves, VesCalc=VesCalc, Calc=Calc, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp)
         if not Ves is None:
             self._Ves = Ves
-            self.Id.set_LObj([Ves.Id])
+            Lobj = [Ves.Id]
+            if not VesCalc is None:
+                self._VesCalc = VesCalc
+                #Lobj.append(VesCalc.Id)    # Disabled because no means of discriminating between 2 Ves objects when loading a Detect file (see tfpf)
+            self.Id.set_LObj(Lobj)
             if Ves.Type=='Tor':
                 self._nIn = _tfg_c.Calc_nInFromTor_Poly(self.BaryS, self.nIn, Ves.BaryS)
             elif Ves.Type=='Lin':
                 self._nIn = _tfg_c.Calc_nInFromLin_Poly(self.BaryS, self.nIn, Ves.BaryS)
+                
             if Calc:
                 self._calc_All(CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp)
 
@@ -2373,7 +2378,8 @@ class Detect(object):
             LOnIns = [oo.nIn for oo in self.Optics]
             LSurfs = [oo.Surf for oo in self.Optics]
             LOBaryS = [oo.BaryS for oo in self.Optics]
-
+            
+            (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
             for kk in self.LOS.keys():
                 self.LOS[kk]['Etend_0Dir'] = self.Surf * _tfg_gg.Calc_SAngVect_LPolys1Point_Flex([self._LOS_ApertPolyInt], self.BaryS, self._SAngPlane[0], self._SAngPlane[1], self._SAngPlane[2], self._SAngPlane[3])[0]
                 self.LOS[kk]['Etend_0Inv'] = self._LOS_ApertPolyInt_S * _tfg_gg.Calc_SAngVect_LPolys1Point_Flex([self.Poly], self._LOS_ApertPolyInt_BaryS, self.BaryS, self._SAngPlane[1], self._SAngPlane[2], self._SAngPlane[3])[0]
@@ -2382,7 +2388,7 @@ class Detect(object):
 
                 self.LOS[kk]['Etend'] = _tfg_c.Calc_Etendue_PlaneLOS(PRef.reshape((3,1)), LOSu.reshape((3,1)),
                         self.Poly, self.BaryS, self.nIn, LOPolys, LOnIns, LSurfs, LOBaryS, self._SAngPlane,
-                        self.Ves.Poly, self.Ves._Vin, DLong=self.Ves.DLong,
+                        VPoly, VVin, DLong=self.Ves.DLong,
                         Lens_ConeTip = self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1,
                         OpType=self.OpticsType, VType=self.Ves.Type, Mode=Method, e1=e1.reshape((3,1)), e2=e2.reshape((3,1)), epsrel=RelErr, Ratio=Ratio, dX12=dX12, dX12Mode=dX12Mode, Colis=Colis, Test=True)[0][0]
 
@@ -2407,15 +2413,16 @@ class Detect(object):
             LOPolys = [oo.Poly for oo in self.Optics]
             LOBaryS = [oo.BaryS for oo in self.Optics]
             LOSD, LOSu = self.LOS[self._LOSRef]['LOS'].D, self.LOS[self._LOSRef]['LOS'].u
+            (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
             if self.Ves.Type=='Tor':
                 RMinMax, ThetaMinMax, ZMinMax, kMinMax, Sino_CrossProj, Span_NEdge, Span_NRad = _tfg_c.Calc_SpanImpBoth_2Steps(self.Poly, self.NP, self.BaryS, LOPolys, LOBaryS, LOSD, LOSu, Sino_RefPt, P, nP,
-                        self.Ves.Poly, self.Ves.Vin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
+                        VPoly, VVin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
                 RMinMax[0] = np.max(np.array([MarginRMin*RMinMax[0],self.Ves._P1Min[0]]))
                 self._Sino_RefPt, self._Span_R, self._Span_Theta, self._Span_Z, self._Span_k = Sino_RefPt, RMinMax, ThetaMinMax, ZMinMax, kMinMax
                 self._Span_X, self._Span_Y = None, None
             elif self.Ves.Type=='Lin':
                 XMinMax, YMinMax, ZMinMax, kMinMax, Sino_CrossProj, Span_NEdge, Span_NRad = _tfg_c.Calc_SpanImpBoth_2Steps(self.Poly, self.NP, self.BaryS, LOPolys, LOBaryS, LOSD, LOSu, Sino_RefPt, P, nP,
-                        self.Ves.Poly, self.Ves.Vin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
+                        VPoly, VVin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
                 self._Sino_RefPt, self._Span_X, self._Span_Y, self._Span_Z, self._Span_k = Sino_RefPt, XMinMax, YMinMax, ZMinMax, kMinMax
                 self._Span_R, self._Span_Theta = None, None
             self._Sino_CrossProj, self._Span_NEdge, self._Span_NRad = Sino_CrossProj, Span_NEdge, Span_NRad
@@ -2494,11 +2501,12 @@ class Detect(object):
             LOSD, LOSu = self.LOS[self._LOSRef]['LOS'].D, self.LOS[self._LOSRef]['LOS'].u
             LOSPIn, LOSPOut = self.LOS[self._LOSRef]['LOS'].PIn, self.LOS[self._LOSRef]['LOS'].POut
 
+            (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
             self._SAngCross_Reg, self._SAngCross_Reg_Int, self._SAngCross_Reg_K, self._SAngCross_Reg_Psi, self._SAngCross_Points, self._SAngCross_Max, self._SAngCross_Int, self._SAngHor_Points, self._SAngHor_Max, self._SAngHor_Int, self._Cone_PolyCross, self._Cone_PolyHor, self._Cone_PolyCrossbis, self._Cone_PolyHorbis, self._Cone_Poly_DX, self._Cone_Poly_DY, self._Cone_Poly_DR, self._Cone_Poly_DTheta, self._Cone_Poly_DZ \
                     = _tfg_c._Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, self._SAngPlane, LOSD, LOSu, LOSPIn, LOSPOut, self._Span_k,
                             Span_R=self._Span_R, Span_Theta=self._Span_Theta, Span_X=self._Span_X, Span_Y=self._Span_Y, Span_Z=self._Span_Z,
                             ConeWidth_k=self._ConeWidth_k, ConeWidth_X1=self._ConeWidth_X1, ConeWidth_X2=self._ConeWidth_X2, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng,
-                            RadD=self.Rad, RadL=self.Optics[0].Rad, F1=self.Optics[0].F1, VPoly=self.Ves.Poly, VVin=self.Ves.Vin, DLong=self.Ves.DLong,
+                            RadD=self.Rad, RadL=self.Optics[0].Rad, F1=self.Optics[0].F1, VPoly=VPoly, VVin=VVin, VPolyinside=self.Ves.Poly, DLong=self.Ves.DLong,
                             VType=self.Ves.Type, OpType=self.OpticsType, NPsi=NPsi, Nk=Nk, thet=np.linspace(0.,2.*np.pi,DPoly.shape[1]),
                             DXTheta=DXTheta, DRY=DRY, DZ=DZ, Test=True)
 
@@ -2603,7 +2611,8 @@ class Detect(object):
         LOPolys = [oo.Poly for oo in self.Optics]
         LOnIns = [oo.nIn for oo in self.Optics]
         LOBaryS = [oo.BaryS for oo in self.Optics]
-        return _tfg_c._Detect_SAngVect_Points(Pts, DPoly=self.Poly, DBaryS=self.BaryS, DnIn=self.nIn, LOBaryS=LOBaryS, LOnIns=LOnIns, LOPolys=LOPolys, SAngPlane=self._SAngPlane, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, thet=np.linspace(0.,2.*np.pi,self.NP), OpType=self.OpticsType, VPoly=self.Ves.Poly, VVin=self.Ves.Vin, DLong=self.Ves.DLong, VType=self.Ves.Type, Cone_PolyCrossbis=self._Cone_PolyCrossbis, Cone_PolyHorbis=self._Cone_PolyHorbis, TorAngRef=CrossRef, Colis=Colis, Test=Test)
+        (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
+        return _tfg_c._Detect_SAngVect_Points(Pts, DPoly=self.Poly, DBaryS=self.BaryS, DnIn=self.nIn, LOBaryS=LOBaryS, LOnIns=LOnIns, LOPolys=LOPolys, SAngPlane=self._SAngPlane, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, thet=np.linspace(0.,2.*np.pi,self.NP), OpType=self.OpticsType, VPoly=VPoly, VVin=VVin, DLong=self.Ves.DLong, VType=self.Ves.Type, Cone_PolyCrossbis=self._Cone_PolyCrossbis, Cone_PolyHorbis=self._Cone_PolyHorbis, TorAngRef=CrossRef, Colis=Colis, Test=Test)
 
 
     def _get_SAngIntMax(self, Proj='Cross', SAng='Int'):
@@ -2665,10 +2674,11 @@ class Detect(object):
                 MarginS = tfd.DetSynthMarginS if MarginS is None else MarginS
                 Colis = tfd.DetCalcSAngVectColis if Colis is None else Colis
 
+            (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
             Out = _tfg_c._Detect_set_SigPrecomp(self.Poly, self.BaryS, self.nIn, LOPolys, LOBaryS, LOnIns, self._SAngPlane, LOSD=LOSD, LOSu=LOSu, Span_k=self._Span_k, ConeWidth_k=self._ConeWidth_k, ConeWidth_X1=self._ConeWidth_X1,
                     ConeWidth_X2=self._ConeWidth_X2, Cone_PolyCrossbis=self._Cone_PolyCrossbis, Cone_PolyHorbis=self._Cone_PolyHorbis,
                     Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, thet=thet,
-                    VPoly=self.Ves.Poly, VVin=self.Ves.Vin, DLong=self.Ves.DLong, CrossRef=CrossRef, dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, VType=self.Ves.Type, OpType=self.OpticsType, Colis=Colis)
+                    VPoly=VPoly, VVin=VVin, DLong=self.Ves.DLong, CrossRef=CrossRef, dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, VType=self.Ves.Type, OpType=self.OpticsType, Colis=Colis)
             self._SynthDiag_Points, self._SynthDiag_SAng, self._SynthDiag_Vect, self._SynthDiag_dV = Out[0], Out[1], Out[2], Out[3]
             self._SynthDiag_ds, self._SynthDiag_dsMode, self._SynthDiag_MarginS, self._SynthDiag_dX12, self._SynthDiag_dX12Mode, self._SynthDiag_Colis = Out[4], Out[5], Out[6], Out[7], Out[8], Out[9]
             self._SynthDiag_Done = True
@@ -2734,11 +2744,12 @@ class Detect(object):
         thet = np.linspace(0.,2.*np.pi,self.Poly.shape[1])
         CrossRef = np.arctan2(self.LOS[LOSRef]['PRef'][1],self.LOS[LOSRef]['PRef'][0]) if self.Ves.Type=='Tor' else self.LOS[LOSRef]['PRef'][0]
 
+        (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
         Sig = _tfg_c._Detect_SigSynthDiag(ff, extargs=extargs, Method=Method, Mode=Mode, PreComp=PreComp,
             DPoly=self.Poly, DBaryS=self.BaryS, DnIn=self.nIn, LOPolys=LOPolys, LOBaryS=LOBaryS, LOnIns=LOnIns, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng,
             RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, thet=thet, OpType=self.OpticsType,
             LOSD=LOSD, LOSu=LOSu, LOSkPIn=LOSkPIn, LOSkPOut=LOSkPOut, LOSEtend=LOSEtend, Span_k=self._Span_k, ConeWidth_k=self._ConeWidth_k, ConeWidth_X1=self._ConeWidth_X1, ConeWidth_X2=self._ConeWidth_X2, SAngPlane=self._SAngPlane, CrossRef=CrossRef,
-            Cone_PolyCrossbis=self._Cone_PolyCrossbis, Cone_PolyHorbis=self._Cone_PolyHorbis, VPoly=self.Ves.Poly,  VVin=self.Ves.Vin, DLong=self.Ves.DLong, VType=self.Ves.Type,
+            Cone_PolyCrossbis=self._Cone_PolyCrossbis, Cone_PolyHorbis=self._Cone_PolyHorbis, VPoly=VPoly,  VVin=VVin, DLong=self.Ves.DLong, VType=self.Ves.Type,
             SynthDiag_Points=self._SynthDiag_Points, SynthDiag_SAng=self._SynthDiag_SAng, SynthDiag_Vect=self._SynthDiag_Vect, SynthDiag_dV=self._SynthDiag_dV,
             SynthDiag_dX12=self._SynthDiag_dX12, SynthDiag_dX12Mode=self._SynthDiag_dX12Mode, SynthDiag_ds=self._SynthDiag_ds,
             SynthDiag_dsMode=self._SynthDiag_dsMode, SynthDiag_MarginS=self._SynthDiag_MarginS, SynthDiag_Colis=self._SynthDiag_Colis,
@@ -2775,6 +2786,7 @@ class Detect(object):
             Keys = self.LOS.keys()
             NLOS, NR = len(Keys), len(Ratio)
             Etends = {}
+            (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
             for kk in Modes:
                 Etends[kk] = np.nan*np.ones((NLOS,NR))
                 for jj in range(0,NLOS):
@@ -2790,7 +2802,7 @@ class Detect(object):
                     LOSurfs = [oo.Surf for oo in self.Optics]
                     for ii in range(0,len(Ratio)):
                         print "    ...Computing Etendue with integration method", kk, " for LOS ", Keys[jj], " and Ratio=", Ratio[ii]
-                        Etends[kk][jj,ii] = _tfg_c.Calc_Etendue_PlaneLOS(PRef, LOSu, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIn, LOSurfs, LOBaryS, self._SAngPlane, self.Ves.Poly, self.Ves.Vin, DLong=self.Ves.DLong,
+                        Etends[kk][jj,ii] = _tfg_c.Calc_Etendue_PlaneLOS(PRef, LOSu, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIn, LOSurfs, LOBaryS, self._SAngPlane, VPoly, VVin, DLong=self.Ves.DLong,
                                 Lens_ConeTip = self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1,
                                 OpType=self.OpticsType, VType=self.Ves.Type, Mode=kk, e1=e1, e2=e2, epsrel=RelErr, Ratio=Ratio[ii], dX12=dX12, dX12Mode=dX12Mode, Colis=Colis, Test=True)[0][0]
             return Etends, Ratio, RelErr, dX12, dX12Mode, Colis
@@ -2869,10 +2881,11 @@ class Detect(object):
             Ps = np.array([P1[0] + k*LOSu[0], P1[1] + k*LOSu[1], P1[2] + k*LOSu[2]])
             nPs = np.tile(LOSu,(NP,1)).T
             e1, e2 = np.tile(e1,(NP,1)).T, np.tile(e2,(NP,1)).T
+            (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
             for ii in range(0,NMod):
                 print "    ...Computing Etendues of "+ self.Id.Name +" for ",NP," planes with integration method ",Modes[ii]
                 Etends[Modes[ii]] = _tfg_c.Calc_Etendue_PlaneLOS(Ps, nPs, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIn, LOSurfs, LOBaryS, self._SAngPlane,
-                        self.Ves.Poly, self.Ves.Vin, DLong=self.Ves.DLong, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1,
+                        VPoly, VVin, DLong=self.Ves.DLong, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1,
                         OpType=self.OpticsType, VType=self.Ves.Type, Mode=Modes[ii], e1=e1, e2=e2, epsrel=RelErr, Ratio=Ratio, dX12=dX12, dX12Mode=dX12Mode, Colis=Colis, Test=True)[0]
             return Etends, Ps, k, LOSRef
 
@@ -3197,7 +3210,8 @@ class Detect(object):
         LOBaryS = [oo.BaryS for oo in self.Optics]
         LOnIns = [oo.nIn for oo in self.Optics]
         LOSurfs = [oo.Surf for oo in self.Optics]
-        Etend, e1, e2, err, SA, X1, X2, NumX1, NumX2 = _tfg_c.Calc_Etendue_PlaneLOS(Ps, nPs, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIns, LOSurfs, LOBaryS, self._SAngPlane, self.Ves.Poly, self.Ves.Vin, DLong=self.Ves.DLong,
+        (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
+        Etend, e1, e2, err, SA, X1, X2, NumX1, NumX2 = _tfg_c.Calc_Etendue_PlaneLOS(Ps, nPs, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIns, LOSurfs, LOBaryS, self._SAngPlane, VPoly, VVin, DLong=self.Ves.DLong,
                 Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1,
                 OpType=self.OpticsType, VType=self.Ves.Type, Mode='trapz', dX12=dX12, dX12Mode=dX12Mode, Ratio=Ratio, Colis=Colis, Details=True, Test=True)
 
@@ -3385,7 +3399,7 @@ def _Detect_set_Defaults(Poly=None, Type=None, Exp=None, Diag=None, shot=None, V
 
 
 
-def _Detect_check_inputs(Id=None, Poly=None, Type=None, Optics=None, Vess=None, Sino_RefPt=None, Exp=None, Diag=None, shot=None, CalcEtend=None, CalcSpanImp=None, CalcCone=None, CalcPreComp=None, Calc=None, Verb=None,
+def _Detect_check_inputs(Id=None, Poly=None, Type=None, Optics=None, Vess=None, VesCalc=None, Sino_RefPt=None, Exp=None, Diag=None, shot=None, CalcEtend=None, CalcSpanImp=None, CalcCone=None, CalcPreComp=None, Calc=None, Verb=None,
                          Etend_RelErr=None, Etend_dX12=None, Etend_dX12Mode=None, Etend_Ratio=None, Colis=None, LOSRef=None, Etend_Method=None,
                          MarginRMin=None, NEdge=None, NRad=None, Nk=None,
                          Cone_DRY=None, Cone_DXTheta=None, Cone_DZ=None, Cone_NPsi=None, Cone_Nk=None,
@@ -3419,6 +3433,10 @@ def _Detect_check_inputs(Id=None, Poly=None, Type=None, Optics=None, Vess=None, 
         assert type(Vess) is Ves, "Arg Ves must be a Ves instance !"
         if not Exp is None:
             assert Exp==Vess.Id.Exp, "Arg Exp must be the same as the Ves.Id.Exp !"
+    if not VesCalc is None:
+        assert type(VesCalc) is Ves, "Arg VesCalc must be a Ves instance !"
+        if not Exp is None:
+            assert Exp==VesCalc.Id.Exp, "Arg Exp must be the same as the VesCalc.Id.Exp !"
     if not arrayorder is None:
         assert arrayorder in ['C','F'], "Arg arrayorder must be in ['C','F'] !"
     bools = [CalcEtend,CalcSpanImp,CalcCone,CalcPreComp,Calc,Verb,Colis,Clock,dtimeIn]
@@ -3557,8 +3575,11 @@ class GDetect(object):
         LObj = [dd.Id for dd in LDetect] + [aa.Id for aa in self._Optics]
         if not LDetect[0].Ves is None:
             LObj.append(LDetect[0].Ves.Id)
+        if not LDetect[0]._VesCalc is None:
+            LObj.append(LDetect[0]._VesCalc.Id)
         self.Id.set_LObj(LObj)
         self._Ves = LDetect[0].Ves
+        self._VesCalc = LDetect[0]._VesCalc
         self._Sino_RefPt = LDetect[0].Sino_RefPt
 
     def _calc_All(self, Sino_RefPt=None, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True,
