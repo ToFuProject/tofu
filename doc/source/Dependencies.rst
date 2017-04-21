@@ -27,7 +27,8 @@ Scientific computing and plotting:
 Some part of ToFu are coded using Cython, which requires Cython and a compiler:
 
 - cython/0.19.1
-- gcc or intel
+- gcc/4.8
+- intel/14.0
 
 
 Testing:
