@@ -7,6 +7,7 @@ It includes all functions and object classes necessary for tomography on Tokamak
 #matplotlib.use('WxAgg')
 #matplotlib.interactive(True)
 
+import sys
 import matplotlib.pyplot as plt
 from matplotlib import _cntr as cntr
 from matplotlib.path import Path
@@ -36,6 +37,7 @@ import time as time
 # ToFu specific
 import tofu.defaults as TFD
 from tofu.pathfile import ID as tfpfID
+#if not any(['General_Geom_cy' in mm for mm in sys.modules.keys()]): # To allow reloading
 from . import General_Geom_cy as GG
 
 
@@ -470,7 +472,7 @@ def _Detect_set_LOS(Name, LSurfs, LBaryS, LnIn, LPolys, BaryS, Poly, OpType='Ape
         LOS_ApertPolyInt = np.array([P[0]+e1[0]*PolyInt[0,:]+e2[0]*PolyInt[1,:],P[1]+e1[1]*PolyInt[0,:]+e2[1]*PolyInt[1,:],P[2]+e1[2]*PolyInt[0,:]+e2[2]*PolyInt[1,:]])
         PolyInt = plg.Polygon(PolyInt.T)
         LOS_ApertPolyInt_S, LOS_ApertPolyInt_BaryS = PolyInt.area(), np.array([PolyInt.center()]).T
-        B = GG.Calc_3DPolyfrom2D_1D(LOS_ApertPolyInt_BaryS.reshape((2,1)), P, nP, e1, e2, Test=True).flatten()
+        B = GG.Calc_3DPolyFrom2D_1D(LOS_ApertPolyInt_BaryS.reshape((2,1)), P, nP, e1, e2, Test=True).flatten()
         du = (B-BaryS)/np.linalg.norm(B-BaryS)
         LOS_ApertPolyInt_BaryS = B
 
@@ -514,7 +516,7 @@ def _Detect_SAngVect_Points(Pts, DPoly=None, DBaryS=None, DnIn=None, LOBaryS=Non
 
 
 def Calc_Etendue_PlaneLOS(Ps, nPs, DPoly, DBaryS, DnIn, LOPolys, LOnIns, LOSurfs, LOBaryS, SAngPlane, VPoly, VVin, DLong=None,
-        Lens_ConeTip=None, Lens_ConeHalfAng=None, RadL=None, RadD=None, F1=None,
+        Lens_ConeTip=None, Lens_ConeHalfAng=None, RadL=None, RadD=None, F1=None, NEdge=TFD.DetSpanNEdge, NRad=TFD.DetSpanNRad,
         OpType='Apert', VType='Tor', Mode='quad', epsrel=TFD.DetEtendepsrel, dX12=TFD.DetEtenddX12, dX12Mode=TFD.DetEtenddX12Mode, e1=None,e2=None, Ratio=0.02, Colis=TFD.DetCalcEtendColis, Details=False, Test=True):    # Used
     """ Computes the Etendue of a Detect with Apert on N given planes parametrised by (P,nP) with two possible methods : discrete (simps) or (dblquad)
 
@@ -547,7 +549,7 @@ def Calc_Etendue_PlaneLOS(Ps, nPs, DPoly, DBaryS, DnIn, LOPolys, LOnIns, LOSurfs
 
     if OpType=='Apert':
         LnPtemp = np.asarray(LOnIns)*np.tile(LOSurfs,(3,1)).T
-        Out = Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(DPoly, LOPolys, LnPtemp, LOSurfs, LOBaryS[0], Ps, nPs, e1=e1, e2=e2, Test=False)
+        Out = Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(DPoly, DBaryS, LOPolys, LnPtemp, LOSurfs, LOBaryS[0], Ps, nPs, e1=e1, e2=e2, OpType=OpType, Lens_ConeTip=Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=False)
     elif OpType=='Lens':
         Out = Calc_ViewConePointsMinMax_PlanesDetectLens(LOPolys[0], Lens_ConeTip, Ps, nPs, e1=e1, e2=e2, Test=False)
 
@@ -612,7 +614,7 @@ def Calc_Etendue_PlaneLOS(Ps, nPs, DPoly, DBaryS, DnIn, LOPolys, LOnIns, LOSurfs
             indPos = SA>0.
             if Colis and np.any(indPos):
                 PpsindPos = Pps[:,indPos] if indPos.sum()>1 else Pps[:,indPos].reshape((Pps.shape[0],1))
-                indC = GG.Calc_InOut_LOS_Colis(PBary, PpsindPos, VPoly, VVin,Forbid=True,Margin=0.1) if VType=='Tor' else GG.Calc_InOut_LOS_Colis_Lin(PBary, PpsindPos, VPoly, VVin, DLong)
+                indC = GG.Calc_InOut_LOS_Colis(DBaryS, PpsindPos, VPoly, VVin,Forbid=True,Margin=0.1) if VType=='Tor' else GG.Calc_InOut_LOS_Colis_Lin(DBaryS, PpsindPos, VPoly, VVin, DLong)
                 indnul = indPos.nonzero()[0]
                 SA[indnul[~indC]] = 0.
 
@@ -725,7 +727,7 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
                 #tt = dtm.datetime.now() # DB
                 BaryS = plg.Polygon(PolyRef.T).center()
                 BaryS = P + e1*BaryS[0] + e2*BaryS[1]
-                PolyRef = GG.Calc_3DPolyfrom2D_1D(PolyRef, P, nP, e1, e2, Test=True)
+                PolyRef = GG.Calc_3DPolyFrom2D_1D(PolyRef, P, nP, e1, e2, Test=True)
                 #t2 += (dtm.datetime.now()-tt).total_seconds() # DB
                 #tt = dtm.datetime.now() # DB
                 PolyRef = getallpointsfromPoly(PolyRef, PolyRef.shape[1]-1, BaryS.reshape((3,1)), NEdge, NRad)
@@ -782,6 +784,12 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
     ind = np.argsort(np.arctan2(PDiff[1,:],PDiff[0,:]))
     PProj = PProj[:,ind]
     #print t1, t2, t3, t4, t5, t6, t7 # DB
+    ind = k>1.e-3
+    if np.any(~ind):
+        warnings.warn("Some points ({0}/{1}) of the Span estimation have a negative k ! (suppressed)".format((~ind).sum(),k.size))
+        AllS = AllS[:,ind]
+        Z = Z[ind]
+        k = k[ind]
     if VType=='Tor':
         R = np.concatenate((np.sqrt(AllS[0,:]**2 + AllS[1,:]**2), RMin))
         Theta = np.arctan2(AllS[1,:], AllS[0,:])
@@ -792,7 +800,7 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
 
 
 
-def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, LPolys, LnPs, LSurfs, BaryS, Ps, nPs, e1=None, e2=None, Test=True):    # Used
+def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, DBaryS, LPolys, LnPs, LSurfs, BaryS, Ps, nPs, e1=None, e2=None, OpType='Apert', Lens_ConeTip=None, NEdge=TFD.DetSpanNEdge, NRad=TFD.DetSpanNRad, Test=True):    # Used
     """ Compute the Points which are projections of each Detect.Poly corners through all its apertures on a set of N planes defined by (P,nP)
 
     Inputs :
@@ -814,8 +822,33 @@ def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, LPolys, LnPs, LSurf
         assert isinstance(nPs,np.ndarray) and nPs.shape == Ps.shape, "Arg nPs should be a (3,N) ndarray !"
         assert e1 is None or (isinstance(e1,np.ndarray) and e1.shape == Ps.shape), "Arg e1 should be a (3,N) ndarray !"
         assert e2 is None or (isinstance(e2,np.ndarray) and e2.shape == Ps.shape), "Arg e2 should be a (3,N) ndarray !"
+
+    def getallpointsfromPoly(Poly, BaryS, NEdge, NRad):
+        PolyN = Poly.shape[1]-1
+        PP = Poly[:,:PolyN]
+        if NEdge>0:
+            aa = np.linspace(1,NEdge,NEdge)/(NEdge+1)
+            Extra = []
+            for ii in range(0,PolyN):
+                Extra += [Poly[:,ii:ii+1]*np.ones((1,NEdge)) + (Poly[:,ii+1:ii+2]-Poly[:,ii:ii+1])*aa.reshape((1,NEdge))]
+            Extra = np.concatenate(tuple(Extra),axis=1)
+            PP = np.concatenate((PP,Extra),axis=1)
+        if NRad>0:
+            aa = np.linspace(1,NRad,NRad)/(NRad+1)
+            Extra = []
+            for ii in range(0,PP.shape[1]):
+                Extra += [BaryS*np.ones((1,NRad)) + (PP[:,ii:ii+1]-BaryS)*aa.reshape((1,NRad))]
+            Extra = np.concatenate(tuple(Extra),axis=1)
+            PP = np.concatenate((PP, Extra, BaryS),axis=1)
+        return PP
+
+    if OpType=='Apert':
+        Corners = getallpointsfromPoly(Poly, DBaryS.reshape((3,1)), NEdge, NRad)
+    elif OpType=='Lens':
+        Corners = Lens_ConeTip.reshape((3,1))
+
     e1, e2 = GG.Calc_DefaultCheck_e1e2_PLanes_2D(Ps, nPs, e1, e2)
-    Corners = Poly[:,:-1]
+    #Corners = np.concatenate((Poly[:,:-1],
     NCorners, NPlans = Corners.shape[1], Ps.shape[1]
     MinX1, MinX2, MaxX1, MaxX2 = np.nan*np.ones((NPlans,NCorners)), np.nan*np.ones((NPlans,NCorners)), np.nan*np.ones((NPlans,NCorners)), np.nan*np.ones((NPlans,NCorners))
     #LPolys = [D.LApert[jj].Poly for jj in range(len(D.LApert))]
@@ -842,14 +875,37 @@ def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, LPolys, LnPs, LSurf
             Out = GG.Calc_PolysProjPlanesPoint(LPolys, Corners[:,ii:ii+1], Ptemp.reshape((3,1)), nPtemp.reshape((3,1)), e1P=e1temp.reshape((3,1)), e2P=e2temp.reshape((3,1)), Test=False)
             PolyRef = [np.concatenate((Out[3][jj],Out[4][jj]),axis=0) for jj in range(0,NPoly)]
             PolyRef = GG.Calc_PolyInterLPoly2D(PolyRef,Test=False)
+                
             if PolyRef.shape[1]>0:
-                PolyRef = GG.Calc_3DPolyfrom2D_1D(PolyRef, Ptemp, nPtemp, e1temp, e2temp, Test=False)
-                Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2,Test=False)
+                PolyRef = GG.Calc_3DPolyFrom2D_1D(PolyRef, Ptemp, nPtemp, e1temp, e2temp, Test=False)
+
+                try:
+                    Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2,Test=False)
+                except Exception:
+                    # DB
+                    print('')
+                    print('    PolyRef', PolyRef)
+                    print('    Corners, Ps, nPs', Corners[:,ii], Ps, nPs)
+                    import matplotlib.pyplot as plt
+                    from mpl_toolkits.mplot3d import Axes3D
+                    f = plt.figure()
+                    ax = f.add_axes([0.1,0.1,0.8,0.8],projection='3d')
+                    ax.plot(PolyRef[0,:],PolyRef[1,:],PolyRef[2,:], '-b')
+                    ax.plot(Corners[0,ii:ii+1], Corners[1,ii:ii+1],Corners[2,ii:ii+1], 'xr')
+                    ax.plot(Ps[0,:3],Ps[1,:3],Ps[2,:3], '+g')                   
+                    ax.plot(Poly[0,:],Poly[1,:],Poly[2,:],'-k')
+                    vvv = np.concatenate(tuple([np.concatenate((Ps[0,ll:ll+1],Ps[0,ll:ll+1]+0.4*np.mean(np.sqrt(np.sum(np.diff(Ps,axis=1)**2,axis=0)))*nPs[:,ll:ll+1],np.nan*np.ones((3,1))),axis=1) for ll in [0,1,2]]), axis=1)
+                    ax.plot(vvv[0,:],vvv[1,:],vvv[2,:], '-g')
+
+                    return None
+                    ##############
+
                 MinX1[:,ii] = np.min(Out[3],axis=1)
                 MinX2[:,ii] = np.min(Out[4],axis=1)
                 MaxX1[:,ii] = np.max(Out[3],axis=1)
                 MaxX2[:,ii] = np.max(Out[4],axis=1)
-    assert ~np.any(np.isnan(MinX1)) and ~np.any(np.isnan(MinX2)) and ~np.any(np.isnan(MaxX1)) and ~np.any(np.isnan(MaxX2))
+
+    assert all([np.all(np.any(~np.isnan(mm),axis=1)) for mm in [MinX1,MinX2,MaxX1,MaxX2]])
     return np.nanmin(MinX1,axis=1), np.nanmin(MinX2,axis=1), np.nanmax(MaxX1,axis=1), np.nanmax(MaxX2,axis=1), e1, e2
 
 
@@ -1030,7 +1086,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                                 Points[0,indSide],Points[1,indSide],Points[2,indSide], RadL, RadD, F1, np.tan(Lens_ConeHalfAng), LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=False)
                 indPos = Ind>0
                 if np.any(indPos):
-                    indC = GG.Calc_InOut_LOS_Colis(BaryS, Points[:,indPos], VPoly, VVin, Forbid=True, Margin=0.1)
+                    indC = GG.Calc_InOut_LOS_Colis(DBaryS, Points[:,indPos], VPoly, VVin, Forbid=True, Margin=0.1)
                     Ind[indPos.nonzero()[0][~indC]] = 0
                 Vis[:,ii] = Ind
             _SAngCross_Reg = True
@@ -1060,7 +1116,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                                 Points[0,indSide],Points[1,indSide],Points[2,indSide], RadL, RadD, F1, np.tan(Lens_ConeHalfAng), LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=False)
             indPos = Ind>0
             if np.any(indPos):
-                indC = GG.Calc_InOut_LOS_Colis(BaryS, Points[:,indPos], VPoly, VVin, Forbid=True, Margin=0.1)
+                indC = GG.Calc_InOut_LOS_Colis(DBaryS, Points[:,indPos], VPoly, VVin, Forbid=True, Margin=0.1)
                 Ind[indPos.nonzero()[0][~indC]] = 0
             Vis[:,ii,:] = Ind.reshape((NR,NZ))
             if ii==0 or (ii+1)%NRef==0:
@@ -1097,7 +1153,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                                 Points[0,indSide],Points[1,indSide],Points[2,indSide], RadL, RadD, F1, np.tan(Lens_ConeHalfAng), LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=False)
                 indPos = Ind>0
                 if np.any(indPos):
-                    indC = GG.Calc_InOut_LOS_Colis_Lin(BaryS, Points[:,indPos], VPoly, VVin, DLong)
+                    indC = GG.Calc_InOut_LOS_Colis_Lin(DBaryS, Points[:,indPos], VPoly, VVin, DLong)
                     Ind[indPos.nonzero()[0][~indC]] = 0
                 Vis[:,ii] = Ind
             _SAngCross_Reg = True
@@ -1127,7 +1183,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                                 Points[0,indSide],Points[1,indSide],Points[2,indSide], RadL, RadD, F1, np.tan(Lens_ConeHalfAng), LOPolys[0][0,:],LOPolys[0][1,:],LOPolys[0][2,:], thet=thet, VectReturn=False)
             indPos = Ind>0
             if np.any(indPos):
-                indC = GG.Calc_InOut_LOS_Colis_Lin(BaryS, Points[:,indPos], VPoly, VVin, DLong)
+                indC = GG.Calc_InOut_LOS_Colis_Lin(DBaryS, Points[:,indPos], VPoly, VVin, DLong)
                 Ind[indPos.nonzero()[0][~indC]] = 0
             Vis[ii,:,:] = Ind.reshape((NY,NZ))
             if ii==0 or (ii+1)%NRef==0:
@@ -1153,6 +1209,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
         Visbis = np.concatenate((np.zeros((NR,1)),Visbis,np.zeros((NR,1))),axis=1)
         Visbis = np.concatenate((np.zeros((1,NZ+2)),Visbis,np.zeros((1,NZ+2))),axis=0)
         CNb = cntr.Cntr(RRbis,ZZbis,Visbis)
+
     elif VType=='Lin':
         ind = np.any(Vis>0,axis=0).flatten()
         _SAngCross_Points = np.array([YYf[ind], ZZf[ind]])
@@ -1285,7 +1342,7 @@ def Calc_PolProj_ConePsiMinMax_2Steps(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LO
             PolyRef = [np.concatenate((Out[3][jj],Out[4][jj]),axis=0) for jj in range(0,NPoly)]
             PolyRef = GG.Calc_PolyInterLPoly2D(PolyRef,Test=False)
             if PolyRef.shape[1]>0:
-                PolyRef = GG.Calc_3DPolyfrom2D_1D(PolyRef, Ptemp, nPtemp, e1temp, e2temp, Test=False)
+                PolyRef = GG.Calc_3DPolyFrom2D_1D(PolyRef, Ptemp, nPtemp, e1temp, e2temp, Test=False)
                 Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2,Test=False)
                 Rps = np.hypot(Out[0],Out[1])
                 VectR, VectZ = Rps-RD, Out[2]-DBaryS[2]
@@ -1349,7 +1406,7 @@ def Calc_PolProj_ConePsiMinMax_2Steps_Lin(DPoly, DBaryS, LOPolys, LOnIns, LSurfs
             PolyRef = [np.concatenate((Out[3][jj],Out[4][jj]),axis=0) for jj in range(0,NPoly)]
             PolyRef = GG.Calc_PolyInterLPoly2D(PolyRef,Test=False)
             if PolyRef.shape[1]>0:
-                PolyRef = GG.Calc_3DPolyfrom2D_1D(PolyRef, Ptemp, nPtemp, e1temp, e2temp, Test=False)
+                PolyRef = GG.Calc_3DPolyFrom2D_1D(PolyRef, Ptemp, nPtemp, e1temp, e2temp, Test=False)
                 Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2,Test=False)
                 #Rps = np.hypot(Out[0],Out[1])
                 VectY, VectZ = Out[1]-DBaryS[1], Out[2]-DBaryS[2]
@@ -1507,7 +1564,9 @@ def _Detect_set_SigPrecomp(DPoly, DBaryS, DnIn, LOPolys, LOBaryS, LOnIns, SAngPl
         dX12=TFD.DetSynthdX12, dX12Mode=TFD.DetSynthdX12Mode, ds=TFD.DetSynthds, dsMode=TFD.DetSynthdsMode, MarginS=TFD.DetSynthMarginS, VType='Tor', OpType='Apert', Colis=True, Test=True):        # Used
 
     Points, dV = Calc_SynthDiag_SampleVolume(LOSD=LOSD, LOSu=LOSu, Span_k=Span_k, ConeWidth_k=ConeWidth_k, ConeWidth_X1=ConeWidth_X1, ConeWidth_X2=ConeWidth_X2,
-                                             dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, Detail=False)
+                                             dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, VPoly=VPoly, VType=VType, DLong=DLong, 
+                                             Cone_PolyCrossbis=Cone_PolyCrossbis, Cone_PolyHorbis=Cone_PolyHorbis, TorAngRef=CrossRef,Colis=Colis, 
+                                             DBaryS=DBaryS, DnIn=DnIn, LOBaryS=LOBaryS, LOnIns=LOnIns, Detail=False)
 
     SAng, Vect = _Detect_SAngVect_Points(Points, DPoly=DPoly, DBaryS=DBaryS, DnIn=DnIn, LOBaryS=LOBaryS, LOnIns=LOnIns, LOPolys=LOPolys, SAngPlane=SAngPlane, Lens_ConeTip=Lens_ConeTip, Lens_ConeHalfAng=Lens_ConeHalfAng,
                                          RadL=RadL, RadD=RadD, F1=F1, thet=thet, OpType=OpType, VPoly=VPoly, VVin=VVin, DLong=DLong, VType=VType,
@@ -1524,7 +1583,9 @@ def _Detect_set_SigPrecomp(DPoly, DBaryS, DnIn, LOPolys, LOBaryS, LOnIns, SAngPl
 
 
 def Calc_SynthDiag_SampleVolume(LOSD=None, LOSu=None, Span_k=None, ConeWidth_k=None, ConeWidth_X1=None, ConeWidth_X2=None,
-        dX12=TFD.DetSynthdX12, dX12Mode=TFD.DetSynthdX12Mode, ds=TFD.DetSynthds, dsMode=TFD.DetSynthdsMode, MarginS=TFD.DetSynthMarginS, Detail=False):   # Used
+        dX12=TFD.DetSynthdX12, dX12Mode=TFD.DetSynthdX12Mode, ds=TFD.DetSynthds, dsMode=TFD.DetSynthdsMode, MarginS=TFD.DetSynthMarginS,
+        VPoly=None, VType='Tor', DLong=None, Cone_PolyCrossbis=None, Cone_PolyHorbis=None, TorAngRef=None,
+        DBaryS=None, DnIn=None, LOBaryS=None, LOnIns=None, Colis=True, Detail=False):   # Used
     """
     Return a (X,Y,Z) mesh of the viewing volume of a detector
     """
@@ -1546,23 +1607,42 @@ def Calc_SynthDiag_SampleVolume(LOSD=None, LOSu=None, Span_k=None, ConeWidth_k=N
     dX1, dX2, ds = np.mean(np.diff(X1)), np.mean(np.diff(X2)), np.mean(np.diff(Ss))
     dV = dX1*dX2*ds
     NumP = NumX1*NumX2*Nums
-    X1f = (np.resize(X1,(Nums,NumX2,NumX1)).T).flatten()
-    X2f = (np.resize(X2,(NumX1,Nums,NumX2)).swapaxes(1,2)).flatten()
-    Ssf = np.tile(Ss,(NumX1,NumX2,1)).flatten()
-    if Detail:
-        Points = np.array([LOSD[0] + LOSu[0]*Ssf + e1[0]*X1f + e2[0]*X2f, LOSD[1] + LOSu[1]*Ssf + e1[1]*X1f + e2[1]*X2f, LOSD[2] + LOSu[2]*Ssf + e1[2]*X1f + e2[2]*X2f])
-        return Points, dV, X1, X2, Ss
+
+    MinX1, MaxX1 = np.interp(Ss,ConeWidth_k,ConeWidth_X1[0,:]), np.interp(Ss,ConeWidth_k,ConeWidth_X1[1,:])
+    MinX2, MaxX2 = np.interp(Ss,ConeWidth_k,ConeWidth_X2[0,:]), np.interp(Ss,ConeWidth_k,ConeWidth_X2[1,:])
+    if NumP>10000000:
+        warnings.warn("Using a for loop in tfg_c.Calc_SynthDiag_SampleVolume() to avoid MemoryError ({0} points) !".format(NumP))
+        del X1, X2
+        Pts = None
+        for ii in range(0,Nums):
+            numX1 = int(np.ceil(1./dX12[0])) if dX12Mode=='rel' else int(np.ceil((MaxX1[ii]-MinX1[ii])/dX12[0]))
+            numX2 = int(np.ceil(1./dX12[1])) if dX12Mode=='rel' else int(np.ceil((MaxX2[ii]-MinX2[ii])/dX12[1]))
+            X1f = np.tile(np.linspace(MinX1[ii], MaxX1[ii], numX1), (numX2,1)).flatten()
+            X2f = np.tile(np.linspace(MinX2[ii], MaxX2[ii], numX2), (numX1,1)).T.flatten() 
+            pts = np.array([LOSD[0] + LOSu[0]*Ss[ii] + e1[0]*X1f + e2[0]*X2f, LOSD[1] + LOSu[1]*Ss[ii] + e1[1]*X1f + e2[1]*X2f, LOSD[2] + LOSu[2]*Ss[ii] + e1[2]*X1f + e2[2]*X2f])
+            if DBaryS is not  None:
+                ind = _Detect_isOnGoodSide(pts, DBaryS, DnIn, LOBaryS, LOnIns, NbPoly=None, Log='all')
+                pts = pts[:,ind]
+            if VPoly is not None:
+                ind = _Ves_isInside(VPoly, VType, DLong, pts, In='(X,Y,Z)')    
+                if ind.sum()>0:
+                    pts = pts[:,ind] if ind.sum()>1 else pts[:,ind].reshape((3,1))
+            if Colis and Cone_PolyCrossbis is not None:
+                ind = _Detect_isInside(Cone_PolyCrossbis, Cone_PolyHorbis, pts, In='(X,Y,Z)', VType=VType, TorAngRef=TorAngRef, Test=True)   # Cone Poly
+                pts = pts[:,ind]
+            Pts = pts if Pts is None else np.concatenate((Pts,pts),axis=1)
     else:
-        MinX1, MaxX1 = np.interp(Ss,ConeWidth_k,ConeWidth_X1[0,:]), np.interp(Ss,ConeWidth_k,ConeWidth_X1[1,:])
-        MinX2, MaxX2 = np.interp(Ss,ConeWidth_k,ConeWidth_X2[0,:]), np.interp(Ss,ConeWidth_k,ConeWidth_X2[1,:])
-        del NumP, Nums, dX1, dX2, ds, DS, X1, X2, Ss, dsMode, dX12Mode, dX12
+        X1f = (np.resize(X1,(Nums,NumX2,NumX1)).T).flatten()
+        X2f = (np.resize(X2,(NumX1,Nums,NumX2)).swapaxes(1,2)).flatten()
+        Ssf = np.tile(Ss,(NumX1,NumX2,1)).flatten()
         MinX1, MaxX1 = np.tile(MinX1,(NumX1,NumX2,1)).flatten(), np.tile(MaxX1,(NumX1,NumX2,1)).flatten()
         MinX2, MaxX2 = np.tile(MinX2,(NumX1,NumX2,1)).flatten(), np.tile(MaxX2,(NumX1,NumX2,1)).flatten()
         ind = (X1f>=MinX1) & (X1f<=MaxX1) & (X2f>=MinX2) & (X2f<=MaxX2)
         X1f, X2f, Ssf = X1f[ind], X2f[ind], Ssf[ind]
-        Points = np.array([LOSD[0] + LOSu[0]*Ssf + e1[0]*X1f + e2[0]*X2f, LOSD[1] + LOSu[1]*Ssf + e1[1]*X1f + e2[1]*X2f, LOSD[2] + LOSu[2]*Ssf + e1[2]*X1f + e2[2]*X2f])
-        return Points, dV
+        Pts = np.array([LOSD[0] + LOSu[0]*Ssf + e1[0]*X1f + e2[0]*X2f, LOSD[1] + LOSu[1]*Ssf + e1[1]*X1f + e2[1]*X2f, LOSD[2] + LOSu[2]*Ssf + e1[2]*X1f + e2[2]*X2f])
 
+    Out = [Pts, dV, X1, X2, Ss] if Detail else [Pts, dV]
+    return Out
 
 
 
@@ -1676,10 +1756,16 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
         else:
             if Mode=='sum':
                 Pts, dV = Calc_SynthDiag_SampleVolume(LOSD=LOSD, LOSu=LOSu, Span_k=Span_k, ConeWidth_k=ConeWidth_k, ConeWidth_X1=ConeWidth_X1, ConeWidth_X2=ConeWidth_X2,
-                        dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, Detail=False)
+                                                      dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, VPoly=VPoly, VType=VType, DLong=DLong, 
+                                                      Cone_PolyCrossbis=Cone_PolyCrossbis, Cone_PolyHorbis=Cone_PolyHorbis, TorAngRef=CrossRef,Colis=Colis,
+                                                      DBaryS=DBaryS, DnIn=DnIn, LOBaryS=LOBaryS, LOnIns=LOnIns,
+                                                      Detail=False)
             else:
                 Pts, dV, X1, X2, Ss = Calc_SynthDiag_SampleVolume(LOSD=LOSD, LOSu=LOSu, Span_k=Span_k, ConeWidth_k=ConeWidth_k, ConeWidth_X1=ConeWidth_X1, ConeWidth_X2=ConeWidth_X2,
-                        dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, Detail=True)
+                                                                  dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, VPoly=VPoly, VType=VType, DLong=DLong,
+                                                                  Cone_PolyCrossbis=Cone_PolyCrossbis, Cone_PolyHorbis=Cone_PolyHorbis, TorAngRef=CrossRef,Colis=Colis,
+                                                                  DBaryS=DBaryS, DnIn=DnIn, LOBaryS=LOBaryS, LOnIns=LOnIns,
+                                                                  Detail=True)
                 NumX1, NumX2, Nums = X1.size, X2.size, Ss.size
 
             SAng, Vect = _Detect_SAngVect_Points(Pts, DPoly=DPoly, DBaryS=DBaryS, DnIn=DnIn, LOBaryS=LOBaryS, LOnIns=LOnIns, LOPolys=LOPolys, SAngPlane=SAngPlane,
@@ -1790,7 +1876,7 @@ def Calc_SynthDiag_GDetect(GD, ff, Method='Vol', Mode='simps', PreComp=True, eps
                     if Colis:
                         def FF(x1,x2,s,ii=ii):
                             Point = P + s*nP + x1*e1 + x2*e2
-                            if GG.Calc_InOut_LOS_Colis_1D(self._SAngPlane[0], Point, GD[ii].Ves.Poly, GD[ii].Ves._Vin, Forbid=True, Margin=0.1):
+                            if GG.Calc_InOut_LOS_Colis_1D(GD[ii].BaryS, Point, GD[ii].Ves.Poly, GD[ii].Ves._Vin, Forbid=True, Margin=0.1):
                                 SAng, Vect = GG.Calc_SAngVect_LPolysPoints_Flex(LPolys, Point, PSA, nPSA, e1SA, e2SA)
                                 return ff(Point,Vect)*SAng
                             else:
@@ -1805,7 +1891,7 @@ def Calc_SynthDiag_GDetect(GD, ff, Method='Vol', Mode='simps', PreComp=True, eps
                     if Colis:
                         def FF(x1,x2,s,ii=ii):
                             Point = D + s*nP + x1*e1 + x2*e2
-                            if GG.Calc_InOut_LOS_Colis_1D(self._SAngPlane[0], Point, GD[ii].Ves.Poly, GD[ii].Ves._Vin, Forbid=True, Margin=0.1):
+                            if GG.Calc_InOut_LOS_Colis_1D(GD[ii].BaryS, Point, GD[ii].Ves.Poly, GD[ii].Ves._Vin, Forbid=True, Margin=0.1):
                                 return ff(Point) * GG.Calc_SAngVect_LPolysPoints_Flex(LPolys, Point, PSA, nPSA, e1SA, e2SA)[0]
                             else:
                                 return 0.
@@ -1828,7 +1914,7 @@ def Calc_SynthDiag_GDetect(GD, ff, Method='Vol', Mode='simps', PreComp=True, eps
                     SAng[ind], Vect[:,ind] = GG.Calc_SAngVect_LPolysPoints_Flex(LPolys, Points[:,ind], GD[ii]._SAngPlane[0], GD[ii]._SAngPlane[1], GD[ii]._SAngPlane[2], GD[ii]._SAngPlane[3])
                     indPos = SAng>0.
                     if Colis and np.any(indPos):
-                        indC = GG.Calc_InOut_LOS_Colis(GD[ii]._SAngPlane[0], Points[:,indPos], GD[ii].Ves.Poly, GD[ii].Ves._Vin, Forbid=True, Margin=0.1)
+                        indC = GG.Calc_InOut_LOS_Colis(GD[ii].BaryS, Points[:,indPos], GD[ii].Ves.Poly, GD[ii].Ves._Vin, Forbid=True, Margin=0.1)
                         indnul = indPos.nonzero()[0]
                         SAng[indnul[~indC]] = 0.
                 Emiss = ff(Points,Vect)*SAng if Ani else ff(Points)*SAng
@@ -2198,7 +2284,7 @@ def Calc_DefaultCheck_e1e2_LOSPLanes(PIn, nP, e1, e2, CrossNTHR=0.01,EPS=1.e-10)
 
 
 
-def Calc_SAngOnPlane(D,P,nP, dX12=[0.01,0.01], dX12Mode='rel', e1=None,e2=None, Ratio=0.01, Colis=TFD.DetSAngColis, Test=True):
+def Calc_SAngOnPlane(D,DB,P,nP, dX12=[0.01,0.01], dX12Mode='rel', e1=None,e2=None, Ratio=0.01, Colis=TFD.DetSAngColis, OpType='Apert', Lens_ConeTip=None, NEdge=TFD.DetSpanNEdge, NRad=TFD.DetSpanNRad, Test=True):
     if Test:
         assert isinstance(D,Detect), "Arg D should be Detect instance !"
         assert isinstance(P,np.ndarray) and P.shape==(3,), "Arg P should be a (3,N) ndarray !"
@@ -2210,7 +2296,7 @@ def Calc_SAngOnPlane(D,P,nP, dX12=[0.01,0.01], dX12Mode='rel', e1=None,e2=None, 
     nPlans = nPs.shape[1]
     e1, e2 = GG.Calc_DefaultCheck_e1e2_PLanes_2D(Ps, nPs, e1, e2)
 
-    Out = Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(D,Ps,nPs,e1=e1,e2=e2,Test=False)
+    Out = Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(D,DB,Ps,nPs,e1=e1,e2=e2, OpType=OpType, Lens_ConeTip=Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=False)
     MinX1, MinX2, MaxX1, MaxX2 = Out[0], Out[1], Out[2], Out[3]
     MinX1 = MinX1 - Ratio*(MaxX1-MinX1)
     MaxX1 = MaxX1 + Ratio*(MaxX1-MinX1)
@@ -2239,9 +2325,9 @@ def Calc_SAngOnPlane(D,P,nP, dX12=[0.01,0.01], dX12Mode='rel', e1=None,e2=None, 
         indPos = sa>0.
         if Colis and np.any(indPos):
             if np.sum(indPos)==1:
-                indC = GG.Calc_InOut_LOS_Colis(PBary, Pps[:,indPos].reshape((3,np.sum(indPos))), D.Ves.Poly, D.Ves._Vin, Forbid=True, Margin=0.1)
+                indC = GG.Calc_InOut_LOS_Colis(D.BaryS, Pps[:,indPos].reshape((3,np.sum(indPos))), D.Ves.Poly, D.Ves._Vin, Forbid=True, Margin=0.1)
             else:
-                indC = GG.Calc_InOut_LOS_Colis(PBary, Pps[:,indPos], D.Ves.Poly, D.Ves._Vin, Forbid=True, Margin=0.1)
+                indC = GG.Calc_InOut_LOS_Colis(D.BaryS, Pps[:,indPos], D.Ves.Poly, D.Ves._Vin, Forbid=True, Margin=0.1)
             indPos = indPos.nonzero()[0]
             sa[indPos[~indC]] = 0.
         SA.append(sa)
