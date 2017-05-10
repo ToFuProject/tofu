@@ -2370,7 +2370,7 @@ class Detect(object):
         else:
             self._LOS = "Impossible !"
 
-    def _set_Etendue(self, Method=tfd.DetEtendMethod, RelErr=tfd.DetEtendepsrel, dX12=tfd.DetEtenddX12, dX12Mode=tfd.DetEtenddX12Mode, Ratio=tfd.DetEtendRatio, Colis=tfd.DetCalcEtendColis):    # Pb with Lens quad vs trapz !
+    def _set_Etendue(self, Method=tfd.DetEtendMethod, RelErr=tfd.DetEtendepsrel, dX12=tfd.DetEtenddX12, dX12Mode=tfd.DetEtenddX12Mode, Ratio=tfd.DetEtendRatio, Colis=tfd.DetCalcEtendColis, NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad):    # Pb with Lens quad vs trapz !
         self._check_inputs(Etend_Method=Method, Etend_RelErr=RelErr, Etend_dX12=dX12, Etend_dX12Mode=dX12Mode, Etend_Ratio=Ratio, Colis=Colis)
         if not self.LOS in ["Impossible !",None]:
             print "    "+self.Id.Name+" : Computing Entendue..."
@@ -2389,10 +2389,11 @@ class Detect(object):
                 self.LOS[kk]['Etend'] = _tfg_c.Calc_Etendue_PlaneLOS(PRef.reshape((3,1)), LOSu.reshape((3,1)),
                         self.Poly, self.BaryS, self.nIn, LOPolys, LOnIns, LSurfs, LOBaryS, self._SAngPlane,
                         VPoly, VVin, DLong=self.Ves.DLong,
-                        Lens_ConeTip = self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1,
+                        Lens_ConeTip = self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, NRad=NRad, NEdge=NEdge,
                         OpType=self.OpticsType, VType=self.Ves.Type, Mode=Method, e1=e1.reshape((3,1)), e2=e2.reshape((3,1)), epsrel=RelErr, Ratio=Ratio, dX12=dX12, dX12Mode=dX12Mode, Colis=Colis, Test=True)[0][0]
 
                 self.LOS[kk]['Etend_Method'], self.LOS[kk]['Etend_Ratio'], self.LOS[kk]['Etend_Colis'] = Method, Ratio, Colis
+                self.LOS[kk]['Etend_NRad'], self.LOS[kk]['Etend_NEdge'] = NRad, NEdge
                 self.LOS[kk]['Etend_RelErr'] = RelErr if Method=='quad' else None
                 self.LOS[kk]['Etend_dX12'] = None if Method=='quad' else dX12
                 self.LOS[kk]['Etend_dX12Mode'] = None if Method=='quad' else dX12Mode
@@ -2416,7 +2417,8 @@ class Detect(object):
             (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
             if self.Ves.Type=='Tor':
                 RMinMax, ThetaMinMax, ZMinMax, kMinMax, Sino_CrossProj, Span_NEdge, Span_NRad = _tfg_c.Calc_SpanImpBoth_2Steps(self.Poly, self.NP, self.BaryS, LOPolys, LOBaryS, LOSD, LOSu, Sino_RefPt, P, nP,
-                        VPoly, VVin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
+                                                                                                                               VPoly, VVin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, OpType=self.OpticsType, 
+                                                                                                                               Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
                 RMinMax[0] = np.max(np.array([MarginRMin*RMinMax[0],self.Ves._P1Min[0]]))
                 self._Sino_RefPt, self._Span_R, self._Span_Theta, self._Span_Z, self._Span_k = Sino_RefPt, RMinMax, ThetaMinMax, ZMinMax, kMinMax
                 self._Span_X, self._Span_Y = None, None
@@ -2428,12 +2430,12 @@ class Detect(object):
             self._Sino_CrossProj, self._Span_NEdge, self._Span_NRad = Sino_CrossProj, Span_NEdge, Span_NRad
             # Sino_CrossProj = Imp_PolProj
 
-    def _set_ConeWidthAlongLOS(self,Nk=10):
+    def _set_ConeWidthAlongLOS(self,Nk=10, NRad=tfd.DetSpanNRad, NEdge=tfd.DetSpanNEdge):
         self._check_inputs(Nk=Nk)
         if not (self.LOS=='Impossible !' or self.LOS is None or self._Span_k is None):
-            k = np.linspace(self._Span_k[0],self._Span_k[1],Nk)
             P, u = self.LOS[self._LOSRef]['LOS'].D, self.LOS[self._LOSRef]['LOS'].u
             e1, e2 = _tfg_gg.Calc_DefaultCheck_e1e2_PLane_1D(P, u)
+            k = np.linspace(max(self._Span_k[0],1.2*np.max(np.abs(np.sum((np.tile(P,(self.Poly.shape[1],1)).T-self.Poly)*np.tile(u,(self.Poly.shape[1],1)).T)))),self._Span_k[1],Nk)
             Ps = np.array([P[0]+k*u[0], P[1]+k*u[1], P[2]+k*u[2]])
             nPs = np.tile(u,(Nk,1)).T
             e1s, e2s = np.tile(e1,(Nk,1)).T, np.tile(e2,(Nk,1)).T
@@ -2442,10 +2444,15 @@ class Detect(object):
                 LOSurfs = [oo.Surf for oo in self.Optics]
                 LOnIns = [oo.nIn for oo in self.Optics]
                 LnPtemp = np.asarray(LOnIns)*np.tile(LOSurfs,(3,1)).T
-                MinX1, MinX2, MaxX1, MaxX2, e1, e2 = _tfg_c.Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(self.Poly, LOPolys, LnPtemp, LOSurfs, self.Optics[0].BaryS, Ps, nPs, e1=e1s, e2=e2s, Test=True)
+                MinX1, MinX2, MaxX1, MaxX2, e1, e2 = _tfg_c.Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(self.Poly, self.BaryS, LOPolys, LnPtemp, LOSurfs, self.Optics[0].BaryS, Ps, nPs, e1=e1s, e2=e2s, OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
             elif self.OpticsType=='Lens':
                 MinX1, MinX2, MaxX1, MaxX2, e1, e2 = _tfg_c.Calc_ViewConePointsMinMax_PlanesDetectLens(LOPolys[0], self._Optics_Lens_ConeTip, Ps, nPs, e1=e1s, e2=e2s, Test=True)
             self._ConeWidth_k = k
+            Thr = 1.1*np.sqrt((np.max(self.Ves.Poly[1,:])-np.min(self.Ves.Poly[1,:]))**2+ 8.*np.max(self.Ves.Poly[0,:])**2)
+            MinX1[np.abs(MinX1)>Thr] = Thr*np.sign(MinX1[np.abs(MinX1)>Thr])
+            MaxX1[np.abs(MaxX1)>Thr] = Thr*np.sign(MaxX1[np.abs(MaxX1)>Thr])
+            MinX2[np.abs(MinX2)>Thr] = Thr*np.sign(MinX2[np.abs(MinX2)>Thr])
+            MaxX2[np.abs(MaxX2)>Thr] = Thr*np.sign(MaxX2[np.abs(MaxX2)>Thr])
             self._ConeWidth_X1 = np.array([MinX1,MaxX1])
             self._ConeWidth_X2 = np.array([MinX2,MaxX2])
             self._ConeWidth = np.min(np.array([np.diff(self._ConeWidth_X1,axis=0),np.diff(self._ConeWidth_X2,axis=0)]),axis=0).flatten()
@@ -2756,7 +2763,7 @@ class Detect(object):
             epsrel=epsrel, dX12=dX12, dX12Mode=dX12Mode, ds=ds, dsMode=dsMode, MarginS=MarginS, Colis=Colis, Test=Test)
         return Sig
 
-    def _debug_Etendue_BenchmarkRatioMode(self, RelErr=tfd.DetEtendepsrel, Ratio=[0.01,0.05,0.2,0.5], Modes=['simps','trapz','quad'], dX12=[0.002,0.002], dX12Mode='abs', Colis=tfd.DetCalcEtendColis):
+    def _debug_Etendue_BenchmarkRatioMode(self, RelErr=tfd.DetEtendepsrel, Ratio=[0.01,0.05,0.2,0.5], Modes=['simps','trapz','quad'], dX12=[0.002,0.002], dX12Mode='abs', NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad, Colis=tfd.DetCalcEtendColis):
         """ Return the etendue computed 3 different numerical integration methods, with or without collisions, with more or less margin for the perpendicular plane size (Ratio)
 
         USed for debugging, compute the etendue with various values of the Ratio (extra margin for the integration intervals), to check it does not affect the computed value
@@ -2803,13 +2810,13 @@ class Detect(object):
                     for ii in range(0,len(Ratio)):
                         print "    ...Computing Etendue with integration method", kk, " for LOS ", Keys[jj], " and Ratio=", Ratio[ii]
                         Etends[kk][jj,ii] = _tfg_c.Calc_Etendue_PlaneLOS(PRef, LOSu, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIn, LOSurfs, LOBaryS, self._SAngPlane, VPoly, VVin, DLong=self.Ves.DLong,
-                                Lens_ConeTip = self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1,
+                                Lens_ConeTip = self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, NRad=NRad, NEdge=NEdge,
                                 OpType=self.OpticsType, VType=self.Ves.Type, Mode=kk, e1=e1, e2=e2, epsrel=RelErr, Ratio=Ratio[ii], dX12=dX12, dX12Mode=dX12Mode, Colis=Colis, Test=True)[0][0]
             return Etends, Ratio, RelErr, dX12, dX12Mode, Colis
 
 
     def calc_Etendue_AlongLOS(self, Length='', NP=tfd.DetEtendOnLOSNP, Modes=['trapz','quad'], RelErr=tfd.DetEtendepsrel, dX12=tfd.DetSynthdX12, dX12Mode=tfd.DetSynthdX12Mode, Ratio=tfd.DetEtendRatio,
-            Colis=tfd.DetSAngColis, LOSRef=None, Test=True):
+            Colis=tfd.DetSAngColis, NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad, LOSRef=None, Test=True):
         """ Return the etendue computed at different points along the LOS, with various numerical methods, with or without collision detection
 
         Computing the etendue along the LOS of a Detect object can be useful for checking whether the etendue is constant (as it should be if the LOS approximation is to be used).
@@ -2885,7 +2892,7 @@ class Detect(object):
             for ii in range(0,NMod):
                 print "    ...Computing Etendues of "+ self.Id.Name +" for ",NP," planes with integration method ",Modes[ii]
                 Etends[Modes[ii]] = _tfg_c.Calc_Etendue_PlaneLOS(Ps, nPs, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIn, LOSurfs, LOBaryS, self._SAngPlane,
-                        VPoly, VVin, DLong=self.Ves.DLong, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1,
+                        VPoly, VVin, DLong=self.Ves.DLong, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, NRad=NRad, NEdge=NEdge,
                         OpType=self.OpticsType, VType=self.Ves.Type, Mode=Modes[ii], e1=e1, e2=e2, epsrel=RelErr, Ratio=Ratio, dX12=dX12, dX12Mode=dX12Mode, Colis=Colis, Test=True)[0]
             return Etends, Ps, k, LOSRef
 
@@ -3163,7 +3170,7 @@ class Detect(object):
         return Lax
 
     def _debug_plot_SAng_OnPlanePerp(self, ax=None, Pos=tfd.DetSAngPlRa, dX12=tfd.DetSAngPldX12, dX12Mode=tfd.DetSAngPldX12Mode, Ratio=tfd.DetSAngPlRatio, SurfDict=tfd.DetSAngPld, LegDict=tfd.TorLegd,
-            Colis=tfd.DetSAngColis, LOSRef=None, draw=True, a4=False, Test=True):
+            Colis=tfd.DetSAngColis, NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad, LOSRef=None, draw=True, a4=False, Test=True):
         """ Plot the solid angle subtended by the Detect-Apert system as seen from points on a plane perpendicular to the LOS
 
         Used for debugging or illustrative purposes.
@@ -3212,7 +3219,7 @@ class Detect(object):
         LOSurfs = [oo.Surf for oo in self.Optics]
         (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
         Etend, e1, e2, err, SA, X1, X2, NumX1, NumX2 = _tfg_c.Calc_Etendue_PlaneLOS(Ps, nPs, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIns, LOSurfs, LOBaryS, self._SAngPlane, VPoly, VVin, DLong=self.Ves.DLong,
-                Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1,
+                Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, NRad=NRad, NEdge=NEdge,
                 OpType=self.OpticsType, VType=self.Ves.Type, Mode='trapz', dX12=dX12, dX12Mode=dX12Mode, Ratio=Ratio, Colis=Colis, Details=True, Test=True)
 
         #SA, X1, X2, numX1, numX2 = _tfg_c.Calc_SAngOnPlane(self, P, self.LOS[LOSRef]['LOS'].u, dX12=dX12, dX12Mode=dX12Mode, e1=None,e2=None, Ratio=Ratio, Colis=Colis, Test=True)

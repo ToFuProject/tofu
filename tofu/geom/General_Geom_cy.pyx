@@ -150,12 +150,13 @@ def Calc_2DPolyFrom3D_1D(np.ndarray[DTYPE_t,ndim=2] Poly, P=None, en=None, e1=No
     if P is None:
         Pb = np.sum(Poly[:,0]*enb)*enb
     else:
-        assert P.shape==(3,) and all([np.sum((Poly[:,ii]-P)*enb)<1e-14 for ii in range(0,NPoly)]), "Arg P must be a (3,) np.ndarray and "+str([np.sum((Poly[:,ii]-P)*enb) for ii in range(0,NPoly)])
+        assert P.shape==(3,) and all([np.sum((Poly[:,ii]-P)*enb)<1e-12 for ii in range(0,NPoly)]), "Arg P must be a (3,) np.ndarray and in the plane (<1.e-12) ! (here normal scalar is: "+str([np.sum((Poly[:,ii]-P)*enb) for ii in range(0,NPoly)])+")"
         Pb = P
     if e1 is None:
         e1b,e2b = Calc_DefaultCheck_e1e2_PLane_1D(Pb,enb)
     else:
-        assert e1.shape==e2.shape==(3,) and np.linalg.norm(e1)==1. and np.linalg.norm(e2)==1. and np.sum(e1*enb)<1.e-14 and np.sum(e2*enb)<1.e-14 and np.sum(e1*e2)<1.e-14, "Args e1 and e2 must be normalised np.ndarray perp. !"
+        Lcond = [e1.shape==e2.shape==(3,), math.fabs(np.linalg.norm(e1)-1.)<1.e-13, math.fabs(np.linalg.norm(e2)-1.)<1.e-13, np.sum(e1*enb)<1.e-13, np.sum(e2*enb)<1.e-13, np.sum(e1*e2)<1.e-13]
+        assert all(Lcond), "Args e1 "+str(e1.shape)+" {0} and e2 ".format(np.linalg.norm(e1))+str(e2.shape)+" {0} must be normalised np.ndarray perp. ({1}, {2}, {3} <1e.-13) ! ".format(np.linalg.norm(e2),np.sum(e1*enb),np.sum(e2*enb),np.sum(e1*e2))+str(Lcond)
         e1b, e2b = e1, e2
     Poly = Poly - np.tile(Pb,(NPoly,1)).T
     Poly2 = np.array([Poly[0,:]*e1b[0]+Poly[1,:]*e1b[1]+Poly[2,:]*e1b[2], Poly[0,:]*e2b[0]+Poly[1,:]*e2b[1]+Poly[2,:]*e2b[2]])
@@ -185,7 +186,7 @@ def Calc_2DPolyFrom3D_2D(Poly,P=None,en=None,e1=None,e2=None,Test=True):   # Not
     Poly2 = np.array([np.sum(Poly*np.dot(e1,np.ones((1,NPoly))),axis=0,keepdims=False), np.sum(Poly*np.dot(e2,np.ones((1,NPoly))),axis=0,keepdims=False)])
     return Poly2, P, en, e1, e2
 
-def Calc_3DPolyfrom2D_1D(Poly,P,en,e1,e2,Test=True):
+def Calc_3DPolyFrom2D_1D(Poly,P,en,e1,e2,Test=True):
     if Test:
         assert isinstance(Poly,np.ndarray) and Poly.shape[0]==2 and np.all(Poly[:,0:1]==Poly[:,-1:]), "Arg Poly should be a (2,N) ndarray with beginning=end !"
         assert all([isinstance(vv,np.ndarray) and vv.shape==(3,) for vv in [P,en,e1,e2]]), "Args [P,en,e1,e2] must be (3,) np.ndarrays !"
@@ -203,7 +204,9 @@ def Calc_DefaultCheck_e1e2_PLane_1D(DTYPE_t[::1] P, DTYPE_t[::1] nP, CrossNTHR=0
             e1b[0], e1b[1], e1b[2] = nP[2],0.,-nP[0]
     else:
         thetaPL = math.atan2(P[1],P[0])
-        e1b[0], e1b[1], e1b[2] = -math.sin(thetaPL),math.cos(thetaPL),0.
+        (e1b[0], e1b[1], e1b[2]) = (nP[1],-nP[0],0.) if not np.all(nP[0]==0. and nP[1]==0.) else (-math.sin(thetaPL),math.cos(thetaPL),0.)
+        if -e1b[0]*math.sin(thetaPL) +  e1b[1]*math.cos(thetaPL) <0.:
+            (e1b[0], e1b[1], e1b[2]) = (-e1b[0], -e1b[1], -e1b[2])
     CrossNorm = math.sqrt( (e1b[1]*nP[2]-e1b[2]*nP[1])**2 + (e1b[2]*nP[0]-e1b[0]*nP[2])**2 + (e1b[0]*nP[1]-e1b[1]*nP[0])**2 )
     if not RPL==0.:
         if CrossNorm < CrossNTHR:
@@ -362,10 +365,10 @@ def Calc_PolysProjPlanesPoint(Polys,A,Ps,nPs,e1P=None,e2P=None,Test=True):   # U
         IndPoly = np.cumsum(NPperPoly)
         Polys = np.concatenate(tuple(Polys),axis=1)
     else:
-        NPperPoly = Polys.shape[1]
+        NPperPoly = [Polys.shape[1]]
         IndPoly = NPperPoly
         NList = 1
-
+    
     NPoly, NPlans = Polys.shape[1], Ps.shape[1]
     Abis = np.swapaxes(np.resize(A.T,(NPoly,NPlans,3)),0,1)
     Polybis = np.resize(Polys.T,(NPlans,NPoly,3))
@@ -376,28 +379,29 @@ def Calc_PolysProjPlanesPoint(Polys,A,Ps,nPs,e1P=None,e2P=None,Test=True):   # U
     ScaAMn = np.sum(AMbis*nPsbis,axis=2,keepdims=True)
     Scasign = ScaAMn*np.sum((Psbis-Abis)*nPsbis,axis=2,keepdims=True)
     indneg = Scasign<0
+    
     if np.any(indneg):
         warnings.warn('Inconsistent points were found in Calc_PolysProjPlanesPoint !')
-        assert not np.any(indneg), "Inconsistent points !"
+        #assert not np.any(indneg), "Inconsistent points !"
         indPoly = np.any(indneg,axis=0).flatten()
         for ii in range(0,NList):
             if np.any(indPoly[(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]]):
                 for jj in range(0,NPlans):
-                    LPolytemp = Polys[:,(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]]
-                    LPolytemp = Calc_PolyLimByPlane_1D(LPolytemp, A.flatten(), nPs[:,jj], ~indPoly[(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]], EPS=0.2,Test=False)
+                    LPolytemp = np.ascontiguousarray(Polys[:,(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]])
+                    LPolytemp = Calc_PolyLimByPlane_1D(LPolytemp, np.ascontiguousarray(A.flatten()), nPs[:,jj], np.ascontiguousarray(~indPoly[(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]]), EPS=0.2,Test=False)
                     #LPolytemp = Calc_PolyLimByPlane_2D(LPolytemp,A,nPs[:,jj:jj+1], ~indPoly[(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]], EPS=0.2,Test=False)
                     try:
-                        Polybis[jj,(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii],:] = LPolytemp.T
+                        Polybis[jj,(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii],:] = np.ascontiguousarray(LPolytemp.T)
                     except ValueError:
-                        Polybis[jj,(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii],:] = LPolytemp.T
+                        Polybis[jj,(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii],:] = np.ascontiguousarray(LPolytemp.T)
         AMbis = Polybis - Abis
         ScaAMn = np.sum(AMbis*nPsbis,axis=2,keepdims=True)
         Scasign = ScaAMn*np.sum((Psbis-Abis)*nPsbis,axis=2,keepdims=True)
         indneg = Scasign<0.
         assert np.all(~indneg), "Re-arrangement of inconsistent points was a failure..."
-
+                
     ScaAPn = np.sum((Psbis-Abis)*nPsbis,axis=2,keepdims=True)
-    del Polys, A, Ps, nPs
+    # del Polys, A, Ps, nPs
     k = np.zeros((NPlans,NPoly,1))
     ind = np.abs(ScaAMn) > 1.e-14
     k[ind] = ScaAPn[ind]/ScaAMn[ind]
@@ -431,13 +435,14 @@ def Calc_PolyLimByPlane_1D(Poly,P,nP,indpos, EPS=0.,Test=True):
         assert isinstance(Poly,np.ndarray) and Poly.shape[0]==3, "Arg Poly must be a (3,N) np.ndarray !"
         assert all([isinstance(vv,np.ndarray) and vv.shape==(3,) for vv in [P,nP]]), "Args [P,nP,indpos] must be (3,) np.ndarrays !"
         assert isinstance(indpos,np.ndarray) and indpos.shape==(Poly.shape[1],) and indpos.dtype.name=='bool', "Arg indpos should be a 1d np.ndarray(dtype='bool') !"
-
-    Polybis, PPP, en, e1, e2 = Calc_2DPolyFrom3D_1D(Poly,Poly[:,0],Test=False)
+    Poly = np.ascontiguousarray(Poly)    
+    Poly0 = np.ascontiguousarray(Poly[:,0])
+    Polybis, PPP, en, e1, e2 = Calc_2DPolyFrom3D_1D(Poly,Poly0,Test=False)
     Lu = np.array([en[1]*nP[2]-en[2]*nP[1],en[2]*nP[0]-en[0]*nP[2],en[0]*nP[1]-en[1]*nP[0]])
     Lu = Lu/math.sqrt(Lu[0]**2+Lu[1]**2+Lu[2]**2)
     e2 = np.array([en[1]*Lu[2]-en[2]*Lu[1],en[2]*Lu[0]-en[0]*Lu[2],en[0]*Lu[1]-en[1]*Lu[0]])
     e2 = e2/math.sqrt(e2[0]**2+e2[1]**2+e2[2]**2)
-    Polybis, PPP, en, Lu, e2 = Calc_2DPolyFrom3D_1D(Poly,Poly[:,0],en,Lu,e2,Test=False)
+    Polybis, PPP, en, Lu, e2 = Calc_2DPolyFrom3D_1D(Poly,Poly0,en,Lu,e2,Test=False)
     ke2Lu = np.sum((Poly[:,0]-P)*nP)
 
     E2 = Polybis[1,indpos]
@@ -450,6 +455,7 @@ def Calc_PolyLimByPlane_1D(Poly,P,nP,indpos, EPS=0.,Test=True):
     Polybis = P2 & plg.Polygon(Polybis.T)
     Polybis = np.array(Polybis[0]).T
     Polybis = np.concatenate((Polybis,Polybis[:,0:1]),axis=1)
+
     if not Polybis.shape[1]==Poly.shape[1]:
         if Polybis.shape[1] > Poly.shape[1]:
             Vect = np.sum(np.diff(Polybis,axis=1)**2,axis=0)
@@ -459,8 +465,23 @@ def Calc_PolyLimByPlane_1D(Poly,P,nP,indpos, EPS=0.,Test=True):
             elif Polybis.shape[1] == Poly.shape[1]+1:
                 indout = np.sum(Vect**2,axis=0).argmin()
                 Polybis = np.delete(Polybis,indout,axis=1)
-            assert Polybis.shape[1]==Poly.shape[1], "Polybis and Poly have different sizes !"
-    Poly = Calc_3DPolyfrom2D_1D(Polybis,Poly[:,0],en,Lu,e2,Test=False)
+        else:
+            Nd = Poly.shape[1]-Polybis.shape[1]
+            nn = int(math.floor(Nd/(Polybis.shape[1]-1))+1.)
+            NF = math.floor(Nd/(Polybis.shape[1]-1))
+            Ni = Nd%(Polybis.shape[1]-1)
+            NN = NF*np.ones((Polybis.shape[1]-1)) + np.array([ii<Ni for ii in range(0,Polybis.shape[1]-1)], dtype=float)            
+            Extra = []
+            for ii in range(0,Polybis.shape[1]-1):
+                if NN[ii]>=1.:
+                    extra = [Polybis[:,ii:ii+1] + (jj+1)*(Polybis[:,ii+1:ii+2]-Polybis[:,ii:ii+1])/(NN[ii]+1) for jj in range(0,int(NN[ii]))]
+                    Extra += [Polybis[:,ii:ii+1]] + extra
+                else:
+                    Extra += [Polybis[:,ii:ii+1]] 
+            Extra += [Polybis[:,Polybis.shape[1]-1:Polybis.shape[1]]]
+            Polybis = np.concatenate(tuple(Extra), axis=1)       
+    assert Polybis.shape[1]==Poly.shape[1], "Polybis and Poly have different sizes: {0} vs {1} !".format(Polybis.shape[1],Poly.shape[1])
+    Poly = Calc_3DPolyFrom2D_1D(np.ascontiguousarray(Polybis),Poly0,en,Lu,e2,Test=False)
     return Poly
 
 
