@@ -411,7 +411,7 @@ def _Detect_isInsideConeWidthLim(Pts, LOSD, LOSu, ConeWidth_k, ConeWidth_X1, Con
 ############################################
 
 
-def _ApDetect_set_Poly(Poly, Type=None, arrayorder='C', Clock=False, NP=100):    # Used
+def _ApDetect_set_Poly(Poly, Type=None, arrayorder='C', Clock=False, NP=100, Eps=1.e-10):    # Used
     # Make Poly closed, counter-clockwise, with '(cc,N)' layout and good arrayorder
     if Type=='Circ':
         BaryS = np.asarray(Poly['O']).flatten()
@@ -428,7 +428,7 @@ def _ApDetect_set_Poly(Poly, Type=None, arrayorder='C', Clock=False, NP=100):   
         # Compute barycenter and vectro perpendicular to plane of polygon
         BaryP, nIn = GG.Calc_BaryNorm_3DPoly_1D(Poly)
         # Compute area and surfacic center of mass
-        Poly2, P, en, e1, e2 = GG.Calc_2DPolyFrom3D_1D(Poly, P=BaryP, en=nIn)
+        Poly2, P, en, e1, e2 = GG.Calc_2DPolyFrom3D_1D(Poly, P=BaryP, en=nIn, Eps=Eps)
         TorP = plg.Polygon(Poly2.T)
         Surf, BaryS = TorP.area(),  np.array(TorP.center())
         BaryS = P + e1*BaryS[0] + e2*BaryS[1]
@@ -436,7 +436,7 @@ def _ApDetect_set_Poly(Poly, Type=None, arrayorder='C', Clock=False, NP=100):   
     return Poly, NP, nIn, BaryP, Surf, BaryS, Rad
 
 
-def _Detect_set_LOS(Name, LSurfs, LBaryS, LnIn, LPolys, BaryS, Poly, OpType='Apert', Verb=True, Test=True):    # Used
+def _Detect_set_LOS(Name, LSurfs, LBaryS, LnIn, LPolys, BaryS, Poly, OpType='Apert', Eps=1.e-10, Verb=True, Test=True):    # Used
     if Test:
         assert type(Name) is str, "Arg Name must be a str !"
         assert type(LSurfs) is list and all([type(aa) is float for aa in LSurfs]), "Arg LSurfs must be a list of floats !"
@@ -462,7 +462,7 @@ def _Detect_set_LOS(Name, LSurfs, LBaryS, LnIn, LPolys, BaryS, Poly, OpType='Ape
         try:
             PolyInt = GG.Calc_PolysProjPlanePoint_Fast(LPolys, BaryS, P, nP, e1, e2)
         except Exception:
-            PolyInt = GG.Calc_PolysProjPlanePoint(LPolys,BaryS,P,nP,e1P=e1,e2P=e2,Test=True)[1]
+            PolyInt = GG.Calc_PolysProjPlanePoint(LPolys,BaryS,P,nP,e1P=e1,e2P=e2, Eps=Eps,Test=True)[1]
 
         # If several polygons, compute their intersection
         if type(PolyInt) is list:
@@ -631,7 +631,7 @@ def Calc_Etendue_PlaneLOS(Ps, nPs, DPoly, DBaryS, DnIn, LOPolys, LOnIns, LOSurfs
 
 
 
-def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, RefPt, P, nP, VPoly, VVin, DLong=None, VType='Tor', e1=None,e2=None, OpType='Apert', Lens_ConeTip=None, NEdge=TFD.DetSpanNEdge, NRad=TFD.DetSpanNRad, Test=True):    # Used
+def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, RefPt, P, nP, VPoly, VVin, DLong=None, VType='Tor', e1=None,e2=None, OpType='Apert', Lens_ConeTip=None, NEdge=TFD.DetSpanNEdge, NRad=TFD.DetSpanNRad, Eps=1.e-10, Test=True):    # Used
     """ Computes the span in (R,Theta,Z,k) coordinates of the viewing cone of a detector by sampling it with a multitude of LOS
 
     Inputs :
@@ -718,7 +718,7 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
         #t1, t2, t3, t4, t5, t6, t7 = 0., 0., 0., 0., 0., 0., 0. # DB
         for ii in range(NCorners):
             #tt = dtm.datetime.now() # DB
-            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], P.reshape((3,1)), nP.reshape((3,1)), e1P=e1.reshape((3,1)), e2P=e2.reshape((3,1)), Test=True)
+            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], P.reshape((3,1)), nP.reshape((3,1)), e1P=e1.reshape((3,1)), e2P=e2.reshape((3,1)), Eps=Eps, Test=True)
             PolyRef = [np.concatenate((Out[3][jj],Out[4][jj]),axis=0) for jj in range(0,NPoly)]
             PolyRef = GG.Calc_PolyInterLPoly2D(PolyRef,Test=False)
             #t1 += (dtm.datetime.now() - tt).total_seconds() # DB
@@ -800,7 +800,7 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
 
 
 
-def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, DBaryS, LPolys, LnPs, LSurfs, BaryS, Ps, nPs, e1=None, e2=None, OpType='Apert', Lens_ConeTip=None, NEdge=TFD.DetSpanNEdge, NRad=TFD.DetSpanNRad, Test=True):    # Used
+def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, DBaryS, LPolys, LnPs, LSurfs, BaryS, Ps, nPs, e1=None, e2=None, OpType='Apert', Lens_ConeTip=None, NEdge=TFD.DetSpanNEdge, NRad=TFD.DetSpanNRad, Eps=1.e-10, Test=True):    # Used
     """ Compute the Points which are projections of each Detect.Poly corners through all its apertures on a set of N planes defined by (P,nP)
 
     Inputs :
@@ -856,7 +856,7 @@ def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, DBaryS, LPolys, LnP
 
     if NPoly==1:
         for ii in range(NCorners):
-            Out = GG.Calc_PolysProjPlanesPoint(LPolys, Corners[:,ii:ii+1], Ps, nPs, e1P=e1, e2P=e2, Test=False)
+            Out = GG.Calc_PolysProjPlanesPoint(LPolys, Corners[:,ii:ii+1], Ps, nPs, e1P=e1, e2P=e2, Eps=Eps, Test=False)
             MinX1[:,ii] = np.min(Out[3],axis=1)
             MinX2[:,ii] = np.min(Out[4],axis=1)
             MaxX1[:,ii] = np.max(Out[3],axis=1)
@@ -872,7 +872,7 @@ def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, DBaryS, LPolys, LnP
         Ptemp = BaryS
         e1temp, e2temp = GG.Calc_DefaultCheck_e1e2_PLane_1D(Ptemp, nPtemp)
         for ii in range(NCorners):
-            Out = GG.Calc_PolysProjPlanesPoint(LPolys, Corners[:,ii:ii+1], Ptemp.reshape((3,1)), nPtemp.reshape((3,1)), e1P=e1temp.reshape((3,1)), e2P=e2temp.reshape((3,1)), Test=False)
+            Out = GG.Calc_PolysProjPlanesPoint(LPolys, Corners[:,ii:ii+1], Ptemp.reshape((3,1)), nPtemp.reshape((3,1)), e1P=e1temp.reshape((3,1)), e2P=e2temp.reshape((3,1)), Eps=Eps, Test=False)
             PolyRef = [np.concatenate((Out[3][jj],Out[4][jj]),axis=0) for jj in range(0,NPoly)]
             PolyRef = GG.Calc_PolyInterLPoly2D(PolyRef,Test=False)
                 
@@ -880,7 +880,7 @@ def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, DBaryS, LPolys, LnP
                 PolyRef = GG.Calc_3DPolyFrom2D_1D(PolyRef, Ptemp, nPtemp, e1temp, e2temp, Test=False)
 
                 try:
-                    Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2,Test=False)
+                    Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2, Eps=Eps,Test=False)
                 except Exception:
                     # DB
                     print('')
@@ -910,7 +910,7 @@ def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, DBaryS, LPolys, LnP
 
 
 
-def Calc_ViewConePointsMinMax_PlanesDetectLens(PolyL, ConeTip, Ps, nPs, e1=None, e2=None, Test=True):    # Used
+def Calc_ViewConePointsMinMax_PlanesDetectLens(PolyL, ConeTip, Ps, nPs, e1=None, e2=None, Eps=1.e-10, Test=True):    # Used
     """ Compute the Points which are projections of each Detect.Poly corners through all its apertures on a set of N planes defined by (P,nP)
 
     Inputs :
@@ -935,7 +935,7 @@ def Calc_ViewConePointsMinMax_PlanesDetectLens(PolyL, ConeTip, Ps, nPs, e1=None,
     e1, e2 = GG.Calc_DefaultCheck_e1e2_PLanes_2D(Ps, nPs, e1, e2)
 
     NPlans = Ps.shape[1]
-    Out = GG.Calc_PolysProjPlanesPoint(PolyL, ConeTip, Ps, nPs, e1P=e1, e2P=e2, Test=False)
+    Out = GG.Calc_PolysProjPlanesPoint(PolyL, ConeTip, Ps, nPs, e1P=e1, e2P=e2, Eps=Eps, Test=False)
     MinX1 = np.nanmin(Out[3],axis=1)
     MinX2 = np.nanmin(Out[4],axis=1)
     MaxX1 = np.nanmax(Out[3],axis=1)
@@ -1290,7 +1290,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
 
 
 
-def Calc_PolProj_ConePsiMinMax_2Steps(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LOBaryS, Span_k, LOSu, LOSPOut, Nk=20, Test=True):      # Used
+def Calc_PolProj_ConePsiMinMax_2Steps(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LOBaryS, Span_k, LOSu, LOSPOut, Nk=20, Eps=1.e-10, Test=True):      # Used
     """ Compute the min, max of the angular width in poloidal projection of the viewing cone
 
     Inputs :
@@ -1323,7 +1323,7 @@ def Calc_PolProj_ConePsiMinMax_2Steps(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LO
     PsiMin, PsiMax = np.nan*np.ones((NPlans,NCorners)), np.nan*np.ones((NPlans,NCorners))
     if NPoly==1:
         for ii in range(NCorners):
-            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2,Test=False)
+            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2, Eps=Eps,Test=False)
             Rps = np.hypot(Out[0],Out[1])
             VectR, VectZ = Rps-RD, Out[2]-DBaryS[2]
             VectN = np.hypot(VectR,VectZ)
@@ -1338,12 +1338,12 @@ def Calc_PolProj_ConePsiMinMax_2Steps(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LO
         Ptemp = LOBaryS[0]
         e1temp, e2temp = GG.Calc_DefaultCheck_e1e2_PLane_1D(Ptemp, nPtemp)
         for ii in range(NCorners):
-            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], Ptemp.reshape((3,1)), nPtemp.reshape((3,1)), e1P=e1temp.reshape((3,1)), e2P=e2temp.reshape((3,1)),Test=False)
+            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], Ptemp.reshape((3,1)), nPtemp.reshape((3,1)), e1P=e1temp.reshape((3,1)), e2P=e2temp.reshape((3,1)), Eps=Eps,Test=False)
             PolyRef = [np.concatenate((Out[3][jj],Out[4][jj]),axis=0) for jj in range(0,NPoly)]
             PolyRef = GG.Calc_PolyInterLPoly2D(PolyRef,Test=False)
             if PolyRef.shape[1]>0:
                 PolyRef = GG.Calc_3DPolyFrom2D_1D(PolyRef, Ptemp, nPtemp, e1temp, e2temp, Test=False)
-                Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2,Test=False)
+                Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2, Eps=Eps,Test=False)
                 Rps = np.hypot(Out[0],Out[1])
                 VectR, VectZ = Rps-RD, Out[2]-DBaryS[2]
                 VectN = np.hypot(VectR,VectZ)
@@ -1355,7 +1355,7 @@ def Calc_PolProj_ConePsiMinMax_2Steps(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LO
     return np.nanmin(PsiMin,axis=1), np.nanmax(PsiMax,axis=1)
 
 
-def Calc_PolProj_ConePsiMinMax_2Steps_Lin(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LOBaryS, Span_k, LOSu, LOSPOut, Nk=20, Test=True):      # Used
+def Calc_PolProj_ConePsiMinMax_2Steps_Lin(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LOBaryS, Span_k, LOSu, LOSPOut, Nk=20, Eps=1.e-10, Test=True):      # Used
     """ Compute the min, max of the angular width in poloidal projection of the viewing cone
 
     Inputs :
@@ -1388,7 +1388,7 @@ def Calc_PolProj_ConePsiMinMax_2Steps_Lin(DPoly, DBaryS, LOPolys, LOnIns, LSurfs
     PsiMin, PsiMax = np.nan*np.ones((NPlans,NCorners)), np.nan*np.ones((NPlans,NCorners))
     if NPoly==1:
         for ii in range(NCorners):
-            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2,Test=False)
+            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2, Eps=Eps,Test=False)
             VectY, VectZ = Out[1]-DBaryS[1], Out[2]-DBaryS[2]
             VectN = np.hypot(VectY,VectZ)
             sinpsi = (uY*VectZ-uZ*VectY)/VectN
@@ -1402,12 +1402,12 @@ def Calc_PolProj_ConePsiMinMax_2Steps_Lin(DPoly, DBaryS, LOPolys, LOnIns, LSurfs
         Ptemp = LOBaryS[0]
         e1temp, e2temp = GG.Calc_DefaultCheck_e1e2_PLane_1D(Ptemp, nPtemp)
         for ii in range(NCorners):
-            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], Ptemp.reshape((3,1)), nPtemp.reshape((3,1)), e1P=e1temp.reshape((3,1)), e2P=e2temp.reshape((3,1)),Test=False)
+            Out = GG.Calc_PolysProjPlanesPoint(LOPolys, Corners[:,ii:ii+1], Ptemp.reshape((3,1)), nPtemp.reshape((3,1)), e1P=e1temp.reshape((3,1)), e2P=e2temp.reshape((3,1)), Eps=Eps,Test=False)
             PolyRef = [np.concatenate((Out[3][jj],Out[4][jj]),axis=0) for jj in range(0,NPoly)]
             PolyRef = GG.Calc_PolyInterLPoly2D(PolyRef,Test=False)
             if PolyRef.shape[1]>0:
                 PolyRef = GG.Calc_3DPolyFrom2D_1D(PolyRef, Ptemp, nPtemp, e1temp, e2temp, Test=False)
-                Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2,Test=False)
+                Out = GG.Calc_PolysProjPlanesPoint(PolyRef, Corners[:,ii:ii+1], Ps, nPs, e1P=e1,e2P=e2, Eps=Eps,Test=False)
                 #Rps = np.hypot(Out[0],Out[1])
                 VectY, VectZ = Out[1]-DBaryS[1], Out[2]-DBaryS[2]
                 VectN = np.hypot(VectY,VectZ)
