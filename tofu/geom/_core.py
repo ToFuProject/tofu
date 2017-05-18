@@ -1883,10 +1883,10 @@ class Apert(object):
     def _set_arrayorder(self, arrayorder):
         tfpf._set_arrayorder(self, arrayorder)
 
-    def _set_Poly(self, Poly):
+    def _set_Poly(self, Poly, Eps=1.e-10):
         tfpf._check_NotNone({'Poly':Poly})
         self._check_inputs(Poly=Poly)
-        self._Poly, self._NP, self._nIn, self._BaryP, self._Surf, self._BaryS, self._Rad =  _tfg_c._ApDetect_set_Poly(Poly, self._arrayorder, Clock=self._Clock)
+        self._Poly, self._NP, self._nIn, self._BaryP, self._Surf, self._BaryS, self._Rad =  _tfg_c._ApDetect_set_Poly(Poly, self._arrayorder, Clock=self._Clock, Eps=Eps)
         assert self._Surf>0., "Input Poly has 0 area !"
 
     def _set_Ves(self, Ves=None):
@@ -2246,13 +2246,13 @@ class Detect(object):
             Val = tfpf.ID('Detect', Val, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath, dtime=dtime, dtimeIn=dtimeIn)
         self._Id = Val
 
-    def _set_Poly(self, Poly, Calc=True, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True, NPDef=100):
+    def _set_Poly(self, Poly, Calc=True, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True, NPDef=100, Eps=1.e-10):
         tfpf._check_NotNone({'Poly':Poly})
         if self._Done and self.OpticsType=='Lens':
             self._check_inputs(Poly=Poly, Optics=self.Optics[0], Calc=Calc, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp)
         else:
             self._check_inputs(Poly=Poly, Calc=Calc, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp)
-        self._Poly, self._NP, self._nIn, self._BaryP, self._Surf, self._BaryS, self._Rad =  _tfg_c._ApDetect_set_Poly(Poly, Type=self.Id.Type, arrayorder=self._arrayorder, Clock=self._Clock, NP=NPDef)
+        self._Poly, self._NP, self._nIn, self._BaryP, self._Surf, self._BaryS, self._Rad =  _tfg_c._ApDetect_set_Poly(Poly, Type=self.Id.Type, arrayorder=self._arrayorder, Clock=self._Clock, NP=NPDef, Eps=Eps)
         assert self._Surf>0., "Input Poly has 0 area !"
         if Calc:
             self._calc_All(CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp)
@@ -2401,7 +2401,7 @@ class Detect(object):
             warnings.warn("Detect "+ self.Id.Name +" : calculation of Etendue not possible because LOS impossible !")
 
 
-    def _set_SinoSpan(self, Sino_RefPt=None, CalcSpanImp=True, MarginRMin=tfd.DetSpanRMinMargin, NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad):
+    def _set_SinoSpan(self, Sino_RefPt=None, CalcSpanImp=True, MarginRMin=tfd.DetSpanRMinMargin, NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad, Eps=1.e-10):
         self._check_inputs(Sino_RefPt=Sino_RefPt, CalcSpanImp=CalcSpanImp, MarginRMin=MarginRMin, NEdge=NEdge, NRad=NRad)
         if CalcSpanImp and not (self.LOS=='Impossible !' or self.LOS is None):
             print "    "+self.Id.Name+" : Computing Span and Sinogram..."
@@ -2418,19 +2418,20 @@ class Detect(object):
             if self.Ves.Type=='Tor':
                 RMinMax, ThetaMinMax, ZMinMax, kMinMax, Sino_CrossProj, Span_NEdge, Span_NRad = _tfg_c.Calc_SpanImpBoth_2Steps(self.Poly, self.NP, self.BaryS, LOPolys, LOBaryS, LOSD, LOSu, Sino_RefPt, P, nP,
                                                                                                                                VPoly, VVin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, OpType=self.OpticsType, 
-                                                                                                                               Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
+                                                                                                                               Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Eps=Eps, Test=True)
                 RMinMax[0] = np.max(np.array([MarginRMin*RMinMax[0],self.Ves._P1Min[0]]))
                 self._Sino_RefPt, self._Span_R, self._Span_Theta, self._Span_Z, self._Span_k = Sino_RefPt, RMinMax, ThetaMinMax, ZMinMax, kMinMax
                 self._Span_X, self._Span_Y = None, None
             elif self.Ves.Type=='Lin':
                 XMinMax, YMinMax, ZMinMax, kMinMax, Sino_CrossProj, Span_NEdge, Span_NRad = _tfg_c.Calc_SpanImpBoth_2Steps(self.Poly, self.NP, self.BaryS, LOPolys, LOBaryS, LOSD, LOSu, Sino_RefPt, P, nP,
-                        VPoly, VVin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
+                                                                                                                           VPoly, VVin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, 
+                                                                                                                           OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Eps=Eps, Test=True)
                 self._Sino_RefPt, self._Span_X, self._Span_Y, self._Span_Z, self._Span_k = Sino_RefPt, XMinMax, YMinMax, ZMinMax, kMinMax
                 self._Span_R, self._Span_Theta = None, None
             self._Sino_CrossProj, self._Span_NEdge, self._Span_NRad = Sino_CrossProj, Span_NEdge, Span_NRad
             # Sino_CrossProj = Imp_PolProj
 
-    def _set_ConeWidthAlongLOS(self,Nk=10, NRad=tfd.DetSpanNRad, NEdge=tfd.DetSpanNEdge):
+    def _set_ConeWidthAlongLOS(self,Nk=10, NRad=tfd.DetSpanNRad, NEdge=tfd.DetSpanNEdge, Eps=1.e-10):
         self._check_inputs(Nk=Nk)
         if not (self.LOS=='Impossible !' or self.LOS is None or self._Span_k is None):
             P, u = self.LOS[self._LOSRef]['LOS'].D, self.LOS[self._LOSRef]['LOS'].u
@@ -2444,9 +2445,9 @@ class Detect(object):
                 LOSurfs = [oo.Surf for oo in self.Optics]
                 LOnIns = [oo.nIn for oo in self.Optics]
                 LnPtemp = np.asarray(LOnIns)*np.tile(LOSurfs,(3,1)).T
-                MinX1, MinX2, MaxX1, MaxX2, e1, e2 = _tfg_c.Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(self.Poly, self.BaryS, LOPolys, LnPtemp, LOSurfs, self.Optics[0].BaryS, Ps, nPs, e1=e1s, e2=e2s, OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Test=True)
+                MinX1, MinX2, MaxX1, MaxX2, e1, e2 = _tfg_c.Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(self.Poly, self.BaryS, LOPolys, LnPtemp, LOSurfs, self.Optics[0].BaryS, Ps, nPs, e1=e1s, e2=e2s, OpType=self.OpticsType, Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Eps=Eps, Test=True)
             elif self.OpticsType=='Lens':
-                MinX1, MinX2, MaxX1, MaxX2, e1, e2 = _tfg_c.Calc_ViewConePointsMinMax_PlanesDetectLens(LOPolys[0], self._Optics_Lens_ConeTip, Ps, nPs, e1=e1s, e2=e2s, Test=True)
+                MinX1, MinX2, MaxX1, MaxX2, e1, e2 = _tfg_c.Calc_ViewConePointsMinMax_PlanesDetectLens(LOPolys[0], self._Optics_Lens_ConeTip, Ps, nPs, e1=e1s, e2=e2s, Eps=Eps, Test=True)
             self._ConeWidth_k = k
             Thr = 1.1*np.sqrt((np.max(self.Ves.Poly[1,:])-np.min(self.Ves.Poly[1,:]))**2+ 8.*np.max(self.Ves.Poly[0,:])**2)
             MinX1[np.abs(MinX1)>Thr] = Thr*np.sign(MinX1[np.abs(MinX1)>Thr])

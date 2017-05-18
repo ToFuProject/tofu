@@ -130,7 +130,7 @@ def Calc_BaryNorm_3DPoly_1D(np.ndarray[DTYPE_t,ndim=2] Poly):
     return BaryP, nIn
 
 
-def Calc_2DPolyFrom3D_1D(np.ndarray[DTYPE_t,ndim=2] Poly, P=None, en=None, e1=None, e2=None, Test=True):
+def Calc_2DPolyFrom3D_1D(np.ndarray[DTYPE_t,ndim=2] Poly, P=None, en=None, e1=None, e2=None, Eps=1.e-10, Test=True):
     cdef np.ndarray[DTYPE_t,ndim=2] Poly2
     cdef np.ndarray[DTYPE_t,ndim=1,mode='c'] Pb, enb, e1b, e2b
     cdef list LL, Ll
@@ -150,7 +150,7 @@ def Calc_2DPolyFrom3D_1D(np.ndarray[DTYPE_t,ndim=2] Poly, P=None, en=None, e1=No
     if P is None:
         Pb = np.sum(Poly[:,0]*enb)*enb
     else:
-        assert P.shape==(3,) and all([np.sum((Poly[:,ii]-P)*enb)<1e-12 for ii in range(0,NPoly)]), "Arg P must be a (3,) np.ndarray and in the plane (<1.e-12) ! (here normal scalar is: "+str([np.sum((Poly[:,ii]-P)*enb) for ii in range(0,NPoly)])+")"
+        assert P.shape==(3,) and all([np.sum((Poly[:,ii]-P)*enb)<Eps for ii in range(0,NPoly)]), "Arg P must be a (3,) np.ndarray and in the plane (<{0}) ! (here normal scalar is: ".format(Eps)+str([np.sum((Poly[:,ii]-P)*enb) for ii in range(0,NPoly)])+")"
         Pb = P
     if e1 is None:
         e1b,e2b = Calc_DefaultCheck_e1e2_PLane_1D(Pb,enb)
@@ -347,7 +347,7 @@ def Calc_PolysProjPlanePoint(Polys,A,P,nP,e1P=None,e2P=None,Test=True):
     return PolyProj, PolyX12
 
 
-def Calc_PolysProjPlanesPoint(Polys,A,Ps,nPs,e1P=None,e2P=None,Test=True):   # Used
+def Calc_PolysProjPlanesPoint(Polys,A,Ps,nPs,e1P=None,e2P=None,Eps=1.e-10,Test=True):   # Used
     """ Returns homothetic (with center A) projections of Poly on planes (P,nP)s, and optionnaly their components (X1,X2) along (e1P,e2P) """
     # Arbitrary Points and planes, but a uniqu polygon list common to all of them
     cdef Py_ssize_t ii, jj
@@ -388,7 +388,7 @@ def Calc_PolysProjPlanesPoint(Polys,A,Ps,nPs,e1P=None,e2P=None,Test=True):   # U
             if np.any(indPoly[(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]]):
                 for jj in range(0,NPlans):
                     LPolytemp = np.ascontiguousarray(Polys[:,(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]])
-                    LPolytemp = Calc_PolyLimByPlane_1D(LPolytemp, np.ascontiguousarray(A.flatten()), nPs[:,jj], np.ascontiguousarray(~indPoly[(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]]), EPS=0.2,Test=False)
+                    LPolytemp = Calc_PolyLimByPlane_1D(LPolytemp, np.ascontiguousarray(A.flatten()), nPs[:,jj], np.ascontiguousarray(~indPoly[(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]]), EPS=0.2, Eps=Eps,Test=False)
                     #LPolytemp = Calc_PolyLimByPlane_2D(LPolytemp,A,nPs[:,jj:jj+1], ~indPoly[(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii]], EPS=0.2,Test=False)
                     try:
                         Polybis[jj,(IndPoly[ii]-NPperPoly[ii]):IndPoly[ii],:] = np.ascontiguousarray(LPolytemp.T)
@@ -429,7 +429,7 @@ def Calc_PolysProjPlanesPoint(Polys,A,Ps,nPs,e1P=None,e2P=None,Test=True):   # U
     return PolyProjX, PolyProjY, PolyProjZ, PolyProjX1, PolyProjX2
 
 
-def Calc_PolyLimByPlane_1D(Poly,P,nP,indpos, EPS=0.,Test=True): 
+def Calc_PolyLimByPlane_1D(Poly,P,nP,indpos, EPS=0., Eps=1.e-10,Test=True): 
     """ Return a new 3D Poly (! Convex !) corresponding to the truncation of a 3D Poly by a plane """
     if Test:
         assert isinstance(Poly,np.ndarray) and Poly.shape[0]==3, "Arg Poly must be a (3,N) np.ndarray !"
@@ -437,12 +437,12 @@ def Calc_PolyLimByPlane_1D(Poly,P,nP,indpos, EPS=0.,Test=True):
         assert isinstance(indpos,np.ndarray) and indpos.shape==(Poly.shape[1],) and indpos.dtype.name=='bool', "Arg indpos should be a 1d np.ndarray(dtype='bool') !"
     Poly = np.ascontiguousarray(Poly)    
     Poly0 = np.ascontiguousarray(Poly[:,0])
-    Polybis, PPP, en, e1, e2 = Calc_2DPolyFrom3D_1D(Poly,Poly0,Test=False)
+    Polybis, PPP, en, e1, e2 = Calc_2DPolyFrom3D_1D(Poly,Poly0,Eps=Eps,Test=False)
     Lu = np.array([en[1]*nP[2]-en[2]*nP[1],en[2]*nP[0]-en[0]*nP[2],en[0]*nP[1]-en[1]*nP[0]])
     Lu = Lu/math.sqrt(Lu[0]**2+Lu[1]**2+Lu[2]**2)
     e2 = np.array([en[1]*Lu[2]-en[2]*Lu[1],en[2]*Lu[0]-en[0]*Lu[2],en[0]*Lu[1]-en[1]*Lu[0]])
     e2 = e2/math.sqrt(e2[0]**2+e2[1]**2+e2[2]**2)
-    Polybis, PPP, en, Lu, e2 = Calc_2DPolyFrom3D_1D(Poly,Poly0,en,Lu,e2,Test=False)
+    Polybis, PPP, en, Lu, e2 = Calc_2DPolyFrom3D_1D(Poly,Poly0,en,Lu,e2,Eps=Eps,Test=False)
     ke2Lu = np.sum((Poly[:,0]-P)*nP)
 
     E2 = Polybis[1,indpos]
