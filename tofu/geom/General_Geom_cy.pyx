@@ -954,6 +954,524 @@ def Calc_PolProj_LOS_cy(np.ndarray[DTYPE_t, ndim=2,mode='c'] D, np.ndarray[DTYPE
     return PRMin, RMin, kRMin, PolProjAng
 
 
+
+
+
+
+cdef Calc_LOS_PInOut_Single(np.ndarray[DTYPE_t, ndim=1] D, np.ndarray[DTYPE_t, ndim=1] du,
+                            np.ndarray[DTYPE_t, ndim=2,mode='c'] VPoly, np.ndarray[DTYPE_t, ndim=2,mode='c'] vIn,
+                            RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9):
+   
+    # Pre-define useful quantities
+    Cs = VPoly[:,:-1]
+    vs = VPoly[:,1:]-VPoly[:,:-1] 
+    upscaDp = du[0]*D[0] + du[1]*D[1]
+    upar2 = du[0]**2 + du[1]**2
+    Dpar2 = D[0]**2 + D[1]**2
+    MaxErr = 50.
+    # Find all intersections
+    if np.abs(du[2]) < EpsUz*np.sqrt(upar2)/MaxErr:      # Consider quasi-horizontal cases to avoid near-zero divisions otherwise, EpsUz is the tolerated DZ across 50m (max Tokamak size)
+        ind0 = np.abs(vs[1,:])>EpsVz
+        q = D[2]-Cs[1,:]
+        q[ind0] = q[ind0]/vs[1,ind0]
+        ind1 = (ind0) & (q>=0) & (q<1)
+        C = q[ind1]**2*vs[0,ind1]**2 + 2.*q[ind1]*Cs[0,ind1]*vs[0,ind1] + Cs[0,ind1]**2
+        delta = upscaDp**2 - upar2*(Dpar2-C)
+        indF = ind1.nonzero()[0][delta>0.]
+        sqd = np.sqrt(delta[delta>0.])   
+        k = np.concatenate(((-upscaDp - sqd)/upar2, (-upscaDp + sqd)/upar2))
+        indF = np.concatenate((indF,indF))    
+    else:
+        A = vs[0,:]**2 - (vs[1,:]/du[2])**2*upar2
+        B = Cs[0,:]*vs[0,:] + vs[1,:]*(D[2]-Cs[1,:])*upar2/du[2]**2 - upscaDp*vs[1,:]/du[2]
+        C = -upar2*(D[2]-Cs[1,:])**2/du[2]**2 + 2.*upscaDp*(D[2]-Cs[1,:])/du[2] - Dpar2 + Cs[0,:]**2        
+
+        ind0 = (np.abs(A)<EpsA) & (np.abs(B)>EpsB)
+        q = -C
+        q[ind0] = q[ind0]/(2.*B[ind0])
+        ind1 = (ind0) & (q>=0) & (q<1)
+        k = (q[ind1]*vs[1,ind1] - (D[2]-Cs[1,ind1]))/du[2]
+
+        ind0 = (np.abs(A)>EpsA) & (B**2>A*C)
+        sqd = np.sqrt(B[ind0]**2-A[ind0]*C[ind0])
+        q1 = (-B[ind0] + sqd)/A[ind0]
+        q2 = (-B[ind0] - sqd)/A[ind0]
+        i1 = (q1>=0) & (q1<1.)
+        i2 = (q2>=0) & (q2<1.)
+        ind01 = ind0.nonzero()[0][i1]
+        ind02 = ind0.nonzero()[0][i2]
+        k = np.concatenate(( k, (q1[i1]*vs[1,ind01] - (D[2]-Cs[1,ind01]))/du[2], (q2[i2]*vs[1,ind02] - (D[2]-Cs[1,ind02]))/du[2] ))
+        indF = np.concatenate((ind1.nonzero()[0],ind01,ind02))
+
+    indF = indF[k>0.]
+    k = k[k>0.]
+    S = D[:,np.newaxis] + k[np.newaxis,:]*du[:,np.newaxis]
+
+    RMin = 0.95*min(np.nanmin(VPoly[0,:]), np.nanmin(np.hypot(D[0],D[1]))) if RMin is None else RMin
+    assert np.all(np.hypot(S[0,:],S[1,:])>RMin) and np.all(np.hypot(S[0,:],S[1,:])<1.1*np.nanmax(VPoly[0,:])), "Some solutions are way too far/close !"+str(S)+", D="+str(D)+", du="+str(du) 
+
+
+    if S.size>0 and Forbid:
+        Ang = np.arctan2(D[1],D[0])
+        # Add a little bit of margin to the major radius, just in case
+        R = np.hypot(D[0],D[1])*(1+Margin*RMin)
+        L = np.sqrt(R**2-RMin**2)
+        # Compute new (X,Y) coordinates with the margin
+        X, Y = R*np.cos(Ang), R*np.sin(Ang)
+        # Compute coordinates of the 2 points where the tangents touch the inner circle
+        S1X, S1Y = (RMin**2*X+RMin*Y*L)/R**2, (RMin**2*Y-RMin*X*L)/R**2
+        S2X, S2Y = (RMin**2*X-RMin*Y*L)/R**2, (RMin**2*Y+RMin*X*L)/R**2
+        # Check solutiona are on the good side of the 3 planes
+        ind0 = (S[0,:]-S1X)*X + (S[1,:]-S1Y)*Y > 0.
+        ind1 = (S[0,:]-S1X)*S1X + (S[1,:]-S1Y)*S1Y > 0.
+        ind2 = (S[0,:]-S2X)*S2X + (S[1,:]-S2Y)*S2Y > 0.
+        ind = ind0 | ind1 | ind2
+        S = S[:,ind]
+        k = k[ind]
+        indF = indF[ind]
+
+    # Determine SIn and SOut, if any
+    if S.size>0:
+        AngS = np.arctan2(S[1,:],S[0,:])
+        ImpVin = np.array([vIn[0,indF]*np.cos(AngS), vIn[0,indF]*np.sin(AngS), vIn[1,indF]])
+        sca = np.sum(du[:,np.newaxis]*ImpVin,axis=0)
+        if np.any(sca<0.):
+            ind0 = np.nanargmin(k[sca<0.])
+            assert ind0.size==1, "Something wrong, there should be a unique SOut !"+str(S)+", sca="+str(sca)+", D="+str(D)+", du="+str(du)
+            SOut = S[:,sca<0.][:,ind0].flatten()
+            ind = (sca>0) & (k<k[sca<0.][ind0])
+            ind1 = np.nanargmin(k[ind]) if np.any(ind) else np.array([],dtype=int)
+            assert ind1.size<=1, "Something wrong, there should be zero or a unique SIn !"+str(S)+", sca="+str(sca)+", D="+str(D)+", du="+str(du)
+            SIn =  S[:,ind][:,ind1].flatten()
+            # ImpVin = ImpVin/np.linalg.norm(ImpVin)
+            # indF = indF[sca<0.][ind0] # return the index of the segment corresponding to SOut (for reflexions handling+str(S)+", sca="+str(sca)+", D="+str(D)+", du="+str(du))
+        else:
+            warnings.warn("There seems to be no SOut..."+str(S)+", sca="+str(sca)+", D="+str(D)+", du="+str(du) , UserWarning)
+            SIn, SOut = np.array([]), np.array([])
+    else:
+        SIn, SOut = np.array([]), np.array([])
+
+    return SIn, SOut#, ImpVin, indFOut
+
+
+
+cdef Calc_LOS_PInOut_Multi(np.ndarray[DTYPE_t, ndim=2] Ds, np.ndarray[DTYPE_t, ndim=2] dus,
+                           np.ndarray[DTYPE_t, ndim=2,mode='c'] VPoly, np.ndarray[DTYPE_t, ndim=2,mode='c'] vIn,
+                           RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9):
+
+    # Pre-define useful quantities
+    Cs = VPoly[:,:-1]
+    vs = VPoly[:,1:]-VPoly[:,:-1]
+    upscaDp = dus[0,:]*Ds[0,:] + dus[1,:]*Ds[1,:]
+    upar2 = dus[0,:]**2 + dus[1,:]**2
+    Dpar2 = Ds[0,:]**2 + Ds[1,:]**2
+    MaxErr = 50.
+    NL, NS = Ds.shape[1], vIn.shape[1]
+   
+    Ds0, Ds1, Ds2 = np.tile(Ds[0,:],(NS,1)).T, np.tile(Ds[1,:],(NS,1)).T, np.tile(Ds[2,:],(NS,1)).T
+    dus0, dus1, dus2 = np.tile(dus[0,:],(NS,1)).T, np.tile(dus[1,:],(NS,1)).T, np.tile(dus[2,:],(NS,1)).T
+    Cs0, Cs1 = np.tile(Cs[0,:],(NL,1)), np.tile(Cs[1,:],(NL,1))
+    vs0, vs1 = np.tile(vs[0,:],(NL,1)), np.tile(vs[1,:],(NL,1))    
+    upscaDpF = np.tile(upscaDp,(NS,1)).T
+    upar2F = np.tile(upar2,(NS,1)).T
+    Dpar2F = np.tile(Dpar2,(NS,1)).T
+
+    ########################
+    # Find all intersections
+    # 1st dim = LOS
+    # 2nd dim = VPoly
+    ########################
+
+    ###########################
+    # Start with horizontal LOS
+
+    # Prepare arrays
+    # q, sqd = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+    sqd = np.nan*np.ones((NL,NS))   # Test
+    k0, k1 = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+
+    Crit = EpsUz*np.sqrt(upar2F)/MaxErr
+    # Compute quasi-horizontal LOS
+    ind01 = np.abs(dus2) < Crit      # Consider quasi-horizontal cases to avoid near-zero divisions otherwise, EpsUz is the tolerated DZ across 50m (max Tokamak size)
+    ind01[ind01] = np.abs(vs1[ind01])>EpsVz
+    q = (Ds2[ind01]-Cs1[ind01])/vs1[ind01]
+    ii = (q>=0) & (q<1)
+    ind01[ind01], q = ii, q[ii]
+    C = q**2*vs0[ind01]**2 + 2.*q*Cs0[ind01]*vs0[ind01] + Cs0[ind01]**2
+    delta = upscaDpF[ind01]**2 - upar2F[ind01]*(Dpar2F[ind01]-C)
+    ind01[ind01] = delta>0.
+    sqd[ind01] = np.sqrt(delta)
+    ind02 = np.copy(ind01)
+    ind01[ind01] = (-upscaDpF[ind01] - sqd[ind01]) >= 0.
+    ind02[ind02] = (-upscaDpF[ind02] + sqd[ind02]) >= 0.
+    k0[ind01] = (-upscaDpF[ind01] - sqd[ind01])/upar2F[ind01]
+    k1[ind02] = (-upscaDpF[ind02] + sqd[ind02])/upar2F[ind02]
+    del q, C, delta, sqd
+    
+    # Prepare quantities for general cases
+    q, q1, q2 = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+    # Compute general cases
+    A = vs0**2 - upar2F*(vs1/dus2)**2
+    B = Cs0*vs0 + vs1*(Ds2-Cs1)*upar2F/dus2**2 - upscaDpF*vs1/dus2
+    C = -upar2F*(Ds2-Cs1)**2/dus2**2 + 2.*upscaDpF*(Ds2-Cs1)/dus2 - Dpar2F + Cs0**2 
+
+    ind1 = (np.abs(dus2) > Crit) & (np.abs(A)<EpsA) & (np.abs(B)>EpsB)
+    q[ind1] = -C[ind1]/(2.*B[ind1])
+    ind1[ind1] = (q[ind1]>=0) & (q[ind1]<1)
+    kk = (q[ind1]*vs1[ind1] - (Ds2[ind1]-Cs1[ind1]))/dus2[ind1]
+    ind1[ind1] = kk>=0.
+    k0[ind1] = kk[kk>=0.]
+    del q, kk, upscaDpF, upar2F, Dpar2F
+
+    ind21 = (np.abs(dus2) > Crit) & (np.abs(A)>EpsA) & (B**2>A*C)
+    sqd = np.sqrt(B[ind21]**2-A[ind21]*C[ind21])
+    q1[ind21] = (-B[ind21] + sqd)/A[ind21]
+    q2[ind21] = (-B[ind21] - sqd)/A[ind21]
+    ind22 = np.copy(ind21)
+    ind21[ind21] = (q1[ind21]>=0) & (q1[ind21]<1.)
+    ind22[ind22] = (q2[ind22]>=0) & (q2[ind22]<1.)
+    kk0 = (q1[ind21]*vs1[ind21] - (Ds2[ind21]-Cs1[ind21]))/dus2[ind21]
+    kk1 = (q2[ind22]*vs1[ind22] - (Ds2[ind22]-Cs1[ind22]))/dus2[ind22]
+    ind21[ind21] = kk0>=0.
+    ind22[ind22] = kk1>=0.
+    k0[ind21] = kk0[kk0>=0.]
+    k1[ind22] = kk1[kk1>=0.]
+    del A, B, C, sqd, q1, q2, kk0, kk1, Cs0, Cs1, vs0, vs1 
+
+    # Compute associated solutions
+    S00, S01, S02 = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+    S10, S11, S12 = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+    Ind1, Ind2 = [ind01,ind1,ind21], [ind02,ind22]
+    for ii in range(0,len(Ind1)):
+        S00[Ind1[ii]] = Ds0[Ind1[ii]] + k0[Ind1[ii]]*dus0[Ind1[ii]]
+        S01[Ind1[ii]] = Ds1[Ind1[ii]] + k0[Ind1[ii]]*dus1[Ind1[ii]]
+        S02[Ind1[ii]] = Ds2[Ind1[ii]] + k0[Ind1[ii]]*dus2[Ind1[ii]]
+    for ii in range(0,len(Ind2)):
+        S10[Ind2[ii]] = Ds0[Ind2[ii]] + k1[Ind2[ii]]*dus0[Ind2[ii]]
+        S11[Ind2[ii]] = Ds1[Ind2[ii]] + k1[Ind2[ii]]*dus1[Ind2[ii]]
+        S12[Ind2[ii]] = Ds2[Ind2[ii]] + k1[Ind2[ii]]*dus2[Ind2[ii]]
+    Ind0 = ind01 | ind1 | ind21
+    Ind1 = ind02 | ind22
+    del ind01, ind1, ind21, ind02, ind22
+    
+
+    # Eliminate solution in forbidden area
+
+    RMin = 0.95*min(np.nanmin(VPoly[0,:]), np.nanmin(np.hypot(Ds[0,:],Ds[1,:]))) if RMin is None else RMin
+    RS0, RS1 = np.hypot(S00,S01), np.hypot(S10,S11)
+    iin0, iin1 = ~np.isnan(RS0), ~np.isnan(RS1)
+    RS0, RS1 = RS0[iin0], RS1[iin1]
+    assert np.all(RS0>RMin) and np.all(RS1>RMin) and np.all(RS0<1.1*np.nanmax(VPoly[0,:])) and np.all(RS1<1.1*np.nanmax(VPoly[0,:])), "Some solutions are way too far/close !"+str(RS0)+" "+str(RS1)+"  "+str(k0[iin0])+"  "+str(k1[iin1])
+
+    if Forbid:
+        # This criterion is the same for both solution k0 and k1
+        Ind = Ind0 | Ind1
+        # Prepare useful quantities
+        R, L = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+        X, Y = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+        S1X, S1Y = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+        S2X, S2Y = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS)) 
+        # Add a little bit of margin to the major radius, just in case
+        R[Ind] = np.hypot(Ds0[Ind],Ds1[Ind])*(1.+Margin*RMin)
+        L[Ind] = np.sqrt(R[Ind]**2-RMin**2)
+        # Compute new (X,Y) coordinates with the margin
+        X[Ind] = R[Ind] * np.cos(np.arctan2(Ds1[Ind],Ds0[Ind]))
+        Y[Ind] = R[Ind] * np.sin(np.arctan2(Ds1[Ind],Ds0[Ind]))
+        # Compute coordinates of the 2 points where the tangents touch the inner circle
+        S1X[Ind] = (RMin**2*X[Ind]+RMin*Y[Ind]*L[Ind])/R[Ind]**2
+        S1Y[Ind] = (RMin**2*Y[Ind]-RMin*X[Ind]*L[Ind])/R[Ind]**2
+        S2X[Ind] = (RMin**2*X[Ind]-RMin*Y[Ind]*L[Ind])/R[Ind]**2
+        S2Y[Ind] = (RMin**2*Y[Ind]+RMin*X[Ind]*L[Ind])/R[Ind]**2
+        # Check solutiona are on the good side of the 3 planes
+        indout = (S00[Ind0]-S1X[Ind0])*X[Ind0] + (S01[Ind0]-S1Y[Ind0])*Y[Ind0] < 0.
+        indout = indout & ((S00[Ind0]-S1X[Ind0])*S1X[Ind0] + (S01[Ind0]-S1Y[Ind0])*S1Y[Ind0] < 0.)
+        indout = indout & ((S00[Ind0]-S2X[Ind0])*S2X[Ind0] + (S01[Ind0]-S2Y[Ind0])*S2Y[Ind0] < 0.)
+        Ind0[Ind0] = ~indout
+        indout = (S10[Ind1]-S1X[Ind1])*X[Ind1] + (S11[Ind1]-S1Y[Ind1])*Y[Ind1] < 0.
+        indout = indout & ((S10[Ind1]-S1X[Ind1])*S1X[Ind1] + (S11[Ind1]-S1Y[Ind1])*S1Y[Ind1] < 0.)
+        indout = indout & ((S10[Ind1]-S2X[Ind1])*S2X[Ind1] + (S11[Ind1]-S2Y[Ind1])*S2Y[Ind1] < 0.)
+        Ind1[Ind1] = ~indout       
+        del Ind, R, L, X, Y, S1X, S1Y, S2X, S2Y, indout 
+
+    # Identify the POut (if any) and PIn (if any)
+    VIn0, VIn1 = np.tile(vIn[0,:],(NL,1)), np.tile(vIn[1,:],(NL,1))
+
+    sca0, sca1 = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS)) 
+    sca0[Ind0] = dus0[Ind0]*VIn0[Ind0]*np.cos(np.arctan2(S01[Ind0],S00[Ind0])) + dus1[Ind0]*VIn0[Ind0]*np.sin(np.arctan2(S01[Ind0],S00[Ind0])) + dus2[Ind0]*VIn1[Ind0]
+    sca1[Ind1] = dus0[Ind1]*VIn0[Ind1]*np.cos(np.arctan2(S11[Ind1],S10[Ind1])) + dus1[Ind1]*VIn0[Ind1]*np.sin(np.arctan2(S11[Ind1],S10[Ind1])) + dus2[Ind1]*VIn1[Ind1]
+    ind0out, ind1out = np.copy(Ind0), np.copy(Ind1)
+    ind0out[ind0out] = sca0[ind0out]<0.
+    ind1out[ind1out] = sca1[ind1out]<0.
+    kk0, kk1 = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+    kk0[ind0out], kk1[ind1out] = k0[ind0out], k1[ind1out]
+    kk = np.fmin(kk0,kk1)
+    kout = np.nanmin(kk,axis=1)     
+    SOut = Ds + kout[np.newaxis,:]*dus
+    Ind = np.argmin(kk,axis=1)
+    
+    ind0in, ind1in = np.copy(Ind0), np.copy(Ind1)
+    ind0in[ind0in] = sca0[ind0in]>0.    
+    ind1in[ind1in] = sca1[ind1in]>0.
+    ind0in[ind0in] = k0[ind0in] < (np.tile(kout,(NS,1)).T)[ind0in]
+    ind1in[ind1in] = k1[ind1in] < (np.tile(kout,(NS,1)).T)[ind1in]
+    kk0, kk1 = np.nan*np.ones((NL,NS)), np.nan*np.ones((NL,NS))
+    kk0[ind0in], kk1[ind1in] = k0[ind0in], k1[ind1in]
+    kk = np.fmin(kk0,kk1)
+    SIn = Ds + np.nanmin(kk,axis=1)[np.newaxis,:]*dus    
+
+    return SIn, SOut#, ImpVin, indFOut
+
+
+
+
+
+cdef Calc_LOS_PInOut_Multi_Flat(np.ndarray[DTYPE_t, ndim=2] Ds, np.ndarray[DTYPE_t, ndim=2] dus,
+                                np.ndarray[DTYPE_t, ndim=2,mode='c'] VPoly, np.ndarray[DTYPE_t, ndim=2,mode='c'] vIn,
+                                RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9):
+
+    # Pre-define useful quantities
+    Cs, vs = VPoly[:,:-1], VPoly[:,1:]-VPoly[:,:-1]
+    upscaDp = dus[0,:]*Ds[0,:] + dus[1,:]*Ds[1,:]
+    upar2 = dus[0,:]**2 + dus[1,:]**2
+    Dpar2 = Ds[0,:]**2 + Ds[1,:]**2
+    NL, NS, MaxErr = Ds.shape[1], vIn.shape[1], 50
+
+    DsF, dusF = np.repeat(Ds,NS,axis=1), np.repeat(dus,NS,axis=1)
+    dus2 = dusF[2,:]
+    Cs0, Cs1 = np.tile(Cs[0,:],NL), np.tile(Cs[1,:],NL)
+    vs0, vs1 = np.tile(vs[0,:],NL), np.tile(vs[1,:],NL)
+    upscaDpF, upar2F, Dpar2F = np.repeat(upscaDp,NS), np.repeat(upar2,NS), np.repeat(Dpar2,NS)
+    #indL = np.repeat(np.arange(0,NL),NS)
+    #indS = np.tile(np.arange(0,NS),NL)
+
+
+    ########################
+    # Find all intersections
+    ########################
+
+    ###########################
+    # Start with horizontal LOS
+
+    # Prepare arrays
+    k0, k1 = np.nan*np.ones((NL*NS,)), np.nan*np.ones((NL*NS,))
+
+    Crit = EpsUz*np.sqrt(upar2F)/MaxErr
+    # Compute quasi-horizontal LOS
+    ind01 = np.abs(dus2) < Crit      # Consider quasi-horizontal cases to avoid near-zero divisions otherwise, EpsUz is the tolerated DZ across 50m (max Tokamak size)
+    ind01[ind01] = np.abs(vs1[ind01])>EpsVz
+    q = (DsF[2,ind01]-Cs1[ind01])/vs1[ind01]
+    ii = (q>=0) & (q<1)
+    ind01[ind01], q = ii, q[ii] 
+    ind01 = ind01.nonzero()[0]
+    C = q**2*vs0[ind01]**2 + 2.*q*Cs0[ind01]*vs0[ind01] + Cs0[ind01]**2
+    delta = upscaDpF[ind01]**2 - upar2F[ind01]*(Dpar2F[ind01]-C)
+    delta[delta<=0.] = np.nan
+    sqd = np.sqrt(delta)
+    k0[ind01] = (-upscaDpF[ind01] - sqd)/upar2F[ind01]
+    k1[ind01] = (-upscaDpF[ind01] + sqd)/upar2F[ind01]
+    del q, C, delta, sqd
+
+    # Compute general cases
+    A = vs0**2 - upar2F*(vs1/dus2)**2
+    B = Cs0*vs0 + vs1*(DsF[2,:]-Cs1)*upar2F/dus2**2 - upscaDpF*vs1/dus2
+    C = -upar2F*(DsF[2,:]-Cs1)**2/dus2**2 + 2.*upscaDpF*(DsF[2,:]-Cs1)/dus2 - Dpar2F + Cs0**2
+
+    ind1 = (np.abs(dus2) > Crit) & (np.abs(A)<EpsA) & (np.abs(B)>EpsB)
+    q = -C[ind1]/(2.*B[ind1])
+    ii = (q>=0) & (q<1)
+    ind1[ind1], q = ii, q[ii]
+    ind1 = ind1.nonzero()[0]
+    k0[ind1] = (q*vs1[ind1] - (DsF[2,ind1]-Cs1[ind1]))/dus2[ind1]
+    del q, upscaDpF, upar2F, Dpar2F
+
+    ind21 = (np.abs(dus2) > Crit) & (np.abs(A)>EpsA) & (B**2>A*C)
+    ind22 = np.copy(ind21)
+    sqd = np.sqrt(B[ind21]**2-A[ind21]*C[ind21])
+    q1 = (-B[ind21] + sqd)/A[ind21]
+    q2 = (-B[ind21] - sqd)/A[ind21]
+    ii = (q1>=0) & (q1<1.)
+    ind21[ind21], q1 = ii, q1[ii]
+    ii = (q2>=0) & (q2<1.)
+    ind22[ind22], q2 = ii, q2[ii] 
+    ind21, ind22 = ind21.nonzero()[0], ind22.nonzero()[0]
+    k0[ind21] = (q1*vs1[ind21] - (DsF[2,ind21]-Cs1[ind21]))/dus2[ind21]    
+    k1[ind22] = (q2*vs1[ind22] - (DsF[2,ind22]-Cs1[ind22]))/dus2[ind22]
+    del A, B, C, sqd, q1, q2, Cs0, Cs1, vs0, vs1
+
+    # Keep only k>0
+    k0[k0<0.] = np.nan
+    k1[k1<0.] = np.nan
+    Ind0, Ind1 = ~np.isnan(k0), ~np.isnan(k1)
+    Ind0n, Ind1n = Ind0.nonzero()[0], Ind1.nonzero()[0]
+   
+    # Compute associated solutions
+    S0 = DsF[:,Ind0n] + k0[np.newaxis,Ind0n]*dusF[:,Ind0n]
+    S1 = DsF[:,Ind1n] + k1[np.newaxis,Ind1n]*dusF[:,Ind1n]
+
+    # Eliminate solution in forbidden area
+    RMin = 0.95*min(np.nanmin(VPoly[0,:]), np.nanmin(np.hypot(Ds[0,:],Ds[1,:]))) if RMin is None else RMin
+    RMax = 1.1*np.nanmax(VPoly[0,:])
+    ZMin, ZMax = 1.1*np.nanmin(VPoly[1,:]), 1.1*np.nanmax(VPoly)
+    RS0, RS1 = np.hypot(S0[0,:],S0[1,:]), np.hypot(S1[0,:],S1[1,:])
+    assert np.all(RS0>RMin) and np.all(RS1>RMin) and np.all(RS0<RMax) and np.all(RS1<RMax), "Some solutions are way too far({0})/close({1}) !".format(RMax,RMin)+str(RS0)+" "+str(RS1)+"  "+str(k0[Ind0n])+"  "+str(k1[Ind1n])
+    assert np.all(S0[2,:]>ZMin) and np.all(S0[2,:]<ZMax) and np.all(S1[2,:]>ZMin) and np.all(S1[2,:]<ZMax), "Some solutions are way too high({0})/low({1}) !".format(ZMax,ZMin)+str(S0[2,:])+"  "+str(S1[2,:])    
+
+    if Forbid:
+        # This criterion is the same for both solution k0 and k1
+        Ind = Ind0 | Ind1
+        Indr0, Indr1 = Ind0[Ind].nonzero()[0], Ind1[Ind].nonzero()[0]
+        # Add a little bit of margin to the major radius, just in case
+        R = np.hypot(DsF[0,Ind],DsF[1,Ind])*(1.+Margin*RMin)
+        L = np.sqrt(R**2-RMin**2)
+        # Compute new (X,Y) coordinates with the margin
+        X = R * np.cos(np.arctan2(DsF[1,Ind],DsF[0,Ind]))
+        Y = R * np.sin(np.arctan2(DsF[1,Ind],DsF[0,Ind]))
+        # Compute coordinates of the 2 points where the tangents touch the inner circle
+        S1X, S1Y = (RMin**2*X+RMin*Y*L)/R**2, (RMin**2*Y-RMin*X*L)/R**2
+        S2X, S2Y = (RMin**2*X-RMin*Y*L)/R**2, (RMin**2*Y+RMin*X*L)/R**2
+        # Check solutions are on the good side of the 3 planes
+        indout = ((S0[0,:]-S1X[Indr0])*X[Indr0] + (S0[1,:]-S1Y[Indr0])*Y[Indr0] < 0.) & ((S0[0,:]-S1X[Indr0])*S1X[Indr0] + (S0[1,:]-S1Y[Indr0])*S1Y[Indr0] < 0.) & ((S0[0,:]-S2X[Indr0])*S2X[Indr0] + (S0[1,:]-S2Y[Indr0])*S2Y[Indr0] < 0.)
+        k0[Ind0n[indout]] = np.nan
+        S0 = np.delete(S0,indout.nonzero()[0],1)
+        indout = ((S1[0,:]-S1X[Indr1])*X[Indr1] + (S1[1,:]-S1Y[Indr1])*Y[Indr1] < 0.) & ((S1[0,:]-S1X[Indr1])*S1X[Indr1] + (S1[1,:]-S1Y[Indr1])*S1Y[Indr1] < 0.) & ((S1[0,:]-S2X[Indr1])*S2X[Indr1] + (S1[1,:]-S2Y[Indr1])*S2Y[Indr1] < 0.)
+        k1[Ind1n[indout]] = np.nan    
+        S1 = np.delete(S1,indout.nonzero()[0],1)
+        Ind0, Ind1 = ~np.isnan(k0), ~np.isnan(k1)
+        Ind0n, Ind1n = Ind0.nonzero()[0], Ind1.nonzero()[0]
+        del Ind, Indr0, Indr1, R, L, X, Y, S1X, S1Y, S2X, S2Y, indout
+
+    # Identify the POut (if any) and PIn (if any)
+    VInF = np.tile(vIn,NL)
+    Ang0, Ang1 = np.arctan2(S0[1,:],S0[0,:]), np.arctan2(S1[1,:],S1[0,:])
+    sca0 = np.sum( dusF[:,Ind0n]*np.repeat(VInF[:,Ind0n],[2,1],axis=0)*np.array([np.cos(Ang0),np.sin(Ang0),np.ones((Ind0n.size,))]), axis=0)
+    sca1 = np.sum( dusF[:,Ind1n]*np.repeat(VInF[:,Ind1n],[2,1],axis=0)*np.array([np.cos(Ang1),np.sin(Ang1),np.ones((Ind1n.size,))]), axis=0)
+
+    # POut is the lowest k with sca<0
+    indio0, indio1 = sca0<0., sca1<0.
+    kio = np.nan*np.ones((2,NL*NS,))
+    kio[0,Ind0n[indio0]] = k0[Ind0n[indio0]]
+    kio[1,Ind1n[indio1]] = k1[Ind1n[indio1]]
+
+    kio = np.nanmin(kio,axis=0).reshape((NL,NS))
+    kout = np.nanmin(kio,axis=1)
+    indnonan = ~np.isnan(kout)
+    Ind = np.nan*np.ones((NL,))
+    Ind[indnonan] = np.nanargmin(kio[indnonan,:],axis=1)
+    SOut = Ds + kout[np.newaxis,:]*dus
+
+    # Pin, if any, is the lowest k > kout with sca>0
+    indio0, indio1 = sca0>0., sca1>0.
+    kio = np.nan*np.ones((2,NL*NS,))
+    kio[0,Ind0n[indio0]] = k0[Ind0n[indio0]]
+    kio[1,Ind1n[indio1]] = k1[Ind1n[indio1]]
+    kio = np.nanmin(kio,axis=0)
+    kio[kio>np.repeat(kout,NS)] = np.nan
+    kin = np.nanmin(kio.reshape((NL,NS)),axis=1)
+    SIn = Ds + kin[np.newaxis,:]*dus
+
+    return SIn, SOut#, ImpVin, indFOut
+
+
+
+
+def Calc_LOS_PInOut_New(Ds, dus,
+                        np.ndarray[DTYPE_t, ndim=2,mode='c'] VPoly, np.ndarray[DTYPE_t, ndim=2,mode='c'] vIn,
+                        RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                        VType='Tor', mode=None, Test=True):
+    """ Compute the entry and exit point of all provided LOS for the provided vessel polygon (toroidal or linear), also return the normal vector at impact point and the index of the impact segment
+
+    For each LOS, 
+
+    Parameters
+    ----------
+
+
+
+    Return
+    ------
+    PIn :       np.ndarray
+        Point of entry (if any) of the LOS into the vessel, returned in (X,Y,Z) cartesian coordinates as:
+            1 LOS => (3,) array or None if there is no entry point
+            NL LOS => (3,NL), with NaNs when there is no entry point
+    POut :      np.ndarray
+        Point of exit of the LOS from the vessel, returned in (X,Y,Z) cartesian coordinates as:
+            1 LOS => (3,) array or None if there is no entry point
+            NL LOS => (3,NL), with NaNs when there is no entry point
+    VOut :      np.ndarray
+
+    IOut :      np.ndarray 
+
+    """
+    cdef Py_ssize_t ii
+
+    if Test:
+        assert type(Ds) is np.ndarray and type(dus) is np.ndarray and Ds.ndim in [1,2] and Ds.shape==dus.shape and Ds.shape[0]==3, "Args Ds and dus must be of the same shape (3,) or (3,NL) !"
+        assert VPoly.shape[0]==2 and vIn.shape[0]==2 and vIn.shape[1]==VPoly.shape[1]-1, "Args VPoly and VIn must be of the same shape (2,NS) !"
+        assert RMin is None or type(RMin) in [float,int,np.float64,np.int64], "Arg RMin must be None or a float !"
+        assert type(Margin) in [float,np.float64] and 0<Margin and Margin<1., "Arg Margin must be a float in [0;1] !"
+        assert type(Forbid) is bool, "Arg Forbid must be a bool !"
+        assert all([type(ee) in [int,float,np.int64,np.float64] and ee<1.e-6 for ee in [EpsUz,EpsVz,EpsA,EpsB]]), "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-6 !"
+        assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin'] !"
+        assert mode is None or (type(mode) is str and mode.lower() in ['single','multi','multi_flat']), "Arg mode must be None or a str in ['Single','Multi','Multi_Flat']" 
+
+
+    v = Ds.ndim==2
+    NL = Ds.shape[1] if v else 1
+    if mode is None:
+        mode = 'Multi_Flat' if v else 'Single'
+    if mode.lower()=='single':
+        if v:
+            PIn, POut, VOut, IOut = np.nan*np.ones((3,NL)), np.nan*np.ones((3,NL)), np.nan*np.ones((3,NL)), np.nan*np.ones((3,NL))
+            for ii in range(0,NL):
+                Out = Calc_LOS_PInOut_Single(Ds[:,ii], dus[:,ii], VPoly, vIn, RMin=RMin, Margin=Margin,
+                                             Forbid=Forbid, EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB) 
+                if len(Out[1])>0:
+                    POut[:,ii] = Out[1]#, VOut[:,ii], IOut[:,ii] = Out[1:]
+                    if len(Out[0])>0:
+                        PIn[:,ii] = Out[0] 
+        else:
+            #PIn, POut, VOut, IOut = Calc_LOS_PInOut_Single(Ds, dus, VPoly, vIn, RMin=RMin, Margin=Margin,
+            #                                               Forbid=Forbid, EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB)
+            PIn, POut = Calc_LOS_PInOut_Single(Ds, dus, VPoly, vIn, RMin=RMin, Margin=Margin,
+                                                           Forbid=Forbid, EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB)
+        
+    elif mode.lower()=='multi':
+        #PIn, POut, VOut, IOut = Calc_LOS_PInOut_Multi(Ds, dus, VPoly, vIn, RMin=RMin, Margin=Margin,
+        #                                              Forbid=Forbid, EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB)
+        PIn, POut = Calc_LOS_PInOut_Multi(Ds, dus, VPoly, vIn, RMin=RMin, Margin=Margin,
+                                                      Forbid=Forbid, EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB)
+
+    elif mode.lower()=='multi_flat':
+        #PIn, POut, VOut, IOut = Calc_LOS_PInOut_Multi_Flat(Ds, dus, VPoly, vIn, RMin=RMin, Margin=Margin,
+        #                                                   Forbid=Forbid, EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB)
+        PIn, POut = Calc_LOS_PInOut_Multi_Flat(Ds, dus, VPoly, vIn, RMin=RMin, Margin=Margin,
+                                                           Forbid=Forbid, EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB)
+
+    return PIn, POut#, VOut, IOut
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 cdef Calc_Intersect_LineCone(DTYPE_t D0, DTYPE_t D1, DTYPE_t D2, DTYPE_t du0, DTYPE_t du1, DTYPE_t du2, DTYPE_t C0, DTYPE_t C1, DTYPE_t v0, DTYPE_t v1):
     cdef DTYPE_t uParN = (du0*du0 + du1*du1)**0.5
     cdef DTYPE_t vN = (v0*v0 + v1*v1)**0.5
@@ -992,11 +1510,16 @@ cdef Calc_Intersect_LineCone(DTYPE_t D0, DTYPE_t D1, DTYPE_t D2, DTYPE_t du0, DT
                     theta = thetau-math.asin(sin)
                     S10, S11, S12 = R*math.cos(theta), R*math.sin(theta), D2
                 elif Cabs(sin) < 1.:
+                    #print(6)    # DB
+                    #print("D,u", (D0,D1,D2), (du0,du1,du2)) # DB
+                    #print("thetau,sin", thetau, sin)    # DB
                     NS = 2
                     theta = thetau-math.asin(sin)
                     S10, S11, S12 = R*math.cos(theta), R*math.sin(theta), D2
+                    #print("theta, S1", theta, (S10,S11,S12))    # DB
                     theta = thetau-(np.pi-math.asin(sin))
                     S20, S21, S22 = R*math.cos(theta), R*math.sin(theta), D2
+                    #print("theta, S2", theta, (S20,S21,S22))    # DB
     else:
         rapu = uParN/du2
         rapv = v0/v1
@@ -1052,6 +1575,10 @@ cdef Calc_InOut_LOS(DTYPE_t D0, DTYPE_t D1, DTYPE_t D2, DTYPE_t du0, DTYPE_t du1
                 R = (Sij0*Sij0+Sij1*Sij1)**0.5
                 SCA = du0*(Sij0-D0)+du1*(Sij1-D1)+du2*(Sij2-D2)
                 sca = Vect0*(R-TPoly0) + Vect1*(Sij2-TPoly1)
+
+                #print("Si, perpu",Si[jj], np.linalg.norm(np.cross(Si-np.array([D0,D1,D2]),np.array([du0,du1,du2])))) # DB
+
+
                 if SCA >= 0 and (sca >= 0 and sca < VN2 and Cabs((Vect0*(Sij2-TPoly1)-Vect1*(R-TPoly0)))<1.e-6*VN2**0.5): # Must be on the good side of D, aligned with TPoly[:,ii] and in the good interval
                     if du0*Sij0*Vin[0,ii]/R + du1*Sij1*Vin[0,ii]/R + du2*Vin[1,ii] > 0:
                         SIn.append([Sij0, Sij1, Sij2])
@@ -1210,6 +1737,13 @@ def Calc_InOut_LOS_PIO(np.ndarray[DTYPE_t, ndim=2] D, np.ndarray[DTYPE_t, ndim=2
         S1, S2, V0, V1, V2 = Calc_InOut_LOS_ForbidArea_2D(D, RMin, Margin=Margin)
     for ii in xrange(0,NL):
         Sin, Sout, NIn, NOut = Calc_InOut_LOS(D[0,ii],D[1,ii],D[2,ii], du[0,ii],du[1,ii],du[2,ii], TPoly, Vin)
+
+        
+        #print("D", D)   # DB
+        #print("du",du)  # DB
+        #print("Sin, NIn",Sin, NIn)  # DB
+
+
         if NOut>0:
             kout = [(sout[0]-D[0,ii])*du[0,ii] + (sout[1]-D[1,ii])*du[1,ii] + (sout[2]-D[2,ii])*du[2,ii] for sout in Sout]
             if any([kk>0 for kk in kout]):

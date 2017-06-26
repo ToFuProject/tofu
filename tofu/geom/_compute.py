@@ -182,9 +182,14 @@ def _Ves_get_MeshCrossSection(P1Min, P1Max, P2Min, P2Max, Poly, Type, DLong=None
 
 
 
-def _LOS_calc_InOutPolProj(Type, Poly, Vin, DLong, D, uu, Name, Forbid=True, Margin=0.1):
+def _LOS_calc_InOutPolProj(Type, Poly, Vin, DLong, D, uu, Name, Forbid=True, Margin=0.1, new=True):
     if Type=='Tor':
-        PIn, POut = GG.Calc_InOut_LOS_PIO(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(Poly), np.ascontiguousarray(Vin), Forbid=Forbid, Margin=Margin)
+        if new:
+            PIn, POut = GG.Calc_LOS_PInOut_New(D, uu, np.ascontiguousarray(Poly), np.ascontiguousarray(Vin),
+                                               RMin=None, Margin=0.1, Forbid=Forbid, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                                               VType='Tor', mode='Single', Test=True)
+        else:
+            PIn, POut = GG.Calc_InOut_LOS_PIO(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(Poly), np.ascontiguousarray(Vin), Forbid=Forbid, Margin=Margin)
     else:
         PIn, POut = GG.Calc_InOut_LOS_PIO_Lin(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(Poly), np.ascontiguousarray(Vin), DLong)
     if np.any(np.isnan(PIn)):
@@ -631,7 +636,7 @@ def Calc_Etendue_PlaneLOS(Ps, nPs, DPoly, DBaryS, DnIn, LOPolys, LOnIns, LOSurfs
 
 
 
-def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, RefPt, P, nP, VPoly, VVin, DLong=None, VType='Tor', e1=None,e2=None, OpType='Apert', Lens_ConeTip=None, NEdge=TFD.DetSpanNEdge, NRad=TFD.DetSpanNRad, Eps=1.e-10, Test=True):    # Used
+def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, RefPt, P, nP, VPoly, VVin, DLong=None, VType='Tor', e1=None,e2=None, OpType='Apert', Lens_ConeTip=None, NEdge=TFD.DetSpanNEdge, NRad=TFD.DetSpanNRad, Eps=1.e-10, new=True, Test=True):    # Used
     """ Computes the span in (R,Theta,Z,k) coordinates of the viewing cone of a detector by sampling it with a multitude of LOS
 
     Inputs :
@@ -694,7 +699,12 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
         Lus = Lus - Ds
         Lus = Lus/(np.ones((3,1)).dot(np.sqrt(np.sum(Lus**2,axis=0,keepdims=True))))
         if VType=='Tor':
-            SIn, SOut = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin, Forbid=True, Margin=0.1)
+            if new:
+                SIn, SOut = GG.Calc_LOS_PInOut_New(Ds, Lus, np.ascontiguousarray(VPoly), np.ascontiguousarray(VVin),
+                                                   RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                                                   VType='Tor', mode='Multi_Flat', Test=True)
+            else:
+                SIn, SOut = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin, Forbid=True, Margin=0.1)
         elif VType=='Lin':
             SIn, SOut = GG.Calc_InOut_LOS_PIO_Lin(Ds, Lus, VPoly, VVin, DLong)
 
@@ -737,7 +747,12 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
                 #t3 += (dtm.datetime.now()-tt).total_seconds() # DB
                 #tt = dtm.datetime.now() # DB
                 if VType=='Tor':
-                    Sin, Sout = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin, Forbid=True, Margin=0.1)
+                    if new:
+                        Sin, Sout = GG.Calc_LOS_PInOut_New(Ds, Lus, np.ascontiguousarray(VPoly), np.ascontiguousarray(VVIn),
+                                                           RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                                                           VType='Tor', mode='Multi_Flat', Test=True)
+                    else:
+                        Sin, Sout = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin, Forbid=True, Margin=0.1)
                 elif VType=='Lin':
                     Sin, Sout = GG.Calc_InOut_LOS_PIO_Lin(Ds, Lus, VPoly, VVin, DLong)
                 #t4 += (dtm.datetime.now()-tt).total_seconds() # DB

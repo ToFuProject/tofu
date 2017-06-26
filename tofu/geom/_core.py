@@ -845,27 +845,27 @@ class LOS(object):
             Val = tfpf.ID('LOS', Val, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath, dtime=dtime, dtimeIn=dtimeIn)
         self._Id = Val
 
-    def _set_Du(self, Du, Calc=True):
+    def _set_Du(self, Du, Calc=True, new=True):
         tfpf._check_NotNone({'Du':Du,'Calc':Calc})
         self._check_inputs(Du=Du, Calc=Calc)
         DD, uu = np.asarray(Du[0]).flatten(), np.asarray(Du[1]).flatten()
         uu = uu/np.linalg.norm(uu,2)
         self._Du = (DD,uu)
         if Calc:
-            self._calc_InOutPolProj()
+            self._calc_InOutPolProj(new=new)
 
-    def _set_Ves(self, Ves=None):
+    def _set_Ves(self, Ves=None, new=True):
         tfpf._check_NotNone({'Ves':Ves, 'Exp':self.Id.Exp})
         self._check_inputs(Ves=Ves, Exp=self.Id.Exp)
         if not Ves is None:
             self.Id.set_LObj([Ves.Id])
         self._Ves = Ves
-        self._calc_InOutPolProj()
+        self._calc_InOutPolProj(new=new)
 
-    def _calc_InOutPolProj(self):
+    def _calc_InOutPolProj(self, new=True):
         PIn, POut, kPOut, kPIn = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
         if not self.Ves is None:
-            PIn, POut, kPIn, kPOut, Err = _tfg_c._LOS_calc_InOutPolProj(self.Ves.Type, self.Ves.Poly, self.Ves.Vin, self.Ves.DLong, self.D, self.u, self.Id.Name)
+            PIn, POut, kPIn, kPOut, Err = _tfg_c._LOS_calc_InOutPolProj(self.Ves.Type, self.Ves.Poly, self.Ves.Vin, self.Ves.DLong, self.D, self.u, self.Id.Name, new=new)
             if Err:
                 La = _tfg_p._LOS_calc_InOutPolProj_Debug(self,PIn, POut)
         self._PIn, self._POut, self._kPIn, self._kPOut = PIn, POut, kPIn, kPOut
@@ -2322,7 +2322,7 @@ class Detect(object):
     def _calc_All(self, Sino_RefPt=None, CalcEtend=True, CalcSpanImp=True, CalcCone=True, CalcPreComp=True,
             Etend_Method=tfd.DetEtendMethod, Etend_RelErr=tfd.DetEtendepsrel, Etend_dX12=tfd.DetEtenddX12, Etend_dX12Mode=tfd.DetEtenddX12Mode, Etend_Ratio=tfd.DetEtendRatio, Colis=tfd.DetCalcEtendColis, LOSRef='Cart',
             Cone_DRY=tfd.DetConeDRY, Cone_DXTheta=None, Cone_DZ=tfd.DetConeDZ, Cone_NPsi=20, Cone_Nk=60,
-            SynthDiag_dX12=tfd.DetSynthdX12, SynthDiag_dX12Mode=tfd.DetSynthdX12Mode, SynthDiag_ds=tfd.DetSynthds, SynthDiag_dsMode=tfd.DetSynthdsMode, SynthDiag_MarginS=tfd.DetSynthMarginS, Verb=True):
+            SynthDiag_dX12=tfd.DetSynthdX12, SynthDiag_dX12Mode=tfd.DetSynthdX12Mode, SynthDiag_ds=tfd.DetSynthds, SynthDiag_dsMode=tfd.DetSynthdsMode, SynthDiag_MarginS=tfd.DetSynthMarginS, new=True, Verb=True):
 
         self._check_inputs(Sino_RefPt=Sino_RefPt, CalcEtend=CalcEtend, CalcSpanImp=CalcSpanImp, CalcCone=CalcCone, CalcPreComp=CalcPreComp,
                 Etend_Method=Etend_Method, Etend_RelErr=Etend_RelErr, Etend_dX12=Etend_dX12, Etend_dX12Mode=Etend_dX12Mode, Etend_Ratio=Etend_Ratio, LOSRef=LOSRef,
@@ -2339,7 +2339,7 @@ class Detect(object):
         # Start all subsequent calculations
 	self._set_SAngPnPe1e2()
         self._set_LOS(CalcEtend=CalcEtend, Method=Etend_Method, RelErr=Etend_RelErr, dX12=Etend_dX12, dX12Mode=Etend_dX12Mode, Ratio=Etend_Ratio, Colis=Colis, LOSRef=LOSRef, Verb=Verb)
-        self._set_SinoSpan(CalcSpanImp=CalcSpanImp, Sino_RefPt=Sino_RefPt)
+        self._set_SinoSpan(CalcSpanImp=CalcSpanImp, Sino_RefPt=Sino_RefPt, new=new)
         self._set_ConeWidthAlongLOS()
         self._set_ConePoly(CalcCone=CalcCone, DRY=Cone_DRY, DXTheta=Cone_DXTheta, DZ=Cone_DZ, NPsi=Cone_NPsi, Nk=Cone_Nk)
         self.set_SigPrecomp(CalcPreComp=CalcPreComp, dX12=SynthDiag_dX12, dX12Mode=SynthDiag_dX12Mode, ds=SynthDiag_ds, dsMode=SynthDiag_dsMode, MarginS=SynthDiag_MarginS, Colis=Colis)
@@ -2401,7 +2401,7 @@ class Detect(object):
             warnings.warn("Detect "+ self.Id.Name +" : calculation of Etendue not possible because LOS impossible !")
 
 
-    def _set_SinoSpan(self, Sino_RefPt=None, CalcSpanImp=True, MarginRMin=tfd.DetSpanRMinMargin, NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad, Eps=1.e-10):
+    def _set_SinoSpan(self, Sino_RefPt=None, CalcSpanImp=True, MarginRMin=tfd.DetSpanRMinMargin, NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad, Eps=1.e-10, new=True):
         self._check_inputs(Sino_RefPt=Sino_RefPt, CalcSpanImp=CalcSpanImp, MarginRMin=MarginRMin, NEdge=NEdge, NRad=NRad)
         if CalcSpanImp and not (self.LOS=='Impossible !' or self.LOS is None):
             print "    "+self.Id.Name+" : Computing Span and Sinogram..."
@@ -2418,7 +2418,7 @@ class Detect(object):
             if self.Ves.Type=='Tor':
                 RMinMax, ThetaMinMax, ZMinMax, kMinMax, Sino_CrossProj, Span_NEdge, Span_NRad = _tfg_c.Calc_SpanImpBoth_2Steps(self.Poly, self.NP, self.BaryS, LOPolys, LOBaryS, LOSD, LOSu, Sino_RefPt, P, nP,
                                                                                                                                VPoly, VVin, DLong=self.Ves.DLong, VType=self.Ves.Type, e1=e1, e2=e2, OpType=self.OpticsType, 
-                                                                                                                               Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Eps=Eps, Test=True)
+                                                                                                                               Lens_ConeTip=self._Optics_Lens_ConeTip, NEdge=NEdge, NRad=NRad, Eps=Eps, new=new, Test=True)
                 RMinMax[0] = np.max(np.array([MarginRMin*RMinMax[0],self.Ves._P1Min[0]]))
                 self._Sino_RefPt, self._Span_R, self._Span_Theta, self._Span_Z, self._Span_k = Sino_RefPt, RMinMax, ThetaMinMax, ZMinMax, kMinMax
                 self._Span_X, self._Span_Y = None, None
@@ -2458,10 +2458,10 @@ class Detect(object):
             self._ConeWidth_X2 = np.array([MinX2,MaxX2])
             self._ConeWidth = np.min(np.array([np.diff(self._ConeWidth_X1,axis=0),np.diff(self._ConeWidth_X2,axis=0)]),axis=0).flatten()
 
-    def _set_Sino(self,RefPt=None):
+    def _set_Sino(self,RefPt=None, new=True):
         self._check_inputs(Sino_RefPt=Sino_RefPt)
         self._Ves._set_Sino(RefPt)
-        self._set_SinoSpan(RefPt)
+        self._set_SinoSpan(RefPt, new=new)
 
     def _isOnGoodSide(self, Pts, NbPoly=None, Log='all'):
         """ Check whether each point is on the inside or the outside of each Detect and Apert (with respect to nIn) """
