@@ -1,0 +1,17 @@
+\select@language {english}
+\contentsline {chapter}{\numberline {1}Definitions}{5}{chapter.1}
+\contentsline {chapter}{\numberline {2}Derivation}{7}{chapter.2}
+\contentsline {section}{\numberline {2.1}$u_Z=0$: horizontal LOS}{7}{section.2.1}
+\contentsline {subsection}{\numberline {2.1.1}$Z_B\not =Z_A$ (non-horizontal cone)}{8}{subsection.2.1.1}
+\contentsline {section}{\numberline {2.2}$u_Z\not =0$: non-horizontal LOS}{8}{section.2.2}
+\contentsline {subsection}{\numberline {2.2.1}$A=0$: LOS parallel to one of the cone generatrices}{9}{subsection.2.2.1}
+\contentsline {subsubsection}{$B\not =0$: LOS not included in the cone}{9}{section*.2}
+\contentsline {subsection}{\numberline {2.2.2}$A\not =0$: LOS not parallel to a cone generatrix}{9}{subsection.2.2.2}
+\contentsline {chapter}{\numberline {3}Results}{11}{chapter.3}
+\contentsline {section}{\numberline {3.1}Upgrades}{11}{section.3.1}
+\contentsline {chapter}{\numberline {A}Acceleration radiation from a unique point-like charge}{13}{appendix.A}
+\contentsline {section}{\numberline {A.1}Retarded time and potential}{13}{section.A.1}
+\contentsline {subsection}{\numberline {A.1.1}Retarded time}{13}{subsection.A.1.1}
+\contentsline {subsubsection}{Deriving the retarded time}{13}{section*.3}
+\contentsline {subsection}{\numberline {A.1.2}Retarded potentials}{13}{subsection.A.1.2}
+\contentsline {subsubsection}{Deriving the potential propagation equations}{13}{section*.4}
