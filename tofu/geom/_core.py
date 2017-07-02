@@ -2337,7 +2337,7 @@ class Detect(object):
                 self.Optics[ii]._nIn = -self.Optics[ii].nIn
         self._nIn = -self.nIn if np.sum(self.nIn*Ldir[0])<0. else self.nIn
         # Start all subsequent calculations
-	self._set_SAngPnPe1e2()
+        self._set_SAngPnPe1e2()
         self._set_LOS(CalcEtend=CalcEtend, Method=Etend_Method, RelErr=Etend_RelErr, dX12=Etend_dX12, dX12Mode=Etend_dX12Mode, Ratio=Etend_Ratio, Colis=Colis, LOSRef=LOSRef, Verb=Verb)
         self._set_SinoSpan(CalcSpanImp=CalcSpanImp, Sino_RefPt=Sino_RefPt, new=new)
         self._set_ConeWidthAlongLOS()
