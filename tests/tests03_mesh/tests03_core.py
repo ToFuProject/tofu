@@ -88,7 +88,7 @@ class test01_Helper:
     @classmethod
     def setup_class(cls, X1=X1, X2=X2, Res1=Res1, Res2=Res2, DRes=DRes, KnotsL=KnotsL, ResL=ResL, Mode=Mode, Concat=Concat, Tol=Tol):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         cls.X1, cls.X2 = X1, X2
         cls.Res1, cls.Res2 = Res1, Res2
         cls.DRes = DRes
@@ -151,7 +151,7 @@ class test02_Mesh1D:
     @classmethod
     def setup_class(cls, KnotsL=KnotsL, ResL=ResL, Mode=Mode, Concat=Concat, Tol=Tol):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         X, Res = tfm.LinMesh_List(KnotsL, ResL, DRes=DRes, Mode=Mode, Test=True, Concat=Concat, Tol=Tol)
         cls.Obj = tfm.Mesh1D('Test', X, Exp='Test', shot=0, dtime=None, dtimeIn=False, SavePath=Root+Addpath)
@@ -219,7 +219,7 @@ class test03_Mesh2D:
     @classmethod
     def setup_class(cls, Ves=VesTor, DRes=DRes, Mode=Mode, Tol=Tol):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         D1, D2 = Ves._P1Max[0]-Ves._P1Min[0], Ves._P2Max[1]-Ves._P2Min[1]
         K1L = [(Ves._P1Min[0],Ves._P1Min[0]+0.3*D1),(Ves._P1Min[0]+0.3*D1,Ves._P1Min[0]+0.7*D1),(Ves._P1Min[0]+0.7*D1,Ves._P1Max[0])]
@@ -292,7 +292,7 @@ class test03_Mesh2D:
     def test05_plot(self):
         for oo in self.LObj:
             ax1 = oo.plot(ax=None, Elt='MBgKCBsBv', indKnots=None, indCents=None, SubMesh=None, draw=False, a4=False, Test=True)
-            ax2 = oo.plot(ax=None, Elt='MBgKCBsBv', indKnots=None, indCents=range(10,1000,10), SubMesh=None, draw=False, a4=False, Test=True)
+            ax2 = oo.plot(ax=None, Elt='MBgKCBsBv', indKnots=None, indCents=list(range(10,1000,10)), SubMesh=None, draw=False, a4=False, Test=True)
             ax3 = oo.plot(ax=None, Elt='MBgKCBsBv', indKnots=None, indCents=None, SubMesh='ind', draw=False, a4=False, Test=True)
         #plt.close('all')   # Creates an error during test05_plot_Res() for some reason... bug ?   (">> can't invoke "event" command:  application has been destroyed")
 
@@ -329,7 +329,7 @@ class test04_LBF1D:
     @classmethod
     def setup_class(cls):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         cls.Knots = np.linspace(0.,20.,11)
         LDeg = [0,1,2,3]

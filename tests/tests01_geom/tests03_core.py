@@ -86,7 +86,7 @@ class Test01_VesTor:
     @classmethod
     def setup_class(cls, PVes=PVes):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         cls.Obj = tfg.Ves('Test01', PVes, Type='Tor', shot=0, Exp='Test', SavePath=Root+Addpath)
 
     @classmethod
@@ -148,7 +148,7 @@ class Test02_VesLin:
     @classmethod
     def setup_class(cls, PVes=PVes, DLong=DLong):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         cls.Obj = tfg.Ves('Test02', PVes, Type='Lin', DLong=DLong, shot=0, Exp='Test', SavePath=Root+Addpath)
 
     @classmethod
@@ -227,7 +227,7 @@ class Test03_StructTor:
     @classmethod
     def setup_class(cls, PS1=PS1, PS2=PS2, Ves=VesTor):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         cls.Obj1 = tfg.Struct('Test01', PS1, Type='Tor', Ves=Ves, shot=0, Exp='Test', SavePath=Root+Addpath)
         cls.Obj2 = tfg.Struct('Test01', PS2, Type='Tor', Ves=Ves, shot=0, Exp='Test', SavePath=Root+Addpath)
 
@@ -287,7 +287,7 @@ class Test04_StructLin:
     @classmethod
     def setup_class(cls, PS1=PS1, PS2=PS2, Ves=VesLin):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         cls.Obj1 = tfg.Struct('Test01', PS1, Type='Lin', Ves=Ves, shot=0, Exp='Test', SavePath=Root+Addpath)
         cls.Obj2 = tfg.Struct('Test01', PS2, Type='Lin', Ves=Ves, shot=0, Exp='Test', SavePath=Root+Addpath)
 
@@ -360,7 +360,7 @@ class Test05_LOSTor:
     @classmethod
     def setup_class(cls, Ves=VesTor):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         DR, DZ = Ves._P1Max[0],Ves._P2Max[1]
         uR, uz = [-1.,-1.]
         Dthet, uthet = 0., 0.5
@@ -403,7 +403,7 @@ class Test06_LOSLin:
     @classmethod
     def setup_class(cls, Ves=VesLin):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         DY, DZ = Ves._P1Max[0],Ves._P2Max[1]
         D, u = [0.5, DY, DZ], [0.1, -1., -1.]
         cls.Obj = tfg.LOS('Test', (D,u), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
@@ -445,7 +445,7 @@ class Test07_GLOSTor:
     @classmethod
     def setup_class(cls, Ves=VesTor):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         DR, DZ = Ves._P1Max[0],Ves._P2Max[1]
         uR, uz1, uz2, uz3 = -1., -0.5,-1.,-1.5
         Dthet, uthet = 0., 0.5
@@ -498,7 +498,7 @@ class Test08_GLOSLin:
     @classmethod
     def setup_class(cls, Ves=VesLin):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         DY, DZ = Ves._P1Max[0],Ves._P2Max[1]
         D = [0.5, DY, DZ]
         u1, u2, u3 = [0.1,-1.,-1.], [-0.1,-1.,-1.], [0.,-0.5,-1.]
@@ -561,7 +561,7 @@ class Test09_LensTor:
     @classmethod
     def setup_class(cls, Ves=VesTor):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         O = np.array([0.,Ves._P1Max[0],Ves._P2Max[1]])
         nIn = np.array([0.,-1.,-1.])
         Rad, F1 = 0.05, 0.05
@@ -603,7 +603,7 @@ class Test10_LensLin:
     @classmethod
     def setup_class(cls, Ves=VesLin):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         O = np.array([0.5,Ves._P1Max[0],Ves._P2Max[1]])
         nIn = np.array([0.,-1.,-1.])
         Rad, F1 = 0.05, 0.05
@@ -647,7 +647,7 @@ class Test11_ApertTor:
     @classmethod
     def setup_class(cls, Ves=VesLin):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         O = np.array([0.,Ves._P1Max[0],0.5*Ves._P2Max[1]])
         Poly = np.array([O[0] + 0.01*np.array([-1,1,1,-1]), O[1] + np.zeros((4,)), O[2] + 0.005*np.array([-1,-1,1,1])])
         cls.Obj = tfg.Apert('Test', Poly, Ves=Ves, Exp='AUG', Diag='Test', shot=0, SavePath=Root+Addpath)
@@ -682,7 +682,7 @@ class Test12_ApertLin:
     @classmethod
     def setup_class(cls, Ves=VesLin):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         O = np.array([0.5,Ves._P1Max[0],0.5*Ves._P2Max[1]])
         Poly = np.array([O[0] + 0.01*np.array([-1,1,1,-1]), O[1] + np.zeros((4,)), O[2] + 0.005*np.array([-1,-1,1,1])])
         cls.Obj = tfg.Apert('Test', Poly, Ves=Ves, Exp='AUG', Diag='Test', shot=0, SavePath=Root+Addpath)
@@ -727,7 +727,7 @@ class Test13_DetectApertTor:
     @classmethod
     def setup_class(cls, Ves=VesTor):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         Out = np.load(Root+Addpath+'L_009.npz')
         Poly, PAp0, PAp1 = Out['Poly'], Out['PolyAp0'], Out['PolyAp1']
         Ap0 = tfg.Apert('Test0', PAp0, Ves=Ves, Exp='AUG', Diag='Test', shot=0, SavePath=Root+Addpath)
@@ -795,7 +795,7 @@ class Test13_DetectApertTor:
 
     def test05_debug_Etendue_BenchmarkRatioMode(self):
         Etends, Ratio, RelErr, dX12, dX12Mode, Colis = self.Obj._debug_Etendue_BenchmarkRatioMode(RelErr=1.e-3, Ratio=[0.01,0.1], Modes=['simps','quad'], dX12=[0.002,0.002], dX12Mode='abs', Colis=True)
-        for kk in Etends.keys():
+        for kk in list(Etends.keys()):
             assert all([np.abs(ee-Etends[kk][0,0])<0.01*Etends[kk][0,0] for ee in Etends[kk][0,:]]), str(Etends[kk][0,:])
 
     #def test06_calc_Etendue_AlongLOS(self):
@@ -867,7 +867,7 @@ class Test14_DetectApertLin:
     @classmethod
     def setup_class(cls, Ves=VesLin):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         Out = np.load(Root+Addpath+'G_015.npz')
         Poly, PAp0, PAp1 = Out['Poly'], Out['PolyAp0'], Out['PolyAp1']
 
@@ -939,7 +939,7 @@ class Test14_DetectApertLin:
 
     def test05_debug_Etendue_BenchmarkRatioMode(self):
         Etends, Ratio, RelErr, dX12, dX12Mode, Colis = self.Obj._debug_Etendue_BenchmarkRatioMode(RelErr=1.e-3, Ratio=[0.01,0.1], Modes=['simps','quad'], dX12=[0.002,0.002], dX12Mode='abs', Colis=True)
-        for kk in Etends.keys():
+        for kk in list(Etends.keys()):
             assert all([np.abs(ee-Etends[kk][0,0])<0.01*Etends[kk][0,0] for ee in Etends[kk][0,:]]), str(Etends[kk][0,:])
 
     #def test06_calc_Etendue_AlongLOS(self):
@@ -1006,7 +1006,7 @@ class Test15_DetectLensTor:
     @classmethod
     def setup_class(cls, Ves=VesTor):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         Out = np.load(Root+Addpath+'G_015.npz')
 
         O = np.array([0.,Ves._P1Max[0],Ves._P2Max[1]])
@@ -1077,7 +1077,7 @@ class Test15_DetectLensTor:
 
     def test05_debug_Etendue_BenchmarkRatioMode(self):
         Etends, Ratio, RelErr, dX12, dX12Mode, Colis = self.Obj._debug_Etendue_BenchmarkRatioMode(RelErr=1.e-3, Ratio=[0.01,0.1], Modes=['simps','quad'], dX12=[0.002,0.002], dX12Mode='abs', Colis=True)
-        for kk in Etends.keys():
+        for kk in list(Etends.keys()):
             assert all([np.abs(ee-Etends[kk][0,0])<0.01*Etends[kk][0,0] for ee in Etends[kk][0,:]]), str(Etends[kk][0,:])
 
     #def test06_calc_Etendue_AlongLOS(self):
@@ -1144,7 +1144,7 @@ class Test16_DetectLensLin:
     @classmethod
     def setup_class(cls, Ves=VesLin):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         Out = np.load(Root+Addpath+'G_015.npz')
 
         O = np.array([0.,Ves._P1Max[0],Ves._P2Max[1]])
@@ -1215,7 +1215,7 @@ class Test16_DetectLensLin:
 
     def test05_debug_Etendue_BenchmarkRatioMode(self):
         Etends, Ratio, RelErr, dX12, dX12Mode, Colis = self.Obj._debug_Etendue_BenchmarkRatioMode(RelErr=1.e-3, Ratio=[0.01,0.1], Modes=['simps','quad'], dX12=[0.002,0.002], dX12Mode='abs', Colis=True)
-        for kk in Etends.keys():
+        for kk in list(Etends.keys()):
             assert all([np.abs(ee-Etends[kk][0,0])<0.01*Etends[kk][0,0] for ee in Etends[kk][0,:]]), str(Etends[kk][0,:])
 
     #def test06_calc_Etendue_AlongLOS(self):
@@ -1293,7 +1293,7 @@ class Test17_GDetectApertTor:
     @classmethod
     def setup_class(cls, Ves=VesTor):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         ld = ['L_009','L_012']#'L_010','L_011'
         LD = []
@@ -1442,7 +1442,7 @@ class Test18_GDetectApertLin:
     @classmethod
     def setup_class(cls, Ves=VesLin):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         ld = ['L_009','L_012']#'L_010','L_011'
         LD = []
@@ -1590,7 +1590,7 @@ class Test19_GDetectLensTor:
     @classmethod
     def setup_class(cls, Ves=VesTor):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         LD = []
         O = np.array([0.,Ves._P1Min[0],Ves._P2Max[1]])
@@ -1725,7 +1725,7 @@ class Test20_GDetectLensLin:
     @classmethod
     def setup_class(cls, Ves=VesTor):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         LD = []
         O = np.array([0.,Ves._P1Min[0],Ves._P2Max[1]])

@@ -83,7 +83,7 @@ class test01_PreData:
 
     def setup_class(cls, data=data, t=t, Names=Names, SavePath=SavePath):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
         cls.Obj = tft.PreData(data, t=t, Chans=Names, Exp='Misc', Diag='Misc', shot=0, SavePath=SavePath)
 
 
@@ -157,7 +157,7 @@ class test01_PreData:
         self.Obj.set_fft(DF=[10.,12.], Harm=True, DFEx=[14.,15.], HarmEx=True)
 
     def test09_set_PhysNoise(self):
-        self.Obj.set_PhysNoise(Method='svd', Modes=range(0,8), DF=None, DFEx=None, Harm=True, HarmEx=True, Deg=0, Nbin=3, LimRatio=0.05, Plot=False)
+        self.Obj.set_PhysNoise(Method='svd', Modes=list(range(0,8)), DF=None, DFEx=None, Harm=True, HarmEx=True, Deg=0, Nbin=3, LimRatio=0.05, Plot=False)
         self.Obj.set_PhysNoise(Method='fft', Modes=None, DF=[10.,12.], DFEx=None, Harm=True, HarmEx=True, Deg=0, Nbin=3, LimRatio=0.05, Plot=False)
 
 
@@ -174,7 +174,7 @@ class test01_PreData:
         plt.close('all')
 
     def test13_saveload(self):
-        print self.Obj.Id.LObj
+        print(self.Obj.Id.LObj)
         self.Obj.save()
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')

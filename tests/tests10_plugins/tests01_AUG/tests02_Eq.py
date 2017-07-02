@@ -73,7 +73,7 @@ class test01_data:
     @classmethod
     def setup_class(cls, shot=30532, t=[2.0,2.01], Quants=['MagAx','Sep','q','jp','rho_p','rho_t','surf','vol','BTX','BRY','BZ'], Diag='EQH', Ves=Root+'/tests/tests10_plugins/tests01_AUG/TFG_VesTor_AUG_Test_sh0.npz'):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         MeshPar = {'CrossMesh':[0.01,0.01], 'CrossMeshMode':'abs'}
         Eq1 = tfaugEq.get_Equilibrium(shot, t, Pts='Ves', MeshPar=MeshPar, Quants=Quants, Diag=Diag, Object=True, Name='Test1', Ves=Ves, SavePath=Root+Addpath, save=False, dtime=None, dtimeIn=False, Test=True)

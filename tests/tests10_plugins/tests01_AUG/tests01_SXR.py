@@ -73,7 +73,7 @@ class test01_geom:
     @classmethod
     def setup_class(cls, shot=30532):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         cls.shot = shot
 
@@ -98,7 +98,7 @@ class test01_geom:
         assert type(Array) is np.ndarray
 
         # Values
-        assert Change.keys()==[29043]
+        assert list(Change.keys())==[29043]
 
 
     def test02_create(self):
@@ -121,7 +121,7 @@ class test02_data:
     @classmethod
     def setup_class(cls, shot=30532):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         cls.shot = shot
 

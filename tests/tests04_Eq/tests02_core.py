@@ -90,7 +90,7 @@ class test01_Eq2D:
     @classmethod
     def setup_class(cls, Tab_t=Tab_t, Tab_Pts=Tab_Pts, Tab_vPts=Tab_vPts, Nt=Nt):
         print ("")
-        print "--------- "+VerbHead+cls.__name__
+        print("--------- "+VerbHead+cls.__name__)
 
         MagAx = np.tile(np.array([1.7,0.]),(Nt,1))
         Sep = [np.array([[1.4,2.,2.,1.4],[-2.,-2.,2.,2.]]) for ii in range(0,Nt)]

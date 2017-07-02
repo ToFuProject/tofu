@@ -94,7 +94,7 @@ def test02_interp_Quant():
     LQ = _tfEq_c._interp_Quant(Tab_t, Tab_Pts, [Tab_vPts], Pts, LQuant=['rho_p'], indt=None, t=2., deg=3, Test=True)
     assert type(LQ) is np.ndarray and LQ.shape==(1,NP)
     LQ = _tfEq_c._interp_Quant(Tab_t, Tab_Pts, [Tab_vPts,Tab_vPts], Pts, LQuant=['rho_p','q'], indt=None, t=None, deg=3, Test=True)
-    assert type(LQ) is dict and all([ss in LQ.keys() for ss in ['rho_p','q']]) and all([type(LQ[ss]) is np.ndarray and LQ[ss].shape==(Nt,NP) for ss in LQ.keys()])
+    assert type(LQ) is dict and all([ss in list(LQ.keys()) for ss in ['rho_p','q']]) and all([type(LQ[ss]) is np.ndarray and LQ[ss].shape==(Nt,NP) for ss in list(LQ.keys())])
 
 
 
