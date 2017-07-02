@@ -78,19 +78,11 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-            'os',
-            'itertools',
-            'math',
-            'datetime',
-            'time',
-            'warnings',
-            'inspect',
-            'numpy==1.9.1',
-            'scipy==0.15.1',
-            'matplotlib==1.2.1',
-            'mpl_toolkits',
-            'polygon2==2.0.8',
-            'cython==0.19.1',
+            'numpy',
+            'scipy',
+            'matplotlib',
+            'polygon3',
+            'cython',
             ],
 
     # List additional groups of dependencies here (e.g. development
