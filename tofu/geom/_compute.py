@@ -341,7 +341,7 @@ def _ApDetect_check_inputs(Id=None, Poly=None, Optics=None, Ves=None, Sino_RefPt
     if not Poly is None:
         assert type(Poly) is dict or (hasattr(Poly,'__getitem__') and np.asarray(Poly).ndim==2 and 3 in np.asarray(Poly).shape), "Arg Poly must be a dict or an iterable with 3D cartesian coordinates of points !"
         if type(Poly) is dict:
-            assert all([aa in Poly.keys() for aa in ['O','nn','Rad']]), "Arg Poly must be a dict with keys ['O','nn','Rad'] !"
+            assert all([aa in list(Poly.keys()) for aa in ['O','nn','Rad']]), "Arg Poly must be a dict with keys ['O','nn','Rad'] !"
             assert type(Poly['Rad']) in [float,np.float64], "Arg Poly['Rad'] must be a float !"
             assert all([hasattr(aa,'__getitem__') and np.asarray(aa).shape==(3,) for aa in [Poly['O'],Poly['nn']]]), "Args Poly['O'] and Poly['nn'] must be iterables with 3D cartesian coordinates (center and vector) !"
     if not Optics is None and not Exp is None:
@@ -451,7 +451,7 @@ def _Detect_set_LOS(Name, LSurfs, LBaryS, LnIn, LPolys, BaryS, Poly, OpType='Ape
         assert type(BaryS) is np.ndarray and BaryS.shape==(3,), "Arg BaryS must be a (3,) np.ndarray !"
 
     if Verb:
-        print "    "+Name+" : Computing LOS..."
+        print("    "+Name+" : Computing LOS...")
 
     if OpType=="Lens":
         LOS_ApertPolyInt = LPolys[0]
@@ -899,8 +899,8 @@ def Calc_ViewConePointsMinMax_PlanesDetectApert_2Steps(Poly, DBaryS, LPolys, LnP
                 except Exception:
                     # DB
                     print('')
-                    print('    PolyRef', PolyRef)
-                    print('    Corners, Ps, nPs', Corners[:,ii], Ps, nPs)
+                    print(('    PolyRef', PolyRef))
+                    print(('    Corners, Ps, nPs', Corners[:,ii], Ps, nPs))
                     import matplotlib.pyplot as plt
                     from mpl_toolkits.mplot3d import Axes3D
                     f = plt.figure()
@@ -1070,7 +1070,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
     _SAngCross_Reg, _SAngCross_Reg_Int, _SAngCross_Reg_K, _SAngCross_Reg_Psi = False, None, None, None
     if VType=='Tor':
         if np.abs(np.arctan2(LOSPIn[1],LOSPIn[0])-np.arctan2(LOSPOut[1],LOSPOut[0])) < 1.e-6:
-            print "        Poloidal detector => computing SAng Int on regular grid !"
+            print("        Poloidal detector => computing SAng Int on regular grid !")
             # Create all points in a Poloidal cross-section
             psiMin, psiMax = Calc_PolProj_ConePsiMinMax_2Steps(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LOBaryS, Span_k, LOSu, LOSPOut, Nk=Nk, Test=True)
             psiMin, psiMax = psiMin.min(), psiMax.max()
@@ -1135,11 +1135,11 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                 Ind[indPos.nonzero()[0][~indC]] = 0
             Vis[:,ii,:] = Ind.reshape((NR,NZ))
             if ii==0 or (ii+1)%NRef==0:
-                print "        Computing cross slice", ii+1, "/", NTheta, "  with ", np.sum(indSide), "/", RRf.size," points"
+                print("        Computing cross slice", ii+1, "/", NTheta, "  with ", np.sum(indSide), "/", RRf.size," points")
 
     elif VType=='Lin':
         if np.abs(LOSPIn[0]-LOSPOut[0]) < 1.e-6:
-            print "        Cross detector => computing SAng Int on regular grid !"
+            print("        Cross detector => computing SAng Int on regular grid !")
             # Create all points in a cross-section
             psiMin, psiMax = Calc_PolProj_ConePsiMinMax_2Steps_Lin(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LOBaryS, Span_k, LOSu, LOSPOut, Nk=Nk, Test=True)
             psiMin, psiMax = psiMin.min(), psiMax.max()
@@ -1202,7 +1202,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                 Ind[indPos.nonzero()[0][~indC]] = 0
             Vis[ii,:,:] = Ind.reshape((NY,NZ))
             if ii==0 or (ii+1)%NRef==0:
-                print "        Computing cross slice", ii+1, "/", NX, "  with ", np.sum(indSide), "/", YYf.size," points"
+                print("        Computing cross slice", ii+1, "/", NX, "  with ", np.sum(indSide), "/", YYf.size," points")
 
     # Cone_PolyCross
     if VType=='Tor':
@@ -1456,7 +1456,7 @@ def Refine_ConePoly_All(Poly, dMax=TFD.DetConeRefdMax):      # Used
             u12 = (p2-p1)/np.sqrt((p2[0]-p1[0])**2+(p2[1]-p1[1])**2)
             lp = Polybis[:,ind1+1:ind2]
             if np.any(np.abs(u12[0]*(lp[1,:]-p1[1]) - u12[1]*(lp[0,:]-p1[0])) > dMax):
-                indtemp = range(ind1,ind2+1)
+                indtemp = list(range(ind1,ind2+1))
             else:
                 indtemp = [ind1,ind2]
         PointsIn = Polybis[:,indtemp]
@@ -1686,7 +1686,7 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
             Points, SAng, Vect, dV = SynthDiag_Points, SynthDiag_SAng, SynthDiag_Vect, SynthDiag_dV
             Sig = dV*np.sum(ff(Points,Vect,**extargs)*SAng) if Ani else dV*np.sum(ff(Points,**extargs)*SAng)
         elif Mode=='quad':
-            print "Calc_Sig quad => to be checked !!!!"
+            print("Calc_Sig quad => to be checked !!!!")
             LPolys = [DPoly]+LOPolys
             P, u = self.LOS[self._LOSRef]['LOS'].D, self.LOS[self._LOSRef]['LOS'].u
             e1, e2 = GG.Calc_DefaultCheck_e1e2_PLane_1D(P, u)
@@ -1804,7 +1804,7 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
             s1 = LOSkPIn+MarginS
             s2 = LOSkPOut if Colis else Span_k[1]
             D, u = LOSD.reshape((3,1)), LOSu.reshape((3,1))
-            Neargs = len(extargs.keys())
+            Neargs = len(list(extargs.keys()))
             assert Neargs<=1, "With quad method, only one extra argument can be passed !"
             if Ani:
                 if Neargs==0:
@@ -1820,7 +1820,7 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
                 else:
                     def FF(s, earg):
                         return ff(D+s*u,earg)
-            aa = [] if Neargs==0 else [extargs[extargs.keys()[0]]]
+            aa = [] if Neargs==0 else [extargs[list(extargs.keys())[0]]]
             Sig = scpinteg.quad(FF, s1, s2, args=tuple(aa), epsrel=epsrel)[0]*LOSEtend
         else:
             k2 = LOSkPOut if Colis else Span_k[1]
@@ -1988,7 +1988,7 @@ def Calc_Etendue_AlongLOS(D, NP=5, Length='POut', Mode='quad', kMode='rel', Coli
     assert Mode == 'simps' or Mode == 'trapz' or Mode == 'quad', "Arg Mode should be 'simps', 'trapz' or 'quad' for indicating the integration method to use !"
     assert Length in ['POut','kMax'], "Arg Length must be in ['POut','kMax'] !"
     assert kMode in ['rel','abs'], "Arg kMode must be in ['norm','abs'] !"
-    assert LOSRef is None or LOSRef in D.LOS.keys(), "Arg LOSRef must be one of the LOS keys of D !"
+    assert LOSRef is None or LOSRef in list(D.LOS.keys()), "Arg LOSRef must be one of the LOS keys of D !"
     LOSRef = D._LOSRef if LOSRef is None else LOSRef
     DS = 1./(NP+2)
     PIN, POUT, U = np.copy(D.LOS[LOSRef]['LOS'].PIn), np.copy(D.LOS[LOSRef]['LOS'].POut), np.copy(D.LOS[LOSRef]['LOS'].u)

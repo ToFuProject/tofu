@@ -51,7 +51,7 @@ def _PreData_set_data(data, t=None, Chans=None, DtRef=None, LIdDet=None):
     if t is None:
         t = np.arange(0,data.shape[0])
     if Chans is None:
-        Chans = map(str,np.arange(0,data.shape[1]))
+        Chans = list(map(str,np.arange(0,data.shape[1])))
     if not LIdDet is None:
         # Make sure LIdDet is is the good order
         LIdN = [Id.Name for Id in LIdDet]
@@ -265,7 +265,7 @@ def Plot_MovAverage(data, time, MovMeanfreq, Resamp=True, interpkind='linear', T
 
 # --------- SVD ------------------------------------
 
-def SVDExtractPhysNoise(data, Modes=range(0,10)):
+def SVDExtractPhysNoise(data, Modes=list(range(0,10))):
     u,s,v = np.linalg.svd(data, full_matrices=1, compute_uv=1)
     indPhys = Modes
     indNoise = np.arange(0,s.size)

@@ -873,7 +873,7 @@ class LOS(object):
 
     def _set_CrossProj(self):
         if np.isnan(self.kPIn) or np.isnan(self.kPOut):
-            print('LOS '+self.Id.Name+' has no PIn or POut for computing the PolProj !')
+            print(('LOS '+self.Id.Name+' has no PIn or POut for computing the PolProj !'))
             return
         self._PRMin, self._RMin, self._kRMin, self._PolProjAng, self._PplotOut, self._PplotIn = _tfg_c._LOS_set_CrossProj(self.Ves.Type, self.D, self.u, self.kPIn, self.kPOut)
 
@@ -2115,7 +2115,7 @@ class Detect(object):
         # Run all computation routines
         self._set_Id(Id, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath, dtime=dtime, dtimeIn=dtimeIn)
         if Verb:
-            print "TFG.Detect object "+self.Id.Name+" : Creating..."
+            print("TFG.Detect object "+self.Id.Name+" : Creating...")
         self._set_Poly(Poly, Calc=False)
         self._initAll()
         self._set_Optics(Optics, Calc=False)
@@ -2128,7 +2128,7 @@ class Detect(object):
                            SynthDiag_dX12=SynthDiag_dX12, SynthDiag_dX12Mode=SynthDiag_dX12Mode, SynthDiag_ds=SynthDiag_ds, SynthDiag_dsMode=SynthDiag_dsMode, SynthDiag_MarginS=SynthDiag_MarginS, Colis=Colis)
 
         if Verb:
-            print "TFG.Detect object "+self.Id.Name+" : Created !"
+            print("TFG.Detect object "+self.Id.Name+" : Created !")
         self._Done = True
 
 
@@ -2373,14 +2373,14 @@ class Detect(object):
     def _set_Etendue(self, Method=tfd.DetEtendMethod, RelErr=tfd.DetEtendepsrel, dX12=tfd.DetEtenddX12, dX12Mode=tfd.DetEtenddX12Mode, Ratio=tfd.DetEtendRatio, Colis=tfd.DetCalcEtendColis, NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad):    # Pb with Lens quad vs trapz !
         self._check_inputs(Etend_Method=Method, Etend_RelErr=RelErr, Etend_dX12=dX12, Etend_dX12Mode=dX12Mode, Etend_Ratio=Ratio, Colis=Colis)
         if not self.LOS in ["Impossible !",None]:
-            print "    "+self.Id.Name+" : Computing Entendue..."
+            print("    "+self.Id.Name+" : Computing Entendue...")
             LOPolys = [oo.Poly for oo in self.Optics]
             LOnIns = [oo.nIn for oo in self.Optics]
             LSurfs = [oo.Surf for oo in self.Optics]
             LOBaryS = [oo.BaryS for oo in self.Optics]
             
             (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
-            for kk in self.LOS.keys():
+            for kk in list(self.LOS.keys()):
                 self.LOS[kk]['Etend_0Dir'] = self.Surf * _tfg_gg.Calc_SAngVect_LPolys1Point_Flex([self._LOS_ApertPolyInt], self.BaryS, self._SAngPlane[0], self._SAngPlane[1], self._SAngPlane[2], self._SAngPlane[3])[0]
                 self.LOS[kk]['Etend_0Inv'] = self._LOS_ApertPolyInt_S * _tfg_gg.Calc_SAngVect_LPolys1Point_Flex([self.Poly], self._LOS_ApertPolyInt_BaryS, self.BaryS, self._SAngPlane[1], self._SAngPlane[2], self._SAngPlane[3])[0]
                 PRef, LOSu = self.LOS[kk]['PRef'], self.LOS[kk]['LOS'].u
@@ -2404,11 +2404,11 @@ class Detect(object):
     def _set_SinoSpan(self, Sino_RefPt=None, CalcSpanImp=True, MarginRMin=tfd.DetSpanRMinMargin, NEdge=tfd.DetSpanNEdge, NRad=tfd.DetSpanNRad, Eps=1.e-10, new=True):
         self._check_inputs(Sino_RefPt=Sino_RefPt, CalcSpanImp=CalcSpanImp, MarginRMin=MarginRMin, NEdge=NEdge, NRad=NRad)
         if CalcSpanImp and not (self.LOS=='Impossible !' or self.LOS is None):
-            print "    "+self.Id.Name+" : Computing Span and Sinogram..."
+            print("    "+self.Id.Name+" : Computing Span and Sinogram...")
             if Sino_RefPt is None:
                 Sino_RefPt = self.Ves.BaryS
             Sino_RefPt = np.asarray(Sino_RefPt).flatten()
-            for kk in self.LOS.keys():
+            for kk in list(self.LOS.keys()):
                 self.LOS[kk]['LOS']._set_Sino(RefPt=Sino_RefPt)
             P, nP, e1, e2 = self._SAngPlane
             LOPolys = [oo.Poly for oo in self.Optics]
@@ -2500,7 +2500,7 @@ class Detect(object):
         """
 
         if CalcCone and not (self.LOS=='Impossible' or self.LOS is None):
-            print "    "+self.Id.Name+" : Computing ConePoly..."
+            print("    "+self.Id.Name+" : Computing ConePoly...")
             DPoly, DBaryS, DnIn = self.Poly, self.BaryS, self.nIn
             LOPolys = [oo.Poly for oo in self.Optics]
             LOnIns = [oo.nIn for oo in self.Optics]
@@ -2558,7 +2558,7 @@ class Detect(object):
         else:
             self._Cone_PolyHorbis[indPoly], self._Cone_PolyHor_dMax = PP, dMax
         if Verb:
-            print "        "+self.Id.Name+".refine_ConePoly('"+Proj+"') : from ", Poly.shape[1], "to", PP.shape[1], "points"
+            print("        "+self.Id.Name+".refine_ConePoly('"+Proj+"') : from ", Poly.shape[1], "to", PP.shape[1], "points")
 
     def isInside(self, Points, In='(X,Y,Z)', Test=True):
         """ Return an array of indices indicating whether each point lies both in the cross-section and horizontal porojections of the viewing cone
@@ -2657,7 +2657,7 @@ class Detect(object):
 
         """
         if CalcPreComp and not (self.LOS=='Impossible !' or self.LOS is None):
-            print "    "+self.Id.Name+" : Pre-computing 3D matrix for synthetic diag..."
+            print("    "+self.Id.Name+" : Pre-computing 3D matrix for synthetic diag...")
 
             LOPolys = [oo.Poly for oo in self.Optics]
             LOBaryS = [oo.BaryS for oo in self.Optics]
@@ -2791,7 +2791,7 @@ class Detect(object):
 
         """
         if not self.LOS=='Impossible !':
-            Keys = self.LOS.keys()
+            Keys = list(self.LOS.keys())
             NLOS, NR = len(Keys), len(Ratio)
             Etends = {}
             (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
@@ -2809,7 +2809,7 @@ class Detect(object):
                     LOnIn = [oo.nIn for oo in self.Optics]
                     LOSurfs = [oo.Surf for oo in self.Optics]
                     for ii in range(0,len(Ratio)):
-                        print "    ...Computing Etendue with integration method", kk, " for LOS ", Keys[jj], " and Ratio=", Ratio[ii]
+                        print("    ...Computing Etendue with integration method", kk, " for LOS ", Keys[jj], " and Ratio=", Ratio[ii])
                         Etends[kk][jj,ii] = _tfg_c.Calc_Etendue_PlaneLOS(PRef, LOSu, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIn, LOSurfs, LOBaryS, self._SAngPlane, VPoly, VVin, DLong=self.Ves.DLong,
                                 Lens_ConeTip = self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, NRad=NRad, NEdge=NEdge,
                                 OpType=self.OpticsType, VType=self.Ves.Type, Mode=kk, e1=e1, e2=e2, epsrel=RelErr, Ratio=Ratio[ii], dX12=dX12, dX12Mode=dX12Mode, Colis=Colis, Test=True)[0][0]
@@ -2891,7 +2891,7 @@ class Detect(object):
             e1, e2 = np.tile(e1,(NP,1)).T, np.tile(e2,(NP,1)).T
             (VPoly, VVin) = (self.Ves.Poly, self.Ves._Vin) if self._VesCalc is None else (self._VesCalc.Poly, self._VesCalc._Vin)
             for ii in range(0,NMod):
-                print "    ...Computing Etendues of "+ self.Id.Name +" for ",NP," planes with integration method ",Modes[ii]
+                print("    ...Computing Etendues of "+ self.Id.Name +" for ",NP," planes with integration method ",Modes[ii])
                 Etends[Modes[ii]] = _tfg_c.Calc_Etendue_PlaneLOS(Ps, nPs, self.Poly, self.BaryS, self.nIn, LOPolys, LOnIn, LOSurfs, LOBaryS, self._SAngPlane,
                         VPoly, VVin, DLong=self.Ves.DLong, Lens_ConeTip=self._Optics_Lens_ConeTip, Lens_ConeHalfAng=self._Optics_Lens_ConeHalfAng, RadL=self.Optics[0].Rad, RadD=self.Rad, F1=self.Optics[0].F1, NRad=NRad, NEdge=NEdge,
                         OpType=self.OpticsType, VType=self.Ves.Type, Mode=Modes[ii], e1=e1, e2=e2, epsrel=RelErr, Ratio=Ratio, dX12=dX12, dX12Mode=dX12Mode, Colis=Colis, Test=True)[0]
@@ -3419,14 +3419,14 @@ def _Detect_check_inputs(Id=None, Poly=None, Type=None, Optics=None, Vess=None, 
     if not Poly is None:
         assert  type(Poly) is dict or (hasattr(Poly,'__getitem__') and np.asarray(Poly).ndim==2 and 3 in np.asarray(Poly).shape), "Arg Poly must be a dict or an iterable with 3D cartesian coordinates of points !"
         if type(Poly) is dict:
-            assert all([aa in Poly.keys() for aa in ['Rad']]), "Arg Poly must be a dict with keys ['Rad'] !"
+            assert all([aa in list(Poly.keys()) for aa in ['Rad']]), "Arg Poly must be a dict with keys ['Rad'] !"
             assert type(Poly['Rad']) in [float,np.float64], "Arg Poly['Rad'] must be a float !"
     if not Optics is None:
         assert type(Optics) in [list,Apert,Lens], "Arg Optics must be a list, Apert or Lens"
         if type(Optics) is list:
             assert all([type(oo) is Apert for oo in Optics]), "Arg Optics must be a list of Apert !"
         if type(Optics) is Lens:
-            assert type(Poly) is dict and 'Rad' in Poly.keys(), "When Optics is a Lens, Poly must be a dict with field 'Rad' !"
+            assert type(Poly) is dict and 'Rad' in list(Poly.keys()), "When Optics is a Lens, Poly must be a dict with field 'Rad' !"
         if not Exp is None:
             if type(Optics) is list:
                 assert Exp==Optics[0].Id.Exp, "Arg Exp must be the same as the Optics[0].Id.Exp !"
@@ -4228,7 +4228,7 @@ def _GDetect_Calc_SAngNb(GD, Pts=None, Proj='Cross', Slice='Int', DRY=None, DXTh
                 FF = LD[ii]._get_SAngIntMax(Proj=Proj, SAng=Slice)
                 SA[ii,:] = FF(Pts, In=out)
                 if np.any(SA[ii,:]<0.):
-                    print "    SAngNb : ", LD[ii].Id.Name, " has negative SAng values !"
+                    print("    SAngNb : ", LD[ii].Id.Name, " has negative SAng values !")
         else:
             if Proj=='Hor':
                 Span = [min([oo[0] for oo in LSpan_Z]), max([oo[1] for oo in LSpan_Z])]
@@ -4239,7 +4239,7 @@ def _GDetect_Calc_SAngNb(GD, Pts=None, Proj='Cross', Slice='Int', DRY=None, DXTh
             for ii in range(0,nD):
                 SA[ii,:] = LD[ii].calc_SAngVect(Ptsint, In='(X,Y,Z)', Colis=Colis, Test=True)[0]
                 if np.any(SA[ii,:]<0.):
-                    print "    SAngNb : ", LD[ii].Id.Name, " has negative SAng values !"
+                    print("    SAngNb : ", LD[ii].Id.Name, " has negative SAng values !")
         Nb = np.sum(SA>0.,axis=0)
         SA = np.sum(SA,axis=0)
         return SA, Nb, Pts
@@ -4318,7 +4318,7 @@ def _Calc_Resolution(GLD, Pts=None, CrossMesh=[0.01,0.01], CrossMeshMode='abs', 
             Intstr = "IntCross{0:02.0f}-{1:02.0f}mm".format(1000.*IntResCross[0],1000.*IntResCross[1]) if IntResCrossMode.lower()=='abs' else "IntCross{0:4.2f}-{1:4.2f}".format(IntResCross[0],IntResCross[1])
             Intstr = Intstr+"_IntLong{0:02.0f}mm".format(1000.*IntResLong) if IntResLongMode.lower()=='abs' else Intstr+"_IntLong{0:4.2f}".format(IntResLong)
             SaveName = 'Res_'+GLD[0].Id.Exp+'_Diag'+GLD[0].Id.Diag+'_'+Mode+'_'+Thresstr+'_'+Stepstr+'_'+Intstr
-            print SaveName
+            print(SaveName)
 
     # Prepare mesh
     if Pts is None:
@@ -4346,7 +4346,7 @@ def _Calc_Resolution(GLD, Pts=None, CrossMesh=[0.01,0.01], CrossMeshMode='abs', 
         tt = np.linspace(0.,2.*np.pi,Ntt)
         Res = np.nan*np.ones((NP,))
         for ii in range(0,NP):
-            print "    Resolution : Point", ii+1, "/", NP
+            print("    Resolution : Point", ii+1, "/", NP)
             size = 0.
             InitSigs = np.zeros((ND,),dtype=float)
             if np.any(ind[:,ii]):
@@ -4390,8 +4390,8 @@ def _Calc_Resolution(GLD, Pts=None, CrossMesh=[0.01,0.01], CrossMeshMode='abs', 
             LDetLim.append(GLD[indDet].Id.Name)
 
             if PlotDetail:
-                print 'InitSigs[ind[:,ii]]', InitSigs[ind[:,ii]]
-                print 'THR[ind[:,ii]]', THR[ind[:,ii]]
+                print('InitSigs[ind[:,ii]]', InitSigs[ind[:,ii]])
+                print('THR[ind[:,ii]]', THR[ind[:,ii]])
                 ax1, ax2, ax3 = _tfg_p._Resolution_PlotDetails(GLD, ND, Pts[:,ii], np.array(Lsize), np.vstack(Lsigs), InitSigs, len(Lsigs), indDet, Ind, Res[ii], Ves, THR, tt=tt, Cdict=dict(Cdict), draw=True)
             #print "    ", GLD[indDet].Id.Name, Res[ii]
 

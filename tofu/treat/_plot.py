@@ -147,7 +147,7 @@ def Plot_Signal(data, t, LNames, nMax=4, shot=None, a4=False):
                     elif self.curax=='chan' and len(self.indNames)<self.Max:
                         self.indNames.append(self.indNames[-1]-1)
                     else:
-                        print "     Maximum nb. of simultaneous plots reached !!!"
+                        print("     Maximum nb. of simultaneous plots reached !!!")
                 else:
                     if self.curax=='time':
                         self.indt[-1] -= 1
@@ -163,7 +163,7 @@ def Plot_Signal(data, t, LNames, nMax=4, shot=None, a4=False):
                     elif self.curax=='chan' and len(self.indNames)<self.Max:
                         self.indNames.append(self.indNames[-1]+1)
                     else:
-                        print "     Maximum nb. of simultaneous plots reached !!!"
+                        print("     Maximum nb. of simultaneous plots reached !!!")
                 else:
                     if self.curax=='time':
                         self.indt[-1] += 1
@@ -184,7 +184,7 @@ def Plot_Signal(data, t, LNames, nMax=4, shot=None, a4=False):
                     if len(self.indt)<self.Max:
                         self.indt.append(np.argmin(np.abs(self.t-event.xdata)))
                     else:
-                        print "     Maximum nb. of simultaneous plots reached !!!"
+                        print("     Maximum nb. of simultaneous plots reached !!!")
                 else:
                     self.indt = [np.argmin(np.abs(self.t-event.xdata))]
                 self.update()
@@ -194,7 +194,7 @@ def Plot_Signal(data, t, LNames, nMax=4, shot=None, a4=False):
                     if len(self.indt)<self.Max:
                         self.indNames.append(int(round(event.xdata)))
                     else:
-                        print "     Maximum nb. of simultaneous plots reached !!!"
+                        print("     Maximum nb. of simultaneous plots reached !!!")
                 else:
                     self.indNames = [int(round(event.xdata))]
                 self.update()
@@ -344,7 +344,7 @@ def SVDNoisePlot(data, t=None, Modes=8, shot=None, NRef=None, a4=False, Test=Tru
 
     # Formatting input
     if type(Modes) is int:
-        Modes = range(0,Modes)
+        Modes = list(range(0,Modes))
     Modes = sorted(list(Modes))
     NM = len(Modes)
 
@@ -378,7 +378,7 @@ def SVDNoisePlot(data, t=None, Modes=8, shot=None, NRef=None, a4=False, Test=Tru
     nn = np.ceil(NM/NRef)
     axbelong = np.resize(np.arange(0,int(NRef)),(nn,int(NRef))).T.flatten()
     axbelong = axbelong[0:NM]
-    X = range(0,data.shape[1])
+    X = list(range(0,data.shape[1]))
     if t is None:
         t = np.arange(0,data.shape[0])
     for ii in range(0,int(NRef)):

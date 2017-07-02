@@ -407,7 +407,7 @@ def Struct_plot(obj, Lax=None, Proj='All', Elt='PBsBvV', Pdict=None, Bsdict=tfd.
             #Lax[0] = _Plot_3D_plt_Struct(obj,ax=Lax[0], Elt=Elt, Lim=Lim, Nstep=Nstep, Pdict=Pdict, LegDict=None, a4=a4, draw=False, Test=Test)
         else:
             Pdictbis = dict(tfd.StructPd) if Pdict is None else dict(Pdict)
-            if obj.Ves is not None and not 'facecolor' in Pdictbis.keys():
+            if obj.Ves is not None and not 'facecolor' in list(Pdictbis.keys()):
                 In = '(R,Z)' if obj.Id.Type=='Tor' else '(Y,Z)'
                 Pdictbis['facecolor'] = 'none' if np.all(obj.isInside(obj.Ves.Poly, In=In)) else (0.8,0.8,0.8,0.8)
             if Proj=='Cross':
@@ -588,8 +588,8 @@ def _LOS_calc_InOutPolProj_Debug(Los,PIn,POut):
     axP.figure.canvas.draw()
     print("")
     print("Debugging...")
-    print("    LOS.D, LOS.u = ", Los.D, Los.u)
-    print("    PIn, POut = ", PIn, POut)
+    print(("    LOS.D, LOS.u = ", Los.D, Los.u))
+    print(("    PIn, POut = ", PIn, POut))
     assert not (np.any(np.isnan(PIn)) or np.any(np.isnan(POut))), "Error in computation of In/Out points !"
 
 
@@ -661,7 +661,7 @@ def GLLOS_plot(GLos, Lax=None, Proj='All', Lplot=tfd.LOSLplot, Elt='LDIORr', Elt
     GLos, Leg = _get_LLOS_Leg(GLos, Leg, ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut)
 
     if EltVes is None:
-        Vesdict['Elt'] = '' if (not 'Elt' in Vesdict.keys() or Vesdict['Elt'] is None) else Vesdict['Elt']
+        Vesdict['Elt'] = '' if (not 'Elt' in list(Vesdict.keys()) or Vesdict['Elt'] is None) else Vesdict['Elt']
     else:
         Vesdict['Elt'] = EltVes
     Vesdict['Lax'], Vesdict['Proj'], Vesdict['LegDict'] = Lax, Proj, None
@@ -1149,7 +1149,7 @@ def Lens_plot_alone(Lns, ax=None, V='red', nin=None, nout=1., Lmax='F', V_NP=50,
         assert Lns.Full, "Full representation of the Lens can only be displayed if full representation parameters are provided (here Lens.Full is False) !"
 
     if not src is None:
-        assert type(src) is dict and all([aa in src.keys() for aa in ['Type','Pt','nn','NP']]), "Arg src must be a dict with fields ['Type','Pt','nn','NP'] !"
+        assert type(src) is dict and all([aa in list(src.keys()) for aa in ['Type','Pt','nn','NP']]), "Arg src must be a dict with fields ['Type','Pt','nn','NP'] !"
         assert hasattr(src['Pt'],'__getitem__') and len(src['Pt'])==2, "Arg src['Pt'] must be an iterable of len()==2 !"
         assert hasattr(src['nn'],'__getitem__') and len(src['nn'])==2, "Arg src['nn'] must be an iterable of len()==2 !"
         assert src['Type'] in ['Lin','Pt'], "Arg src['Type'] must be in ['Lin','Pt'] !"
@@ -1212,7 +1212,7 @@ def LLens_plot(LLns, Lax=None, Proj='All', Elt='PV', EltVes='', Leg=None, LVIn=t
 
     LLns = LLns if type(LLns) is list else [LLns]
 
-    if not 'Elt' in Vesdict.keys():
+    if not 'Elt' in list(Vesdict.keys()):
         Vesdict['Elt'] = '' if EltVes is None else EltVes
     if not all([ee=='' for ee in [EltVes,Vesdict['Elt']]]):
         Vesdict['Elt'] = Vesdict['Elt'] if EltVes is None else EltVes
@@ -1379,7 +1379,7 @@ def LApert_plot(LA, Lax=None, Proj='All', Elt='PV', EltVes='', Leg=None, LVIn=tf
 
     LA = LA if type(LA) is list else [LA]
 
-    if not 'Elt' in Vesdict.keys():
+    if not 'Elt' in list(Vesdict.keys()):
         Vesdict['Elt'] = '' if EltVes is None else EltVes
     if not all([ee=='' for ee in [EltVes,Vesdict['Elt']]]):
         Vesdict['Elt'] = Vesdict['Elt'] if EltVes is None else EltVes
@@ -1630,7 +1630,7 @@ def GLDetect_plot(GLD, Lax=None, Proj='All', Elt='PVC', EltOptics='P', EltLOS='L
     GLD, Leg, LOSRef = _get_LD_Leg_LOSRef(GLD, Leg=Leg, LOSRef=LOSRef, ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut)
 
     # Plot Ves
-    if not 'Elt' in Vesdict.keys():
+    if not 'Elt' in list(Vesdict.keys()):
         Vesdict['Elt'] = '' if EltVes is None else EltVes
     if not all([ee=='' for ee in [EltVes,Vesdict['Elt']]]):
         Vesdict['Elt'] = Vesdict['Elt'] if EltVes is None else EltVes
@@ -1639,7 +1639,7 @@ def GLDetect_plot(GLD, Lax=None, Proj='All', Elt='PVC', EltOptics='P', EltLOS='L
     Lax = Ves_plot(GLD[0].Ves, **Vesdict)
 
     # Plot Optics
-    if not 'Elt' in Opticsdict.keys():
+    if not 'Elt' in list(Opticsdict.keys()):
         Opticsdict['Elt'] = '' if EltOptics is None else EltOptics
     if not all([ee=='' for ee in [EltOptics,Opticsdict['Elt']]]):
         Opticsdict['Elt'] = Opticsdict['Elt'] if EltOptics is None else EltOptics
@@ -1653,7 +1653,7 @@ def GLDetect_plot(GLD, Lax=None, Proj='All', Elt='PVC', EltOptics='P', EltLOS='L
         Lax = LLens_plot(LLens, **Opticsdict) if len(LLens)>0 else Lax
 
     # Plot LOS
-    if not 'Elt' in LOSdict.keys():
+    if not 'Elt' in list(LOSdict.keys()):
         LOSdict['Elt'] = '' if EltLOS is None else EltLOS
     if not all([ee=='' for ee in [EltLOS,LOSdict['Elt']]]):
         LOSdict['Elt'] = LOSdict['Elt'] if EltLOS is None else EltLOS
@@ -1884,7 +1884,7 @@ def _GLDetect_plot_SAngNb(SA=None, Nb=None, Pts=None, Lax=None, Proj='Cross', Sl
             Lax[0].set_aspect(aspect='equal',adjustable='datalim')
             Lax[1].set_aspect(aspect='equal',adjustable='datalim')
 
-    cbar = plt.colorbar(CNb, ax=Lax[1], ticks=range(1,NbMax+1), anchor=(0.,0.), panchor=(1.,0.), shrink=0.8)
+    cbar = plt.colorbar(CNb, ax=Lax[1], ticks=list(range(1,NbMax+1)), anchor=(0.,0.), panchor=(1.,0.), shrink=0.8)
     cbar.ax.set_ylabel(r"$Nb.$ $Detect.$ $(adim.)$")
 
     cbar = plt.colorbar(CSf, ax=Lax[0], anchor=(0.,0.), panchor=(1.,0.), shrink=0.8)
@@ -1931,7 +1931,7 @@ def Plot_Etendue_AlongLOS(kPts, Etends, kMode, Name, ax=None, Length=None, Colis
     kPts = np.asarray(kPts)
     if Test:
         assert kPts.ndim==1, "Arg kPts must be a 1-D np.ndarray !"
-        assert type(Etends) is dict and all([Etends[kk].shape==kPts.shape for kk in Etends.keys()]), "Arg Etends must be a dict of np.ndarray of same shape as kPts !"
+        assert type(Etends) is dict and all([Etends[kk].shape==kPts.shape for kk in list(Etends.keys())]), "Arg Etends must be a dict of np.ndarray of same shape as kPts !"
         assert type(kMode) is str and kMode.lower() in ['rel','abs'], "Arg kMode must be in ['rel','abs']"
         assert type(Name) is str, "Arg Name must be a str !"
         assert ax is None or type(ax) is plt.Axes, "Arg ax should be a plt.Axes instance !"
@@ -1944,8 +1944,8 @@ def Plot_Etendue_AlongLOS(kPts, Etends, kMode, Name, ax=None, Length=None, Colis
     if ax is None:
         ax = tfd.Plot_Etendue_AlongLOS_DefAxes(kMode=kMode)
 
-    Modes = Etends.keys()
-    Lkeys = Ldict.keys()
+    Modes = list(Etends.keys())
+    Lkeys = list(Ldict.keys())
     if not all([ss in Ldict for ss in Modes]):
         ldict = dict(Ldict)
         Ldict = {}

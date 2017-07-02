@@ -510,7 +510,7 @@ class PreData(object):
         L = [L[ii] for ii in range(0,len(L)) if self._indCorr[ii]]
         return L
 
-    def set_PhysNoise(self, Method='svd', Modes=range(0,8), DF=None, DFEx=None, Harm=True, HarmEx=True, Deg=0, Nbin=3, LimRatio=0.05, Plot=False):
+    def set_PhysNoise(self, Method='svd', Modes=list(range(0,8)), DF=None, DFEx=None, Harm=True, HarmEx=True, Deg=0, Nbin=3, LimRatio=0.05, Plot=False):
         """ Use a svd or a fft to estimate the physical part of the signal and the part which can be assimilated to noise, then uses specified degree for polynomial noise model
 
         This method provides an easy way to compute the noise level on each channel.

@@ -6,7 +6,7 @@ Created on Wed Jul 30 14:37:31 2014
 """
 
 import os                   # For accessing cuurent working direcVesy
-import cPickle as pck       # For saving / loading objects
+import pickle as pck       # For saving / loading objects
 import numpy as np
 import datetime as dtm
 import getpass
@@ -206,12 +206,12 @@ def get_PolyFromPolyFileObj(PolyFileObj, SavePathInp=None, units='m', comments='
 
 
 def _check_NotNone(Dict):
-    for aa in Dict.keys():
+    for aa in list(Dict.keys()):
         assert not Dict[aa] is None, "Arg "+aa+" must not be None !"
 
 
 def _get_FromItself(obj, Dict):
-    for aa in Dict.keys():
+    for aa in list(Dict.keys()):
         if Dict[aa] is None:
             try:
                 Dict[aa] = getattr(obj,aa)
@@ -398,12 +398,12 @@ class ID(object):
 
     def get_LObjasLId(self,Cls=None):
         if Cls is None:
-            Cls = sorted([self._LObj.keys()])
+            Cls = sorted([list(self._LObj.keys())])
         Cls = [Cls] if type(Cls) is str else Cls
         DId = {}
         for ii in range(0,len(Cls)):
             lid = []
-            keys = self._LObj[Cls[ii]].keys()
+            keys = list(self._LObj[Cls[ii]].keys())
             for jj in range(0,len(self._LObj[Cls[ii]]['Exp'])):
                 dd = {}
                 for kk in keys:
@@ -723,7 +723,7 @@ def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log=
         ind = ind.nonzero()[0]
     elif Out is not bool and hasattr(ID,Out):
         ind = [getattr(LId[ii],Out) for ii in ind.nonzero()[0]]
-    elif Out is not bool and Out in LId[0].USRdict.keys():
+    elif Out is not bool and Out in list(LId[0].USRdict.keys()):
         ind = [LId[ii].USRdict[Out] for ii in ind.nonzero()[0]]
     return ind
 
@@ -800,7 +800,7 @@ def FindSolFile(shot=0, t=0, Dt=None, Mesh='Rough1', Deg=2, Deriv='D2N2', Sep=Tr
     LF = [ff for ff in os.listdir(OutPath) if 'TFI_Sol2D_AUG_SXR' in ff]
     LF = [ff for ff in LF if all([ss in ff for ss in ['_'+str(shot)+'_', '_'+Mesh+'_D'+str(Deg), '_Deriv'+Deriv+'_Sep'+str(Sep)+'_Pos'+str(Pos)]])]
     if len(LF)==0:
-        print "No matching Sol2D file in ", OutPath
+        print("No matching Sol2D file in ", OutPath)
         out = None
     LDTstr = [ff[ff.index('_Dt')+3:ff.index('s_')] for ff in LF]
     LDTstr = [(ss[:7],ss[8:]) for ss in LDTstr]
@@ -809,11 +809,11 @@ def FindSolFile(shot=0, t=0, Dt=None, Mesh='Rough1', Deg=2, Deriv='D2N2', Sep=Tr
     elif Dt is None:
         LF = [LF[ii] for ii in range(0,len(LF)) if t>=float(LDTstr[ii][0]) and t<=float(LDTstr[ii][1])]
     if len(LF)==0:
-        print "No matching Sol2D file in ", OutPath
+        print("No matching Sol2D file in ", OutPath)
         out = None
     elif len(LF)>1:
-        print "Several matching Sol2D files in ", OutPath
-        print LF
+        print("Several matching Sol2D files in ", OutPath)
+        print(LF)
         out = None
     else:
         out = LF[0]
@@ -879,7 +879,7 @@ def Save_Generic(obj, SaveName=None, Path=None, Mode='npz', compressed=False):
         _save_np(obj, pathfileext, compressed=compressed)
     else:
         _save_object(obj, pathfileext)
-    print("Saved in :  "+pathfileext)
+    print(("Saved in :  "+pathfileext))
 
 
 def _save_object(obj,pathfileext):
@@ -892,9 +892,9 @@ def _save_object(obj,pathfileext):
 
 def _convert_Detect2Ldict(obj):
     # Store LOS data
-    llos = obj.LOS.keys()
+    llos = list(obj.LOS.keys())
     LOSprops = {'Keys':llos, 'Id':[obj.LOS[kk]['LOS'].Id.todict() for kk in llos], 'Du':[(obj.LOS[kk]['LOS'].D,obj.LOS[kk]['LOS'].u) for kk in llos]}
-    lprops = obj.LOS[kk].keys()
+    lprops = list(obj.LOS[kk].keys())
     for pp in lprops:
         if not pp=='LOS':
             LOSprops[pp] = [obj.LOS[kk][pp] for kk in llos]
@@ -1003,7 +1003,7 @@ def _save_np(obj, pathfileext, compressed=False):
         func(pathfileext, Idsave=Idsave, Knots=obj.Knots)
 
     elif obj.Id.Cls=='Mesh2D':
-        SubMinds = [{'Name':kk, 'ind':obj._SubMesh[kk]['ind']} for kk in obj._SubMesh.keys()]
+        SubMinds = [{'Name':kk, 'ind':obj._SubMesh[kk]['ind']} for kk in list(obj._SubMesh.keys())]
         func(pathfileext, Idsave=Idsave, Knots=[obj.MeshX1.Knots,obj.MeshX2.Knots], SubMinds=SubMinds, IndBg=obj._get_CentBckg()[1])
 
     elif obj.Id.Cls=='BF2D':
@@ -1120,7 +1120,7 @@ def Open(pathfileext=None, shot=None, t=None, Dt=None, Mesh=None, Deg=None, Deri
         obj = _open_np(pathfileext, Ves=Ves, ReplacePath=ReplacePath, out=out, Verb=Verb)
     else:
         obj = _open_object(pathfileext)
-    print("Loaded :  "+pathfileext)
+    print(("Loaded :  "+pathfileext))
     return obj
 
 
@@ -1162,7 +1162,7 @@ def _tryloadVes(Id, Ves=None):
 
 def _tryLoadOpticsElseCreate(Id, Opt=None, Ves=None, Verb=False):
     import tofu.geom as TFG
-    if 'Apert' in Id.LObj.keys():
+    if 'Apert' in list(Id.LObj.keys()):
         Optics = []
         for ii in range(0,len(Id.LObj['Apert']['SaveName'])):
             try:
@@ -1173,7 +1173,7 @@ def _tryLoadOpticsElseCreate(Id, Opt=None, Ves=None, Verb=False):
                 if not Opt is None:
                     assert type(Ves) is TFG.Ves, "Arg Ves must be a TFG.Ves instance !"
                     if Verb:
-                        print(Id.Name +" : no saved Apert => creating the associated Apert object !")
+                        print((Id.Name +" : no saved Apert => creating the associated Apert object !"))
                     ind = [jj for jj in range(0,len(Opt)) if Opt[jj]['Id'][0]['SaveName']==Id.LObj['Apert']['SaveName'][ii] and Opt[jj]['Id'][0]['SavePath']==Id.LObj['Apert']['SavePath'][ii]]
                     assert len(ind)==1, "Several possible solutions !"
                     ind = ind[0]
@@ -1182,7 +1182,7 @@ def _tryLoadOpticsElseCreate(Id, Opt=None, Ves=None, Verb=False):
                     Optics.append(aa)
                 else:
                     warnings.warn(Id.Name +" : associated Apert object could not be loaded from "+PathFileExt)
-    elif 'Lens' in Id.LObj.keys():
+    elif 'Lens' in list(Id.LObj.keys()):
         try:
             PathFileExt = Id.LObj['Lens']['SavePath'][0]+Id.LObj['Lens']['SaveName'][0]+'.npz'
             Optics = Open(PathFileExt, Ves=Ves)
@@ -1190,7 +1190,7 @@ def _tryLoadOpticsElseCreate(Id, Opt=None, Ves=None, Verb=False):
             if not Opt is None:
                 assert type(Ves) is TFG.Ves, "Arg Ves must be a TFG.Ves instance !"
                 if Verb:
-                    print(Id.Name +" : no saved Lens => creating the associated Lens object !")
+                    print((Id.Name +" : no saved Lens => creating the associated Lens object !"))
                 iid = _Id_recreateFromdict(Opt[0]['Id'])
                 aa = TFG.Lens(iid, Opt[0]['O'], Opt[0]['nIn'], Opt[0]['Rad'], Opt[0]['F1'], F2=Opt[0]['F2'], R1=Opt[0]['R1'], R2=Opt[0]['R2'], dd=Opt[0]['dd'], Type=Opt[0]['Type'], Ves=Ves,
                               arrayorder=Opt[0]['arrayorder'], Clock=Opt[0]['Clock'])
@@ -1205,7 +1205,7 @@ def _resetDetectAttr(obj, Out):
     import tofu.geom as TFG
     # Re-creating LOS
     LOS = {}
-    kkeys = Out['LOSprops'].keys()
+    kkeys = list(Out['LOSprops'].keys())
     for ii in range(0,len(Out['LOSprops']['Keys'])):
         idlos = _Id_recreateFromdict(Out['LOSprops']['Id'][ii])
         los = TFG.LOS(idlos, Out['LOSprops']['Du'][ii], Ves=obj.Ves, Sino_RefPt=obj.Sino_RefPt)
@@ -1218,7 +1218,7 @@ def _resetDetectAttr(obj, Out):
     # Re-assigning tabulated data
     fields = ['Sino', 'Span', 'Cone', 'SAng', 'SynthDiag', 'Res']
     for ff in fields:
-        for kk in Out[ff].keys():
+        for kk in list(Out[ff].keys()):
             setattr(obj,kk,Out[ff][kk])
     return obj
 
@@ -1294,7 +1294,7 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
 
     elif Id.Cls == 'Detect':
         Ves = _tryloadVes(Id, Ves=Ves)
-        if 'VesCalc'in Out.keys() and Out['VesCalc'][0]['SavePath'] is not None:
+        if 'VesCalc'in list(Out.keys()) and Out['VesCalc'][0]['SavePath'] is not None:
             VesCalc = Open(Out['VesCalc'][0]['SavePath']+Out['VesCalc'][0]['SaveName']+'.npz')
         else:
             VesCalc = None
@@ -1320,7 +1320,7 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
             LDetSynthRes = Out['LDetSynthRes']
         for ii in range(0,len(LDetsave)):
             ddIdsave = _Id_recreateFromdict(LDetsave[ii]['Idsave'])
-            if 'VesCalc'in LDetsave[ii].keys() and LDetsave[ii]['VesCalc'][0]['SavePath'] is not None:
+            if 'VesCalc'in list(LDetsave[ii].keys()) and LDetsave[ii]['VesCalc'][0]['SavePath'] is not None:
                 VesCalc = Open(LDetsave[ii]['VesCalc'][0]['SavePath']+LDetsave[ii]['VesCalc'][0]['SaveName']+'.npz')
             else:
                 VesCalc = None
@@ -1340,7 +1340,7 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
         obj = TFG.GDetect(Id, LDet, Type=Id.Type, Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot, dtime=Id.dtime, dtimeIn=Id._dtimeIn, Sino_RefPt=Out['Sino_RefPt'], LOSRef=str(Out['LOSRef']),
                           arrayorder=str(Out['arrayorder']), Clock=bool(Out['Clock']), SavePath=Id.SavePath)
         Res = Out['Res'][0] if out=='full' else Res
-        for kk in Res.keys():
+        for kk in list(Res.keys()):
             setattr(obj,kk,Res[kk])
 
     elif Id.Cls=='Eq2D':
@@ -1392,7 +1392,7 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
 
 
     elif Id.Cls=='PreData':
-        LIdDet = Id.get_LObjasLId('Detect') if 'Detect' in Id.LObj.keys() else None
+        LIdDet = Id.get_LObjasLId('Detect') if 'Detect' in list(Id.LObj.keys()) else None
         Init, Update = Out['Init'][0], Out['Update'][0]
         obj = tft.PreData(Init['data'], Id=Id, t=Init['t'], Chans=Init['Chans'], DtRef=Init['DtRef'], LIdDet=LIdDet)
         obj.set_Dt(Update['Dt'], Calc=False)
@@ -1403,7 +1403,7 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
         obj.substract_Dt(tsub=Update['Subtract_tsub'], Calc=False)
         obj.set_fft(Calc=True, **Update['FFTPar'])
         if not Update['PhysNoiseParam'] is None:
-            Method = 'svd' if 'Modes' in Update['PhysNoiseParam'].keys() else 'fft'
+            Method = 'svd' if 'Modes' in list(Update['PhysNoiseParam'].keys()) else 'fft'
             obj.set_PhysNoise(**Update['PhysNoiseParam'].update({'Method':Method}))
 
 
