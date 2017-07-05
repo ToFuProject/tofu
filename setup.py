@@ -10,6 +10,8 @@ from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
+from Cython.Build import cythonize
+import numpy
 
 here = path.abspath(path.dirname(__file__))
 
@@ -119,6 +121,9 @@ setup(
     #        'sample=sample:main',
     #    ],
     #},
+
+    ext_modules=cythonize("tofu/geom/*.pyx"),
+    include_dirs=[numpy.get_include()],
 )
 
 
