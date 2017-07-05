@@ -83,6 +83,7 @@ setup(
             'matplotlib',
             'polygon2',
             'cython',
+            'nose',
             ],
 
     # List additional groups of dependencies here (e.g. development
