@@ -1,3 +1,6 @@
+.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=master
+    :target: https://travis-ci.org/ToFuProject/tofu
+
 ToFu
 ====
 
