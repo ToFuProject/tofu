@@ -88,7 +88,6 @@ setup(
             'numpy==1.9.1',
             'scipy==0.15.1',
             'matplotlib==1.2.1',
-            'mpl_toolkits',
             'polygon2==2.0.8',
             'cython==0.19.1',
             ],
