@@ -3,10 +3,6 @@ This module is the geometrical part of the ToFu general package
 It includes all functions and object classes necessary for tomography on Tokamaks
 """
 
-#import matplotlib
-#matplotlib.use('WxAgg')
-#matplotlib.interactive(True)
-
 import sys
 import matplotlib.pyplot as plt
 from matplotlib import _cntr as cntr
@@ -24,11 +20,9 @@ import Polygon.Utils as plgut
 import itertools as itt
 import warnings
 import math
-
 import numpy as np
 #import scipy.interpolate as scinterp
 
-#from mayavi import mlab
 import datetime as dtm
 #import scipy as sp
 import time as time
@@ -141,7 +135,7 @@ def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=TFD.TorRelOff, Z
     return Poly
 
 
-def _Ves_get_MeshCrossSection(P1Min, P1Max, P2Min, P2Max, Poly, Type, DLong=None, CrossMesh=[0.01,0.01], CrossMeshMode='abs', Test=True):
+def _Ves_get_MeshCrossSection(P1Min, P1Max, P2Min, P2Max, Poly, Type, DLong=None, CrossMesh=[0.01,0.01], CrossMeshMode='abs', Test=True):   # Used for calc_resolution, to be replaced ?
     if Test:
         assert all([type(pp) is np.ndarray and pp.shape==(2,) for pp in [P1Min,P1Max,P2Min,P2Max]]), "Args P1Min, P1Max, P2Min, P2Max must be 1-dim array of size==2 !"
         assert P1Min[0]<P1Max[0] and P2Min[1]<P2Max[1], "Arg P1Min should have smaller first coordinate than P1Max (respectively 2nd coordinate of P2Min and P2Max) !"
@@ -162,6 +156,99 @@ def _Ves_get_MeshCrossSection(P1Min, P1Max, P2Min, P2Max, Poly, Type, DLong=None
     ind = _Ves_isInside(Poly, Type, DLong, Pts, In=In)
     return Pts[:,ind], X1, X2, NumX1, NumX2
 
+
+############################################
+# Meshing a sub volume of Ves from DL or ind
+############################################
+
+
+def _Ves_mesh_dlfromL(LMinMax, dL, DL=None):
+    N = np.ceil(np.diff(LMinMax)/dL)
+    dLr = np.diff(LMinMax)/N
+    DL = LMinMax if DL is None else DL
+    nL = [int(max(0, np.ceil((DL[0]-LMinMax[0])/dLr-1.) )), int(min(np.floor((DL[1]-LMinMax[0])/dLr) ,N-1))] 
+    indL = np.arange(nL[0],nL[1]+1)
+    L = LMinMax[0] + (0.5 + indL)*dLr
+    return L, dLr, nL, indL, N
+
+
+def _Ves_mesh_Tor_SubFromD(dR, dZ, dRPhi, RMinMax, ZMinMax, DR=None, DZ=None, DPhi=None, VPoly=None):
+    
+    R, dRr, nR, indR, NR = _Ves_mesh_dlfromL(RMinMax, dR, DR)
+    Z, dZr, nZ, indZ, NZ = _Ves_mesh_dlfromL(ZMinMax, dZ, DZ)
+   
+    print("")
+    print("R")
+    print("dR, dRr, nR, NR", dR, dRr, nR, NR)
+    print("R, indR", R, indR)
+    
+    print("")
+    print("Z")
+    print("dZ, dZr, nZ, NZ", dZ, dZr, nZ, NZ)
+    print("Z, indZ", Z, indZ)
+
+    NRPhi = np.ceil(2.*np.pi*R/dRPhi) 
+    dPhir = 2.*np.pi/NRPhi
+    DPhi = [-np.pi,np.pi] if DPhi is None else np.arctan2(np.sin(DPhi),np.cos(DPhi))    
+
+    print("")
+    print("Phi")
+    print("dRPhi, dRPhir, NRPhi", dRPhi, dPhir*R, NRPhi)
+    print("DPhi", DPhi) 
+
+    nPhi = np.array([np.ceil((DPhi[0]+np.pi)/dPhir-1.), np.floor((DPhi[1]+(1.+2.*(DPhi[0]>DPhi[1]))*np.pi)/dPhir)], dtype=int)
+    nPhi[0,nPhi[0,:]<0] = 0
+    nPhi[1,nPhi[1,:]>NRPhi-1] = NRPhi[nPhi[1,:]>NRPhi-1]-1
+    NRZPhi_cum = np.concatenate(([0],NZ*np.cumsum(NRPhi)))
+    PtsRZP, ind, dV, Nz = [], [], [], Z.size
+    for ii in range(0,R.size):
+        indPhi = np.arange(nPhi[0,ii],nPhi[1,ii]+1)
+        phi = -np.pi + (0.5 + indPhi)*dPhir[ii]
+        print(R[ii],phi.size*Nz)
+        PtsRZP.append( np.array([R[ii]*np.ones((phi.size*Nz,)), np.repeat(Z,phi.size), np.tile(phi,Nz)]) )
+        dV.append( dRr*dZr*dPhir[ii]*R[ii]*np.ones((phi.size*Nz,))  )
+        ind.append( NRZPhi_cum[ii] + (indZ[:,np.newaxis]*NRPhi[ii] + indPhi[np.newaxis,:]).flatten() )
+ 
+    PtsRZP = np.concatenate(tuple(PtsRZP),axis=1)
+    dV = np.concatenate(tuple(dV))
+    ind = np.concatenate(tuple(ind))
+    
+    Pts = np.array([PtsRZP[0,:]*np.cos(PtsRZP[2,:]), PtsRZP[0,:]*np.sin(PtsRZP[2,:]), PtsRZP[1,:]])
+    
+    if not VPoly is None:
+        indin = _Ves_isInside(VPoly, 'Tor', None, PtsRZP[:-1,:], In='(R,Z)')
+        Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
+
+    return Pts, dV, ind, dRr, dZr, dPhir*R
+
+
+def _Ves_mesh_Tor_SubFromInd(dR, dZ, dRPhi, RMinMax, ZMinMax, ind):
+
+    R, dRr, nR, indR, NR = _Ves_mesh_dlfromL(RMinMax, dR)
+    Z, dZr, nZ, indZ, NZ = _Ves_mesh_dlfromL(ZMinMax, dZ)
+    NRPhi = np.ceil(2.*np.pi*R/dRPhi).astype(int)
+    dPhir = 2.*np.pi/NRPhi    
+    NRZPhi_cum = np.concatenate(([0],NZ*np.cumsum(NRPhi)))
+    
+    PtsRZP, dV = [], []
+    for ii in range(0,NR):
+        iid = (ind>=NRZPhi_cum[ii]) & (ind<NRZPhi_cum[ii+1])
+        if np.any(iid):
+            ind_R = ind[iid] - NRZPhi_cum[ii]
+            indZ = np.floor(ind_R/NRPhi[ii]).astype(int) 
+            ind_Z = (ind_R - NRPhi[ii]*indZ).astype(int)
+            phi = -np.pi + (0.5 + np.arange(0,NRPhi[ii]+1))*dPhir[ii]
+            
+            Np = iid.sum()
+            print("")
+            print(R[ii], Np, NRZPhi_cum[ii],NRZPhi_cum[ii+1])
+            PtsRZP.append( np.array([R[ii]*np.ones((Np,)), Z[indZ], phi[ind_Z]]) )
+            dV.append( dR*dZ*dRPhi[ii]*np.ones((Np,))  )
+
+    PtsRZP = np.concatenate(tuple(PtsRZP),axis=1)
+    dV = np.concatenate(tuple(dV))
+    Pts = np.array([PtsRZP[0,:]*np.cos(PtsRZP[2,:]), PtsRZP[0,:]*np.sin(PtsRZP[2,:]), PtsRZP[1,:]])
+    return Pts, dV
 
 
 
@@ -451,7 +538,7 @@ def _Detect_set_LOS(Name, LSurfs, LBaryS, LnIn, LPolys, BaryS, Poly, OpType='Ape
         assert type(BaryS) is np.ndarray and BaryS.shape==(3,), "Arg BaryS must be a (3,) np.ndarray !"
 
     if Verb:
-        print "    "+Name+" : Computing LOS..."
+        print("    "+Name+" : Computing LOS...")
 
     if OpType=="Lens":
         LOS_ApertPolyInt = LPolys[0]
@@ -1070,7 +1157,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
     _SAngCross_Reg, _SAngCross_Reg_Int, _SAngCross_Reg_K, _SAngCross_Reg_Psi = False, None, None, None
     if VType=='Tor':
         if np.abs(np.arctan2(LOSPIn[1],LOSPIn[0])-np.arctan2(LOSPOut[1],LOSPOut[0])) < 1.e-6:
-            print "        Poloidal detector => computing SAng Int on regular grid !"
+            print("        Poloidal detector => computing SAng Int on regular grid !")
             # Create all points in a Poloidal cross-section
             psiMin, psiMax = Calc_PolProj_ConePsiMinMax_2Steps(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LOBaryS, Span_k, LOSu, LOSPOut, Nk=Nk, Test=True)
             psiMin, psiMax = psiMin.min(), psiMax.max()
@@ -1135,11 +1222,11 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                 Ind[indPos.nonzero()[0][~indC]] = 0
             Vis[:,ii,:] = Ind.reshape((NR,NZ))
             if ii==0 or (ii+1)%NRef==0:
-                print "        Computing cross slice", ii+1, "/", NTheta, "  with ", np.sum(indSide), "/", RRf.size," points"
+                print("        Computing cross slice", ii+1, "/", NTheta, "  with ", np.sum(indSide), "/", RRf.size," points")
 
     elif VType=='Lin':
         if np.abs(LOSPIn[0]-LOSPOut[0]) < 1.e-6:
-            print "        Cross detector => computing SAng Int on regular grid !"
+            print("        Cross detector => computing SAng Int on regular grid !")
             # Create all points in a cross-section
             psiMin, psiMax = Calc_PolProj_ConePsiMinMax_2Steps_Lin(DPoly, DBaryS, LOPolys, LOnIns, LSurfs, LOBaryS, Span_k, LOSu, LOSPOut, Nk=Nk, Test=True)
             psiMin, psiMax = psiMin.min(), psiMax.max()
@@ -1202,7 +1289,7 @@ def _Detect_set_ConePoly(DPoly, DBaryS, DnIn, LOPolys, LOnIns, LSurfs, LOBaryS, 
                 Ind[indPos.nonzero()[0][~indC]] = 0
             Vis[ii,:,:] = Ind.reshape((NY,NZ))
             if ii==0 or (ii+1)%NRef==0:
-                print "        Computing cross slice", ii+1, "/", NX, "  with ", np.sum(indSide), "/", YYf.size," points"
+                print("        Computing cross slice", ii+1, "/", NX, "  with ", np.sum(indSide), "/", YYf.size," points")
 
     # Cone_PolyCross
     if VType=='Tor':
@@ -1686,7 +1773,7 @@ def _Detect_SigSynthDiag(ff, extargs={}, Method='Vol', Mode='simps', PreComp=Tru
             Points, SAng, Vect, dV = SynthDiag_Points, SynthDiag_SAng, SynthDiag_Vect, SynthDiag_dV
             Sig = dV*np.sum(ff(Points,Vect,**extargs)*SAng) if Ani else dV*np.sum(ff(Points,**extargs)*SAng)
         elif Mode=='quad':
-            print "Calc_Sig quad => to be checked !!!!"
+            print("Calc_Sig quad => to be checked !!!!")
             LPolys = [DPoly]+LOPolys
             P, u = self.LOS[self._LOSRef]['LOS'].D, self.LOS[self._LOSRef]['LOS'].u
             e1, e2 = GG.Calc_DefaultCheck_e1e2_PLane_1D(P, u)
@@ -1880,7 +1967,7 @@ def Calc_SynthDiag_GDetect(GD, ff, Method='Vol', Mode='simps', PreComp=True, eps
                 Points, SAng, Vect, dV = GD[ii]._SynthDiag_Points, GD[ii]._SynthDiag_SAng, GD[ii]._SynthDiag_Vect, GD[ii]._SynthDiag_dV
                 Sig[ii] = dV*np.sum(ff(Points,Vect)*SAng) if Ani else dV*np.sum(ff(Points)*SAng)
         elif Mode=='quad':
-            print "Calc_Sig quad => to be checked !!!!"
+            print("Calc_Sig quad => to be checked !!!!")
             for ii in range(0,nD):
                 LPolys = [GD[ii].Poly]+[aa.Poly for aa in GD[ii].LApert]
                 P, nP, e1, e2 = P, u = self.LOS[self._LOSRef]['LOS'].D, self.LOS[self._LOSRef]['LOS'].u
@@ -2214,7 +2301,7 @@ def Calc_SolAngVect_DetectApert(D, Points, PP='None', nP='None', e1='None', e2='
             e1bis, e2bis = GG.Calc_DefaultCheck_e1e2_PLanes(D.LApert[0].BaryS, nPbis)
             out = GG.Calc_PolysProjPlanePoints(Polys,Points[:,IndWRG[kk]:IndWRG[kk]+1], PP, nPbis, e1P=e1bis, e2P=e2bis, Test=False)
             if np.any(out[5]):#, "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"                                                                               # DB
-                print "Points are :", Points[:,IndWRG[kk]:IndWRG[kk]+1], np.sqrt(Points[0,IndWRG[kk]:IndWRG[kk]+1]**2+Points[1,IndWRG[kk]:IndWRG[kk]+1]**2) # DB
+                print("Points are :", Points[:,IndWRG[kk]:IndWRG[kk]+1], np.sqrt(Points[0,IndWRG[kk]:IndWRG[kk]+1]**2+Points[1,IndWRG[kk]:IndWRG[kk]+1]**2)) # DB
             PolyInt = [np.concatenate((out[3][jj],out[4][jj]),axis=0) for jj in range(0,NPoly)]
             PolyRef = plg.Polygon(PolyInt[0].T)
             for ii in range(1,NPoly):
