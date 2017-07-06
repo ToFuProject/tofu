@@ -25,4 +25,4 @@ install:
   - python setup.py install
 
 script:
-  - nosetests -vv --collect-only
+  - nosetests -v --with-timer tests.tests01_geom
