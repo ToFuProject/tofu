@@ -86,6 +86,7 @@ setup(
             'polygon2',
             'cython',
             'nose',
+            'nose-timer',
             ],
 
     # List additional groups of dependencies here (e.g. development
