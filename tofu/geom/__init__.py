@@ -9,6 +9,7 @@ Load all core packages and modules which are all machine-independent, diagnostic
 
 from ._core import *
 from . import General_Geom_cy as _GG
+from . import GG as _GG0
 
 del _core, General_Geom_cy
 

@@ -1227,14 +1227,14 @@ cdef Calc_LOS_PInOut_Multi(np.ndarray[DTYPE_t, ndim=2] Ds, np.ndarray[DTYPE_t, n
 
 cdef Calc_LOS_PInOut_Multi_Flat(np.ndarray[DTYPE_t, ndim=2] Ds, np.ndarray[DTYPE_t, ndim=2] dus,
                                 np.ndarray[DTYPE_t, ndim=2,mode='c'] VPoly, np.ndarray[DTYPE_t, ndim=2,mode='c'] vIn,
-                                RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9):
+                                RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9):
 
     # Pre-define useful quantities
     Cs, vs = VPoly[:,:-1], VPoly[:,1:]-VPoly[:,:-1]
     upscaDp = dus[0,:]*Ds[0,:] + dus[1,:]*Ds[1,:]
     upar2 = dus[0,:]**2 + dus[1,:]**2
     Dpar2 = Ds[0,:]**2 + Ds[1,:]**2
-    NL, NS, MaxErr = Ds.shape[1], vIn.shape[1], 50
+    NL, NS, MaxErr = Ds.shape[1], vIn.shape[1], 20.
 
     DsF, dusF = np.repeat(Ds,NS,axis=1), np.repeat(dus,NS,axis=1)
     dus2 = dusF[2,:]
@@ -1251,7 +1251,7 @@ cdef Calc_LOS_PInOut_Multi_Flat(np.ndarray[DTYPE_t, ndim=2] Ds, np.ndarray[DTYPE
 
     ###########################
     # Start with horizontal LOS
-
+    
     # Prepare arrays
     k0, k1 = np.nan*np.ones((NL*NS,)), np.nan*np.ones((NL*NS,))
 
@@ -1282,7 +1282,7 @@ cdef Calc_LOS_PInOut_Multi_Flat(np.ndarray[DTYPE_t, ndim=2] Ds, np.ndarray[DTYPE
     ind1[ind1], q = ii, q[ii]
     ind1 = ind1.nonzero()[0]
     k0[ind1] = (q*vs1[ind1] - (DsF[2,ind1]-Cs1[ind1]))/dus2[ind1]
-    del q, upscaDpF, upar2F, Dpar2F
+    del q, upscaDpF#, upar2F, Dpar2F
 
     ind21 = (np.abs(dus2) > Crit) & (np.abs(A)>EpsA) & (B**2>A*C)
     ind22 = np.copy(ind21)
@@ -1310,11 +1310,35 @@ cdef Calc_LOS_PInOut_Multi_Flat(np.ndarray[DTYPE_t, ndim=2] Ds, np.ndarray[DTYPE
 
     # Eliminate solution in forbidden area
     RMin = 0.95*min(np.nanmin(VPoly[0,:]), np.nanmin(np.hypot(Ds[0,:],Ds[1,:]))) if RMin is None else RMin
-    RMax = 1.1*np.nanmax(VPoly[0,:])
-    ZMin, ZMax = 1.1*np.nanmin(VPoly[1,:]), 1.1*np.nanmax(VPoly)
+    RMax = 1.05*np.nanmax(VPoly[0,:])
+    ZMin, ZMax = np.nanmin(VPoly[1,:])-0.05*np.abs(np.nanmin(VPoly[1,:])), np.nanmax(VPoly[1,:])+0.05*np.abs(np.nanmax(VPoly[1,:]))
     RS0, RS1 = np.hypot(S0[0,:],S0[1,:]), np.hypot(S1[0,:],S1[1,:])
-    assert np.all(RS0>RMin) and np.all(RS1>RMin) and np.all(RS0<RMax) and np.all(RS1<RMax), "Some solutions are way too far({0})/close({1}) !".format(RMax,RMin)+str(RS0)+" "+str(RS1)+"  "+str(k0[Ind0n])+"  "+str(k1[Ind1n])
-    assert np.all(S0[2,:]>ZMin) and np.all(S0[2,:]<ZMax) and np.all(S1[2,:]>ZMin) and np.all(S1[2,:]<ZMax), "Some solutions are way too high({0})/low({1}) !".format(ZMax,ZMin)+str(S0[2,:])+"  "+str(S1[2,:])    
+
+    inderr0 = (RS0<RMin) | (RS0>RMax)
+    inderr1 = (RS1<RMin) | (RS1>RMax)
+    if not (inderr0.sum()==0 and inderr1.sum()==0):
+        print "Identified problem"
+        print DsF.shape, np.max(Ind0n), Ind0n.shape, inderr0.shape
+        print Ind0n[inderr0], Ind1n[inderr1]
+        print RS0[inderr0], RS1[inderr1]
+        print S0[:,inderr0], S1[:,inderr1]
+        print k0[Ind0n][inderr0], k1[Ind1n[inderr1]] 
+        print "VPoly"
+        print VPoly
+        print "vIn"
+        print vIn
+        print "Ds"
+        print DsF[:,Ind0n[inderr0]]
+        print DsF[:,Ind1n[inderr1]]
+        print "us"
+        print dusF[:,Ind0n[inderr0]]
+        print dusF[:,Ind1n[inderr1]]
+
+ 
+    assert inderr0.sum()==0 and inderr1.sum()==0, "Some solutions ({0} in S0 and {1} in S1) are way too far({2})/close({3}) !".format(inderr0.sum(),inderr1.sum(),RMax,RMin)+str(RS0)+" "+str(RS1)+"  "+str(k0[Ind0n])+"  "+str(k1[Ind1n])
+    inderr0 = (S0[2,:]<ZMin) | (S0[2,:]>ZMax)
+    inderr1 = (S1[2,:]<ZMin) | (S1[2,:]>ZMax)
+    assert inderr0.sum()==0 and inderr1.sum()==0, "Some solutions ({0} in S0 and {1} in S1) are way too high({0})/low({1}) !".format(inderr0.sum(),inderr1.sum(),ZMax,ZMin)+str(S0[2,:])+"  "+str(S1[2,:])    
 
     if Forbid:
         # This criterion is the same for both solution k0 and k1
@@ -1376,7 +1400,7 @@ cdef Calc_LOS_PInOut_Multi_Flat(np.ndarray[DTYPE_t, ndim=2] Ds, np.ndarray[DTYPE
 
 def Calc_LOS_PInOut_New(Ds, dus,
                         np.ndarray[DTYPE_t, ndim=2,mode='c'] VPoly, np.ndarray[DTYPE_t, ndim=2,mode='c'] vIn,
-                        RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                        RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
                         VType='Tor', mode=None, Test=True):
     """ Compute the entry and exit point of all provided LOS for the provided vessel polygon (toroidal or linear), also return the normal vector at impact point and the index of the impact segment
 
@@ -1410,7 +1434,7 @@ def Calc_LOS_PInOut_New(Ds, dus,
         assert RMin is None or type(RMin) in [float,int,np.float64,np.int64], "Arg RMin must be None or a float !"
         assert type(Margin) in [float,np.float64] and 0<Margin and Margin<1., "Arg Margin must be a float in [0;1] !"
         assert type(Forbid) is bool, "Arg Forbid must be a bool !"
-        assert all([type(ee) in [int,float,np.int64,np.float64] and ee<1.e-6 for ee in [EpsUz,EpsVz,EpsA,EpsB]]), "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-6 !"
+        assert all([type(ee) in [int,float,np.int64,np.float64] and ee<1.e-4 for ee in [EpsUz,EpsVz,EpsA,EpsB]]), "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-4 !"
         assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin'] !"
         assert mode is None or (type(mode) is str and mode.lower() in ['single','multi','multi_flat']), "Arg mode must be None or a str in ['Single','Multi','Multi_Flat']" 
 

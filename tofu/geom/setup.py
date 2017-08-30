@@ -1,19 +1,38 @@
-from distutils.core import setup
-from distutils.extension import Extension
+
+try:
+    from setuptools import setup
+    from setuptools import Extension
+except:
+    from distutils.core import setup
+    from distutils.extension import Extension
+
+from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 from os import environ
-import numpy
+import sys
+import numpy as np
 
 environ['CC'] = 'gcc'
 environ['CXX'] = 'gcc'
 
-extensions = [
-        Extension("General_Geom_cy", ["General_Geom_cy.pyx"],
-            include_dirs=[numpy.get_include()])
-        ]
 
-setup(
-    name="General_Geom_cy",
-    ext_modules=cythonize(extensions)
-)
+if sys.version[0] in ['2','3']:
+    name_src = 'GG0' + sys.version[0]
+    #name_ext = 'tofu.geom.GG0' + sys.version[0]
+    #name_set = 'tofu.geom.GG0' + sys.version[0]
+    name_ext = 'GG0' + sys.version[0]
+    name_set = 'GG0' + sys.version[0]
+else:
+    raise Exception("Pb. with python version : "+sys.version)
+
+
+ext_modules = [Extension(name=name_ext, sources=[name_src+".pyx"])]
+
+setup(name=name_set,
+      cmdclass={'build_ext':build_ext},
+      include_dirs=[np.get_include()],  
+      ext_modules=ext_modules)
+
+# ext_modules=cythonize(extensions)
+
 

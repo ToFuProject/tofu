@@ -1,4 +1,5 @@
 """
+m matplotlib.path import Path
 This module is the geometrical part of the ToFu general package
 It includes all functions and object classes necessary for tomography on Tokamaks
 """
@@ -273,7 +274,7 @@ def _LOS_calc_InOutPolProj(Type, Poly, Vin, DLong, D, uu, Name, Forbid=True, Mar
     if Type=='Tor':
         if new:
             PIn, POut = GG.Calc_LOS_PInOut_New(D, uu, np.ascontiguousarray(Poly), np.ascontiguousarray(Vin),
-                                               RMin=None, Margin=0.1, Forbid=Forbid, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                                               RMin=None, Margin=0.1, Forbid=Forbid, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
                                                VType='Tor', mode='Single', Test=True)
         else:
             PIn, POut = GG.Calc_InOut_LOS_PIO(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(Poly), np.ascontiguousarray(Vin), Forbid=Forbid, Margin=Margin)
@@ -788,7 +789,7 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
         if VType=='Tor':
             if new:
                 SIn, SOut = GG.Calc_LOS_PInOut_New(Ds, Lus, np.ascontiguousarray(VPoly), np.ascontiguousarray(VVin),
-                                                   RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                                                   RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
                                                    VType='Tor', mode='Multi_Flat', Test=True)
             else:
                 SIn, SOut = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin, Forbid=True, Margin=0.1)
@@ -835,8 +836,8 @@ def Calc_SpanImpBoth_2Steps(DPoly, DNP, DBaryS, LOPolys, LOBaryS, LOSD, LOSu, Re
                 #tt = dtm.datetime.now() # DB
                 if VType=='Tor':
                     if new:
-                        Sin, Sout = GG.Calc_LOS_PInOut_New(Ds, Lus, np.ascontiguousarray(VPoly), np.ascontiguousarray(VVIn),
-                                                           RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-9, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                        Sin, Sout = GG.Calc_LOS_PInOut_New(Ds, Lus, np.ascontiguousarray(VPoly), np.ascontiguousarray(VVin),
+                                                           RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
                                                            VType='Tor', mode='Multi_Flat', Test=True)
                     else:
                         Sin, Sout = GG.Calc_InOut_LOS_PIO(Ds, Lus, VPoly, VVin, Forbid=True, Margin=0.1)
