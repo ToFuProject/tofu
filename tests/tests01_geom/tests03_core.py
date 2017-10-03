@@ -76,7 +76,7 @@ def teardown_module(module):
 #PVes = [R + r*np.cos(PVes), r*np.sin(PVes)]
 #PVes = np.concatenate((PVes,PDiv),axis=1)
 
-PVes = np.loadtxt(Root+Addpath+'AUG_Ves.txt', dtype='float', skiprows=1, ndmin=2, comments='#')
+PVes = np.loadtxt(Root+Addpath+'test_Ves.txt', dtype='float', skiprows=1, ndmin=2, comments='#')
 Lim = 2.*np.pi*1.7*np.array([-0.5,0.5])
 
 
