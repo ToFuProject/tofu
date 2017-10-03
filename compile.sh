@@ -1,5 +1,5 @@
 
-cp _GG02.pyx _GG03.pyx
+cp tofu/geom/_GG02.pyx tofu/geom/_GG03.pyx
 
 echo ""
 env_tofu2

@@ -7,7 +7,7 @@ except:
     from distutils.extension import Extension
 
 from Cython.Distutils import build_ext
-from Cython.Build import cythonize
+#from Cython.Build import cythonize
 from os import environ
 import sys
 import numpy as np
@@ -16,7 +16,7 @@ environ['CC'] = 'gcc'
 environ['CXX'] = 'gcc'
 
 
-if sys.version[0] in ['2','3']:
+if sys.version[:3] in ['2.7','3.6']:
     name_src = '_GG0' + sys.version[0]
     #name_ext = 'tofu.geom.GG0' + sys.version[0]
     #name_set = 'tofu.geom.GG0' + sys.version[0]
