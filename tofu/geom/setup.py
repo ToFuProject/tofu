@@ -17,11 +17,11 @@ environ['CXX'] = 'gcc'
 
 
 if sys.version[0] in ['2','3']:
-    name_src = 'GG0' + sys.version[0]
+    name_src = '_GG0' + sys.version[0]
     #name_ext = 'tofu.geom.GG0' + sys.version[0]
     #name_set = 'tofu.geom.GG0' + sys.version[0]
-    name_ext = 'GG0' + sys.version[0]
-    name_set = 'GG0' + sys.version[0]
+    name_ext = '_GG0' + sys.version[0]
+    name_set = '_GG0' + sys.version[0]
 else:
     raise Exception("Pb. with python version : "+sys.version)
 

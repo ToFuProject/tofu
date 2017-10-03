@@ -1,19 +1,32 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/python
 
-
-"""
-Load all core packages and modules which are all machine-independent, diagnostic-independent and code-independent
-"""
+import sys
+from tofu.geom._core02 import *
 
 
-from ._core import *
-from . import General_Geom_cy as _GG
-from . import GG as _GG0
+try:
+    del _defaults, _core02, _plot02
+except:
+    try:
+        del tofu.geom._defaults, tofu.geom._core02, tofu.geom._plot02
+    except:
+        pass
 
-del _core, General_Geom_cy
-
-__author__ = "Didier Vezinet"
-__all__ = ['Ves','Struct','LOS','GLOS','Lens','Apert','Detect','GDetect']
-
+if sys.version[0]=='2':
+    try:
+        del _GG02
+    except:
+        try:
+            del tofu.geom._GG02
+        except:
+            pass
+else:
+    try:
+        del _GG03
+    except:
+        try:
+            del tofu.geom._GG03
+        except:
+            pass
 

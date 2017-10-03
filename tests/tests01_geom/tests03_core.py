@@ -21,7 +21,7 @@ import tofu.geom as tfg
 Root = tfpf.Find_Rootpath()
 Addpath = '/tests/tests01_geom/'
 
-VerbHead = 'tfg.'
+VerbHead = 'tofu.geom.tests03_core'
 
 
 #######################################################
@@ -31,14 +31,14 @@ VerbHead = 'tfg.'
 #######################################################
 
 def setup_module(module):
-    print ("") # this is to get a newline after the dots
-    #print ("setup_module before anything in this file")
+    print("") # this is to get a newline after the dots
+    #print("setup_module before anything in this file")
 
 def teardown_module(module):
     #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
     #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
-    #print ("teardown_module after everything in this file")
-    #print ("") # this is to get a newline
+    #print("teardown_module after everything in this file")
+    #print("") # this is to get a newline
     pass
 
 
@@ -77,141 +77,122 @@ def teardown_module(module):
 #PVes = np.concatenate((PVes,PDiv),axis=1)
 
 PVes = np.loadtxt(Root+Addpath+'AUG_Ves.txt', dtype='float', skiprows=1, ndmin=2, comments='#')
-DLong = 2.*np.pi*1.7*np.array([-0.5,0.5])
+Lim = 2.*np.pi*1.7*np.array([-0.5,0.5])
 
 
 
-class Test01_VesTor:
-
-    @classmethod
-    def setup_class(cls, PVes=PVes):
-        print ("")
-        print "--------- "+VerbHead+cls.__name__
-        cls.Obj = tfg.Ves('Test01', PVes, Type='Tor', shot=0, Exp='Test', SavePath=Root+Addpath)
+class Test01_Ves:
 
     @classmethod
-    def teardown_class(cls):
-        #print ("teardown_class() after any methods in this class")
-        pass
-
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
-        pass
-
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
-        pass
-
-    def test01_isInside(self, NR=20, NZ=20, NThet=10):
-        PtsR = np.linspace(self.Obj._P1Min[0],self.Obj._P1Max[0],NR)
-        PtsZ = np.linspace(self.Obj._P2Min[0],self.Obj._P2Max[0],NZ)
-        PtsRZ = np.array([np.tile(PtsR,(NZ,1)).flatten(), np.tile(PtsZ,(NR,1)).T.flatten()])
-        indRZ = self.Obj.isInside(PtsRZ, In='(R,Z)')
-
-        theta = np.linspace(0.,2.*np.pi,NThet)
-        RR = np.tile(PtsRZ[0,:],(NThet,1)).flatten()
-        ZZ = np.tile(PtsRZ[1,:],(NThet,1)).flatten()
-        TT = np.tile(theta,(NR*NZ,1)).T.flatten()
-        PtsXYZ = np.array([RR*np.cos(TT), RR*np.sin(TT), ZZ])
-        indXYZ = self.Obj.isInside(PtsXYZ, In='(X,Y,Z)')
-
-        assert all([np.all(indXYZ[ii*NR*NZ:(ii+1)*NR*NZ]==indXYZ[:NR*NZ]) for ii in range(0,NThet)])
-        assert np.all(indXYZ[:NR*NZ]==indRZ)
-
-    def test02_InsideConvexPoly(self):
-        self.Obj.get_InsideConvexPoly(Plot=False, Test=True)
-
-    def test03_get_MeshCrossSection(self):
-        Pts, X1, X2, NumX1, NumX2 = self.Obj.get_MeshCrossSection(CrossMesh=[0.01,0.01], CrossMeshMode='abs', Test=True)
-        Pts, X1, X2, NumX1, NumX2 = self.Obj.get_MeshCrossSection(CrossMesh=[0.01,0.01], CrossMeshMode='rel', Test=True)
-
-    def test04_plot(self):
-        Lax1 = self.Obj.plot(Proj='All', Elt='PIBsBvV', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot(Proj='Cross', Elt='PIBsBvV', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj.plot(Proj='Hor', Elt='PIBsBvV', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test05_plot_Sinogram(self):
-        Lax1 = self.Obj.plot_Sinogram(Proj='Cross', Ang='xi', AngUnit='deg', Sketch=True, draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot_Sinogram(Proj='Cross', Ang='theta', AngUnit='rad', Sketch=True, draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test06_saveload(self):
-        self.Obj.save()
-        Los = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-        os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-
-
-
-class Test02_VesLin:
-
-    @classmethod
-    def setup_class(cls, PVes=PVes, DLong=DLong):
-        print ("")
-        print "--------- "+VerbHead+cls.__name__
-        cls.Obj = tfg.Ves('Test02', PVes, Type='Lin', DLong=DLong, shot=0, Exp='Test', SavePath=Root+Addpath)
+    def setup_class(cls, PVes=PVes, Lim=Lim):
+        #print("")
+        #print("---- "+cls.__name__)
+        cls.LObj = [tfg.Ves('Test01', PVes, Type='Tor', shot=0, Exp='Test', SavePath=Root+Addpath)]
+        cls.LObj.append(tfg.Ves('Test01', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=Root+Addpath))
 
     @classmethod
     def teardown_class(cls):
-        #print ("teardown_class() after any methods in this class")
+        #print("teardown_class() after any methods in this class")
         pass
 
     def setup(self):
-        #print ("TestUM:setup() before each test method")
+        #print("TestUM:setup() before each test method")
         pass
 
     def teardown(self):
-        #print ("TestUM:teardown() after each test method")
+        #print("TestUM:teardown() after each test method")
         pass
 
     def test01_isInside(self, NR=20, NZ=20, NThet=10):
-        PtsR = np.linspace(self.Obj._P1Min[0],self.Obj._P1Max[0],NR)
-        PtsZ = np.linspace(self.Obj._P2Min[0],self.Obj._P2Max[0],NZ)
-        PtsYZ = np.array([np.tile(PtsR,(NZ,1)).flatten(), np.tile(PtsZ,(NR,1)).T.flatten()])
-        indYZ = self.Obj.isInside(PtsYZ, In='(Y,Z)')
-
-        X = np.linspace(0.,2.*np.pi,NThet)
-        YY = np.tile(PtsYZ[0,:],(NThet,1)).flatten()
-        ZZ = np.tile(PtsYZ[1,:],(NThet,1)).flatten()
-        XX = np.tile(X,(NR*NZ,1)).T.flatten()
-        PtsXYZ = np.array([XX, YY, ZZ])
-        indXYZ = self.Obj.isInside(PtsXYZ, In='(X,Y,Z)')
-
-        assert all([np.all(indXYZ[ii*NR*NZ:(ii+1)*NR*NZ]==indXYZ[:NR*NZ]) for ii in range(0,NThet)])
-        assert np.all(indXYZ[:NR*NZ]==indYZ)
+        for ii in range(0,len(self.LObj)):
+            PtsR = np.linspace(self.LObj[ii].geom['P1Min'][0],self.LObj[ii].geom['P1Max'][0],NR)
+            PtsZ = np.linspace(self.LObj[ii].geom['P2Min'][0],self.LObj[ii].geom['P2Max'][0],NZ)
+            PtsRZ = np.array([np.tile(PtsR,(NZ,1)).flatten(), np.tile(PtsZ,(NR,1)).T.flatten()])
+            if self.LObj[ii].Type=='Tor' and self.LObj[ii].Lim is None:
+                In = '(R,Z)'
+            if self.LObj[ii].Type=='Lin':
+                PtsRZ = np.concatenate((np.zeros((1,NR*NZ)),PtsRZ),axis=0)
+                In = '(X,Y,Z)'
+            elif self.LObj[ii].Type=='Tor' and self.LObj[ii].Lim is not None:
+                PtsRZ = np.concatenate((PtsRZ,np.zeros((1,NR*NZ))),axis=0)
+                In = '(R,Z,Phi)'
+            indRZ = self.LObj[ii].isInside(PtsRZ, In=In)
 
     def test02_InsideConvexPoly(self):
-        self.Obj.get_InsideConvexPoly(Plot=False, Test=True)
+        self.LObj[0].get_InsideConvexPoly(Plot=False, Test=True)
 
-    def test03_plot(self):
-        Lax1 = self.Obj.plot(Proj='All', Elt='PIBsBvV', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot(Proj='Cross', Elt='PIBsBvV', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj.plot(Proj='Hor', Elt='PIBsBvV', draw=False, a4=False, Test=True)
+    def test03_get_meshEdge(self):
+        Pts, dLr, ind = self.LObj[0].get_meshEdge(dL=0.05, DS=None, dLMode='abs', DIn=0.001)
+        Pts, dLr, ind = self.LObj[0].get_meshEdge(dL=0.1, DS=None, dLMode='rel', DIn=-0.001)
+        Pts, dLr, ind = self.LObj[0].get_meshEdge(dL=0.05, DS=[None,[-2.,0.]], dLMode='abs', DIn=0.)
+
+    def test04_get_meshCross(self):
+        Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.02, DS=None, dSMode='abs', ind=None)
+        Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.02, DS=None, dSMode='abs', ind=ind)        
+        Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.1, DS=[[0.,2.5],None], dSMode='rel', ind=None)
+
+    def test05_get_meshS(self):
+        for ii in range(0,len(self.LObj)):
+            Pts, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=[[2.,3.],[0.,5.],[0.,np.pi/2.]], dSMode='abs', ind=None, DIn=0.001, Out='(X,Y,Z)')
+            Pts, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=None, dSMode='abs', ind=ind, DIn=0.001, Out='(X,Y,Z)')        
+
+    def test06_get_meshV(self):
+        if self.LObj[0].Id.Cls=='Ves':
+            LDV = [[[1.,2.],[0.,2.],[3.*np.pi/4.,5.*np.pi/4.]], [[-1.,1.],[1.,2.],[0.,2.]]]
+            for ii in range(0,len(self.LObj)):
+                Pts, dV, ind, dVr = self.LObj[ii].get_meshV(0.05, DV=LDV[ii], dVMode='abs', ind=None, Out='(R,Z,Phi)')
+                Pts, dV, ind, dVr = self.LObj[ii].get_meshV(0.05, DV=None, dVMode='abs', ind=ind, Out='(R,Z,Phi)')
+
+    def test07_plot(self):
+        for ii in range(0,len(self.LObj)):
+            Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', draw=False, a4=False, Test=True)
+            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', draw=False, a4=False, Test=True)
+            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', draw=False, a4=False, Test=True)
+            plt.close('all')
+
+    def test08_plot_sino(self):
+        Lax1 = self.LObj[0].plot_sino(Proj='Cross', Ang='xi', AngUnit='deg', Sketch=True, draw=False, a4=False, Test=True)
+        Lax2 = self.LObj[0].plot_sino(Proj='Cross', Ang='theta', AngUnit='rad', Sketch=True, draw=False, a4=False, Test=True)
         plt.close('all')
 
-    def test03_get_MeshCrossSection(self):
-        Pts, X1, X2, NumX1, NumX2 = self.Obj.get_MeshCrossSection(CrossMesh=[0.01,0.01], CrossMeshMode='abs', Test=True)
-        Pts, X1, X2, NumX1, NumX2 = self.Obj.get_MeshCrossSection(CrossMesh=[0.01,0.01], CrossMeshMode='rel', Test=True)
-
-    def test05_plot_Sinogram(self):
-        Lax1 = self.Obj.plot_Sinogram(Proj='Cross', Ang='xi', AngUnit='deg', Sketch=True, draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot_Sinogram(Proj='Cross', Ang='theta', AngUnit='rad', Sketch=True, draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test06_saveload(self):
-        self.Obj.save()
-        Los = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-        os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-
+    def test09_saveload(self):
+        for ii in range(0,len(self.LObj)):
+            self.LObj[ii].save(Print=False)
+            obj = tfpf.Open(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
+            os.remove(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
 
 
 VesTor = tfg.Ves('Test', PVes, Type='Tor', shot=0, Exp='AUG', SavePath=Root+Addpath)
-VesLin = tfg.Ves('Test', PVes, Type='Lin', DLong=DLong, shot=0, Exp='AUG', SavePath=Root+Addpath)
-VesTor.save()
-VesLin.save()
+VesLin = tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0, Exp='AUG', SavePath=Root+Addpath)
+#VesTor.save()
+#VesLin.save()
 
 
 
+
+#######################################################
+#
+#  Creating Struct objects and testing methods
+#
+#######################################################
+
+class Test02_Struct(Test01_Ves):
+    
+    @classmethod
+    def setup_class(cls, PVes=PVes, Lim=Lim):
+        #print("")
+        #print("--------- "+VerbHead+cls.__name__)
+        cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor', shot=0, Exp='Test', SavePath=Root+Addpath)]
+        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Tor', Lim=[-np.pi/2.,np.pi/4.], shot=0, Exp='Test', SavePath=Root+Addpath))
+        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=Root+Addpath))
+
+
+
+
+
+
+
+"""
 #######################################################
 #
 #  Creating Struct objects and testing methods
@@ -341,12 +322,12 @@ class Test04_StructLin:
         Los = tfpf.Open(self.Obj2.Id.SavePath + self.Obj2.Id.SaveName + '.npz')
         os.remove(self.Obj2.Id.SavePath + self.Obj2.Id.SaveName + '.npz')
 
+"""
 
 
 
 
-
-
+"""
 #######################################################
 #
 #  Creating LOS and GLOS objects and testing methods
@@ -1850,7 +1831,7 @@ class Test20_GDetectLensLin:
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
-
+"""
 
 
 

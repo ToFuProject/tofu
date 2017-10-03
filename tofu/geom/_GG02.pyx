@@ -14,8 +14,12 @@ from matplotlib.path import Path
 
 
 
-__all__ = ['CoordShift','_Ves_isInside',
-           '_Ves_mesh_dlfromL_cython', '_Ves_mesh_CrossPoly',
+__all__ = ['CoordShift',
+           'Poly_isClockwise', 'Poly_Order', 'Poly_VolAngTor',
+           'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
+           '_Ves_isInside',
+           '_Ves_mesh_dlfromL_cython', 
+           '_Ves_meshCross_FromD', '_Ves_meshCross_FromInd', '_Ves_Smesh_Cross',
            '_Ves_Vmesh_Tor_SubFromD_cython', '_Ves_Vmesh_Tor_SubFromInd_cython',
            '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
            '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
@@ -111,6 +115,148 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
 ########################################################
 ########################################################
 ########################################################
+#                  General Geometry
+########################################################
+########################################################
+########################################################
+"""
+
+########################################################
+########################################################
+#       Polygons
+########################################################
+
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def Poly_isClockwise(cnp.ndarray[double,ndim=2] Poly):
+    """ Assuming 2D closed Poly ! """
+    cdef int ii, NP=Poly.shape[1]
+    cdef double Sum=0.
+    for ii in range(0,NP-1):
+        Sum += Poly[0,ii]*Poly[1,ii+1]-Poly[0,ii+1]*Poly[1,ii]
+    return Sum < 0.
+
+
+def Poly_Order(cnp.ndarray[double,ndim=2] Poly, str order='C', Clock=False, close=True, str layout='(cc,N)', str layout_in=None, Test=True):
+    """
+    Return a polygon Poly as a np.ndarray formatted according to parameters
+
+    Parameters 
+    ----------
+        Poly    np.ndarray or list or tuple     Input polygon under from of (cc,N) or (N,cc) np.ndarray (where cc = 2 or 3, the number of coordinates and N points), or list or tuple of vertices
+        order   str                             Flag indicating whether the output np.ndarray shall be C-contiguous ('C') or Fortran-contiguous ('F')
+        Clock   bool                            For 2-dimensional arrays only, flag indicating whether the output array shall represent a clockwise polygon (True) or anti-clockwise (False), or should be left unchanged (None)
+        close   bool                            For 2-dimensional arrays only, flag indicating whether the output array shall be closed (True, i.e.: last point==first point), or not closed (False)
+        layout  str                             Flag indicating whether the output np.ndarray shall be of shape '(cc,N)' or '(N,cc)'
+        Test    bool                            Flag indicating whether the inputs should be tested for conformity, default: True
+
+    Returns
+    -------
+        poly    np.ndarray                      Output formatted polygon
+
+    """
+    if Test:
+        assert (2 in np.shape(Poly) or 3 in np.shape(Poly)) and max(np.shape(Poly))>=3, "Arg Poly must contain the 2D or 3D coordinates of at least 3 points (polygon) !"
+        assert order.lower() in ['c','f'], "Arg order must be in ['c','f'] !"
+        assert type(Clock) is bool, "Arg Clock must be a bool !"
+        assert type(close) is bool, "Arg close must be a bool !"
+        assert layout.lower() in ['(cc,n)','(n,cc)'], "Arg layout must be in ['(cc,n)','(n,cc)'] !"
+        assert layout_in is None or layout_in.lower() in ['(cc,n)','(n,cc)'], "Arg layout_in must be in ['(cc,n)','(n,cc)'] !"
+    
+    if np.shape(Poly)==(3,3):
+        assert not layout_in is None, "Could not resolve the input layout of Poly because shape==(3,3), specify !"
+        poly = np.array(Poly).T if layout_in.lower()=='(n,cc)' else np.array(Poly)
+    else:
+        poly = np.array(Poly).T if min(np.shape(Poly))==Poly.shape[1] else np.array(Poly)
+    if not np.allclose(poly[:,0],poly[:,-1], atol=1.e-9):
+        poly = np.concatenate((poly,poly[:,0:1]),axis=1)
+    if poly.shape[0]==2 and not Clock is None:
+        if not Clock==Poly_isClockwise(poly):
+            poly = poly[:,::-1]
+    if not close:
+        poly = poly[:,:-1]
+    if layout.lower()=='(n,cc)':
+        poly = poly.T 
+    poly = np.ascontiguousarray(poly) if order.lower()=='c' else np.asfortranarray(poly)
+    return poly
+
+
+
+
+def Poly_VolAngTor(cnp.ndarray[double,ndim=2,mode='c'] Poly):
+    cdef cnp.ndarray[double,ndim=1] Ri0=Poly[0,:-1], Ri1=Poly[0,1:], Zi0=Poly[1,:-1], Zi1=Poly[1,1:]
+    cdef double V = np.sum((Ri0*Zi1 - Zi0*Ri1)*(Ri0+Ri1))/6.
+    cdef double BV0 = np.sum((Ri0*Zi1 - Zi0*Ri1) * 0.5 * (Ri1**2 + Ri1*Ri0 + Ri0**2)) / (6.*V)
+    cdef double BV1 = -np.sum((Ri1**2*Zi0*(2.*Zi1+Zi0) + 2.*Ri0*Ri1*(Zi0**2-Zi1**2) - Ri0**2*Zi1*(Zi1+2.*Zi0))/4.)/(6.*V)
+    return V, np.array([BV0,BV1])
+
+
+
+
+
+
+"""
+###############################################################################
+###############################################################################
+                    Sinogram specific
+###############################################################################
+"""
+
+
+def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ, cnp.ndarray[double,ndim=2] Poly, int NP=50, Test=True):
+    """ Computes impact parameters of a Tor enveloppe (Tor is a closed 2D polygon)
+
+    D. VEZINET, Aug. 2014
+    Inputs :
+        RZ          A (2,1) np.ndarray indicating the impact point
+        Poly        A (2,N) np.ndarray (ideally with 1st point = last point, but optionnal) representing the 2D polygon to be used
+        NP          An integer (default = 50) indicating the number of points used for discretising theta between 0 and pi
+    Outputs :
+        theta
+    """
+    if Test:
+        assert RZ.size==2, 'Arg RZ should be a (2,) np.ndarray !'
+        assert Poly.shape[0]==2, 'Arg Poly should be a (2,N) np.ndarray !'
+    cdef int NPoly = Poly.shape[1]
+    EnvTheta = np.linspace(0.,np.pi,NP,endpoint=True).reshape((NP,1))
+    Vect = np.concatenate((np.cos(EnvTheta),np.sin(EnvTheta)),axis=1)
+    Vectbis = np.swapaxes(np.resize(Vect,(NPoly,NP,2)),0,1)
+
+    RZPoly = Poly - np.tile(RZ,(NPoly,1)).T
+    RZPoly = np.resize(RZPoly.T,(NP,NPoly,2))
+    Sca = np.sum(Vectbis*RZPoly,axis=2)
+    return EnvTheta.flatten(), np.array([np.max(Sca,axis=1).T, np.min(Sca,axis=1).T])
+
+
+# For sinograms
+def ConvertImpact_Theta2Xi(theta, pP, pN, sort=True):
+    if hasattr(theta,'__getitem__'):
+        pP, pN, theta = np.asarray(pP), np.asarray(pN), np.asarray(theta)
+        assert pP.shape==pN.shape==theta.shape, "Args pP, pN and theta must have same shape !"
+        pPbis, pNbis = np.copy(pP), np.copy(pN)
+        xi = theta - np.pi/2.
+        ind = xi < 0
+        pPbis[ind], pNbis[ind], xi[ind] = -pN[ind], -pP[ind], xi[ind]+np.pi
+        if sort:
+            ind = np.argsort(xi)
+            xi, pP, pN = xi[ind], pPbis[ind], pNbis[ind]
+        return xi, pP, pN
+    else:
+        assert not (hasattr(pP,'__getitem__') or hasattr(pN,'__getitem__')), "Args pP, pN and theta must have same shape !"
+        xi = theta - np.pi/2.
+        if xi < 0.:
+            return xi+np.pi, -pN, -pP
+        else:
+            return xi, pP, pN
+
+
+
+"""
+########################################################
+########################################################
+########################################################
 #                       Ves-specific
 ########################################################
 ########################################################
@@ -134,9 +280,12 @@ def _Ves_isInside(Pts, VPoly, VLong=None, VType='Tor', In='(X,Y,Z)', Test=True):
 
     path = Path(VPoly.T)
     if VType.lower()=='tor':
-        pts = CoordShift(Pts, In=In, Out='(R,Z,Phi)')
-        ind = Path(VPoly.T).contains_points(pts[:2,:].T, transform=None, radius=0.0)
-        if VLong is not None:
+        if VLong is None:
+            pts = CoordShift(Pts, In=In, Out='(R,Z)')
+            ind = Path(VPoly.T).contains_points(pts.T, transform=None, radius=0.0)
+        else:
+            pts = CoordShift(Pts, In=In, Out='(R,Z,Phi)')
+            ind = Path(VPoly.T).contains_points(pts[:2,:].T, transform=None, radius=0.0)
             VLong = [Catan2(Csin(VLong[0]),Ccos(VLong[0])), Catan2(Csin(VLong[1]),Ccos(VLong[1]))]
             if VLong[0]<VLong[1]:
                 ind = ind & (pts[2,:]>=VLong[0]) & (pts[2,:]<=VLong[1])
@@ -162,10 +311,14 @@ def _Ves_isInside(Pts, VPoly, VLong=None, VType='Tor', In='(X,Y,Z)', Test=True):
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True, double margin=1.e-9):
+def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True, dLMode='abs', double margin=1.e-9):
     """ Get the actual reolution from the desired resolution and MinMax and limits """
     # Get the number of mesh elements in LMinMax
-    cdef double N = Cceil((LMinMax[1]-LMinMax[0])/dL)
+    cdef double N
+    if dLMode.lower()=='abs':
+        N = Cceil((LMinMax[1]-LMinMax[0])/dL)
+    else:
+        N = Cceil(1./dL)
     # Derive the real (effective) resolution
     cdef double dLr = (LMinMax[1]-LMinMax[0])/N
     # Get desired limits if any
@@ -216,11 +369,71 @@ def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True, 
 #       Meshing - Common - Polygon face
 ########################################################
 
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _Ves_meshCross_FromD(double[::1] MinMax1, double[::1] MinMax2, double d1, double d2, D1=None, D2=None,str dSMode='abs', VPoly=None, double margin=1.e-9):
+    cdef double[::1] X1, X2
+    cdef double dX1, dX2
+    cdef long[::1] ind1, ind2
+    cdef int N1, N2, n1, n2, ii, jj, nn
+    cdef cnp.ndarray[double,ndim=2] Pts
+    cdef cnp.ndarray[double,ndim=1] dS
+    cdef cnp.ndarray[long,ndim=1] ind
+
+    X1, d1r, ind1, N1 = _Ves_mesh_dlfromL_cython(MinMax1, d1, D1, Lim=True, dLMode=dSMode, margin=margin)
+    X2, d2r, ind2, N2 = _Ves_mesh_dlfromL_cython(MinMax2, d2, D2, Lim=True, dLMode=dSMode, margin=margin)
+    n1, n2 = len(X1), len(X2)
+
+    Pts = np.empty((2,n1*n2))
+    dS = d1r*d2r*np.ones((n1*n2,))
+    ind = np.empty((n1*n2,),dtype=int)
+    for ii in range(0,n2):
+        for jj in range(0,n1):
+            nn = jj+n1*ii
+            Pts[0,nn] = X1[jj]
+            Pts[1,nn] = X2[ii]
+            ind[nn] = ind1[jj] + n1*ind2[ii]
+    if VPoly is not None:
+        iin = Path(VPoly.T).contains_points(Pts.T, transform=None, radius=0.0)
+        if np.sum(iin)==1:
+            Pts, dS, ind = Pts[:,iin].reshape((2,1)), dS[iin], ind[iin]
+        else:
+            Pts, dS, ind = Pts[:,iin], dS[iin], ind[iin]
+    return Pts, dS, ind, d1r, d2r    
+
 
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _Ves_mesh_CrossPoly(double[:,::1] VPoly, double dL, D1=None, D2=None, double margin=1.e-9, double DIn=0., VIn=None):
+def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1, double d2, long[::1] ind, str dSMode='abs', double margin=1.e-9):
+    cdef double[::1] X1, X2
+    cdef double dX1, dX2
+    cdef long[::1] bla
+    cdef int N1, N2, NP=ind.size, ii, i1, i2
+    cdef cnp.ndarray[double,ndim=2] Pts
+    cdef cnp.ndarray[double,ndim=1] dS
+
+    X1, d1r, bla, N1 = _Ves_mesh_dlfromL_cython(MinMax1, d1, None, Lim=True, dLMode=dSMode, margin=margin)
+    X2, d2r, bla, N2 = _Ves_mesh_dlfromL_cython(MinMax2, d2, None, Lim=True, dLMode=dSMode, margin=margin)
+
+    Pts = np.empty((2,NP))
+    dS = d1r*d2r*np.ones((NP,))
+    for ii in range(0,NP):
+        i2 = ind[ii] // N1
+        i1 = ind[ii]-i2*N1
+        Pts[0,ii] = X1[i1]
+        Pts[1,ii] = X2[i2]
+    return Pts, dS, d1r, d2r
+
+
+
+
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None, D2=None, double margin=1.e-9, double DIn=0., VIn=None):
     cdef int ii, jj, nn=0, NP=VPoly.shape[1]
     cdef double[::1] LMinMax, L
     cdef double v0, v1, dlr
@@ -236,7 +449,7 @@ def _Ves_mesh_CrossPoly(double[:,::1] VPoly, double dL, D1=None, D2=None, double
         for ii in range(0,NP-1):
             v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
             LMinMax[1] = Csqrt(v0**2 + v1**2)
-            L, dlr, indL, N[ii] = _Ves_mesh_dlfromL_cython(LMinMax, dL, DL=None, Lim=True, margin=margin)
+            L, dlr, indL, N[ii] = _Ves_mesh_dlfromL_cython(LMinMax, dL, dLMode=dLMode, DL=None, Lim=True, margin=margin)
             VPolybis.append((VPoly[0,ii],VPoly[1,ii]))
             v0, v1 = v0/LMinMax[1], v1/LMinMax[1]
             for jj in range(0,N[ii]):
@@ -251,7 +464,7 @@ def _Ves_mesh_CrossPoly(double[:,::1] VPoly, double dL, D1=None, D2=None, double
         for ii in range(0,NP-1):
             v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
             LMinMax[1] = Csqrt(v0**2 + v1**2)
-            L, dlr, indL, N[ii] = _Ves_mesh_dlfromL_cython(LMinMax, dL, DL=None, Lim=True, margin=margin)
+            L, dlr, indL, N[ii] = _Ves_mesh_dlfromL_cython(LMinMax, dL, dLMode=dLMode, DL=None, Lim=True, margin=margin)
             VPolybis.append((VPoly[0,ii],VPoly[1,ii]))
             v0, v1 = v0/LMinMax[1], v1/LMinMax[1]
             for jj in range(0,N[ii]):
@@ -274,6 +487,28 @@ def _Ves_mesh_CrossPoly(double[:,::1] VPoly, double dL, D1=None, D2=None, double
         dLr, ind = dLr[indin], ind[indin]   
     
     return PtsCross, dLr, ind, N, Rref, np.array(VPolybis).T
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ########################################################
@@ -684,7 +919,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
     if Inter:
 
         # Get the actual R and Z resolutions and mesh elements
-        PtsCross, dLr, indL, NL, Rref, VPbis = _Ves_mesh_CrossPoly(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
+        PtsCross, dLr, indL, NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
         R0 = np.copy(Rref)
         NR0 = R0.size
         indin = np.ones((PtsCross.shape[1],),dtype=bool)
@@ -821,7 +1056,7 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
     
     
     # Get the actual R and Z resolutions and mesh elements
-    PtsCross, dLrRef, indL, NL, RrefRef, VPbis = _Ves_mesh_CrossPoly(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
+    PtsCross, dLrRef, indL, NL, RrefRef, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
     Ln = dLrRef.size
     # Number of Phi per R
     dRPhirRef, dPhir, dRPhir = np.empty((Ln,)), np.empty((Ln,)), -np.ones((Ln,))
@@ -1118,7 +1353,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
     # Get the actual R and Z resolutions and mesh elements
     X, dXr, indX, NX = _Ves_mesh_dlfromL_cython(XMinMax, dX, DL=DX, Lim=True, margin=margin)
     Xn = len(X)
-    PtsCross, dLr, indL, NL, Rref, VPbis = _Ves_mesh_CrossPoly(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
+    PtsCross, dLr, indL, NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
     NR0 = Rref.size
     indin = np.ones((PtsCross.shape[1],),dtype=bool)
     if DY is not None:
@@ -1179,7 +1414,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
     
     # Get the actual R and Z resolutions and mesh elements
     X, dXr, bla, NX = _Ves_mesh_dlfromL_cython(XMinMax, dX, DL=None, Lim=True, margin=margin)
-    PtsCross, dLr, bla, NL, Rref, VPbis = _Ves_mesh_CrossPoly(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
+    PtsCross, dLr, bla, NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
     Ln = PtsCross.shape[1] 
 
     LPts, LdS = [], []

@@ -4,14 +4,24 @@ Created on Wed Jul 30 14:37:31 2014
 
 @author: didiervezinet
 """
-
+# Built-in
 import os                   # For accessing cuurent working direcVesy
-import cPickle as pck       # For saving / loading objects
-import numpy as np
-import datetime as dtm
+import subprocess
 import getpass
 import inspect
 import warnings
+
+# Common
+import numpy as np
+import datetime as dtm
+
+try:
+    import cPickle as pck       # For saving / loading objects
+except Exception:
+    pck = None
+    warnings.warn("cPickle not available => all file-handling done with numpy !")
+    pass
+
 
 # ToFu specific
 from tofu.defaults import dtmFormat as TFDdtmFormat
@@ -271,8 +281,6 @@ class ID(object):
         If provided, a time reference to be used to identify this particular instance (used for debugging mostly)
     dtFormat :  None / str
         If provided, the format in which dtime should be written in the automatically generated saving name for the created instance
-    dtimeIn :   bool
-        Flag indicating whether the dtm.datetime should be included in the automatically generated saving name for the created instance
 
     Returns
     -------
@@ -281,7 +289,7 @@ class ID(object):
 
     """
 
-    def __init__(self, Cls, Name, Type=None, Deg=None, Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None, USRdict=None, LObj=None, dtime=None, dtFormat=TFDdtmFormat, dtimeIn=False):
+    def __init__(self, Cls, Name, Type=None, Deg=None, Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None, USRdict=None, LObj=None, dtime=None, dtFormat=TFDdtmFormat, Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']):
         assert type(Exp) is str, "Arg Exp must be a str !"
         assert type(Cls) is str, "Arg Cls must be a str !"
         assert shot is None or type(shot) is int, "Arg shot must be a int !"
@@ -294,22 +302,34 @@ class ID(object):
         self._Deg = Deg
         self._Diag = Diag
         self._shot = shot
-        self._set_dtime(dtime=dtime, dtFormat=dtFormat, dtimeIn=dtimeIn)
-        self.set_Name(Name, SaveName=SaveName)
+        try:
+            bash = "git describe --tags"
+            proc = subprocess.Popen(bash.split(),stdout=subprocess.PIPE)
+            A, B = proc.communicate()
+            assert B is None
+            self._version = A.replace('\n','')
+        except:
+            self._version = None
+        try:
+            self._usr = getpass.getuser()
+        except:
+            self._usr = None 
+        self._Include = None
+        self._set_dtime(dtime=dtime, dtFormat=dtFormat)
+        self.set_Name(Name, SaveName=SaveName, Include=Include)
         self.set_SavePath(SavePath=SavePath)
         self._LObj = {}
         self.set_LObj(LObj)
         self.set_USRdict(USRdict)
 
-    def _set_dtime(self,dtime=None, dtFormat=TFDdtmFormat, dtimeIn=False):
+    def _set_dtime(self,dtime=None, dtFormat=TFDdtmFormat):
         assert dtime is None or isinstance(dtime,dtm.datetime), "Arg dtime must be a dtm.datetime instance !"
         if dtime is None:
             dtime = dtm.datetime.now()
         self._dtime = dtime
         self._dtFormat = dtFormat
-        self._dtimeIn = dtimeIn
 
-    def set_Name(self, Name, SaveName=None, dtimeIn=None):
+    def set_Name(self, Name, SaveName=None, Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']):
         """ Set the Name of the created instance, automatically updating the SaveName
 
         When the name is changed (reminding it should not include space (' ') or underscore ('_') characters), the name used for saving the object is automatically changed
@@ -320,15 +340,13 @@ class ID(object):
             Name to be assigned to the created instance, should be a str without ' ' or '_' (spaces and underscores will be automatically removed if present)
         SaveName :  None / str
             If provided, overrides the automatically generated name for saving the created instance (not recommended)
-        dtimeIn :   None / bool
-            If provided, modifies the value of dtimeIn provided upon creation of the ID object
 
         """
         assert type(Name) is str, "ID.Name must be assigned to a str !"
         self._Name = Name
-        self.set_SaveName(SaveName=SaveName, dtimeIn=dtimeIn)
+        self.set_SaveName(SaveName=SaveName, Include=Include)
 
-    def set_SaveName(self,SaveName=None, dtimeIn=None):
+    def set_SaveName(self,SaveName=None, Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']):
         """ Enables either to automatically compute a ToFu-consistent saving name for the created instance, or to override that default saving name with the user-provided SaveName
 
         When creating an object of any class, an ID object is assigned to it that automatically computes a saving name in case the user wants to save the object.
@@ -339,16 +357,15 @@ class ID(object):
         ----------
         SaveName :  None / str
             If provided, a str that overrides the automatically generated saving name
-        dtimeIn :   None / bool
-            If provided, modifies the value of dtimeIn provided upon creation of the ID object
 
         """
         assert SaveName is None or type(SaveName) is str, "ID.SaveName must be assigned to a str !"
-        dtimeIn = self._dtimeIn if dtimeIn is None else dtimeIn
         if SaveName is None:
-            self._SaveName = SaveName_Conv(self._Exp, self.Cls, self._Type, self._Deg, self._Diag, self._Name, shot=self._shot, dtime=self._dtime, Format=self._dtFormat, dtimeIn=dtimeIn)
+            self._SaveName = SaveName_Conv(self._Exp, self.Cls, self._Type, self._Deg, self._Diag, self._Name, shot=self._shot, version=self._version, usr=self._usr, dtime=self._dtime, Format=self._dtFormat, Include=Include)
+            self._Include = Include
         else:
             self._SaveName = SaveName
+            self._Include = None
 
     def set_SavePath(self,SavePath=None):
         """ Enables to automatically generate a saving path for the created object, or to override that default path with the user-provided SavePath
@@ -484,7 +501,43 @@ class ID(object):
         return _Id_todict(self)
 
 
-def SaveName_Conv(Exp, Cls, Type, Deg, Diag, Name, shot=None, dtime=None, Format="D%Y%m%d_T%H%M%S", dtimeIn=False):
+
+def _get_Str4SVN(kstr, Exp=None, Cls=None, Type=None, Deg=None, Diag=None, Name=None, shot=None, version=None, usr=None, dtime=None, Format="D%Y%m%d_T%H%M%S"):
+    if kstr=='Mod' and all([Cls is not None]):
+        modes = {'TFG':['Ves','Struct','LOS','GLOS','Lens','Apert','Detect','GDetect'],
+                 'TFM':['Mesh1D','Mesh2D','Mesh3D','LBF1D','LBF2D','LBF3D'],
+                 'TFEq':['Eq2D'],
+                 'TFMC':['GMat2D','GMat3D'],
+                 'TFD':['Corresp','PreData'],
+                 'TFI':['Sol2D']}
+        Str = '_'+[kk for kk in modes.keys() if Cls in modes[kk]][0]
+    elif kstr=='Cls' and Cls is not None:
+        Str = '_'+Cls
+    elif kstr=='Typ' and Type is not None:
+        Str = Type
+    elif kstr=='Exp' and Exp is not None:
+        Str = '_'+Exp
+    elif kstr=='Deg' and Deg is not None:
+        Str = 'D{0:01.0f}'.format(Deg)
+    elif kstr=='Diag' and Diag is not None:
+        Str = '_Dg'+Diag
+    elif kstr=='Name' and Name is not None:
+        Str = '_'+Name
+    elif kstr=='shot' and shot is not None:
+        Str = '_sh{0:05.0f}'.format(shot)
+    elif kstr=='Vers' and version is not None:
+        Str = '_V'+version
+    elif kstr=='Usr' and usr is not None:
+        Str = '_U'+usr
+    elif kstr=='DTM' and dtime is not None:
+        Str = '_'+dtime.strftime(Format)
+    else:
+        Str = ''
+    return Str
+
+
+
+def SaveName_Conv(Exp, Cls, Type, Deg, Diag, Name, shot=None, version=None, usr=None, dtime=None, Format="D%Y%m%d_T%H%M%S", Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']):
     """ Create a default name for saving the object, including key info for fast identification of the object class, type, experiement...
 
     When create a ToFu object, this function called by the ID class to generate a default name for saving the object.
@@ -514,8 +567,6 @@ def SaveName_Conv(Exp, Cls, Type, Deg, Diag, Name, shot=None, dtime=None, Format
         If provided, a time reference to be used to identify this particular instance (used for debugging mostly)
     Format :    None / str
         If provided, the format in which dtime should be written in the automatically generated saving name for the created instance
-    dtimeIn :   bool
-        Flag indicating whether the dtm.datetime should be included in the automatically generated saving name for the created instance
 
     Returns
     -------
@@ -523,6 +574,22 @@ def SaveName_Conv(Exp, Cls, Type, Deg, Diag, Name, shot=None, dtime=None, Format
         The automatically generated saving name
 
     """
+    if Cls=='PreData':
+        Order = ['Mod','Cls','Typ','Exp','Deg','Diag','shot','Name','Vers','Usr','DTM']
+    else:
+        Order = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr','DTM']
+
+    SVN = ""
+    for ii in range(0,len(Order)):
+        if Order[ii] in Include:
+            Str = _get_Str4SVN(Order[ii], Exp=Exp, Cls=Cls, Type=Type, Deg=Deg, Diag=Diag, Name=Name, shot=shot, version=version, usr=usr, dtime=dtime, Format=Format)
+            SVN += Str
+    SVN = SVN.replace('__','_')
+    if SVN[0]=='_':
+        SVN = SVN[1:]
+    return SVN
+
+"""
     if Cls in ['Ves','Struct','LOS','GLOS','Lens','Apert','Detect','GDetect']:
         Mod = 'TFG'
     elif Cls in ['Mesh1D','Mesh2D','Mesh3D','LBF1D','LBF2D','LBF3D']:
@@ -552,10 +619,12 @@ def SaveName_Conv(Exp, Cls, Type, Deg, Diag, Name, shot=None, dtime=None, Format
     if dtimeIn:
         SVN = SVN+'_'+dtime.strftime(Format)
     SVN = SVN.replace('__','_')
-    if Cls in ['PreData','Sol2D']:
-        SVN = SVN + '_U' + getpass.getuser()
+    if version is not None:
+        SVN += '_V' + version
+    if usr is not None:
+        SVN = SVN + '_U' + usr
     return SVN
-
+"""
 
 # Checking several instances are the same object
 def CheckSameObj(obj0, obj1, LFields=None):
@@ -731,7 +800,7 @@ def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log=
 
 def _Id_todict(Id):
     IdTxt = {'Cls':Id.Cls, 'Name':Id.Name, 'SaveName':Id.SaveName, 'SavePath':Id.SavePath, 'Diag':Id.Diag, 'Type':Id.Type, 'shot':Id.shot, 'Exp':Id.Exp}
-    Iddtime = {'dtime':Id.dtime, 'dtFormat':Id._dtFormat, 'dtimeIn':Id._dtimeIn}
+    Iddtime = {'dtime':Id.dtime, 'dtFormat':Id._dtFormat}
     IdLobjUsr = {'LObj':Id.LObj, 'USRdict':Id.USRdict}
     return [IdTxt,Iddtime,IdLobjUsr]
 
@@ -740,7 +809,7 @@ def _Id_todict(Id):
 
 def _Id_recreateFromdict(IdS):
     Id = ID(Cls=IdS[0]['Cls'], Type=IdS[0]['Type'], Exp=IdS[0]['Exp'], Diag=IdS[0]['Diag'], shot=IdS[0]['shot'], Name=IdS[0]['Name'], SaveName=IdS[0]['SaveName'], SavePath=IdS[0]['SavePath'],
-            dtime=IdS[1]['dtime'], dtFormat=IdS[1]['dtFormat'], dtimeIn=IdS[1]['dtimeIn'],
+            dtime=IdS[1]['dtime'], dtFormat=IdS[1]['dtFormat'],
             LObj=IdS[2]['LObj'], USRdict=IdS[2]['USRdict'])
     return Id
 
@@ -800,7 +869,7 @@ def FindSolFile(shot=0, t=0, Dt=None, Mesh='Rough1', Deg=2, Deriv='D2N2', Sep=Tr
     LF = [ff for ff in os.listdir(OutPath) if 'TFI_Sol2D_AUG_SXR' in ff]
     LF = [ff for ff in LF if all([ss in ff for ss in ['_'+str(shot)+'_', '_'+Mesh+'_D'+str(Deg), '_Deriv'+Deriv+'_Sep'+str(Sep)+'_Pos'+str(Pos)]])]
     if len(LF)==0:
-        print "No matching Sol2D file in ", OutPath
+        print("No matching Sol2D file in ", OutPath)
         out = None
     LDTstr = [ff[ff.index('_Dt')+3:ff.index('s_')] for ff in LF]
     LDTstr = [(ss[:7],ss[8:]) for ss in LDTstr]
@@ -809,11 +878,11 @@ def FindSolFile(shot=0, t=0, Dt=None, Mesh='Rough1', Deg=2, Deriv='D2N2', Sep=Tr
     elif Dt is None:
         LF = [LF[ii] for ii in range(0,len(LF)) if t>=float(LDTstr[ii][0]) and t<=float(LDTstr[ii][1])]
     if len(LF)==0:
-        print "No matching Sol2D file in ", OutPath
+        print("No matching Sol2D file in ", OutPath)
         out = None
     elif len(LF)>1:
-        print "Several matching Sol2D files in ", OutPath
-        print LF
+        print("Several matching Sol2D files in ", OutPath)
+        print(LF)
         out = None
     else:
         out = LF[0]
@@ -839,7 +908,7 @@ def _get_ClsFromName(PathFileExt):
 ###########################
 
 
-def Save_Generic(obj, SaveName=None, Path=None, Mode='npz', compressed=False):
+def Save_Generic(obj, SaveName=None, Path=None, Mode='npz', compressed=False, Print=True):
     """ Save a ToFu object under file name SaveName, in folder Path, using specified mode
 
     ToFu provides built-in saving and loading functions for ToFu objects.
@@ -873,13 +942,14 @@ def Save_Generic(obj, SaveName=None, Path=None, Mode='npz', compressed=False):
     else:
         assert type(SaveName) is str, "Arg SaveName must be a str !"
         obj.Id.SaveName = SaveName
-    Ext = '.npz' if 'npz' in Mode else '.pck'
+    Ext = '.npz' if 'npz' in Mode.lower() or pck is None else '.pck'
     pathfileext = Path+SaveName+Ext
     if '.npz' in Ext:
         _save_np(obj, pathfileext, compressed=compressed)
     else:
         _save_object(obj, pathfileext)
-    print("Saved in :  "+pathfileext)
+    if Print:
+        print("Saved in :  "+pathfileext)
 
 
 def _save_object(obj,pathfileext):
@@ -905,7 +975,7 @@ def _convert_Detect2Ldict(obj):
 
     # Store Sino data
     for pp in lAttr:
-        #print inspect.ismethod(getattr(obj,pp)), type(getattr(obj,pp)), pp
+        #print( inspect.ismethod(getattr(obj,pp)), type(getattr(obj,pp)), pp
         if not inspect.ismethod(getattr(obj,pp)):
             if '_Sino' in pp:
                 Sino[pp] = getattr(obj,pp)
@@ -948,15 +1018,14 @@ def _convert_PreData2Ldict(obj):
 def _save_np(obj, pathfileext, compressed=False):
 
     func = np.savez_compressed if compressed else np.savez
-
     Idsave = obj.Id.todict()
 
     # tofu.geom
     if obj.Id.Cls=='Ves':
-        func(pathfileext, Idsave=Idsave, arrayorder=obj._arrayorder, Clock=obj._Clock, Poly=obj.Poly, DLong=obj.DLong, Sino_RefPt=obj.Sino_RefPt, Sino_NP=obj.Sino_NP)
+        func(pathfileext, Idsave=Idsave, arrayorder=obj._arrayorder, Clock=obj._Clock, Poly=obj.Poly, Lim=obj.Lim, Sino_RefPt=obj.sino['RefPt'], Sino_NP=obj.sino['NP'])
 
     if obj.Id.Cls=='Struct':
-        func(pathfileext, Idsave=Idsave, arrayorder=obj._arrayorder, Clock=obj._Clock, Poly=obj.Poly, DLong=obj.DLong)
+        func(pathfileext, Idsave=Idsave, arrayorder=obj._arrayorder, Clock=obj._Clock, Poly=obj.Poly, Lim=obj.Lim)
 
     elif obj.Id.Cls=='LOS':
         func(pathfileext, Idsave=Idsave, Du=obj.Du, Sino_RefPt=obj.Sino_RefPt, arrayorder=obj._arrayorder, Clock=obj._Clock)
@@ -1261,18 +1330,17 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
         return Id
 
     if Id.Cls == 'Ves':
-        obj = TFG.Ves(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, DLong=Out['DLong'].tolist(), Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']), Sino_RefPt=Out['Sino_RefPt'], Sino_NP=int(Out['Sino_NP']),
-                      SavePath=Id.SavePath, dtime=Id.dtime, dtimeIn=Id._dtimeIn)
+        obj = TFG.Ves(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, Lim=Out['Lim'], Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']), Sino_RefPt=Out['Sino_RefPt'], Sino_NP=int(Out['Sino_NP']),
+                      SavePath=Id.SavePath, dtime=Id.dtime)
 
     elif Id.Cls == 'Struct':
-        Ves = _tryloadVes(Id)
-        obj = TFG.Struct(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, DLong=Out['DLong'].tolist(), Ves=Ves, Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']),
-                         SavePath=Id.SavePath, dtime=Id.dtime, dtimeIn=Id._dtimeIn)
+        obj = TFG.Struct(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, Lim=Out['Lim'], Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']),
+                         SavePath=Id.SavePath, dtime=Id.dtime)
 
     elif Id.Cls == 'LOS':
         Ves = _tryloadVes(Id)
         obj = TFG.LOS(Id, tuple(Out['Du']), Type=Id.Type, Ves=Ves, Sino_RefPt=Out['Sino_RefPt'], arrayorder=str(Out['arrayorder']), Clock=bool(Out['Clock']), Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot,
-                      SavePath=Id.SavePath, dtime=Id.dtime, dtimeIn=Id._dtimeIn)
+                      SavePath=Id.SavePath, dtime=Id.dtime)
     elif Id.Cls == 'GLOS':
         Ves = _tryloadVes(Id)
         LLOS, IdLOS = [], Id.LObj['LOS']
@@ -1281,16 +1349,16 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
             ll = TFG.LOS(Idl, Du=(Out['LDs'][:,ii],Out['Lus'][:,ii]), Ves=Ves, Sino_RefPt=Out['Sino_RefPt'], arrayorder=str(Out['arrayorder']))
             LLOS.append(ll)
         obj = TFG.GLOS(Id, LLOS, Ves=Ves, Type=Id.Type, Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot, Sino_RefPt=Out['Sino_RefPt'], SavePath=Id.SavePath, arrayorder=str(Out['arrayorder']), Clock=bool(Out['Clock']),
-                       dtime=Id.dtime, dtimeIn=Id._dtimeIn)
+                       dtime=Id.dtime)
 
     elif Id.Cls == 'Lens':
         Ves = _tryloadVes(Id, Ves=Ves)
         obj = TFG.Lens(Id, Out['O'], Out['nIn'], Out['Rad'][0], Out['F1'][0], F2=Out['F2'][0], Type=Id.Type, R1=Out['R1'][0], R2=Out['R2'][0], dd=Out['dd'][0], Ves=Ves,
-                Exp=Id.Exp, Clock=bool(Out['Clock']), Diag=Id.Diag, shot=Id.shot, arrayorder=str(Out['arrayorder']), SavePath=Id.SavePath, dtime=Id.dtime, dtimeIn=Id._dtimeIn)
+                Exp=Id.Exp, Clock=bool(Out['Clock']), Diag=Id.Diag, shot=Id.shot, arrayorder=str(Out['arrayorder']), SavePath=Id.SavePath, dtime=Id.dtime)
 
     elif Id.Cls == 'Apert':
         Ves = _tryloadVes(Id, Ves=Ves)
-        obj = TFG.Apert(Id, Out['Poly'], Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']), Ves=Ves, Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot, dtime=Id.dtime, dtimeIn=Id._dtimeIn)
+        obj = TFG.Apert(Id, Out['Poly'], Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']), Ves=Ves, Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot, dtime=Id.dtime)
 
     elif Id.Cls == 'Detect':
         Ves = _tryloadVes(Id, Ves=Ves)
@@ -1337,7 +1405,7 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
             if dd._SynthDiag_Done and dd._SynthDiag_Points is None:
                 dd.set_SigPrecomp()
             LDet.append(dd)
-        obj = TFG.GDetect(Id, LDet, Type=Id.Type, Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot, dtime=Id.dtime, dtimeIn=Id._dtimeIn, Sino_RefPt=Out['Sino_RefPt'], LOSRef=str(Out['LOSRef']),
+        obj = TFG.GDetect(Id, LDet, Type=Id.Type, Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot, dtime=Id.dtime, Sino_RefPt=Out['Sino_RefPt'], LOSRef=str(Out['LOSRef']),
                           arrayorder=str(Out['arrayorder']), Clock=bool(Out['Clock']), SavePath=Id.SavePath)
         Res = Out['Res'][0] if out=='full' else Res
         for kk in Res.keys():

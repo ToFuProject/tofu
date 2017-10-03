@@ -1,5 +1,5 @@
 
-cp GG02.pyx GG03.pyx
+cp _GG02.pyx _GG03.pyx
 
 echo ""
 env_tofu2
