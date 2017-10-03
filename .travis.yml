@@ -26,8 +26,8 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   - source activate test-environment
+  - ls /home/travis/build/ToFuProject/tofu/
   - python setup.py develop
 
 script:
-  - ls /home/travis/build/ToFuProject/tofu/
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
