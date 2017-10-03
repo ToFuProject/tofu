@@ -169,7 +169,7 @@ setup(
     ext_modules = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"])],
     cmdclass={'build_ext':build_ext},
     #ext_modules = cythonize("tofu/geom/"+gg),
-    include_dirs=[numpy.get_include()],
+    include_dirs=[np.get_include()],
 )
 
 
