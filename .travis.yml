@@ -29,4 +29,5 @@ install:
   - python setup.py develop
 
 script:
+  - ls /home/travis/build/ToFuProject/tofu/
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
