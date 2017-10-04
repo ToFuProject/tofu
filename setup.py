@@ -42,6 +42,7 @@ with open(version_py,"w") as fh:
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6']:
     gg = '_GG0%s' % sys.version[0]
+    poly = 'polygon%s' % sys.version[0]
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
 
@@ -126,7 +127,7 @@ setup(
             'numpy',
             'scipy',
             'matplotlib',
-            'polygon2',
+            poly,
             'cython',
             'nose',
             'nose-timer',
