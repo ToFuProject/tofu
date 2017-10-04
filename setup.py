@@ -29,7 +29,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 # Also, when git is not available (PyPi package), use stored version.py
 version_py = os.path.join(here,"version.py")
 try:
-    version_git = subprocess.check_output(["git","describe"]).rstrip()
+    version_git = subprocess.check_output(["git","describe"]).rstrip().decode()
 except:
     with open(version_py,'r') as fh:
         version_git = open(version_py).read().strip().split("=")[-1].replace('""','') 
