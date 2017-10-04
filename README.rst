@@ -1,4 +1,4 @@
-.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=devel-debug-v1.1.0
+.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=NewGeom
     :target: https://travis-ci.org/ToFuProject/tofu
 
 ToFu
