@@ -7,9 +7,7 @@ python:
 #sudo: enabled
 
 install:
-  - echo 1
   - sudo apt-get update
-  - echo 2
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
@@ -17,29 +15,18 @@ install:
     else
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
     fi
-  - echo 3
   - bash miniconda.sh -b -p $HOME/miniconda
-  - echo 4
   - export PATH="$HOME/miniconda/bin:$PATH"
-  - echo 5
   - hash -r
-  - echo 6
   - conda config --set always_yes yes --set changeps1 no
-  - echo 7
   - conda update -q conda
-  - echo 8
   # Useful for debugging any issues with conda
   - conda info -a
-  - echo 9
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
-  - echo 10
   - source activate test-environment
-  - echo 11
   - ls /home/travis/build/ToFuProject/tofu/
-  - echo 12
   - python setup.py develop
-  - echo 13
 
 script:
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom

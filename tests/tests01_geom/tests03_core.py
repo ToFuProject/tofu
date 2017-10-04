@@ -5,6 +5,8 @@ This module contains tests for tofu.geom in its structured version
 # External modules
 import os
 import numpy as np
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 
