@@ -1,0 +1,36 @@
+package:
+  name: 'tofu'
+  version: {{ environ['VERSION'] }}
+
+source:
+  git_rev:  
+  git_url: https://github.com/ToFuProject/tofu.git
+
+requirements:
+  build:
+    script_env:
+      - VERSION
+      - CONDA_BLD_PATH
+    - python
+    - setuptools
+
+
+  run:
+    - python
+
+test:
+  imports:
+    - tofu
+
+about:
+  home: https://github.com/ToFuProject/tofu
+  license: MIT
+  license_file: LICENSE
+  summary: Tomography for Fusion
+
+
+
+
+
+
+

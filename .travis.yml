@@ -26,11 +26,21 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   - source activate test-environment
-  - ls /home/travis/build/ToFuProject/tofu/
+  
+  # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
+  # replace the following line:
   - python setup.py develop
+  # with:
+  #- conda build tofu
+  #- conda install tofu --use-local
+
+
 
 script:
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
+
+after_success:
+  - test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash conda_upload.sh
 
 #deploy:
 #  provider: pypi
@@ -40,4 +50,9 @@ script:
 #  on:
 #    tags: true
 #    branch: master
+
+
+
+
+
 
