@@ -9,12 +9,10 @@ source:
 
 
 build:
-  - VERSION
-  - CONDA_BLD_PATH
-  number: {{ GIT_DESCRIBE_NUMBER }} 
-  string: {{ GIT_BUILD_STRING }}
   noarch_python: True
   preserve_egg_dir: True
+  - VERSION
+  - CONDA_BLD_PATH
 
 requirements:
   build:
