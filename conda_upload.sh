@@ -1,6 +1,6 @@
 # Only need to change these two variables
 PKG_NAME=tofu
-USER=Didou09
+USER=ToFuProject
 
 OS=linux-64
 mkdir ~/conda-bld
