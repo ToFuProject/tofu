@@ -8,8 +8,9 @@ source:
   git_url: https://github.com/ToFuProject/tofu.git
 
 build:
-  - VERSION
-  - CONDA_BLD_PATH
+  script_env:
+    - VERSION
+    - CONDA_BLD_PATH
 
 requirements:
   build:
