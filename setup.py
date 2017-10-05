@@ -102,6 +102,7 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.6'
 
         # In which language most of the code is written ?
         'Natural Language :: English',
@@ -132,6 +133,9 @@ setup(
             'nose',
             'nose-timer',
             ],
+
+    python_requires = '2.7, 3.6'
+
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,

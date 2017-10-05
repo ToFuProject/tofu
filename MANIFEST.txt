@@ -1,7 +1,7 @@
 # This specifies which files should be included, in addition to the default from setup.py
 
 # Include, from root, .txt files (LICENSE, MANIFEST) and .rst files (README)
-include *.txt *.rst
+#include *.txt *.rst
 
 # Include the data files
 #recursive-include data *
@@ -10,7 +10,7 @@ include *.txt *.rst
 #recursive-include examples *.txt *.py
 
 # Exclude all files in the sub-trees starting at directories matching examples/sample?/build
-prune examples/sample?/build
+#prune examples/sample?/build
 
 # If using Python 2.6 or less, then have to include package data, even though
 # it's already declared in setup.py
