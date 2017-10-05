@@ -52,8 +52,9 @@ Created on Wed May 18 2016
 @author_email: didier.vezinet@gmail.com
 """
 
+#import tofu.geom as geom
 
-#__all__ = []
+#__all__ = ['geom']
 #__all__.extend(['__version__'])
 #__all__.extend(core.__all__)
 #__all__.extend(['geom', 'mesh', 'matcomp', 'data', 'inv'])

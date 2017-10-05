@@ -7,21 +7,39 @@ source:
   git_rev:  
   git_url: https://github.com/ToFuProject/tofu.git
 
+
+build:
+  - VERSION
+  - CONDA_BLD_PATH
+  number: {{ GIT_DESCRIBE_NUMBER }} 
+  string: {{ GIT_BUILD_STRING }}
+  noarch_python: True
+  preserve_egg_dir: True
+
 requirements:
   build:
-    script_env:
-      - VERSION
-      - CONDA_BLD_PATH
     - python
     - setuptools
-
+    - numpy
+    - scipy
+    - matplotlib
+    - cython
+    - nose
+    - nose-timer
 
   run:
     - python
+    - setuptools
+    - numpy
+    - scipy
+    - matplotlib
+    - cython
+    - nose
+    - nose-timer 
 
 test:
   imports:
-    - tofu
+    - tofu.geom
 
 about:
   home: https://github.com/ToFuProject/tofu
