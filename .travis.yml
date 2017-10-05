@@ -33,7 +33,7 @@ install:
   # replace the following line:
   - python setup.py develop
   # with:
-  - export VERSION="$(python -c 'import version; print(version.__version__)')"
+  - export VERSION="""$(python -c "import version; print(version.__version__.replace('-','.'))")"""
   - conda build ./conda_recipe/
   - conda install tofu --use-local
 
