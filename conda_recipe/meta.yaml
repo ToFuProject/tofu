@@ -3,6 +3,7 @@ package:
   version: {{ environ['VERSION'] }}
 
 source:
+  path: ../
   git_rev:  
   git_url: https://github.com/ToFuProject/tofu.git
 

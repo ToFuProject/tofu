@@ -33,7 +33,7 @@ install:
   # replace the following line:
   #- python setup.py develop
   # with:
-  - conda build .
+  - conda build ./conda_recipe/
   - conda install tofu --use-local
 
 
@@ -42,7 +42,7 @@ script:
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
 
 after_success:
-  - test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash conda_upload.sh
+  - test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe/conda_upload.sh
 
 #deploy:
 #  provider: pypi
