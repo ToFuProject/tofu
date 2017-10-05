@@ -31,8 +31,9 @@ install:
   
   # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
   # replace the following line:
-  #- python setup.py develop
+  - python setup.py develop
   # with:
+  - export VERSION="$(python -c 'import version; print(version.__version__)')"
   - conda build ./conda_recipe/
   - conda install tofu --use-local
 
