@@ -134,7 +134,7 @@ setup(
             'nose-timer',
             ],
 
-    python_requires = '2.7, 3.6'
+    python_requires = '~=2.7.13, ~=3.6.1',
 
 
     # List additional groups of dependencies here (e.g. development

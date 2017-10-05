@@ -1,0 +1,14 @@
+numpy
+scipy
+matplotlib
+polygon3
+cython
+nose
+nose-timer
+
+[dev]
+check-manifest
+
+[test]
+coverage
+nose==1.3.4

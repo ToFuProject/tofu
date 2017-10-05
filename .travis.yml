@@ -31,3 +31,13 @@ install:
 
 script:
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
+
+#deploy:
+#  provider: pypi
+#  user: "Didou09" 
+#  password:
+#    secure: 
+#  on:
+#    tags: true
+#    branch: master
+
