@@ -1,6 +1,6 @@
 |Travis|_
 
-.. |Travis| image::https://travis-ci.org/ToFuProject/tofu.svg?label=Travis%20CI
+.. |Travis| image::https://travis-ci.org/ToFuProject/tofu.svg?branch=master
 .. _Travis: https://travis-ci.org/ToFuProject/tofu
 
 
