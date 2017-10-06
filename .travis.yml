@@ -37,9 +37,9 @@ install:
   # with:
   - export VERSION="""$(python -c "import version; print(version.__version__.replace('-','.'))")"""
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      conda build ./conda_recipe27/
+      conda build ./conda_recipe27/;
     else
-      conda build ./conda_recipe36/
+      conda build ./conda_recipe36/;
     fi
   #- conda install tofu --use-local
 
@@ -50,9 +50,9 @@ script:
 
 after_success:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe27/conda_upload.sh
+      test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe27/conda_upload.sh;
     else
-      test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe36/conda_upload.sh
+      test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe36/conda_upload.sh;
     fi
 
 #deploy:
