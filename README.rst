@@ -1,14 +1,8 @@
-|Travis|_
-
-.. |Travis| image::https://travis-ci.org/ToFuProject/tofu.svg?branch=master
-.. _Travis: https://travis-ci.org/ToFuProject/tofu
-
-
-.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=master
+.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=master&label=Travis
     :target: https://travis-ci.org/ToFuProject/tofu
 
 .. image:: https://travis-ci.org/ToFuProject/tofu.svg?label=TravisCI&branch=NewGeom
-       :target: https://travis-ci.org/ToFuProject/tofu
+    :target: https://travis-ci.org/ToFuProject/tofu
 
 
 ToFu
