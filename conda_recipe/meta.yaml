@@ -15,21 +15,37 @@ build:
 requirements:
   build:
     - python
+    - cpython
     - setuptools
     - numpy
     - scipy
     - matplotlib
+    - mpl_toolkits
     - cython
     - nose
+    - datetime
+    - pygments
+    - libc
+    - itertools
+    - warnings
+    - Polygon
 
   run:
     - python
+    - cpython
     - setuptools
     - numpy
     - scipy
     - matplotlib
+    - mpl_toolkits
     - cython
     - nose
+    - datetime
+    - pygments
+    - libc
+    - itertools
+    - warnings
+    - Polygon
 
 test:
   imports:
