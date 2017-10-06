@@ -24,7 +24,7 @@ install:
   - conda config --add channels conda-forge
   - conda install conda-build
   - conda update -q conda
-  - conda update -nq root conda-build
+  - conda update -n root conda-build
   # Useful for debugging any issues with conda
   - conda info -a
   # Replace dep1 dep2 ... with your dependencies
