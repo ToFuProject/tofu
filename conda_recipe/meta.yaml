@@ -22,7 +22,7 @@ requirements:
     - cython
     - nose
     - pygments
-    - polygon2
+    - Polygon2
 
   run:
     - python
@@ -33,7 +33,7 @@ requirements:
     - cython
     - nose
     - pygments
-    - polygon2
+    - Polygon2
 
 test:
   imports:
