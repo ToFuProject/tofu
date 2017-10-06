@@ -20,7 +20,7 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
-  - conda config --add channels pypi
+  - conda config --add channels alges
   - conda install conda-build
   - conda update -q conda
   - conda update -q conda-build
@@ -36,7 +36,7 @@ install:
   # with:
   - export VERSION="""$(python -c "import version; print(version.__version__.replace('-','.'))")"""
   - conda list
-  - conda build ./conda_recipe/ -c pypi
+  - conda build ./conda_recipe/
   #- conda install tofu --use-local
 
 
