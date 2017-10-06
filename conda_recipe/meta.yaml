@@ -16,6 +16,7 @@ requirements:
   build:
     - python
     - setuptools
+    - setuptools_scm
     - numpy
     - scipy
     - matplotlib
@@ -27,6 +28,7 @@ requirements:
   run:
     - python
     - setuptools
+    - setuptools_scm
     - numpy
     - scipy
     - matplotlib

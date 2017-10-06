@@ -35,7 +35,6 @@ install:
   - python setup.py develop
   # with:
   - export VERSION="""$(python -c "import version; print(version.__version__.replace('-','.'))")"""
-  - conda list
   - conda build ./conda_recipe/
   #- conda install tofu --use-local
 
