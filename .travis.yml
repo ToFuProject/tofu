@@ -36,7 +36,11 @@ install:
   - python setup.py develop
   # with:
   - export VERSION="""$(python -c "import version; print(version.__version__.replace('-','.'))")"""
-  - conda build ./conda_recipe/
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      conda build ./conda_recipe27/
+    else
+      conda build ./conda_recipe36/
+    fi
   #- conda install tofu --use-local
 
 
@@ -45,7 +49,11 @@ script:
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
 
 after_success:
-  - test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe/conda_upload.sh
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe27/conda_upload.sh
+    else
+      test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe36/conda_upload.sh
+    fi
 
 #deploy:
 #  provider: pypi

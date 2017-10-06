@@ -1,0 +1,57 @@
+package:
+  name: 'tofu'
+  version: {{ environ['VERSION'] }}
+
+source:
+  path: ../
+  git_rev:  
+  git_url: https://github.com/ToFuProject/tofu.git
+
+build:
+  script_env:
+    - VERSION
+    - CONDA_BLD_PATH
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - setuptools_scm
+    - numpy
+    - scipy
+    - matplotlib
+    - cython
+    - nose
+    - nose-timer
+    - pygments
+    - polygon2
+
+  run:
+    - python
+    - setuptools
+    - setuptools_scm
+    - numpy
+    - scipy
+    - matplotlib
+    - cython
+    - nose
+    - nose-timer
+    - pygments
+    - polygon2
+
+test:
+  imports:
+    - tofu.geom
+
+about:
+  home: https://github.com/ToFuProject/tofu
+  license: MIT
+  license_file: LICENSE.txt
+  summary: Tomography for Fusion
+
+
+
+
+
+
+
