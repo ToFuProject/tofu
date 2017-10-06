@@ -21,7 +21,6 @@ requirements:
     - matplotlib
     - cython
     - nose
-    - nose-timer
 
   run:
     - python
@@ -31,7 +30,6 @@ requirements:
     - matplotlib
     - cython
     - nose
-    - nose-timer 
 
 test:
   imports:
