@@ -22,6 +22,7 @@ requirements:
     - matplotlib
     - cython
     - nose
+    - nose-timer
     - pygments
     - polygon2
 
@@ -34,6 +35,7 @@ requirements:
     - matplotlib
     - cython
     - nose
+    - nose-timer
     - pygments
     - polygon2
 
