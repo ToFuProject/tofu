@@ -1,4 +1,10 @@
-.. image:: https://travis-ci.org/ToFuProject/tofu.svg?label=TravisCI&branch=master
+|Travis|
+
+.. |Travis| image::https://travis-ci.org/ToFuProject/tofu.svg?label=Travis%20CI
+    :target: https://travis-ci.org/ToFuProject/tofu
+
+
+.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=master
     :target: https://travis-ci.org/ToFuProject/tofu
 
 .. image:: https://travis-ci.org/ToFuProject/tofu.svg?label=TravisCI&branch=NewGeom
