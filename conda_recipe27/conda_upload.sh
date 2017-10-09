@@ -9,11 +9,18 @@ conda config --set anaconda_upload no
 export CONDA_BLD_PATH=~/conda-bld
 #export VERSION=`date +%Y.%m.%d`
 export VERSION=$(head -n 1 ../version.txt)
+echo ""
+echo "Before conda build"
+echo ""
+pwd .
+ls .
 conda build .
+
 echo ""
 echo "uploading..."
 pwd .
 ls .
+
 echo ""
 echo $CONDA_BLD_PATH
 ls $CONDA_BLD_PATH
