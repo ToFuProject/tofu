@@ -1,8 +1,15 @@
-.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=master&label=Travis
+.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=master
     :target: https://travis-ci.org/ToFuProject/tofu
 
-.. image:: https://travis-ci.org/ToFuProject/tofu.svg?label=TravisCI&branch=NewGeom
+.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=NewGeom
     :target: https://travis-ci.org/ToFuProject/tofu
+
+.. image:: https://anaconda.org/tofuproject/tofu/badges/version.svg
+   :target: https://anaconda.org/tofuproject/tofu/badges/
+
+.. image:: https://anaconda.org/tofuproject/tofu/badges/downloads.svg
+      :target: https://anaconda.org/tofuproject/tofu/badges/
+
 
 
 ToFu
