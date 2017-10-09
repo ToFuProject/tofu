@@ -49,10 +49,11 @@ script:
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
 
 after_success:
+  - source deactivate
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      test $TRAVIS_BRANCH = "master" && conda install anaconda-client && bash ./conda_recipe27/conda_upload.sh;
+      test $TRAVIS_BRANCH = "master" && echo "111111" && conda install anaconda-client && bash ./conda_recipe27/conda_upload.sh;
     else
-      test $TRAVIS_BRANCH = "master" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe36/conda_upload.sh;
+      test $TRAVIS_BRANCH = "master" && echo "222222" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe36/conda_upload.sh;
     fi
 
 #deploy:
