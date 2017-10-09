@@ -12,4 +12,4 @@ export CONDA_BLD_PATH=~/conda-bld
 #export VERSION=$(head -n 1 version.txt)
 
 conda build $RECIPE
-anaconda -t $CONDA_UPLOAD_TOKEN upload -u $USER -l nightly $CONDA_BLD_PATH/$OS/$PKG_NAME-$VERSION-$VADD.tar.bz2 --force
+anaconda -t $CONDA_UPLOAD_TOKEN upload -u $USER -l main $CONDA_BLD_PATH/$OS/$PKG_NAME-$VERSION-$VADD.tar.bz2 --force
