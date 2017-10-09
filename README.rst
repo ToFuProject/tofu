@@ -1,6 +1,3 @@
-.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=master
-    :target: https://travis-ci.org/ToFuProject/tofu
-
 .. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=NewGeom
     :target: https://travis-ci.org/ToFuProject/tofu
 
