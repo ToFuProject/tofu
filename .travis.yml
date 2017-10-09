@@ -13,8 +13,10 @@ install:
   # version is the same.
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+      export RECIPE="./conda_recipe27/";
     else
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+      export RECIPE="./conda_recipe36/";
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
@@ -36,11 +38,7 @@ install:
   - python setup.py develop
   # with:
   - export VERSION=$(head -n 1 version.txt)
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      conda build ./conda_recipe27/;
-    else
-      conda build ./conda_recipe36/;
-    fi
+  - conda build $RECIPE
   #- conda install tofu --use-local
 
 
@@ -50,11 +48,12 @@ script:
 
 after_success:
   - source deactivate
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      test $TRAVIS_BRANCH = "master" && echo "111111" && conda install anaconda-client && bash ./conda_recipe27/conda_upload.sh;
-    else
-      test $TRAVIS_BRANCH = "master" && echo "222222" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe36/conda_upload.sh;
-    fi
+  - test $TRAVIS_BRANCH = "master" && conda install anaconda-client && bash $RECIPE/conda_upload.sh
+  #- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+  #    test $TRAVIS_BRANCH = "master" && echo "111111" && conda install anaconda-client && bash ./conda_recipe27/conda_upload.sh;
+  #  else
+  #    test $TRAVIS_BRANCH = "master" && echo "222222" && conda install conda-build && conda install anaconda-client && bash ./conda_recipe36/conda_upload.sh;
+  #  fi
 
 #deploy:
 #  provider: pypi

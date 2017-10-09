@@ -14,7 +14,7 @@ echo "Before conda build"
 echo ""
 pwd .
 ls .
-conda build .
+conda build $RECIPE
 
 echo ""
 echo "uploading..."
