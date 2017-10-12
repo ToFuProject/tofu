@@ -33,8 +33,10 @@ install:
   - conda update -n root conda-build
   - conda config --add channels pypi
   - conda list
-  - pip install -i https://pypi.anaconda.org/pypi/simple $PCK
-  - pip install -i https://pypi.anaconda.org/pypi/simple nose-timer
+  - conda pipbuild $PCK
+  - conda pipbuild nose-timer
+  #- pip install -i https://pypi.anaconda.org/pypi/simple $PCK
+  #- pip install -i https://pypi.anaconda.org/pypi/simple nose-timer
   - conda list
   # Useful for debugging any issues with conda
   - conda info -a
@@ -43,8 +45,10 @@ install:
   - source activate test-environment
   - conda config --add channels pypi
   - conda list
-  - pip install -i https://pypi.anaconda.org/pypi/simple $PCK
-  - pip install -i https://pypi.anaconda.org/pypi/simple nose-timer
+  - conda pipbuild $PCK
+  - conda pipbuild nose-timer
+  #- pip install -i https://pypi.anaconda.org/pypi/simple $PCK
+  #- pip install -i https://pypi.anaconda.org/pypi/simple nose-timer
   - conda list 
   # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
   # replace the following line:
