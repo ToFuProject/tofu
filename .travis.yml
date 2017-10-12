@@ -33,8 +33,10 @@ install:
   - conda update -n root conda-build
   - conda config --add channels pypi
   - conda list
-  - conda pipbuild $PCK
-  - conda pipbuild nose-timer
+  - conda skeleton pypi $PCK
+  - conda skeleton pypi nose-timer
+  - conda build $PCK
+  - conda build nose-timer
   #- pip install -i https://pypi.anaconda.org/pypi/simple $PCK
   #- pip install -i https://pypi.anaconda.org/pypi/simple nose-timer
   - conda list
@@ -45,8 +47,10 @@ install:
   - source activate test-environment
   - conda config --add channels pypi
   - conda list
-  - conda pipbuild $PCK
-  - conda pipbuild nose-timer
+  - conda skeleton pypi $PCK
+  - conda skeleton pypi nose-timer
+  - conda build $PCK
+  - conda build nose-timer
   #- pip install -i https://pypi.anaconda.org/pypi/simple $PCK
   #- pip install -i https://pypi.anaconda.org/pypi/simple nose-timer
   - conda list 
