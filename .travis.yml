@@ -26,7 +26,7 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
-  #- conda config --add channels conda-forge
+  - conda config --add channels conda-forge
   - conda install conda-build
   - conda update -q conda
   - conda update -n root conda-build
@@ -40,6 +40,7 @@ install:
   #- python setup.py develop
   # with:
   - export VERSION=$(head -n 1 version.txt)
+  - conda config --add channels conda-forge
   - conda build $RECIPE
   #- conda install tofu --use-local
 
