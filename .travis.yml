@@ -31,8 +31,10 @@ install:
   - conda install conda-build
   - conda update -q conda
   - conda update -n root conda-build
+  - conda list
   - pip install -i https://pypi.anaconda.org/pypi/simple $PCK
   - pip install -i https://pypi.anaconda.org/pypi/simple nose-timer
+  - conda list
   # Useful for debugging any issues with conda
   - conda info -a
   # Replace dep1 dep2 ... with your dependencies
