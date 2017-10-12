@@ -20,7 +20,7 @@ install:
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       export RECIPE="./conda_recipe36/";
       export VADD="py36_0";
-      export PCK="polygon3"
+      export PCK="polygon3";
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
