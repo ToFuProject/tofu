@@ -4,6 +4,11 @@
 import sys
 from tofu.geom._core02 import *
 
+__all__ = ['Ves', 'Struct',
+           '_GG','_comp','_plot','_tfd']
+
+
+
 
 try:
     del _defaults, _core02, _plot02

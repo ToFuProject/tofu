@@ -23,6 +23,9 @@ except:
     stp = False
 
 
+os.environ['CC'] = 'gcc'
+os.environ['CXX'] = 'gcc'
+
 here = os.path.abspath(os.path.dirname(__file__))
 
 # Fetch version from git tags, and write to version.py

@@ -15,20 +15,24 @@ install:
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
       export RECIPE="./conda_recipe27/";
       export VADD="py27_0";
+      export PCK="polygon2";
     else
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       export RECIPE="./conda_recipe36/";
       export VADD="py36_0";
+      export PCK="polygon3"
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
-  - conda config --add channels alges
-  - conda config --add channels conda-forge
+  #- conda config --add channels alges
+  #- conda config --add channels conda-forge
   - conda install conda-build
   - conda update -q conda
   - conda update -n root conda-build
+  - pip install -i https://pypi.anaconda.org/pypi/simple $PCK
+  - pip install -i https://pypi.anaconda.org/pypi/simple nose-timer
   # Useful for debugging any issues with conda
   - conda info -a
   # Replace dep1 dep2 ... with your dependencies
