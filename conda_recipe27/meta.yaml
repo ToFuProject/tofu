@@ -24,7 +24,6 @@ requirements:
     - nose
     - nose-timer
     - pygments
-    - polygon2
 
   run:
     - python
@@ -37,7 +36,6 @@ requirements:
     - nose
     - nose-timer
     - pygments
-    - polygon2
 
 test:
   imports:
