@@ -26,7 +26,6 @@ install:
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
-  - conda config --add channels conda-forge
   - conda install conda-build
   - conda update -q conda
   - conda update -n root conda-build
@@ -35,12 +34,13 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   - source activate test-environment
+  - conda config --add channels conda-forge
+  - conda config --add channels tofuproject  
   # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
   # replace the following line:
   #- python setup.py develop
   # with:
   - export VERSION=$(head -n 1 version.txt)
-  - conda config --add channels conda-forge
   - conda build $RECIPE
   #- conda install tofu --use-local
 
@@ -51,23 +51,24 @@ script:
 
 after_success:
   - source deactivate
+
+deploy:
+  provider: pypi
+  user: "Didou09" 
+  password:
+    secure:"sIYghJguUkjJVurJirykyVqpXh3RILETvkFsy3eKQDbdrZ3645tz+hqdKMffRqsvM9eaSQ4QTKSv+HmNQgHx5sEOuWOocKUAH9z0Jn6sd55C6WFBq5FgS72NdTJ6GNPM0myKurJce/10A3tLRfQ0cMtJjmmitLhrayz9VWJBeKy3HSirtvWttPYrA1ce7Iewm/7x/tt4jLL27S9n/mPuTNZopHzxgfeaJ2buaaCaXfEvK/H2u+fKxmrPpRBloPVgPBr6HLRAz2udCE/bz6kvT5jttosO18KX90Eqnj335Iqk5lh8kJXTM9ieFNcPb+oETGFIZRV6sJiWPrv8lb3HnFhWLfUXDkorhNGfqxiphwm8jToKO7MoE0Nk7RMQ9G8Y6E80QsxSKriTRN/xlMGJu8649qxnp2hf3CStyU0+HTvfM5x6UKYWT2Av0EGB7dFBap9Rt0yz4V8gwrQeewVog7W4Pp33XmMIYkOTqapsK38LjHlygVKMWMM7WS3EXKXVTTCD8wl6CZ4DwDSnwWm9UyHbYBYrNSkdatmv5yAQrrH/gUEy3AFfBFcP838zAyXOqTl7w/orRM3cKj2ot+btcI3knEP6njsOcczMOoLS/C+4Z2O1w5SqXNQZjGusvusRed+J3ul7mrBrXi2G66KvUieicZwLyqsjwpokwfrcD4c=" 
+  skip_cleanup: true
+  on:
+    tags: true
+    #branch: master
+
+after_deploy:
   - if [[ "$((echo $TRAVIS_BRANCH) | head -c 1)" == "v" ]]; then
       conda install anaconda-client;
       bash $RECIPE/conda_upload.sh;
     else
       echo "Not uploaded to conda because not tagged release branch !";
     fi
-
-#deploy:
-#  provider: pypi
-#  user: "Didou09" 
-#  password:
-#    secure: 
-#  on:
-#    tags: true
-#    branch: master
-
-
 
 
 
