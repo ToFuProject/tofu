@@ -21,14 +21,13 @@ except:
     from distutils.core import setup
     from distutils.extension import Extension
     stp = False
-
-
+import _updateversion as up
 
 os.environ['CC'] = 'gcc'
 os.environ['CXX'] = 'gcc'
 
 here = os.path.abspath(os.path.dirname(__file__))
-version_git = _updateversion.updateversion(here)
+version_git = up.updateversion(here)
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6']:
