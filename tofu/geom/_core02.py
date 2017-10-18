@@ -16,7 +16,7 @@ try:
     import tofu.geom._plot02 as _plot
 except Exception:
     from . import _defaults as _tfd
-    from . import _GG as _GG
+    import _GG as _GG
     from . import _comp as _comp
     from . import _plot02 as _plot
 
