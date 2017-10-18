@@ -44,7 +44,7 @@ install:
   # with:
   #
   # Update version number
-  - python -c "import _updateversion as up; up.updateversion()"
+  - python -c "import _updateversion as up; vv = up.updateversion(); print(vv)"
   - export VERSION=$(head -n 1 version.txt)
   - conda build $RECIPE
   - conda install tofu --use-local
