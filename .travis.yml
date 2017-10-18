@@ -37,23 +37,20 @@ install:
   #- conda install -c conda-forge nose-timer
   #- conda install -c tofuproject $PCK
   - conda config --append channels conda-forge
-  - conda config --append channels alges
+  - conda config --append channels tofuproject
   # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
   # replace the following line:
   #- python setup.py develop
   # with:
   - export VERSION=$(head -n 1 version.txt)
-  - conda list
+  - conda install nose-timer
+  - conda install $PCK
   - conda build $RECIPE
-  - conda list
   #- conda install tofu --use-local
 
 
 
 script:
-  - conda list
-  - conda install nose-timer
-  - conda list
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
 
 after_success:
