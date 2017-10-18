@@ -12,10 +12,10 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # ToFu-specific
 try:
-    import tofu.geom.defaults as _tfd
+    import tofu.geom._def as _def
     import tofu.geom._GG as _GG
 except Exception:
-    from . import _defaults as _tfd
+    from . import _def as _def
     from . import _GG as _GG
 
 
@@ -36,8 +36,8 @@ except Exception:
 
 
 
-def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_tfd.TorId, Bsdict=_tfd.TorBsd, Bvdict=_tfd.TorBvd, Vdict=_tfd.TorVind,
-        IdictHor=_tfd.TorITord, BsdictHor=_tfd.TorBsTord, BvdictHor=_tfd.TorBvTord, Lim=_tfd.Tor3DThetalim, Nstep=_tfd.TorNTheta, LegDict=_tfd.TorLegd, draw=True, a4=False, Test=True):
+def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_def.TorId, Bsdict=_def.TorBsd, Bvdict=_def.TorBvd, Vdict=_def.TorVind,
+        IdictHor=_def.TorITord, BsdictHor=_def.TorBsTord, BvdictHor=_def.TorBvTord, Lim=_def.Tor3DThetalim, Nstep=_def.TorNTheta, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -61,17 +61,17 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_tfd.To
 
     if any(['P' in Elt, 'I' in Elt]):
         if Proj=='3d':
-            Pdict = _tfd.TorP3Dd if Pdict is None else Pdict
+            Pdict = _def.TorP3Dd if Pdict is None else Pdict
             Lax[0] = _Plot_3D_plt_Ves(Ves,ax=Lax[0], Elt=Elt, Lim=Lim, Nstep=Nstep, Pdict=Pdict, LegDict=None, a4=a4, draw=False, Test=Test)
         else:
-            Pdict = _tfd.TorPd if Pdict is None else Pdict
+            Pdict = _def.TorPd if Pdict is None else Pdict
             if Proj=='Cross':
                 Lax[0] = _Plot_CrossProj_Ves(Ves, ax=Lax[0], Elt=Elt, Pdict=Pdict, Idict=Idict, Bsdict=Bsdict, Bvdict=Bvdict, Vdict=Vdict, LegDict=None, draw=False, a4=a4, Test=Test)
             elif Proj=='Hor':
                 Lax[0] = _Plot_HorProj_Ves(Ves, ax=Lax[0], Elt=Elt, Nstep=Nstep, Pdict=Pdict, Idict=IdictHor, Bsdict=BsdictHor, Bvdict=BvdictHor, LegDict=None, draw=False, a4=a4, Test=Test)
             elif Proj=='All':
                 if Lax[0] is None or Lax[1] is None:
-                    Lax = list(_tfd.Plot_LOSProj_DefAxes('All', a4=a4, Type=Ves.Type))
+                    Lax = list(_def.Plot_LOSProj_DefAxes('All', a4=a4, Type=Ves.Type))
                 Lax[0] = _Plot_CrossProj_Ves(Ves, ax=Lax[0], Elt=Elt, Pdict=Pdict, Idict=Idict, Bsdict=Bsdict, Bvdict=Bvdict, Vdict=Vdict, LegDict=None, draw=False, a4=a4, Test=Test)
                 Lax[1] = _Plot_HorProj_Ves(Ves, ax=Lax[1], Elt=Elt, Nstep=Nstep, Pdict=Pdict, Idict=IdictHor, Bsdict=BsdictHor, Bvdict=BvdictHor, LegDict=None, draw=False, a4=a4, Test=Test)
     if not LegDict is None:
@@ -83,7 +83,7 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_tfd.To
 
 
 
-def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV', Pdict=_tfd.TorPd, Idict=_tfd.TorId, Bsdict=_tfd.TorBsd, Bvdict=_tfd.TorBvd, Vdict=_tfd.TorVind, LegDict=_tfd.TorLegd, draw=True, a4=False, Test=True):
+def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV', Pdict=_def.TorPd, Idict=_def.TorId, Bsdict=_def.TorBsd, Bvdict=_def.TorBvd, Vdict=_def.TorVind, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
     """ Plot the poloidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -108,7 +108,7 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV', Pdict=_tfd.TorPd, Idict=_tfd.
         assert type(Vdict) is dict, "Arg Vdict should be a dictionary !"
         assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
     if ax is None:
-        ax = _tfd.Plot_LOSProj_DefAxes('Cross', a4=a4, Type=V.Type)
+        ax = _def.Plot_LOSProj_DefAxes('Cross', a4=a4, Type=V.Type)
     if 'P' in Elt:
         ax.plot(V.Poly[0,:],V.Poly[1,:],label=V.Id.NameLTX,**Pdict)
     if 'I' in Elt:
@@ -128,7 +128,7 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV', Pdict=_tfd.TorPd, Idict=_tfd.
 
 
 
-def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_tfd.TorNTheta, Pdict=_tfd.TorPd, Idict=_tfd.TorITord, Bsdict=_tfd.TorBsTord, Bvdict=_tfd.TorBvTord, LegDict=_tfd.TorLegd, draw=True, a4=False, Test=True):
+def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.TorPd, Idict=_def.TorITord, Bsdict=_def.TorBsTord, Bvdict=_def.TorBvTord, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -150,7 +150,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_tfd.TorNTheta, Pdict=_tfd.Tor
         assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
     Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False) if V.Type=='Tor' else np.linspace(V.Lim[0],V.Lim[1],num=Nstep, endpoint=True, retstep=False)
     if ax is None:
-        ax = _tfd.Plot_LOSProj_DefAxes('Hor', a4=a4, Type=V.Type)
+        ax = _def.Plot_LOSProj_DefAxes('Hor', a4=a4, Type=V.Type)
     P1Min = V.geom['P1Min']
     P1Max = V.geom['P1Max']
     if 'P' in Elt:
@@ -184,7 +184,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_tfd.TorNTheta, Pdict=_tfd.Tor
 
 
 
-def _Plot_3D_plt_Ves(V,ax=None, Elt='P', Lim=_tfd.Tor3DThetalim, Nstep=_tfd.Tor3DThetamin, Pdict=_tfd.TorP3Dd, LegDict=_tfd.TorLegd, draw=True, a4=False, Test=True):
+def _Plot_3D_plt_Ves(V,ax=None, Elt='P', Lim=_def.Tor3DThetalim, Nstep=_def.Tor3DThetamin, Pdict=_def.TorP3Dd, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
     if Test:
         assert V.Id.Cls in ['Ves','Struct'], "Arg V should be a Ves instance !"
         assert isinstance(ax,Axes3D) or ax is None, 'Arg ax should a plt.Axes instance !'
@@ -192,7 +192,7 @@ def _Plot_3D_plt_Ves(V,ax=None, Elt='P', Lim=_tfd.Tor3DThetalim, Nstep=_tfd.Tor3
         assert type(Pdict) is dict and (type(LegDict) is dict or LegDict is None), "Args Pdict and LegDict should be dictionnaries !"
         assert type(Elt)is str, "Arg Elt must be a str !"
     if ax is None:
-        ax = _tfd.Plot_3D_plt_Tor_DefAxes(a4=a4)
+        ax = _def.Plot_3D_plt_Tor_DefAxes(a4=a4)
     Lim = [-np.inf,np.inf] if Lim is None else Lim
     if 'P' in Elt:
         handles, labels = ax.get_legend_handles_labels()
@@ -238,7 +238,7 @@ def Plot_3D_mlab_Tor(T,fig='None',thetaLim=(np.pi/2,2*np.pi),Tdict=Dict_3D_mlab_
 
 
 
-def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad', Sketch=True, Pdict=_tfd.TorPFilld, LegDict=_tfd.TorLegd, draw=True, a4=False, Test=True):
+def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad', Sketch=True, Pdict=_def.TorPFilld, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -259,7 +259,7 @@ def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad', Sket
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
         assert AngUnit in ['rad','deg'], "Arg AngUnit must be in ['rad','deg'] !"
     if ax is None:
-        ax, axsketch = _tfd.Plot_Impact_DefAxes('Cross', a4=a4, Ang=Ang, AngUnit=AngUnit, Sketch=Sketch)
+        ax, axsketch = _def.Plot_Impact_DefAxes('Cross', a4=a4, Ang=Ang, AngUnit=AngUnit, Sketch=Sketch)
 
     if type(T) is tuple:
         assert isinstance(T[0],np.ndarray) and isinstance(T[1],np.ndarray) and isinstance(T[2],np.ndarray), "Args Theta, pP and pN should be np.ndarrays !"
@@ -286,7 +286,7 @@ def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad', Sket
 
 
 
-def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_tfd.TorPAng, AngUnit=_tfd.TorPAngUnit, Pdict=_tfd.TorP3DFilld, LegDict=_tfd.TorLegd, draw=True, a4=False, Test=True):
+def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng, AngUnit=_def.TorPAngUnit, Pdict=_def.TorP3DFilld, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -308,7 +308,7 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_tfd.TorPAng, AngUnit=_tfd.TorPAn
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
         assert AngUnit in ['rad','deg'], "Arg AngUnit must be in ['rad','deg'] !"
     if ax is None:
-        ax = _tfd.Plot_Impact_DefAxes('3D', a4=a4)
+        ax = _def.Plot_Impact_DefAxes('3D', a4=a4)
     handles, labels = ax.get_legend_handles_labels()
     if isinstance(T,Ves):
         Leg = T.Id.NameLTX

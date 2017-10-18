@@ -50,9 +50,8 @@ install:
 
 script:
   - python -c "import tofu.pathfile as tfpf"
-  - python -c "import tofu.geom._tfd as tfdg"
-  - python -c "import tofu.geom._defaults as tfdg2"
-  - python -c "import tofu.geom._GG as tfgGG"
+  - python -c "import tofu.geom._def as tfg_def"
+  - python -c "import tofu.geom._GG as tfg_GG"
   - python -c "import tofu.geom as tfg"
   - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
 

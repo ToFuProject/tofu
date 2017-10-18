@@ -12,10 +12,10 @@ import Polygon as plg
 
 # ToFu-specific
 try:
-    import tofu.geom._defaults as _tfd
+    import tofu.geom._def as _def
     import tofu.geom._GG as _GG
 except Exception:
-    from . import _defaults as _tfd
+    from . import _def as _def
     from . import _GG as _GG
 
 
@@ -68,7 +68,7 @@ def _Ves_set_Poly(Poly, arrayorder='C', Type='Tor', Lim=None, Clock=False):
     return poly, NP, P1Max, P1Min, P2Max, P2Min, BaryP, BaryL, Surf, BaryS, Lim, Vol, BaryV, Vect, Vin
 
 
-def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_tfd.TorRelOff, ZLim='Def', Spline=True, Splprms=_tfd.TorSplprms, NP=_tfd.TorInsideNP, Plot=False, Test=True):
+def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, ZLim='Def', Spline=True, Splprms=_def.TorSplprms, NP=_def.TorInsideNP, Plot=False, Test=True):
     if Test:
         assert type(RelOff) is float, "Arg RelOff must be a float"
         assert ZLim is None or ZLim=='Def' or type(ZLim) in [tuple,list], "Arg ZLim must be a tuple (ZlimMin, ZLimMax)"

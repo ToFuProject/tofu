@@ -10,18 +10,17 @@ import datetime as dtm
 # ToFu-specific
 import tofu.pathfile as tfpf
 try:
-    import tofu.geom._defaults as _tfd
+    import tofu.geom._def as _def
     import tofu.geom._GG as _GG 
     import tofu.geom._comp as _comp
-    import tofu.geom._plot02 as _plot
+    import tofu.geom._plot as _plot
 except Exception:
-    from . import _defaults as _tfd
+    from . import _def as _def
     from . import _GG as _GG
     from . import _comp as _comp
-    from . import _plot02 as _plot
+    from . import _plot as _plot
 
-__all__ = ['Ves', 'Struct',
-           '_GG','_comp','_plot','_tfd']
+__all__ = ['Ves', 'Struct']
 
 
 
@@ -75,7 +74,7 @@ class Ves(object):
 
     """
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_tfd.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, dtime=None, SavePath=None, SavePath_Include=_tfd.SavePath_Include, Cls='Ves'):
+    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, dtime=None, SavePath=None, SavePath_Include=_def.SavePath_Include, Cls='Ves'):
 
         self._Done = False
         tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
@@ -129,7 +128,7 @@ class Ves(object):
     def _set_arrayorder(self, arrayorder):
         tfpf._set_arrayorder(self, arrayorder)
 
-    def _set_geom(self, Poly, Lim=None, Clock=False, Sino_RefPt=None, Sino_NP=_tfd.TorNP):
+    def _set_geom(self, Poly, Lim=None, Clock=False, Sino_RefPt=None, Sino_NP=_def.TorNP):
         if self._Done:
             Out = tfpf._get_FromItself(self, {'Lim':Lim, '_Clock':Clock})
             Lim, Clock = Out['Lim'], Out['Clock']
@@ -139,7 +138,7 @@ class Ves(object):
         self._geom = dict([(SS[ii],out[ii]) for ii in range(0,len(out))])
         self._set_Sino(Sino_RefPt, NP=Sino_NP)
 
-    def _set_Sino(self, RefPt=None, NP=_tfd.TorNP):
+    def _set_Sino(self, RefPt=None, NP=_def.TorNP):
         if self._Done:
             Out = tfpf._get_FromItself(self, {'_sino':{'RefPt':RefPt, 'NP':NP}})
             RefPt, NP = Out['_sino']['RefPt'], Out['_sino']['NP']
@@ -174,7 +173,7 @@ class Ves(object):
         return ind
 
 
-    def get_InsideConvexPoly(self, RelOff=_tfd.TorRelOff, ZLim='Def', Spline=True, Splprms=_tfd.TorSplprms, NP=_tfd.TorInsideNP, Plot=False, Test=True):
+    def get_InsideConvexPoly(self, RelOff=_def.TorRelOff, ZLim='Def', Spline=True, Splprms=_def.TorSplprms, NP=_def.TorInsideNP, Plot=False, Test=True):
         """ Return a polygon that is a smaller and smoothed approximation of Ves.Poly, useful for excluding the divertor region in a Tokamak
 
         For some uses, it can be practical to approximate the polygon defining the Ves object (which can be non-convex, like with a divertor), by a simpler, sligthly smaller and convex polygon.
@@ -226,8 +225,8 @@ class Ves(object):
         return Pts, dV, ind, dVr
 
 
-    def plot(self, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_tfd.TorId, Bsdict=_tfd.TorBsd, Bvdict=_tfd.TorBvd, Vdict=_tfd.TorVind,
-            IdictHor=_tfd.TorITord, BsdictHor=_tfd.TorBsTord, BvdictHor=_tfd.TorBvTord, Lim=_tfd.Tor3DThetalim, Nstep=_tfd.TorNTheta, LegDict=_tfd.TorLegd, draw=True, a4=False, Test=True):
+    def plot(self, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_def.TorId, Bsdict=_def.TorBsd, Bvdict=_def.TorBvd, Vdict=_def.TorVind,
+            IdictHor=_def.TorITord, BsdictHor=_def.TorBsTord, BvdictHor=_def.TorBvTord, Lim=_def.Tor3DThetalim, Nstep=_def.TorNTheta, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
         """ Plot the polygon defining the vessel, with a cross-section view, a longitudinal view or both, and optionally its reference point for plotting it in projection space
 
         Generic method for plotting the Ves object, the projections to be plotted, the elements to plot, and the dictionaries or properties to be used for plotting each elements can all be specified using keyword arguments.
@@ -284,7 +283,7 @@ class Ves(object):
                 IdictHor=IdictHor, BsdictHor=BsdictHor, BvdictHor=BvdictHor, Lim=Lim, Nstep=Nstep, LegDict=LegDict, draw=draw, a4=a4, Test=Test)
 
 
-    def plot_sino(self, Proj='Cross', ax=None, Ang=_tfd.LOSImpAng, AngUnit=_tfd.LOSImpAngUnit, Sketch=True, Pdict=None, LegDict=_tfd.TorLegd, draw=True, a4=False, Test=True):
+    def plot_sino(self, Proj='Cross', ax=None, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Sketch=True, Pdict=None, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
         """ Plot the sinogram of the vessel polygon, by computing its envelopp in a cross-section, can also plot a 3D version of it
 
         The envelop of the polygon is computed using self.Sino_RefPt as a reference point in projection space, and plotted using the provided dictionary of properties.
@@ -323,10 +322,10 @@ class Ves(object):
             assert not self.sino['RefPt'] is None, 'The impact parameters must be computed first !'
             assert Proj in ['Cross','3d'], "Arg Proj must be in ['Cross','3d'] !"
         if Proj=='Cross':
-            Pdict = _tfd.TorPFilld if Pdict is None else Pdict
+            Pdict = _def.TorPFilld if Pdict is None else Pdict
             ax = _plot.Plot_Impact_PolProjPoly(self, ax=ax, Ang=Ang, AngUnit=AngUnit, Sketch=Sketch, Leg=self.Id.NameLTX, Pdict=Pdict, LegDict=LegDict, draw=False, a4=a4, Test=Test)
         else:
-            Pdict = _tfd.TorP3DFilld if Pdict is None else Pdict
+            Pdict = _def.TorP3DFilld if Pdict is None else Pdict
             ax = _plot.Plot_Impact_3DPoly(self, ax=ax, Ang=Ang, AngUnit=AngUnit, Pdict=Pdict, LegDict=LegDict, draw=False, a4=a4, Test=Test)
         if draw:
             ax.figure.canvas.draw()
@@ -399,7 +398,7 @@ def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, 
 
 class Struct(Ves):
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_tfd.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, dtime=None, SavePath=None, SavePath_Include=_tfd.SavePath_Include):
+    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, dtime=None, SavePath=None, SavePath_Include=_def.SavePath_Include):
         Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, dtime=dtime, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls="Struct")
 
     def get_meshS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)'):

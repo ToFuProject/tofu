@@ -1,23 +1,12 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/python
 
-import sys
-from _core import Ves, Struct, _GG, _comp, _plot, _tfd
+#import sys
+from _core import Ves, Struct
 
-#__all__ = ['Ves', 'Struct',
-#           '_GG','_comp','_plot','_tfd']
+__all__ = ['_GG','_comp','_plot','_def']
 
-
-
-
-try:
-    del _defaults, _core02, _plot02
-except:
-    try:
-        del tofu.geom._defaults, tofu.geom._core02, tofu.geom._plot02
-    except:
-        pass
-
+"""
 if sys.version[0]=='2':
     try:
         del _GG02
@@ -36,3 +25,4 @@ else:
             pass
 
 del sys
+"""
