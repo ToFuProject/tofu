@@ -43,10 +43,12 @@ install:
   #- python setup.py develop
   # with:
   - export VERSION=$(head -n 1 version.txt)
-  - conda install nose-timer
-  - conda install $PCK
+  #- conda install nose-timer
+  #- conda install $PCK
+  - conda list
   - conda build $RECIPE
-  #- conda install tofu --use-local
+  - conda install tofu --use-local
+  - conda list
 
 
 
