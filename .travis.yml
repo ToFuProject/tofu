@@ -49,6 +49,7 @@ install:
 
 
 script:
+  - python -c "import tofu.pathfile as tfpf"
   - python -c "import tofu.geom._tfd as tfdg"
   - python -c "import tofu.geom._defaults as tfdg2"
   - python -c "import tofu.geom._GG as tfgGG"

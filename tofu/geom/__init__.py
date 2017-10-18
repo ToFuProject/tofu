@@ -2,10 +2,10 @@
 #! /usr/bin/python
 
 import sys
-from tofu.geom._core02 import *
+from _core import Ves, Struct, _GG, _comp, _plot, _tfd
 
-__all__ = ['Ves', 'Struct',
-           '_GG','_comp','_plot','_tfd']
+#__all__ = ['Ves', 'Struct',
+#           '_GG','_comp','_plot','_tfd']
 
 
 
@@ -35,3 +35,4 @@ else:
         except:
             pass
 
+del sys
