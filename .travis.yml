@@ -42,10 +42,13 @@ install:
   # replace the following line:
   #- python setup.py develop
   # with:
+  #
+  # Update version number
+  - python -c "version_git = _updateversion.updateversion()"
   - export VERSION=$(head -n 1 version.txt)
   - conda build $RECIPE
   - conda install tofu --use-local
-
+  - ls /home/travis/miniconda/envs/test-environment/
 
 
 script:
