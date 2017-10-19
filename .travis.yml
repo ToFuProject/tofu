@@ -26,7 +26,17 @@ install:
   - echo $HOME
   - echo $PATH
   - echo $PYTHONPATH
-  - export PATH="$HOME/miniconda/bin:$PATH"
+  #- export PATH="$HOME/miniconda/bin:$PATH"
+  # Try with upload
+  - PKG_NAME=tofu
+  - OS=linux-64
+  - mkdir ~/conda-bld
+  - conda config --set anaconda_upload no
+  - conda update -n root conda-build
+  - conda config --append channels conda-forge
+  - conda config --append channels tofuproject
+  - export CONDA_BLD_PATH=~/conda-bld
+  # Finish test with upload
   - echo $PATH
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
@@ -55,10 +65,7 @@ install:
   - echo $TRAVIS_BRANCH
   # Build
   - conda build $RECIPE
-  - conda install tofu --use-local
-  - ls $HOME/miniconda/bin/
-  - ls /home/travis/miniconda/envs/test-environment/bin/
-  - ls /home/travis/miniconda/envs/test-environment/etc/
+  - conda install $CONDA_BLD_PATH/$OS/$PKG_NAME-$VERSION-$VADD.tar.bz2 --use-local
 
 
 script:
@@ -66,6 +73,7 @@ script:
   - python -c "import os; print(os.getcwd())"
   - python -c "import tofu.pathfile as tfpf; print(tfpf.__file__)"
   - ls tofu/geom/
+  - ls $HOME/build/
   - python -c "import tofu.geom._def as tfg_def"
   - python -c "import tofu.geom._GG as tfg_GG"
   - python -c "import tofu.geom as tfg"
