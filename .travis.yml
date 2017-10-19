@@ -39,6 +39,13 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   - source activate test-environment
+  # Update version number
+  - python -c "import _updateversion as up; vv = up.updateversion(); print(vv)"
+  - export REV=$(head -n 1 version.txt)
+  - export VERSION=$(echo $REV | tr - .)
+  - echo $REV
+  - echo $VERSION
+  - echo $TRAVIS_BRANCH
   # Start uplaod
   - PKG_NAME=tofu
   - OS=linux-64
@@ -55,13 +62,6 @@ install:
   # replace the following line:
   #- python setup.py develop
   # with:
-  # Update version number
-  - python -c "import _updateversion as up; vv = up.updateversion(); print(vv)"
-  - export REV=$(head -n 1 version.txt)
-  - export VERSION=$(echo $REV | tr - .)
-  - echo $REV
-  - echo $VERSION
-  - echo $TRAVIS_BRANCH
   # Build
   - ls $HOME/build/ToFuProject/tofu/
   - ls $HOME/build/ToFuProject/tofu/build/
