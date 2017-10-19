@@ -1,9 +1,0 @@
-echo ""
-echo 1
-echo ""
-# Usefed for nose-timer and Polygon
-conda --add channels conda-forge
-echo ""
-echo 2
-echo ""
-$PYTHON setup.py install     # Python command to install the script.

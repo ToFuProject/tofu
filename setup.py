@@ -10,6 +10,7 @@ import subprocess
 import shutil
 from codecs import open
 from Cython.Distutils import build_ext
+from Cython.Build import cythonize
 import numpy as np
 
 # Always prefer setuptools over distutils
@@ -36,17 +37,28 @@ if sys.version[:3] in ['2.7','3.6']:
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
 
-
 # Getting relevant compilable files
 if sys.version[0]=='3':
     if not '_GG03.pyx' in os.listdir(os.path.join(here,'tofu/geom/')):
         shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'), os.path.join(here,'tofu/geom/_GG03.pyx'))
 
-
-
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
+
+
+# Prepare extensions
+if '--use-cython' in sys.argv:
+    USE_CYTHON = True
+    sys.argv.remove('--use-cython')
+else:
+    USE_CYTHON = False
+if USE_CYTHON:
+    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"])
+    extensions = cythonize(extensions)
+else:
+    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".cpp"],
+                            language='c++', include_dirs=['tofu/cpp/'])
 
 setup(
     name='tofu',
@@ -161,9 +173,8 @@ setup(
     #    ],
     #},
 
-    ext_modules = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"])],
-    cmdclass={'build_ext':build_ext},
-    #ext_modules = cythonize("tofu/geom/"+gg),
+    ext_modules = extensions,
+    #cmdclass={'build_ext':build_ext},
     include_dirs=[np.get_include()],
 )
 
