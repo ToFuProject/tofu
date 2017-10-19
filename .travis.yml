@@ -90,6 +90,7 @@ install:
 
 script:
   - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/
+  - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/tests/
   - ls $HOME/miniconda/pkgs/tofu*_0/info/
   - cd $Home
   - pwd
