@@ -65,7 +65,7 @@ def test01_create():
     # Create from Poly
     thet = np.linspace(0.,2.*np.pi,100)
     Poly = np.array([2.5+1.*np.cos(thet), 0.+1.*np.sin(thet)])
-    V0 = tfWV.create_Ves('test01-V0', src=Poly, save=False)    
+    V0 = tfWV.create_Ves('test01-V0', src=Poly, save=False)
     S = tfWV.create_Struct('test01-V0', src=Poly, save=False)
 
     # Create from PathFileExt
@@ -80,36 +80,10 @@ def test01_create():
 def test02_loadplot():
     V = tfWV.load_Ves()
     S = tfWV.load_STruct()
-     
+
     Lax = V.plot()
-    Lax = S.plot(Lax=Lax) 
-    
+    Lax = S.plot(Lax=Lax)
+
     VmS = V.get_meshS()
     VmV = V.get_meshV()
     SmS = S.get_meshS()
-
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

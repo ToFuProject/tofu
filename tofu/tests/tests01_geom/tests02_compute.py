@@ -51,5 +51,3 @@ def teardown_module(module):
 #def test_strings_a_3():
 #    print 'test_strings_a_3  <============================ actual test code'
 #    assert multiply('a',3) == 'aaa'
-
-

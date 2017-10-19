@@ -130,13 +130,13 @@ class Test01_Ves:
 
     def test04_get_meshCross(self):
         Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.02, DS=None, dSMode='abs', ind=None)
-        Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.02, DS=None, dSMode='abs', ind=ind)        
+        Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.02, DS=None, dSMode='abs', ind=ind)
         Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.1, DS=[[0.,2.5],None], dSMode='rel', ind=None)
 
     def test05_get_meshS(self):
         for ii in range(0,len(self.LObj)):
             Pts, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=[[2.,3.],[0.,5.],[0.,np.pi/2.]], dSMode='abs', ind=None, DIn=0.001, Out='(X,Y,Z)')
-            Pts, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=None, dSMode='abs', ind=ind, DIn=0.001, Out='(X,Y,Z)')        
+            Pts, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=None, dSMode='abs', ind=ind, DIn=0.001, Out='(X,Y,Z)')
 
     def test06_get_meshV(self):
         if self.LObj[0].Id.Cls=='Ves':
@@ -179,7 +179,7 @@ VesLin = tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0, Exp='AUG', SavePath=
 #######################################################
 
 class Test02_Struct(Test01_Ves):
-    
+
     @classmethod
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
@@ -1834,11 +1834,3 @@ class Test20_GDetectLensLin:
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
 """
-
-
-
-
-
-
-
-

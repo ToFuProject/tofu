@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 # Nose-specific
 from nose import with_setup # optional
 
-# ToFu-specific 
+# ToFu-specific
 import tofu.geom._GG as GG
 
 
@@ -114,14 +114,14 @@ def test02_Poly_CLockOrder():
     P = GG.Poly_Order(Poly, order='C', Clock=False, close=True, layout='(N,cc)', layout_in=None, Test=True)
     assert all([np.allclose(P[0,:],P[-1,:]), P.shape==(5,2), not GG.Poly_isClockwise(P), P.flags['C_CONTIGUOUS'], not P.flags['F_CONTIGUOUS']])
     P = GG.Poly_Order(Poly, order='F', Clock=True, close=False, layout='(cc,N)', layout_in=None, Test=True)
-    assert all([not np.allclose(P[:,0],P[:,-1]), P.shape==(2,4), GG.Poly_isClockwise(np.concatenate((P,P[:,0:1]),axis=1)), not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']]) 
+    assert all([not np.allclose(P[:,0],P[:,-1]), P.shape==(2,4), GG.Poly_isClockwise(np.concatenate((P,P[:,0:1]),axis=1)), not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])
 
     # Test arbitrary 3D polygon
     Poly = np.array([[0.,1.,1.,0.],[0.,0.,1.,1.],[0.,0.,0.,0.]])
     P = GG.Poly_Order(Poly, order='C', Clock=False, close=False, layout='(N,cc)', layout_in=None, Test=True)
     assert all([not np.allclose(P[0,:],P[-1,:]), P.shape==(4,3), P.flags['C_CONTIGUOUS'], not P.flags['F_CONTIGUOUS']])
     P = GG.Poly_Order(Poly, order='F', Clock=True, close=True, layout='(cc,N)', layout_in=None, Test=True)
-    assert all([np.allclose(P[:,0],P[:,-1]), P.shape==(3,5), not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])    
+    assert all([np.allclose(P[:,0],P[:,-1]), P.shape==(3,5), not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])
 
 
 def test03_Poly_VolAngTor():
@@ -129,10 +129,10 @@ def test03_Poly_VolAngTor():
     Poly = GG.Poly_Order(Poly, order='C', Clock=False, close=True, layout='(cc,N)', Test=True)
     V, B = GG.Poly_VolAngTor(Poly)
     assert V==1.5
-    assert np.allclose(B,[7./(3.*1.5),0.5]) 
-    
+    assert np.allclose(B,[7./(3.*1.5),0.5])
 
-    
+
+
 
 
 """
@@ -150,10 +150,10 @@ VPoly = np.array([2.+1.*np.cos(thet), 0.+1.*np.sin(thet)])
 
 
 def test02_Ves_isInside(VPoly=VPoly):
-    
+
     # Lin Ves
     Pts = np.array([[-10.,-10.,5.,5.,5.,5., 5.,30.,30.,30.],
-                    [  0.,  2.,0.,2.,4.,2., 2., 2., 0., 0.],    
+                    [  0.,  2.,0.,2.,4.,2., 2., 2., 0., 0.],
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
     ind = GG._Ves_isInside(Pts, VPoly, VLong=[0.,10.], VType='Lin', In='(X,Y,Z)', Test=True)
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,False,False,False,False,False,False])
@@ -190,11 +190,11 @@ def test03_Ves_mesh_dlfromL():
     assert np.allclose(L,0.5+np.arange(2,10)) and dLr==1. and np.allclose(indL,range(2,10)) and N==10
     L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,12.], Lim=False, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,12)) and dLr==1. and np.allclose(indL,range(2,12)) and N==10
-    
+
 
 
 def test03_Ves_Smesh_Cross(VPoly=VPoly):
-   
+
     VIn = VPoly[:,1:]-VPoly[:,:-1]
     VIn = np.array([-VIn[1,:],VIn[0,:]])
     VIn = VIn/np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:]
@@ -207,7 +207,7 @@ def test03_Ves_Smesh_Cross(VPoly=VPoly):
     assert N.shape==(VPoly.shape[1]-1,) and np.all(N>=1)
     assert Rref.shape==(PtsCross.shape[1],) and np.all(Rref==PtsCross[0,:])
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
-          
+
     PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL, D1=[0.,2.], D2=[-2.,0.], margin=1.e-9, DIn=0.05, VIn=VIn)
     assert np.all(PtsCross[0,:]>=0.) and np.all(PtsCross[0,:]<=2.) and np.all(PtsCross[1,:]>=-2.) and np.all(PtsCross[1,:]<=0.)
     assert np.all(Path(VPoly.T).contains_points(PtsCross.T))
@@ -230,7 +230,7 @@ def test04_Ves_Vmesh_Tor(VPoly=VPoly):
 
     RMinMax = np.array([np.min(VPoly[0,:]), np.max(VPoly[0,:])])
     ZMinMax = np.array([np.min(VPoly[1,:]), np.max(VPoly[1,:])])
-    dR, dZ, dRPhi = 0.05, 0.05, 0.05 
+    dR, dZ, dRPhi = 0.05, 0.05, 0.05
     LDPhi = [None, [3.*np.pi/4.,5.*np.pi/4.], [-np.pi/4.,np.pi/4.]]
 
     for ii in range(0,len(LDPhi)):
@@ -238,7 +238,7 @@ def test04_Ves_Vmesh_Tor(VPoly=VPoly):
                                                                            DR=[0.5,2.], DZ=[0.,1.2], DPhi=LDPhi[ii], VPoly=VPoly,
                                                                            Out='(R,Z,Phi)', margin=1.e-9)
         assert Pts.ndim==2 and Pts.shape[0]==3
-        assert np.all(Pts[0,:]>=1.) and np.all(Pts[0,:]<=2.) and np.all(Pts[1,:]>=0.) and np.all(Pts[1,:]<=1.) 
+        assert np.all(Pts[0,:]>=1.) and np.all(Pts[0,:]<=2.) and np.all(Pts[1,:]>=0.) and np.all(Pts[1,:]<=1.)
         marg = np.abs(np.arctan(np.mean(dRPhir)/np.min(VPoly[1,:])))
         if not LDPhi[ii] is None:
             LDPhi[ii][0] = np.arctan2(np.sin(LDPhi[ii][0]),np.cos(LDPhi[ii][0]))
@@ -258,9 +258,9 @@ def test04_Ves_Vmesh_Tor(VPoly=VPoly):
         assert np.allclose(dRPhir,dRPhiri)
 
 
-    
+
 def test05_Ves_Vmesh_Lin(VPoly=VPoly):
-    
+
     XMinMax = np.array([0.,10.])
     YMinMax = np.array([np.min(VPoly[0,:]), np.max(VPoly[0,:])])
     ZMinMax = np.array([np.min(VPoly[1,:]), np.max(VPoly[1,:])])
@@ -276,14 +276,14 @@ def test05_Ves_Vmesh_Lin(VPoly=VPoly):
     assert np.allclose(Pts,Ptsi)
     assert np.allclose(dV,dVi)
     assert dXr==dXri and dYr==dYri and dZr==dZri
-   
+
 
 
 
 #####################################################
 #               Ves  - SMesh
 #####################################################
- 
+
 def test06_Ves_Smesh_Tor(VPoly=VPoly):
 
     dL, dRPhi = 0.02, 0.05
@@ -299,8 +299,8 @@ def test06_Ves_Smesh_Tor(VPoly=VPoly):
                                                                                                DR=[0.5,2.], DZ=[0.,1.2], DPhi=LDPhi[ii],
                                                                                                DIn=DIn, VIn=VIn, PhiMinMax=None,
                                                                                                Out='(R,Z,Phi)', margin=1.e-9)
-         
-        assert Pts.ndim==2 and Pts.shape[0]==3 
+
+        assert Pts.ndim==2 and Pts.shape[0]==3
         assert np.all(Pts[0,:]>=1.-np.abs(DIn)) and np.all(Pts[0,:]<=2.+np.abs(DIn)) and np.all(Pts[1,:]>=0.-np.abs(DIn)) and np.all(Pts[1,:]<=1.+np.abs(DIn))
         marg = np.abs(np.arctan(np.mean(dRPhir+np.abs(DIn))/np.min(VPoly[1,:])))
         if not LDPhi[ii] is None:
@@ -312,14 +312,14 @@ def test06_Ves_Smesh_Tor(VPoly=VPoly):
                 assert np.all( (Pts[2,:]>=LDPhi[ii][0]-marg) | (Pts[2,:]<=LDPhi[ii][1]+marg))
         assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', In='(R,Z,Phi)', Test=True))
         assert dS.shape==(Pts.shape[1],)
-        assert all([ind.shape==(Pts.shape[1],), ind.dtype==int, np.unique(ind).size==ind.size, np.all(ind==np.unique(ind)), np.all(ind>=0)]) 
+        assert all([ind.shape==(Pts.shape[1],), ind.dtype==int, np.unique(ind).size==ind.size, np.all(ind==np.unique(ind)), np.all(ind>=0)])
         assert ind.shape==(Pts.shape[1],) and ind.dtype==int and np.all(ind==np.unique(ind)) and np.all(ind>=0)
         assert NL.ndim==1 and NL.size==VPoly.shape[1]-1
         assert dLr.ndim==1 and dLr.size==NL.size
         assert Rref.ndim==1
         assert dRPhir.ndim==1 and dRPhir.size==Rref.size
         assert type(nRPhi0) is int
-       
+
         Ptsi, dSi, NLi, dLri, Rrefi, dRPhiri, nRPhi0i, VPbisi = GG._Ves_Smesh_Tor_SubFromInd_cython(dL, dRPhi, VPoly, ind,
                                                                                                     DIn=DIn, VIn=VIn, PhiMinMax=None,
                                                                                                     Out='(R,Z,Phi)', margin=1.e-9)
@@ -330,11 +330,11 @@ def test06_Ves_Smesh_Tor(VPoly=VPoly):
         assert np.allclose(Rrefi,Rref)
         assert np.allclose(dRPhiri,dRPhir)
         assert nRPhi0i==nRPhi0
-    
+
 
 
 def test07_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
-    
+
     dL, dRPhi = 0.02, 0.05
     VIn = VPoly[:,1:]-VPoly[:,:-1]
     VIn = np.array([-VIn[1,:],VIn[0,:]])
@@ -352,8 +352,8 @@ def test07_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
     if plot and sys.version[0]=='2':
         f = plt.figure(figsize=(11.7,8.3),facecolor="w")
         axarr = mplgrid.GridSpec(2,len(LPhi)/2)
-        axarr.update(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.05, hspace=0.05) 
-        Lax = []        
+        axarr.update(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.05, hspace=0.05)
+        Lax = []
 
     for ii in range(0,len(LPhi)):
         Pts, dS, ind, NL, dLr, Rref, dRPhir, nRPhi0, VPbis = GG._Ves_Smesh_Tor_SubFromD_cython(dL, dRPhi, VPoly,
@@ -366,7 +366,7 @@ def test07_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
             pts = GG.CoordShift(Pts, In='(R,Z,Phi)', Out='(X,Y,Z)', CrossRef=None)
             Lax[-1].plot(pts[0,:],pts[1,:],pts[2,:], '.k', ms=3.)
             Lax[-1].set_title("Phi = [{0:02.0f},{1:02.0f}]\n DPhi = [{2:02.0f},{3:02.0f}] ".format(LPhi[ii][0][0]*180./np.pi, LPhi[ii][0][1]*180./np.pi, LPhi[ii][1][0]*180./np.pi, LPhi[ii][1][1]*180./np.pi))
-        
+
         #try:
         assert Pts.ndim==2 and Pts.shape[0]==3
         LPhi[ii][0][0] = np.arctan2(np.sin(LPhi[ii][0][0]),np.cos(LPhi[ii][0][0]))
@@ -384,7 +384,7 @@ def test07_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         assert Rref.ndim==1
         assert dRPhir.ndim==1 and dRPhir.size==Rref.size
         assert type(nRPhi0) is int
-    
+
         Ptsi, dSi, NLi, dLri, Rrefi, dRPhiri, nRPhi0i, VPbisi = GG._Ves_Smesh_Tor_SubFromInd_cython(dL, dRPhi, VPoly, ind,
                                                                                                     DIn=DIn, VIn=VIn, PhiMinMax=np.array(LPhi[ii][0]),
                                                                                                     Out='(R,Z,Phi)', margin=1.e-9)
@@ -395,10 +395,10 @@ def test07_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         assert np.allclose(Rrefi,Rref)
         assert np.allclose(dRPhiri,dRPhir)
         assert nRPhi0i==nRPhi0
-        
+
         #except:
         #    print([ind.shape==(Pts.shape[1],), ind.dtype==int, ind.size==np.unique(ind).size, np.all(ind==np.unique(ind)), np.all(ind>=0)])
-        #    print(np.unique(ind).size, ind.size) 
+        #    print(np.unique(ind).size, ind.size)
         #    lii = [ind[ii] for ii in range(0,len(ind)) if np.sum(ind==ind[ii])>1]
         #    liib = [ii for ii in range(0,len(ind)) if np.sum(ind==ind[ii])>1]
         #    print(len(lii),len(liib))
@@ -504,7 +504,7 @@ def test08_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
 
 
 def test09_Ves_Smesh_Lin(VPoly=VPoly):
-    
+
     XMinMax = np.array([0.,10.])
     dL, dX = 0.02, 0.05
     VIn = VPoly[:,1:]-VPoly[:,:-1]
@@ -518,7 +518,7 @@ def test09_Ves_Smesh_Lin(VPoly=VPoly):
         Pts, dS, ind, NL, dLr, Rref, dXr, dY0r, dZ0r, VPbis = GG._Ves_Smesh_Lin_SubFromD_cython(XMinMax, dL, dX, VPoly,
                                                                                                 DX=LDX[ii], DY=DY, DZ=DZ,
                                                                                                 DIn=DIn, VIn=VIn, margin=1.e-9)
-        
+
         assert Pts.ndim==2 and Pts.shape[0]==3
         assert np.all(Pts[0,:]>=XMinMax[0]-np.abs(DIn)) and np.all(Pts[0,:]<=XMinMax[1]+np.abs(DIn))
         assert np.all(Pts[1,:]>=1.-np.abs(DIn)) and np.all(Pts[1,:]<=3.+np.abs(DIn))
@@ -536,13 +536,13 @@ def test09_Ves_Smesh_Lin(VPoly=VPoly):
         assert all([type(xx) is float for xx in [dXr,dY0r,dZ0r]])
 
         Ptsi, dSi, NLi, dLri, Rrefi, dXri, dY0ri, dZ0ri, VPbisi = GG._Ves_Smesh_Lin_SubFromInd_cython(XMinMax, dL, dX, VPoly, ind, DIn=DIn, VIn=VIn, margin=1.e-9)
-        
+
         assert np.allclose(Pts,Ptsi)
         assert np.allclose(dS,dSi)
         assert np.allclose(NL,NLi)
         # We know the following are not identical (size), but too complicated for little gain
         #assert np.allclose(dLr,dLri)
-        #assert np.allclose(Rref,Rrefi)  
+        #assert np.allclose(Rref,Rrefi)
         assert all([dXr==dXri, dY0r==dY0ri, dZ0r==dZ0ri])
 
 
@@ -556,24 +556,3 @@ def test09_Ves_Smesh_Lin(VPoly=VPoly):
 #               Ves
 ######################################################
 ######################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
