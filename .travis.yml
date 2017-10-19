@@ -63,6 +63,8 @@ install:
   - echo $VERSION
   - echo $TRAVIS_BRANCH
   # Build
+  - ls $HOME/build/
+  - ls $HOME/conda-bld/
   - conda build $RECIPE
   - echo $PKG_NAME
   - echo $PKG_VERSION
@@ -72,9 +74,11 @@ install:
   - echo $GIT_DESCRIBE_TAG
   - echo $GIT_DESCRIBE_NUMBER
   - echo $GIT_DESCRIBE_HASH
-  - ls $HOME/build/
-  - ls $HOME/conda-bld/
+  - ls $HOME/build/ToFuProject/tofu/
+  - ls $HOME/conda-bld/linux-64/
   - conda install tofu --use-local
+  - ls $HOME/build/ToFuProject/tofu/
+  - ls $HOME/conda-bld/linux-64/
 
 
 script:
