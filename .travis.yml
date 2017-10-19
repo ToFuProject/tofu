@@ -46,6 +46,7 @@ install:
   # Update version number
   - python -c "import _updateversion as up; vv = up.updateversion(); print(vv)"
   - export VERSION=$(head -n 1 version.txt)
+  - echo $VERSION
   - conda build $RECIPE
   - conda install tofu --use-local
   - ls /home/travis/miniconda/envs/test-environment/
