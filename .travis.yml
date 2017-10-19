@@ -24,12 +24,6 @@ install:
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
-  # Set environment variable for branch name
-  - echo $BRANCH
-  - BRANCH=$(git symbolic-ref -q HEAD)
-  - BRANCH=${BRANCH=##refs/heads/}
-  - BRANCH=${BRANCH:-HEAD}
-  - echo $BRANCH
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda install conda-build
@@ -48,13 +42,19 @@ install:
   # replace the following line:
   #- python setup.py develop
   # with:
-  #
   # Update version number
   - python -c "import _updateversion as up; vv = up.updateversion(); print(vv)"
   - export REV=$(head -n 1 version.txt)
   - export VERSION=$(echo $REV | tr - .)
   - echo $REV
   - echo $VERSION
+  # Get branch
+  - echo $BRANCH
+  - BRANCH=$(git symbolic-ref -q HEAD)
+  - BRANCH=${BRANCH=##refs/heads/}
+  - BRANCH=${BRANCH:-HEAD}
+  - echo $BRANCH
+  # Build
   - conda build $RECIPE
   - conda install tofu --use-local
   - ls /home/travis/miniconda/envs/test-environment/
