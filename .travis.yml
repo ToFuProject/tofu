@@ -24,6 +24,12 @@ install:
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
+  # Set environment variable for branch name
+  - echo $BRANCH
+  - BRANCH=$(git symbolic-ref -q HEAD)
+  - BRANCH=${BRANCH=##refs/heads/}
+  - BRANCH=${BRANCH:-HEAD}
+  - echo $BRANCH
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda install conda-build
