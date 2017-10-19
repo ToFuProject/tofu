@@ -49,11 +49,11 @@ install:
   - echo $REV
   - echo $VERSION
   # Get branch
-  - echo $BRANCH
-  - BRANCH=$(git symbolic-ref -q HEAD)
-  - BRANCH=${BRANCH=##refs/heads/}
-  - BRANCH=${BRANCH:-HEAD}
-  - echo $BRANCH
+  #- echo $BRANCH
+  #- BRANCH=$(git symbolic-ref -q HEAD)
+  #- BRANCH=${BRANCH=##refs/heads/}
+  #- BRANCH=${BRANCH:-HEAD}
+  #- echo $BRANCH
   # Build
   - conda build $RECIPE
   - conda install tofu --use-local
