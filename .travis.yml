@@ -96,7 +96,7 @@ script:
   - python -c "import tofu.pathfile as tfpf; print(tfpf.__file__)"
   - python -c "import tofu.geom._GG as tfg_GG"
   - python -c "import tofu.geom as tfg"
-  - nosetests --nocapture -v --with-id --with-timer tests.tests01_geom
+  - nosetests --nocapture -v --with-id --with-timer tofu.tests.tests01_geom
 
 after_success:
   - source deactivate
