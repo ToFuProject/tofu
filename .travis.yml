@@ -23,6 +23,7 @@ install:
       export PCK="polygon3";
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
+  - ech $HOME
   - echo $PATH
   - echo $PYTHONPATH
   - export PATH="$HOME/miniconda/bin:$PATH"
@@ -55,7 +56,7 @@ install:
   # Build
   - conda build $RECIPE
   - conda install tofu --use-local
-  - ls HOME/miniconda/bin/
+  - ls $HOME/miniconda/bin/
   - ls /home/travis/miniconda/envs/test-environment/bin/
   - ls /home/travis/miniconda/envs/test-environment/etc/
 
