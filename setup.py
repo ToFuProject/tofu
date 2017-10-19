@@ -48,15 +48,23 @@ with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 
 # Prepare extensions
-if '--use-cython' in sys.argv:
-    USE_CYTHON = True
-    sys.argv.remove('--use-cython')
-else:
-    USE_CYTHON = False
+# Useful if install from setup.py
+#if '--use-cython' in sys.argv:
+#    USE_CYTHON = True
+#    sys.argv.remove('--use-cython')
+#else:
+#    USE_CYTHON = False
+USE_CYTHON = True
 if USE_CYTHON:
+    print("")
+    print("Using Cython !!!!!!!!!")
+    print("")
     extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"])]
     extensions = cythonize(extensions)
 else:
+    print("")
+    print("NOT Using Cython !!!!!!!!!")
+    print("")
     extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".cpp"],
                             language='c++', include_dirs=['tofu/cpp/'])]
 
