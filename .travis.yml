@@ -62,6 +62,14 @@ install:
   - echo $REV
   - echo $VERSION
   - echo $TRAVIS_BRANCH
+  - echo $PCK_NAME
+  - echo $PCK_VERSION
+  - echo $PCK_BUILDNUM
+  - echo $SRC_DIR
+  - echo $PCK_CONFIG_PATH
+  - echo $GIT_DESCRIBE_TAG
+  - echo $GIT_DESCRIBE_NUMBER
+  - echo $GIT_DESCRIBE_HASH
   # Build
   - conda build $RECIPE
   - conda install $CONDA_BLD_PATH/$OS/$PKG_NAME-$VERSION-$VADD.tar.bz2 --use-local
