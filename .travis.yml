@@ -89,20 +89,12 @@ install:
 
 
 script:
-  - tar -jtvf $HOME/conda-bld/linux-64/tofu*.tar.bz2
+  - ls $HOME/miniconda/pkgs/tofu*
+  - pwd
+  - cd $Home
   - pwd
   - python -c "import os; print(os.getcwd())"
   - python -c "import tofu.pathfile as tfpf; print(tfpf.__file__)"
-  - ls tofu/geom/
-  - ls $HOME/build/
-  - echo $PATH
-  - echo $PYTHONPATH
-  - export PYTHONPATH="$Home/conda-bld/linux-64/:$PYTHONPATH"
-  - echo $PYTHONPATH
-  - python -c "import tofu.geom._def as tfg_def"
-  - python -c "import tofu.geom._GG as tfg_GG"
-  - python -c "import tofu.geom as tfg"
-  - cd $Home/conda-bld/linux-64/
   - python -c "import tofu.geom._def as tfg_def"
   - python -c "import tofu.geom._GG as tfg_GG"
   - python -c "import tofu.geom as tfg"
