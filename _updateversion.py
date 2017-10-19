@@ -18,7 +18,7 @@ def updateversion(here=here):
     with open(version_py,"w") as fh:
         fh.write((version_msg + os.linesep + '__version__=').replace('',"") + "'%s'" % version_git)
     with open(version_txt,"w") as fh:
-        fh.write(version_git.replace('-','.'))
+        fh.write(version_git)
     return version_git
 
 
