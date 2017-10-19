@@ -23,7 +23,10 @@ install:
       export PCK="polygon3";
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
+  - echo $PATH
+  - echo $PYTHONPATH
   - export PATH="$HOME/miniconda/bin:$PATH"
+  - echo $PATH
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda install conda-build
@@ -52,11 +55,13 @@ install:
   # Build
   - conda build $RECIPE
   - conda install tofu --use-local
-  - ls /home/travis/miniconda/envs/test-environment/
+  - ls HOME/miniconda/bin/
+  - ls /home/travis/miniconda/envs/test-environment/bin/
+  - ls /home/travis/miniconda/envs/test-environment/etc/
 
 
 script:
-  - python -c "import tofu.pathfile as tfpf"
+  - python -c "import tofu.pathfile as tfpf; print(tfpf.__file__)"
   - python -c "import tofu.geom._def as tfg_def"
   - python -c "import tofu.geom._GG as tfg_GG"
   - python -c "import tofu.geom as tfg"
