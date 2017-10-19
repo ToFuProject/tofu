@@ -54,11 +54,11 @@ if '--use-cython' in sys.argv:
 else:
     USE_CYTHON = False
 if USE_CYTHON:
-    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"])
+    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"])]
     extensions = cythonize(extensions)
 else:
     extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".cpp"],
-                            language='c++', include_dirs=['tofu/cpp/'])
+                            language='c++', include_dirs=['tofu/cpp/'])]
 
 setup(
     name='tofu',
