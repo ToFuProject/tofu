@@ -27,16 +27,6 @@ install:
   - echo $PATH
   - echo $PYTHONPATH
   #- export PATH="$HOME/miniconda/bin:$PATH"
-  # Try with upload
-  - PKG_NAME=tofu
-  - OS=linux-64
-  - mkdir ~/conda-bld
-  - conda config --set anaconda_upload no
-  - conda update -n root conda-build
-  - conda config --append channels conda-forge
-  - conda config --append channels tofuproject
-  - export CONDA_BLD_PATH=~/conda-bld
-  # Finish test with upload
   - echo $PATH
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
@@ -48,8 +38,16 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   - source activate test-environment
-  #- conda install -c conda-forge nose-timer
-  #- conda install -c tofuproject $PCK
+  # Start uplaod
+  - PKG_NAME=tofu
+  - OS=linux-64
+  - mkdir ~/conda-bld
+  - conda config --set anaconda_upload no
+  - conda update -n root conda-build
+  - conda config --append channels conda-forge
+  - conda config --append channels tofuproject
+  - export CONDA_BLD_PATH=~/conda-bld
+  # Finish uplaod
   - conda config --append channels conda-forge
   - conda config --append channels tofuproject
   # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
