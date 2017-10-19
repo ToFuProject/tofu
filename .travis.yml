@@ -84,6 +84,8 @@ install:
   - ls $HOME/build/ToFuProject/tofu/build/
   - ls $HOME/conda-bld/
   - ls $HOME/conda-bld/linux-64/
+  - ls /home/travis/miniconda/envs/test-environment/
+  - ls /home/travis/miniconda/pkgs/
 
 
 script:
@@ -93,6 +95,14 @@ script:
   - python -c "import tofu.pathfile as tfpf; print(tfpf.__file__)"
   - ls tofu/geom/
   - ls $HOME/build/
+  - echo $PATH
+  - echo $PYTHONPATH
+  - export PYTHONPATH="$Home/conda-bld/linux-64/:$PYTHONPATH"
+  - echo $PYTHONPATH
+  - python -c "import tofu.geom._def as tfg_def"
+  - python -c "import tofu.geom._GG as tfg_GG"
+  - python -c "import tofu.geom as tfg"
+  - cd $Home/conda-bld/linux-64/
   - python -c "import tofu.geom._def as tfg_def"
   - python -c "import tofu.geom._GG as tfg_GG"
   - python -c "import tofu.geom as tfg"
