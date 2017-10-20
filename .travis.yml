@@ -73,7 +73,8 @@ script:
   #- ls $HOME/miniconda/envs/test-environment/lib/python3.6/site-packages/tofu/geom
   - nosetests --nocapture -v --with-id --with-timer tofu.tests.tests01_geom
 
-#after_success:
+after_success:
+  - chmod +x $START/anaconda_upload.sh
   #- source deactivate
 
 
@@ -92,7 +93,7 @@ deploy:
       tags: true
       #branch: master
   - provider: script
-    script: anaconda_upload.sh
+    script: $START/anaconda_upload.sh
     on:
       tags: true
     skip_cleanup: true
