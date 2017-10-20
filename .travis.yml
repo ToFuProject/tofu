@@ -60,12 +60,14 @@ install:
   #- python setup.py develop
   # with:
   # Build
+  - ls /home/
   - ls $HOME
   - ls $HOME/build/
   - ls $HOME/build/ToFuProject/
   - ls $HOME/build/ToFuProject/tofu/
   - ls $HOME/build/ToFuProject/tofu/build/
   - conda build $RECIPE
+  - ls /home/
   - ls $HOME
   - ls $HOME/build/
   - ls $HOME/build/ToFuProject/
@@ -82,12 +84,6 @@ script:
   - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/
   - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/tests/
   - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/tests/tests01_geom/
-  - cd $Home
-  - pwd
-  - python -c "import os; print(os.getcwd())"
-  - python -c "import tofu.pathfile as tfpf; print(tfpf.__file__)"
-  - python -c "import tofu.geom._GG as tfg_GG"
-  - python -c "import tofu.geom as tfg"
   - nosetests --nocapture -v --with-id --with-timer tofu.tests.tests01_geom
 
 after_success:
