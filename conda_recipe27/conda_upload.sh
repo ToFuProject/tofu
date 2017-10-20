@@ -13,6 +13,6 @@ export CONDA_BLD_PATH=~/conda-bld
 #export VERSION=$(head -n 1 version.txt)
 
 conda build $RECIPE
-PKG_REAL=$(find $CONDA_BLD_PATH/$OS/ type -f -name $PKG_NAME-$VERSION-$VADD*.tar.bz2)
+PKG_REAL=$(find $CONDA_BLD_PATH/$OS/ -type f -name $PKG_NAME-$VERSION-$VADD*.tar.bz2)
 echo $PKG_REAL
 anaconda -t $CONDA_UPLOAD_TOKEN upload -u $USER -l main $PKG_REAL --force
