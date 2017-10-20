@@ -26,12 +26,12 @@ install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
       export RECIPE="./conda_recipe27";
-      export VADD="py27_0";
+      export VADD="py27";
       export PCK="polygon2";
     else
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
       export RECIPE="./conda_recipe36";
-      export VADD="py36_0";
+      export VADD="py36";
       export PCK="polygon3";
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
