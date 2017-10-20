@@ -36,11 +36,13 @@ install:
   - conda update -n root conda-build
   # Useful for debugging any issues with conda
   - conda info -a
+  - git describe --tags
   - git describe
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   - source activate test-environment
   # Update version number
+  - git describe --tags
   - git describe
   - python -c "import _updateversion as up; vv = up.updateversion(); print(vv)"
   - export REV=$(head -n 1 version.txt)
