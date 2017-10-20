@@ -62,7 +62,7 @@ install:
 
 script:
   - cd $HOME
-  - ls $HOME/miniconda/envs/test-environment/lib/python3.6/site-packages/tofu/geom
+  #- ls $HOME/miniconda/envs/test-environment/lib/python3.6/site-packages/tofu/geom
   - nosetests --nocapture -v --with-id --with-timer tofu.tests.tests01_geom
 
 #after_success:
