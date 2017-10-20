@@ -20,7 +20,7 @@ import tofu.pathfile as tfpf
 import tofu.geom as tfg
 
 
-Root = tfpf.Find_Rootpath()
+here = os.path.abspath(os.path.dirname(__file__))
 Addpath = '/tests/tests01_geom/'
 
 VerbHead = 'tofu.geom.tests03_core'
@@ -78,7 +78,7 @@ def teardown_module(module):
 #PVes = [R + r*np.cos(PVes), r*np.sin(PVes)]
 #PVes = np.concatenate((PVes,PDiv),axis=1)
 
-PVes = np.loadtxt(Root+Addpath+'test_Ves.txt', dtype='float', skiprows=1, ndmin=2, comments='#')
+PVes = np.loadtxt(os.path.join(here,'test_Ves.txt'), dtype='float', skiprows=1, ndmin=2, comments='#')
 Lim = 2.*np.pi*1.7*np.array([-0.5,0.5])
 
 
@@ -89,8 +89,8 @@ class Test01_Ves:
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("---- "+cls.__name__)
-        cls.LObj = [tfg.Ves('Test01', PVes, Type='Tor', shot=0, Exp='Test', SavePath=Root+Addpath)]
-        cls.LObj.append(tfg.Ves('Test01', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=Root+Addpath))
+        cls.LObj = [tfg.Ves('Test01', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here+Addpath)]
+        cls.LObj.append(tfg.Ves('Test01', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here+Addpath))
 
     @classmethod
     def teardown_class(cls):
@@ -158,14 +158,16 @@ class Test01_Ves:
         plt.close('all')
 
     def test09_saveload(self):
-        for ii in range(0,len(self.LObj)):
-            self.LObj[ii].save(Print=False)
-            obj = tfpf.Open(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
-            os.remove(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
+        try:
+            for ii in range(0,len(self.LObj)):
+                self.LObj[ii].save(Print=False)
+                obj = tfpf.Open(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
+                os.remove(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
+        except Exception as err:
+            print(err)
 
-
-VesTor = tfg.Ves('Test', PVes, Type='Tor', shot=0, Exp='AUG', SavePath=Root+Addpath)
-VesLin = tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0, Exp='AUG', SavePath=Root+Addpath)
+VesTor = tfg.Ves('Test', PVes, Type='Tor', shot=0, Exp='AUG', SavePath=here+Addpath)
+VesLin = tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0, Exp='AUG', SavePath=here+Addpath)
 #VesTor.save()
 #VesLin.save()
 
@@ -184,9 +186,9 @@ class Test02_Struct(Test01_Ves):
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("--------- "+VerbHead+cls.__name__)
-        cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor', shot=0, Exp='Test', SavePath=Root+Addpath)]
-        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Tor', Lim=[-np.pi/2.,np.pi/4.], shot=0, Exp='Test', SavePath=Root+Addpath))
-        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=Root+Addpath))
+        cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here+Addpath)]
+        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Tor', Lim=[-np.pi/2.,np.pi/4.], shot=0, Exp='Test', SavePath=here+Addpath))
+        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here+Addpath))
 
 
 
