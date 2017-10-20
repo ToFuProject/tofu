@@ -67,6 +67,7 @@ install:
   - ls $HOME/build/ToFuProject/tofu/
   - ls $HOME/build/ToFuProject/tofu/build/
   - conda build $RECIPE
+  - ls /home/..
   - ls /home/
   - ls $HOME
   - ls $HOME/build/
@@ -81,6 +82,7 @@ install:
 
 
 script:
+  - cd $HOME
   - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/
   - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/tests/
   - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/tests/tests01_geom/

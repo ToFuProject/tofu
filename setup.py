@@ -123,7 +123,7 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages = find_packages(exclude=['doc', '_Old', '_Old_doc','plugins','plugins.*','*.plugins.*','*.plugins','*.tests10_plugins','*.tests10_plugins.*','tests10_plugins.*','tests10_plugins']),
+    packages = find_packages(exclude=['doc', '_Old', '_Old_doc','plugins','plugins.*','*.plugins.*','*.plugins','*.tests10_plugins','*.tests10_plugins.*','tests10_plugins.*','tests10_plugins',]),
     #packages = ['tofu','tofu.geom'],
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
