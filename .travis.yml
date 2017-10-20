@@ -44,52 +44,28 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   - source activate test-environment
   # Start uplaod
-  - PKG_NAME=tofu
-  - OS=linux-64
+  #- PKG_NAME=tofu
+  #- OS=linux-64
   #- mkdir ~/conda-bld
   - conda config --set anaconda_upload no
   #- conda update -n root conda-build
   - conda config --append channels conda-forge
   - conda config --append channels tofuproject
-  - export CONDA_BLD_PATH=~/conda-bld
-  # Finish uplaod
-  - conda config --append channels conda-forge
-  - conda config --append channels tofuproject
+  #- export CONDA_BLD_PATH=~/conda-bld
   # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
   # replace the following line:
   #- python setup.py develop
   # with:
   # Build
-  - ls /home/
-  - ls $HOME
-  - ls $HOME/build/
-  - ls $HOME/build/ToFuProject/
-  - ls $HOME/build/ToFuProject/tofu/
-  - ls $HOME/build/ToFuProject/tofu/build/
   - conda build $RECIPE
-  - ls /home/..
-  - ls /home/
-  - ls $HOME
-  - ls $HOME/build/
-  - ls $HOME/build/ToFuProject/
-  - ls $HOME/build/ToFuProject/tofu/
-  - ls $HOME/build/ToFuProject/tofu/build/
-  - conda install -v tofu --use-local
-  - ls $HOME/build/ToFuProject/tofu/
-  - ls $HOME/build/ToFuProject/tofu/build/
-  - ls /home/travis/miniconda/envs/test-environment/
-  - ls /home/travis/miniconda/pkgs/
-
+  - conda install tofu --use-local
 
 script:
   - cd $HOME
-  - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/
-  - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/tests/
-  - ls $HOME/miniconda/pkgs/tofu*_0/lib/python2.7/site-packages/tofu/tests/tests01_geom/
   - nosetests --nocapture -v --with-id --with-timer tofu.tests.tests01_geom
 
-after_success:
-  - source deactivate
+#after_success:
+  #- source deactivate
 
 deploy:
   provider: pypi
