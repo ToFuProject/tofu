@@ -8,6 +8,7 @@ python:
 #sudo: enabled
 
 install:
+  - git describe
   - sudo apt-get update
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
