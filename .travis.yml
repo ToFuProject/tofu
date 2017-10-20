@@ -11,13 +11,12 @@ git:
 #sudo: enabled
 
 before_install:
-  - git log
-  - git tag -l
-  - git describe
-
+  - export REV=$(git describe)
+  - export VERSION=$(echo $REV | tr - .)
+  - echo $REV
+  - echo $VERSION
 
 install:
-  - git describe
   - sudo apt-get update
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
@@ -34,11 +33,6 @@ install:
     fi
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
-  - echo $HOME
-  - echo $PATH
-  - echo $PYTHONPATH
-  #- export PATH="$HOME/miniconda/bin:$PATH"
-  - echo $PATH
   - hash -r
   - conda config --set always_yes yes --set changeps1 no
   - conda install conda-build
@@ -46,26 +40,15 @@ install:
   - conda update -n root conda-build
   # Useful for debugging any issues with conda
   - conda info -a
-  - git describe --tags
-  - git describe
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   - source activate test-environment
-  # Update version number
-  - git describe --tags
-  - git describe
-  - python -c "import _updateversion as up; vv = up.updateversion(); print(vv)"
-  - export REV=$(head -n 1 version.txt)
-  - export VERSION=$(echo $REV | tr - .)
-  - echo $REV
-  - echo $VERSION
-  - echo $TRAVIS_BRANCH
   # Start uplaod
   - PKG_NAME=tofu
   - OS=linux-64
-  - mkdir ~/conda-bld
+  #- mkdir ~/conda-bld
   - conda config --set anaconda_upload no
-  - conda update -n root conda-build
+  #- conda update -n root conda-build
   - conda config --append channels conda-forge
   - conda config --append channels tofuproject
   - export CONDA_BLD_PATH=~/conda-bld
@@ -77,27 +60,20 @@ install:
   #- python setup.py develop
   # with:
   # Build
+  - ls $HOME
+  - ls $HOME/build/
+  - ls $HOME/build/ToFuProject/
   - ls $HOME/build/ToFuProject/tofu/
   - ls $HOME/build/ToFuProject/tofu/build/
-  - ls $HOME/conda-bld/
   - conda build $RECIPE
-  - echo $PKG_NAME
-  - echo $PKG_VERSION
-  - echo $PKG_BUILDNUM
-  - echo $SRC_DIR
-  - echo $PKG_CONFIG_PATH
-  - echo $GIT_DESCRIBE_TAG
-  - echo $GIT_DESCRIBE_NUMBER
-  - echo $GIT_DESCRIBE_HASH
+  - ls $HOME
+  - ls $HOME/build/
+  - ls $HOME/build/ToFuProject/
   - ls $HOME/build/ToFuProject/tofu/
   - ls $HOME/build/ToFuProject/tofu/build/
-  - ls $HOME/conda-bld/
-  - ls $HOME/conda-bld/linux-64/
   - conda install -v tofu --use-local
   - ls $HOME/build/ToFuProject/tofu/
   - ls $HOME/build/ToFuProject/tofu/build/
-  - ls $HOME/conda-bld/
-  - ls $HOME/conda-bld/linux-64/
   - ls /home/travis/miniconda/envs/test-environment/
   - ls /home/travis/miniconda/pkgs/
 
