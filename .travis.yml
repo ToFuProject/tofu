@@ -25,12 +25,10 @@ install:
   # version is the same.
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-      export RECIPE="./conda_recipe27";
       export VADD="py27";
       export PCK="polygon2";
     else
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-      export RECIPE="./conda_recipe36";
       export VADD="py36";
       export PCK="polygon3";
     fi
@@ -60,7 +58,7 @@ install:
   #- python setup.py develop
   # with:
   # Build
-  - conda build $RECIPE
+  - conda build conda_recipe
   - conda install tofu --use-local
 
 script:
@@ -90,7 +88,7 @@ deploy:
 after_deploy:
   - if [[ "$((echo $TRAVIS_BRANCH) | head -c 1)" == "v" ]]; then
       conda install anaconda-client;
-      bash $RECIPE/conda_upload.sh;
+      bash conda_recipe/conda_upload.sh;
     else
       echo "Not uploaded to conda because not tagged release branch !";
     fi

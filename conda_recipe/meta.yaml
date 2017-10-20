@@ -13,6 +13,7 @@ build:
     - VERSION
     - TRAVIS_BRANCH
     - CONDA_BLD_PATH
+    - PCK
 
 requirements:
   build:
@@ -26,7 +27,7 @@ requirements:
     - nose
     - nose-timer
     - pygments
-    - polygon3
+    - {{ environ['PCK'] }}
 
   run:
     - python
@@ -39,21 +40,14 @@ requirements:
     - nose
     - nose-timer
     - pygments
-    - polygon3
+    - {{ environ['PCK'] }}
 
-#test:
-#  imports:
-#    - tofu.geom
+test:
+  imports:
+    - tofu.geom
 
 about:
   home: https://github.com/ToFuProject/tofu
   license: MIT
   license_file: LICENSE.txt
   summary: Tomography for Fusion
-
-
-
-
-
-
-
