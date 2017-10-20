@@ -39,19 +39,23 @@ install:
   - conda install conda-build
   - conda update -q conda
   - conda update -n root conda-build
+  - conda config --set anaconda_upload no
+  - conda config --append channels conda-forge
+  - conda config --append channels tofuproject
   # Useful for debugging any issues with conda
   - conda info -a
   # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
-  - source activate test-environment
+  - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose pip anaconda-client conda-build
+  #- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
+  #- source activate test-environment
   # Start uplaod
   #- PKG_NAME=tofu
   #- OS=linux-64
   #- mkdir ~/conda-bld
-  - conda config --set anaconda_upload no
+  #- conda config --set anaconda_upload no
   #- conda update -n root conda-build
-  - conda config --append channels conda-forge
-  - conda config --append channels tofuproject
+  #- conda config --append channels conda-forge
+  #- conda config --append channels tofuproject
   #- export CONDA_BLD_PATH=~/conda-bld
   # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
   # replace the following line:
