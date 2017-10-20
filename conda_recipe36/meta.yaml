@@ -41,9 +41,9 @@ requirements:
     - pygments
     - polygon3
 
-test:
-  imports:
-    - tofu.geom
+#test:
+#  imports:
+#    - tofu.geom
 
 about:
   home: https://github.com/ToFuProject/tofu
