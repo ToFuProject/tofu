@@ -11,10 +11,13 @@ git:
 #sudo: enabled
 
 before_install:
+  - export START=$(pwd)
   - export REV=$(git describe)
   - export VERSION=$(echo $REV | tr - .)
+  - echo $START
   - echo $REV
   - echo $VERSION
+  - ls $START
 
 install:
   - sudo apt-get update
@@ -22,12 +25,12 @@ install:
   # version is the same.
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
       wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-      export RECIPE="./conda_recipe27/";
+      export RECIPE="./conda_recipe27";
       export VADD="py27_0";
       export PCK="polygon2";
     else
       wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-      export RECIPE="./conda_recipe36/";
+      export RECIPE="./conda_recipe36";
       export VADD="py36_0";
       export PCK="polygon3";
     fi
@@ -67,6 +70,12 @@ script:
 
 #after_success:
   #- source deactivate
+
+
+
+before_deploy:
+  - ls $START
+  - cd $START
 
 deploy:
   provider: pypi
