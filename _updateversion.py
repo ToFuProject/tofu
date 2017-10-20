@@ -1,3 +1,4 @@
+import sys
 import os 
 import subprocess
 
@@ -9,7 +10,12 @@ def updateversion(here=here):
     version_py = os.path.join(here,"version.py")
     version_txt = os.path.join(here,"version.txt")
     try:
-        version_git = subprocess.check_output(["git","describe"]).rstrip()
+        if sys.version[0]=='2':
+            version_git = subprocess.check_output(["git","describe"]).rstrip()
+        elif sys.version[0]=='3':
+            version_git = subprocess.check_output(["git","describe"]).rstrip().decode()
+        else:
+            raise Exception("Wrong python version !")
     except:
         with open(version_py,'r') as fh:
             version_git = fh.read().strip().split("=")[-1].replace("'",'')
