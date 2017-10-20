@@ -5,7 +5,7 @@ python:
   - "3.6"
 
 git:
-  depth: 5
+  depth: 200
 
 # Best because more complete, but too slow
 #sudo: enabled
