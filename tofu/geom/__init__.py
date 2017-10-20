@@ -2,7 +2,10 @@
 #! /usr/bin/python
 
 #import sys
-from _core import Ves, Struct
+try:
+    from tofu.geom._core import Ves, Struct
+except Exception:
+    from _core import Ves, Struct
 
 __all__ = ['_GG','_comp','_plot','_def']
 
