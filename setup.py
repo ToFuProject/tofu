@@ -123,7 +123,7 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages = find_packages(exclude=['doc', '_Old', '_Old_doc','tofu.plugins','tofu.tests.tests10_plugins']),
+    packages = find_packages(exclude=['doc', '_Old', '_Old_doc','*.plugins','*.tests10_plugins']),
     #packages = ['tofu','tofu.geom'],
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
@@ -165,7 +165,8 @@ setup(
     #    # And include any *.csv files found in the 'ITER' package, too:
     #    'ITER': ['*.csv'],
     #},
-    package_data={'tests.tests01_geom':['test_Ves.txt']},
+    package_data={'tofu.tests.tests01_geom':['test_Ves.txt']},
+    include_package_data=True,
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
