@@ -13,6 +13,7 @@ build:
     - VERSION
     - TRAVIS_BRANCH
     - CONDA_BLD_PATH
+    - PCK
 
 requirements:
   build:
@@ -26,7 +27,7 @@ requirements:
     - nose
     - nose-timer
     - pygments
-    - polygon2
+    - {{ environ['PCK'] }}
 
   run:
     - python
@@ -39,7 +40,7 @@ requirements:
     - nose
     - nose-timer
     - pygments
-    - polygon2
+    - {{ environ['PCK'] }}
 
 #test:
 #  imports:
