@@ -8,24 +8,19 @@ git:
   depth: 100
 
 # Run jobs on container-based infrastructure, can be overridden per job
-sudo: false
-dist: trusty
-
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - gcc-4.9
-      - g++-4.9
+sudo: required
+#dist: trusty
 
 before_install:
+  - sudo apt-get update
+  - apt-cache showpkg libc6
+  - sudo apt-get install libc6=2.12
+  - sudo echo "libc6 hold" | sudo dpkg --set-selections
   - export START=$(pwd)
   - export REV=$(git describe)
   - export VERSION=$(echo $REV | tr - .)
 
 install:
-  - sudo apt-get update
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
