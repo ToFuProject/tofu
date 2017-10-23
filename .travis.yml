@@ -7,8 +7,9 @@ python:
 git:
   depth: 100
 
-# Best because more complete, but too slow
-#sudo: enabled
+# Run jobs on container-based infrastructure, can be overridden per job
+sudo: false
+dist: trusty
 
 before_install:
   - export START=$(pwd)
@@ -48,20 +49,14 @@ install:
   - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose pip anaconda-client conda-build
   #- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   #- source activate test-environment
-  # Start uplaod
-  #- PKG_NAME=tofu
-  #- OS=linux-64
-  #- mkdir ~/conda-bld
-  #- conda config --set anaconda_upload no
-  #- conda update -n root conda-build
-  #- conda config --append channels conda-forge
-  #- conda config --append channels tofuproject
-  #- export CONDA_BLD_PATH=~/conda-bld
   # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
   # replace the following line:
   #- python setup.py develop
   # with:
-  # Build
+  # Build params
+  - echo $LD_PRELOAD
+  - echo $LD_LIBRARY_PATH
+  # Building
   - conda build conda_recipe
   - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
   - echo $PKG_DIR
