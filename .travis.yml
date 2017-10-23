@@ -11,11 +11,11 @@ git:
 sudo: false
 dist: trusty
 
-addons:
-  apt:
-    packages:
-      - gcc-6.4
-      - g++-6.4
+#addons:
+#  apt:
+#    packages:
+#      - gcc-6.4
+#      - g++-6.4
 
 before_install:
   - export START=$(pwd)
@@ -58,6 +58,7 @@ install:
   # Build params
   - echo $LD_PRELOAD
   - echo $LD_LIBRARY_PATH
+  - ldd --version
   # Building
   - conda build conda_recipe
   - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
