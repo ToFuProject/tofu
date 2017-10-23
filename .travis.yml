@@ -13,9 +13,11 @@ sudo: required
 
 before_install:
   - sudo apt-get update
-  - apt-cache showpkg libc6
-  - sudo apt-get install libc6=2.12
-  - sudo echo "libc6 hold" | sudo dpkg --set-selections
+  #- apt-cache showpkg libc6
+  #- sudo apt-get install libc6=2.12
+  #- sudo echo "libc6 hold" | sudo dpkg --set-selections
+  - ldd --version
+  - gcc --version
   - export START=$(pwd)
   - export REV=$(git describe)
   - export VERSION=$(echo $REV | tr - .)
