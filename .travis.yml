@@ -98,14 +98,3 @@ deploy:
     on:
       tags: true
     skip_cleanup: true
-
-#after_deploy:
-#  - if [[ "$((echo $TRAVIS_BRANCH) | head -c 1)" == "v" ]]; then
-#      bash $START/anaconda_upload.shh;
-#    else
-#      echo "Not uploaded to conda because not tagged release branch !";
-#    fi
-
-
-
-
