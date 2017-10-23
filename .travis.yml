@@ -11,14 +11,16 @@ git:
 sudo: false
 dist: trusty
 
+addons:
+  apt:
+    packages:
+      - gcc-6.4
+      - g++-6.4
+
 before_install:
   - export START=$(pwd)
   - export REV=$(git describe)
   - export VERSION=$(echo $REV | tr - .)
-  - echo $START
-  - echo $REV
-  - echo $VERSION
-  - ls $START
 
 install:
   - sudo apt-get update
@@ -59,8 +61,6 @@ install:
   # Building
   - conda build conda_recipe
   - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
-  - echo $PKG_DIR
-  - echo $(ls $PKG_DIR)
   - conda install tofu --use-local
 
 script:
