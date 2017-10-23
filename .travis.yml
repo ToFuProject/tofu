@@ -93,16 +93,15 @@ deploy:
       tags: true
       #branch: master
   - provider: script
+    user: "ToFuProject"
     script: $START/anaconda_upload.sh
-    user: ToFuProject
     on:
       tags: true
     skip_cleanup: true
 
 #after_deploy:
 #  - if [[ "$((echo $TRAVIS_BRANCH) | head -c 1)" == "v" ]]; then
-#      conda install anaconda-client;
-#      bash conda_recipe/conda_upload.sh;
+#      bash $START/anaconda_upload.shh;
 #    else
 #      echo "Not uploaded to conda because not tagged release branch !";
 #    fi
