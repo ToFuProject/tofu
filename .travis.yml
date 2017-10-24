@@ -13,20 +13,13 @@ dist: trusty
 
 before_install:
   - sudo apt-get update
-  #- apt-cache showpkg libc6
-  #- sudo apt-get install libc6=2.12
-  #- sudo echo "libc6 hold" | sudo dpkg --set-selections
   - ldd --version
   - gcc --version
-  - sudo apt-get install yum
-  - sudo apt-get install glibc=2.12 glibc-common=2.12 glibc-devel=2.12 glibc-headers=2.12 nscd=2.12
+  - apt-cache showpkg libc6
+  - sudo apt-get install libc6=2.12
   - ldd --version
   - gcc --version
-  - sudo yum list --showduplicates glibc
-  - sudo yum downgrade glibc\*
-  - ldd --version
-  - gcc --version
-  - sudo yum downgrade glibc-2.12 glibc-common-2.12 glibc-devel-2.12 glibc-headers-2.12 nscd-2.12
+  - sudo echo "libc6 hold" | sudo dpkg --set-selections
   - ldd --version
   - gcc --version
   - export START=$(pwd)
