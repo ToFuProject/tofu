@@ -8,8 +8,8 @@ git:
   depth: 50
 
 # Run jobs on container-based infrastructure, can be overridden per job
-#sudo: required
-#dist: trusty
+sudo: required
+dist: trusty
 
 before_install:
   - sudo apt-get update
@@ -18,11 +18,14 @@ before_install:
   #- sudo echo "libc6 hold" | sudo dpkg --set-selections
   - ldd --version
   - gcc --version
-  - yum list --showduplicates glibc
-  - yum downgrade glibc\*
+  - sudo apt-get install yum
   - ldd --version
   - gcc --version
-  - yum downgrade glibc-2.12 glibc-common-2.12 glibc-devel-2.12 glibc-headers-2.12 nscd-2.12
+  - sudo yum list --showduplicates glibc
+  - sudo yum downgrade glibc\*
+  - ldd --version
+  - gcc --version
+  - sudo yum downgrade glibc-2.12 glibc-common-2.12 glibc-devel-2.12 glibc-headers-2.12 nscd-2.12
   - ldd --version
   - gcc --version
   - export START=$(pwd)
