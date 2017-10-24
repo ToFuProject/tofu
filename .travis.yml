@@ -15,8 +15,8 @@ before_install:
   - sudo apt-get update
   - ldd --version
   - gcc --version
-  - apt-cache showpkg libc6
-  - sudo apt-get install libc6=2.12
+  #- apt-cache showpkg libc6
+  - sudo apt-get install libc6=2.12.1-0ubuntu10.4
   - ldd --version
   - gcc --version
   - sudo echo "libc6 hold" | sudo dpkg --set-selections
