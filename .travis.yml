@@ -19,6 +19,7 @@ before_install:
   - ldd --version
   - gcc --version
   - sudo apt-get install yum
+  - sudo apt-get install glibc=2.12 glibc-common=2.12 glibc-devel=2.12 glibc-headers=2.12 nscd=2.12
   - ldd --version
   - gcc --version
   - sudo yum list --showduplicates glibc
