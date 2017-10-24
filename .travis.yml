@@ -15,13 +15,6 @@ before_install:
   - sudo apt-get update
   - ldd --version
   - gcc --version
-  #- apt-cache showpkg libc6
-  - sudo apt-get install libc6=2.12.1-0ubuntu10.4
-  - ldd --version
-  - gcc --version
-  - sudo echo "libc6 hold" | sudo dpkg --set-selections
-  - ldd --version
-  - gcc --version
   - export START=$(pwd)
   - export REV=$(git describe)
   - export VERSION=$(echo $REV | tr - .)
@@ -59,10 +52,6 @@ install:
   #- python setup.py develop
   # with:
   # Build params
-  - echo $LD_PRELOAD
-  - echo $LD_LIBRARY_PATH
-  - ldd --version
-  - gcc --version
   # Building
   - conda build conda_recipe
   - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
