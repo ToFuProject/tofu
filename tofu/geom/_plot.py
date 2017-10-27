@@ -8,7 +8,7 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-
+from matplotlib.patches import Polygon as mPolygon, Wedge as mWedge
 
 # ToFu-specific
 try:
@@ -110,7 +110,10 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV', Pdict=_def.TorPd, Idict=_def.
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Cross', a4=a4, Type=V.Type)
     if 'P' in Elt:
-        ax.plot(V.Poly[0,:],V.Poly[1,:],label=V.Id.NameLTX,**Pdict)
+        if V.Id.Cls=='Ves':
+            ax.plot(V.Poly[0,:],V.Poly[1,:],label=V.Id.NameLTX,**Pdict)
+        elif V.Id.Cls=='Struct':
+            ax.add_patch(mPolygon(V.Poly.T, closed=True, **Pdict))
     if 'I' in Elt:
         ax.plot(V.sino['RefPt'][0],V.sino['RefPt'][1], label=V.Id.NameLTX+" Imp", **Idict)
     if 'Bs' in Elt:
@@ -154,13 +157,27 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.Tor
     P1Min = V.geom['P1Min']
     P1Max = V.geom['P1Max']
     if 'P' in Elt:
-        if V.Type=='Tor':
-            lx = np.concatenate((P1Min[0]*np.cos(Theta),np.array([np.nan]),P1Max[0]*np.cos(Theta)))
-            ly = np.concatenate((P1Min[0]*np.sin(Theta),np.array([np.nan]),P1Max[0]*np.sin(Theta)))
-        elif V.Type=='Lin':
-            lx = np.concatenate((Theta,np.array([np.nan]),Theta))
-            ly = np.concatenate((P1Min[0]*np.ones((Nstep,)),np.array([np.nan]),P1Max[0]*np.ones((Nstep,))))
-        ax.plot(lx,ly,label=V.Id.NameLTX,**Pdict)
+        if V.Id.Cls=='Ves':
+            if V.Type=='Tor':
+                lx = np.concatenate((P1Min[0]*np.cos(Theta),np.array([np.nan]),P1Max[0]*np.cos(Theta)))
+                ly = np.concatenate((P1Min[0]*np.sin(Theta),np.array([np.nan]),P1Max[0]*np.sin(Theta)))
+            elif V.Type=='Lin':
+                lx = np.concatenate((Theta,Theta[::-1],[Theta[0]]))
+                ly = np.concatenate((P1Min[0]*np.ones((Nstep,)),P1Max[0]*np.ones((Nstep,)),[P1Min[0]]))
+            ax.plot(lx,ly,label=V.Id.NameLTX,**Pdict)
+        elif V.Id.Cls=='Struct':
+            if V.Type=='Tor':
+                if V.Lim is None:
+                    lx = np.concatenate((P1Min[0]*np.cos(Theta),P1Max[0]*np.cos(Theta[::-1])))
+                    ly = np.concatenate((P1Min[0]*np.sin(Theta),P1Max[0]*np.sin(Theta[::-1])))
+                    pp = mPolygon(np.array([lx,ly]).T, closed=True, **Pdict)
+                else:
+                    pp = mWedge((0,0), P1Max[0], V.Lim[0]*180./np.pi, V.Lim[1]*180./np.pi, width=P1Max[0]-P1Min[0], **Pdict)
+            elif V.Type=='Lin':
+                    lx = np.concatenate((Theta,Theta[::-1],[Theta[0]]))
+                    ly = np.concatenate((P1Min[0]*np.ones((Nstep,)),P1Max[0]*np.ones((Nstep,)),[P1Min[0]]))
+                    pp = mPolygon(np.array([lx,ly]).T, closed=True, **Pdict)
+            ax.add_patch(pp)
     if 'I' in Elt:
         if V.Type=='Tor':
             lx, ly = V.sino['RefPt'][0]*np.cos(Theta), V.sino['RefPt'][0]*np.sin(Theta)
