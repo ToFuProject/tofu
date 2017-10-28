@@ -190,7 +190,8 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
 
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
-    VLim = None if VType.lower()=='tor' else np.array(VLim)
+    VLim = np.array(VLim) if VLim is not None else VLim
+    #VLim = None if VType.lower()=='tor' else np.array(VLim)    # Probably mistake
     dSr = [None,None]
     if ind is None:
         if VType.lower()=='tor':

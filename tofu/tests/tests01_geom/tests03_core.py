@@ -147,9 +147,13 @@ class Test01_Ves:
 
     def test07_plot(self):
         for ii in range(0,len(self.LObj)):
-            Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', draw=False, a4=False, Test=True)
-            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', draw=False, a4=False, Test=True)
-            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', draw=False, a4=False, Test=True)
+            if self.LObj[ii].Id.Cls=='Ves':
+                Pdict = {'c':'k'}
+            else:
+                Pdict = {'ec':'None','fc',(0.8,0.8,0.8,0.5)}
+            Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', Pdict=Pdict, draw=False, a4=False, Test=True)
+            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', Pdict=Pdict, draw=False, a4=False, Test=True)
+            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', Pdict=Pdict, draw=False, a4=False, Test=True)
             plt.close('all')
 
     def test08_plot_sino(self):
