@@ -64,8 +64,6 @@ class Ves(object):
         Shot number from which this Ves is usable (in case of change of geometry)
     SavePath :      None / str
         If provided, forces the default saving path of the object to the provided value
-    dtime :         None / dtm.datetime
-        A time reference to be used to identify this particular instance (used for debugging mostly)
 
     Returns
     -------
@@ -74,14 +72,14 @@ class Ves(object):
 
     """
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, dtime=None, SavePath=None, SavePath_Include=_def.SavePath_Include, Cls='Ves'):
+    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, SavePath=None, SavePath_Include=_def.SavePath_Include, Cls='Ves'):
 
         self._Done = False
         tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
         self._check_inputs(Clock=Clock, arrayorder=arrayorder)
         self._arrayorder = arrayorder
         self._Clock = Clock
-        self._set_Id(Id, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath, dtime=dtime, SavePath_Include=SavePath_Include, Cls=Cls)
+        self._set_Id(Id, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls=Cls)
         self._set_geom(Poly, Lim=Lim, Clock=Clock, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP)
         self._set_arrayorder(arrayorder)
         self._Done = True
@@ -110,19 +108,19 @@ class Ves(object):
         return self._sino
 
 
-    def _check_inputs(self, Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, dtime=None, SavePath=None):
-        _Ves_check_inputs(Id=Id, Poly=Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, dtime=dtime, SavePath=SavePath)
+    def _check_inputs(self, Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, SavePath=None):
+        _Ves_check_inputs(Id=Id, Poly=Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, SavePath=SavePath)
 
-    def _set_Id(self, Val, Type=None, Exp=None, shot=None, dtime=None, SavePath=None, SavePath_Include=None, Cls='Ves'):
+    def _set_Id(self, Val, Type=None, Exp=None, shot=None, SavePath=None, SavePath_Include=None, Cls='Ves'):
         if self._Done:
-            Out = tfpf._get_FromItself(self.Id,{'Type':Type, 'Exp':Exp, 'shot':shot, 'dtime':dtime, 'SavePath':SavePath})
-            Type, Exp, shot, dtime, SavePath = Out['Type'], Out['Exp'], Out['shot'], Out['dtime'], Out['SavePath']
+            Out = tfpf._get_FromItself(self.Id,{'Type':Type, 'Exp':Exp, 'shot':shot, 'SavePath':SavePath})
+            Type, Exp, shot, SavePath = Out['Type'], Out['Exp'], Out['shot'], Out['SavePath']
         tfpf._check_NotNone({'Id':Val})
         self._check_inputs(Id=Val)
         if type(Val) is str:
             tfpf._check_NotNone({'Type':Type, 'Exp':Exp, 'shot':shot})
-            self._check_inputs(Type=Type, Exp=Exp, shot=shot, SavePath=SavePath, dtime=dtime)
-            Val = tfpf.ID(Cls, Val, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath, Include=SavePath_Include, dtime=dtime)
+            self._check_inputs(Type=Type, Exp=Exp, shot=shot, SavePath=SavePath)
+            Val = tfpf.ID(Cls, Val, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath, Include=SavePath_Include)
         self._Id = Val
 
     def _set_arrayorder(self, arrayorder):
@@ -353,7 +351,7 @@ class Ves(object):
 
 
 
-def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, dtime=None, SavePath=None):
+def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, SavePath=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID object !"
     if not Poly is None:
@@ -365,23 +363,15 @@ def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, 
         assert arrayorder in ['C','F'], "Arg arrayorder must be in ['C','F'] !"
     if not Type is None:
         assert Type in ['Tor','Lin'], "Arg Type must be in ['Tor','Lin'] !"
-    if not Exp is None:
-        assert type(Exp) is str, "Ar Exp must be a str !"
-    strs = [SavePath]
+    strs = [Exp,SavePath]
     if any([not aa is None for aa in strs]):
-        assert all([aa is None or type(aa) is str for aa in strs]), "Args [Type,Exp,SavePath] must all be str !"
+        assert all([aa is None or type(aa) is str for aa in strs]), "Args [Exp,SavePath] must all be str !"
     Iter2 = [Lim,Sino_RefPt]
     if any([not aa is None for aa in Iter2]):
         assert all([aa is None or (hasattr(aa,'__iter__') and np.asarray(aa).ndim==1 and np.asarray(aa).size==2) for aa in Iter2]), "Args [Lim,Sino_RefPt] must be an iterable with len()=2 !"
     Ints = [Sino_NP,shot]
     if any([not aa is None for aa in Ints]):
         assert all([aa is None or type(aa) is int for aa in Ints]), "Args [Sino_NP,shot] must be int !"
-    if not dtime is None:
-        assert type(dtime) is dtm.datetime, "Arg dtime must be a dtm.datetime !"
-
-
-
-
 
 
 
@@ -398,8 +388,8 @@ def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, 
 
 class Struct(Ves):
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, dtime=None, SavePath=None, SavePath_Include=_def.SavePath_Include):
-        Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, dtime=dtime, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls="Struct")
+    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, SavePath=None, SavePath_Include=_def.SavePath_Include):
+        Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls="Struct")
 
     def get_meshS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)'):
         """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn """
@@ -410,3 +400,337 @@ class Struct(Ves):
         raise AttributeError("Struct class cannot use the get_meshV() method (only surface meshing) !")
 
 
+
+"""
+###############################################################################
+###############################################################################
+                        LOS class and functions
+###############################################################################
+"""
+
+
+class LOS(object):
+    """ A Line-Of-Sight object (semi-line with signed direction) with all useful geometrical parameters, associated :class:`~tofu.geom.Ves` object and built-in methods for plotting, defined in (X,Y,Z) cartesian coordinates
+
+    A Line of Sight (LOS) is a semi-line. It is a useful approximate representation of a (more accurate) Volume of Sight (VOS) when the latter is narrow and elongated.
+    It is usually associated to a detector placed behind apertures.
+    When associated to a :class:`~tofu.geom.Ves` object, special points are automatically computed (entry point, exit point, closest point to the center of the :class:`~tofu.geom.Ves` object...) as well as a projection in a cross-section.
+    While tofu provides the possibility of creating LOS objects for academic and simplification pueposes, it is generally not recommended to use them for doing physics, consider using a Detect object instead (which will provide you with a proper and automatically-computed VOS as well as with a LOS if you want).
+
+    Parameters
+    ----------
+        Id :            str / tfpf.ID
+            A name string or a pre-built tfpf.ID class to be used to identify this particular instance, if a string is provided, it is fed to tfpf.ID()
+        Du :            list / tuple
+            List of 2 arrays of len=3, the (X,Y,Z) coordinates of respectively the starting point D of the LOS and its directing vector u (will be automatically normalized)
+        Ves :           :class:`~tofu.geom.Ves`
+            A :class:`~tofu.geom.Ves` instance to be associated to the created LOS
+        Sino_RefPt :    None or np.ndarray
+            If provided, array of size=2 containing the (R,Z) (for 'Tor' Type) or (Y,Z) (for 'Lin' Type) coordinates of the reference point for the sinogram
+        arrayorder :    str
+            Flag indicating whether the attributes of type=np.ndarray (e.g.: Poly) should be made C-contiguous ('C') or Fortran-contiguous ('F')
+        Type       :    None
+            (not used in the current version)
+        Exp        :    None / str
+            Experiment to which the Lens belongs, should be identical to Ves.Id.Exp if Ves is provided, if None and Ves is provided, Ves.Id.Exp is used
+        Diag       :    None / str
+            Diagnostic to which the Lens belongs
+        shot       :    None / int
+            Shot number from which this Lens is usable (in case its position was changed from a previous configuration)
+        SavePath :      None / str
+            If provided, forces the default saving path of the object to the provided value
+
+    """
+
+
+    def __init__(self, Id, Du, Ves=None, LStruct=None, Sino_RefPt=None, arrayorder='C', Clock=False, Type=None, Exp=None, Diag=None, shot=None, SavePath=None):
+        self._Done = False
+        tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
+        self._check_inputs(Clock=Clock, arrayorder=arrayorder)
+        self._arrayorder = arrayorder
+        self._Clock = Clock
+        if not Ves is None:
+            Exp = Exp if not Exp is None else Ves.Id.Exp
+            assert Exp==Ves.Id.Exp, "Arg Exp must be identical to the Ves.Exp !"
+        self._set_Id(Id, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
+        self._set_Du(Du, Calc=False)
+        self._set_Ves(Ves, LStruct=LStruct)
+        self._set_Sino(RefPt=Sino_RefPt)
+        self._Done = True
+
+    @property
+    def Id(self):
+        return self._Id
+    @property
+    def D(self):
+        return self._Du[0]
+    @property
+    def u(self):
+        return self._Du[1]
+    @property
+    def Ves(self):
+        return self._Ves
+    @property
+    def LStruct(self):
+        return self.LStruct
+    @property
+    def PIn(self):
+        return self._PIn
+    @property
+    def POut(self):
+        return self._POut
+    @property
+    def kPIn(self):
+        return self._kPIn
+    @property
+    def kPOut(self):
+        return self._kPOut
+    @property
+    def PRMin(self):
+        return self._PRMin
+    @property
+    def Sino_RefPt(self):
+        return self._Sino_RefPt
+    @property
+    def Sino_P(self):
+        return self._Sino_P
+    @property
+    def Sino_Pk(self):
+        return self._Sino_Pk
+    @property
+    def Sino_p(self):
+        return self._Sino_p
+    @property
+    def Sino_theta(self):
+        return self._Sino_theta
+
+
+    def _check_inputs(self, Id=None, Du=None, Ves=None, Type=None, Sino_RefPt=None, Clock=None, arrayorder=None, Exp=None, shot=None, Diag=None, SavePath=None, Calc=None):
+        _LOS_check_inputs(Id=Id, Du=Du, Vess=Ves, Type=Type, Sino_RefPt=Sino_RefPt, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath, Calc=Calc)
+
+
+    def _set_Id(self, Val, Type=None, Exp=None, Diag=None, shot=None, SavePath=None):
+        if self._Done:
+            Out = tfpf._get_FromItself(self.Id, {'Type':Type, 'Exp':Exp, 'shot':shot, 'Diag':Diag, 'SavePath':SavePath})
+            Type, Exp, shot, Diag, SavePath = Out['Type'], Out['Exp'], Out['shot'], Out['Diag'], Out['SavePath']
+        tfpf._check_NotNone({'Id':Val})
+        self._check_inputs(Id=Val)
+        if type(Val) is str:
+            tfpf._check_NotNone({'Exp':Exp, 'shot':shot, 'Diag':Diag})
+            self._check_inputs(Type=Type, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePat)
+            Val = tfpf.ID('LOS', Val, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
+        self._Id = Val
+
+    def _set_Du(self, Du, Calc=True):
+        tfpf._check_NotNone({'Du':Du,'Calc':Calc})
+        self._check_inputs(Du=Du, Calc=Calc)
+        DD, uu = np.asarray(Du[0]).flatten(), np.asarray(Du[1]).flatten()
+        uu = uu/np.linalg.norm(uu,2)
+        self._Du = (DD,uu)
+        if Calc:
+            self._calc_InOutPolProj()
+
+    def _set_Ves(self, Ves=None, LStruct=None):
+        tfpf._check_NotNone({'Ves':Ves, 'Exp':self.Id.Exp})
+        self._check_inputs(Ves=Ves, Exp=self.Id.Exp)
+        self._Ves = Ves
+        if not Ves is None:
+            self.Id.set_LObj([Ves.Id])
+        if not LStruct is None:
+            LStruct = [LStruct] if type(LStruct) is Struct else LStruct
+        self._LStruct = LStruct
+        self._calc_InOutPolProj()
+
+    def _calc_InOutPolProj(self):
+        PIn, POut, kPOut, kPIn = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
+        if not self.Ves is None:
+            LSPoly, LSLim = zip([(ss.Poly,ss.Lim) for ss in LStruct]) if not self.LStruct is None else (None,None)
+            PIn, POut, kPIn, kPOut, Err = _comp.LOS_calc_InOutPolProj(self.Ves.Type, self.Ves.Poly, self.Ves.Vin, self.Ves.Lim, self.D, self.u, self.Id.Name, LSPoly=LSPoly, LSLim=LSLim)
+            if Err:
+                La = _plot._LOS_calc_InOutPolProj_Debug(self, PIn, POut)
+        self._PIn, self._POut, self._kPIn, self._kPOut = PIn, POut, kPIn, kPOut
+        self._set_CrossProj()
+
+    def _set_CrossProj(self):
+        assert not (np.isnan(self.kPIn) or np.isnan(self.kPOut), "LOS %s has no PIn or POut for computing the PolProj !" % self.Id.Name
+        self._PRMin, self._RMin, self._kRMin, self._PolProjAng, self._PplotOut, self._PplotIn = _comp._LOS_set_CrossProj(self.Ves.Type, self.D, self.u, self.kPIn, self.kPOut)
+
+    def _set_Sino(self, RefPt=None):
+        self._check_inputs(Sino_RefPt=RefPt)
+        RefPt = self.Ves.Sino_RefPt if RefPt is None else np.asarray(RefPt).flatten()
+        self._Sino_RefPt = RefPt
+        self._Ves._set_Sino(RefPt)
+        kMax = self.kPOut
+        if np.isnan(kMax):
+            kMax = np.inf
+        if self.Ves.Type=='Tor':
+            self._Sino_P, self._Sino_Pk, self._Sino_Pr, self._Sino_PTheta, self._Sino_p, self._Sino_theta, self._Sino_Phi = _tfg_gg.Calc_Impact_Line(self.D, self.u, RefPt, kOut=kMax)
+        elif self.Ves.Type=='Lin':
+            self._Sino_P, self._Sino_Pk, self._Sino_Pr, self._Sino_PTheta, self._Sino_p, self._Sino_theta, self._Sino_Phi = _tfg_gg.Calc_Impact_Line_Lin(self.D, self.u, RefPt, kOut=kMax)
+
+    def get_mesh(dL, DL=None):
+        Pts, kPts, dL = _comp.LOS_get_mesh(dL, DL=DL)
+        return Pts, kPts, dL
+
+    def calc_signal(ff, dL=0.001, DL=None):
+        Sig = _comp.LOS_calc_signal(ff, dL=dL, DL=DL)
+        return Sig
+
+    def plot(self, Lax=None, Proj='All', Lplot=tfd.LOSLplot, Elt='LDIORP', EltVes='', Leg='',
+            Ldict=tfd.LOSLd, MdictD=tfd.LOSMd, MdictI=tfd.LOSMd, MdictO=tfd.LOSMd, MdictR=tfd.LOSMd, MdictP=tfd.LOSMd, LegDict=tfd.TorLegd,
+            Vesdict=tfd.Vesdict, draw=True, a4=False, Test=True):
+        """ Plot the LOS, in a cross-section projection, a horizontal projection or both, and optionally the :class:`~tofu.geom.Ves` object associated to it.
+
+        Plot the desired projections of the LOS object.
+        The plot can include the special points, the directing vector, and the properties of the plotted objects are specified by dictionaries.
+
+        Parameters
+        ----------
+        Lax :       list / plt.Axes
+            The axes to be used for plotting (provide a list of 2 axes if Proj='All'), if None a new figure with axes is created
+        Proj :      str
+            Flag specifying the kind of projection used for the plot ('Cross' for a cross-section, 'Hor' for a horizontal plane, 'All' both and '3d' for 3d)
+        Elt :       str
+            Flag specifying which elements to plot, each capital letter corresponds to an element
+                * 'L': LOS
+                * 'D': Starting point of the LOS
+                * 'I': Input point (i.e.: where the LOS enters the Vessel)
+                * 'O': Output point (i.e.: where the LOS exits the Vessel)
+                * 'R': Point of minimal major radius R (only for Vessel of Type='Tor')
+                * 'P': Point of used for impact parameter (i.e.: minimal distance to reference point Sino_RefPt)
+        Lplot :     str
+            Flag specifying whether to plot the full LOS ('Tot': from starting point output point) or only the fraction inside the vessel ('In': from input to output point)
+        EltVes :    str
+            Flag specifying the elements of the Vessel to be plotted, fed to :meth:`~tofu.geom.Ves.plot`
+        Leg :       str
+            Legend to be used to identify this LOS, if Leg='' the LOS name is used
+        Ldict :     dict / None
+            Dictionary of properties used for plotting the polygon, fed to plt.Axes.plot() or plt.plot_surface() if Proj='3d', set to ToFu_Defauts.py if None
+        MdictD :    dict
+            Dictionary of properties used for plotting point 'D', fed to plt.Axes.plot()
+        MdictI :    dict
+            Dictionary of properties used for plotting point 'I', fed to plt.Axes.plot()
+        MdictO :    dict
+            Dictionary of properties used for plotting point 'O', fed to plt.Axes.plot()
+        MdictR :    dict
+            Dictionary of properties used for plotting point 'R', fed to plt.Axes.plot()
+        MdictP :    dict
+            Dictionary of properties used for plotting point 'P', fed to plt.Axes.plot()
+        LegDict :   dict or None
+            Dictionary of properties used for plotting the legend, fed to plt.legend(), the legend is not plotted if None
+        Vesdict :   dict
+            Dictionary of kwdargs to fed to :meth:`~tofu.geom.Ves.plot`, and 'EltVes' is used instead of 'Elt'
+        draw :      bool
+            Flag indicating whether the fig.canvas.draw() shall be called automatically
+        a4 :        bool
+            Flag indicating whether the figure should be plotted in a4 dimensions for printing
+        Test :      bool
+            Flag indicating whether the inputs should be tested for conformity
+
+        Returns
+        -------
+        La :        list / plt.Axes
+            Handles of the axes used for plotting (list if several axes where used)
+
+        """
+        return _tfg_p.GLLOS_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt, EltVes=EltVes, Leg=Leg,
+            Ldict=Ldict, MdictD=MdictD, MdictI=MdictI, MdictO=MdictO, MdictR=MdictR, MdictP=MdictP, LegDict=LegDict,
+            Vesdict=Vesdict, draw=draw, a4=a4, Test=Test)
+
+#    def plot_3D_mlab(self,Lplot='Tot',PDIOR='DIOR',axP='None',axT='None', Ldict=Ldict_Def,Mdict=Mdict_Def,LegDict=LegDict_Def):
+#        fig = Plot_3D_mlab_GLOS()
+#        return fig
+
+
+    def plot_Sinogram(self, Proj='Cross', ax=None, Elt=tfd.LOSImpElt, Sketch=True, Ang=tfd.LOSImpAng, AngUnit=tfd.LOSImpAngUnit,
+            Ldict=tfd.LOSMImpd, Vdict=tfd.TorPFilld, LegDict=tfd.TorLegd, draw=True, a4=False, Test=True):
+        """ Plot the sinogram of the vessel polygon, by computing its envelopp in a cross-section, can also plot a 3D version of it
+
+        Plot the LOS in projection space (where sinograms are plotted) as a point.
+        You can plot the conventional projection-space (in 2D in a cross-section), or a 3D extrapolation of it, where the third coordinate is provided by the angle that the LOS makes with the cross-section plane (useful in case of multiple LOS with a partially tangential view).
+
+        Parameters
+        ----------
+        Proj :      str
+            Flag indicating whether to plot a classic sinogram ('Cross') from the vessel cross-section (assuming 2D), or an extended 3D version ('3d') of it with additional angle
+        ax :        None or plt.Axes
+            The axes on which the plot should be done, if None a new figure and axes is created
+        Elt :       str
+            Flag indicating which elements to plot, each capital letter stands for one element
+                * 'L': LOS
+                * 'V': Vessel
+        Ang  :      str
+            Flag indicating which angle to use for the impact parameter, the angle of the line itself (xi) or of its impact parameter (theta)
+        AngUnit :   str
+            Flag for the angle units to be displayed, 'rad' for radians or 'deg' for degrees
+        Sketch :    bool
+            Flag indicating whether a small skecth showing the definitions of angles 'theta' and 'xi' should be included or not
+        Ldict :     dict
+            Dictionary of properties used for plotting the LOS point, fed to plt.plot() if Proj='Cross' and to plt.plot_surface() if Proj='3d'
+        Vdict :     dict
+            Dictionary of properties used for plotting the polygon envelopp, fed to plt.plot() if Proj='Cross' and to plt.plot_surface() if Proj='3d'
+        LegDict :   None or dict
+            Dictionary of properties used for plotting the legend, fed to plt.legend(), the legend is not plotted if None
+        draw :      bool
+            Flag indicating whether to draw the figure
+        a4 :        bool
+            Flag indicating whether the figure should be plotted in a4 dimensions for printing
+        Test :      bool
+            Flag indicating whether the inputs shall be tested for conformity
+
+        Returns
+        -------
+        ax :        plt.Axes
+            The axes used to plot
+
+        """
+        return _tfg_p.GLOS_plot_Sinogram(self, Proj=Proj, ax=ax, Elt=Elt, Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
+            Ldict=Ldict, Vdict=Vdict, LegDict=LegDict, draw=draw, a4=a4, Test=Test)
+
+
+
+    def save(self, SaveName=None, Path=None, Mode='npz', compressed=False):
+        """ Save the object in folder Name, under file name SaveName, using specified mode
+
+        Most tofu objects can be saved automatically as numpy arrays (.npz, recommended) at the default location (recommended) by simply calling self.save()
+
+        Parameters
+        ----------
+        SaveName :  None / str
+            The name to be used for the saved file, if None (recommended) uses self.Id.SaveName
+        Path :      None / str
+            Path specifying where to save the file, if None (recommended) uses self.Id.SavePath
+        Mode :      str
+            Flag specifying whether to save the object as a numpy array file ('.npz', recommended) or an object using cPickle (not recommended, heavier and may cause retro-compatibility issues)
+        compressed :    bool
+            Flag, used when Mode='npz', indicating whether to use np.savez or np.savez_compressed (slower saving and loading but smaller files)
+
+        """
+        tfpf.Save_Generic(self, SaveName=SaveName, Path=Path, Mode=Mode, compressed=compressed)
+
+
+
+def _LOS_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None, Clock=None, arrayorder=None, Exp=None, shot=None, Diag=None, SavePath=None, Calc=None):
+    if not Id is None:
+        assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID object !"
+    if not Du is None:
+        assert hasattr(Du,'__iter__') and len(Du)==2 and all([hasattr(du,'__iter__') and len(du)==3 for du in Du]), "Arg Du must be an iterable containing of two iterables of len()=3 (cartesian coordinates) !"
+    if not Vess is None:
+        assert type(Vess) is Ves, "Arg Ves must be a Ves instance !"
+        if not Exp is None:
+            assert Exp==Vess.Id.Exp, "Arg Exp must be the same as Ves.Id.Exp !"
+    bools = [Clock,Calc]
+    if any([not aa is None for aa in bools]):
+        assert all([aa is None or type(aa) is bool for aa in bools]), " Args [Clock,Calc] must all be bool !"
+    if not arrayorder is None:
+        assert arrayorder in ['C','F'], "Arg arrayorder must be in ['C','F'] !"
+    assert Type is None, "Arg Type must be None for a LOS object !"
+    strs = [Exp,Diag,SavePath]
+    if any([not aa is None for aa in strs]):
+        assert all([aa is None or type(aa) is str for aa in strs]), "Args [Exp,Diag,SavePath] must all be str !"
+    Iter2 = [Sino_RefPt]
+    if any([not aa is None for aa in Iter2]):
+        assert all([aa is None or (hasattr(aa,'__iter__') and np.asarray(aa).ndim==1 and np.asarray(aa).size==2) for aa in Iter2]), "Args [DLong,Sino_RefPt] must be an iterable with len()=2 !"
+    Ints = [shot]
+    if any([not aa is None for aa in Ints]):
+        assert all([aa is None or type(aa) is int for aa in Ints]), "Args [Sino_NP,shot] must be int !"

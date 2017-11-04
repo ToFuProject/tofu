@@ -7,17 +7,39 @@ python:
 git:
   depth: 50
 
-# Run jobs on container-based infrastructure, can be overridden per job
 sudo: required
-dist: trusty
+
+env:
+  matrix:
+  - OS_TYPE=centos OS_VERSION=6.9
+
+services:
+  - docker
 
 before_install:
+  - docker run hello-world
+  - docker --version
   - sudo apt-get update
   - ldd --version
   - gcc --version
   - export START=$(pwd)
   - export REV=$(git describe)
   - export VERSION=$(echo $REV | tr - .)
+  # Doscker-specific
+  - sudo apt-get upgrade lxc-docker
+  - echo 'DOCKER_OPTS="-H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock -s devicemapper"' | sudo tee /etc/default/docker > /dev/null
+  - sudo service docker restart
+  - sleep 5
+  - sudo docker pull centos:centos${OS_VERSION}
+  - sudo docker pull ${OS_TYPE}:${OS_TYPE}${OS_VERSION}
+  - echo "A"
+
+
+
+script:
+  - echo 1
+  - sudo docker run --rm=true -v `pwd`:/tofu:rw centos:centos${OS_VERSION} /bin/bash -c "nosetests --nocapture -v --with-id --with-timer tofu.tests.tests01_geom"
+  - echo 2
 
 install:
   # We do this conditionally because it saves us some downloading if the

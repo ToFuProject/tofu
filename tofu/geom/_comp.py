@@ -218,5 +218,23 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
 
 
 
+"""
+###############################################################################
+###############################################################################
+                        LOS functions
+###############################################################################
+"""
 
-
+def LOS_calc_InOutPolProj(VType, VPoly, Vin, VLim, D, uu, Name, LSPoly=None, LSLim=None):
+    if VType.lower()=='tor':
+        PIn, POut = GG.Calc_InOut_LOS_PIO(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(VPoly), np.ascontiguousarray(Vin))
+    else:
+        PIn, POut = GG.Calc_InOut_LOS_PIO_Lin(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(VPoly), np.ascontiguousarray(Vin), VLim)
+    if np.any(np.isnan(PIn)):
+        warnings.warn(Name+" seems to have no PIn (possible if LOS start point already inside Vessel), PIn is set to self.D !")
+        PIn = D
+    Err = np.any(np.isnan(POut)):
+    PIn, POut = PIn.flatten(), POut.flatten()
+    kPIn = (PIn-D).dot(uu)
+    kPOut = (POut-D).dot(uu)
+    return PIn, POut, kPIn, kPOut, Err
