@@ -150,7 +150,7 @@ class Test01_Ves:
             if self.LObj[ii].Id.Cls=='Ves':
                 Pdict = {'c':'k'}
             else:
-                Pdict = {'ec':'None','fc',(0.8,0.8,0.8,0.5)}
+                Pdict = {'ec':'None','fc':(0.8,0.8,0.8,0.5)}
             Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', Pdict=Pdict, draw=False, a4=False, Test=True)
             Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', Pdict=Pdict, draw=False, a4=False, Test=True)
             Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', Pdict=Pdict, draw=False, a4=False, Test=True)
