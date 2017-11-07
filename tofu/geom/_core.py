@@ -544,8 +544,8 @@ class LOS(object):
     def _calc_InOutPolProj(self):
         PIn, POut, kPOut, kPIn = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
         if not self.Ves is None:
-            LSPoly, LSLim = zip([(ss.Poly,ss.Lim) for ss in LStruct]) if not self.LStruct is None else (None,None)
-            PIn, POut, kPIn, kPOut, Err = _comp.LOS_calc_InOutPolProj(self.Ves.Type, self.Ves.Poly, self.Ves.Vin, self.Ves.Lim, self.D, self.u, self.Id.Name, LSPoly=LSPoly, LSLim=LSLim)
+            LSPoly, LSLim, LVIn = zip([(ss.Poly,ss.Lim,ss.Vin) for ss in LStruct]) if not self.LStruct is None else (None,None,None)
+            PIn, POut, kPIn, kPOut, Err = _comp.LOS_calc_InOutPolProj(self.Ves.Type, self.Ves.Poly, self.Ves.Vin, self.Ves.Lim, self.D, self.u, self.Id.Name, LSPoly=LSPoly, LSLim=LSLim, LVin=LVin)
             if Err:
                 La = _plot._LOS_calc_InOutPolProj_Debug(self, PIn, POut)
         self._PIn, self._POut, self._kPIn, self._kPOut = PIn, POut, kPIn, kPOut

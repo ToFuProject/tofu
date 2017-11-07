@@ -225,9 +225,30 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
 ###############################################################################
 """
 
-def LOS_calc_InOutPolProj(VType, VPoly, Vin, VLim, D, uu, Name, LSPoly=None, LSLim=None):
+def LOS_calc_InOutPolProj(VType, VPoly, Vin, VLim, D, uu, Name, LSPoly=None, LSLim=None, LSVin=None):
+    C1 = all([pp is None for pp in [LSPoly,LSLim,LSVin]])
+    C2 = all([type(pp) is list and len(pp)==len(LSPoly)])
+    assert C1 or C2, "Args LSPoly, LSLim and LSVin must be all None or list of the same len() of respectively Poly, Lim and VIn (i.e.: np.array, None or list, and np.ndarray) !"
+
     if VType.lower()=='tor':
-        PIn, POut = GG.Calc_InOut_LOS_PIO(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(VPoly), np.ascontiguousarray(Vin))
+        PIn, POut, VOut, IOut = GG.Calc_InOut_LOS_PIO_new(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(VPoly), np.ascontiguousarray(Vin))
+        #kPIn =
+        #kPOut =
+        if not LSPoly is None:
+            ind = ~np.isnan(kPOut)
+            pin, pout, vout, iout = GG.Calc_LOS_PInOut_New(Ds, dus,
+                        np.ndarray[DTYPE_t, ndim=2,mode='c'] VPoly, np.ndarray[DTYPE_t, ndim=2,mode='c'] VIn,
+                        RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                        VType=VType, Test=True)
+
+
+            kp = np.sum((pin-Ds[:,ind])*dus[:,ind], axis=0)
+            indout = kp<kPOut
+            kPOut[indout] = kp[indout]
+            POut[:,indout] = pout[i:,ndout]
+
+
+
     else:
         PIn, POut = GG.Calc_InOut_LOS_PIO_Lin(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(VPoly), np.ascontiguousarray(Vin), VLim)
     if np.any(np.isnan(PIn)):
@@ -237,4 +258,5 @@ def LOS_calc_InOutPolProj(VType, VPoly, Vin, VLim, D, uu, Name, LSPoly=None, LSL
     PIn, POut = PIn.flatten(), POut.flatten()
     kPIn = (PIn-D).dot(uu)
     kPOut = (POut-D).dot(uu)
-    return PIn, POut, kPIn, kPOut, Err
+
+    return PIn, POut, kPIn, kPOut, VOut, IOut, Err
