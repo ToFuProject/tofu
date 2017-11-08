@@ -1486,7 +1486,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 
 
 def Calc_LOS_PInOut_VesStruct(Ds, dus,
-                              np.ndarray[DTYPE_t, ndim=2,mode='c'] VPoly, np.ndarray[DTYPE_t, ndim=2,mode='c'] VIn,
+                              np.ndarray[double, ndim=2,mode='c'] VPoly, np.ndarray[double, ndim=2,mode='c'] VIn,
                               LSPoly=None, LSLim=None, LSVIn=None,
                               RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
                               VType='Tor', Test=True):
@@ -1974,3 +1974,88 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
             indIn[ii] = indin
 
     return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut)
+
+
+
+
+######################################################################
+#               Sinogram-specific
+######################################################################
+
+
+cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0, double RZ1, double ScaP, double DParN, double kOut, double D0, double D1, double D2, double u0, double u1, double u2, str Mode='LOS'):
+    cdef double a4 = (uParN*uN*uN)**2, a3 = 2*( (Sca-RZ1*u2)*(uParN*uN)**2 + ScaP*uN**4 )
+    cdef double a2 = (uParN*(Sca-RZ1*u2))**2 + 4.*ScaP*(Sca-RZ1*u2)*uN**2 + (DParN*uN*uN)**2 - (RZ0*uParN*uParN)**2
+    cdef double a1 = 2*( ScaP*(Sca-RZ1*u2)**2 + (Sca-RZ1*u2)*(DParN*uN)**2 - ScaP*(RZ0*uParN)**2 )
+    cdef double a0 = ((Sca-RZ1*u2)*DParN)**2 - (RZ0*ScaP)**2
+    cdef np.ndarray roo = np.roots(np.array([a4,a3,a2,a1,a0]))
+    cdef list KK = list(np.real(roo[np.isreal(roo)]))   # There might be several solutions
+    cdef list Pk, Pk2D, rk
+    cdef double kk, kPMin
+    if Mode=='LOS':                     # Take solution on physical LOS
+        if any([kk>=0 and kk<=kOut for kk in KK]):
+            KK = [kk for kk in KK if kk>=0 and kk<=kOut]
+            Pk = [(D0+kk*u0,D1+kk*u1,D2+kk*u2) for kk in KK]
+            Pk2D = [(math.sqrt(pp[0]**2+pp[1]**2), pp[2]) for pp in Pk]
+            rk = [(pp[0]-RZ0)**2+(pp[1]-RZ1)**2 for pp in Pk2D]
+            kPMin = KK[rk.index(min(rk))]
+        else:
+            kPMin = min([Cabs(kk) for kk in KK])  # Else, take the one closest to D
+    else:
+        Pk = [(D0+kk*u0,D1+kk*u1,D2+kk*u2) for kk in KK]
+        Pk2D = [(math.sqrt(pp[0]**2+pp[1]**2), pp[2]) for pp in Pk]
+        rk = [(pp[0]-RZ0)**2+(pp[1]-RZ1)**2 for pp in Pk2D]
+        kPMin = KK[rk.index(min(rk))]
+    return kPMin
+
+
+
+cdef LOS_sino_Tor(double D0, double D1, double D2, double u0, double u1, double u2, double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
+    cdef double    uN = math.sqrt(u0**2+u1**2+u2**2), uParN = math.sqrt(u0**2+u1**2), DParN = math.sqrt(D0**2+D1**2)
+    cdef double    Sca = u0*D0+u1*D1+u2*D2, ScaP = u0*D0+u1*D1
+    cdef double    kPMin
+    if uParN == 0.:
+        kPMin = (RZ1-D2)/u2
+    else:
+        kPMin = LOS_sino_findRootkPMin_Tor(uParN, uN, Sca, RZ0, RZ1, ScaP, DParN, kOut, D0, D1, D2, u0, u1, u2, Mode=Mode)
+    cdef double    PMin0 = D0+kPMin*u0, PMin1 = D1+kPMin*u1, PMin2 = D2+kPMin*u2
+    cdef double    PMin2norm = math.sqrt(PMin0**2+PMin1**2)
+    cdef double    PMin2D0 = PMin2norm, PMin2D1 = PMin2
+    cdef double    RMin = math.sqrt((PMin2D0-RZ0)**2+(PMin2D1-RZ1)**2)
+    cdef double    eTheta0 = -PMin1/PMin2norm, eTheta1 = PMin0/PMin2norm, eTheta2 = 0.
+    cdef double    vP0 = PMin2D0-RZ0, vP1 = PMin2D1-RZ1
+    cdef double    Theta = math.atan2(vP1,vP0)
+    cdef double    ImpTheta = Theta if Theta>=0 else Theta + np.pi
+    cdef double    er2D0 = math.cos(ImpTheta), er2D1 = math.sin(ImpTheta)
+    cdef double    p = vP0*er2D0 + vP1*er2D1
+    cdef double    uN0 = u0/uN, uN1 = u1/uN, uN2 = u2/uN
+    cdef double    phi = math.asin(-uN0*eTheta0 -uN1*eTheta1 -uN2*eTheta2)
+    return (PMin0,PMin1,PMin2), kPMin, RMin, Theta, p, ImpTheta, phi
+
+
+
+cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double u2, double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
+    cdef double    kPMin = (RZ0-D1)*u1 + (RZ1-D2)*u2
+    kPMin = kOut if Mode=='LOS' and kPMin > kOut else kPMin
+    cdef double    PMin0 = D0+kPMin*u0, PMin1 = D1+kPMin*u1, PMin2 = D2+kPMin*u2
+    cdef double    RMin = math.sqrt((PMin1-RZ0)**2+(PMin2-RZ1)**2)
+    cdef double    vP0 = PMin1-RZ0, vP1 = PMin2-RZ1
+    cdef double    Theta = math.atan2(vP1,vP0)
+    cdef double    ImpTheta = Theta if Theta>=0 else Theta + np.pi
+    cdef double    er2D0 = math.cos(ImpTheta), er2D1 = math.sin(ImpTheta)
+    cdef double    p = vP0*er2D0 + vP1*er2D1
+    cdef double    uN = math.sqrt(u0**2+u1**2+u2**2)
+    cdef double    uN0 = u0/uN, uN1 = u1/uN, uN2 = u2/uN
+    cdef double    eTheta0 = 0., eTheta1 = 0., eTheta2 = 1.
+    cdef double    phi = math.asin(-uN0*eTheta0 -uN1*eTheta1 -uN2*eTheta2)
+    return (PMin0,PMin1,PMin2), kPMin, RMin, Theta, p, ImpTheta, phi
+
+
+def LOS_sino(double[::1] D, double[::1] u, double[::1] RZ, str Mode='LOS', kOut=np.inf, str VType='Tor'):
+    cdef tuple PMin0
+    cdef double kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0
+    if VType.lower()=='tor':
+        PMin0, kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = LOS_sino_Tor(D[0],D[1],D[2],u[0],u[1],u[2],RZ[0],RZ[1], Mode=Mode, kOut=kOut)
+    else:
+        PMin0, kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = LOS_sino_Lin(D[0],D[1],D[2],u[0],u[1],u[2],RZ[0],RZ[1], Mode=Mode, kOut=kOut)
+    return np.array(PMin0), kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0

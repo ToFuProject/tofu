@@ -3,9 +3,13 @@ This module is the computational part of the geometrical module of ToFu
 """
 
 # General common libraries
+import sys
 import numpy as np
 import scipy.interpolate as scpinterp
-
+if sys.version[0]=='3':
+    from inspect import signature as insp
+elif sys.version[0]=='2':
+    from inspect import getargspecs as insp
 
 # Less common libraries
 import Polygon as plg
@@ -275,3 +279,34 @@ def LOS_CrossProj(VType, D, u, kPIn, kPOut, kRMin):
         kplotTot = np.array([0.,kPOut])
         kplotIn = np.array([kPIn,kPOut])
     return CrossProjAng, kplotTot, kplotIn
+
+
+
+##############################################
+#       Meshing & signal
+##############################################
+
+def LOS_get_mesh(D, u, dL, DL=None):
+    N = np.ceil((DL[1]-DL[0])/dL)
+    dLr = (DL[1]-DL[0])/N
+    k = DL[0] + (0.5+np.arange(0,N))*dLr
+    Pts = D[:,np.newaxis] + k[np.newaxis,:]*u[:,np.newaxis]
+    return Pts, k, dLr
+
+
+def LOS_calc_signal(ff, D, u, dL, DL=None):
+    Pts, k, dLr = LOS_get_mesh(D, u, dL, DL=DL)
+    out = insp(ff)
+    if sys.version[0]=='3':
+        N = np.sum([1 for pp in out.parameters.values if (pp.kind==pp.POSITIONAL_OR_KEYWORD and pp.default is pp.empty)])
+    else:
+        N = len(out.args)
+
+    if N==1:
+        Vals = ff(Pts)
+    elif N==2:
+        Vals = ff(Pts, np.tile(-u,(Pts.shape[1],1)).T)
+    else:
+        raise ValueError("The function (ff) assessing the emissivity loccaly must take a single positional argument: Pts, a (3,N) np.ndarray of (X,Y,Z) cartesian coordinates !")
+
+    return np.sum(Vals*dLr)

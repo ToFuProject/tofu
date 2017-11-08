@@ -565,25 +565,22 @@ class LOS(object):
         RefPt = self.Ves._sino['RefPt'] if RefPt is None else np.asarray(RefPt).flatten()
         self._Ves._set_sino(RefPt)
         kMax = np.inf if np.isnan(self.geom['kPOut']) else self.geom['kPOut']
-        if self.Ves.Type=='Tor':
-            P, kP, r, Theta, p, theta, Phi = _GG.Calc_Impact_Line(self.D, self.u, RefPt, kOut=kMax)
-        elif self.Ves.Type=='Lin':
-            P, kP, r, Theta, p, theta, Phi = _GG.Calc_Impact_Line_Lin(self.D, self.u, RefPt, kOut=kMax)
+        P, kP, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u, RefPt, Mode='LOS', kOut=kMax, VType=self.Ves.Type)
         self._sino = {'RefPt':RefPt, 'P':P, 'Pk':Pk, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-
-
     def get_mesh(dL, DL=None):
-        Pts, kPts, dL = _comp.LOS_get_mesh(dL, DL=DL)
+        DL = DL if (hasattr(DL,'__iter__') and len(DL==2) else [self.geom['kPIn'],self.geom['kPOut']]
+        Pts, kPts, dL = _comp.LOS_get_mesh(self.D, self.u, dL, DL=DL)
         return Pts, kPts, dL
 
     def calc_signal(ff, dL=0.001, DL=None):
-        Sig = _comp.LOS_calc_signal(ff, dL=dL, DL=DL)
+        DL = DL if (hasattr(DL,'__iter__') and len(DL==2) else [self.geom['kPIn'],self.geom['kPOut']]
+        Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL)
         return Sig
 
-    def plot(self, Lax=None, Proj='All', Lplot=tfd.LOSLplot, Elt='LDIORP', EltVes='', Leg='',
-            Ldict=tfd.LOSLd, MdictD=tfd.LOSMd, MdictI=tfd.LOSMd, MdictO=tfd.LOSMd, MdictR=tfd.LOSMd, MdictP=tfd.LOSMd, LegDict=tfd.TorLegd,
-            Vesdict=tfd.Vesdict, draw=True, a4=False, Test=True):
+    def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP', EltVes='', Leg='',
+             Ldict=_def.LOSLd, MdictD=_def.LOSMd, MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd, MdictP=_def.LOSMd, LegDict=_def.TorLegd,
+             Vesdict=_def.Vesdict, draw=True, a4=False, Test=True):
         """ Plot the LOS, in a cross-section projection, a horizontal projection or both, and optionally the :class:`~tofu.geom.Ves` object associated to it.
 
         Plot the desired projections of the LOS object.
@@ -638,17 +635,17 @@ class LOS(object):
             Handles of the axes used for plotting (list if several axes where used)
 
         """
-        return _tfg_p.GLLOS_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt, EltVes=EltVes, Leg=Leg,
-            Ldict=Ldict, MdictD=MdictD, MdictI=MdictI, MdictO=MdictO, MdictR=MdictR, MdictP=MdictP, LegDict=LegDict,
-            Vesdict=Vesdict, draw=draw, a4=a4, Test=Test)
+        return _plot.GLLOS_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt, EltVes=EltVes, Leg=Leg,
+                                Ldict=Ldict, MdictD=MdictD, MdictI=MdictI, MdictO=MdictO, MdictR=MdictR, MdictP=MdictP, LegDict=LegDict,
+                                Vesdict=Vesdict, draw=draw, a4=a4, Test=Test)
 
 #    def plot_3D_mlab(self,Lplot='Tot',PDIOR='DIOR',axP='None',axT='None', Ldict=Ldict_Def,Mdict=Mdict_Def,LegDict=LegDict_Def):
 #        fig = Plot_3D_mlab_GLOS()
 #        return fig
 
 
-    def plot_Sinogram(self, Proj='Cross', ax=None, Elt=tfd.LOSImpElt, Sketch=True, Ang=tfd.LOSImpAng, AngUnit=tfd.LOSImpAngUnit,
-            Ldict=tfd.LOSMImpd, Vdict=tfd.TorPFilld, LegDict=tfd.TorLegd, draw=True, a4=False, Test=True):
+    def plot_Sinogram(self, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
+                      Ldict=_def.LOSMImpd, Vdict=_def.TorPFilld, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
         """ Plot the sinogram of the vessel polygon, by computing its envelopp in a cross-section, can also plot a 3D version of it
 
         Plot the LOS in projection space (where sinograms are plotted) as a point.
@@ -689,8 +686,8 @@ class LOS(object):
             The axes used to plot
 
         """
-        return _tfg_p.GLOS_plot_Sinogram(self, Proj=Proj, ax=ax, Elt=Elt, Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
-            Ldict=Ldict, Vdict=Vdict, LegDict=LegDict, draw=draw, a4=a4, Test=Test)
+        return _plot.GLOS_plot_Sinogram(self, Proj=Proj, ax=ax, Elt=Elt, Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
+                                        Ldict=Ldict, Vdict=Vdict, LegDict=LegDict, draw=draw, a4=a4, Test=Test)
 
 
 
