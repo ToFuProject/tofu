@@ -1486,7 +1486,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 
 
 def Calc_LOS_PInOut_VesStruct(Ds, dus,
-                              np.ndarray[double, ndim=2,mode='c'] VPoly, np.ndarray[double, ndim=2,mode='c'] VIn,
+                              np.ndarray[double, ndim=2,mode='c'] VPoly, cnp.ndarray[double, ndim=2,mode='c'] VIn, Lim=None,
                               LSPoly=None, LSLim=None, LSVIn=None,
                               RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
                               VType='Tor', Test=True):
@@ -1536,7 +1536,7 @@ def Calc_LOS_PInOut_VesStruct(Ds, dus,
         PIn, POut, VperpIn, VperpOut, IIn, IOut = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid, RMin=RMin,
                                                                          EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
-        kPin = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
+        kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
         assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_Nan=True)
         assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_Nan=True)
         if LSPoly is not None:
@@ -1988,7 +1988,7 @@ cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
     cdef double a2 = (uParN*(Sca-RZ1*u2))**2 + 4.*ScaP*(Sca-RZ1*u2)*uN**2 + (DParN*uN*uN)**2 - (RZ0*uParN*uParN)**2
     cdef double a1 = 2*( ScaP*(Sca-RZ1*u2)**2 + (Sca-RZ1*u2)*(DParN*uN)**2 - ScaP*(RZ0*uParN)**2 )
     cdef double a0 = ((Sca-RZ1*u2)*DParN)**2 - (RZ0*ScaP)**2
-    cdef np.ndarray roo = np.roots(np.array([a4,a3,a2,a1,a0]))
+    cdef cnp.ndarray roo = np.roots(np.array([a4,a3,a2,a1,a0]))
     cdef list KK = list(np.real(roo[np.isreal(roo)]))   # There might be several solutions
     cdef list Pk, Pk2D, rk
     cdef double kk, kPMin

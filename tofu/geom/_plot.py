@@ -380,7 +380,23 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng, AngUnit=_def.TorPAn
 """
 
 ############################################
-##### Plotting functions
+#       Utility functions
+############################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################
+#       Plotting functions
 ############################################
 
 
