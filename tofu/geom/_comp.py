@@ -225,38 +225,59 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
 ###############################################################################
 """
 
-def LOS_calc_InOutPolProj(VType, VPoly, Vin, VLim, D, uu, Name, LSPoly=None, LSLim=None, LSVin=None):
-    C1 = all([pp is None for pp in [LSPoly,LSLim,LSVin]])
-    C2 = all([type(pp) is list and len(pp)==len(LSPoly)])
-    assert C1 or C2, "Args LSPoly, LSLim and LSVin must be all None or list of the same len() of respectively Poly, Lim and VIn (i.e.: np.array, None or list, and np.ndarray) !"
+def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
+    """  Compute the point on the LOS where the major radius is minimum """
+    if Test:
+        assert Ds.ndim in [1,2] and 3 in Ds.shape and dus.ndim==1
+        assert (Ds.ndim==2 and Ds.shape==(3,dus.size)) or (Ds.shape==(3,) and dus.size==1)
+        assert kPOut is None or kPOut.shape==(dus.size,)
 
-    if VType.lower()=='tor':
-        PIn, POut, VOut, IOut = GG.Calc_InOut_LOS_PIO_new(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(VPoly), np.ascontiguousarray(Vin))
-        #kPIn =
-        #kPOut =
-        if not LSPoly is None:
-            ind = ~np.isnan(kPOut)
-            pin, pout, vout, iout = GG.Calc_LOS_PInOut_New(Ds, dus,
-                        np.ndarray[DTYPE_t, ndim=2,mode='c'] VPoly, np.ndarray[DTYPE_t, ndim=2,mode='c'] VIn,
-                        RMin=None, Margin=0.1, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
-                        VType=VType, Test=True)
+    v = Ds.ndim==1
+    if v:
+        Ds = Ds.reshape((3,1))
+        dus = dus.reshape((3,1))
+
+    kPRMin = np.nan*np.ones((Ds.shape[1],))
+    uparN = np.sqrt(dus[0,:]**2 + dus[1,:]**2)
+
+    # Case with u vertical
+    ind = uparN>Eps
+    kRMin[~ind] = 0.
+
+    # Else
+    kRMin[ind] = -(dus[0,ind]*Ds[0,ind]+dus[1,ind]*Ds[1,ind])/uparN[ind]**2
+
+    # Check
+    kRMin[kRMin<=0.] = 0.
+    if kPOut is not None:
+        kRMin[kRMin>kPOut] = kPOut[kRMin>kPOut]
+
+    # Derive
+    PRMIn = Ds + kRMin[np.newaxis,:]*us
+    RMin = np.sqrt(PRMin[0,:]**2+PRMin[1,:]**2)
+
+    if v:
+        PRMin = PRMin.flatten()
+        kPRMin, RMin = kPRMin[0], RMin[0]
+    return PRMin, kPRMin, RMin
 
 
-            kp = np.sum((pin-Ds[:,ind])*dus[:,ind], axis=0)
-            indout = kp<kPOut
-            kPOut[indout] = kp[indout]
-            POut[:,indout] = pout[i:,ndout]
+def LOS_CrossProjPlot():
+    """ Compute the parameters to plot the poloidal projection of the LOS  """
+    PolAng = 0.
+
+
+    ef Calc_PolProj_LOS_cy(np.ndarray[DTYPE_t, ndim=2,mode='c'] D, np.ndarray[DTYPE_t, ndim=2,mode='c'] Du, kmax=np.inf):
+    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] uN = np.sqrt(Du[0,:]*Du[0,:]+Du[1,:]*Du[1,:]+Du[2,:]*Du[2,:])
+    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] RD = np.sqrt(D[0,:]*D[0,:] + D[1,:]*D[1,:])
+    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] uParN = np.sqrt(Du[0,:]*Du[0,:]+Du[1,:]*Du[1,:])
+    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] sca = D[0,:]*Du[0,:]+D[1,:]*Du[1,:]
+    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] cos = sca/(RD*uParN)
+    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] PolProjAng = np.arccos(uParN/uN)
 
 
 
-    else:
-        PIn, POut = GG.Calc_InOut_LOS_PIO_Lin(D.reshape((3,1)), uu.reshape((3,1)), np.ascontiguousarray(VPoly), np.ascontiguousarray(Vin), VLim)
-    if np.any(np.isnan(PIn)):
-        warnings.warn(Name+" seems to have no PIn (possible if LOS start point already inside Vessel), PIn is set to self.D !")
-        PIn = D
-    Err = np.any(np.isnan(POut)):
-    PIn, POut = PIn.flatten(), POut.flatten()
-    kPIn = (PIn-D).dot(uu)
-    kPOut = (POut-D).dot(uu)
 
-    return PIn, POut, kPIn, kPOut, VOut, IOut, Err
+
+
+    return PolAng

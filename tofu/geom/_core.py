@@ -453,7 +453,6 @@ class LOS(object):
             Exp = Exp if not Exp is None else Ves.Id.Exp
             assert Exp==Ves.Id.Exp, "Arg Exp must be identical to the Ves.Exp !"
         self._set_Id(Id, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-        self._set_Du(Du, Calc=False)
         self._set_Ves(Ves, LStruct=LStruct)
         self._set_Sino(RefPt=Sino_RefPt)
         self._Done = True
@@ -462,29 +461,27 @@ class LOS(object):
     def Id(self):
         return self._Id
     @property
+    def geom(self):
+        return self._geom
+    @property
     def D(self):
-        return self._Du[0]
+        return self.geom['D']
     @property
     def u(self):
-        return self._Du[1]
+        return self.geom['u']
+    @property
+    def PIn(self):
+        return self.geom['PIn']
+    @property
+    def POut(self):
+        return self.geom['POut']
     @property
     def Ves(self):
         return self._Ves
     @property
     def LStruct(self):
-        return self.LStruct
-    @property
-    def PIn(self):
-        return self._PIn
-    @property
-    def POut(self):
-        return self._POut
-    @property
-    def kPIn(self):
-        return self._kPIn
-    @property
-    def kPOut(self):
-        return self._kPOut
+        return self._LStruct
+
     @property
     def PRMin(self):
         return self._PRMin
@@ -521,15 +518,6 @@ class LOS(object):
             Val = tfpf.ID('LOS', Val, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
         self._Id = Val
 
-    def _set_Du(self, Du, Calc=True):
-        tfpf._check_NotNone({'Du':Du,'Calc':Calc})
-        self._check_inputs(Du=Du, Calc=Calc)
-        DD, uu = np.asarray(Du[0]).flatten(), np.asarray(Du[1]).flatten()
-        uu = uu/np.linalg.norm(uu,2)
-        self._Du = (DD,uu)
-        if Calc:
-            self._calc_InOutPolProj()
-
     def _set_Ves(self, Ves=None, LStruct=None):
         tfpf._check_NotNone({'Ves':Ves, 'Exp':self.Id.Exp})
         self._check_inputs(Ves=Ves, Exp=self.Id.Exp)
@@ -539,21 +527,40 @@ class LOS(object):
         if not LStruct is None:
             LStruct = [LStruct] if type(LStruct) is Struct else LStruct
         self._LStruct = LStruct
-        self._calc_InOutPolProj()
+        self._set_geom()
 
-    def _calc_InOutPolProj(self):
-        PIn, POut, kPOut, kPIn = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
+    def _set_geom(self, Du):
+        tfpf._check_NotNone({'Du':Du})
+        self._check_inputs(Du=Du)
+        D, u = np.asarray(Du[0]).flatten(), np.asarray(Du[1]).flatten()
+        u = u/np.linalg.norm(u,2)
+
+        PIn, POut, kPIn, kPOut, VperpIn, VPerpOut, IndIn, IndOut = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan, np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
         if not self.Ves is None:
-            LSPoly, LSLim, LVIn = zip([(ss.Poly,ss.Lim,ss.Vin) for ss in LStruct]) if not self.LStruct is None else (None,None,None)
-            PIn, POut, kPIn, kPOut, Err = _comp.LOS_calc_InOutPolProj(self.Ves.Type, self.Ves.Poly, self.Ves.Vin, self.Ves.Lim, self.D, self.u, self.Id.Name, LSPoly=LSPoly, LSLim=LSLim, LVin=LVin)
-            if Err:
+            (LSPoly, LSLim, LVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for ss in LStruct]) if not self.LStruct is None else (None,None,None)
+            PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IndIn, IndOut = GG.Calc_LOS_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
+                                                                                                    RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
+                                                                                                    VType=self.Ves.Type, Test=True)
+            if np.isnan(kPOut):
                 La = _plot._LOS_calc_InOutPolProj_Debug(self, PIn, POut)
-        self._PIn, self._POut, self._kPIn, self._kPOut = PIn, POut, kPIn, kPOut
+                Warnings.warn()
+            if np.isnan(kPIn):
+                PIn, kPIn = self.D, 0.
+
+        PRMin, kPRMin, RMin = LOS_PRMin(Ds, dus, kPOut=kPOut, Eps=1.e-12, Test=True)
+        self._geom = {'D':D, 'u':u,
+                      'PIn':PIn, 'POut':POut,: 'kPIn':kPIn, 'kPOut':kPOut, 'VperpIn':VperpIn, 'VPerpOut':VPerpOut, 'IndIn':IndIn, 'IndOut':IndOut,
+                      'PRMin':PRMin, 'kPRMin':kPRMin, 'RMin':RMin}
         self._set_CrossProj()
 
     def _set_CrossProj(self):
-        assert not (np.isnan(self.kPIn) or np.isnan(self.kPOut), "LOS %s has no PIn or POut for computing the PolProj !" % self.Id.Name
-        self._PRMin, self._RMin, self._kRMin, self._PolProjAng, self._PplotOut, self._PplotIn = _comp._LOS_set_CrossProj(self.Ves.Type, self.D, self.u, self.kPIn, self.kPOut)
+        if not (np.isnan(self.geom['kPIn']) or np.isnan(self.geom['kPOut']):
+            if self.Ves.Type.lower()==='tor':
+                PlotOut, PplotIn =
+                self._geom[]
+
+
+            self._PRMin, self._RMin, self._kRMin, self._PolProjAng, self._PplotOut, self._PplotIn = _comp._LOS_set_CrossProj(self.Ves.Type, self.D, self.u, self.kPIn, self.kPOut)
 
     def _set_Sino(self, RefPt=None):
         self._check_inputs(Sino_RefPt=RefPt)
