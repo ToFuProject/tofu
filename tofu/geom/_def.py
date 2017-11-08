@@ -211,12 +211,6 @@ Vesdict = dict(Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=TorId, Bsd
 #####################################################################
 
 
-# Number of points for plotting poloidal projection as a function of PolProjAng
-
-def kpVsPolProjAng(x):
-    return np.ceil(25.*(1 - (x/(np.pi/4)-1)**2) + 2)
-
-
 # ------------ Computing settings ---------------
 LOSDiscrtSLim = (0.,1,)
 LOSDiscrtSLMode = 'norm'

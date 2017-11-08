@@ -262,22 +262,16 @@ def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
     return PRMin, kPRMin, RMin
 
 
-def LOS_CrossProjPlot():
+def LOS_CrossProj(VType, D, u, kPIn, kPOut, kRMin):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
-    PolAng = 0.
-
-
-    ef Calc_PolProj_LOS_cy(np.ndarray[DTYPE_t, ndim=2,mode='c'] D, np.ndarray[DTYPE_t, ndim=2,mode='c'] Du, kmax=np.inf):
-    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] uN = np.sqrt(Du[0,:]*Du[0,:]+Du[1,:]*Du[1,:]+Du[2,:]*Du[2,:])
-    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] RD = np.sqrt(D[0,:]*D[0,:] + D[1,:]*D[1,:])
-    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] uParN = np.sqrt(Du[0,:]*Du[0,:]+Du[1,:]*Du[1,:])
-    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] sca = D[0,:]*Du[0,:]+D[1,:]*Du[1,:]
-    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] cos = sca/(RD*uParN)
-    cdef np.ndarray[DTYPE_t, ndim=1,mode='c'] PolProjAng = np.arccos(uParN/uN)
-
-
-
-
-
-
-    return PolAng
+    assert type(VType) is str and VType.lower() in ['tor','lin']
+    if VType=.lower()=='tor':
+        CrossProjAng =
+        nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
+        kplotTot = np.unique(np.insert(np.linspace(0.,kPOut,nkp,endpoint=True),1,kRMin))
+        kplotIn = np.unique(np.insert(np.linspace(kPIn,kPOut,nkp,endpoint=True),1,max(kRMin,kPIn)))
+    else:
+        CrossProjAng = np.nan
+        kplotTot = np.array([0.,kPOut])
+        kplotIn = np.array([kPIn,kPOut])
+    return CrossProjAng, kplotTot, kplotIn

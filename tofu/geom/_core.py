@@ -554,13 +554,11 @@ class LOS(object):
         self._set_CrossProj()
 
     def _set_CrossProj(self):
-        if not (np.isnan(self.geom['kPIn']) or np.isnan(self.geom['kPOut']):
-            if self.Ves.Type.lower()==='tor':
-                PlotOut, PplotIn =
-                self._geom[]
-
-
-            self._PRMin, self._RMin, self._kRMin, self._PolProjAng, self._PplotOut, self._PplotIn = _comp._LOS_set_CrossProj(self.Ves.Type, self.D, self.u, self.kPIn, self.kPOut)
+        if not np.isnan(self.geom['kPOut']):
+            CrossProjAng, kplotTot, kplotIn = _comp.LOS_CrossProj(self.Ves.Type, self.D, self.u, self.geom['kPIn'], self.geom['kPOut'], self.geom['kRMin'])
+            self._geom['CrossProjAng'] = CrossProjAng
+            self._geom['kplotTot'] = kplotTot
+            self._geom['kplotIn'] = kplotIn
 
     def _set_Sino(self, RefPt=None):
         self._check_inputs(Sino_RefPt=RefPt)
