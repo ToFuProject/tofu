@@ -538,12 +538,12 @@ class LOS(object):
         PIn, POut, kPIn, kPOut, VperpIn, VPerpOut, IndIn, IndOut = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan, np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
         if not self.Ves is None:
             (LSPoly, LSLim, LVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for ss in LStruct]) if not self.LStruct is None else (None,None,None)
-            PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IndIn, IndOut = GG.Calc_LOS_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
-                                                                                                    RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
-                                                                                                    VType=self.Ves.Type, Test=True)
+            PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IndIn, IndOut = _GG.Calc_LOS_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
+                                                                                                     RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
+                                                                                                     VType=self.Ves.Type, Test=True)
             if np.isnan(kPOut):
-                La = _plot._LOS_calc_InOutPolProj_Debug(self, PIn, POut)
                 Warnings.warn()
+                La = _plot._LOS_calc_InOutPolProj_Debug(self, PIn, POut)
             if np.isnan(kPIn):
                 PIn, kPIn = self.D, 0.
 
@@ -562,16 +562,16 @@ class LOS(object):
 
     def _set_Sino(self, RefPt=None):
         self._check_inputs(Sino_RefPt=RefPt)
-        RefPt = self.Ves.Sino_RefPt if RefPt is None else np.asarray(RefPt).flatten()
-        self._Sino_RefPt = RefPt
-        self._Ves._set_Sino(RefPt)
-        kMax = self.kPOut
-        if np.isnan(kMax):
-            kMax = np.inf
+        RefPt = self.Ves._sino['RefPt'] if RefPt is None else np.asarray(RefPt).flatten()
+        self._Ves._set_sino(RefPt)
+        kMax = np.inf if np.isnan(self.geom['kPOut']) else self.geom['kPOut']
         if self.Ves.Type=='Tor':
-            self._Sino_P, self._Sino_Pk, self._Sino_Pr, self._Sino_PTheta, self._Sino_p, self._Sino_theta, self._Sino_Phi = _tfg_gg.Calc_Impact_Line(self.D, self.u, RefPt, kOut=kMax)
+            P, kP, r, Theta, p, theta, Phi = _GG.Calc_Impact_Line(self.D, self.u, RefPt, kOut=kMax)
         elif self.Ves.Type=='Lin':
-            self._Sino_P, self._Sino_Pk, self._Sino_Pr, self._Sino_PTheta, self._Sino_p, self._Sino_theta, self._Sino_Phi = _tfg_gg.Calc_Impact_Line_Lin(self.D, self.u, RefPt, kOut=kMax)
+            P, kP, r, Theta, p, theta, Phi = _GG.Calc_Impact_Line_Lin(self.D, self.u, RefPt, kOut=kMax)
+        self._sino = {'RefPt':RefPt, 'P':P, 'Pk':Pk, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
+
+
 
     def get_mesh(dL, DL=None):
         Pts, kPts, dL = _comp.LOS_get_mesh(dL, DL=DL)

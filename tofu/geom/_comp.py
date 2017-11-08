@@ -265,8 +265,8 @@ def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
 def LOS_CrossProj(VType, D, u, kPIn, kPOut, kRMin):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
     assert type(VType) is str and VType.lower() in ['tor','lin']
-    if VType=.lower()=='tor':
-        CrossProjAng =
+    if VType.lower()=='tor':
+        CrossProjAng = np.arccos(np.sqrt(u[0]**2+u[1]**2)/np.linalg.norm(u))
         nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
         kplotTot = np.unique(np.insert(np.linspace(0.,kPOut,nkp,endpoint=True),1,kRMin))
         kplotIn = np.unique(np.insert(np.linspace(kPIn,kPOut,nkp,endpoint=True),1,max(kRMin,kPIn)))
