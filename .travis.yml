@@ -9,9 +9,10 @@ git:
 
 sudo: required
 
-env:
-  matrix:
-  - OS_TYPE=centos OS_VERSION=6.9
+# Useless without docker
+#env:
+#  matrix:
+#  - OS_TYPE=centos OS_VERSION=6.9
 
 #services:
 #  - docker
