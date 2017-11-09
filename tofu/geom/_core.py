@@ -569,7 +569,7 @@ class LOS(object):
         self._sino = {'RefPt':RefPt, 'P':P, 'Pk':Pk, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
     def get_mesh(dL, DL=None):
-        DL = DL if (hasattr(DL,'__iter__') and len(DL==2) else [self.geom['kPIn'],self.geom['kPOut']]
+        DL = DL if ((hasattr(DL,'__iter__') and len(DL==2)) else [self.geom['kPIn'],self.geom['kPOut']]
         Pts, kPts, dL = _comp.LOS_get_mesh(self.D, self.u, dL, DL=DL)
         return Pts, kPts, dL
 
