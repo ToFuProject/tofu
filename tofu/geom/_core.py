@@ -574,7 +574,7 @@ class LOS(object):
         return Pts, kPts, dL
 
     def calc_signal(ff, dL=0.001, DL=None):
-        DL = DL if (hasattr(DL,'__iter__') and len(DL==2) else [self.geom['kPIn'],self.geom['kPOut']]
+        DL = DL if (hasattr(DL,'__iter__') and len(DL)==2) else [self.geom['kPIn'],self.geom['kPOut']]
         Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL)
         return Sig
 
