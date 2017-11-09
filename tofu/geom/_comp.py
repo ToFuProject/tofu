@@ -9,7 +9,7 @@ import scipy.interpolate as scpinterp
 if sys.version[0]=='3':
     from inspect import signature as insp
 elif sys.version[0]=='2':
-    from inspect import getargspecs as insp
+    from inspect import getargspec as insp
 
 # Less common libraries
 import Polygon as plg
