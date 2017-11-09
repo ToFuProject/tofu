@@ -4,7 +4,7 @@ cimport cython
 cimport numpy as cnp
 from cpython cimport bool
 from libc.math cimport sqrt as Csqrt, ceil as Cceil, abs as Cabs, floor as Cfloor, round as Cround
-from libc.math cimport cos as Ccos, sin as Csin, atan2 as Catan2, pi as Cpi
+from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin, atan2 as Catan2, pi as Cpi
 
 # import
 import numpy as np
@@ -1545,7 +1545,7 @@ def Calc_LOS_PInOut_VesStruct(Ds, dus,
                 kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                 indout = kpin<kPOut
                 if np.any(indout):
-                    kPout[indout] = kpin[indout]
+                    kPOut[indout] = kpin[indout]
                     POut[:,indout] = pIn[:,indout]
                     VperpOut[:,indout] = vperpIn[:,indout]
                     IOut[indout] = iIn[indout]
@@ -1561,7 +1561,7 @@ def Calc_LOS_PInOut_VesStruct(Ds, dus,
                 kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                 indout = kpin<kPOut
                 if np.any(indout):
-                    kPout[indout] = kpin[indout]
+                    kPOut[indout] = kpin[indout]
                     POut[:,indout] = pIn[:,indout]
                     VperpOut[:,indout] = vperpIn[:,indout]
                     IOut[indout] = iIn[indout]
@@ -1881,11 +1881,11 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
         kout, kin, Done = 1.e12, 1e12, 0
         # For cylinder
         for jj in range(0,Ns):
-            scauVin = us[1,ii]*vIn[1,jj] + us[2,ii]*vIn[2,jj]
+            scauVin = us[1,ii]*VIn[1,jj] + us[2,ii]*VIn[2,jj]
             # Only if plane not parallel to line
             if Cabs(scauVin)>EpsPlane:
 
-                k = -((Ds[1,ii]-VPoly[1,jj])*vIn[1,jj] + (Ds[2,ii]-VPoly[2,jj])*vIn[2,jj])/scauVin
+                k = -((Ds[1,ii]-VPoly[1,jj])*VIn[1,jj] + (Ds[2,ii]-VPoly[2,jj])*VIn[2,jj])/scauVin
                 # Only if on good side of semi-line
                 if k>=0.:
                     V1, V2 = VPoly[0,jj+1]-VPoly[0,jj], VPoly[1,jj+1]-VPoly[1,jj]
@@ -1895,7 +1895,7 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
                         X = Ds[0,ii] + k*us[0,ii]
                         # Only if within limits
                         if X>=Lim[0] and X<=Lim[1]:
-                            sca = us[0,ii]*vIn[1,jj] + us[1,ii]*vIn[2,jj]
+                            sca = us[0,ii]*VIn[1,jj] + us[1,ii]*VIn[2,jj]
                             # Only if new
                             if sca<=0 and k<kout:
                                 kout = k
@@ -1951,8 +1951,8 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
                 VPerpOut[2,ii] = 0.
             else:
                 VPerpOut[0,ii] = 0.
-                VPerpOut[1,ii] = vIn[0,indout]
-                VPerpOut[2,ii] = vIn[1,indout]
+                VPerpOut[1,ii] = VIn[0,indout]
+                VPerpOut[2,ii] = VIn[1,indout]
             indOut[ii] = indout
         if kin<kout:
             SIn[0,ii] = Ds[0,ii] + kin*us[0,ii]
@@ -1968,8 +1968,8 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
                 VPerpIn[2,ii] = 0.
             else:
                 VPerpIn[0,ii] = 0.
-                VPerpIn[1,ii] = -vIn[0,indin]
-                VPerpIn[2,ii] = -vIn[1,indin]
+                VPerpIn[1,ii] = -VIn[0,indin]
+                VPerpIn[2,ii] = -VIn[1,indin]
             indIn[ii] = indin
 
     return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut)
