@@ -256,7 +256,7 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
                 Pts[ii], dS[ii], NL, dSr[ii][0], Rref, dSr[ii][1], dY0r, dZ0r, VPbis = _GG._Ves_Smesh_Lin_SubFromInd_cython(VLim[Ind[ii]], dS[ii][0], dS[ii][1], VPoly, ind[Ind[ii]], DIn=DIn, VIn=VIn, margin=margin)
                 dSr[ii] += [dY0r, dZ0r]
 
-    if len(Lim)==1:
+    if len(VLim)==1:
         Pts, dS, ind, dSr = Pts[0], dS[0], ind[0], dSr[0]
     return Pts, dS, ind, dSr
 
