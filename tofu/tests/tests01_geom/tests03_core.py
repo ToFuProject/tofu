@@ -119,6 +119,11 @@ class Test01_Ves:
                 PtsRZ = np.concatenate((PtsRZ,np.zeros((1,NR*NZ))),axis=0)
                 In = '(R,Z,Phi)'
             indRZ = self.LObj[ii].isInside(PtsRZ, In=In)
+            assert type(indRZ) is np.ndarray
+            if self.LObj[ii].Lim is None or self.LObj[ii]._Multi is False:
+                assert indRZ.shape==(PtsRZ.shape[1],)
+            else:
+                assert indRZ.shape==(len(self.LObj[ii].Lim),PtsRZ.shape[1])
 
     def test02_InsideConvexPoly(self):
         self.LObj[0].get_InsideConvexPoly(Plot=False, Test=True)
@@ -193,144 +198,10 @@ class Test02_Struct(Test01_Ves):
         cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here+Addpath)]
         cls.LObj.append(tfg.Struct('Test02', PVes, Type='Tor', Lim=[-np.pi/2.,np.pi/4.], shot=0, Exp='Test', SavePath=here+Addpath))
         cls.LObj.append(tfg.Struct('Test02', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here+Addpath))
+        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Tor', Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]), shot=0, Exp='Test', SavePath=here+Addpath))
+        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Lin', Lim=np.array([[0.,1.],[0.5,1.5],[-2.,-1.]]), shot=0, Exp='Test', SavePath=here+Addpath))
 
 
-
-
-
-
-
-"""
-#######################################################
-#
-#  Creating Struct objects and testing methods
-#
-#######################################################
-
-
-PS1 = np.array([[1.9,2.2,2.2,1.9],[-0.1,-0.1,0.1,0.1]])
-PS2 = np.array([[0.5,2.5,2.5,0.5],[-1.7,-1.7,1.7,1.7]])
-
-class Test03_StructTor:
-
-    @classmethod
-    def setup_class(cls, PS1=PS1, PS2=PS2, Ves=VesTor):
-        print ("")
-        print "--------- "+VerbHead+cls.__name__
-        cls.Obj1 = tfg.Struct('Test01', PS1, Type='Tor', Ves=Ves, shot=0, Exp='Test', SavePath=Root+Addpath)
-        cls.Obj2 = tfg.Struct('Test01', PS2, Type='Tor', Ves=Ves, shot=0, Exp='Test', SavePath=Root+Addpath)
-
-    @classmethod
-    def teardown_class(cls):
-        #print ("teardown_class() after any methods in this class")
-        pass
-
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
-        pass
-
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
-        pass
-
-    def test01_isInside(self, NR=20, NZ=20, NThet=10):
-        PtsR = np.linspace(self.Obj1.Ves._P1Min[0],self.Obj1.Ves._P1Max[0],NR)
-        PtsZ = np.linspace(self.Obj1.Ves._P2Min[0],self.Obj1.Ves._P2Max[0],NZ)
-        PtsRZ = np.array([np.tile(PtsR,(NZ,1)).flatten(), np.tile(PtsZ,(NR,1)).T.flatten()])
-        indRZ1 = self.Obj1.isInside(PtsRZ, In='(R,Z)')
-        indRZ2 = self.Obj2.isInside(PtsRZ, In='(R,Z)')
-
-        theta = np.linspace(0.,2.*np.pi,NThet)
-        RR = np.tile(PtsRZ[0,:],(NThet,1)).flatten()
-        ZZ = np.tile(PtsRZ[1,:],(NThet,1)).flatten()
-        TT = np.tile(theta,(NR*NZ,1)).T.flatten()
-        PtsXYZ = np.array([RR*np.cos(TT), RR*np.sin(TT), ZZ])
-        indXYZ1 = self.Obj1.isInside(PtsXYZ, In='(X,Y,Z)')
-        indXYZ2 = self.Obj2.isInside(PtsXYZ, In='(X,Y,Z)')
-
-        assert all([np.all(indXYZ1[ii*NR*NZ:(ii+1)*NR*NZ]==indXYZ1[:NR*NZ]) for ii in range(0,NThet)])
-        assert all([np.all(indXYZ2[ii*NR*NZ:(ii+1)*NR*NZ]==indXYZ2[:NR*NZ]) for ii in range(0,NThet)])
-        assert np.all(indXYZ1[:NR*NZ]==indRZ1)
-        assert np.all(indXYZ2[:NR*NZ]==indRZ2)
-
-    def test02_plot(self):
-        Lax1 = self.Obj1.plot(Proj='All', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj1.plot(Proj='Cross', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj1.plot(Proj='Hor', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax1 = self.Obj2.plot(Proj='All', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj2.plot(Proj='Cross', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj2.plot(Proj='Hor', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test03_saveload(self):
-        self.Obj1.save()
-        Los = tfpf.Open(self.Obj1.Id.SavePath + self.Obj1.Id.SaveName + '.npz')
-        os.remove(self.Obj1.Id.SavePath + self.Obj1.Id.SaveName + '.npz')
-        self.Obj2.save()
-        Los = tfpf.Open(self.Obj2.Id.SavePath + self.Obj2.Id.SaveName + '.npz')
-        os.remove(self.Obj2.Id.SavePath + self.Obj2.Id.SaveName + '.npz')
-
-
-class Test04_StructLin:
-
-    @classmethod
-    def setup_class(cls, PS1=PS1, PS2=PS2, Ves=VesLin):
-        print ("")
-        print "--------- "+VerbHead+cls.__name__
-        cls.Obj1 = tfg.Struct('Test01', PS1, Type='Lin', Ves=Ves, shot=0, Exp='Test', SavePath=Root+Addpath)
-        cls.Obj2 = tfg.Struct('Test01', PS2, Type='Lin', Ves=Ves, shot=0, Exp='Test', SavePath=Root+Addpath)
-
-    @classmethod
-    def teardown_class(cls):
-        #print ("teardown_class() after any methods in this class")
-        pass
-
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
-        pass
-
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
-        pass
-
-    def test01_isInside(self, NR=20, NZ=20, NThet=10):
-        PtsR = np.linspace(self.Obj1.Ves._P1Min[0],self.Obj1.Ves._P1Max[0],NR)
-        PtsZ = np.linspace(self.Obj1.Ves._P2Min[0],self.Obj1.Ves._P2Max[0],NZ)
-        PtsRZ = np.array([np.tile(PtsR,(NZ,1)).flatten(), np.tile(PtsZ,(NR,1)).T.flatten()])
-        indRZ1 = self.Obj1.isInside(PtsRZ, In='(Y,Z)')
-        indRZ2 = self.Obj2.isInside(PtsRZ, In='(Y,Z)')
-
-        theta = np.linspace(0.,2.*np.pi,NThet)
-        RR = np.tile(PtsRZ[0,:],(NThet,1)).flatten()
-        ZZ = np.tile(PtsRZ[1,:],(NThet,1)).flatten()
-        TT = np.tile(theta,(NR*NZ,1)).T.flatten()
-        PtsXYZ = np.array([RR*np.cos(TT), RR*np.sin(TT), ZZ])
-        indXYZ1 = self.Obj1.isInside(PtsXYZ, In='(X,Y,Z)')
-        indXYZ2 = self.Obj2.isInside(PtsXYZ, In='(X,Y,Z)')
-
-        assert all([np.all(indXYZ1[ii*NR*NZ:(ii+1)*NR*NZ]==indXYZ1[:NR*NZ]) for ii in range(0,NThet)])
-        assert all([np.all(indXYZ2[ii*NR*NZ:(ii+1)*NR*NZ]==indXYZ2[:NR*NZ]) for ii in range(0,NThet)])
-        assert np.all(indXYZ1[:NR*NZ]==indRZ1)
-        assert np.all(indXYZ2[:NR*NZ]==indRZ2)
-
-    def test02_plot(self):
-        Lax1 = self.Obj1.plot(Proj='All', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj1.plot(Proj='Cross', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj1.plot(Proj='Hor', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax1 = self.Obj2.plot(Proj='All', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj2.plot(Proj='Cross', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj2.plot(Proj='Hor', Elt='PBsBvV', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test03_saveload(self):
-        self.Obj1.save()
-        Los = tfpf.Open(self.Obj1.Id.SavePath + self.Obj1.Id.SaveName + '.npz')
-        os.remove(self.Obj1.Id.SavePath + self.Obj1.Id.SaveName + '.npz')
-        self.Obj2.save()
-        Los = tfpf.Open(self.Obj2.Id.SavePath + self.Obj2.Id.SaveName + '.npz')
-        os.remove(self.Obj2.Id.SavePath + self.Obj2.Id.SaveName + '.npz')
-
-"""
 
 
 

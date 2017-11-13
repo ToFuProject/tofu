@@ -243,10 +243,6 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
         if VType.lower()=='tor':
             for ii in range(0,len(Ind)):
                 if VLim[Ind[ii]] is None:
-                    print(dS[ii])
-                    print(Pts[ii])
-                    print(dSr[ii])
-                    print(ind[ii])
                     Pts[ii], dS[ii], NL, dSr[ii][0], Rref, dSr[ii][1], nRPhi0, VPbis = _GG._Ves_Smesh_Tor_SubFromInd_cython(dS[ii][0], dS[ii][1], VPoly, ind[Ind[ii]], DIn=DIn, VIn=VIn, PhiMinMax=None, Out=Out, margin=margin)
                 else:
                     Pts[ii], dS[ii], NL, dSr[ii][0], Rref, dR0r, dZ0r, dSr[ii][1], VPbis = _GG._Ves_Smesh_TorStruct_SubFromInd_cython(VLim[Ind[ii]], dS[ii][0], dS[ii][1], VPoly, ind[Ind[ii]], DIn=DIn, VIn=VIn, Out=Out, margin=margin)
