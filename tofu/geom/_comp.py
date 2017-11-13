@@ -225,8 +225,8 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
         ind = [ind]
         Ind = [0]
 
-    Pts, dS, ind, dSr = [0 for ii in Ind], [0 for ii in Ind], [0 for ii in Ind], [[0,0] for ii in Ind]
     if ind is None:
+        Pts, dS, ind, dSr = [0 for ii in Ind], [0 for ii in Ind], [0 for ii in Ind], [[0,0] for ii in Ind]
         if VType.lower()=='tor':
             for ii in range(0,len(Ind)):
                 if VLim[Ind[ii]] is None:
@@ -239,10 +239,11 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
                 Pts[ii], dS[ii], ind[ii], NL, dSr[ii][0], Rref, dSr[ii][1], dY0r, dZ0r, VPbis = _GG._Ves_Smesh_Lin_SubFromD_cython(VLim[Ind[ii]], dS[0], dS[1], VPoly, DX=DS[0], DY=DS[1], DZ=DS[2], DIn=DIn, VIn=VIn, margin=margin)
                 dSr[ii] += [dY0r, dZ0r]
     else:
+        Pts, dS, dSr = [0 for ii in Ind], [0 for ii in Ind], [[0,0] for ii in Ind]
         if VType.lower()=='tor':
             for ii in range(0,len(Ind)):
                 if VLim[Ind[ii]] is None:
-                    Pts[ii], dS[ii], NL, dSr[ii][0], Rref, dSr[ii][1], nRPhi0, VPbis = _GG._Ves_Smesh_Tor_SubFromInd_cython(dS[0], dS[1], VPoly, ind, DIn=DIn, VIn=VIn, PhiMinMax=None, Out=Out, margin=margin)
+                    Pts[ii], dS[ii], NL, dSr[ii][0], Rref, dSr[ii][1], nRPhi0, VPbis = _GG._Ves_Smesh_Tor_SubFromInd_cython(dS[0], dS[1], VPoly, ind[ii], DIn=DIn, VIn=VIn, PhiMinMax=None, Out=Out, margin=margin)
                 else:
                     Pts[ii], dS[ii], NL, dSr[ii][0], Rref, dR0r, dZ0r, dSr[ii][1], VPbis = _GG._Ves_Smesh_TorStruct_SubFromInd_cython(VLim[Ind[ii]], dS[0], dS[1], VPoly, ind[ii], DIn=DIn, VIn=VIn, Out=Out, margin=margin)
                     dSr[ii] += [dR0r, dZ0r]
