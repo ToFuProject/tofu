@@ -211,7 +211,7 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
         assert VLim is not None, "For multiple Struct, Lim cannot be None !"
         assert all([hasattr(ll,'__iter__') and len(ll)==2 for ll in VLim])
         if Ind is None:
-            Ind = np.arange(0,len(Lim))
+            Ind = np.arange(0,len(VLim))
         else:
             Ind = [Ind] if not hasattr(Ind,'__iter__') else Ind
             Ind = np.asarray(Ind).astype(int)
@@ -220,9 +220,9 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
             assert all([type(ind[ii]) is np.ndarray and ind[ii].ndim==1 and ind[ii].dtype in ['int32','int64'] and np.all(ind[ii]>=0) for ii in range(0,len(ind))]), "For multiple Struct, ind must be a list of index arrays !"
 
     else:
-        VLim = [VLim]
+        VLim = None if VLim is None else [VLim]
         assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
-        ind = [ind] if not ind is None else None
+        ind = None if ind is None else [ind]
         Ind = [0]
 
     Pts, dS, ind, dSr = [0 for ii in Ind], [0 for ii in Ind], [0 for ii in Ind], [[0,0] for ii in Ind]
