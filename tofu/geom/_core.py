@@ -20,7 +20,7 @@ except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
 
-__all__ = ['Ves', 'Struct']
+__all__ = ['Ves', 'Struct', 'LOS']
 
 
 
@@ -72,11 +72,10 @@ class Ves(object):
 
     """
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, SavePath=None, SavePath_Include=_def.SavePath_Include, Cls='Ves'):
-
+    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=0, SavePath=None, SavePath_Include=_def.SavePath_Include, Cls='Ves'):
         self._Done = False
         tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
-        self._check_inputs(Clock=Clock, arrayorder=arrayorder)
+        _Ves_check_inputs(Clock=Clock, arrayorder=arrayorder)
         self._arrayorder = arrayorder
         self._Clock = Clock
         self._set_Id(Id, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls=Cls)
@@ -109,17 +108,17 @@ class Ves(object):
 
 
     def _check_inputs(self, Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, SavePath=None):
-        _Ves_check_inputs(Id=Id, Poly=Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, SavePath=SavePath)
+        _Ves_check_inputs(Id=Id, Poly=Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, SavePath=SavePath, Cls=self.Id.Cls)
 
     def _set_Id(self, Val, Type=None, Exp=None, shot=None, SavePath=None, SavePath_Include=None, Cls='Ves'):
         if self._Done:
             Out = tfpf._get_FromItself(self.Id,{'Type':Type, 'Exp':Exp, 'shot':shot, 'SavePath':SavePath})
             Type, Exp, shot, SavePath = Out['Type'], Out['Exp'], Out['shot'], Out['SavePath']
-        tfpf._check_NotNone({'Id':Val})
-        self._check_inputs(Id=Val)
+        tfpf._check_NotNone({'Id':Val,'Cls':Cls})
+        _Ves_check_inputs(Id=Val, Cls=Cls)
         if type(Val) is str:
             tfpf._check_NotNone({'Type':Type, 'Exp':Exp, 'shot':shot})
-            self._check_inputs(Type=Type, Exp=Exp, shot=shot, SavePath=SavePath)
+            _Ves_check_inputs(Type=Type, Exp=Exp, shot=shot, SavePath=SavePath)
             Val = tfpf.ID(Cls, Val, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath, Include=SavePath_Include)
         self._Id = Val
 
@@ -133,10 +132,11 @@ class Ves(object):
         tfpf._check_NotNone({'Poly':Poly, 'Clock':Clock})
         out = _comp._Ves_set_Poly(Poly, self._arrayorder, self.Type, Lim=Lim, Clock=Clock)
         SS = ['Poly','NP','P1Max','P1Min','P2Max','P2Min','BaryP','BaryL','Surf','BaryS','Lim','VolLin','BaryV','Vect','VIn']
-        self._geom = dict([(SS[ii],out[ii]) for ii in range(0,len(out))])
-        self._set_Sino(Sino_RefPt, NP=Sino_NP)
+        self._geom = dict([(SS[ii],out[ii]) for ii in range(0,len(SS))])
+        self._Multi = out[-1]
+        self._set_sino(Sino_RefPt, NP=Sino_NP)
 
-    def _set_Sino(self, RefPt=None, NP=_def.TorNP):
+    def _set_sino(self, RefPt=None, NP=_def.TorNP):
         if self._Done:
             Out = tfpf._get_FromItself(self, {'_sino':{'RefPt':RefPt, 'NP':NP}})
             RefPt, NP = Out['_sino']['RefPt'], Out['_sino']['NP']
@@ -167,7 +167,7 @@ class Ves(object):
             Array of booleans of shape (N,), True if a point is inside the Ves volume
 
         """
-        ind = _GG._Ves_isInside(Pts, self.Poly, VLong=self.geom['Lim'], VType=self.Type, In=In, Test=True)
+        ind = _GG._Ves_isInside(Pts, self.Poly, Lim=self.geom['Lim'], VType=self.Type, In=In, Test=True)
         return ind
 
 
@@ -351,7 +351,7 @@ class Ves(object):
 
 
 
-def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, SavePath=None):
+def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, SavePath=None, Cls=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID object !"
     if not Poly is None:
@@ -366,9 +366,17 @@ def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, 
     strs = [Exp,SavePath]
     if any([not aa is None for aa in strs]):
         assert all([aa is None or type(aa) is str for aa in strs]), "Args [Exp,SavePath] must all be str !"
-    Iter2 = [Lim,Sino_RefPt]
+    Iter2 = [Sino_RefPt]
     if any([not aa is None for aa in Iter2]):
         assert all([aa is None or (hasattr(aa,'__iter__') and np.asarray(aa).ndim==1 and np.asarray(aa).size==2) for aa in Iter2]), "Args [Lim,Sino_RefPt] must be an iterable with len()=2 !"
+    assert Cls is None or (type(Cls) is str and Cls in ['Ves','Struct']), "Arg Cls must be a Ves or Struct !"
+    if Cls is not None:
+        if Cls=='Ves':
+            assert Lim is None or (hasattr(Lim,'__iter__') and len(Lim)==2 and all([not hasattr(ll,'__iter__') for ll in Lim])), "Arg Lim must be an iterable of 2 scalars !"
+        else:
+            assert Lim is None or hasattr(Lim,'__iter__'), "Arg Lim must be an iterable !"
+            if Lim is not None:
+                assert (len(Lim)==2 and all([not hasattr(ll,'__iter__') for ll in Lim])) or all([hasattr(ll,'__iter__') and len(ll)==2 and all([not hasattr(lll,'__iter__') for lll in ll]) for ll in Lim]), "Arg Lim must be an iterable of 2 scalars or of iterables of 2 scalars !"
     Ints = [Sino_NP,shot]
     if any([not aa is None for aa in Ints]):
         assert all([aa is None or type(aa) is int for aa in Ints]), "Args [Sino_NP,shot] must be int !"
@@ -388,12 +396,12 @@ def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, 
 
 class Struct(Ves):
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=None, SavePath=None, SavePath_Include=_def.SavePath_Include):
+    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=0, SavePath=None, SavePath_Include=_def.SavePath_Include):
         Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls="Struct")
 
-    def get_meshS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)'):
+    def get_meshS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)', Ind=None):
         """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn """
-        Pts, dS, ind, dSr = _comp._Ves_get_meshS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9)
+        Pts, dS, ind, dSr = _comp._Ves_get_meshS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9, Multi=self._Multi, Ind=Ind)
         return Pts, dS, ind, dSr
 
     def get_meshV(self, dV, DV=None, dVMode='abs', ind=None, Out='(X,Y,Z)'):
@@ -443,18 +451,14 @@ class LOS(object):
     """
 
 
-    def __init__(self, Id, Du, Ves=None, LStruct=None, Sino_RefPt=None, arrayorder='C', Clock=False, Type=None, Exp=None, Diag=None, shot=None, SavePath=None):
+    def __init__(self, Id, Du, Ves=None, LStruct=None, Sino_RefPt=None, Type=None, Exp=None, Diag=None, shot=0, SavePath=None):
         self._Done = False
-        tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
-        self._check_inputs(Clock=Clock, arrayorder=arrayorder)
-        self._arrayorder = arrayorder
-        self._Clock = Clock
         if not Ves is None:
             Exp = Exp if not Exp is None else Ves.Id.Exp
             assert Exp==Ves.Id.Exp, "Arg Exp must be identical to the Ves.Exp !"
         self._set_Id(Id, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-        self._set_Ves(Ves, LStruct=LStruct)
-        self._set_Sino(RefPt=Sino_RefPt)
+        self._set_Ves(Ves, LStruct=LStruct, Du=Du)
+        self._set_sino(RefPt=Sino_RefPt)
         self._Done = True
 
     @property
@@ -481,25 +485,9 @@ class LOS(object):
     @property
     def LStruct(self):
         return self._LStruct
-
     @property
-    def PRMin(self):
-        return self._PRMin
-    @property
-    def Sino_RefPt(self):
-        return self._Sino_RefPt
-    @property
-    def Sino_P(self):
-        return self._Sino_P
-    @property
-    def Sino_Pk(self):
-        return self._Sino_Pk
-    @property
-    def Sino_p(self):
-        return self._Sino_p
-    @property
-    def Sino_theta(self):
-        return self._Sino_theta
+    def sino(self):
+        return self._sino
 
 
     def _check_inputs(self, Id=None, Du=None, Ves=None, Type=None, Sino_RefPt=None, Clock=None, arrayorder=None, Exp=None, shot=None, Diag=None, SavePath=None, Calc=None):
@@ -514,12 +502,11 @@ class LOS(object):
         self._check_inputs(Id=Val)
         if type(Val) is str:
             tfpf._check_NotNone({'Exp':Exp, 'shot':shot, 'Diag':Diag})
-            self._check_inputs(Type=Type, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePat)
+            self._check_inputs(Type=Type, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath)
             Val = tfpf.ID('LOS', Val, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
         self._Id = Val
 
-    def _set_Ves(self, Ves=None, LStruct=None):
-        tfpf._check_NotNone({'Ves':Ves, 'Exp':self.Id.Exp})
+    def _set_Ves(self, Ves=None, LStruct=None, Du=None):
         self._check_inputs(Ves=Ves, Exp=self.Id.Exp)
         self._Ves = Ves
         if not Ves is None:
@@ -527,7 +514,8 @@ class LOS(object):
         if not LStruct is None:
             LStruct = [LStruct] if type(LStruct) is Struct else LStruct
         self._LStruct = LStruct
-        self._set_geom()
+        Du = Du if Du is not None else (self.D,self.u)
+        self._set_geom(Du)
 
     def _set_geom(self, Du):
         tfpf._check_NotNone({'Du':Du})
@@ -537,20 +525,20 @@ class LOS(object):
 
         PIn, POut, kPIn, kPOut, VperpIn, VPerpOut, IndIn, IndOut = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan, np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
         if not self.Ves is None:
-            (LSPoly, LSLim, LVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for ss in LStruct]) if not self.LStruct is None else (None,None,None)
-            PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IndIn, IndOut = _GG.Calc_LOS_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
+            (LSPoly, LSLim, LSVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for ss in self.LStruct]) if not self.LStruct is None else (None,None,None)
+            PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IndIn, IndOut = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
                                                                                                      RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
                                                                                                      VType=self.Ves.Type, Test=True)
             if np.isnan(kPOut):
                 Warnings.warn()
                 La = _plot._LOS_calc_InOutPolProj_Debug(self, PIn, POut)
             if np.isnan(kPIn):
-                PIn, kPIn = self.D, 0.
+                PIn, kPIn = D, 0.
 
-        PRMin, kPRMin, RMin = LOS_PRMin(Ds, dus, kPOut=kPOut, Eps=1.e-12, Test=True)
+        PRMin, kRMin, RMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12, Test=True)
         self._geom = {'D':D, 'u':u,
                       'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut, 'VperpIn':VperpIn, 'VPerpOut':VPerpOut, 'IndIn':IndIn, 'IndOut':IndOut,
-                      'PRMin':PRMin, 'kPRMin':kPRMin, 'RMin':RMin}
+                      'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
         self._set_CrossProj()
 
     def _set_CrossProj(self):
@@ -560,20 +548,26 @@ class LOS(object):
             self._geom['kplotTot'] = kplotTot
             self._geom['kplotIn'] = kplotIn
 
-    def _set_Sino(self, RefPt=None):
+    def _set_sino(self, RefPt=None):
         self._check_inputs(Sino_RefPt=RefPt)
-        RefPt = self.Ves._sino['RefPt'] if RefPt is None else np.asarray(RefPt).flatten()
-        self._Ves._set_sino(RefPt)
-        kMax = np.inf if np.isnan(self.geom['kPOut']) else self.geom['kPOut']
-        P, kP, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u, RefPt, Mode='LOS', kOut=kMax, VType=self.Ves.Type)
-        self._sino = {'RefPt':RefPt, 'P':P, 'Pk':Pk, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
+        if RefPt is None and self.Ves is None:
+            self._sino = None
+        else:
+            RefPt = self.Ves.sino['RefPt'] if RefPt is None else np.asarray(RefPt).flatten()
+            if self.Ves is not None:
+                self._Ves._set_sino(RefPt)
+            kMax = np.inf if np.isnan(self.geom['kPOut']) else self.geom['kPOut']
+            P, kP, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u, RefPt, Mode='LOS', kOut=kMax, VType=self.Ves.Type)
+            self._sino = {'RefPt':RefPt, 'P':P, 'kP':kP, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-    def get_mesh(dL, DL=None):
+    def get_mesh(self, dL, DL=None):
+        """ Return a linear mesh of the LOS, with desired resolution dL, in the DL interval (distance from D)  """
         DL = DL if (hasattr(DL,'__iter__') and len(DL)==2) else [self.geom['kPIn'],self.geom['kPOut']]
         Pts, kPts, dL = _comp.LOS_get_mesh(self.D, self.u, dL, DL=DL)
         return Pts, kPts, dL
 
-    def calc_signal(ff, dL=0.001, DL=None):
+    def calc_signal(self, ff, dL=0.001, DL=None):
+        """ Return the line-integrated signal along the LOS, by discretizing/summing along the line (uses LOS.get_mesh() for meshing) """
         DL = DL if (hasattr(DL,'__iter__') and len(DL)==2) else [self.geom['kPIn'],self.geom['kPOut']]
         Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL)
         return Sig

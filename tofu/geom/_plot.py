@@ -61,10 +61,14 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_def.To
 
     if any(['P' in Elt, 'I' in Elt]):
         if Proj=='3d':
-            Pdict = _def.TorP3Dd if Pdict is None else Pdict
+            Pdict = dict(_def.TorP3Dd) if Pdict is None else Pdict
             Lax[0] = _Plot_3D_plt_Ves(Ves,ax=Lax[0], Elt=Elt, Lim=Lim, Nstep=Nstep, Pdict=Pdict, LegDict=None, a4=a4, draw=False, Test=Test)
         else:
-            Pdict = _def.TorPd if Pdict is None else Pdict
+            if Pdict is None:
+                if Ves.Id.Cls=='Ves':
+                    Pdict = _def.TorPd
+                else:
+                    Pdict = _def.StructPd_Tor if Ves.Lim is None else _def.StructPd
             if Proj=='Cross':
                 Lax[0] = _Plot_CrossProj_Ves(Ves, ax=Lax[0], Elt=Elt, Pdict=Pdict, Idict=Idict, Bsdict=Bsdict, Bvdict=Bvdict, Vdict=Vdict, LegDict=None, draw=False, a4=a4, Test=Test)
             elif Proj=='Hor':
@@ -158,6 +162,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.Tor
     P1Max = V.geom['P1Max']
     if 'P' in Elt:
         if V.Id.Cls=='Ves':
+            Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False)
             if V.Type=='Tor':
                 lx = np.concatenate((P1Min[0]*np.cos(Theta),np.array([np.nan]),P1Max[0]*np.cos(Theta)))
                 ly = np.concatenate((P1Min[0]*np.sin(Theta),np.array([np.nan]),P1Max[0]*np.sin(Theta)))
@@ -168,16 +173,29 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.Tor
         elif V.Id.Cls=='Struct':
             if V.Type=='Tor':
                 if V.Lim is None:
+                    Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False)
                     lx = np.concatenate((P1Min[0]*np.cos(Theta),P1Max[0]*np.cos(Theta[::-1])))
                     ly = np.concatenate((P1Min[0]*np.sin(Theta),P1Max[0]*np.sin(Theta[::-1])))
-                    pp = mPolygon(np.array([lx,ly]).T, closed=True, **Pdict)
+                    Lp = [mPolygon(np.array([lx,ly]).T, closed=True, label=V.Id.NameLTX, **Pdict)]
                 else:
-                    pp = mWedge((0,0), P1Max[0], V.Lim[0]*180./np.pi, V.Lim[1]*180./np.pi, width=P1Max[0]-P1Min[0], **Pdict)
+                    if V._Multi:
+                        Lp = [mWedge((0,0), P1Max[0], V.Lim[ii][0]*180./np.pi, V.Lim[ii][1]*180./np.pi, width=P1Max[0]-P1Min[0], label=V.Id.NameLTX, **Pdict) for ii in range(0,len(V.Lim))]
+                    else:
+                        Lp = [mWedge((0,0), P1Max[0], V.Lim[0]*180./np.pi, V.Lim[1]*180./np.pi, width=P1Max[0]-P1Min[0], label=V.Id.NameLTX, **Pdict)]
             elif V.Type=='Lin':
-                    lx = np.concatenate((Theta,Theta[::-1],[Theta[0]]))
                     ly = np.concatenate((P1Min[0]*np.ones((Nstep,)),P1Max[0]*np.ones((Nstep,)),[P1Min[0]]))
-                    pp = mPolygon(np.array([lx,ly]).T, closed=True, **Pdict)
-            ax.add_patch(pp)
+                    if V._Multi:
+                        Lp = []
+                        for ii in range(0,len(V.Lim)):
+                            Theta = np.linspace(V.Lim[ii][0],V.Lim[ii][1],num=Nstep, endpoint=True, retstep=False)
+                            lx = np.concatenate((Theta,Theta[::-1],[Theta[0]]))
+                            Lp.append(mPolygon(np.array([lx,ly]).T, closed=True, label=V.Id.NameLTX, **Pdict))
+                    else:
+                        Theta = np.linspace(V.Lim[0],V.Lim[1],num=Nstep, endpoint=True, retstep=False)
+                        lx = np.concatenate((Theta,Theta[::-1],[Theta[0]]))
+                        Lp = [mPolygon(np.array([lx,ly]).T, closed=True, label=V.Id.NameLTX, **Pdict)]
+            for pp in Lp:
+                ax.add_patch(pp)
     if 'I' in Elt:
         if V.Type=='Tor':
             lx, ly = V.sino['RefPt'][0]*np.cos(Theta), V.sino['RefPt'][0]*np.sin(Theta)

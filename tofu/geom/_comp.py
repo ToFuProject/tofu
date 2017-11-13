@@ -53,12 +53,23 @@ def _Ves_set_Poly(Poly, arrayorder='C', Type='Tor', Lim=None, Clock=False):
     TorP = plg.Polygon(Poly.T)
     Surf = TorP.area()
     BaryS = np.array(TorP.center()).flatten()
+    Multi = False
     if Type.lower()=='lin':
-        assert hasattr(Lim,'__iter__') and len(Lim)==2 and Lim[1]>Lim[0], "Arg Lim must be a iterable of len()==2 sorted in increasing order !"
+        if all([hasattr(ll,'__iter__') for ll in Lim]):
+            assert all([len(ll)==2 and all([not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') and ll[0]<ll[1] for ll in Lim])])
+            Multi = True
+        else:
+            assert len(Lim)==2 and not hasattr(Lim[0],'__iter__') and not hasattr(Lim[1],'__iter__') and Lim[0]<Lim[1]
         Lim = np.asarray(Lim)
         Vol, BaryV = None, None
     else:
-        Lim = None if Lim is None else np.asarray(Lim)
+        if Lim is not None:
+            if all([hasattr(ll,'__iter__') for ll in Lim]):
+                assert all([len(ll)==2 and all([not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') for ll in Lim])])
+                Multi = True
+            else:
+                assert len(Lim)==2 and not hasattr(Lim[0],'__iter__') and not hasattr(Lim[1],'__iter__')
+            Lim = np.asarray(Lim)
         Vol, BaryV = _GG.Poly_VolAngTor(Poly)
         assert Vol > 0., "Pb. with volume computation for Ves object of type 'Tor' !"
     # Compute the non-normalized vector of each side of the Poly
@@ -69,7 +80,7 @@ def _Ves_set_Poly(Poly, arrayorder='C', Type='Tor', Lim=None, Clock=False):
     Vin = Vin/np.tile(np.hypot(Vin[0,:],Vin[1,:]),(2,1))
     Vin = np.ascontiguousarray(Vin) if arrayorder=='C' else np.asfortranarray(Vin)
     poly = _GG.Poly_Order(Poly, order=arrayorder, Clock=Clock, close=True, layout='(cc,N)', Test=True)
-    return poly, NP, P1Max, P1Min, P2Max, P2Min, BaryP, BaryL, Surf, BaryS, Lim, Vol, BaryV, Vect, Vin
+    return poly, NP, P1Max, P1Min, P2Max, P2Min, BaryP, BaryL, Surf, BaryS, Lim, Vol, BaryV, Vect, Vin, Multi
 
 
 def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, ZLim='Def', Spline=True, Splprms=_def.TorSplprms, NP=_def.TorInsideNP, Plot=False, Test=True):
@@ -180,7 +191,7 @@ def _Ves_get_meshV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', ind
     return Pts, dV, ind, dVr
 
 
-def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, DIn=0., VIn=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9):
+def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, DIn=0., VIn=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9, Multi=False, Ind=None):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dS) in types or (hasattr(dS,'__iter__') and len(dS)==2 and all([type(ds) in types for ds in dS])), "Arg dS must be a float or a list 3 floats !"
     dS = [float(dS),float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1]),float(dS[2])]
@@ -190,33 +201,62 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
     else:
         assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS]), "Arg DS must be a list of 3 lists of 2 floats !"
     assert type(dSMode) is str and dSMode.lower() in ['abs','rel'], "Arg dSMode must be in ['abs','rel'] !"
-    assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
+    assert type(Multi) is bool, "Arg Multi must be a bool !"
+    VLim = np.array(VLim) if VLim is not None else VLim
+    if Multi:
+        assert all([hasattr(ll,'__iter__') and len(ll)==2 for ll in VLim])
+        if Ind is None:
+            Ind = np.arange(0,len(Lim))
+        else:
+            Ind = [Ind] if not hasattr(Ind,'__iter__') else Ind
+            Ind = np.asarray(Ind).astype(int)
 
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
-    VLim = np.array(VLim) if VLim is not None else VLim
-    #VLim = None if VType.lower()=='tor' else np.array(VLim)    # Probably mistake
-    dSr = [None,None]
-    if ind is None:
-        if VType.lower()=='tor':
-            if VLim is None:
-                Pts, dS, ind, NL, dSr[0], Rref, dSr[1], nRPhi0, VPbis = _GG._Ves_Smesh_Tor_SubFromD_cython(dS[0], dS[1], VPoly, DR=DS[0], DZ=DS[1], DPhi=DS[2], DIn=DIn, VIn=VIn, PhiMinMax=None, Out=Out, margin=margin)
+    if Multi:
+        assert VLim is not None, "For multiple Strutc, Lim cannot be None !"
+        Pts, dS, ind, dSr = [0 for ii in Ind], [0 for ii in Ind], [0 for ii in Ind], [[0,0] for ii in Ind]
+        if ind is None:
+            if VType.lower()=='tor':
+                for ii in range(0,len(Ind)):
+                    Pts[ii], dS[ii], ind[ii], NL, dSr[ii][0], Rref, dR0r, dZ0r, dSr[ii][1], VPbis = _GG._Ves_Smesh_TorStruct_SubFromD_cython(VLim[Ind[ii]], dS[0], dS[1], VPoly, DR=DS[0], DZ=DS[1], DPhi=DS[2], DIn=DIn, VIn=VIn, Out=Out, margin=margin)
+                    dSr[ii] += [dR0r, dZ0r]
             else:
-                Pts, dS, ind, NL, dSr[0], Rref, dR0r, dZ0r, dSr[1], VPbis = _GG._Ves_Smesh_TorStruct_SubFromD_cython(VLim, dS[0], dS[1], VPoly, DR=DS[0], DZ=DS[1], DPhi=DS[2], DIn=DIn, VIn=VIn, Out=Out, margin=margin)
-                dSr += [dR0r, dZ0r]
+                for ii in range(0,len(Ind)):
+                    Pts[ii], dS[ii], ind[ii], NL, dSr[ii][0], Rref, dSr[ii][1], dY0r, dZ0r, VPbis = _GG._Ves_Smesh_Lin_SubFromD_cython(VLim[Ind[ii]], dS[0], dS[1], VPoly, DX=DS[0], DY=DS[1], DZ=DS[2], DIn=DIn, VIn=VIn, margin=margin)
+                    dSr[ii] += [dY0r, dZ0r]
         else:
-            Pts, dS, ind, NL, dSr[0], Rref, dSr[1], dY0r, dZ0r, VPbis = _GG._Ves_Smesh_Lin_SubFromD_cython(VLim, dS[0], dS[1], VPoly, DX=DS[0], DY=DS[1], DZ=DS[2], DIn=DIn, VIn=VIn, margin=margin)
-            dSr += [dY0r, dZ0r]
+            assert hasattr(ind,'__iter__') and len(ind)==len(Ind), "For multiple Struct, ind must be a list of len() = len(Ind) !"
+            assert all([type(ind[ii]) is np.ndarray and ind[ii].ndim==1 and ind[ii].dtype in ['int32','int64'] and np.all(ind[ii]>=0) for ii in range(0,len(ind))]), "For multiple Struct, ind must be a list of index arrays !"
+            if VType.lower()=='tor':
+                Pts[ii], dS[ii], NL, dSr[ii][0], Rref, dR0r, dZ0r, dSr[ii][1], VPbis = _GG._Ves_Smesh_TorStruct_SubFromInd_cython(VLim[Ind[ii]], dS[0], dS[1], VPoly, ind[ii], DIn=DIn, VIn=VIn, Out=Out, margin=margin)
+                dSr[ii] += [dR0r, dZ0r]
+            else:
+                Pts[ii], dS[ii], NL, dSr[ii][0], Rref, dSr[ii][1], dY0r, dZ0r, VPbis = _GG._Ves_Smesh_Lin_SubFromInd_cython(VLim[Ind[ii]], dS[0], dS[1], VPoly, ind[ii], DIn=DIn, VIn=VIn, margin=margin)
+                dSr[ii] += [dY0r, dZ0r]
     else:
-        if VType.lower()=='tor':
-            if VLim is None:
-                Pts, dS, NL, dSr[0], Rref, dSr[1], nRPhi0, VPbis = _GG._Ves_Smesh_Tor_SubFromInd_cython(dS[0], dS[1], VPoly, ind, DIn=DIn, VIn=VIn, PhiMinMax=None, Out=Out, margin=margin)
+        dSr = [None,None]
+        assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
+        if ind is None:
+            if VType.lower()=='tor':
+                if VLim is None:
+                    Pts, dS, ind, NL, dSr[0], Rref, dSr[1], nRPhi0, VPbis = _GG._Ves_Smesh_Tor_SubFromD_cython(dS[0], dS[1], VPoly, DR=DS[0], DZ=DS[1], DPhi=DS[2], DIn=DIn, VIn=VIn, PhiMinMax=None, Out=Out, margin=margin)
+                else:
+                    Pts, dS, ind, NL, dSr[0], Rref, dR0r, dZ0r, dSr[1], VPbis = _GG._Ves_Smesh_TorStruct_SubFromD_cython(VLim, dS[0], dS[1], VPoly, DR=DS[0], DZ=DS[1], DPhi=DS[2], DIn=DIn, VIn=VIn, Out=Out, margin=margin)
+                    dSr += [dR0r, dZ0r]
             else:
-                Pts, dS, NL, dSr[0], Rref, dR0r, dZ0r, dSr[1], VPbis = _GG._Ves_Smesh_TorStruct_SubFromInd_cython(VLim, dS[0], dS[1], VPoly, ind, DIn=DIn, VIn=VIn, Out=Out, margin=margin)
-                dSr += [dR0r, dZ0r]
+                Pts, dS, ind, NL, dSr[0], Rref, dSr[1], dY0r, dZ0r, VPbis = _GG._Ves_Smesh_Lin_SubFromD_cython(VLim, dS[0], dS[1], VPoly, DX=DS[0], DY=DS[1], DZ=DS[2], DIn=DIn, VIn=VIn, margin=margin)
+                dSr += [dY0r, dZ0r]
         else:
-            Pts, dS, NL, dSr[0], Rref, dSr[1], dY0r, dZ0r, VPbis = _GG._Ves_Smesh_Lin_SubFromInd_cython(VLim, dS[0], dS[1], VPoly, ind, DIn=DIn, VIn=VIn, margin=margin)
-            dSr += [dY0r, dZ0r]
+            if VType.lower()=='tor':
+                if VLim is None:
+                    Pts, dS, NL, dSr[0], Rref, dSr[1], nRPhi0, VPbis = _GG._Ves_Smesh_Tor_SubFromInd_cython(dS[0], dS[1], VPoly, ind, DIn=DIn, VIn=VIn, PhiMinMax=None, Out=Out, margin=margin)
+                else:
+                    Pts, dS, NL, dSr[0], Rref, dR0r, dZ0r, dSr[1], VPbis = _GG._Ves_Smesh_TorStruct_SubFromInd_cython(VLim, dS[0], dS[1], VPoly, ind, DIn=DIn, VIn=VIn, Out=Out, margin=margin)
+                    dSr += [dR0r, dZ0r]
+            else:
+                Pts, dS, NL, dSr[0], Rref, dSr[1], dY0r, dZ0r, VPbis = _GG._Ves_Smesh_Lin_SubFromInd_cython(VLim, dS[0], dS[1], VPoly, ind, DIn=DIn, VIn=VIn, margin=margin)
+                dSr += [dY0r, dZ0r]
     return Pts, dS, ind, dSr
 
 
@@ -232,16 +272,17 @@ def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind
 def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
     """  Compute the point on the LOS where the major radius is minimum """
     if Test:
-        assert Ds.ndim in [1,2] and 3 in Ds.shape and dus.ndim==1
-        assert (Ds.ndim==2 and Ds.shape==(3,dus.size)) or (Ds.shape==(3,) and dus.size==1)
-        assert kPOut is None or kPOut.shape==(dus.size,)
+        assert Ds.ndim in [1,2] and 3 in Ds.shape and Ds.shape==dus.shape
+        assert kPOut is None or (Ds.ndim==1 and not hasattr(kPOut,'__iter__')) or (Ds.ndim==2 and kPOut.shape==(Ds.size/3,))
 
     v = Ds.ndim==1
     if v:
         Ds = Ds.reshape((3,1))
         dus = dus.reshape((3,1))
+        if kPOut is not None:
+            kPOut = np.array([kPOut])
 
-    kPRMin = np.nan*np.ones((Ds.shape[1],))
+    kRMin = np.nan*np.ones((Ds.shape[1],))
     uparN = np.sqrt(dus[0,:]**2 + dus[1,:]**2)
 
     # Case with u vertical
@@ -257,13 +298,13 @@ def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
         kRMin[kRMin>kPOut] = kPOut[kRMin>kPOut]
 
     # Derive
-    PRMIn = Ds + kRMin[np.newaxis,:]*us
+    PRMin = Ds + kRMin[np.newaxis,:]*dus
     RMin = np.sqrt(PRMin[0,:]**2+PRMin[1,:]**2)
 
     if v:
         PRMin = PRMin.flatten()
-        kPRMin, RMin = kPRMin[0], RMin[0]
-    return PRMin, kPRMin, RMin
+        kRMin, RMin = kRMin[0], RMin[0]
+    return PRMin, kRMin, RMin
 
 
 def LOS_CrossProj(VType, D, u, kPIn, kPOut, kRMin):

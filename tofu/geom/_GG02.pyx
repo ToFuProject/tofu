@@ -23,7 +23,8 @@ __all__ = ['CoordShift',
            '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
            '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
            '_Ves_Smesh_TorStruct_SubFromD_cython', '_Ves_Smesh_TorStruct_SubFromInd_cython',
-           '_Ves_Smesh_Lin_SubFromD_cython', '_Ves_Smesh_Lin_SubFromInd_cython']
+           '_Ves_Smesh_Lin_SubFromD_cython', '_Ves_Smesh_Lin_SubFromInd_cython',
+           'LOS_Calc_PInOut_VesStruct','LOS_sino']
 
 
 
@@ -270,30 +271,44 @@ def ConvertImpact_Theta2Xi(theta, pP, pN, sort=True):
 #       isInside
 ########################################################
 
-def _Ves_isInside(Pts, VPoly, VLong=None, VType='Tor', In='(X,Y,Z)', Test=True):
+def _Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(X,Y,Z)', Test=True):
     if Test:
         assert type(Pts) is np.ndarray and Pts.ndim in [1,2], "Arg Pts must be a 1D or 2D np.ndarray !"
         assert type(VPoly) is np.ndarray and VPoly.ndim==2 and VPoly.shape[0]==2, "Arg VPoly must be a (2,N) np.ndarray !"
-        assert VLong is None or (hasattr(VLong,'__iter__') and len(VLong)==2), "Arg VLong must be a len()==2 iterable !"
+        assert Lim is None or (hasattr(Lim,'__iter__') and len(Lim)==2), "Arg Lim must be a len()==2 iterable !"
         assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin'] !"
 
     path = Path(VPoly.T)
     if VType.lower()=='tor':
-        if VLong is None:
+        if Lim is None:
             pts = CoordShift(Pts, In=In, Out='(R,Z)')
             ind = Path(VPoly.T).contains_points(pts.T, transform=None, radius=0.0)
         else:
             pts = CoordShift(Pts, In=In, Out='(R,Z,Phi)')
-            ind = Path(VPoly.T).contains_points(pts[:2,:].T, transform=None, radius=0.0)
-            VLong = [Catan2(Csin(VLong[0]),Ccos(VLong[0])), Catan2(Csin(VLong[1]),Ccos(VLong[1]))]
-            if VLong[0]<VLong[1]:
-                ind = ind & (pts[2,:]>=VLong[0]) & (pts[2,:]<=VLong[1])
+            ind0 = Path(VPoly.T).contains_points(pts[:2,:].T, transform=None, radius=0.0)
+            if hasattr(Lim[0],'__iter__'):
+                ind = np.zeros((len(Lim),Pts.shape[1]),dtype=bool)
+                for ii in range(0,len(Lim)):
+                    lim = [Catan2(Csin(Lim[ii][0]),Ccos(Lim[ii][0])), Catan2(Csin(Lim[ii][1]),Ccos(Lim[ii][1]))]
+                    if lim[0]<lim[1]:
+                        ind[ii,:] = ind0 & (pts[2,:]>=Lim[0]) & (pts[2,:]<=Lim[1])
+                    else:
+                        ind[ii,:] = ind0 & ((pts[2,:]>=Lim[0]) | (pts[2,:]<=Lim[1]))
             else:
-                ind = ind & ((pts[2,:]>=VLong[0]) | (pts[2,:]<=VLong[1]))
+                Lim = [Catan2(Csin(Lim[0]),Ccos(Lim[0])), Catan2(Csin(Lim[1]),Ccos(Lim[1]))]
+                if Lim[0]<Lim[1]:
+                    ind = ind0 & (pts[2,:]>=Lim[0]) & (pts[2,:]<=Lim[1])
+                else:
+                    ind = ind0 & ((pts[2,:]>=Lim[0]) | (pts[2,:]<=Lim[1]))
     else:
         pts = CoordShift(Pts, In=In, Out='(X,Y,Z)')
-        ind = Path(VPoly.T).contains_points(pts[1:,:].T, transform=None, radius=0.0)
-        ind = ind & (pts[0,:]>=VLong[0]) & (pts[0,:]<=VLong[1])
+        ind0 = Path(VPoly.T).contains_points(pts[1:,:].T, transform=None, radius=0.0)
+        if hasattr(Lim[0],'__iter__'):
+            ind = np.zeros((len(Lim),Pts.shape[1]),dtype=bool)
+            for ii in range(0,len(Lim)):
+                ind[ii,:] = ind0 & (pts[0,:]>=Lim[ii][0]) & (pts[0,:]<=Lim[ii][1])
+        else:
+            ind = ind0 & (pts[0,:]>=Lim[0]) & (pts[0,:]<=Lim[1])
     return ind
 
 
@@ -1485,7 +1500,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 ########################################################
 
 
-def Calc_LOS_PInOut_VesStruct(Ds, dus,
+def LOS_Calc_PInOut_VesStruct(Ds, dus,
                               cnp.ndarray[double, ndim=2,mode='c'] VPoly, cnp.ndarray[double, ndim=2,mode='c'] VIn, Lim=None,
                               LSPoly=None, LSLim=None, LSVIn=None,
                               RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
@@ -1518,7 +1533,7 @@ def Calc_LOS_PInOut_VesStruct(Ds, dus,
         assert type(Ds) is np.ndarray and type(dus) is np.ndarray and Ds.ndim in [1,2] and Ds.shape==dus.shape and Ds.shape[0]==3, "Args Ds and dus must be of the same shape (3,) or (3,NL) !"
         assert VPoly.shape[0]==2 and VIn.shape[0]==2 and VIn.shape[1]==VPoly.shape[1]-1, "Args VPoly and VIn must be of the same shape (2,NS) !"
         C1 = all([pp is None for pp in [LSPoly,LSLim,LSVIn]])
-        C2 = all([type(pp) is list and len(pp)==len(LSPoly) for pp in [LSPoly,LSLim,LSVIn]])
+        C2 = all([hasattr(pp,'__iter__') and len(pp)==len(LSPoly) for pp in [LSPoly,LSLim,LSVIn]])
         assert C1 or C2, "Args LSPoly,LSLim,LSVIn must be None or lists of same len() !"
         assert RMin is None or type(RMin) in [float,int,np.float64,np.int64], "Arg RMin must be None or a float !"
         assert type(Forbid) is bool, "Arg Forbid must be a bool !"
@@ -1536,8 +1551,8 @@ def Calc_LOS_PInOut_VesStruct(Ds, dus,
                                                                          EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
         kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
-        assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_Nan=True)
-        assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_Nan=True)
+        assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
+        assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_nan=True)
         if LSPoly is not None:
             for ii in range(0,len(LSPoly)):
                 pIn, pOut, vperpIn, vperpOut, iIn, iOut = Calc_LOS_PInOut_Tor(Ds, dus, LSPoly[ii], LSVIn[ii], Lim=LSLim[ii], Forbid=Forbid, RMin=RMin,
@@ -1553,8 +1568,8 @@ def Calc_LOS_PInOut_VesStruct(Ds, dus,
         PIn, POut, VperpIn, VperpOut, IIn, IOut = Calc_LOS_PInOut_Lin(Ds, dus, VPoly, VIn, Lim, EpsPlane=EpsPlane)
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
         kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
-        assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_Nan=True)
-        assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_Nan=True)
+        assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
+        assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_nan=True)
         if LSPoly is not None:
             for ii in range(0,len(LSPoly)):
                 pIn, pOut, vperpIn, vperpOut, iIn, iOut = Calc_LOS_PInOut_Lin(Ds, dus, LSPoly[ii], LSVIn[ii], LSLim[ii], EpsPlane=EpsPlane)
@@ -1567,7 +1582,7 @@ def Calc_LOS_PInOut_VesStruct(Ds, dus,
                     IOut[indout] = iIn[indout]
 
     if not v:
-        PIn, POut, VperpIn, VperpOut = PIn.flatten(), POut.flatten(), VperpIn.flatten(), VperpOut.flatten()
+        PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut = PIn.flatten(), POut.flatten(), kPIn[0], kPOut[0], VperpIn.flatten(), VperpOut.flatten(), IIn[0], IOut[0]
     return PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut
 
 
@@ -1584,9 +1599,9 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
 
     cdef int ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
     cdef double Rmin, upscaDp, upar2, Dpar2, Crit2, kout, kin
-    cdef int indin, indout, Done
-    cdef double L, S1X, S1Y, S2X, S2Y, sca, sca0, sca1, sca2
-    cdef double q, C, delta, sqd, k, sol0, sol1, L0, L1
+    cdef int indin=0, indout=0, Done=0
+    cdef double L, S1X=0., S1Y=0., S2X=0., S2Y=0., sca, sca0, sca1, sca2
+    cdef double q, C, delta, sqd, k, sol0, sol1, phi=0., L0=0., L1=0.
     cdef double v0, v1, A, B, ephiIn0, ephiIn1
     cdef int Forbidbis, Forbid0
     cdef cnp.ndarray[double,ndim=2] SIn_=np.nan*np.ones((3,Nl)), SOut_=np.nan*np.ones((3,Nl))
@@ -1866,9 +1881,9 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
 @cython.boundscheck(False)
 cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPoly, double[:,::1] VIn, list Lim, double EpsPlane=1.e-9):
 
-    cdef int ii, jj, Nl=Ds.shape[1], Ns=VIn.shape[1]
+    cdef int ii=0, jj=0, Nl=Ds.shape[1], Ns=VIn.shape[1]
     cdef double kin, kout, scauVin, q, X, sca
-    cdef int indin, indout, Done
+    cdef int indin=0, indout=0, Done=0
     cdef cnp.ndarray[double,ndim=2] SIn_=np.nan*np.ones((3,Nl)), SOut_=np.nan*np.ones((3,Nl))
     cdef cnp.ndarray[double,ndim=2] VPerp_In=np.nan*np.ones((3,Nl)), VPerp_Out=np.nan*np.ones((3,Nl))
     cdef cnp.ndarray[double,ndim=1] indIn_=np.nan*np.ones((Nl,)), indOut_=np.nan*np.ones((Nl,))

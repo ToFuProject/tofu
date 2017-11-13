@@ -197,7 +197,8 @@ def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', a4=False, Sketch=True)
 
 # --- Plotting dictionaries and parameters ------
 
-StructPd = {'edgecolor':'k','linewidth':1}
+StructPd = {'fc':(0.8,0.8,0.8,0.5),'ec':'k','linewidth':1}
+StructPd_Tor = {'fc':(0.8,0.8,0.8,0.5),'ec':'none'}
 StructP3Dd = {'color':(0.8,0.8,0.8,1.),'rstride':1,'cstride':1,'linewidth':0, 'antialiased':False}
 
 Vesdict = dict(Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=TorId, Bsdict=TorBsd, Bvdict=TorBvd, Vdict=TorVind,

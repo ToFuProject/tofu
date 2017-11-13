@@ -3,7 +3,7 @@
 
 #import sys
 try:
-    from tofu.geom._core import Ves, Struct
+    from tofu.geom._core import Ves, Struct, LOS
 except Exception:
     from _core import Ves, Struct
 

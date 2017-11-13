@@ -39,8 +39,8 @@ else:
 
 # Getting relevant compilable files
 if sys.version[0]=='3':
-    if not '_GG03.pyx' in os.listdir(os.path.join(here,'tofu/geom/')):
-        shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'), os.path.join(here,'tofu/geom/_GG03.pyx'))
+    #if not '_GG03.pyx' in os.listdir(os.path.join(here,'tofu/geom/')):
+    shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'), os.path.join(here,'tofu/geom/_GG03.pyx'))
 
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
