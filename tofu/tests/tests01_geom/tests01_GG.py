@@ -558,7 +558,7 @@ def test09_Ves_Smesh_Lin(VPoly=VPoly):
 ######################################################
 
 
-def test10_LOS_PInOut(VPoly=VPoly):
+def test10_LOS_PInOut():
 
     VP = np.array([[6.,8.,8.,6.,6.],[6.,6.,8.,8.,6.]])
     VIn = np.array([[0.,-1.,0.,1.],[1.,0.,-1.,0.]])
@@ -569,28 +569,29 @@ def test10_LOS_PInOut(VPoly=VPoly):
     SL1 = [np.array(ss)*2.*np.pi for ss in [[0.,1./3.],[2./3.,1.]]]
 
     # Linear, w/o and with Struct
-    y, z = [5.,5.,6.5,7.5,9.,9.,7.5,7.5], [7.5,6.5,5.,5.,6.5,7.5,9.,9.]
+    y, z = [5.,5.,6.5,7.5,9.,9.,7.5,6.5], [7.5,6.5,5.,5.,6.5,7.5,9.,9.]
     N = len(y)
-    Ds = np.array([np.pi*np.concatenate((np.ones((N,))/3.,np.ones((N,))/2.,5.*np.ones((N,))/6.)),np.tile(y,3),np.tile(z,3)])
+    Ds = np.array([2.*np.pi*np.concatenate((np.ones((N,))/6.,np.ones((N,))/2.,5.*np.ones((N,))/6.)),np.tile(y,3),np.tile(z,3)])
     Ds = np.concatenate((Ds,np.array([2.*np.pi*np.array([-1.,-1.,-1.,-1.,2.,2.,2.,2.]),[6.5,7.5,7.5,6.5,6.5,7.5,7.5,6.5],[6.5,6.5,7.5,7.5,6.5,6.5,7.5,7.5]])),axis=1)
     ex, ey, ez = np.array([[1.],[0.],[0.]]), np.array([[0.],[1.],[0.]]), np.array([[0.],[0.],[1.]])
-    us = np.concatenate((ex,ex,ey,ey,-ex-ex,-ey-ey, ex,ex,ey,ey,-ex-ex,-ey-ey, ex,ex,ey,ey,-ex-ex,-ey-ey, ez,ez,ez,ez,-ez,-ez,-ez,-ez),axis=1)
+    us = np.concatenate((ey,ey,ez,ez,-ey,-ey,-ez,-ez, ey,ey,ez,ez,-ey,-ey,-ez,-ez, ey,ey,ez,ez,-ey,-ey,-ez,-ez, ex,ex,ex,ex,-ex,-ex,-ex,-ex),axis=1)
     y, z = [6.,6.,6.5,7.5,8.,8.,7.5,6.5], [7.5,6.5,6.,6.,6.5,7.5,8.,8.]
-    Sols_In = np.array([np.pi*np.concatenate((np.ones((N,))/3.,np.ones((N,))/2.,5.*np.ones((N,))/6.)),np.tile(y,3),np.tile(z,3)])
-    Sols_In = np.concatenate((Sols_In,np.array([2.*np.pi*np.array([0.,0.,0.,0.,2.,2.,2.,2.]),[6.5,7.5,7.5,6.5,6.5,7.5,7.5,6.5],[6.5,6.5,7.5,7.5,6.5,6.5,7.5,7.5]])),axis=1)
+    Sols_In = np.array([2.*np.pi*np.concatenate((np.ones((N,))/6.,np.ones((N,))/2.,5.*np.ones((N,))/6.)),np.tile(y,3),np.tile(z,3)])
+    Sols_In = np.concatenate((Sols_In,np.array([2.*np.pi*np.array([0.,0.,0.,0.,1.,1.,1.,1.]),[6.5,7.5,7.5,6.5,6.5,7.5,7.5,6.5],[6.5,6.5,7.5,7.5,6.5,6.5,7.5,7.5]])),axis=1)
     y, z = [8.,8.,6.5,7.5,6.,6.,7.5,6.5], [7.5,6.5,8.,8.,6.5,7.5,6.,6.]
-    Sols_Out = np.array([np.pi*np.concatenate((np.ones((N,))/3.,np.ones((N,))/2.,5.*np.ones((N,))/6.)),np.tile(y,3),np.tile(z,3)])
-    Sols_Out = np.concatenate((Sols_Out,np.array([2.*np.pi*np.array([2.,2.,2.,2.,0.,0.,0.,0.]),[6.5,7.5,7.5,6.5,6.5,7.5,7.5,6.5],[6.5,6.5,7.5,7.5,6.5,6.5,7.5,7.5]])),axis=1)
-    PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, dus, VP, VIn, Lim=VL, VType='Lin', Test=True)
-    assert np.allclose(PIn,Sols_In)
-    assert np.allclose(POut,Sols_Out)
-    assert np.allclose(kPIn,np.ones((kPIn.size,)))
-    assert np.allclose(kPOut,np.concatenate((3.*np.ones((kPout.size-8,)),2.*np.pi*2.*np.ones((8,)))))
+    Sols_Out = np.array([2.*np.pi*np.concatenate((np.ones((N,))/6.,np.ones((N,))/2.,5.*np.ones((N,))/6.)),np.tile(y,3),np.tile(z,3)])
+    Sols_Out = np.concatenate((Sols_Out,np.array([2.*np.pi*np.array([1.,1.,1.,1.,0.,0.,0.,0.]),[6.5,7.5,7.5,6.5,6.5,7.5,7.5,6.5],[6.5,6.5,7.5,7.5,6.5,6.5,7.5,7.5]])),axis=1)
+
+    PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL, VType='Lin', Test=True)
+    assert np.allclose(PIn,Sols_In, equal_nan=True)
+    assert np.allclose(POut,Sols_Out, equal_nan=True)
+    assert np.allclose(kPIn,np.concatenate((np.ones((3*N,)),2.*np.pi*np.ones((8,)))), equal_nan=True)
+    assert np.allclose(kPOut,np.concatenate((3.*np.ones((kPOut.size-8,)),2.*np.pi*(1.+np.ones((8,))))), equal_nan=True)
 
 
     #Sols_In =
     #Sols_Out =
-    #PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, dus, VP, VIn, Lim=VL, LSPoly=[SP0,SP1], LSLim=[SL0,SL1], LSVIn=[VIn,VIn], VType='Lin', Test=True)
+    #PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL, LSPoly=[SP0,SP1], LSLim=[SL0,SL1], LSVIn=[VIn,VIn], VType='Lin', Test=True)
     #assert
 
 
@@ -600,7 +601,7 @@ def test10_LOS_PInOut(VPoly=VPoly):
 
 
 
-    #PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, dus,
+    #PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us,
     #                          cnp.ndarray[double, ndim=2,mode='c'] VPoly, cnp.ndarray[double, ndim=2,mode='c'] VIn, Lim=None,
     #                          LSPoly=None, LSLim=None, LSVIn=None,
     #                          RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,

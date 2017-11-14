@@ -291,9 +291,9 @@ def _Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(X,Y,Z)', Test=True):
                 for ii in range(0,len(Lim)):
                     lim = [Catan2(Csin(Lim[ii][0]),Ccos(Lim[ii][0])), Catan2(Csin(Lim[ii][1]),Ccos(Lim[ii][1]))]
                     if lim[0]<lim[1]:
-                        ind[ii,:] = ind0 & (pts[2,:]>=Lim[0]) & (pts[2,:]<=Lim[1])
+                        ind[ii,:] = ind0 & (pts[2,:]>=lim[0]) & (pts[2,:]<=lim[1])
                     else:
-                        ind[ii,:] = ind0 & ((pts[2,:]>=Lim[0]) | (pts[2,:]<=Lim[1]))
+                        ind[ii,:] = ind0 & ((pts[2,:]>=lim[0]) | (pts[2,:]<=lim[1]))
             else:
                 Lim = [Catan2(Csin(Lim[0]),Ccos(Lim[0])), Catan2(Csin(Lim[1]),Ccos(Lim[1]))]
                 if Lim[0]<Lim[1]:
@@ -1720,7 +1720,7 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
                 if A**2<EpsA**2 and B**2>EpsB**2:
                     q = -C/(2.*B)
                     if q>=0. and q<1.:
-                        k = (q*v1 - (Ds[2,ii]-VPoly[2,jj]))/us[2,ii]
+                        k = (q*v1 - (Ds[2,ii]-VPoly[1,jj]))/us[2,ii]
                         if k>=0:
                             sol0, sol1 = Ds[0,ii] + k*us[0,ii], Ds[1,ii] + k*us[1,ii]
                             if Forbidbis:
@@ -1879,10 +1879,10 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPoly, double[:,::1] VIn, list Lim, double EpsPlane=1.e-9):
+cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPoly, double[:,::1] VIn, Lim, double EpsPlane=1.e-9):
 
     cdef int ii=0, jj=0, Nl=Ds.shape[1], Ns=VIn.shape[1]
-    cdef double kin, kout, scauVin, q, X, sca
+    cdef double kin, kout, scauVin, q, X, sca, L0=<double>Lim[0], L1=<double>Lim[1]
     cdef int indin=0, indout=0, Done=0
     cdef cnp.ndarray[double,ndim=2] SIn_=np.nan*np.ones((3,Nl)), SOut_=np.nan*np.ones((3,Nl))
     cdef cnp.ndarray[double,ndim=2] VPerp_In=np.nan*np.ones((3,Nl)), VPerp_Out=np.nan*np.ones((3,Nl))
@@ -1896,21 +1896,20 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
         kout, kin, Done = 1.e12, 1e12, 0
         # For cylinder
         for jj in range(0,Ns):
-            scauVin = us[1,ii]*VIn[1,jj] + us[2,ii]*VIn[2,jj]
+            scauVin = us[1,ii]*VIn[0,jj] + us[2,ii]*VIn[1,jj]
             # Only if plane not parallel to line
             if Cabs(scauVin)>EpsPlane:
-
-                k = -((Ds[1,ii]-VPoly[1,jj])*VIn[1,jj] + (Ds[2,ii]-VPoly[2,jj])*VIn[2,jj])/scauVin
+                k = -((Ds[1,ii]-VPoly[0,jj])*VIn[0,jj] + (Ds[2,ii]-VPoly[1,jj])*VIn[1,jj])/scauVin
                 # Only if on good side of semi-line
                 if k>=0.:
                     V1, V2 = VPoly[0,jj+1]-VPoly[0,jj], VPoly[1,jj+1]-VPoly[1,jj]
-                    q = ((Ds[1,ii] + k*us[1,ii]-VPoly[0,jj])*V1 + (Ds[2,ii] + k*us[2,ii]-VPoly[1,jj])*V2)/Csqrt(V1**2+V2**2)
+                    q = ((Ds[1,ii] + k*us[1,ii]-VPoly[0,jj])*V1 + (Ds[2,ii] + k*us[2,ii]-VPoly[1,jj])*V2)/(V1**2+V2**2)
                     # Only of on the fraction of plane
                     if q>=0. and q<1.:
                         X = Ds[0,ii] + k*us[0,ii]
                         # Only if within limits
-                        if X>=Lim[0] and X<=Lim[1]:
-                            sca = us[0,ii]*VIn[1,jj] + us[1,ii]*VIn[2,jj]
+                        if X>=L0 and X<=L1:
+                            sca = us[1,ii]*VIn[0,jj] + us[2,ii]*VIn[1,jj]
                             # Only if new
                             if sca<=0 and k<kout:
                                 kout = k
@@ -1924,7 +1923,7 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
         # Only if plane not parallel to line
         if Cabs(us[0,ii])>EpsPlane:
             # First face
-            k = -(Ds[0,ii]-Lim[0])/us[0,ii]
+            k = -(Ds[0,ii]-L0)/us[0,ii]
             # Only if on good side of semi-line
             if k>=0.:
                 # Only if inside VPoly
@@ -1937,7 +1936,7 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
                         kin = k
                         indin = jj
             # Second face
-            k = -(Ds[0,ii]-Lim[1])/us[0,ii]
+            k = -(Ds[0,ii]-L1)/us[0,ii]
             # Only if on good side of semi-line
             if k>=0.:
                 # Only if inside VPoly

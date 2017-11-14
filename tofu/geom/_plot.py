@@ -155,25 +155,25 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.Tor
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
         assert type(Idict) is dict, 'Arg Idict should be a dictionary !'
         assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
-    Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False) if V.Type=='Tor' else np.linspace(V.Lim[0],V.Lim[1],num=Nstep, endpoint=True, retstep=False)
+
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Hor', a4=a4, Type=V.Type)
     P1Min = V.geom['P1Min']
     P1Max = V.geom['P1Max']
     if 'P' in Elt:
         if V.Id.Cls=='Ves':
-            Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False)
             if V.Type=='Tor':
+                Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False)
                 lx = np.concatenate((P1Min[0]*np.cos(Theta),np.array([np.nan]),P1Max[0]*np.cos(Theta)))
                 ly = np.concatenate((P1Min[0]*np.sin(Theta),np.array([np.nan]),P1Max[0]*np.sin(Theta)))
             elif V.Type=='Lin':
-                lx = np.concatenate((Theta,Theta[::-1],[Theta[0]]))
-                ly = np.concatenate((P1Min[0]*np.ones((Nstep,)),P1Max[0]*np.ones((Nstep,)),[P1Min[0]]))
+                lx = np.array([V.Lim[0],V.Lim[1],V.Lim[1],V.Lim[0],V.Lim[0]])
+                ly = np.array([P1Min[0],P1Min[0],P1Max[1],P1Max[1],P1Min[0]])
             ax.plot(lx,ly,label=V.Id.NameLTX,**Pdict)
         elif V.Id.Cls=='Struct':
             if V.Type=='Tor':
+                Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False)
                 if V.Lim is None:
-                    Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False)
                     lx = np.concatenate((P1Min[0]*np.cos(Theta),P1Max[0]*np.cos(Theta[::-1])))
                     ly = np.concatenate((P1Min[0]*np.sin(Theta),P1Max[0]*np.sin(Theta[::-1])))
                     Lp = [mPolygon(np.array([lx,ly]).T, closed=True, label=V.Id.NameLTX, **Pdict)]
@@ -183,16 +183,14 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.Tor
                     else:
                         Lp = [mWedge((0,0), P1Max[0], V.Lim[0]*180./np.pi, V.Lim[1]*180./np.pi, width=P1Max[0]-P1Min[0], label=V.Id.NameLTX, **Pdict)]
             elif V.Type=='Lin':
-                    ly = np.concatenate((P1Min[0]*np.ones((Nstep,)),P1Max[0]*np.ones((Nstep,)),[P1Min[0]]))
+                    ly = np.array([P1Min[0],P1Min[0],P1Max[0],P1Max[0],P1Min[0]])
                     if V._Multi:
                         Lp = []
                         for ii in range(0,len(V.Lim)):
-                            Theta = np.linspace(V.Lim[ii][0],V.Lim[ii][1],num=Nstep, endpoint=True, retstep=False)
-                            lx = np.concatenate((Theta,Theta[::-1],[Theta[0]]))
+                            lx = np.array([V.Lim[ii][0],V.Lim[ii][1],V.Lim[ii][1],V.Lim[ii][0],V.Lim[ii][0]])
                             Lp.append(mPolygon(np.array([lx,ly]).T, closed=True, label=V.Id.NameLTX, **Pdict))
                     else:
-                        Theta = np.linspace(V.Lim[0],V.Lim[1],num=Nstep, endpoint=True, retstep=False)
-                        lx = np.concatenate((Theta,Theta[::-1],[Theta[0]]))
+                        lx = np.array([V.Lim[0],V.Lim[1],V.Lim[1],V.Lim[0],V.Lim[0]])
                         Lp = [mPolygon(np.array([lx,ly]).T, closed=True, label=V.Id.NameLTX, **Pdict)]
             for pp in Lp:
                 ax.add_patch(pp)
@@ -200,13 +198,13 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.Tor
         if V.Type=='Tor':
             lx, ly = V.sino['RefPt'][0]*np.cos(Theta), V.sino['RefPt'][0]*np.sin(Theta)
         elif V.Type=='Lin':
-            lx, ly = Theta, V.sino['RefPt'][0]*np.ones((Nstep,))
+            lx, ly = np.array([np.min(V.Lim),np.max(V.Lim)]), V.sino['RefPt'][0]*np.ones((2,))
         ax.plot(lx,ly,label=V.Id.NameLTX+" Imp",**Idict)
     if 'Bs' in Elt:
         if V.Type=='Tor':
             lx, ly = V.geom['BaryS'][0]*np.cos(Theta), V.geom['BaryS'][0]*np.sin(Theta)
         elif V.Type=='Lin':
-            lx, ly = Theta, V.geom['BaryS'][0]*np.ones((Nstep,))
+            lx, ly = np.array([np.min(V.Lim),np.max(V.Lim)]), V.geom['BaryS'][0]*np.ones((2,))
         ax.plot(lx,ly,label=V.Id.NameLTX+" Bs", **Bsdict)
     if 'Bv' in Elt and V.Type=='Tor':
         lx, ly = V.geom['BaryV'][0]*np.cos(Theta), V.geom['BaryV'][0]*np.sin(Theta)
