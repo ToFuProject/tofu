@@ -140,8 +140,12 @@ class Test01_Ves:
 
     def test05_get_meshS(self):
         for ii in range(0,len(self.LObj)):
-            Pts, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=[[2.,3.],[0.,5.],[0.,np.pi/2.]], dSMode='abs', ind=None, DIn=0.001, Out='(X,Y,Z)')
-            Pts, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=None, dSMode='abs', ind=ind, DIn=0.001, Out='(X,Y,Z)')
+            Pts0, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=[[2.,3.],[0.,5.],[0.,np.pi/2.]], dSMode='abs', ind=None, DIn=0.001, Out='(X,Y,Z)')
+            Pts1, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=None, dSMode='abs', ind=ind, DIn=0.001, Out='(X,Y,Z)')
+            if type(Pts0) is list:
+                assert all([np.allclose(Pts0[ii],Pts1[ii]) for ii in range(0,len(Pts0))])
+            else:
+                assert np.allclose(Pts0,Pts1)
 
     def test06_get_meshV(self):
         if self.LObj[0].Id.Cls=='Ves':

@@ -159,7 +159,7 @@ class Ves(object):
         Pts :   np.ndarray
             (2,N) or (3,N) array with the coordinates of the points to be tested
         In :    str
-            Flag indicating the coordinate system in which the points are provided, in ['(X,Y,Z)','(R,Z)','']
+            Flag indicating the coordinate system in which the points are provided, e.g '(X,Y,Z)' or '(R,Z)'
 
         Returns
         -------
@@ -213,7 +213,51 @@ class Ves(object):
         return Pts, dS, ind, dSr
 
     def get_meshS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)'):
-        """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn """
+        """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn
+
+        Parameters
+        ----------
+        dS      :   float / list of 2 floats
+            Desired resolution of the surfacic mesh
+                float   : same resolution for all directions of the mesh
+                list    : [dl,dXPhi] where:
+                    dl      : resolution along the polygon contour in the cross-section
+                    dXPhi   : resolution along the axis (toroidal direction if self.Id.Type=='Tor' or linear direction if self.Id.Type=='Lin')
+        DS      :   None / list of 3 lists of 2 floats
+            Limits of the domain in which the surfacic mesh should be computed
+                None : whole surface of the object
+                list : [D1,D2,D3] where each Di is a len()=2 list of increasing floats marking the boundaries of the domain along coordinate i, with
+                    [DR,DZ,DPhi]: if toroidal geometry (self.Id.Type=='Tor')
+                    [DX,DY,DZ]  : if linear geometry (self.Id.Type=='Lin')
+        dSMode  :   str
+            Flag specifying whether the resoltion dS shall be understood as an absolute distance or as a fraction of the distance of each element
+                'abs'   :   dS is an absolute distance
+                'rel'   :   if dS=0.1, each segment of the polygon will be divided in 10, and the toroidal/linear length will also be divided in 10
+        ind     :   None / np.ndarray of int
+            If provided, then DS is ignored and the method computes the points of the mesh corresponding to the provided indices
+            Example (assuming S is a Ves or Struct object)
+                > # We create a 5x5 cm2 mesh of the whole surface
+                > Pts, dS, ind, dSr = S.get_mesh(0.05)
+                > # Performing operations, saving only the indices of the points and not the points themselves (to save space)
+                > ...
+                > # Retrieving the points from their indices (requires the same resolution), here Ptsbis = Pts
+                > Ptsbis, dSbis, indbis, dSrbis = S.get_mesh(0.05, ind=ind)
+        DIn     :   float
+            Offset distance from the actual surface of the object, can be positive (towards the inside) or negative (towards the outside), useful to avoid numerical errors
+        Out     :   str
+            Flag indicating which coordinate systems the points should be returned, e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
+
+        Returns
+        -------
+        Pts :   np.ndarray / list of np.ndarrays
+            The points coordinates as a (3,N) array. A list is returned if the Struct object has multiple entities in the toroidal / linear direction
+        dS  :   np.ndarray / list of np.ndarrays
+            The surface (in m^2) associated to each point
+        ind :   np.ndarray / list of np.ndarrays
+            The index of each points
+        dSr :   np.ndarray / list of np.ndarrays
+            The effective resolution in both directions after computation of the mesh
+        """
         Pts, dS, ind, dSr = _comp._Ves_get_meshS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9)
         return Pts, dS, ind, dSr
 
@@ -400,7 +444,53 @@ class Struct(Ves):
         Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls="Struct")
 
     def get_meshS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)', Ind=None):
-        """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn """
+        """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn
+
+        Parameters
+        ----------
+        dS      :   float / list of 2 floats
+            Desired resolution of the surfacic mesh
+                float   : same resolution for all directions of the mesh
+                list    : [dl,dXPhi] where:
+                    dl      : resolution along the polygon contour in the cross-section
+                    dXPhi   : resolution along the axis (toroidal direction if self.Id.Type=='Tor' or linear direction if self.Id.Type=='Lin')
+        DS      :   None / list of 3 lists of 2 floats
+            Limits of the domain in which the surfacic mesh should be computed
+                None : whole surface of the object
+                list : [D1,D2,D3] where each Di is a len()=2 list of increasing floats marking the boundaries of the domain along coordinate i, with
+                    [DR,DZ,DPhi]: if toroidal geometry (self.Id.Type=='Tor')
+                    [DX,DY,DZ]  : if linear geometry (self.Id.Type=='Lin')
+        dSMode  :   str
+            Flag specifying whether the resoltion dS shall be understood as an absolute distance or as a fraction of the distance of each element
+                'abs'   :   dS is an absolute distance
+                'rel'   :   if dS=0.1, each segment of the polygon will be divided in 10, and the toroidal/linear length will also be divided in 10
+        ind     :   None / np.ndarray of int
+            If provided, then DS is ignored and the method computes the points of the mesh corresponding to the provided indices
+            Example (assuming S is a Ves or Struct object)
+                > # We create a 5x5 cm2 mesh of the whole surface
+                > Pts, dS, ind, dSr = S.get_mesh(0.05)
+                > # Performing operations, saving only the indices of the points and not the points themselves (to save space)
+                > ...
+                > # Retrieving the points from their indices (requires the same resolution), here Ptsbis = Pts
+                > Ptsbis, dSbis, indbis, dSrbis = S.get_mesh(0.05, ind=ind)
+        DIn     :   float
+            Offset distance from the actual surface of the object, can be positive (towards the inside) or negative (towards the outside), useful to avoid numerical errors
+        Out     :   str
+            Flag indicating which coordinate systems the points should be returned, e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
+        Ind     :   None / iterable of ints
+            Array of indices of the entities to be considered (in the case of Struct object with multiple entities in the toroidal / linear direction)
+
+        Returns
+        -------
+        Pts :   np.ndarray / list of np.ndarrays
+            The points coordinates as a (3,N) array. A list is returned if the Struct object has multiple entities in the toroidal / linear direction
+        dS  :   np.ndarray / list of np.ndarrays
+            The surface (in m^2) associated to each point
+        ind :   np.ndarray / list of np.ndarrays
+            The index of each points
+        dSr :   np.ndarray / list of np.ndarrays
+            The effective resolution in both directions after computation of the mesh
+        """
         Pts, dS, ind, dSr = _comp._Ves_get_meshS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9, Multi=self._Multi, Ind=Ind)
         return Pts, dS, ind, dSr
 
@@ -537,7 +627,7 @@ class LOS(object):
 
         PRMin, kRMin, RMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12, Test=True)
         self._geom = {'D':D, 'u':u,
-                      'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut, 'VperpIn':VperpIn, 'VPerpOut':VPerpOut, 'IndIn':IndIn, 'IndOut':IndOut,
+                      'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut, 'VperpIn':VperpIn, 'VPerpOut':VPerpOut, 'IndIn':IndIn, 'IndOut':IndOut, 'IndS':IndS,
                       'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
         self._set_CrossProj()
 
