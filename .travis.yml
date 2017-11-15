@@ -5,7 +5,7 @@ python:
   - "3.6"
 
 git:
-  depth: 50
+  depth: 100
 
 sudo: required
 

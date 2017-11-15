@@ -56,7 +56,7 @@ def _Ves_set_Poly(Poly, arrayorder='C', Type='Tor', Lim=None, Clock=False):
     Multi = False
     if Type.lower()=='lin':
         if all([hasattr(ll,'__iter__') for ll in Lim]):
-            assert all([len(ll)==2 and all([not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') and ll[0]<ll[1] for ll in Lim])])
+            assert all([len(ll)==2 and not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') and ll[0]<ll[1] for ll in Lim])
             Multi = True
         else:
             assert len(Lim)==2 and not hasattr(Lim[0],'__iter__') and not hasattr(Lim[1],'__iter__') and Lim[0]<Lim[1]
@@ -65,7 +65,7 @@ def _Ves_set_Poly(Poly, arrayorder='C', Type='Tor', Lim=None, Clock=False):
     else:
         if Lim is not None:
             if all([hasattr(ll,'__iter__') for ll in Lim]):
-                assert all([len(ll)==2 and all([not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') for ll in Lim])])
+                assert all([len(ll)==2 and not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') for ll in Lim])
                 Multi = True
             else:
                 assert len(Lim)==2 and not hasattr(Lim[0],'__iter__') and not hasattr(Lim[1],'__iter__')
