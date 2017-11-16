@@ -627,7 +627,8 @@ class LOS(object):
 
         PRMin, kRMin, RMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12, Test=True)
         self._geom = {'D':D, 'u':u,
-                      'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut, 'VperpIn':VperpIn, 'VPerpOut':VPerpOut, 'IndIn':IndIn, 'IndOut':IndOut, 'IndS':IndS,
+                      'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut,
+                      'VperpIn':VperpIn, 'VPerpOut':VperpOut, 'IndIn':IndIn, 'IndOut':IndOut,
                       'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
         self._set_CrossProj()
 

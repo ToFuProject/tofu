@@ -2082,7 +2082,11 @@ cdef LOS_sino_Tor(double D0, double D1, double D2, double u0, double u1, double 
 
 
 cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double u2, double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
-    cdef double    kPMin = (RZ0-D1)*u1 + (RZ1-D2)*u2
+    cdef double    kPMin
+    if u0**2==1.:
+        kPMin = 0.
+    else:
+        kPMin = ( (RZ0-D1)*u1+(RZ1-D2)*u2 ) / (1-u0**2)
     kPMin = kOut if Mode=='LOS' and kPMin > kOut else kPMin
     cdef double    PMin0 = D0+kPMin*u0, PMin1 = D1+kPMin*u1, PMin2 = D2+kPMin*u2
     cdef double    RMin = Csqrt((PMin1-RZ0)**2+(PMin2-RZ1)**2)

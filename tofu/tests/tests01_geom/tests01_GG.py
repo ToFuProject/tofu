@@ -686,21 +686,43 @@ def test10_LOS_PInOut():
     assert np.allclose(IOut[:2,:],indS)
 
 
+def test11_LOS_sino():
 
+    RZ = np.array([2.,0.])
+    r = np.array([0.1, 0.2, 0.1])
+    theta = np.array([5*np.pi/6,0,np.pi/2])
+    phi = np.array([0.,0.,np.pi/10.])
+    k = np.array([1,10,5])
+    N = len(r)
+    us = np.array([np.sin(phi), -np.sin(theta)*np.cos(phi), np.cos(theta)*np.cos(phi)])
+    Ms = np.array([np.zeros((N,)), RZ[0]+r*np.cos(theta), RZ[1]+r*np.sin(theta)])
+    Ds = Ms - k[np.newaxis,:]*us
+    PMin0, kPMin0, RMin0 = np.nan*np.ones((3,N)), np.nan*np.ones((N,)), np.nan*np.ones((N,))
+    Theta0, p0, ImpTheta0, phi0 = np.nan*np.ones((N,)), np.nan*np.ones((N,)), np.nan*np.ones((N,)), np.nan*np.ones((N,))
+    for ii in range(0,len(r)):
+        PMin0[:,ii], kPMin0[ii], RMin0[ii], Theta0[ii], p0[ii], ImpTheta0[ii], phi0[ii] = GG.LOS_sino(np.ascontiguousarray(Ds[:,ii]), np.ascontiguousarray(us[:,ii]), RZ, Mode='LOS', kOut=np.inf, VType='Lin')
+    print("")
+    print(Ds)
+    print(us)
+    print("")
+    print(PMin0)
+    print(Ms)
+    #assert np.allclose(PMin0, np.array([np.zeros((N,)), RZ[0]+r*np.cos(theta), RZ[1]+r*np.sin(theta)]))
+    print(kPMin0)
+    print(k)
+    print("")
+    print(RMin0)
+    print(r)
+    assert np.allclose(kPMin0,k)
+    assert RMin0.shape==(N,)
+    assert Theta0.shape==(N,)
+    assert np.allclose(np.abs(p0),k)
+    assert np.allclose(np.abs(ImpTheta0),phi)
+    assert np.allclose(phi0,theta)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    # np.array(PMin0), kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = GG.LOS_sino(double[::1] D, double[::1] u, double[::1] RZ, str Mode='LOS', kOut=np.inf, str VType='Tor')
+    # To be finished after debugging above
+    us = np.array([np.sin(phi), -np.sin(theta)*np.cos(phi), np.cos(theta)*np.cos(phi)])
+    Ms = np.array([np.zeros((N,)), RZ[0]+r*np.cos(theta), RZ[1]+r*np.sin(theta)])
+    Ds = Ms - k[np.newaxis,:]*us
+    for ii in range(0,len(r)):
+        PMin0[:,ii], kPMin0[ii], RMin0[ii], Theta0[ii], p0[ii], ImpTheta0[ii], phi0[ii] = GG.LOS_sino(np.ascontiguousarray(Ds[:,ii]), np.ascontiguousarray(us[:,ii]), RZ, Mode='LOS', kOut=np.inf, VType='Tor')
