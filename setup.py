@@ -27,8 +27,8 @@ import _updateversion as up
 os.environ['CC'] = 'gcc'
 os.environ['CXX'] = 'gcc'
 
-here = os.path.join(os.path.abspath(os.path.dirname(__file__)),'tofu')
-version_git = up.updateversion(here)
+here = os.path.abspath(os.path.dirname(__file__))
+version_git = up.updateversion(os.path.join(here,'tofu'))
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6']:
@@ -140,8 +140,6 @@ setup(
             'matplotlib',
             poly,
             'cython',
-            'nose',
-            'nose-timer',
             ],
 
     python_requires = '~=2.7.13, ~=3.6.1',
