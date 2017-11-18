@@ -51,7 +51,7 @@ install:
 script:
   - cd $HOME
   #- ls $HOME/miniconda/envs/test-environment/lib/python3.6/site-packages/tofu/geom
-  - nosetests tofu --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
+  - nosetests tofu.tests.tests01_geom --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
 
 after_success:
   - chmod +x $START/anaconda_upload.sh
