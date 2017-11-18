@@ -7,6 +7,8 @@
 .. image:: https://anaconda.org/tofuproject/tofu/badges/downloads.svg
       :target: https://anaconda.org/tofuproject/tofu/badges/
 
+.. image:: https://codecov.io/gh/ToFuProject/tofu/branch/master/graph/badge.svg
+         :target: https://codecov.io/gh/ToFuProject/tofu
 
 
 ToFu
