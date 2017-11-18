@@ -51,8 +51,13 @@ Created on Wed May 18 2016
 @author: didiervezinet
 @author_email: didier.vezinet@gmail.com
 """
-
-from version import __version__
+import sys
+if sys.version[0]=='2':
+    from version import __version__
+elif sys.version[0]=='3':
+    from .version import __version__
+else:
+    raise Exception("Not supported python version !")
 
 __all__ = ['geom','pathfile']
 
