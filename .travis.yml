@@ -67,7 +67,8 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
   # Replace dep1 dep2 ... with your dependencies
-  - conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose pip anaconda-client conda-build
+  #- conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose pip anaconda-client conda-build
+  - conda install -q python=$TRAVIS_PYTHON_VERSION conda-build anaconda-client nose-timer coverage
   #- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
   #- source activate test-environment
   # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
@@ -83,7 +84,7 @@ install:
 script:
   - cd $HOME
   #- ls $HOME/miniconda/envs/test-environment/lib/python3.6/site-packages/tofu/geom
-  - nosetests --nocapture -v --with-id --with-timer tofu.tests.tests01_geom
+  - nosetests --nocapture -v --with-id --with-timer --with-coverage tofu.tests.tests01_geom
 
 after_success:
   - chmod +x $START/anaconda_upload.sh
