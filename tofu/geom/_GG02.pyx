@@ -2097,8 +2097,7 @@ cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double 
     cdef double    p = vP0*er2D0 + vP1*er2D1
     cdef double    uN = Csqrt(u0**2+u1**2+u2**2)
     cdef double    uN0 = u0/uN, uN1 = u1/uN, uN2 = u2/uN
-    cdef double    eTheta0 = 0., eTheta1 = 0., eTheta2 = 1.
-    cdef double    phi = Casin(-uN0*eTheta0 -uN1*eTheta1 -uN2*eTheta2)
+    cdef double    phi = Catan2(uN0, Csqrt(uN1**2+uN2**2))
     return (PMin0,PMin1,PMin2), kPMin, RMin, Theta, p, ImpTheta, phi
 
 

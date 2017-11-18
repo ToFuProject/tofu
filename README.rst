@@ -1,4 +1,4 @@
-.. image:: https://travis-ci.org/ToFuProject/tofu.svg?branch=NewGeom
+.. image:: https://img.shields.io/travis/ToFuProject/tofu.svg?branch=NewGeom?label=Travis-CI
     :target: https://travis-ci.org/ToFuProject/tofu
 
 .. image:: https://anaconda.org/tofuproject/tofu/badges/version.svg
