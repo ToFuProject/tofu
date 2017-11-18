@@ -42,7 +42,7 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
   # Replace dep1 dep2 ... with your dependencies
-  - conda install -q python=$TRAVIS_PYTHON_VERSION conda-build anaconda-client nose nose-timer coverage
+  - conda install -q python=$TRAVIS_PYTHON_VERSION conda-build anaconda-client nose nose-timer coverage codecov
   # Building
   - conda build conda_recipe
   - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
@@ -54,6 +54,7 @@ script:
   - nosetests tofu.tests.tests01_geom --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
 
 after_success:
+  - codecov
   - chmod +x $START/anaconda_upload.sh
   #- source deactivate
 
