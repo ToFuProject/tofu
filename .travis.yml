@@ -9,38 +9,13 @@ git:
 
 sudo: required
 
-# Useless without docker
-#env:
-#  matrix:
-#  - OS_TYPE=centos OS_VERSION=6.9
-
-#services:
-#  - docker
-
 before_install:
-  - docker run hello-world
-  - docker --version
   - sudo apt-get update
   - ldd --version
   - gcc --version
   - export START=$(pwd)
   - export REV=$(git describe)
   - export VERSION=$(echo $REV | tr - .)
-  # Doscker-specific
-  #- sudo apt-get upgrade lxc-docker
-  #- echo 'DOCKER_OPTS="-H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock -s devicemapper"' | sudo tee /etc/default/docker > /dev/null
-  #- sudo service docker restart
-  #- sleep 5
-  #- sudo docker pull centos:centos${OS_VERSION}
-  #- sudo docker pull ${OS_TYPE}:${OS_TYPE}${OS_VERSION}
-  #- echo "A"
-
-
-
-#script:
-#  - echo 1
-#  - sudo docker run --rm=true -v `pwd`:/tofu:rw centos:centos${OS_VERSION} /bin/bash -c "nosetests --nocapture -v --with-id --with-timer tofu.tests.tests01_geom"
-#  - echo 2
 
 install:
   # We do this conditionally because it saves us some downloading if the
@@ -67,15 +42,7 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
   # Replace dep1 dep2 ... with your dependencies
-  #- conda install -q python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose pip anaconda-client conda-build
   - conda install -q python=$TRAVIS_PYTHON_VERSION conda-build anaconda-client nose nose-timer coverage
-  #- conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib cython nose
-  #- source activate test-environment
-  # If you support official conda packages for your project, you may want to use conda build in Travis, so the building of your recipe is tested as well.
-  # replace the following line:
-  #- python setup.py develop
-  # with:
-  # Build params
   # Building
   - conda build conda_recipe
   - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
@@ -84,7 +51,7 @@ install:
 script:
   - cd $HOME
   #- ls $HOME/miniconda/envs/test-environment/lib/python3.6/site-packages/tofu/geom
-  - nosetests --nocapture -v --with-id --with-timer --with-coverage tofu.tests.tests01_geom
+  - nosetests tofu --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
 
 after_success:
   - chmod +x $START/anaconda_upload.sh
