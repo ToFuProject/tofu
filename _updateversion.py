@@ -2,7 +2,7 @@ import sys
 import os 
 import subprocess
 
-here = os.path.abspath(os.path.dirname(__file__))
+here = os.path.join(os.path.abspath(os.path.dirname(__file__)),'tofu')
 
 def updateversion(here=here):
     # Fetch version from git tags, and write to version.py

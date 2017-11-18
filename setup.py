@@ -27,7 +27,7 @@ import _updateversion as up
 os.environ['CC'] = 'gcc'
 os.environ['CXX'] = 'gcc'
 
-here = os.path.abspath(os.path.dirname(__file__))
+here = os.path.join(os.path.abspath(os.path.dirname(__file__)),'tofu')
 version_git = up.updateversion(here)
 
 # To compile the relevant version
