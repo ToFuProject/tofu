@@ -701,7 +701,7 @@ def test11_LOS_sino():
     Theta0, p0, ImpTheta0, phi0 = np.nan*np.ones((N,)), np.nan*np.ones((N,)), np.nan*np.ones((N,)), np.nan*np.ones((N,))
     for ii in range(0,len(r)):
         PMin0[:,ii], kPMin0[ii], RMin0[ii], Theta0[ii], p0[ii], ImpTheta0[ii], phi0[ii] = GG.LOS_sino(np.ascontiguousarray(Ds[:,ii]), np.ascontiguousarray(us[:,ii]), RZ, Mode='LOS', kOut=np.inf, VType='Lin')
-    assert np.allclose(PMin0, np.array([np.zeros((N,)), RZ[0]+r*np.cos(theta), RZ[1]+r*np.sin(theta)]))
+    assert np.allclose(PMin0,Ms)
     assert np.allclose(kPMin0,k)
     assert RMin0.shape==(N,)
     assert Theta0.shape==(N,)
@@ -710,8 +710,15 @@ def test11_LOS_sino():
     assert np.allclose(phi0,phi)
 
     # Tor (to be finished)
-    us = np.array([np.sin(phi), -np.sin(theta)*np.cos(phi), np.cos(theta)*np.cos(phi)])
-    Ms = np.array([np.zeros((N,)), RZ[0]+r*np.cos(theta), RZ[1]+r*np.sin(theta)])
+    us = np.array([-np.sin(theta)*np.cos(phi), np.sin(phi), np.cos(theta)*np.cos(phi)])
+    Ms = np.array([RZ[0]+r*np.cos(theta), np.zeros((N,)), RZ[1]+r*np.sin(theta)])
     Ds = Ms - k[np.newaxis,:]*us
     for ii in range(0,len(r)):
         PMin0[:,ii], kPMin0[ii], RMin0[ii], Theta0[ii], p0[ii], ImpTheta0[ii], phi0[ii] = GG.LOS_sino(np.ascontiguousarray(Ds[:,ii]), np.ascontiguousarray(us[:,ii]), RZ, Mode='LOS', kOut=np.inf, VType='Tor')
+    assert np.allclose(PMin0,Ms)
+    assert np.allclose(kPMin0,k)
+    assert RMin0.shape==(N,)
+    assert Theta0.shape==(N,)
+    assert np.allclose(np.abs(p0),r)
+    assert np.allclose(np.abs(ImpTheta0),theta)
+    assert np.allclose(np.abs(phi0),phi)

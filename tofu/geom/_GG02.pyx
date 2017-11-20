@@ -1559,7 +1559,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         assert all([type(ee) in [int,float,np.int64,np.float64] and ee<1.e-4 for ee in [EpsUz,EpsVz,EpsA,EpsB,EpsPlane]]), "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-4 !"
         assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin'] !"
 
-    cdef int ii
+    cdef int ii, jj
 
     v = Ds.ndim==2
     if not v:
@@ -1584,7 +1584,10 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                     pIn, pOut, vperpIn, vperpOut, iIn, iOut = Calc_LOS_PInOut_Tor(Ds, dus, LSPoly[ii], LSVIn[ii], Lim=lslim[jj], Forbid=Forbid, RMin=RMin,
                                                                                   EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
-                    indout = kpin<kPOut
+                    indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
+                    indout = np.zeros((NL,),dtype=bool)
+                    indout[indNoNan] = kpin[indNoNan]<kPOut[indNoNan]
+                    indout[(~np.isnan(kpin)) & np.isnan(kPOut)] = True
                     if np.any(indout):
                         kPOut[indout] = kpin[indout]
                         POut[:,indout] = pIn[:,indout]
@@ -1605,7 +1608,10 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                 for jj in range(0,len(lslim)):
                     pIn, pOut, vperpIn, vperpOut, iIn, iOut = Calc_LOS_PInOut_Lin(Ds, dus, LSPoly[ii], LSVIn[ii], lslim[jj], EpsPlane=EpsPlane)
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
-                    indout = kpin<kPOut
+                    indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
+                    indout = np.zeros((NL,),dtype=bool)
+                    indout[indNoNan] = kpin[indNoNan]<kPOut[indNoNan]
+                    indout[(~np.isnan(kpin)) & np.isnan(kPOut)] = True
                     if np.any(indout):
                         kPOut[indout] = kpin[indout]
                         POut[:,indout] = pIn[:,indout]
