@@ -598,11 +598,15 @@ class LOS(object):
 
     def _set_Ves(self, Ves=None, LStruct=None, Du=None):
         self._check_inputs(Ves=Ves, Exp=self.Id.Exp)
-        self._Ves = Ves
+        LObj = []
         if not Ves is None:
-            self.Id.set_LObj([Ves.Id])
+            LObj.append(Ves.Id)
         if not LStruct is None:
             LStruct = [LStruct] if type(LStruct) is Struct else LStruct
+            LObj += [ss.Id for ss in LStruct]
+        if len(LObj)>0:
+            self.Id.set_LObj(LObj)
+        self._Ves = Ves
         self._LStruct = LStruct
         Du = Du if Du is not None else (self.D,self.u)
         self._set_geom(Du)
@@ -613,10 +617,10 @@ class LOS(object):
         D, u = np.asarray(Du[0]).flatten(), np.asarray(Du[1]).flatten()
         u = u/np.linalg.norm(u,2)
 
-        PIn, POut, kPIn, kPOut, VperpIn, VPerpOut, IndIn, IndOut = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan, np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
+        PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan, np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
         if not self.Ves is None:
             (LSPoly, LSLim, LSVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for ss in self.LStruct]) if not self.LStruct is None else (None,None,None)
-            PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IndIn, IndOut = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], Lim=self.Ves.Lim, LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
+            PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], Lim=self.Ves.Lim, LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
                                                                                                      RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
                                                                                                      VType=self.Ves.Type, Test=True)
             if np.isnan(kPOut):
@@ -628,7 +632,7 @@ class LOS(object):
         PRMin, kRMin, RMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12, Test=True)
         self._geom = {'D':D, 'u':u,
                       'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut,
-                      'VperpIn':VperpIn, 'VPerpOut':VperpOut, 'IndIn':IndIn, 'IndOut':IndOut,
+                      'VPerpIn':VPerpIn, 'VPerpOut':VPerpOut, 'IndIn':IndIn, 'IndOut':IndOut,
                       'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
         self._set_CrossProj()
 
@@ -647,9 +651,12 @@ class LOS(object):
             RefPt = self.Ves.sino['RefPt'] if RefPt is None else np.asarray(RefPt).flatten()
             if self.Ves is not None:
                 self._Ves._set_sino(RefPt)
+                VType = self.Ves.Type
+            else:
+                VType = 'Lin'
             kMax = np.inf if np.isnan(self.geom['kPOut']) else self.geom['kPOut']
-            P, kP, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u, RefPt, Mode='LOS', kOut=kMax, VType=self.Ves.Type)
-            self._sino = {'RefPt':RefPt, 'P':P, 'kP':kP, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
+            Pt, kPt, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u, RefPt, Mode='LOS', kOut=kMax, VType=VType)
+            self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
     def get_mesh(self, dL, DL=None, dLMode='abs'):
         """ Return a linear mesh of the LOS, with desired resolution dL, in the DL interval (distance from D)  """
@@ -775,8 +782,7 @@ class LOS(object):
                                         Ldict=Ldict, Vdict=Vdict, LegDict=LegDict, draw=draw, a4=a4, Test=Test)
 
 
-
-    def save(self, SaveName=None, Path=None, Mode='npz', compressed=False):
+    def save(self, SaveName=None, Path=None, Mode='npz', compressed=False, Print=True):
         """ Save the object in folder Name, under file name SaveName, using specified mode
 
         Most tofu objects can be saved automatically as numpy arrays (.npz, recommended) at the default location (recommended) by simply calling self.save()
@@ -793,7 +799,7 @@ class LOS(object):
             Flag, used when Mode='npz', indicating whether to use np.savez or np.savez_compressed (slower saving and loading but smaller files)
 
         """
-        tfpf.Save_Generic(self, SaveName=SaveName, Path=Path, Mode=Mode, compressed=compressed)
+        tfpf.Save_Generic(self, SaveName=SaveName, Path=Path, Mode=Mode, compressed=compressed, Print=Print)
 
 
 

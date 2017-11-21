@@ -15,14 +15,13 @@ from nose import with_setup # optional
 
 
 # Importing package tofu.geom
+from tofu import __version__
 import tofu.defaults as tfd
 import tofu.pathfile as tfpf
 import tofu.geom as tfg
 
 
 here = os.path.abspath(os.path.dirname(__file__))
-Addpath = '/tests/tests01_geom/'
-
 VerbHead = 'tofu.geom.tests03_core'
 
 
@@ -34,6 +33,13 @@ VerbHead = 'tofu.geom.tests03_core'
 
 def setup_module(module):
     print("") # this is to get a newline after the dots
+    LF = os.listdir(here)
+    LF = [lf for lf in LF if all([ss in lf for ss in ['TFG_','Test','_Vv','.npz']])]
+    LF = [lf for lf in LF if not lf[lf.index('_Vv')+2:lf.index('_U')]==__version__]
+    print("Removing the following previous test files:")
+    print (LF)
+    for lf in LF:
+        os.remove(os.path.join(here,lf))
     #print("setup_module before anything in this file")
 
 def teardown_module(module):
@@ -41,6 +47,13 @@ def teardown_module(module):
     #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
     #print("teardown_module after everything in this file")
     #print("") # this is to get a newline
+    LF = os.listdir(here)
+    LF = [lf for lf in LF if all([ss in lf for ss in ['TFG_','Test','_Vv','.npz']])]
+    LF = [lf for lf in LF if lf[lf.index('_Vv')+2:lf.index('_U')]==__version__]
+    print("Removing the following test files:")
+    print (LF)
+    for lf in LF:
+        os.remove(os.path.join(here,lf))
     pass
 
 
@@ -89,13 +102,16 @@ class Test01_Ves:
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("---- "+cls.__name__)
-        cls.LObj = [tfg.Ves('Test01', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here+Addpath)]
-        cls.LObj.append(tfg.Ves('Test01', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here+Addpath))
+        cls.LObj = [tfg.Ves('Test', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here)]
+        cls.LObj.append(tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here))
 
     @classmethod
     def teardown_class(cls):
         #print("teardown_class() after any methods in this class")
-        pass
+        cls.VesTor = tfg.Ves('Test00', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here)
+        cls.VesLin = tfg.Ves('Test00', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here)
+        cls.VesTor.save()
+        cls.VesLin.save()
 
     def setup(self):
         #print("TestUM:setup() before each test method")
@@ -171,20 +187,11 @@ class Test01_Ves:
         plt.close('all')
 
     def test09_saveload(self):
-        try:
-            for ii in range(0,len(self.LObj)):
-                self.LObj[ii].save(Print=False)
-                obj = tfpf.Open(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
-                os.remove(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
-        except Exception as err:
-            print(err)
-
-VesTor = tfg.Ves('Test', PVes, Type='Tor', shot=0, Exp='AUG', SavePath=here+Addpath)
-VesLin = tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0, Exp='AUG', SavePath=here+Addpath)
-#VesTor.save()
-#VesLin.save()
-
-
+        for ii in range(0,len(self.LObj)):
+            self.LObj[ii].save(Print=False)
+            PathFileExt = os.path.join(self.LObj[ii].Id.SavePath, self.LObj[ii].Id.SaveName+'.npz')
+            obj = tfpf.Open(PathFileExt, Print=False)
+            os.remove(PathFileExt)
 
 
 #######################################################
@@ -199,13 +206,21 @@ class Test02_Struct(Test01_Ves):
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("--------- "+VerbHead+cls.__name__)
-        cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here+Addpath)]
-        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Tor', Lim=[-np.pi/2.,np.pi/4.], shot=0, Exp='Test', SavePath=here+Addpath))
-        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here+Addpath))
-        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Tor', Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]), shot=0, Exp='Test', SavePath=here+Addpath))
-        cls.LObj.append(tfg.Struct('Test02', PVes, Type='Lin', Lim=np.array([[0.,1.],[0.5,1.5],[-2.,-1.]]), shot=0, Exp='Test', SavePath=here+Addpath))
+        cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here)]
+        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor', Lim=[-np.pi/2.,np.pi/4.], shot=0, Exp='Test', SavePath=here))
+        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here))
+        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor', Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]), shot=0, Exp='Test', SavePath=here))
+        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin', Lim=np.array([[0.,1.],[0.5,1.5],[-2.,-1.]]), shot=0, Exp='Test', SavePath=here))
 
-
+    @classmethod
+    def teardown_class(cls):
+        #print("teardown_class() after any methods in this class")
+        cls.SL0 = tfg.Struct('Test02', PVes, Type='Lin', Lim=np.array([0.,1.]), shot=0, Exp='Test', SavePath=here)
+        cls.SL1 = tfg.Struct('Test03', PVes, Type='Lin', Lim=np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]), shot=0, Exp='Test', SavePath=here)
+        cls.ST0 = tfg.Struct('Test02', PVes, Type='Tor', Lim=None, shot=0, Exp='Test', SavePath=here)
+        cls.ST1 = tfg.Struct('Test03', PVes, Type='Tor', Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]), shot=0, Exp='Test', SavePath=here)
+        cls.SL0.save(), cls.SL1.save()
+        cls.ST0.save(), cls.ST1.save()
 
 
 
@@ -219,15 +234,16 @@ class Test02_Struct(Test01_Ves):
 class Test03_LOS:
 
     @classmethod
-    def setup_class(cls, LVes=[VesLin,VesTor]):
+    def setup_class(cls): #LVes=[Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3, LS=[None, SL0, [SL0,SL1], None, ST0, [ST0,ST1]]):
         #print ("")
         #print "--------- "+VerbHead+cls.__name__
-        LS = [None, None]
+        LVes = [Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3
+        LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1], None, Test02_Struct. ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
         cls.LObj = [None for vv in LVes]
         for ii in range(0,len(LVes)):
             D = (0,0.95*LVes[ii].geom['P1Max'][0], 0)
             u = (0,1,0)
-            cls.LObj[ii] = tfg.LOS('Test'+str(ii), (D,u), Ves=LVes[ii], LStruct=LS[ii], Exp=None, Diag='Test', SavePath=here+Addpath)
+            cls.LObj[ii] = tfg.LOS('Test'+str(ii), (D,u), Ves=LVes[ii], LStruct=LS[ii], Exp=None, Diag='Test', SavePath=here)
 
     @classmethod
     def teardown_class(cls):
@@ -269,19 +285,22 @@ class Test03_LOS:
             Lax1 = self.LObj[ii].plot(Proj='All', Elt='LDIORP', EltVes='P', Leg='', draw=False, a4=False, Test=True)
             Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='LDIORP', EltVes='P', Leg='Test', draw=False, a4=False, Test=True)
             Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='LDIORP', EltVes='PBv', Leg='', draw=False, a4=False, Test=True)
+            #Lax3 = self.LObj[ii].plot(Proj='3d', Elt='LDIORP', EltVes='PBv', Leg='', draw=False, a4=False, Test=True)
             plt.close('all')
 
     def test04_plot_sino(self):
         for ii in range(0,len(self.LObj)):
-            self.LObj[ii].plot_Sinogram(Proj='Cross', Elt='LV', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
-            self.LObj[ii].plot_Sinogram(Proj='Cross', Elt='L', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
+            self.LObj[ii].plot_sino(Proj='Cross', Elt='LV', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
+            self.LObj[ii].plot_sino(Proj='Cross', Elt='L', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
             plt.close('all')
 
     def test05_saveload(self):
+        print(os.listdir(here))
         for ii in range(0,len(self.LObj)):
-            self.LObj[ii].save()
-            Los = tfpf.Open(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
-            os.remove(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
+            self.LObj[ii].save(Print=False)
+            PathFileExt = os.path.join(self.LObj[ii].Id.SavePath, self.LObj[ii].Id.SaveName+'.npz')
+            obj = tfpf.Open(PathFileExt, Print=False)
+            os.remove(PathFileExt)
 
 
 
@@ -305,7 +324,7 @@ class Test05_LOSTor:
         Dthet, uthet = 0., 0.5
         er, ethet = np.array([np.cos(Dthet), np.sin(Dthet)]), np.array([-np.sin(Dthet), np.cos(Dthet)])
         D, u = [DR*er[0], DR*er[1], DZ], [uR*er[0]+uthet*ethet[0],   uR*er[1]+uthet*ethet[1], uz]
-        cls.Obj = tfg.LOS('Test', (D,u), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
+        cls.Obj = tfg.LOS('Test', (D,u), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=here)
 
     @classmethod
     def teardown_class(cls):

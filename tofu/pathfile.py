@@ -24,6 +24,7 @@ except Exception:
 
 
 # ToFu specific
+from tofu import __version__
 from tofu.defaults import dtmFormat as TFDdtmFormat
 
 
@@ -289,27 +290,25 @@ class ID(object):
 
     """
 
-    def __init__(self, Cls, Name, Type=None, Deg=None, Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None, USRdict=None, LObj=None, dtime=None, dtFormat=TFDdtmFormat, Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']):
+    def __init__(self, Cls, Name, Type=None, Deg=None, Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None, USRdict=None, LObj=None, dtime=None, dtFormat=TFDdtmFormat, Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr'], version=None):
         assert type(Exp) is str, "Arg Exp must be a str !"
         assert type(Cls) is str, "Arg Cls must be a str !"
         assert shot is None or type(shot) is int, "Arg shot must be a int !"
         assert Diag is None or type(Diag) is str, "Arg Diag must be a str !"
         assert Type is None or type(Type) is str, "Arg Type must be a str !"
 
+        if version is None:
+            self._version = __version__
+        else:
+            self._version = version
+            if not version==__version__:
+                warnings.warn(Id.Name +" was created from a different version of ToFu !!!    %s vs %s" % (version, __version__))
         self._Exp = Exp
         self._Cls = Cls
         self._Type = Type
         self._Deg = Deg
         self._Diag = Diag
         self._shot = shot
-        try:
-            bash = "git describe --tags"
-            proc = subprocess.Popen(bash.split(),stdout=subprocess.PIPE)
-            A, B = proc.communicate()
-            assert B is None
-            self._version = A.replace('\n','')
-        except:
-            self._version = None
         try:
             self._usr = getpass.getuser()
         except:
@@ -799,7 +798,7 @@ def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log=
 
 
 def _Id_todict(Id):
-    IdTxt = {'Cls':Id.Cls, 'Name':Id.Name, 'SaveName':Id.SaveName, 'SavePath':Id.SavePath, 'Diag':Id.Diag, 'Type':Id.Type, 'shot':Id.shot, 'Exp':Id.Exp}
+    IdTxt = {'version':Id._version, 'Cls':Id.Cls, 'Name':Id.Name, 'SaveName':Id.SaveName, 'SavePath':Id.SavePath, 'Diag':Id.Diag, 'Type':Id.Type, 'shot':Id.shot, 'Exp':Id.Exp}
     Iddtime = {'dtime':Id.dtime, 'dtFormat':Id._dtFormat}
     IdLobjUsr = {'LObj':Id.LObj, 'USRdict':Id.USRdict}
     return [IdTxt,Iddtime,IdLobjUsr]
@@ -810,7 +809,7 @@ def _Id_todict(Id):
 def _Id_recreateFromdict(IdS):
     Id = ID(Cls=IdS[0]['Cls'], Type=IdS[0]['Type'], Exp=IdS[0]['Exp'], Diag=IdS[0]['Diag'], shot=IdS[0]['shot'], Name=IdS[0]['Name'], SaveName=IdS[0]['SaveName'], SavePath=IdS[0]['SavePath'],
             dtime=IdS[1]['dtime'], dtFormat=IdS[1]['dtFormat'],
-            LObj=IdS[2]['LObj'], USRdict=IdS[2]['USRdict'])
+            LObj=IdS[2]['LObj'], USRdict=IdS[2]['USRdict'], version=IdS[0]['version'])
     return Id
 
 
@@ -943,7 +942,7 @@ def Save_Generic(obj, SaveName=None, Path=None, Mode='npz', compressed=False, Pr
         assert type(SaveName) is str, "Arg SaveName must be a str !"
         obj.Id.SaveName = SaveName
     Ext = '.npz' if 'npz' in Mode.lower() or pck is None else '.pck'
-    pathfileext = Path+SaveName+Ext
+    pathfileext = os.path.join(Path,SaveName+Ext)
     if '.npz' in Ext:
         _save_np(obj, pathfileext, compressed=compressed)
     else:
@@ -1028,8 +1027,9 @@ def _save_np(obj, pathfileext, compressed=False):
         func(pathfileext, Idsave=Idsave, arrayorder=obj._arrayorder, Clock=obj._Clock, Poly=obj.Poly, Lim=obj.Lim)
 
     elif obj.Id.Cls=='LOS':
-        func(pathfileext, Idsave=Idsave, Du=obj.Du, Sino_RefPt=obj.Sino_RefPt, arrayorder=obj._arrayorder, Clock=obj._Clock)
+        func(pathfileext, Idsave=Idsave, Du=(obj.D,obj.u), Sino_RefPt=obj._sino['RefPt'])
 
+    """
     elif obj.Id.Cls=='GLOS':
         LIdLOS = [ll.Id.todict() for ll in obj.LLOS]
         LDs, Lus = np.array([ll.D for ll in obj.LLOS]).T, np.array([ll.u for ll in obj.LLOS]).T
@@ -1122,7 +1122,7 @@ def _save_np(obj, pathfileext, compressed=False):
         func(pathfileext, Id=Id, dtime=dtime, IdUSR=USR, PreData=IdObj[2], PreDataUSR=IdObjUSR[2], GMat2D=IdObj[1], GMatUSR=IdObjUSR[1], BF2D=IdObj[0], BF2DUSR=IdObjUSR[0],
                 InvParam=obj.InvParam, shot=obj.shot, LNames=obj._LNames, Run=obj._run,
                 LOS=obj._LOS, data=obj._data, t=obj._t, Coefs=obj._Coefs, sigma=obj._sigma, Mu=obj._Mu, Chi2N=obj._Chi2N, R = obj._R, Nit=obj._Nit, Spec=obj._Spec, t2=timing, PostTreat=obj._PostTreat)
-
+    """
 
 def save_np_IdObj(Id):
     """ (to do) """
@@ -1147,7 +1147,7 @@ def save_np_IdObj(Id):
 ###########################
 
 
-def Open(pathfileext=None, shot=None, t=None, Dt=None, Mesh=None, Deg=None, Deriv=None, Sep=True, Pos=True, OutPath=None, ReplacePath=None, Ves=None, out='full', Verb=False):
+def Open(pathfileext=None, shot=None, t=None, Dt=None, Mesh=None, Deg=None, Deriv=None, Sep=True, Pos=True, OutPath=None, ReplacePath=None, Ves=None, out='full', Verb=False, Print=True):
     """ Open a ToFu object saved file
 
     This generic open function identifies the required loading routine by detecting how the object was saved from the file name extension.
@@ -1186,10 +1186,11 @@ def Open(pathfileext=None, shot=None, t=None, Dt=None, Mesh=None, Deg=None, Deri
     assert '.npz' in pathfileext or '.pck' in pathfileext, "Arg pathfileext must contain '.npz' or .pck !"
 
     if '.npz' in pathfileext:
-        obj = _open_np(pathfileext, Ves=Ves, ReplacePath=ReplacePath, out=out, Verb=Verb)
+        obj = _open_np(pathfileext, Ves=Ves, ReplacePath=ReplacePath, out=out, Verb=Verb, Print=Print)
     else:
         obj = _open_object(pathfileext)
-    print("Loaded :  "+pathfileext)
+    if Print:
+        print("Loaded :  "+pathfileext)
     return obj
 
 
@@ -1217,17 +1218,26 @@ def open_np_IdObj(LCls=None,LIdArr=None,LIdUSR=None):
     return LIdObj
 
 
-def _tryloadVes(Id, Ves=None):
-    if not Ves is None:
-        if Ves.Id.Cls=='Ves' and Id.LObj['Ves']['SavePath'][0]==Ves.Id.SavePath and Id.LObj['Ves']['SaveName'][0]==Ves.Id.SaveName:
-            return Ves
+def _tryloadVesStruct(Id, VesStruct=None, Print=True):
+    if VesStruct is not None and hasattr(VesStruct,'__iter__') and VesStruct[0].Id.Cls=='Ves':
+        return VesStruct[0], VesStruct[1]
     else:
-        try:
-            PathFileExt = Id.LObj['Ves']['SavePath'][0]+Id.LObj['Ves']['SaveName'][0]+'.npz'
-            Ves = Open(PathFileExt)
-        except:
-            warnings.warn(Id.Name +" : associated Ves object could not be loaded from "+PathFileExt)
-        return Ves
+        Ves, LStruct = None, None
+        if 'Ves' in Id.LObj.keys():
+            PathFileExt = os.path.join(Id.LObj['Ves']['SavePath'][0],Id.LObj['Ves']['SaveName'][0]+'.npz')
+            try:
+                Ves = Open(PathFileExt, Print=Print)
+            except:
+                warnings.warn(Id.Name +" : associated Ves/Struct object(s) could not be loaded from "+PathFileExt)
+        if 'Struct' in Id.LObj.keys():
+            LStruct = []
+            for ii in range(0,len(Id.LObj['Struct']['Name'])):
+                PathFileExt = os.path.join(Id.LObj['Struct']['SavePath'][ii],Id.LObj['Struct']['SaveName'][ii]+'.npz')
+                try:
+                    LStruct.append(Open(PathFileExt, Print=Print))
+                except:
+                    warnings.warn(Id.Name +" : associated Ves/Struct object(s) could not be loaded from "+PathFileExt)
+        return Ves, LStruct
 
 def _tryLoadOpticsElseCreate(Id, Opt=None, Ves=None, Verb=False):
     import tofu.geom as TFG
@@ -1309,20 +1319,20 @@ def _get_light_SynthDiag_Res():
 
 
 
-def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
+def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False, Print=True):
 
     if 'TFG' in pathfileext:
-        import tofu.geom as TFG
-    elif 'TFEq' in pathfileext:
-        import tofu.Eq as tfEq
-    elif 'TFM' in pathfileext:
-        import tofu.mesh as TFM
-    elif 'TFMC' in pathfileext:
-        import tofu.matcomp as TFMC
-    elif 'TFT' in pathfileext:
-        import tofu.treat as tft
-    elif 'TFI' in pathfileext:
-        import tofu.inv as TFI
+        import tofu.geom as tfg
+    #elif 'TFEq' in pathfileext:
+    #    import tofu.Eq as tfEq
+    #elif 'TFM' in pathfileext:
+    #    import tofu.mesh as TFM
+    #elif 'TFMC' in pathfileext:
+    #    import tofu.matcomp as TFMC
+    #elif 'TFT' in pathfileext:
+    #    import tofu.treat as tft
+    #elif 'TFI' in pathfileext:
+    #    import tofu.inv as TFI
 
     Out = np.load(pathfileext,mmap_mode=None)
     Id = _Id_recreateFromdict(Out['Idsave'])
@@ -1330,17 +1340,20 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
         return Id
 
     if Id.Cls == 'Ves':
-        obj = TFG.Ves(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, Lim=Out['Lim'], Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']), Sino_RefPt=Out['Sino_RefPt'], Sino_NP=int(Out['Sino_NP']),
-                      SavePath=Id.SavePath, dtime=Id.dtime)
+        Lim = None if Out['Lim'].tolist() is None else Out['Lim']
+        obj = tfg.Ves(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, Lim=Lim, Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']), Sino_RefPt=Out['Sino_RefPt'], Sino_NP=int(Out['Sino_NP']), SavePath=Id.SavePath)
 
     elif Id.Cls == 'Struct':
-        obj = TFG.Struct(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, Lim=Out['Lim'], Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']),
-                         SavePath=Id.SavePath, dtime=Id.dtime)
+        Lim = None if Out['Lim'].tolist() is None else Out['Lim']
+        obj = tfg.Struct(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, Lim=Lim, Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']), SavePath=Id.SavePath)
 
     elif Id.Cls == 'LOS':
-        Ves = _tryloadVes(Id)
-        obj = TFG.LOS(Id, tuple(Out['Du']), Type=Id.Type, Ves=Ves, Sino_RefPt=Out['Sino_RefPt'], arrayorder=str(Out['arrayorder']), Clock=bool(Out['Clock']), Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot,
-                      SavePath=Id.SavePath, dtime=Id.dtime)
+        Ves, LStruct = _tryloadVesStruct(Id, Print=Print)
+        assert not (Ves is None and 'Ves' in Id.LObj.keys() and len(Id.LObj['Ves']['Name'])>0), "Ves could not be loaded !"
+        assert not (LStruct is None and 'Struct' in Id.LObj.keys() and len(Id.LObj['Struct']['Name'])>0), "Struct could not be loaded !"
+        obj = tfg.LOS(Id, tuple(Out['Du']), Ves=Ves, LStruct=LStruct, Sino_RefPt=Out['Sino_RefPt'], Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot, SavePath=Id.SavePath)
+
+    """
     elif Id.Cls == 'GLOS':
         Ves = _tryloadVes(Id)
         LLOS, IdLOS = [], Id.LObj['LOS']
@@ -1507,6 +1520,7 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False):
             obj._Spec = list(Out['Spec'])
             obj._timing = Out['t2']
             obj._PostTreat = list(Out['PostTreat'])
+    """
     return obj
 
 
