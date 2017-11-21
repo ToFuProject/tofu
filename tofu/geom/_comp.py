@@ -344,7 +344,7 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', Test=True):
     Pts, k, dLr = LOS_get_mesh(D, u, dL, DL=DL, dLMode=dLMode, Test=Test)
     out = insp(ff)
     if sys.version[0]=='3':
-        N = np.sum([1 for pp in out.parameters.values if (pp.kind==pp.POSITIONAL_OR_KEYWORD and pp.default is pp.empty)])
+        N = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD and pp.default is pp.empty) for pp in out.parameters.values()])
     else:
         N = len(out.args)
 
