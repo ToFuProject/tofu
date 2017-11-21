@@ -326,16 +326,22 @@ def LOS_CrossProj(VType, D, u, kPIn, kPOut, kRMin):
 #       Meshing & signal
 ##############################################
 
-def LOS_get_mesh(D, u, dL, DL=None):
-    N = np.ceil((DL[1]-DL[0])/dL)
+def LOS_get_mesh(D, u, dL, DL=None, dLMode='abs', Test=True):
+    if Test:
+        assert all([type(dd) is np.ndarray and dd.shape==(3,) for dd in [D,u]])
+        assert not hasattr(dL,'__iter__')
+        assert DL is None or all([hasattr(DL,'__iter__'), len(DL)==2, all([not hasattr(dd,'__iter__') for dd in DL])])
+        assert dLMode in ['abs','rel']
+    N = np.ceil((DL[1]-DL[0])/dL) if dLMode=='abs' else np.ceil(1./dL)
     dLr = (DL[1]-DL[0])/N
     k = DL[0] + (0.5+np.arange(0,N))*dLr
     Pts = D[:,np.newaxis] + k[np.newaxis,:]*u[:,np.newaxis]
     return Pts, k, dLr
 
 
-def LOS_calc_signal(ff, D, u, dL, DL=None):
-    Pts, k, dLr = LOS_get_mesh(D, u, dL, DL=DL)
+def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', Test=True):
+    assert hasattr(ff,'__call__'), "Arg ff must be a callable (function) taking at least 1 positional Pts (a (3,N) np.ndarray of cartesian (X,Y,Z) coordinates) !"
+    Pts, k, dLr = LOS_get_mesh(D, u, dL, DL=DL, dLMode=dLMode, Test=Test)
     out = insp(ff)
     if sys.version[0]=='3':
         N = np.sum([1 for pp in out.parameters.values if (pp.kind==pp.POSITIONAL_OR_KEYWORD and pp.default is pp.empty)])
@@ -349,4 +355,4 @@ def LOS_calc_signal(ff, D, u, dL, DL=None):
     else:
         raise ValueError("The function (ff) assessing the emissivity loccaly must take a single positional argument: Pts, a (3,N) np.ndarray of (X,Y,Z) cartesian coordinates !")
 
-    return np.sum(Vals*dLr)
+    return np.sum(Vals[~np.isnan(Vals)])*dLr

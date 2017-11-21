@@ -209,6 +209,81 @@ class Test02_Struct(Test01_Ves):
 
 
 
+#######################################################
+#
+#     Creating LOS objects and testing methods
+#
+#######################################################
+
+
+class Test03_LOS:
+
+    @classmethod
+    def setup_class(cls, LVes=[VesLin,VesTor]):
+        #print ("")
+        #print "--------- "+VerbHead+cls.__name__
+        LS = [None, None]
+        cls.LObj = [None for vv in LVes]
+        for ii in range(0,len(LVes)):
+            D = (0,0.95*LVes[ii].geom['P1Max'][0], 0)
+            u = (0,1,0)
+            cls.LObj[ii] = tfg.LOS('Test'+str(ii), (D,u), Ves=LVes[ii], LStruct=LS[ii], Exp=None, Diag='Test', SavePath=here+Addpath)
+
+    @classmethod
+    def teardown_class(cls):
+        #print ("teardown_class() after any methods in this class")
+        pass
+
+    def setup(self):
+        #print ("TestUM:setup() before each test method")
+        pass
+
+    def teardown(self):
+        #print ("TestUM:teardown() after each test method")
+        pass
+
+    def test01_get_mesh(self):
+        for ii in range(0,len(self.LObj)):
+            out = self.LObj[ii].get_mesh(0.01, dLMode='abs')
+            assert np.all((out[1]>=self.LObj[ii].geom['kPIn']) & (out[1]<=self.LObj[ii].geom['kPOut']))
+            assert np.abs(out[2]-0.01)<0.001
+            out = self.LObj[ii].get_mesh(0.1, dLMode='rel')
+            assert out[0].shape[1]==out[1].size
+            assert out[1].size==10
+
+    def test02_calc_signal(self):
+        for ii in range(0,len(self.LObj)):
+            if self.LObj[ii].Ves.Type=='Tor':
+                ff1 = lambda Pts: np.exp(-(np.hypot(Pts[0,:],Pts[1,:]))**2/0.1-(Pts[2,:])**2/0.1)
+                ff2 = lambda Pts, Vect: np.cos(np.arctan2(Vect[2,:],Vect[1,:]))*np.exp(-(np.hypot(Pts[0,:],Pts[1,:]))**2/0.1-(Pts[2,:])**2/0.1)
+            else:
+                ff1 = lambda Pts: np.exp(-(Pts[1,:])**2/0.1-(Pts[2,:])**2/0.1)
+                ff2 = lambda Pts, Vect: np.cos(np.arctan2(Vect[2,:],Vect[1,:]))*np.exp(-(Pts[1,:])**2/0.1-(Pts[2,:])**2/0.1)
+            out1 = self.LObj[ii].calc_signal(ff1)
+            out2 = self.LObj[ii].calc_signal(ff2)
+            assert all([not hasattr(oo,'__iter__') for oo in [out1,out2]])
+            assert not out1==out2
+
+    def test03_plot(self):
+        for ii in range(0,len(self.LObj)):
+            Lax1 = self.LObj[ii].plot(Proj='All', Elt='LDIORP', EltVes='P', Leg='', draw=False, a4=False, Test=True)
+            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='LDIORP', EltVes='P', Leg='Test', draw=False, a4=False, Test=True)
+            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='LDIORP', EltVes='PBv', Leg='', draw=False, a4=False, Test=True)
+            plt.close('all')
+
+    def test04_plot_sino(self):
+        for ii in range(0,len(self.LObj)):
+            self.LObj[ii].plot_Sinogram(Proj='Cross', Elt='LV', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
+            self.LObj[ii].plot_Sinogram(Proj='Cross', Elt='L', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
+            plt.close('all')
+
+    def test05_saveload(self):
+        for ii in range(0,len(self.LObj)):
+            self.LObj[ii].save()
+            Los = tfpf.Open(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
+            os.remove(self.LObj[ii].Id.SavePath + self.LObj[ii].Id.SaveName + '.npz')
+
+
 
 """
 #######################################################

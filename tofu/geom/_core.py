@@ -616,7 +616,7 @@ class LOS(object):
         PIn, POut, kPIn, kPOut, VperpIn, VPerpOut, IndIn, IndOut = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan, np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
         if not self.Ves is None:
             (LSPoly, LSLim, LSVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for ss in self.LStruct]) if not self.LStruct is None else (None,None,None)
-            PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IndIn, IndOut = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
+            PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IndIn, IndOut = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], Lim=self.Ves.Lim, LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
                                                                                                      RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
                                                                                                      VType=self.Ves.Type, Test=True)
             if np.isnan(kPOut):
@@ -651,16 +651,16 @@ class LOS(object):
             P, kP, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u, RefPt, Mode='LOS', kOut=kMax, VType=self.Ves.Type)
             self._sino = {'RefPt':RefPt, 'P':P, 'kP':kP, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-    def get_mesh(self, dL, DL=None):
+    def get_mesh(self, dL, DL=None, dLMode='abs'):
         """ Return a linear mesh of the LOS, with desired resolution dL, in the DL interval (distance from D)  """
         DL = DL if (hasattr(DL,'__iter__') and len(DL)==2) else [self.geom['kPIn'],self.geom['kPOut']]
-        Pts, kPts, dL = _comp.LOS_get_mesh(self.D, self.u, dL, DL=DL)
+        Pts, kPts, dL = _comp.LOS_get_mesh(self.D, self.u, dL, DL=DL, dLMode=dLMode)
         return Pts, kPts, dL
 
-    def calc_signal(self, ff, dL=0.001, DL=None):
+    def calc_signal(self, ff, dL=0.001, DL=None, dLMode='abs'):
         """ Return the line-integrated signal along the LOS, by discretizing/summing along the line (uses LOS.get_mesh() for meshing) """
         DL = DL if (hasattr(DL,'__iter__') and len(DL)==2) else [self.geom['kPIn'],self.geom['kPOut']]
-        Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL)
+        Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL, dLMode=dLMode)
         return Sig
 
     def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP', EltVes='', Leg='',
@@ -729,7 +729,7 @@ class LOS(object):
 #        return fig
 
 
-    def plot_Sinogram(self, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
+    def plot_sino(self, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
                       Ldict=_def.LOSMImpd, Vdict=_def.TorPFilld, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
         """ Plot the sinogram of the vessel polygon, by computing its envelopp in a cross-section, can also plot a 3D version of it
 
