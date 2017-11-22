@@ -1334,7 +1334,10 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False, Pr
     #elif 'TFI' in pathfileext:
     #    import tofu.inv as TFI
 
-    Out = np.load(pathfileext,mmap_mode=None)
+    try:
+        Out = np.load(pathfileext,mmap_mode=None)
+    except UnicodeError:
+        Out = np.load(pathfileext,mmap_mode=None, encoding='latin1')
     Id = _Id_recreateFromdict(Out['Idsave'])
     if out=='Id':
         return Id
