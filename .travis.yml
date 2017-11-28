@@ -44,7 +44,6 @@ before_deploy:
 - ls $START
 - cd $START
 deploy:
-  matrix:
   - provider: script
     user: ToFuProject
     script: "$START/anaconda_upload.sh"
