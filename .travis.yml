@@ -1,81 +1,58 @@
 language: python
 python:
-  # We don't actually use the Travis Python, but this keeps it organized.
-  - "2.7"
-  - "3.6"
-
+- '2.7'
+- '3.6'
 git:
   depth: 100
-
 sudo: required
-
 before_install:
-  - sudo apt-get update
-  - ldd --version
-  - gcc --version
-  - export START=$(pwd)
-  - export REV=$(git describe)
-  - export VERSION=$(echo $REV | tr - .)
-
+- sudo apt-get update
+- ldd --version
+- gcc --version
+- export START=$(pwd)
+- export REV=$(git describe)
+- export VERSION=$(echo $REV | tr - .)
 install:
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-      export VADD="py27";
-      export PCK="polygon2";
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-      export VADD="py36";
-      export PCK="polygon3";
-    fi
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda install conda-build
-  - conda update -q conda
-  - conda update -n root conda-build
-  - conda config --set anaconda_upload no
-  - conda config --append channels conda-forge
-  - conda config --append channels tofuproject
-  # Useful for debugging any issues with conda
-  - conda info -a
-  # Replace dep1 dep2 ... with your dependencies
-  - conda install -q python=$TRAVIS_PYTHON_VERSION conda-build anaconda-client nose nose-timer coverage codecov
-  # Building
-  - conda build conda_recipe
-  - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
-  - conda install tofu --use-local
-
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
+  -O miniconda.sh; export VADD="py27"; export PCK="polygon2"; else wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  -O miniconda.sh; export VADD="py36"; export PCK="polygon3"; fi
+- bash miniconda.sh -b -p $HOME/miniconda
+- export PATH="$HOME/miniconda/bin:$PATH"
+- hash -r
+- conda config --set always_yes yes --set changeps1 no
+- conda install conda-build
+- conda update -q conda
+- conda update -n root conda-build
+- conda config --set anaconda_upload no
+- conda config --append channels conda-forge
+- conda config --append channels tofuproject
+- conda info -a
+- conda install -q python=$TRAVIS_PYTHON_VERSION conda-build anaconda-client nose
+  nose-timer coverage codecov
+- conda build conda_recipe
+- export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
+- conda install tofu --use-local
 script:
-  - cd $HOME
-  #- ls $HOME/miniconda/envs/test-environment/lib/python3.6/site-packages/tofu/geom
-  - nosetests tofu.tests.tests01_geom --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
-
+- cd $HOME
+- nosetests tofu.tests.tests01_geom --nocapture -v --with-id --with-timer --with-coverage
+  --cover-package=tofu
 after_success:
-  - codecov
-  - chmod +x $START/anaconda_upload.sh
-  #- source deactivate
-
-
-
+- codecov
+- chmod +x $START/anaconda_upload.sh
 before_deploy:
-  - ls $START
-  - cd $START
-
+- ls $START
+- cd $START
 deploy:
-  - provider: pypi
-    user: "Didou09"
-    password:
-      secure:"sIYghJguUkjJVurJirykyVqpXh3RILETvkFsy3eKQDbdrZ3645tz+hqdKMffRqsvM9eaSQ4QTKSv+HmNQgHx5sEOuWOocKUAH9z0Jn6sd55C6WFBq5FgS72NdTJ6GNPM0myKurJce/10A3tLRfQ0cMtJjmmitLhrayz9VWJBeKy3HSirtvWttPYrA1ce7Iewm/7x/tt4jLL27S9n/mPuTNZopHzxgfeaJ2buaaCaXfEvK/H2u+fKxmrPpRBloPVgPBr6HLRAz2udCE/bz6kvT5jttosO18KX90Eqnj335Iqk5lh8kJXTM9ieFNcPb+oETGFIZRV6sJiWPrv8lb3HnFhWLfUXDkorhNGfqxiphwm8jToKO7MoE0Nk7RMQ9G8Y6E80QsxSKriTRN/xlMGJu8649qxnp2hf3CStyU0+HTvfM5x6UKYWT2Av0EGB7dFBap9Rt0yz4V8gwrQeewVog7W4Pp33XmMIYkOTqapsK38LjHlygVKMWMM7WS3EXKXVTTCD8wl6CZ4DwDSnwWm9UyHbYBYrNSkdatmv5yAQrrH/gUEy3AFfBFcP838zAyXOqTl7w/orRM3cKj2ot+btcI3knEP6njsOcczMOoLS/C+4Z2O1w5SqXNQZjGusvusRed+J3ul7mrBrXi2G66KvUieicZwLyqsjwpokwfrcD4c="
-    skip_cleanup: true
-    on:
-      tags: true
-      #branch: master
+  matrix:
   - provider: script
-    user: "ToFuProject"
-    script: $START/anaconda_upload.sh
+    user: ToFuProject
+    script: "$START/anaconda_upload.sh"
     on:
       tags: true
+  - provider: pypi
+    user: Didou09
     skip_cleanup: true
+    on:
+      tags: true
+    password:
+      secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
