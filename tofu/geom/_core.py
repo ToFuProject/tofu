@@ -658,16 +658,29 @@ class LOS(object):
             Pt, kPt, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u, RefPt, Mode='LOS', kOut=kMax, VType=VType)
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-    def get_mesh(self, dL, DL=None, dLMode='abs'):
+    def get_mesh(self, dL, DL=None, dLMode='abs', method='sum'):
         """ Return a linear mesh of the LOS, with desired resolution dL, in the DL interval (distance from D)  """
         DL = DL if (hasattr(DL,'__iter__') and len(DL)==2) else [self.geom['kPIn'],self.geom['kPOut']]
-        Pts, kPts, dL = _comp.LOS_get_mesh(self.D, self.u, dL, DL=DL, dLMode=dLMode)
+        Pts, kPts, dL = _comp.LOS_get_mesh(self.D, self.u, dL, DL=DL, dLMode=dLMode, method=method)
         return Pts, kPts, dL
 
-    def calc_signal(self, ff, dL=0.001, DL=None, dLMode='abs'):
-        """ Return the line-integrated signal along the LOS, by discretizing/summing along the line (uses LOS.get_mesh() for meshing) """
+    def calc_signal(self, ff, dL=0.001, DL=None, dLMode='abs', method='romb'):
+        """ Return the line-integrated emissivity
+
+        Beware that it is only a line-integral, there is no multiplication by an Etendue (which cannot be computed for a LOS object, because the etendue depends on the surfaces and respective positions of the detector and its apertures, which are not provided for a LOS object.
+        Hence, if the emissivity is provided in W/m3, the method return a signal in W/m2
+        The line is sampled using LOS.get_mesh(), and the integral can be computed using three different methods: 'sum', 'simps' or 'romb'
+
+        Parameters
+        ----------
+        ff :    callable
+            The user-provided
+
+
+
+        """
         DL = DL if (hasattr(DL,'__iter__') and len(DL)==2) else [self.geom['kPIn'],self.geom['kPOut']]
-        Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL, dLMode=dLMode)
+        Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL, dLMode=dLMode, method=method)
         return Sig
 
     def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP', EltVes='', Leg='',
