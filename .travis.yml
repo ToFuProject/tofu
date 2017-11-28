@@ -67,8 +67,7 @@ before_deploy:
 deploy:
   - provider: pypi
     user: "Didou09"
-    password:
-      secure:"sIYghJguUkjJVurJirykyVqpXh3RILETvkFsy3eKQDbdrZ3645tz+hqdKMffRqsvM9eaSQ4QTKSv+HmNQgHx5sEOuWOocKUAH9z0Jn6sd55C6WFBq5FgS72NdTJ6GNPM0myKurJce/10A3tLRfQ0cMtJjmmitLhrayz9VWJBeKy3HSirtvWttPYrA1ce7Iewm/7x/tt4jLL27S9n/mPuTNZopHzxgfeaJ2buaaCaXfEvK/H2u+fKxmrPpRBloPVgPBr6HLRAz2udCE/bz6kvT5jttosO18KX90Eqnj335Iqk5lh8kJXTM9ieFNcPb+oETGFIZRV6sJiWPrv8lb3HnFhWLfUXDkorhNGfqxiphwm8jToKO7MoE0Nk7RMQ9G8Y6E80QsxSKriTRN/xlMGJu8649qxnp2hf3CStyU0+HTvfM5x6UKYWT2Av0EGB7dFBap9Rt0yz4V8gwrQeewVog7W4Pp33XmMIYkOTqapsK38LjHlygVKMWMM7WS3EXKXVTTCD8wl6CZ4DwDSnwWm9UyHbYBYrNSkdatmv5yAQrrH/gUEy3AFfBFcP838zAyXOqTl7w/orRM3cKj2ot+btcI3knEP6njsOcczMOoLS/C+4Z2O1w5SqXNQZjGusvusRed+J3ul7mrBrXi2G66KvUieicZwLyqsjwpokwfrcD4c="
+    password: ""
     skip_cleanup: true
     on:
       tags: true

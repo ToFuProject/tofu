@@ -6,6 +6,7 @@ This module is the computational part of the geometrical module of ToFu
 import sys
 import numpy as np
 import scipy.interpolate as scpinterp
+import scipy.integrate as scpintg
 if sys.version[0]=='3':
     from inspect import signature as insp
 elif sys.version[0]=='2':
@@ -326,22 +327,43 @@ def LOS_CrossProj(VType, D, u, kPIn, kPOut, kRMin):
 #       Meshing & signal
 ##############################################
 
-def LOS_get_mesh(D, u, dL, DL=None, dLMode='abs', Test=True):
+def LOS_get_mesh(D, u, dL, DL=None, dLMode='abs', method='sum', Test=True):
+    """ Return the sampled line, with the specified method
+
+    'linspace': return the N+1 edges, including the first and last point
+    'sum' : return the N middle of the segments
+    'simps': return the N+1 egdes, where N has to be even (scipy.simpson requires an even number of intervals)
+    'romb' : return the N+1 edges, where N+1 = 2**k+1 (fed to scipy.romb for integration)
+    """
     if Test:
         assert all([type(dd) is np.ndarray and dd.shape==(3,) for dd in [D,u]])
         assert not hasattr(dL,'__iter__')
         assert DL is None or all([hasattr(DL,'__iter__'), len(DL)==2, all([not hasattr(dd,'__iter__') for dd in DL])])
         assert dLMode in ['abs','rel']
-    N = np.ceil((DL[1]-DL[0])/dL) if dLMode=='abs' else np.ceil(1./dL)
-    dLr = (DL[1]-DL[0])/N
-    k = DL[0] + (0.5+np.arange(0,N))*dLr
+        assert type(method) is str and method in ['linspace','sum','simps','romb']
+    # Compute the minimum number of intervals to satisfy the specified resolution
+    N = int(np.ceil((DL[1]-DL[0])/dL)) if dLMode=='abs' else int(np.ceil(1./dL))
+    # Modify N according to the desired method
+    if method=='simps':
+        N = N if N%2==0 else N+1
+    elif method=='romb':
+        N = 2**int(np.ceil(np.log(N)/np.log(2.)))
+
+    # Derive k and dLr
+    if method=='sum':
+        dLr = (DL[1]-DL[0])/N
+        k = DL[0] + (0.5+np.arange(0,N))*dLr
+    else:
+        k, dLr = np.linspace(DL[0], DL[1], N+1, endpoint=True, retstep=True, dtype=float)
+
     Pts = D[:,np.newaxis] + k[np.newaxis,:]*u[:,np.newaxis]
     return Pts, k, dLr
 
 
-def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', Test=True):
+def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=True):
     assert hasattr(ff,'__call__'), "Arg ff must be a callable (function) taking at least 1 positional Pts (a (3,N) np.ndarray of cartesian (X,Y,Z) coordinates) !"
-    Pts, k, dLr = LOS_get_mesh(D, u, dL, DL=DL, dLMode=dLMode, Test=Test)
+    assert not method=='linspace'
+    Pts, k, dLr = LOS_get_mesh(D, u, dL, DL=DL, dLMode=dLMode, method=method, Test=Test)
     out = insp(ff)
     if sys.version[0]=='3':
         N = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD and pp.default is pp.empty) for pp in out.parameters.values()])
@@ -355,4 +377,11 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', Test=True):
     else:
         raise ValueError("The function (ff) assessing the emissivity loccaly must take a single positional argument: Pts, a (3,N) np.ndarray of (X,Y,Z) cartesian coordinates !")
 
-    return np.sum(Vals[~np.isnan(Vals)])*dLr
+    Vals[np.isnan(Vals)] = 0.
+    if method=='sum':
+        Int = np.sum(Vals)*dLr
+    elif method=='simps':
+        Int = scpintg.simps(Vals, x=None, dx=dLr)
+    elif method=='romb':
+        Int = scpintg.romb(Vals, dx=dLr, show=False)
+    return Int
