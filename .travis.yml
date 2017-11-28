@@ -45,13 +45,14 @@ before_deploy:
 - cd $START
 deploy:
   - provider: script
-    user: ToFuProject
-    script: "$START/anaconda_upload.sh"
+    user: "ToFuProject"
+    script: $START/anaconda_upload.sh
     on:
       tags: true
       all_branches: true
+    skip_cleanup: true
   - provider: pypi
-    user: Didou09
+    user: "Didou09"
     distributions: "sdist bdist bdist_wheel"
     skip_cleanup: true
     on:
