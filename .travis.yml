@@ -39,10 +39,10 @@ script:
 after_success:
 - codecov
 - chmod +x $START/anaconda_upload.sh
+- echo $TRAVIS_TAG
 before_deploy:
 - ls $START
 - cd $START
-- echo $TRAVIS_TAG
 deploy:
   matrix:
   - provider: script
