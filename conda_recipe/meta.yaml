@@ -25,7 +25,6 @@ requirements:
     - matplotlib
     - cython
     - nose
-    - nose-timer
     - pygments
     - {{ environ['PCK'] }}
 
@@ -38,7 +37,6 @@ requirements:
     - matplotlib
     - cython
     - nose
-    - nose-timer
     - pygments
     - {{ environ['PCK'] }}
 

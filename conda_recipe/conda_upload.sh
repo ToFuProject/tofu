@@ -12,7 +12,7 @@ OS=linux-64
 #export VERSION=`date +%Y.%m.%d`
 #export VERSION=$(head -n 1 version.txt)
 
-conda build conda_recipe
+#conda build conda_recipe
 PKG_REAL=$(find $CONDA_BLD_PATH/$OS/ -type f -name $PKG_NAME-$VERSION-$VADD*.tar.bz2)
 echo $PKG_REAL
 anaconda -t $CONDA_UPLOAD_TOKEN upload -u $USER -l main $PKG_REAL --force

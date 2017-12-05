@@ -69,9 +69,8 @@ else:
                             language='c++', include_dirs=['tofu/cpp/'])]
 
 setup(
-    name='tofu',
+    name='to-fu',
     version="{ver}".format(ver=version_git),
-
     # Use scm to get code version from git tags
     # cf. https://pypi.python.org/pypi/setuptools_scm 
     # Versions should comply with PEP440. For a discussion on single-sourcing
@@ -112,7 +111,7 @@ setup(
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.6'
+        'Programming Language :: Python :: 3.6',
 
         # In which language most of the code is written ?
         'Natural Language :: English',

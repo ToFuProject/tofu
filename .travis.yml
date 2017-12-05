@@ -10,8 +10,6 @@ before_install:
 - ldd --version
 - gcc --version
 - export START=$(pwd)
-- export REV=$(git describe)
-- export VERSION=$(echo $REV | tr - .)
 install:
 - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
   -O miniconda.sh; export VADD="py27"; export PCK="polygon2"; else wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
@@ -29,6 +27,8 @@ install:
 - conda info -a
 - conda install -q python=$TRAVIS_PYTHON_VERSION conda-build anaconda-client nose
   nose-timer coverage codecov
+- export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
+- export VERSION=$(echo $REV | tr - .)
 - conda build conda_recipe
 - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
 - conda install tofu --use-local
@@ -53,7 +53,7 @@ deploy:
     skip_cleanup: true
   - provider: pypi
     user: "Didou09"
-    distributions: "sdist bdist bdist_wheel"
+    distributions: "sdist"
     skip_cleanup: true
     on:
       tags: true
