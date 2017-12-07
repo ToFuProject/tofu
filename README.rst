@@ -32,8 +32,8 @@ synthtic diagnostic (direct problem) and tomography (inverse problem).
 It was first created at the Max-Planck Institute for Plasma Physics (IPP) in Garching, Germany, 
 by Didier Vezinet, and is now maintained / debugged / updated by him and other contributors.
 
-A sphinx-generated documentation can be found at [the ToFu documentation page](<https://ToFuProject.github.io/tofu/index.html>),
-and the code itself is hosted on [GitHub](<https://github.com/ToFuProject/tofu>).
+A sphinx-generated documentation can be found at [the ToFu documentation page](https://ToFuProject.github.io/tofu/index.html),
+and the code itself is hosted on [GitHub](https://github.com/ToFuProject/tofu).
 
 
 ----

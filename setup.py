@@ -29,17 +29,21 @@ os.environ['CXX'] = 'gcc'
 
 here = os.path.abspath(os.path.dirname(__file__))
 version_git = up.updateversion(os.path.join(here,'tofu'))
-print("")
-print("Version for setup.py : ", version_git)
-print("")
-
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6']:
     gg = '_GG0%s' % sys.version[0]
     poly = 'polygon%s' % sys.version[0]
+    subv = '.13' if sys.version[0]=='2' else '.1'
+    pyreq = '~='+sys.version[:3]+subv
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
+
+print("")
+print("Version for setup.py : ", version_git)
+print("python_requires : ", pyreq)
+print("")
+
 
 # Getting relevant compilable files
 if sys.version[0]=='3':
@@ -146,7 +150,7 @@ setup(
             'cython',
             ],
 
-    python_requires = '~=2.7.13, ~=3.6.1',
+    python_requires = pyreq,
 
 
     # List additional groups of dependencies here (e.g. development
