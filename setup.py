@@ -29,11 +29,9 @@ os.environ['CXX'] = 'gcc'
 
 here = os.path.abspath(os.path.dirname(__file__))
 version_git = up.updateversion(os.path.join(here,'tofu'))
-try:
-    vers_pypi = os.environ['VERSION']
-except Exception:
-    vers_pypi = version_git
-
+print("")
+print("Version for setup.py : ", version_git)
+print("")
 
 
 # To compile the relevant version
@@ -77,15 +75,15 @@ else:
 setup(
     name='tofu',
     #version="1.2.27",
-    version="{ver}".format(ver=vers_pypi),
+    version="{ver}".format(ver=version_git),
     # Use scm to get code version from git tags
     # cf. https://pypi.python.org/pypi/setuptools_scm 
     # Versions should comply with PEP440. For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
     # The version is stored only in the setup.py file and read from it (option 1 in https://packaging.python.org/en/latest/single_source_version.html)
-    use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    use_scm_version=False,
+    #setup_requires=['setuptools_scm'],
 
     description='A python library for Tomography for Fusion',
     long_description=long_description,
