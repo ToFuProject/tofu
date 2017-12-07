@@ -37,10 +37,8 @@ if sys.version[:3] in ['2.7','3.6']:
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
 
-
-TempVer = ', =='+sys.version[:5]
 print("")
-print("Version for setup.py : ", version_git, TempVer)
+print("Version for setup.py : ", version_git)
 print("")
 
 
@@ -149,7 +147,7 @@ setup(
             'cython',
             ],
 
-    python_requires = '~=2.7, ~=3.6'+TempVer,
+    python_requires = '>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*',
 
 
     # List additional groups of dependencies here (e.g. development
