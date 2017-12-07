@@ -29,6 +29,12 @@ os.environ['CXX'] = 'gcc'
 
 here = os.path.abspath(os.path.dirname(__file__))
 version_git = up.updateversion(os.path.join(here,'tofu'))
+try:
+    vers_pypi = os.environ['VERSION']
+except:
+    vers_pypî = version_git
+
+
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6']:
@@ -70,7 +76,8 @@ else:
 
 setup(
     name='tofu',
-    version="{ver}".format(ver=version_git),
+    #version="1.2.27",
+    version="{ver}".format(ver=vers_pypi),
     # Use scm to get code version from git tags
     # cf. https://pypi.python.org/pypi/setuptools_scm 
     # Versions should comply with PEP440. For a discussion on single-sourcing

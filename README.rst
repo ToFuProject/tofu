@@ -14,6 +14,14 @@
 ToFu
 ====
 
+-----
+
+**Warning**
+This Pypi package focuses on tomography for fusion research.
+It uses the same name as a previous package dedicated to a testing framework coupling fixtures and tests loosely, now renamed **reahli-tofu** and developped by Iwan Vosloo since 2006. If you ended up here looking for a web-oriented library, you should probably redirect to the more recent [**reahl-tofu**](https://pypi.python.org/pypi/reahl-tofu/3.2.0) page.
+
+-----
+
 ToFu stands for Tomography for Fusion, it is an open-source machine-independent python library
 with non-open source plugins containing all machine-dependent routines.
 
@@ -24,8 +32,8 @@ synthtic diagnostic (direct problem) and tomography (inverse problem).
 It was first created at the Max-Planck Institute for Plasma Physics (IPP) in Garching, Germany, 
 by Didier Vezinet, and is now maintained / debugged / updated by him and other contributors.
 
-A sphinx-generated documentation can be found at `the ToFu documentation page <https://ToFuProject.github.io/tofu/index.html>`,
-and the code itself is hosted on `GitHub <https://github.com/ToFuProject/tofu>`.
+A sphinx-generated documentation can be found at [the ToFu documentation page](<https://ToFuProject.github.io/tofu/index.html>),
+and the code itself is hosted on [GitHub](<https://github.com/ToFuProject/tofu>).
 
 
 ----
