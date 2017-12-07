@@ -69,7 +69,7 @@ else:
                             language='c++', include_dirs=['tofu/cpp/'])]
 
 setup(
-    name='to-fu',
+    name='tofu',
     version="{ver}".format(ver=version_git),
     # Use scm to get code version from git tags
     # cf. https://pypi.python.org/pypi/setuptools_scm 
