@@ -25,14 +25,14 @@ matcomp
 treat
     Data-handling objects and methods for pre-treatment (visualisation, treatment...)
 inv
-    Inversion-regularisation algortihms, using outputs from both matcomp and data, plus visualisation methods
+    Inversion-regularisation algortihms, using outputs from matcomp and data, plus visualisation
 
 Available modules
 -----------------
 defaults
     Store most default parameters of tofu
 pathfile
-    Provide a class for identification of all tofu objects and methods and functions for path and file handling, object saving and loading
+    Provide a class for identification of all tofu objects, and functions for path and file handling
 helper
     miscellaneous helper functions
 
@@ -52,14 +52,14 @@ Created on Wed May 18 2016
 @author_email: didier.vezinet@gmail.com
 """
 import sys
-if sys.version[0]=='2':
+if sys.version[0] == '2':
     from version import __version__
-elif sys.version[0]=='3':
-    from .version import __version__
+elif sys.version[0] == '3':
+    from tofu.version import __version__
 else:
     raise Exception("Not supported python version !")
 
-__all__ = ['geom','pathfile']
+__all__ = ['geom', 'pathfile']
 
 #__all__.extend(['__version__'])
 #__all__.extend(core.__all__)
@@ -71,4 +71,3 @@ __all__ = ['geom','pathfile']
 #__license__ = ""
 #__url__ = ""
 #__path__ =
-

@@ -1,31 +1,14 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/python
-
-#import sys
-try:
-    from tofu.geom._core import Ves, Struct, LOS
-except Exception:
-    from _core import Ves, Struct
-
-__all__ = ['_GG','_comp','_plot','_def']
-
 """
-if sys.version[0]=='2':
-    try:
-        del _GG02
-    except:
-        try:
-            del tofu.geom._GG02
-        except:
-            pass
-else:
-    try:
-        del _GG03
-    except:
-        try:
-            del tofu.geom._GG03
-        except:
-            pass
+The geometry module of tofu
 
-del sys
+Provides classes to model the 3D geometry of:
+* the vacuum vessel and structural elements
+* LOS
+* apertures and detectors
 """
+
+from tofu.geom._core import Ves, Struct, LOS
+
+__all__ = ['_GG', '_comp', '_plot', '_def']
