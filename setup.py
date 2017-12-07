@@ -38,7 +38,7 @@ else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
 
 
-TempVer = '=='+sys.version[:5]
+TempVer = ', =='+sys.version[:5]
 print("")
 print("Version for setup.py : ", version_git, TempVer)
 print("")
