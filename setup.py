@@ -31,8 +31,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 version_git = up.updateversion(os.path.join(here,'tofu'))
 try:
     vers_pypi = os.environ['VERSION']
-except:
-    vers_pypî = version_git
+except Exception:
+    vers_pypi = version_git
 
 
 

@@ -29,6 +29,7 @@ install:
   nose-timer coverage codecov
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
 - export VERSION=$(echo $REV | tr - .)
+- echo $REV
 - conda build conda_recipe
 - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
 - conda install tofu --use-local
