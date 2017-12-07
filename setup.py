@@ -147,7 +147,7 @@ setup(
             'cython',
             ],
 
-    python_requires = '~2.7, ~=3.6',
+    python_requires = '~=2.7, ~=3.6',
 
 
     # List additional groups of dependencies here (e.g. development
