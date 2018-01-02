@@ -840,3 +840,7 @@ def _LOS_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None, C
     Ints = [shot]
     if any([not aa is None for aa in Ints]):
         assert all([aa is None or type(aa) is int for aa in Ints]), "Args [Sino_NP,shot] must be int !"
+
+
+
+#class GLOS(object):

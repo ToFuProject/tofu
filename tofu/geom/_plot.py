@@ -55,7 +55,10 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_def.To
     """
     if Test:
         assert Proj in ['Cross','Hor','All','3d'], "Arg Proj must be in ['Cross','Hor','All','3d'] !"
-        assert Lax is None or type(Lax) in [list,tuple,plt.Axes,Axes3D], "Arg Lax must be a plt.Axes or a list of such !"
+        C0 = [hasattr(Lax,'__iter__'),
+              all([issubclass(aa.__class__,plt.Axes) for aa in Lax])]
+        C1 = issubclass(Lax.__class__,plt.Axes)
+        assert Lax is None or all(C0) or C1, "Arg Lax must be a plt.Axes or a list of such !"
         assert type(draw) is bool, "Arg draw must be a bool !"
 
     Lax = list(Lax) if hasattr(Lax,'__iter__') else [Lax]
@@ -105,7 +108,7 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV', Pdict=_def.TorPd, Idict=_def.
     """
     if Test:
         assert V.Id.Cls in ['Ves','Struct'], 'Arg V should a Ves instance !'
-        assert type(ax) is plt.Axes or ax is None, 'Arg ax should a plt.Axes instance !'
+        assert ax is None or issubclass(ax.__class__,plt.Axes), 'Arg ax should a plt.Axes instance !'
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
         assert type(Idict) is dict, "Arg Idict should be a dictionary !"
         assert type(Bsdict) is dict, "Arg Bsdict should be a dictionary !"
@@ -152,7 +155,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.Tor
     if Test:
         assert V.Id.Cls in ['Ves','Struct'], 'Arg V should a Ves instance !'
         assert type(Nstep) is int
-        assert type(ax) is plt.Axes or ax is None, 'Arg ax should a plt.Axes instance !'
+        assert ax is None or issubclass(ax.__class__,plt.Axes), 'Arg ax should a plt.Axes instance !'
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
         assert type(Idict) is dict, 'Arg Idict should be a dictionary !'
         assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
