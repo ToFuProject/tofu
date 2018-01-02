@@ -20,7 +20,8 @@ except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
 
-__all__ = ['Ves', 'Struct', 'LOS']
+__all__ = ['Ves', 'Struct',
+           'LOS', 'GLOS']
 
 
 
@@ -508,33 +509,49 @@ class Struct(Ves):
 
 
 class LOS(object):
-    """ A Line-Of-Sight object (semi-line with signed direction) with all useful geometrical parameters, associated :class:`~tofu.geom.Ves` object and built-in methods for plotting, defined in (X,Y,Z) cartesian coordinates
+    """ A Line-Of-Sight object (semi-line with signed direction)
 
-    A Line of Sight (LOS) is a semi-line. It is a useful approximate representation of a (more accurate) Volume of Sight (VOS) when the latter is narrow and elongated.
-    It is usually associated to a detector placed behind apertures.
-    When associated to a :class:`~tofu.geom.Ves` object, special points are automatically computed (entry point, exit point, closest point to the center of the :class:`~tofu.geom.Ves` object...) as well as a projection in a cross-section.
-    While tofu provides the possibility of creating LOS objects for academic and simplification pueposes, it is generally not recommended to use them for doing physics, consider using a Detect object instead (which will provide you with a proper and automatically-computed VOS as well as with a LOS if you want).
+    Defined from a strating point and unit vector, both in (X,Y,Z) coordinates
+    Should be associated a :class:`~tofu.geom.Ves` object (to limit the volume)
+
+    A LOS can be a useful approximation of a Volume of Sight (VOS)
+    That approximation is better when the VOS is narrow and elongated
+    It is usually associated to a detector placed behind apertures
+
+    If associated to a :class:`~tofu.geom.Ves` object, special points are computed
+    (entry and exit point...) as well as a projection in a cross-section
+
+    ToFu provides LOS objects for simple cases and academic purposes,
+    but it is generally advized to create a Detect object (with Apertures)
+    to compute the full 3D VOS (no approximation).
 
     Parameters
     ----------
         Id :            str / tfpf.ID
-            A name string or a pre-built tfpf.ID class to be used to identify this particular instance, if a string is provided, it is fed to tfpf.ID()
+            A name string or a :class:`~tofu.pathfile.ID` to identify this instance,
+            if a string is provided, it is fed to :class:`~tofu.pathfile.ID`
         Du :            list / tuple
-            List of 2 arrays of len=3, the (X,Y,Z) coordinates of respectively the starting point D of the LOS and its directing vector u (will be automatically normalized)
-        Ves :           :class:`~tofu.geom.Ves`
+            List of 2 iterables of len=3, the (X,Y,Z) coordinates of:
+                - D: the starting point of the LOS
+                - u: its directing unit vector u (automatically normalized)
+        Ves :           None / :class:`~tofu.geom.Ves`
             A :class:`~tofu.geom.Ves` instance to be associated to the created LOS
-        Sino_RefPt :    None or np.ndarray
-            If provided, array of size=2 containing the (R,Z) (for 'Tor' Type) or (Y,Z) (for 'Lin' Type) coordinates of the reference point for the sinogram
-        arrayorder :    str
-            Flag indicating whether the attributes of type=np.ndarray (e.g.: Poly) should be made C-contiguous ('C') or Fortran-contiguous ('F')
+        LStruct:        None / :class:`~tofu.geom.Struct` / list
+            A :class:`~tofu.geom.Struct` instance or a list of such, for obstructions
+        Sino_RefPt :    None / np.ndarray
+            Iterable of len=2 containing the coordinates of the sinogram reference
+                - (R,Z) coordinates if the vessel is of Type 'Tor'
+                ' (Y,Z) coordinates if the vessel is of Type 'Lin'
         Type       :    None
             (not used in the current version)
         Exp        :    None / str
-            Experiment to which the Lens belongs, should be identical to Ves.Id.Exp if Ves is provided, if None and Ves is provided, Ves.Id.Exp is used
+            Experiment to which the LOS belongs:
+                - if both Exp and Ves are provided: Exp==Ves.Id.Exp
+                - if Ves is provided but not Exp: Ves.Id.Exp is used
         Diag       :    None / str
-            Diagnostic to which the Lens belongs
+            Diagnostic to which the LOS belongs
         shot       :    None / int
-            Shot number from which this Lens is usable (in case its position was changed from a previous configuration)
+            Shot number from which this LOS is valid
         SavePath :      None / str
             If provided, forces the default saving path of the object to the provided value
 
@@ -843,4 +860,151 @@ def _LOS_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None, C
 
 
 
-#class GLOS(object):
+
+
+
+
+
+
+class GLOS(object):
+    """ An object grouping many LOS objects, for easier handling/picking
+
+    Useful for approximating groups of detectors with a common aperture
+    Provides the same methods as :class:`~tofu.geom.LOS` but for multiple LOS
+
+    Note that you must:
+        - first create each :class:`LOS` independently
+        - then provide them as a list argument to a GLOS object
+
+    Parameters
+    ----------
+    Id :            str / :class:`~tofu.pathfile.ID`
+        A name or a :class:`~tofu.pathfile.ID` to identify this instance,
+        if a string is provided, it is fed to :class:`~tofu.pathfile.ID`
+    LLOS :          list / :class:'LOS'
+        List of LOS instances with:
+            - identical Exp, Diag and shot (if these are not provided)
+            - identical same :class:`~tofu.geom.Ves` instance (if any)
+            - identical :class:`~tofu.geom.Struct` instances (if any)
+    Exp :           None / str
+        Experiment to which  this object belongs
+    Diag :          None / str
+        Diagnostic to which the object belongs
+    shot :          None / int
+        Shot number from which this object is valid
+    SavePath :      None / str
+        Forces the saving path of the object to the provided value
+
+    """
+    def __init__(self, Id, LLOS,
+                 Ves=None, Exp=None, Diag=None, shot=None, SavePath=None):
+
+        self._Done = False
+        # Check and format inputs
+        self._check_inputs(Vess=Ves, Exp=Exp, Diag=Diag, shot=shot, LLOS=LLOS)
+
+        Exp = LLOS[0].Id.Exp if Exp is None else Exp
+        Diag = LLOS[0].Id.Diag if Diag is None else Diag
+        shot = LLOS[0].Id.shot if shot is None else shot
+
+        self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
+        self._set_LLOS(LLOS, Ves=Ves)
+        self._Done = True
+
+    @property
+    def Id(self):
+        return self._Id
+    @property
+    def LLOS(self):
+        return self._LLOSi
+    @propety
+    def geom(self):
+        return self._geom
+    @property
+    def D(self):
+        return self.geom['D']
+    @property
+    def u(self):
+        return self.geom['u']
+    @property
+    def PIn(self):
+        return self.geom['PIn']
+    @property
+    def POut(self):
+        return self.geom['POut']
+    @property
+    def Ves(self):
+        return self._LLOS[0].Ves
+    @property
+    def LStruct(self):
+        return self._LLOS[0].LStruct
+    @property
+    def nLOS(self):
+        return self._nLOS
+    @property
+    def sino(self):
+        return self._sino
+
+
+    def _check_inputs(self, Id=None, LLOS=None, Ves=None, Sino_RefPt=None,
+                      Type=None, Exp=None, Diag=None, shot=None, SavePath=None):
+        _GLOS_check_inputs(Id=Id, LLOS=LLOS, Vess=Ves, Sino_RefPt=Sino_RefPt,
+                           Type=Type, Exp=Exp, Diag=Diag, shot=shot,
+                           SavePath=SavePath)
+
+
+    # Finish
+    def _set_Id(self, Val,
+                Type=None, Exp=None, Diag=None, shot=None, SavePath=None):
+        fromdict = {'Type':Type, 'Exp':Exp,
+                    'shot':shot, 'Diag':Diag, 'SavePath':SavePath}
+        if self._Done:
+            fromdict = tfpf._get_FromItself(self.Id, fromdict)
+        tfpf._check_NotNone({'Id':Val})
+        self._check_inputs(Id=Val)
+        if type(Val) is str:
+            Dict = {'Exp':Exp, 'shot':shot, 'Diag':Diag}
+            tfpf._check_NotNone(Dict)
+            self._check_inputs(**fromdict)
+            Val = tfpf.ID('GLOS', Val, **fromdict)
+        self._Id = Val
+
+
+
+
+
+
+
+
+
+def _GLOS_check_inputs(Id=None, LLOS=None, Vess=None, Type=None,
+                       Sino_RefPt=None, Exp=None, shot=None, Diag=None,
+                       SavePath=None):
+    if not Id is None:
+        assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
+    if not Vess is None:
+        assert type(Vess) is Ves, "Arg Ves must be a Ves instance !"
+        if not Exp is None:
+            assert Exp==Vess.Id.Exp, "Arg Exp must be identical to Ves.Id.Exp !"
+    if not LLOS is None:
+        assert hasattr(LLOS,'__iter__'), "Arg LLOS must be an iterable !"
+        LCls = [type(ll) is LOS for ll in LLOS]
+        LExp = [ll.Id.Exp==LLOS[0].Id.Exp for ll in LLOS]
+        LType = [ll.Id.Type==LLOS[0].Id.Type for ll in LLOS]
+        largs = ['Poly','Type','Name','Exp','SaveName','shot']
+        LVes = [ll.Ves is None
+                or tfpf.CheckSameObj(LLOS[0].Ves,ll.Ves,largs) for ll in LLOS]
+        LDiag = [ll.Id.Diag==LLOS[0].Id.Diag for ll in LLOS]
+        Lshot = [ll.Id.shot==LLOS[0].Id.shot for ll in LLOS]
+        assert all(LCls),  "Arg LLOS must contain LOS objects !"
+        assert all(LExp),  "All LOS must have the same Exp !"
+        assert all(LType), "All LOS must have the same Type !"
+        assert all(LVes),  "All LOS must have the same Ves instance !"
+        assert all(LDiag), "All LOS must have the same Diag !"
+        assert all(Lshot), "All LOS must have the same shot !"
+    strs = [Exp,Diag,SavePath]
+    for ss in strs:
+        assert ss is None or type(ss) is str, "Arg %s must be a str !" % ss
+    assert shot is None or type(shot) is int, "Arg shot must be int !"
+    if not Sino_RefPt is None:
+        assert len(Sino_RefPt)==2, "Arg Sino_RefPt must be iterable of len=2 !"
