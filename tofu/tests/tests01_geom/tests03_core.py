@@ -144,31 +144,32 @@ class Test01_Ves:
     def test02_InsideConvexPoly(self):
         self.LObj[0].get_InsideConvexPoly(Plot=False, Test=True)
 
-    def test03_get_meshEdge(self):
-        Pts, dLr, ind = self.LObj[0].get_meshEdge(dL=0.05, DS=None, dLMode='abs', DIn=0.001)
-        Pts, dLr, ind = self.LObj[0].get_meshEdge(dL=0.1, DS=None, dLMode='rel', DIn=-0.001)
-        Pts, dLr, ind = self.LObj[0].get_meshEdge(dL=0.05, DS=[None,[-2.,0.]], dLMode='abs', DIn=0.)
+    def test03_get_sampleEdge(self):
+        Pts, dLr, ind = self.LObj[0].get_sampleEdge(dL=0.05, DS=None, dLMode='abs', DIn=0.001)
+        Pts, dLr, ind = self.LObj[0].get_sampleEdge(dL=0.1, DS=None, dLMode='rel', DIn=-0.001)
+        Pts, dLr, ind = self.LObj[0].get_sampleEdge(dL=0.05, DS=[None,[-2.,0.]], dLMode='abs', DIn=0.)
 
-    def test04_get_meshCross(self):
-        Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.02, DS=None, dSMode='abs', ind=None)
-        Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.02, DS=None, dSMode='abs', ind=ind)
-        Pts, dS, ind, dSr = self.LObj[0].get_meshCross(0.1, DS=[[0.,2.5],None], dSMode='rel', ind=None)
+    def test04_get_sampleCross(self):
+        Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.02, DS=None, dSMode='abs', ind=None)
+        Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.02, DS=None, dSMode='abs', ind=ind)
+        Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.1, DS=[[0.,2.5],None], dSMode='rel', ind=None)
 
-    def test05_get_meshS(self):
+    def test05_get_sampleS(self):
         for ii in range(0,len(self.LObj)):
-            Pts0, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=[[2.,3.],[0.,5.],[0.,np.pi/2.]], dSMode='abs', ind=None, DIn=0.001, Out='(X,Y,Z)')
-            Pts1, dS, ind, dSr = self.LObj[ii].get_meshS(0.02, DS=None, dSMode='abs', ind=ind, DIn=0.001, Out='(X,Y,Z)')
+            Pts0, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=[[2.,3.],[0.,5.],[0.,np.pi/2.]],
+                                                           dSMode='abs', ind=None, DIn=0.001, Out='(X,Y,Z)')
+            Pts1, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=None, dSMode='abs', ind=ind, DIn=0.001, Out='(X,Y,Z)')
             if type(Pts0) is list:
                 assert all([np.allclose(Pts0[ii],Pts1[ii]) for ii in range(0,len(Pts0))])
             else:
                 assert np.allclose(Pts0,Pts1)
 
-    def test06_get_meshV(self):
+    def test06_get_sampleV(self):
         if self.LObj[0].Id.Cls=='Ves':
             LDV = [[[1.,2.],[0.,2.],[3.*np.pi/4.,5.*np.pi/4.]], [[-1.,1.],[1.,2.],[0.,2.]]]
             for ii in range(0,len(self.LObj)):
-                Pts, dV, ind, dVr = self.LObj[ii].get_meshV(0.05, DV=LDV[ii], dVMode='abs', ind=None, Out='(R,Z,Phi)')
-                Pts, dV, ind, dVr = self.LObj[ii].get_meshV(0.05, DV=None, dVMode='abs', ind=ind, Out='(R,Z,Phi)')
+                Pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=LDV[ii], dVMode='abs', ind=None, Out='(R,Z,Phi)')
+                Pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=None, dVMode='abs', ind=ind, Out='(R,Z,Phi)')
 
     def test07_plot(self):
         for ii in range(0,len(self.LObj)):
@@ -206,19 +207,33 @@ class Test02_Struct(Test01_Ves):
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("--------- "+VerbHead+cls.__name__)
-        cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here)]
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor', Lim=[-np.pi/2.,np.pi/4.], shot=0, Exp='Test', SavePath=here))
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here))
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor', Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]), shot=0, Exp='Test', SavePath=here))
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin', Lim=np.array([[0.,1.],[0.5,1.5],[-2.,-1.]]), shot=0, Exp='Test', SavePath=here))
+        cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor',
+                               shot=0, Exp='Test', SavePath=here)]
+        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor',
+                                   Lim=[-np.pi/2.,np.pi/4.],
+                                   shot=0, Exp='Test', SavePath=here))
+        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin', Lim=Lim,
+                                   shot=0, Exp='Test', SavePath=here))
+        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor',
+                                   Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
+                                   shot=0, Exp='Test', SavePath=here))
+        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin',
+                                   Lim=np.array([[0.,1.],[0.5,1.5],[-2.,-1.]]),
+                                   shot=0, Exp='Test', SavePath=here))
 
     @classmethod
     def teardown_class(cls):
         #print("teardown_class() after any methods in this class")
-        cls.SL0 = tfg.Struct('Test02', PVes, Type='Lin', Lim=np.array([0.,1.]), shot=0, Exp='Test', SavePath=here)
-        cls.SL1 = tfg.Struct('Test03', PVes, Type='Lin', Lim=np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]), shot=0, Exp='Test', SavePath=here)
-        cls.ST0 = tfg.Struct('Test02', PVes, Type='Tor', Lim=None, shot=0, Exp='Test', SavePath=here)
-        cls.ST1 = tfg.Struct('Test03', PVes, Type='Tor', Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]), shot=0, Exp='Test', SavePath=here)
+        cls.SL0 = tfg.Struct('Test02', PVes, Type='Lin', Lim=np.array([0.,1.]),
+                             shot=0, Exp='Test', SavePath=here)
+        cls.SL1 = tfg.Struct('Test03', PVes, Type='Lin',
+                             Lim=np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
+                             shot=0, Exp='Test', SavePath=here)
+        cls.ST0 = tfg.Struct('Test02', PVes, Type='Tor', Lim=None, shot=0, Exp='Test',
+                             SavePath=here)
+        cls.ST1 = tfg.Struct('Test03', PVes, Type='Tor',
+                             Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
+                             shot=0, Exp='Test', SavePath=here)
         cls.SL0.save(), cls.SL1.save()
         cls.ST0.save(), cls.ST1.save()
 
@@ -238,12 +253,15 @@ class Test03_LOS:
         #print ("")
         #print "--------- "+VerbHead+cls.__name__
         LVes = [Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3
-        LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1], None, Test02_Struct. ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
+        LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1],
+              None, Test02_Struct. ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
         cls.LObj = [None for vv in LVes]
         for ii in range(0,len(LVes)):
             D = (0,0.95*LVes[ii].geom['P1Max'][0], 0)
             u = (0,1,0)
-            cls.LObj[ii] = tfg.LOS('Test'+str(ii), (D,u), Ves=LVes[ii], LStruct=LS[ii], Exp=None, Diag='Test', SavePath=here)
+            cls.LObj[ii] = tfg.LOS('Test'+str(ii), (D,u), Ves=LVes[ii],
+                                   LStruct=LS[ii], Exp=None, Diag='Test',
+                                   SavePath=here)
 
     @classmethod
     def teardown_class(cls):
@@ -258,19 +276,21 @@ class Test03_LOS:
         #print ("TestUM:teardown() after each test method")
         pass
 
-    def test01_get_mesh(self):
+    def test01_get_sample(self):
         for ii in range(0,len(self.LObj)):
-            out = self.LObj[ii].get_mesh(0.01, dLMode='abs')
-            assert np.all((out[1]>=self.LObj[ii].geom['kPIn']) & (out[1]<=self.LObj[ii].geom['kPOut']))
+            out = self.LObj[ii].get_sample(0.01, dLMode='abs')
+            assert np.all((out[1]>=self.LObj[ii].geom['kPIn'])
+                           & (out[1]<=self.LObj[ii].geom['kPOut']))
             assert np.abs(out[2]-0.01)<0.001
-            out = self.LObj[ii].get_mesh(0.1, dLMode='rel')
+            out = self.LObj[ii].get_sample(0.1, dLMode='rel')
             assert out[0].shape[1]==out[1].size
             assert out[1].size==10
 
     def test02_calc_signal(self):
         for ii in range(0,len(self.LObj)):
             if self.LObj[ii].Ves.Type=='Tor':
-                ff1 = lambda Pts: np.exp(-(np.hypot(Pts[0,:],Pts[1,:]))**2/0.1-(Pts[2,:])**2/0.1)
+                ff1 = lambda Pts: np.exp(-(np.hypot(Pts[0,:],Pts[1,:]))**2/0.1
+                                         -(Pts[2,:])**2/0.1)
                 ff2 = lambda Pts, Vect: np.cos(np.arctan2(Vect[2,:],Vect[1,:]))*np.exp(-(np.hypot(Pts[0,:],Pts[1,:]))**2/0.1-(Pts[2,:])**2/0.1)
             else:
                 ff1 = lambda Pts: np.exp(-(Pts[1,:])**2/0.1-(Pts[2,:])**2/0.1)
