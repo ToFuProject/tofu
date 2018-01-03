@@ -108,8 +108,13 @@ class Ves(object):
         return self._sino
 
 
-    def _check_inputs(self, Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, SavePath=None):
-        _Ves_check_inputs(Id=Id, Poly=Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, SavePath=SavePath, Cls=self.Id.Cls)
+    def _check_inputs(self, Id=None, Poly=None, Type=None, Lim=None,
+                      Sino_RefPt=None, Sino_NP=None, Clock=None,
+                      arrayorder=None, Exp=None, shot=None, SavePath=None):
+        _Ves_check_inputs(Id=Id, Poly=Poly, Type=Type, Lim=Lim,
+                          Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock,
+                          arrayorder=arrayorder, Exp=Exp, shot=shot,
+                          SavePath=SavePath, Cls=self.Id.Cls)
 
     def _set_Id(self, Val, Type=None, Exp=None, shot=None, SavePath=None, SavePath_Include=None, Cls='Ves'):
         if self._Done:
@@ -131,8 +136,10 @@ class Ves(object):
             Out = tfpf._get_FromItself(self, {'Lim':Lim, '_Clock':Clock})
             Lim, Clock = Out['Lim'], Out['Clock']
         tfpf._check_NotNone({'Poly':Poly, 'Clock':Clock})
-        out = _comp._Ves_set_Poly(Poly, self._arrayorder, self.Type, Lim=Lim, Clock=Clock)
-        SS = ['Poly','NP','P1Max','P1Min','P2Max','P2Min','BaryP','BaryL','Surf','BaryS','Lim','VolLin','BaryV','Vect','VIn']
+        self._check_inputs(Poly=Poly)
+        out = _comp._Ves_set_Poly(np.array(Poly), self._arrayorder, self.Type, Lim=Lim, Clock=Clock)
+        SS = ['Poly','NP','P1Max','P1Min','P2Max','P2Min','BaryP','BaryL',
+              'Surf','BaryS','Lim','VolLin','BaryV','Vect','VIn']
         self._geom = dict([(SS[ii],out[ii]) for ii in range(0,len(SS))])
         self._Multi = out[-1]
         self._set_sino(Sino_RefPt, NP=Sino_NP)
@@ -203,29 +210,29 @@ class Ves(object):
         """
         return _comp._Ves_get_InsideConvexPoly(self.Poly, self.geom['P2Min'], self.geom['P2Max'], self.geom['BaryS'], RelOff=RelOff, ZLim=ZLim, Spline=Spline, Splprms=Splprms, NP=NP, Plot=Plot, Test=Test)
 
-    def get_meshEdge(self, dL, DS=None, dLMode='abs', DIn=0.):
-        """ Mesh the 2D polygon edges (each segment is meshed), in the subdomain defined by DS, with resolution dL """
-        Pts, dLr, ind = _comp._Ves_get_meshEdge(self.Poly, dL, DS=DS, dLMode=dLMode, DIn=DIn, VIn=self.geom['VIn'], margin=1.e-9)
+    def get_sampleEdge(self, dL, DS=None, dLMode='abs', DIn=0.):
+        """ Mesh the 2D polygon edges (each segment is sampleed), in the subdomain defined by DS, with resolution dL """
+        Pts, dLr, ind = _comp._Ves_get_sampleEdge(self.Poly, dL, DS=DS, dLMode=dLMode, DIn=DIn, VIn=self.geom['VIn'], margin=1.e-9)
         return Pts, dLr, ind
 
-    def get_meshCross(self, dS, DS=None, dSMode='abs', ind=None):
+    def get_sampleCross(self, dS, DS=None, dSMode='abs', ind=None):
         """ Mesh the 2D cross-section fraction defined by DS or ind, with resolution dS """
-        Pts, dS, ind, dSr = _comp._Ves_get_meshCross(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, margin=1.e-9)
+        Pts, dS, ind, dSr = _comp._Ves_get_sampleCross(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, margin=1.e-9)
         return Pts, dS, ind, dSr
 
-    def get_meshS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)'):
+    def get_sampleS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)'):
         """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn
 
         Parameters
         ----------
         dS      :   float / list of 2 floats
-            Desired resolution of the surfacic mesh
-                float   : same resolution for all directions of the mesh
+            Desired resolution of the surfacic sample
+                float   : same resolution for all directions of the sample
                 list    : [dl,dXPhi] where:
                     dl      : resolution along the polygon contour in the cross-section
                     dXPhi   : resolution along the axis (toroidal direction if self.Id.Type=='Tor' or linear direction if self.Id.Type=='Lin')
         DS      :   None / list of 3 lists of 2 floats
-            Limits of the domain in which the surfacic mesh should be computed
+            Limits of the domain in which the surfacic sample should be computed
                 None : whole surface of the object
                 list : [D1,D2,D3] where each Di is a len()=2 list of increasing floats marking the boundaries of the domain along coordinate i, with
                     [DR,DZ,DPhi]: if toroidal geometry (self.Id.Type=='Tor')
@@ -235,14 +242,14 @@ class Ves(object):
                 'abs'   :   dS is an absolute distance
                 'rel'   :   if dS=0.1, each segment of the polygon will be divided in 10, and the toroidal/linear length will also be divided in 10
         ind     :   None / np.ndarray of int
-            If provided, then DS is ignored and the method computes the points of the mesh corresponding to the provided indices
+            If provided, then DS is ignored and the method computes the points of the sample corresponding to the provided indices
             Example (assuming S is a Ves or Struct object)
-                > # We create a 5x5 cm2 mesh of the whole surface
-                > Pts, dS, ind, dSr = S.get_mesh(0.05)
+                > # We create a 5x5 cm2 sample of the whole surface
+                > Pts, dS, ind, dSr = S.get_sample(0.05)
                 > # Performing operations, saving only the indices of the points and not the points themselves (to save space)
                 > ...
                 > # Retrieving the points from their indices (requires the same resolution), here Ptsbis = Pts
-                > Ptsbis, dSbis, indbis, dSrbis = S.get_mesh(0.05, ind=ind)
+                > Ptsbis, dSbis, indbis, dSrbis = S.get_sample(0.05, ind=ind)
         DIn     :   float
             Offset distance from the actual surface of the object, can be positive (towards the inside) or negative (towards the outside), useful to avoid numerical errors
         Out     :   str
@@ -257,14 +264,14 @@ class Ves(object):
         ind :   np.ndarray / list of np.ndarrays
             The index of each points
         dSr :   np.ndarray / list of np.ndarrays
-            The effective resolution in both directions after computation of the mesh
+            The effective resolution in both directions after computation of the sample
         """
-        Pts, dS, ind, dSr = _comp._Ves_get_meshS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9)
+        Pts, dS, ind, dSr = _comp._Ves_get_sampleS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9)
         return Pts, dS, ind, dSr
 
-    def get_meshV(self, dV, DV=None, dVMode='abs', ind=None, Out='(X,Y,Z)'):
-        """ Mesh the volume fraction defined by DV or ind, with resolution dV """
-        Pts, dV, ind, dVr = _comp._Ves_get_meshV(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dV, DV=DV, dVMode=dVMode, ind=ind, VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9)    
+    def get_sampleV(self, dV, DV=None, dVMode='abs', ind=None, Out='(X,Y,Z)'):
+        """ Sample the volume defined by DV or ind, with resolution dV """
+        Pts, dV, ind, dVr = _comp._Ves_get_sampleV(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dV, DV=DV, dVMode=dVMode, ind=ind, VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9)
         return Pts, dV, ind, dVr
 
 
@@ -396,7 +403,9 @@ class Ves(object):
 
 
 
-def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None, Sino_NP=None, Clock=None, arrayorder=None, Exp=None, shot=None, SavePath=None, Cls=None):
+def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None,
+                      Sino_NP=None, Clock=None, arrayorder=None, Exp=None,
+                      shot=None, SavePath=None, Cls=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID object !"
     if not Poly is None:
@@ -444,19 +453,19 @@ class Struct(Ves):
     def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=0, SavePath=None, SavePath_Include=_def.SavePath_Include):
         Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls="Struct")
 
-    def get_meshS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)', Ind=None):
+    def get_sampleS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)', Ind=None):
         """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn
 
         Parameters
         ----------
         dS      :   float / list of 2 floats
-            Desired resolution of the surfacic mesh
-                float   : same resolution for all directions of the mesh
+            Desired resolution of the surfacic sample
+                float   : same resolution for all directions of the sample
                 list    : [dl,dXPhi] where:
                     dl      : resolution along the polygon contour in the cross-section
                     dXPhi   : resolution along the axis (toroidal direction if self.Id.Type=='Tor' or linear direction if self.Id.Type=='Lin')
         DS      :   None / list of 3 lists of 2 floats
-            Limits of the domain in which the surfacic mesh should be computed
+            Limits of the domain in which the surfacic sample should be computed
                 None : whole surface of the object
                 list : [D1,D2,D3] where each Di is a len()=2 list of increasing floats marking the boundaries of the domain along coordinate i, with
                     [DR,DZ,DPhi]: if toroidal geometry (self.Id.Type=='Tor')
@@ -466,14 +475,14 @@ class Struct(Ves):
                 'abs'   :   dS is an absolute distance
                 'rel'   :   if dS=0.1, each segment of the polygon will be divided in 10, and the toroidal/linear length will also be divided in 10
         ind     :   None / np.ndarray of int
-            If provided, then DS is ignored and the method computes the points of the mesh corresponding to the provided indices
+            If provided, then DS is ignored and the method computes the points of the sample corresponding to the provided indices
             Example (assuming S is a Ves or Struct object)
-                > # We create a 5x5 cm2 mesh of the whole surface
-                > Pts, dS, ind, dSr = S.get_mesh(0.05)
+                > # We create a 5x5 cm2 sample of the whole surface
+                > Pts, dS, ind, dSr = S.get_sample(0.05)
                 > # Performing operations, saving only the indices of the points and not the points themselves (to save space)
                 > ...
                 > # Retrieving the points from their indices (requires the same resolution), here Ptsbis = Pts
-                > Ptsbis, dSbis, indbis, dSrbis = S.get_mesh(0.05, ind=ind)
+                > Ptsbis, dSbis, indbis, dSrbis = S.get_sample(0.05, ind=ind)
         DIn     :   float
             Offset distance from the actual surface of the object, can be positive (towards the inside) or negative (towards the outside), useful to avoid numerical errors
         Out     :   str
@@ -490,13 +499,13 @@ class Struct(Ves):
         ind :   np.ndarray / list of np.ndarrays
             The index of each points
         dSr :   np.ndarray / list of np.ndarrays
-            The effective resolution in both directions after computation of the mesh
+            The effective resolution in both directions after computation of the sample
         """
-        Pts, dS, ind, dSr = _comp._Ves_get_meshS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9, Multi=self._Multi, Ind=Ind)
+        Pts, dS, ind, dSr = _comp._Ves_get_sampleS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9, Multi=self._Multi, Ind=Ind)
         return Pts, dS, ind, dSr
 
-    def get_meshV(self, dV, DV=None, dVMode='abs', ind=None, Out='(X,Y,Z)'):
-        raise AttributeError("Struct class cannot use the get_meshV() method (only surface meshing) !")
+    def get_sampleV(self, dV, DV=None, dVMode='abs', ind=None, Out='(X,Y,Z)'):
+        raise AttributeError("Struct class cannot use the get_sampleV() method (only surface sampleing) !")
 
 
 
@@ -675,38 +684,101 @@ class LOS(object):
             Pt, kPt, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u, RefPt, Mode='LOS', kOut=kMax, VType=VType)
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r, 'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-    def get_mesh(self, dL, DL=None, dLMode='abs', method='sum'):
-        """ Return a linear mesh of the LOS, with desired resolution dL, in the DL interval (distance from D)  """
-        DL = DL if (hasattr(DL,'__iter__') and len(DL)==2) else [self.geom['kPIn'],self.geom['kPOut']]
-        Pts, kPts, dL = _comp.LOS_get_mesh(self.D, self.u, dL, DL=DL, dLMode=dLMode, method=method)
+    def get_sample(self, dL, dLMode='abs', DL=None, method='sum'):
+        """ Return a linear sampling of the LOS
+
+        The LOS is sampled into a series a points and segments lengths
+        The resolution (segments length) is <= dL
+        The sampling can be done according to different methods
+        It is possible to sample only a subset of the LOS
+
+        Parameters
+        ----------
+        dL:     float
+            Desired resolution
+        dLMode: str
+            Flag indicating dL should be understood as:
+                - 'abs':    an absolute distance in meters
+                - 'rel':    a relative distance (fraction of the LOS length)
+        DL:     None / iterable
+            The fraction [L1;L2] of the LOS that should be sampled, where
+            L1 and L2 are distances from the starting point of the LOS (LOS.D)
+        method: str
+            Flag indicating which to use for sampling:
+                - 'sum':    the LOS is sampled into N segments of equal length,
+                            where N is the smallest int such that:
+                                * segment length <= resolution(dL,dLMode)
+                            The points returned are the center of each segment
+                - 'simps':  the LOS is sampled into N segments of equal length,
+                            where N is the smallest int such that:
+                                * segment length <= resolution(dL,dLMode)
+                                * N is even
+                            The points returned are the egdes of each segment
+                - 'romb':   the LOS is sampled into N segments of equal length,
+                            where N is the smallest int such that:
+                                * segment length <= resolution(dL,dLMode)
+                                * N = 2^k + 1
+                            The points returned are the egdes of each segment
+
+        Returns
+        -------
+        Pts:    np.ndarray
+            A (3,NP) array of NP points along the LOS in (X,Y,Z) coordinates
+        kPts:   np.ndarray
+            A (NP,) array of the points distances from the LOS starting point
+        dL:     float
+            The effective resolution (<= dL input), as an absolute distance
+
+        """
+        if not (hasattr(DL,'__iter__') and len(DL)==2):
+            DL = [self.geom['kPIn'],self.geom['kPOut']]
+        Pts, kPts, dL = _comp.LOS_get_sample(self.D, self.u, dL, DL=DL,
+                                             dLMode=dLMode, method=method)
         return Pts, kPts, dL
 
     def calc_signal(self, ff, dL=0.001, DL=None, dLMode='abs', method='romb'):
         """ Return the line-integrated emissivity
 
-        Beware that it is only a line-integral, there is no multiplication by an Etendue (which cannot be computed for a LOS object, because the etendue depends on the surfaces and respective positions of the detector and its apertures, which are not provided for a LOS object.
-        Hence, if the emissivity is provided in W/m3, the method return a signal in W/m2
-        The line is sampled using LOS.get_mesh(), and the integral can be computed using three different methods: 'sum', 'simps' or 'romb'
+        Beware that it is only a line-integral !
+        There is no multiplication by an Etendue
+        (which cannot be computed for a LOS object, because it depends on the
+        surfaces and respective positions of the detector and its apertures,
+        which are not provided for a LOS object).
+
+        Hence, if the emissivity is provided in W/m3, the method returns W/m2
+        The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,
+
+        The integral can be computed using three different methods:
+            - 'sum':    A numpy.sum() on the local values (x segments lengths)
+            - 'simps':  using :meth:`scipy.integrate.simps`
+            - 'romb':   using :meth:`scipy.integrate.romb`
+
+        Except ff, arguments common to :meth:`~tofu.geom.LOS.get_sample`
 
         Parameters
         ----------
         ff :    callable
             The user-provided
 
-
-
         """
-        DL = DL if (hasattr(DL,'__iter__') and len(DL)==2) else [self.geom['kPIn'],self.geom['kPOut']]
-        Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL, dLMode=dLMode, method=method)
+        if not (hasattr(DL,'__iter__') and len(DL)==2):
+            DL = [self.geom['kPIn'],self.geom['kPOut']]
+        Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL,
+                                    dLMode=dLMode, method=method)
         return Sig
 
-    def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP', EltVes='', Leg='',
-             Ldict=_def.LOSLd, MdictD=_def.LOSMd, MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd, MdictP=_def.LOSMd, LegDict=_def.TorLegd,
-             Vesdict=_def.Vesdict, draw=True, a4=False, Test=True):
-        """ Plot the LOS, in a cross-section projection, a horizontal projection or both, and optionally the :class:`~tofu.geom.Ves` object associated to it.
+    def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
+             EltVes='', Leg='', Ldict=_def.LOSLd, MdictD=_def.LOSMd,
+             MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd,
+             MdictP=_def.LOSMd, LegDict=_def.TorLegd, Vesdict=_def.Vesdict,
+             draw=True, a4=False, Test=True):
+        """ Plot the LOS, in the chosen projection(s)
 
-        Plot the desired projections of the LOS object.
-        The plot can include the special points, the directing vector, and the properties of the plotted objects are specified by dictionaries.
+        Plot the desired projections of the LOS object
+        Optionnally also plot its associated :class:`~tofu.geom.Ves` object
+        The plot can also include:
+            - special points
+            - the unit directing vector
 
         Parameters
         ----------
@@ -757,8 +829,10 @@ class LOS(object):
             Handles of the axes used for plotting (list if several axes where used)
 
         """
-        return _plot.GLLOS_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt, EltVes=EltVes, Leg=Leg,
-                                Ldict=Ldict, MdictD=MdictD, MdictI=MdictI, MdictO=MdictO, MdictR=MdictR, MdictP=MdictP, LegDict=LegDict,
+        return _plot.GLLOS_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt,
+                                EltVes=EltVes, Leg=Leg, Ldict=Ldict,
+                                MdictD=MdictD, MdictI=MdictI, MdictO=MdictO,
+                                MdictR=MdictR, MdictP=MdictP, LegDict=LegDict,
                                 Vesdict=Vesdict, draw=draw, a4=a4, Test=Test)
 
 #    def plot_3D_mlab(self,Lplot='Tot',PDIOR='DIOR',axP='None',axT='None', Ldict=Ldict_Def,Mdict=Mdict_Def,LegDict=LegDict_Def):
@@ -768,10 +842,15 @@ class LOS(object):
 
     def plot_sino(self, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
                       Ldict=_def.LOSMImpd, Vdict=_def.TorPFilld, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
-        """ Plot the sinogram of the vessel polygon, by computing its envelopp in a cross-section, can also plot a 3D version of it
+        """ Plot the LOS in projection space (sinogram)
 
         Plot the LOS in projection space (where sinograms are plotted) as a point.
-        You can plot the conventional projection-space (in 2D in a cross-section), or a 3D extrapolation of it, where the third coordinate is provided by the angle that the LOS makes with the cross-section plane (useful in case of multiple LOS with a partially tangential view).
+        Can also optionnally plot the associated :class:`~tofu.geom.Ves`
+
+        Can plot the conventional projection-space (in 2D in a cross-section),
+        or a 3D extrapolation of it, where the third coordinate is provided by
+        the angle that the LOS makes with the cross-section plane
+        (useful in case of multiple LOS with a partially tangential view)
 
         Parameters
         ----------
@@ -812,24 +891,30 @@ class LOS(object):
                                         Ldict=Ldict, Vdict=Vdict, LegDict=LegDict, draw=draw, a4=a4, Test=Test)
 
 
-    def save(self, SaveName=None, Path=None, Mode='npz', compressed=False, Print=True):
-        """ Save the object in folder Name, under file name SaveName, using specified mode
+    def save(self, SaveName=None, Path=None, Mode='npz',
+             compressed=False, Print=True):
+        """ Save the object under SaveName in folder Path
 
-        Most tofu objects can be saved automatically as numpy arrays (.npz, recommended) at the default location (recommended) by simply calling self.save()
+        Savinf methods include cPickle (deprecated) and numpy.save (recommended)
 
         Parameters
         ----------
         SaveName :  None / str
-            The name to be used for the saved file, if None (recommended) uses self.Id.SaveName
+            Name of the saved file, if None (recommended) use self.Id.SaveName
         Path :      None / str
-            Path specifying where to save the file, if None (recommended) uses self.Id.SavePath
+            Path where to save, if None (recommended) use self.Id.SavePath
         Mode :      str
-            Flag specifying whether to save the object as a numpy array file ('.npz', recommended) or an object using cPickle (not recommended, heavier and may cause retro-compatibility issues)
+            Flag specifying whether to save the object as:
+                - 'npz':    a numpy array file ('.npz', recommended)
+                - 'pck':    an object using cPickle (not recommended, deprecated)
         compressed :    bool
-            Flag, used when Mode='npz', indicating whether to use np.savez or np.savez_compressed (slower saving and loading but smaller files)
+            Flag, relevant when Mode='npz', indicating whether to use:
+                - False:    np.savez()
+                - True:     np.savez_compressed() (slower but lighter files)
 
         """
-        tfpf.Save_Generic(self, SaveName=SaveName, Path=Path, Mode=Mode, compressed=compressed, Print=Print)
+        tfpf.Save_Generic(self, SaveName=SaveName, Path=Path, Mode=Mode,
+                          compressed=compressed, Print=Print)
 
 
 
@@ -901,7 +986,7 @@ class GLOS(object):
 
         self._Done = False
         # Check and format inputs
-        self._check_inputs(Vess=Ves, Exp=Exp, Diag=Diag, shot=shot, LLOS=LLOS)
+        self._check_inputs(Ves=Ves, Exp=Exp, Diag=Diag, shot=shot, LLOS=LLOS)
 
         Exp = LLOS[0].Id.Exp if Exp is None else Exp
         Diag = LLOS[0].Id.Diag if Diag is None else Diag
@@ -916,8 +1001,8 @@ class GLOS(object):
         return self._Id
     @property
     def LLOS(self):
-        return self._LLOSi
-    @propety
+        return self._LLOS
+    @property
     def geom(self):
         return self._geom
     @property
@@ -953,7 +1038,6 @@ class GLOS(object):
                            SavePath=SavePath)
 
 
-    # Finish
     def _set_Id(self, Val,
                 Type=None, Exp=None, Diag=None, shot=None, SavePath=None):
         fromdict = {'Type':Type, 'Exp':Exp,
@@ -969,8 +1053,212 @@ class GLOS(object):
             Val = tfpf.ID('GLOS', Val, **fromdict)
         self._Id = Val
 
+    def _set_LLOS(self, LLOS, Ves=None):
+        self._check_inputs(LLOS=LLOS, Ves=Ves)
+        if isinstance(LLOS,LOS):
+            LLOS = [LLOS]
+        self._nLOS = len(LLOS)
+
+        # Set Ves (if relevant)
+        if Ves is not None:
+            for ii in range(0,self.nLOS):
+                LLOS[ii]._set_Ves(Ves)
+        self._Ves = LLOS[0].Ves
+
+        # Set LLOS
+        self._LLOS = LLOS
+        LObj = [ll.Id for ll in LLOS]
+        if LLOS[0].Ves is not None:
+            LObj.append(LLOS[0].Ves.Id)
+        self.Id.set_LObj(LObj)
+
+        # Set geom
+        self._geom = {}
+        for kk in LLOS[0].geom.keys():
+            if not kk in ['kplotIn','kplotTot']:
+                val = np.array([ll.geom[kk] for ll in LLOS])
+                if hasattr(val[0],'__iter__'):
+                    val = val.T
+            self._geom[kk] = val
+
+    def set_Ves(self, Ves):
+        """ Set the associated Ves (vessel) object """
+        self._set_LLOS(self.LLOS, Ves=Ves)
+
+    def _set_sino(self, RefPt=None):
+        self._check_inputs(Sino_RefPt=RefPt)
+        for ii in range(self.nLOS):
+            self._LLOS[ii]._set_sino(RefPt=RefPt)
+
+    def select(self, Val=None, Crit='Name',
+               PreExp=None, PostExp=None, Log='any', InOut='In', Out=bool):
+        """ Return the indices or instances of all LOS matching criteria
+
+        The selection can be done according to 2 different mechanisms
+
+        Mechanism (1): provide the value (Val) a criterion (Crit) should match
+        The criteria are typically attributes of :class:`~tofu.pathfile.ID`
+        (i.e.: name, or user-defined attributes like the camera head...)
+
+        Mechanism (2): (used if Val=None)
+        Provide a str expression (or a list of such) to be fed to eval()
+        Used to check on quantitative criteria.
+            - PreExp: placed before the criterion value (e.g.: 'not ' or '<=')
+            - PostExp: placed after the criterion value
+            - you can use both
+
+        Other parameters are used to specify logical operators for the selection
+        (match any or all the criterion...) and the type of output.
+
+        Parameters
+        ----------
+        Crit :      str
+            Flag indicating which criterion to use for discrimination
+            Can be set to:
+                - any attribute of :class:`~tofu.pathfile.ID`
+                  (e.g.: 'Name','SaveName','SavePath'...)
+                - any key of ID.USRdict (e.g.: 'Exp'...)
+        Val :       None / list / str
+            The value to match for the chosen criterion, can be a list
+            Used for selection mechanism (1)
+        PreExp :    None / list / str
+            A str (or list of such) expression to be fed to eval(),
+            Placed before the criterion value
+            Used for selection mechanism (2)
+        PostExp :   None / list / str
+            A str (or list of such) expression to be fed to eval()
+            Placed after the criterion value
+            Used for selection mechanism (2)
+        Log :       str
+            Flag indicating whether the criterion shall match:
+                - 'all': all provided values
+                - 'any': at least one of them
+        InOut :     str
+            Flag indicating whether the returned indices are:
+                - 'In': the ones matching the criterion
+                - 'Out': the ones not matching it
+        Out :       type / str
+            Flag indicating in which form to return the result:
+                - int: as an array of integer indices
+                - bool: as an array of boolean indices
+                - 'Name': as a list of names
+                - 'LOS': as a list of :class:`~tofu.geom.LOS` instances
+
+        Returns
+        -------
+        ind :       list / np.ndarray
+            The computed output, of nature defined by parameter Out
+
+        Examples
+        --------
+        >>> import tofu.geom as tfg
+        >>> VPoly, VLim = [[0.,1.,1.,0.],[0.,0.,1.,1.]], [-1.,1.]
+        >>> V = tfg.Ves('ves', VPoly, Lim=VLim, Type='Lin', Exp='Misc', shot=0)
+        >>> Du1 = ([0.,-0.1,-0.1],[0.,1.,1.])
+        >>> Du2 = ([0.,-0.1,-0.1],[0.,0.5,1.])
+        >>> Du3 = ([0.,-0.1,-0.1],[0.,1.,0.5])
+        >>> l1 = tfg.LOS('l1', Du1, Ves=V, Exp='Misc', Diag='A', shot=0)
+        >>> l2 = tfg.LOS('l2', Du2, Ves=V, Exp='Misc', Diag='A', shot=1)
+        >>> l3 = tfg.LOS('l3', Du3, Ves=V, Exp='Misc', Diag='B', shot=1)
+        >>> gl = tfg.GLOS('gl', [l1,l2,l3])
+        >>> Arg1 = dict(Val=['l1','l3'],Log='any',Out='LOS')
+        >>> Arg2 = dict(Val=['l1','l3'],Log='any',InOut='Out',Out=int)
+        >>> Arg3 = dict(Crit='Diag', Val='A', Out='Name')
+        >>> Arg4 = dict(Crit='shot', PostExp='>=1')
+        >>> gl.select(**Arg1)
+        [l1,l3]
+        >>> gl.select(**Arg2)
+        array([1])
+        >>> gl.select(**Arg3)
+        ['l1','l2']
+        >>> gl.select(**Arg4)
+        array([False, True, True], dtype=bool)
+
+        """
+        out = int if Out=='LOS' else Out
+        ind = tfpf.SelectFromListId([ll.Id for ll in self.LLOS], Val=Val,
+                                    Crit=Crit, PreExp=PreExp, PostExp=PostExp,
+                                    Log=Log, InOut=InOut, Out=out)
+        if Out=='LOS':
+            ind = [self.LLOS[ii] for ii in ind]
+        return ind
 
 
+    # Add updated get_sample() and calc_signal() here
+
+
+    def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
+             EltVes='', Leg='', Ldict=_def.LOSLd, MdictD=_def.LOSMd,
+             MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd,
+             MdictP=_def.LOSMd, LegDict=_def.TorLegd, Vesdict=_def.Vesdict,
+             ind=None, Val=None, Crit='Name', PreExp=None, PostExp=None,
+             Log='any', InOut='In',
+             draw=True, a4=False, Test=True):
+        """ Plot the selected LOS subset, in the chosen projection(s)
+
+        Plot the desired projections of the LOS object
+        Optionnally also plot its associated :class:`~tofu.geom.Ves` object
+        The plot can also include:
+            - special points
+            - the unit directing vector
+
+        The input arguments are:
+            - Plotting: the same as :meth:`~tofu.geom.LOS.plot`
+            - Selecting: the same as :meth:`~tofu.geom.GLOS.select`
+
+        """
+        return _plot.GLLOS_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt,
+                                EltVes=EltVes, Leg=Leg, Ldict=Ldict,
+                                MdictD=MdictD, MdictI=MdictI, MdictO=MdictO,
+                                MdictR=MdictR, MdictP=MdictP, LegDict=LegDict,
+                                Vesdict=Vesdict, draw=draw, a4=a4, Test=Test,
+                                ind=ind, Val=Val, Crit=Crit, PreExp=PreExp,
+                                PostExp=PostExp, Log=Log, InOut=InOut)
+
+    def plot_sino(self, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True,
+                  Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
+                  Ldict=_def.LOSMImpd, Vdict=_def.TorPFilld,
+                  LegDict=_def.TorLegd, ind=None, Val=None, Crit='Name',
+                  PreExp=None, PostExp=None, Log='any', InOut='In',
+                  draw=True, a4=False, Test=True):
+        """ Plot the chosen LOS in projection space (sinogram)
+
+        Arguments for LOS selection are common to :meth:`~tofu.geom.GLOS.select`
+        Arguments for plotting are common to :meth:`~tofu.geom.LOS.plot_sino`
+
+        """
+        return _plot.GLOS_plot_Sinogram(self, Proj=Proj, ax=ax, Elt=Elt,
+                                        Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
+                                        Ldict=Ldict, Vdict=Vdict, LegDict=LegDict,
+                                        draw=draw, a4=a4, Test=Test,
+                                        ind=ind, Val=Val, Crit=Crit, PreExp=PreExp,
+                                        PostExp=PostExp, Log=Log, InOut=InOut)
+
+    def save(self, SaveName=None, Path=None, Mode='npz',
+             compressed=False, Print=True):
+        """ Save the object under SaveName in folder Path
+
+        Saving methods include cPickle (deprecated) and numpy.save (recommended)
+
+        Parameters
+        ----------
+        SaveName :  None / str
+            Name of the saved file, if None (recommended) use self.Id.SaveName
+        Path :      None / str
+            Path where to save, if None (recommended) use self.Id.SavePath
+        Mode :      str
+            Flag specifying whether to save the object as:
+                - 'npz':    a numpy array file ('.npz', recommended)
+                - 'pck':    an object using cPickle (not recommended,
+                  deprecated)
+        compressed :    bool
+            Flag, relevant when Mode='npz', indicating whether to use:
+                - False:    np.savez()
+                - True:     np.savez_compressed() (slower but lighter files)
+
+        """
+        tfpf.Save_Generic(self, SaveName=SaveName, Path=Path, Mode=Mode,
+                          compressed=compressed, Print=Print)
 
 
 
@@ -994,14 +1282,14 @@ def _GLOS_check_inputs(Id=None, LLOS=None, Vess=None, Type=None,
         largs = ['Poly','Type','Name','Exp','SaveName','shot']
         LVes = [ll.Ves is None
                 or tfpf.CheckSameObj(LLOS[0].Ves,ll.Ves,largs) for ll in LLOS]
-        LDiag = [ll.Id.Diag==LLOS[0].Id.Diag for ll in LLOS]
-        Lshot = [ll.Id.shot==LLOS[0].Id.shot for ll in LLOS]
+        #LDiag = [ll.Id.Diag==LLOS[0].Id.Diag for ll in LLOS]
+        #Lshot = [ll.Id.shot==LLOS[0].Id.shot for ll in LLOS]
         assert all(LCls),  "Arg LLOS must contain LOS objects !"
         assert all(LExp),  "All LOS must have the same Exp !"
         assert all(LType), "All LOS must have the same Type !"
         assert all(LVes),  "All LOS must have the same Ves instance !"
-        assert all(LDiag), "All LOS must have the same Diag !"
-        assert all(Lshot), "All LOS must have the same shot !"
+        #assert all(LDiag), "All LOS must have the same Diag !"
+        #assert all(Lshot), "All LOS must have the same shot !"
     strs = [Exp,Diag,SavePath]
     for ss in strs:
         assert ss is None or type(ss) is str, "Arg %s must be a str !" % ss

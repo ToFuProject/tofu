@@ -780,10 +780,14 @@ def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log=
         ind = np.zeros((N,len(LId)),dtype=bool)
         if Crit in dir(ID):
             for ii in range(0,N):
-                ind[ii,:] = np.asarray([eval(PreExp[ii]+" getattr(iid,Crit) "+PostExp[ii]) for iid in LId],dtype=bool)
+                List = [eval(PreExp[ii]+" getattr(iid,'%s') "%Crit+PostExp[ii])
+                        for iid in LId]
+                ind[ii,:] = np.array(List,dtype=bool)
         else:
             for ii in range(0,N):
-                ind[ii,:] = np.asarray([eval(PreExp[ii]+" iid.USRdict[Crit] "+PostExp[ii]) for iid in LId],dtype=bool)
+                List = [eval(PreExp[ii]+" iid.USRdict['%s'] "%Crit+PostExp[ii])
+                        for iid in LId]
+                ind[ii,:] = np.asarray(List,dtype=bool)
     ind = np.any(ind,axis=0) if Log=='any' else np.all(ind,axis=0)
     if InOut=='Out':
         ind = ~ind

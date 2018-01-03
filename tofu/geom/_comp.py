@@ -126,7 +126,7 @@ def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, 
 
 
 
-def _Ves_get_meshEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None, margin=1.e-9):
+def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None, margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dL) in types and type(DIn) in types
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
@@ -141,7 +141,7 @@ def _Ves_get_meshEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None, margin
 
 
 
-def _Ves_get_meshCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, margin=1.e-9):
+def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dS) in types or (hasattr(dS,'__iter__') and len(dS)==2 and all([type(ds) in types for ds in dS])), "Arg dS must be a float or a list 2 floats !"
     dS = [float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1])]
@@ -163,7 +163,7 @@ def _Ves_get_meshCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs',
     return Pts, dS, ind, (d1r,d2r)
 
 
-def _Ves_get_meshV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', ind=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9):
+def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', ind=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dV) in types or (hasattr(dV,'__iter__') and len(dV)==3 and all([type(ds) in types for ds in dV])), "Arg dV must be a float or a list 3 floats !"
     dV = [float(dV),float(dV),float(dV)] if type(dV) in types else [float(dV[0]),float(dV[1]),float(dV[2])]
@@ -192,7 +192,7 @@ def _Ves_get_meshV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', ind
     return Pts, dV, ind, dVr
 
 
-def _Ves_get_meshS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, DIn=0., VIn=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9, Multi=False, Ind=None):
+def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, DIn=0., VIn=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9, Multi=False, Ind=None):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dS) in types or (hasattr(dS,'__iter__') and len(dS)==2 and all([type(ds) in types for ds in dS])), "Arg dS must be a float or a list of 2 floats !"
     dS = [float(dS),float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1]),float(dS[2])]
@@ -327,7 +327,7 @@ def LOS_CrossProj(VType, D, u, kPIn, kPOut, kRMin):
 #       Meshing & signal
 ##############################################
 
-def LOS_get_mesh(D, u, dL, DL=None, dLMode='abs', method='sum', Test=True):
+def LOS_get_sample(D, u, dL, DL=None, dLMode='abs', method='sum', Test=True):
     """ Return the sampled line, with the specified method
 
     'linspace': return the N+1 edges, including the first and last point
@@ -363,7 +363,7 @@ def LOS_get_mesh(D, u, dL, DL=None, dLMode='abs', method='sum', Test=True):
 def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=True):
     assert hasattr(ff,'__call__'), "Arg ff must be a callable (function) taking at least 1 positional Pts (a (3,N) np.ndarray of cartesian (X,Y,Z) coordinates) !"
     assert not method=='linspace'
-    Pts, k, dLr = LOS_get_mesh(D, u, dL, DL=DL, dLMode=dLMode, method=method, Test=Test)
+    Pts, k, dLr = LOS_get_sample(D, u, dL, DL=DL, dLMode=dLMode, method=method, Test=Test)
     out = insp(ff)
     if sys.version[0]=='3':
         N = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD and pp.default is pp.empty) for pp in out.parameters.values()])
