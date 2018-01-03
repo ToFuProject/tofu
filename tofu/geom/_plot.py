@@ -37,8 +37,12 @@ except Exception:
 
 
 
-def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_def.TorId, Bsdict=_def.TorBsd, Bvdict=_def.TorBvd, Vdict=_def.TorVind,
-        IdictHor=_def.TorITord, BsdictHor=_def.TorBsTord, BvdictHor=_def.TorBvTord, Lim=_def.Tor3DThetalim, Nstep=_def.TorNTheta, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
+def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
+             Idict=_def.TorId, Bsdict=_def.TorBsd, Bvdict=_def.TorBvd,
+             Vdict=_def.TorVind, IdictHor=_def.TorITord,
+             BsdictHor=_def.TorBsTord, BvdictHor=_def.TorBvTord,
+             Lim=_def.Tor3DThetalim, Nstep=_def.TorNTheta, LegDict=_def.TorLegd,
+             draw=True, a4=False, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -55,10 +59,11 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_def.To
     """
     if Test:
         assert Proj in ['Cross','Hor','All','3d'], "Arg Proj must be in ['Cross','Hor','All','3d'] !"
-        C0 = [hasattr(Lax,'__iter__'),
-              all([issubclass(aa.__class__,plt.Axes) for aa in Lax])]
-        C1 = issubclass(Lax.__class__,plt.Axes)
-        assert Lax is None or all(C0) or C1, "Arg Lax must be a plt.Axes or a list of such !"
+        if not Lax is None:
+            C0 = issubclass(Lax.__class__,plt.Axes)
+            C0 = (hasattr(Lax,'__iter__')
+                  and all([issubclass(aa.__class__,plt.Axes) for aa in Lax]))
+            assert C0 or C1, "Arg Lax must be a plt.Axes or a list of such !"
         assert type(draw) is bool, "Arg draw must be a bool !"
 
     Lax = list(Lax) if hasattr(Lax,'__iter__') else [Lax]
@@ -309,8 +314,8 @@ def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad', Sket
         Theta, pP, pN = _GG.ConvertImpact_Theta2Xi(Theta, pP, pN)
     DoUp = (pN.min(),pP.max())
     handles, labels = ax.get_legend_handles_labels()
-    ax.fill_between(Theta.flatten(),pP.flatten(),DoUp[1]*np.ones(pP.flatten().shape),label=Leg,**Pdict)
-    ax.fill_between(Theta.flatten(),DoUp[0]*np.ones(pP.flatten().shape),pN.flatten(),label=Leg,**Pdict)
+    ax.fill_between(Theta.flatten(),pP.flatten(),DoUp[1]*np.ones(pP.flatten().shape),**Pdict)
+    ax.fill_between(Theta.flatten(),DoUp[0]*np.ones(pP.flatten().shape),pN.flatten(),**Pdict)
     ax.set_ylim(DoUp)
     proxy = plt.Rectangle((0,0),1,1, fc=Pdict['facecolor'])
     handles.append(proxy)
@@ -421,8 +426,8 @@ def _LOS_calc_InOutPolProj_Debug(Los,PIn,POut):
     assert not (np.any(np.isnan(PIn)) or np.any(np.isnan(POut))), "Error in computation of In/Out points !"
 
 
-def _get_LLOS_Leg(GLLOS, Leg=None,
-        ind=None, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In'):
+def _get_LLOS_Leg(GLLOS, Leg=None, ind=None, Val=None, Crit='Name', PreExp=None,
+                  PostExp=None, Log='any', InOut='In'):
 
     # Convert to list of Detect, with common legend if GDetect
 

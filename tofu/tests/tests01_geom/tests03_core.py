@@ -310,8 +310,8 @@ class Test03_LOS:
 
     def test04_plot_sino(self):
         for ii in range(0,len(self.LObj)):
-            self.LObj[ii].plot_sino(Proj='Cross', Elt='LV', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
-            self.LObj[ii].plot_sino(Proj='Cross', Elt='L', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
+            self.LObj[ii].plot_sino(Proj='Cross', Elt='L', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
+            self.LObj[ii].plot_sino(Proj='Cross', Elt='LV', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
             plt.close('all')
 
     def test05_saveload(self):
