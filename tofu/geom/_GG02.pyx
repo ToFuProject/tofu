@@ -9,10 +9,15 @@ from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 
 # import
+import sys
 import numpy as np
-import scipy.integrate as scptg
+import scipy.integrate as scpintg
 from matplotlib.path import Path
 
+if sys.version[0]=='3':
+    from inspect import signature as insp
+elif sys.version[0]=='2':
+    from inspect import getargspec as inps
 
 
 
