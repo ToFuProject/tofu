@@ -512,9 +512,30 @@ class Struct(Ves):
 """
 ###############################################################################
 ###############################################################################
-                        LOS class and functions
+                        Rays-derived classes and functions
 ###############################################################################
 """
+
+
+#class Rays(object):
+""" Parent class of rays (ray-tracing), LOS, LOSCam1D and LOSCam2D
+
+Focused on
+
+
+"""
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class LOS(object):

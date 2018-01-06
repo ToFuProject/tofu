@@ -2167,7 +2167,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty(+1(3,N),dtype=float)
+                    pts = np.empty((3,N+1),dtype=float)
                     kk = np.empty((N+1,),dtype=float)
                     for jj in range(0,N+1):
                         kkk = dl0 + (<double>jj)*dl
