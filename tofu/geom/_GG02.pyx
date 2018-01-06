@@ -27,7 +27,9 @@ __all__ = ['CoordShift',
            '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
            '_Ves_Smesh_TorStruct_SubFromD_cython', '_Ves_Smesh_TorStruct_SubFromInd_cython',
            '_Ves_Smesh_Lin_SubFromD_cython', '_Ves_Smesh_Lin_SubFromInd_cython',
-           'LOS_Calc_PInOut_VesStruct','LOS_sino']
+           'LOS_Calc_PInOut_VesStruct',
+           'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
+           'LOS_sino']
 
 
 
@@ -2336,10 +2338,11 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
 cdef get_insp(ff):
     out = insp(ff)
     if sys.version[0]=='3':
-        na = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD and pp.default is
-pp.empty) for pp in out.parameters.values()])
-        kw = [pp.name for pp in out.parameters.values() if
-(pp.kind==pp.POSITIONAL_OR_KEYWORD and pp.default is not pp.empty)]
+        pars = out.parameters.values()
+        na = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD
+                      and pp.default is pp.empty) for pp in pars])
+        kw = [pp.name for pp in pars if (pp.kind==pp.POSITIONAL_OR_KEYWORD
+                                         and pp.default is not pp.empty)]
     else:
         nat, nak = len(out.args), len(out.defaults)
         na = nat-nak
@@ -2348,7 +2351,7 @@ pp.empty) for pp in out.parameters.values()])
 
 
 
-cdef bool check_ff(ff, t=None, Ani=None, Vuniq=False):
+cdef bool check_ff(ff, t=None, Ani=None, bool Vuniq=False):
     cdef bool ani
     stre = "Input emissivity function (ff)"
     assert hasattr(ff,'__call__'), stre+" must be a callable (function) !"
@@ -2362,43 +2365,39 @@ cdef bool check_ff(ff, t=None, Ani=None, Vuniq=False):
     try:
         out = ff(Pts, t=t)
     except Exception:
-        assert False, stre+" must take 2D np.ndarrays of floats of shape (3,N)
-as only positional argument !"
+        Str = stre+" must take one positional arg: a (3,N) np.ndarray"
+        assert False, Str
     if hasattr(t,'__iter__'):
         nt = len(t)
-        Str = "When fed ff(Pts,t=t) where Pts is a (3,N) np.array and t is a
-len()=nt iterable, ff must return a (nt,N) np.ndarray !"
+        Str = ("ff(Pts,t=t), where Pts is a (3,N) np.array and "
+               +"t a len()=nt iterable, must return a (nt,N) np.ndarray !")
         assert type(out) is np.ndarray and out.shape==(nt,NP), Str
     else:
-        Str = "When fed a (3,N) np.array only, or if t is a scalar, ff must
-return a (N,) np.ndarray !"
+        Str = ("When fed a (3,N) np.array only, or if t is a scalar,"
+               +" ff must return a (N,) np.ndarray !")
         assert type(out) is np.ndarray and out.shape==(NP,), Str
 
     ani = ('Vect' in kw) if Ani is None else Ani
     if ani:
-        Str = "If anisotropy option is turned on (Ani), ff must take a keyword
-argument 'Vect=None' !"
+        Str = "If Ani=True, ff must take a keyword argument 'Vect=None' !"
         assert 'Vect' in kw, Str
         Vect = np.array([1,2,3]) if Vuniq else np.ones(Pts.shape)
         try:
             out = ff(Pts, Vect=Vect, t=t)
         except Exception:
-            Str = "If Ani=True, ff must be able to handle multiple points Pts
-(3,N) with "
+            Str = "If Ani=True, ff must handle multiple points Pts (3,N) with "
             if Vuniq:
-                Str += "a unique common vector (i.e.: Vect as a len()=3
-iterable)"
+                Str += "a unique common vector (Vect as a len()=3 iterable)"
             else:
-                Str += "corresponding multiple vectors (i.e. Vect as (3,N)
-np.ndarray)"
+                Str += "multiple vectors (Vect as a (3,N) np.ndarray)"
             assert False, Str
         if hasattr(t,'__iter__'):
-            Str = "If Ani=True, ff must return a (nt,N) np.ndarray when Pts is
-(3,N), Vect is provided and t is (nt,)"
+            Str = ("If Ani=True, ff must return a (nt,N) np.ndarray when "
+                   +"Pts is (3,N), Vect is provided and t is (nt,)")
             assert type(out) is np.ndarray and out.shape==(nt,NP), Str
         else:
-            Str = "If Ani=True, ff must return a (nt,N) np.ndarray when Pts is
-(3,N), Vect is provided and t is (nt,)"
+            Str = ("If Ani=True, ff must return a (nt,N) np.ndarray when "
+                   +"Pts is (3,N), Vect is provided and t is (nt,)")
             assert type(out) is np.ndarray and out.shape==(NP,), Str
     return ani
 
@@ -2411,7 +2410,7 @@ np.ndarray)"
 @cython.profile(False)
 @cython.linetrace(False)
 @cython.binding(False)
-def LOS_calc_signal_cython(ff, double[:,::1] Ds, double[:,::1] us, dL,
+def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                    double[:,::1] DLs, t=None, Ani=None, dict fkwdargs={},
                    str dLMode='abs', str method='simps',
                    Test=True):
