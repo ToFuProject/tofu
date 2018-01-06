@@ -5,11 +5,12 @@ cimport numpy as cnp
 from cpython cimport bool
 from libc.math cimport sqrt as Csqrt, ceil as Cceil, abs as Cabs
 from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
-from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin,
+from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 
 # import
 import numpy as np
+import scipy.integrate as scptg
 from matplotlib.path import Path
 
 
