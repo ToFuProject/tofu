@@ -2356,7 +2356,7 @@ cdef get_insp(ff):
 
 
 
-def bool check_ff(ff, t=None, Ani=None, bool Vuniq=False):
+def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
     cdef bool ani
     stre = "Input emissivity function (ff)"
     assert hasattr(ff,'__call__'), stre+" must be a callable (function) !"
