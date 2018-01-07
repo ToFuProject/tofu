@@ -244,150 +244,186 @@ def _get_FromItself(obj, Dict):
 
 
 class ID(object):
-    """ A class used by all ToFu objects as an attribute, storing all relevant data for the identification of created instances and providing default path and names for saving objects
+    """ A class used by all ToFu objects as an attribute
 
-    Each detector created in ToFu should be identifiable thanks to user-friendly criteria, like its name, the diagnostic and experiment it is attached to, the shot number from from it was physically installed on the experiement...
-    Users can also freely add some information they consider relevant, such as some characteristics of the detector (size, manufacturer, date of last calibration...)
+    It stores all relevant data for the identification of instances
+    Stored info can be the name of the instance, the experiment and diagnostics
+    it belongs to, or other user-defined info
+    Also provides default names for saving the instances
 
     Parameters
     ----------
     Cls :       str
-        Flag indicating which class is the object fro which the ID instance is being created, available class flags are:
-            - From :mod:`tofu.geom`: 'Ves', 'Struct', 'LOS', 'GLOS', 'Apert', 'Lens', 'Detect' and 'GDetect'
-            - From :mod:`tofu.mesh`: 'Mesh1D', 'Mesh2D', 'LBF1D' and 'LBF2D' (to be finished)
-            - From :mod:`tofu.`: (to be completed)
+        Class of the object on which info should be stored:
     Name :      str
-        Name to be assigned to the created instance, should be a str without ' ' or '_' (spaces and underscores will be automatically removed if present)
+        Name of the instance (user-defined)
+        Should be a str without space ' ' or underscore '_'
+        (automatically removed if present)
     Type :      None / str
-        If provided (necessary for some objects, but not for all), specifies the Type of object (i.e.: 'Tor' or 'Lin' for a Ves instance)
+        Type of object (i.e.: 'Tor' or 'Lin' for a :class:`~tofu.geom.Ves`)
     Deg :       None / int
-        If provided (necessary only for objects of class 'LBF1D' and 'LBF2D'), specifies the degree of the b-splines constituting the :mod:`tofu.mesh` object
+        Degree of the b-splines constituting the :mod:`tofu.mesh` object
     Exp :       None / str
-        A short 3-4 letters max flag specifying the experiment to which the created instance belongs (e.g.: 'AUG', 'ITER', 'TCV', 'JET'...)
+        Flag specifying the experiment (e.g.: 'WEST', 'AUG', 'ITER', 'JET'...)
     Diag :      None / str
-        A short flag indicating which diagnostic the the created instance belongs to (e.g.: 'SXR', 'HXR', 'Bolo'...)
+        Flag indicating the diagnostic (e.g.: 'SXR', 'HXR', 'Bolo'...)
     shot :      None / int
-        A shot number from which the created instance can be considered valid (useful for tracking geometry changes in the case of Ves and Detect objects)
+        A shot number from which the instance is valid (for tracking changes)
     SaveName :  None / str
-        If provided, overrides the automatically generated name for saving the created instance (not recommended)
+        Overrides the default file name for saving (not recommended)
     SavePath :  None / str
-        If provided, overrides the automatically generated path for saving the created instance
+        Absolute path where the instance should be saved
     USRdict :   None / dict
-        If provided, a user-defined dictionary containing information about the instance considered relevant (e.g.: thickness of the diode, date of installation...)
+        A user-defined dictionary containing information about the instance
+        All info considered relevant can be passed here
+        (e.g.: thickness of the diode, date of installation...)
     LObj :      None / dict / list
-        If provided, either
+        Either:
             - list: list of other ID instances of objects on which the created object depends (this list will then be sorted by class and formatted into a dictionary storign key attributes)
             - dict: a ready-made such dictionary
-    dtime :     None / dtm.datetime
-        If provided, a time reference to be used to identify this particular instance (used for debugging mostly)
-    dtFormat :  None / str
-        If provided, the format in which dtime should be written in the automatically generated saving name for the created instance
-
-    Returns
-    -------
-    Id          ID instance
-        The created ID instance, with all necessary computed attributes and methods
 
     """
 
-    def __init__(self, Cls, Name, Type=None, Deg=None, Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None, USRdict=None, LObj=None, dtime=None, dtFormat=TFDdtmFormat, Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr'], version=None):
-        assert type(Exp) is str, "Arg Exp must be a str !"
-        assert type(Cls) is str, "Arg Cls must be a str !"
-        assert shot is None or type(shot) is int, "Arg shot must be a int !"
-        assert Diag is None or type(Diag) is str, "Arg Diag must be a str !"
-        assert Type is None or type(Type) is str, "Arg Type must be a str !"
+    def __init__(self, Cls, Name, Type=None, Deg=None,
+                 Exp=None, Diag=None, shot=None, SaveName=None, SavePath='./',
+                 USRdict={}, LObj=None, fromdict=None,
+                 Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot']):
 
-        if version is None:
+        if fromdict is None:
+            self._check_inputs(Cls=Cls, Name=Name, Type=Type, Deg=Deg,
+                               Exp=Exp, Diag=Diag, shot=shot, SaveName=SaveName,
+                               SavePath=SavePath, USRdict=USRdict,
+                               version=version, Include=Include)
+
+            # Try to get the user name
             self._version = __version__
+            try:
+                self._usr = getpass.getuser()
+            except:
+                self._usr = None
+
+            # Set fixed attributes
+            self._Mod, self._Cls = _extract_ModClsFrom_class(Cls)
+            self._Type, self._SavePath = Type, SavePath
+            self._Exp, self._Diag, self._shot = Exp, Diag, shot
+            self._Deg = Deg
+
+            # Set variable attributes
+            self.set_Name(Name, SaveName=SaveName, Include=Include)
+
+            self._LObj = {}
+            self.set_LObj(LObj)
+            self.set_USRdict(USRdict)
         else:
-            self._version = version
-            if not version==__version__:
-                warnings.warn(Id.Name +" was created from a different version of ToFu !!!    %s vs %s" % (version, __version__))
-        self._Exp = Exp
-        self._Cls = Cls
-        self._Type = Type
-        self._Deg = Deg
-        self._Diag = Diag
-        self._shot = shot
-        try:
-            self._usr = getpass.getuser()
-        except:
-            self._usr = None 
-        self._Include = None
-        self._set_dtime(dtime=dtime, dtFormat=dtFormat)
-        self.set_Name(Name, SaveName=SaveName, Include=Include)
-        self.set_SavePath(SavePath=SavePath)
-        self._LObj = {}
-        self.set_LObj(LObj)
-        self.set_USRdict(USRdict)
+            self._fromdict(fromdict)
 
-    def _set_dtime(self,dtime=None, dtFormat=TFDdtmFormat):
-        assert dtime is None or isinstance(dtime,dtm.datetime), "Arg dtime must be a dtm.datetime instance !"
-        if dtime is None:
-            dtime = dtm.datetime.now()
-        self._dtime = dtime
-        self._dtFormat = dtFormat
+    def _fromdict(self, fd):
+        self._check_inputs(fromdict=fd)
+        # Set fixed attributes
+        self._Mod, self._Cls, self._Type = fd['Mod'], fd['Cls'], fd['Type']
+        self._Exp, self._Diag, self._shot = fd['Exp'], fd['Diag'], fd['shot']
+        self._SavePath, self._Deg = fd['Deg'], fd['SavePath']
+        self._version, self._usr = fd['version'], fd['usr']
+        self._USRdict = fd['USRdict']
+        self._LObj = fd['LObj']
+        # Set variable attributes
+        self.set_Name(fd['Name'], SaveName=fd['SaveName'], Include=fd['Include'])
+        # Check the original tofu version against the current version
+        if not self._version==__version__:
+            Str = self._Name+" was created from a different ToFu version !\n"
+            Str += "original : %s\n"%self._version
+            Str += "current  : %s"%__version__
+            warnings.warn(Str)
 
-    def set_Name(self, Name, SaveName=None, Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']):
-        """ Set the Name of the created instance, automatically updating the SaveName
+    def _todict(self):
+        d = {'Mod':self._Mod, 'Cls':self.Cls, 'Type':self.Type,
+             'Name':self.Name, 'SaveName':self.SaveName,
+             'SavePath':self.SavePath, 'Exp':self.Exp, 'Diag':self.Diag,
+             'shot':self.shot, 'Deg':self._Deg, 'version':self._version,
+             'usr':self._usr, 'USRdict':self.USRdict, 'LObj':self.LObj}
+        return d
 
-        When the name is changed (reminding it should not include space (' ') or underscore ('_') characters), the name used for saving the object is automatically changed
+    def _check_inputs(self, Cls=None, Name=None, Type=None, Deg=None,
+                      Exp=None, Diag=None, shot=None, SaveName=None,
+                      SavePath=None, USRdict=None, LObj=None, version=None,
+                      fromdict=None, Include=None):
+        _ID_check_inputs(Cls=Cls, Name=Name, Type=Type, Deg=Deg, Exp=Exp,
+                         Diag=Diag, shot=shot, SaveName=SaveName,
+                         SavePath=SavePath, USRdict=USRdict, LObj=LObj,
+                         version=version, fromdict=fromdict, Include=Include)
+
+    def set_Name(self, Name, SaveName=None,
+                 Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot'],
+                 ForceUpdate=False):
+        """ Set the Name of the instance, automatically updating the SaveName
+
+        The name should be a str without spaces or underscores (removed)
+        When the name is changed, if SaveName (i.e. the name used for saving)
+        was not user-defined, it is automatically updated
 
         Parameters
         ----------
         Name :      str
-            Name to be assigned to the created instance, should be a str without ' ' or '_' (spaces and underscores will be automatically removed if present)
+            Name of the instance, without ' ' or '_' (automatically removed)
         SaveName :  None / str
-            If provided, overrides the automatically generated name for saving the created instance (not recommended)
+            If provided, overrides the default name for saving (not recommended)
+        Include:    list
+            Controls how te default SaveName is generated
+            Each element of the list is a key str indicating whether an element
+            should be present in the SaveName
 
         """
-        assert type(Name) is str, "ID.Name must be assigned to a str !"
+        self._check_inputs(Name=Name, SaveName=SaveName, Include=Include)
         self._Name = Name
-        self.set_SaveName(SaveName=SaveName, Include=Include)
+        self.set_SaveName(SaveName=SaveName, Include=Include,
+                          ForceUpdate=ForceUpdate)
 
-    def set_SaveName(self,SaveName=None, Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']):
-        """ Enables either to automatically compute a ToFu-consistent saving name for the created instance, or to override that default saving name with the user-provided SaveName
+    def set_SaveName(self,SaveName=None,
+                     Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot'],
+                     ForceUpdate=False):
+        """ Set the name for saving the instance (SaveName)
 
-        When creating an object of any class, an ID object is assigned to it that automatically computes a saving name in case the user wants to save the object.
-        This automatically generated saving name includes not only the name given to the instance but also useful classifying info such as the class of the object, its Type, experiment, diagnostic...
-        It is not recommended to override this automatically generated saving name (because some routines rely on it for fast identification of saved files), but it is made possible for flexibility.
+        SaveName can be either:
+            - provided by the user (no constraint) - not recommended
+            - automatically generated from Name and key attributes (cf. Include)
 
         Parameters
         ----------
-        SaveName :  None / str
-            If provided, a str that overrides the automatically generated saving name
-
+        SaveName :      None / str
+            If provided, overrides the default name for saving (not recommended)
+        Include :       list
+            Controls how te default SaveName is generated
+            Each element of the list is a key str indicating whether an element
+            should be present in the SaveName
+        ForceUpdate :   bool
+            Flag indicating the behaviour when SaveName=None:
+                - True : A new SaveName is generated, overriding the old one
+                - False : The former SaveName is preserved (default)
         """
-        assert SaveName is None or type(SaveName) is str, "ID.SaveName must be assigned to a str !"
-        if SaveName is None:
-            self._SaveName = SaveName_Conv(self._Exp, self.Cls, self._Type, self._Deg, self._Diag, self._Name, shot=self._shot, version=self._version, usr=self._usr, dtime=self._dtime, Format=self._dtFormat, Include=Include)
-            self._Include = Include
-        else:
+        self._check_inputs(SaveName=SaveName, Include=Include)
+        # If SaveName provided by user, override
+        if SaveName is not None:
             self._SaveName = SaveName
-            self._Include = None
-
-    def set_SavePath(self,SavePath=None):
-        """ Enables to automatically generate a saving path for the created object, or to override that default path with the user-provided SavePath
-
-        Similarily to SaveName, ToFu automatically generates a saving path for any created object.
-        This saving path can be overriden if desired.
-        This is less crucial than SaveName, changing the SavePath has little consequences as long as you remember what you are doing.
-
-        Parameters
-        ----------
-        SavePath :  None / str
-            If provided, a str that overrides the automatically generated saving path
-
-        """
-        assert SavePath is None or type(SavePath) is str, "ID.SavePath must be assigned to a str !"
-        if SavePath is None:
-            SavePath = Find_Rootpath()+'/Objects_'+self.Exp+'/' if not self.Cls in ['PreData','Sol2D'] else Find_Rootpath()+'/Outputs_'+self.Exp+'/'
-        self._SavePath = SavePath.replace('//','/')
+            self._SaveName_usr = True
+            self._SaveName_Include = None
+        else:
+            # Don't update if former is user-defined and ForceUpdate is False
+            # Override if previous was:
+            # automatic or (user-defined but ForceUpdate is True)
+            if (not self._SaveName_usr) or (self._SaveName_usr and ForceUpdate):
+                SN = SaveName_Conv(Mod=self._Mod, Cls=self.Cls, Type=self.Type,
+                                   Name=self.Name, Deg=self._Deg, Exp=self.Exp,
+                                   Diag=self.Diag, shot=self.shot,
+                                   version=self._version, usr=self._usr,
+                                   Include=Include)
+                self._SaveName_usr = False
+                self._SaveName_Include = Include
 
     def set_LObj(self,LObj=None):
-        """ Set the LObj attribute to store the list of ID of other objects the created instance depends on
+        """ Set the LObj attribute storing objects the instance depends on
 
-        A Detect object depends on a vessel and some optics (e.g.: a list of apertures).
+        For example:
+        A Detect object depends on a vessel and some apertures
         It is necessary that the link between the created Detect object and the already-existing Ves and Apert objects be stored somewhere, so that even after saving and closing the session, this correspondence can be retrieved and the Detect object can be re-loaded with links to the proper Ves and Apert objects, themselves beoing possibly saved elsewhere (so their respective SavePath must also be stored).
         The LObj parameter does this: it stores all information necessary about each of the other objects the created instance depends on, mostly by storing their ID attributes as dictionaries.
 
@@ -431,20 +467,18 @@ class ID(object):
         return DId
 
 
-    def set_USRdict(self,USRdict=None):
-        """ Set the USRdict to enable the user to store arbitrary information about the instance created
+    def set_USRdict(self,USRdict={}):
+        """ Set the USRdict, containing user-defined info about the instance
 
-        It may sometimes be useful to store unforeseen arbitrary info about some objects created, like the manufacturing date of a diode, the material used for a filter...
-        The USRdict attribute is a user-defined dictionary for this purpose.
+        Useful for arbitrary info (e.g.: manufacturing date, material...)
 
         Parameters
         ----------
-        USRdict :   None / dict
-            If provided, a user-defined dictionary containing information about the instance considered relevant (e.g.: thickness of the diode, date of installation...)
+        USRdict :   dict
+            A user-defined dictionary containing info about the instance
 
         """
-        assert USRdict is None or type(USRdict) is dict, "Arg USRdict must be a dictionnary !"
-        USRdict = {} if USRdict is None else USRdict
+        self._check_inputs(USRdict=USRdict)
         self._USRdict = USRdict
 
     @property
@@ -453,12 +487,12 @@ class ID(object):
     @property
     def Name(self):
         return self._Name
-    @Name.setter
-    def Name(self,Val):
-        self.set_Name(Val)
     @property
     def NameLTX(self):
         return r"$"+self.Name.replace('_','\_')+r"$"
+    @property
+    def Exp(self):
+        return self._Exp
     @property
     def Diag(self):
         return self._Diag
@@ -471,197 +505,140 @@ class ID(object):
     @property
     def SaveName(self):
         return self._SaveName
-    @SaveName.setter
-    def SaveName(self,Val):
-        self.set_SaveName(Val)
     @property
     def SavePath(self):
         return self._SavePath
-    @SavePath.setter
-    def SavePath(self,Val):
-        self.set_SavePath(Val)
-    @property
-    def dtime(self):
-        return self._dtime
-    @property
-    def Exp(self):
-        return self._Exp
     @property
     def LObj(self):
         return self._LObj
     @property
     def USRdict(self):
         return self._USRdict
-    @USRdict.setter
-    def USRdict(self, Val):
-        self.set_USRdict(Val)
-
-    def todict(self):
-        return _Id_todict(self)
 
 
 
-def _get_Str4SVN(kstr, Exp=None, Cls=None, Type=None, Deg=None, Diag=None, Name=None, shot=None, version=None, usr=None, dtime=None, Format="D%Y%m%d_T%H%M%S"):
-    if kstr=='Mod' and all([Cls is not None]):
-        modes = {'TFG':['Ves','Struct','LOS','GLOS','Lens','Apert','Detect','GDetect'],
-                 'TFM':['Mesh1D','Mesh2D','Mesh3D','LBF1D','LBF2D','LBF3D'],
-                 'TFEq':['Eq2D'],
-                 'TFMC':['GMat2D','GMat3D'],
-                 'TFD':['Corresp','PreData'],
-                 'TFI':['Sol2D']}
-        Str = '_'+[kk for kk in modes.keys() if Cls in modes[kk]][0]
-    elif kstr=='Cls' and Cls is not None:
-        Str = '_'+Cls
-    elif kstr=='Typ' and Type is not None:
-        Str = Type
-    elif kstr=='Exp' and Exp is not None:
-        Str = '_'+Exp
-    elif kstr=='Deg' and Deg is not None:
-        Str = 'D{0:01.0f}'.format(Deg)
-    elif kstr=='Diag' and Diag is not None:
-        Str = '_Dg'+Diag
-    elif kstr=='Name' and Name is not None:
-        Str = '_'+Name
-    elif kstr=='shot' and shot is not None:
-        Str = '_sh{0:05.0f}'.format(shot)
-    elif kstr=='Vers' and version is not None:
-        Str = '_V'+version
-    elif kstr=='Usr' and usr is not None:
-        Str = '_U'+usr
-    elif kstr=='DTM' and dtime is not None:
-        Str = '_'+dtime.strftime(Format)
-    else:
-        Str = ''
-    return Str
+def _ID_check_inputs(Cls=None, Name=None, Type=None, Deg=None,
+                 Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None,
+                 USRdict=None, LObj=None, version=None, fromdict=None,
+                 Include=None):
+    if Cls is not None:
+        assert type(Cls) is str
+        assert 'tofu.' in Cls
+        assert any([ss in Cls for ss in ['geom']])
+        cls = ['Ves','Struct','Rays','LOS','LOSCam1D','LOSCam2D',
+               'Apert','Lens','GDetect','Detect','Cam1D','Cam2D']
+        assert any([ss in Cls for ss in cls])
+    Lstr = [Name,Type,Exp,Diag,SaveName,SavePath,version]
+    for ss in Lstr:
+        assert ss is None or type(ss) is str
+    Lint = [Deg,shot]
+    for ii in Lint:
+        assert ii is None or (type(ii) is int and ii>0)
+    if USRdict is not None:
+        assert type(USRdict) is dict
+    if Include is not None:
+        IR = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']
+        assert type(Include) in ['str',list,tuple]
+        if type(Include) is not str:
+            assert Include in IR
+        else:
+            assert all([ss in IR for ss in Include])
+    if LObj is not None:
+        assert type(LObj) in [dict,list,ID]
+        if type(LObj) is list:
+            assert all([type(oo) in [dict,ID] for oo in LObj])
+    if fromdict is not None:
+        assert type(fromdict) is dict
+        k = ['Cls','Name','SaveName','SavePath','Type','Deg','Exp','Diag',
+             'shot','USRdict','version','Include','LObj']
+        K = fromdict.keys()
+        assert all(kk in K for kk in k)
 
 
 
-def SaveName_Conv(Exp, Cls, Type, Deg, Diag, Name, shot=None, version=None, usr=None, dtime=None, Format="D%Y%m%d_T%H%M%S", Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']):
-    """ Create a default name for saving the object, including key info for fast identification of the object class, type, experiement...
+def _extract_ModClsFrom_class(Cls):
+    strc = str(Cls)
+    ind0 = strc.index('tofu.')+5
+    indeol = strc.index("'>")
+    strc = strc[ind0:indeol]
+    indp = strc.index('.')
+    Mod = strc[:indp]
+    strc = strc[indp+1:][::-1]
+    cls = strc[:strc.index('.')][::-1]
+    return Mod, cls
 
-    When create a ToFu object, this function called by the ID class to generate a default name for saving the object.
-    This automatically generated name includes all key info about the object, in addition to its user-defined name.
+
+
+def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
+                  Exp=None, Diag=None, shot=None, version=None, usr=None,
+                  Include=None):
+    """ Return a default name for saving the object
+
+    Includes key info for fast identification of the object from file name
+    Used on object creation by :class:`~tofu.pathfile.ID`
     It is recommended to use this default name.
 
-    Parameters
-    ----------
-    Exp :       None / str
-        A short 3-4 letters max flag specifying the experiment to which the created instance belongs (e.g.: 'AUG', 'ITER', 'TCV', 'JET'...)
-    Cls :       None / str
-        Flag indicating which class is the object fro which the ID instance is being created, available class flags are:
-            - From :mod:`tofu.geom`: 'Ves', 'Struct', 'LOS', 'GLOS', 'Apert', 'Lens', 'Detect' and 'GDetect'
-            - From :mod:`tofu.mesh`: 'Mesh1D', 'Mesh2D', 'LBF1D' and 'LBF2D' (to be finished)
-            - From :mod:`tofu.`: (to be completed)
-    Type :      None / str
-        If provided (necessary for some objects, but not for all), specifies the Type of object (i.e.: 'Tor' or 'Lin' for a Ves instance)
-    Deg :       None / int
-        If provided (necessary only for objects of class 'LBF1D' and 'LBF2D'), specifies the degree of the b-splines constituting the :mod:`tofu.mesh` object
-    Diag :      None / str
-        A short flag indicating which diagnostic the the created instance belongs to (e.g.: 'SXR', 'HXR', 'Bolo'...)
-    Name :      str
-        Name to be assigned to the created instance, should be a str without ' ' or '_' (spaces and underscores will be automatically removed if present)
-    shot :      None / int
-        A shot number from which the created instance can be considered valid (useful for tracking geometry changes in the case of Ves and Detect objects)
-    dtime :     None / dtm.datetime
-        If provided, a time reference to be used to identify this particular instance (used for debugging mostly)
-    Format :    None / str
-        If provided, the format in which dtime should be written in the automatically generated saving name for the created instance
-
-    Returns
-    -------
-    SVN :       str
-        The automatically generated saving name
-
     """
+    Dict = {'Mod':Mod, 'Cls':Cls, 'Typ':Type,
+            'Exp':Exp, 'Deg':Deg, 'Diag':Diag, 'shot':shot, 'Name':Name,
+            'Vers':version, 'Usr':usr}
+    if Include is None:
+        Include = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot']
+
     if Cls=='PreData':
-        Order = ['Mod','Cls','Typ','Exp','Deg','Diag','shot','Name','Vers','Usr','DTM']
+        Order = ['Mod','Cls','Typ','Exp','Deg','Diag','shot','Name','Vers','Usr']
     else:
-        Order = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr','DTM']
+        Order = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']
 
     SVN = ""
     for ii in range(0,len(Order)):
-        if Order[ii] in Include:
-            Str = _get_Str4SVN(Order[ii], Exp=Exp, Cls=Cls, Type=Type, Deg=Deg, Diag=Diag, Name=Name, shot=shot, version=version, usr=usr, dtime=dtime, Format=Format)
-            SVN += Str
+        if Order[ii] in Include and Dict[Order[ii]] is not None:
+            SVN += Dict[Order[ii]]
     SVN = SVN.replace('__','_')
     if SVN[0]=='_':
         SVN = SVN[1:]
     return SVN
 
-"""
-    if Cls in ['Ves','Struct','LOS','GLOS','Lens','Apert','Detect','GDetect']:
-        Mod = 'TFG'
-    elif Cls in ['Mesh1D','Mesh2D','Mesh3D','LBF1D','LBF2D','LBF3D']:
-        Mod = 'TFM'
-    elif Cls in ['Eq2D']:
-        Mod = 'TFEq'
-    elif Cls in ['GMat2D','GMat3D']:
-        Mod = 'TFMC'
-    elif Cls in ['Corresp','PreData']:
-        Mod = 'TFT'
-    elif Cls=='Sol2D':
-        Mod = 'TFI'
-    if not isinstance(dtime,dtm.datetime):
-        dtime = dtm.datetime.now()
-    ClsType = Cls if Type is None else Cls+Type
-    if Cls=='PreData':
-        Elts = [(ClsType,''),(Exp,''),(Deg,'D','01.0f'),(Diag,'Dg'),(shot,'sh','05.0f'),(Name,'')]
-    else:
-        Elts = [(ClsType,''),(Exp,''),(Deg,'D','01.0f'),(Diag,'Dg'),(Name,''),(shot,'sh','05.0f')]
-    SVN = Mod
-    for ii in range(0,len(Elts)):
-        if len(Elts[ii])==3 and Elts[ii][0] is not None:
-            temp = "{0:"+Elts[ii][2]+"}"
-            SVN = SVN + '_' + Elts[ii][1] + temp.format(Elts[ii][0])
-        elif Elts[ii][0] is not None:
-            SVN = SVN + '_' + Elts[ii][1] + str(Elts[ii][0]).replace('_','')
-    if dtimeIn:
-        SVN = SVN+'_'+dtime.strftime(Format)
-    SVN = SVN.replace('__','_')
-    if version is not None:
-        SVN += '_V' + version
-    if usr is not None:
-        SVN = SVN + '_U' + usr
-    return SVN
-"""
 
-# Checking several instances are the same object
 def CheckSameObj(obj0, obj1, LFields=None):
-    """ Check two variable refer to the same instance of a ToFu class by checking some key attributes
+    """ Check if two variables are the same instance of a ToFu class
 
-    Sometimes two different variables can refer to the same instance (for example if an object was created and assigned to obj0, then later saved and loaded and assigned to obj1).
-    Occasionally it may be useful to check whether two variables really represent the same instance, according to important criteria from the point of view of ToFu.
+    Checks a list of attributes, provided by LField
 
     Parameters
     ----------
     obj0 :      tofu object
         A variable refering to a ToFu object of any class
     obj1 :      tofu object
-        A variable refering to a ToFu object of any class (but the same class as obj0)
+        A variable refering to a ToFu object of the same class as obj0
     LFields :   None / str / list
-        The criteria against which the two objects are evaluated, if not None, must be str matching an attribute of the ID class or an attribute of the object class itself (or a list of such)
+        The criteria against which the two objects are evaluated:
             - None: True is returned
-            - str or list: tests whether the attributes have the same value or not and only returns True if all do
+            - str or list: tests whether all listed attributes have the same value
 
     Returns
     -------
     A :     bool
+        True only is LField is None or a list of attributes that all match
 
     """
-    assert LFields is None or type(LFields) is str or (type(LFields) is list and all([type(ss) is str for ss in LFields])), "Arg LFields must be a str or a list of str !"
-    if LFields is None:
-        return True
-    if not type(LFields) is list:
-        LFields = [LFields]
-    ind = [False for ii in range(0,len(LFields))]
-    for ii in range(0,len(LFields)):
-        assert LFields[ii] in dir(obj0.Id)+dir(obj0), LFields[ii]+" not in "+obj0.Id.Name+" !"
-        assert LFields[ii] in dir(obj1.Id)+dir(obj1), LFields[ii]+" not in "+obj1.Id.Name+" !"
-        if LFields[ii] in dir(obj0):
-            ind[ii] = np.all(getattr(obj0,LFields[ii])==getattr(obj1,LFields[ii]))
-        else:
-            ind[ii] = getattr(obj0.Id,LFields[ii])==getattr(obj1.Id,LFields[ii])
-    A = all(ind)
+    A = True
+    if LField is not None and obj0.__class__==obj1.__class__:
+        assert type(LFields) in [str,list],
+        if type(LFields) is str:
+            LFields = [LFields]
+        assert all([type(s) is str for s in LFields]))
+        ind = [False for ii in range(0,len(LFields))]
+        Dir0 = dir(obj0.Id)+dir(obj0)
+        Dir1 = dir(obj1.Id)+dir(obj1)
+        for ii in range(0,len(LFields)):
+            assert LFields[ii] in Dir0, LFields[ii]+" not in "+obj0.Id.Name
+            assert LFields[ii] in Dir1, LFields[ii]+" not in "+obj1.Id.Name
+            if hasattr(obj0,LFields[ii]):
+                ind[ii] = np.all(getattr(obj0,LFields[ii])==getattr(obj1,LFields[ii]))
+            else:
+                ind[ii] = getattr(obj0.Id,LFields[ii])==getattr(obj1.Id,LFields[ii])
+        A = all(ind)
     return A
 
 
@@ -801,20 +778,20 @@ def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log=
 
 
 
-def _Id_todict(Id):
-    IdTxt = {'version':Id._version, 'Cls':Id.Cls, 'Name':Id.Name, 'SaveName':Id.SaveName, 'SavePath':Id.SavePath, 'Diag':Id.Diag, 'Type':Id.Type, 'shot':Id.shot, 'Exp':Id.Exp}
-    Iddtime = {'dtime':Id.dtime, 'dtFormat':Id._dtFormat}
-    IdLobjUsr = {'LObj':Id.LObj, 'USRdict':Id.USRdict}
-    return [IdTxt,Iddtime,IdLobjUsr]
+#def _Id_todict(Id):
+#    IdTxt = {'version':Id._version, 'Cls':Id.Cls, 'Name':Id.Name, 'SaveName':Id.SaveName, 'SavePath':Id.SavePath, 'Diag':Id.Diag, 'Type':Id.Type, 'shot':Id.shot, 'Exp':Id.Exp}
+#    Iddtime = {'dtime':Id.dtime, 'dtFormat':Id._dtFormat}
+#    IdLobjUsr = {'LObj':Id.LObj, 'USRdict':Id.USRdict}
+#    return [IdTxt,Iddtime,IdLobjUsr]
 
 
 
 
-def _Id_recreateFromdict(IdS):
-    Id = ID(Cls=IdS[0]['Cls'], Type=IdS[0]['Type'], Exp=IdS[0]['Exp'], Diag=IdS[0]['Diag'], shot=IdS[0]['shot'], Name=IdS[0]['Name'], SaveName=IdS[0]['SaveName'], SavePath=IdS[0]['SavePath'],
-            dtime=IdS[1]['dtime'], dtFormat=IdS[1]['dtFormat'],
-            LObj=IdS[2]['LObj'], USRdict=IdS[2]['USRdict'], version=IdS[0]['version'])
-    return Id
+#def _Id_recreateFromdict(IdS):
+#    Id = ID(Cls=IdS[0]['Cls'], Type=IdS[0]['Type'], Exp=IdS[0]['Exp'], Diag=IdS[0]['Diag'], shot=IdS[0]['shot'], Name=IdS[0]['Name'], SaveName=IdS[0]['SaveName'], SavePath=IdS[0]['SavePath'],
+#            dtime=IdS[1]['dtime'], dtFormat=IdS[1]['dtFormat'],
+#            LObj=IdS[2]['LObj'], USRdict=IdS[2]['USRdict'], version=IdS[0]['version'])
+#    return Id
 
 
 

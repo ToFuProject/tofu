@@ -517,13 +517,245 @@ class Struct(Ves):
 """
 
 
-#class Rays(object):
-""" Parent class of rays (ray-tracing), LOS, LOSCam1D and LOSCam2D
+class Rays(object):
+    """ Parent class of rays (ray-tracing), LOS, LOSCam1D and LOSCam2D
 
-Focused on
+    Focused on optimizing the computation time for many rays.
+
+    Each ray is defined by a starting point (D) and a unit vector(u).
+    If a vessel (Ves) and structural elements (LStruct) are provided,
+    the intersection points are automatically computed.
+
+    Methods for plootting, computing synthetic signal are provided.
+
+    Parameters
+    ----------
+    Id :            str  / :class:`~tofu.pathfile.ID`
+        A name string or a :class:`~tofu.pathfile.ID` to identify this instance,
+        if a string is provided, it is fed to :class:`~tofu.pathfile.ID`
+    Du :            iterable
+        Iterable of len=2, containing 2 np.ndarrays represnting, for N rays:
+            - Ds: a (3,N) array of the (X,Y,Z) coordinates of starting points
+            - us: a (3,N) array of the (X,Y,Z) coordinates of the unit vectors
+    Ves :           None / :class:`~tofu.geom.Ves`
+        A :class:`~tofu.geom.Ves` instance to be associated to the rays
+    LStruct:        None / :class:`~tofu.geom.Struct` / list
+        A :class:`~tofu.geom.Struct` instance or list of such, for obstructions
+    Sino_RefPt :    None / np.ndarray
+        Iterable of len=2 with the coordinates of the sinogram reference point
+            - (R,Z) coordinates if the vessel is of Type 'Tor'
+            - (Y,Z) coordinates if the vessel is of Type 'Lin'
+    Type :          None
+        (not used in the current version)
+    Exp        :    None / str
+        Experiment to which the LOS belongs:
+            - if both Exp and Ves are provided: Exp==Ves.Id.Exp
+            - if Ves is provided but not Exp: Ves.Id.Exp is used
+    Diag       :    None / str
+        Diagnostic to which the LOS belongs
+    shot       :    None / int
+        Shot number from which this LOS is valid
+    SavePath :      None / str
+        If provided, default saving path of the object
+
+    """
+
+    def __init__(self, Id, Du, Ves=None, LStruct=None,
+                 Sino_RefPt=None, fromdict=False,
+                 Type=None, Exp=None, Diag=None, shot=0, SavePath=None):
+        self._Done = False
+        if fromdict is None:
+            if not Ves is None:
+                Exp = Exp if not Exp is None else Ves.Id.Exp
+                assert Exp==Ves.Id.Exp, "Arg Exp must be identical to the Ves.Exp !"
+            self._set_Id(Id, Type=Type,
+                         Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
+            self._set_Ves(Ves, LStruct=LStruct, Du=Du)
+            self._set_sino(RefPt=Sino_RefPt)
+        else:
+            self._fromdict(fromdict)
+        self._Done = True
+
+    def _fromdict(self, fd):
+        self._check_inputs(fromdict=fd)
+        self._Id = fd['Id']
+        self._Ves = tfpf.Open(fd['Ves'][0]+fd['Ves'][1])
+        self._LStrucr = [tfpf.Open(s[0]+s[1]) for s in fd['LStruct']]
+        self._geom = fd['geom']
+
+    def _todict(self):
+        out = {'Id':self.Id._todict(), 'Du':(self.D,self.u),
+               'Ves':(self.Ves.Id.SavePath,self.Ves.Id.SaveName),
+               'LStruct':[(s.Id.SavePath,s.Id.SaveName) for s in self.LStruct],
+               'geom':self.geom}
+        return out
+
+    @property
+    def Id(self):
+        return self._Id
+    @property
+    def geom(self):
+        return self._geom
+    @property
+    def D(self):
+        return self.geom['D']
+    @property
+    def u(self):
+        return self.geom['u']
+    @property
+    def PIn(self):
+        return self.geom['PIn']
+    @property
+    def POut(self):
+        return self.geom['POut']
+    @property
+    def Ves(self):
+        return self._Ves
+    @property
+    def LStruct(self):
+        return self._LStruct
+    @property
+    def sino(self):
+        return self._sino
+
+    def _check_inputs(self, Id=None, Du=None, Ves=None, Type=None,
+                      Sino_RefPt=None, Exp=None, shot=None, Diag=None,
+                      SavePath=None, fromdict=None):
+        _Rays_check_inputs(Id=Id, Du=Du, Vess=Ves, Type=Type,
+                          Sino_RefPt=Sino_RefPt, Exp=Exp, shot=shot,
+                          Diag=Diag, SavePath=SavePath, fromdict=fromdict)
+
+    def _set_Id(self, Val, Type=None,
+                Exp=None, Diag=None, shot=None, SavePath=None):
+        if self._Done:
+            Out = tfpf._get_FromItself(self.Id, {'Type':Type, 'Exp':Exp,
+'shot':shot, 'Diag':Diag, 'SavePath':SavePath})
+            Type, Exp, shot, Diag, SavePath = Out['Type'], Out['Exp'],
+Out['shot'], Out['Diag'], Out['SavePath']
+        tfpf._check_NotNone({'Id':Val})
+        self._check_inputs(Id=Val)
+        if type(Val) is str:
+            tfpf._check_NotNone({'Exp':Exp, 'shot':shot, 'Diag':Diag})
+            self._check_inputs(Type=Type, Exp=Exp, shot=shot, Diag=Diag,
+                               SavePath=SavePath)
+            Val = tfpf.ID(self.__class__, Val, Type=Type,
+                          Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
+        self._Id = Val
+
+    def _fromdict(self, fd):
+        self._check_inputs(fromdict=fd)
+        self._Id = fd['Id']
+        self._geom = fd['geom']
+
+    def _todict(self):
+        out = {}
+        return out
 
 
-"""
+    def _set_Ves(self, Ves=None, LStruct=None, Du=None):
+        self._check_inputs(Ves=Ves, Exp=self.Id.Exp)
+        LObj = []
+        if not Ves is None:
+            LObj.append(Ves.Id)
+        if not LStruct is None:
+            LStruct = [LStruct] if type(LStruct) is Struct else LStruct
+            LObj += [ss.Id for ss in LStruct]
+        if len(LObj)>0:
+            self.Id.set_LObj(LObj)
+        self._Ves = Ves
+        self._LStruct = LStruct
+        Du = Du if Du is not None else (self.D,self.u)
+        self._set_geom(Du)
+
+    def _set_geom(self, Du):
+        tfpf._check_NotNone({'Du':Du})
+        self._check_inputs(Du=Du)
+        D, u = np.asarray(Du[0]).flatten(), np.asarray(Du[1]).flatten()
+        u = u/np.linalg.norm(u,2)
+
+        PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut =
+np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan,
+np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
+        if not self.Ves is None:
+            (LSPoly, LSLim, LSVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for
+ss in self.LStruct]) if not self.LStruct is None else (None,None,None)
+            PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut =
+_GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'],
+Lim=self.Ves.Lim, LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
+                                                                                                     RMin=None,
+Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
+                                                                                                     VType=self.Ves.Type,
+Test=True)
+            if np.isnan(kPOut):
+                Warnings.warn()
+                La = _plot._LOS_calc_InOutPolProj_Debug(self, PIn, POut)
+            if np.isnan(kPIn):
+                PIn, kPIn = D, 0.
+
+        PRMin, kRMin, RMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12,
+Test=True)
+        self._geom = {'D':D, 'u':u,
+                      'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut,
+                      'VPerpIn':VPerpIn, 'VPerpOut':VPerpOut, 'IndIn':IndIn,
+'IndOut':IndOut,
+                      'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
+        self._set_CrossProj()
+
+
+
+
+
+
+
+def _LOS_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None,
+Clock=None, arrayorder=None, Exp=None, shot=None, Diag=None, SavePath=None,
+Calc=None):
+    if not Id is None:
+        assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID
+object !"
+    if not Du is None:
+        assert hasattr(Du,'__iter__') and len(Du)==2 and
+all([hasattr(du,'__iter__') and len(du)==3 for du in Du]), "Arg Du must be an
+iterable containing of two iterables of len()=3 (cartesian coordinates) !"
+    if not Vess is None:
+        assert type(Vess) is Ves, "Arg Ves must be a Ves instance !"
+        if not Exp is None:
+            assert Exp==Vess.Id.Exp, "Arg Exp must be the same as Ves.Id.Exp !"
+    bools = [Clock,Calc]
+    if any([not aa is None for aa in bools]):
+        assert all([aa is None or type(aa) is bool for aa in bools]), " Args
+[Clock,Calc] must all be bool !"
+    if not arrayorder is None:
+        assert arrayorder in ['C','F'], "Arg arrayorder must be in ['C','F'] !"
+    assert Type is None, "Arg Type must be None for a LOS object !"
+    strs = [Exp,Diag,SavePath]
+    if any([not aa is None for aa in strs]):
+        assert all([aa is None or type(aa) is str for aa in strs]), "Args
+[Exp,Diag,SavePath] must all be str !"
+    Iter2 = [Sino_RefPt]
+    if any([not aa is None for aa in Iter2]):
+        assert all([aa is None or (hasattr(aa,'__iter__') and
+np.asarray(aa).ndim==1 and np.asarray(aa).size==2) for aa in Iter2]), "Args
+[DLong,Sino_RefPt] must be an iterable with len()=2 !"
+    Ints = [shot]
+    if any([not aa is None for aa in Ints]):
+        assert all([aa is None or type(aa) is int for aa in Ints]), "Args
+[Sino_NP,shot] must be int !"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
