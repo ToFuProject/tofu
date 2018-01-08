@@ -59,7 +59,14 @@ elif sys.version[0] == '3':
 else:
     raise Exception("Not supported python version !")
 
+import tofu.pathfile as pathfile
+import tofu.geom as geom
+
+
+
 __all__ = ['geom', 'pathfile']
+
+del sys, version
 
 #__all__.extend(['__version__'])
 #__all__.extend(core.__all__)

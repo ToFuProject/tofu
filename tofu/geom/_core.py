@@ -628,10 +628,12 @@ class Rays(object):
     def _set_Id(self, Val, Type=None,
                 Exp=None, Diag=None, shot=None, SavePath=None):
         if self._Done:
-            Out = tfpf._get_FromItself(self.Id, {'Type':Type, 'Exp':Exp,
-'shot':shot, 'Diag':Diag, 'SavePath':SavePath})
-            Type, Exp, shot, Diag, SavePath = Out['Type'], Out['Exp'],
-Out['shot'], Out['Diag'], Out['SavePath']
+            dd = {'Type':Type, 'Exp':Exp, 'shot':shot, 'Diag':Diag,
+                  'SavePath':SavePath}
+            Out = tfpf._get_FromItself(self.Id, dd)
+            Type, Exp, shot, Diag, SavePath = (Out['Type'], Out['Exp'],
+                                               Out['shot'], Out['Diag'],
+                                               Out['SavePath'])
         tfpf._check_NotNone({'Id':Val})
         self._check_inputs(Id=Val)
         if type(Val) is str:
@@ -651,7 +653,7 @@ Out['shot'], Out['Diag'], Out['SavePath']
         out = {}
         return out
 
-
+    """
     def _set_Ves(self, Ves=None, LStruct=None, Du=None):
         self._check_inputs(Ves=Ves, Exp=self.Id.Exp)
         LObj = []
@@ -673,9 +675,10 @@ Out['shot'], Out['Diag'], Out['SavePath']
         D, u = np.asarray(Du[0]).flatten(), np.asarray(Du[1]).flatten()
         u = u/np.linalg.norm(u,2)
 
-        PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut =
-np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan,
-np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
+        kPIn, kPOut = np.nan, np.nan
+        PIn, POut = np.full((3,),np.nan), np.full((3,),np.nan)
+        VPerpIn, VPerpOut = np.full((3,),np.nan), np.full((3,),np.nan)
+        IndIn, IndOut = np.nan, np.nan
         if not self.Ves is None:
             (LSPoly, LSLim, LSVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for
 ss in self.LStruct]) if not self.LStruct is None else (None,None,None)
@@ -700,47 +703,43 @@ Test=True)
 'IndOut':IndOut,
                       'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
         self._set_CrossProj()
+    """
 
 
 
 
 
-
-
-def _LOS_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None,
-Clock=None, arrayorder=None, Exp=None, shot=None, Diag=None, SavePath=None,
-Calc=None):
+# To be finished !!!
+def _Rays_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None,
+                      Exp=None, shot=None, Diag=None, SavePath=None, Calc=None):
     if not Id is None:
-        assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID
-object !"
+        assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
     if not Du is None:
-        assert hasattr(Du,'__iter__') and len(Du)==2 and
-all([hasattr(du,'__iter__') and len(du)==3 for du in Du]), "Arg Du must be an
-iterable containing of two iterables of len()=3 (cartesian coordinates) !"
+        C0 = hasattr(Du,'__iter__') and len(Du)==2
+        C1 = all([hasattr(du,'__iter__') and len(du)==3 for du in Du])
+        assert C0 and C1, "Arg Du must be iterable of two iterables of len()=3"
     if not Vess is None:
         assert type(Vess) is Ves, "Arg Ves must be a Ves instance !"
         if not Exp is None:
             assert Exp==Vess.Id.Exp, "Arg Exp must be the same as Ves.Id.Exp !"
-    bools = [Clock,Calc]
+    bools = [Calc]
     if any([not aa is None for aa in bools]):
-        assert all([aa is None or type(aa) is bool for aa in bools]), " Args
-[Clock,Calc] must all be bool !"
-    if not arrayorder is None:
-        assert arrayorder in ['C','F'], "Arg arrayorder must be in ['C','F'] !"
+        C = all([aa is None or type(aa) is bool for aa in bools])
+        assert C, " Args [Calc] must all be bool !"
     assert Type is None, "Arg Type must be None for a LOS object !"
     strs = [Exp,Diag,SavePath]
     if any([not aa is None for aa in strs]):
-        assert all([aa is None or type(aa) is str for aa in strs]), "Args
-[Exp,Diag,SavePath] must all be str !"
+        C = all([aa is None or type(aa) is str for aa in strs])
+        assert C, "Args [Exp,Diag,SavePath] must all be str !"
     Iter2 = [Sino_RefPt]
-    if any([not aa is None for aa in Iter2]):
-        assert all([aa is None or (hasattr(aa,'__iter__') and
-np.asarray(aa).ndim==1 and np.asarray(aa).size==2) for aa in Iter2]), "Args
-[DLong,Sino_RefPt] must be an iterable with len()=2 !"
+    for aa in Iter2:
+        if aa is not None:
+            C0 = np.asarray(aa).shape==(2,)
+            assert C0, "Args [Sino_RefPt] must be an iterable with len()=2 !"
     Ints = [shot]
-    if any([not aa is None for aa in Ints]):
-        assert all([aa is None or type(aa) is int for aa in Ints]), "Args
-[Sino_NP,shot] must be int !"
+    for aa in Ints:
+        if aa is not None:
+            assert type(aa) is int, "Args [shot] must be int !"
 
 
 
@@ -1171,31 +1170,36 @@ class LOS(object):
 
 
 
-def _LOS_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None, Clock=None, arrayorder=None, Exp=None, shot=None, Diag=None, SavePath=None, Calc=None):
+def _LOS_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None,
+                      Exp=None, shot=None, Diag=None, SavePath=None, Calc=None):
     if not Id is None:
-        assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID object !"
+        assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
     if not Du is None:
-        assert hasattr(Du,'__iter__') and len(Du)==2 and all([hasattr(du,'__iter__') and len(du)==3 for du in Du]), "Arg Du must be an iterable containing of two iterables of len()=3 (cartesian coordinates) !"
+        C0 = hasattr(Du,'__iter__') and len(Du)==2
+        C1 = all([hasattr(du,'__iter__') and len(du)==3 for du in Du])
+        assert C0 and C1, "Arg Du must be iterable of two iterables of len()=3"
     if not Vess is None:
         assert type(Vess) is Ves, "Arg Ves must be a Ves instance !"
         if not Exp is None:
             assert Exp==Vess.Id.Exp, "Arg Exp must be the same as Ves.Id.Exp !"
-    bools = [Clock,Calc]
+    bools = [Calc]
     if any([not aa is None for aa in bools]):
-        assert all([aa is None or type(aa) is bool for aa in bools]), " Args [Clock,Calc] must all be bool !"
-    if not arrayorder is None:
-        assert arrayorder in ['C','F'], "Arg arrayorder must be in ['C','F'] !"
+        C = all([aa is None or type(aa) is bool for aa in bools])
+        assert C, " Args [Calc] must all be bool !"
     assert Type is None, "Arg Type must be None for a LOS object !"
     strs = [Exp,Diag,SavePath]
     if any([not aa is None for aa in strs]):
-        assert all([aa is None or type(aa) is str for aa in strs]), "Args [Exp,Diag,SavePath] must all be str !"
+        C = all([aa is None or type(aa) is str for aa in strs])
+        assert C, "Args [Exp,Diag,SavePath] must all be str !"
     Iter2 = [Sino_RefPt]
-    if any([not aa is None for aa in Iter2]):
-        assert all([aa is None or (hasattr(aa,'__iter__') and np.asarray(aa).ndim==1 and np.asarray(aa).size==2) for aa in Iter2]), "Args [DLong,Sino_RefPt] must be an iterable with len()=2 !"
+    for aa in Iter2:
+        if aa is not None:
+            C0 = np.asarray(aa).shape==(2,)
+            assert C0, "Args [Sino_RefPt] must be an iterable with len()=2 !"
     Ints = [shot]
-    if any([not aa is None for aa in Ints]):
-        assert all([aa is None or type(aa) is int for aa in Ints]), "Args [Sino_NP,shot] must be int !"
-
+    for aa in Ints:
+        if aa is not None:
+            assert type(aa) is int, "Args [shot] must be int !"
 
 
 

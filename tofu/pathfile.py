@@ -284,16 +284,18 @@ class ID(object):
 
     """
 
-    def __init__(self, Cls, Name, Type=None, Deg=None,
+    def __init__(self, Cls=None, Name=None, Type=None, Deg=None,
                  Exp=None, Diag=None, shot=None, SaveName=None, SavePath='./',
                  USRdict={}, LObj=None, fromdict=None,
                  Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot']):
 
         if fromdict is None:
+            assert Cls is not None
+            assert Name is not None
             self._check_inputs(Cls=Cls, Name=Name, Type=Type, Deg=Deg,
                                Exp=Exp, Diag=Diag, shot=shot, SaveName=SaveName,
                                SavePath=SavePath, USRdict=USRdict,
-                               version=version, Include=Include)
+                               Include=Include)
 
             # Try to get the user name
             self._version = __version__
@@ -322,12 +324,12 @@ class ID(object):
         # Set fixed attributes
         self._Mod, self._Cls, self._Type = fd['Mod'], fd['Cls'], fd['Type']
         self._Exp, self._Diag, self._shot = fd['Exp'], fd['Diag'], fd['shot']
-        self._SavePath, self._Deg = fd['Deg'], fd['SavePath']
+        self._Deg, self._SavePath = fd['Deg'], fd['SavePath']
         self._version, self._usr = fd['version'], fd['usr']
         self._USRdict = fd['USRdict']
         self._LObj = fd['LObj']
         # Set variable attributes
-        self.set_Name(fd['Name'], SaveName=fd['SaveName'], Include=fd['Include'])
+        self._Name, self._SaveName = fd['Name'], fd['SaveName']
         # Check the original tofu version against the current version
         if not self._version==__version__:
             Str = self._Name+" was created from a different ToFu version !\n"
@@ -346,11 +348,12 @@ class ID(object):
     def _check_inputs(self, Cls=None, Name=None, Type=None, Deg=None,
                       Exp=None, Diag=None, shot=None, SaveName=None,
                       SavePath=None, USRdict=None, LObj=None, version=None,
-                      fromdict=None, Include=None):
+                      usr=None, fromdict=None, Include=None):
         _ID_check_inputs(Cls=Cls, Name=Name, Type=Type, Deg=Deg, Exp=Exp,
                          Diag=Diag, shot=shot, SaveName=SaveName,
                          SavePath=SavePath, USRdict=USRdict, LObj=LObj,
-                         version=version, fromdict=fromdict, Include=Include)
+                         version=version, usr=usr, fromdict=fromdict,
+                         Include=Include)
 
     def set_Name(self, Name, SaveName=None,
                  Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot'],
@@ -401,11 +404,12 @@ class ID(object):
                 - False : The former SaveName is preserved (default)
         """
         self._check_inputs(SaveName=SaveName, Include=Include)
+        if not hasattr(self,'_SaveName_usr'):
+            self._SaveName_usr = (SaveName is not None)
         # If SaveName provided by user, override
         if SaveName is not None:
             self._SaveName = SaveName
             self._SaveName_usr = True
-            self._SaveName_Include = None
         else:
             # Don't update if former is user-defined and ForceUpdate is False
             # Override if previous was:
@@ -416,56 +420,36 @@ class ID(object):
                                    Diag=self.Diag, shot=self.shot,
                                    version=self._version, usr=self._usr,
                                    Include=Include)
+                self._SaveName = SN
                 self._SaveName_usr = False
-                self._SaveName_Include = Include
 
     def set_LObj(self,LObj=None):
-        """ Set the LObj attribute storing objects the instance depends on
+        """ Set the LObj attribute, storing objects the instance depends on
 
         For example:
         A Detect object depends on a vessel and some apertures
-        It is necessary that the link between the created Detect object and the already-existing Ves and Apert objects be stored somewhere, so that even after saving and closing the session, this correspondence can be retrieved and the Detect object can be re-loaded with links to the proper Ves and Apert objects, themselves beoing possibly saved elsewhere (so their respective SavePath must also be stored).
-        The LObj parameter does this: it stores all information necessary about each of the other objects the created instance depends on, mostly by storing their ID attributes as dictionaries.
+        That link between should be stored somewhere (for saving/loading).
+        LObj does this: it stores the ID (as dict) of all objects depended on.
 
         Parameters
         ----------
-        LObj :  None / dict / list
-            If provided, either
-                - list: list of other ID instances of objects on which the created object depends (this list will then be sorted by class and formatted into a dictionary storign key attributes)
-                - dict: a ready-made such dictionary
+        LObj :  None / dict / :class:`~tofu.pathfile.ID` / list of such
+            Provide either:
+                - A dict (derived from :meth:`~tofu.pathfile.ID._todict`)
+                - A :class:`~tofu.pathfile.ID` instance
+                - A list of dict or :class:`~tofu.pathfile.ID` instances
 
         """
-        assert LObj is None or type(LObj) is dict or (type(LObj) is list and all([isinstance(oo,ID) for oo in LObj])), "Arg LObj must be a list of ID instances !"
-        if type(LObj) is list:
-            LCls = [oo.Cls for oo in LObj]
-            ClsU = list(set(LCls))
-            for Cls in ClsU:
-                self._LObj[Cls] = {'Exp':[oo.Exp for oo in LObj if oo.Cls==Cls], 'Name':[oo.Name for oo in LObj if oo.Cls==Cls], 'SaveName':[oo.SaveName for oo in LObj if oo.Cls==Cls],
-                        'SavePath':[oo.SavePath for oo in LObj if oo.Cls==Cls], 'Type':[oo.Type for oo in LObj if oo.Cls==Cls], 'Diag':[oo.Diag for oo in LObj if oo.Cls==Cls],
-                        'shot':[oo.shot for oo in LObj if oo.Cls==Cls],
-                        'dtFormat':[oo._dtFormat for oo in LObj if oo.Cls==Cls], 'dtime':[oo.dtime.strftime(oo._dtFormat) for oo in LObj if oo.Cls==Cls],
-                        'USRdict':[oo._USRdict for oo in LObj if oo.Cls==Cls], 'LObj':[oo._LObj for oo in LObj if oo.Cls==Cls]}
-        elif type(LObj) is dict:
-            self._LObj = LObj
-
-    def get_LObjasLId(self,Cls=None):
-        if Cls is None:
-            Cls = sorted([self._LObj.keys()])
-        Cls = [Cls] if type(Cls) is str else Cls
-        DId = {}
-        for ii in range(0,len(Cls)):
-            lid = []
-            keys = self._LObj[Cls[ii]].keys()
-            for jj in range(0,len(self._LObj[Cls[ii]]['Exp'])):
-                dd = {}
-                for kk in keys:
-                    dd[kk] = self._LObj[Cls[ii]][kk][jj]
-                name = dd['Name']
-                del dd['Name'], dd['dtime']
-                lid.append(ID(Cls[ii], name, **dd))
-            DId[Cls[ii]] = lid
-        return DId
-
+        self._LObj = {}
+        if LObj is not None:
+            if type(LObj) is not list:
+                LObj = [LObj]
+            for ii in range(0,len(LObj))
+                if type(LObj[ii]) is ID:
+                    LObj[ii] = LObj[ii]._todict()
+            ClsU = list(set([oo['Cls'] for oo in LObj]))
+            for c in ClsU:
+                self._Lobj[c] = [oo for oo in LObj if oo['Cls']==c]
 
     def set_USRdict(self,USRdict={}):
         """ Set the USRdict, containing user-defined info about the instance
@@ -517,29 +501,36 @@ class ID(object):
 
 
 
-def _ID_check_inputs(Cls=None, Name=None, Type=None, Deg=None,
+def _ID_check_inputs(Mod=None, Cls=None, Name=None, Type=None, Deg=None,
                  Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None,
-                 USRdict=None, LObj=None, version=None, fromdict=None,
-                 Include=None):
+                 USRdict=None, LObj=None, version=None, usr=None,
+                 fromdict=None, Include=None):
+    Lmod = ['pathfile','geom']
+    if Mod is not None:
+        assert type(Mod) is str
+        assert Mod in Lmod
     if Cls is not None:
-        assert type(Cls) is str
-        assert 'tofu.' in Cls
-        assert any([ss in Cls for ss in ['geom']])
+        assert type(Cls) in [str,type]
         cls = ['Ves','Struct','Rays','LOS','LOSCam1D','LOSCam2D',
                'Apert','Lens','GDetect','Detect','Cam1D','Cam2D']
-        assert any([ss in Cls for ss in cls])
-    Lstr = [Name,Type,Exp,Diag,SaveName,SavePath,version]
+        if type(Cls) is type:
+            assert 'tofu.' in str(Cls)
+            assert any([ss in str(Cls) for ss in Lmod])
+            assert any([ss in str(Cls) for ss in cls])
+        else:
+            assert Cls in cls
+    Lstr = [Name,Type,Exp,Diag,SaveName,SavePath,version,usr]
     for ss in Lstr:
         assert ss is None or type(ss) is str
     Lint = [Deg,shot]
     for ii in Lint:
-        assert ii is None or (type(ii) is int and ii>0)
+        assert ii is None or (type(ii) is int and ii>=0)
     if USRdict is not None:
         assert type(USRdict) is dict
     if Include is not None:
         IR = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']
         assert type(Include) in ['str',list,tuple]
-        if type(Include) is not str:
+        if type(Include) is str:
             assert Include in IR
         else:
             assert all([ss in IR for ss in Include])
@@ -550,9 +541,10 @@ def _ID_check_inputs(Cls=None, Name=None, Type=None, Deg=None,
     if fromdict is not None:
         assert type(fromdict) is dict
         k = ['Cls','Name','SaveName','SavePath','Type','Deg','Exp','Diag',
-             'shot','USRdict','version','Include','LObj']
+             'shot','USRdict','version','usr','LObj']
         K = fromdict.keys()
-        assert all(kk in K for kk in k)
+        for kk in k:
+            assert kk in K, "%s missing from provided dict !"%kk
 
 
 
@@ -579,21 +571,32 @@ def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
     It is recommended to use this default name.
 
     """
-    Dict = {'Mod':Mod, 'Cls':Cls, 'Typ':Type,
-            'Exp':Exp, 'Deg':Deg, 'Diag':Diag, 'shot':shot, 'Name':Name,
-            'Vers':version, 'Usr':usr}
+    ModDict = {'geom':'TFG'}
+    Modstr = ModDict[Mod] if Mod is not None else None
+    if Cls is not None and Type is not None and 'Typ' in Include:
+        Clsstr = Cls+Type
+    else:
+        Clsstr = Cls
+    Degstr = 'Deg{0:02.0f}'.format(Deg) if Deg is not None else None
+    Diagstr = 'Dg'+Diag if Diag is not None else None
+    shotstr = 'sh{0:05.0f}'.format(shot) if shot is not None else None
+    versstr = 'Vers'+version if version is not None else None
+    usrstr = 'U'+usr if usr is not None else None
+    Dict = {'Mod':Modstr, 'Cls':Clsstr,
+            'Exp':Exp, 'Deg':Degstr, 'Diag':Diagstr, 'shot':shotstr, 'Name':Name,
+            'Vers':versstr, 'Usr':usrstr}
     if Include is None:
         Include = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot']
 
     if Cls=='PreData':
-        Order = ['Mod','Cls','Typ','Exp','Deg','Diag','shot','Name','Vers','Usr']
+        Order = ['Mod','Cls','Exp','Deg','Diag','shot','Name','Vers','Usr']
     else:
-        Order = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']
+        Order = ['Mod','Cls','Exp','Deg','Diag','Name','shot','Vers','Usr']
 
     SVN = ""
     for ii in range(0,len(Order)):
         if Order[ii] in Include and Dict[Order[ii]] is not None:
-            SVN += Dict[Order[ii]]
+            SVN += '_' + Dict[Order[ii]]
     SVN = SVN.replace('__','_')
     if SVN[0]=='_':
         SVN = SVN[1:]
@@ -624,10 +627,10 @@ def CheckSameObj(obj0, obj1, LFields=None):
     """
     A = True
     if LField is not None and obj0.__class__==obj1.__class__:
-        assert type(LFields) in [str,list],
+        assert type(LFields) in [str,list]
         if type(LFields) is str:
             LFields = [LFields]
-        assert all([type(s) is str for s in LFields]))
+        assert all([type(s) is str for s in LFields])
         ind = [False for ii in range(0,len(LFields))]
         Dir0 = dir(obj0.Id)+dir(obj0)
         Dir1 = dir(obj1.Id)+dir(obj1)
@@ -642,6 +645,9 @@ def CheckSameObj(obj0, obj1, LFields=None):
     return A
 
 
+
+
+""" Not used ?
 def SelectFromIdLObj(IdLObjCls, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In', Out=bool):
     """ To do (deprecated ?)
     """
@@ -693,6 +699,10 @@ def SelectFromIdLObj(IdLObjCls, Val=None, Crit='Name', PreExp=None, PostExp=None
             return [IdLObjCls[Out][ii] for ii in ind.nonzero()[0]]
         else:
             return [IdLObjCls['USRdict'][ii][Out] for ii in ind.nonzero()[0]]
+"""
+
+
+
 
 
 
@@ -726,8 +736,14 @@ def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log=
 
 
     """
-    assert type(Crit) is str or (type(Crit) is list and all([type(cc) is str for cc in Crit])), "Arg Crit must be a str or list of str !"
-    assert all([rr is None or type(rr) is str or (type(rr) is list and all([type(ee) is str for ee in rr])) for rr in [PreExp,PostExp]]), "Args PreExp and PostExp must be a str or list of str !"
+    C0 = type(Crit) is str
+    C1 = type(Crit) is list and all([type(cc) is str for cc in Crit])
+    assert C0 or C1, "Arg Crit must be a str or list of str !"
+    for rr in [PreExp,PostExp]:
+        if rr is not None:
+            C0 = type(rr) is str
+            C1 = type(rr) is list and all([type(ee) is str for ee in rr])
+            assert C0 or C1,  "Args %S must be a str or list of str !"%rr
     assert Log in ['any','all'], "Arg Log must be in ['any','all'] !"
     assert InOut in ['In','Out'], "Arg InOut must be in ['In','Out'] !"
     if Val is None and PreExp is None and PostExp is None:
@@ -739,10 +755,12 @@ def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log=
         ind = np.zeros((N,len(LId)),dtype=bool)
         if Crit in dir(ID):
             for ii in range(0,N):
-                ind[ii,:] = np.asarray([getattr(iid,Crit)==Val[ii] for iid in LId],dtype=bool)
+                ind[ii,:] = np.asarray([getattr(iid,Crit)==Val[ii]
+                                        for iid in LId],dtype=bool)
         else:
             for ii in range(0,N):
-                ind[ii,:] = np.asarray([iid.USRdict[Crit]==Val[ii] for iid in LId],dtype=bool)
+                ind[ii,:] = np.asarray([iid.USRdict[Crit]==Val[ii]
+                                        for iid in LId],dtype=bool)
     else:
         if type(PreExp) is str:
             PreExp = [PreExp]
@@ -752,7 +770,7 @@ def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log=
             PreExp = ["" for ss in PostExp]
         if PostExp is None:
             PostExp = ["" for ss in PreExp]
-        assert len(PreExp)==len(PostExp), "Arg Exp must be a list of same length as Crit !"
+        assert len(PreExp)==len(PostExp), "len(PreExp) should be =len(PostExp)"
         N = len(PreExp)
         ind = np.zeros((N,len(LId)),dtype=bool)
         if Crit in dir(ID):
@@ -808,8 +826,9 @@ def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log=
 
 
 ###########################
-#   IDentify a Sol2D file
+#   Identify a Sol2D file
 ###########################
+
 
 def FindSolFile(shot=0, t=0, Dt=None, Mesh='Rough1', Deg=2, Deriv='D2N2', Sep=True, Pos=True, OutPath='/afs/ipp-garching.mpg.de/home/d/didiv/Python/tofu/src/Outputs_AUG/'):
     """ Identify the good Sol2D saved file in a given folder (OutPath), based on key ToFu criteria
@@ -872,7 +891,10 @@ def FindSolFile(shot=0, t=0, Dt=None, Mesh='Rough1', Deg=2, Deriv='D2N2', Sep=Tr
 
 def _get_ClsFromName(PathFileExt):
     assert type(PathFileExt) is str, "Arg PathFileExt must be a str !"
-    LCls = ['Ves','LOS','GLOS','Apert','Lens','Detect','GDetect','Mesh1D','Mesh2D','BF1D','BF2D','PreData','Sol2D']
+    LCls = ['Ves','Struct',
+            'Rays','LOS','LOSCam1D','LOSCam2D',
+            'Apert','Lens','GDetect','Detect','Cam1D','Cam2D']
+    # 'Mesh1D','Mesh2D','BF1D','BF2D','PreData','Sol2D']
     Found = False
     for nn in LCls:
         if '_'+nn+'_' in PathFileExt:
@@ -880,6 +902,9 @@ def _get_ClsFromName(PathFileExt):
             break
     assert Found, "Class could not be identified in "+PathFileExt
     return nn
+
+
+
 
 
 
