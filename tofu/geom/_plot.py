@@ -408,22 +408,30 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng, AngUnit=_def.TorPAn
 #       Utility functions
 ############################################
 
-def _LOS_calc_InOutPolProj_Debug(Los,PIn,POut):
-    axP, axT = Los.Ves.plot()
-    axP.set_title('LOS '+ Los.Id.NameLTX + ' / _LOS_calc_InOutPolProj / Debugging')
-    axT.set_title('LOS '+ Los.Id.NameLTX + ' / _LOS_calc_InOutPolProj / Debugging')
-    P = np.array([Los.D, Los.D+2*Los.u]).T
-    axP.plot(np.sqrt(P[0,:]**2+P[1,:]**2),P[2,:],color='k',ls='solid',marker='x',markersize=8,mew=2,label=Los.Id.NameLTX)
-    axP.plot([np.sqrt(PIn[0]**2+PIn[1]**2), np.sqrt(POut[0]**2+POut[1]**2)], [PIn[2],POut[2]], 'or', label=r"PIn, POut")
-    axT.plot(P[0,:],P[1,:],color='k',ls='solid',marker='x',markersize=8,mew=2,label=Los.Id.NameLTX)
-    axT.plot([PIn[0],POut[0]], [PIn[1],POut[1]], 'or', label=r"PIn, POut")
-    axP.legend(**_def.TorLegd), axT.legend(**_def.TorLegd)
-    axP.figure.canvas.draw()
+def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3):
+    # Preformat
+    assert Ds.shape==us.shape==PIns.shape==POuts.shape
+    if Ds.ndim==1:
+        Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
+        PIns, POuts = PIns.reshape((3,1)), POuts.reshape((3,1))
+    Ps = Ds + L*us
+    nP = Ds.shape[1]
+    l0 = np.array([Ds[0,:], Ps[0,:], np.full((nP,),np.nan)]).T.ravel()
+    l1 = np.array([Ds[1,:], Ps[1,:], np.full((nP,),np.nan)]).T.ravel()
+    l2 = np.array([Ds[2,:], Ps[2,:], np.full((nP,),np.nan)]).T.ravel()
+
+    # Plot
+    ax = Ves.plot(Elt='P', Proj='3d')
+    ax.set_title('_LOS_calc_InOutPolProj / Debugging')
+    ax.plot(l0,l1,l2, c='k', lw=1, ls='-')
+    ax.plot(PIns[0,:],PIns[1,:],PIns[2,:], c='b', ls='None', marker='o', label=r"PIn")
+    ax.plot(POuts[0,:],POuts[1,:],POuts[2,:], c='r', ls='None', marker='x', label=r"POut")
+    ax.legend(**_def.TorLegd)
+    ax.figure.canvas.draw()
     print("")
     print("Debugging...")
-    print("    LOS.D, LOS.u = ", Los.D, Los.u)
-    print("    PIn, POut = ", PIn, POut)
-    assert not (np.any(np.isnan(PIn)) or np.any(np.isnan(POut))), "Error in computation of In/Out points !"
+    print("    D, u = ", Ds, us)
+    print("    PIn, POut = ", PIns, POuts)
 
 
 def _get_LLOS_Leg(GLLOS, Leg=None, ind=None, Val=None, Crit='Name', PreExp=None,

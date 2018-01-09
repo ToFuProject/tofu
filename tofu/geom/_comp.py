@@ -307,19 +307,42 @@ def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
     return PRMin, kRMin, RMin
 
 
-def LOS_CrossProj(VType, D, u, kPIn, kPOut, kRMin):
+def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins, Lplot='In', Proj='All'):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
     assert type(VType) is str and VType.lower() in ['tor','lin']
-    if VType.lower()=='tor':
-        CrossProjAng = np.arccos(np.sqrt(u[0]**2+u[1]**2)/np.linalg.norm(u))
+    assert Lplot.lower() in ['tot','in']
+    assert Proj.lower() in ['cross','hor','all','3d']
+    assert Ds.ndim==2 and Ds.shape===us.shape
+    nL = Ds.shape[1]
+    k0 = kPIns if Lplot.lower()=='in' else np.zeros((nL,))
+
+    if VType.lower()=='tor' and Proj.lower() in ['cross','all']:
+        CrossProjAng = np.arccos(np.sqrt(u[0,:]**2+u[1,:]**2)
+                                 /np.sum(np.sqrt(us**2,axis=0)))
         nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
-        kplotTot = np.unique(np.insert(np.linspace(0.,kPOut,nkp,endpoint=True),1,kRMin))
-        kplotIn = np.unique(np.insert(np.linspace(kPIn,kPOut,nkp,endpoint=True),1,max(kRMin,kPIn)))
-    else:
-        CrossProjAng = np.nan
-        kplotTot = np.array([0.,kPOut])
-        kplotIn = np.array([kPIn,kPOut])
-    return CrossProjAng, kplotTot, kplotIn
+        ks = np.max([kRMins,kPIns],axis=0) if Lplot.lower()=='in' else kRMin
+        pts0 = []
+        for ii in range(0,nL):
+            k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
+            k = np.unique(np.insert(k,1,ks,np.nan))
+            pts0.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
+        pts0 = np.concatenate(tuple(pts0),axis=1)
+        pts0 = np.array([np.hypot(pts0[0,:],pts0[1,:]),pts[2,:]])
+
+    if not (VType.lower()=='tor' and Proj.lower()=='cross'):
+        pts = []
+        for ii in range(0,nL):
+            k = np.array([k0[ii],kPOuts[ii],np.nan])
+            pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
+        pts = np.concatenate(tuple(pts),axis=1)
+
+    if Proj.lower()=='hor':
+        pts = pts[:2,:]
+    elif Proj.lower()=='cross':
+        pts = pts0 if VType.lower()=='tor' else pts[1:,:]
+    elif Proj.lower()=='all':
+        pts = (pts0,pts[:2,:]) if VType.lower()=='tor' else (pts[1,:],pts[:2,:])
+    return pts
 
 
 

@@ -574,15 +574,17 @@ class Rays(object):
     """
 
     def __init__(self, Id, Du, Ves=None, LStruct=None,
-                 Sino_RefPt=None, fromdict=False,
-                 Type=None, Exp=None, Diag=None, shot=0, SavePath='./'):
+                 Sino_RefPt=None, fromdict=None,
+                 Exp=None, Diag=None, shot=0, SavePath='./'):
         self._Done = False
         if fromdict is None:
-            if not Ves is None:
-                Exp = Exp if not Exp is None else Ves.Id.Exp
-                assert Exp==Ves.Id.Exp, "Arg Exp must be identical to the Ves.Exp !"
-            self._set_Id(Id, Type=Type,
-                         Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
+            self._check_inputs(Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
+                               Sino_RefPt=Sino_RefPt, Exp=Exp, Diag=Diag,
+                               shot=shot, SavePath=SavePath)
+
+            if Ves is not None:
+                Exp = Ves.Id.Exp if Exp is None else Exp
+            self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
             self._set_Ves(Ves, LStruct=LStruct, Du=Du)
             self._set_sino(RefPt=Sino_RefPt)
         else:
@@ -593,13 +595,11 @@ class Rays(object):
         self._check_inputs(fromdict=fd)
         self._Id = fd['Id']
         self._Ves = tfpf.Open(fd['Ves'][0]+fd['Ves'][1])
-        self._LStrucr = [tfpf.Open(s[0]+s[1]) for s in fd['LStruct']]
+        self._LStruct = [tfpf.Open(s[0]+s[1]) for s in fd['LStruct']]
         self._geom = fd['geom']
 
     def _todict(self):
-        out = {'Id':self.Id._todict(), 'Du':(self.D,self.u),
-               'Ves':(self.Ves.Id.SavePath,self.Ves.Id.SaveName),
-               'LStruct':[(s.Id.SavePath,s.Id.SaveName) for s in self.LStruct],
+        out = {'Id':self.Id._todict(),
                'geom':self.geom}
         return out
 
@@ -631,30 +631,22 @@ class Rays(object):
     def sino(self):
         return self._sino
 
-    def _check_inputs(self, Id=None, Du=None, Ves=None, Type=None,
+    def _check_inputs(self, Id=None, Du=None, Ves=None,
                       Sino_RefPt=None, Exp=None, shot=None, Diag=None,
                       SavePath=None, fromdict=None):
-        _Rays_check_inputs(Id=Id, Du=Du, Vess=Ves, Type=Type,
+        _Rays_check_inputs(Id=Id, Du=Du, Vess=Ves,
                           Sino_RefPt=Sino_RefPt, Exp=Exp, shot=shot,
                           Diag=Diag, SavePath=SavePath, fromdict=fromdict)
 
-    def _set_Id(self, Val, Type=None,
+    def _set_Id(self, Val,
                 Exp=None, Diag=None, shot=None, SavePath='./'):
+        dd = {'Exp':Exp, 'shot':shot, 'Diag':Diag, 'SavePath':SavePath}
         if self._Done:
-            dd = {'Type':Type, 'Exp':Exp, 'shot':shot, 'Diag':Diag,
-                  'SavePath':SavePath}
-            Out = tfpf._get_FromItself(self.Id, dd)
-            Type, Exp, shot, Diag, SavePath = (Out['Type'], Out['Exp'],
-                                               Out['shot'], Out['Diag'],
-                                               Out['SavePath'])
+            tfpf._get_FromItself(self.Id, dd)
         tfpf._check_NotNone({'Id':Val})
         self._check_inputs(Id=Val)
         if type(Val) is str:
-            tfpf._check_NotNone({'Exp':Exp, 'shot':shot, 'Diag':Diag})
-            self._check_inputs(Type=Type, Exp=Exp, shot=shot, Diag=Diag,
-                               SavePath=SavePath)
-            Val = tfpf.ID(self.__class__, Val, Type=Type,
-                          Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
+            Val = tfpf.ID(self.__class__, Val, **dd)
         self._Id = Val
 
     def _fromdict(self, fd):
@@ -666,9 +658,9 @@ class Rays(object):
         out = {}
         return out
 
-    """
+
     def _set_Ves(self, Ves=None, LStruct=None, Du=None):
-        self._check_inputs(Ves=Ves, Exp=self.Id.Exp)
+        self._check_inputs(Ves=Ves, Exp=self.Id.Exp, LStruct=LStruct, Du=Du)
         LObj = []
         if not Ves is None:
             LObj.append(Ves.Id)
@@ -685,61 +677,107 @@ class Rays(object):
     def _set_geom(self, Du):
         tfpf._check_NotNone({'Du':Du})
         self._check_inputs(Du=Du)
-        D, u = np.asarray(Du[0]).flatten(), np.asarray(Du[1]).flatten()
-        u = u/np.linalg.norm(u,2)
+        D, u = np.asarray(Du[0]), np.asarray(Du[1])
+        if D.ndim==2:
+            if D.shape[1]==3 and not D.shape[0]==3:
+                D, u = D.T, u.T
+        if D.ndim==1:
+            D, u = D.reshape((3,1)), u.reshape((3,1))
+        u = u/np.sqrt(np.sum(u**2,axis=0))
 
         kPIn, kPOut = np.nan, np.nan
         PIn, POut = np.full((3,),np.nan), np.full((3,),np.nan)
         VPerpIn, VPerpOut = np.full((3,),np.nan), np.full((3,),np.nan)
         IndIn, IndOut = np.nan, np.nan
         if not self.Ves is None:
-            (LSPoly, LSLim, LSVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for
-ss in self.LStruct]) if not self.LStruct is None else (None,None,None)
-            PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut =
-_GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'],
-Lim=self.Ves.Lim, LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
-                                                                                                     RMin=None,
-Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
-                                                                                                     VType=self.Ves.Type,
-Test=True)
-            if np.isnan(kPOut):
-                Warnings.warn()
-                La = _plot._LOS_calc_InOutPolProj_Debug(self, PIn, POut)
-            if np.isnan(kPIn):
-                PIn, kPIn = D, 0.
+            if self.LStruct is not None:
+                lSPoly = [ss.Poly for ss in self.LStruct]
+                lSLim = [ss.Lim for ss in self.LStruct]
+                lSVIn = [ss.geom['VIn'] for ss in self.LStruct]
+            else:
+                LSPoly, LSLim, LSVIn = None, None, None
 
-        PRMin, kRMin, RMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12,
-Test=True)
-        self._geom = {'D':D, 'u':u,
+            kargs = dict(RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
+                         EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+            out = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly,
+                                                self.Ves.geom['VIn'],
+                                                Lim=self.Ves.Lim, LSPoly=LSPoly,
+                                                LSLim=LSLim, LSVIn=LSVIn,
+                                                VType=self.Ves.Type, **kargs)
+            PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = out
+            ind = np.isnan(kPOut)
+            if np.any(ind):
+                warnings.warn("Some LOS have no visibility inside teh vessel !")
+                _plot._LOS_calc_InOutPolProj_Debug(self.Ves, Ds[:,ind],
+                                                   us[:,ind], PIn[:,ind],
+                                                   POut[:,ind])
+            ind = np.isnan(kPIn)
+            PIn[:,ind], kPIn[ind] = D[:,ind], 0.
+
+        PRMin, kRMin, RMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12)
+        self._geom = {'D':D, 'u':u, 'nRays':Ds.shape[1],
                       'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut,
-                      'VPerpIn':VPerpIn, 'VPerpOut':VPerpOut, 'IndIn':IndIn,
-'IndOut':IndOut,
+                      'VPerpIn':VPerpIn, 'VPerpOut':VPerpOut,
+                      'IndIn':IndIn, 'IndOut':IndOut,
                       'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
-        self._set_CrossProj()
-    """
+
+    def _get_plotPts(self, Lplot='Tot', Proj='All'):
+        ind = ~np.isnan(self.geom['kPOut'])
+        if np.any(ind):
+            pts = _comp.LOS_CrossProj(self.Ves.Type, self.D, self.u,
+                                      self.geom['kPIn'], self.geom['kPOut'],
+                                      self.geom['kRMin'], Lplot=Lplot)
+        return pts
+
+
+
+    # TBD
+    def _set_sino(self, RefPt=None):
+        self._check_inputs(Sino_RefPt=RefPt)
+        if RefPt is None and self.Ves is None:
+            self._sino = None
+        else:
+            RefPt = self.Ves.sino['RefPt'] if RefPt is None else
+np.asarray(RefPt).flatten()
+            if self.Ves is not None:
+                self._Ves._set_sino(RefPt)
+                VType = self.Ves.Type
+            else:
+                VType = 'Lin'
+            kMax = np.inf if np.isnan(self.geom['kPOut']) else
+self.geom['kPOut']
+            Pt, kPt, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u,
+RefPt, Mode='LOS', kOut=kMax, VType=VType)
+            self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
+'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
 
 
 
 
-# To be finished !!!
-def _Rays_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None,
+
+
+def _Rays_check_inputs(Id=None, Du=None, Vess=None, Sino_RefPt=None,
                       Exp=None, shot=None, Diag=None, SavePath='./', Calc=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
     if not Du is None:
         C0 = hasattr(Du,'__iter__') and len(Du)==2
-        C1 = all([hasattr(du,'__iter__') and len(du)==3 for du in Du])
-        assert C0 and C1, "Arg Du must be iterable of two iterables of len()=3"
+        C1 = 3 in np.asarray(Du[0]).shape and np.asarray(Du[0]).ndim in [1,2]
+        C2 = 3 in np.asarray(Du[1]).shape and np.asarray(Du[1]).ndim in [1,2]
+        C3 = np.asarray(Du[0]).shape==np.asarray(Du[1]).shape
+        assert C0, "Arg Du must be an iterable of len()=2 !"
+        assert C1, "Du[0] must contain 3D coordinates of all starting points !"
+        assert C2, "Du[1] must contain 3D coordinates of all unit vectors !"
+        assert C3, "Du[0] and Du[1] must be of same shape !"
     if not Vess is None:
         assert type(Vess) is Ves, "Arg Ves must be a Ves instance !"
-        if not Exp is None:
+        if Exp is not None and Vess.Id.Exp is not None:
             assert Exp==Vess.Id.Exp, "Arg Exp must be the same as Ves.Id.Exp !"
     bools = [Calc]
     if any([not aa is None for aa in bools]):
         C = all([aa is None or type(aa) is bool for aa in bools])
         assert C, " Args [Calc] must all be bool !"
-    assert Type is None, "Arg Type must be None for a LOS object !"
     strs = [Exp,Diag,SavePath]
     if any([not aa is None for aa in strs]):
         C = all([aa is None or type(aa) is str for aa in strs])

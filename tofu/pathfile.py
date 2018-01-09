@@ -147,7 +147,6 @@ def _get_FromItself(obj, Dict):
                 Dict[aa] = getattr(obj,aa)
             except:
                 pass
-    return Dict
 
 
 
