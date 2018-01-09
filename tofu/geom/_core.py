@@ -574,7 +574,7 @@ class Rays(object):
     """
 
     def __init__(self, Id, Du, Ves=None, LStruct=None,
-                 Sino_RefPt=None, fromdict=None,
+                 Sino_RefPt=None, calc_sino=False, fromdict=None,
                  Exp=None, Diag=None, shot=0, SavePath='./'):
         self._Done = False
         if fromdict is None:
@@ -586,7 +586,7 @@ class Rays(object):
                 Exp = Ves.Id.Exp if Exp is None else Exp
             self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
             self._set_Ves(Ves, LStruct=LStruct, Du=Du)
-            self._set_sino(RefPt=Sino_RefPt)
+            self._set_sino(RefPt=Sino_RefPt, calc=calc_sino)
         else:
             self._fromdict(fromdict)
         self._Done = True
@@ -729,27 +729,202 @@ class Rays(object):
                                       self.geom['kRMin'], Lplot=Lplot)
         return pts
 
-
-
-    # TBD
     def _set_sino(self, RefPt=None):
         self._check_inputs(Sino_RefPt=RefPt)
-        if RefPt is None and self.Ves is None:
+        if (RefPt is None and self.Ves is None) or calc is False:
             self._sino = None
         else:
-            RefPt = self.Ves.sino['RefPt'] if RefPt is None else
-np.asarray(RefPt).flatten()
+            if RefPt is None:
+                RefPt = self.Ves.sino['RefPt']
+            RefPt = np.asarray(RefPt).ravel()
             if self.Ves is not None:
                 self._Ves._set_sino(RefPt)
                 VType = self.Ves.Type
             else:
                 VType = 'Lin'
-            kMax = np.inf if np.isnan(self.geom['kPOut']) else
-self.geom['kPOut']
-            Pt, kPt, r, Theta, p, theta, Phi = _GG.LOS_sino(self.D, self.u,
-RefPt, Mode='LOS', kOut=kMax, VType=VType)
+            kMax = self.geom['kPOut']
+            kMax[np.isnan(kMax)] = np.inf
+            out = _GG.LOS_sino(self.D, self.u, RefPt, kMax,
+                               Mode='LOS', VType=VType)
+            Pt, kPt, r, Theta, p, theta, Phi = out
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
-'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
+                          'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
+
+
+    def get_sample(self, dL, dLMode='abs', DL=None, method='sum'):
+        """ Return a linear sampling of the LOS
+
+        The LOS is sampled into a series a points and segments lengths
+        The resolution (segments length) is <= dL
+        The sampling can be done according to different methods
+        It is possible to sample only a subset of the LOS
+
+        Parameters
+        ----------
+        dL:     float
+            Desired resolution
+        dLMode: str
+            Flag indicating dL should be understood as:
+                - 'abs':    an absolute distance in meters
+                - 'rel':    a relative distance (fraction of the LOS length)
+        DL:     None / iterable
+            The fraction [L1;L2] of the LOS that should be sampled, where
+            L1 and L2 are distances from the starting point of the LOS (LOS.D)
+        method: str
+            Flag indicating which to use for sampling:
+                - 'sum':    the LOS is sampled into N segments of equal length,
+                            where N is the smallest int such that:
+                                * segment length <= resolution(dL,dLMode)
+                            The points returned are the center of each segment
+                - 'simps':  the LOS is sampled into N segments of equal length,
+                            where N is the smallest int such that:
+                                * segment length <= resolution(dL,dLMode)
+                                * N is even
+                            The points returned are the egdes of each segment
+                - 'romb':   the LOS is sampled into N segments of equal length,
+                            where N is the smallest int such that:
+                                * segment length <= resolution(dL,dLMode)
+                                * N = 2^k + 1
+                            The points returned are the egdes of each segment
+
+        Returns
+        -------
+        Pts:    np.ndarray
+            A (3,NP) array of NP points along the LOS in (X,Y,Z) coordinates
+        kPts:   np.ndarray
+            A (NP,) array of the points distances from the LOS starting point
+        dL:     float
+            The effective resolution (<= dL input), as an absolute distance
+
+        """
+        if DL is None:
+            DL = np.array([self.geom['kPIn'],self.geom['kPOut']]
+        Pts, kPts, dL = _GG.LOS_get_sample(self.D, self.u, dL, DL,
+                                           dLMode=dLMode, method=method)
+        return Pts, kPts, dL
+
+
+    def calc_signal(self, ff, dL=0.001, DL=None, dLMode='abs', method='romb'):
+        """ Return the line-integrated emissivity
+
+        Beware that it is only a line-integral !
+        There is no multiplication by an Etendue
+        (which cannot be computed for a LOS object, because it depends on the
+        surfaces and respective positions of the detector and its apertures,
+        which are not provided for a LOS object).
+
+        Hence, if the emissivity is provided in W/m3, the method returns W/m2
+        The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,
+
+        The integral can be computed using three different methods:
+            - 'sum':    A numpy.sum() on the local values (x segments lengths)
+            - 'simps':  using :meth:`scipy.integrate.simps`
+            - 'romb':   using :meth:`scipy.integrate.romb`
+
+        Except ff, arguments common to :meth:`~tofu.geom.LOS.get_sample`
+
+        Parameters
+        ----------
+        ff :    callable
+            The user-provided
+
+        """
+        if DL is None:
+            DL = np.array([self.geom['kPIn'],self.geom['kPOut']]
+        Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL,
+                                    dLMode=dLMode, method=method)
+        return Sig
+
+    def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
+             EltVes='', Leg='', Ldict=_def.LOSLd, MdictD=_def.LOSMd,
+             MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd,
+             MdictP=_def.LOSMd, LegDict=_def.TorLegd, Vesdict=_def.Vesdict,
+             draw=True, a4=False, Test=True):
+        """ Plot the LOS, in the chosen projection(s)
+
+        Plot the desired projections of the LOS object
+        Optionnally also plot its associated :class:`~tofu.geom.Ves` object
+        The plot can also include:
+            - special points
+            - the unit directing vector
+
+        Parameters
+        ----------
+        Lax :       list / plt.Axes
+            The axes to be used for plotting (provide a list of 2 axes if
+Proj='All'), if None a new figure with axes is created
+        Proj :      str
+            Flag specifying the kind of projection used for the plot ('Cross'
+for a cross-section, 'Hor' for a horizontal plane, 'All' both and '3d' for 3d)
+        Elt :       str
+            Flag specifying which elements to plot, each capital letter
+corresponds to an element
+                * 'L': LOS
+                * 'D': Starting point of the LOS
+                * 'I': Input point (i.e.: where the LOS enters the Vessel)
+                * 'O': Output point (i.e.: where the LOS exits the Vessel)
+                * 'R': Point of minimal major radius R (only for Vessel of
+                * Type='Tor')
+                * 'P': Point of used for impact parameter (i.e.: minimal
+                * distance to reference point Sino_RefPt)
+        Lplot :     str
+            Flag specifying whether to plot the full LOS ('Tot': from starting
+point output point) or only the fraction inside the vessel ('In': from input to
+output point)
+        EltVes :    str
+            Flag specifying the elements of the Vessel to be plotted, fed to
+:meth:`~tofu.geom.Ves.plot`
+        Leg :       str
+            Legend to be used to identify this LOS, if Leg='' the LOS name is
+used
+        Ldict :     dict / None
+            Dictionary of properties used for plotting the polygon, fed to
+plt.Axes.plot() or plt.plot_surface() if Proj='3d', set to ToFu_Defauts.py if
+None
+        MdictD :    dict
+            Dictionary of properties used for plotting point 'D', fed to
+plt.Axes.plot()
+        MdictI :    dict
+            Dictionary of properties used for plotting point 'I', fed to
+plt.Axes.plot()
+        MdictO :    dict
+            Dictionary of properties used for plotting point 'O', fed to
+plt.Axes.plot()
+        MdictR :    dict
+            Dictionary of properties used for plotting point 'R', fed to
+plt.Axes.plot()
+        MdictP :    dict
+            Dictionary of properties used for plotting point 'P', fed to
+plt.Axes.plot()
+        LegDict :   dict or None
+            Dictionary of properties used for plotting the legend, fed to
+plt.legend(), the legend is not plotted if None
+        Vesdict :   dict
+            Dictionary of kwdargs to fed to :meth:`~tofu.geom.Ves.plot`, and
+'EltVes' is used instead of 'Elt'
+        draw :      bool
+            Flag indicating whether the fig.canvas.draw() shall be called
+automatically
+        a4 :        bool
+            Flag indicating whether the figure should be plotted in a4
+dimensions for printing
+        Test :      bool
+            Flag indicating whether the inputs should be tested for conformity
+
+        Returns
+        -------
+        La :        list / plt.Axes
+            Handles of the axes used for plotting (list if several axes where
+used)
+
+        """
+        return _plot.GLLOS_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt,
+                                EltVes=EltVes, Leg=Leg, Ldict=Ldict,
+                                MdictD=MdictD, MdictI=MdictI, MdictO=MdictO,
+                                MdictR=MdictR, MdictP=MdictP, LegDict=LegDict,
+                                Vesdict=Vesdict, draw=draw, a4=a4, Test=Test)
+
+
 
 
 

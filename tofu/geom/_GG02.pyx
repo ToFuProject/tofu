@@ -2771,11 +2771,21 @@ cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double 
     return (PMin0,PMin1,PMin2), kPMin, RMin, Theta, p, ImpTheta, phi
 
 
-def LOS_sino(double[::1] D, double[::1] u, double[::1] RZ, str Mode='LOS', kOut=np.inf, str VType='Tor'):
-    cdef tuple PMin0
-    cdef double kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0
+def LOS_sino(double[::1] D, double[::1] u, double[::1] RZ, double[::1] kOut, str Mode='LOS', str VType='Tor'):
+    cdef unsigned int nL = D.shape[1], ii
+    cdef tuple out
+    cdef cnp.array[double,ndim=2] PMin
+    cdef cnp.array[double,ndim=1] kPMin, RMin, Theta, p, ImpTheta, phi
     if VType.lower()=='tor':
-        PMin0, kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = LOS_sino_Tor(D[0],D[1],D[2],u[0],u[1],u[2],RZ[0],RZ[1], Mode=Mode, kOut=kOut)
+        for ii in range(0,nL):
+            out = LOS_sino_Tor(D[0,ii],D[1,ii],D[2,ii],u[0,ii],u[1,ii],u[2,ii],
+                               RZ[0],RZ[1], Mode=Mode, kOut=kOut[ii])
+            ((PMin[0,ii],PMin[1,ii],PMin[2,ii]),
+             kPMin[ii], RMin[ii], Theta[ii], p[ii], ImpTheta[ii], phi[ii]) = out
     else:
-        PMin0, kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = LOS_sino_Lin(D[0],D[1],D[2],u[0],u[1],u[2],RZ[0],RZ[1], Mode=Mode, kOut=kOut)
-    return np.array(PMin0), kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0
+        for ii in range(0,nL):
+            out = LOS_sino_Lin(D[0,ii],D[1,ii],D[2,ii],u[0,ii],u[1,ii],u[2,ii],
+                               RZ[0],RZ[1], Mode=Mode, kOut=kOut[ii])
+            ((PMin[0,ii],PMin[1,ii],PMin[2,ii]),
+             kPMin[ii], RMin[ii], Theta[ii], p[ii], ImpTheta[ii], phi[ii]) = out
+    return PMin, kPMin, RMin, Theta, p, ImpTheta, phi
