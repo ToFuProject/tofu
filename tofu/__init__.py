@@ -56,8 +56,12 @@ if sys.version[0] == '2':
     from version import __version__
 elif sys.version[0] == '3':
     from tofu.version import __version__
-else:
-    raise Exception("Not supported python version !")
+
+# For tests without display with nosetests
+if not 'matplotlib.pyplot' in sys.modules:
+    import matplotlib
+    matplotlib.use('agg')
+    del matplotlib
 
 import tofu.pathfile as pathfile
 import tofu.geom as geom

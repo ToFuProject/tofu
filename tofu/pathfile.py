@@ -15,24 +15,24 @@ import warnings
 import numpy as np
 import datetime as dtm
 
-try:
-    import cPickle as pck       # For saving / loading objects
-except Exception:
-    pck = None
-    warnings.warn("cPickle not available => all file-handling done with numpy !")
-    pass
-
-
 # ToFu specific
 from tofu import __version__
-from tofu.defaults import dtmFormat as TFDdtmFormat
 
 
 __author__ = "Didier Vezinet"
-__all__ = ["Find_Rootpath","get_DefaultPaths","get_Default_dtimeFmt","_get_PathFileExt_FromName","convert_units","get_PolyFromPolyFileObj",
-           "ID",
-           "CheckSameObj","Save_Generic","Open"]
+__all__ = ["ID",
+           "SaveName_Conv","CheckSameObj","SelectFromListId",
+           "get_InfoFromFileName","get_FileFromInfos",
+           "convert_units","get_PolyFromPolyFileObj",
+           "Save_Generic","Open"]
 
+dModes = {'geom':'TFG'}
+lCls = ['Ves','Struct',
+        'Rays','LOS','LOSCam1D','LOSCam2D',
+        'GDetect','Detect','Cam1D','Cam2D']
+dPref = {'Exp':'Exp','Diag':'Dg','shot':'sh','Deg':'Deg',
+         'version':'Vers','usr':'U'}
+defInclude = ['Mod','Cls','Type','Exp','Deg','Diag','Name','shot']
 
 """
 ###############################################################################
@@ -42,87 +42,6 @@ __all__ = ["Find_Rootpath","get_DefaultPaths","get_Default_dtimeFmt","_get_PathF
 ###############################################################################
 ###############################################################################
 """
-
-
-def Find_Rootpath(Path=os.getcwd(),substr='/tofu/'):
-    """
-    Return the absolute path of the root directory of ToFu, searching for a pattern in the provided input path
-
-    Parameters
-    ----------
-    Path :      str
-        An absolute path in which a pattern is to be looked for
-    substr :    str
-        The pattern to look for
-
-    Returns
-    -------
-    root :  str
-        The absolute path containing the pattern
-
-    """
-    Path = (Path+'/').replace('//','/')
-    indstr = Path.find(substr)
-    if indstr==-1:
-        substr = substr.lower()
-        indstr = Path.find(substr)
-    root = Path[:indstr] + substr
-    root = root[:-1] if root[-1]=='/' else root
-    return root
-
-
-
-def get_DefaultPaths(RootPath=None, Plugin=None, lSubs=[], PathInp=None, PathObj=None, PathOut=None):
-    """
-    Return the default paths for input loading, object and output saving depending on the root path used
-    """
-    assert RootPath is None or type(RootPath) is str, "Arg RootPath must be a str !"
-    assert Plugin is None or type(Plugin) is str, "Arg Plugin must be a str !"
-    assert all([ss is None or type(ss) is str for ss in [PathInp, PathObj, PathOut]]), "Args PathInp, PathObj, PathOut must be None or str !"
-    assert type(lSubs) is list and all([type(ss) is str for ss in lSubs])
-
-    if RootPath is None:
-        RootPath = Find_Rootpath()
-    for pp, ss in [(PathInp,'Inputs'), (PathObj,'Objects'), (PathOut,'Outputs')]:
-        if pp is None:
-            pp = str(RootPath)
-            if not Plugin is None:
-                pp = pp + '/' + Plugin
-            for sub in lSubs:
-                pp = pp + '/' + sub
-            pp = pp + '/' + ss
-
-    return PathInp+'/', PathObj+'/', PathOut+'/'
-
-
-def get_Default_dtimeFmt(dtime=None, dtFormat=TFDdtmFormat):
-    """
-    Return the default datetime value and format
-    """
-    if dtime is None:
-        dtime = dtm.datetime.now()
-    elif type(dtime) is str:
-        dtime = dtm.strptime(dtime,dtFormat)
-    return dtime, dtFormat
-
-
-def _get_PathFileExt_FromName(Name=None, Path=os.getcwd(), Lstr=[]):    # Used in tofu.plugin.ITER.Ves.create()
-    """ Retrieve PathFileExt from a Name, in Path if absolute path not specified in Name, with possible TFMod and ext options """
-    if not Name is None and '/' in Name:
-        PathFileExt = Name
-    else:
-        LF = os.listdir(Path)
-        if type(Name) is str:
-            Lstr.append(Name)
-        elif type(Name) is list:
-            Lstr = Lstr+Name
-        if not Lstr==[]:
-            LF = [ff for ff in LF if all([ss in ff for ss in Lstr])]
-        assert len(LF)==1, "Several or no possibility for "+str(Name)+" in "+Path+" with "+str(Lstr)+"    LF = "+str(LF)
-        PathFileExt = Path + LF[0]
-    return PathFileExt
-
-
 
 def _set_arrayorder(obj, arrayorder):
     assert arrayorder in ['C','F'], "Arg arrayorder must be in ['C','F']"
@@ -187,7 +106,7 @@ def get_PolyFromPolyFileObj(PolyFileObj, SavePathInp=None, units='m', comments='
     # Load PolyFileObj if file and check shape
     addInfo = {}
     if type(PolyFileObj) in [list,str]:
-        PathFileExt = _get_PathFileExt_FromName(PolyFileObj, Path=SavePathInp, Lstr=[])
+        PathFileExt = get_FileFromInfos(Path=SavePathInp, Name=PolyFileObj)
         # Include PathFileExt in ID for tracability
         addInfo = {'Input':PathFileExt}
         PolyFileObj = np.loadtxt(PathFileExt, dtype=float, comments=comments, delimiter=None, converters=None, skiprows=skiprows, usecols=None, unpack=False, ndmin=2)
@@ -287,7 +206,7 @@ class ID(object):
     def __init__(self, Cls=None, Name=None, Type=None, Deg=None,
                  Exp=None, Diag=None, shot=None, SaveName=None, SavePath='./',
                  USRdict={}, LObj=None, fromdict=None,
-                 Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot']):
+                 Include=defInclude):
 
         if fromdict is None:
             assert Cls is not None
@@ -356,7 +275,7 @@ class ID(object):
                          Include=Include)
 
     def set_Name(self, Name, SaveName=None,
-                 Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot'],
+                 Include=defInclude,
                  ForceUpdate=False):
         """ Set the Name of the instance, automatically updating the SaveName
 
@@ -382,7 +301,7 @@ class ID(object):
                           ForceUpdate=ForceUpdate)
 
     def set_SaveName(self,SaveName=None,
-                     Include=['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot'],
+                     Include=defInclude,
                      ForceUpdate=False):
         """ Set the name for saving the instance (SaveName)
 
@@ -444,12 +363,12 @@ class ID(object):
         if LObj is not None:
             if type(LObj) is not list:
                 LObj = [LObj]
-            for ii in range(0,len(LObj))
+            for ii in range(0,len(LObj)):
                 if type(LObj[ii]) is ID:
                     LObj[ii] = LObj[ii]._todict()
             ClsU = list(set([oo['Cls'] for oo in LObj]))
             for c in ClsU:
-                self._Lobj[c] = [oo for oo in LObj if oo['Cls']==c]
+                self._LObj[c] = [oo for oo in LObj if oo['Cls']==c]
 
     def set_USRdict(self,USRdict={}):
         """ Set the USRdict, containing user-defined info about the instance
@@ -505,20 +424,17 @@ def _ID_check_inputs(Mod=None, Cls=None, Name=None, Type=None, Deg=None,
                  Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None,
                  USRdict=None, LObj=None, version=None, usr=None,
                  fromdict=None, Include=None):
-    Lmod = ['pathfile','geom']
     if Mod is not None:
         assert type(Mod) is str
-        assert Mod in Lmod
+        assert Mod in dModes.keys()
     if Cls is not None:
         assert type(Cls) in [str,type]
-        cls = ['Ves','Struct','Rays','LOS','LOSCam1D','LOSCam2D',
-               'Apert','Lens','GDetect','Detect','Cam1D','Cam2D']
         if type(Cls) is type:
             assert 'tofu.' in str(Cls)
-            assert any([ss in str(Cls) for ss in Lmod])
-            assert any([ss in str(Cls) for ss in cls])
+            assert any([ss in str(Cls) for ss in dModes.keys()])
+            assert any([ss in str(Cls) for ss in lCls])
         else:
-            assert Cls in cls
+            assert Cls in lCls
     Lstr = [Name,Type,Exp,Diag,SaveName,SavePath,version,usr]
     for ss in Lstr:
         assert ss is None or type(ss) is str
@@ -528,12 +444,13 @@ def _ID_check_inputs(Mod=None, Cls=None, Name=None, Type=None, Deg=None,
     if USRdict is not None:
         assert type(USRdict) is dict
     if Include is not None:
-        IR = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']
+        IR = ['Mod','Cls','Type','Name']+list(dPref.keys())
         assert type(Include) in ['str',list,tuple]
         if type(Include) is str:
             assert Include in IR
         else:
-            assert all([ss in IR for ss in Include])
+            for ss in Include:
+                assert ss in IR, "%s not in "%ss + str(IR)
     if LObj is not None:
         assert type(LObj) in [dict,list,ID]
         if type(LObj) is list:
@@ -563,7 +480,7 @@ def _extract_ModClsFrom_class(Cls):
 
 def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
                   Exp=None, Diag=None, shot=None, version=None, usr=None,
-                  Include=None):
+                  Include=defInclude):
     """ Return a default name for saving the object
 
     Includes key info for fast identification of the object from file name
@@ -571,27 +488,25 @@ def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
     It is recommended to use this default name.
 
     """
-    ModDict = {'geom':'TFG'}
-    Modstr = ModDict[Mod] if Mod is not None else None
-    if Cls is not None and Type is not None and 'Typ' in Include:
+    Modstr = dModes[Mod] if Mod is not None else None
+    if Cls is not None and Type is not None and 'Type' in Include:
         Clsstr = Cls+Type
     else:
         Clsstr = Cls
-    Degstr = 'Deg{0:02.0f}'.format(Deg) if Deg is not None else None
-    Diagstr = 'Dg'+Diag if Diag is not None else None
-    shotstr = 'sh{0:05.0f}'.format(shot) if shot is not None else None
-    versstr = 'Vers'+version if version is not None else None
-    usrstr = 'U'+usr if usr is not None else None
-    Dict = {'Mod':Modstr, 'Cls':Clsstr,
-            'Exp':Exp, 'Deg':Degstr, 'Diag':Diagstr, 'shot':shotstr, 'Name':Name,
-            'Vers':versstr, 'Usr':usrstr}
-    if Include is None:
-        Include = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot']
-
+    Dict = {'Mod':Modstr, 'Cls':Clsstr, 'Name':Name}
+    for ii in Include:
+        if not ii in ['Mod','Cls','Type','Name']:
+            Dict[ii] = None
+        if ii=='Deg' and Deg is not None:
+            Dict[ii] = dPref[ii]+'{0:02.0f}'.format(Deg)
+        elif ii=='shot' and shot is not None:
+            Dict[ii] = dPref[ii]+'{0:05.0f}'.format(shot)
+        elif not ii in ['Mod','Cls','Type','Name'] and eval(ii+' is not None'):
+            Dict[ii] = dPref[ii]+eval(ii)
     if Cls=='PreData':
-        Order = ['Mod','Cls','Exp','Deg','Diag','shot','Name','Vers','Usr']
+        Order = ['Mod','Cls','Exp','Deg','Diag','shot','Name','version','usr']
     else:
-        Order = ['Mod','Cls','Exp','Deg','Diag','Name','shot','Vers','Usr']
+        Order = ['Mod','Cls','Exp','Deg','Diag','Name','shot','version','usr']
 
     SVN = ""
     for ii in range(0,len(Order)):
@@ -649,8 +564,7 @@ def CheckSameObj(obj0, obj1, LFields=None):
 
 """ Not used ?
 def SelectFromIdLObj(IdLObjCls, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In', Out=bool):
-    """ To do (deprecated ?)
-    """
+    # To do (deprecated ?)
     assert type(Crit) is str or (type(Crit) is list and all([type(cc) is str for cc in Crit])), "Arg Crit must be a str or list of str !"
     assert all([rr is None or type(rr) is str or (type(rr) is list and all([type(ee) is str for ee in rr])) for rr in [PreExp,PostExp]]), "Args PreExp and PostExp must be a str or list of str !"
     assert Log in ['any','all'], "Arg Log must be in ['and','or'] !"
@@ -888,23 +802,62 @@ def FindSolFile(shot=0, t=0, Dt=None, Mesh='Rough1', Deg=2, Deriv='D2N2', Sep=Tr
     return out
 
 
-
-def _get_ClsFromName(PathFileExt):
+def get_InfoFromFileName(PathFileExt):
     assert type(PathFileExt) is str, "Arg PathFileExt must be a str !"
-    LCls = ['Ves','Struct',
-            'Rays','LOS','LOSCam1D','LOSCam2D',
-            'Apert','Lens','GDetect','Detect','Cam1D','Cam2D']
-    # 'Mesh1D','Mesh2D','BF1D','BF2D','PreData','Sol2D']
-    Found = False
-    for nn in LCls:
-        if '_'+nn+'_' in PathFileExt:
-            Found = True
-            break
-    assert Found, "Class could not be identified in "+PathFileExt
-    return nn
+
+    # Prepare input (extract file name)
+    pfe = PathFileExt[::-1]
+    ind0 = pfe.index('.')
+    ind1 = pfe.index('/')
+    f = pfe[ind0:ind1][::-1]
+
+    dout = {}
+    # Extracting Module and Class
+    mod = []
+    cls = [cc for cc in lCls if cc in f]
+    assert len(mod) in [0,1], "Several modules found !"
+    assert len(cls) in [0,1], "Several classes found !"
+    if len(mod)==1:
+        dout['Mod'] = mod[0]
+    if len(cls)==1:
+        dout['Cls']  = cls[0]
+
+    # Extracting other parameters
+    for ii in dPref.keys():
+        if ii in f:
+            sub = f[f.index(dPref[ii])+len(dPref[ii]):]
+            if '_' in f:
+                ind = f.index('_')
+            else:
+                ind = f.index('.')
+            dout[ii] = sub[:ind]
+        if ii in ['Deg','shot']:
+            dout[ii] = int(dout[ii])
+
+    return dout
 
 
-
+# Replaces _get_PathFileExt_FromName()
+def get_FileFromInfos(Path='./', Mod=None, Cls=None, Type=None, Name=None,
+                      Exp=None, Diag=None, shot=None, Deg=None,
+                      version=None, usr=None):
+    assert type(Path) is str
+    ld = os.listdir(Path)
+    ld = [l for l in ld if '.npz' if l]
+    lstr = [Mod,Cls,Type,Name]
+    for ii in range(0,len(lstr)):
+        if lstr[ii] is not None:
+            ld = [l for l in ld if lstr[ii] in l]
+    for k in dPref.keys():
+        if eval('k is not None'):
+            v = eval('k')
+            if k=='shot':
+                v = '{0:05.0f}'.format(v)
+            if k=='Deg':
+                v = '{0:02.0f}'.format(v)
+            ld = [l for l in ld if v in l]
+    assert len(ld)==1, "None or several matching files found in %s"%Path
+    return os.path.join(Path,ld[0])
 
 
 
@@ -913,58 +866,60 @@ def _get_ClsFromName(PathFileExt):
 ###########################
 
 
-def Save_Generic(obj, SaveName=None, Path=None, Mode='npz', compressed=False, Print=True):
-    """ Save a ToFu object under file name SaveName, in folder Path, using specified mode
+def Save_Generic(obj, SaveName=None, Path='./',
+                 Mode='npz', compressed=False, Print=True):
+    """ Save a ToFu object under file name SaveName, in folder Path
 
     ToFu provides built-in saving and loading functions for ToFu objects.
-    They can be saved at their default SavePath under their default SaveName or user-defined values can be forced if necessary.
-    Saving can be done in two ways :
-        - by direct object saving using cPickle (straightforward but heavy)
-        - by mapping the key object attributes to a dictionary and using :meth:`numpy.savez_compressed()` (faster and lighter, recommended)
+    There is now only one saving mode:
+        - 'npz': saves a dict of key attributes using :meth:`numpy.savez`
 
-    ToFu now automatically saves information on smaller objects on which the object of interest depends (like apertures for detectors), so that all info is stored in a single file.
-    In particular, provided the Ves object is saved separately, a whole camera can be saved in a single file (i.e.: all detectors and apertures).
+    Good practices are:
+        - save :class:`~tofu.geom.Ves` and :class:`~tofu.geom.Struct`
+        - intermediate optics (:class:`~tofu.geom.Apert` and
+          :class:`~tofu.geom.Lens`) generally do not need to be saved
+          Indeed, they will be autoamtically included in larger objects
+          like Detect or Cam objects
 
     Parameters
     ----------
     SaveName :      str
-        The name to be used to for the saved file, if None (recommended) uses obj.Id.SaveName
+        The file name, if None (recommended) uses obj.Id.SaveName
     Path :          str
-        Path specifying where to save the file, if None (recommended) uses obj.Id.SavePath
+        Path where to save the file
     Mode :          str
-        Flag specifying whether to save the object as a numpy array file ('.npz', recommended) or an object using cPickle (not recommended, may cause retro-compatibility issues with later versions)
+        Flag specifying the saving mode
+            - 'npz': Only mode currently available ('pck' deprecated)
     compressed :    bool
-        Flag, used when Mode='npz', indicating whether to use np.savez or np.savez_compressed (slower saving and loading but smaller files)
+        Indicate whether to use np.savez_compressed (slower but smaller files)
 
     """
+    assert type(obj.__class__) is type
+    if SaveName is not None:
+        C = type(SaveName) is str and not (SaveName[-4]=='.')
+        assert C, "SaveName should not include the extension !"
+    assert type(Path) is str
+    assert Mode in ['npz']
+    assert type(compressed) is bool
+    assert type(Print) is bool
     if Path is None:
         Path = obj.Id.SavePath
     else:
-        assert type(Path) is str, "Arg Path must be a str !"
-        obj._Id.SavePath = Path
+        obj._Id._SavePath = Path
+    if Mode=='npz':
+        Ext = '.npz'
     if SaveName is None:
         SaveName = obj.Id.SaveName
     else:
-        assert type(SaveName) is str, "Arg SaveName must be a str !"
-        obj.Id.SaveName = SaveName
-    Ext = '.npz' if 'npz' in Mode.lower() or pck is None else '.pck'
+        obj._Id.set_SaveName(SaveName)
     pathfileext = os.path.join(Path,SaveName+Ext)
-    if '.npz' in Ext:
+    if Ext=='.npz':
         _save_np(obj, pathfileext, compressed=compressed)
-    else:
-        _save_object(obj, pathfileext)
     if Print:
         print("Saved in :  "+pathfileext)
 
 
-def _save_object(obj,pathfileext):
-    if 'TFM' in pathfileext:
-        obj.LFunc = None
-    with open(pathfileext, 'wb') as output:
-        pck.dump(obj, output, -1)
-
-
-
+"""
 def _convert_Detect2Ldict(obj):
     # Store LOS data
     llos = obj.LOS.keys()
@@ -1017,23 +972,27 @@ def _convert_PreData2Ldict(obj):
             'indOut':obj._indOut, 'indCorr':obj._indCorr, 'interp_lt':obj._interp_lt, 'interp_lNames':obj._interp_lNames, 'Subtract_tsub':obj._Subtract_tsub,
             'FFTPar':obj._FFTPar, 'PhysNoiseParam':PhysNoiseParam}
     return Init, Update
-
+"""
 
 
 def _save_np(obj, pathfileext, compressed=False):
 
     func = np.savez_compressed if compressed else np.savez
-    Idsave = obj.Id.todict()
+    dId = obj.Id._todict()
 
     # tofu.geom
     if obj.Id.Cls=='Ves':
-        func(pathfileext, Idsave=Idsave, arrayorder=obj._arrayorder, Clock=obj._Clock, Poly=obj.Poly, Lim=obj.Lim, Sino_RefPt=obj.sino['RefPt'], Sino_NP=obj.sino['NP'])
+        func(pathfileext, dId=dId, arrayorder=obj._arrayorder, Clock=obj._Clock,
+             Poly=obj.Poly, Lim=obj.Lim, Sino_RefPt=obj.sino['RefPt'],
+             Sino_NP=obj.sino['NP'])
 
-    if obj.Id.Cls=='Struct':
-        func(pathfileext, Idsave=Idsave, arrayorder=obj._arrayorder, Clock=obj._Clock, Poly=obj.Poly, Lim=obj.Lim)
+    elif obj.Id.Cls=='Struct':
+        func(pathfileext, dId=dId, arrayorder=obj._arrayorder, Clock=obj._Clock,
+             Poly=obj.Poly, Lim=obj.Lim)
 
-    elif obj.Id.Cls=='LOS':
-        func(pathfileext, Idsave=Idsave, Du=(obj.D,obj.u), Sino_RefPt=obj._sino['RefPt'])
+    elif obj.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
+        # To be updated
+        func(pathfileext, dId=dId, Du=(obj.D,obj.u), Sino_RefPt=obj._sino['RefPt'])
 
     """
     elif obj.Id.Cls=='GLOS':
@@ -1153,7 +1112,10 @@ def save_np_IdObj(Id):
 ###########################
 
 
-def Open(pathfileext=None, shot=None, t=None, Dt=None, Mesh=None, Deg=None, Deriv=None, Sep=True, Pos=True, OutPath=None, ReplacePath=None, Ves=None, out='full', Verb=False, Print=True):
+def Open(pathfileext=None,
+         shot=None, t=None, Dt=None, Mesh=None, Deg=None, Deriv=None,
+         Sep=True, Pos=True, OutPath=None, ReplacePath=None, Ves=None,
+         out='full', Verb=False, Print=True):
     """ Open a ToFu object saved file
 
     This generic open function identifies the required loading routine by detecting how the object was saved from the file name extension.
@@ -1185,27 +1147,19 @@ def Open(pathfileext=None, shot=None, t=None, Dt=None, Mesh=None, Deg=None, Deri
     """
     assert None in [pathfileext,shot] and not (pathfileext is None and shot is None), "Arg pathfileext or shot must be None, but not both !"
     if pathfileext is None:
-        File = FindSolFile(shot=shot, t=t, Dt=Dt, Mesh=Mesh, Deg=Deg, Deriv=Deriv, Sep=Sep, Pos=Pos, OutPath=OutPath)
+        File = FindSolFile(shot=shot, t=t, Dt=Dt, Mesh=Mesh, Deg=Deg,
+                           Deriv=Deriv, Sep=Sep, Pos=Pos, OutPath=OutPath)
         if File is None:
             return File
-        pathfileext = OutPath+File
-    assert '.npz' in pathfileext or '.pck' in pathfileext, "Arg pathfileext must contain '.npz' or .pck !"
+        pathfileext = os.path.join(OutPath,File)
+    C = any([ss in pathfileext for ss in ['.npz']])
+    assert C, "Arg pathfileext must contain '.npz' !"
 
     if '.npz' in pathfileext:
-        obj = _open_np(pathfileext, Ves=Ves, ReplacePath=ReplacePath, out=out, Verb=Verb, Print=Print)
-    else:
-        obj = _open_object(pathfileext)
+        obj = _open_np(pathfileext, Ves=Ves, ReplacePath=ReplacePath,
+                       out=out, Verb=Verb, Print=Print)
     if Print:
         print("Loaded :  "+pathfileext)
-    return obj
-
-
-
-def _open_object(pathfileext):
-    with Open(pathfileext, 'rb') as input:
-        obj = pck.load(input)
-    if 'TFM' in pathfileext:
-        obj.set_BasisFunc(obj.Deg)
     return obj
 
 
@@ -1225,24 +1179,28 @@ def open_np_IdObj(LCls=None,LIdArr=None,LIdUSR=None):
 
 
 def _tryloadVesStruct(Id, VesStruct=None, Print=True):
-    if VesStruct is not None and hasattr(VesStruct,'__iter__') and VesStruct[0].Id.Cls=='Ves':
+    if hasattr(VesStruct,'__iter__') and VesStruct[0].Id.Cls=='Ves':
         return VesStruct[0], VesStruct[1]
     else:
         Ves, LStruct = None, None
         if 'Ves' in Id.LObj.keys():
-            PathFileExt = os.path.join(Id.LObj['Ves']['SavePath'][0],Id.LObj['Ves']['SaveName'][0]+'.npz')
+            PathFileExt = os.path.join(Id.LObj['Ves'][0]['SavePath'],
+                                       Id.LObj['Ves'][0]['SaveName']+'.npz')
             try:
                 Ves = Open(PathFileExt, Print=Print)
             except:
-                warnings.warn(Id.Name +" : associated Ves/Struct object(s) could not be loaded from "+PathFileExt)
+                Str = " : associated Ves/Struct could not be loaded from "
+                warnings.warn(Id.Name + Str + PathFileExt)
         if 'Struct' in Id.LObj.keys():
             LStruct = []
-            for ii in range(0,len(Id.LObj['Struct']['Name'])):
-                PathFileExt = os.path.join(Id.LObj['Struct']['SavePath'][ii],Id.LObj['Struct']['SaveName'][ii]+'.npz')
+            for ss in Id.LObj['Struct']:
+                PathFileExt = os.path.join(ss['SavePath'],
+                                           ss['SaveName']+'.npz')
                 try:
                     LStruct.append(Open(PathFileExt, Print=Print))
                 except:
-                    warnings.warn(Id.Name +" : associated Ves/Struct object(s) could not be loaded from "+PathFileExt)
+                    Str = " : associated Ves/Struct could not be loaded from "
+                    warnings.warn(Id.Name + Str +PathFileExt)
         return Ves, LStruct
 
 def _tryLoadOpticsElseCreate(Id, Opt=None, Ves=None, Verb=False):
@@ -1325,7 +1283,8 @@ def _get_light_SynthDiag_Res():
 
 
 
-def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False, Print=True):
+def _open_np(pathfileext, Ves=None,
+             ReplacePath=None, out='full', Verb=False, Print=True):
 
     if 'TFG' in pathfileext:
         import tofu.geom as tfg
@@ -1344,23 +1303,38 @@ def _open_np(pathfileext, Ves=None, ReplacePath=None, out='full', Verb=False, Pr
         Out = np.load(pathfileext,mmap_mode=None)
     except UnicodeError:
         Out = np.load(pathfileext,mmap_mode=None, encoding='latin1')
-    Id = _Id_recreateFromdict(Out['Idsave'])
+    Id = ID(fromdict=Out['dId'].tolist())
     if out=='Id':
         return Id
 
     if Id.Cls == 'Ves':
         Lim = None if Out['Lim'].tolist() is None else Out['Lim']
-        obj = tfg.Ves(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, Lim=Lim, Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']), Sino_RefPt=Out['Sino_RefPt'], Sino_NP=int(Out['Sino_NP']), SavePath=Id.SavePath)
+        obj = tfg.Ves(Id, Out['Poly'], Lim=Lim, Type=Id.Type,
+                      Clock=bool(Out['Clock']),
+                      arrayorder=str(Out['arrayorder']),
+                      Sino_RefPt=Out['Sino_RefPt'], Sino_NP=int(Out['Sino_NP']))
 
     elif Id.Cls == 'Struct':
         Lim = None if Out['Lim'].tolist() is None else Out['Lim']
-        obj = tfg.Struct(Id, Out['Poly'], Type=Id.Type, Exp=Id.Exp, Lim=Lim, Clock=bool(Out['Clock']), arrayorder=str(Out['arrayorder']), SavePath=Id.SavePath)
+        obj = tfg.Struct(Id, Out['Poly'], Type=Id.Type, Lim=Lim,
+                         Clock=bool(Out['Clock']),
+                         arrayorder=str(Out['arrayorder']))
+
+    elif Id.Cls=='Rays':
+        # To do
+        pass
 
     elif Id.Cls == 'LOS':
         Ves, LStruct = _tryloadVesStruct(Id, Print=Print)
-        assert not (Ves is None and 'Ves' in Id.LObj.keys() and len(Id.LObj['Ves']['Name'])>0), "Ves could not be loaded !"
-        assert not (LStruct is None and 'Struct' in Id.LObj.keys() and len(Id.LObj['Struct']['Name'])>0), "Struct could not be loaded !"
-        obj = tfg.LOS(Id, tuple(Out['Du']), Ves=Ves, LStruct=LStruct, Sino_RefPt=Out['Sino_RefPt'], Exp=Id.Exp, Diag=Id.Diag, shot=Id.shot, SavePath=Id.SavePath)
+        assert not (Ves is None and 'Ves' in Id.LObj.keys()
+                    and len(Id.LObj['Ves'])>0), "Ves could not be loaded !"
+        assert not (LStruct is None and 'Struct' in Id.LObj.keys()
+                    and len(Id.LObj['Struct'])>0), "Struct could not be loaded !"
+        obj = tfg.LOS(Id, tuple(Out['Du']), Ves=Ves, LStruct=LStruct,
+                      Sino_RefPt=Out['Sino_RefPt'], Exp=Id.Exp, Diag=Id.Diag,
+                      shot=Id.shot, SavePath=Id.SavePath)
+
+
 
     """
     elif Id.Cls == 'GLOS':

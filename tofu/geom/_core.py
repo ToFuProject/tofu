@@ -73,13 +73,17 @@ class Ves(object):
 
     """
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=0, SavePath=None, SavePath_Include=_def.SavePath_Include, Cls='Ves'):
+    def __init__(self, Id, Poly, Type='Tor', Lim=None, Exp=None, shot=0,
+                 Sino_RefPt=None, Sino_NP=_def.TorNP,
+                 Clock=False, arrayorder='C',
+                 SavePath='./', SavePath_Include=tfpf.defInclude):
         self._Done = False
         tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
         _Ves_check_inputs(Clock=Clock, arrayorder=arrayorder)
         self._arrayorder = arrayorder
         self._Clock = Clock
-        self._set_Id(Id, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls=Cls)
+        self._set_Id(Id, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath,
+                     SavePath_Include=SavePath_Include)
         self._set_geom(Poly, Lim=Lim, Clock=Clock, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP)
         self._set_arrayorder(arrayorder)
         self._Done = True
@@ -116,16 +120,17 @@ class Ves(object):
                           arrayorder=arrayorder, Exp=Exp, shot=shot,
                           SavePath=SavePath, Cls=self.Id.Cls)
 
-    def _set_Id(self, Val, Type=None, Exp=None, shot=None, SavePath=None, SavePath_Include=None, Cls='Ves'):
+    def _set_Id(self, Val, Type=None, Exp=None, shot=None, SavePath='./', SavePath_Include=None):
         if self._Done:
             Out = tfpf._get_FromItself(self.Id,{'Type':Type, 'Exp':Exp, 'shot':shot, 'SavePath':SavePath})
             Type, Exp, shot, SavePath = Out['Type'], Out['Exp'], Out['shot'], Out['SavePath']
-        tfpf._check_NotNone({'Id':Val,'Cls':Cls})
-        _Ves_check_inputs(Id=Val, Cls=Cls)
+        tfpf._check_NotNone({'Id':Val})
+        _Ves_check_inputs(Id=Val)
         if type(Val) is str:
             tfpf._check_NotNone({'Type':Type, 'Exp':Exp, 'shot':shot})
             _Ves_check_inputs(Type=Type, Exp=Exp, shot=shot, SavePath=SavePath)
-            Val = tfpf.ID(Cls, Val, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath, Include=SavePath_Include)
+            Val = tfpf.ID(self.__class__, Val, Type=Type, Exp=Exp, shot=shot,
+                          SavePath=SavePath, Include=SavePath_Include)
         self._Id = Val
 
     def _set_arrayorder(self, arrayorder):
@@ -381,7 +386,7 @@ class Ves(object):
             ax.figure.canvas.draw()
         return ax
 
-    def save(self, SaveName=None, Path=None, Mode='npz', compressed=False, Print=True):
+    def save(self, SaveName=None, Path='./', Mode='npz', compressed=False, Print=True):
         """ Save the object in folder Name, under file name SaveName, using specified mode
 
         Most tofu objects can be saved automatically as numpy arrays (.npz, recommended) at the default location (recommended) by simply calling self.save()
@@ -450,8 +455,16 @@ def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None,
 
 class Struct(Ves):
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None, Sino_RefPt=None, Sino_NP=_def.TorNP, Clock=False, arrayorder='C', Exp=None, shot=0, SavePath=None, SavePath_Include=_def.SavePath_Include):
-        Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, SavePath=SavePath, SavePath_Include=SavePath_Include, Cls="Struct")
+    def __init__(self, Id, Poly, Type='Tor', Lim=None,
+                 Sino_RefPt=None, Sino_NP=_def.TorNP,
+                 Clock=False, arrayorder='C',
+                 Exp=None, shot=0, SavePath='./',
+                 SavePath_Include=tfpf.defInclude):
+        Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim,
+                     Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP,
+                     Clock=Clock, arrayorder=arrayorder,
+                     Exp=Exp, shot=shot, SavePath=SavePath,
+                     SavePath_Include=SavePath_Include)
 
     def get_sampleS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)', Ind=None):
         """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn
@@ -562,7 +575,7 @@ class Rays(object):
 
     def __init__(self, Id, Du, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=False,
-                 Type=None, Exp=None, Diag=None, shot=0, SavePath=None):
+                 Type=None, Exp=None, Diag=None, shot=0, SavePath='./'):
         self._Done = False
         if fromdict is None:
             if not Ves is None:
@@ -626,7 +639,7 @@ class Rays(object):
                           Diag=Diag, SavePath=SavePath, fromdict=fromdict)
 
     def _set_Id(self, Val, Type=None,
-                Exp=None, Diag=None, shot=None, SavePath=None):
+                Exp=None, Diag=None, shot=None, SavePath='./'):
         if self._Done:
             dd = {'Type':Type, 'Exp':Exp, 'shot':shot, 'Diag':Diag,
                   'SavePath':SavePath}
@@ -711,7 +724,7 @@ Test=True)
 
 # To be finished !!!
 def _Rays_check_inputs(Id=None, Du=None, Vess=None, Type=None, Sino_RefPt=None,
-                      Exp=None, shot=None, Diag=None, SavePath=None, Calc=None):
+                      Exp=None, shot=None, Diag=None, SavePath='./', Calc=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
     if not Du is None:
@@ -819,7 +832,8 @@ class LOS(object):
     """
 
 
-    def __init__(self, Id, Du, Ves=None, LStruct=None, Sino_RefPt=None, Type=None, Exp=None, Diag=None, shot=0, SavePath=None):
+    def __init__(self, Id, Du, Ves=None, LStruct=None, Sino_RefPt=None,
+Type=None, Exp=None, Diag=None, shot=0, SavePath='./'):
         self._Done = False
         if not Ves is None:
             Exp = Exp if not Exp is None else Ves.Id.Exp
@@ -858,11 +872,12 @@ class LOS(object):
         return self._sino
 
 
-    def _check_inputs(self, Id=None, Du=None, Ves=None, Type=None, Sino_RefPt=None, Clock=None, arrayorder=None, Exp=None, shot=None, Diag=None, SavePath=None, Calc=None):
-        _LOS_check_inputs(Id=Id, Du=Du, Vess=Ves, Type=Type, Sino_RefPt=Sino_RefPt, Clock=Clock, arrayorder=arrayorder, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath, Calc=Calc)
+    def _check_inputs(self, Id=None, Du=None, Ves=None, Type=None, Sino_RefPt=None, Exp=None, shot=None, Diag=None, SavePath=None, Calc=None):
+        _LOS_check_inputs(Id=Id, Du=Du, Vess=Ves, Type=Type, Sino_RefPt=Sino_RefPt, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath, Calc=Calc)
 
 
-    def _set_Id(self, Val, Type=None, Exp=None, Diag=None, shot=None, SavePath=None):
+    def _set_Id(self, Val, Type=None, Exp=None, Diag=None, shot=None,
+SavePath='./'):
         if self._Done:
             Out = tfpf._get_FromItself(self.Id, {'Type':Type, 'Exp':Exp, 'shot':shot, 'Diag':Diag, 'SavePath':SavePath})
             Type, Exp, shot, Diag, SavePath = Out['Type'], Out['Exp'], Out['shot'], Out['Diag'], Out['SavePath']
@@ -871,7 +886,7 @@ class LOS(object):
         if type(Val) is str:
             tfpf._check_NotNone({'Exp':Exp, 'shot':shot, 'Diag':Diag})
             self._check_inputs(Type=Type, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath)
-            Val = tfpf.ID('LOS', Val, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
+            Val = tfpf.ID(self.__class__, Val, Type=Type, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
         self._Id = Val
 
     def _set_Ves(self, Ves=None, LStruct=None, Du=None):
@@ -897,10 +912,20 @@ class LOS(object):
 
         PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan, np.NaN*np.ones((3,)), np.NaN*np.ones((3,)), np.nan, np.nan
         if not self.Ves is None:
-            (LSPoly, LSLim, LSVIn) = zip(*[(ss.Poly,ss.Lim,ss.geom['VIn']) for ss in self.LStruct]) if not self.LStruct is None else (None,None,None)
-            PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly, self.Ves.geom['VIn'], Lim=self.Ves.Lim, LSPoly=LSPoly, LSLim=LSLim, LSVIn=LSVIn,
-                                                                                                     RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
-                                                                                                     VType=self.Ves.Type, Test=True)
+            if self.LStruct is None:
+                LSPoly, LSLim, LSVIn = None, None, None
+            else:
+                LSPoly = [ss.Poly for ss in self.LStruct]
+                LSLim = [ss.Lim for ss in self.LStruct]
+                LSVIn = [ss.geom['VIn'] for ss in self.LStruct]
+            kargs = dict(RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
+                         EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+            out = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly,
+                                                self.Ves.geom['VIn'],
+                                                Lim=self.Ves.Lim, LSPoly=LSPoly,
+                                                LSLim=LSLim, LSVIn=LSVIn,
+                                                VType=self.Ves.Type, **kargs)
+            PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = out
             if np.isnan(kPOut):
                 Warnings.warn()
                 La = _plot._LOS_calc_InOutPolProj_Debug(self, PIn, POut)
@@ -1143,7 +1168,7 @@ class LOS(object):
                                         Ldict=Ldict, Vdict=Vdict, LegDict=LegDict, draw=draw, a4=a4, Test=Test)
 
 
-    def save(self, SaveName=None, Path=None, Mode='npz',
+    def save(self, SaveName=None, Path='./', Mode='npz',
              compressed=False, Print=True):
         """ Save the object under SaveName in folder Path
 
@@ -1239,7 +1264,7 @@ class GLOS(object):
 
     """
     def __init__(self, Id, LLOS,
-                 Ves=None, Exp=None, Diag=None, shot=None, SavePath=None):
+                 Ves=None, Exp=None, Diag=None, shot=None, SavePath='./'):
 
         self._Done = False
         # Check and format inputs
@@ -1296,7 +1321,7 @@ class GLOS(object):
 
 
     def _set_Id(self, Val,
-                Type=None, Exp=None, Diag=None, shot=None, SavePath=None):
+                Type=None, Exp=None, Diag=None, shot=None, SavePath='./'):
         fromdict = {'Type':Type, 'Exp':Exp,
                     'shot':shot, 'Diag':Diag, 'SavePath':SavePath}
         if self._Done:
@@ -1307,7 +1332,7 @@ class GLOS(object):
             Dict = {'Exp':Exp, 'shot':shot, 'Diag':Diag}
             tfpf._check_NotNone(Dict)
             self._check_inputs(**fromdict)
-            Val = tfpf.ID('GLOS', Val, **fromdict)
+            Val = tfpf.ID(self.__class__, Val, **fromdict)
         self._Id = Val
 
     def _set_LLOS(self, LLOS, Ves=None):
@@ -1491,7 +1516,7 @@ class GLOS(object):
                                         ind=ind, Val=Val, Crit=Crit, PreExp=PreExp,
                                         PostExp=PostExp, Log=Log, InOut=InOut)
 
-    def save(self, SaveName=None, Path=None, Mode='npz',
+    def save(self, SaveName=None, Path='./', Mode='npz',
              compressed=False, Print=True):
         """ Save the object under SaveName in folder Path
 

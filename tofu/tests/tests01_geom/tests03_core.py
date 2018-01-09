@@ -5,8 +5,6 @@ This module contains tests for tofu.geom in its structured version
 # External modules
 import os
 import numpy as np
-import matplotlib
-matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 
@@ -91,7 +89,8 @@ def teardown_module(module):
 #PVes = [R + r*np.cos(PVes), r*np.sin(PVes)]
 #PVes = np.concatenate((PVes,PDiv),axis=1)
 
-PVes = np.loadtxt(os.path.join(here,'test_Ves.txt'), dtype='float', skiprows=1, ndmin=2, comments='#')
+PVes = np.loadtxt(os.path.join(here,'test_Ves.txt'),
+                               dtype='float', skiprows=1, ndmin=2, comments='#')
 Lim = 2.*np.pi*1.7*np.array([-0.5,0.5])
 
 
@@ -102,8 +101,10 @@ class Test01_Ves:
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("---- "+cls.__name__)
-        cls.LObj = [tfg.Ves('Test', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here)]
-        cls.LObj.append(tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here))
+        cls.LObj = [tfg.Ves('Test', PVes, Type='Tor', shot=0, Exp='Test',
+                            SavePath=here)]
+        cls.LObj.append(tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0,
+                                Exp='Test', SavePath=here))
 
     @classmethod
     def teardown_class(cls):
@@ -254,7 +255,7 @@ class Test03_LOS:
         #print "--------- "+VerbHead+cls.__name__
         LVes = [Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3
         LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1],
-              None, Test02_Struct. ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
+              None, Test02_Struct.ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
         cls.LObj = [None for vv in LVes]
         for ii in range(0,len(LVes)):
             D = (0,0.95*LVes[ii].geom['P1Max'][0], 0)

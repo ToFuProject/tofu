@@ -26,10 +26,6 @@ import time as time
 ###############################################################################
 """
 
-# Default saving Paths
-dtmFormat = "D%Y%m%d_T%H%M%S"
-SavePath_Include = ['Mod','Cls','Typ','Exp','Deg','Diag','Name','shot','Vers','Usr']
-
 
 
 """
