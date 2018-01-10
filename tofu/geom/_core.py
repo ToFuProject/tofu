@@ -21,7 +21,7 @@ except Exception:
     from . import _plot as _plot
 
 __all__ = ['Ves', 'Struct',
-           'LOS', 'GLOS']
+           'Rays']
 
 
 
@@ -215,10 +215,18 @@ class Ves(object):
         """
         return _comp._Ves_get_InsideConvexPoly(self.Poly, self.geom['P2Min'], self.geom['P2Max'], self.geom['BaryS'], RelOff=RelOff, ZLim=ZLim, Spline=Spline, Splprms=Splprms, NP=NP, Plot=Plot, Test=Test)
 
-    def get_sampleEdge(self, dL, DS=None, dLMode='abs', DIn=0.):
-        """ Mesh the 2D polygon edges (each segment is sampleed), in the subdomain defined by DS, with resolution dL """
-        Pts, dLr, ind = _comp._Ves_get_sampleEdge(self.Poly, dL, DS=DS, dLMode=dLMode, DIn=DIn, VIn=self.geom['VIn'], margin=1.e-9)
-        return Pts, dLr, ind
+    def get_sampleEdge(self, dl, DS=None, dlMode='abs', DIn=0.):
+        """ Sample the polygon edges
+
+        Sample each segment of the 2D polygon
+        Sampling can be limited to a subdomain defined by DS
+        It is done with resolution dl
+        """
+        Pts, dlr, ind = _comp._Ves_get_sampleEdge(self.Poly, dl, DS=DS,
+                                                  dLMode=dlMode, DIn=DIn,
+                                                  VIn=self.geom['VIn'],
+                                                  margin=1.e-9)
+        return Pts, dlr, ind
 
     def get_sampleCross(self, dS, DS=None, dSMode='abs', ind=None):
         """ Mesh the 2D cross-section fraction defined by DS or ind, with resolution dS """
@@ -610,6 +618,9 @@ class Rays(object):
     def geom(self):
         return self._geom
     @property
+    def nRays(self):
+        return self.geom['nRays']
+    @property
     def D(self):
         return self.geom['D']
     @property
@@ -631,10 +642,10 @@ class Rays(object):
     def sino(self):
         return self._sino
 
-    def _check_inputs(self, Id=None, Du=None, Ves=None,
+    def _check_inputs(self, Id=None, Du=None, Ves=None, LStruct=None,
                       Sino_RefPt=None, Exp=None, shot=None, Diag=None,
                       SavePath=None, fromdict=None):
-        _Rays_check_inputs(Id=Id, Du=Du, Vess=Ves,
+        _Rays_check_inputs(Id=Id, Du=Du, Vess=Ves, LStruct=LStruct,
                           Sino_RefPt=Sino_RefPt, Exp=Exp, shot=shot,
                           Diag=Diag, SavePath=SavePath, fromdict=fromdict)
 
@@ -684,12 +695,15 @@ class Rays(object):
         if D.ndim==1:
             D, u = D.reshape((3,1)), u.reshape((3,1))
         u = u/np.sqrt(np.sum(u**2,axis=0))
+        D = np.ascontiguousarray(D)
+        u = np.ascontiguousarray(u)
+        nRays = D.shape[1]
 
-        kPIn, kPOut = np.nan, np.nan
-        PIn, POut = np.full((3,),np.nan), np.full((3,),np.nan)
-        VPerpIn, VPerpOut = np.full((3,),np.nan), np.full((3,),np.nan)
-        IndIn, IndOut = np.nan, np.nan
-        if not self.Ves is None:
+        kPIn, kPOut = np.full((nRays,),np.nan), np.full((nRays,),np.nan)
+        PIn, POut = np.full((3,nRays),np.nan), np.full((3,nRays),np.nan)
+        VPerpIn, VPerpOut = np.full((3,nRays),np.nan), np.full((3,nRays),np.nan)
+        IndIn, IndOut = np.full((nRays,),np.nan), np.full((nRays,),np.nan)
+        if self.Ves is not None:
             if self.LStruct is not None:
                 lSPoly = [ss.Poly for ss in self.LStruct]
                 lSLim = [ss.Lim for ss in self.LStruct]
@@ -715,21 +729,13 @@ class Rays(object):
             PIn[:,ind], kPIn[ind] = D[:,ind], 0.
 
         PRMin, kRMin, RMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12)
-        self._geom = {'D':D, 'u':u, 'nRays':Ds.shape[1],
+        self._geom = {'D':D, 'u':u, 'nRays':nRays,
                       'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut,
                       'VPerpIn':VPerpIn, 'VPerpOut':VPerpOut,
                       'IndIn':IndIn, 'IndOut':IndOut,
                       'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
 
-    def _get_plotPts(self, Lplot='Tot', Proj='All'):
-        ind = ~np.isnan(self.geom['kPOut'])
-        if np.any(ind):
-            pts = _comp.LOS_CrossProj(self.Ves.Type, self.D, self.u,
-                                      self.geom['kPIn'], self.geom['kPOut'],
-                                      self.geom['kRMin'], Lplot=Lplot)
-        return pts
-
-    def _set_sino(self, RefPt=None):
+    def _set_sino(self, RefPt=None, calc=True):
         self._check_inputs(Sino_RefPt=RefPt)
         if (RefPt is None and self.Ves is None) or calc is False:
             self._sino = None
@@ -750,21 +756,43 @@ class Rays(object):
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
                           'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
+    def _get_plotPts(self, Lplot='Tot', Proj='All', ind=None, muti=False):
+        self._check_inputs(ind=ind)
+        if ind is None:
+            ind = ~np.isnan(self.geom['kPOut'])
+        elif np.asarray(ind).dtype is bool:
+            ind = ind & (~np.isnan(self.geom['kPOut']))
+        else:
+            ii = np.zeros((self.nRays,),dtype=bool)
+            ii[ind] = True
+            ind = ii & (~np.isnan(self.geom['kPOut']))
+        ind = ind.nonzero()[0]
+        if len(ind)>0:
+            Ds, us = self.D[:,ind], self.u[:,ind]
+            if len(ind)==1:
+                Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
+            kPIn, kPOut = self.geom['kPIn'][ind], self.geom['kPOut'][ind]
+            kRMin = self.geom['kRMin'][ind]
+            pts = _comp.LOS_CrossProj(self.Ves.Type, Ds, us, kPIn, kPOut,
+                                      kRMin, Lplot=Lplot, multi=multi)
+        else:
+            pts = None
+        return pts
 
-    def get_sample(self, dL, dLMode='abs', DL=None, method='sum'):
+    def get_sample(self, dl, dlMode='abs', DL=None, method='sum', ind=None):
         """ Return a linear sampling of the LOS
 
         The LOS is sampled into a series a points and segments lengths
-        The resolution (segments length) is <= dL
+        The resolution (segments length) is <= dl
         The sampling can be done according to different methods
         It is possible to sample only a subset of the LOS
 
         Parameters
         ----------
-        dL:     float
+        dl:     float
             Desired resolution
-        dLMode: str
-            Flag indicating dL should be understood as:
+        dlMode: str
+            Flag indicating dl should be understood as:
                 - 'abs':    an absolute distance in meters
                 - 'rel':    a relative distance (fraction of the LOS length)
         DL:     None / iterable
@@ -774,16 +802,16 @@ class Rays(object):
             Flag indicating which to use for sampling:
                 - 'sum':    the LOS is sampled into N segments of equal length,
                             where N is the smallest int such that:
-                                * segment length <= resolution(dL,dLMode)
+                                * segment length <= resolution(dl,dlMode)
                             The points returned are the center of each segment
                 - 'simps':  the LOS is sampled into N segments of equal length,
                             where N is the smallest int such that:
-                                * segment length <= resolution(dL,dLMode)
+                                * segment length <= resolution(dl,dlMode)
                                 * N is even
                             The points returned are the egdes of each segment
                 - 'romb':   the LOS is sampled into N segments of equal length,
                             where N is the smallest int such that:
-                                * segment length <= resolution(dL,dLMode)
+                                * segment length <= resolution(dl,dlMode)
                                 * N = 2^k + 1
                             The points returned are the egdes of each segment
 
@@ -793,18 +821,29 @@ class Rays(object):
             A (3,NP) array of NP points along the LOS in (X,Y,Z) coordinates
         kPts:   np.ndarray
             A (NP,) array of the points distances from the LOS starting point
-        dL:     float
-            The effective resolution (<= dL input), as an absolute distance
+        dl:     float
+            The effective resolution (<= dl input), as an absolute distance
 
         """
+        self._check_inputs(ind)
+        if ind is None:
+            ind = np.arange(0,self.nRays)
+        if np.asarray(ind).dtype is bool:
+            ind = ind.nonzero()[0]
         if DL is None:
-            DL = np.array([self.geom['kPIn'],self.geom['kPOut']]
-        Pts, kPts, dL = _GG.LOS_get_sample(self.D, self.u, dL, DL,
-                                           dLMode=dLMode, method=method)
-        return Pts, kPts, dL
+            DL = np.array([self.geom['kPIn'][ind],self.geom['kPOut'][ind]])
+        Ds, us = self.D[:,ind], self.u[:,ind]
+        if len(ind)==1:
+            Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
+        Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
+        Pts, kPts, dl = _GG.LOS_get_sample(Ds, us, dl, DL,
+                                           dLMode=dlMode, method=method)
+        return Pts, kPts, dl
 
 
-    def calc_signal(self, ff, dL=0.001, DL=None, dLMode='abs', method='romb'):
+    def calc_signal(self, ff, t=None, Ani=None, fkwdargs={},
+                    dl=0.001, DL=None, dlMode='abs', method='romb',
+                    ind=None, Warn=True):
         """ Return the line-integrated emissivity
 
         Beware that it is only a line-integral !
@@ -813,7 +852,8 @@ class Rays(object):
         surfaces and respective positions of the detector and its apertures,
         which are not provided for a LOS object).
 
-        Hence, if the emissivity is provided in W/m3, the method returns W/m2
+        Hence, if the emissivity is provided in W/m3 (resp. W/m3/sr),
+        the method returns W/m2 (resp. W/m2/sr)
         The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,
 
         The integral can be computed using three different methods:
@@ -829,21 +869,32 @@ class Rays(object):
             The user-provided
 
         """
+        if Warn:
+            warnings.warn("! CAUTION : returns W/m^2 (no Etendue, see help) !")
+        self._check_inputs(ind)
+        if ind is None:
+            ind = np.arange(0,self.nRays)
+        if np.asarray(ind).dtype is bool:
+            ind = ind.nonzero()[0]
         if DL is None:
-            DL = np.array([self.geom['kPIn'],self.geom['kPOut']]
-        Sig = _comp.LOS_calc_signal(ff, self.D, self.u, dL=dL, DL=DL,
-                                    dLMode=dLMode, method=method)
+            DL = np.array([self.geom['kPIn'][ind],self.geom['kPOut']][ind])
+        Ds, us = self.Di[:,ind], self.u[:,ind]
+        if len(ind)==1:
+            Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
+        Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
+        sig = _GG.LOS_calc_signal(ff, Ds, us, dl, DL,
+                                  dLMode=dlMode, method=method,
+                                  t=t, Ani=Ani, fkwdargs=fkwdargs, Test=True)
         return Sig
 
     def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
-             EltVes='', Leg='', Ldict=_def.LOSLd, MdictD=_def.LOSMd,
-             MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd,
-             MdictP=_def.LOSMd, LegDict=_def.TorLegd, Vesdict=_def.Vesdict,
-             draw=True, a4=False, Test=True):
-        """ Plot the LOS, in the chosen projection(s)
+             EltVes='', EltStruct='', Leg='', dL=_def.LOSLd, dPtD=_def.LOSMd,
+             dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
+             dPtP=_def.LOSMd, dLeg=_def.TorLegd, dVes=_def.Vesdict,
+             multi=False, ind=None, draw=True, a4=False, Test=True):
+        """ Plot the Rays / LOS, in the chosen projection(s)
 
-        Plot the desired projections of the LOS object
-        Optionnally also plot its associated :class:`~tofu.geom.Ves` object
+        Optionnally also plot associated :class:`~tofu.geom.Ves` and Struct
         The plot can also include:
             - special points
             - the unit directing vector
@@ -851,78 +902,74 @@ class Rays(object):
         Parameters
         ----------
         Lax :       list / plt.Axes
-            The axes to be used for plotting (provide a list of 2 axes if
-Proj='All'), if None a new figure with axes is created
+            The axes for plotting (list of 2 axes if Proj='All')
+            If None a new figure with new axes is created
         Proj :      str
-            Flag specifying the kind of projection used for the plot ('Cross'
-for a cross-section, 'Hor' for a horizontal plane, 'All' both and '3d' for 3d)
+            Flag specifying the kind of projection:
+                - 'Cross' : cross-section
+                - 'Hor' : horizontal
+                - 'All' : both cross-section and horizontal (on 2 axes)
+                - '3d' : a (matplotlib) 3d plot
         Elt :       str
-            Flag specifying which elements to plot, each capital letter
-corresponds to an element
+            Flag specifying which elements to plot
+            Each capital letter corresponds to an element:
                 * 'L': LOS
                 * 'D': Starting point of the LOS
                 * 'I': Input point (i.e.: where the LOS enters the Vessel)
                 * 'O': Output point (i.e.: where the LOS exits the Vessel)
-                * 'R': Point of minimal major radius R (only for Vessel of
-                * Type='Tor')
-                * 'P': Point of used for impact parameter (i.e.: minimal
-                * distance to reference point Sino_RefPt)
+                * 'R': Point of minimal major radius R (only if Ves.Type='Tor')
+                * 'P': Point of used for impact parameter (i.e.: with minimal
+                        distance to reference point Sino_RefPt)
         Lplot :     str
-            Flag specifying whether to plot the full LOS ('Tot': from starting
-point output point) or only the fraction inside the vessel ('In': from input to
-output point)
+            Flag specifying the length to plot:
+                - 'Tot': total length, from starting point (D) to output point
+                - 'In' : only the in-vessel fraction (from input to output)
         EltVes :    str
-            Flag specifying the elements of the Vessel to be plotted, fed to
-:meth:`~tofu.geom.Ves.plot`
+            Flag for Ves elements to plot (:meth:`~tofu.geom.Ves.plot`)
+        EltStruct : str
+            Flag for Struct elements to plot (:meth:`~tofu.geom.Struct.plot`)
         Leg :       str
-            Legend to be used to identify this LOS, if Leg='' the LOS name is
-used
+            Legend, if Leg='' the LOS name is used
         Ldict :     dict / None
-            Dictionary of properties used for plotting the polygon, fed to
-plt.Axes.plot() or plt.plot_surface() if Proj='3d', set to ToFu_Defauts.py if
-None
+            Dictionary of properties for plotting the lines
+            Fed to plt.Axes.plot(), set to default if None
         MdictD :    dict
-            Dictionary of properties used for plotting point 'D', fed to
-plt.Axes.plot()
+            Dictionary of properties for plotting point 'D'
         MdictI :    dict
-            Dictionary of properties used for plotting point 'I', fed to
-plt.Axes.plot()
+            Dictionary of properties for plotting point 'I'
         MdictO :    dict
-            Dictionary of properties used for plotting point 'O', fed to
-plt.Axes.plot()
+            Dictionary of properties used plotting point 'O'
         MdictR :    dict
-            Dictionary of properties used for plotting point 'R', fed to
-plt.Axes.plot()
+            Dictionary of properties used plotting point 'R'
         MdictP :    dict
-            Dictionary of properties used for plotting point 'P', fed to
-plt.Axes.plot()
+            Dictionary of properties used plotting point 'P'
         LegDict :   dict or None
-            Dictionary of properties used for plotting the legend, fed to
-plt.legend(), the legend is not plotted if None
+            Dictionary of properties used plotting the legend
+            Fed to plt.legend(), the legend is not plotted if None
         Vesdict :   dict
-            Dictionary of kwdargs to fed to :meth:`~tofu.geom.Ves.plot`, and
-'EltVes' is used instead of 'Elt'
+            Dictionary of kwdargs to fed to :meth:`~tofu.geom.Ves.plot`
+            And 'EltVes' is used instead of 'Elt'
+        Structdict: dict
+            Dictionary of kwdargs to fed to :meth:`~tofu.geom.Struct.plot`
+            And 'EltStruct' is used instead of 'Elt'
         draw :      bool
-            Flag indicating whether the fig.canvas.draw() shall be called
-automatically
+            Flag indicating whether fig.canvas.draw() shall be called
         a4 :        bool
-            Flag indicating whether the figure should be plotted in a4
-dimensions for printing
+            Flag indicating whether to plot the figure in a4 dimensions
         Test :      bool
             Flag indicating whether the inputs should be tested for conformity
 
         Returns
         -------
         La :        list / plt.Axes
-            Handles of the axes used for plotting (list if several axes where
-used)
+            Handles of the axes used for plotting (list if Proj='All')
 
         """
         return _plot.GLLOS_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt,
-                                EltVes=EltVes, Leg=Leg, Ldict=Ldict,
-                                MdictD=MdictD, MdictI=MdictI, MdictO=MdictO,
-                                MdictR=MdictR, MdictP=MdictP, LegDict=LegDict,
-                                Vesdict=Vesdict, draw=draw, a4=a4, Test=Test)
+                                EltVes=EltVes, Leg=Leg, dL=dL, dPtD=dPtD,
+                                dPtI=dPtI, dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
+                                dLeg=dLeg, dVes=dVes, multi=multi,
+                                draw=draw, a4=a4, Test=Test)
 
 
 
@@ -932,8 +979,9 @@ used)
 
 
 
-def _Rays_check_inputs(Id=None, Du=None, Vess=None, Sino_RefPt=None,
-                      Exp=None, shot=None, Diag=None, SavePath='./', Calc=None):
+def _Rays_check_inputs(Id=None, Du=None, Vess=None, LStruct=None,
+                      Sino_RefPt=None, Exp=None, shot=None, Diag=None,
+                      SavePath='./', Calc=None, fromdict=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
     if not Du is None:
@@ -949,6 +997,16 @@ def _Rays_check_inputs(Id=None, Du=None, Vess=None, Sino_RefPt=None,
         assert type(Vess) is Ves, "Arg Ves must be a Ves instance !"
         if Exp is not None and Vess.Id.Exp is not None:
             assert Exp==Vess.Id.Exp, "Arg Exp must be the same as Ves.Id.Exp !"
+    if LStruct is not None:
+        assert type(LStruct) in [list,Struct], "LStruct = list of Struct !"
+        if type(LStruct) is list:
+            for ss in LStruct:
+                assert type(ss) is Struct, "LStruct = list of Struct !"
+                if Exp is not None and ss.Id.Exp is not None:
+                    assert Exp==ss.Id.Exp, "Struct elements for a different Exp"
+        else:
+            if Exp is not None and LStruct.Id.Exp is not None:
+                assert Exp==LStruct.Id.Exp, "Struct element for a different Exp"
     bools = [Calc]
     if any([not aa is None for aa in bools]):
         C = all([aa is None or type(aa) is bool for aa in bools])
@@ -966,7 +1024,9 @@ def _Rays_check_inputs(Id=None, Du=None, Vess=None, Sino_RefPt=None,
     for aa in Ints:
         if aa is not None:
             assert type(aa) is int, "Args [shot] must be int !"
-
+    if fromdict is not None:
+        assert type(fromdict) is dict
+        # Finish by checking keys !
 
 
 

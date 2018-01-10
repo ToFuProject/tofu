@@ -2771,11 +2771,13 @@ cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double 
     return (PMin0,PMin1,PMin2), kPMin, RMin, Theta, p, ImpTheta, phi
 
 
-def LOS_sino(double[::1] D, double[::1] u, double[::1] RZ, double[::1] kOut, str Mode='LOS', str VType='Tor'):
+def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut, str Mode='LOS', str VType='Tor'):
     cdef unsigned int nL = D.shape[1], ii
     cdef tuple out
-    cdef cnp.array[double,ndim=2] PMin
-    cdef cnp.array[double,ndim=1] kPMin, RMin, Theta, p, ImpTheta, phi
+    cdef cnp.ndarray[double,ndim=2] PMin = np.empty((3,nL))
+    cdef cnp.ndarray[double,ndim=1] kPMin=np.empty((nL,)), RMin=np.empty((nL,))
+    cdef cnp.ndarray[double,ndim=1] Theta=np.empty((nL,)), p=np.empty((nL,))
+    cdef cnp.ndarray[double,ndim=1] ImpTheta=np.empty((nL,)), phi=np.empty((nL,))
     if VType.lower()=='tor':
         for ii in range(0,nL):
             out = LOS_sino_Tor(D[0,ii],D[1,ii],D[2,ii],u[0,ii],u[1,ii],u[2,ii],

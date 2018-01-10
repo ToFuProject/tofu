@@ -9,6 +9,6 @@ Provides classes to model the 3D geometry of:
 * apertures and detectors
 """
 
-from tofu.geom._core import Ves, Struct, LOS, GLOS
+from tofu.geom._core import Ves, Struct, Rays
 
 __all__ = ['_GG', '_comp', '_plot', '_def']

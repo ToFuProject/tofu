@@ -8,8 +8,9 @@ import warnings
 # Generic common libraries
 import numpy as np
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import Polygon as mPolygon, Wedge as mWedge
+from matplotlib.axes._axes import Axes
+from mpl_toolkits.mplot3d import Axes3D
 
 # ToFu-specific
 try:
@@ -19,6 +20,17 @@ except Exception:
     from . import _def as _def
     from . import _GG as _GG
 
+
+
+# Generic
+def _check_Lax(Lax=None):
+    C0 = Lax is None
+    C1 = issubclass(Lax.__class__,Axes)
+    C2 = type(Lax) in [list,tuple]
+    if C2:
+        C2 = all([issubclass(aa.__class__,Axes) for aa in Lax])
+    assert C0 or C1 or C2, "Arg Lax must be an Axes or a list/tuple of such !"
+    return C0, C1, C2
 
 
 
@@ -41,7 +53,7 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
              Idict=_def.TorId, Bsdict=_def.TorBsd, Bvdict=_def.TorBvd,
              Vdict=_def.TorVind, IdictHor=_def.TorITord,
              BsdictHor=_def.TorBsTord, BvdictHor=_def.TorBvTord,
-             Lim=_def.Tor3DThetalim, Nstep=_def.TorNTheta, LegDict=_def.TorLegd,
+             Lim=_def.Tor3DThetalim, Nstep=_def.TorNTheta, dLeg=_def.TorLegd,
              draw=True, a4=False, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
@@ -52,21 +64,16 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
         axP         A plt.Axes instance (if given) on which to plot the poloidal projection, otherwise ('None') a new figure/axes is created
         axT         A plt.Axes instance (if given) on which to plot the toroidal projection, otherwise ('None') a new figure/axes is created
         Tdict       A dictionnary specifying the style of the polygon plot
-        LegDict     A dictionnary specifying the style of the legend box (if None => no legend)
+        dLeg     A dictionnary specifying the style of the legend box (if None => no legend)
     Outputs :
         axP          The plt.Axes instance on which the poloidal plot was performed
         axT          The plt.Axes instance on which the toroidal plot was performed
     """
     if Test:
         assert Proj in ['Cross','Hor','All','3d'], "Arg Proj must be in ['Cross','Hor','All','3d'] !"
-        if not Lax is None:
-            C0 = issubclass(Lax.__class__,plt.Axes)
-            C0 = (hasattr(Lax,'__iter__')
-                  and all([issubclass(aa.__class__,plt.Axes) for aa in Lax]))
-            assert C0 or C1, "Arg Lax must be a plt.Axes or a list of such !"
+        C0, C1, C2 = _check_Lax(Lax)
+        Lax = list(ax) if C2 else [Lax]
         assert type(draw) is bool, "Arg draw must be a bool !"
-
-    Lax = list(Lax) if hasattr(Lax,'__iter__') else [Lax]
 
     if any(['P' in Elt, 'I' in Elt]):
         if Proj=='3d':
@@ -87,8 +94,8 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
                     Lax = list(_def.Plot_LOSProj_DefAxes('All', a4=a4, Type=Ves.Type))
                 Lax[0] = _Plot_CrossProj_Ves(Ves, ax=Lax[0], Elt=Elt, Pdict=Pdict, Idict=Idict, Bsdict=Bsdict, Bvdict=Bvdict, Vdict=Vdict, LegDict=None, draw=False, a4=a4, Test=Test)
                 Lax[1] = _Plot_HorProj_Ves(Ves, ax=Lax[1], Elt=Elt, Nstep=Nstep, Pdict=Pdict, Idict=IdictHor, Bsdict=BsdictHor, Bvdict=BvdictHor, LegDict=None, draw=False, a4=a4, Test=Test)
-    if not LegDict is None:
-        Lax[0].legend(**LegDict)
+    if not dLeg is None:
+        Lax[0].legend(**dLeg)
     if draw:
         Lax[0].figure.canvas.draw()
     Lax = Lax if Proj=='All' else Lax[0]
@@ -113,7 +120,8 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV', Pdict=_def.TorPd, Idict=_def.
     """
     if Test:
         assert V.Id.Cls in ['Ves','Struct'], 'Arg V should a Ves instance !'
-        assert ax is None or issubclass(ax.__class__,plt.Axes), 'Arg ax should a plt.Axes instance !'
+        C0, C1, C2 = _check_Lax(ax)
+        assert C0 or C1, 'Arg ax should a plt.Axes instance !'
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
         assert type(Idict) is dict, "Arg Idict should be a dictionary !"
         assert type(Bsdict) is dict, "Arg Bsdict should be a dictionary !"
@@ -160,7 +168,8 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.Tor
     if Test:
         assert V.Id.Cls in ['Ves','Struct'], 'Arg V should a Ves instance !'
         assert type(Nstep) is int
-        assert ax is None or issubclass(ax.__class__,plt.Axes), 'Arg ax should a plt.Axes instance !'
+        C0, C1, C2 = _check_Lax(ax)
+        assert C0 or C1, 'Arg ax should a plt.Axes instance !'
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
         assert type(Idict) is dict, 'Arg Idict should be a dictionary !'
         assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
@@ -280,7 +289,9 @@ def Plot_3D_mlab_Tor(T,fig='None',thetaLim=(np.pi/2,2*np.pi),Tdict=Dict_3D_mlab_
 
 
 
-def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad', Sketch=True, Pdict=_def.TorPFilld, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
+def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad',
+                            Sketch=True, Pdict=_def.TorPFilld,
+                            dLeg=_def.TorLegd, draw=True, a4=False, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -289,15 +300,16 @@ def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad', Sket
         Leg         A str (the legend label to be used if T is not a Ves instance)
         ax          A plt.Axes instance (if given) on which to plot the projection space, otherwise ('None') a new figure/axes is created
         Dict        A dictionnary specifying the style of the boundary polygon plot
-        LegDict     A dictionnary specifying the style of the legend box
+        dLeg        A dictionnary specifying the style of the legend box
     Outputs :
         ax          The plt.Axes instance on which the poloidal plot was performed
     """
     if Test:
         assert T.Id.Cls in ['Ves','Struct'] or (isinstance(T,tuple) and len(T)==3), "Arg T must be Ves instance or tuple with (Theta,pP,pN) 3 np.ndarrays !"
-        assert isinstance(ax,plt.Axes) or ax is None, "Arg ax must be a Axes instance !"
+        C0, C1, C2 = _check_Lax(ax)
+        assert C0 or C1, 'Arg ax should a plt.Axes instance !'
         assert type(Pdict) is dict, "Arg Pdict must be a dictionary !"
-        assert LegDict is None or type(LegDict) is dict, "Arg LegDict must be a dictionary !"
+        assert dLeg is None or type(dLeg) is dict, "Arg dLeg must be a dictionary !"
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
         assert AngUnit in ['rad','deg'], "Arg AngUnit must be in ['rad','deg'] !"
     if ax is None:
@@ -320,15 +332,17 @@ def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad', Sket
     proxy = plt.Rectangle((0,0),1,1, fc=Pdict['facecolor'])
     handles.append(proxy)
     labels.append(Leg)
-    if not LegDict is None:
-        ax.legend(handles,labels,**LegDict)
+    if not dLeg is None:
+        ax.legend(handles,labels,**dLeg)
     if draw:
         ax.figure.canvas.draw()
     return ax
 
 
 
-def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng, AngUnit=_def.TorPAngUnit, Pdict=_def.TorP3DFilld, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
+def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
+                       AngUnit=_def.TorPAngUnit, Pdict=_def.TorP3DFilld,
+                       dLeg=_def.TorLegd, draw=True, a4=False, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -337,16 +351,16 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng, AngUnit=_def.TorPAn
         Leg         A str (the legend label to be used if T is not a Ves instance)
         ax          A plt.Axes instance (if given) on which to plot the projection space, otherwise ('None') a new figure/axes is created
         Dict        A dictionnary specifying the style of the boundary polygon plot
-        LegDict     A dictionnary specifying the style of the legend box
+        dLeg        A dictionnary specifying the style of the legend box
     Outputs :
         ax          The plt.Axes instance on which the poloidal plot was performed
     """
 
     if Test:
         assert isinstance(T,Ves) or (isinstance(T,tuple) and len(T)==3), "Arg T must be Ves instance or tuple with (Theta,pP,pN) 3 ndarrays !"
-        assert isinstance(ax,plt.Axes) or ax is None, "Arg ax must be a Axes instance !"
+        assert isinstance(ax,Axes3D) or ax is None, "Arg ax must be a Axes instance !"
         assert type(Pdict) is dict, "Arg Pdict must be a dictionary !"
-        assert type(LegDict) is dict or LegDict is None, "Arg LegDict must be a dictionary !"
+        assert type(dLeg) is dict or dLeg is None, "Arg dLeg must be a dictionary !"
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
         assert AngUnit in ['rad','deg'], "Arg AngUnit must be in ['rad','deg'] !"
     if ax is None:
@@ -385,8 +399,8 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng, AngUnit=_def.TorPAn
         AngUnit = r"$(deg.)$"
     ax.set_xlabel(AngName+r" "+AngUnit)
     ax.set_zlabel(r"$\phi$ "+AngUnit)
-    if not LegDict is None:
-        ax.legend(handles,labels,**LegDict)
+    if not dLeg is None:
+        ax.legend(handles,labels,**dLeg)
     if draw:
         ax.figure.canvas.draw()
     return ax
@@ -437,7 +451,11 @@ def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3):
 def _get_LLOS_Leg(GLLOS, Leg=None, ind=None, Val=None, Crit='Name', PreExp=None,
                   PostExp=None, Log='any', InOut='In'):
 
-    # Convert to list of Detect, with common legend if GDetect
+    # Get Legend
+    if type(Leg) is not str:
+        Leg = GLLOS.Id.NameLTX
+
+
 
     if not type(GLLOS) is list and GLLOS.Id.Cls=='LOS':
         GLLOS = [GLLOS]
@@ -497,44 +515,55 @@ def Get_FieldsFrom_LLOS(L,Fields):
 
 
 
-def GLLOS_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORr', EltVes='', Leg=None,
-            Ldict=_def.LOSLd, MdictD=_def.LOSMd, MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd, MdictP=_def.LOSMd, LegDict=_def.TorLegd,
-            Vesdict=_def.Vesdict, draw=True, a4=False, Test=True,
-            ind=None, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In'):
+def GLLOS_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORr',
+               EltVes='', Leg=None, dL=_def.LOSLd, dPtD=_def.LOSMd,
+               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
+               dPtP=_def.LOSMd, dLeg=_def.TorLegd, dVes=_def.Vesdict,
+               multi=False, draw=True, a4=False, Test=True, ind=None, Val=None,
+               Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In'):
 
     if Test:
-        assert type(GLos) is list or GLos.Id.Cls in ['LOS','GLOS'], "Arg GLos must be a LOS or a GLOS instance !"
-        assert Proj in ['Cross','Hor','All','3d'], "Arg Proj must be in ['Cross','Hor','All','3d'] !"
-        assert Lax is None or type(Lax) in [list,tuple,plt.Axes,Axes3D], "Arg Lax must be a plt.Axes or a list of such !"
+        C = GLos.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']
+        assert C, "Arg GLos must be an object child of tfg.Rays !"
+        C = Proj.lower() in ['cross','hor','all','3d']
+        assert C, "Arg Proj must be in ['Cross','Hor','All','3d'] !"
+        C0, C1, C2 = _check_Lax(Lax)
+        Lax = list(Lax) if C2 else [Lax]
+        assert Leg is None or type(Leg) is str, "Arg Leg must be a str !"
         assert type(draw) is bool, "Arg draw must be a bool !"
 
-    GLos, Leg = _get_LLOS_Leg(GLos, Leg, ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut)
+    Leg = GLos.Id.NameLTX if Leg is None else Leg
+    if multi:
+        Leg = None
 
     if EltVes is None:
-        Vesdict['Elt'] = '' if (not 'Elt' in Vesdict.keys() or Vesdict['Elt'] is None) else Vesdict['Elt']
+        if (not 'Elt' in dVes.keys() or dVes['Elt'] is None):
+            dVes['Elt'] = ''
     else:
-        Vesdict['Elt'] = EltVes
-    Vesdict['Lax'], Vesdict['Proj'], Vesdict['LegDict'] = Lax, Proj, None
-    Vesdict['draw'], Vesdict['a4'], Vesdict['Test'] = False, a4, Test
-    Lax = GLos[0].Ves.plot(**Vesdict)
-
-    Lax = list(Lax) if hasattr(Lax,'__iter__') else [Lax]
+        dVes['Elt'] = EltVes
+    dVes['Lax'], dVes['Proj'], dVes['dLeg'] = Lax, Proj, None
+    dVes['draw'], dVes['a4'], dVes['Test'] = False, a4, Test
+    Lax = GLos.Ves.plot(**dVes)
 
     if not Elt=='':
         if Proj=='3d':
-            Lax[0] = _Plot_3D_plt_GLOS(GLos, ax=Lax[0], Elt=Elt, Lplot=Lplot, Leg=Leg, Ldict=Ldict, MdictD=MdictD, MdictI=MdictI, MdictO=MdictO, MdictR=MdictR, MdictP=MdictP, LegDict=None, draw=False, a4=a4, Test=Test)
+            Lax[0] = _Plot_3D_plt_GLOS(GLos, ax=Lax[0], Elt=Elt, Lplot=Lplot,
+                                       Leg=Leg, dL=dL, MdictD=dPtD,
+                                       MdictI=dPtI, MdictO=dPtO,
+                                       MdictR=dPtR, MdictP=dPtP, LegDict=None,
+                                       multi=multi, draw=False, a4=a4, Test=Test)
         else:
             if Proj=='Cross':
-                Lax[0] = _Plot_CrossProj_GLOS(GLos, ax=Lax[0], Elt=Elt, Lplot=Lplot, Leg=Leg, Ldict=Ldict, MdictD=MdictD, MdictI=MdictI, MdictO=MdictO, MdictR=MdictR, MdictP=MdictP, LegDict=None, draw=False, a4=a4, Test=Test)
+                Lax[0] = _Plot_CrossProj_GLOS(GLos, ax=Lax[0], Elt=Elt, Lplot=Lplot, Leg=Leg, dL=dL, MdictD=dPtD, MdictI=dPtI, MdictO=dPtO, MdictR=dPtR, MdictP=dPtP, LegDict=None, draw=False, a4=a4, Test=Test)
             elif Proj=='Hor':
-                Lax[0] = _Plot_HorProj_GLOS(GLos, ax=Lax[0], Elt=Elt, Lplot=Lplot, Leg=Leg, Ldict=Ldict, MdictD=MdictD, MdictI=MdictI, MdictO=MdictO, MdictR=MdictR, MdictP=MdictP, LegDict=None, draw=False, a4=a4, Test=Test)
+                Lax[0] = _Plot_HorProj_GLOS(GLos, ax=Lax[0], Elt=Elt, Lplot=Lplot, Leg=Leg, dL=dL, MdictD=dPtD, MdictI=dPtI, MdictO=dPtO, MdictR=dPtR, MdictP=dPtP, LegDict=None, draw=False, a4=a4, Test=Test)
             elif Proj=='All':
                 if Lax[0] is None or Lax[1] is None:
                     Lax = list(_def.Plot_LOSProj_DefAxes('All', a4=a4, Type=GLos[0].Ves.Type))
-                Lax[0] = _Plot_CrossProj_GLOS(GLos,ax=Lax[0],Leg=Leg,Lplot=Lplot,Elt=Elt,Ldict=Ldict,MdictD=MdictD,MdictI=MdictI,MdictO=MdictO,MdictR=MdictR,MdictP=MdictP,LegDict=LegDict, draw=draw, a4=a4, Test=Test)
-                Lax[1] = _Plot_HorProj_GLOS(GLos,ax=Lax[1],Leg=Leg,Lplot=Lplot,Elt=Elt,Ldict=Ldict,MdictD=MdictD,MdictI=MdictI,MdictO=MdictO,MdictR=MdictR,MdictP=MdictP,LegDict=LegDict, draw=draw, a4=a4, Test=Test)
-    if not LegDict is None:
-        Lax[0].legend(**LegDict)
+                Lax[0] = _Plot_CrossProj_GLOS(GLos,ax=Lax[0],Leg=Leg,Lplot=Lplot,Elt=Elt,dL=dL,MdictD=dPtD,MdictI=dPtI,MdictO=dPtO,MdictR=dPtR,MdictP=dPtP,LegDict=LegDict, draw=draw, a4=a4, Test=Test)
+                Lax[1] = _Plot_HorProj_GLOS(GLos,ax=Lax[1],Leg=Leg,Lplot=Lplot,Elt=Elt,dL=dL,MdictD=dPtD,MdictI=dPtI,MdictO=dPtO,MdictR=dPtR,MdictP=dPtP,LegDict=LegDict, draw=draw, a4=a4, Test=Test)
+    if not dLeg is None:
+        Lax[0].legend(**dLeg)
     if draw:
         Lax[0].figure.canvas.draw()
     Lax = Lax if Proj=='All' else Lax[0]
@@ -542,13 +571,17 @@ def GLLOS_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORr', El
 
 
 
-def _Plot_CrossProj_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORP',ax=None, Ldict=_def.LOSLd, MdictD=_def.LOSMd, MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd, MdictP=_def.LOSMd, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
+def _Plot_CrossProj_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORP',ax=None,
+                         dL=_def.LOSLd, MdictD=_def.LOSMd, MdictI=_def.LOSMd,
+                         MdictO=_def.LOSMd, MdictR=_def.LOSMd,
+                         MdictP=_def.LOSMd, LegDict=_def.TorLegd,
+                         multi=False, draw=True, a4=False, Test=True):
     if Test:
         assert type(L) is list or L.Id.Cls in ['LOS','GLOS'], 'Arg L should a LOS instance or a list of LOS !'
         assert Lplot=='Tot' or Lplot=='In', "Arg Lplot should be str 'Tot' or 'In' !"
         assert type(Elt) is str, 'Arg Elt must be str !'
         assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for Arg4 !'
-        assert all([type(Di) is dict for Di in [Ldict,MdictD,MdictI,MdictO,MdictR,MdictP]]) and (type(LegDict) is dict or LegDict is None), 'Ldict, MdictD,MdictI,MdictO,MdictR,MdictP and LegDict should be dictionaries !'
+        assert all([type(Di) is dict for Di in [dL,MdictD,MdictI,MdictO,MdictR,MdictP]]) and (type(LegDict) is dict or LegDict is None), 'dL, MdictD,MdictI,MdictO,MdictR,MdictP and LegDict should be dictionaries !'
     if not type(L) is list and L.Id.Cls=='LOS':
         L = [L]
     elif not type(L) is list and L.Id.Cls=='GLOS':
@@ -563,16 +596,14 @@ def _Plot_CrossProj_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORP',ax=None, Ldict=_def
     DIORrInd = DIORrind.nonzero()[0]
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Cross', a4=a4, Type=L.Ves.Type)
-    if Leg is None:
+    if multi:
         if 'L' in Elt:
-            if L[0].Ves.Type=='Tor':
-                for ll in L:
-                    P = ll.D[:,np.newaxis] + ll.geom[Pfield][np.newaxis,:]*ll.u[:,np.newaxis]
-                    ax.plot(np.hypot(P[0,:],P[1,:]),P[2,:],label=ll.Id.NameLTX, **Ldict)
-            elif L[0].Ves.Type=='Lin':
-                for ll in L:
-                    P = ll.D[:,np.newaxis] + ll.geom[Pfield][np.newaxis,:]*ll.u[:,np.newaxis]
-                    ax.plot(P[1,:],P[2,:],label=ll.Id.NameLTX, **Ldict)
+            if L.Id.Cls in ['Rays','LOS']:
+                pts = L._get_plotPts(Lplot=Lplot, Proj=Proj)
+            else:
+                pts = L._get_plotPts(Lplot=Lplot, Proj='Cross', Val=Val, Crit=Crit,
+                                     PreExp=PreExp, PostExp=PostExp, Log=Log)
+                ax.plot(pts[0,:],pts[1,:], label=Leg, **dL)
         if np.any(DIORrind):
             if L[0].Ves.Type=='Tor':
                 for jj in range(0,nDIORr):
@@ -589,9 +620,9 @@ def _Plot_CrossProj_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORP',ax=None, Ldict=_def
             P = [[ll.D[:,np.newaxis] + ll.geom[Pfield][np.newaxis,:]*ll.u[:,np.newaxis],np.nan*np.ones((3,1))] for ll in L]
             P = np.concatenate(tuple(list(itt.chain.from_iterable(P))),axis=1)
             if L[0].Ves.Type=='Tor':
-                ax.plot(np.hypot(P[0,:],P[1,:]),P[2,:],label=Leg, **Ldict)
+                ax.plot(np.hypot(P[0,:],P[1,:]),P[2,:],label=Leg, **dL)
             elif L[0].Ves.Type=='Lin':
-                ax.plot(P[1,:],P[2,:],label=Leg, **Ldict)
+                ax.plot(P[1,:],P[2,:],label=Leg, **dL)
         if np.any(DIORrind):
             for jj in range(0,nDIORr):
                 if not DIORrFields[jj]=='P':
@@ -610,13 +641,13 @@ def _Plot_CrossProj_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORP',ax=None, Ldict=_def
 
 
 
-def _Plot_HorProj_GLOS(L, Leg=None, Lplot='Tot',Elt='LDIORP',ax=None, Ldict=_def.LOSLd, MdictD=_def.LOSMd, MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd, MdictP=_def.LOSMd, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
+def _Plot_HorProj_GLOS(L, Leg=None, Lplot='Tot',Elt='LDIORP',ax=None, dL=_def.LOSLd, MdictD=_def.LOSMd, MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd, MdictP=_def.LOSMd, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
     if Test:
         assert type(L) is list or L.Id.Cls in ['LOS','GLOS'], 'Arg L should a LOS instance or a list of LOS !'
         assert Lplot=='Tot' or Lplot=='In', "Arg Lplot should be str 'Tot' or 'In' !"
         assert type(Elt) is str, 'Arg Elt must be str !'
         assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for Arg4 !'
-        assert all([type(Di) is dict for Di in [Ldict,MdictD,MdictI,MdictO,MdictR,MdictP]]) and (type(LegDict) is dict or LegDict is None), 'Ldict, MdictD,MdictI,MdictO,MdictR,MdictP and LegDict should be dictionaries !'
+        assert all([type(Di) is dict for Di in [dL,MdictD,MdictI,MdictO,MdictR,MdictP]]) and (type(LegDict) is dict or LegDict is None), 'dL, MdictD,MdictI,MdictO,MdictR,MdictP and LegDict should be dictionaries !'
     if not type(L) is list and L.Id.Cls=='LOS':
         L = [L]
     elif not type(L) is list and L.Id.Cls=='GLOS':
@@ -633,9 +664,18 @@ def _Plot_HorProj_GLOS(L, Leg=None, Lplot='Tot',Elt='LDIORP',ax=None, Ldict=_def
         ax = _def.Plot_LOSProj_DefAxes('Hor', a4=a4, Type=L.Ves.Type)
     if Leg is None:
         if 'L' in Elt:
+            if L.Id.Cls in ['Rays','LOS']:
+                pts = L._get_plotPts(Lplot=Lplot, Proj=Proj)
+            else:
+                pts = L._get_plotPts(Lplot=Lplot, Proj='Cross', Val=Val,
+Crit=Crit,
+                                     PreExp=PreExp, PostExp=PostExp, Log=Log)
+                ax.plot(pts[0,:],pts[1,:], label=Leg, **dL)
+
+
             for ll in L:
                 P = ll.D[:,np.newaxis] + ll.geom[Pfield][np.newaxis,:]*ll.u[:,np.newaxis]
-                ax.plot(P[0,:],P[1,:],label=ll.Id.NameLTX, **Ldict)
+                ax.plot(P[0,:],P[1,:],label=ll.Id.NameLTX, **dL)
         if np.any(DIORrind):
             for jj in range(0,nDIORr):
                 for ll in L:
@@ -645,7 +685,7 @@ def _Plot_HorProj_GLOS(L, Leg=None, Lplot='Tot',Elt='LDIORP',ax=None, Ldict=_def
         if 'L' in Elt:
             P = [[ll.D[:,np.newaxis] + ll.geom[Pfield][np.newaxis,:]*ll.u[:,np.newaxis],np.nan*np.ones((3,1))] for ll in L]
             P = np.concatenate(tuple(list(itt.chain.from_iterable(P))),axis=1)
-            ax.plot(P[0,:],P[1,:],label=Leg, **Ldict)
+            ax.plot(P[0,:],P[1,:],label=Leg, **dL)
         if np.any(DIORrind):
             for jj in range(0,nDIORr):
                 if not DIORrFields[jj]=='P':
@@ -660,13 +700,13 @@ def _Plot_HorProj_GLOS(L, Leg=None, Lplot='Tot',Elt='LDIORP',ax=None, Ldict=_def
     return ax
 
 
-def  _Plot_3D_plt_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None, Ldict=_def.LOSLd, MdictD=_def.LOSMd, MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd, MdictP=_def.LOSMd, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
+def  _Plot_3D_plt_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None, dL=_def.LOSLd, MdictD=_def.LOSMd, MdictI=_def.LOSMd, MdictO=_def.LOSMd, MdictR=_def.LOSMd, MdictP=_def.LOSMd, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
     if Test:
         assert type(L) is list or L.Id.Cls in ['LOS','GLOS'], 'Arg L should a LOS instance or a list of LOS !'
         assert Lplot=='Tot' or Lplot=='In', "Arg Lplot should be str 'Tot' or 'In' !"
         assert type(Elt) is str, 'Arg Elt should be string !'
         assert ax is None or isinstance(ax,Axes3D), 'Arg ax should be plt.Axes instance !'
-        assert all([type(Di) is dict for Di in [Ldict,MdictD,MdictI,MdictO,MdictR,MdictP]]) and (type(LegDict) is dict or LegDict is None), 'Ldict, Mdict and LegDict should be dictionaries !'
+        assert all([type(Di) is dict for Di in [dL,MdictD,MdictI,MdictO,MdictR,MdictP]]) and (type(LegDict) is dict or LegDict is None), 'dL, Mdict and LegDict should be dictionaries !'
     if not type(L) is list and L.Id.Cls=='LOS':
         L = [L]
     elif not type(L) is list and L.Id.Cls=='GLOS':
@@ -685,7 +725,7 @@ def  _Plot_3D_plt_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None, Ldict=_def.L
         if 'L' in Elt:
             for ll in L:
                 P = ll.D[:,np.newaxis] + ll.geom[Pfield][np.newaxis,:]*ll.u[:,np.newaxis]
-                ax.plot(P[0,:],P[1,:],P[2,:],label=ll.Id.NameLTX, **Ldict)
+                ax.plot(P[0,:],P[1,:],P[2,:],label=ll.Id.NameLTX, **dL)
         if np.any(DIORrind):
             for jj in range(0,nDIORr):
                 for ll in L:
@@ -695,7 +735,7 @@ def  _Plot_3D_plt_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None, Ldict=_def.L
         if 'L' in Elt:
             P = [[ll.D[:,np.newaxis] + ll.geom[Pfield][np.newaxis,:]*ll.u[:,np.newaxis],np.nan*np.ones((3,1))] for ll in L]
             P = np.concatenate(tuple(list(itt.chain.from_iterable(P))),axis=1)
-            ax.plot(P[0,:],P[1,:],P[2,:],label=Leg, **Ldict)
+            ax.plot(P[0,:],P[1,:],P[2,:],label=Leg, **dL)
         if np.any(DIORrind):
             for jj in range(0,nDIORr):
                 if not DIORrFields[jj]=='P':
@@ -712,12 +752,12 @@ def  _Plot_3D_plt_GLOS(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None, Ldict=_def.L
 
 
 """
-def  Plot_3D_mlab_GLOS(L,Leg ='',Lplot='Tot',PDIOR='DIOR',fig='None', Ldict=Ldict_mlab_Def, Mdict=Mdict_mlab_Def,LegDict=LegDict_Def):
+def  Plot_3D_mlab_GLOS(L,Leg ='',Lplot='Tot',PDIOR='DIOR',fig='None', dL=dL_mlab_Def, Mdict=Mdict_mlab_Def,LegDict=LegDict_Def):
     assert isinstance(L,LOS) or isinstance(L,list) or isinstance(L,GLOS), 'Arg L should a LOS instance or a list of LOS !'
     assert Lplot=='Tot' or Lplot=='In', "Arg Lplot should be str 'Tot' or 'In' !"
     assert isinstance(PDIOR,basestring), 'Arg PDIOR should be string !'
     #assert fig=='None' or isinstance(fig,mlab.Axes), 'Arg ax should be plt.Axes instance !'
-    assert type(Ldict) is dict and type(Mdict) is dict and type(LegDict) is dict, 'Ldict, Mdict and LegDict should be dictionaries !'
+    assert type(dL) is dict and type(Mdict) is dict and type(LegDict) is dict, 'dL, Mdict and LegDict should be dictionaries !'
     LegDict['frameon'] = LegDict['frameon']=='True' or (type(LegDict['frameon']) is bool and LegDict['frameon'])
     if isinstance(L,LOS):
         L = [L]
@@ -735,7 +775,7 @@ def  Plot_3D_mlab_GLOS(L,Leg ='',Lplot='Tot',PDIOR='DIOR',fig='None', Ldict=Ldic
     if Leg == '':
         for i in range(len(L)):
             P = getattr(L[i],Pfield)
-            mlab.plot3d(P[0,:],P[1,:],P[2,:],name=L[i].Id.NameLTX, figure=fig, **Ldict)
+            mlab.plot3d(P[0,:],P[1,:],P[2,:],name=L[i].Id.NameLTX, figure=fig, **dL)
         if np.any(PDIORind):
             for i in range(len(L)):
                 P = np.concatenate((L[i].D,L[i].PIn,L[i].POut,L[i].P1Min),axis=1)
@@ -749,7 +789,7 @@ def  Plot_3D_mlab_GLOS(L,Leg ='',Lplot='Tot',PDIOR='DIOR',fig='None', Ldict=Ldic
             P = np.concatenate((L[i].D,L[i].PIn,L[i].POut,L[i].P1Min),axis=1)
             P = P[:,PDIORind]
             Pm = np.concatenate((Pm,P),axis=1)
-        mlab.plot3d(Pl[0,:],Pl[1,:],Pl[2,:],name=Leg, figure=fig, **Ldict)
+        mlab.plot3d(Pl[0,:],Pl[1,:],Pl[2,:],name=Leg, figure=fig, **dL)
         if np.any(PDIORind):
             mlab.points3d(Pm[0,:],Pm[1,:],Pm[2,:],name=Leg+' '+PDIOR, figure=fig, **Mdict)
     #ax.legend(**LegDict)
@@ -759,7 +799,7 @@ def  Plot_3D_mlab_GLOS(L,Leg ='',Lplot='Tot',PDIOR='DIOR',fig='None', Ldict=Ldic
 
 
 def GLOS_plot_Sinogram(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Leg=None,
-            Ldict=_def.LOSMImpd, Vdict=_def.TorPFilld, LegDict=_def.TorLegd, draw=True, a4=False, Test=True,
+            dL=_def.LOSMImpd, Vdict=_def.TorPFilld, dLeg=_def.TorLegd, draw=True, a4=False, Test=True,
             ind=None, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In'):
     if Test:
         assert Proj in ['Cross','3d'], "Arg Proj must be in ['Pol','3d'] !"
@@ -770,16 +810,19 @@ def GLOS_plot_Sinogram(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=T
     if 'L' in Elt:
         GLos, Leg = _get_LLOS_Leg(GLos, Leg, ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut)
         if Proj=='Cross':
-            ax = _Plot_Sinogram_CrossProj(GLos, ax=ax, Ang=Ang, AngUnit=AngUnit, Sketch=Sketch, Ldict=Ldict, LegDict=LegDict, draw=False, a4=a4, Test=Test)
+            ax = _Plot_Sinogram_CrossProj(GLos, ax=ax, Ang=Ang, AngUnit=AngUnit,
+                                          Sketch=Sketch, dL=dL, LegDict=dLeg,
+                                          draw=False, a4=a4, Test=Test)
         else:
-            ax = _Plot_Sinogram_3D(GLos, ax=ax, Ang=Ang, AngUnit=AngUnit, Ldict=Ldict, LegDict=LegDict, draw=False, a4=a4, Test=Test)
+            ax = _Plot_Sinogram_3D(GLos, ax=ax, Ang=Ang, AngUnit=AngUnit, dL=dL,
+                                   LegDict=dLeg, draw=False, a4=a4, Test=Test)
     if draw:
         ax.figure.canvas.draw()
     return ax
 
 
 
-def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad', Sketch=True, Ldict=_def.LOSMImpd, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
+def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad', Sketch=True, dL=_def.LOSMImpd, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
     if Test:
         assert type(L) is list or L.Id.Cls in ['LOS','GLOS'], "Arg L must be a GLOs, a LOS or a list of such !"
         assert ax is None or isinstance(ax,plt.Axes), 'Arg ax should be Axes instance !'
@@ -796,9 +839,9 @@ def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad', Sk
     if Leg == '':
         for ii in range(0,len(L)):
             if not L[ii]._sino['RefPt'] is None:
-                ax.plot(Imptheta[ii],Impp[ii],label=L[ii].Id.NameLTX, **Ldict)
+                ax.plot(Imptheta[ii],Impp[ii],label=L[ii].Id.NameLTX, **dL)
     else:
-        ax.plot(Imptheta,Impp,label=Leg, **Ldict)
+        ax.plot(Imptheta,Impp,label=Leg, **dL)
     if not LegDict is None:
         ax.legend(**LegDict)
     if draw:
@@ -806,7 +849,7 @@ def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad', Sk
     return ax
 
 
-def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad', Ldict=_def.LOSMImpd, draw=True, a4=False, LegDict=_def.TorLegd):
+def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad', dL=_def.LOSMImpd, draw=True, a4=False, LegDict=_def.TorLegd):
     assert ax is None or isinstance(ax,plt.Axes), 'Arg ax should be Axes instance !'
     if not type(L) is list and L.Id.Cls=='LOS':
         L = [L]
@@ -821,9 +864,9 @@ def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad', Ldict=_def.
     if Leg == '':
         for ii in range(len(L)):
             if not L[ii].Sino_RefPt is None:
-                ax.plot([Imptheta[ii]], [Impp[ii]], [ImpPhi[ii]], zdir='z', label=L[ii].Id.NameLTX, **Ldict)
+                ax.plot([Imptheta[ii]], [Impp[ii]], [ImpPhi[ii]], zdir='z', label=L[ii].Id.NameLTX, **dL)
     else:
-        ax.plot(Imptheta,Impp,ImpPhi, zdir='z', label=Leg, **Ldict)
+        ax.plot(Imptheta,Impp,ImpPhi, zdir='z', label=Leg, **dL)
     if not LegDict is None:
         ax.legend(**LegDict)
     if draw:

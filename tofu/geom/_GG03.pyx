@@ -3,13 +3,21 @@
 cimport cython
 cimport numpy as cnp
 from cpython cimport bool
-from libc.math cimport sqrt as Csqrt, ceil as Cceil, abs as Cabs, floor as Cfloor, round as Cround
-from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin, atan2 as Catan2, pi as Cpi
+from libc.math cimport sqrt as Csqrt, ceil as Cceil, abs as Cabs
+from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
+from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
+from libc.math cimport atan2 as Catan2, pi as Cpi
 
 # import
+import sys
 import numpy as np
+import scipy.integrate as scpintg
 from matplotlib.path import Path
 
+if sys.version[0]=='3':
+    from inspect import signature as insp
+elif sys.version[0]=='2':
+    from inspect import getargspec as inps
 
 
 
@@ -24,7 +32,9 @@ __all__ = ['CoordShift',
            '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
            '_Ves_Smesh_TorStruct_SubFromD_cython', '_Ves_Smesh_TorStruct_SubFromInd_cython',
            '_Ves_Smesh_Lin_SubFromD_cython', '_Ves_Smesh_Lin_SubFromInd_cython',
-           'LOS_Calc_PInOut_VesStruct','LOS_sino']
+           'LOS_Calc_PInOut_VesStruct',
+           'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
+           'LOS_sino']
 
 
 
@@ -2032,6 +2042,660 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
 
 
 ######################################################################
+#               Sampling
+######################################################################
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.initializedcheck(False)
+@cython.profile(False)
+@cython.linetrace(False)
+@cython.binding(False)
+def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
+                   double[:,::1] DLs, str dLMode='abs', str method='sum',
+                   Test=True):
+
+    """ Return the sampled line, with the specified method
+
+    'linspace': return the N+1 edges, including the first and last point
+    'sum' :     return N segments centers
+    'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
+    'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
+    """
+    if Test:
+        assert Ds.shape[0]==us.shape[0]==3, "Args Ds, us - dim 0"
+        assert DLs.shape[0]==2, "Arg DLs - dim 0"
+        assert Ds.shape[1]==us.shape[1]==DLs.shape[1], "Args Ds, us, DLs 1"
+        C0 = not hasattr(dL,'__iter__') and dL>0.
+        C1 = hasattr(dL,'__iter__') and len(dL)==Ds.shape[1] and np.all(dL>0.)
+        assert C0 or C1, "Arg dL must be >0. !"
+        assert dLMode.lower() in ['abs','rel'], "Arg dLMode in ['abs','rel']"
+        assert method.lower() in ['sum','simps','romb'], "Arg method"
+
+    cdef unsigned int ii, jj, N, ND = Ds.shape[1]
+    cdef double kkk, D0, D1, D2, u0, u1, u2, dl0, dl
+    cdef cnp.ndarray[double,ndim=1] dLr = np.empty((ND,),dtype=float)
+    cdef cnp.ndarray[double,ndim=1] kk
+    cdef cnp.ndarray[double,ndim=2] pts
+    cdef list Pts=[0 for ii in range(0,ND)], k=[0 for ii in range(0,ND)]
+
+    dLMode = dLMode.lower()
+    method = method.lower()
+    # Case with unique dL
+    if not hasattr(dL,'__iter__'):
+        if dLMode=='rel':
+            N = <long>(Cceil(1./dL))
+            if method=='sum':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N),dtype=float)
+                    kk = np.empty((N,),dtype=float)
+                    for jj in range(0,N):
+                        kkk = dl0 + (0.5+<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+            elif method=='simps':
+                N = N if N%2==0 else N+1
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    kk = np.empty((N+1,),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+            else:
+                N = 2**(<long>(Cceil(Clog2(<double>N))))
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    kk = np.empty((N+1,),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+        else:
+            if method=='sum':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N),dtype=float)
+                    kk = np.empty((N,),dtype=float)
+                    for jj in range(0,N):
+                        kkk = dl0 + (0.5+<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+            elif method=='simps':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = N if N%2==0 else N+1
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    kk = np.empty((N+1,),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+            else:
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    kk = np.empty((N+1,),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+    # Case with different resolution for each LOS
+    else:
+        if dLMode=='rel':
+            if method=='sum':
+                for ii in range(0,ND):
+                    N = <long>(Cceil(1./dL[ii]))
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N),dtype=float)
+                    kk = np.empty((N,),dtype=float)
+                    for jj in range(0,N):
+                        kkk = dl0 + (0.5+<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+            elif method=='simps':
+                for ii in range(0,ND):
+                    N = <long>(Cceil(1./dL[ii]))
+                    N = N if N%2==0 else N+1
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    kk = np.empty((N+1,),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+            else:
+                for ii in range(0,ND):
+                    N = <long>(Cceil(1./dL[ii]))
+                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    kk = np.empty((N+1,),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+        else:
+            if method=='sum':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N),dtype=float)
+                    kk = np.empty((N,),dtype=float)
+                    for jj in range(0,N):
+                        kkk = dl0 + (0.5+<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+            elif method=='simps':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = N if N%2==0 else N+1
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    kk = np.empty((N+1,),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+            else:
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    dLr[ii] = dl
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    kk = np.empty((N+1,),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        kk[jj] = kkk
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    Pts[ii] = pts
+                    k[ii] = kk
+
+    return Pts, k, dLr
+
+
+
+
+
+
+######################################################################
+#               Signal calculation
+######################################################################
+
+
+cdef get_insp(ff):
+    out = insp(ff)
+    if sys.version[0]=='3':
+        pars = out.parameters.values()
+        na = np.sum([(pp.kind==pp.POSITIONAL_OR_KEYWORD
+                      and pp.default is pp.empty) for pp in pars])
+        kw = [pp.name for pp in pars if (pp.kind==pp.POSITIONAL_OR_KEYWORD
+                                         and pp.default is not pp.empty)]
+    else:
+        nat, nak = len(out.args), len(out.defaults)
+        na = nat-nak
+        kw = [out.args[ii] for ii in range(nat-1,na-1,-1)][::-1]
+    return na, kw
+
+
+
+def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
+    cdef bool ani
+    stre = "Input emissivity function (ff)"
+    assert hasattr(ff,'__call__'), stre+" must be a callable (function) !"
+    na, kw = get_insp(ff)
+    assert na==1, stre+" must take only one positional argument: ff(Pts) !"
+    assert 't' in kw, stre+" must have kwarg 't=None' for time vector !"
+    C = type(t) in [int,float,np.int64,np.float64] or hasattr(t,'__iter__')
+    assert t is None or C, "Arg t must be None, a scalar or an iterable !"
+    Pts = np.array([[1,2],[3,4],[5,6]])
+    NP = Pts.shape[1]
+    try:
+        out = ff(Pts, t=t)
+    except Exception:
+        Str = stre+" must take one positional arg: a (3,N) np.ndarray"
+        assert False, Str
+    if hasattr(t,'__iter__'):
+        nt = len(t)
+        Str = ("ff(Pts,t=t), where Pts is a (3,N) np.array and "
+               +"t a len()=nt iterable, must return a (nt,N) np.ndarray !")
+        assert type(out) is np.ndarray and out.shape==(nt,NP), Str
+    else:
+        Str = ("When fed a (3,N) np.array only, or if t is a scalar,"
+               +" ff must return a (N,) np.ndarray !")
+        assert type(out) is np.ndarray and out.shape==(NP,), Str
+
+    ani = ('Vect' in kw) if Ani is None else Ani
+    if ani:
+        Str = "If Ani=True, ff must take a keyword argument 'Vect=None' !"
+        assert 'Vect' in kw, Str
+        Vect = np.array([1,2,3]) if Vuniq else np.ones(Pts.shape)
+        try:
+            out = ff(Pts, Vect=Vect, t=t)
+        except Exception:
+            Str = "If Ani=True, ff must handle multiple points Pts (3,N) with "
+            if Vuniq:
+                Str += "a unique common vector (Vect as a len()=3 iterable)"
+            else:
+                Str += "multiple vectors (Vect as a (3,N) np.ndarray)"
+            assert False, Str
+        if hasattr(t,'__iter__'):
+            Str = ("If Ani=True, ff must return a (nt,N) np.ndarray when "
+                   +"Pts is (3,N), Vect is provided and t is (nt,)")
+            assert type(out) is np.ndarray and out.shape==(nt,NP), Str
+        else:
+            Str = ("If Ani=True, ff must return a (nt,N) np.ndarray when "
+                   +"Pts is (3,N), Vect is provided and t is (nt,)")
+            assert type(out) is np.ndarray and out.shape==(NP,), Str
+    return ani
+
+
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.initializedcheck(False)
+@cython.profile(False)
+@cython.linetrace(False)
+@cython.binding(False)
+def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
+                   double[:,::1] DLs, t=None, Ani=None, dict fkwdargs={},
+                   str dLMode='abs', str method='simps',
+                   Test=True):
+
+    """ Return the sampled line, with the specified method
+
+    'linspace': return the N+1 edges, including the first and last point
+    'sum' :     return N segments centers
+    'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
+    'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
+    """
+    if Test:
+        assert Ds.shape[0]==us.shape[0]==3, "Args Ds, us - dim 0"
+        assert DLs.shape[0]==2, "Arg DLs - dim 0"
+        assert Ds.shape[1]==us.shape[1]==DLs.shape[1], "Args Ds, us, DLs 1"
+        C0 = not hasattr(dL,'__iter__') and dL>0.
+        C1 = hasattr(dL,'__iter__') and len(dL)==Ds.shape[1] and np.all(dL>0.)
+        assert C0 or C1, "Arg dL must be >0. !"
+        assert dLMode.lower() in ['abs','rel'], "Arg dLMode in ['abs','rel']"
+        assert method.lower() in ['sum','simps','romb'], "Arg method"
+    # Testing function
+    cdef bool ani = check_ff(ff,t=t,Ani=Ani)
+
+    cdef unsigned int nt, axm, ii, jj, N, ND = Ds.shape[1]
+    cdef double kkk, D0, D1, D2, u0, u1, u2, dl0, dl
+    cdef cnp.ndarray[double,ndim=2] pts
+    if t is None or not hasattr(t,'__iter__'):
+        nt = 1
+        axm = 0
+    else:
+        nt = len(t)
+        axm = 1
+    cdef cnp.ndarray[double,ndim=2] sig = np.empty((nt,ND),dtype=float)
+
+    dLMode = dLMode.lower()
+    method = method.lower()
+    # Case with unique dL
+    if not hasattr(dL,'__iter__'):
+        if dLMode=='rel':
+            N = <long>(Cceil(1./dL))
+            if method=='sum':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N),dtype=float)
+                    for jj in range(0,N):
+                        kkk = dl0 + (0.5+<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = np.sum(ff(pts,t=t,**fkwdargs),axis=axm)*dl
+
+            elif method=='simps':
+                N = N if N%2==0 else N+1
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = scpintg.simps(ff(pts,t=t,**fkwdargs),
+                                              x=None,dx=dl,axis=axm)
+
+            else:
+                N = 2**(<long>(Cceil(Clog2(<double>N))))
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = scpintg.romb(ff(pts,t=t,**fkwdargs),
+                                             dx=dl,axis=axm,show=False)
+
+        else:
+            if method=='sum':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N),dtype=float)
+                    for jj in range(0,N):
+                        kkk = dl0 + (0.5+<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = np.sum(ff(pts,t=t,**fkwdargs),axis=axm)*dl
+
+            elif method=='simps':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = N if N%2==0 else N+1
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = scpintg.simps(ff(pts,t=t,**fkwdargs),
+                                              x=None,dx=dl,axis=axm)
+
+            else:
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = scpintg.romb(ff(pts,t=t,**fkwdargs),
+                                             dx=dl,axis=axm,show=False)
+
+    # Case with different resolution for each LOS
+    else:
+        if dLMode=='rel':
+            if method=='sum':
+                for ii in range(0,ND):
+                    N = <long>(Cceil(1./dL[ii]))
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N),dtype=float)
+                    for jj in range(0,N):
+                        kkk = dl0 + (0.5+<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = np.sum(ff(pts,t=t,**fkwdargs),axis=axm)*dl
+            elif method=='simps':
+                for ii in range(0,ND):
+                    N = <long>(Cceil(1./dL[ii]))
+                    N = N if N%2==0 else N+1
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = scpintg.simps(ff(pts,t=t,**fkwdargs),
+                                              x=None,dx=dl,axis=axm)
+
+            else:
+                for ii in range(0,ND):
+                    N = <long>(Cceil(1./dL[ii]))
+                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    dl0 = DLs[0,ii]
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = scpintg.romb(ff(pts,t=t,**fkwdargs),
+                                             dx=dl,axis=axm,show=False)
+
+        else:
+            if method=='sum':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N),dtype=float)
+                    for jj in range(0,N):
+                        kkk = dl0 + (0.5+<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = np.sum(ff(pts,t=t,**fkwdargs),axis=axm)*dl
+
+            elif method=='simps':
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = N if N%2==0 else N+1
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = scpintg.simps(ff(pts,t=t,**fkwdargs),
+                                              x=None,dx=dl,axis=axm)
+
+            else:
+                for ii in range(0,ND):
+                    dl0 = DLs[0,ii]
+                    # Compute the number of intervals to satisfy the resolution
+                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    dl = (DLs[1,ii]-dl0)/<double>N
+                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
+                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
+                    pts = np.empty((3,N+1),dtype=float)
+                    for jj in range(0,N+1):
+                        kkk = dl0 + (<double>jj)*dl
+                        pts[0,jj] = D0 + kkk*u0
+                        pts[1,jj] = D1 + kkk*u1
+                        pts[2,jj] = D2 + kkk*u2
+                    if ani:
+                        fkwdargs['Vect'] = (-u0,-u1,-u2)
+                    sig[:,ii] = scpintg.romb(ff(pts,t=t,**fkwdargs),
+                                             dx=dl,axis=axm,show=False)
+
+    if nt==1:
+        return sig.ravel()
+    else:
+        return sig
+
+
+
+
+
+
+
+
+######################################################################
 #               Sinogram-specific
 ######################################################################
 
@@ -2107,11 +2771,23 @@ cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double 
     return (PMin0,PMin1,PMin2), kPMin, RMin, Theta, p, ImpTheta, phi
 
 
-def LOS_sino(double[::1] D, double[::1] u, double[::1] RZ, str Mode='LOS', kOut=np.inf, str VType='Tor'):
-    cdef tuple PMin0
-    cdef double kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0
+def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut, str Mode='LOS', str VType='Tor'):
+    cdef unsigned int nL = D.shape[1], ii
+    cdef tuple out
+    cdef cnp.ndarray[double,ndim=2] PMin = np.empty((3,nL))
+    cdef cnp.ndarray[double,ndim=1] kPMin=np.empty((nL,)), RMin=np.empty((nL,))
+    cdef cnp.ndarray[double,ndim=1] Theta=np.empty((nL,)), p=np.empty((nL,))
+    cdef cnp.ndarray[double,ndim=1] ImpTheta=np.empty((nL,)), phi=np.empty((nL,))
     if VType.lower()=='tor':
-        PMin0, kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = LOS_sino_Tor(D[0],D[1],D[2],u[0],u[1],u[2],RZ[0],RZ[1], Mode=Mode, kOut=kOut)
+        for ii in range(0,nL):
+            out = LOS_sino_Tor(D[0,ii],D[1,ii],D[2,ii],u[0,ii],u[1,ii],u[2,ii],
+                               RZ[0],RZ[1], Mode=Mode, kOut=kOut[ii])
+            ((PMin[0,ii],PMin[1,ii],PMin[2,ii]),
+             kPMin[ii], RMin[ii], Theta[ii], p[ii], ImpTheta[ii], phi[ii]) = out
     else:
-        PMin0, kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = LOS_sino_Lin(D[0],D[1],D[2],u[0],u[1],u[2],RZ[0],RZ[1], Mode=Mode, kOut=kOut)
-    return np.array(PMin0), kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0
+        for ii in range(0,nL):
+            out = LOS_sino_Lin(D[0,ii],D[1,ii],D[2,ii],u[0,ii],u[1,ii],u[2,ii],
+                               RZ[0],RZ[1], Mode=Mode, kOut=kOut[ii])
+            ((PMin[0,ii],PMin[1,ii],PMin[2,ii]),
+             kPMin[ii], RMin[ii], Theta[ii], p[ii], ImpTheta[ii], phi[ii]) = out
+    return PMin, kPMin, RMin, Theta, p, ImpTheta, phi

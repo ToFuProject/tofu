@@ -15,5 +15,3 @@ elif sys.version[0] == '3':
         from tofu.geom._GG03 import *
     except Exception:
         from _GG03 import *
-else:
-    raise Exception("Pb. with python version : "+sys.version)
