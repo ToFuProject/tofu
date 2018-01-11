@@ -756,11 +756,12 @@ class Rays(object):
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
                           'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-    def _get_plotPts(self, Lplot='Tot', Proj='All', ind=None, muti=False):
+    def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, muti=False):
         self._check_inputs(ind=ind)
+        ind = np.asarray(ind)
         if ind is None:
             ind = ~np.isnan(self.geom['kPOut'])
-        elif np.asarray(ind).dtype is bool:
+        elif ind.dtype is bool:
             ind = ind & (~np.isnan(self.geom['kPOut']))
         else:
             ii = np.zeros((self.nRays,),dtype=bool)
@@ -930,26 +931,26 @@ class Rays(object):
             Flag for Struct elements to plot (:meth:`~tofu.geom.Struct.plot`)
         Leg :       str
             Legend, if Leg='' the LOS name is used
-        Ldict :     dict / None
+        dL :     dict / None
             Dictionary of properties for plotting the lines
             Fed to plt.Axes.plot(), set to default if None
-        MdictD :    dict
+        dPtD :      dict
             Dictionary of properties for plotting point 'D'
-        MdictI :    dict
+        dPtI :      dict
             Dictionary of properties for plotting point 'I'
-        MdictO :    dict
-            Dictionary of properties used plotting point 'O'
-        MdictR :    dict
-            Dictionary of properties used plotting point 'R'
-        MdictP :    dict
-            Dictionary of properties used plotting point 'P'
-        LegDict :   dict or None
-            Dictionary of properties used plotting the legend
+        dPtO :      dict
+            Dictionary of properties for plotting point 'O'
+        dPtR :      dict
+            Dictionary of properties for plotting point 'R'
+        dPtP :      dict
+            Dictionary of properties for plotting point 'P'
+        dLeg :      dict or None
+            Dictionary of properties for plotting the legend
             Fed to plt.legend(), the legend is not plotted if None
-        Vesdict :   dict
+        dVes :      dict
             Dictionary of kwdargs to fed to :meth:`~tofu.geom.Ves.plot`
             And 'EltVes' is used instead of 'Elt'
-        Structdict: dict
+        dStruct:    dict
             Dictionary of kwdargs to fed to :meth:`~tofu.geom.Struct.plot`
             And 'EltStruct' is used instead of 'Elt'
         draw :      bool
@@ -965,11 +966,11 @@ class Rays(object):
             Handles of the axes used for plotting (list if Proj='All')
 
         """
-        return _plot.GLLOS_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt,
-                                EltVes=EltVes, Leg=Leg, dL=dL, dPtD=dPtD,
-                                dPtI=dPtI, dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
-                                dLeg=dLeg, dVes=dVes, multi=multi,
-                                draw=draw, a4=a4, Test=Test)
+        return _plot.Rays_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt,
+                               EltVes=EltVes, Leg=Leg, dL=dL, dPtD=dPtD,
+                               dPtI=dPtI, dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
+                               dLeg=dLeg, dVes=dVes, multi=multi,
+                               draw=draw, a4=a4, Test=Test)
 
 
 
@@ -981,7 +982,7 @@ class Rays(object):
 
 def _Rays_check_inputs(Id=None, Du=None, Vess=None, LStruct=None,
                       Sino_RefPt=None, Exp=None, shot=None, Diag=None,
-                      SavePath='./', Calc=None, fromdict=None):
+                      SavePath='./', Calc=Nonei, ind=None, fromdict=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
     if not Du is None:
@@ -1024,6 +1025,9 @@ def _Rays_check_inputs(Id=None, Du=None, Vess=None, LStruct=None,
     for aa in Ints:
         if aa is not None:
             assert type(aa) is int, "Args [shot] must be int !"
+    if ind is not None:
+        assert np.asarray(ind).ndim==1
+        assert np.asarray(ind).dtype in [bool,np.int64]
     if fromdict is not None:
         assert type(fromdict) is dict
         # Finish by checking keys !
