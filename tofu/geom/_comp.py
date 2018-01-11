@@ -318,10 +318,10 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
     k0 = kPIns if Lplot.lower()=='in' else np.zeros((nL,))
 
     if VType.lower()=='tor' and Proj.lower() in ['cross','all']:
-        CrossProjAng = np.arccos(np.sqrt(u[0,:]**2+u[1,:]**2)
-                                 /np.sum(np.sqrt(us**2,axis=0)))
+        CrossProjAng = np.arccos(np.sqrt(us[0,:]**2+us[1,:]**2)
+                                 /np.sqrt(np.sum(us**2,axis=0)))
         nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
-        ks = np.max([kRMins,kPIns],axis=0) if Lplot.lower()=='in' else kRMin
+        ks = np.max([kRMins,kPIns],axis=0) if Lplot.lower()=='in' else kRMins
         pts0 = []
         if multi:
             for ii in range(0,nL):
@@ -332,10 +332,10 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
         else:
             for ii in range(0,nL):
                 k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
-                k = np.unique(np.insert(k,1,ks,np.nan))
+                k = np.unique(np.insert(k,1,np.insert(ks,1,np.nan)))
                 pts0.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
             pts0 = np.concatenate(tuple(pts0),axis=1)
-            pts0 = np.array([np.hypot(pts0[0,:],pts0[1,:]),pts[2,:]])
+            pts0 = np.array([np.hypot(pts0[0,:],pts0[1,:]),pts0[2,:]])
 
     if not (VType.lower()=='tor' and Proj.lower()=='cross'):
         pts = []

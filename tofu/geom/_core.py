@@ -288,44 +288,58 @@ class Ves(object):
         return Pts, dV, ind, dVr
 
 
-    def plot(self, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=_def.TorId, Bsdict=_def.TorBsd, Bvdict=_def.TorBvd, Vdict=_def.TorVind,
-            IdictHor=_def.TorITord, BsdictHor=_def.TorBsTord, BvdictHor=_def.TorBvTord, Lim=_def.Tor3DThetalim, Nstep=_def.TorNTheta, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
-        """ Plot the polygon defining the vessel, with a cross-section view, a longitudinal view or both, and optionally its reference point for plotting it in projection space
+    def plot(self, Lax=None, Proj='All', Elt='PIBsBvV',
+             dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
+             dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
+             dBvHor=_def.TorBvTord, Lim=_def.Tor3DThetalim,Nstep=_def.TorNTheta,
+             dLeg=_def.TorLegd, draw=True, a4=False, Test=True):
+        """ Plot the polygon defining the vessel, in chosen projection
 
-        Generic method for plotting the Ves object, the projections to be plotted, the elements to plot, and the dictionaries or properties to be used for plotting each elements can all be specified using keyword arguments.
+        Generic method for plotting the Ves object
+        The projections to be plotted, the elements to plot can be specified
+        Dictionaries of properties for each elements can also be specified
         If an ax is not provided a default one is created.
 
         Parameters
         ----------
         Lax :       list or plt.Axes
-            The axes to be used for plotting (provide a list of 2 axes if Proj='All'), if None a new figure with axes is created
+            The axes to be used for plotting
+            Provide a list of 2 axes if Proj='All'
+            If None a new figure with axes is created
         Proj :      str
-            Flag specifying the kind of projection used for the plot ('Cross' for a cross-section, 'Hor' for a horizontal plane, or 'All' for the two plots)
+            Flag specifying the kind of projection
+                - 'Cross' : cross-section projection
+                - 'Hor' : horizontal projection
+                - 'All' : both
+                - '3d' : a 3d matplotlib plot
         Elt  :      str
-            Flag specifying which elements to plot, each capital letter corresponds to an element
+            Flag specifying which elements to plot
+            Each capital letter corresponds to an element:
                 * 'P': polygon
-                * 'I': point used as a reference for computing impact parameters
+                * 'I': point used as a reference for impact parameters
                 * 'Bs': (surfacic) center of mass
                 * 'Bv': (volumic) center of mass for Tor type
-                * 'V': vector pointing inward perpendicular to each segment defining the polygon
-        Pdict :     dict or None
-            Dictionary of properties used for plotting the polygon, fed to plt.Axes.plot() or plt.plot_surface() if Proj='3d', set to ToFu_Defauts.py if None
-        Idict :     dict
-            Dictionary of properties used for plotting point 'I' in Cross-section projection, fed to plt.Axes.plot()
-        IdictHor :  dict
-            Dictionary of properties used for plotting point 'I' in horizontal projection, fed to plt.Axes.plot()
-        Bsdict :    dict
-            Dictionary of properties used for plotting point 'Bs' in Cross-section projection, fed to plt.Axes.plot()
-        BsdictHor : dict
-            Dictionry of properties used for plotting point 'Bs' in horizontal projection, fed to plt.Axes.plot()
-        Bvdict :    dict
-            Dictionary of properties used for plotting point 'Bv' in Cross-section projection, fed to plt.Axes.plot()
-        BvdictHor : dict
-            Dictionary of properties used for plotting point 'Bv' in horizontal projection, fed to plt.Axes.plot()
-        Vdict :     dict
-            Dictionary of properties used for plotting point 'V' in cross-section projection, fed to plt.Axes.quiver()
-        LegDict :   dict or None
-            Dictionary of properties used for plotting the legend, fed to plt.legend(), the legend is not plotted if None
+                * 'V': vector pointing inward perpendicular to each segment
+        dP :        dict / None
+            Dict of properties for plotting the polygon
+            Fed to plt.Axes.plot() or plt.plot_surface() if Proj='3d'
+        dI :        dict / None
+            Dict of properties for plotting point 'I' in Cross-section projection
+        dIHor :     dict / None
+            Dict of properties for plotting point 'I' in horizontal projection
+        dBs :       dict / None
+            Dict of properties for plotting point 'Bs' in Cross-section projection
+        dBsHor :    dict / None
+            Dict of properties for plotting point 'Bs' in horizontal projection
+        dBv :       dict / None
+            Dict of properties for plotting point 'Bv' in Cross-section projection
+        dBvHor :    dict / None
+            Dict of properties for plotting point 'Bv' in horizontal projection
+        dVect :     dict / None
+            Dict of properties for plotting point 'V' in cross-section projection
+        dLeg :      dict / None
+            Dict of properties for plotting the legend, fed to plt.legend()
+            The legend is not plotted if None
         Lim :       list or tuple
             Array of a lower and upper limit of angle (rad.) or length for plotting the '3d' Proj
         Nstep :     int
@@ -339,11 +353,15 @@ class Ves(object):
 
         Returns
         -------
-        La          list or plt.Axes    Handles of the axes used for plotting (list if several axes where used)
+        La          list / plt.Axes
+            Handles of the axes used for plotting (list if several axes where used)
 
         """
-        return _plot.Ves_plot(self, Lax=Lax, Proj=Proj, Elt=Elt, Pdict=Pdict, Idict=Idict, Bsdict=Bsdict, Bvdict=Bvdict, Vdict=Vdict,
-                IdictHor=IdictHor, BsdictHor=BsdictHor, BvdictHor=BvdictHor, Lim=Lim, Nstep=Nstep, LegDict=LegDict, draw=draw, a4=a4, Test=Test)
+        return _plot.Ves_plot(self, Lax=Lax, Proj=Proj, Elt=Elt,
+                              Pdict=dP, Idict=dI, Bsdict=dBs, Bvdict=dBv,
+                              Vdict=dVect, IdictHor=dIHor, BsdictHor=dBsHor,
+                              BvdictHor=dBvHor, Lim=Lim, Nstep=Nstep,
+                              LegDict=dLeg, draw=draw, a4=a4, Test=Test)
 
 
     def plot_sino(self, Proj='Cross', ax=None, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Sketch=True, Pdict=None, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
@@ -644,9 +662,9 @@ class Rays(object):
 
     def _check_inputs(self, Id=None, Du=None, Ves=None, LStruct=None,
                       Sino_RefPt=None, Exp=None, shot=None, Diag=None,
-                      SavePath=None, fromdict=None):
+                      SavePath=None, ind=None, fromdict=None):
         _Rays_check_inputs(Id=Id, Du=Du, Vess=Ves, LStruct=LStruct,
-                          Sino_RefPt=Sino_RefPt, Exp=Exp, shot=shot,
+                          Sino_RefPt=Sino_RefPt, Exp=Exp, shot=shot, ind=ind,
                           Diag=Diag, SavePath=SavePath, fromdict=fromdict)
 
     def _set_Id(self, Val,
@@ -756,7 +774,7 @@ class Rays(object):
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
                           'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-    def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, muti=False):
+    def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, multi=False):
         self._check_inputs(ind=ind)
         ind = np.asarray(ind)
         if ind is None:
@@ -775,7 +793,7 @@ class Rays(object):
             kPIn, kPOut = self.geom['kPIn'][ind], self.geom['kPOut'][ind]
             kRMin = self.geom['kRMin'][ind]
             pts = _comp.LOS_CrossProj(self.Ves.Type, Ds, us, kPIn, kPOut,
-                                      kRMin, Lplot=Lplot, multi=multi)
+                                      kRMin, Proj=Proj,Lplot=Lplot,multi=multi)
         else:
             pts = None
         return pts
@@ -892,6 +910,7 @@ class Rays(object):
              EltVes='', EltStruct='', Leg='', dL=_def.LOSLd, dPtD=_def.LOSMd,
              dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
              dPtP=_def.LOSMd, dLeg=_def.TorLegd, dVes=_def.Vesdict,
+             dStruct=_def.Structdict,
              multi=False, ind=None, draw=True, a4=False, Test=True):
         """ Plot the Rays / LOS, in the chosen projection(s)
 
@@ -967,10 +986,10 @@ class Rays(object):
 
         """
         return _plot.Rays_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt,
-                               EltVes=EltVes, Leg=Leg, dL=dL, dPtD=dPtD,
-                               dPtI=dPtI, dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
-                               dLeg=dLeg, dVes=dVes, multi=multi,
-                               draw=draw, a4=a4, Test=Test)
+                               EltVes=EltVes, EltStruct=EltStruct, Leg=Leg,
+                               dL=dL, dPtD=dPtD, dPtI=dPtI, dPtO=dPtO, dPtR=dPtR,
+                               dPtP=dPtP, dLeg=dLeg, dVes=dVes, dStruct=dStruct,
+                               multi=multi, draw=draw, a4=a4, Test=Test)
 
 
 
@@ -982,7 +1001,7 @@ class Rays(object):
 
 def _Rays_check_inputs(Id=None, Du=None, Vess=None, LStruct=None,
                       Sino_RefPt=None, Exp=None, shot=None, Diag=None,
-                      SavePath='./', Calc=Nonei, ind=None, fromdict=None):
+                      SavePath='./', Calc=None, ind=None, fromdict=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
     if not Du is None:

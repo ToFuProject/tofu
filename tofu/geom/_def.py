@@ -45,7 +45,7 @@ TorLegd = {'frameon':False,'ncol':1,'bbox_to_anchor':(1.01, 1),'loc':2,'borderax
 
 
 #####################################################################
-########################  Ves class  ################################
+##################  Ves and Struct class  ###########################
 #####################################################################
 
 
@@ -78,8 +78,16 @@ TorPAngUnit = 'rad'
 TorPSketch = True
 TorP3DFilld = {'color':(0.8,0.8,0.8,0.4),'linestyle':'solid','linewidth':0}
 
-Vesdict = dict(Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=TorId, Bsdict=TorBsd, Bvdict=TorBvd, Vdict=TorVind,
-            IdictHor=TorITord, BsdictHor=TorBsTord, BvdictHor=TorBvTord, Lim=Tor3DThetalim, Nstep=TorNTheta, LegDict=TorLegd, draw=True, Test=True)
+Vesdict = dict(Lax=None, Proj='All', Elt='PIBsBvV', dP=TorPd, dI=TorId,
+               dBs=TorBsd, dBv=TorBvd, dVect=TorVind, dIHor=TorITord,
+               dBsHor=TorBsTord, dBvHor=TorBvTord, dLeg=TorLegd,
+               Lim=Tor3DThetalim, Nstep=TorNTheta, draw=True, Test=True)
+
+Structdict = dict(Vesdict)
+Structdict['Pd'] = {'fc':(0.8,0.8,0.8,0.5),'ec':'k','linewidth':1}
+Structdict['Pd_Tor'] = {'fc':(0.8,0.8,0.8,0.5),'ec':'none'}
+Structdict['P3Dd'] = {'color':(0.8,0.8,0.8,1.),'rstride':1,'cstride':1,
+                      'linewidth':0, 'antialiased':False}
 
 
 # -------------- Figures ------------------------
@@ -183,23 +191,6 @@ def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', a4=False, Sketch=True)
 #    axPosP, axPosT = [0.07, 0.1, 0.3, 0.8], [0.55, 0.1, 0.3, 0.8]
 #    f = mlab.figure(bgcolor=fBgC,fgcolor=None,size=(fW,fH))
 #    return f
-
-
-
-#####################################################################
-########################  Struct class  #############################
-#####################################################################
-
-
-# --- Plotting dictionaries and parameters ------
-
-StructPd = {'fc':(0.8,0.8,0.8,0.5),'ec':'k','linewidth':1}
-StructPd_Tor = {'fc':(0.8,0.8,0.8,0.5),'ec':'none'}
-StructP3Dd = {'color':(0.8,0.8,0.8,1.),'rstride':1,'cstride':1,'linewidth':0, 'antialiased':False}
-
-Vesdict = dict(Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None, Idict=TorId, Bsdict=TorBsd, Bvdict=TorBvd, Vdict=TorVind,
-            IdictHor=TorITord, BsdictHor=TorBsTord, BvdictHor=TorBvTord, Lim=Tor3DThetalim, Nstep=TorNTheta, LegDict=TorLegd, draw=True, Test=True)
-
 
 
 
