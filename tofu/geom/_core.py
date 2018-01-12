@@ -727,22 +727,21 @@ class Rays(object):
                 lSLim = [ss.Lim for ss in self.LStruct]
                 lSVIn = [ss.geom['VIn'] for ss in self.LStruct]
             else:
-                LSPoly, LSLim, LSVIn = None, None, None
+                lSPoly, lSLim, lSVIn = None, None, None
 
             kargs = dict(RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
                          EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
             out = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly,
                                                 self.Ves.geom['VIn'],
-                                                Lim=self.Ves.Lim, LSPoly=LSPoly,
-                                                LSLim=LSLim, LSVIn=LSVIn,
+                                                Lim=self.Ves.Lim, LSPoly=lSPoly,
+                                                LSLim=lSLim, LSVIn=lSVIn,
                                                 VType=self.Ves.Type, **kargs)
             PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = out
             ind = np.isnan(kPOut)
             if np.any(ind):
-                warnings.warn("Some LOS have no visibility inside teh vessel !")
-                _plot._LOS_calc_InOutPolProj_Debug(self.Ves, Ds[:,ind],
-                                                   us[:,ind], PIn[:,ind],
-                                                   POut[:,ind])
+                warnings.warn("Some LOS have no visibility inside the vessel !")
+                _plot._LOS_calc_InOutPolProj_Debug(self.Ves, D[:,ind], u[:,ind],
+                                                   PIn[:,ind], POut[:,ind])
             ind = np.isnan(kPIn)
             PIn[:,ind], kPIn[ind] = D[:,ind], 0.
 
@@ -773,6 +772,28 @@ class Rays(object):
             Pt, kPt, r, Theta, p, theta, Phi = out
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
                           'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
+
+    def get_touch(self, key='Ves'):
+        assert type(key) in [str,list,tuple], "Arg key must be a str or list !"
+        if self.Ves is not None and key=='Ves':
+            ind = (self.geom['IndOut'][0,:]==0).nonzero()[0]
+        elif self.LStruct is not None:
+           if type(key) is str:
+                ii = [ii for ii in range(0,len(self.LStruct))
+                      if self.LStruct[ii].Id.Name==key]
+                assert len(ii)==1, "Required Struct Name not found !"
+                ind = (self.geom['IndOut'][0,:]==ii[0]+1).nonzero()[0]
+           else:
+                assert len(key)==2, "Arg key must be a list of len()==2 !"
+                assert type(key[0]) is str, "key[0] must be str (Struct Name)"
+                assert type(key[1]) is int, "key[1] must be int (Struct index)"
+                ii = [ii for ii in range(0,len(self.LStruct))
+                      if self.LStruct[ii].Id.Name==key[0]]
+                assert len(ii)==1, "Required Struct Name not found !"
+                ind = ((self.geom['IndOut'][0,:]==ii[0]+1)
+                       & (self.geom['IndOut'][1,:]==key[1])).nonzero()[0]
+        return ind
+
 
     def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, multi=False):
         self._check_inputs(ind=ind)
@@ -907,7 +928,7 @@ class Rays(object):
         return Sig
 
     def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
-             EltVes='', EltStruct='', Leg='', dL=_def.LOSLd, dPtD=_def.LOSMd,
+             EltVes='', EltStruct='', Leg='', dL=None, dPtD=_def.LOSMd,
              dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
              dPtP=_def.LOSMd, dLeg=_def.TorLegd, dVes=_def.Vesdict,
              dStruct=_def.Structdict,
@@ -989,7 +1010,7 @@ class Rays(object):
                                EltVes=EltVes, EltStruct=EltStruct, Leg=Leg,
                                dL=dL, dPtD=dPtD, dPtI=dPtI, dPtO=dPtO, dPtR=dPtR,
                                dPtP=dPtP, dLeg=dLeg, dVes=dVes, dStruct=dStruct,
-                               multi=multi, draw=draw, a4=a4, Test=Test)
+                               multi=multi, ind=ind, draw=draw, a4=a4, Test=Test)
 
 
 

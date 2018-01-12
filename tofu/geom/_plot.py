@@ -526,7 +526,7 @@ def Get_FieldsFrom_LLOS(L,Fields):
 
 
 def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
-              EltVes='', EltStruct='', Leg=None, dL=_def.LOSLd, dPtD=_def.LOSMd,
+              EltVes='', EltStruct='', Leg=None, dL=None, dPtD=_def.LOSMd,
               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
               dPtP=_def.LOSMd, dLeg=_def.TorLegd, dVes=_def.Vesdict,
               dStruct=_def.Structdict, multi=False, draw=True, a4=False,
@@ -541,18 +541,12 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
         Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
         assert type(Elt) is str, "Arg Elt must be a str !"
         assert Lplot in ['Tot','In'], "Arg Lplot must be in ['Tot','In']"
-        C = all([type(dd) is dict for dd in [dL,dPtD,dPtI,dPtO,dPtR,dPtP]])
-        assert C, "Args dL,dPtD,dPtI,dPtO,dPtR,dPtP must all be dict !"
+        C = all([type(dd) is dict for dd in [dPtD,dPtI,dPtO,dPtR,dPtP]])
+        assert C, "Args dPtD,dPtI,dPtO,dPtR,dPtP must all be dict !"
+        assert dL is None or type(dL) is dict, "Arg dL must be None or a dict"
         assert Leg is None or type(Leg) is str, "Arg Leg must be a str !"
         assert type(dLeg) is dict or dLeg is None, 'dLeg must be dict !'
         assert type(draw) is bool, "Arg draw must be a bool !"
-
-    Leg = GLos.Id.NameLTX if Leg is None else Leg
-    if multi:
-        if GLos.Id.Cls in ['Rays','LOS']:
-            Leg = None
-        else:
-            Leg = GLos.LId['Name']
 
     if EltVes is None:
         if (not 'Elt' in dVes.keys() or dVes['Elt'] is None):
@@ -562,6 +556,7 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
     dVes['Lax'], dVes['Proj'], dVes['dLeg'] = Lax, Proj, None
     dVes['draw'], dVes['a4'], dVes['Test'] = False, a4, Test
     Lax = GLos.Ves.plot(**dVes)
+    Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
     # Select subset
     if GLos.Id.Cls in ['LOSCam1D','LOSCam2D'] and ind is None:
@@ -569,6 +564,17 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
                           PostExp=PostExp, Log=Log, InOut=InOut, Out=int)
     elif ind is None:
         ind = np.arange(0,GLos.nRays)
+    ind = np.asarray(ind)
+
+    Leg = GLos.Id.NameLTX if Leg is None else Leg
+    dL = _def.LOSLd if dL is None else dL
+    if multi:
+        if GLos.Id.Cls in ['Rays','LOS']:
+            Leg = [None for ii in ind]
+        else:
+            Leg = GLos.LId['Name']
+        if 'c' in dL.keys():
+            del dL['c']
 
     # Check sino
     if GLos._sino is None:
@@ -596,7 +602,7 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
                 Lax[ii] = _Rays_plot_Hor(GLos, ax=Lax[ii], Elt=Elt, Lplot=Lplot,
                                          Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                          dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
-                                         dLeg=dLeg, multi=multi, ind=ind,
+                                         dLeg=None, multi=multi, ind=ind,
                                          draw=False, a4=a4, Test=Test)
     if dLeg is not None:
         Lax[0].legend(**dLeg)
@@ -612,15 +618,14 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                      dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                      dLeg=_def.TorLegd, multi=False, ind=None,
                      draw=True, a4=False, Test=True):
-    assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for Arg4 !'
+    assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
     dPts = {'D':('D',dPtD), 'I':('PIn',dPtI), 'O':('POut',dPtO),
             'R':('PRMin',dPtR),'P':('Pt',dPtP)}
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Cross', a4=a4, Type=L.Ves.Type)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, Proj='Cross',
-                           ind=ind, multi=multi)
+        pts = L._get_plotL(Lplot=Lplot, Proj='Cross', ind=ind, multi=multi)
         if multi:
             for ii in range(0,len(pts)):
                 ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
@@ -638,8 +643,8 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                 P = P[1:,:]
             if multi:
                 for ii in range(0,len(ind)):
-                    ax.plot(P[0,ii],P[1,ii],
-                            label=Leg[ii]+""+kk, **dPts[kk][1])
+                    leg = kk if Leg[ii] is None else Leg[ii]+""+kk
+                    ax.plot(P[0,ii],P[1,ii], label=leg, **dPts[kk][1])
             else:
                 ax.plot(P[0,:],P[1,:], label=Leg, **dPts[kk][1])
 
@@ -656,15 +661,14 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
                    dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                    dLeg=_def.TorLegd, multi=False, ind=None,
                    draw=True, a4=False, Test=True):
-    assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for Arg4 !'
+    assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
     dPts = {'D':('D',dPtD), 'I':('PIn',dPtI), 'O':('POut',dPtO),
             'R':('PRMin',dPtR),'P':('Pt',dPtP)}
 
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Hor', a4=a4, Type=L.Ves.Type)
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, Proj='Hor',
-                           ind=ind, multi=multi)
+        pts = L._get_plotL(Lplot=Lplot, Proj='Hor', ind=ind, multi=multi)
         if multi:
             for ii in range(0,len(pts)):
                 ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
@@ -678,8 +682,8 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
                 P = P.reshape((3,1))
             if multi:
                 for ii in range(0,len(ind)):
-                    ax.plot(P[0,ii],P[1,ii],
-                            label=Leg[ii]+""+kk, **dPts[kk][1])
+                    leg = kk if Leg[ii] is None else Leg[ii]+""+kk
+                    ax.plot(P[0,ii],P[1,ii], label=leg, **dPts[kk][1])
             else:
                 ax.plot(P[0,:],P[1,:], label=Leg, **dPts[kk][1])
 
@@ -704,8 +708,7 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
         ax = _def.Plot_3D_plt_Tor_DefAxes(a4=a4)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, Proj='3d',
-                           ind=ind, multi=multi)
+        pts = L._get_plotL(Lplot=Lplot, Proj='3d', ind=ind, multi=multi)
         if multi:
             for ii in range(0,len(pts)):
                 ax.plot(pts[ii][0,:], pts[ii][1,:], pts[ii][2,:],
@@ -720,8 +723,8 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
                 P = P.reshape((3,1))
             if multi:
                 for ii in range(0,len(ind)):
-                    ax.plot(P[0,ii],P[1,ii],P[2,ii],
-                            label=Leg[ii]+""+kk, **dPts[kk][1])
+                    leg = kk if Leg[ii] is None else Leg[ii]+""+kk
+                    ax.plot(P[0,ii],P[1,ii],P[2,ii], label=leg, **dPts[kk][1])
             else:
                 ax.plot(P[0,:],P[1,:],P[2,:], label=Leg, **dPts[kk][1])
 

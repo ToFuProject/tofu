@@ -326,23 +326,27 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
         if multi:
             for ii in range(0,nL):
                 k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
-                k = np.unique(np.insert(k,1,ks))
+                k = np.unique(np.append(k,ks[ii]))
                 pp = Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1]
                 pts0.append( np.array([np.hypot(pp[0,:],pp[1,:]),pp[2,:]])  )
         else:
             for ii in range(0,nL):
                 k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
-                k = np.unique(np.insert(k,1,np.insert(ks,1,np.nan)))
+                k = np.append(np.unique(np.append(k,ks[ii])),np.nan)
                 pts0.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
             pts0 = np.concatenate(tuple(pts0),axis=1)
             pts0 = np.array([np.hypot(pts0[0,:],pts0[1,:]),pts0[2,:]])
 
     if not (VType.lower()=='tor' and Proj.lower()=='cross'):
         pts = []
-        for ii in range(0,nL):
-            k = np.array([k0[ii],kPOuts[ii],np.nan])
-            pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
-        if not multi:
+        if multi:
+            for ii in range(0,nL):
+                k = np.array([k0[ii],kPOuts[ii]])
+                pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
+        else:
+            for ii in range(0,nL):
+                k = np.array([k0[ii],kPOuts[ii],np.nan])
+                pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
             pts = np.concatenate(tuple(pts),axis=1)
 
     if Proj.lower()=='hor':
