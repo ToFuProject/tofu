@@ -146,9 +146,12 @@ class Test01_Ves:
         self.LObj[0].get_InsideConvexPoly(Plot=False, Test=True)
 
     def test03_get_sampleEdge(self):
-        Pts, dLr, ind = self.LObj[0].get_sampleEdge(dL=0.05, DS=None, dLMode='abs', DIn=0.001)
-        Pts, dLr, ind = self.LObj[0].get_sampleEdge(dL=0.1, DS=None, dLMode='rel', DIn=-0.001)
-        Pts, dLr, ind = self.LObj[0].get_sampleEdge(dL=0.05, DS=[None,[-2.,0.]], dLMode='abs', DIn=0.)
+        Pts, dlr, ind = self.LObj[0].get_sampleEdge(dl=0.05, DS=None,
+                                                    dlMode='abs', DIn=0.001)
+        Pts, dlr, ind = self.LObj[0].get_sampleEdge(dl=0.1, DS=None,
+                                                    dlMode='rel', DIn=-0.001)
+        Pts, dlr, ind = self.LObj[0].get_sampleEdge(dl=0.05, DS=[None,[-2.,0.]],
+                                                    dlMode='abs', DIn=0.)
 
     def test04_get_sampleCross(self):
         Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.02, DS=None, dSMode='abs', ind=None)
@@ -178,9 +181,9 @@ class Test01_Ves:
                 Pdict = {'c':'k'}
             else:
                 Pdict = {'ec':'None','fc':(0.8,0.8,0.8,0.5)}
-            Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', Pdict=Pdict, draw=False, a4=False, Test=True)
-            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', Pdict=Pdict, draw=False, a4=False, Test=True)
-            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', Pdict=Pdict, draw=False, a4=False, Test=True)
+            Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', dP=Pdict, draw=False, a4=False, Test=True)
+            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', dP=Pdict, draw=False, a4=False, Test=True)
+            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', dP=Pdict, draw=False, a4=False, Test=True)
             plt.close('all')
 
     def test08_plot_sino(self):
@@ -188,7 +191,16 @@ class Test01_Ves:
         Lax2 = self.LObj[0].plot_sino(Proj='Cross', Ang='theta', AngUnit='rad', Sketch=True, draw=False, a4=False, Test=True)
         plt.close('all')
 
-    def test09_saveload(self):
+    def test09_tofromdict(self):
+        for ii in range(0,len(self.LObj)):
+            dd = self.LObj[ii]._todict()
+            if self.LObj[ii].Id.Cls=='Ves':
+                oo = tfg.Ves(fromdict=dd)
+            else:
+                oo = tfg.Struct(fromdict=dd)
+            assert dd==oo._todict(), "Unequal to and from dict !"
+
+    def test10_saveload(self):
         for ii in range(0,len(self.LObj)):
             self.LObj[ii].save(Print=False)
             PathFileExt = os.path.join(self.LObj[ii].Id.SavePath, self.LObj[ii].Id.SaveName+'.npz')
@@ -240,6 +252,89 @@ class Test02_Struct(Test01_Ves):
 
 
 
+
+
+
+
+#######################################################
+#
+#     Creating Rays objects and testing methods
+#
+#######################################################
+
+
+
+class Test03_Rays:
+
+    @classmethod
+    def setup_class(cls):
+        #print ("")
+        #print "--------- "+VerbHead+cls.__name__
+        LVes = [Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3
+        LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1],
+              None, Test02_Struct.ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
+        cls.LObj = [None for vv in LVes]
+        N = 100
+        cls.N = N
+        for ii in range(0,len(LVes)):
+            P1M = LVes[ii].geom['P1Max'][0]
+            Ds = np.array([np.zeros((N,)),
+                           np.full((N,),(0.95+0.2*ii/len(LVes))*P1M),
+                           np.zeros((N,))])
+            us = np.array([np.linspace(-0.2,0.2,N),
+                           -np.ones((N,)),
+                           np.linspace(-0.2,0.2,N)])
+            cls.LObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
+                                    LStruct=LS[ii], Exp=None, Diag='Test',
+                                    SavePath=here)
+
+    @classmethod
+    def teardown_class(cls):
+        #print ("teardown_class() after any methods in this class")
+        pass
+
+    def setup(self):
+        #print ("TestUM:setup() before each test method")
+        pass
+
+    def teardown(self):
+        #print ("TestUM:teardown() after each test method")
+        pass
+
+    def test01_select(self):
+        for ii in range(0,len(self.LObj)):
+            if self.LObj[ii].LStruct is None:
+                el = 'Ves'
+            else:
+                el = self.LObj[ii].LStruct[-1].Id.Name
+            ind = self.LObj[ii].select(touch=el)
+
+    def test02_get_sample(self):
+        for ii in range(0,len(self.LObj)):
+            Pts, kPts, dl = self.LObj[ii].get_sample(0.02, dlMode='abs',
+                                                     method='sum',DL=None)
+            for jj in range(0,self.N):
+                assert Pts[ii].shape[1]==kPts[ii].size
+                assert np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
+                           & (kPts[ii]<=self.LObj[ii].geom['kPOut'][ii]))
+            print("")
+            print("ii",ii)
+            print(dl)
+            assert np.all(np.abs(dl[~np.isnan(dl)]-0.02)<0.001)
+            Pts, kPts, dl = self.LObj[ii].get_sample(0.1, dlMode='rel',
+                                                     method='simps',DL=[0,1])
+            for jj in range(0,self.N):
+                assert Pts[ii].shape[1]==kPts[ii].size
+                assert np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
+                           & (kPts[ii]<=self.LObj[ii].geom['kPOut'][ii]))
+            Pts, kPts, dl = self.LObj[ii].get_sample(0.1, dlMode='rel',
+                                                     method='romb',DL=[1,2])
+            for jj in range(0,self.N):
+                assert Pts[ii].shape[1]==kPts[ii].size
+                assert np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
+                           & (kPts[ii]<=self.LObj[ii].geom['kPOut'][ii]))
+
+
 #######################################################
 #
 #     Creating LOS objects and testing methods
@@ -247,7 +342,7 @@ class Test02_Struct(Test01_Ves):
 #######################################################
 
 
-class Test03_LOS:
+class Test04_LOS:
 
     @classmethod
     def setup_class(cls): #LVes=[Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3, LS=[None, SL0, [SL0,SL1], None, ST0, [ST0,ST1]]):

@@ -73,21 +73,37 @@ class Ves(object):
 
     """
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None, Exp=None, shot=0,
+    def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None, Exp=None, shot=0,
                  Sino_RefPt=None, Sino_NP=_def.TorNP,
-                 Clock=False, arrayorder='C',
+                 Clock=False, arrayorder='C', fromdict=None,
                  SavePath='./', SavePath_Include=tfpf.defInclude):
         self._Done = False
-        tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
-        _Ves_check_inputs(Clock=Clock, arrayorder=arrayorder)
-        self._arrayorder = arrayorder
-        self._Clock = Clock
-        self._set_Id(Id, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath,
-                     SavePath_Include=SavePath_Include)
-        self._set_geom(Poly, Lim=Lim, Clock=Clock, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP)
-        self._set_arrayorder(arrayorder)
+        if fromdict is None:
+            tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
+            _Ves_check_inputs(Clock=Clock, arrayorder=arrayorder)
+            self._arrayorder = arrayorder
+            self._Clock = Clock
+            self._set_Id(Id, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath,
+                         SavePath_Include=SavePath_Include)
+            self._set_geom(Poly, Lim=Lim, Clock=Clock, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP)
+            self._set_arrayorder(arrayorder)
+        else:
+            self._fromdict(fromdict)
         self._Done = True
 
+
+    def _todict(self):
+        out = {'Id':self.Id._todict(),
+               'geom':self.geom, 'sino':self.sino,
+               'arrayorder':self._arrayorder}
+        return out
+
+    def _fromdict(self, fd):
+        _Ves_check_fromdict(fd)
+        self._Id = tfpf.ID(fromdict=fd['Id'])
+        self._geom = fd['geom']
+        self._sino = fd['sino']
+        self._set_arrayorder(fd['arrayorder'])
 
     @property
     def Id(self):
@@ -404,10 +420,16 @@ class Ves(object):
             assert Proj in ['Cross','3d'], "Arg Proj must be in ['Cross','3d'] !"
         if Proj=='Cross':
             Pdict = _def.TorPFilld if Pdict is None else Pdict
-            ax = _plot.Plot_Impact_PolProjPoly(self, ax=ax, Ang=Ang, AngUnit=AngUnit, Sketch=Sketch, Leg=self.Id.NameLTX, Pdict=Pdict, LegDict=LegDict, draw=False, a4=a4, Test=Test)
+            ax = _plot.Plot_Impact_PolProjPoly(self, ax=ax, Ang=Ang,
+                                               AngUnit=AngUnit, Sketch=Sketch,
+                                               Leg=self.Id.NameLTX, Pdict=Pdict,
+                                               dLeg=LegDict,
+                                               draw=False, a4=a4, Test=Test)
         else:
             Pdict = _def.TorP3DFilld if Pdict is None else Pdict
-            ax = _plot.Plot_Impact_3DPoly(self, ax=ax, Ang=Ang, AngUnit=AngUnit, Pdict=Pdict, LegDict=LegDict, draw=False, a4=a4, Test=Test)
+            ax = _plot.Plot_Impact_3DPoly(self, ax=ax, Ang=Ang, AngUnit=AngUnit,
+                                          Pdict=Pdict, dLeg=LegDict,
+                                          draw=False, a4=a4, Test=Test)
         if draw:
             ax.figure.canvas.draw()
         return ax
@@ -436,7 +458,7 @@ class Ves(object):
 
 def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None,
                       Sino_NP=None, Clock=None, arrayorder=None, Exp=None,
-                      shot=None, SavePath=None, Cls=None):
+                      shot=None, SavePath=None, Cls=None, fromdict=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID object !"
     if not Poly is None:
@@ -467,6 +489,25 @@ def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None,
         assert all([aa is None or type(aa) is int for aa in Ints]), "Args [Sino_NP,shot] must be int !"
 
 
+def _Ves_check_fromdict(fd):
+    assert type(fd) is dict, "Arg from dict must be a dict !"
+    k0 = {'Id':dict,'geom':dict,'sino':dict,'arrayorder':str}
+    keys = list(fd.keys())
+    for kk in k0:
+        assert kk in keys, "%s must be a key of fromdict"%kk
+        assert type(fd[kk]) is k0[kk], "Wrong type of fromdict[%s]"%kk
+    # Maybe more details ?
+    #k0 = {'Poly':{'type':np.ndarray,'dim':2},
+    #      'NP':{'type':int,'val':fd['geom']['Poly'].shape[1]-1},
+    #      'P1Max':{'type':np.ndarray,'shape':(3,)},
+    #      'P1Min':{'type':np.ndarray,'shape':(3,)},
+    #      'P2Max':{'type':np.ndarray,'shape':(3,)},
+    #      'P2Min':{'type':np.ndarray,'shape':(3,)},
+    #      'BaryP':{'type':np.ndarray,'shape':(3,)},
+    #      'BaryL':{'type':np.ndarray,'shape':(3,)},
+    #      'BaryS':{'type':np.ndarray,'shape':(3,)},
+    #      'BaryV':{'type':np.ndarray,'shape':(3,)}} # To be finsihed ?
+
 
 
 
@@ -478,17 +519,16 @@ def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None,
 ###############################################################################
 """
 
-
 class Struct(Ves):
 
-    def __init__(self, Id, Poly, Type='Tor', Lim=None,
+    def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None,
                  Sino_RefPt=None, Sino_NP=_def.TorNP,
-                 Clock=False, arrayorder='C',
+                 Clock=False, arrayorder='C', fromdict=None,
                  Exp=None, shot=0, SavePath='./',
                  SavePath_Include=tfpf.defInclude):
         Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim,
                      Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP,
-                     Clock=Clock, arrayorder=arrayorder,
+                     Clock=Clock, arrayorder=arrayorder, fromdict=fromdict,
                      Exp=Exp, shot=shot, SavePath=SavePath,
                      SavePath_Include=SavePath_Include)
 
@@ -619,14 +659,20 @@ class Rays(object):
 
     def _fromdict(self, fd):
         self._check_inputs(fromdict=fd)
-        self._Id = fd['Id']
-        self._Ves = tfpf.Open(fd['Ves'][0]+fd['Ves'][1])
+        self._Id = tfpf.ID(fromdict=fd['Id'])
+        self._Ves = Ves(fromdict=fd['Ves'])
         self._LStruct = [tfpf.Open(s[0]+s[1]) for s in fd['LStruct']]
         self._geom = fd['geom']
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
-               'geom':self.geom}
+               'geom':self.geom, 'sino':self._sino}
+        out['Ves'] = None if self.Ves is None else self.Ves._todict()
+        if self.LStruct is None:
+            out['LStruct'] = None
+        else:
+            out['LStruct'] = dict([(ss.Id.Name,ss._todict())
+                                   for ss in self.LStruct])
         return out
 
     @property
@@ -677,16 +723,6 @@ class Rays(object):
         if type(Val) is str:
             Val = tfpf.ID(self.__class__, Val, **dd)
         self._Id = Val
-
-    def _fromdict(self, fd):
-        self._check_inputs(fromdict=fd)
-        self._Id = fd['Id']
-        self._geom = fd['geom']
-
-    def _todict(self):
-        out = {}
-        return out
-
 
     def _set_Ves(self, Ves=None, LStruct=None, Du=None):
         self._check_inputs(Ves=Ves, Exp=self.Id.Exp, LStruct=LStruct, Du=Du)
@@ -773,27 +809,15 @@ class Rays(object):
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
                           'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-    def get_touch(self, key='Ves'):
-        assert type(key) in [str,list,tuple], "Arg key must be a str or list !"
-        if self.Ves is not None and key=='Ves':
-            ind = (self.geom['IndOut'][0,:]==0).nonzero()[0]
-        elif self.LStruct is not None:
-           if type(key) is str:
-                ii = [ii for ii in range(0,len(self.LStruct))
-                      if self.LStruct[ii].Id.Name==key]
-                assert len(ii)==1, "Required Struct Name not found !"
-                ind = (self.geom['IndOut'][0,:]==ii[0]+1).nonzero()[0]
-           else:
-                assert len(key)==2, "Arg key must be a list of len()==2 !"
-                assert type(key[0]) is str, "key[0] must be str (Struct Name)"
-                assert type(key[1]) is int, "key[1] must be int (Struct index)"
-                ii = [ii for ii in range(0,len(self.LStruct))
-                      if self.LStruct[ii].Id.Name==key[0]]
-                assert len(ii)==1, "Required Struct Name not found !"
-                ind = ((self.geom['IndOut'][0,:]==ii[0]+1)
-                       & (self.geom['IndOut'][1,:]==key[1])).nonzero()[0]
+    def select(self, touch='Ves', Out=int):
+        assert Out in [bool,int], "Arg Out must be bool or int !"
+        VesOk, StructOk = self.Ves is not None, self.LStruct is not None
+        StructNames = [ss.Id.Name for ss in self.LStruct] if StructOk else None
+        ind = _comp.Rays_touch(VesOk, StructOk, self.geom['IndOut'],
+                               StructNames,touch=touch)
+        if Out is int:
+            ind = ind.nonzero()[0]
         return ind
-
 
     def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, multi=False):
         self._check_inputs(ind=ind)
@@ -866,16 +890,29 @@ class Rays(object):
 
         """
         self._check_inputs(ind)
+        # Preformat ind
         if ind is None:
             ind = np.arange(0,self.nRays)
         if np.asarray(ind).dtype is bool:
             ind = ind.nonzero()[0]
+        # Preformat DL
         if DL is None:
             DL = np.array([self.geom['kPIn'][ind],self.geom['kPOut'][ind]])
+        elif np.asarray(DL).size==2:
+            DL = np.tile(np.asarray(DL).ravel(),(len(ind),1)).T
+        DL = np.ascontiguousarray(DL).astype(float)
+        assert type(DL) is np.ndarray and DL.ndim==2
+        assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
+        ii = DL[0,:]<self.geom['kPIn'][ind]
+        DL[0,ii] = self.geom['kPIn'][ind][ii]
+        ii = DL[1,:]>self.geom['kPOut'][ind]
+        DL[1,ii] = self.geom['kPOut'][ind][ii]
+        # Preformat Ds, us
         Ds, us = self.D[:,ind], self.u[:,ind]
         if len(ind)==1:
             Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
+        # Launch
         Pts, kPts, dl = _GG.LOS_get_sample(Ds, us, dl, DL,
                                            dLMode=dlMode, method=method)
         return Pts, kPts, dl
@@ -1011,6 +1048,73 @@ class Rays(object):
                                dL=dL, dPtD=dPtD, dPtI=dPtI, dPtO=dPtO, dPtR=dPtR,
                                dPtP=dPtP, dLeg=dLeg, dVes=dVes, dStruct=dStruct,
                                multi=multi, ind=ind, draw=draw, a4=a4, Test=Test)
+
+
+    def plot_sino(self, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True,
+                  Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
+                  dL=_def.LOSMImpd, dVes=_def.TorPFilld, dLeg=_def.TorLegd,
+                  draw=True, a4=False, Test=True):
+        """ Plot the LOS in projection space (sinogram)
+
+        Plot the LOS in projection space (where sinograms are plotted) as a
+point.
+        Can also optionnally plot the associated :class:`~tofu.geom.Ves`
+
+        Can plot the conventional projection-space (in 2D in a cross-section),
+        or a 3D extrapolation of it, where the third coordinate is provided by
+        the angle that the LOS makes with the cross-section plane
+        (useful in case of multiple LOS with a partially tangential view)
+
+        Parameters
+        ----------
+        Proj :      str
+            Flag indicating whether to plot a classic sinogram ('Cross') from
+the vessel cross-section (assuming 2D), or an extended 3D version ('3d') of it
+with additional angle
+        ax :        None or plt.Axes
+            The axes on which the plot should be done, if None a new figure and
+axes is created
+        Elt :       str
+            Flag indicating which elements to plot, each capital letter stands
+for one element
+                * 'L': LOS
+                * 'V': Vessel
+        Ang  :      str
+            Flag indicating which angle to use for the impact parameter, the
+angle of the line itself (xi) or of its impact parameter (theta)
+        AngUnit :   str
+            Flag for the angle units to be displayed, 'rad' for radians or 'deg'
+for degrees
+        Sketch :    bool
+            Flag indicating whether a small skecth showing the definitions of
+angles 'theta' and 'xi' should be included or not
+        Ldict :     dict
+            Dictionary of properties used for plotting the LOS point, fed to
+plt.plot() if Proj='Cross' and to plt.plot_surface() if Proj='3d'
+        Vdict :     dict
+            Dictionary of properties used for plotting the polygon envelopp, fed
+to plt.plot() if Proj='Cross' and to plt.plot_surface() if Proj='3d'
+        LegDict :   None or dict
+            Dictionary of properties used for plotting the legend, fed to
+plt.legend(), the legend is not plotted if None
+        draw :      bool
+            Flag indicating whether to draw the figure
+        a4 :        bool
+            Flag indicating whether the figure should be plotted in a4
+dimensions for printing
+        Test :      bool
+            Flag indicating whether the inputs shall be tested for conformity
+
+        Returns
+        -------
+        ax :        plt.Axes
+            The axes used to plot
+
+        """
+        return _plot.GLOS_plot_Sinogram(self, Proj=Proj, ax=ax, Elt=Elt,
+Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
+                                        Ldict=Ldict, Vdict=Vdict,
+LegDict=LegDict, draw=draw, a4=a4, Test=Test)
 
 
 

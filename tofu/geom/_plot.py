@@ -316,7 +316,7 @@ def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad',
     """
     if Test:
         assert T.Id.Cls in ['Ves','Struct'] or (isinstance(T,tuple) and len(T)==3), "Arg T must be Ves instance or tuple with (Theta,pP,pN) 3 np.ndarrays !"
-        C0, C1, C2 = _check_Lax(ax)
+        Lax, C0, C1, C2 = _check_Lax(ax,n=1)
         assert C0 or C1, 'Arg ax should a plt.Axes instance !'
         assert type(Pdict) is dict, "Arg Pdict must be a dictionary !"
         assert dLeg is None or type(dLeg) is dict, "Arg dLeg must be a dictionary !"
