@@ -905,17 +905,21 @@ class Rays(object):
         assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
         ii = DL[0,:]<self.geom['kPIn'][ind]
         DL[0,ii] = self.geom['kPIn'][ind][ii]
+        ii = DL[0,:]>=self.geom['kPOut'][ind]
+        DL[0,ii] = self.geom['kPOut'][ind][ii]
         ii = DL[1,:]>self.geom['kPOut'][ind]
         DL[1,ii] = self.geom['kPOut'][ind][ii]
+        ii = DL[1,:]<=self.geom['kPIn'][ind]
+        DL[1,ii] = self.geom['kPIn'][ind][ii]
         # Preformat Ds, us
         Ds, us = self.D[:,ind], self.u[:,ind]
         if len(ind)==1:
             Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
-        # Launch
-        Pts, kPts, dl = _GG.LOS_get_sample(Ds, us, dl, DL,
-                                           dLMode=dlMode, method=method)
-        return Pts, kPts, dl
+        # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
+        Pts, kPts, dlr = _GG.LOS_get_sample(Ds, us, dl, DL,
+                                            dLMode=dlMode, method=method)
+        return Pts, kPts, dlr
 
 
     def calc_signal(self, ff, t=None, Ani=None, fkwdargs={},
@@ -949,20 +953,37 @@ class Rays(object):
         if Warn:
             warnings.warn("! CAUTION : returns W/m^2 (no Etendue, see help) !")
         self._check_inputs(ind)
+        # Preformat ind
         if ind is None:
             ind = np.arange(0,self.nRays)
         if np.asarray(ind).dtype is bool:
             ind = ind.nonzero()[0]
+        # Preformat DL
         if DL is None:
-            DL = np.array([self.geom['kPIn'][ind],self.geom['kPOut']][ind])
-        Ds, us = self.Di[:,ind], self.u[:,ind]
+            DL = np.array([self.geom['kPIn'][ind],self.geom['kPOut'][ind]])
+        elif np.asarray(DL).size==2:
+            DL = np.tile(np.asarray(DL).ravel(),(len(ind),1)).T
+        DL = np.ascontiguousarray(DL).astype(float)
+        assert type(DL) is np.ndarray and DL.ndim==2
+        assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
+        ii = DL[0,:]<self.geom['kPIn'][ind]
+        DL[0,ii] = self.geom['kPIn'][ind][ii]
+        ii = DL[0,:]>=self.geom['kPOut'][ind]
+        DL[0,ii] = self.geom['kPOut'][ind][ii]
+        ii = DL[1,:]>self.geom['kPOut'][ind]
+        DL[1,ii] = self.geom['kPOut'][ind][ii]
+        ii = DL[1,:]<=self.geom['kPIn'][ind]
+        DL[1,ii] = self.geom['kPIn'][ind][ii]
+        # Preformat Ds, us
+        Ds, us = self.D[:,ind], self.u[:,ind]
         if len(ind)==1:
             Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
+        # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         sig = _GG.LOS_calc_signal(ff, Ds, us, dl, DL,
                                   dLMode=dlMode, method=method,
                                   t=t, Ani=Ani, fkwdargs=fkwdargs, Test=True)
-        return Sig
+        return sig
 
     def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
              EltVes='', EltStruct='', Leg='', dL=None, dPtD=_def.LOSMd,
@@ -1043,6 +1064,7 @@ class Rays(object):
             Handles of the axes used for plotting (list if Proj='All')
 
         """
+
         return _plot.Rays_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt,
                                EltVes=EltVes, EltStruct=EltStruct, Leg=Leg,
                                dL=dL, dPtD=dPtD, dPtI=dPtI, dPtO=dPtO, dPtR=dPtR,

@@ -274,16 +274,16 @@ class Test03_Rays:
         LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1],
               None, Test02_Struct.ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
         cls.LObj = [None for vv in LVes]
-        N = 100
+        N = 50
         cls.N = N
         for ii in range(0,len(LVes)):
             P1M = LVes[ii].geom['P1Max'][0]
-            Ds = np.array([np.zeros((N,)),
-                           np.full((N,),(0.95+0.2*ii/len(LVes))*P1M),
+            Ds = np.array([np.linspace(-0.5,0.5,N),
+                           np.full((N,),(0.95+0.3*ii/len(LVes))*P1M),
                            np.zeros((N,))])
-            us = np.array([np.linspace(-0.2,0.2,N),
+            us = np.array([np.linspace(-0.5,0.5,N),
                            -np.ones((N,)),
-                           np.linspace(-0.2,0.2,N)])
+                           np.linspace(-0.5,0.5,N)])
             cls.LObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
                                     LStruct=LS[ii], Exp=None, Diag='Test',
                                     SavePath=here)
@@ -317,23 +317,78 @@ class Test03_Rays:
                 assert Pts[ii].shape[1]==kPts[ii].size
                 assert np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
                            & (kPts[ii]<=self.LObj[ii].geom['kPOut'][ii]))
-            print("")
-            print("ii",ii)
-            print(dl)
             assert np.all(np.abs(dl[~np.isnan(dl)]-0.02)<0.001)
+
             Pts, kPts, dl = self.LObj[ii].get_sample(0.1, dlMode='rel',
                                                      method='simps',DL=[0,1])
             for jj in range(0,self.N):
                 assert Pts[ii].shape[1]==kPts[ii].size
                 assert np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
                            & (kPts[ii]<=self.LObj[ii].geom['kPOut'][ii]))
+
             Pts, kPts, dl = self.LObj[ii].get_sample(0.1, dlMode='rel',
                                                      method='romb',DL=[1,2])
             for jj in range(0,self.N):
                 assert Pts[ii].shape[1]==kPts[ii].size
-                assert np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
+                C = np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
                            & (kPts[ii]<=self.LObj[ii].geom['kPOut'][ii]))
+                assert C, "{0},{1}".format(ii,jj)
 
+
+    def test03_calc_signal(self):
+        def ffL(Pts, t=None, Vect=None):
+            E = np.exp(-(Pts[1,:]-2.4)**2/0.1 - Pts[2,:]**2/0.1)
+            if Vect is not None:
+                if np.asarray(Vect).ndim==2:
+                    E = E*Vect[0,:]
+                else:
+                    E = E*Vect[0]
+            if t is not None:
+                E = E[np.newaxis,:]*t
+            return E
+        def ffT(Pts, t=None, Vect=None):
+            E = np.exp(-(np.hypot(Pts[0,:],Pts[1,:])-2.4)**2/0.1
+                       - Pts[2,:]**2/0.1)
+            if Vect is not None:
+                if np.asarray(Vect).ndim==2:
+                    E = E*Vect[0,:]
+                else:
+                    E = E*Vect[0]
+            if t is not None:
+                E = E[np.newaxis,:]*t
+            return E
+
+        for ii in range(0,len(self.LObj)):
+            ff = ffT if self.LObj[ii].Ves.Type=='Tor' else ffL
+            if self.LObj[ii].LStruct is not None:
+                t = np.arange(0,10,10)
+                Ani = len(self.LObj[ii].LStruct)==1
+            else:
+                t = None
+                Ani = False
+            sig = self.LObj[ii].calc_signal(ff, t=t, Ani=Ani, fkwdargs={},
+                                      dl=0.01, DL=None, dlMode='abs', method='simps',
+                                      ind=None, Warn=False)
+            assert sig.shape==(self.N,) if t is None else (t.size,self.N)
+            assert ~np.any(np.isnan(sig))
+
+    def test04_plot(self):
+        for ii in range(0,len(self.LObj)):
+            Lax = self.LObj[ii].plot(Proj='All', Elt='LDIORP', EltVes='P',
+                                     EltStruct='', Leg='', draw=False)
+            Lax = self.LObj[ii].plot(Proj='Cross', Elt='L', EltVes='P',
+                                     EltStruct='P', Leg=None, draw=False)
+            Lax = self.LObj[ii].plot(Proj='Hor', Elt='LDIO', EltVes='P',
+                                     EltStruct='P', Leg='KD', draw=False)
+        plt.close('all')
+
+
+
+
+
+
+
+"""
 
 #######################################################
 #
@@ -420,7 +475,6 @@ class Test04_LOS:
 
 
 
-"""
 #######################################################
 #
 #  Creating LOS and GLOS objects and testing methods

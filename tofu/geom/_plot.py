@@ -196,7 +196,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta, Pdict=_def.Tor
                 ly = np.concatenate((P1Min[0]*np.sin(Theta),np.array([np.nan]),P1Max[0]*np.sin(Theta)))
             elif V.Type=='Lin':
                 lx = np.array([V.Lim[0],V.Lim[1],V.Lim[1],V.Lim[0],V.Lim[0]])
-                ly = np.array([P1Min[0],P1Min[0],P1Max[1],P1Max[1],P1Min[0]])
+                ly = np.array([P1Min[0],P1Min[0],P1Max[0],P1Max[0],P1Min[0]])
             ax.plot(lx,ly,label=V.Id.NameLTX,**Pdict)
         elif V.Id.Cls=='Struct':
             if V.Type=='Tor':
@@ -557,6 +557,18 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
     dVes['draw'], dVes['a4'], dVes['Test'] = False, a4, Test
     Lax = GLos.Ves.plot(**dVes)
     Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
+
+    if GLos.LStruct is not None:
+        if EltStruct is None:
+            if (not 'Elt' in dStruct.keys() or dStruct['Elt'] is None):
+                dStruct['Elt'] = ''
+        else:
+            dStruct['Elt'] = EltStruct
+        dStruct['Lax'], dStruct['Proj'], dStruct['dLeg'] = Lax, Proj, None
+        dStruct['draw'], dStruct['a4'], dStruct['Test'] = False, a4, Test
+        for ii in range(0,len(GLos.LStruct)):
+            Lax = GLos.LStruct[ii].plot(**dStruct)
+            Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
     # Select subset
     if GLos.Id.Cls in ['LOSCam1D','LOSCam2D'] and ind is None:
