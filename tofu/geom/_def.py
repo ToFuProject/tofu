@@ -88,10 +88,9 @@ StructPd = {'fc':(0.8,0.8,0.8,0.5),'ec':'k','linewidth':1}
 StructPd_Tor = {'fc':(0.8,0.8,0.8,0.5),'ec':'none'}
 
 Structdict = dict(Vesdict)
-Structdict['Pd'] = StructPd
-Structdict['Pd_Tor'] = StructPd_Tor
-Structdict['P3Dd'] = {'color':(0.8,0.8,0.8,1.),'rstride':1,'cstride':1,
-                      'linewidth':0, 'antialiased':False}
+Structdict['dP'] = StructPd_Tor
+#Structdict['P3Dd'] = {'color':(0.8,0.8,0.8,1.),'rstride':1,'cstride':1,
+#                      'linewidth':0, 'antialiased':False}
 
 
 # -------------- Figures ------------------------

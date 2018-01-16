@@ -619,34 +619,65 @@ def SelectFromIdLObj(IdLObjCls, Val=None, Crit='Name', PreExp=None, PostExp=None
 
 
 
-def SelectFromListId(LId, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In', Out=bool):
-    """ Select the ID instances in the provided list that match the criteria and return their index or other attributes
+def SelectFromListId(LId, Val=None, Crit='Name',
+                     PreExp=None, PostExp=None, Log='any',
+                     InOut='In', Out=bool):
+    """ Return the indices or instances of all LOS matching criteria
 
-    Return
+    The selection can be done according to 2 different mechanisms
+
+    Mechanism (1): provide the value (Val) a criterion (Crit) should match
+    The criteria are typically attributes of :class:`~tofu.pathfile.ID`
+    (i.e.: name, or user-defined attributes like the camera head...)
+
+    Mechanism (2): (used if Val=None)
+    Provide a str expression (or a list of such) to be fed to eval()
+    Used to check on quantitative criteria.
+        - PreExp: placed before the criterion value (e.g.: 'not ' or '<=')
+        - PostExp: placed after the criterion value
+        - you can use both
+
+    Other parameters are used to specify logical operators for the selection
+    (match any or all the criterion...) and the type of output.
 
     Parameters
     ----------
-    LId :       list
-
-    Val :       None / str / list
-
     Crit :      str
-
-    PreExp :    None / str
-
-    PostExp :   None / str
-
+        Flag indicating which criterion to use for discrimination
+        Can be set to:
+            - any attribute of :class:`~tofu.pathfile.ID`
+              (e.g.: 'Name','SaveName','SavePath'...)
+            - any key of ID.USRdict (e.g.: 'Exp'...)
+    Val :       None / list / str
+        The value to match for the chosen criterion, can be a list
+        Used for selection mechanism (1)
+    PreExp :    None / list / str
+        A str (or list of such) expression to be fed to eval(),
+        Placed before the criterion value
+        Used for selection mechanism (2)
+    PostExp :   None / list / str
+        A str (or list of such) expression to be fed to eval()
+        Placed after the criterion value
+        Used for selection mechanism (2)
     Log :       str
-
+        Flag indicating whether the criterion shall match:
+            - 'all': all provided values
+            - 'any': at least one of them
     InOut :     str
-
+        Flag indicating whether the returned indices are:
+            - 'In': the ones matching the criterion
+            - 'Out': the ones not matching it
     Out :       type / str
-
+        Flag indicating in which form to return the result:
+            - int: as an array of integer indices
+            - bool: as an array of boolean indices
+            - 'Name': as a list of names
+            - 'LOS': as a list of :class:`~tofu.geom.LOS` instances
 
     Returns
     -------
-    ind :       np.ndarray / list
-
+    ind :       list / np.ndarray
+        The computed output, of nature defined by parameter Out
 
     """
     C0 = type(Crit) is str
@@ -990,8 +1021,8 @@ def _save_np(obj, pathfileext, compressed=False):
              Poly=obj.Poly, Lim=obj.Lim)
 
     elif obj.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
-        # To be updated
-        func(pathfileext, dId=dId, Du=(obj.D,obj.u), Sino_RefPt=obj._sino['RefPt'])
+        func(pathfileext, dId=dId,
+             geom=obj.geom, sino=obj.sino, LNames=obj.LNames)
 
     """
     elif obj.Id.Cls=='GLOS':
@@ -1319,21 +1350,20 @@ def _open_np(pathfileext, Ves=None,
                          Clock=bool(Out['Clock']),
                          arrayorder=str(Out['arrayorder']))
 
-    elif Id.Cls=='Rays':
-        # To do
-        pass
-
-    elif Id.Cls == 'LOS':
+    elif Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
         Ves, LStruct = _tryloadVesStruct(Id, Print=Print)
-        assert not (Ves is None and 'Ves' in Id.LObj.keys()
-                    and len(Id.LObj['Ves'])>0), "Ves could not be loaded !"
-        assert not (LStruct is None and 'Struct' in Id.LObj.keys()
-                    and len(Id.LObj['Struct'])>0), "Struct could not be loaded !"
-        obj = tfg.LOS(Id, tuple(Out['Du']), Ves=Ves, LStruct=LStruct,
-                      Sino_RefPt=Out['Sino_RefPt'], Exp=Id.Exp, Diag=Id.Diag,
-                      shot=Id.shot, SavePath=Id.SavePath)
-
-
+        dobj = {'Id':Id._todict(), 'LNames':Out['LNames'].tolist(),
+                'geom':Out['geom'].tolist(), 'sino':Out['sino'].tolist()}
+        if Ves is None:
+            dobj['Ves'] = None
+        else:
+            dobj['Ves'] = Ves._todict()
+        if LStruct is None:
+            dobj['LStruct'] = None
+        else:
+            dobj['LStruct'] = [ss._todict() for ss in LStruct]
+        if Id.Cls=='Rays':
+            obj = tfg.Rays(fromdict=dobj)
 
     """
     elif Id.Cls == 'GLOS':

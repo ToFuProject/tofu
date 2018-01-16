@@ -205,6 +205,8 @@ class Test01_Ves:
             self.LObj[ii].save(Print=False)
             PathFileExt = os.path.join(self.LObj[ii].Id.SavePath, self.LObj[ii].Id.SaveName+'.npz')
             obj = tfpf.Open(PathFileExt, Print=False)
+            #dd = self.LObj[ii]._todict()
+            #assert dd==obj._todict()
             os.remove(PathFileExt)
 
 
@@ -383,298 +385,36 @@ class Test03_Rays:
         plt.close('all')
 
 
-
-
-
-
-
-"""
-
-#######################################################
-#
-#     Creating LOS objects and testing methods
-#
-#######################################################
-
-
-class Test04_LOS:
-
-    @classmethod
-    def setup_class(cls): #LVes=[Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3, LS=[None, SL0, [SL0,SL1], None, ST0, [ST0,ST1]]):
-        #print ("")
-        #print "--------- "+VerbHead+cls.__name__
-        LVes = [Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3
-        LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1],
-              None, Test02_Struct.ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
-        cls.LObj = [None for vv in LVes]
-        for ii in range(0,len(LVes)):
-            D = (0,0.95*LVes[ii].geom['P1Max'][0], 0)
-            u = (0,1,0)
-            cls.LObj[ii] = tfg.LOS('Test'+str(ii), (D,u), Ves=LVes[ii],
-                                   LStruct=LS[ii], Exp=None, Diag='Test',
-                                   SavePath=here)
-
-    @classmethod
-    def teardown_class(cls):
-        #print ("teardown_class() after any methods in this class")
-        pass
-
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
-        pass
-
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
-        pass
-
-    def test01_get_sample(self):
+    def test05_plot_sino(self):
         for ii in range(0,len(self.LObj)):
-            out = self.LObj[ii].get_sample(0.01, dLMode='abs')
-            assert np.all((out[1]>=self.LObj[ii].geom['kPIn'])
-                           & (out[1]<=self.LObj[ii].geom['kPOut']))
-            assert np.abs(out[2]-0.01)<0.001
-            out = self.LObj[ii].get_sample(0.1, dLMode='rel')
-            assert out[0].shape[1]==out[1].size
-            assert out[1].size==10
+            self.LObj[ii].set_sino([2.4,0.])
+            Lax = self.LObj[ii].plot_sino(Proj='Cross', Elt='L',
+                                          Leg=None, draw=False)
+            Lax = self.LObj[ii].plot_sino(Proj='Cross', Elt='LV',
+                                          Leg=None, multi=True, draw=False)
+            #Lax = self.LObj[ii].plot_sino(Proj='3d', Elt='LV',
+            #                              multi=False, Leg='KD', draw=False)
+        plt.close('all')
 
-    def test02_calc_signal(self):
+
+    def test06_tofromdict(self):
         for ii in range(0,len(self.LObj)):
-            if self.LObj[ii].Ves.Type=='Tor':
-                ff1 = lambda Pts: np.exp(-(np.hypot(Pts[0,:],Pts[1,:]))**2/0.1
-                                         -(Pts[2,:])**2/0.1)
-                ff2 = lambda Pts, Vect: np.cos(np.arctan2(Vect[2,:],Vect[1,:]))*np.exp(-(np.hypot(Pts[0,:],Pts[1,:]))**2/0.1-(Pts[2,:])**2/0.1)
-            else:
-                ff1 = lambda Pts: np.exp(-(Pts[1,:])**2/0.1-(Pts[2,:])**2/0.1)
-                ff2 = lambda Pts, Vect: np.cos(np.arctan2(Vect[2,:],Vect[1,:]))*np.exp(-(Pts[1,:])**2/0.1-(Pts[2,:])**2/0.1)
-            out1 = self.LObj[ii].calc_signal(ff1)
-            out2 = self.LObj[ii].calc_signal(ff2)
-            assert all([not hasattr(oo,'__iter__') for oo in [out1,out2]])
-            assert not out1==out2
+            dd = self.LObj[ii]._todict()
+            oo = tfg.Rays(fromdict=dd)
+            assert dd==oo._todict(), "Unequal to and from dict !"
 
-    def test03_plot(self):
-        for ii in range(0,len(self.LObj)):
-            Lax1 = self.LObj[ii].plot(Proj='All', Elt='LDIORP', EltVes='P', Leg='', draw=False, a4=False, Test=True)
-            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='LDIORP', EltVes='P', Leg='Test', draw=False, a4=False, Test=True)
-            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='LDIORP', EltVes='PBv', Leg='', draw=False, a4=False, Test=True)
-            #Lax3 = self.LObj[ii].plot(Proj='3d', Elt='LDIORP', EltVes='PBv', Leg='', draw=False, a4=False, Test=True)
-            plt.close('all')
 
-    def test04_plot_sino(self):
-        for ii in range(0,len(self.LObj)):
-            self.LObj[ii].plot_sino(Proj='Cross', Elt='L', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
-            self.LObj[ii].plot_sino(Proj='Cross', Elt='LV', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
-            plt.close('all')
-
-    def test05_saveload(self):
-        print(os.listdir(here))
+    def test07_saveload(self):
         for ii in range(0,len(self.LObj)):
             self.LObj[ii].save(Print=False)
-            PathFileExt = os.path.join(self.LObj[ii].Id.SavePath, self.LObj[ii].Id.SaveName+'.npz')
-            obj = tfpf.Open(PathFileExt, Print=False)
-            os.remove(PathFileExt)
+            PFE = os.path.join(self.LObj[ii].Id.SavePath,
+                               self.LObj[ii].Id.SaveName+'.npz')
+            obj = tfpf.Open(PFE, Print=False)
+            #dd = self.LObj[ii]._todict()
+            #assert dd==obj._todict()
+            os.remove(PFE)
 
-
-
-#######################################################
-#
-#  Creating LOS and GLOS objects and testing methods
-#
-#######################################################
-
-
-
-class Test05_LOSTor:
-
-    @classmethod
-    def setup_class(cls, Ves=VesTor):
-        print ("")
-        print "--------- "+VerbHead+cls.__name__
-        DR, DZ = Ves._P1Max[0],Ves._P2Max[1]
-        uR, uz = [-1.,-1.]
-        Dthet, uthet = 0., 0.5
-        er, ethet = np.array([np.cos(Dthet), np.sin(Dthet)]), np.array([-np.sin(Dthet), np.cos(Dthet)])
-        D, u = [DR*er[0], DR*er[1], DZ], [uR*er[0]+uthet*ethet[0],   uR*er[1]+uthet*ethet[1], uz]
-        cls.Obj = tfg.LOS('Test', (D,u), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=here)
-
-    @classmethod
-    def teardown_class(cls):
-        #print ("teardown_class() after any methods in this class")
-        pass
-
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
-        pass
-
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
-        pass
-
-    def test01_plot(self):
-        Lax1 = self.Obj.plot(Proj='All', Elt='LDIORP', EltVes='P', Leg='', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot(Proj='Cross', Elt='LDIORP', EltVes='P', Leg='Test', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj.plot(Proj='Hor', Elt='LDIORP', EltVes='PBv', Leg='', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test02_plot_Sinogram(self):
-        Lax1 = self.Obj.plot_Sinogram(Proj='Cross', Elt='LV', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot_Sinogram(Proj='Cross', Elt='L', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test03_saveload(self):
-        self.Obj.save()
-        Los = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-        os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-
-
-class Test06_LOSLin:
-
-    @classmethod
-    def setup_class(cls, Ves=VesLin):
-        print ("")
-        print "--------- "+VerbHead+cls.__name__
-        DY, DZ = Ves._P1Max[0],Ves._P2Max[1]
-        D, u = [0.5, DY, DZ], [0.1, -1., -1.]
-        cls.Obj = tfg.LOS('Test', (D,u), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
-
-    @classmethod
-    def teardown_class(cls):
-        #print ("teardown_class() after any methods in this class")
-        pass
-
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
-        pass
-
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
-        pass
-
-    def test01_plot(self):
-        Lax1 = self.Obj.plot(Proj='All', Elt='LDIORP', EltVes='P', Leg='', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot(Proj='Cross', Elt='LDIORP', EltVes='P', Leg='Test', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj.plot(Proj='Hor', Elt='LDIORP', EltVes='PBv', Leg='', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test02_plot_Sinogram(self):
-        Lax1 = self.Obj.plot_Sinogram(Proj='Cross', Elt='LV', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot_Sinogram(Proj='Cross', Elt='L', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test03_saveload(self):
-        self.Obj.save()
-        Los = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-        os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-
-
-
-
-class Test07_GLOSTor:
-
-    @classmethod
-    def setup_class(cls, Ves=VesTor):
-        print ("")
-        print "--------- "+VerbHead+cls.__name__
-        DR, DZ = Ves._P1Max[0],Ves._P2Max[1]
-        uR, uz1, uz2, uz3 = -1., -0.5,-1.,-1.5
-        Dthet, uthet = 0., 0.5
-        er, ethet = np.array([np.cos(Dthet), np.sin(Dthet)]), np.array([-np.sin(Dthet), np.cos(Dthet)])
-        D = [DR*er[0], DR*er[1], DZ]
-        u1, u2, u3 = [uR*er[0]+uthet*ethet[0],uR*er[1]+uthet*ethet[1],uz1], [uR*er[0]+uthet*ethet[0],uR*er[1]+uthet*ethet[1],uz2], [uR*er[0]+uthet*ethet[0],uR*er[1]+uthet*ethet[1],uz3]
-        L1 = tfg.LOS('Test1', (D,u1), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
-        L2 = tfg.LOS('Test2', (D,u2), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
-        L3 = tfg.LOS('Test3', (D,u3), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
-        cls.Obj = tfg.GLOS('Test', [L1,L2,L3], shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
-
-    @classmethod
-    def teardown_class(cls):
-        #print ("teardown_class() after any methods in this class")
-        pass
-
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
-        pass
-
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
-        pass
-
-    def test01_select(self):
-        ind = self.Obj.select(Val='Test1', Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In', Out=bool)
-        ind = self.Obj.select(Val='Test2', Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In', Out=int)
-        ind = self.Obj.select(Val='Test3', Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='Out', Out=int)
-
-    def test02_plot(self):
-        Lax1 = self.Obj.plot(Proj='All', Elt='LDIORP', EltVes='P', Leg='', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot(Proj='Cross', Elt='LDIORP', EltVes='P', Leg='Test', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj.plot(Proj='Hor', Elt='LDIORP', EltVes='PBv', Leg='', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test03_plot_Sinogram(self):
-        Lax1 = self.Obj.plot_Sinogram(Proj='Cross', Elt='LV', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot_Sinogram(Proj='Cross', Elt='L', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test04_saveload(self):
-        self.Obj.save()
-        Los = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-        os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-
-
-
-class Test08_GLOSLin:
-
-    @classmethod
-    def setup_class(cls, Ves=VesLin):
-        print ("")
-        print "--------- "+VerbHead+cls.__name__
-        DY, DZ = Ves._P1Max[0],Ves._P2Max[1]
-        D = [0.5, DY, DZ]
-        u1, u2, u3 = [0.1,-1.,-1.], [-0.1,-1.,-1.], [0.,-0.5,-1.]
-        L1 = tfg.LOS('Test1', (D,u1), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
-        L2 = tfg.LOS('Test2', (D,u2), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
-        L3 = tfg.LOS('Test3', (D,u3), Ves=Ves, shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
-        cls.Obj = tfg.GLOS('Test', [L1,L2,L3], shot=0, Diag='Test', Exp='AUG', SavePath=Root+Addpath)
-        pass
-
-    @classmethod
-    def teardown_class(cls):
-        #print ("teardown_class() after any methods in this class")
-        pass
-
-    def setup(self):
-        #print ("TestUM:setup() before each test method")
-        pass
-
-    def teardown(self):
-        #print ("TestUM:teardown() after each test method")
-        pass
-
-    def test01_select(self):
-        ind = self.Obj.select(Val='Test1', Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In', Out=bool)
-        ind = self.Obj.select(Val='Test2', Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In', Out=int)
-        ind = self.Obj.select(Val='Test3', Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='Out', Out=int)
-
-    def test02_plot(self):
-        Lax1 = self.Obj.plot(Proj='All', Elt='LDIORP', EltVes='P', Leg='', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot(Proj='Cross', Elt='LDIORP', EltVes='P', Leg='Test', draw=False, a4=False, Test=True)
-        Lax3 = self.Obj.plot(Proj='Hor', Elt='LDIORP', EltVes='PBv', Leg='', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test03_plot_Sinogram(self):
-        Lax1 = self.Obj.plot_Sinogram(Proj='Cross', Elt='LV', Sketch=True, Ang='xi', AngUnit='rad', draw=False, a4=False, Test=True)
-        Lax2 = self.Obj.plot_Sinogram(Proj='Cross', Elt='L', Sketch=False, Ang='theta', AngUnit='deg', draw=False, a4=False, Test=True)
-        plt.close('all')
-
-    def test04_saveload(self):
-        self.Obj.save()
-        Los = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-        os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
-
-
-
-
-
-
+"""
 
 #######################################################
 #

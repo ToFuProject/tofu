@@ -367,7 +367,7 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
     """
 
     if Test:
-        assert isinstance(T,Ves) or (isinstance(T,tuple) and len(T)==3), "Arg T must be Ves instance or tuple with (Theta,pP,pN) 3 ndarrays !"
+        assert T.Id.Cls in ['Ves','Struct'] or (isinstance(T,tuple) and len(T)==3), "Arg T must be Ves instance or tuple with (Theta,pP,pN) 3 ndarrays !"
         assert isinstance(ax,Axes3D) or ax is None, "Arg ax must be a Axes instance !"
         assert type(Pdict) is dict, "Arg Pdict must be a dictionary !"
         assert type(dLeg) is dict or dLeg is None, "Arg dLeg must be a dictionary !"
@@ -530,8 +530,7 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
               dPtP=_def.LOSMd, dLeg=_def.TorLegd, dVes=_def.Vesdict,
               dStruct=_def.Structdict, multi=False, draw=True, a4=False,
-              Test=True, ind=None, Val=None, Crit='Name', PreExp=None,
-              PostExp=None, Log='any', InOut='In'):
+              Test=True, ind=None):
 
     if Test:
         C = GLos.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']
@@ -571,10 +570,7 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
             Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
     # Select subset
-    if GLos.Id.Cls in ['LOSCam1D','LOSCam2D'] and ind is None:
-        ind = GLos.select(Val=Val, Crit=Crit, PreExp=PreExp,
-                          PostExp=PostExp, Log=Log, InOut=InOut, Out=int)
-    elif ind is None:
+    if ind is None:
         ind = np.arange(0,GLos.nRays)
     ind = np.asarray(ind)
 
@@ -584,7 +580,7 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
         if GLos.Id.Cls in ['Rays','LOS']:
             Leg = [None for ii in ind]
         else:
-            Leg = GLos.LId['Name']
+            Leg = GLos.LNames
         if 'c' in dL.keys():
             del dL['c']
 
@@ -795,48 +791,64 @@ def  Plot_3D_mlab_GLOS(L,Leg ='',Lplot='Tot',PDIOR='DIOR',fig='None', dL=dL_mlab
 
 
 
-def GLOS_plot_Sinogram(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Leg=None,
-            dL=_def.LOSMImpd, Vdict=_def.TorPFilld, dLeg=_def.TorLegd, draw=True, a4=False, Test=True,
-            ind=None, Val=None, Crit='Name', PreExp=None, PostExp=None, Log='any', InOut='In'):
+def GLOS_plot_Sino(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt,
+                   Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
+                   Leg=None, dL=_def.LOSMImpd, dVes=_def.TorPFilld,
+                   dLeg=_def.TorLegd, ind=None, multi=False, draw=True, a4=False,
+                   Test=True):
     if Test:
         assert Proj in ['Cross','3d'], "Arg Proj must be in ['Pol','3d'] !"
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
         assert AngUnit in ['rad','deg'], "Arg Ang must be in ['rad','deg'] !"
-    if 'V' in Elt:
-        ax = GLos.Ves.plot_sino(ax=ax, Proj=Proj, Pdict=Vdict, Ang=Ang, AngUnit=AngUnit, Sketch=Sketch, LegDict=None, draw=False, a4=a4, Test=Test)
-    if 'L' in Elt:
-        GLos, Leg = _get_LLOS_Leg(GLos, Leg, ind=ind, Val=Val, Crit=Crit, PreExp=PreExp, PostExp=PostExp, Log=Log, InOut=InOut)
-        if Proj=='Cross':
-            ax = _Plot_Sinogram_CrossProj(GLos, ax=ax, Ang=Ang, AngUnit=AngUnit,
-                                          Sketch=Sketch, dL=dL, LegDict=dLeg,
-                                          draw=False, a4=a4, Test=Test)
-        else:
-            ax = _Plot_Sinogram_3D(GLos, ax=ax, Ang=Ang, AngUnit=AngUnit, dL=dL,
-                                   LegDict=dLeg, draw=False, a4=a4, Test=Test)
-    if draw:
-        ax.figure.canvas.draw()
+    if not GLos.sino['RefPt'] is None:
+        if 'V' in Elt:
+            ax = GLos.Ves.plot_sino(ax=ax, Proj=Proj, Pdict=dVes, Ang=Ang,
+                                    AngUnit=AngUnit, Sketch=Sketch,
+                                    LegDict=None, draw=False, a4=a4, Test=Test)
+
+        # Select subset
+        if ind is None:
+            ind = np.arange(0,GLos.nRays)
+        ind = np.asarray(ind)
+
+        Leg = GLos.Id.NameLTX if Leg is None else Leg
+        dL = _def.LOSLd if dL is None else dL
+        if multi:
+            if GLos.Id.Cls in ['Rays','LOS']:
+                Leg = [None for ii in ind]
+            else:
+                Leg = GLos.LNames
+            if 'c' in dL.keys():
+                del dL['c']
+
+        if 'L' in Elt:
+            if Proj=='Cross':
+                ax = _Plot_Sinogram_CrossProj(GLos, ax=ax, Ang=Ang, AngUnit=AngUnit,
+                                              Sketch=Sketch, dL=dL, LegDict=dLeg,
+                                              ind=ind, draw=False, a4=a4, Test=Test)
+            else:
+                ax = _Plot_Sinogram_3D(GLos, ax=ax, Ang=Ang, AngUnit=AngUnit, dL=dL,
+                                       ind=ind, LegDict=dLeg, draw=False, a4=a4, Test=Test)
+        if draw:
+            ax.figure.canvas.draw()
     return ax
 
 
 
-def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad', Sketch=True, dL=_def.LOSMImpd, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
+def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad',
+                             Sketch=True, dL=_def.LOSMImpd, LegDict=_def.TorLegd,
+                             ind=None, multi=False, draw=True, a4=False, Test=True):
     if Test:
-        assert type(L) is list or L.Id.Cls in ['LOS','GLOS'], "Arg L must be a GLOs, a LOS or a list of such !"
         assert ax is None or isinstance(ax,plt.Axes), 'Arg ax should be Axes instance !'
-    if not type(L) is list and L.Id.Cls=='LOS':
-        L = [L]
-    elif not type(L) is list and L.Id.Cls=='GLOS':
-        Leg = L.Id.NameLTX
-        L = L.LLOS
     if ax is None:
         ax, axSketch = _def.Plot_Impact_DefAxes('Cross', a4=a4, Ang=Ang, AngUnit=AngUnit, Sketch=Sketch)
-    Impp, Imptheta = Get_FieldsFrom_LLOS(L,[('_sino','p'),('_sino','theta')])
+    Impp, Imptheta = L.sino['p'][ind], L.sino['theta'][ind]
     if Ang=='xi':
         Imptheta, Impp, bla = _GG.ConvertImpact_Theta2Xi(Imptheta, Impp, Impp)
-    if Leg == '':
-        for ii in range(0,len(L)):
+    if multi:
+        for ii in range(0,len(ind)):
             if not L[ii]._sino['RefPt'] is None:
-                ax.plot(Imptheta[ii],Impp[ii],label=L[ii].Id.NameLTX, **dL)
+                ax.plot(Imptheta[ii],Impp[ii],label=Leg[ind[ii]], **dL)
     else:
         ax.plot(Imptheta,Impp,label=Leg, **dL)
     if not LegDict is None:
@@ -846,22 +858,21 @@ def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad', Sk
     return ax
 
 
-def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad', dL=_def.LOSMImpd, draw=True, a4=False, LegDict=_def.TorLegd):
+def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad',
+                      dL=_def.LOSMImpd, ind=None, multi=False,
+                      draw=True, a4=False, LegDict=_def.TorLegd):
     assert ax is None or isinstance(ax,plt.Axes), 'Arg ax should be Axes instance !'
-    if not type(L) is list and L.Id.Cls=='LOS':
-        L = [L]
-    elif not type(L) is list and L.Id.Cls=='GLOS':
-        Leg = L.Id.NameLTX
-        L = L.LLOS
     if ax is None:
         ax = _def.Plot_Impact_DefAxes('3D', a4=a4)
-    Impp, Imptheta, ImpPhi = Get_FieldsFrom_LLOS(L,[('_sino','p'),('_sino','theta'),('_sino','Phi')])
+    Impp, Imptheta = L.sino['p'][ind], L.sino['theta'][ind]
+    ImpPhi = L.sino['Phi'][ind]
     if Ang=='xi':
         Imptheta, Impp, bla = _GG.ConvertImpact_Theta2Xi(Imptheta, Impp, Impp)
-    if Leg == '':
-        for ii in range(len(L)):
+    if multi:
+        for ii in range(len(ind)):
             if not L[ii].Sino_RefPt is None:
-                ax.plot([Imptheta[ii]], [Impp[ii]], [ImpPhi[ii]], zdir='z', label=L[ii].Id.NameLTX, **dL)
+                ax.plot([Imptheta[ii]], [Impp[ii]], [ImpPhi[ii]], zdir='z',
+                        label=Leg[ind[ii]], **dL)
     else:
         ax.plot(Imptheta,Impp,ImpPhi, zdir='z', label=Leg, **dL)
     if not LegDict is None:
