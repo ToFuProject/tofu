@@ -6,7 +6,6 @@ git:
   depth: 100
 sudo: required
 dist: trusty
-group: deprecated-2017Q4
 before_install:
 - sudo apt-get update
 - ldd --version
