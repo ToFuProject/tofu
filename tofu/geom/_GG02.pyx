@@ -17,7 +17,7 @@ from matplotlib.path import Path
 if sys.version[0]=='3':
     from inspect import signature as insp
 elif sys.version[0]=='2':
-    from inspect import getargspec as inps
+    from inspect import getargspec as insp
 
 
 
