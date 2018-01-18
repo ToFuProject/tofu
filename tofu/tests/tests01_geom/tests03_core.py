@@ -414,8 +414,52 @@ class Test03_Rays:
             #assert dd==obj._todict()
             os.remove(PFE)
 
-"""
 
+
+class Test04_LOSCams(Test03_Rays):
+
+    @classmethod
+    def setup_class(cls):
+        #print ("")
+        #print "--------- "+VerbHead+cls.__name__
+        LVes = [Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3
+        LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1],
+              None, Test02_Struct.ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
+        cls.LObj = [None for vv in LVes]
+        N = 50
+        cls.N = N
+        for ii in range(0,len(LVes)):
+            P1M = LVes[ii].geom['P1Max'][0]
+            Ds = np.array([np.linspace(-0.5,0.5,N),
+                           np.full((N,),(0.95+0.3*ii/len(LVes))*P1M),
+                           np.zeros((N,))])
+            us = np.array([np.linspace(-0.5,0.5,N),
+                           -np.ones((N,)),
+                           np.linspace(-0.5,0.5,N)])
+            LNames = ['{0:02.0f}'.format(ii) for ii in range(0,N)]
+            if ii%2==0:
+                cls.LObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
+                                        LStruct=LS[ii], Exp=None, Diag='Test',
+                                        SavePath=here, LNames=LNames)
+            else:
+                cls.LObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
+                                        LStruct=LS[ii], Exp=None, Diag='Test',
+                                        SavePath=here, LNames=LNames)
+
+    def test01_select(self):
+        for ii in range(0,len(self.LObj)):
+            if self.LObj[ii].LStruct is None:
+                el = 'Ves'
+            else:
+                el = self.LObj[ii].LStruct[-1].Id.Name
+            ind = self.LObj[ii].select(touch=el)
+            ind = self.LObj[ii].select(Name='15', Out=bool)
+            ind = self.LObj[ii].select(Name=['02','35'], Out=int)
+
+
+
+
+"""
 #######################################################
 #
 #  Creating Lens and Apert objects and testing methods

@@ -756,7 +756,7 @@ class Rays(object):
         self._Ves = Ves
         self._LStruct = LStruct
         Du = Du if Du is not None else (self.D,self.u)
-        self._set_geom(Du)
+        self._set_geom(Du, LNames=LNames)
 
     def _set_geom(self, Du, LNames=None):
         tfpf._check_NotNone({'Du':Du})
@@ -835,13 +835,12 @@ class Rays(object):
                           'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
     def select(self, Name=None, touch=None, Out=int):
+        assert Out in [int,bool]
         if Name is not None:
             assert type(Name) in [str,list,tuple], "Arg Name must be a str/list"
-            if type(Name) is str:
-                ind = self.LNames.index(Name)
-            else:
-                assert all([type(ss) is str for ss in Name])
-                ind = np.array([self.LNames.index(ss) for ss in Name],dtype=int)
+            Name = [Name] if type(Name) is str else Name
+            assert all([type(ss) is str for ss in Name])
+            ind = np.array([self.LNames.index(ss) for ss in Name],dtype=int)
             if Out is bool:
                 ii = np.zeros((self.nRays,),dtype=bool)
                 ii[ind] = True
