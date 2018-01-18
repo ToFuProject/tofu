@@ -21,7 +21,7 @@ except Exception:
     from . import _plot as _plot
 
 __all__ = ['Ves', 'Struct',
-           'Rays']
+           'Rays','LOSCam1D','LOSCam2D']
 
 
 
@@ -433,7 +433,7 @@ class Ves(object):
             ax.figure.canvas.draw()
         return ax
 
-    def save(self, SaveName=None, Path='./',
+    def save(self, SaveName=None, Path=None,
              Mode='npz', compressed=False, Print=True):
         """ Save the object in folder Name, under SaveName
 
@@ -1171,7 +1171,7 @@ class Rays(object):
                                     dL=dL, dVes=dVes, dLeg=dLeg,
                                     ind=ind, draw=draw, a4=a4, Test=Test)
 
-    def save(self, SaveName=None, Path='./',
+    def save(self, SaveName=None, Path=None,
              Mode='npz', compressed=False, Print=True):
         """ Save the object in folder Name, under SaveName
 
@@ -1274,17 +1274,6 @@ def _Rays_check_fromdict(fd):
 
 
 
-
-
-class LOS(Rays):
-    def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
-                 Sino_RefPt=None, fromdict=None,
-                 Exp=None, Diag=None, shot=0,
-                 LNames=None, SavePath='./'):
-        Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=Struct,
-                 Sino_RefPt=Sino_RefPt, fromdict=fromdict,
-                 Exp=Exp, Diag=Diag, shot=shot,
-                 LNames=LNames, SavePath=SavePath)
 
 
 class LOSCam1D(Rays):

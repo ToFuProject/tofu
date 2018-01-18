@@ -547,15 +547,16 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
         assert type(dLeg) is dict or dLeg is None, 'dLeg must be dict !'
         assert type(draw) is bool, "Arg draw must be a bool !"
 
-    if EltVes is None:
-        if (not 'Elt' in dVes.keys() or dVes['Elt'] is None):
-            dVes['Elt'] = ''
-    else:
-        dVes['Elt'] = EltVes
-    dVes['Lax'], dVes['Proj'], dVes['dLeg'] = Lax, Proj, None
-    dVes['draw'], dVes['a4'], dVes['Test'] = False, a4, Test
-    Lax = GLos.Ves.plot(**dVes)
-    Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
+    if GLos.Ves is not None:
+        if EltVes is None:
+            if (not 'Elt' in dVes.keys() or dVes['Elt'] is None):
+                dVes['Elt'] = ''
+        else:
+            dVes['Elt'] = EltVes
+        dVes['Lax'], dVes['Proj'], dVes['dLeg'] = Lax, Proj, None
+        dVes['draw'], dVes['a4'], dVes['Test'] = False, a4, Test
+        Lax = GLos.Ves.plot(**dVes)
+        Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
     if GLos.LStruct is not None:
         if EltStruct is None:
