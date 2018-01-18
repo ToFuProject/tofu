@@ -436,7 +436,7 @@ class Test04_LOSCams(Test03_Rays):
             us = np.array([np.linspace(-0.5,0.5,N),
                            -np.ones((N,)),
                            np.linspace(-0.5,0.5,N)])
-            LNames = ['{0:02.0f}'.format(ii) for ii in range(0,N)]
+            LNames = ['{0:02.0f}'.format(jj) for jj in range(0,N)]
             if ii%2==0:
                 cls.LObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
                                         LStruct=LS[ii], Exp=None, Diag='Test',
