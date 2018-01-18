@@ -438,13 +438,13 @@ class Test04_LOSCams(Test03_Rays):
                            np.linspace(-0.5,0.5,N)])
             LNames = ['{0:02.0f}'.format(jj) for jj in range(0,N)]
             if ii%2==0:
-                cls.LObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
-                                        LStruct=LS[ii], Exp=None, Diag='Test',
-                                        SavePath=here, LNames=LNames)
+                cls.LObj[ii] = tfg.LOSCam1D('Test'+str(ii), (Ds,us), Ves=LVes[ii],
+                                           LStruct=LS[ii], Exp=None, Diag='Test',
+                                           SavePath=here, LNames=LNames)
             else:
-                cls.LObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
-                                        LStruct=LS[ii], Exp=None, Diag='Test',
-                                        SavePath=here, LNames=LNames)
+                cls.LObj[ii] = tfg.LOSCam2D('Test'+str(ii), (Ds,us), Ves=LVes[ii],
+                                            LStruct=LS[ii], Exp=None, Diag='Test',
+                                            SavePath=here, LNames=LNames)
 
     def test01_select(self):
         for ii in range(0,len(self.LObj)):

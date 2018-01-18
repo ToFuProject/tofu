@@ -1364,6 +1364,10 @@ def _open_np(pathfileext, Ves=None,
             dobj['LStruct'] = [ss._todict() for ss in LStruct]
         if Id.Cls=='Rays':
             obj = tfg.Rays(fromdict=dobj)
+        elif Id.Cls=='LOSCam1D':
+            obj = tfg.LOSCam1D(fromdict=dobj)
+        elif Id.Cls=='LOSCam2D':
+            obj = tfg.LOSCam2D(fromdict=dobj)
 
     """
     elif Id.Cls == 'GLOS':
