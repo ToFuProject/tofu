@@ -928,7 +928,7 @@ def Save_Generic(obj, SaveName=None, Path='./',
     if SaveName is not None:
         C = type(SaveName) is str and not (SaveName[-4]=='.')
         assert C, "SaveName should not include the extension !"
-    assert type(Path) is str
+    assert Path is None or type(Path) is str
     assert Mode in ['npz']
     assert type(compressed) is bool
     assert type(Print) is bool
