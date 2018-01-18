@@ -1220,7 +1220,7 @@ def _Rays_check_inputs(Id=None, Du=None, Vess=None, LStruct=None,
         if Exp is not None and Vess.Id.Exp is not None:
             assert Exp==Vess.Id.Exp, "Arg Exp must be the same as Ves.Id.Exp !"
     if LStruct is not None:
-        assert type(LStruct) in [list,Struct], "LStruct = list of Struct !"
+        assert type(LStruct) in [list,Struct], "LStruct = %s !"%(type(LStruct))
         if type(LStruct) is list:
             for ss in LStruct:
                 assert type(ss) is Struct, "LStruct = list of Struct !"
@@ -1280,7 +1280,7 @@ class LOSCam1D(Rays):
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0,
                  LNames=None, SavePath='./'):
-        Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=Struct,
+        Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                  Sino_RefPt=Sino_RefPt, fromdict=fromdict,
                  Exp=Exp, Diag=Diag, shot=shot,
                  LNames=LNames, SavePath=SavePath)
@@ -1290,7 +1290,7 @@ class LOSCam2D(Rays):
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0,
                  LNames=None, SavePath='./'):
-        Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=Struct,
+        Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                  Sino_RefPt=Sino_RefPt, fromdict=fromdict,
                  Exp=Exp, Diag=Diag, shot=shot,
                  LNames=LNames, SavePath=SavePath)
