@@ -1577,6 +1577,9 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
     NL = Ds.shape[1]
     IOut = np.zeros((3,Ds.shape[1]))
     if VType.lower()=='tor':
+        if RMin is None:
+            RMin = 0.95*min(np.min(VPoly[0,:]),
+                            np.min(np.hypot(Ds[0,:],Ds[1,:])))
         PIn, POut, VperpIn, VperpOut, IIn, IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid, RMin=RMin,
                                                                          EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
