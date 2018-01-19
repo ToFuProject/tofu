@@ -205,6 +205,9 @@ class Test01_Ves:
             self.LObj[ii].save(Print=False)
             PathFileExt = os.path.join(self.LObj[ii].Id.SavePath, self.LObj[ii].Id.SaveName+'.npz')
             obj = tfpf.Open(PathFileExt, Print=False)
+            # Just to check the loaded version works fine
+            out = obj.get_sampleCross(0.02, DS=None, dSMode='abs', ind=None)
+            Lax = obj.plot(Proj='All', Elt='P')
             #dd = self.LObj[ii]._todict()
             #assert dd==obj._todict()
             os.remove(PathFileExt)

@@ -94,6 +94,7 @@ class Ves(object):
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
+               'Multi':self._Multi,
                'geom':self.geom, 'sino':self.sino,
                'arrayorder':self._arrayorder}
         return out
@@ -102,6 +103,7 @@ class Ves(object):
         _Ves_check_fromdict(fd)
         self._Id = tfpf.ID(fromdict=fd['Id'])
         self._geom = fd['geom']
+        self._Multi = fd['Multi']
         self._sino = fd['sino']
         self._set_arrayorder(fd['arrayorder'])
 
@@ -495,7 +497,7 @@ def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None,
 
 def _Ves_check_fromdict(fd):
     assert type(fd) is dict, "Arg from dict must be a dict !"
-    k0 = {'Id':dict,'geom':dict,'sino':dict,'arrayorder':str}
+    k0 = {'Id':dict,'geom':dict,'sino':dict,'arrayorder':str, 'Multi':bool}
     keys = list(fd.keys())
     for kk in k0:
         assert kk in keys, "%s must be a key of fromdict"%kk
