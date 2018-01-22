@@ -373,7 +373,7 @@ class Test03_Rays:
                 Ani = False
             sig = self.LObj[ii].calc_signal(ff, t=t, Ani=Ani, fkwdargs={},
                                       dl=0.01, DL=None, dlMode='abs', method='simps',
-                                      ind=None, Warn=False)
+                                      ind=None, Warn=False, ind=[0,10,20,30,40])
             assert sig.shape==(self.N,) if t is None else (t.size,self.N)
             assert ~np.any(np.isnan(sig))
 
