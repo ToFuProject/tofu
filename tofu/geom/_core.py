@@ -927,7 +927,7 @@ class Rays(object):
             The effective resolution (<= dl input), as an absolute distance
 
         """
-        self._check_inputs(ind)
+        self._check_inputs(ind=ind)
         # Preformat ind
         if ind is None:
             ind = np.arange(0,self.nRays)
@@ -990,7 +990,7 @@ class Rays(object):
         """
         if Warn:
             warnings.warn("! CAUTION : returns W/m^2 (no Etendue, see help) !")
-        self._check_inputs(ind)
+        self._check_inputs(ind=ind)
         # Preformat ind
         if ind is None:
             ind = np.arange(0,self.nRays)
