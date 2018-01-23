@@ -363,6 +363,7 @@ class Test03_Rays:
                 E = E[np.newaxis,:]*t
             return E
 
+        ind = [0,10,20,30,40]
         for ii in range(0,len(self.LObj)):
             ff = ffT if self.LObj[ii].Ves.Type=='Tor' else ffL
             if self.LObj[ii].LStruct is not None:
@@ -373,8 +374,8 @@ class Test03_Rays:
                 Ani = False
             sig = self.LObj[ii].calc_signal(ff, t=t, Ani=Ani, fkwdargs={},
                                       dl=0.01, DL=None, dlMode='abs', method='simps',
-                                      Warn=False, ind=[0,10,20,30,40])
-            assert sig.shape==(self.N,) if t is None else (t.size,self.N)
+                                      Warn=False, ind=ind)
+            assert sig.shape==(len(ind),) if t is None else (t.size,len(ind))
             assert ~np.any(np.isnan(sig))
 
     def test04_plot(self):
@@ -385,7 +386,7 @@ class Test03_Rays:
                                      EltStruct='P', Leg=None, draw=False)
             Lax = self.LObj[ii].plot(Proj='Hor', Elt='LDIO', EltVes='P',
                                      EltStruct='P', Leg='KD', draw=False)
-        plt.close('all')
+            plt.close('all')
 
 
     def test05_plot_sino(self):
@@ -397,7 +398,7 @@ class Test03_Rays:
                                           Leg=None, multi=True, draw=False)
             #Lax = self.LObj[ii].plot_sino(Proj='3d', Elt='LV',
             #                              multi=False, Leg='KD', draw=False)
-        plt.close('all')
+            plt.close('all')
 
 
     def test06_tofromdict(self):
