@@ -97,6 +97,8 @@ class Ves(object):
                'Multi':self._Multi,
                'geom':self.geom, 'sino':self.sino,
                'arrayorder':self._arrayorder}
+        if self._Id.Cls=='Struct':
+            out['mobile'] = self._mobile
         return out
 
     def _fromdict(self, fd):
@@ -106,6 +108,8 @@ class Ves(object):
         self._Multi = fd['Multi']
         self._sino = fd['sino']
         self._set_arrayorder(fd['arrayorder'])
+        if self._Id.Cls=='Struct':
+            self._mobile = fd['mobile']
 
     @property
     def Id(self):
@@ -157,7 +161,7 @@ class Ves(object):
     def _set_geom(self, Poly, Lim=None, Clock=False, Sino_RefPt=None, Sino_NP=_def.TorNP):
         if self._Done:
             Out = tfpf._get_FromItself(self, {'Lim':Lim, '_Clock':Clock})
-            Lim, Clock = Out['Lim'], Out['Clock']
+            Lim, Clock = Out['Lim'], Out['_Clock']
         tfpf._check_NotNone({'Poly':Poly, 'Clock':Clock})
         self._check_inputs(Poly=Poly)
         out = _comp._Ves_set_Poly(np.array(Poly), self._arrayorder, self.Type, Lim=Lim, Clock=Clock)
@@ -533,12 +537,36 @@ class Struct(Ves):
                  Sino_RefPt=None, Sino_NP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
                  Exp=None, shot=0, SavePath='./',
-                 SavePath_Include=tfpf.defInclude):
+                 SavePath_Include=tfpf.defInclude,
+                 mobile=False):
+        assert type(mobile) is bool
+        self._mobile = mobile
         Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim,
                      Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP,
                      Clock=Clock, arrayorder=arrayorder, fromdict=fromdict,
                      Exp=Exp, shot=shot, SavePath=SavePath,
                      SavePath_Include=SavePath_Include)
+
+    def move(self):
+        """ To be overriden at object-level after instance creation
+
+        To do so:
+            1/ create the instance:
+                >> S = tfg.Struct('test', poly, Exp='Test')
+            2/ Define a moving function f taking the instance as first argument
+                >> def f(self, Delta=1.):
+                       Polynew = self.Poly
+                       Polynew[0,:] = Polynew[0,:] + Delta
+                       self._set_geom(Polynew, Lim=self.Lim)
+            3/ Bound your custom function to the self.move() method
+               using types.MethodType() found in the types module
+                >> import types
+                >> S.move = types.MethodType(f, S)
+
+            See the following page for info and details on method-patching:
+            https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
+        """
+        print(self.move.__doc__)
 
     def get_sampleS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)', Ind=None):
         """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn

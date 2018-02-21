@@ -147,7 +147,7 @@ def _get_FromItself(obj, Dict):
                 Dict[aa] = getattr(obj,aa)
             except:
                 pass
-
+    return Dict
 
 
 
@@ -1018,7 +1018,7 @@ def _save_np(obj, pathfileext, compressed=False):
 
     elif obj.Id.Cls=='Struct':
         func(pathfileext, dId=dId, arrayorder=obj._arrayorder, Clock=obj._Clock,
-             Poly=obj.Poly, Lim=obj.Lim)
+             Poly=obj.Poly, Lim=obj.Lim, mobile=obj._mobile)
 
     elif obj.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
         func(pathfileext, dId=dId,
@@ -1348,7 +1348,8 @@ def _open_np(pathfileext, Ves=None,
         Lim = None if Out['Lim'].tolist() is None else Out['Lim']
         obj = tfg.Struct(Id, Out['Poly'], Type=Id.Type, Lim=Lim,
                          Clock=bool(Out['Clock']),
-                         arrayorder=str(Out['arrayorder']))
+                         arrayorder=str(Out['arrayorder']),
+                         mobile=Out['mobile'].tolist())
 
     elif Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
         Ves, LStruct = _tryloadVesStruct(Id, Print=Print)

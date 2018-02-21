@@ -231,7 +231,8 @@ class Test02_Struct(Test01_Ves):
                                    Lim=[-np.pi/2.,np.pi/4.],
                                    shot=0, Exp='Test', SavePath=here))
         cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin', Lim=Lim,
-                                   shot=0, Exp='Test', SavePath=here))
+                                   shot=0, Exp='Test', SavePath=here,
+                                   mobile=True))
         cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor',
                                    Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
                                    shot=0, Exp='Test', SavePath=here))
@@ -248,7 +249,7 @@ class Test02_Struct(Test01_Ves):
                              Lim=np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
                              shot=0, Exp='Test', SavePath=here)
         cls.ST0 = tfg.Struct('Test02', PVes, Type='Tor', Lim=None, shot=0, Exp='Test',
-                             SavePath=here)
+                             SavePath=here, mobile=True)
         cls.ST1 = tfg.Struct('Test03', PVes, Type='Tor',
                              Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
                              shot=0, Exp='Test', SavePath=here)
