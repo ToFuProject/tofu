@@ -441,15 +441,15 @@ class Test04_LOSCams(Test03_Rays):
             us = np.array([np.linspace(-0.5,0.5,N),
                            -np.ones((N,)),
                            np.linspace(-0.5,0.5,N)])
-            LNames = ['{0:02.0f}'.format(jj) for jj in range(0,N)]
+            dchans = {'Name':['{0:02.0f}'.format(jj) for jj in range(0,N)]}
             if ii%2==0:
                 cls.LObj[ii] = tfg.LOSCam1D('Test'+str(ii), (Ds,us), Ves=LVes[ii],
                                            LStruct=LS[ii], Exp=None, Diag='Test',
-                                           SavePath=here, LNames=LNames)
+                                           SavePath=here, dchans=dchans)
             else:
                 cls.LObj[ii] = tfg.LOSCam2D('Test'+str(ii), (Ds,us), Ves=LVes[ii],
                                             LStruct=LS[ii], Exp=None, Diag='Test',
-                                            SavePath=here, LNames=LNames)
+                                            SavePath=here, dchans=dchans)
 
     def test01_select(self):
         for ii in range(0,len(self.LObj)):

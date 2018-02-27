@@ -678,16 +678,16 @@ class Rays(object):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0,
-                 LNames=None, SavePath='./'):
+                 dchans=None, SavePath='./'):
         self._Done = False
         if fromdict is None:
             self._check_inputs(Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                                Sino_RefPt=Sino_RefPt, Exp=Exp, Diag=Diag,
-                               shot=shot, LNames=LNames, SavePath=SavePath)
+                               shot=shot, dchans=dchans, SavePath=SavePath)
             if Ves is not None:
                 Exp = Ves.Id.Exp if Exp is None else Exp
             self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-            self._set_Ves(Ves, LStruct=LStruct, Du=Du, LNames=LNames)
+            self._set_Ves(Ves, LStruct=LStruct, Du=Du, dchans=dchans)
             self.set_sino(RefPt=Sino_RefPt)
         else:
             self._fromdict(fromdict)
@@ -696,7 +696,7 @@ class Rays(object):
     def _fromdict(self, fd):
         _Rays_check_fromdict(fd)
         self._Id = tfpf.ID(fromdict=fd['Id'])
-        self._LNames = fd['LNames']
+        self._dchans = fd['dchans']
         if fd['Ves'] is None:
             self._Ves = None
         else:
@@ -710,7 +710,7 @@ class Rays(object):
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
-               'LNames':self.LNames,
+               'dchans':self.dchans,
                'geom':self.geom, 'sino':self.sino}
         out['Ves'] = None if self.Ves is None else self.Ves._todict()
         if self.LStruct is None:
@@ -741,8 +741,8 @@ class Rays(object):
     def POut(self):
         return self.geom['POut']
     @property
-    def LNames(self):
-        return self._LNames
+    def dchans(self):
+        return self._dchans
     @property
     def Ves(self):
         return self._Ves
@@ -756,11 +756,11 @@ class Rays(object):
     def _check_inputs(self, Id=None, Du=None, Ves=None, LStruct=None,
                       Sino_RefPt=None, Exp=None, shot=None, Diag=None,
                       SavePath=None, ind=None,
-                      LNames=None, fromdict=None):
+                      dchans=None, fromdict=None):
         _Rays_check_inputs(Id=Id, Du=Du, Vess=Ves, LStruct=LStruct,
                           Sino_RefPt=Sino_RefPt, Exp=Exp, shot=shot, ind=ind,
                           Diag=Diag, SavePath=SavePath,
-                          LNames=LNames, fromdict=fromdict)
+                          dchans=dchans, fromdict=fromdict)
 
     def _set_Id(self, Val,
                 Exp=None, Diag=None, shot=None, SavePath='./'):
@@ -773,7 +773,7 @@ class Rays(object):
             Val = tfpf.ID(self.__class__, Val, **dd)
         self._Id = Val
 
-    def _set_Ves(self, Ves=None, LStruct=None, Du=None, LNames=None):
+    def _set_Ves(self, Ves=None, LStruct=None, Du=None, dchans=None):
         self._check_inputs(Ves=Ves, Exp=self.Id.Exp, LStruct=LStruct, Du=Du)
         LObj = []
         if not Ves is None:
@@ -786,11 +786,11 @@ class Rays(object):
         self._Ves = Ves
         self._LStruct = LStruct
         Du = Du if Du is not None else (self.D,self.u)
-        self._set_geom(Du, LNames=LNames)
+        self._set_geom(Du, dchans=dchans)
 
-    def _set_geom(self, Du, LNames=None):
+    def _set_geom(self, Du, dchans=None):
         tfpf._check_NotNone({'Du':Du})
-        self._check_inputs(Du=Du, LNames=LNames)
+        self._check_inputs(Du=Du, dchans=dchans)
         D, u = np.asarray(Du[0]), np.asarray(Du[1])
         if D.ndim==2:
             if D.shape[1]==3 and not D.shape[0]==3:
@@ -836,7 +836,8 @@ class Rays(object):
                       'VPerpIn':VPerpIn, 'VPerpOut':VPerpOut,
                       'IndIn':IndIn, 'IndOut':IndOut,
                       'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
-        self._LNames = LNames
+        lK = list(dchans.keys())
+        self._dchans = dict([(kk,np.asarray(dchans[kk]).ravel()) for kk in lK])
 
     def set_sino(self, RefPt=None):
         self._check_inputs(Sino_RefPt=RefPt)
@@ -864,25 +865,39 @@ class Rays(object):
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
                           'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-    def select(self, Name=None, touch=None, Out=int):
+    def select(self, key=None, val=None, touch=None, log='any', Out=int):
         assert Out in [int,bool]
-        if Name is not None:
-            assert type(Name) in [str,list,tuple], "Arg Name must be a str/list"
-            Name = [Name] if type(Name) is str else Name
-            assert all([type(ss) is str for ss in Name])
-            ind = np.array([self.LNames.index(ss) for ss in Name],dtype=int)
-            if Out is bool:
-                ii = np.zeros((self.nRays,),dtype=bool)
-                ii[ind] = True
-                ind = ii
-        elif touch is not None:
-            assert Out in [bool,int], "Arg Out must be bool or int !"
-            VesOk, StructOk = self.Ves is not None, self.LStruct is not None
-            StructNames = [ss.Id.Name for ss in self.LStruct] if StructOk else None
-            ind = _comp.Rays_touch(VesOk, StructOk, self.geom['IndOut'],
-                                   StructNames,touch=touch)
-            if Out is int:
-                ind = ind.nonzero()[0]
+        assert log in ['any','all','not']
+        C = [key is None,touch is None]
+        assert np.sum(C)>=1
+        if np.sum(C)==2:
+            ind = np.ones((self.nRays,),dtype=bool)
+        else:
+            if key is not None:
+                assert type(key) is str and key in self._dchans.keys()
+                ltypes = [str,int,float,np.int64,np.float64]
+                C0 = type(val) in ltypes
+                C1 = type(val) in [list,tuple,np.ndarray]
+                assert C0 or C1
+                if C0:
+                    val = [val]
+                else:
+                    assert all([type(vv) in ltypes for vv in val])
+                ind = np.vstack([self._dchans[key]==ii for ii in val])
+                if log=='any':
+                    ind = np.any(ind,axis=0)
+                elif log=='all':
+                    ind = np.all(ind,axis=0)
+                else:
+                    ind = ~np.any(ind,axis=0)
+            elif touch is not None:
+                VesOk, StructOk = self.Ves is not None, self.LStruct is not None
+                StructNames = [ss.Id.Name for ss in self.LStruct] if StructOk else None
+                ind = _comp.Rays_touch(VesOk, StructOk, self.geom['IndOut'],
+                                       StructNames,touch=touch)
+                ind = ~ind if log=='not' else ind
+        if Out is int:
+            ind = ind.nonzero()[0]
         return ind
 
     def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, multi=False):
@@ -1233,7 +1248,7 @@ class Rays(object):
 def _Rays_check_inputs(Id=None, Du=None, Vess=None, LStruct=None,
                        Sino_RefPt=None, Exp=None, shot=None, Diag=None,
                        SavePath='./', Calc=None, ind=None,
-                       LNames=None, fromdict=None):
+                       dchans=None, fromdict=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
     if not Du is None:
@@ -1279,18 +1294,18 @@ def _Rays_check_inputs(Id=None, Du=None, Vess=None, LStruct=None,
     if ind is not None:
         assert np.asarray(ind).ndim==1
         assert np.asarray(ind).dtype in [bool,np.int64]
-    if LNames is not None:
-        assert type(LNames) in [list,tuple]
-        assert all([type(ss) is str for ss in LNames])
+    if dchans is not None:
+        assert type(dchans) is dict
         if Du is not None:
-            assert len(LNames)==Du[0].shape[1]
+            nch = Du[0].shape[1]
+            assert all([len(dchans[kk])==nch for kk in dchans.keys()])
 
 
 
 def _Rays_check_fromdict(fd):
     assert type(fd) is dict, "Arg from dict must be a dict !"
     k0 = {'Id':dict,'geom':dict,'sino':dict,
-          'LNames':[None,list],
+          'dchans':[None,dict],
           'Ves':[None,dict], 'LStruct':[None,list]}
     keys = list(fd.keys())
     for kk in k0:
@@ -1309,21 +1324,21 @@ class LOSCam1D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0,
-                 LNames=None, SavePath='./'):
+                 dchans=None, SavePath='./'):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                  Sino_RefPt=Sino_RefPt, fromdict=fromdict,
                  Exp=Exp, Diag=Diag, shot=shot,
-                 LNames=LNames, SavePath=SavePath)
+                 dchans=dchans, SavePath=SavePath)
 
 class LOSCam2D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0,
-                 LNames=None, SavePath='./'):
+                 dchans=None, SavePath='./'):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                  Sino_RefPt=Sino_RefPt, fromdict=fromdict,
                  Exp=Exp, Diag=Diag, shot=shot,
-                 LNames=LNames, SavePath=SavePath)
+                 dchans=dchans, SavePath=SavePath)
 
 
 

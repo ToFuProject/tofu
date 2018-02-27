@@ -1022,7 +1022,7 @@ def _save_np(obj, pathfileext, compressed=False):
 
     elif obj.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
         func(pathfileext, dId=dId,
-             geom=obj.geom, sino=obj.sino, LNames=obj.LNames)
+             geom=obj.geom, sino=obj.sino, dchans=obj.dchans)
 
     """
     elif obj.Id.Cls=='GLOS':
@@ -1353,7 +1353,7 @@ def _open_np(pathfileext, Ves=None,
 
     elif Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
         Ves, LStruct = _tryloadVesStruct(Id, Print=Print)
-        dobj = {'Id':Id._todict(), 'LNames':Out['LNames'].tolist(),
+        dobj = {'Id':Id._todict(), 'dchans':Out['dchans'].tolist(),
                 'geom':Out['geom'].tolist(), 'sino':Out['sino'].tolist()}
         if Ves is None:
             dobj['Ves'] = None
