@@ -836,8 +836,11 @@ class Rays(object):
                       'VPerpIn':VPerpIn, 'VPerpOut':VPerpOut,
                       'IndIn':IndIn, 'IndOut':IndOut,
                       'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
-        lK = list(dchans.keys())
-        self._dchans = dict([(kk,np.asarray(dchans[kk]).ravel()) for kk in lK])
+        if dchans is None:
+            self._dchans = dchans
+        else:
+            lK = list(dchans.keys())
+            self._dchans = dict([(kk,np.asarray(dchans[kk]).ravel()) for kk in lK])
 
     def set_sino(self, RefPt=None):
         self._check_inputs(Sino_RefPt=RefPt)

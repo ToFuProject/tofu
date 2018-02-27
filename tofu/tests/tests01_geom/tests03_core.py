@@ -458,8 +458,8 @@ class Test04_LOSCams(Test03_Rays):
             else:
                 el = self.LObj[ii].LStruct[-1].Id.Name
             ind = self.LObj[ii].select(touch=el)
-            ind = self.LObj[ii].select(Name='15', Out=bool)
-            ind = self.LObj[ii].select(Name=['02','35'], Out=int)
+            ind = self.LObj[ii].select(key='Name', val='15', Out=bool)
+            ind = self.LObj[ii].select(key='Name', val=['02','35'], Out=int)
 
 
 
