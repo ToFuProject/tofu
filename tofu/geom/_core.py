@@ -9,6 +9,7 @@ import datetime as dtm
 
 # ToFu-specific
 import tofu.pathfile as tfpf
+import tofu.utils as utils
 try:
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG 
@@ -836,6 +837,20 @@ class Rays(object):
                       'VPerpIn':VPerpIn, 'VPerpOut':VPerpOut,
                       'IndIn':IndIn, 'IndOut':IndOut,
                       'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
+
+        # Get basics of 2D geometry
+        if self.Id.Cls=='LOSCam2D':
+            C = np.nanmean(D,axis=1)
+            cross = np.array([D[1,1:]*D[2,:-1]-D[2,1:]*D[1,:-1],
+                              D[2,1:]*D[0,:-1]-D[0,1:]*D[2,:-1],
+                              D[0,1:]*D[1,:-1]-D[1,1:]*D[0,:-1]])
+            cross = cross[:,np.nanargmax(np.sqrt(np.sum(cross**2,axis=0)))]
+            cross = cross / np.linalg.norm(cross)
+            nIn = cross if np.sum(cross*np.mean(u,axis=1))>0. else -cross
+            nIn, e1, e2 = utils.get_nIne1e2(C, nIn=nIn)
+            e2 = e2 if e2[2]>0. else -e2
+            self._geom.update({'C':C, 'nIn':nIn, 'e1':e1, 'e2':e2})
+
         if dchans is None:
             self._dchans = dchans
         else:
@@ -1343,7 +1358,32 @@ class LOSCam2D(Rays):
                  Exp=Exp, Diag=Diag, shot=shot,
                  dchans=dchans, SavePath=SavePath)
 
+    def set_e12(self, e1=None, e2=None):
+        assert e1 is None or (hasattr(e1,'__iter__') and len(e1)==3)
+        assert e2 is None or (hasattr(e2,'__iter__') and len(e2)==3)
+        if e1 is None:
+            e1 = self._geom['e1']
+        else:
+            e1 = np.asarray(e1).astype(float).ravel()
+            e1 = e1 / np.linalg.norm(e1)
+        if e2 is None:
+            e2 = self._geom['e2']
+        else:
+            e2 = np.asarray(e1).astype(float).ravel()
+            e2 = e2 / np.linalg.norm(e2)
+        assert np.abs(np.sum(e1*self._geom['nIn']))<1.e-12
+        assert np.abs(np.sum(e2*self._geom['nIn']))<1.e-12
+        assert np.abs(np.sum(e1*e2))<1.e-12
+        self._geom['e1'] = e1
+        self._geom['e2'] = e2
 
+    def get_X12(self):
+        Ds = self.D
+        C = np.mean(Ds,axis=1)
+        X12 = Ds-C[:,np.newaxis]
+        X12 = np.array([np.sum(X12*self.geom['e1'][:,np.newaxis],axis=0),
+                        np.sum(X12*self.geom['e2'][:,np.newaxis],axis=0)])
+        return X12
 
 
 

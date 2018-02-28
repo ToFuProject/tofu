@@ -1,6 +1,29 @@
 
 import numpy as np
 
+def get_nIne1e2(P, nIn=None, e1=None, e2=None):
+    assert np.hypot(P[0],P[1])>1.e-12
+    phi = np.arctan2(P[1],P[0])
+    ephi = np.array([-np.sin(phi), np.cos(phi), 0.])
+    ez = np.array([0.,0.,1.])
+
+    if nIn is None:
+        nIn = -P
+    nIn = nIn / np.linalg.norm(nIn)
+    if e1 is None:
+        if np.abs(np.abs(nIn[2])-1.)<1.e-12:
+            e1 = ephi
+        else:
+            e1 = np.cross(nIn,ez)
+        e1 = e1 if np.sum(e1*ephi)>0. else -e1
+    e1 = e1 / np.linalg.norm(e1)
+    assert np.abs(np.sum(nIn*e1))<1.e-12
+    if e2 is None:
+        e2 = np.cross(nIn,e1)
+    e2 = e2 / np.linalg.norm(e2)
+    return nIn, e1, e2
+
+
 
 def create_CamLOS2D(P, F, D12, N12,
                     nIn=None, e1=None, e2=None, VType='Tor'):
