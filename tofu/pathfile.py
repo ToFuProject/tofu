@@ -26,10 +26,11 @@ __all__ = ["ID",
            "convert_units","get_PolyFromPolyFileObj",
            "Save_Generic","Open"]
 
-dModes = {'geom':'TFG'}
+dModes = {'geom':'TFG', 'data':'TFD'}
 lCls = ['Ves','Struct',
         'Rays','LOS','LOSCam1D','LOSCam2D',
-        'GDetect','Detect','Cam1D','Cam2D']
+        'GDetect','Detect','Cam1D','Cam2D',
+        'Data']
 dPref = {'Exp':'Exp','Diag':'Dg','shot':'sh','Deg':'Deg',
          'version':'Vers','usr':'U'}
 defInclude = ['Mod','Cls','Type','Exp','Deg','Diag','Name','shot']
@@ -502,7 +503,7 @@ def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
             Dict[ii] = dPref[ii]+'{0:05.0f}'.format(shot)
         elif not ii in ['Mod','Cls','Type','Name'] and eval(ii+' is not None'):
             Dict[ii] = dPref[ii]+eval(ii)
-    if Cls=='PreData':
+    if 'Data' in Cls:
         Order = ['Mod','Cls','Exp','Deg','Diag','shot','Name','version','usr']
     else:
         Order = ['Mod','Cls','Exp','Deg','Diag','Name','shot','version','usr']

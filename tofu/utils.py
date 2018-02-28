@@ -42,7 +42,7 @@ def create_CamLOS2D(P, F, D12, N12,
             else:
                 e1 = np.cross(nIn,np.r_[0.,0.,1.])
                 e1 = e1 if np.sum(e1,ephi)>0. else -e1
-        else:
+       else:
             if np.abs(np.abs(nIn[0])-1.)<1.e-12:
                 e1 = np.r_[0.,1.,0.]
             else:
