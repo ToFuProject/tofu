@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib as mpl
 
+# tofu
+import tofu.utils as utils
+
 __all__ = ['Data_plot']
 
 
@@ -427,9 +430,16 @@ class KH_1D(object):
 ###################################################
 ###################################################
 
+def _prepare_pcolormesh(X12_1d):
+    x1, x2, ind, DX12 = utils.get_X12fromflat(X12_1d)
+    x1p = np.r_[x1-DX12[0],x1[-1]+DX12[0]]
+    x2p = np.r_[x2-DX12[1],x2[-1]+DX12[1]]
+    return x1p, x2p, ind, DX12
+
+
 
 def _init_Data2D(a4=False, Max=4):
-    (fW,fH,axCol) = (8.27,11.69,'w') if a4 else (20,10,'w')
+    (fW,fH,axCol) = (8.27,11.69,'w') if a4 else (14,7,'w')
     fig = plt.figure(facecolor=axCol,figsize=(fW,fH))
     gs1 = gridspec.GridSpec(6, 5,
                             left=0.03, bottom=0.05, right=0.99, top=0.94,
@@ -511,13 +521,12 @@ def _Data2D_plot(Data, key=None,
     else:
         chlabRef = chansRef if key is None else Data.Ref['dchans'][key]
         chlab = chans if key is None else Data.dchans(key)
-    X12, DX12 = Data.get_X12()
+    X12, DX12 = Data.get_X12(out='1d')
     X12[:,np.all(np.isnan(data),axis=0)] = np.nan
+    X1p, X2p, indp, DX12 = _prepare_pcolormesh(X12)
 
-    DX1 = [np.nanmin(X12[0,:]),np.nanmax(X12[0,:])]
-    DX1 = [DX1[0]-0.05*(DX1[1]-DX1[0]), DX1[1]+0.05*(DX1[1]-DX1[0])]
-    DX2 = [np.nanmin(X12[1,:]),np.nanmax(X12[1,:])]
-    DX2 = [DX2[0]-0.05*(DX2[1]-DX2[0]), DX2[1]+0.05*(DX2[1]-DX2[0])]
+    DX1 = [np.nanmin(X1p)-DX12[0]/2.,np.nanmax(X1p)+DX12[0]/2.]
+    DX2 = [np.nanmin(X2p)-DX12[1]/2.,np.nanmax(X2p)+DX12[1]/2.]
     denv = [np.nanmin(data,axis=1), np.nanmax(data,axis=1)]
 
     if Data.geom is not None:
@@ -573,32 +582,47 @@ def _Data2D_plot(Data, key=None,
                               norm=norm, orientation='horizontal')
 
     can = dax['t'][0].figure.canvas
+    can.draw()
+    plt.show(block=False)
+    dBck = {}
+    for kk in dax.keys():
+        dBck[kk] = [can.copy_from_bbox(aa.bbox) for aa in dax[kk]]
+
     KH = KH_2D(data, X12, t, Data._CamCls, dMag,
-               lCross, lHor, dax, can, Max=Max, invert=invert,
-               colch=colch, cm=cmap, ms=ms, DX12=DX12, norm=norm)
+               DX12=DX12, X1p=X1p, X2p=X2p, indp=indp,
+               lCross=lCross, lH=lHor, dax=dax, can=can,
+               Max=Max, invert=invert, dBck=dBck,
+               colch=colch, cm=cmap, ms=ms, norm=norm)
 
     def on_press(event):
         KH.onkeypress(event)
     def on_clic(event):
         KH.mouseclic(event)
+    # Disconnect matplotlib built-in event handlers
+    can.mpl_disconnect(can.manager.key_press_handler_id)
+    can.mpl_disconnect(can.button_pick_id)
+
     KH.can.mpl_connect('key_press_event', on_press)
     KH.can.mpl_connect('key_release_event', on_press)
     KH.can.mpl_connect('button_press_event', on_clic)
 
     return dax, KH
 
-
-
 # Define keyHandlker class for interactivity
 class KH_2D(object):
     def __init__(self, Y, X12, t, CamCls, dMag,
-                 lCross, lH, dax, can, invert=False,
-                 indt=[0], indch=[0], Max=4, DX12=0.,
+                 DX12=None, X1p=None, X2p=None, indp=None,
+                 lCross=None, lH=None, dax=None, can=None, invert=False,
+                 indt=[0], indch=[0], Max=4, dBck=None,
                  ms=6, cm=plt.cm.gray, norm=None,
                  colch=['m','c','y','w'], colt=['k','r','b','g']):
         self.t, self.X12, self.Y = t, X12, Y
         self.incX12 = {'left':-np.r_[DX12[0],0.], 'right':np.r_[DX12[0],0.],
                        'up':np.r_[0.,DX12[1]], 'down':-np.r_[0.,DX12[1]]}
+        indpnan = np.isnan(indp)
+        indp[indpnan] = 0
+        self.indpnan = indpnan.T
+        self.X1p, self.X2p, self.indp = X1p, X2p, indp.astype(int).T
         self.CamCls = CamCls
         self.lCross, self.lH = lCross, lH
         self.dMag = dMag
@@ -618,6 +642,8 @@ class KH_2D(object):
         self.ms, self.cm = ms, cm
         self.norm = norm
         self.invert = invert
+        self.nanYi = np.full((X2p.size-1,X1p.size-1),np.nan)
+        self.dBck = dBck
         self.initplot()
 
     def initplot(self):
@@ -646,16 +672,22 @@ class KH_2D(object):
                 for ii in range(0,self.Max):
                     self.dlprof['t'][ii], = axj.plot(self.t, self.nant,
                                                      c=self.colch[ii],ls='-',lw=2.)
-        axj = self.dax['prof'][0]
-        Yi = self.Y[self.indt[0],:]
-        self.dlt['prof'] = axj.scatter(self.X12[0,:], self.X12[1,:],
-                                       facecolors=self.cm(self.norm(Yi)),
-                                       s=self.ms, edgecolors='None')
+        self.nanYi = self.Y[self.indt[0],:][self.indp]
+        self.nanYi[self.indpnan] = np.nan
+        self.dlt['prof'] = self.dax['prof'][0].pcolormesh(self.X1p, self.X2p,
+                                                self.nanYi, edgecolors='None',
+                                                norm=self.norm, cmap=self.cm,
+                                                zorder=-1)
+        #axj = self.dax['prof'][0]
+        #self.dlt['prof'] = axj.scatter(self.X12[0,:], self.X12[1,:],
+        #                               facecolors=self.cm(self.norm(Yi)),
+        #                               s=self.ms, edgecolors='None')
         for ii in range(0,self.Max):
-            self.dlprof['prof'][ii] = axj.scatter([np.nan],[np.nan], s=self.ms,
-                                                  facecolor='None', marker='s',
-                                                  edgecolor=self.colch[ii],lw=2.)
-            self.dlprof['prof'][ii].set_offset_position('screen')
+            self.dlprof['prof'][ii], = axj.plot([np.nan],[np.nan],
+                                                ms=self.ms,
+                                                markerfacecolor='None',
+                                                marker='s', zorder=10,
+                                                markeredgecolor=self.colch[ii])
         nanC = np.full((10,),np.nan)
         nanH = np.full((2,),np.nan)
         for ii in range(0,self.Max):
@@ -688,6 +720,10 @@ class KH_2D(object):
 
     def update(self):
         if self.curax=='time':
+            rest = [('t',[0,1]),('Txtt',[0]),('prof',[0])]
+            for kk in rest:
+                for ii in kk[1]:
+                    self.can.restore_region(self.dBck[kk[0]][ii])
             ti = self.t[self.indt[0]]
             txti = r"t = {0:07.3f} s".format(ti)
             Yi = self.Y[self.indt[0],:]
@@ -698,22 +734,36 @@ class KH_2D(object):
 
             for jj in range(0,self.naxt):
                 self.dlt['t'][jj].set_xdata(ti)
-                self.dlt['t'][jj].set_visible(True)
                 self.dax['t'][jj].draw_artist(self.dlt['t'][jj])
 
-            self.dlt['prof'].set_facecolors(self.cm(self.norm(Yi)))
+            self.nanYi = Yi[self.indp]
+            self.nanYi[self.indpnan] = np.nan
+            ncol = self.cm(self.norm(self.nanYi.ravel()))
+            self.dlt['prof'].set_facecolor(ncol)
             self.dax['prof'][0].draw_artist(self.dlt['prof'])
             self.Txt['t'][0].set_text(txti)
             self.dax['Txtt'][0].draw_artist(self.Txt['t'][0])
-        if self.dMag is not None:
-            self.dlmag['2D']['Sep'][0].set_xdata(sepi[:,0])
-            self.dlmag['2D']['Sep'][0].set_ydata(sepi[:,1])
-            self.dlmag['2D']['Ax'][0].set_xdata([axi[0]])
-            self.dlmag['2D']['Ax'][0].set_ydata([axi[1]])
-            self.dax['2D'][0].draw_artist(self.dlmag['2D']['Sep'][0])
-            self.dax['2D'][0].draw_artist(self.dlmag['2D']['Ax'][0])
+            for ii in range(0,self.Max):
+                self.dax['prof'][0].draw_artist(self.dlprof['prof'][ii])
+            if self.dMag is not None:
+                self.dlmag['2D']['Sep'][0].set_xdata(sepi[:,0])
+                self.dlmag['2D']['Sep'][0].set_ydata(sepi[:,1])
+                self.dlmag['2D']['Ax'][0].set_xdata([axi[0]])
+                self.dlmag['2D']['Ax'][0].set_ydata([axi[1]])
+                self.dax['2D'][0].draw_artist(self.dlmag['2D']['Sep'][0])
+                self.dax['2D'][0].draw_artist(self.dlmag['2D']['Ax'][0])
+            for kk in rest:
+                for ii in kk[1]:
+                    self.can.blit(self.dax[kk[0]][ii].bbox)
 
         elif self.curax=="chan":
+            rest = [('t',[1]),('Txtc',list(range(self.Max))),
+                    ('prof',[0]),('2D',[0,1])]
+            for kk in rest:
+                for ii in kk[1]:
+                    self.can.restore_region(self.dBck[kk[0]][ii])
+            self.dax['prof'][0].draw_artist(self.dlt['prof'])
+            self.dax['t'][1].draw_artist(self.dlt['t'][1])
             for ii in range(0,self.Max):
                 if ii<=len(self.indch)-1:
                     x12 = self.X12[:,self.indch[ii]]
@@ -724,7 +774,8 @@ class KH_2D(object):
                     self.dlprof['t'][ii].set_visible(True)
                     self.dax['t'][1].draw_artist(self.dlprof['t'][ii])
 
-                    self.dlprof['prof'][ii].set_offsets([x12])
+                    self.dlprof['prof'][ii].set_xdata([x12[0]])
+                    self.dlprof['prof'][ii].set_ydata([x12[1]])
                     self.dlprof['prof'][ii].set_visible(True)
                     self.dax['prof'][0].draw_artist(self.dlprof['prof'][ii])
                     self.Txt['prof'][ii].set_text(txtci)
@@ -743,7 +794,6 @@ class KH_2D(object):
                 else:
                     self.dlprof['t'][ii].set_visible(False)
                     self.dax['t'][1].draw_artist(self.dlprof['t'][ii])
-
                     self.dlprof['prof'][ii].set_visible(False)
                     self.dax['prof'][0].draw_artist(self.dlprof['prof'][ii])
                     self.Txt['prof'][ii].set_visible(False)
@@ -753,10 +803,14 @@ class KH_2D(object):
                         self.dlprof['H'][ii].set_visible(False)
                         self.dax['2D'][0].draw_artist(self.dlprof['C'][ii])
                         self.dax['2D'][1].draw_artist(self.dlprof['H'][ii])
-
+            for kk in rest:
+                for ii in kk[1]:
+                    self.can.blit(self.dax[kk[0]][ii].bbox)
         # Without leaking memory
-        self.can.update()
-        self.can.flush_events()
+        #self.can.update()
+        #self.can.flush_events()
+        #self.can.draw()
+
 
     def onkeypress(self,event):
         lk = ['left','right','up','down']

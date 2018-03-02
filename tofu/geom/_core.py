@@ -1416,7 +1416,7 @@ class LOSCam2D(Rays):
             assert X12.shape==(2,self.Ref['nch'])
         self._X12 = X12
 
-    def get_X12(self, DX12=True):
+    def get_X12(self, out='1d'):
         if self._X12 is None:
             Ds = self.D
             C = np.mean(Ds,axis=1)
@@ -1425,22 +1425,12 @@ class LOSCam2D(Rays):
                             np.sum(X12*self.geom['e2'][:,np.newaxis],axis=0)])
         else:
             X12 = self._X12
-        if X12 is None or DX12 is not True:
+        if X12 is None or out.lower()=='1d':
             DX12 = None
         else:
-            X1u, X2u = np.unique(X12[0,:]), np.unique(X12[1,:])
-            dx1 = np.nanmax(X1u)-np.nanmin(X1u)
-            dx2 = np.nanmax(X2u)-np.nanmin(X2u)
-            ds = dx1*dx2 / X12.shape[1]
-            tol = np.sqrt(ds)/10.
-            x1u, x2u = [X1u[0]], [X2u[0]]
-            for ii in X1u[1:]:
-                if np.abs(ii-x1u[-1])>tol:
-                    x1u.append(ii)
-            for ii in X2u[1:]:
-                if np.abs(ii-x2u[-1])>tol:
-                    x2u.append(ii)
-            DX12 = [np.nanmean(np.diff(x1u)), np.nanmean(np.diff(x2u))]
+            x1u, x2u, ind, DX12 = utils.get_X12fromflat(X12)
+            if out.lower()=='2d':
+                X12 = [x1u, x2u, ind]
         return X12, DX12
 
 

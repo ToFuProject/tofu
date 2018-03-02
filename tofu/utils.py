@@ -27,6 +27,28 @@ def get_nIne1e2(P, nIn=None, e1=None, e2=None):
     return nIn, e1, e2
 
 
+def get_X12fromflat(X12):
+    X1u, X2u = np.unique(X12[0,:]), np.unique(X12[1,:])
+    dx1 = np.nanmax(X1u)-np.nanmin(X1u)
+    dx2 = np.nanmax(X2u)-np.nanmin(X2u)
+    ds = dx1*dx2 / X12.shape[1]
+    tol = np.sqrt(ds)/100.
+    x1u, x2u = [X1u[0]], [X2u[0]]
+    for ii in X1u[1:]:
+        if np.abs(ii-x1u[-1])>tol:
+            x1u.append(ii)
+    for ii in X2u[1:]:
+        if np.abs(ii-x2u[-1])>tol:
+            x2u.append(ii)
+    Dx12 = (np.nanmean(np.diff(x1u)), np.nanmean(np.diff(x2u)))
+    x1u, x2u = np.unique(x1u), np.unique(x2u)
+    ind = np.full((x1u.size,x2u.size),np.nan)
+    for ii in range(0,X12.shape[1]):
+        i1 = (np.abs(x1u-X12[0,ii])<tol).nonzero()[0]
+        i2 = (np.abs(x2u-X12[1,ii])<tol).nonzero()[0]
+        ind[i1,i2] = ii
+    return x1u, x2u, ind, Dx12
+
 
 def create_CamLOS2D(P, F, D12, N12,
                     nIn=None, e1=None, e2=None, VType='Tor'):

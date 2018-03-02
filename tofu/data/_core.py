@@ -442,29 +442,18 @@ class Data2D(Data):
             assert X12.shape==(2,self.Ref['nch'])
         self._X12 = X12
 
-    def get_X12(self):
+    def get_X12(self, out='1d'):
         if self._X12 is None:
             msg = "X12 must be set for plotting if LCam not provided !"
             assert self.geom is not None, msg
-            X12 = self.geom['LCam'][0].get_X12(DX12=False)[0]
+            X12, DX12 = self.geom['LCam'][0].get_X12(out=out)
         else:
             X12 = self._X12
-        if X12 is not None:
-            X1u, X2u = np.unique(X12[0,:]), np.unique(X12[1,:])
-            dx1 = np.nanmax(X1u)-np.nanmin(X1u)
-            dx2 = np.nanmax(X2u)-np.nanmin(X2u)
-            ds = dx1*dx2 / X12.shape[1]
-            tol = np.sqrt(ds)/10.
-            x1u, x2u = [X1u[0]], [X2u[0]]
-            for ii in X1u[1:]:
-                if np.abs(ii-x1u[-1])>tol:
-                    x1u.append(ii)
-            for ii in X2u[1:]:
-                if np.abs(ii-x2u[-1])>tol:
-                    x2u.append(ii)
-            DX12 = [np.nanmean(np.diff(x1u)), np.nanmean(np.diff(x2u))]
-        else:
-            DX12 = None
+            if out.lower()=='2d':
+                x1u, x2u, ind, DX12 = utils.get_X12fromflat(X12)
+                X12 = [x1u,x2u,ind]
+            else:
+                DX12 = None
         return X12, DX12
 
     def plot(self, key=None, invert=True,
