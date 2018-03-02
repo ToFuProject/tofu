@@ -823,7 +823,9 @@ class Rays(object):
                                                 LSLim=lSLim, LSVIn=lSVIn,
                                                 VType=self.Ves.Type, **kargs)
             PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = out
-            ind = np.isnan(kPOut)
+            ind = (np.isnan(kPOut) | np.isinf(kPOut)
+                   | np.any(np.isnan(POut),axis=0))
+            kPOut[ind] = np.nan
             if np.any(ind):
                 warnings.warn("Some LOS have no visibility inside the vessel !")
                 _plot._LOS_calc_InOutPolProj_Debug(self.Ves, D[:,ind], u[:,ind],
@@ -841,13 +843,18 @@ class Rays(object):
         # Get basics of 2D geometry
         if self.Id.Cls=='LOSCam2D':
             C = np.nanmean(D,axis=1)
-            cross = np.array([D[1,1:]*D[2,:-1]-D[2,1:]*D[1,:-1],
-                              D[2,1:]*D[0,:-1]-D[0,1:]*D[2,:-1],
-                              D[0,1:]*D[1,:-1]-D[1,1:]*D[0,:-1]])
-            cross = cross[:,np.nanargmax(np.sqrt(np.sum(cross**2,axis=0)))]
+            CD0 = D[:,:-1] - C[:,np.newaxis]
+            CD1 = D[:,1:] - C[:,np.newaxis]
+            cross = np.array([CD1[1,1:]*CD0[2,:-1]-CD1[2,1:]*CD0[1,:-1],
+                              CD1[2,1:]*CD0[0,:-1]-CD1[0,1:]*CD0[2,:-1],
+                              CD1[0,1:]*CD0[1,:-1]-CD1[1,1:]*CD0[0,:-1]])
+            cross = cross[:,np.nanargmax(np.sum(cross**2,axis=0))]
             cross = cross / np.linalg.norm(cross)
             nIn = cross if np.sum(cross*np.mean(u,axis=1))>0. else -cross
-            nIn, e1, e2 = utils.get_nIne1e2(C, nIn=nIn)
+            nIn, e1, e2 = utils.get_nIne1e2(C, nIn=nIn, e1=D[:,1]-D[:,0])
+            if np.abs(np.abs(nIn[2])-1.)>1.e-12:
+                if np.abs(e1[2])>np.abs(e2[2]):
+                    e1, e2 = e2, e1
             e2 = e2 if e2[2]>0. else -e2
             self._geom.update({'C':C, 'nIn':nIn, 'e1':e1, 'e2':e2})
 
@@ -920,10 +927,8 @@ class Rays(object):
 
     def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, multi=False):
         self._check_inputs(ind=ind)
-        ind = np.asarray(ind)
-        if ind is None:
-            ind = ~np.isnan(self.geom['kPOut'])
-        elif ind.dtype is bool:
+        ind = ~np.isnan(self.geom['kPOut']) if ind is None else np.asarray(ind)
+        if ind.dtype is bool:
             ind = ind & (~np.isnan(self.geom['kPOut']))
         else:
             ii = np.zeros((self.nRays,),dtype=bool)
@@ -1077,11 +1082,28 @@ class Rays(object):
         Ds, us = self.D[:,ind], self.u[:,ind]
         if len(ind)==1:
             Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
-        Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
-        # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
-        sig = _GG.LOS_calc_signal(ff, Ds, us, dl, DL,
-                                  dLMode=dlMode, method=method,
-                                  t=t, Ani=Ani, fkwdargs=fkwdargs, Test=True)
+        if t is None or len(t)==1:
+            sig = np.full((Ds.shape[1],),np.nan)
+        else:
+            sig = np.full((len(t),Ds.shape[1]),np.nan)
+        indok = ~(np.any(np.isnan(DL),axis=0) | np.any(np.isinf(DL),axis=0)
+                  | ((DL[1,:]-DL[0,:])<=0.))
+        if np.any(indok):
+            Ds, us, DL = Ds[:,indok], us[:,indok], DL[:,indok]
+            if indok.sum()==1:
+                Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
+                DL = DL.reshape((2,1))
+            Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
+            DL = np.ascontiguousarray(DL)
+            # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
+            # Exclude Rays not seeing the plasma
+            s = _GG.LOS_calc_signal(ff, Ds, us, dl, DL,
+                                    dLMode=dlMode, method=method,
+                                    t=t, Ani=Ani, fkwdargs=fkwdargs, Test=True)
+            if t is None or len(t)==1:
+                sig[indok] = s
+            else:
+                sig[:,indok] = s
         return sig
 
     def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
@@ -1154,6 +1176,16 @@ class Rays(object):
             Flag indicating whether fig.canvas.draw() shall be called
         a4 :        bool
             Flag indicating whether to plot the figure in a4 dimensions
+        Test :      bool
+        a4 :        bool
+            Flag indicating whether to plot the figure in a4 dimensions
+        Test :      bool
+        a4 :        bool
+            Flag indicating whether to plot the figure in a4 dimensions
+        Test :      bool
+        a4 :        bool
+            Flag indicating whether to plot the figure in a4 dimensions
+        Test :      bool
         Test :      bool
             Flag indicating whether the inputs should be tested for conformity
 
@@ -1351,12 +1383,13 @@ class LOSCam1D(Rays):
 class LOSCam2D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
-                 Exp=None, Diag=None, shot=0,
+                 Exp=None, Diag=None, shot=0, X12=None,
                  dchans=None, SavePath='./'):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                  Sino_RefPt=Sino_RefPt, fromdict=fromdict,
                  Exp=Exp, Diag=Diag, shot=shot,
                  dchans=dchans, SavePath=SavePath)
+        self.set_X12(X12)
 
     def set_e12(self, e1=None, e2=None):
         assert e1 is None or (hasattr(e1,'__iter__') and len(e1)==3)
@@ -1365,25 +1398,50 @@ class LOSCam2D(Rays):
             e1 = self._geom['e1']
         else:
             e1 = np.asarray(e1).astype(float).ravel()
-            e1 = e1 / np.linalg.norm(e1)
+        e1 = e1 / np.linalg.norm(e1)
         if e2 is None:
             e2 = self._geom['e2']
         else:
             e2 = np.asarray(e1).astype(float).ravel()
-            e2 = e2 / np.linalg.norm(e2)
+        e2 = e2 / np.linalg.norm(e2)
         assert np.abs(np.sum(e1*self._geom['nIn']))<1.e-12
         assert np.abs(np.sum(e2*self._geom['nIn']))<1.e-12
         assert np.abs(np.sum(e1*e2))<1.e-12
         self._geom['e1'] = e1
         self._geom['e2'] = e2
 
-    def get_X12(self):
-        Ds = self.D
-        C = np.mean(Ds,axis=1)
-        X12 = Ds-C[:,np.newaxis]
-        X12 = np.array([np.sum(X12*self.geom['e1'][:,np.newaxis],axis=0),
-                        np.sum(X12*self.geom['e2'][:,np.newaxis],axis=0)])
-        return X12
+    def set_X12(self, X12=None):
+        if X12 is not None:
+            X12 = np.asarray(X12)
+            assert X12.shape==(2,self.Ref['nch'])
+        self._X12 = X12
+
+    def get_X12(self, DX12=True):
+        if self._X12 is None:
+            Ds = self.D
+            C = np.mean(Ds,axis=1)
+            X12 = Ds-C[:,np.newaxis]
+            X12 = np.array([np.sum(X12*self.geom['e1'][:,np.newaxis],axis=0),
+                            np.sum(X12*self.geom['e2'][:,np.newaxis],axis=0)])
+        else:
+            X12 = self._X12
+        if X12 is None or DX12 is not True:
+            DX12 = None
+        else:
+            X1u, X2u = np.unique(X12[0,:]), np.unique(X12[1,:])
+            dx1 = np.nanmax(X1u)-np.nanmin(X1u)
+            dx2 = np.nanmax(X2u)-np.nanmin(X2u)
+            ds = dx1*dx2 / X12.shape[1]
+            tol = np.sqrt(ds)/10.
+            x1u, x2u = [X1u[0]], [X2u[0]]
+            for ii in X1u[1:]:
+                if np.abs(ii-x1u[-1])>tol:
+                    x1u.append(ii)
+            for ii in X2u[1:]:
+                if np.abs(ii-x2u[-1])>tol:
+                    x2u.append(ii)
+            DX12 = [np.nanmean(np.diff(x1u)), np.nanmean(np.diff(x2u))]
+        return X12, DX12
 
 
 
@@ -1415,16 +1473,6 @@ class LOSCam2D(Rays):
         Flag indicating which criterion to use for discrimination
         Can be set to:
             - any attribute of :class:`~tofu.pathfile.ID`
-              (e.g.: 'Name','SaveName','SavePath'...)
-            - any key of ID.USRdict (e.g.: 'Exp'...)
-    Val :       None / list / str
-        The value to match for the chosen criterion, can be a list
-        Used for selection mechanism (1)
-    PreExp :    None / list / str
-        A str (or list of such) expression to be fed to eval(),
-        Placed before the criterion value
-        Used for selection mechanism (2)
-    PostExp :   None / list / str
         A str (or list of such) expression to be fed to eval()
         Placed after the criterion value
         Used for selection mechanism (2)

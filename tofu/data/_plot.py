@@ -1,77 +1,37 @@
 # coding utf-8
 
+# Built-in
+import itertools as itt
 
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+import matplotlib as mpl
+
+__all__ = ['Data_plot']
 
 
+def Data_plot(Data, key=None,
+              cmap=plt.cm.gray, ms=6,
+              dMag=None, Max=None, invert=False, a4=False):
 
-def Data_plot(Data, key=None, Max=4, a4=False):
-
-    if Data._geom is None:
-        if '1D' in Data._CamCls:
-            Lax = _Data1D_plot_NoGeom(Data, key=key, Max=Max, a4=a4)
-        else:
-            Lax = _Data2D_plot_NoGeom(Data, key=key, Max=Max, a4=a4)
+    if '1D' in Data._CamCls:
+        Max = 3 if Max is None else Max
+        dax, KH = _Data1D_plot(Data, key=key, dMag=dMag, Max=Max, a4=a4)
     else:
-        if '1D' in Data._CamCls:
-            Lax = _Data1D_plot(Data, key=key, Max=Max, a4=a4)
-        else:
-            Lax = _Data2D_plot(Data, key=key, Max=Max, a4=a4)
-    return Lax
+        Max = 6 if Max is None else Max
+        dax, KH = _Data2D_plot(Data, key=key, cmap=cmap, ms=ms, dMag=dMag,
+                               Max=Max, invert=invert, a4=a4)
+    return dax, KH
 
 
 
 ###################################################
 ###################################################
-#           Data1D_NoGeom
+#           Data1D
 ###################################################
 ###################################################
-
-
-
-def _init_Data1D_NoGeom(a4=False, Max=4):
-    (fW,fH,axCol) = (8.27,11.69,'w') if a4 else (10,10,'w')
-    fig = plt.figure(facecolor=axCol,figsize=(fW,fH))
-    gs1 = gridspec.GridSpec(2, 1,
-                            left=0.10, bottom=0.10, right=0.98, top=0.90,
-                            wspace=None, hspace=0.25)
-    axt = fig.add_subplot(gs1[0,0], fc='w')
-    axp = fig.add_subplot(gs1[1,0], fc='w')
-    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
-    DYtxt = axt.get_position().bounds[1] - Ytxt
-    Ytxt2 = Ytxt + DYtxt/2.
-    gst = gridspec.GridSpec(1, Max,
-                           left=0.3, bottom=Ytxt, right=0.95, top=Ytxt2,
-                           wspace=0.10, hspace=None)
-    Ytxt = axt.get_position().bounds[1]+axt.get_position().bounds[3]
-    gsc = gridspec.GridSpec(1, Max,
-                           left=0.3, bottom=Ytxt, right=0.95, top=Ytxt+DYtxt/2.,
-                           wspace=0.10, hspace=None)
-    LaxTxtt = [fig.add_subplot(gst[0,ii], fc='w') for ii in range(0,Max)]
-    LaxTxtc = [fig.add_subplot(gsc[0,ii], fc='w') for ii in range(0,Max)]
-
-    for ii in range(0,Max):
-        LaxTxtt[ii].spines['top'].set_visible(False)
-        LaxTxtt[ii].spines['bottom'].set_visible(False)
-        LaxTxtt[ii].spines['right'].set_visible(False)
-        LaxTxtt[ii].spines['left'].set_visible(False)
-        LaxTxtc[ii].spines['top'].set_visible(False)
-        LaxTxtc[ii].spines['bottom'].set_visible(False)
-        LaxTxtc[ii].spines['right'].set_visible(False)
-        LaxTxtc[ii].spines['left'].set_visible(False)
-        LaxTxtt[ii].set_xticks([]), LaxTxtt[ii].set_yticks([])
-        LaxTxtc[ii].set_xticks([]), LaxTxtc[ii].set_yticks([])
-        LaxTxtt[ii].set_xlim(0,1),  LaxTxtt[ii].set_ylim(0,1)
-        LaxTxtc[ii].set_xlim(0,1),  LaxTxtc[ii].set_ylim(0,1)
-
-    dax = {'t':axt, 'prof':axp, 'Txtt':LaxTxtt, 'Txtc':LaxTxtc}
-    for kk in dax.keys():
-        if 'Txt' not in kk:
-            dax[kk].tick_params(labelsize=8)
-    return dax
 
 
 def _init_Data1D(a4=False, Max=4):
@@ -89,12 +49,13 @@ def _init_Data1D(a4=False, Max=4):
     DY = Laxt[0].get_position().bounds[1] - Ytxt
     right = Laxt[1].get_position().bounds[0]+Laxt[1].get_position().bounds[2]
     gst = gridspec.GridSpec(1, Max,
-                           left=0.2, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
+                           left=0.1, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
                            wspace=0.10, hspace=None)
     Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
     left = axp.get_position().bounds[0]
+    right = axp.get_position().bounds[0]+axp.get_position().bounds[2]
     gsc = gridspec.GridSpec(1, Max,
-                           left=0.1, bottom=Ytxt, right=0.80, top=Ytxt+DY/2.,
+                           left=left, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
                            wspace=0.10, hspace=None)
     LaxTxtt = [fig.add_subplot(gst[0,ii], fc='w') for ii in range(0,Max)]
     LaxTxtc = [fig.add_subplot(gsc[0,ii], fc='w') for ii in range(0,Max)]
@@ -115,66 +76,60 @@ def _init_Data1D(a4=False, Max=4):
         LaxTxtt[ii].set_xlim(0,1),  LaxTxtt[ii].set_ylim(0,1)
         LaxTxtc[ii].set_xlim(0,1),  LaxTxtc[ii].set_ylim(0,1)
 
-    dax = {'t':Laxt, 'prof':[axp], '2D':[axC,axH], 'Txtt':LaxTxtt, 'Txtc':LaxTxtc}
+    dax = {'t':Laxt, 'prof':[axp], '2D':[axC,axH],
+           'Txtt':LaxTxtc, 'Txtc':LaxTxtt}
     for kk in dax.keys():
         for ii in range(0,len(dax[kk])):
             dax[kk][ii].tick_params(labelsize=8)
     return dax
 
 
-def _Data1D_plot_NoGeom(Data, key=None, Max=4, a4=False):
+def _Data1D_plot(Data, key=None,
+                 dMag=None, Max=4, a4=False):
 
     # Prepare
     Dname = 'data'
     Dunits = Data.units['data']
     Dd = [min(0,np.nanmin(Data.data)), 1.2*np.nanmax(Data.data)]
 
-    Dt = [np.nanmin(Data.t), np.nanmax(Data.t)]
-    chans = np.arange(0,Data.Ref['nch'])
+    if Data.t is None:
+        t = np.asarray([0])
+        Dt = [-1,1]
+        data = Data.data.rehape((1,Data.nch))
+    elif Data.nt==1:
+        t = Data.t
+        Dt = [t[0]-1,t[0]+1]
+        data = Data.data.rehape((1,Data.nch))
+    else:
+        t = Data.t
+        Dt = [np.nanmin(Data.t), np.nanmax(Data.t)]
+        data = Data.data
+    chansRef = np.arange(0,Data.Ref['nch'])
+    chans = chansRef[Data.indch]
     Dchans = [-1,Data.Ref['nch']]
-    chlab = chans if key is None else Data.dchans(key)
-    denv = [np.nanmin(Data.data,axis=0), np.nanmax(Data.data,axis=0)]
+    if Data.geom is None:
+        chlabRef = chansRef
+        chlab = chans
+    else:
+        chlabRef = chansRef if key is None else Data.Ref['dchans'][key]
+        chlab = chans if key is None else Data.dchans(key)
+    denv = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
 
-    tbck = np.tile(np.r_[Data.t, np.nan], Data.nch)
-    dbck = np.vstack((Data.data, np.full((1,Data.nch),np.nan))).T.ravel()
+    tbck = np.tile(np.r_[t, np.nan], Data.nch)
+    dbck = np.vstack((data, np.full((1,Data.nch),np.nan))).T.ravel()
 
-    # Format axes
-    dax = _init_Data1D_NoGeom(a4=a4, Max=Max)
-    tit = r"" if Data.Id.Exp is None else r"%s"%Data.Id.Exp
-    tit += r"" if Data.shot is None else r" {0:05.0f}".format(Data.shot)
-    dax['t'].figure.suptitle(tit)
-
-    dax['t'].set_xlim(Dt),          dax['t'].set_ylim(Dd)
-    dax['prof'].set_xlim(Dchans),   dax['prof'].set_ylim(Dd)
-    dax['t'].set_xlabel(r"t ($s$)", fontsize=8)
-    dax['t'].set_ylabel(r"data (%s)"%Dunits, fontsize=8)
-    dax['prof'].set_xlabel(r"", fontsize=8)
-    dax['prof'].set_ylabel(r"data (%s)"%Dunits, fontsize=8)
-    dax['prof'].set_xticks(chans)
-    dax['prof'].set_xticklabels(chlab, rotation=45)
-
-    # Plot fixed parts
-    cbck = (0.8,0.8,0.8,0.8)
-    dax['t'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
-    dax['prof'].fill_between(chans, denv[0], denv[1], facecolor=cbck)
-
-    return dax
-
-def _Data1D_plot(Data, key=None, Max=4, a4=False):
-
-    # Prepare
-    Dname = 'data'
-    Dunits = Data.units['data']
-    Dd = [min(0,np.nanmin(Data.data)), 1.2*np.nanmax(Data.data)]
-
-    Dt = [np.nanmin(Data.t), np.nanmax(Data.t)]
-    chans = np.arange(0,Data.Ref['nch'])
-    Dchans = [-1,Data.Ref['nch']]
-    chlab = chans if key is None else Data.dchans(key)
-    denv = [np.nanmin(Data.data,axis=0), np.nanmax(Data.data,axis=0)]
-
-    tbck = np.tile(np.r_[Data.t, np.nan], Data.nch)
-    dbck = np.vstack((Data.data, np.full((1,Data.nch),np.nan))).T.ravel()
+    if Data.geom is not None:
+        if 'LOS' in Data._CamCls:
+            lCross = [cc._get_plotL(Lplot='In', Proj='Cross', multi=True)
+                      for cc in Data.geom['LCam']]
+            lHor = [cc._get_plotL(Lplot='In', Proj='Hor', multi=True)
+                    for cc in Data.geom['LCam']]
+            lCross = list(itt.chain.from_iterable(lCross))
+            lHor = list(itt.chain.from_iterable(lHor))
+        else:
+            raise Exception("Not coded yet !")
+    else:
+        lCross, lHor = None, None
 
     # Format axes
     dax = _init_Data1D(a4=a4, Max=Max)
@@ -185,27 +140,665 @@ def _Data1D_plot(Data, key=None, Max=4, a4=False):
     for ii in range(0,len(dax['t'])):
         dax['t'][ii].set_xlim(Dt)
         dax['t'][ii].set_ylim(Dd)
-        dax['t'][ii].set_ylabel(r"data (%s)"%Dunits, fontsize=8)
+    dax['t'][1].set_ylabel(r"data (%s)"%Dunits, fontsize=8)
     dax['t'][1].set_xlabel(r"t ($s$)", fontsize=8)
     dax['prof'][0].set_xlim(Dchans),   dax['prof'][0].set_ylim(Dd)
     dax['prof'][0].set_xlabel(r"", fontsize=8)
     dax['prof'][0].set_ylabel(r"data (%s)"%Dunits, fontsize=8)
-    dax['prof'][0].set_xticks(chans)
-    dax['prof'][0].set_xticklabels(chlab, rotation=45)
+    dax['prof'][0].set_xticks(chansRef)
+    dax['prof'][0].set_xticklabels(chlabRef, rotation=45)
 
     # Plot fixed parts
     cbck = (0.8,0.8,0.8,0.8)
     dax['t'][1].plot(tbck, dbck, lw=1., ls='-', c=cbck)
     dax['prof'][0].fill_between(chans, denv[0], denv[1], facecolor=cbck)
 
-    if Data.geom['Ves'] is not None:
-        dax['2D'] = Data.geom['Ves'].plot(Lax=dax['2D'], Elt='P', dLeg=None)
-    if Data.geom['LStruct'] is not None:
-        for ss in Data.geom['LStruct']:
-            dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
-    if Data.geom['LCam'] is not None:
-        for cc in Data.geom['LCam']:
-            dax['2D'] = cc.plot(Lax=dax['2D'], Elt='L', Lplot='In',
-                                dL={'c':(0.4,0.4,0.4),'lw':1.}, dLeg=None)
+    if Data.geom is not None:
+        if Data.geom['Ves'] is not None:
+            dax['2D'] = Data.geom['Ves'].plot(Lax=dax['2D'], Elt='P', dLeg=None)
+        if Data.geom['LStruct'] is not None:
+            for ss in Data.geom['LStruct']:
+                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
+        if Data.geom['LCam'] is not None:
+            for cc in Data.geom['LCam']:
+                dax['2D'] = cc.plot(Lax=dax['2D'], Elt='L', Lplot='In',
+                                    dL={'c':(0.4,0.4,0.4),'lw':1.}, dLeg=None)
 
+    can = dax['t'][0].figure.canvas
+    KH = KH_1D(data, chans, t, chlab, Data._CamCls, dMag,
+               lCross, lHor, dax, can, Max=Max)
+
+    def on_press(event):
+        KH.onkeypress(event)
+    def on_clic(event):
+        KH.mouseclic(event)
+    KH.can.mpl_connect('key_press_event', on_press)
+    KH.can.mpl_connect('key_release_event', on_press)
+    KH.can.mpl_connect('button_press_event', on_clic)
+
+    return dax, KH
+
+
+
+# Define keyHandlker class for interactivity
+class KH_1D(object):
+    def __init__(self, Y, X, t, lchans, CamCls, dMag,
+                 lCross, lH, dax, can,
+                 indt=[0], indch=[0], Max=4,
+                 colch=['m','c','y','w'], colt=['k','r','b','g']):
+        self.t, self.X, self.Y = t, X, Y
+        self.lchans, self.CamCls = lchans, CamCls
+        self.lCross, self.lH = lCross, lH
+        self.dMag = dMag
+        self.nt, self.nch = t.size, Y.shape[1]
+        self.indt, self.indch = indt, indch
+        self.can, self.dax = can, dax
+        self.naxt, self.naxprof = len(dax['t']), len(dax['prof'])
+        self.Max = Max
+        self.shift = False
+        self.nant = np.full((self.nt,),np.nan)
+        self.nanch = np.full((self.nch,),np.nan)
+        if self.dMag is not None:
+            self.nansep = np.full((dMag['nPSep'],2),np.nan)
+            self.nanax = np.array([np.nan,np.nan])
+        self.colch, self.colt = colch, colt
+        self.curax = 'time'
+        self.initplot()
+
+    def initplot(self):
+        if self.dMag is not None:
+            c = (0.8,0.8,0.8)
+        tin0 = [[0 for i in range(0,self.Max)] for j in range(0,self.naxt)]
+        tin1 = [[0 for i in range(0,self.Max)] for j in range(0,self.naxt)]
+        pin0 = [[0 for i in range(self.Max)] for j in range(self.naxprof)]
+        pin1 = [[0 for i in range(self.Max)] for j in range(self.naxprof)]
+        tin2 = [0 for i in range(self.Max)]
+        pin2 = [0 for i in range(self.Max)]
+        self.dlt = {'t':tin0, 'prof':pin0}
+        self.dlprof = {'t':tin1, 'prof':pin1,
+                       'C':[0 for i in range(self.Max)],
+                       'H':[0 for i in range(self.Max)]}
+        self.Txt = {'t':tin2, 'prof':pin2}
+        self.dlmag = {'prof':{'Ax':[0 for ii in range(self.Max)],
+                              'Sep':[0 for ii in range(self.Max)]},
+                      '2D':{'Ax':[0 for ii in range(self.Max)],
+                              'Sep':[0 for ii in range(self.Max)]}}
+        for jj in range(0,self.naxt):
+            axj = self.dax['t'][jj]
+            for ii in range(0,self.Max):
+                self.dlt['t'][jj][ii] = axj.axvline(np.nan,0,1,
+                                                   c=self.colt[ii],
+                                                   ls='--',lw=1.)
+                #self.dax['t'][jj].draw_artist(self.dlt['t'][jj][ii])
+                if jj>=1:
+                    self.dlprof['t'][jj][ii], = axj.plot(self.t, self.nant,
+                                                         c=self.colch[ii],
+                                                         ls='-', lw=2.)
+                    #self.dax['t'][jj].draw_artist(self.dlprof['t'][jj][ii])
+        for jj in range(0,self.naxprof):
+            axj = self.dax['prof'][jj]
+            for ii in range(0,self.Max):
+                self.dlprof['prof'][jj][ii] = axj.axvline(np.nan,0,1,
+                                                          c=self.colch[ii],
+                                                          ls='--',lw=1.)
+                self.dlt['prof'][jj][ii], = axj.plot(self.X, self.nanch,
+                                                     c=self.colt[ii],
+                                                     ls='-',lw=2.)
+                #self.dax['prof'][jj].draw_artist(self.dlprof['prof'][jj][ii])
+                #self.dax['prof'][jj].draw_artist(self.dlt['prof'][jj][ii])
+        nanC = np.full((10,),np.nan)
+        nanH = np.full((2,),np.nan)
+        for ii in range(0,self.Max):
+            self.dlprof['C'][ii], = self.dax['2D'][0].plot(nanC, nanC,
+                                                           lw=2., ls='-',
+                                                           c=self.colch[ii])
+            self.dlprof['H'][ii], = self.dax['2D'][1].plot(nanH, nanH,
+                                                           lw=2., ls='-',
+                                                           c=self.colch[ii])
+
+        if self.dMag is not None:
+            for ii in range(0,self.Max):
+                l, = self.dax['2D'][0].plot([np.nan],[np.nan],
+                                            marker='x',ms=12,c=self.colt[ii])
+                self.dlmag['2D']['Ax'][ii] = l
+                l, = self.dax['2D'][0].plot(self.nansep[:,0],self.nansep[:,1],
+                                            ls='-',lw=2.,c=self.colt[ii])
+                self.dlmag['2D']['Sep'][ii] = l
+        for ii in range(0,self.Max):
+            txt = self.dax['Txtt'][ii].text(0.5,0.5, r"",
+                                            color=self.colt[ii], size=8,
+                                            fontweight='bold',
+                                            va='center', ha='center')
+            self.Txt['t'][ii] = txt
+            txt = self.dax['Txtc'][ii].text(0.5,0.5, r"",
+                                            color=self.colch[ii], size=8,
+                                            fontweight='bold',
+                                            va='center', ha='center')
+            self.Txt['prof'][ii] = txt
+        self.can.draw()
+
+    def update(self):
+        if self.curax=='time':
+            for ii in range(0,self.Max):
+                if ii<=len(self.indt)-1:
+                    ti = self.t[self.indt[ii]]
+                    txti = r"t = {0:07.3f} s".format(ti)
+                    Yi = self.Y[self.indt[ii],:]
+                    if self.dMag is not None:
+                        it = self.dMag['indt'][self.indt[ii]]
+                        sepi = self.dMag['Sep'][it,:,:]
+                        axi = self.dMag['Ax'][it,:]
+
+                    for jj in range(0,self.naxt):
+                        self.dlt['t'][jj][ii].set_xdata(ti)
+                        self.dlt['t'][jj][ii].set_visible(True)
+                        self.dax['t'][jj].draw_artist(self.dlt['t'][jj][ii])
+
+                    for jj in range(0,self.naxprof):
+                        self.dlt['prof'][jj][ii].set_ydata(Yi)
+                        self.dlt['prof'][jj][ii].set_visible(True)
+                        self.dax['prof'][jj].draw_artist(self.dlt['prof'][jj][ii])
+                    self.Txt['t'][ii].set_text(txti)
+                    self.Txt['t'][ii].set_visible(True)
+                    self.dax['Txtt'][ii].draw_artist(self.Txt['t'][ii])
+                else:
+                    for jj in range(0,self.naxt):
+                        self.dlt['t'][jj][ii].set_visible(False)
+                        self.dax['t'][jj].draw_artist(self.dlt['t'][jj][ii])
+                    for jj in range(0,self.naxprof):
+                        self.dlt['prof'][jj][ii].set_visible(False)
+                        self.dax['prof'][jj].draw_artist(self.dlt['prof'][jj][ii])
+                    self.Txt['t'][ii].set_visible(False)
+                    self.dax['Txtt'][ii].draw_artist(self.Txt['t'][ii])
+                if self.dMag is not None:
+                    self.dlmag['2D']['Sep'][ii].set_xdata(sepi[:,0])
+                    self.dlmag['2D']['Sep'][ii].set_ydata(sepi[:,1])
+                    self.dlmag['2D']['Ax'][ii].set_xdata([axi[0]])
+                    self.dlmag['2D']['Ax'][ii].set_ydata([axi[1]])
+                    self.dax['2D'][0].draw_artist(self.dlmag['2D']['Sep'][ii])
+                    self.dax['2D'][0].draw_artist(self.dlmag['2D']['Ax'][ii])
+
+        elif self.curax=="chan":
+            for ii in range(0,self.Max):
+                if ii<=len(self.indch)-1:
+                    chi = self.X[self.indch[ii]]
+                    txtci = str(self.lchans[self.indch[ii]])
+                    Yii = self.Y[:,self.indch[ii]]
+
+                    for jj in range(0,self.naxt):
+                        if jj==1:
+                            self.dlprof['t'][jj][ii].set_ydata(Yii)
+                            self.dlprof['t'][jj][ii].set_visible(True)
+                            self.dax['t'][jj].draw_artist(self.dlprof['t'][jj][ii])
+
+                    for jj in range(0,self.naxprof):
+                        self.dlprof['prof'][jj][ii].set_xdata(chi)
+                        self.dlprof['prof'][jj][ii].set_visible(True)
+                        self.dax['prof'][jj].draw_artist(self.dlprof['prof'][jj][ii])
+                    self.Txt['prof'][ii].set_text(txtci)
+                    self.Txt['prof'][ii].set_visible(True)
+                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof'][ii])
+                    if self.lCross is not None:
+                        if 'LOS' in self.CamCls:
+                            self.dlprof['C'][ii].set_data(self.lCross[self.indch[ii]])
+                            self.dlprof['H'][ii].set_data(self.lH[self.indch[ii]])
+                        else:
+                            raise Exception("Not coded yet !")
+                        self.dlprof['C'][ii].set_visible(True)
+                        self.dlprof['H'][ii].set_visible(True)
+                        self.dax['2D'][0].draw_artist(self.dlprof['C'][ii])
+                        self.dax['2D'][1].draw_artist(self.dlprof['H'][ii])
+                else:
+                    for jj in range(0,self.naxt):
+                        if jj==1:
+                            self.dlprof['t'][jj][ii].set_visible(False)
+                            self.dax['t'][jj].draw_artist(self.dlprof['t'][jj][ii])
+
+                    for jj in range(0,self.naxprof):
+                        self.dlprof['prof'][jj][ii].set_visible(False)
+                        self.dax['prof'][jj].draw_artist(self.dlprof['prof'][jj][ii])
+                    self.Txt['prof'][ii].set_visible(False)
+                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof'][ii])
+                    if self.lCross is not None:
+                        self.dlprof['C'][ii].set_visible(False)
+                        self.dlprof['H'][ii].set_visible(False)
+                        self.dax['2D'][0].draw_artist(self.dlprof['C'][ii])
+                        self.dax['2D'][1].draw_artist(self.dlprof['H'][ii])
+
+        # Without leaking memory
+        #t1 = dtm.datetime.now()
+        self.can.update()
+        self.can.flush_events()
+
+    def onkeypress(self,event):
+        C = any([ss in event.key for ss in ['left','right']])
+        if event.name is 'key_press_event' and C:
+            inc = -1 if 'left' in event.key else 1
+            if self.shift:
+                if self.curax=='time' and len(self.indt)<self.Max:
+                    self.indt.append(self.indt[-1]+inc)
+                elif self.curax=='chan' and len(self.indch)<self.Max:
+                    self.indch.append(self.indch[-1]+inc)
+                else:
+                    print("     Max. nb. of simultaneous plots reached !!!")
+            else:
+                if self.curax=='time':
+                    self.indt[-1] += inc
+                    self.indt[-1] = self.indt[-1]%self.nt
+                else:
+                    self.indch[-1] += inc
+                    self.indch[-1] = self.indch[-1]%self.nch
+            self.update()
+        elif event.name is 'key_press_event' and event.key == 'shift':
+            self.shift = True
+        elif event.name is 'key_release_event' and event.key == 'shift':
+            self.shift = False
+
+    def mouseclic(self,event):
+        if event.button == 1 and event.inaxes in self.dax['t']:
+            self.curax = 'time'
+            if self.shift:
+                if len(self.indt)<self.Max:
+                    self.indt.append(np.argmin(np.abs(self.t-event.xdata)))
+                else:
+                    print("     Max. nb. of simultaneous plots reached !!!")
+            else:
+                self.indt = [np.argmin(np.abs(self.t-event.xdata))]
+            self.update()
+        elif event.button == 1 and event.inaxes in self.dax['prof']:
+            self.curax = 'chan'
+            if self.shift:
+                if len(self.indch)<self.Max:
+                    self.indch.append(np.argmin(np.abs(self.X-event.xdata)))
+                else:
+                    print("     Max. nb. of simultaneous plots reached !!!")
+            else:
+                self.indch = [np.argmin(np.abs(self.X-event.xdata))]
+            self.update()
+
+
+
+
+
+
+###################################################
+###################################################
+#           Data2D
+###################################################
+###################################################
+
+
+def _init_Data2D(a4=False, Max=4):
+    (fW,fH,axCol) = (8.27,11.69,'w') if a4 else (20,10,'w')
+    fig = plt.figure(facecolor=axCol,figsize=(fW,fH))
+    gs1 = gridspec.GridSpec(6, 5,
+                            left=0.03, bottom=0.05, right=0.99, top=0.94,
+                            wspace=None, hspace=0.4)
+    Laxt = [fig.add_subplot(gs1[:3,:2], fc='w'),
+            fig.add_subplot(gs1[3:,:2],fc='w')]
+    cax = fig.add_subplot(gs1[0,2:-1], fc='w')
+    axp = fig.add_subplot(gs1[1:,2:-1], fc='w')
+    axH = fig.add_subplot(gs1[0:2,4], fc='w')
+    axC = fig.add_subplot(gs1[2:,4], fc='w')
+    Ytxt = Laxt[1].get_position().bounds[1]+Laxt[1].get_position().bounds[3]
+    DY = Laxt[0].get_position().bounds[1] - Ytxt
+    right = Laxt[1].get_position().bounds[0]+Laxt[1].get_position().bounds[2]
+    gst = gridspec.GridSpec(1, Max,
+                           left=0.1, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
+                           wspace=0.10, hspace=None)
+    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
+    left = axp.get_position().bounds[0]
+    right = axp.get_position().bounds[0]+axp.get_position().bounds[2]
+    gsc = gridspec.GridSpec(1, Max,
+                           left=left, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
+                           wspace=0.10, hspace=None)
+    LaxTxtt = [fig.add_subplot(gst[0,ii], fc='w') for ii in range(0,Max)]
+    LaxTxtc = [fig.add_subplot(gsc[0,ii], fc='w') for ii in range(0,1)]
+
+    axC.set_aspect('equal', adjustable='datalim')
+    axH.set_aspect('equal', adjustable='datalim')
+    for ii in range(0,Max):
+        LaxTxtt[ii].spines['top'].set_visible(False)
+        LaxTxtt[ii].spines['bottom'].set_visible(False)
+        LaxTxtt[ii].spines['right'].set_visible(False)
+        LaxTxtt[ii].spines['left'].set_visible(False)
+        LaxTxtt[ii].set_xticks([]), LaxTxtt[ii].set_yticks([])
+        LaxTxtt[ii].set_xlim(0,1),  LaxTxtt[ii].set_ylim(0,1)
+
+    LaxTxtc[0].spines['top'].set_visible(False)
+    LaxTxtc[0].spines['bottom'].set_visible(False)
+    LaxTxtc[0].spines['right'].set_visible(False)
+    LaxTxtc[0].spines['left'].set_visible(False)
+    LaxTxtc[0].set_xticks([]), LaxTxtc[0].set_yticks([])
+    LaxTxtc[0].set_xlim(0,1),  LaxTxtc[0].set_ylim(0,1)
+
+    dax = {'t':Laxt, 'prof':[axp], '2D':[axC,axH], 'cax':[cax],
+           'Txtt':LaxTxtc, 'Txtc':LaxTxtt}
+    for kk in dax.keys():
+        for ii in range(0,len(dax[kk])):
+            dax[kk][ii].tick_params(labelsize=8)
     return dax
+
+
+def _Data2D_plot(Data, key=None,
+                 cmap=plt.cm.gray, ms=6,
+                 colch=['r','b','g','m','c','y'],
+                 dMag=None, Max=4, invert=False, a4=False):
+
+    # Prepare
+    Dname = 'data'
+    Dunits = Data.units['data']
+    Dd = [min(0,np.nanmin(Data.data)), 1.2*np.nanmax(Data.data)]
+
+    if Data.t is None:
+        t = np.asarray([0])
+        Dt = [-1,1]
+        data = Data.data.rehape((1,Data.nch))
+    elif Data.nt==1:
+        t = Data.t
+        Dt = [t[0]-1,t[0]+1]
+        data = Data.data.rehape((1,Data.nch))
+    else:
+        t = Data.t
+        Dt = [np.nanmin(Data.t), np.nanmax(Data.t)]
+        data = Data.data
+    chansRef = np.arange(0,Data.Ref['nch'])
+    chans = chansRef[Data.indch]
+    Dchans = [-1,Data.Ref['nch']]
+    if Data.geom is None:
+        chlabRef = chansRef
+        chlab = chans
+    else:
+        chlabRef = chansRef if key is None else Data.Ref['dchans'][key]
+        chlab = chans if key is None else Data.dchans(key)
+    X12, DX12 = Data.get_X12()
+    X12[:,np.all(np.isnan(data),axis=0)] = np.nan
+
+    DX1 = [np.nanmin(X12[0,:]),np.nanmax(X12[0,:])]
+    DX1 = [DX1[0]-0.05*(DX1[1]-DX1[0]), DX1[1]+0.05*(DX1[1]-DX1[0])]
+    DX2 = [np.nanmin(X12[1,:]),np.nanmax(X12[1,:])]
+    DX2 = [DX2[0]-0.05*(DX2[1]-DX2[0]), DX2[1]+0.05*(DX2[1]-DX2[0])]
+    denv = [np.nanmin(data,axis=1), np.nanmax(data,axis=1)]
+
+    if Data.geom is not None:
+        if 'LOS' in Data._CamCls:
+            lCross = [cc._get_plotL(Lplot='In', Proj='Cross', multi=True)
+                      for cc in Data.geom['LCam']]
+            lHor = [cc._get_plotL(Lplot='In', Proj='Hor', multi=True)
+                    for cc in Data.geom['LCam']]
+            lCross = list(itt.chain.from_iterable(lCross))
+            lHor = list(itt.chain.from_iterable(lHor))
+        else:
+            raise Exception("Not coded yet !")
+    else:
+        lCross, lHor = None, None
+
+    # Format axes
+    dax = _init_Data2D(a4=a4, Max=Max)
+    tit = r"" if Data.Id.Exp is None else r"%s"%Data.Id.Exp
+    tit += r"" if Data.shot is None else r" {0:05.0f}".format(Data.shot)
+    dax['t'][0].figure.suptitle(tit)
+
+    for ii in range(0,len(dax['t'])):
+        dax['t'][ii].set_xlim(Dt)
+        dax['t'][ii].set_ylim(Dd)
+    dax['t'][1].set_ylabel(r"data (%s)"%Dunits, fontsize=8)
+    dax['t'][1].set_xlabel(r"t ($s$)", fontsize=8)
+    dax['prof'][0].set_xlim(DX1),   dax['prof'][0].set_ylim(DX2)
+    dax['prof'][0].set_xlabel(r"$X_1$", fontsize=8)
+    dax['prof'][0].set_ylabel(r"$X_2$", fontsize=8)
+    dax['prof'][0].set_aspect('equal', adjustable='datalim')
+    if invert:
+        dax['prof'][0].invert_xaxis()
+        dax['prof'][0].invert_yaxis()
+
+    # Plot fixed parts
+    cbck = (0.8,0.8,0.8,0.8)
+    dax['t'][1].fill_between(t, denv[0], denv[1], facecolor=cbck)
+
+    if Data.geom is not None:
+        if Data.geom['Ves'] is not None:
+            dax['2D'] = Data.geom['Ves'].plot(Lax=dax['2D'], Elt='P', dLeg=None)
+        if Data.geom['LStruct'] is not None:
+            for ss in Data.geom['LStruct']:
+                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
+        #if Data.geom['LCam'] is not None:
+        #    for cc in Data.geom['LCam']:
+        #        dax['2D'] = cc.plot(Lax=dax['2D'], Elt='L', Lplot='In',
+        #                            dL={'c':(0.4,0.4,0.4),'lw':1.}, dLeg=None)
+
+    vmin, vmax = np.nanmin(data), np.nanmax(data)
+    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    mpl.colorbar.ColorbarBase(dax['cax'][0], cmap=cmap,
+                              norm=norm, orientation='horizontal')
+
+    can = dax['t'][0].figure.canvas
+    KH = KH_2D(data, X12, t, Data._CamCls, dMag,
+               lCross, lHor, dax, can, Max=Max, invert=invert,
+               colch=colch, cm=cmap, ms=ms, DX12=DX12, norm=norm)
+
+    def on_press(event):
+        KH.onkeypress(event)
+    def on_clic(event):
+        KH.mouseclic(event)
+    KH.can.mpl_connect('key_press_event', on_press)
+    KH.can.mpl_connect('key_release_event', on_press)
+    KH.can.mpl_connect('button_press_event', on_clic)
+
+    return dax, KH
+
+
+
+# Define keyHandlker class for interactivity
+class KH_2D(object):
+    def __init__(self, Y, X12, t, CamCls, dMag,
+                 lCross, lH, dax, can, invert=False,
+                 indt=[0], indch=[0], Max=4, DX12=0.,
+                 ms=6, cm=plt.cm.gray, norm=None,
+                 colch=['m','c','y','w'], colt=['k','r','b','g']):
+        self.t, self.X12, self.Y = t, X12, Y
+        self.incX12 = {'left':-np.r_[DX12[0],0.], 'right':np.r_[DX12[0],0.],
+                       'up':np.r_[0.,DX12[1]], 'down':-np.r_[0.,DX12[1]]}
+        self.CamCls = CamCls
+        self.lCross, self.lH = lCross, lH
+        self.dMag = dMag
+        self.nt, self.nch = t.size, Y.shape[1]
+        self.indt, self.indch = indt, indch
+        self.can, self.dax = can, dax
+        self.naxt, self.naxprof = len(dax['t']), len(dax['prof'])
+        self.Max = Max
+        self.shift = False
+        self.nant = np.full((self.nt,),np.nan)
+        self.nanch = np.full((self.nch,),np.nan)
+        if self.dMag is not None:
+            self.nansep = np.full((dMag['nPSep'],2),np.nan)
+            self.nanax = np.array([np.nan,np.nan])
+        self.colch, self.colt = colch, colt
+        self.curax = 'time'
+        self.ms, self.cm = ms, cm
+        self.norm = norm
+        self.invert = invert
+        self.initplot()
+
+    def initplot(self):
+        if self.dMag is not None:
+            c = (0.8,0.8,0.8)
+        tin0 = [0 for j in range(0,self.naxt)]
+        tin1 = [0 for i in range(self.Max)]
+        pin0 = 0
+        pin1 = [0 for i in range(self.Max)]
+        tin2 = [0 for i in range(self.Max)]
+        pin2 = [0 for i in range(self.Max)]
+        self.dlt = {'t':tin0, 'prof':pin0}
+        self.dlprof = {'t':tin1, 'prof':pin1,
+                       'C':[0 for i in range(self.Max)],
+                       'H':[0 for i in range(self.Max)]}
+        self.Txt = {'t':tin2, 'prof':pin2}
+        self.dlmag = {'prof':{'Ax':[0 for ii in range(self.Max)],
+                              'Sep':[0 for ii in range(self.Max)]},
+                      '2D':{'Ax':[0 for ii in range(self.Max)],
+                              'Sep':[0 for ii in range(self.Max)]}}
+        for jj in range(0,self.naxt):
+            axj = self.dax['t'][jj]
+            self.dlt['t'][jj] = axj.axvline(np.nan,0,1, c='k',
+                                            ls='--',lw=1.)
+            if jj>=1:
+                for ii in range(0,self.Max):
+                    self.dlprof['t'][ii], = axj.plot(self.t, self.nant,
+                                                     c=self.colch[ii],ls='-',lw=2.)
+        axj = self.dax['prof'][0]
+        Yi = self.Y[self.indt[0],:]
+        self.dlt['prof'] = axj.scatter(self.X12[0,:], self.X12[1,:],
+                                       facecolors=self.cm(self.norm(Yi)),
+                                       s=self.ms, edgecolors='None')
+        for ii in range(0,self.Max):
+            self.dlprof['prof'][ii] = axj.scatter([np.nan],[np.nan], s=self.ms,
+                                                  facecolor='None', marker='s',
+                                                  edgecolor=self.colch[ii],lw=2.)
+            self.dlprof['prof'][ii].set_offset_position('screen')
+        nanC = np.full((10,),np.nan)
+        nanH = np.full((2,),np.nan)
+        for ii in range(0,self.Max):
+            self.dlprof['C'][ii], = self.dax['2D'][0].plot(nanC, nanC,
+                                                           lw=2., ls='-',
+                                                           c=self.colch[ii])
+            self.dlprof['H'][ii], = self.dax['2D'][1].plot(nanH, nanH,
+                                                           lw=2., ls='-',
+                                                           c=self.colch[ii])
+
+        if self.dMag is not None:
+            for ii in range(0,self.Max):
+                l, = self.dax['2D'][0].plot([np.nan],[np.nan],
+                                            marker='x',ms=12,c=self.colt[ii])
+                self.dlmag['2D']['Ax'][ii] = l
+                l, = self.dax['2D'][0].plot(self.nansep[:,0],self.nansep[:,1],
+                                            ls='-',lw=2.,c=self.colt[ii])
+                self.dlmag['2D']['Sep'][ii] = l
+        txt = self.dax['Txtt'][0].text(0.5,0.5, r"",
+                                       color='k', size=8, fontweight='bold',
+                                       va='center', ha='center')
+        self.Txt['t'][0] = txt
+        for ii in range(0,self.Max):
+            txt = self.dax['Txtc'][ii].text(0.5,0.5, r"",
+                                            color=self.colch[ii], size=8,
+                                            fontweight='bold',
+                                            va='center', ha='center')
+            self.Txt['prof'][ii] = txt
+        self.can.draw()
+
+    def update(self):
+        if self.curax=='time':
+            ti = self.t[self.indt[0]]
+            txti = r"t = {0:07.3f} s".format(ti)
+            Yi = self.Y[self.indt[0],:]
+            if self.dMag is not None:
+                it = self.dMag['indt'][self.indt[ii]]
+                sepi = self.dMag['Sep'][it,:,:]
+                axi = self.dMag['Ax'][it,:]
+
+            for jj in range(0,self.naxt):
+                self.dlt['t'][jj].set_xdata(ti)
+                self.dlt['t'][jj].set_visible(True)
+                self.dax['t'][jj].draw_artist(self.dlt['t'][jj])
+
+            self.dlt['prof'].set_facecolors(self.cm(self.norm(Yi)))
+            self.dax['prof'][0].draw_artist(self.dlt['prof'])
+            self.Txt['t'][0].set_text(txti)
+            self.dax['Txtt'][0].draw_artist(self.Txt['t'][0])
+        if self.dMag is not None:
+            self.dlmag['2D']['Sep'][0].set_xdata(sepi[:,0])
+            self.dlmag['2D']['Sep'][0].set_ydata(sepi[:,1])
+            self.dlmag['2D']['Ax'][0].set_xdata([axi[0]])
+            self.dlmag['2D']['Ax'][0].set_ydata([axi[1]])
+            self.dax['2D'][0].draw_artist(self.dlmag['2D']['Sep'][0])
+            self.dax['2D'][0].draw_artist(self.dlmag['2D']['Ax'][0])
+
+        elif self.curax=="chan":
+            for ii in range(0,self.Max):
+                if ii<=len(self.indch)-1:
+                    x12 = self.X12[:,self.indch[ii]]
+                    txtci = str(self.indch[ii])
+                    Yii = self.Y[:,self.indch[ii]]
+
+                    self.dlprof['t'][ii].set_ydata(Yii)
+                    self.dlprof['t'][ii].set_visible(True)
+                    self.dax['t'][1].draw_artist(self.dlprof['t'][ii])
+
+                    self.dlprof['prof'][ii].set_offsets([x12])
+                    self.dlprof['prof'][ii].set_visible(True)
+                    self.dax['prof'][0].draw_artist(self.dlprof['prof'][ii])
+                    self.Txt['prof'][ii].set_text(txtci)
+                    self.Txt['prof'][ii].set_visible(True)
+                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof'][ii])
+                    if self.lCross is not None:
+                        if 'LOS' in self.CamCls:
+                            self.dlprof['C'][ii].set_data(self.lCross[self.indch[ii]])
+                            self.dlprof['H'][ii].set_data(self.lH[self.indch[ii]])
+                        else:
+                            raise Exception("Not coded yet !")
+                        self.dlprof['C'][ii].set_visible(True)
+                        self.dlprof['H'][ii].set_visible(True)
+                        self.dax['2D'][0].draw_artist(self.dlprof['C'][ii])
+                        self.dax['2D'][1].draw_artist(self.dlprof['H'][ii])
+                else:
+                    self.dlprof['t'][ii].set_visible(False)
+                    self.dax['t'][1].draw_artist(self.dlprof['t'][ii])
+
+                    self.dlprof['prof'][ii].set_visible(False)
+                    self.dax['prof'][0].draw_artist(self.dlprof['prof'][ii])
+                    self.Txt['prof'][ii].set_visible(False)
+                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof'][ii])
+                    if self.lCross is not None:
+                        self.dlprof['C'][ii].set_visible(False)
+                        self.dlprof['H'][ii].set_visible(False)
+                        self.dax['2D'][0].draw_artist(self.dlprof['C'][ii])
+                        self.dax['2D'][1].draw_artist(self.dlprof['H'][ii])
+
+        # Without leaking memory
+        self.can.update()
+        self.can.flush_events()
+
+    def onkeypress(self,event):
+        lk = ['left','right','up','down']
+        C = [ss in event.key for ss in lk]
+        if event.name is 'key_press_event' and any(C):
+            key = lk[np.nonzero(C)[0][0]]
+            if self.curax=='time' and key in ['left','right']:
+                inc = -1 if 'left' in key else 1
+                self.indt[-1] += inc
+                self.indt[-1] = self.indt[-1]%self.nt
+                self.update()
+            elif self.curax=='chan':
+                if self.shift and len(self.indch)>=self.Max:
+                    print("     Max. nb. of simultaneous plots reached !")
+                    return
+                c = -1. if self.invert else 1.
+                x12 = self.X12[:,self.indch[-1]] + c*self.incX12[key]
+                ii = np.nanargmin(np.sum((self.X12-x12[:,np.newaxis])**2,axis=0))
+                if self.shift:
+                    self.indch.append(ii)
+                else:
+                    self.indch[-1] = ii
+                self.update()
+        elif event.name is 'key_press_event' and event.key == 'shift':
+            self.shift = True
+        elif event.name is 'key_release_event' and event.key == 'shift':
+            self.shift = False
+
+    def mouseclic(self,event):
+        if event.button == 1 and event.inaxes in self.dax['t']:
+            self.curax = 'time'
+            self.indt = [np.argmin(np.abs(self.t-event.xdata))]
+            self.update()
+        elif event.button == 1 and event.inaxes in self.dax['prof']:
+            self.curax = 'chan'
+            evxy = np.r_[event.xdata,event.ydata]
+            ii = np.nanargmin(np.sum((self.X12-evxy[:,np.newaxis])**2,axis=0))
+            if self.shift:
+                if len(self.indch)<self.Max:
+                    self.indch.append(ii)
+                else:
+                    print("     Max. nb. of simultaneous plots reached !!!")
+            else:
+                self.indch = [ii]
+            self.update()

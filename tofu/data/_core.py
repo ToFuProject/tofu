@@ -6,6 +6,7 @@ import itertools as itt
 
 # Common
 import numpy as np
+import matplotlib.pyplot as plt
 
 # tofu
 import tofu.pathfile as tfpf
@@ -14,7 +15,7 @@ try:
 except Exception:
     from . import _plot as _plot
 
-__all__ = ['Data']
+__all__ = ['Data1D','Data2D']
 
 
 
@@ -311,9 +312,13 @@ class Data(object):
     #def get_fft(self, DF=None, Harm=True, DFEx=None, HarmEx=True, Calc=True):
 
 
-    def plot(self, key=None, Max=4, a4=False):
-        Lax = _plot.Data_plot(self, key=key, Max=Max, a4=a4)
-        return Lax
+    def plot(self, key=None,
+             cmap=plt.cm.gray, ms=6,
+             Max=None, a4=False):
+        dax, KH = _plot.Data_plot(self, key=key,
+                                  cmap=cmap, ms=ms,
+                                  Max=Max, a4=a4)
+        return dax, KH
 
 
     def save(self, SaveName=None, Path=None,
@@ -406,3 +411,66 @@ def _Data_check_fromdict(fd):
         typ = type(fd[kk])
         C = typ is k0[kk] or typ in k0[kk] or fd[kk] in k0[kk]
         assert C, "Wrong type of fromdict[%s]: %s"%(kk,str(typ))
+
+
+
+class Data1D(Data):
+    """ Data object used for 1D cameras or list of 1D cameras  """
+    def __init__(self, data, t=None, dchans=None, dunits=None,
+                 Id=None, Exp=None, shot=None, Diag=None,
+                 LCam=None, fromdict=None, SavePath='./'):
+        Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
+                 Id=Id, Exp=Exp, shot=shot, Diag=Diag, CamCls='1D',
+                 LCam=LCam, fromdict=fromdict, SavePath=SavePath)
+
+
+
+class Data2D(Data):
+    """ Data object used for 1D cameras or list of 1D cameras  """
+    def __init__(self, data, t=None, dchans=None, dunits=None,
+                 Id=None, Exp=None, shot=None, Diag=None,
+                 LCam=None, X12=None, fromdict=None, SavePath='./'):
+        Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
+                      Id=Id, Exp=Exp, shot=shot, Diag=Diag,
+                      LCam=LCam, CamCls='2D', fromdict=fromdict, SavePath=SavePath)
+        self.set_X12(X12)
+
+    def set_X12(self, X12=None):
+        X12 = X12 if self.geom is None else None
+        if X12 is not None:
+            X12 = np.asarray(X12)
+            assert X12.shape==(2,self.Ref['nch'])
+        self._X12 = X12
+
+    def get_X12(self):
+        if self._X12 is None:
+            msg = "X12 must be set for plotting if LCam not provided !"
+            assert self.geom is not None, msg
+            X12 = self.geom['LCam'][0].get_X12(DX12=False)[0]
+        else:
+            X12 = self._X12
+        if X12 is not None:
+            X1u, X2u = np.unique(X12[0,:]), np.unique(X12[1,:])
+            dx1 = np.nanmax(X1u)-np.nanmin(X1u)
+            dx2 = np.nanmax(X2u)-np.nanmin(X2u)
+            ds = dx1*dx2 / X12.shape[1]
+            tol = np.sqrt(ds)/10.
+            x1u, x2u = [X1u[0]], [X2u[0]]
+            for ii in X1u[1:]:
+                if np.abs(ii-x1u[-1])>tol:
+                    x1u.append(ii)
+            for ii in X2u[1:]:
+                if np.abs(ii-x2u[-1])>tol:
+                    x2u.append(ii)
+            DX12 = [np.nanmean(np.diff(x1u)), np.nanmean(np.diff(x2u))]
+        else:
+            DX12 = None
+        return X12, DX12
+
+    def plot(self, key=None, invert=True,
+             cmap=plt.cm.gray, ms=8,
+             Max=None, a4=False):
+        dax, KH = _plot.Data_plot(self, key=key, invert=invert,
+                                  cmap=cmap, ms=ms,
+                                  Max=Max, a4=a4)
+        return dax, KH
