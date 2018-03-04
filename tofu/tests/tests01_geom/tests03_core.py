@@ -6,7 +6,7 @@ This module contains tests for tofu.geom in its structured version
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-
+import warnings as warn
 
 # Nose-specific
 from nose import with_setup # optional
@@ -248,7 +248,7 @@ class Test02_Struct(Test01_Ves):
         cls.SL1 = tfg.Struct('Test03', PVes, Type='Lin',
                              Lim=np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
                              shot=0, Exp='Test', SavePath=here)
-        cls.ST0 = tfg.Struct('Test02', PVes, Type='Tor', Lim=None, shot=0, Exp='Test',
+        cls.ST0 = tfg.Struct('Test02', PVes*0.8, Type='Tor', Lim=None, shot=0, Exp='Test',
                              SavePath=here, mobile=True)
         cls.ST1 = tfg.Struct('Test03', PVes, Type='Tor',
                              Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
@@ -377,7 +377,7 @@ class Test03_Rays:
                                       dl=0.01, DL=None, dlMode='abs', method='simps',
                                       Warn=False, ind=ind)
             assert sig.shape==(len(ind),) if t is None else (t.size,len(ind))
-            assert ~np.any(np.isnan(sig))
+            assert ~np.all(np.isnan(sig)), str(ii)
 
     def test04_plot(self):
         for ii in range(0,len(self.LObj)):
@@ -447,6 +447,7 @@ class Test04_LOSCams(Test03_Rays):
                                            LStruct=LS[ii], Exp=None, Diag='Test',
                                            SavePath=here, dchans=dchans)
             else:
+                Ds[1,:] = Ds[1,:] + 0.05*np.random.rand(N)
                 cls.LObj[ii] = tfg.LOSCam2D('Test'+str(ii), (Ds,us), Ves=LVes[ii],
                                             LStruct=LS[ii], Exp=None, Diag='Test',
                                             SavePath=here, dchans=dchans)

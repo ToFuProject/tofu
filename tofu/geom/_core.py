@@ -679,7 +679,7 @@ class Rays(object):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0,
-                 dchans=None, SavePath='./'):
+                 dchans=None, SavePath='./', plotdebug=True):
         self._Done = False
         if fromdict is None:
             self._check_inputs(Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
@@ -688,7 +688,8 @@ class Rays(object):
             if Ves is not None:
                 Exp = Ves.Id.Exp if Exp is None else Exp
             self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-            self._set_Ves(Ves, LStruct=LStruct, Du=Du, dchans=dchans)
+            self._set_Ves(Ves, LStruct=LStruct, Du=Du, dchans=dchans,
+                          plotdebug=plotdebug)
             self.set_sino(RefPt=Sino_RefPt)
         else:
             self._fromdict(fromdict)
@@ -774,7 +775,8 @@ class Rays(object):
             Val = tfpf.ID(self.__class__, Val, **dd)
         self._Id = Val
 
-    def _set_Ves(self, Ves=None, LStruct=None, Du=None, dchans=None):
+    def _set_Ves(self, Ves=None, LStruct=None, Du=None, dchans=None,
+                 plotdebug=True):
         self._check_inputs(Ves=Ves, Exp=self.Id.Exp, LStruct=LStruct, Du=Du)
         LObj = []
         if not Ves is None:
@@ -787,9 +789,9 @@ class Rays(object):
         self._Ves = Ves
         self._LStruct = LStruct
         Du = Du if Du is not None else (self.D,self.u)
-        self._set_geom(Du, dchans=dchans)
+        self._set_geom(Du, dchans=dchans, plotdebug=plotdebug)
 
-    def _set_geom(self, Du, dchans=None):
+    def _set_geom(self, Du, dchans=None, plotdebug=True):
         tfpf._check_NotNone({'Du':Du})
         self._check_inputs(Du=Du, dchans=dchans)
         D, u = np.asarray(Du[0]), np.asarray(Du[1])
@@ -828,8 +830,9 @@ class Rays(object):
             kPOut[ind] = np.nan
             if np.any(ind):
                 warnings.warn("Some LOS have no visibility inside the vessel !")
-                _plot._LOS_calc_InOutPolProj_Debug(self.Ves, D[:,ind], u[:,ind],
-                                                   PIn[:,ind], POut[:,ind])
+                if plotdebug:
+                    _plot._LOS_calc_InOutPolProj_Debug(self.Ves, D[:,ind], u[:,ind],
+                                                       PIn[:,ind], POut[:,ind])
             ind = np.isnan(kPIn)
             PIn[:,ind], kPIn[ind] = D[:,ind], 0.
 
@@ -848,9 +851,13 @@ class Rays(object):
             cross = np.array([CD1[1,1:]*CD0[2,:-1]-CD1[2,1:]*CD0[1,:-1],
                               CD1[2,1:]*CD0[0,:-1]-CD1[0,1:]*CD0[2,:-1],
                               CD1[0,1:]*CD0[1,:-1]-CD1[1,1:]*CD0[0,:-1]])
-            cross = cross[:,np.nanargmax(np.sum(cross**2,axis=0))]
+            crossn2 = np.sum(cross**2,axis=0)
+            if np.all(np.abs(crossn2)<1.e-12):
+                msg = "Is %s really a 2D camera ? (LOS aligned?)"%self.Id.Name
+                warning.warn(msg)
+            cross = cross[:,np.nanargmax(crossn2)]
             cross = cross / np.linalg.norm(cross)
-            nIn = cross if np.sum(cross*np.mean(u,axis=1))>0. else -cross
+            nIn = cross if np.sum(cross*np.nanmean(u,axis=1))>0. else -cross
             nIn, e1, e2 = utils.get_nIne1e2(C, nIn=nIn, e1=D[:,1]-D[:,0])
             if np.abs(np.abs(nIn[2])-1.)>1.e-12:
                 if np.abs(e1[2])>np.abs(e2[2]):
@@ -1374,20 +1381,20 @@ class LOSCam1D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0,
-                 dchans=None, SavePath='./'):
+                 dchans=None, SavePath='./', plotdebug=True):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                  Sino_RefPt=Sino_RefPt, fromdict=fromdict,
-                 Exp=Exp, Diag=Diag, shot=shot,
+                 Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,
                  dchans=dchans, SavePath=SavePath)
 
 class LOSCam2D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0, X12=None,
-                 dchans=None, SavePath='./'):
+                 dchans=None, SavePath='./', plotdebug=True):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                  Sino_RefPt=Sino_RefPt, fromdict=fromdict,
-                 Exp=Exp, Diag=Diag, shot=shot,
+                 Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,
                  dchans=dchans, SavePath=SavePath)
         self.set_X12(X12)
 

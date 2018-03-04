@@ -122,8 +122,16 @@ class Data(object):
 
     def _set_data(self, data, t=None, dchans=None, dunits=None):
         self._check_inputs(data=data, t=t, dchans=dchans, dunits=dunits)
+        if data.ndim==1:
+            nt, nch = 1, data.size
+            data = data.reshape((1,nch))
+            if t is not None:
+                t = np.asarray(t) if hasattr(t,'__iter__') else np.asarray([t])
+        else:
+            nt, nch= data.shape
+            t = np.asarray(t)
         self._Ref = {'data':data, 't':t,
-                     'nt':data.shape[0], 'nch':data.shape[1]}
+                     'nt':nt, 'nch':nch}
         dchans = {} if dchans is None else dchans
         lK = sorted(dchans.keys())
         dchans = dict([(kk,np.asarray(dchans[kk])) for kk in lK])
@@ -181,7 +189,7 @@ class Data(object):
         C2 = type(t) is tuple and len(t)==2
         assert t is None or C0 or C1 or C2
         ind = np.zeros((self._Ref['nt'],),dtype=bool)
-        if t is None:
+        if t is None or self._Ref['t'] is None:
             ind = ~ind
         elif C0:
             ind[np.nanargmin(np.abs(self._Ref['t']-t))] = True
@@ -222,7 +230,9 @@ class Data(object):
 
         Return their indices (default) or the chosen criterion
         """
-        if self._Ref['dchans']=={}:
+        if self.geom is None:
+            dchans = None
+        elif self._Ref['dchans']=={}:
             dchans = self._Ref['dchans']
         else:
             assert key in [None]+list(self._Ref['dchans'].keys())
@@ -313,7 +323,7 @@ class Data(object):
 
 
     def plot(self, key=None,
-             cmap=plt.cm.gray, ms=6,
+             cmap=plt.cm.gray, ms=4,
              Max=None, a4=False):
         dax, KH = _plot.Data_plot(self, key=key,
                                   cmap=cmap, ms=ms,
@@ -359,11 +369,19 @@ def _Data_check_inputs(Id=None, data=None, t=None, dchans=None,
     if Id is not None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
     if data is not None:
-        assert type(data) is np.ndarray and data.ndim==2
+        assert type(data) is np.ndarray and data.ndim in [1,2]
+        if t is not None:
+            if t.size==1:
+                assert data.ndim==1 or data.shape[0]==1
+            else:
+                assert data.ndim==2 and data.shape[0]==t.size
     if t is not None:
         assert type(t) is np.ndarray and t.ndim==1
         if data is not None:
-            assert data.shape[0]==t.size
+            if t.size>1:
+                assert data.ndim==2 and data.shape[0]==t.size
+            else:
+                assert data.ndim==1 or (data.ndim==2 and data.shape[0]==t.size)
     if dchans is not None:
         assert type(dchans) is dict
         if data is not None:
@@ -385,20 +403,20 @@ def _Data_check_inputs(Id=None, data=None, t=None, dchans=None,
         assert CamCls in ['1D','2D']
     if LCam is not None:
         assert type(LCam) is list or issubclass(LCam.__class__,object)
-        if issubclass(LCam.__class__,object):
-            assert LCam.Id.Cls in ['LOSCam1D','LOSCam2D','Cam1D','Cam2D']
         if type(LCam) is list:
             assert all([issubclass(cc.__class__,object) for cc in LCam])
             msg = "Cannot associate mulitple 2D cameras !"
             assert all([cc.Id.Cls in ['LOSCam1D','Cam1D'] for cc in LCam]), msg
             msg = "Cannot associate cameras of different types !"
             assert all([cc.Id.Cls==LCam[0].Id.Cls for cc in LCam]), msg
-            lVes = [cc.Ves for ss in LCam]
+            lVes = [cc.Ves for cc in LCam]
             C0 = all([vv is None for vv in lVes])
             C1 = all([vv._todict()==lVes[0]._todict() for vv in lVes])
             assert C0 or C1
             lK = [sorted(cc.dchans.keys() for cc in LCam)]
-            assert all([lk==LK[0] for lk in lK])
+            assert all([lk==lK[0] for lk in lK])
+        else:
+            assert LCam.Id.Cls in ['LOSCam1D','LOSCam2D','Cam1D','Cam2D']
 
 
 def _Data_check_fromdict(fd):
@@ -456,10 +474,8 @@ class Data2D(Data):
                 DX12 = None
         return X12, DX12
 
-    def plot(self, key=None, invert=True,
-             cmap=plt.cm.gray, ms=8,
+    def plot(self, key=None, invert=True, cmap=plt.cm.gray, ms=4,
              Max=None, a4=False):
         dax, KH = _plot.Data_plot(self, key=key, invert=invert,
-                                  cmap=cmap, ms=ms,
-                                  Max=Max, a4=a4)
+                                  cmap=cmap, ms=ms, Max=Max, a4=a4)
         return dax, KH
