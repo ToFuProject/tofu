@@ -117,3 +117,31 @@ def create_CamLOS2D(P, F, D12, N12,
     Ds = P[:,np.newaxis] - F*nIn[:,np.newaxis] + d1 + d2
     us = P[:,np.newaxis] - Ds
     return Ds, us
+
+
+
+def dict_cmp(d1,d2):
+    msg = "Different types: %s, %s"%(str(type(d1)),str(type(d2)))
+    assert type(d1)==type(d2), msg
+    assert type(d1) in [dict,list,tuple]
+    if type(d1) is dict:
+        l1, l2 = sorted(list(d1.keys())), sorted(list(d2.keys()))
+        out = (l1==l2)
+    else:
+        out = (len(d1)==len(d2))
+        l1 = range(0,len(d1))
+    if out:
+        for k in l1:
+            if type(d1[k]) is np.ndarray:
+                out = np.all(d1[k]==d2[k])
+            elif type(d1[k]) in [dict,list,tuple]:
+                out = dict_cmp(d1[k],d2[k])
+            else:
+                try:
+                    out = (d1[k]==d2[k])
+                except Exception as err:
+                    print(type(d1[k]),type(d2[k]))
+                    raise err
+            if out is False:
+                break
+    return out

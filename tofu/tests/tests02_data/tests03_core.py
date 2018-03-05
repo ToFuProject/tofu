@@ -16,6 +16,7 @@ from nose import with_setup # optional
 from tofu import __version__
 import tofu.defaults as tfd
 import tofu.pathfile as tfpf
+import tofu.utils as tfu
 import tofu.geom as tfg
 import tofu.data as tfd
 
@@ -101,15 +102,20 @@ class Test01_Data1D:
     def setup_class(cls):
         thet = np.linspace(0,2.*np.pi,100)
         P = np.array([2.4 + 0.8*np.cos(thet),0.8*np.sin(thet)])
-        V = tfg.Ves('Test', P, Exp='Test')
+        V = tfg.Ves('Test', P, Exp='Test', SavePath=here)
         N = 10
         Ds = np.array([3.*np.ones(N,), np.zeros((N,)), np.linspace(-0.5,0.5,N)])
         A = np.r_[2.5,0,0]
         us = A[:,np.newaxis]-Ds
         d0 = dict(Name=['C0-{0}'.format(ii) for ii in range(0,N)])
         d1 = dict(Name=['C1-{0}'.format(ii) for ii in range(0,N)])
-        C0 = tfg.LOSCam1D('C0',(Ds,us),Ves=V,Exp='Test',Diag='Test',dchans=d0)
-        C1 = tfg.LOSCam1D('C1',(Ds,us),Ves=V,Exp='Test',Diag='Test',dchans=d1)
+        C0 = tfg.LOSCam1D('C0',( Ds,us), Ves=V,
+                          Exp='Test', Diag='Test', dchans=d0, SavePath=here)
+        C1 = tfg.LOSCam1D('C1', (Ds,us), Ves=V,
+                          Exp='Test', Diag='Test', dchans=d1, SavePath=here)
+        V.save()
+        C0.save()
+        C1.save()
         t = np.linspace(0,10,20)
         sig00 = C0.calc_signal(emiss, t=None, dl=0.01, method='sum')
         sig01 = C0.calc_signal(emiss, t=t, dl=0.01, method='sum')
@@ -117,12 +123,12 @@ class Test01_Data1D:
         sig11 = C1.calc_signal(emiss, t=t, dl=0.01, method='sum')
         sig20 = np.concatenate((sig00,sig10))
         sig21 = np.concatenate((sig01,sig11),axis=1)
-        cls.LObj = [tfd.Data1D(sig00, Id='0'),
-                   tfd.Data1D(sig01, t=t, Id='1'),
-                   tfd.Data1D(sig00, LCam=C0, Id='2'),
-                   tfd.Data1D(sig01, t=t, LCam=C0, Id='3'),
-                   tfd.Data1D(sig20, LCam=[C0,C1], Id='4'),
-                   tfd.Data1D(sig21, t=t, LCam=[C0,C1], Id='5')]
+        cls.LObj = [tfd.Data1D(sig00, Id='0', SavePath=here),
+                   tfd.Data1D(sig01, t=t, Id='1', SavePath=here),
+                   tfd.Data1D(sig00, LCam=C0, Id='2', SavePath=here),
+                   tfd.Data1D(sig01, t=t, LCam=C0, Id='3', SavePath=here),
+                   tfd.Data1D(sig20, LCam=[C0,C1], Id='4', SavePath=here),
+                   tfd.Data1D(sig21, t=t, LCam=[C0,C1], Id='5', SavePath=here)]
 
     @classmethod
     def teardown_class(cls):
@@ -229,32 +235,28 @@ class Test01_Data1D:
             dax, KH = oo.plot(key='Name', Max=2)
             plt.close('all')
 
-"""
     def test08_tofromdict(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             dd = oo._todict()
-            if oo.Id.Cls=='Ves':
-                oo = tfg.Ves(fromdict=dd)
+            if oo.Id.Cls=='Data1D':
+                oo = tfd.Data1D(fromdict=dd)
             else:
-                oo = tfg.Struct(fromdict=dd)
+                oo = tfd.Data2D(fromdict=dd)
             assert dd==oo._todict(), "Unequal to and from dict !"
-
 
     def test09_saveload(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
+            dd = oo._todict()
             oo.save(Print=False)
             PathFileExt = os.path.join(oo.Id.SavePath,
-oo.Id.SaveName+'.npz')
+                                       oo.Id.SaveName+'.npz')
             obj = tfpf.Open(PathFileExt, Print=False)
             # Just to check the loaded version works fine
-            out = obj.get_sampleCross(0.02, DS=None, dSMode='abs', ind=None)
-            Lax = obj.plot(Proj='All', Elt='P')
-            #dd = oo._todict()
-            #assert dd==obj._todict()
+            do = obj._todict()
+            assert tfu.dict_cmp(dd,do)
             os.remove(PathFileExt)
-"""
 
 
 

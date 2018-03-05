@@ -204,7 +204,8 @@ class ID(object):
     """
 
     def __init__(self, Cls=None, Name=None, Type=None, Deg=None,
-                 Exp=None, Diag=None, shot=None, SaveName=None, SavePath='./',
+                 Exp=None, Diag=None, shot=None, SaveName=None,
+                 SavePath=os.path.abspath('./'),
                  USRdict={}, LObj=None, fromdict=None,
                  Include=defInclude):
 
@@ -1013,17 +1014,28 @@ def _save_np(obj, pathfileext, compressed=False):
 
     # tofu.geom
     if obj.Id.Cls=='Ves':
-        func(pathfileext, dId=dId, arrayorder=obj._arrayorder, Clock=obj._Clock,
+        func(pathfileext, Id=dId, arrayorder=obj._arrayorder, Clock=obj._Clock,
              Poly=obj.Poly, Lim=obj.Lim, Sino_RefPt=obj.sino['RefPt'],
              Sino_NP=obj.sino['NP'])
 
     elif obj.Id.Cls=='Struct':
-        func(pathfileext, dId=dId, arrayorder=obj._arrayorder, Clock=obj._Clock,
+        func(pathfileext, Id=dId, arrayorder=obj._arrayorder, Clock=obj._Clock,
              Poly=obj.Poly, Lim=obj.Lim, mobile=obj._mobile)
 
     elif obj.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
-        func(pathfileext, dId=dId,
+        func(pathfileext, Id=dId,
              geom=obj.geom, sino=obj.sino, dchans=obj.dchans)
+
+    elif obj.Id.Cls in ['Data','Data1D','Data2D']:
+        dsave = obj._todict()
+        if dsave['geom'] is not None:
+            LCam = []
+            for cc in dsave['geom']:
+                pathS = cc['Id']['SavePath']
+                pathN = cc['Id']['SaveName']
+                LCam.append(os.path.join(pathS,pathN+'.npz'))
+            dsave['geom'] = LCam
+        func(pathfileext, **dsave)
 
     """
     elif obj.Id.Cls=='GLOS':
@@ -1319,6 +1331,8 @@ def _open_np(pathfileext, Ves=None,
 
     if 'TFG' in pathfileext:
         import tofu.geom as tfg
+    elif 'TFD' in pathfileext:
+        import tofu.data as tfd
     #elif 'TFEq' in pathfileext:
     #    import tofu.Eq as tfEq
     #elif 'TFM' in pathfileext:
@@ -1334,7 +1348,7 @@ def _open_np(pathfileext, Ves=None,
         Out = np.load(pathfileext,mmap_mode=None)
     except UnicodeError:
         Out = np.load(pathfileext,mmap_mode=None, encoding='latin1')
-    Id = ID(fromdict=Out['dId'].tolist())
+    Id = ID(fromdict=Out['Id'].tolist())
     if out=='Id':
         return Id
 
@@ -1370,6 +1384,24 @@ def _open_np(pathfileext, Ves=None,
             obj = tfg.LOSCam1D(fromdict=dobj)
         elif Id.Cls=='LOSCam2D':
             obj = tfg.LOSCam2D(fromdict=dobj)
+
+    elif Id.Cls in ['Data1D','Data2D']:
+        dobj = {'Id':Id._todict(), 'Ref':Out['Ref'].tolist(),
+                'dunits':Out['dunits'].tolist(), 'fft':Out['fft'].tolist(),
+                'data0':Out['data0'].tolist(), 'CamCls':Out['CamCls'].tolist()}
+        indt = None if Out['indt'].tolist() is None else Out['indt']
+        indch = None if Out['indch'].tolist() is None else Out['indch']
+        if Out['geom'].tolist() is None:
+            LCam = None
+        else:
+            LCam = [Open(ss)._todict() for ss in Out['geom']]
+        dobj['indt'] = indt
+        dobj['indch'] = indch
+        dobj['geom'] = LCam
+        if Id.Cls=='Data1D':
+            obj = tfd.Data1D(fromdict=dobj)
+        elif Id.Cls=='Data2D':
+            obj = tfd.Data2D(fromdict=dobj)
 
     """
     elif Id.Cls == 'GLOS':

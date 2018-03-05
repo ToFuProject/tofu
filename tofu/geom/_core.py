@@ -3,6 +3,7 @@ This module is the geometrical part of the ToFu general package
 It includes all functions and object classes necessary for tomography on Tokamaks
 """
 
+import os
 import warnings
 import numpy as np
 import datetime as dtm
@@ -77,7 +78,8 @@ class Ves(object):
     def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None, Exp=None, shot=0,
                  Sino_RefPt=None, Sino_NP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
-                 SavePath='./', SavePath_Include=tfpf.defInclude):
+                 SavePath=os.path.abspath('./'),
+                 SavePath_Include=tfpf.defInclude):
         self._Done = False
         if fromdict is None:
             tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
@@ -143,7 +145,9 @@ class Ves(object):
                           arrayorder=arrayorder, Exp=Exp, shot=shot,
                           SavePath=SavePath, Cls=self.Id.Cls)
 
-    def _set_Id(self, Val, Type=None, Exp=None, shot=None, SavePath='./', SavePath_Include=None):
+    def _set_Id(self, Val, Type=None, Exp=None, shot=None,
+                SavePath=os.path.abspath('./'),
+                SavePath_Include=None):
         if self._Done:
             Out = tfpf._get_FromItself(self.Id,{'Type':Type, 'Exp':Exp, 'shot':shot, 'SavePath':SavePath})
             Type, Exp, shot, SavePath = Out['Type'], Out['Exp'], Out['shot'], Out['SavePath']
@@ -537,7 +541,8 @@ class Struct(Ves):
     def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None,
                  Sino_RefPt=None, Sino_NP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
-                 Exp=None, shot=0, SavePath='./',
+                 Exp=None, shot=0,
+                 SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude,
                  mobile=False):
         assert type(mobile) is bool
@@ -678,8 +683,9 @@ class Rays(object):
 
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
-                 Exp=None, Diag=None, shot=0,
-                 dchans=None, SavePath='./', plotdebug=True):
+                 Exp=None, Diag=None, shot=0, dchans=None,
+                 SavePath=os.path.abspath('./'),
+                 plotdebug=True):
         self._Done = False
         if fromdict is None:
             self._check_inputs(Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
@@ -765,7 +771,8 @@ class Rays(object):
                           dchans=dchans, fromdict=fromdict)
 
     def _set_Id(self, Val,
-                Exp=None, Diag=None, shot=None, SavePath='./'):
+                Exp=None, Diag=None, shot=None,
+                SavePath=os.path.abspath('./')):
         dd = {'Exp':Exp, 'shot':shot, 'Diag':Diag, 'SavePath':SavePath}
         if self._Done:
             tfpf._get_FromItself(self.Id, dd)
@@ -1304,7 +1311,7 @@ class Rays(object):
 
 def _Rays_check_inputs(Id=None, Du=None, Vess=None, LStruct=None,
                        Sino_RefPt=None, Exp=None, shot=None, Diag=None,
-                       SavePath='./', Calc=None, ind=None,
+                       SavePath=None, Calc=None, ind=None,
                        dchans=None, fromdict=None):
     if not Id is None:
         assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
@@ -1381,7 +1388,8 @@ class LOSCam1D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0,
-                 dchans=None, SavePath='./', plotdebug=True):
+                 dchans=None, SavePath=os.path.abspath('./'),
+                 plotdebug=True):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                  Sino_RefPt=Sino_RefPt, fromdict=fromdict,
                  Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,
@@ -1391,7 +1399,8 @@ class LOSCam2D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0, X12=None,
-                 dchans=None, SavePath='./', plotdebug=True):
+                 dchans=None, SavePath=os.path.abspath('./'),
+                 plotdebug=True):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
                  Sino_RefPt=Sino_RefPt, fromdict=fromdict,
                  Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,

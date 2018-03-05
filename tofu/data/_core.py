@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 
 # tofu
 import tofu.pathfile as tfpf
+import tofu.utils as tfu
 try:
     import tofu.data._plot as _plot
 except Exception:
@@ -24,9 +25,10 @@ __all__ = ['Data1D','Data2D']
 class Data(object):
 
 
-    def __init__(self, data, t=None, dchans=None, dunits=None,
+    def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None,
-                 LCam=None, CamCls='1D', fromdict=None, SavePath='./'):
+                 LCam=None, CamCls='1D', fromdict=None,
+                 SavePath=os.path.abspath('./')):
 
         self._Done = False
         if fromdict is None:
@@ -43,16 +45,35 @@ class Data(object):
     def _fromdict(self, fd):
         _Data_check_fromdict(fd)
         self._Id = tfpf.ID(fromdict=fd['Id'])
+        self._Ref = fd['Ref']
+        self._dunits = fd['dunits']
+        self._indt, self._indch = fd['indt'], fd['indch']
+        self._data0 = fd['data0']
+        self._CamCls = fd['CamCls']
+        self._fft = fd['fft']
+        if fd['geom'] is None:
+            self._geom = None
+        else:
+            import tofu.geom as tfg
+            if '1D' in fd['CamCls']:
+                LCam = [tfg.LOSCam1D(fromdict=cc) for cc in fd['geom']]
+            else:
+                LCam = [tfg.LOSCam2D(fromdict=cc) for cc in fd['geom']]
+            self._set_LCam(LCam=LCam, CamCls=fd['CamCls'])
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
                'Ref':self._Ref,
-               'dunits':self.dunits,
+               'dunits':self._dunits,
                'indt':self._indt, 'indch':self._indch,
                'data0':self._data0,
-               'fft':self._fft,
                'CamCls':self._CamCls,
-               'geom':self.geom}
+               'fft':self._fft}
+        if self.geom is None:
+            geom = None
+        else:
+            geom = [cc._todict() for cc in self.geom['LCam']]
+        out['geom'] = geom
         return out
 
     @property
@@ -144,7 +165,7 @@ class Data(object):
         self._data = None
         self._indt, self._indch = None, None
         self._data0 = {'data':None,'t':None,'Dt':None}
-        self._fft = None, None
+        self._fft = None
         self._indt_corr, self._indch_corr = None, None
 
     def _set_LCam(self, LCam=None, CamCls='1D'):
@@ -423,7 +444,7 @@ def _Data_check_inputs(Id=None, data=None, t=None, dchans=None,
     if SavePath is not None:
         assert type(SavePath) is str
     if CamCls is not None:
-        assert CamCls in ['1D','2D']
+        assert CamCls in ['1D','2D','LOSCam1D','LOSCam2D']
     if LCam is not None:
         assert type(LCam) is list or issubclass(LCam.__class__,object)
         if type(LCam) is list:
@@ -434,7 +455,8 @@ def _Data_check_inputs(Id=None, data=None, t=None, dchans=None,
             assert all([cc.Id.Cls==LCam[0].Id.Cls for cc in LCam]), msg
             lVes = [cc.Ves for cc in LCam]
             C0 = all([vv is None for vv in lVes])
-            C1 = all([vv._todict()==lVes[0]._todict() for vv in lVes])
+            C1 = all([tfu.dict_cmp(vv._todict(),lVes[0]._todict())
+                      for vv in lVes])
             assert C0 or C1
             lK = [sorted(cc.dchans.keys() for cc in LCam)]
             assert all([lk==lK[0] for lk in lK])
@@ -444,15 +466,16 @@ def _Data_check_inputs(Id=None, data=None, t=None, dchans=None,
 
 def _Data_check_fromdict(fd):
     assert type(fd) is dict, "Arg from dict must be a dict !"
-    k0 = {'Id':dict, 'geom':dict, 'LNames':[None,list],
-          'Ves':[None,dict], 'LStruct':[None,list]}
+    k0 = {'Id':dict, 'Ref':dict, 'dunits':[None,dict],
+          'indt':[None,np.ndarray], 'indch':[None,np.ndarray],
+          'data0':[None,dict], 'CamCls':str, 'fft':[None,dict],
+          'geom':[None,list]}
     keys = list(fd.keys())
     for kk in k0:
         assert kk in keys, "%s must be a key of fromdict"%kk
         typ = type(fd[kk])
         C = typ is k0[kk] or typ in k0[kk] or fd[kk] in k0[kk]
-        assert C, "Wrong type of fromdict[%s]: %s"%(kk,str(typ))
-
+        assert C, "Wrong type of fromdict[%s]: %s"%(kk,str(typ))+str(fd[kk])
 
 def _format_ind(ind=None, n=None):
     if ind is None:
@@ -488,9 +511,10 @@ def _format_ind(ind=None, n=None):
 
 class Data1D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data, t=None, dchans=None, dunits=None,
+    def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None,
-                 LCam=None, fromdict=None, SavePath='./'):
+                 LCam=None, fromdict=None,
+                 SavePath=os.path.abspath('./')):
         Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
                  Id=Id, Exp=Exp, shot=shot, Diag=Diag, CamCls='1D',
                  LCam=LCam, fromdict=fromdict, SavePath=SavePath)
@@ -499,9 +523,10 @@ class Data1D(Data):
 
 class Data2D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data, t=None, dchans=None, dunits=None,
+    def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None,
-                 LCam=None, X12=None, fromdict=None, SavePath='./'):
+                 LCam=None, X12=None, fromdict=None,
+                 SavePath=os.path.abspath('./')):
         Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
                       Id=Id, Exp=Exp, shot=shot, Diag=Diag,
                       LCam=LCam, CamCls='2D', fromdict=fromdict, SavePath=SavePath)

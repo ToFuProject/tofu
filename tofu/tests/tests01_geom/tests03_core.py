@@ -16,6 +16,7 @@ from nose import with_setup # optional
 from tofu import __version__
 import tofu.defaults as tfd
 import tofu.pathfile as tfpf
+import tofu.utils as tfu
 import tofu.geom as tfg
 
 
@@ -208,8 +209,8 @@ class Test01_Ves:
             # Just to check the loaded version works fine
             out = obj.get_sampleCross(0.02, DS=None, dSMode='abs', ind=None)
             Lax = obj.plot(Proj='All', Elt='P')
-            #dd = self.LObj[ii]._todict()
-            #assert dd==obj._todict()
+            dd = self.LObj[ii]._todict()
+            assert tfu.dict_cmp(dd,obj._todict())
             os.remove(PathFileExt)
 
 
@@ -415,8 +416,8 @@ class Test03_Rays:
             PFE = os.path.join(self.LObj[ii].Id.SavePath,
                                self.LObj[ii].Id.SaveName+'.npz')
             obj = tfpf.Open(PFE, Print=False)
-            #dd = self.LObj[ii]._todict()
-            #assert dd==obj._todict()
+            dd = self.LObj[ii]._todict()
+            assert tfu.dict_cmp(dd,obj._todict())
             os.remove(PFE)
 
 

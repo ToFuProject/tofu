@@ -36,7 +36,7 @@ install:
 - conda install tofu --use-local
 script:
 - cd $HOME
-- nosetests tofu.tests.tests01_geom --nocapture -v --with-id --with-timer --with-coverage
+- nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage
   --cover-package=tofu
 after_success:
 - codecov
