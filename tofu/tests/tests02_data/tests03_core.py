@@ -115,7 +115,7 @@ class Test01_Data1D:
         sig01 = C0.calc_signal(emiss, t=t, dl=0.01, method='sum')
         sig10 = C1.calc_signal(emiss, t=None, dl=0.01, method='sum')
         sig11 = C1.calc_signal(emiss, t=t, dl=0.01, method='sum')
-        sig20 = np.concatenate((sig00,sig10)
+        sig20 = np.concatenate((sig00,sig10))
         sig21 = np.concatenate((sig01,sig11),axis=1)
         cls.LObj = [tfd.Data1D(sig00, Id='0'),
                    tfd.Data1D(sig01, t=t, Id='1'),
@@ -145,11 +145,10 @@ class Test01_Data1D:
                 assert out0 is None and out1 is None
             else:
                 lK = list(oo.dchans().keys())
-                assert type(out0) is dict and type(out1) is dict
+                assert type(out0) is dict and type(out1) is np.ndarray
                 assert all([ss in out0.keys() for ss in lK])
-                assert list(out1.keys())==['Name']
                 assert all([len(out0[ss])==oo.Ref['nch'] for ss in lK])
-                assert len(out1['Name'])==oo.Ref['nch']
+                assert len(out1)==oo.Ref['nch']
 
     def test02_select_t(self):
         for ii in range(0,len(self.LObj)):
@@ -161,35 +160,74 @@ class Test01_Data1D:
                 assert ind.sum()==oo.Ref['nt']
             else:
                 assert ind.sum()==1
-            ind = oo.select_t(t=[1,2,3,4], out=bool)
+            ind = oo.select_t(t=[1,4], out=bool)
             if oo.Ref['t'] is None:
                 assert ind.sum()==oo.Ref['nt']
             else:
-                assert ind.sum()==4
+                assert np.all((oo.t[ind]>=1.) & (oo.t[ind]<=4))
 
     def test03_set_indt(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             oo.set_indt(t=[2,3])
-            assert oo.nch == 2
-            oo.set_indt(indt=[1,2,3,4])
-            assert oo.nch == 4
+            if oo.Ref['t'] is None:
+                assert oo.indt.sum()==oo.Ref['nt']
+            else:
+                assert np.all((oo.t>=2) & (oo.t<=3))
+            oo.set_indt(indt=list(range(0,min(4,oo.Ref['nt']))))
+            assert oo.nt == 4 or oo.nt==1
             oo.set_indt()
-            assert oo.nch == oo.Ref['nch']
+            assert oo.nt == oo.Ref['nt']
 
-    #def test04_select_ch(self):
+    def test04_select_ch(self):
+        for ii in range(0,len(self.LObj)):
+            oo = self.LObj[ii]
+            if oo.geom is not None:
+                ind = oo.select_ch(touch='Ves', out=bool)
+                assert ind.sum()==oo.Ref['nch']
+            if oo.Ref['dchans'] not in [None,{}] :
+                ind =oo.select_ch(key='Name',val=['C0-0','C1-0'],log='any',out=bool)
+                assert ind.sum() in [1,2]
 
+    def test05_set_indch(self):
+        for ii in range(0,len(self.LObj)):
+            oo = self.LObj[ii]
+            if oo.geom is not None:
+                oo.set_indch(touch='Ves')
+                assert oo.indch.sum()==oo.Ref['nch']
+            if oo.Ref['dchans'] not in [None,{}] :
+                oo.set_indch(key='Name',val=['C0-0','C1-0'],log='any')
+                assert oo.indch.sum() in [1,2]
+            oo.set_indch(indch=list(range(0,min(5,oo.Ref['nch']))))
+            assert oo.indch.sum() in [oo.Ref['nch'],5]
 
+    def test06_set_data0(self):
+        for ii in range(0,len(self.LObj)):
+            oo = self.LObj[ii]
+            # Re-initialise
+            oo.set_indt()
+            oo.set_indch()
+            if oo.Ref['nt']>1:
+                oo.set_data0(data0=oo.Ref['data'][0,:])
+                assert oo.data0['indt'] is None and oo.data0['Dt'] is None
+                assert np.allclose(oo.data[0,:],0.)
+                oo.set_data0(indt=[1,2,6,8,9])
+                assert oo.data0['indt'].sum()==5
+                assert oo.data0['data'].size==oo.Ref['nch']
+                if oo.t is not None:
+                    oo.set_data0(Dt=[2,3])
+                    assert oo.data0['Dt'][0]>=2. and oo.data0['Dt'][1]<=3.
+                    assert oo.data0['data'].size==oo.Ref['nch']
+                oo.set_data0()
+                assert oo.data0['data'] is None
+                assert np.allclose(oo.data,oo.Ref['data'])
 
-    #def test05_set_indch(self):
-
-
-    #def test06_set_DtRef(self):
-
-
-    #def test07_plot(self):
-
-    #plt.close('all')
+    def test07_plot(self):
+        for ii in range(0,len(self.LObj)):
+            oo = self.LObj[ii]
+            dax, KH = oo.plot(key=None, Max=None)
+            dax, KH = oo.plot(key='Name', Max=2)
+            plt.close('all')
 
 """
     def test08_tofromdict(self):

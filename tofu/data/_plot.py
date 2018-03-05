@@ -99,11 +99,11 @@ def _Data1D_plot(Data, key=None,
     if Data.t is None:
         t = np.asarray([0])
         Dt = [-1,1]
-        data = Data.data.rehape((1,Data.nch))
+        data = Data.data.reshape((1,Data.nch))
     elif Data.nt==1:
         t = Data.t
         Dt = [t[0]-1,t[0]+1]
-        data = Data.data.rehape((1,Data.nch))
+        data = Data.data.reshape((1,Data.nch))
     else:
         t = Data.t
         Dt = [np.nanmin(Data.t), np.nanmax(Data.t)]

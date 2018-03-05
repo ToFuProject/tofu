@@ -32,7 +32,7 @@ class Data(object):
         if fromdict is None:
             msg = "Provide either dchans or LCam !"
             assert np.sum([dchans is None, LCam is None])>=1, msg
-            self._set_data(data, t=t, dchans=dchans, dunits=dunits)
+            self._set_dataRef(data, t=t, dchans=dchans, dunits=dunits)
             self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
             self._set_LCam(LCam=LCam, CamCls=CamCls)
         else:
@@ -45,7 +45,14 @@ class Data(object):
         self._Id = tfpf.ID(fromdict=fd['Id'])
 
     def _todict(self):
-        out = {'Id':self.Id._todict()}
+        out = {'Id':self.Id._todict(),
+               'Ref':self._Ref,
+               'dunits':self.dunits,
+               'indt':self._indt, 'indch':self._indch,
+               'data0':self._data0,
+               'fft':self._fft,
+               'CamCls':self._CamCls,
+               'geom':self.geom}
         return out
 
     @property
@@ -77,26 +84,22 @@ class Data(object):
             return self._indch
     @property
     def t(self):
-        return self._Ref['t'][self.indt]
+        if self._Ref['t'] is None:
+            return None
+        else:
+            return self._Ref['t'][self.indt]
     @property
     def data(self):
-        # Get time interval
-        d = self._Ref['data'][self.indt,:]
-        # Substract reference time data
-        if self._DtRef is not None:
-            d = d - self._DtRef_data[np.newaxis,:]
-        # Get desired channels
-        d = d[:,self.indch]
-        # Get FFT-filtered data
-        #if self._fft is not None:
-        #    d =
-        return d
+        return self._get_data()
     @property
     def nt(self):
         return int(np.sum(self.indt))
     @property
     def nch(self):
         return int(np.sum(self.indch))
+    @property
+    def data0(self):
+        return self._data0
     @property
     def treatment(self):
         d = {'indt':self.indt, 'indch':self.indch,
@@ -120,7 +123,7 @@ class Data(object):
             Id = tfpf.ID(self.__class__, Id, **dd)
         self._Id = Id
 
-    def _set_data(self, data, t=None, dchans=None, dunits=None):
+    def _set_dataRef(self, data, t=None, dchans=None, dunits=None):
         self._check_inputs(data=data, t=t, dchans=dchans, dunits=dunits)
         if data.ndim==1:
             nt, nch = 1, data.size
@@ -138,8 +141,10 @@ class Data(object):
         self._Ref['dchans'] = dchans
 
         self._dunits = {} if dunits is None else dunits
+        self._data = None
         self._indt, self._indch = None, None
-        self._DtRef, self._fft = None, None
+        self._data0 = {'data':None,'t':None,'Dt':None}
+        self._fft = None, None
         self._indt_corr, self._indch_corr = None, None
 
     def _set_LCam(self, LCam=None, CamCls='1D'):
@@ -181,6 +186,24 @@ class Data(object):
             if len(LObj)>0:
                 self.Id.set_LObj(LObj)
 
+    def dchans(self, key=None):
+        """ List the channels selected by self.indch
+
+        Return their indices (default) or the chosen criterion
+        """
+        if self.geom is None:
+            dchans = None
+        elif self._Ref['dchans']=={}:
+            dchans = self._Ref['dchans']
+        else:
+            assert key in [None]+list(self._Ref['dchans'].keys())
+            ind = self.indch.nonzero()[0]
+            if key is None:
+                lK = self._Ref['dchans'].keys()
+                dchans = dict([(kk,self._Ref['dchans'][kk][ind]) for kk in lK])
+            else:
+                dchans = self._Ref['dchans'][key][ind]
+        return dchans
 
     def select_t(self, t=None, out=bool):
         assert out in [bool,int]
@@ -209,40 +232,8 @@ class Data(object):
         elif C[0]:
             ind = self.select_t(t=t, out=bool)
         elif C[1]:
-            Ints = [int,np.int64]
-            C0 = type(indt) in Ints
-            if C0:
-                ii = np.zeros((self._Ref['nt'],),dtype=bool)
-                ii[indt] = True
-                ind = ii
-            else:
-                if type(indt[0]) in [bool,np.bool_]:
-                    ind = np.asarray(indt)
-                    assert ind.size==self._Ref['nt']
-                else:
-                    ii = np.zeros((self._Ref['nt'],),dtype=bool)
-                    ii[np.asarray(indt)] = True
-                    ind = ii
+            ind = _format_ind(indt, n=self._Ref['nt'])
         self._indt = ind
-
-    def dchans(self, key=None):
-        """ List the channels selected by self.indch
-
-        Return their indices (default) or the chosen criterion
-        """
-        if self.geom is None:
-            dchans = None
-        elif self._Ref['dchans']=={}:
-            dchans = self._Ref['dchans']
-        else:
-            assert key in [None]+list(self._Ref['dchans'].keys())
-            ind = self.indch.nonzero()[0]
-            if key is None:
-                lK = self._Ref['dchans'].keys()
-                dchans = dict([(kk,self._Ref['dchans'][kk][ind]) for kk in lK])
-            else:
-                dchans = self._Ref['dchans'][key][ind]
-        return dchans
 
     def select_ch(self, key=None, val=None, log='any', touch=None, out=bool):
         assert out in [int,bool]
@@ -253,7 +244,7 @@ class Data(object):
             ind = np.ones((self.nRays,),dtype=bool)
         else:
             if key is not None:
-                assert type(key) is str and key in self._dchans.keys()
+                assert type(key) is str and key in self.Ref['dchans'].keys()
                 ltypes = [str,int,float,np.int64,np.float64]
                 C0 = type(val) in ltypes
                 C1 = type(val) in [list,tuple,np.ndarray]
@@ -262,7 +253,7 @@ class Data(object):
                     val = [val]
                 else:
                     assert all([type(vv) in ltypes for vv in val])
-                ind = np.vstack([self._dchans[key]==ii for ii in val])
+                ind = np.vstack([self.Ref['dchans'][key]==ii for ii in val])
                 if log=='any':
                     ind = np.any(ind,axis=0)
                 elif log=='all':
@@ -271,56 +262,88 @@ class Data(object):
                     ind = ~np.any(ind,axis=0)
             elif touch is not None:
                 assert self._geom is not None, "Geometry (LCam) not defined !"
-                VesOk, SOk = self.Ves is not None, self.LStruct is not None
-                SNames = [ss.Id.Name for ss in self.LStruct] if SOk else None
                 ind = []
                 for cc in self._geom['LCam']:
-                    ind.append(_comp.Rays_touch(VesOk, SOk, cc.geom['IndOut'],
-                                                SNames, touch=touch))
-                ind = np.concatenate(tuple(ind))
-                ind = ~ind if log=='not' else ind
+                    ind.append(cc.select(touch=touch, log=log, out=bool))
+                if len(ind)==1:
+                    ind = ind[0]
+                else:
+                    ind = np.concatenate(tuple(ind))
         if out is int:
             ind = ind.nonzero()[0]
         return ind
 
-    def set_indch(self, indch=None, key=None, val=None, log='any'):
-        C = [indch is None,t is None]
-        assert np.sum(C)>=1
+    def set_indch(self, indch=None, key=None, val=None, touch=None, log='any'):
+        C = [indch is None, key is None, touch is None]
+        assert np.sum(C)>=2
         if all(C):
             ind = np.ones((self._Ref['nch'],),dtype=bool)
         elif C[0]:
-            ind = self.select_ch(key=key, val=val, log=log, out=bool)
+            ind = self.select_ch(key=key, val=val, touch=touch, log=log, out=bool)
         elif C[1]:
-            Ints = [int,np.int64]
-            C0 = type(indch) in Ints
-            if C0:
-                ii = np.zeros((self._Ref['nch'],),dtype=bool)
-                ii[indch] = True
-                ind = ii
-            else:
-                if type(indch[0]) in [bool,np.bool_]:
-                    ind = np.asarray(indch)
-                    assert ind.size==self._Ref['nch']
-                else:
-                    ii = np.zeros((self._Ref['nch'],),dtype=bool)
-                    ii[np.asarray(indch)] = True
-                    ind = ii
+            ind = _format_ind(indch, n=self._Ref['nch'])
         self._indch = ind
 
-    def set_DtRef(self, DtRef=None):
-        self._DtRef = DtRef
-        if DtRef is not None:
-            indt = self.select_t(t=DtRef, out=bool)
-            if np.any(indt):
-                dd = self._Ref['data'][indt,:]
-                if np.sum(indt)>1:
-                    dd = np.nanmean(dd,axis=0)
-                self._DtRef_data = dd
+    def set_data0(self, data0=None, Dt=None, indt=None):
+        assert self._Ref['nt']>1, "Useless if only one data slice !"
+        C = [data0 is None, Dt is None, indt is None]
+        assert np.sum(C)>=2
+        if all(C):
+            data, t, indt = None, None, None
+        elif data0 is not None:
+            assert np.asarray(data0).shape==(self._Ref['nch'],)
+            data = np.asarray(data0)
+            Dt, indt = None, None
         else:
-            self._DtRef_data = None
+            if indt is not None:
+                indt = _format_ind(indt, n=self._Ref['nt'])
+            else:
+                indt = self.select_t(t=Dt, out=bool)
+            if indt is not None and np.any(indt):
+                data = self._Ref['data'][indt,:]
+                if np.sum(indt)>1:
+                    data = np.nanmean(data,axis=0)
+                if self._Ref['t'] is not None:
+                    Dt = [np.nanmin(self._Ref['t'][indt]),
+                          np.nanmax(self._Ref['t'][indt])]
+                else:
+                    Dt = None
+            else:
+                data = None
+                Dt = None
+        self._data0 = {'indt':indt,'data':data, 'Dt':Dt}
+
+    def _set_data(self):
+        if self._fft is None:
+            d = None
+        else:
+            # Get time interval
+            d = self._Ref['data'][self.indt,:]
+            # Substract reference time data
+            if self._data0['data'] is not None:
+                d = d - self._data0['data'][np.newaxis,:]
+            # Get desired channels
+            d = d[:,self.indch]
+            # Get fft
+            d = _comp.get_fft(d, **self._fft)
+        self._data = d
+
+    def _get_data(self):
+        if self._data is None:
+            # Get time interval
+            d = self._Ref['data'][self.indt,:]
+            # Substract reference time data
+            if self._data0['data'] is not None:
+                d = d - self._data0['data'][np.newaxis,:]
+            # Get desired channels
+            d = d[:,self.indch]
+        else:
+            d = self._data
+        return d
+
 
     #def get_fft(self, DF=None, Harm=True, DFEx=None, HarmEx=True, Calc=True):
-
+        #self._set_data()
 
     def plot(self, key=None,
              cmap=plt.cm.gray, ms=4,
@@ -430,6 +453,37 @@ def _Data_check_fromdict(fd):
         C = typ is k0[kk] or typ in k0[kk] or fd[kk] in k0[kk]
         assert C, "Wrong type of fromdict[%s]: %s"%(kk,str(typ))
 
+
+def _format_ind(ind=None, n=None):
+    if ind is None:
+        ind = np.ones((n,),dtype=bool)
+    else:
+        lInt = [int,np.int64]
+        if type(ind) in lInt:
+            ii = np.zeros((n,),dtype=bool)
+            ii[int(ii)] = True
+            ind = ii
+        else:
+            assert hasattr(ind,'__iter__')
+            if type(ind[0]) in [bool,np.bool_]:
+                ind = np.asarray(ind).astype(bool)
+                assert ind.size==n
+            elif type(ind[0]) in lInt:
+                ind = np.asarray(ind).astype(int)
+                ii = np.zeros((n,),dtype=bool)
+                ii[ind] = True
+                ind = ii
+            else:
+                msg = "Index must be a int, or an iterable of bool or int !"
+                raise Exception(msg)
+    return ind
+
+
+
+
+#####################################################################
+#               Data1D and Data2D
+#####################################################################
 
 
 class Data1D(Data):

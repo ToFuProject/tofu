@@ -897,8 +897,8 @@ class Rays(object):
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
                           'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
-    def select(self, key=None, val=None, touch=None, log='any', Out=int):
-        assert Out in [int,bool]
+    def select(self, key=None, val=None, touch=None, log='any', out=int):
+        assert out in [int,bool]
         assert log in ['any','all','not']
         C = [key is None,touch is None]
         assert np.sum(C)>=1
@@ -928,7 +928,7 @@ class Rays(object):
                 ind = _comp.Rays_touch(VesOk, StructOk, self.geom['IndOut'],
                                        StructNames,touch=touch)
                 ind = ~ind if log=='not' else ind
-        if Out is int:
+        if out is int:
             ind = ind.nonzero()[0]
         return ind
 
