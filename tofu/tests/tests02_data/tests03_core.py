@@ -117,10 +117,14 @@ class Test01_Data1D:
         C0.save()
         C1.save()
         t = np.linspace(0,10,20)
-        sig00 = C0.calc_signal(emiss, t=None, dl=0.01, method='sum')
-        sig01 = C0.calc_signal(emiss, t=t, dl=0.01, method='sum')
-        sig10 = C1.calc_signal(emiss, t=None, dl=0.01, method='sum')
-        sig11 = C1.calc_signal(emiss, t=t, dl=0.01, method='sum')
+        sig00 = C0.calc_signal(emiss, t=None, dl=0.01, method='sum',
+                               plot=False,out='')
+        sig01 = C0.calc_signal(emiss, t=t, dl=0.01, method='sum',
+                               plot=False,out='')
+        sig10 = C1.calc_signal(emiss, t=None, dl=0.01, method='sum',
+                               plot=False,out='')
+        sig11 = C1.calc_signal(emiss, t=t, dl=0.01, method='sum',
+                               plot=False,out='')
         sig20 = np.concatenate((sig00,sig10))
         sig21 = np.concatenate((sig01,sig11),axis=1)
         cls.LObj = [tfd.Data1D(sig00, Id='0', SavePath=here),
@@ -279,8 +283,10 @@ class Test01_Data2D(Test01_Data1D):
         V.save()
         C0.save()
         t = np.linspace(0,10,20)
-        sig00 = C0.calc_signal(emiss, t=None, dl=0.01, method='sum')
-        sig01 = C0.calc_signal(emiss, t=t, dl=0.01, method='sum')
+        sig00 = C0.calc_signal(emiss, t=None, dl=0.01, method='sum',
+                               plot=False, out='')
+        sig01 = C0.calc_signal(emiss, t=t, dl=0.01, method='sum',
+                               plot=False, out='')
         cls.LObj = [tfd.Data2D(sig00, Id='0', SavePath=here),
                     tfd.Data2D(sig01, t=t, Id='1', SavePath=here),
                     tfd.Data2D(sig00, LCam=C0, Id='2', SavePath=here),
