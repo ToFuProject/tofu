@@ -23,9 +23,6 @@ except Exception:
     from . import _def as _def
     from . import _GG as _GG
 
-import ipdb
-
-
 # Generic
 def _check_Lax(Lax=None, n=2):
     assert n in [1,2]
