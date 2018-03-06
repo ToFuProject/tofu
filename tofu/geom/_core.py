@@ -1042,7 +1042,7 @@ class Rays(object):
 
     def calc_signal(self, ff, t=None, Ani=None, fkwdargs={},
                     dl=0.005, DL=None, dlMode='abs', method='sum',
-                    ind=None, out=object, plot=True, Warn=True):
+                    ind=None, out=object, plot=True, fs=None, Warn=True):
         """ Return the line-integrated emissivity
 
         Beware that it is only a line-integral !
@@ -1119,9 +1119,7 @@ class Rays(object):
             else:
                 sig[:,indok] = s
 
-        if not (out is object or plot):
-            return sig
-        else:
+        if plot or out is object:
             assert '1D' in self.Id.Cls or '2D' in self.Id.Cls, "Set Cam type!!"
             import tofu.data as tfd
             if '1D' in self.Id.Cls:
@@ -1130,14 +1128,11 @@ class Rays(object):
             else:
                 osig = tfd.Data2D(data=sig, t=t, LCam=self, Id=self.Id.Name,
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
-            if out is object and not plot:
-                return osig
-            elif out is not object and plot:
-                dax, KH = osig.plot()
-                return sig, dax, KH
-            else:
-                dax, KH = osig.plot()
-                return osig, dax, KH
+            if plot:
+                dax, KH = osig.plot(fs=fs)
+            if out is object:
+                sig = osig
+        return sig
 
     def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
              EltVes='', EltStruct='', Leg='', dL=None, dPtD=_def.LOSMd,

@@ -368,10 +368,10 @@ class Data(object):
 
     def plot(self, key=None,
              cmap=plt.cm.gray, ms=4,
-             Max=None, a4=False):
+             Max=None, fs=None):
         dax, KH = _plot.Data_plot(self, key=key,
                                   cmap=cmap, ms=ms,
-                                  Max=Max, a4=a4)
+                                  Max=Max, fs=fs)
         return dax, KH
 
 
@@ -557,7 +557,7 @@ class Data2D(Data):
         return X12, DX12
 
     def plot(self, key=None, invert=True, cmap=plt.cm.gray, ms=4,
-             Max=None, a4=False):
+             Max=None, fs=None):
         dax, KH = _plot.Data_plot(self, key=key, invert=invert,
-                                  cmap=cmap, ms=ms, Max=Max, a4=a4)
+                                  cmap=cmap, ms=ms, Max=Max, fs=fs)
         return dax, KH

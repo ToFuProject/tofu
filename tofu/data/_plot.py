@@ -17,16 +17,16 @@ __all__ = ['Data_plot']
 
 def Data_plot(Data, key=None,
               cmap=plt.cm.gray, ms=4,
-              dMag=None, Max=None,
-              plotmethod='imshow', invert=False, a4=False):
+              dMag=None, Max=None, fs=None,
+              plotmethod='imshow', invert=False):
 
     if '1D' in Data._CamCls:
         Max = 3 if Max is None else Max
-        dax, KH = _Data1D_plot(Data, key=key, dMag=dMag, Max=Max, a4=a4)
+        dax, KH = _Data1D_plot(Data, key=key, dMag=dMag, Max=Max, fs=fs)
     else:
         Max = 6 if Max is None else Max
         dax, KH = _Data2D_plot(Data, key=key, cmap=cmap, ms=ms, dMag=dMag,
-                               Max=Max, plot=plotmethod, invert=invert, a4=a4)
+                               Max=Max, plot=plotmethod, invert=invert, fs=fs)
     return dax, KH
 
 
@@ -38,9 +38,13 @@ def Data_plot(Data, key=None,
 ###################################################
 
 
-def _init_Data1D(a4=False, Max=4):
-    (fW,fH,axCol) = (8.27,11.69,'w') if a4 else (14,7,'w')
-    fig = plt.figure(facecolor=axCol,figsize=(fW,fH))
+def _init_Data1D(fs=None, Max=4):
+    axCol = "w"
+    if fs is None:
+        fs = (8.27,11.69)
+    elif type(fs) is str and fs.lower()=='a4':
+        fs = (8.27,11.69)
+    fig = plt.figure(facecolor=axCol,figsize=fs)
     gs1 = gridspec.GridSpec(6, 5,
                             left=0.03, bottom=0.05, right=0.99, top=0.94,
                             wspace=None, hspace=0.4)
@@ -449,9 +453,13 @@ def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
 
 
 
-def _init_Data2D(a4=False, Max=4):
-    (fW,fH,axCol) = (8.27,11.69,'w') if a4 else (14,7,'w')
-    fig = plt.figure(facecolor=axCol,figsize=(fW,fH))
+def _init_Data2D(fs=None, Max=4):
+    axCol = "w"
+    if fs is None:
+        fs = (14,7)
+    elif type(fs) is str and fs.lower()=='a4':
+        fs = (8.27,11.69)
+    fig = plt.figure(facecolor=axCol,figsize=fs)
     gs1 = gridspec.GridSpec(6, 5,
                             left=0.03, bottom=0.05, right=0.99, top=0.94,
                             wspace=None, hspace=0.4)
