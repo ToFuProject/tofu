@@ -253,22 +253,43 @@ class Test01_Data1D:
             PathFileExt = os.path.join(oo.Id.SavePath,
                                        oo.Id.SaveName+'.npz')
             obj = tfpf.Open(PathFileExt, Print=False)
-            # Just to check the loaded version works fine
+    # Just to check the loaded version works fine
             do = obj._todict()
             assert tfu.dict_cmp(dd,do)
             os.remove(PathFileExt)
 
 
 
-"""
+
+
+class Test01_Data2D(Test01_Data1D):
+    @classmethod
+    def setup_class(cls):
+        thet = np.linspace(0,2.*np.pi,100)
+        P = np.array([2.4 + 0.8*np.cos(thet),0.8*np.sin(thet)])
+        V = tfg.Ves('Test', P, Exp='Test', SavePath=here)
+        N = 5
+        Ds, us = tfu.create_CamLOS2D([3.5,0.,0.], 0.1, (0.05,0.05), (N,N),
+                                     nIn=[-1,0.,0.], e1=None, e2=None,
+                                     VType='Tor')
+        d0 = dict(Name=['C0-{0}'.format(ii) for ii in range(0,N**2)])
+        d1 = dict(Name=['C1-{0}'.format(ii) for ii in range(0,N**2)])
+        C0 = tfg.LOSCam2D('C0', (Ds,us), Ves=V,
+                          Exp='Test', Diag='Test', dchans=d0, SavePath=here)
+        V.save()
+        C0.save()
+        t = np.linspace(0,10,20)
+        sig00 = C0.calc_signal(emiss, t=None, dl=0.01, method='sum')
+        sig01 = C0.calc_signal(emiss, t=t, dl=0.01, method='sum')
+        cls.LObj = [tfd.Data2D(sig00, Id='0', SavePath=here),
+                    tfd.Data2D(sig01, t=t, Id='1', SavePath=here),
+                    tfd.Data2D(sig00, LCam=C0, Id='2', SavePath=here),
+                    tfd.Data2D(sig01, t=t, LCam=C0, Id='3', SavePath=here)]
+
     def test07_plot(self):
         for ii in range(0,len(self.LObj)):
-            if oo.Id.Cls=='Ves':
-                Pdict = {'c':'k'}
-            else:
-                Pdict = {'ec':'None','fc':(0.8,0.8,0.8,0.5)}
-            Lax1 = oo.plot(Proj='All', Elt='PIBsBvV', dP=Pdict, draw=False, a4=False, Test=True)
-            Lax2 = oo.plot(Proj='Cross', Elt='PIBsBvV', dP=Pdict, draw=False, a4=False, Test=True)
-            Lax3 = oo.plot(Proj='Hor', Elt='PIBsBvV', dP=Pdict, draw=False, a4=False, Test=True)
-            plt.close('all')
-"""
+            oo = self.LObj[ii]
+            if oo._X12 is not None and oo.geom is not None:
+                dax, KH = oo.plot(key=None, Max=None)
+                dax, KH = oo.plot(key='Name', Max=2)
+                plt.close('all')

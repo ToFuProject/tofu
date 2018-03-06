@@ -1,15 +1,18 @@
 
 
 # Built-in
+import os
 import itertools as itt
 import warnings
 
 
 # Generic common libraries
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon as mPolygon, Wedge as mWedge
 from matplotlib.axes._axes import Axes
+import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
 
 # ToFu-specific
@@ -20,6 +23,7 @@ except Exception:
     from . import _def as _def
     from . import _GG as _GG
 
+import ipdb
 
 
 # Generic
@@ -881,3 +885,279 @@ def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad',
     if draw:
         ax.figure.canvas.draw()
     return ax
+
+
+
+########################################################
+#           plot_touch
+########################################################
+
+def _make_cmap(c):
+
+    c0 = mpl.colors.to_rgb(c)
+    dc = {'red':((0.,c0[0],c0[0]),(1.,1.,1.)),
+          'green':((0,c0[1],c0[1]),(1.,1.,1.)),
+          'blue':((0.,c0[2],c0[2]),(1.,1.,1.))}
+    cm = mpl.colors.LinearSegmentedColormap(c, dc)
+    return cm
+
+
+
+def Rays_plot_touch(Cam, key=None, invert=None,
+                    lcol=['k','r','b','g','y','m','c'], a4=False):
+
+    if type(Cam) is list or '1D' in Cam.Id.Cls:
+        if not type(Cam) is list:
+            Cam = [Cam]
+        out = _Cam1D_plot_touch(Cam, key=key, lcol=lcol, a4=a4)
+    else:
+        invert = True if invert is None else invert
+        out = _Cam2D_plot_touch(Cam, lcol=lcol, invert=invert, a4=a4)
+    return out
+
+
+def  _Cam1D_plot_touch_init(a4=False, Max=4):
+    (fW,fH,axCol) = (8.27,11.69,'w') if a4 else (10,7,'w')
+    fig = plt.figure(facecolor=axCol,figsize=(fW,fH))
+    gs1 = gridspec.GridSpec(6, 3,
+                            left=0.05, bottom=0.05, right=0.99, top=0.94,
+                            wspace=None, hspace=0.4)
+    axp = fig.add_subplot(gs1[:,:-1], fc='w')
+    axH = fig.add_subplot(gs1[0:2,2], fc='w')
+    axC = fig.add_subplot(gs1[2:,2], fc='w')
+
+    axC.set_aspect('equal', adjustable='datalim')
+    axH.set_aspect('equal', adjustable='datalim')
+    dax = {'prof':[axp], '2D':[axC,axH]}
+    for kk in dax.keys():
+        for ii in range(0,len(dax[kk])):
+            dax[kk][ii].tick_params(labelsize=8)
+    return dax
+
+
+def _Cam1D_plot_touch(Cam, key=None,
+                 lcol=['k','r','b','g','y','m','c'],
+                 Max=4, a4=False):
+
+    # Prepare
+    if 'LOS' in Cam[0].Id.Cls:
+        Dname = 'LOS length'
+        Dunits = r"$m$"
+        data = [cc.geom['kPOut']-cc.geom['kPIn'] for cc in Cam]
+        data = np.concatenate(tuple(data))
+    else:
+        Dname = 'VOS volume'
+        Dunits = r"$m^3$"
+        data = None
+        raise Exception("Not codd yet !")
+    Dd = [min(0,np.nanmin(data)), 1.2*np.nanmax(data)]
+
+    nch = data.size
+    chans = np.arange(0,nch)
+    Dchans = [-1,nch]
+    if key is None:
+        chlab = chans
+    else:
+        chlab = itt.chain.from_iterable([cc.dchans[kk] for cc in Cam])
+
+    if 'LOS' in Cam[0].Id.Cls:
+        lCross = [cc._get_plotL(Lplot='In', Proj='Cross', multi=True)
+                  for cc in Cam]
+        lHor = [cc._get_plotL(Lplot='In', Proj='Hor', multi=True)
+                for cc in Cam]
+        lCross = list(itt.chain.from_iterable(lCross))
+        lHor = list(itt.chain.from_iterable(lHor))
+    else:
+        raise Exception("Not coded yet !")
+
+
+    lS = [cc.LStruct for cc in Cam if cc.LStruct is not None]
+    if len(lS)==0:
+        lS = None
+    else:
+        lS = lS[0] if len(lS)==1 else list(itt.chain.from_iterable(lS))
+        lSP = [os.path.join(s.Id.SavePath,s.Id.SaveName) for s in lS]
+        lS = [lS[lSP.index(ss)] for ss in list(set(lSP))]
+
+    lElt = ['Ves']
+    if lS is not None:
+        lElt += [ss.Id.Name for ss in lS]
+    dElt, jj = {}, 0
+    for ee in lElt:
+        ind = []
+        for cc in Cam:
+            try:
+                ii = cc.select(touch=ee,out=bool)
+            except:
+                ii = np.zeros((cc.nRays,),dtype=bool)
+            ind.append(ii)
+        ind = np.concatenate(tuple(ind))
+        dElt[ee] = {'ind':ind, 'c':lcol[jj]}
+        jj += 1
+
+    # Format axes
+    dax = _Cam1D_plot_touch_init(a4=a4)
+    tit = r"%s - %s"%(Cam[0].Id.Exp,Cam[0].Id.Diag)
+    dax['prof'][0].figure.suptitle(tit)
+
+    dax['prof'][0].set_xlim(Dchans),   dax['prof'][0].set_ylim(Dd)
+    dax['prof'][0].set_xlabel(r"", fontsize=8)
+    dax['prof'][0].set_ylabel(r"%s (%s)"%(Dname,Dunits), fontsize=8)
+    dax['prof'][0].set_xticks(chans)
+    dax['prof'][0].set_xticklabels(chlab, rotation=45)
+
+    # Plot fixed parts
+    if Cam[0].Ves is not None:
+        dax['2D'] = Cam[0].Ves.plot(Lax=dax['2D'], Elt='P', dLeg=None)
+        if lS is not None:
+            for ss in lS:
+                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
+
+    for ee in lElt:
+        ind = dElt[ee]['ind'].nonzero()[0]
+        if ind.size>0:
+            dax['prof'][0].plot(chans[ind], data[ind], ls='None',marker='x', ms=8,
+                                c=dElt[ee]['c'])
+            if 'LOS' in Cam[0].Id.Cls:
+                cr = [np.concatenate((lCross[ii],np.full((2,1),np.nan)),axis=1)
+                      for ii in ind]
+                cr = np.concatenate(tuple(cr),axis=1)
+                hh = [np.concatenate((lHor[ii],np.full((2,1),np.nan)),axis=1)
+                      for ii in ind]
+                hh = np.concatenate(tuple(hh),axis=1)
+                dax['2D'][0].plot(cr[0,:], cr[1,:], ls='-', lw=1., c=dElt[ee]['c'])
+                dax['2D'][1].plot(hh[0,:], hh[1,:], ls='-', lw=1., c=dElt[ee]['c'])
+
+    can = dax['prof'][0].figure.canvas
+    can.draw()
+    plt.show(block=False)
+    return dax
+
+
+# Cam2D
+
+
+def _Cam2D_plot_touch_init(a4=False, Max=4):
+    (fW,fH,axCol) = (8.27,11.69,'w') if a4 else (10,7,'w')
+    fig = plt.figure(facecolor=axCol,figsize=(fW,fH))
+    gs1 = gridspec.GridSpec(6, 3,
+                            left=0.03, bottom=0.05, right=0.99, top=0.94,
+                            wspace=None, hspace=0.4)
+    pos = list(gs1[5,:-1].get_position(fig).bounds)
+    pos[-1] = pos[-1]/2.
+    cax = fig.add_axes(pos, fc='w')
+    axp = fig.add_subplot(gs1[:5,:-1], fc='w')
+    axH = fig.add_subplot(gs1[0:2,2], fc='w')
+    axC = fig.add_subplot(gs1[2:,2], fc='w')
+    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
+    DY = (axp.get_position().bounds[1]
+          - cax.get_position().bounds[1] - cax.get_position().bounds[3])
+    left = axp.get_position().bounds[0]
+    right = axp.get_position().bounds[0]+axp.get_position().bounds[2]
+    gst = gridspec.GridSpec(1, Max,
+                           left=left, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
+                           wspace=0.10, hspace=None)
+    LaxTxtt = [fig.add_subplot(gst[0,ii], fc='w') for ii in range(0,Max)]
+
+    axC.set_aspect('equal', adjustable='datalim')
+    axH.set_aspect('equal', adjustable='datalim')
+    for ii in range(0,Max):
+        LaxTxtt[ii].spines['top'].set_visible(False)
+        LaxTxtt[ii].spines['bottom'].set_visible(False)
+        LaxTxtt[ii].spines['right'].set_visible(False)
+        LaxTxtt[ii].spines['left'].set_visible(False)
+        LaxTxtt[ii].set_xticks([]), LaxTxtt[ii].set_yticks([])
+        LaxTxtt[ii].set_xlim(0,1),  LaxTxtt[ii].set_ylim(0,1)
+
+    dax = {'prof':[axp], '2D':[axC,axH], 'cax':[cax],
+           'Txtt':LaxTxtt}
+    for kk in dax.keys():
+        for ii in range(0,len(dax[kk])):
+            dax[kk][ii].tick_params(labelsize=8)
+    return dax
+
+
+
+def _Cam2D_plot_touch(Cam, key=None,
+                      lcol=['k','r','b','g','y','m','c'],
+                      Max=4, invert=False, a4=False):
+
+    # Prepare
+    if 'LOS' in Cam.Id.Cls:
+        Dname = 'LOS length'
+        Dunits = r"$m$"
+        data = Cam.geom['kPOut']-Cam.geom['kPIn']
+        data[np.isinf(data)] = np.nan
+    else:
+        Dname = 'VOS volume'
+        Dunits = r"$m^3$"
+        data = None
+        raise Exception("Not coded yet !")
+
+    nch = data.size
+    chans = np.arange(0,nch)
+    Dchans = [-1,nch]
+    if key is None:
+        chlab = chans
+    else:
+        chlab = Cam.dchans[kk]
+    X12, DX12 = Cam.get_X12(out='1d')
+    DX12 = [np.nanmean(np.diff(np.unique(X12[0,:]))),
+            np.nanmean(np.diff(np.unique(X12[1,:])))]
+    DX1 = [np.nanmin(X12[0,:])-DX12[0]/2.,np.nanmax(X12[0,:])+DX12[0]/2.]
+    DX2 = [np.nanmin(X12[1,:])-DX12[1]/2.,np.nanmax(X12[1,:])+DX12[1]/2.]
+
+    if 'LOS' in Cam.Id.Cls:
+        lCross = Cam._get_plotL(Lplot='In', Proj='Cross', multi=True)
+        lHor = Cam._get_plotL(Lplot='In', Proj='Hor', multi=True)
+    else:
+        raise Exception("Not coded yet !")
+
+    lS = Cam.LStruct
+    lElt = ['Ves']
+    if lS is not None:
+        lElt += [ss.Id.Name for ss in lS]
+    dElt, jj = {}, 0
+    for ee in lElt:
+        ind = Cam.select(touch=ee,out=bool)
+        dElt[ee] = {'ind':ind}
+        jj += 1
+
+    norm = mpl.colors.Normalize(vmin=np.nanmin(data),vmax=1.1*np.nanmax(data))
+
+    # Format axes
+    dax = _Cam2D_plot_touch_init(a4=a4, Max=Max)
+    tit = r"%s - %s"%(Cam.Id.Exp,Cam.Id.Diag)
+    dax['prof'][0].figure.suptitle(tit)
+
+    dax['prof'][0].set_xlim(DX1),   dax['prof'][0].set_ylim(DX2)
+    dax['prof'][0].set_xlabel(r"$X_1$", fontsize=8)
+    dax['prof'][0].set_ylabel(r"$X_2$", fontsize=8)
+    dax['prof'][0].set_aspect('equal', adjustable='datalim')
+    if invert:
+        dax['prof'][0].invert_xaxis()
+        dax['prof'][0].invert_yaxis()
+
+    # Plot fixed parts
+    if Cam.Ves is not None:
+        dax['2D'] = Cam.Ves.plot(Lax=dax['2D'], Elt='P', dLeg=None)
+        if lS is not None:
+            for ss in lS:
+                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
+
+    for ee in lElt:
+        ind = dElt[ee]['ind'].nonzero()[0]
+        if ind.size>0:
+            if type(lcol) is list:
+                c = lcol[jj]
+            else:
+                c = lcol[[kk for kk in lcol.keys() if kk in ee][0]]
+            cmap = _make_cmap(c)
+            dax['prof'][0].scatter(X12[0,ind],X12[1,ind], c=data[ind],
+                                   s=8, marker='s', cmap=cmap,
+                                   norm=norm, edgecolors='None')
+
+    can = dax['prof'][0].figure.canvas
+    can.draw()
+    plt.show(block=False)
+    return dax

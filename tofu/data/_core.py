@@ -448,18 +448,21 @@ def _Data_check_inputs(Id=None, data=None, t=None, dchans=None,
     if LCam is not None:
         assert type(LCam) is list or issubclass(LCam.__class__,object)
         if type(LCam) is list:
+            lCls = ['LOSCam1D','Cam1D','LOSCam2D','Cam2D']
+            assert all([cc.Id.Cls in lCls for cc in LCam])
             assert all([issubclass(cc.__class__,object) for cc in LCam])
-            msg = "Cannot associate mulitple 2D cameras !"
-            assert all([cc.Id.Cls in ['LOSCam1D','Cam1D'] for cc in LCam]), msg
-            msg = "Cannot associate cameras of different types !"
-            assert all([cc.Id.Cls==LCam[0].Id.Cls for cc in LCam]), msg
-            lVes = [cc.Ves for cc in LCam]
-            C0 = all([vv is None for vv in lVes])
-            C1 = all([tfu.dict_cmp(vv._todict(),lVes[0]._todict())
-                      for vv in lVes])
-            assert C0 or C1
-            lK = [sorted(cc.dchans.keys() for cc in LCam)]
-            assert all([lk==lK[0] for lk in lK])
+            if len(LCam)>1:
+                msg = "Cannot associate mulitple 2D cameras !"
+                assert all([cc.Id.Cls in ['LOSCam1D','Cam1D'] for cc in LCam]), msg
+                msg = "Cannot associate cameras of different types !"
+                assert all([cc.Id.Cls==LCam[0].Id.Cls for cc in LCam]), msg
+                lVes = [cc.Ves for cc in LCam]
+                C0 = all([vv is None for vv in lVes])
+                C1 = all([tfu.dict_cmp(vv._todict(),lVes[0]._todict())
+                          for vv in lVes])
+                assert C0 or C1
+                lK = [sorted(cc.dchans.keys() for cc in LCam)]
+                assert all([lk==lK[0] for lk in lK])
         else:
             assert LCam.Id.Cls in ['LOSCam1D','LOSCam2D','Cam1D','Cam2D']
 

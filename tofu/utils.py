@@ -81,6 +81,8 @@ def create_CamLOS2D(P, F, D12, N12,
             nIn = -P
         else:
             nIn = np.r_[0.,-P[1],-P[2]]
+    nIn = np.asarray(nIn)
+    nIn = nIn/np.linalg.norm(nIn)
     if e1 is None:
        if VType=='tor':
             phi = np.arctan2(P[1],P[0])
@@ -89,22 +91,22 @@ def create_CamLOS2D(P, F, D12, N12,
                 e1 = ephi
             else:
                 e1 = np.cross(nIn,np.r_[0.,0.,1.])
-                e1 = e1 if np.sum(e1,ephi)>0. else -e1
+                e1 = e1 if np.sum(e1*ephi)>0. else -e1
        else:
             if np.abs(np.abs(nIn[0])-1.)<1.e-12:
                 e1 = np.r_[0.,1.,0.]
             else:
                 e1 = np.cross(nIn,np.r_[0.,0.,1.])
                 e1 = e1 if e1[0]>0. else -e1
+    e1 = np.asarray(e1)
+    e1 = e1/np.linalg.norm(e1)
     assert np.abs(np.sum(nIn*e1))<1.e-12
     if e2 is None:
         e2 = np.cross(nIn,e1)
+    e2 = np.asarray(e2)
+    e2 = e2/np.linalg.norm(e2)
     assert np.abs(np.sum(nIn*e2))<1.e-12
     assert np.abs(np.sum(e1*e2))<1.e-12
-
-    for vv in [nIn,e1,e2]:
-        vv = vv/np.linalg.norm(vv)
-
 
     # Get starting points
     d1 = D12[0]*np.linspace(-0.5,0.5,N12[0],endpoint=True)

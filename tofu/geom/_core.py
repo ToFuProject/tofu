@@ -896,7 +896,7 @@ class Rays(object):
                 VType = self.Ves.Type
             else:
                 VType = 'Lin'
-            kMax = self.geom['kPOut']
+            kMax = np.copy(self.geom['kPOut'])
             kMax[np.isnan(kMax)] = np.inf
             out = _GG.LOS_sino(self.D, self.u, RefPt, kMax,
                                Mode='LOS', VType=VType)
@@ -1041,8 +1041,8 @@ class Rays(object):
 
 
     def calc_signal(self, ff, t=None, Ani=None, fkwdargs={},
-                    dl=0.001, DL=None, dlMode='abs', method='romb',
-                    ind=None, Warn=True):
+                    dl=0.005, DL=None, dlMode='abs', method='sum',
+                    ind=None, out=object, plot=True, Warn=True):
         """ Return the line-integrated emissivity
 
         Beware that it is only a line-integral !
@@ -1118,7 +1118,26 @@ class Rays(object):
                 sig[indok] = s
             else:
                 sig[:,indok] = s
-        return sig
+
+        if not (out is object or plot):
+            return sig
+        else:
+            assert '1D' in self.Id.Cls or '2D' in self.Id.Cls, "Set Cam type!!"
+            import tofu.data as tfd
+            if '1D' in self.Id.Cls:
+                osig = tfd.Data1D(data=sig, t=t, LCam=self, Id=self.Id.Name,
+                                  Exp=self.Id.Exp, Diag=self.Id.Diag)
+            else:
+                osig = tfd.Data2D(data=sig, t=t, LCam=self, Id=self.Id.Name,
+                                  Exp=self.Id.Exp, Diag=self.Id.Diag)
+            if out is object and not plot:
+                return osig
+            elif out is not object and plot:
+                dax, KH = osig.plot()
+                return sig, dax, KH
+            else:
+                dax, KH = osig.plot()
+                return osig, dax, KH
 
     def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
              EltVes='', EltStruct='', Leg='', dL=None, dPtD=_def.LOSMd,
@@ -1278,6 +1297,13 @@ class Rays(object):
                                     Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
                                     dL=dL, dVes=dVes, dLeg=dLeg,
                                     ind=ind, draw=draw, a4=a4, Test=Test)
+
+    def plot_touch(self, key=None, invert=None,
+                   lcol=['k','r','b','g','y','m','c']):
+        assert self.Id.Cls in ['LOSCam1D','LOSCam2D'], "Specify camera type !"
+        assert self.Ves is not None, "self.Ves should not be None !"
+        out = _plot.Rays_plot_touch(self, key=key, invert=invert, lcol=lcol)
+        return out
 
     def save(self, SaveName=None, Path=None,
              Mode='npz', compressed=False, Print=True):
