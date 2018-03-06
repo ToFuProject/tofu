@@ -64,10 +64,10 @@ def create_CamLOS2D(P, F, D12, N12,
         assert hasattr(D12,'__iter__') and len(D12)==2
         D12 = np.asarray(D12).astype(float)
     if type(N12) in [int, float, np.int64, np.float64]:
-        N12 = np.array([N12,N12],dtype=float)
+        N12 = np.array([N12,N12],dtype=int)
     else:
         assert hasattr(N12,'__iter__') and len(N12)==2
-        N12 = np.asarray(N12).astype(float)
+        N12 = np.asarray(N12).astype(int)
     assert type(VType) is str and VType.lower() in ['tor','lin']
     VType = VType.lower()
 
