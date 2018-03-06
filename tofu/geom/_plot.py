@@ -979,7 +979,7 @@ def _Cam1D_plot_touch(Cam, key=None,
     lElt = ['Ves']
     if lS is not None:
         lElt += [ss.Id.Name for ss in lS]
-    dElt, jj = {}, 0
+    dElt = {}
     for ee in lElt:
         ind = []
         for cc in Cam:
@@ -989,8 +989,7 @@ def _Cam1D_plot_touch(Cam, key=None,
                 ii = np.zeros((cc.nRays,),dtype=bool)
             ind.append(ii)
         ind = np.concatenate(tuple(ind))
-        dElt[ee] = {'ind':ind, 'c':lcol[jj]}
-        jj += 1
+        dElt[ee] = {'ind':ind}
 
     # Format axes
     dax = _Cam1D_plot_touch_init(a4=a4)
@@ -1009,12 +1008,16 @@ def _Cam1D_plot_touch(Cam, key=None,
         if lS is not None:
             for ss in lS:
                 dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
-
+    jj = 0
     for ee in lElt:
         ind = dElt[ee]['ind'].nonzero()[0]
         if ind.size>0:
-            dax['prof'][0].plot(chans[ind], data[ind], ls='None',marker='x', ms=8,
-                                c=dElt[ee]['c'])
+            if type(lcol) is list:
+                c = lcol[jj]
+            else:
+                c = lcol[[kk for kk in lcol.keys() if kk in ee][0]]
+            dax['prof'][0].plot(chans[ind], data[ind],
+                                ls='None', marker='x', ms=8, c=c)
             if 'LOS' in Cam[0].Id.Cls:
                 cr = [np.concatenate((lCross[ii],np.full((2,1),np.nan)),axis=1)
                       for ii in ind]
@@ -1022,8 +1025,9 @@ def _Cam1D_plot_touch(Cam, key=None,
                 hh = [np.concatenate((lHor[ii],np.full((2,1),np.nan)),axis=1)
                       for ii in ind]
                 hh = np.concatenate(tuple(hh),axis=1)
-                dax['2D'][0].plot(cr[0,:], cr[1,:], ls='-', lw=1., c=dElt[ee]['c'])
-                dax['2D'][1].plot(hh[0,:], hh[1,:], ls='-', lw=1., c=dElt[ee]['c'])
+                dax['2D'][0].plot(cr[0,:], cr[1,:], ls='-', lw=1., c=c)
+                dax['2D'][1].plot(hh[0,:], hh[1,:], ls='-', lw=1., c=c)
+            jj += 1
 
     can = dax['prof'][0].figure.canvas
     can.draw()
@@ -1114,11 +1118,10 @@ def _Cam2D_plot_touch(Cam, key=None,
     lElt = ['Ves']
     if lS is not None:
         lElt += [ss.Id.Name for ss in lS]
-    dElt, jj = {}, 0
+    dElt = {}
     for ee in lElt:
         ind = Cam.select(touch=ee,out=bool)
         dElt[ee] = {'ind':ind}
-        jj += 1
 
     norm = mpl.colors.Normalize(vmin=np.nanmin(data),vmax=1.1*np.nanmax(data))
 
@@ -1141,7 +1144,7 @@ def _Cam2D_plot_touch(Cam, key=None,
         if lS is not None:
             for ss in lS:
                 dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
-
+    jj = 0
     for ee in lElt:
         ind = dElt[ee]['ind'].nonzero()[0]
         if ind.size>0:
@@ -1153,6 +1156,7 @@ def _Cam2D_plot_touch(Cam, key=None,
             dax['prof'][0].scatter(X12[0,ind],X12[1,ind], c=data[ind],
                                    s=8, marker='s', cmap=cmap,
                                    norm=norm, edgecolors='None')
+            jj += 1
 
     can = dax['prof'][0].figure.canvas
     can.draw()
