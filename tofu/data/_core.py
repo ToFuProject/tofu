@@ -557,7 +557,8 @@ class Data2D(Data):
         return X12, DX12
 
     def plot(self, key=None, invert=True, cmap=plt.cm.gray, ms=4,
-             Max=None, fs=None):
+             Max=None, fs=None, plotmethod='imshow'):
         dax, KH = _plot.Data_plot(self, key=key, invert=invert,
+                                  plotmethod=plotmethod,
                                   cmap=cmap, ms=ms, Max=Max, fs=fs)
         return dax, KH

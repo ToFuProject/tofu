@@ -941,14 +941,12 @@ class Rays(object):
 
     def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, multi=False):
         self._check_inputs(ind=ind)
-        ind = ~np.isnan(self.geom['kPOut']) if ind is None else np.asarray(ind)
-        if ind.dtype is bool:
-            ind = ind & (~np.isnan(self.geom['kPOut']))
+        if ind is not None:
+            ind = np.asarray(ind)
+            if ind.dtype in [bool,np.bool_]:
+                ind = ind.nonzero()[0]
         else:
-            ii = np.zeros((self.nRays,),dtype=bool)
-            ii[ind] = True
-            ind = ii & (~np.isnan(self.geom['kPOut']))
-        ind = ind.nonzero()[0]
+            ind = np.arange(0,self.nRays)
         if len(ind)>0:
             Ds, us = self.D[:,ind], self.u[:,ind]
             if len(ind)==1:
@@ -1042,7 +1040,8 @@ class Rays(object):
 
     def calc_signal(self, ff, t=None, Ani=None, fkwdargs={},
                     dl=0.005, DL=None, dlMode='abs', method='sum',
-                    ind=None, out=object, plot=True, fs=None, Warn=True):
+                    ind=None, out=object, plot=True, plotmethod='imshow',
+                    fs=None, Warn=True):
         """ Return the line-integrated emissivity
 
         Beware that it is only a line-integral !
@@ -1129,7 +1128,7 @@ class Rays(object):
                 osig = tfd.Data2D(data=sig, t=t, LCam=self, Id=self.Id.Name,
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             if plot:
-                dax, KH = osig.plot(fs=fs)
+                dax, KH = osig.plot(fs=fs, plotmethod=plotmethod)
             if out is object:
                 sig = osig
         return sig

@@ -41,7 +41,7 @@ def Data_plot(Data, key=None,
 def _init_Data1D(fs=None, Max=4):
     axCol = "w"
     if fs is None:
-        fs = (8.27,11.69)
+        fs = (14,7)
     elif type(fs) is str and fs.lower()=='a4':
         fs = (8.27,11.69)
     fig = plt.figure(facecolor=axCol,figsize=fs)
@@ -93,7 +93,7 @@ def _init_Data1D(fs=None, Max=4):
 
 
 def _Data1D_plot(Data, key=None,
-                 dMag=None, Max=4, a4=False):
+                 dMag=None, Max=4, fs=None):
 
     # Prepare
     Dname = 'data'
@@ -140,7 +140,7 @@ def _Data1D_plot(Data, key=None,
         lCross, lHor = None, None
 
     # Format axes
-    dax = _init_Data1D(a4=a4, Max=Max)
+    dax = _init_Data1D(fs=fs, Max=Max)
     tit = r"" if Data.Id.Exp is None else r"%s"%Data.Id.Exp
     tit += r"" if Data.shot is None else r" {0:05.0f}".format(Data.shot)
     dax['t'][0].figure.suptitle(tit)
@@ -163,24 +163,21 @@ def _Data1D_plot(Data, key=None,
 
     if Data.geom is not None:
         if Data.geom['Ves'] is not None:
-            dax['2D'] = Data.geom['Ves'].plot(Lax=dax['2D'], Elt='P', dLeg=None)
+            dax['2D'] = Data.geom['Ves'].plot(Lax=dax['2D'], Elt='P',
+                                              dLeg=None, draw=False)
         if Data.geom['LStruct'] is not None:
             for ss in Data.geom['LStruct']:
-                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
+                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P',
+                                    dLeg=None, draw=False)
         if Data.geom['LCam'] is not None:
             for cc in Data.geom['LCam']:
                 dax['2D'] = cc.plot(Lax=dax['2D'], Elt='L', Lplot='In',
-                                    dL={'c':(0.4,0.4,0.4),'lw':1.}, dLeg=None)
+                                    dL={'c':(0.4,0.4,0.4),'lw':1.},
+                                    dLeg=None, draw=False)
 
     can = dax['t'][0].figure.canvas
-    can.draw()
-    plt.show(block=False)
-    dBck = {}
-    for kk in dax.keys():
-        dBck[kk] = [can.copy_from_bbox(aa.bbox) for aa in dax[kk]]
-
     KH = KH_1D(data, chans, t, chlab, Data._CamCls, dMag,
-               lCross=lCross, lH=lHor, dax=dax, can=can, Max=Max, dBck=dBck)
+               lCross=lCross, lH=lHor, dax=dax, can=can, Max=Max)
 
     def on_press(event):
         KH.onkeypress(event)
@@ -202,7 +199,7 @@ def _Data1D_plot(Data, key=None,
 class KH_1D(object):
     def __init__(self, Y, X, t, lchans, CamCls, dMag,
                  lCross=None, lH=None, dax=None, can=None,
-                 indt=[0], indch=[0], Max=4, dBck=None,
+                 indt=[0], indch=[], Max=4,
                  colch=['m','c','y','w'], colt=['k','r','b','g']):
         self.t, self.X, self.Y = t, X, Y
         self.lchans, self.CamCls = lchans, CamCls
@@ -221,7 +218,6 @@ class KH_1D(object):
             self.nanax = np.array([np.nan,np.nan])
         self.colch, self.colt = colch, colt
         self.curax = 'time'
-        self.dBck = dBck
         self.initplot()
 
     def initplot(self):
@@ -291,6 +287,10 @@ class KH_1D(object):
                                             va='center', ha='center')
             self.Txt['prof'][ii] = txt
         self.can.draw()
+        dBck = {}
+        for kk in self.dax.keys():
+            dBck[kk] = [self.can.copy_from_bbox(aa.bbox) for aa in self.dax[kk]]
+        self.dBck = dBck
 
     def update(self):
         if self.curax=='time':
@@ -514,7 +514,7 @@ def _init_Data2D(fs=None, Max=4):
 def _Data2D_plot(Data, key=None,
                  cmap=plt.cm.gray, ms=4,
                  colch=['r','b','g','m','c','y'],
-                 dMag=None, Max=4,
+                 dMag=None, Max=4, fs=None,
                  plot='imshow', invert=False, a4=False):
 
     # Prepare
@@ -553,19 +553,17 @@ def _Data2D_plot(Data, key=None,
 
     if Data.geom is not None:
         if 'LOS' in Data._CamCls:
-            lCross = [cc._get_plotL(Lplot='In', Proj='Cross', multi=True)
-                      for cc in Data.geom['LCam']]
-            lHor = [cc._get_plotL(Lplot='In', Proj='Hor', multi=True)
-                    for cc in Data.geom['LCam']]
-            lCross = list(itt.chain.from_iterable(lCross))
-            lHor = list(itt.chain.from_iterable(lHor))
+            lCross = Data.geom['LCam'][0]._get_plotL(Lplot='In', Proj='Cross',
+                                                     multi=True)
+            lHor = Data.geom['LCam'][0]._get_plotL(Lplot='In', Proj='Hor',
+                                                   multi=True)
         else:
             raise Exception("Not coded yet !")
     else:
         lCross, lHor = None, None
 
     # Format axes
-    dax = _init_Data2D(a4=a4, Max=Max)
+    dax = _init_Data2D(fs=fs, Max=Max)
     tit = r"" if Data.Id.Exp is None else r"%s"%Data.Id.Exp
     tit += r"" if Data.shot is None else r" {0:05.0f}".format(Data.shot)
     dax['t'][0].figure.suptitle(tit)
@@ -589,14 +587,12 @@ def _Data2D_plot(Data, key=None,
 
     if Data.geom is not None:
         if Data.geom['Ves'] is not None:
-            dax['2D'] = Data.geom['Ves'].plot(Lax=dax['2D'], Elt='P', dLeg=None)
+            dax['2D'] = Data.geom['Ves'].plot(Lax=dax['2D'], Elt='P',
+                                              dLeg=None, draw=False)
         if Data.geom['LStruct'] is not None:
             for ss in Data.geom['LStruct']:
-                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
-        #if Data.geom['LCam'] is not None:
-        #    for cc in Data.geom['LCam']:
-        #        dax['2D'] = cc.plot(Lax=dax['2D'], Elt='L', Lplot='In',
-        #                            dL={'c':(0.4,0.4,0.4),'lw':1.}, dLeg=None)
+                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P',
+                                    dLeg=None, draw=False)
 
     vmin, vmax = np.nanmin(data), np.nanmax(data)
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
@@ -604,16 +600,10 @@ def _Data2D_plot(Data, key=None,
                               norm=norm, orientation='horizontal')
 
     can = dax['t'][0].figure.canvas
-    can.draw()
-    plt.show(block=False)
-    dBck = {}
-    for kk in dax.keys():
-        dBck[kk] = [can.copy_from_bbox(aa.bbox) for aa in dax[kk]]
-
     KH = KH_2D(data, X12, t, Data._CamCls, dMag,
                DX12=DX12, X1p=X1p, X2p=X2p, indp=indp,
                lCross=lCross, lH=lHor, dax=dax, can=can,
-               Max=Max, invert=invert, dBck=dBck, plot=plot,
+               Max=Max, invert=invert, plot=plot,
                colch=colch, cm=cmap, ms=ms, norm=norm)
 
     def on_press(event):
@@ -635,7 +625,7 @@ class KH_2D(object):
     def __init__(self, Y, X12, t, CamCls, dMag,
                  DX12=None, X1p=None, X2p=None, indp=None,
                  lCross=None, lH=None, dax=None, can=None, invert=False,
-                 indt=[0], indch=[0], Max=4, dBck=None,
+                 indt=[0], indch=[], Max=4,
                  ms=4, cm=plt.cm.gray, norm=None, plot='imshow',
                  colch=['m','c','y','w'], colt=['k','r','b','g']):
         self.t, self.X12, self.Y = t, X12, Y
@@ -665,7 +655,7 @@ class KH_2D(object):
         self.norm = norm
         self.invert = invert
         self.nanYi = np.full((X2p.size-1,X1p.size-1),np.nan)
-        self.dBck, self.plot = dBck, plot
+        self.plot = plot
         self.initplot()
 
     def initplot(self):
@@ -703,8 +693,11 @@ class KH_2D(object):
                                                     norm=self.norm, cmap=self.cm,
                                                     zorder=-1)
         else:
-            extent = (np.nanmin(self.X1p), np.nanmax(self.X1p),
-                      np.nanmin(self.X2p), np.nanmax(self.X2p))
+            extent = (np.nanmin(self.X12[0,:]), np.nanmax(self.X12[0,:]),
+                      np.nanmin(self.X12[1,:]), np.nanmax(self.X12[1,:]))
+            print(extent,
+                  self.dax['prof'][0].get_xlim(),
+                  self.dax['prof'][0].get_ylim())
             self.dlt['prof'] = self.dax['prof'][0].imshow(self.nanYi,
                                                     interpolation='nearest',
                                                     norm=self.norm, cmap=self.cm,
@@ -748,10 +741,14 @@ class KH_2D(object):
                                             va='center', ha='center')
             self.Txt['prof'][ii] = txt
         self.can.draw()
+        dBck = {}
+        for kk in self.dax.keys():
+            dBck[kk] = [self.can.copy_from_bbox(aa.bbox) for aa in self.dax[kk]]
+        self.dBck = dBck
 
     def update(self):
         if self.curax=='time':
-            rest = [('t',[0,1]),('Txtt',[0]),('prof',[0])]
+            rest = [('t',[0,1]),('Txtt',[0]),('prof',[0]),('cax',[0])]
             for kk in rest:
                 for ii in kk[1]:
                     self.can.restore_region(self.dBck[kk[0]][ii])
@@ -781,6 +778,9 @@ class KH_2D(object):
             for ii in range(0,self.Max):
                 self.dax['t'][1].draw_artist(self.dlprof['t'][ii])
                 self.dax['prof'][0].draw_artist(self.dlprof['prof'][ii])
+                if ii<=len(self.indch)-1:
+                    self.dlprof['col'][ii].set_xdata(self.norm(Yi[self.indch[ii]]))
+                    self.dax['cax'][0].draw_artist(self.dlprof['col'][ii])
             if self.dMag is not None:
                 self.dlmag['2D']['Sep'][0].set_xdata(sepi[:,0])
                 self.dlmag['2D']['Sep'][0].set_ydata(sepi[:,1])
@@ -814,7 +814,7 @@ class KH_2D(object):
                     self.Txt['prof'][ii].set_text(txtci)
                     self.Txt['prof'][ii].set_visible(True)
                     self.dax['Txtc'][ii].draw_artist(self.Txt['prof'][ii])
-                    self.dlprof['col'][ii].set_xdata(Yii[self.indt[0]])
+                    self.dlprof['col'][ii].set_xdata(self.norm(Yii[self.indt[0]]))
                     self.dlprof['col'][ii].set_visible(True)
                     self.dax['cax'][0].draw_artist(self.dlprof['col'][ii])
                     if self.lCross is not None:

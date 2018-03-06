@@ -325,15 +325,22 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
         pts0 = []
         if multi:
             for ii in range(0,nL):
-                k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
-                k = np.unique(np.append(k,ks[ii]))
-                pp = Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1]
-                pts0.append( np.array([np.hypot(pp[0,:],pp[1,:]),pp[2,:]])  )
+                if np.isnan(kPOuts[ii]):
+                    pts0.append( np.array([[np.nan,np.nan],[np.nan,np.nan]]) )
+                else:
+                    k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
+                    k = np.unique(np.append(k,ks[ii]))
+                    pp = Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1]
+                    pts0.append( np.array([np.hypot(pp[0,:],pp[1,:]),pp[2,:]])  )
         else:
             for ii in range(0,nL):
-                k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
-                k = np.append(np.unique(np.append(k,ks[ii])),np.nan)
-                pts0.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
+                if np.isnan(kPOuts[ii]):
+                    pts0.append(np.array([[np.nan,np.nan,np.nan],
+                                          [np.nan,np.nan,np.nan]]))
+                else:
+                    k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
+                    k = np.append(np.unique(np.append(k,ks[ii])),np.nan)
+                    pts0.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
             pts0 = np.concatenate(tuple(pts0),axis=1)
             pts0 = np.array([np.hypot(pts0[0,:],pts0[1,:]),pts0[2,:]])
 
@@ -341,12 +348,19 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
         pts = []
         if multi:
             for ii in range(0,nL):
-                k = np.array([k0[ii],kPOuts[ii]])
-                pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
+                if np.isnan(kPOuts[ii]):
+                    pts.append( np.array([[np.nan,np.nan],[np.nan,np.nan]]) )
+                else:
+                    k = np.array([k0[ii],kPOuts[ii]])
+                    pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
         else:
             for ii in range(0,nL):
-                k = np.array([k0[ii],kPOuts[ii],np.nan])
-                pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
+                if np.isnan(kPOuts[ii]):
+                    pts.append(np.array([[np.nan,np.nan,np.nan],
+                                         [np.nan,np.nan,np.nan]]))
+                else:
+                    k = np.array([k0[ii],kPOuts[ii],np.nan])
+                    pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
             pts = np.concatenate(tuple(pts),axis=1)
 
     if Proj.lower()=='hor':
