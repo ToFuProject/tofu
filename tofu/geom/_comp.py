@@ -326,7 +326,9 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
         if multi:
             for ii in range(0,nL):
                 if np.isnan(kPOuts[ii]):
-                    pts0.append( np.array([[np.nan,np.nan],[np.nan,np.nan]]) )
+                    pts0.append( np.array([[np.nan,np.nan],
+                                           [np.nan,np.nan],
+                                           [np.nan,np.nan]]) )
                 else:
                     k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
                     k = np.unique(np.append(k,ks[ii]))
@@ -336,6 +338,7 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
             for ii in range(0,nL):
                 if np.isnan(kPOuts[ii]):
                     pts0.append(np.array([[np.nan,np.nan,np.nan],
+                                          [np.nan,np.nan,np.nan],
                                           [np.nan,np.nan,np.nan]]))
                 else:
                     k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
@@ -349,7 +352,9 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
         if multi:
             for ii in range(0,nL):
                 if np.isnan(kPOuts[ii]):
-                    pts.append( np.array([[np.nan,np.nan],[np.nan,np.nan]]) )
+                    pts.append( np.array([[np.nan,np.nan],
+                                          [np.nan,np.nan],
+                                          [np.nan,np.nan]]) )
                 else:
                     k = np.array([k0[ii],kPOuts[ii]])
                     pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
@@ -357,6 +362,7 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
             for ii in range(0,nL):
                 if np.isnan(kPOuts[ii]):
                     pts.append(np.array([[np.nan,np.nan,np.nan],
+                                         [np.nan,np.nan,np.nan],
                                          [np.nan,np.nan,np.nan]]))
                 else:
                     k = np.array([k0[ii],kPOuts[ii],np.nan])
