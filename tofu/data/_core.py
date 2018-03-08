@@ -366,13 +366,19 @@ class Data(object):
     #def get_fft(self, DF=None, Harm=True, DFEx=None, HarmEx=True, Calc=True):
         #self._set_data()
 
-    def plot(self, key=None,
-             cmap=plt.cm.gray, ms=4,
-             Max=None, fs=None):
-        dax, KH = _plot.Data_plot(self, key=key,
-                                  cmap=cmap, ms=ms,
-                                  Max=Max, fs=fs)
+    def plot(self, key=None, invert=None, plotmethod='imshow',
+             cmap=plt.cm.gray, ms=4, Max=None, fs=None):
+        dax, KH = _plot.Data_plot(self, key=key, invert=invert, Max=Max, fs=fs,
+                                  plotmethod=plotmethod, cmap=cmap, ms=ms)
         return dax, KH
+
+    def plot(self, key=None, invert=True, cmap=plt.cm.gray, ms=4,
+             Max=None, fs=None, plotmethod='imshow'):
+        dax, KH = _plot.Data_plot(self, key=key, invert=invert,
+                                  plotmethod=plotmethod,
+                                  cmap=cmap, ms=ms, Max=Max, fs=fs)
+        return dax, KH
+
 
 
     def save(self, SaveName=None, Path=None,
@@ -555,10 +561,3 @@ class Data2D(Data):
             else:
                 DX12 = None
         return X12, DX12
-
-    def plot(self, key=None, invert=True, cmap=plt.cm.gray, ms=4,
-             Max=None, fs=None, plotmethod='imshow'):
-        dax, KH = _plot.Data_plot(self, key=key, invert=invert,
-                                  plotmethod=plotmethod,
-                                  cmap=cmap, ms=ms, Max=Max, fs=fs)
-        return dax, KH

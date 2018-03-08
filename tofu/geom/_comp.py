@@ -327,7 +327,6 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
             for ii in range(0,nL):
                 if np.isnan(kPOuts[ii]):
                     pts0.append( np.array([[np.nan,np.nan],
-                                           [np.nan,np.nan],
                                            [np.nan,np.nan]]) )
                 else:
                     k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)

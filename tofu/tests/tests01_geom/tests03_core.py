@@ -365,7 +365,7 @@ class Test03_Rays:
                 E = E[np.newaxis,:]*t
             return E
 
-        ind = [0,10,20,30,40]
+        ind = None#[0,10,20,30,40]
         for ii in range(0,len(self.LObj)):
             ff = ffT if self.LObj[ii].Ves.Type=='Tor' else ffL
             if self.LObj[ii].LStruct is not None:
@@ -374,11 +374,14 @@ class Test03_Rays:
             else:
                 t = None
                 Ani = False
+            plot = self.LObj[ii].Id.Cls in ['LOSCam1D','LOSCam2D']
+            #print(ii, plot, self.LObj[ii].Id.Name, t, ind)  # DB
             sig = self.LObj[ii].calc_signal(ff, t=t, Ani=Ani, fkwdargs={},
                                       dl=0.01, DL=None, dlMode='abs', method='simps',
-                                      Warn=False, ind=ind, plot=False, out='')
-            assert sig.shape==(len(ind),) if t is None else (t.size,len(ind))
+                                      Warn=False, ind=ind, plot=plot, out='')
+            #assert sig.shape==(len(ind),) if t is None else (t.size,len(ind))
             assert ~np.all(np.isnan(sig)), str(ii)
+            plt.close('all')
 
     def test04_plot(self):
         for ii in range(0,len(self.LObj)):
