@@ -318,7 +318,7 @@ class Ves(object):
              dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
              dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
              dBvHor=_def.TorBvTord, Lim=_def.Tor3DThetalim,Nstep=_def.TorNTheta,
-             dLeg=_def.TorLegd, draw=True, a4=False, Test=True):
+             dLeg=_def.TorLegd, draw=True, fs=None, wintit='tofu', Test=True):
         """ Plot the polygon defining the vessel, in chosen projection
 
         Generic method for plotting the Ves object
@@ -387,10 +387,13 @@ class Ves(object):
                               Pdict=dP, Idict=dI, Bsdict=dBs, Bvdict=dBv,
                               Vdict=dVect, IdictHor=dIHor, BsdictHor=dBsHor,
                               BvdictHor=dBvHor, Lim=Lim, Nstep=Nstep,
-                              LegDict=dLeg, draw=draw, a4=a4, Test=Test)
+                              LegDict=dLeg, draw=draw, fs=fs, wintit=wintit, Test=Test)
 
 
-    def plot_sino(self, Proj='Cross', ax=None, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Sketch=True, Pdict=None, LegDict=_def.TorLegd, draw=True, a4=False, Test=True):
+    def plot_sino(self, Proj='Cross', ax=None, Ang=_def.LOSImpAng,
+                  AngUnit=_def.LOSImpAngUnit, Sketch=True, Pdict=None,
+                  LegDict=_def.TorLegd, draw=True, fs=None, wintit='tofu',
+                  Test=True):
         """ Plot the sinogram of the vessel polygon, by computing its envelopp in a cross-section, can also plot a 3D version of it
 
         The envelop of the polygon is computed using self.Sino_RefPt as a reference point in projection space, and plotted using the provided dictionary of properties.
@@ -433,13 +436,13 @@ class Ves(object):
             ax = _plot.Plot_Impact_PolProjPoly(self, ax=ax, Ang=Ang,
                                                AngUnit=AngUnit, Sketch=Sketch,
                                                Leg=self.Id.NameLTX, Pdict=Pdict,
-                                               dLeg=LegDict,
-                                               draw=False, a4=a4, Test=Test)
+                                               dLeg=LegDict, draw=False,
+                                               fs=fs, wintit=wintit, Test=Test)
         else:
             Pdict = _def.TorP3DFilld if Pdict is None else Pdict
             ax = _plot.Plot_Impact_3DPoly(self, ax=ax, Ang=Ang, AngUnit=AngUnit,
-                                          Pdict=Pdict, dLeg=LegDict,
-                                          draw=False, a4=a4, Test=Test)
+                                          Pdict=Pdict, dLeg=LegDict, draw=False,
+                                          fs=fs, wintit=wintit, Test=Test)
         if draw:
             ax.figure.canvas.draw()
         return ax
@@ -798,7 +801,8 @@ class Rays(object):
         Du = Du if Du is not None else (self.D,self.u)
         self._set_geom(Du, dchans=dchans, plotdebug=plotdebug)
 
-    def _set_geom(self, Du, dchans=None, plotdebug=True):
+    def _set_geom(self, Du, dchans=None,
+                  plotdebug=True, fs=None, wintit='tofu', draw=True):
         tfpf._check_NotNone({'Du':Du})
         self._check_inputs(Du=Du, dchans=dchans)
         D, u = np.asarray(Du[0]), np.asarray(Du[1])
@@ -839,7 +843,9 @@ class Rays(object):
                 warnings.warn("Some LOS have no visibility inside the vessel !")
                 if plotdebug:
                     _plot._LOS_calc_InOutPolProj_Debug(self.Ves, D[:,ind], u[:,ind],
-                                                       PIn[:,ind], POut[:,ind])
+                                                       PIn[:,ind], POut[:,ind],
+                                                       fs=fs, wintit=wintit,
+                                                       draw=draw)
             ind = np.isnan(kPIn)
             PIn[:,ind], kPIn[ind] = D[:,ind], 0.
 
@@ -1041,7 +1047,7 @@ class Rays(object):
     def calc_signal(self, ff, t=None, Ani=None, fkwdargs={},
                     dl=0.005, DL=None, dlMode='abs', method='sum',
                     ind=None, out=object, plot=True, plotmethod='imshow',
-                    fs=None, Warn=True):
+                    fs=None, wintit='tofu', draw=True, Warn=True):
         """ Return the line-integrated emissivity
 
         Beware that it is only a line-integral !
@@ -1128,7 +1134,8 @@ class Rays(object):
                 osig = tfd.Data2D(data=sig, t=t, LCam=self, Id=self.Id.Name,
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             if plot:
-                dax, KH = osig.plot(fs=fs, plotmethod=plotmethod)
+                dax, KH = osig.plot(fs=fs, wintit=wintit,
+                                    plotmethod=plotmethod, draw=draw)
             if out is object:
                 sig = osig
         return sig
@@ -1137,8 +1144,8 @@ class Rays(object):
              EltVes='', EltStruct='', Leg='', dL=None, dPtD=_def.LOSMd,
              dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
              dPtP=_def.LOSMd, dLeg=_def.TorLegd, dVes=_def.Vesdict,
-             dStruct=_def.Structdict,
-             multi=False, ind=None, draw=True, a4=False, Test=True):
+             dStruct=_def.Structdict, multi=False, ind=None,
+             fs=None, wintit='tofu', draw=True, Test=True):
         """ Plot the Rays / LOS, in the chosen projection(s)
 
         Optionnally also plot associated :class:`~tofu.geom.Ves` and Struct
@@ -1227,13 +1234,15 @@ class Rays(object):
                                EltVes=EltVes, EltStruct=EltStruct, Leg=Leg,
                                dL=dL, dPtD=dPtD, dPtI=dPtI, dPtO=dPtO, dPtR=dPtR,
                                dPtP=dPtP, dLeg=dLeg, dVes=dVes, dStruct=dStruct,
-                               multi=multi, ind=ind, draw=draw, a4=a4, Test=Test)
+                               multi=multi, ind=ind,
+                               fs=fs, wintit=wintit, draw=draw, Test=Test)
 
 
     def plot_sino(self, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True,
                   Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Leg=None,
                   dL=_def.LOSMImpd, dVes=_def.TorPFilld, dLeg=_def.TorLegd,
-                  ind=None, multi=False, draw=True, a4=False, Test=True):
+                  ind=None, multi=False,
+                  fs=None, wintit='tofu', draw=True, Test=True):
         """ Plot the LOS in projection space (sinogram)
 
         Plot the Rays in projection space (cf. sinograms) as points.
@@ -1290,13 +1299,16 @@ class Rays(object):
         return _plot.GLOS_plot_Sino(self, Proj=Proj, ax=ax, Elt=Elt, Leg=Leg,
                                     Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
                                     dL=dL, dVes=dVes, dLeg=dLeg,
-                                    ind=ind, draw=draw, a4=a4, Test=Test)
+                                    ind=ind, fs=fs, wintit=wintit,
+                                    draw=draw, Test=Test)
 
     def plot_touch(self, key=None, invert=None,
-                   lcol=['k','r','b','g','y','m','c']):
+                   lcol=['k','r','b','g','y','m','c'],
+                   fs=None, wintit='tofu', draw=True):
         assert self.Id.Cls in ['LOSCam1D','LOSCam2D'], "Specify camera type !"
         assert self.Ves is not None, "self.Ves should not be None !"
-        out = _plot.Rays_plot_touch(self, key=key, invert=invert, lcol=lcol)
+        out = _plot.Rays_plot_touch(self, key=key, invert=invert, lcol=lcol,
+                                    fs=fs, wintit=wintit, draw=draw)
         return out
 
     def save(self, SaveName=None, Path=None,

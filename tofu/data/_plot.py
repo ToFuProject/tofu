@@ -17,16 +17,19 @@ __all__ = ['Data_plot']
 
 def Data_plot(Data, key=None,
               cmap=plt.cm.gray, ms=4,
-              dMag=None, Max=None, fs=None,
-              plotmethod='imshow', invert=False):
+              dMag=None, Max=None,
+              plotmethod='imshow', invert=False,
+              fs=None, wintit='tofu', draw=True):
 
     if '1D' in Data._CamCls:
         Max = 3 if Max is None else Max
-        dax, KH = _Data1D_plot(Data, key=key, dMag=dMag, Max=Max, fs=fs)
+        dax, KH = _Data1D_plot(Data, key=key, dMag=dMag, Max=Max,
+                               fs=fs, wintit=wintit, draw=draw)
     else:
         Max = 6 if Max is None else Max
         dax, KH = _Data2D_plot(Data, key=key, cmap=cmap, ms=ms, dMag=dMag,
-                               Max=Max, plot=plotmethod, invert=invert, fs=fs)
+                               Max=Max, plot=plotmethod, invert=invert,
+                               fs=fs, wintit=wintit, draw=draw)
     return dax, KH
 
 
@@ -38,13 +41,15 @@ def Data_plot(Data, key=None,
 ###################################################
 
 
-def _init_Data1D(fs=None, Max=4):
+def _init_Data1D(fs=None, wintit='tofu', Max=4):
     axCol = "w"
     if fs is None:
         fs = (14,7)
     elif type(fs) is str and fs.lower()=='a4':
         fs = (8.27,11.69)
     fig = plt.figure(facecolor=axCol,figsize=fs)
+    if wintit is not None:
+        fig.canvas.set_window_title(wintit)
     gs1 = gridspec.GridSpec(6, 5,
                             left=0.03, bottom=0.05, right=0.99, top=0.94,
                             wspace=None, hspace=0.4)
@@ -93,7 +98,8 @@ def _init_Data1D(fs=None, Max=4):
 
 
 def _Data1D_plot(Data, key=None,
-                 dMag=None, Max=4, fs=None):
+                 dMag=None, Max=4,
+                 fs=None, wintit='tofu', draw=True):
 
     # Prepare
     Dname = 'data'
@@ -140,7 +146,7 @@ def _Data1D_plot(Data, key=None,
         lCross, lHor = None, None
 
     # Format axes
-    dax = _init_Data1D(fs=fs, Max=Max)
+    dax = _init_Data1D(fs=fs, wintit=wintit, Max=Max)
     tit = r"" if Data.Id.Exp is None else r"%s"%Data.Id.Exp
     tit += r"" if Data.shot is None else r" {0:05.0f}".format(Data.shot)
     dax['t'][0].figure.suptitle(tit)
@@ -453,13 +459,15 @@ def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
 
 
 
-def _init_Data2D(fs=None, Max=4):
+def _init_Data2D(fs=None, wintit='tofu', Max=4):
     axCol = "w"
     if fs is None:
         fs = (14,7)
     elif type(fs) is str and fs.lower()=='a4':
         fs = (8.27,11.69)
     fig = plt.figure(facecolor=axCol,figsize=fs)
+    if wintit is not None:
+        fig.canvas.set_window_title(wintit)
     gs1 = gridspec.GridSpec(6, 5,
                             left=0.03, bottom=0.05, right=0.99, top=0.94,
                             wspace=None, hspace=0.4)
@@ -514,8 +522,8 @@ def _init_Data2D(fs=None, Max=4):
 def _Data2D_plot(Data, key=None,
                  cmap=plt.cm.gray, ms=4,
                  colch=['r','b','g','m','c','y'],
-                 dMag=None, Max=4, fs=None,
-                 plot='imshow', invert=False, a4=False):
+                 dMag=None, Max=4, fs=None, wintit='tofu',
+                 plot='imshow', invert=False, draw=True):
 
     # Prepare
     Dname = 'data'
@@ -563,7 +571,7 @@ def _Data2D_plot(Data, key=None,
         lCross, lHor = None, None
 
     # Format axes
-    dax = _init_Data2D(fs=fs, Max=Max)
+    dax = _init_Data2D(fs=fs, wintit=wintit, Max=Max)
     tit = r"" if Data.Id.Exp is None else r"%s"%Data.Id.Exp
     tit += r"" if Data.shot is None else r" {0:05.0f}".format(Data.shot)
     dax['t'][0].figure.suptitle(tit)

@@ -96,32 +96,21 @@ Structdict['dP'] = StructPd_Tor
 # -------------- Figures ------------------------
 
 
-def Plot_LOSProj_DefAxes(Mode, Type='Tor', a4=False):
-    assert Mode in ['Cross','Hor','All'], "Arg should be 'Cross' or 'Hor' or 'All' !"
+def Plot_LOSProj_DefAxes(Mode, Type='Tor', fs=None, wintit='tofu'):
+    assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
+    assert Mode.lower() in ['cross','hor','all'], "Arg should be 'Cross' or 'Hor' or 'All' !"
     assert Type in ['Tor','Lin'], "Arg Type must be in ['Tor','Lin'] !"
-    if Mode == 'Cross':
-        fW,fH,fdpi,axCol = (6,8,80,'w') if not a4 else (8.27,11.69,80,'w')
-        axPos = [0.15, 0.15, 0.6, 0.7]
-        f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
-        ax = f.add_axes(axPos,frameon=True,facecolor=axCol)
-        if Type=='Tor':
-            ax.set_xlabel(r"R (m)"),    ax.set_ylabel(r"Z (m)")
-        else:
-            ax.set_xlabel(r"Y (m)"), ax.set_ylabel(r"Z (m)")
-        ax.set_aspect(aspect="equal", adjustable='datalim')
-        return ax
-    elif Mode == 'Hor':
-        fW,fH,fdpi,axCol = (6,8,80,'w') if not a4 else (8.27,11.69,80,'w')
-        axPos = [0.15, 0.15, 0.6, 0.7]
-        f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
-        ax = f.add_axes(axPos,frameon=True,facecolor=axCol)
-        ax.set_xlabel(r"X (m)"),    ax.set_ylabel(r"Y (m)")
-        ax.set_aspect(aspect="equal", adjustable='datalim')
-        return ax
-    elif Mode=='All':
-        fW,fH,fdpi,axCol = (16,8,80,'w')  if not a4 else (11.69,8.27,80,'w')
+    assert wintit is None or type(wintit) is str, "Arg wintit must be a str !"
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (16,8) if Mode.lower()=='all' else (6,8)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27) if Mode.lower()=='all' else (8.27,11.69)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
+    if wintit is not None:
+        f.canvas.set_window_title(wintit)
+    if Mode.lower()=='all':
         axPosP, axPosT = [0.07, 0.1, 0.3, 0.8], [0.55, 0.1, 0.3, 0.8]
-        f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
         axP = f.add_axes(axPosP,frameon=True,facecolor=axCol)
         axT = f.add_axes(axPosT,frameon=True,facecolor=axCol)
         if Type=='Tor':
@@ -131,12 +120,31 @@ def Plot_LOSProj_DefAxes(Mode, Type='Tor', a4=False):
         axT.set_xlabel(r"X (m)"),   axT.set_ylabel(r"Y (m)")
         axP.set_aspect(aspect="equal", adjustable='datalim')
         axT.set_aspect(aspect="equal", adjustable='datalim')
-        return axP, axT
+        ax = [axP,axT]
+    else:
+        axPos = [0.15, 0.15, 0.6, 0.7]
+        ax = f.add_axes(axPos,frameon=True,facecolor=axCol)
+        if Mode == 'Cross':
+            if Type=='Tor':
+                ax.set_xlabel(r"R (m)"),    ax.set_ylabel(r"Z (m)")
+            else:
+                ax.set_xlabel(r"Y (m)"),    ax.set_ylabel(r"Z (m)")
+        elif Mode == 'Hor':
+            ax.set_xlabel(r"X (m)"),    ax.set_ylabel(r"Y (m)")
+        ax.set_aspect(aspect="equal", adjustable='datalim')
+    return ax
 
-def Plot_3D_plt_Tor_DefAxes(a4=False):
-    fW,fH,fdpi,axCol = (14,10,80,'w') if not a4 else (11.69,8.27,80,'w')
+def Plot_3D_plt_Tor_DefAxes(fs=None, wintit='tofu'):
+    assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (14,10)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
+    if wintit is not None:
+        f.canvas.set_window_title(wintit)
     axPos = [0.05, 0.05, 0.75, 0.85]
-    f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
     ax = f.add_axes(axPos,facecolor=axCol,projection='3d')
     ax.set_xlabel(r"X (m)")
     ax.set_ylabel(r"Y (m)")
@@ -145,11 +153,18 @@ def Plot_3D_plt_Tor_DefAxes(a4=False):
     return ax
 
 
-def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', a4=False, Sketch=True):
+def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', fs=None, wintit='tofu', Sketch=True):
+    assert fs is None or (type(fs) is str and fs=='a4') or len(fs)==2
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (10,6) if Proj.lower()=='Cross' else (11,9)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
+    if wintit is not None:
+        f.canvas.set_window_title(wintit)
     if Proj == 'Cross':
-        fW,fH,fdpi,axCol = (10,6,80,'w') if not a4 else (11.69,8.27,80,'w')
         axPos = [0.12, 0.12, 0.60, 0.8]
-        f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
         ax, axSketch = f.add_axes(axPos,frameon=True,facecolor=axCol), []
         XAng = r"$\theta$" if Ang=='theta' else r"$\xi$"
         XUnit = r"$(rad.)$" if AngUnit=='rad' else r"$(deg.)$"
@@ -172,9 +187,7 @@ def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', a4=False, Sketch=True)
             axSketch.axis("equal")
         return ax, axSketch
     elif Proj.lower() == '3d':
-        fW,fH,fdpi,axCol = (11,9,80,'w') if not a4 else (11.69,8.27,80,'w')
         axPos = [0.1, 0.1, 0.65, 0.8]
-        f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
         ax = f.add_axes(axPos,facecolor=axCol,projection='3d')
         XAng = r"$\theta$" if Ang=='theta' else r"$\xi$"
         XUnit = r"$(rad.)$" if AngUnit=='rad' else r"$(deg.)$"
@@ -240,11 +253,14 @@ LOSdict = dict(Lax=None, Proj='All', Lplot=LOSLplot, Elt='LDIORP', EltVes='', Le
 
 # -------------- Figures ------------------------
 
-def Plot_Lens_Alone_DefAxes(a4=False):
-    axCol = 'w'
-    (fW,fH) = (11.69,8.27) if a4 else (20,8)
+def Plot_Lens_Alone_DefAxes(fs=None, wintit='tofu'):
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (20,8)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     axPos = [0.05, 0.1, 0.9, 0.85]
-    f = plt.figure(facecolor="w",figsize=(fW,fH))
     ax = f.add_axes(axPos,facecolor=axCol)
     ax.set_xlabel(r"x (m)")
     ax.set_ylabel(r"y (m)")
@@ -357,7 +373,13 @@ Apertdict = dict(Lax=None, Proj='All', Elt='PV', EltVes='', Leg='', LVIn=ApLVin,
 
 # -------------- Figures ------------------------
 
-def Plot_SAng_Plane_DefAxes(a4=False):
+def Plot_SAng_Plane_DefAxes(fs=None, wintit='tofu'):
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (16,8) if Mode.lower()=='all' else (6,8)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27) if Mode.lower()=='all' else (8.27,11.69)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     (fW,fH,fdpi,axCol) = (11.69,8.27,80,'w') if a4 else (10,8,80,'w')
     axPos = [0.05, 0.05, 0.9, 0.9]
     f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
@@ -368,7 +390,13 @@ def Plot_SAng_Plane_DefAxes(a4=False):
     return ax
 
 
-def Plot_Etendue_AlongLOS_DefAxes(kMode='rel',a4=False):
+def Plot_Etendue_AlongLOS_DefAxes(kMode='rel',fs=None, wintit='tofu'):
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (16,8) if Mode.lower()=='all' else (6,8)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27) if Mode.lower()=='all' else (8.27,11.69)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     (fW,fH,fdpi,axCol) = (11.69,8.27,80,'w') if a4 else (14,8,80,'w')
     axPos = [0.06, 0.08, 0.70, 0.86]
     f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
@@ -381,7 +409,13 @@ def Plot_Etendue_AlongLOS_DefAxes(kMode='rel',a4=False):
     return ax
 
 
-def Plot_CrossSlice_SAngNb_DefAxes(VType='Tor', a4=False):
+def Plot_CrossSlice_SAngNb_DefAxes(VType='Tor', fs=None, wintit='tofu'):
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (16,8) if Mode.lower()=='all' else (6,8)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27) if Mode.lower()=='all' else (8.27,11.69)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     (fW,fH,fdpi,axCol) = (11.69,8.27,80,'w') if a4 else (15,8,80,'w')
     f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
     axSAng = f.add_axes([0.05, 0.06, 0.40, 0.85],frameon=True,facecolor=axCol)
@@ -396,7 +430,13 @@ def Plot_CrossSlice_SAngNb_DefAxes(VType='Tor', a4=False):
     return axSAng, axNb
 
 
-def Plot_HorSlice_SAngNb_DefAxes(a4=False):
+def Plot_HorSlice_SAngNb_DefAxes(fs=None, wintit='tofu'):
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (16,8) if Mode.lower()=='all' else (6,8)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27) if Mode.lower()=='all' else (8.27,11.69)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     (fW,fH,fdpi,axCol) = (11.69,8.27,80,'w') if a4 else (15,8,80,'w')
     f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
     axSAng = f.add_axes([0.07, 0.12, 0.35, 0.8],frameon=True,facecolor=axCol)
@@ -408,7 +448,13 @@ def Plot_HorSlice_SAngNb_DefAxes(a4=False):
     return axSAng, axNb
 
 
-def Plot_Etendues_GDetect_DefAxes(a4=False):
+def Plot_Etendues_GDetect_DefAxes(fs=None, wintit='tofu'):
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (16,8) if Mode.lower()=='all' else (6,8)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27) if Mode.lower()=='all' else (8.27,11.69)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     (fW,fH,fdpi,axCol) = (11.69,8.27,80,'w') if a4 else (18,8,80,'w')
     f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
     ax = f.add_axes([0.05,0.1,0.85,0.80],frameon=True,facecolor=axCol)
@@ -417,7 +463,13 @@ def Plot_Etendues_GDetect_DefAxes(a4=False):
     return ax
 
 
-def Plot_Sig_GDetect_DefAxes(a4=False):
+def Plot_Sig_GDetect_DefAxes(fs=None, wintit='tofu'):
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (16,8) if Mode.lower()=='all' else (6,8)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27) if Mode.lower()=='all' else (8.27,11.69)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     (fW,fH,fdpi,axCol) = (11.69,8.27,80,'w') if a4 else (18,8,80,'w')
     f = plt.figure(facecolor="w",figsize=(fW,fH),dpi=fdpi)
     ax = f.add_axes([0.05,0.1,0.85,0.80],frameon=True,facecolor=axCol)
@@ -431,7 +483,13 @@ def Plot_Sig_GDetect_DefAxes(a4=False):
 #Dict_3D_mlab_Tor_Def = {'color':(0.8,0.8,0.8),'opacity':0.15,'transparent':False,'scale_factor':0.1}
 
 
-def Plot_GDetect_Resolution_DefAxes(VType='Tor', a4=False):
+def Plot_GDetect_Resolution_DefAxes(VType='Tor', fs=None, wintit='tofu'):
+    axCol, fdpi = 'w', 80
+    if fs is None:
+        fs = (16,8) if Mode.lower()=='all' else (6,8)
+    elif type(fs) is str and fs=='a4':
+        fs = (11.69,8.27) if Mode.lower()=='all' else (8.27,11.69)
+    f = plt.figure(facecolor="w", figsize=fs, dpi=fdpi)
     axCol = "w"
     (fW,fH) = (11.69,8.27) if a4 else (16,10)
     f = plt.figure(figsize=(fW,fH),facecolor=axCol)

@@ -182,14 +182,19 @@ class Test01_Ves:
                 Pdict = {'c':'k'}
             else:
                 Pdict = {'ec':'None','fc':(0.8,0.8,0.8,0.5)}
-            Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', dP=Pdict, draw=False, a4=False, Test=True)
-            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', dP=Pdict, draw=False, a4=False, Test=True)
-            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', dP=Pdict, draw=False, a4=False, Test=True)
+            Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', dP=Pdict,
+                                      draw=False, fs=None, Test=True)
+            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', dP=Pdict,
+                                      draw=False, fs=(10,6), Test=True)
+            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', dP=Pdict,
+                                      draw=False, fs=None, Test=True)
             plt.close('all')
 
     def test08_plot_sino(self):
-        Lax1 = self.LObj[0].plot_sino(Proj='Cross', Ang='xi', AngUnit='deg', Sketch=True, draw=False, a4=False, Test=True)
-        Lax2 = self.LObj[0].plot_sino(Proj='Cross', Ang='theta', AngUnit='rad', Sketch=True, draw=False, a4=False, Test=True)
+        Lax1 = self.LObj[0].plot_sino(Proj='Cross', Ang='xi', AngUnit='deg',
+                                      Sketch=True, draw=False, fs=None, Test=True)
+        Lax2 = self.LObj[0].plot_sino(Proj='Cross', Ang='theta', AngUnit='rad',
+                                      Sketch=True, draw=False, fs='a4', Test=True)
         plt.close('all')
 
     def test09_tofromdict(self):

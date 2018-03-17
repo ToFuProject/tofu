@@ -367,16 +367,20 @@ class Data(object):
         #self._set_data()
 
     def plot(self, key=None, invert=None, plotmethod='imshow',
-             cmap=plt.cm.gray, ms=4, Max=None, fs=None):
-        dax, KH = _plot.Data_plot(self, key=key, invert=invert, Max=Max, fs=fs,
-                                  plotmethod=plotmethod, cmap=cmap, ms=ms)
+             cmap=plt.cm.gray, ms=4, Max=None,
+             fs=None, wintit='tofu', draw=True):
+        dax, KH = _plot.Data_plot(self, key=key, invert=invert, Max=Max,
+                                  plotmethod=plotmethod, cmap=cmap, ms=ms,
+                                  fs=fs, wintit=wintit, draw=draw)
         return dax, KH
 
     def plot(self, key=None, invert=True, cmap=plt.cm.gray, ms=4,
-             Max=None, fs=None, plotmethod='imshow'):
+             Max=None, plotmethod='imshow',
+             fs=None, wintit='tofu', draw=True):
         dax, KH = _plot.Data_plot(self, key=key, invert=invert,
                                   plotmethod=plotmethod,
-                                  cmap=cmap, ms=ms, Max=Max, fs=fs)
+                                  cmap=cmap, ms=ms, Max=Max,
+                                  fs=fs, wintit=wintit, draw=draw)
         return dax, KH
 
 
