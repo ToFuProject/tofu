@@ -34,7 +34,7 @@ __all__ = ['CoordShift',
            '_Ves_Smesh_Lin_SubFromD_cython', '_Ves_Smesh_Lin_SubFromInd_cython',
            'LOS_Calc_PInOut_VesStruct',
            'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
-           'LOS_sino']
+           'LOS_sino','integrate1d']
 
 
 
@@ -2408,6 +2408,35 @@ def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
                    +"Pts is (3,N), Vect is provided and t is (nt,)")
             assert type(out) is np.ndarray and out.shape==(NP,), Str
     return ani
+
+
+
+def integrate1d(y, double dx, t=None, str method='sum'):
+    """ Generic integration method ['sum','simps','romb']
+
+        Not used internally
+        Useful when the sampling points need to be interpolated via equilibrium
+    """
+    cdef unsigned int nt, axm
+    if t is None or not hasattr(t,'__iter__'):
+        nt = 1
+        axm = 0
+    else:
+        nt = len(t)
+        axm = 1
+
+    cdef cnp.ndarray[double,ndim=1] s = np.empty((nt,),dtype=float)
+
+    if method=='sum':
+        s = np.sum(y, axis=axm)*dx
+    elif method=='simps':
+        s = scpintg.simps(y, x=None, dx=dx, axis=axm)
+    elif method=='romb'
+        s = scpintg.romb(y, dx=dx, axis=axm, show=False)
+    else:
+        raise Exception("Arg method must be in ['sum','simps','romb']")
+    return s
+
 
 
 
