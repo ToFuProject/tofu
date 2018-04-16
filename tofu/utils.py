@@ -88,6 +88,39 @@ def get_X12fromflat(X12):
     return x1u, x2u, ind, Dx12
 
 
+def create_RaysCones(Ds, us, angs=np.pi/90., nP=40):
+    # Check inputs
+    Ddim, udim = Ds.ndim, us.ndim
+    assert Ddim in [1,2]
+    assert Ds.shape[0]==3 and Ds.size%3==0
+    assert udim in [1,2]
+    assert us.shape[0]==3 and us.size%3==0
+    assert type(angs) in [int,float,np.int64,np.float64]
+    if udim==2:
+        assert Ds.shape==us.shape
+    if Ddim==1:
+        Ds = Ds.reshape((3,1))
+    nD = Ds.shape[1]
+
+    # Compute
+    phi = np.linspace(0.,2.*np.pi, nP)
+    phi = np.tile(phi,nD)[np.newaxis,:]
+    if udim==1:
+        us = us[:,np.newaxis]/np.linalg.norm(us)
+        us = us.repeat(nD,axis=1)
+    else:
+        us = us/np.sqrt(np.sum(us**2,axis=0))[np.newaxis,:]
+    us = us.repeat(nP, axis=1)
+    e1 = np.array([us[1,:],-us[0,:],np.zeros((us.shape[1],))])
+    e2 = np.array([-us[2,:]*e1[1,:], us[2,:]*e1[0,:],
+                   us[0,:]*e1[1,:]-us[1,:]*e1[0,:]])
+    ub = (us*np.cos(angs)
+          + (np.cos(phi)*e1+np.sin(phi)*e2)*np.sin(angs))
+    Db = Ds.repeat(nP,axis=1)
+    return Db, ub
+
+
+
 def create_CamLOS2D(P, F, D12, N12,
                     nIn=None, e1=None, e2=None, VType='Tor'):
 
