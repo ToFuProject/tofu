@@ -317,7 +317,7 @@ class Ves(object):
     def plot(self, Lax=None, Proj='All', Elt='PIBsBvV',
              dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
              dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
-             dBvHor=_def.TorBvTord, Lim=_def.Tor3DThetalim,Nstep=_def.TorNTheta,
+             dBvHor=_def.TorBvTord, Lim=None,Nstep=_def.TorNTheta,
              dLeg=_def.TorLegd, draw=True, fs=None, wintit='tofu', Test=True):
         """ Plot the polygon defining the vessel, in chosen projection
 
@@ -1302,12 +1302,13 @@ class Rays(object):
                                     ind=ind, fs=fs, wintit=wintit,
                                     draw=draw, Test=Test)
 
-    def plot_touch(self, key=None, invert=None,
+    def plot_touch(self, key=None, invert=None, plotmethod='imshow',
                    lcol=['k','r','b','g','y','m','c'],
                    fs=None, wintit='tofu', draw=True):
         assert self.Id.Cls in ['LOSCam1D','LOSCam2D'], "Specify camera type !"
         assert self.Ves is not None, "self.Ves should not be None !"
-        out = _plot.Rays_plot_touch(self, key=key, invert=invert, lcol=lcol,
+        out = _plot.Rays_plot_touch(self, key=key, invert=invert,
+                                    lcol=lcol, plotmethod=plotmethod,
                                     fs=fs, wintit=wintit, draw=draw)
         return out
 

@@ -17,9 +17,11 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # ToFu-specific
 try:
+    import tofu.utils as utils
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
 except Exception:
+    from .. import utils as utils
     from . import _def as _def
     from . import _GG as _GG
 
@@ -68,7 +70,7 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
              Idict=_def.TorId, Bsdict=_def.TorBsd, Bvdict=_def.TorBvd,
              Vdict=_def.TorVind, IdictHor=_def.TorITord,
              BsdictHor=_def.TorBsTord, BvdictHor=_def.TorBvTord,
-             Lim=_def.Tor3DThetalim, Nstep=_def.TorNTheta, LegDict=_def.TorLegd,
+             Lim=None, Nstep=_def.TorNTheta, LegDict=_def.TorLegd,
              draw=True, fs=None, wintit='tofu', Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
@@ -95,6 +97,8 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
             Pdict = dict(_def.TorP3Dd) if Pdict is None else Pdict
             Lax[0] = _Plot_3D_plt_Ves(Ves,ax=Lax[0], Elt=Elt, Nstep=Nstep,
                                       Lim=Lim, Pdict=Pdict, **kwa)
+            # Due to temporary issue in matplotlib with 3d legends
+            LegDict = None
         else:
             if Pdict is None:
                 if Ves.Id.Cls=='Ves':
@@ -279,44 +283,49 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
 
 
 
-def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=_def.Tor3DThetalim,
+def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=None,
                      Nstep=_def.Tor3DThetamin, Pdict=_def.TorP3Dd,
                      LegDict=_def.TorLegd,
                      draw=True, fs=None, wintit='tofu', Test=True):
     if Test:
         assert V.Id.Cls in ['Ves','Struct'], "Arg V should be a Ves instance !"
         assert isinstance(ax,Axes3D) or ax is None, 'Arg ax should a plt.Axes instance !'
-        assert hasattr(Lim,'__iter__') and len(Lim)==2, "Arg Lim should be an iterable of 2 elements !"
+        assert Lim is None or (hasattr(Lim,'__iter__') and len(Lim)==2), "Arg Lim should be an iterable of 2 elements !"
         assert type(Pdict) is dict and (type(LegDict) is dict or LegDict is None), "Args Pdict and LegDict should be dictionnaries !"
         assert type(Elt)is str, "Arg Elt must be a str !"
     if ax is None:
         ax = _def.Plot_3D_plt_Tor_DefAxes(fs=fs, wintit=wintit)
-    Lim = [-np.inf,np.inf] if Lim is None else Lim
+    if V.Type=='Lin':
+        lim = np.array(V.Lim)
+        lim = lim.reshape((1,2)) if lim.ndim==1 else lim
+        if Lim is not None:
+            for ii in range(lim.shape[0]):
+                lim[ii,:] = [max(Lim[0],lim[ii,0]),min(lim[1],Lim[1])]
+    else:
+        lim = np.array([[0.,2.*np.pi]]) if V.Lim is None else np.array(V.Lim)
+        lim = lim.reshape((1,2)) if lim.ndim==1 else lim
+        if Lim is not None and V.Id.Cls=='Ves':
+            Lim[0] = np.arctan2(np.sin(Lim[0]),np.cos(Lim[0]))
+            Lim[1] = np.arctan2(np.sin(Lim[1]),np.cos(Lim[1]))
+            for ii in range(lim.shape[0]):
+                lim[ii,:] = Lim
     if 'P' in Elt:
         handles, labels = ax.get_legend_handles_labels()
-        Lim0 = V.Lim[0] if (V.Type=='Lin' and Lim[0]>V.Lim[1]) else Lim[0]
-        Lim1 = V.Lim[1] if (V.Type=='Lin' and Lim[1]<V.Lim[0]) else Lim[1]
-        if V.Type=='Tor':
-            theta = np.linspace(max(Lim0,0.),min(Lim1,2.*np.pi),Nstep)
-        else:
-            theta = np.linspace(max(Lim0,V.Lim[0]),min(Lim1,V.Lim[1]),Nstep)
-        theta = theta.reshape((1,Nstep))
-        if V.Type=='Tor':
-            X = np.dot(V.Poly[0:1,:].T,np.cos(theta))
-            Y = np.dot(V.Poly[0:1,:].T,np.sin(theta))
-            Z = np.dot(V.Poly[1:2,:].T,np.ones(theta.shape))
-        elif V.Type=='Lin':
-            X = np.dot(theta.reshape((Nstep,1)),np.ones((1,V.Poly.shape[1]))).T
-            Y = np.dot(V.Poly[0:1,:].T,np.ones((1,Nstep)))
-            Z = np.dot(V.Poly[1:2,:].T,np.ones((1,Nstep)))
-        ax.plot_surface(X,Y,Z, label=V.Id.NameLTX, **Pdict)
+        for ii in range(lim.shape[0]):
+            theta = np.linspace(lim[ii,0],lim[ii,1],Nstep)
+            theta = theta.reshape((1,Nstep))
+            if V.Type=='Tor':
+                X = np.dot(V.Poly[0:1,:].T,np.cos(theta))
+                Y = np.dot(V.Poly[0:1,:].T,np.sin(theta))
+                Z = np.dot(V.Poly[1:2,:].T,np.ones(theta.shape))
+            elif V.Type=='Lin':
+                X = np.dot(theta.reshape((Nstep,1)),np.ones((1,V.Poly.shape[1]))).T
+                Y = np.dot(V.Poly[0:1,:].T,np.ones((1,Nstep)))
+                Z = np.dot(V.Poly[1:2,:].T,np.ones((1,Nstep)))
+            ax.plot_surface(X,Y,Z, label=V.Id.NameLTX, **Pdict)
         proxy = plt.Rectangle((0,0),1,1, fc=Pdict['color'])
         handles.append(proxy)
         labels.append(V.Id.NameLTX)
-    if not LegDict is None:
-        ax.legend(handles, labels, **LegDict)
-    if draw:
-        ax.figure.canvas.draw()
     return ax
 
 """
@@ -959,7 +968,7 @@ def _make_cmap(c):
 
 
 
-def Rays_plot_touch(Cam, key=None, invert=None,
+def Rays_plot_touch(Cam, key=None, invert=None, plotmethod='imshow',
                     lcol=['k','r','b','g','y','m','c'],
                     fs=None, wintit='tofu', draw=True):
 
@@ -971,6 +980,7 @@ def Rays_plot_touch(Cam, key=None, invert=None,
     else:
         invert = True if invert is None else invert
         out = _Cam2D_plot_touch(Cam, lcol=lcol, invert=invert,
+                                plotmethod=plotmethod,
                                 fs=fs, wintit=wintit, draw=draw)
     return out
 
@@ -1114,9 +1124,6 @@ def _Cam2D_plot_touch_init(fs=None, wintit='tofu', Max=4):
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit is not None:
         fig.canvas.set_window_title(wintit)
-    fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
-        fig.canvas.set_window_title(wintit)
     gs1 = gridspec.GridSpec(6, 3,
                             left=0.03, bottom=0.05, right=0.99, top=0.94,
                             wspace=None, hspace=0.4)
@@ -1155,7 +1162,7 @@ def _Cam2D_plot_touch_init(fs=None, wintit='tofu', Max=4):
 
 
 
-def _Cam2D_plot_touch(Cam, key=None,
+def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
                       lcol=['k','r','b','g','y','m','c'],
                       Max=4, invert=False, fs=None, wintit='tofu', draw=True):
 
@@ -1190,16 +1197,29 @@ def _Cam2D_plot_touch(Cam, key=None,
     else:
         raise Exception("Not coded yet !")
 
+    # Prepare colors
+    norm = mpl.colors.Normalize(vmin=np.nanmin(data),vmax=1.1*np.nanmax(data))
     lS = Cam.LStruct
     lElt = ['Ves']
     if lS is not None:
         lElt += [ss.Id.Name for ss in lS]
-    dElt = {}
+    dElt, jj = {}, 0
+    cols = np.full((data.size,4),np.nan)
     for ee in lElt:
         ind = Cam.select(touch=ee,out=bool)
-        dElt[ee] = {'ind':ind}
-
-    norm = mpl.colors.Normalize(vmin=np.nanmin(data),vmax=1.1*np.nanmax(data))
+        if np.any(ind):
+            if type(lcol) is list:
+                c = lcol[jj]
+            else:
+                c = lcol[[kk for kk in lcol.keys() if kk in ee][0]]
+            cmap = _make_cmap(c)
+            dElt[ee] = {'ind':ind, 'cmap':cmap}
+            cols[ind,:] = mpl.cm.ScalarMappable(norm=norm, cmap=cmap).to_rgba(data[ind])
+            jj += 1
+    if plotmethod=='imshow':
+        x1u, x2u, ind, DX12 = utils.get_X12fromflat(X12)
+        nx1, nx2 = x1u.size, x2u.size
+        extent = (x1u.min(),x1u.max(),x2u.min(),x2u.max())
 
     # Format axes
     dax = _Cam2D_plot_touch_init(fs=fs, wintit=wintit, Max=Max)
@@ -1220,19 +1240,14 @@ def _Cam2D_plot_touch(Cam, key=None,
         if lS is not None:
             for ss in lS:
                 dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
-    jj = 0
-    for ee in lElt:
-        ind = dElt[ee]['ind'].nonzero()[0]
-        if ind.size>0:
-            if type(lcol) is list:
-                c = lcol[jj]
-            else:
-                c = lcol[[kk for kk in lcol.keys() if kk in ee][0]]
-            cmap = _make_cmap(c)
-            dax['prof'][0].scatter(X12[0,ind],X12[1,ind], c=data[ind],
-                                   s=8, marker='s', cmap=cmap,
-                                   norm=norm, edgecolors='None')
-            jj += 1
+
+    if plotmethod=='scatter':
+        dax['prof'][0].scatter(X12[0,:],X12[1,:], c=cols,
+                               s=8, marker='s', edgecolors='None')
+    elif plotmethod=='imshow':
+        cols = cols.reshape((nx1,nx2,4)).swapaxes(0,1)
+        dax['prof'][0].imshow(cols, extent=extent, aspect='equal',
+                              interpolation='nearest', origin='lower')
 
     if draw:
         dax['prof'][0].figure.canvas.draw()

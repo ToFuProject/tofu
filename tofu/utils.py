@@ -1,5 +1,43 @@
 
+# Built-in
+import os
+
+# Common
 import numpy as np
+
+
+###############################################
+#           File searching
+###############################################
+
+def FileNotFoundMsg(pattern,path,lF, nocc=1, ntab=0):
+    assert type(pattern) in [str,list]
+    assert type(path) is str
+    assert type(lF) is list
+    pat = pattern if type(pattern) is str else str(pattern)
+    tab = "    "*ntab
+    msg = ["Wrong number of matches (%i) !"%nocc]
+    msg += ["    for : %s"%pat]
+    msg += ["    in  : %s"%path]
+    msg += ["    =>    %s"%str(lF)]
+    msg = "\n".join([tab+ss for ss in msg])
+    return msg
+
+
+def FindFilePattern(pattern, path, nocc=1, ntab=0):
+    assert type(pattern) in [str,list]
+    assert type(path) is str
+    pat = [pattern] if type(pattern) is str else pattern
+    assert all([type(ss) is str for ss in pat])
+    lF = os.listdir(path)
+    lF = [ff for ff in lF if all([ss in ff for ss in pat])]
+    assert len(lF)==nocc, FileNotFoundMsg(pat,path,lF, nocc, ntab=ntab)
+    return lF
+
+
+#############################################
+#       Geometry
+#############################################
 
 def get_nIne1e2(P, nIn=None, e1=None, e2=None):
     assert np.hypot(P[0],P[1])>1.e-12
