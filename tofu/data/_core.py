@@ -13,8 +13,10 @@ import tofu.pathfile as tfpf
 import tofu.utils as tfu
 try:
     import tofu.data._plot as _plot
+    import tofu.data._def as _def
 except Exception:
     from . import _plot as _plot
+    from . import _def as _def
 
 __all__ = ['Data1D','Data2D']
 
@@ -368,22 +370,11 @@ class Data(object):
 
     def plot(self, key=None, invert=None, plotmethod='imshow',
              cmap=plt.cm.gray, ms=4, Max=None,
-             fs=None, wintit='tofu', draw=True):
+             fs=None, dmargin=None, wintit='tofu', draw=True):
         dax, KH = _plot.Data_plot(self, key=key, invert=invert, Max=Max,
                                   plotmethod=plotmethod, cmap=cmap, ms=ms,
-                                  fs=fs, wintit=wintit, draw=draw)
+                                  fs=fs, dmargin=dmargin, wintit=wintit, draw=draw)
         return dax, KH
-
-    def plot(self, key=None, invert=True, cmap=plt.cm.gray, ms=4,
-             Max=None, plotmethod='imshow',
-             fs=None, wintit='tofu', draw=True):
-        dax, KH = _plot.Data_plot(self, key=key, invert=invert,
-                                  plotmethod=plotmethod,
-                                  cmap=cmap, ms=ms, Max=Max,
-                                  fs=fs, wintit=wintit, draw=draw)
-        return dax, KH
-
-
 
     def save(self, SaveName=None, Path=None,
              Mode='npz', compressed=False, Print=True):
