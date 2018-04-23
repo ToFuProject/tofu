@@ -235,8 +235,9 @@ class Test01_Data1D:
     def test07_plot(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
-            dax, KH = oo.plot(key=None, Max=None)
-            dax, KH = oo.plot(key='Name', Max=2)
+            dax, KH = oo.plot(key=None, Max=None, fs=None,
+                              dmargin=dict(left=0.06, right=0.9))
+            dax, KH = oo.plot(key='Name', Max=2, fs=(10,6), dmargin=None)
             plt.close('all')
 
     def test08_tofromdict(self):
@@ -296,6 +297,8 @@ class Test01_Data2D(Test01_Data1D):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             if oo._X12 is not None and oo.geom is not None:
-                dax, KH = oo.plot(key=None, Max=None)
-                dax, KH = oo.plot(key='Name', Max=2)
+                dax, KH = oo.plot(key=None, Max=None, fs=None,
+                                  dmargin=dict(left=0.05,right=0.9))
+                dax, KH = oo.plot(key='Name', Max=2, fs=(13,5),
+                                  dmargin=None)
                 plt.close('all')

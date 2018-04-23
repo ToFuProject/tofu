@@ -383,7 +383,8 @@ class Test03_Rays:
             #print(ii, plot, self.LObj[ii].Id.Name, t, ind)  # DB
             sig = self.LObj[ii].calc_signal(ff, t=t, Ani=Ani, fkwdargs={},
                                       dl=0.01, DL=None, dlMode='abs', method='simps',
-                                      Warn=False, ind=ind, plot=plot, out='')
+                                      Warn=False, ind=ind, plot=plot, out='',
+                                      fs=(12,6),dmargin=dict(left=0.06,right=0.9))
             #assert sig.shape==(len(ind),) if t is None else (t.size,len(ind))
             assert ~np.all(np.isnan(sig)), str(ii)
             plt.close('all')
