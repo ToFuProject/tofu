@@ -3,6 +3,7 @@
 # Built-in
 import os
 import itertools as itt
+import warnings
 
 # Common
 import numpy as np
@@ -109,8 +110,10 @@ class Data(object):
     def t(self):
         if self._Ref['t'] is None:
             return None
-        else:
+        elif self._t is None:
             return self._Ref['t'][self.indt]
+        else:
+            return self._t
     @property
     def data(self):
         return self._get_data()
@@ -164,14 +167,14 @@ class Data(object):
         self._Ref['dchans'] = dchans
 
         self._dunits = {} if dunits is None else dunits
-        self._data = None
+        self._data, self._t = None, None
         self._indt, self._indch = None, None
         self._data0 = {'data':None,'t':None,'Dt':None}
-        self._fft = None
+        self._fft, self._interp_t = None, None
         self._indt_corr, self._indch_corr = None, None
 
     def _set_LCam(self, LCam=None, CamCls='1D'):
-        self._check_inputs(LCam=LCam, CamCls=CamCls)
+        self._check_inputs(LCam=LCam, CamCls=CamCls, data=self._Ref['data'])
         if LCam is None:
             self._geom = None
             self._CamCls = CamCls
@@ -336,30 +339,57 @@ class Data(object):
                 Dt = None
         self._data0 = {'indt':indt,'data':data, 'Dt':Dt}
 
+    def set_interp_t(self, t=None):
+        if t is not None:
+            t = np.asarray(t).astype(float)
+            assert t.ndim==1
+            assert (t>self._Ref['t'][-1]).sum()<=1
+            assert (t<self._Ref['t'][0]).sum()<=1
+        self._interp_t = t
+        self._set_data()
+
+    def set_fft(self, fft=None):
+        pass
+
+    def reset(self):
+        self.set_indch()
+        self.set_indt()
+        self.set_data0()
+        self.set_interp_t()
+        self.set_fft()
+        self._set_data()
+
+    def _calc_data_core(self):
+         # Get time interval
+        d = self._Ref['data'][self.indt,:]
+        # Substract reference time data
+        if self._data0['data'] is not None:
+            d = d - self._data0['data'][np.newaxis,:]
+        # Get desired channels
+        d = d[:,self.indch]
+        return d
+
     def _set_data(self):
-        if self._fft is None:
+        if self._fft is None and self._interp_t is None:
             d = None
         else:
-            # Get time interval
-            d = self._Ref['data'][self.indt,:]
-            # Substract reference time data
-            if self._data0['data'] is not None:
-                d = d - self._data0['data'][np.newaxis,:]
-            # Get desired channels
-            d = d[:,self.indch]
+            d = self._calc_data_core()
             # Get fft
-            d = _comp.get_fft(d, **self._fft)
+            if self._fft is not None:
+                d = _comp.get_fft(d, **self._fft)
+            if self._interp_t is not None:
+                t = self._interp_t
+                d = np.vstack([np.interp(t, self.t, d[:,ii],
+                                         left=np.nan, right=np.nan)
+                               for ii in range(d.shape[1])]).T
+                self._t = t
+            else:
+                self._t = None
         self._data = d
 
     def _get_data(self):
         if self._data is None:
-            # Get time interval
-            d = self._Ref['data'][self.indt,:]
-            # Substract reference time data
-            if self._data0['data'] is not None:
-                d = d - self._data0['data'][np.newaxis,:]
-            # Get desired channels
-            d = d[:,self.indch]
+            d = self._calc_data_core()
         else:
             d = self._data
         return d
@@ -368,12 +398,20 @@ class Data(object):
     #def get_fft(self, DF=None, Harm=True, DFEx=None, HarmEx=True, Calc=True):
         #self._set_data()
 
+    def __sub__(self, other):
+        opfunc = lambda x, y: x-y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+
     def plot(self, key=None, invert=None, plotmethod='imshow',
              cmap=plt.cm.gray, ms=4, Max=None,
-             fs=None, dmargin=None, wintit='tofu', draw=True):
+             fs=None, dmargin=None, wintit='tofu',
+             draw=True, connect=True):
         dax, KH = _plot.Data_plot(self, key=key, invert=invert, Max=Max,
                                   plotmethod=plotmethod, cmap=cmap, ms=ms,
-                                  fs=fs, dmargin=dmargin, wintit=wintit, draw=draw)
+                                  fs=fs, dmargin=dmargin, wintit=wintit,
+                                  draw=draw, connect=connect)
         return dax, KH
 
     def save(self, SaveName=None, Path=None,
@@ -464,8 +502,12 @@ def _Data_check_inputs(Id=None, data=None, t=None, dchans=None,
                 assert C0 or C1
                 lK = [sorted(cc.dchans.keys() for cc in LCam)]
                 assert all([lk==lK[0] for lk in lK])
+            if data is not None:
+                assert np.sum([cc.nRays for cc in LCam])==data.shape[1]
         else:
             assert LCam.Id.Cls in ['LOSCam1D','LOSCam2D','Cam1D','Cam2D']
+            if data is not None:
+                assert LCam.nRays==data.shape[1]
 
 
 def _Data_check_fromdict(fd):
@@ -504,6 +546,135 @@ def _format_ind(ind=None, n=None):
                 msg = "Index must be a int, or an iterable of bool or int !"
                 raise Exception(msg)
     return ind
+
+
+def _compare_(ls, null=None):
+    ind = np.nonzero([ss is not null for ss in ls])[0]
+    if ind.size>0:
+        if all([ls[ind[0]]==ls[ind[ii]] for ii in range(1,len(ind))]):
+            s = ls[ind[0]]
+        else:
+            s = null
+    else:
+        s = null
+    return s
+
+def _compare_dchans(ldch):
+    ind = np.nonzero([dd is not None for dd in ldch])[0]
+    if ind.size>0:
+        All = True
+        dch = ldch[ind[0]]
+        for ii in range(1,len(ind)):
+            if any([not kk in ldch[ind[ii]].keys() for kk in dch.keys()]):
+                All = False
+                break
+            if any([not kk in dch.keys() for kk in ldch[ind[ii]].keys()]):
+                All = False
+                break
+            for kk in dch.keys():
+                if not dch[kk].shape==ldch[ind[ii]][kk].shape:
+                    All = False
+                    break
+                if not dch[kk].dtype==ldch[ind[ii]][kk].dtype:
+                    All = False
+                    break
+                C = all([dch[kk][jj]==ldch[ind[ii]][kk][jj]
+                         for jj in range(len(dch[kk]))])
+                if not C:
+                    All = False
+                    break
+            if All is False:
+                break
+
+        if All is False:
+            dch = None
+    else:
+        dch = None
+    return dch
+
+
+def _compare_lCam(lLC):
+    ind = np.nonzero([lc is not None for lc in lLC])[0]
+    if ind.size>0:
+        All = True
+        lC = lLC[ind[0]]
+
+    else:
+        lC = None
+    return lC
+
+
+
+def _extractCommonParams(ld, warn=True):
+
+    # Time vector
+    lt = [dd.t for dd in ld]
+    ind = np.nonzero([tt is not None for tt in lt])[0]
+    if ind.size>0:
+        if all([np.allclose(lt[ind[ii]],lt[ind[0]]) for ii in range(len(ind))]):
+            t = lt[ind[0]]
+        else:
+            if warn:
+                warnings.warn("\n Beware : the time vectors seem to differ !")
+            t = None
+    else:
+        t = None
+
+    # LCam
+    LCam = ld[0]._geom['LCam']  # _compare_lCam([dd.])
+
+    # dchans
+    dchans = _compare_dchans([dd.dchans() for dd in ld])
+
+    # Choose LCam over dchan if both
+    if LCam is not None:
+        dchans = None
+
+    # dunits, Id, Exp, shot, Diag, SavePath
+    dunits = _compare_([dd._dunits for dd in ld], null={})
+    Id = ' '.join([dd.Id.Name for dd in ld])
+    Exp = _compare_([dd.Id.Exp for dd in ld])
+    shot = _compare_([dd.Id.shot for dd in ld])
+    Diag = _compare_([dd.Id.Diag for dd in ld])
+    SavePath = _compare_([dd.Id.SavePath for dd in ld])
+
+    return t, LCam, dchans, dunits, Id, Exp, shot, Diag, SavePath
+
+
+
+
+def _recreatefromoperator(d0, other, opfunc):
+    if type(other) in [int,float,np.int64,np.float64]:
+        d = opfunc(d0.data, other)
+        t, LCam, dchans = d0.t, d0._
+        dunits = d0._dunits
+        Id, Exp, shot = d0.Id.Name, d0.Id.Exp, d0.Id.shot
+        Diag, SavePath = d0.Id.Diag, d0.Id.SavePath
+    elif issubclass(other.__class__, Data):
+        assert other.__class__==d0.__class__, 'Same class is expected !'
+        try:
+            d = opfunc(d0.data, other.data)
+        except Exception as err:
+            print("\n data shapes not matching !")
+            raise err
+        out = _extractCommonParams([d0, other], warn=True)
+        t, LCam, dchans, dunits, Id, Exp, shot, Diag, SavePath = out
+    else:
+        raise NotImplementedError
+
+    kwdargs = dict(t=t, dchans=dchans, LCam=LCam, dunits=dunits,
+                   Id=Id, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath)
+
+    if '1D' in d0.Id.Cls:
+        data = Data1D(d, **kwdargs)
+    elif '2D' in d0.Id.Cls:
+        data = Data2D(d, **kwdargs)
+    else:
+        data = Data(d, **kwdargs)
+    return data
+
+
+
 
 
 

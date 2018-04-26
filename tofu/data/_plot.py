@@ -22,21 +22,29 @@ except Exception:
 __all__ = ['Data_plot']
 
 
-def Data_plot(Data, key=None,
+def Data_plot(lData, key=None,
               cmap=plt.cm.gray, ms=4,
               dMag=None, Max=None,
               plotmethod='imshow', invert=False,
-              fs=None, dmargin=None, wintit='tofu', draw=True):
+              fs=None, dmargin=None, wintit='tofu',
+              draw=True, connect=True):
+    if type(lData) is not list:
+        lData = [lData]
 
-    if '1D' in Data._CamCls:
+    if '1D' in lData[0]._CamCls:
         Max = 3 if Max is None else Max
-        dax, KH = _Data1D_plot(Data, key=key, dMag=dMag, Max=Max,
-                               fs=fs, dmargin=dmargin, wintit=wintit, draw=draw)
+        if len(lData)==1:
+            dax, KH = _Data1D_plot(lData[0], key=key, dMag=dMag, Max=Max,
+                                   fs=fs, dmargin=dmargin, wintit=wintit,
+                                   draw=draw, connect=connect)
+
     else:
         Max = 6 if Max is None else Max
-        dax, KH = _Data2D_plot(Data, key=key, cmap=cmap, ms=ms, dMag=dMag,
+        assert len(lData)==1
+        dax, KH = _Data2D_plot(lData[0], key=key, cmap=cmap, ms=ms, dMag=dMag,
                                Max=Max, plot=plotmethod, invert=invert,
-                               fs=fs, dmargin=dmargin, wintit=wintit, draw=draw)
+                               fs=fs, dmargin=dmargin, wintit=wintit,
+                               draw=draw, connect=connect)
     return dax, KH
 
 
@@ -107,7 +115,8 @@ def _init_Data1D(fs=None, dmargin=None,
 
 def _Data1D_plot(Data, key=None,
                  dMag=None, Max=4,
-                 fs=None, dmargin=None, wintit='tofu', draw=True):
+                 fs=None, dmargin=None, wintit='tofu',
+                 draw=True, connect=True):
 
     # Prepare
     Dname = 'data'
@@ -192,19 +201,8 @@ def _Data1D_plot(Data, key=None,
     can = dax['t'][0].figure.canvas
     KH = KH_1D(data, chans, t, chlab, Data._CamCls, dMag,
                lCross=lCross, lH=lHor, dax=dax, can=can, Max=Max)
-
-    def on_press(event):
-        KH.onkeypress(event)
-    def on_clic(event):
-        KH.mouseclic(event)
-    # Disconnect matplotlib built-in event handlers
-    can.mpl_disconnect(can.manager.key_press_handler_id)
-    can.mpl_disconnect(can.button_pick_id)
-
-    KH.can.mpl_connect('key_press_event', on_press)
-    KH.can.mpl_connect('key_release_event', on_press)
-    KH.can.mpl_connect('button_press_event', on_clic)
-
+    if connect:
+        KH.connect()
     return dax, KH
 
 
@@ -234,50 +232,73 @@ class KH_1D(object):
         self.curax = 'time'
         self.initplot()
 
+    def connect(self):
+        self.can.mpl_disconnect(self.can.manager.key_press_handler_id)
+        self.can.mpl_disconnect(self.can.button_pick_id)
+        keyp = self.can.mpl_connect('key_press_event', self.onkeypress)
+        keyr = self.can.mpl_connect('key_release_event', self.onkeypress)
+        butp = self.can.mpl_connect('button_press_event', self.mouseclic)
+        butr = self.can.mpl_connect('button_release_event', self.mouserelease)
+        res = self.can.mpl_connect('resize_event', self.resize)
+        self._cid = {'keyp':keyp, 'keyr':keyr,
+                     'butp':butp, 'butr':butr, 'res':res}
+
+    def disconnect(self):
+        for kk in self._cid.keys():
+            self.can.mpl_disconnect(self._cid[kk])
+
+
     def initplot(self):
         if self.dMag is not None:
             c = (0.8,0.8,0.8)
-        tin0 = [[0 for i in range(0,self.Max)] for j in range(0,self.naxt)]
-        tin1 = [[0 for i in range(0,self.Max)] for j in range(0,self.naxt)]
-        pin0 = [[0 for i in range(self.Max)] for j in range(self.naxprof)]
-        pin1 = [[0 for i in range(self.Max)] for j in range(self.naxprof)]
-        tin2 = [0 for i in range(self.Max)]
-        pin2 = [0 for i in range(self.Max)]
-        self.dlt = {'t':tin0, 'prof':pin0}
-        self.dlprof = {'t':tin1, 'prof':pin1,
-                       'C':[0 for i in range(self.Max)],
-                       'H':[0 for i in range(self.Max)]}
-        self.Txt = {'t':tin2, 'prof':pin2}
-        self.dlmag = {'prof':{'Ax':[0 for ii in range(self.Max)],
-                              'Sep':[0 for ii in range(self.Max)]},
-                      '2D':{'Ax':[0 for ii in range(self.Max)],
-                              'Sep':[0 for ii in range(self.Max)]}}
+
+        # Initialize handles and visibility booleans
+        t0b = np.zeros((self.naxt,self.Max),dtype=bool)
+        p0b = np.zeros((self.naxprof,self.Max),dtype=bool)
+        tp0b = np.zeros((self.Max,),dtype=bool)
+        t0l, p0l = list(t0b.tolist()), list(p0b.tolist())
+        tp0l = list(tp0b.tolist())
+        self.dlt = {'t':{'h':t0l,'v':t0b}, 'prof':{'h':p0l,'v':p0b}}
+        self.dlprof = {'t':{'h':[list(ee) for ee in t0l],
+                            'v':t0b.copy()},
+                       'prof':{'h':[list(ee) for ee in p0l],
+                               'v':p0b.copy()},
+                       'C':{'h':list(tp0l),'v':tp0b.copy()},
+                       'H':{'h':list(tp0l),'v':tp0b.copy()}}
+        self.Txt = {'t':{'h':list(tp0l),'v':tp0b.copy()},
+                    'prof':{'h':list(tp0l),'v':tp0b.copy()}}
+        self.dlmag = {'prof':{'Ax':{'h':list(tp0l),'v':tp0b.copy()},
+                              'Sep':{'h':list(tp0l),'v':tp0b.copy()}},
+                      '2D':{'Ax':{'h':list(tp0l),'v':tp0b.copy()},
+                            'Sep':{'h':list(tp0l),'v':tp0b.copy()}}}
+
+        # Set handles
         for jj in range(0,self.naxt):
             axj = self.dax['t'][jj]
             for ii in range(0,self.Max):
-                self.dlt['t'][jj][ii] = axj.axvline(np.nan,0,1,
+                self.dlt['t']['h'][jj][ii] = axj.axvline(np.nan,0,1,
                                                    c=self.colt[ii],
                                                    ls='--',lw=1.)
                 if jj>=1:
-                    self.dlprof['t'][jj][ii], = axj.plot(self.t, self.nant,
+                    self.dlprof['t']['h'][jj][ii], = axj.plot(self.t, self.nant,
                                                          c=self.colch[ii],
                                                          ls='-', lw=2.)
         for jj in range(0,self.naxprof):
             axj = self.dax['prof'][jj]
             for ii in range(0,self.Max):
-                self.dlprof['prof'][jj][ii] = axj.axvline(np.nan,0,1,
+                self.dlprof['prof']['h'][jj][ii] = axj.axvline(np.nan,0,1,
                                                           c=self.colch[ii],
                                                           ls='--',lw=1.)
-                self.dlt['prof'][jj][ii], = axj.plot(self.X, self.nanch,
+                self.dlt['prof']['h'][jj][ii], = axj.plot(self.X, self.nanch,
                                                      c=self.colt[ii],
                                                      ls='-',lw=2.)
         nanC = np.full((10,),np.nan)
         nanH = np.full((2,),np.nan)
         for ii in range(0,self.Max):
-            self.dlprof['C'][ii], = self.dax['2D'][0].plot(nanC, nanC,
+            self.dlprof['C']['h'][ii], = self.dax['2D'][0].plot(nanC, nanC,
                                                            lw=2., ls='-',
                                                            c=self.colch[ii])
-            self.dlprof['H'][ii], = self.dax['2D'][1].plot(nanH, nanH,
+            self.dlprof['H']['h'][ii], = self.dax['2D'][1].plot(nanH, nanH,
                                                            lw=2., ls='-',
                                                            c=self.colch[ii])
 
@@ -285,26 +306,66 @@ class KH_1D(object):
             for ii in range(0,self.Max):
                 l, = self.dax['2D'][0].plot([np.nan],[np.nan],
                                             marker='x',ms=12,c=self.colt[ii])
-                self.dlmag['2D']['Ax'][ii] = l
+                self.dlmag['2D']['Ax']['h'][ii] = l
                 l, = self.dax['2D'][0].plot(self.nansep[:,0],self.nansep[:,1],
                                             ls='-',lw=2.,c=self.colt[ii])
-                self.dlmag['2D']['Sep'][ii] = l
+                self.dlmag['2D']['Sep']['h'][ii] = l
         for ii in range(0,self.Max):
             txt = self.dax['Txtt'][ii].text(0.5,0.5, r"",
                                             color=self.colt[ii], size=8,
                                             fontweight='bold',
                                             va='center', ha='center')
-            self.Txt['t'][ii] = txt
+            self.Txt['t']['h'][ii] = txt
             txt = self.dax['Txtc'][ii].text(0.5,0.5, r"",
                                             color=self.colch[ii], size=8,
                                             fontweight='bold',
                                             va='center', ha='center')
-            self.Txt['prof'][ii] = txt
+            self.Txt['prof']['h'][ii] = txt
+
+        # Set backgrounds
+        self._set_dBck()
+
+    def _set_dBck(self):
+        # Make all invisible
+        ld = [self.dlt, self.dlprof, self.dlmag, self.Txt]
+        for dd in ld:
+            for kk in dd.keys():
+                if 'h' in dd[kk].keys() and type(dd[kk]['h'][0]) is list:
+                    for ii in range(len(dd[kk]['h'])):
+                        for jj in range(0,self.Max):
+                            if dd[kk]['h'][ii][jj] is not False:
+                                dd[kk]['h'][ii][jj].set_visible(False)
+                elif 'h' in dd[kk].keys():
+                    for ii in range(len(dd[kk]['h'])):
+                        dd[kk]['h'][ii].set_visible(False)
+                elif self.dMag is not None:
+                    for k in dd[kk].keys():
+                        for ii in range(0,self.Max):
+                            dd[kk][k]['h'][ii].set_visible(False)
+
+        # Draw and reset Bck
         self.can.draw()
         dBck = {}
         for kk in self.dax.keys():
             dBck[kk] = [self.can.copy_from_bbox(aa.bbox) for aa in self.dax[kk]]
         self.dBck = dBck
+
+        # Redraw
+        for dd in ld:
+            for kk in dd.keys():
+                if 'h' in dd[kk].keys() and type(dd[kk]['h'][0]) is list:
+                    for ii in range(len(dd[kk]['h'])):
+                        for jj in range(0,self.Max):
+                            if dd[kk]['h'][ii][jj] is not False:
+                                dd[kk]['h'][ii][jj].set_visible(dd[kk]['v'][ii][jj])
+                elif 'h' in dd[kk].keys():
+                    for ii in range(len(dd[kk]['h'])):
+                        dd[kk]['h'][ii].set_visible(dd[kk]['v'][ii])
+                elif self.dMag is not None:
+                    for k in dd[kk].keys():
+                        for ii in range(0,self.Max):
+                            dd[kk][k]['h'][ii].set_visible(dd[kk][k]['v'][ii])
+        self.can.draw()
 
     def update(self):
         if self.curax=='time':
@@ -313,8 +374,8 @@ class KH_1D(object):
                 for ii in kk[1]:
                     self.can.restore_region(self.dBck[kk[0]][ii])
             for ii in range(0,self.Max):
-                self.dax['t'][1].draw_artist(self.dlprof['t'][1][ii])
-                self.dax['prof'][0].draw_artist(self.dlprof['prof'][0][ii])
+                self.dax['t'][1].draw_artist(self.dlprof['t']['h'][1][ii])
+                self.dax['prof'][0].draw_artist(self.dlprof['prof']['h'][0][ii])
                 if ii<=len(self.indt)-1:
                     ti = self.t[self.indt[ii]]
                     txti = r"t = {0:07.3f} s".format(ti)
@@ -325,31 +386,37 @@ class KH_1D(object):
                         axi = self.dMag['Ax'][it,:]
 
                     for jj in range(0,self.naxt):
-                        self.dlt['t'][jj][ii].set_xdata(ti)
-                        self.dlt['t'][jj][ii].set_visible(True)
-                        self.dax['t'][jj].draw_artist(self.dlt['t'][jj][ii])
+                        self.dlt['t']['h'][jj][ii].set_xdata(ti)
+                        self.dlt['t']['h'][jj][ii].set_visible(True)
+                        self.dlt['t']['v'][jj][ii] = True
+                        self.dax['t'][jj].draw_artist(self.dlt['t']['h'][jj][ii])
 
                     for jj in range(0,self.naxprof):
-                        self.dlt['prof'][jj][ii].set_ydata(Yi)
-                        self.dlt['prof'][jj][ii].set_visible(True)
-                    self.Txt['t'][ii].set_text(txti)
-                    self.Txt['t'][ii].set_visible(True)
+                        self.dlt['prof']['h'][jj][ii].set_ydata(Yi)
+                        self.dlt['prof']['h'][jj][ii].set_visible(True)
+                        self.dlt['prof']['v'][jj][ii] = True
+                    self.Txt['t']['h'][ii].set_text(txti)
+                    self.Txt['t']['h'][ii].set_visible(True)
+                    self.Txt['t']['v'][ii] = True
                 else:
                     for jj in range(0,self.naxt):
-                        self.dlt['t'][jj][ii].set_visible(False)
-                        self.dax['t'][jj].draw_artist(self.dlt['t'][jj][ii])
+                        self.dlt['t']['h'][jj][ii].set_visible(False)
+                        self.dlt['t']['v'][jj][ii] = False
+                        self.dax['t'][jj].draw_artist(self.dlt['t']['h'][jj][ii])
                     for jj in range(0,self.naxprof):
-                        self.dlt['prof'][jj][ii].set_visible(False)
-                    self.Txt['t'][ii].set_visible(False)
+                        self.dlt['prof']['h'][jj][ii].set_visible(False)
+                        self.dlt['prof']['v'][jj][ii] = False
+                    self.Txt['t']['h'][ii].set_visible(False)
+                    self.Txt['t']['v'][ii] = False
                 if self.dMag is not None:
-                    self.dlmag['2D']['Sep'][ii].set_xdata(sepi[:,0])
-                    self.dlmag['2D']['Sep'][ii].set_ydata(sepi[:,1])
-                    self.dlmag['2D']['Ax'][ii].set_xdata([axi[0]])
-                    self.dlmag['2D']['Ax'][ii].set_ydata([axi[1]])
-                    self.dax['2D'][0].draw_artist(self.dlmag['2D']['Sep'][ii])
-                    self.dax['2D'][0].draw_artist(self.dlmag['2D']['Ax'][ii])
-                self.dax['prof'][0].draw_artist(self.dlt['prof'][0][ii])
-                self.dax['Txtt'][ii].draw_artist(self.Txt['t'][ii])
+                    self.dlmag['2D']['Sep']['h'][ii].set_xdata(sepi[:,0])
+                    self.dlmag['2D']['Sep']['h'][ii].set_ydata(sepi[:,1])
+                    self.dlmag['2D']['Ax']['h'][ii].set_xdata([axi[0]])
+                    self.dlmag['2D']['Ax']['h'][ii].set_ydata([axi[1]])
+                    self.dax['2D'][0].draw_artist(self.dlmag['2D']['Sep']['h'][ii])
+                    self.dax['2D'][0].draw_artist(self.dlmag['2D']['Ax']['h'][ii])
+                self.dax['prof'][0].draw_artist(self.dlt['prof']['h'][0][ii])
+                self.dax['Txtt'][ii].draw_artist(self.Txt['t']['h'][ii])
 
         elif self.curax=="chan":
             rest = [('t',[1]),('Txtc',list(range(self.Max))),
@@ -358,44 +425,54 @@ class KH_1D(object):
                 for ii in kk[1]:
                     self.can.restore_region(self.dBck[kk[0]][ii])
             for ii in range(0,self.Max):
-                self.dax['t'][1].draw_artist(self.dlt['t'][1][ii])
-                self.dax['prof'][0].draw_artist(self.dlt['prof'][0][ii])
+                self.dax['t'][1].draw_artist(self.dlt['t']['h'][1][ii])
+                self.dax['prof'][0].draw_artist(self.dlt['prof']['h'][0][ii])
                 if ii<=len(self.indch)-1:
                     chi = self.X[self.indch[ii]]
                     txtci = str(self.lchans[self.indch[ii]])
                     Yii = self.Y[:,self.indch[ii]]
 
-                    self.dlprof['t'][1][ii].set_ydata(Yii)
-                    self.dlprof['t'][1][ii].set_visible(True)
+                    self.dlprof['t']['h'][1][ii].set_ydata(Yii)
+                    self.dlprof['t']['h'][1][ii].set_visible(True)
+                    self.dlprof['t']['v'][1][ii] = True
                     for jj in range(0,self.naxprof):
-                        self.dlprof['prof'][jj][ii].set_xdata(chi)
-                        self.dlprof['prof'][jj][ii].set_visible(True)
-                        self.dax['prof'][jj].draw_artist(self.dlprof['prof'][jj][ii])
-                    self.Txt['prof'][ii].set_text(txtci)
-                    self.Txt['prof'][ii].set_visible(True)
+                        self.dlprof['prof']['h'][jj][ii].set_xdata(chi)
+                        self.dlprof['prof']['h'][jj][ii].set_visible(True)
+                        self.dlprof['prof']['v'][jj][ii] = True
+                        self.dax['prof'][jj].draw_artist(self.dlprof['prof']['h'][jj][ii])
+                    self.Txt['prof']['h'][ii].set_text(txtci)
+                    self.Txt['prof']['h'][ii].set_visible(True)
+                    self.Txt['prof']['v'][ii] = True
                     if self.lCross is not None:
                         if 'LOS' in self.CamCls:
-                            self.dlprof['C'][ii].set_data(self.lCross[self.indch[ii]])
-                            self.dlprof['H'][ii].set_data(self.lH[self.indch[ii]])
+                            self.dlprof['C']['h'][ii].set_data(self.lCross[self.indch[ii]])
+                            self.dlprof['H']['h'][ii].set_data(self.lH[self.indch[ii]])
                         else:
                             raise Exception("Not coded yet !")
-                        self.dlprof['C'][ii].set_visible(True)
-                        self.dlprof['H'][ii].set_visible(True)
-                        self.dax['2D'][0].draw_artist(self.dlprof['C'][ii])
-                        self.dax['2D'][1].draw_artist(self.dlprof['H'][ii])
+                        self.dlprof['C']['h'][ii].set_visible(True)
+                        self.dlprof['H']['h'][ii].set_visible(True)
+                        self.dlprof['C']['v'][ii] = True
+                        self.dlprof['H']['v'][ii] = True
+                        self.dax['2D'][0].draw_artist(self.dlprof['C']['h'][ii])
+                        self.dax['2D'][1].draw_artist(self.dlprof['H']['h'][ii])
                 else:
-                    self.dlprof['t'][1][ii].set_visible(False)
+                    self.dlprof['t']['h'][1][ii].set_visible(False)
+                    self.dlprof['t']['v'][1][ii] = False
                     for jj in range(0,self.naxprof):
-                        self.dlprof['prof'][jj][ii].set_visible(False)
-                        self.dax['prof'][jj].draw_artist(self.dlprof['prof'][jj][ii])
-                    self.Txt['prof'][ii].set_visible(False)
+                        self.dlprof['prof']['h'][jj][ii].set_visible(False)
+                        self.dlprof['prof']['v'][jj][ii] = False
+                        self.dax['prof'][jj].draw_artist(self.dlprof['prof']['h'][jj][ii])
+                    self.Txt['prof']['h'][ii].set_visible(False)
+                    self.Txt['prof']['v'][ii] = False
                     if self.lCross is not None:
-                        self.dlprof['C'][ii].set_visible(False)
-                        self.dlprof['H'][ii].set_visible(False)
-                        self.dax['2D'][0].draw_artist(self.dlprof['C'][ii])
-                        self.dax['2D'][1].draw_artist(self.dlprof['H'][ii])
-                self.dax['t'][1].draw_artist(self.dlprof['t'][1][ii])
-                self.dax['Txtc'][ii].draw_artist(self.Txt['prof'][ii])
+                        self.dlprof['C']['h'][ii].set_visible(False)
+                        self.dlprof['H']['h'][ii].set_visible(False)
+                        self.dlprof['C']['v'][ii] = False
+                        self.dlprof['H']['v'][ii] = False
+                        self.dax['2D'][0].draw_artist(self.dlprof['C']['h'][ii])
+                        self.dax['2D'][1].draw_artist(self.dlprof['H']['h'][ii])
+                self.dax['t'][1].draw_artist(self.dlprof['t']['h'][1][ii])
+                self.dax['Txtc'][ii].draw_artist(self.Txt['prof']['h'][ii])
         for kk in rest:
             for ii in kk[1]:
                 self.can.blit(self.dax[kk[0]][ii].bbox)
@@ -425,6 +502,8 @@ class KH_1D(object):
             self.shift = False
 
     def mouseclic(self,event):
+        if self.can.manager.toolbar._active is not None:
+            return
         if event.button == 1 and event.inaxes in self.dax['t']:
             self.curax = 'time'
             if self.shift:
@@ -446,7 +525,14 @@ class KH_1D(object):
                 self.indch = [np.argmin(np.abs(self.X-event.xdata))]
             self.update()
 
+    def mouserelease(self, event):
+        if self.can.manager.toolbar._active == 'PAN':
+            self._set_dBck()
+        elif self.can.manager.toolbar._active == 'ZOOM':
+            self._set_dBck()
 
+    def resize(self, event):
+        self._set_dBck()
 
 
 
@@ -532,7 +618,7 @@ def _Data2D_plot(Data, key=None,
                  cmap=plt.cm.gray, ms=4,
                  colch=['r','b','g','m','c','y'],
                  dMag=None, Max=4, fs=None, dmargin=None, wintit='tofu',
-                 plot='imshow', invert=False, draw=True):
+                 plot='imshow', invert=False, draw=True, connect=True):
 
     # Prepare
     Dname = 'data'
@@ -622,19 +708,8 @@ def _Data2D_plot(Data, key=None,
                lCross=lCross, lH=lHor, dax=dax, can=can,
                Max=Max, invert=invert, plot=plot,
                colch=colch, cm=cmap, ms=ms, norm=norm)
-
-    def on_press(event):
-        KH.onkeypress(event)
-    def on_clic(event):
-        KH.mouseclic(event)
-    # Disconnect matplotlib built-in event handlers
-    can.mpl_disconnect(can.manager.key_press_handler_id)
-    can.mpl_disconnect(can.button_pick_id)
-
-    KH.can.mpl_connect('key_press_event', on_press)
-    KH.can.mpl_connect('key_release_event', on_press)
-    KH.can.mpl_connect('button_press_event', on_clic)
-
+    if connect:
+        KH.connect()
     return dax, KH
 
 # Define keyHandlker class for interactivity
@@ -675,47 +750,63 @@ class KH_2D(object):
         self.plot = plot
         self.initplot()
 
+    def connect(self):
+        # Disconnect matplotlib built-in event handlers
+        self.can.mpl_disconnect(self.can.manager.key_press_handler_id)
+        self.can.mpl_disconnect(self.can.button_pick_id)
+        keyp = self.can.mpl_connect('key_press_event', self.onkeypress)
+        keyr = self.can.mpl_connect('key_release_event', self.onkeypress)
+        butp = self.can.mpl_connect('button_press_event', self.mouseclic)
+        butr = self.can.mpl_connect('button_release_event', self.mouserelease)
+        res = self.can.mpl_connect('resize_event', self.resize)
+        self._cid = {'keyp':keyp, 'keyr':keyr,
+                     'butp':butp, 'butr':butr, 'res':res}
+
+    def disconnect(self):
+        for kk in self._cid.keys():
+            self.can.mpl_disconnect(self._cid[kk])
+
     def initplot(self):
         if self.dMag is not None:
             c = (0.8,0.8,0.8)
-        tin0 = [0 for j in range(0,self.naxt)]
-        tin1 = [0 for i in range(self.Max)]
-        pin0 = 0
-        pin1 = [0 for i in range(self.Max)]
-        tin2 = [0 for i in range(self.Max)]
-        pin2 = [0 for i in range(self.Max)]
-        self.dlt = {'t':tin0, 'prof':pin0}
-        self.dlprof = {'t':tin1, 'prof':pin1,
-                       'col':[0 for i in range(self.Max)],
-                       'C':[0 for i in range(self.Max)],
-                       'H':[0 for i in range(self.Max)]}
-        self.Txt = {'t':tin2, 'prof':pin2}
-        self.dlmag = {'prof':{'Ax':[0 for ii in range(self.Max)],
-                              'Sep':[0 for ii in range(self.Max)]},
-                      '2D':{'Ax':[0 for ii in range(self.Max)],
-                              'Sep':[0 for ii in range(self.Max)]}}
+
+        # Initialize handles and visibility booleans
+        t0b = np.zeros((self.naxt,),dtype=bool)
+        t1b = np.zeros((self.Max,),dtype=bool)
+        t0l, t1l = list(t0b.tolist()), list(t1b.tolist())
+        self.dlt = {'t':{'h':t0l,'v':t0b}, 'prof':{'h':[0],'v':[True]}}
+        self.dlprof = {'t':{'h':list(t1l), 'v':t1b.copy()},
+                       'prof':{'h':list(t1l), 'v':t1b.copy()},
+                       'col':{'h':list(t1l), 'v':t1b.copy()},
+                       'C':{'h':list(t1l),'v':t1b.copy()},
+                       'H':{'h':list(t1l),'v':t1b.copy()}}
+        self.Txt = {'t':{'h':list(t1l),'v':t1b.copy()},
+                    'prof':{'h':list(t1l),'v':t1b.copy()}}
+        self.dlmag = {'prof':{'Ax':{'h':list(t1l),'v':t1b.copy()},
+                              'Sep':{'h':list(t1l),'v':t1b.copy()}},
+                      '2D':{'Ax':{'h':list(t1l),'v':t1b.copy()},
+                            'Sep':{'h':list(t1l),'v':t1b.copy()}}}
+
+        # Set handles
         for jj in range(0,self.naxt):
             axj = self.dax['t'][jj]
-            self.dlt['t'][jj] = axj.axvline(np.nan,0,1, c='k',
+            self.dlt['t']['h'][jj] = axj.axvline(np.nan,0,1, c='k',
                                             ls='--',lw=1.)
             if jj>=1:
                 for ii in range(0,self.Max):
-                    self.dlprof['t'][ii], = axj.plot(self.t, self.nant,
+                    self.dlprof['t']['h'][ii], = axj.plot(self.t, self.nant,
                                                      c=self.colch[ii],ls='-',lw=2.)
         self.nanYi = self.Y[self.indt[0],:][self.indp]
         self.nanYi[self.indpnan] = np.nan
         if self.plot=='pcolormesh':
-            self.dlt['prof'] = self.dax['prof'][0].pcolormesh(self.X1p, self.X2p,
+            self.dlt['prof']['h'][0] = self.dax['prof'][0].pcolormesh(self.X1p, self.X2p,
                                                     self.nanYi, edgecolors='None',
                                                     norm=self.norm, cmap=self.cm,
                                                     zorder=-1)
         else:
             extent = (np.nanmin(self.X12[0,:]), np.nanmax(self.X12[0,:]),
                       np.nanmin(self.X12[1,:]), np.nanmax(self.X12[1,:]))
-            print(extent,
-                  self.dax['prof'][0].get_xlim(),
-                  self.dax['prof'][0].get_ylim())
-            self.dlt['prof'] = self.dax['prof'][0].imshow(self.nanYi,
+            self.dlt['prof']['h'][0] = self.dax['prof'][0].imshow(self.nanYi,
                                                     interpolation='nearest',
                                                     norm=self.norm, cmap=self.cm,
                                                     extent=extent, aspect='equal',
@@ -724,18 +815,18 @@ class KH_2D(object):
         nanC = np.full((10,),np.nan)
         nanH = np.full((2,),np.nan)
         for ii in range(0,self.Max):
-            self.dlprof['prof'][ii],=self.dax['prof'][0].plot([np.nan],[np.nan],
+            self.dlprof['prof']['h'][ii],=self.dax['prof'][0].plot([np.nan],[np.nan],
                                                 marker='s',
                                                 ms=self.ms, mfc='None', mew=2.,
                                                 mec=self.colch[ii], zorder=10)
-            self.dlprof['col'][ii] = self.dax['cax'][0].axvline(np.nan,0,1,
+            self.dlprof['col']['h'][ii] = self.dax['cax'][0].axvline(np.nan,0,1,
                                                                 c=self.colch[ii],
                                                                 ls='--',lw=1.,
                                                                 zorder=10)
-            self.dlprof['C'][ii], = self.dax['2D'][0].plot(nanC, nanC,
+            self.dlprof['C']['h'][ii], = self.dax['2D'][0].plot(nanC, nanC,
                                                            lw=2., ls='-',
                                                            c=self.colch[ii])
-            self.dlprof['H'][ii], = self.dax['2D'][1].plot(nanH, nanH,
+            self.dlprof['H']['h'][ii], = self.dax['2D'][1].plot(nanH, nanH,
                                                            lw=2., ls='-',
                                                            c=self.colch[ii])
 
@@ -743,25 +834,74 @@ class KH_2D(object):
             for ii in range(0,self.Max):
                 l, = self.dax['2D'][0].plot([np.nan],[np.nan],
                                             marker='x',ms=12,c=self.colt[ii])
-                self.dlmag['2D']['Ax'][ii] = l
+                self.dlmag['2D']['Ax']['h'][ii] = l
                 l, = self.dax['2D'][0].plot(self.nansep[:,0],self.nansep[:,1],
                                             ls='-',lw=2.,c=self.colt[ii])
-                self.dlmag['2D']['Sep'][ii] = l
+                self.dlmag['2D']['Sep']['h'][ii] = l
         txt = self.dax['Txtt'][0].text(0.5,0.5, r"",
                                        color='k', size=8, fontweight='bold',
                                        va='center', ha='center')
-        self.Txt['t'][0] = txt
+        self.Txt['t']['h'][0] = txt
         for ii in range(0,self.Max):
             txt = self.dax['Txtc'][ii].text(0.5,0.5, r"",
                                             color=self.colch[ii], size=8,
                                             fontweight='bold',
                                             va='center', ha='center')
-            self.Txt['prof'][ii] = txt
+            self.Txt['prof']['h'][ii] = txt
+
+        # set background
+        self._set_dBck()
+
+    def _set_dBck(self):
+        # Make all invisible
+        ld = [self.dlt, self.dlprof, self.dlmag, self.Txt]
+        for dd in ld:
+            for kk in dd.keys():
+                if dd==self.dlt and kk=='prof':
+                    print("ok")
+                    pass
+                elif 'h' in dd[kk].keys() and type(dd[kk]['h'][0]) is list:
+                    for ii in range(len(dd[kk]['h'])):
+                        for jj in range(0,self.Max):
+                            if dd[kk]['h'][ii][jj] is not False:
+                                dd[kk]['h'][ii][jj].set_visible(False)
+                elif 'h' in dd[kk].keys():
+                    for ii in range(len(dd[kk]['h'])):
+                        if dd[kk]['h'][ii] is not False:
+                            dd[kk]['h'][ii].set_visible(False)
+                elif self.dMag is not None:
+                    for k in dd[kk].keys():
+                        for ii in range(0,self.Max):
+                            dd[kk][k]['h'][ii].set_visible(False)
+
+        # Draw and reset Bck
         self.can.draw()
         dBck = {}
         for kk in self.dax.keys():
             dBck[kk] = [self.can.copy_from_bbox(aa.bbox) for aa in self.dax[kk]]
         self.dBck = dBck
+
+        # Redraw
+        for dd in ld:
+            for kk in dd.keys():
+                if dd==self.dlt and kk=='prof':
+                    print("ok 2")
+                    pass
+                elif 'h' in dd[kk].keys() and type(dd[kk]['h'][0]) is list:
+                    for ii in range(len(dd[kk]['h'])):
+                        for jj in range(0,self.Max):
+                            if dd[kk]['h'][ii][jj] is not False:
+                                dd[kk]['h'][ii][jj].set_visible(dd[kk]['v'][ii][jj])
+                elif 'h' in dd[kk].keys():
+                    for ii in range(len(dd[kk]['h'])):
+                        if dd[kk]['h'][ii] is not False:
+                            dd[kk]['h'][ii].set_visible(dd[kk]['v'][ii])
+                elif self.dMag is not None:
+                    for k in dd[kk].keys():
+                        for ii in range(0,self.Max):
+                            dd[kk][k]['h'][ii].set_visible(dd[kk][k]['v'][ii])
+        self.can.draw()
+
 
     def update(self):
         if self.curax=='time':
@@ -778,33 +918,48 @@ class KH_2D(object):
                 axi = self.dMag['Ax'][it,:]
 
             for jj in range(0,self.naxt):
-                self.dlt['t'][jj].set_xdata(ti)
-                self.dax['t'][jj].draw_artist(self.dlt['t'][jj])
+                self.dlt['t']['h'][jj].set_xdata(ti)
+                self.dlt['t']['h'][jj].set_visible(True)
+                self.dlt['t']['v'][jj] = True
+                self.dax['t'][jj].draw_artist(self.dlt['t']['h'][jj])
 
             self.nanYi = Yi[self.indp]
             self.nanYi[self.indpnan] = np.nan
             if self.plot=='pcolormesh':
                 ncol = self.cm(self.norm(self.nanYi.ravel()))
-                self.dlt['prof'].set_facecolor(ncol)
+                self.dlt['prof']['h'][0].set_facecolor(ncol)
             else:
-                self.dlt['prof'].set_data(self.nanYi)
-            self.dlt['prof'].set_zorder(-1)
-            self.dax['prof'][0].draw_artist(self.dlt['prof'])
-            self.Txt['t'][0].set_text(txti)
-            self.dax['Txtt'][0].draw_artist(self.Txt['t'][0])
+                self.dlt['prof']['h'][0].set_data(self.nanYi)
+            #self.dlt['prof']['h'][0].set_visible(True)
+            #self.dlt['prof']['v'][0] = True
+            self.dlt['prof']['h'][0].set_zorder(-1)
+            self.dax['prof'][0].draw_artist(self.dlt['prof']['h'][0])
+            #print("")
+
+            self.Txt['t']['h'][0].set_text(txti)
+            self.Txt['t']['h'][0].set_visible(True)
+            self.Txt['t']['v'][0] = True
+            self.dax['Txtt'][0].draw_artist(self.Txt['t']['h'][0])
+
             for ii in range(0,self.Max):
-                self.dax['t'][1].draw_artist(self.dlprof['t'][ii])
-                self.dax['prof'][0].draw_artist(self.dlprof['prof'][ii])
+                self.dax['t'][1].draw_artist(self.dlprof['t']['h'][ii])
+                self.dax['prof'][0].draw_artist(self.dlprof['prof']['h'][ii])
                 if ii<=len(self.indch)-1:
-                    self.dlprof['col'][ii].set_xdata(self.norm(Yi[self.indch[ii]]))
-                    self.dax['cax'][0].draw_artist(self.dlprof['col'][ii])
+                    self.dlprof['col']['h'][ii].set_xdata(self.norm(Yi[self.indch[ii]]))
+                    self.dlprof['col']['h'][ii].set_visible(True)
+                    self.dlprof['col']['v'][ii] = True
+                    self.dax['cax'][0].draw_artist(self.dlprof['col']['h'][ii])
             if self.dMag is not None:
-                self.dlmag['2D']['Sep'][0].set_xdata(sepi[:,0])
-                self.dlmag['2D']['Sep'][0].set_ydata(sepi[:,1])
-                self.dlmag['2D']['Ax'][0].set_xdata([axi[0]])
-                self.dlmag['2D']['Ax'][0].set_ydata([axi[1]])
-                self.dax['2D'][0].draw_artist(self.dlmag['2D']['Sep'][0])
-                self.dax['2D'][0].draw_artist(self.dlmag['2D']['Ax'][0])
+                self.dlmag['2D']['Sep']['h'][0].set_xdata(sepi[:,0])
+                self.dlmag['2D']['Sep']['h'][0].set_ydata(sepi[:,1])
+                self.dlmag['2D']['Sep']['h'][0].set_visible(True)
+                self.dlmag['2D']['Sep']['v'][0] = True
+                self.dlmag['2D']['Ax']['h'][0].set_xdata([axi[0]])
+                self.dlmag['2D']['Ax']['h'][0].set_ydata([axi[1]])
+                self.dlmag['2D']['Ax']['h'][0].set_visible(True)
+                self.dlmag['2D']['Ax']['v'][0] = True
+                self.dax['2D'][0].draw_artist(self.dlmag['2D']['Sep']['h'][0])
+                self.dax['2D'][0].draw_artist(self.dlmag['2D']['Ax']['h'][0])
 
         elif self.curax=="chan":
             rest = [('t',[1]),('Txtc',list(range(self.Max))),
@@ -812,52 +967,64 @@ class KH_2D(object):
             for kk in rest:
                 for ii in kk[1]:
                     self.can.restore_region(self.dBck[kk[0]][ii])
-            self.dax['prof'][0].draw_artist(self.dlt['prof'])
-            self.dax['t'][1].draw_artist(self.dlt['t'][1])
+            self.dax['prof'][0].draw_artist(self.dlt['prof']['h'][0])
+            self.dax['t'][1].draw_artist(self.dlt['t']['h'][1])
             for ii in range(0,self.Max):
                 if ii<=len(self.indch)-1:
                     x12 = self.X12[:,self.indch[ii]]
                     txtci = str(self.indch[ii])
                     Yii = self.Y[:,self.indch[ii]]
 
-                    self.dlprof['t'][ii].set_ydata(Yii)
-                    self.dlprof['t'][ii].set_visible(True)
-                    self.dax['t'][1].draw_artist(self.dlprof['t'][ii])
+                    self.dlprof['t']['h'][ii].set_ydata(Yii)
+                    self.dlprof['t']['h'][ii].set_visible(True)
+                    self.dlprof['t']['v'][ii] = True
+                    self.dax['t'][1].draw_artist(self.dlprof['t']['h'][ii])
 
-                    self.dlprof['prof'][ii].set_xdata([x12[0]])
-                    self.dlprof['prof'][ii].set_ydata([x12[1]])
-                    self.dlprof['prof'][ii].set_visible(True)
-                    self.dax['prof'][0].draw_artist(self.dlprof['prof'][ii])
-                    self.Txt['prof'][ii].set_text(txtci)
-                    self.Txt['prof'][ii].set_visible(True)
-                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof'][ii])
-                    self.dlprof['col'][ii].set_xdata(self.norm(Yii[self.indt[0]]))
-                    self.dlprof['col'][ii].set_visible(True)
-                    self.dax['cax'][0].draw_artist(self.dlprof['col'][ii])
+                    self.dlprof['prof']['h'][ii].set_xdata([x12[0]])
+                    self.dlprof['prof']['h'][ii].set_ydata([x12[1]])
+                    self.dlprof['prof']['h'][ii].set_visible(True)
+                    self.dlprof['prof']['v'][ii] = True
+                    self.dax['prof'][0].draw_artist(self.dlprof['prof']['h'][ii])
+                    self.Txt['prof']['h'][ii].set_text(txtci)
+                    self.Txt['prof']['h'][ii].set_visible(True)
+                    self.Txt['prof']['v'][ii] = True
+                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof']['h'][ii])
+                    self.dlprof['col']['h'][ii].set_xdata(self.norm(Yii[self.indt[0]]))
+                    self.dlprof['col']['h'][ii].set_visible(True)
+                    self.dlprof['col']['v'][ii] = True
+                    self.dax['cax'][0].draw_artist(self.dlprof['col']['h'][ii])
                     if self.lCross is not None:
                         if 'LOS' in self.CamCls:
-                            self.dlprof['C'][ii].set_data(self.lCross[self.indch[ii]])
-                            self.dlprof['H'][ii].set_data(self.lH[self.indch[ii]])
+                            self.dlprof['C']['h'][ii].set_data(self.lCross[self.indch[ii]])
+                            self.dlprof['H']['h'][ii].set_data(self.lH[self.indch[ii]])
                         else:
                             raise Exception("Not coded yet !")
-                        self.dlprof['C'][ii].set_visible(True)
-                        self.dlprof['H'][ii].set_visible(True)
-                        self.dax['2D'][0].draw_artist(self.dlprof['C'][ii])
-                        self.dax['2D'][1].draw_artist(self.dlprof['H'][ii])
+                        self.dlprof['C']['h'][ii].set_visible(True)
+                        self.dlprof['H']['h'][ii].set_visible(True)
+                        self.dlprof['C']['v'][ii] = True
+                        self.dlprof['H']['v'][ii] = True
+                        self.dax['2D'][0].draw_artist(self.dlprof['C']['h'][ii])
+                        self.dax['2D'][1].draw_artist(self.dlprof['H']['h'][ii])
                 else:
-                    self.dlprof['t'][ii].set_visible(False)
-                    self.dax['t'][1].draw_artist(self.dlprof['t'][ii])
-                    self.dlprof['prof'][ii].set_visible(False)
-                    self.dax['prof'][0].draw_artist(self.dlprof['prof'][ii])
-                    self.Txt['prof'][ii].set_visible(False)
-                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof'][ii])
-                    self.dlprof['col'][ii].set_visible(False)
-                    self.dax['cax'][0].draw_artist(self.dlprof['col'][ii])
+                    self.dlprof['t']['h'][ii].set_visible(False)
+                    self.dlprof['t']['v'][ii] = False
+                    self.dax['t'][1].draw_artist(self.dlprof['t']['h'][ii])
+                    self.dlprof['prof']['h'][ii].set_visible(False)
+                    self.dlprof['prof']['v'][ii] = False
+                    self.dax['prof'][0].draw_artist(self.dlprof['prof']['h'][ii])
+                    self.Txt['prof']['h'][ii].set_visible(False)
+                    self.Txt['prof']['v'][ii] = False
+                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof']['h'][ii])
+                    self.dlprof['col']['h'][ii].set_visible(False)
+                    self.dlprof['col']['v'][ii] = False
+                    self.dax['cax'][0].draw_artist(self.dlprof['col']['h'][ii])
                     if self.lCross is not None:
-                        self.dlprof['C'][ii].set_visible(False)
-                        self.dlprof['H'][ii].set_visible(False)
-                        self.dax['2D'][0].draw_artist(self.dlprof['C'][ii])
-                        self.dax['2D'][1].draw_artist(self.dlprof['H'][ii])
+                        self.dlprof['C']['h'][ii].set_visible(False)
+                        self.dlprof['H']['h'][ii].set_visible(False)
+                        self.dlprof['C']['v'][ii] = False
+                        self.dlprof['H']['v'][ii] = False
+                        self.dax['2D'][0].draw_artist(self.dlprof['C']['h'][ii])
+                        self.dax['2D'][1].draw_artist(self.dlprof['H']['h'][ii])
         for kk in rest:
             for ii in kk[1]:
                 self.can.blit(self.dax[kk[0]][ii].bbox)
@@ -890,6 +1057,8 @@ class KH_2D(object):
             self.shift = False
 
     def mouseclic(self,event):
+        if not self.can.manager.toolbar._active is None:
+            return
         if event.button == 1 and event.inaxes in self.dax['t']:
             self.curax = 'time'
             self.indt = [np.argmin(np.abs(self.t-event.xdata))]
@@ -906,3 +1075,12 @@ class KH_2D(object):
             else:
                 self.indch = [ii]
             self.update()
+
+    def mouserelease(self, event):
+        if self.can.manager.toolbar._active == 'PAN':
+            self._set_dBck()
+        elif self.can.manager.toolbar._active == 'ZOOM':
+            self._set_dBck()
+
+    def resize(self, event):
+        self._set_dBck()

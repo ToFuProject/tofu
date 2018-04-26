@@ -1058,7 +1058,8 @@ class Rays(object):
     def calc_signal(self, ff, t=None, Ani=None, fkwdargs={},
                     dl=0.005, DL=None, dlMode='abs', method='sum',
                     ind=None, out=object, plot=True, plotmethod='imshow',
-                    fs=None, dmargin=None, wintit='tofu', draw=True, Warn=True):
+                    fs=None, dmargin=None, wintit='tofu', invert=True,
+                    draw=True, connect=True, Warn=True):
         """ Return the line-integrated emissivity
 
         Beware that it is only a line-integral !
@@ -1146,7 +1147,8 @@ class Rays(object):
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             if plot:
                 dax, KH = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
-                                    plotmethod=plotmethod, draw=draw)
+                                    plotmethod=plotmethod, invert=invert,
+                                    draw=draw, connect=connect)
             if out is object:
                 sig = osig
         return sig
