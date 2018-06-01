@@ -1398,6 +1398,11 @@ def _open_np(pathfileext, Ves=None,
         dobj['indt'] = indt
         dobj['indch'] = indch
         dobj['geom'] = LCam
+        if 'dMag' in Out.keys():
+            dMag = Out['dMag'].tolist()
+        else:
+            dMag = None
+        dobj['dMag'] = dMag
         if Id.Cls=='Data1D':
             obj = tfd.Data1D(fromdict=dobj)
         elif Id.Cls=='Data2D':

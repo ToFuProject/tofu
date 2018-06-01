@@ -956,6 +956,47 @@ class Rays(object):
             ind = ind.nonzero()[0]
         return ind
 
+    def get_subset(self, indch=None):
+        if indch is None:
+            return self
+        else:
+            assert type(indch) is np.ndarray and indch.ndim==1
+            assert indch.dtype in [np.int64,np.bool_]
+            d = self._todict()
+            d['Id']['Name'] = d['Id']['Name']+'-subset'
+            d['dchans'] = dict([(vv,vv[indch]) for vv in d['chans'].keys()])
+
+            # Geom
+            for kk in d['geom']:
+                C0 = type(d['geom'][kk]) is np.ndarray
+                C1 = d['geom'][kk].ndim==1 and d['geom'][kk].size==self.nRays
+                C2 = d['geom'][kk].ndim==2 and d['geom'][kk].shape[1]==self.nRays
+                C3 = kk in ['C','nIn','e1','e2']
+                if C0 and C1 and not C3:
+                    d['geom'][kk] = d['geom'][kk][indch]
+                elif C0 and C2 and not C3:
+                    d['geom'][kk] = d['geom'][kk][:,indch]
+
+            # Sino
+            for kk in d['sino'].keys():
+                if d['sino'][kk].ndim==2:
+                    d['sino'][kk] = d['sino'][kk][:,indch]
+                elif d['sino'][kk].ndim==1:
+                    d['sino'][kk] = d['sino'][kk][indch]
+
+            if 'Rays' in self.Id.Cls:
+                c = tfg.Rays(fromdict=d)
+            elif 'LOSCam1D' in self.Id.Cls:
+                c = tfg.LOSCam1D(fromdict=d)
+            elif 'LOSCam2D' in self.Id.Cls:
+                c = tfg.LOSCam2D(fromdict=d)
+            elif 'Cam1D' in self.Id.Cls:
+                c = tfg.Cam1D(fromdict=d)
+            elif 'Cam2D' in self.Id.Cls:
+                c = tfg.Cam2D(fromdict=d)
+
+        return c
+
     def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, multi=False):
         self._check_inputs(ind=ind)
         if ind is not None:
