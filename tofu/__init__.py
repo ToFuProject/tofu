@@ -65,11 +65,12 @@ if not 'matplotlib.pyplot' in sys.modules:
 
 import tofu.pathfile as pathfile
 import tofu.utils as utils
+import tofu._plot as _plot
 import tofu.geom as geom
 import tofu.data as data
 
 
-__all__ = ['pathfile','utils','geom','data']
+__all__ = ['pathfile','utils','_plot','geom','data']
 
 del sys, version
 

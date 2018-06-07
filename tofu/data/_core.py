@@ -27,7 +27,6 @@ __all__ = ['Data1D','Data2D','DataSpectro']
 
 class Data(object):
 
-
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None, dMag=None,
                  LCam=None, CamCls='1D', fromdict=None,
@@ -246,9 +245,17 @@ class Data(object):
             ind = self.indch.nonzero()[0]
             if key is None:
                 lK = self._Ref['dchans'].keys()
-                dchans = dict([(kk,self._Ref['dchans'][kk][ind]) for kk in lK])
+                dchans = {}
+                for kk in lK:
+                    if self._Ref['dchans'].ndim==1:
+                        dchans[kk] = self._Ref['dchans'][ind]
+                    else:
+                        dchans[kk] = self._Ref['dchans'][:,ind]
             else:
-                dchans = self._Ref['dchans'][key][ind]
+                if self._Ref['dchans'][key].ndim==1:
+                    dchans = self._Ref['dchans'][key][ind]
+                else:
+                    dchans = self._Ref['dchans'][key][:,ind]
         return dchans
 
     def _get_LCam(self):
@@ -432,6 +439,11 @@ class Data(object):
     #def get_fft(self, DF=None, Harm=True, DFEx=None, HarmEx=True, Calc=True):
         #self._set_data()
 
+    def __abs__(self):
+        opfunc = lambda x: np.abs(x)
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
     def __sub__(self, other):
         opfunc = lambda x, y: x-y
         data = _recreatefromoperator(self, other, opfunc)
@@ -464,6 +476,11 @@ class Data(object):
 
     def __truediv__(self, other):
         opfunc = lambda x, y: x/y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __pow__(self, other):
+        opfunc = lambda x, y: x**y
         data = _recreatefromoperator(self, other, opfunc)
         return data
 
