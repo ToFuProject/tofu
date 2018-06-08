@@ -23,8 +23,7 @@ __all__ = ['Data_plot']
 
 
 def Data_plot(lData, key=None,
-              cmap=plt.cm.gray, ms=4,
-              dMag=None, Max=None,
+              cmap=plt.cm.gray, ms=4, Max=None,
               plotmethod='imshow', invert=False,
               fs=None, dmargin=None, wintit='tofu',
               draw=True, connect=True):
@@ -34,14 +33,14 @@ def Data_plot(lData, key=None,
     if '1D' in lData[0]._CamCls:
         Max = 3 if Max is None else Max
         if len(lData)==1:
-            dax, KH = _Data1D_plot(lData[0], key=key, dMag=dMag, Max=Max,
+            dax, KH = _Data1D_plot(lData, key=key, Max=Max,
                                    fs=fs, dmargin=dmargin, wintit=wintit,
                                    draw=draw, connect=connect)
 
     else:
         Max = 6 if Max is None else Max
         assert len(lData)==1
-        dax, KH = _Data2D_plot(lData[0], key=key, cmap=cmap, ms=ms, dMag=dMag,
+        dax, KH = _Data2D_plot(lData, key=key, cmap=cmap, ms=ms,
                                Max=Max, plot=plotmethod, invert=invert,
                                fs=fs, dmargin=dmargin, wintit=wintit,
                                draw=draw, connect=connect)
@@ -113,15 +112,28 @@ def _init_Data1D(fs=None, dmargin=None,
     return dax
 
 
-def _Data1D_plot(Data, key=None,
-                 dMag=None, Max=4,
+def _Data1D_plot(lData, key=None, Max=4,
                  fs=None, dmargin=None, wintit='tofu',
                  draw=True, connect=True):
 
+    #########
     # Prepare
+    #########
+
+    # Get data and time limits
     Dname = 'data'
     Dunits = Data.units['data']
-    Dd = [min(0,np.nanmin(Data.data)), 1.2*np.nanmax(Data.data)]
+    lDlimx = np.array([(np.nanmin(dd.data),
+                        np.nanmax(dd.data)) for dd in lData])
+    Dd = [min(0,np.min(lDlim[:,0])), 1.2*np.max(lDlim[:,1])]
+    ltlim = np.array([(np.nanmin(dd.t),
+                       np.nanmax(dd.t)) for dd in lData if dd.t is not None])
+    if ltlimi.size==0:
+        Dt = [-1.,1.]
+    else:
+        Dt = [min(0,np.min(ltlim[:,0])), 1.2*np.max(ltlim[:,1])]
+
+
 
     if Data.t is None:
         t = np.asarray([0])
@@ -198,12 +210,24 @@ def _Data1D_plot(Data, key=None,
                                     dL={'c':(0.4,0.4,0.4),'lw':1.},
                                     dLeg=None, draw=False)
 
+    # Plot mobile parts
+
+
+
     can = dax['t'][0].figure.canvas
-    KH = KH_1D(data, chans, t, chlab, Data._CamCls, dMag,
-               lCross=lCross, lH=lHor, dax=dax, can=can, Max=Max)
+    KH = utils.HeyHandler(can, dax, dh)
+    KH.set_dBck = _KH1D_set_dBck
+    KH.update = _KH1D_update
+    #KH = KH_1D(data, chans, t, chlab, Data._CamCls, dMag,
+    #           lCross=lCross, lH=lHor, dax=dax, can=can, Max=Max)
     if connect:
+        KH.disconnect_old()
         KH.connect()
-    return dax, KH
+    if draw:
+        can.draw()
+    return KH
+
+
 
 
 

@@ -4,6 +4,8 @@ import os
 
 # Common
 import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 
 ###############################################
@@ -218,3 +220,199 @@ def dict_cmp(d1,d2):
             if out is False:
                 break
     return out
+
+
+
+
+###############################################
+#           Plot KeyHandler
+###############################################
+
+
+class HeyHandler(object):
+    """ Base class for handling event on tofu interactive figures """
+
+    def __init__(self, can=None, daxT=None, ntMax=3, nchMax=3, nlambMax=3):
+        lk = ['t','chan','chan2D','lamb','other']
+        assert all([kk in lk for kk in daxT.keys()])
+        assert all([type(dd) is dict for dd in daxT.values()])
+        self.lk = sorted(list(daxT.keys()))
+
+        self.can = can
+        self.daxT = daxT
+        dax, lh, dh = {}, [], {}
+        for kk in self.lk:
+            for ii in range(0,len(daxT[kk])):
+                if 'invert' in daxT[kk][ii].keys():
+                    invert = daxT[kk][ii]['invert']
+                else:
+                    invert = None
+                if 'xref' in daxT[kk][ii].keys():
+                    xref = daxT[kk][ii]['xref']
+                else:
+                    xref = None
+                if 'lh' in daxT[kk][ii].keys():
+                    lh = daxT[kk][ii]['lh']
+                else:
+                    lh = []
+                dax[daxT[kk][ii]['ax']] = {'Type':kk, 'invert':invert,
+                                           'xref':xref, 'Bck':None, 'lh':lh}
+                for hh in daxT[kk][ii]['lh']:
+                    if hh not in lh:
+                        lh.append(hh)
+                        dh[hh] = {'ax':daxT[kk][ii], 'vis':False}
+        self.dax, self.dh = dax, dh
+        self.store_rcParams = None
+        self.lkeys = ['right','left','shift']
+        if self.len(self.daxT['chan2D'])>0:
+            self.lkeys += ['up','down']
+        self.curax = None
+        self.shift = False
+        self.ref, dnMax = {}, {'chan':nchMax,'t':ntMax,'lamb':nlambMax}
+        for kk in self.lk:
+            if not kk in ['chan2D','other']:
+                self.ref[kk] = {'inds':np.zeros((ntMax,),dtype=int),
+                                'vals':[None for ii in range(0,dnMax[kk])],
+                                'ncur':1, 'nMax':nMax[kk]}
+
+    def disconnect_old(self, force=False):
+        if force:
+            self.can.mpl_disconnect(self.can.manager.key_press_handler_id)
+        else:
+            lk = [kk for kk in list(plt.rcParams.keys()) if 'keymap' in kk]
+            self.store_rcParams = {}
+            for kd in self.lkeys:
+                self.store_rcParams[kd] = []
+                for kk in lk:
+                    if kd in plt.rcParams[kk]:
+                        self.store_rcParams[kd].append(kk)
+                        plt.rcParams[kk].remove(kd)
+        self.can.mpl_disconnect(self.can.button_pick_id)
+
+    def reconnect_old(self):
+        if self.store_rcParams is not None:
+            for kd in self.store_rcParams.keys():
+                for kk in self.store_rcParams[kk]:
+                    if kd not in plt.rcParams[kk]:
+                        plt.rcParams[kk].append(kd)
+
+    def connect(self):
+        keyp = self.can.mpl_connect('key_press_event', self.onkeypress)
+        keyr = self.can.mpl_connect('key_release_event', self.onkeypress)
+        butp = self.can.mpl_connect('button_press_event', self.mouseclic)
+        res = self.can.mpl_connect('resize_event', self.resize)
+        #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
+        self.can.manager.toolbar.release = self.mouserelease
+        self._cid = {'keyp':keyp, 'keyr':keyr,
+                     'butp':butp, 'res':res}#, 'butr':butr}
+
+    def disconnect(self):
+        for kk in self._cid.keys():
+            self.can.mpl_disconnect(self._cid[kk])
+        self.can.manager.toolbar.release = lambda event: None
+
+    def mouserelease(self, event):
+        if self.can.manager.toolbar._active == 'PAN':
+            self.set_dBck()
+        elif self.can.manager.toolbar._active == 'ZOOM':
+            self.set_dBck()
+
+    def resize(self, event):
+        self.set_dBck()
+
+    def _set_dBck(self, lax):
+        # Make all invisible
+        for ax in lax:
+            for hh in self.dax[ax]['lh']:
+                hh.set_visible(False)
+
+        # Draw and reset Bck
+        self.can.draw()
+        for ax in lax:
+            self.dax[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
+
+        # Redraw
+        for ax in lax:
+            for hh in self.dax[ax]['lh']:
+                hh.set_visible(self.dh[hh]['vis'])
+        self.can.draw()
+
+    def _update_restore_Bck(self, lax):
+        for ax in lax:
+            self.can.restore_region(self.dax[ax]['Bck'])
+
+    def _update_blit(self, lax):
+        for ax in lax:
+            self.can.blit(ax.bbox)
+
+    def mouseclic(self,event):
+        C0 = self.can.manager.toolbar._active is not None
+        C1 = event.button == 1
+        C2 = any([event.inaxes in self.daxT[kk] and kk is not 'other'
+                  for kk in self.lk])
+        C3 = 'chan2D' in self.lk and event.inaxes in self.daxT['chan2D']
+
+        if not (C0 and C1 and C2):
+            return
+
+        self.curax = event.inaxes
+        Type = self.dax[self.curax]['Type']
+        Type = 'chan' if 'chan' in Type else Type
+        if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
+            print("     Max. nb. of %s plots reached !!!"%Type)
+            return
+
+        val = self.dax[event.inaxes]['xref']
+        if C3:
+            evxy = np.r_[event.xdata,event.ydata]
+            d2 = np.sum((val-evxy[:,np.newaxis])**2,axis=0)
+        else:
+            d2 = np.abs(event.xdata-val)
+        ind = np.nanargmin(d2)
+        val = val[ind]
+        ii = int(self.ref[Type]['ncur']) if self.shift else 0
+        self.ref[Type]['ind'][ii] = ind
+        self.ref[Type]['val'][ii] = val
+        self.ref[Type]['ncur'] = ii+1
+        self.update()
+
+    def onkeypress(self,event):
+        C0 = self.can.manager.toolbar._active is not None
+        C1 = [kk in event.key for kk if self.lkeys]
+        C2 = event.name is 'key_release_event' and event.key=='shift'
+        C3 = event.name is 'key_press_event'
+
+        if not (C0 and any(C1)):
+            return
+
+        if C2 or (C3 and event.key=='shift'):
+            self.shift = False if C2 else True
+            return
+
+        Type = self.dax[self.curax]['Type']
+        Type = 'chan' if 'chan' in Type else Type
+        if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
+                print("     Max. nb. of %s plots reached !!!"%Type)
+                return
+        val = self.dax[event.inaxes]['xref']
+        if self.dax[self.curax]['Type']=='chan2D':
+            c = -1. if self.invert else 1.
+            x12 = val[:,self.ref[Type]['ind'][self.ref[Type]['ncur']-1]]
+            x12 = x12 + c*self.dax[self.curax]['incx'][key]
+            d2 = np.sum((val-x12[:,np.newaxis])**2,axis=0)
+            ind = np.nanargmin(d2)
+        else:
+            inc = -1 if 'left' in key else 1
+            ind = (self.ref[Type]['ind']+inc)%self.ref[Type]['nMax']
+        val = val[ind]
+        ii = int(self.ref[Type]['ncur']) if self.shift else 0
+        self.ref[Type]['ind'][ii] = ind
+        self.ref[Type]['val'][ii] = val
+        self.ref[Type]['ncur'] = ii+1
+        self.update()
+
+    ##### To be implemented for each case ####
+    def set_dBack(self):
+        """ Choose which axes need redrawing and call self._set_dBck() """
+    def update(self):
+        """ Implement basic behaviour, and call self._restore_Bck() """

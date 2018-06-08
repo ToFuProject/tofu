@@ -6,6 +6,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
+# tofu
+import tofu.utils.KeyHandler as tfKH
+
 
 __all__ = ['plot_overview']
 
@@ -223,6 +226,28 @@ class KeyHandler(object):
 #       plots
 ######################################################
 
+
+class KHoverview(tfKH):
+
+    def __init__(self, can, daxshots, db):
+
+        daxT = {'t':[], 'other':[]}
+        for ss in daxshots.keys():
+            daxT['t'].append(daxshots[ss]['t'])
+            daxT['other'] = daxshots[ss]['2D']
+            daxT['t']
+
+        tfKH.__init__(self, )
+        self.db = db
+
+    def update(self):
+        """ To do...  """
+
+
+
+
+
+
 def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
                fs=None, dmargin=None, fontsize=8,
                sharet=True, sharey=True, shareR=True, shareZ=True,
@@ -287,6 +312,7 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
             ax2.set_xlim(xlim)
             ax2.set_ylim(ylim)
 
+        lh = []
         for kk in lk:
             if 'data2D' not in dd[kk].keys() and 't' in dd[kk].keys():
                 if 'c' in dd[kk].keys():
@@ -304,6 +330,7 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
                                    ls='-', c=lcol[jj], lw=1.,
                                    label=dd[kk]['label'])
                 dh[ls[ii]][kk] = ll
+                lh += ll
                 if kk=='Ax':
                     axt.plot(dd[kk]['t'], dd[kk]['data2D'][:,0],
                              lw=1., ls='-', label=r'$R_{Ax}$ (m)')
@@ -314,9 +341,10 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
         for jj in range(0,nt):
             lt += [axt.axvline(np.nan, ls='--', c=lcol[jj], lw=1.)]
         dh[ls[ii]]['lt'] = lt
-        dax[ls[ii]] = {'t':axt,'2D':ax2}
         axt.axhline(0., ls='--', lw=1., c='k')
         ax2.set_aspect('equal',adjustable='datalim')
+        dax[ls[ii]] = {'t':{'ax':axt, 'xref':tref, 'lh':lt},
+                       '2D':{'ax':ax2, 'lh':lh}}
 
     dax[ls[-1]]['t'].set_xlabel(r'$t$ ($s$)', fontsize=fontsize)
     dax[ls[-1]]['2D'].set_xlabel(r'$R$ ($m$)', fontsize=fontsize)
@@ -325,7 +353,8 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
                            prop={'size':fontsize})
     dax[ls[0]]['t'].set_xlim(tlim)
 
-    KH = KeyHandler(fig.canvas, dax, db, dh, indt=indt, nt=nt)
+    #KH = KeyHandler(fig.canvas, dax, db, dh, indt=indt, nt=nt)
+    KH = tfKH(fig.canvas, dax, db)
 
     if connect:
         KH.disconnect_old()
