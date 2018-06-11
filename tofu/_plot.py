@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
 # tofu
-import tofu.utils.KeyHandler as tfKH
+from tofu.utils import KeyHandler as tfKH
 
 
 __all__ = ['plot_overview']
@@ -229,21 +229,57 @@ class KeyHandler(object):
 
 class KHoverview(tfKH):
 
-    def __init__(self, can, daxshots, db):
+    def __init__(self, can, daxshots, db, ntMax=3):
 
-        daxT = {'t':[], 'other':[]}
+        daxT = {'t':[], 'cross':[]}
         for ss in daxshots.keys():
             daxT['t'].append(daxshots[ss]['t'])
-            daxT['other'] = daxshots[ss]['2D']
-            daxT['t']
+            daxT['cross'].append(daxshots[ss]['cross'])
 
-        tfKH.__init__(self, )
+        tfKH.__init__(self, can, daxT=daxT, ntMax=ntMax, nchMax=1, nlambMax=1)
         self.db = db
 
     def update(self):
         """ To do...  """
 
+        # Restore background
+        lax = list(self.dax.keys())
+        self._update_restore_Bck(lax)
 
+        # Update vlines data
+        self._update_vlines()
+
+        # Update equilibria
+
+
+        # Blit
+        self._update_blit(lax)
+
+        """
+            t = self.tref[shot]
+            for kk in self.dh[shot].keys():
+                for ii in range(0,self.nt):
+                    if ii >= self.nt_cur:
+                        self.dvis[shot][kk][ii] = False
+                    else:
+                        indt = self.dindt[shot][ii]
+                        if kk=='lt':
+                            self.dh[shot][kk][ii].set_xdata(t[indt])
+                            kax = 't'
+                        elif kk in ['Ax','Sep','q1']:
+                            if kk=='Ax':
+                                xd = self.db[shot][kk]['data2D'][indt,0]
+                                yd = self.db[shot][kk]['data2D'][indt,1]
+                            elif kk in ['Sep','q1']:
+                                xd = self.db[shot][kk]['data2D'][indt,:,0]
+                                yd = self.db[shot][kk]['data2D'][indt,:,1]
+                            self.dh[shot][kk][ii].set_xdata(xd)
+                            self.dh[shot][kk][ii].set_ydata(yd)
+                            kax = '2D'
+                        self.dvis[shot][kk][ii] = True
+                    self.dh[shot][kk][ii].set_visible(self.dvis[shot][kk][ii])
+                    self.dax[shot][kax].draw_artist(self.dh[shot][kk][ii])
+        """
 
 
 
@@ -336,6 +372,10 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
                              lw=1., ls='-', label=r'$R_{Ax}$ (m)')
                     axt.plot(dd[kk]['t'], dd[kk]['data2D'][:,1],
                              lw=1., ls='-', label=r'$Z_{Ax}$ (m)')
+                tref = dd[kk]['t']
+
+        if not any([ss in lk for ss in ['Ax','Sep','q1']]):
+            tref = list(dd.values())[0]['t']
 
         lt = []
         for jj in range(0,nt):
@@ -343,18 +383,18 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
         dh[ls[ii]]['lt'] = lt
         axt.axhline(0., ls='--', lw=1., c='k')
         ax2.set_aspect('equal',adjustable='datalim')
-        dax[ls[ii]] = {'t':{'ax':axt, 'xref':tref, 'lh':lt},
-                       '2D':{'ax':ax2, 'lh':lh}}
+        dax[ls[ii]] = {'t':{'ax':axt, 'xref':tref, 'dh':{'vline':{'h':lt}}},
+                       'cross':{'ax':ax2, 'dh':{'Eq':{'h':lh}}}}
 
-    dax[ls[-1]]['t'].set_xlabel(r'$t$ ($s$)', fontsize=fontsize)
-    dax[ls[-1]]['2D'].set_xlabel(r'$R$ ($m$)', fontsize=fontsize)
-    dax[ls[0]]['t'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
-                           ncol=5, mode='expand', borderaxespad=0.,
-                           prop={'size':fontsize})
-    dax[ls[0]]['t'].set_xlim(tlim)
+    dax[ls[-1]]['t']['ax'].set_xlabel(r'$t$ ($s$)', fontsize=fontsize)
+    dax[ls[-1]]['cross']['ax'].set_xlabel(r'$R$ ($m$)', fontsize=fontsize)
+    dax[ls[0]]['t']['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
+                                 ncol=5, mode='expand', borderaxespad=0.,
+                                 prop={'size':fontsize})
+    dax[ls[0]]['t']['ax'].set_xlim(tlim)
 
     #KH = KeyHandler(fig.canvas, dax, db, dh, indt=indt, nt=nt)
-    KH = tfKH(fig.canvas, dax, db)
+    KH = KHoverview(fig.canvas, dax, db)
 
     if connect:
         KH.disconnect_old()

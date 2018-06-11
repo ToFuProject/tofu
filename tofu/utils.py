@@ -229,13 +229,13 @@ def dict_cmp(d1,d2):
 ###############################################
 
 
-class HeyHandler(object):
+class KeyHandler(object):
     """ Base class for handling event on tofu interactive figures """
 
     def __init__(self, can=None, daxT=None, ntMax=3, nchMax=3, nlambMax=3):
-        lk = ['t','chan','chan2D','lamb','other']
-        assert all([kk in lk for kk in daxT.keys()])
-        assert all([type(dd) is dict for dd in daxT.values()])
+        lk = ['t','chan','chan2D','lamb','cross','hor','other']
+        assert all([kk in lk for kk in daxT.keys()]), str(daxT.keys())
+        assert all([type(dd) is list for dd in daxT.values()]), str(daxT.values())
         self.lk = sorted(list(daxT.keys()))
 
         self.can = can
@@ -251,29 +251,35 @@ class HeyHandler(object):
                     xref = daxT[kk][ii]['xref']
                 else:
                     xref = None
-                if 'lh' in daxT[kk][ii].keys():
-                    lh = daxT[kk][ii]['lh']
+                if 'dh' in daxT[kk][ii].keys():
+                    dhh = daxT[kk][ii]['dh']
                 else:
-                    lh = []
+                    dhh = None
                 dax[daxT[kk][ii]['ax']] = {'Type':kk, 'invert':invert,
-                                           'xref':xref, 'Bck':None, 'lh':lh}
-                for hh in daxT[kk][ii]['lh']:
-                    if hh not in lh:
-                        lh.append(hh)
-                        dh[hh] = {'ax':daxT[kk][ii], 'vis':False}
+                                           'xref':xref, 'Bck':None,
+                                           'dh':dhh}
+                if dhh is not None:
+                    for kh in dhh.keys():
+                        for hh in dhh[kh]['h']:
+                            if hh not in lh:
+                                lh.append(hh)
+                                dh[hh] = {'ax':daxT[kk][ii],
+                                          'Type':kh, 'vis':False}
         self.dax, self.dh = dax, dh
         self.store_rcParams = None
         self.lkeys = ['right','left','shift']
-        if self.len(self.daxT['chan2D'])>0:
+        if 'chan2D' in self.daxT.keys() and len(self.daxT['chan2D'])>0:
             self.lkeys += ['up','down']
         self.curax = None
         self.shift = False
         self.ref, dnMax = {}, {'chan':nchMax,'t':ntMax,'lamb':nlambMax}
         for kk in self.lk:
-            if not kk in ['chan2D','other']:
-                self.ref[kk] = {'inds':np.zeros((ntMax,),dtype=int),
-                                'vals':[None for ii in range(0,dnMax[kk])],
-                                'ncur':1, 'nMax':nMax[kk]}
+            if not kk in ['chan2D','cross','hor','other']:
+                self.ref[kk] = {'ind':np.zeros((ntMax,),dtype=int),
+                                'val':[None for ii in range(0,dnMax[kk])],
+                                'ncur':1, 'nMax':dnMax[kk]}
+        self._set_dBck(list(self.dax.keys()))
+
 
     def disconnect_old(self, force=False):
         if force:
@@ -312,50 +318,100 @@ class HeyHandler(object):
         self.can.manager.toolbar.release = lambda event: None
 
     def mouserelease(self, event):
-        if self.can.manager.toolbar._active == 'PAN':
-            self.set_dBck()
-        elif self.can.manager.toolbar._active == 'ZOOM':
-            self.set_dBck()
+        msg = "Make sure you release the mouse button on an axes !"
+        msg += "\n Otherwise the background plot cannot be properly updated !"
+        C0 = self.can.manager.toolbar._active == 'PAN'
+        C1 = self.can.manager.toolbar._active == 'ZOOM'
+        if C0 or C1:
+            ax = self.curax_panzoom
+            assert ax is not None, msg
+            lax = ax.get_shared_x_axes().get_siblings(ax)
+            lax += ax.get_shared_y_axes().get_siblings(ax)
+            lax = list(set(lax))
+            self._set_dBck(lax)
 
     def resize(self, event):
-        self.set_dBck()
+        self._set_dBck(list(self.dax.keys()))
 
     def _set_dBck(self, lax):
         # Make all invisible
         for ax in lax:
-            for hh in self.dax[ax]['lh']:
-                hh.set_visible(False)
+            for typ in self.dax[ax]['dh']:
+                for hh in self.dax[ax]['dh'][typ]['h']:
+                    hh.set_visible(False)
 
         # Draw and reset Bck
-        self.can.draw()
+        #self.can.draw()
         for ax in lax:
+            ax.draw(self.can.renderer)
             self.dax[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
 
         # Redraw
         for ax in lax:
-            for hh in self.dax[ax]['lh']:
-                hh.set_visible(self.dh[hh]['vis'])
-        self.can.draw()
+            for typ in self.dax[ax]['dh']:
+                for hh in self.dax[ax]['dh'][typ]['h']:
+                    hh.set_visible(self.dh[hh]['vis'])
+            ax.draw(self.can.renderer)
+        #self.can.draw()
 
     def _update_restore_Bck(self, lax):
         for ax in lax:
             self.can.restore_region(self.dax[ax]['Bck'])
+
+    def _update_vlines(self):
+        axT = self.dax[self.curax]['Type']
+        xref = self.ref[axT]['val']
+        for dax in self.daxT[axT]:
+            ax = dax['ax']
+            for ii in range(0,self.ref[axT]['nMax']):
+                hh = self.dax[ax]['dh']['vline']['h'][ii]
+                if ii>=self.ref[axT]['ncur']:
+                    self.dh[hh]['vis'] = False
+                else:
+                    xref = self.dax[ax]['xref']
+                    val = self.ref[axT]['val'][ii]
+                    if xref is not self.dax[self.curax]['xref']:
+                        ind = np.argmin(np.abs(xref-val))
+                        val = xref[ind]
+                    hh.set_xdata(val)
+                    self.dh[hh]['vis'] = True
+                hh.set_visible(self.dh[hh]['vis'])
+                ax.draw_artist(hh)
+
+    """
+    def _update_curvesimg(self):
+        axT = self.dax[self.curax]['Type']
+        Types = [kk for kk in self.daxT.keys() if not kk in [axT,'other']]
+        for Type in Types:
+            for dax in self.daxT[Type]:
+                for ii in range(0,self.ref[Type]['nMax']):
+                    hh = self.dax[dax['ax']]['dh']['lprof'][ii]
+                    if ii>=self.ref[Type]['ncur']:
+                        self.dh[hh]['vis'] = False
+                    else:
+                        ind = self.ref[Type]['ind']
+                        val = self.dax[dax['ax']]['dh']['profdata']
+                        hh.set_ydata(val[:,ind])
+                    hh.set_visible(self.d[hh]['vis'])
+                    self.dax[ax].draw_artist(hh)
+    """
 
     def _update_blit(self, lax):
         for ax in lax:
             self.can.blit(ax.bbox)
 
     def mouseclic(self,event):
-        C0 = self.can.manager.toolbar._active is not None
-        C1 = event.button == 1
-        C2 = any([event.inaxes in self.daxT[kk] and kk is not 'other'
-                  for kk in self.lk])
-        C3 = 'chan2D' in self.lk and event.inaxes in self.daxT['chan2D']
-
-        if not (C0 and C1 and C2):
+        C0 = event.inaxes is not None and event.button == 1
+        if not C0:
             return
-
+        self.curax_panzoom = event.inaxes
+        C1 = self.dax[event.inaxes]['Type'] in ['t','chan','chan2D']
+        C2 = self.can.manager.toolbar._active is None
+        C3 = self.dax[event.inaxes]['Type']=='chan2D'
+        if not (C1 and C2):
+            return
         self.curax = event.inaxes
+
         Type = self.dax[self.curax]['Type']
         Type = 'chan' if 'chan' in Type else Type
         if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
@@ -377,15 +433,15 @@ class HeyHandler(object):
         self.update()
 
     def onkeypress(self,event):
-        C0 = self.can.manager.toolbar._active is not None
-        C1 = [kk in event.key for kk if self.lkeys]
+        C0 = self.can.manager.toolbar._active is None
+        C1 = [kk in event.key for kk in self.lkeys]
         C2 = event.name is 'key_release_event' and event.key=='shift'
         C3 = event.name is 'key_press_event'
 
-        if not (C0 and any(C1)):
+        if not (C0 and any(C1) and (C2 or C3)):
             return
 
-        if C2 or (C3 and event.key=='shift'):
+        if event.key=='shift':
             self.shift = False if C2 else True
             return
 
@@ -394,7 +450,8 @@ class HeyHandler(object):
         if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
                 print("     Max. nb. of %s plots reached !!!"%Type)
                 return
-        val = self.dax[event.inaxes]['xref']
+
+        val = self.dax[self.curax]['xref']
         if self.dax[self.curax]['Type']=='chan2D':
             c = -1. if self.invert else 1.
             x12 = val[:,self.ref[Type]['ind'][self.ref[Type]['ncur']-1]]
@@ -402,13 +459,15 @@ class HeyHandler(object):
             d2 = np.sum((val-x12[:,np.newaxis])**2,axis=0)
             ind = np.nanargmin(d2)
         else:
-            inc = -1 if 'left' in key else 1
-            ind = (self.ref[Type]['ind']+inc)%self.ref[Type]['nMax']
+            inc = -1 if 'left' in event.key else 1
+            ind = (self.ref[Type]['ind'][self.ref[Type]['ncur']-1]+inc)
+            ind = ind%val.size
         val = val[ind]
-        ii = int(self.ref[Type]['ncur']) if self.shift else 0
+        ii = self.ref[Type]['ncur'] if self.shift else self.ref[Type]['ncur']-1
         self.ref[Type]['ind'][ii] = ind
         self.ref[Type]['val'][ii] = val
-        self.ref[Type]['ncur'] = ii+1
+        if self.shift:
+            self.ref[Type]['ncur'] = ii+1
         self.update()
 
     ##### To be implemented for each case ####
