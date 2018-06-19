@@ -1,5 +1,4 @@
-
-
+""" Module providing a basic routine for plotting a shot overview """
 
 # Common
 import numpy as np
@@ -10,7 +9,7 @@ from matplotlib.gridspec import GridSpec
 from tofu.utils import KeyHandler as tfKH
 
 
-__all__ = ['plot_overview']
+__all__ = ['plot_shotoverview']
 
 _fs = (12,6)
 _dmargin = dict(left=0.04, right=0.99,
@@ -24,202 +23,41 @@ _dcol = {'Ip':'k', 'B':'b', 'Bt':'b',
 _nt = 3
 
 
-def plot_overview(db, nt=_nt, dcol=None, Ves=None, lStruct=None,
-                  fs=None, dmargin=None, fontsize=8,
-                  connect=True, draw=True):
+def plot_shotoverview(db, nt=_nt, dcol=None, Ves=None, lStruct=None,
+                      fs=None, dmargin=None, fontsize=8,
+                      connect=True, draw=True):
 
-    KH = _plot_dMag(db, nt=nt, Ves=Ves, lStruct=lStruct, dcol=dcol, fs=fs,
-                    dmargin=dmargin, fontsize=fontsize,
-                    connect=connect, draw=draw)
+    KH = _plot_shotoverview(db, nt=nt, Ves=Ves, lStruct=lStruct, dcol=dcol,
+                            fs=fs, dmargin=dmargin, fontsize=fontsize,
+                            connect=connect, draw=draw)
     return KH
 
+
+
+
+
+
 ######################################################
-#           KeyHandler
+#       KeyHandler
 ######################################################
 
-class KeyHandler(object):
 
-    def __init__(self, can, dax, db, dh, indt=0, nt=_nt):
-        ls = sorted(list(dh.keys()))
-        self.can = can
-        self.dax = dax
-        self.laxt = [dax[ss]['t'] for ss in ls]
-        self.db = db
-        self.dh = dh
-        self.dvis = {}
-        for ss in ls:
-            self.dvis[ss] = {}
-            for kk in self.dh[ss].keys():
-                self.dvis[ss][kk] = [True for ii in range(0,len(self.dh[ss][kk]))]
-        self.dindt = dict((ss,[0 for ii in range(0,nt)]) for ss in ls)
-        for ss in ls:
-            self.dindt[ss][0] = indt
-        self.nt, self.nt_cur = nt, 1
-        self.ls = ls
-        self.shift = False
-        self.curax = 0
-        self.store_old = None
-        self.tref = {}
-        order = ['Sep','Ax','Vp','q1','Ip','B','PLH','Prad']
-        for ss in ls:
-            lk = db[ss].keys()
-            for kk in order:
-                if kk in lk and 't' in db[ss][kk].keys():
-                    self.tref[ss] = db[ss][kk]['t']
-                    break
-        self.set_dBck()
+class KHoverview(tfKH):
 
-    def disconnect_old(self, force=False):
-        if force:
-            self.can.mpl_disconnect(self.can.manager.key_press_handler_id)
-        else:
-            ldis = ['right','left','shift']
-            lk = [kk for kk in list(plt.rcParams.keys()) if 'keymap' in kk]
-            self.store_old = {}
-            for kd in ldis:
-                self.store_old[kd] = []
-                for kk in lk:
-                    if kd in plt.rcParams[kk]:
-                        self.store_old[kd].append(kk)
-                        plt.rcParams[kk].remove(kd)
-        self.can.mpl_disconnect(self.can.button_pick_id)
+    def __init__(self, can, daxT, ntMax=3):
 
-    def reconnect_old(self):
-        if self.store_old is not None:
-            for kd in self.store_old.keys():
-                for kk in self.store_old[kk]:
-                    if kd not in plt.rcParams[kk]:
-                        plt.rcParams[kk].append(kd)
-
-    def connect(self):
-        keyp = self.can.mpl_connect('key_press_event', self.onkeypress)
-        keyr = self.can.mpl_connect('key_release_event', self.onkeypress)
-        butp = self.can.mpl_connect('button_press_event', self.mouseclic)
-        #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
-        res = self.can.mpl_connect('resize_event', self.resize)
-        self.can.manager.toolbar.release = self.mouserelease
-        self._cid = {'keyp':keyp, 'keyr':keyr,
-                     'butp':butp, 'res':res}#, 'butr':butr}
-
-    def disconnect(self):
-        for kk in self._cid.keys():
-            self.can.mpl_disconnect(self._cid[kk])
-        self.can.manager.toolbar.release = lambda event: None
-
-
-    def set_dBck(self):
-        # Make all invisible
-        for shot in self.dh.keys():
-            for kk in self.dh[shot].keys():
-                for ii in range(0,len(self.dh[shot][kk])):
-                    self.dh[shot][kk][ii].set_visible(False)
-
-        # Draw and reset Bck
-        self.can.draw()
-        dBck = {}
-        for shot in self.dax.keys():
-            dBck[shot] = {}
-            for kk in self.dax[shot].keys():
-                ax = self.dax[shot][kk]
-                dBck[shot][kk] = self.can.copy_from_bbox(ax.bbox)
-        self.dBck = dBck
-
-        # Redraw
-        for shot in self.dh.keys():
-            for kk in self.dh[shot].keys():
-                for ii in range(0,len(self.dh[shot][kk])):
-                    self.dh[shot][kk][ii].set_visible(self.dvis[shot][kk][ii])
-        self.can.draw()
+        tfKH.__init__(self, can, daxT=daxT, ntMax=ntMax, nchMax=1, nlambMax=1)
 
     def update(self):
-        for shot in self.dh.keys():
-            for kk in self.dBck[shot].keys():
-                self.can.restore_region(self.dBck[shot][kk])
-            t = self.tref[shot]
-            for kk in self.dh[shot].keys():
-                for ii in range(0,self.nt):
-                    if ii >= self.nt_cur:
-                        self.dvis[shot][kk][ii] = False
-                    else:
-                        indt = self.dindt[shot][ii]
-                        if kk=='lt':
-                            self.dh[shot][kk][ii].set_xdata(t[indt])
-                            kax = 't'
-                        elif kk in ['Ax','Sep','q1']:
-                            if kk=='Ax':
-                                xd = self.db[shot][kk]['data2D'][indt,0]
-                                yd = self.db[shot][kk]['data2D'][indt,1]
-                            elif kk in ['Sep','q1']:
-                                xd = self.db[shot][kk]['data2D'][indt,:,0]
-                                yd = self.db[shot][kk]['data2D'][indt,:,1]
-                            self.dh[shot][kk][ii].set_xdata(xd)
-                            self.dh[shot][kk][ii].set_ydata(yd)
-                            kax = '2D'
-                        self.dvis[shot][kk][ii] = True
-                    self.dh[shot][kk][ii].set_visible(self.dvis[shot][kk][ii])
-                    self.dax[shot][kax].draw_artist(self.dh[shot][kk][ii])
 
-            self.can.blit(self.dax[shot]['t'].bbox)
-            self.can.blit(self.dax[shot]['2D'].bbox)
+        # Restore background
+        self._update_restore_Bck(list(self.daxr.keys()))
 
-    def onkeypress(self,event):
-        C = any([ss in event.key for ss in ['left','right']])
-        if event.name is 'key_press_event' and C:
-            inc = -1 if 'left' in event.key else 1
-            tref = self.tref[self.ls[self.curax]]
-            indt = self.dindt[self.ls[self.curax]][self.nt_cur-1]+inc
-            tref = tref[indt%tref.size]
-            if self.shift:
-                if self.nt_cur<self.nt:
-                    for ss in self.ls:
-                        indt = np.nanargmin(np.abs(self.tref[ss]-tref))
-                        self.dindt[ss][self.nt_cur] = indt
-                    self.nt_cur += 1
-                else:
-                    print("     Max. nb. of simultaneous plots reached !!!")
-            else:
-                for ss in self.ls:
-                    indt = np.nanargmin(np.abs(self.tref[ss]-tref))
-                    self.dindt[ss][self.nt_cur-1] = indt
-            self.update()
-        elif event.name is 'key_press_event' and event.key == 'shift':
-            self.shift = True
-        elif event.name is 'key_release_event' and event.key == 'shift':
-            self.shift = False
+        # Update and get lax
+        lax = self._update_vlines_and_Eq()
 
-    def mouseclic(self,event):
-        if self.can.manager.toolbar._active is not None:
-            return
-        if event.button == 1 and event.inaxes in self.laxt:
-            self.curax = self.laxt.index(event.inaxes)
-            tref = self.tref[self.ls[self.curax]]
-            tref = tref[np.nanargmin(np.abs(tref-event.xdata))]
-            if self.shift:
-                if self.nt_cur<self.nt:
-                    for ss in self.ls:
-                        indt = np.nanargmin(np.abs(self.tref[ss]-tref))
-                        self.dindt[ss][self.nt_cur] = indt
-                    self.nt_cur += 1
-                else:
-                    print("     Max. nb. of simultaneous plots reached !!!")
-            else:
-                for ss in self.ls:
-                    indt = np.nanargmin(np.abs(self.tref[ss]-tref))
-                    self.dindt[ss][0] = indt
-                self.nt_cur = 1
-            self.update()
-
-    def mouserelease(self, event):
-        if self.can.manager.toolbar._active == 'PAN':
-            self.set_dBck()
-        elif self.can.manager.toolbar._active == 'ZOOM':
-            self.set_dBck()
-
-    def resize(self, event):
-        self.set_dBck()
-
-
-
+        # Blit
+        self._update_blit(lax)
 
 
 ######################################################
@@ -227,64 +65,7 @@ class KeyHandler(object):
 ######################################################
 
 
-class KHoverview(tfKH):
-
-    def __init__(self, can, daxshots, db, ntMax=3):
-
-        daxT = {'t':[], 'cross':[]}
-        for ss in daxshots.keys():
-            daxT['t'].append(daxshots[ss]['t'])
-            daxT['cross'].append(daxshots[ss]['cross'])
-
-        tfKH.__init__(self, can, daxT=daxT, ntMax=ntMax, nchMax=1, nlambMax=1)
-        self.db = db
-
-    def update(self):
-        """ To do...  """
-
-        # Restore background
-        lax = list(self.dax.keys())
-        self._update_restore_Bck(lax)
-
-        # Update vlines data
-        self._update_vlines()
-
-        # Update equilibria
-
-
-        # Blit
-        self._update_blit(lax)
-
-        """
-            t = self.tref[shot]
-            for kk in self.dh[shot].keys():
-                for ii in range(0,self.nt):
-                    if ii >= self.nt_cur:
-                        self.dvis[shot][kk][ii] = False
-                    else:
-                        indt = self.dindt[shot][ii]
-                        if kk=='lt':
-                            self.dh[shot][kk][ii].set_xdata(t[indt])
-                            kax = 't'
-                        elif kk in ['Ax','Sep','q1']:
-                            if kk=='Ax':
-                                xd = self.db[shot][kk]['data2D'][indt,0]
-                                yd = self.db[shot][kk]['data2D'][indt,1]
-                            elif kk in ['Sep','q1']:
-                                xd = self.db[shot][kk]['data2D'][indt,:,0]
-                                yd = self.db[shot][kk]['data2D'][indt,:,1]
-                            self.dh[shot][kk][ii].set_xdata(xd)
-                            self.dh[shot][kk][ii].set_ydata(yd)
-                            kax = '2D'
-                        self.dvis[shot][kk][ii] = True
-                    self.dh[shot][kk][ii].set_visible(self.dvis[shot][kk][ii])
-                    self.dax[shot][kax].draw_artist(self.dh[shot][kk][ii])
-        """
-
-
-
-
-def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
+def _plot_shotoverview(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
                fs=None, dmargin=None, fontsize=8,
                sharet=True, sharey=True, shareR=True, shareZ=True,
                connect=True, draw=True):
@@ -307,11 +88,12 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
             if 't' in db[ss][kk].keys():
                 tlim[0] = min(tlim[0],db[ss][kk]['t'][0])
                 tlim[1] = max(tlim[1],db[ss][kk]['t'][-1])
+    lEq = ['Ax','Sep','q1']
 
     # Grid
     fig = plt.figure(figsize=fs)
     axarr = GridSpec(ns, 3, **dmargin)
-    dax, dh = {}, {}
+    dax, dh = {'t':[], 'cross':[]}, {}
     lcol = ['k','b','r','m']
     for ii in range(0,ns):
         if ii==0:
@@ -331,7 +113,10 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
 
         dd = db[ls[ii]]
         dh[ls[ii]] = {}
-        lk = dd.keys()
+        lk = list(dd.keys())
+        lkEq = [lk.pop(lk.index(lEq[jj])) for jj in range(len(lEq))
+                if lEq[jj] in lk]
+
 
         if Ves is not None:
             ax2 = Ves.plot(Proj='Cross', Lax=ax2, Elt='P', dLeg=None)
@@ -339,10 +124,10 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
             for ss in lStruct:
                 ax2 = ss.plot(Proj='Cross', Lax=ax2, Elt='P', dLeg=None)
         if Ves is None and lStruct is None and 'Sep' in lk:
-            xlim = np.array([(np.nanmin(dd['Sep']['data2D'][:,0]),
-                              np.nanmax(dd['Sep']['data2D'][:,0])) for ss in ls])
-            ylim = np.array([(np.nanmin(dd['Sep']['data2D'][:,1]),
-                              np.nanmax(dd['Sep']['data2D'][:,1])) for ss in ls])
+            xlim = np.array([(np.nanmin(dd['Sep']['data2D'][:,:,0]),
+                              np.nanmax(dd['Sep']['data2D'][:,:,0])) for ss in ls])
+            ylim = np.array([(np.nanmin(dd['Sep']['data2D'][:,:,1]),
+                              np.nanmax(dd['Sep']['data2D'][:,:,1])) for ss in ls])
             xlim = (np.min(xlim[:,0]), np.max(xlim[:,1]))
             ylim = (np.min(ylim[:,0]), np.max(ylim[:,1]))
             ax2.set_xlim(xlim)
@@ -358,43 +143,54 @@ def _plot_dMag(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
                 lab = dd[kk]['label'] + ' (%s)'%dd[kk]['units']
                 axt.plot(dd[kk]['t'], dd[kk]['data'],
                         ls='-', lw=1., c=c, label=lab)
-            elif kk in ['Ax','Sep','q1']:
-                ll = []
-                for jj in range(0,nt):
-                    ll += ax2.plot(np.full((dd[kk]['nP']),np.nan),
-                                   np.full((dd[kk]['nP']),np.nan),
+
+        # Building dht and dhcross
+        lt = []
+        if len(lkEq)==0:
+            tref = list(dd.values())[0]['t']
+            for jj in range(0,nt):
+                lt += [axt.axvline(np.nan, ls='--', c=lcol[jj], lw=1.)]
+            dht = {'vline':{'h':lt}}
+            dhcross = None
+
+        # To be finished !!!!!!!!!!!!!
+        else:
+            tref = dd[lkEq[0]]['t']
+            dk = {}
+            for kk in lkEq:
+                x, y = dd[kk]['data2D'][:,:,0], dd[kk]['data2D'][:,:,1]
+                if kk=='Ax':
+                    axt.plot(tref, x,
+                             lw=1., ls='-', label=r'$R_{Ax}$ (m)')
+                    axt.plot(tref, y,
+                             lw=1., ls='-', label=r'$Z_{Ax}$ (m)')
+                dk[kk] = {'h':[], 'x':x, 'y':y, 'xref':tref}
+
+            for jj in range(0,nt):
+                lt += [axt.axvline(np.nan, ls='--', c=lcol[jj], lw=1.)]
+                for kk in lkEq:
+                    ll, = ax2.plot(np.full((dd[kk]['nP'],),np.nan),
+                                   np.full((dd[kk]['nP'],),np.nan),
                                    ls='-', c=lcol[jj], lw=1.,
                                    label=dd[kk]['label'])
-                dh[ls[ii]][kk] = ll
-                lh += ll
-                if kk=='Ax':
-                    axt.plot(dd[kk]['t'], dd[kk]['data2D'][:,0],
-                             lw=1., ls='-', label=r'$R_{Ax}$ (m)')
-                    axt.plot(dd[kk]['t'], dd[kk]['data2D'][:,1],
-                             lw=1., ls='-', label=r'$Z_{Ax}$ (m)')
-                tref = dd[kk]['t']
+                    dk[kk]['h'].append(ll)
 
-        if not any([ss in lk for ss in ['Ax','Sep','q1']]):
-            tref = list(dd.values())[0]['t']
+            dht = {'vline':{'h':lt, 'trig':dk}}
+            dhcross = dk
 
-        lt = []
-        for jj in range(0,nt):
-            lt += [axt.axvline(np.nan, ls='--', c=lcol[jj], lw=1.)]
-        dh[ls[ii]]['lt'] = lt
         axt.axhline(0., ls='--', lw=1., c='k')
         ax2.set_aspect('equal',adjustable='datalim')
-        dax[ls[ii]] = {'t':{'ax':axt, 'xref':tref, 'dh':{'vline':{'h':lt}}},
-                       'cross':{'ax':ax2, 'dh':{'Eq':{'h':lh}}}}
+        dax['t'].append({'ax':axt, 'xref':tref,'dh':dht})
+        dax['cross'].append({'ax':ax2,'dh':dhcross})
 
-    dax[ls[-1]]['t']['ax'].set_xlabel(r'$t$ ($s$)', fontsize=fontsize)
-    dax[ls[-1]]['cross']['ax'].set_xlabel(r'$R$ ($m$)', fontsize=fontsize)
-    dax[ls[0]]['t']['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
-                                 ncol=5, mode='expand', borderaxespad=0.,
-                                 prop={'size':fontsize})
-    dax[ls[0]]['t']['ax'].set_xlim(tlim)
+    dax['t'][-1]['ax'].set_xlabel(r'$t$ ($s$)', fontsize=fontsize)
+    dax['cross'][-1]['ax'].set_xlabel(r'$R$ ($m$)', fontsize=fontsize)
+    dax['t'][0]['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
+                             ncol=5, mode='expand', borderaxespad=0.,
+                             prop={'size':fontsize})
+    dax['t'][0]['ax'].set_xlim(tlim)
 
-    #KH = KeyHandler(fig.canvas, dax, db, dh, indt=indt, nt=nt)
-    KH = KHoverview(fig.canvas, dax, db)
+    KH = KHoverview(fig.canvas, dax)
 
     if connect:
         KH.disconnect_old()

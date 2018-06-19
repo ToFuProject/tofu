@@ -223,6 +223,94 @@ def dict_cmp(d1,d2):
 
 
 
+###############################################
+#           DChans
+###############################################
+
+
+class DChans(object):
+    """ Base class for handling event on tofu interactive figures """
+
+    def __init__(self, dchans, fromdict=None):
+
+        if fromdict is None:
+            dchans, nch = self._check_inputs(dchans)
+            self._dchans = dchans
+            self._nch = nch
+        else:
+            self._fromdict(fromdict)
+
+    def _check_inputs(self, fd):
+        assert isinstance(fd, dict)
+        size = []
+        for kk in fd.keys():
+            fd[kk] = np.asarray(fd[kk])
+            if fd[kk].ndim == 1:
+                ss = fd[kk].size
+            elif fd[kk].ndim == 2:
+                ss = fd[kk].shape[1]
+            size.append(ss)
+        nch = int(size[0])
+        assert np.all([ss == nch for ss in size])
+        return fd, ch
+
+    def _todict(self):
+        return self._dchans
+
+
+    def _fromdict(self, fd):
+        fd, nch = self._check_inputs(fd)
+        self._dchans = fd
+        self._nch = nch
+
+    @property
+    def dchans(self):
+        """ Return the dchans dict """
+        return self._dchans
+
+    @property
+    def nch(self):
+        """ Return the dchans dict """
+        return self._nch
+
+    def select(self, key=None, val=None, log='any', out=bool):
+        """ The the indices of all channels matching the (key,val) pairs """
+        assert out in [bool, int], "Arg out is not valid (int or bool) !"
+        C0 = key is None or val is None
+        if C0:
+            if out is bool:
+                ind = np.ones((self._nch,), dtype=bool)
+            else:
+                ind = np.arange(0, self._nch)
+            return ind
+
+        lt0 = [list, tuple, np.ndarray]
+        lt1 = [str, int, float, np.int64, np.float64, bool]
+        C0 = log in ['any', 'all']
+        C1 = type(log) in lt0 and all([ll in ['any', 'all'] for ll in log])
+        assert C0 or C1, "Arg out is not valid ('any','all' or an iterable) !"
+        C2 = isinstance(key, str) and key in self._dchans.keys()
+        assert C2, "Arg key not valid: provide key of self.dchans"
+        C4 = type(val) in lt1
+        C5 = type(val) in lt0 and all([type(vv) in lt1 for vv in val])
+        assert C4 or C5, "Arg val not valid, should be in %s !"%str(lt1)
+        if C4:
+            val = [val]
+        nv = len(val)
+        ind = np.vstack([self._dchans[key] == vv for vv in val])
+        if log == 'any':
+            ind = np.any(ind,axis=0)
+        else:
+            ind = np.all(ind,axis=0)
+
+        # To be finsihed: add operators and str operations + not
+
+        return ind
+
+
+
+
+
 
 ###############################################
 #           Plot KeyHandler
@@ -239,33 +327,10 @@ class KeyHandler(object):
         self.lk = sorted(list(daxT.keys()))
 
         self.can = can
+        daxr, dh = self._make_daxr_dh(daxT)
+
         self.daxT = daxT
-        dax, lh, dh = {}, [], {}
-        for kk in self.lk:
-            for ii in range(0,len(daxT[kk])):
-                if 'invert' in daxT[kk][ii].keys():
-                    invert = daxT[kk][ii]['invert']
-                else:
-                    invert = None
-                if 'xref' in daxT[kk][ii].keys():
-                    xref = daxT[kk][ii]['xref']
-                else:
-                    xref = None
-                if 'dh' in daxT[kk][ii].keys():
-                    dhh = daxT[kk][ii]['dh']
-                else:
-                    dhh = None
-                dax[daxT[kk][ii]['ax']] = {'Type':kk, 'invert':invert,
-                                           'xref':xref, 'Bck':None,
-                                           'dh':dhh}
-                if dhh is not None:
-                    for kh in dhh.keys():
-                        for hh in dhh[kh]['h']:
-                            if hh not in lh:
-                                lh.append(hh)
-                                dh[hh] = {'ax':daxT[kk][ii],
-                                          'Type':kh, 'vis':False}
-        self.dax, self.dh = dax, dh
+        self.daxr, self.dh = daxr, dh
         self.store_rcParams = None
         self.lkeys = ['right','left','shift']
         if 'chan2D' in self.daxT.keys() and len(self.daxT['chan2D'])>0:
@@ -278,7 +343,40 @@ class KeyHandler(object):
                 self.ref[kk] = {'ind':np.zeros((ntMax,),dtype=int),
                                 'val':[None for ii in range(0,dnMax[kk])],
                                 'ncur':1, 'nMax':dnMax[kk]}
-        self._set_dBck(list(self.dax.keys()))
+
+        self._set_dBck(list(self.daxr.keys()))
+
+    def _make_daxr_dh(self,daxT):
+        daxr, lh, dh = {}, [], {}
+        for kk in self.lk:
+            for ii in range(0,len(daxT[kk])):
+                dax = daxT[kk][ii]
+                if 'invert' in dax.keys():
+                    invert = dax['invert']
+                else:
+                    invert = None
+                if 'xref' in dax.keys():
+                    xref = dax['xref']
+                else:
+                    xref = None
+                if 'dh' in dax.keys() and dax['dh'] is not None:
+                    for tt in dax['dh'].keys():
+                        if 'trig' not in dax['dh'][tt].keys():
+                            dax['dh'][tt]['trig'] = None
+                    dhh = dax['dh']
+                else:
+                    dhh = None
+                daxr[dax['ax']] = {'Type':kk, 'invert':invert,
+                                   'xref':xref, 'Bck':None, 'dh':dhh}
+                if dhh is not None:
+                    for kh in dhh.keys():
+                        for hh in dhh[kh]['h']:
+                            if hh not in lh:
+                                lh.append(hh)
+                                dh[hh] = {'ax':dax['ax'],
+                                          'Type':kh, 'vis':False,
+                                          'trig':dhh[kh]['trig']}
+        return daxr, dh
 
 
     def disconnect_old(self, force=False):
@@ -331,70 +429,111 @@ class KeyHandler(object):
             self._set_dBck(lax)
 
     def resize(self, event):
-        self._set_dBck(list(self.dax.keys()))
+        self._set_dBck(list(self.daxr.keys()))
 
     def _set_dBck(self, lax):
         # Make all invisible
         for ax in lax:
-            for typ in self.dax[ax]['dh']:
-                for hh in self.dax[ax]['dh'][typ]['h']:
-                    hh.set_visible(False)
+            if self.daxr[ax]['dh'] is not None:
+                for typ in self.daxr[ax]['dh']:
+                    for hh in self.daxr[ax]['dh'][typ]['h']:
+                        hh.set_visible(False)
 
         # Draw and reset Bck
         #self.can.draw()
         for ax in lax:
             ax.draw(self.can.renderer)
-            self.dax[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
+            self.daxr[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
 
         # Redraw
         for ax in lax:
-            for typ in self.dax[ax]['dh']:
-                for hh in self.dax[ax]['dh'][typ]['h']:
-                    hh.set_visible(self.dh[hh]['vis'])
-            ax.draw(self.can.renderer)
+            if self.daxr[ax]['dh'] is not None:
+                for typ in self.daxr[ax]['dh']:
+                    for hh in self.daxr[ax]['dh'][typ]['h']:
+                        hh.set_visible(self.dh[hh]['vis'])
+                ax.draw(self.can.renderer)
         #self.can.draw()
 
     def _update_restore_Bck(self, lax):
         for ax in lax:
-            self.can.restore_region(self.dax[ax]['Bck'])
+            self.can.restore_region(self.daxr[ax]['Bck'])
+
+    def _update_vlines_ax(self, ax, axT):
+        for ii in range(0,self.ref[axT]['nMax']):
+            hh = self.daxr[ax]['dh']['vline']['h'][ii]
+            if ii>=self.ref[axT]['ncur']:
+                self.dh[hh]['vis'] = False
+            else:
+                xref = self.daxr[ax]['xref']
+                val = self.ref[axT]['val'][ii]
+                if xref is not self.daxr[self.curax]['xref']:
+                    ind = np.argmin(np.abs(xref-val))
+                    val = xref[ind]
+                hh.set_xdata(val)
+                self.dh[hh]['vis'] = True
+            hh.set_visible(self.dh[hh]['vis'])
+            ax.draw_artist(hh)
+
 
     def _update_vlines(self):
-        axT = self.dax[self.curax]['Type']
+        lax = []
+        axT = self.daxr[self.curax]['Type']
+        for dax in self.daxT[axT]:
+            self._update_vlines_ax(dax['ax'], axT)
+            lax.append(dax['ax'])
+        return lax
+
+    def _update_vlines_and_Eq(self):
+        axT = self.daxr[self.curax]['Type']
+        if not axT == 't':
+            lax = self._update_vlines()
+            return lax
+
+        lax = []
         xref = self.ref[axT]['val']
         for dax in self.daxT[axT]:
             ax = dax['ax']
+            lax.append(ax)
+            dtg = self.daxr[ax]['dh']['vline']['trig']
+            if dtg is None:
+                self._update_vlines_ax(ax, axT)
+                continue
+
             for ii in range(0,self.ref[axT]['nMax']):
-                hh = self.dax[ax]['dh']['vline']['h'][ii]
+                hh = self.daxr[ax]['dh']['vline']['h'][ii]
                 if ii>=self.ref[axT]['ncur']:
                     self.dh[hh]['vis'] = False
+                    for kk in dtg.keys():
+                        self.dh[dtg[kk]['h'][ii]]['vis'] = False
                 else:
-                    xref = self.dax[ax]['xref']
+                    xref = self.daxr[ax]['xref']
                     val = self.ref[axT]['val'][ii]
-                    if xref is not self.dax[self.curax]['xref']:
+                    if xref is self.daxr[self.curax]['xref']:
+                        ind = self.ref[axT]['ind'][ii]
+                    else:
                         ind = np.argmin(np.abs(xref-val))
                         val = xref[ind]
                     hh.set_xdata(val)
                     self.dh[hh]['vis'] = True
+                    for kk in dtg.keys():
+                        if dtg[kk]['xref'] is xref:
+                            indh = ind
+                        else:
+                            indh = np.argmin(np.abs(dtg[kk]['xref']-val))
+                        dtg[kk]['h'][ii].set_xdata(dtg[kk]['x'][indh,:])
+                        dtg[kk]['h'][ii].set_ydata(dtg[kk]['y'][indh,:])
+                        self.dh[dtg[kk]['h'][ii]]['vis'] = True
+
                 hh.set_visible(self.dh[hh]['vis'])
                 ax.draw_artist(hh)
+            for kk in dtg.keys():
+                for h in dtg[kk]['h']:
+                    h.set_visible(self.dh[h]['vis'])
+                    self.dh[h]['ax'].draw_artist(h)
+                    if not self.dh[h]['ax'] in lax:
+                        lax.append(self.dh[h]['ax'])
+        return lax
 
-    """
-    def _update_curvesimg(self):
-        axT = self.dax[self.curax]['Type']
-        Types = [kk for kk in self.daxT.keys() if not kk in [axT,'other']]
-        for Type in Types:
-            for dax in self.daxT[Type]:
-                for ii in range(0,self.ref[Type]['nMax']):
-                    hh = self.dax[dax['ax']]['dh']['lprof'][ii]
-                    if ii>=self.ref[Type]['ncur']:
-                        self.dh[hh]['vis'] = False
-                    else:
-                        ind = self.ref[Type]['ind']
-                        val = self.dax[dax['ax']]['dh']['profdata']
-                        hh.set_ydata(val[:,ind])
-                    hh.set_visible(self.d[hh]['vis'])
-                    self.dax[ax].draw_artist(hh)
-    """
 
     def _update_blit(self, lax):
         for ax in lax:
@@ -405,20 +544,20 @@ class KeyHandler(object):
         if not C0:
             return
         self.curax_panzoom = event.inaxes
-        C1 = self.dax[event.inaxes]['Type'] in ['t','chan','chan2D']
+        C1 = self.daxr[event.inaxes]['Type'] in ['t','chan','chan2D']
         C2 = self.can.manager.toolbar._active is None
-        C3 = self.dax[event.inaxes]['Type']=='chan2D'
+        C3 = self.daxr[event.inaxes]['Type']=='chan2D'
         if not (C1 and C2):
             return
         self.curax = event.inaxes
 
-        Type = self.dax[self.curax]['Type']
+        Type = self.daxr[self.curax]['Type']
         Type = 'chan' if 'chan' in Type else Type
         if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
             print("     Max. nb. of %s plots reached !!!"%Type)
             return
 
-        val = self.dax[event.inaxes]['xref']
+        val = self.daxr[event.inaxes]['xref']
         if C3:
             evxy = np.r_[event.xdata,event.ydata]
             d2 = np.sum((val-evxy[:,np.newaxis])**2,axis=0)
@@ -445,17 +584,18 @@ class KeyHandler(object):
             self.shift = False if C2 else True
             return
 
-        Type = self.dax[self.curax]['Type']
+        Type = self.daxr[self.curax]['Type']
         Type = 'chan' if 'chan' in Type else Type
         if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
                 print("     Max. nb. of %s plots reached !!!"%Type)
                 return
 
-        val = self.dax[self.curax]['xref']
-        if self.dax[self.curax]['Type']=='chan2D':
-            c = -1. if self.invert else 1.
+        kdir = [kk for kk in self.lkeys if kk in event.key and not kk=='shift']
+        val = self.daxr[self.curax]['xref']
+        if self.daxr[self.curax]['Type']=='chan2D':
+            c = -1. if self.daxr[self.curax]['invert'] else 1.
             x12 = val[:,self.ref[Type]['ind'][self.ref[Type]['ncur']-1]]
-            x12 = x12 + c*self.dax[self.curax]['incx'][key]
+            x12 = x12 + c*self.daxr[self.curax]['incx'][kdir]
             d2 = np.sum((val-x12[:,np.newaxis])**2,axis=0)
             ind = np.nanargmin(d2)
         else:
