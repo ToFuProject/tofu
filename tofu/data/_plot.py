@@ -325,7 +325,7 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                            label=r'$R_{Ax}$ (m)')
                     dax['t'][0]['ax'].plot(dd['t'], y,
                                            ls=lls[ii], lw=1.,
-                                           label=r'$R_{Ax}$ (m)')
+                                           label=r'$Z_{Ax}$ (m)')
                 # Plot 2d equilibrium
                 if kk in lkEq and ii == 0:
                     tref = lData[ii].dextra[lkEq[0]]['t']
