@@ -746,7 +746,6 @@ class KH_2D(object):
         for dd in ld:
             for kk in dd.keys():
                 if dd==self.dlt and kk=='prof':
-                    print("ok")
                     pass
                 elif 'h' in dd[kk].keys() and type(dd[kk]['h'][0]) is list:
                     for ii in range(len(dd[kk]['h'])):
@@ -773,7 +772,6 @@ class KH_2D(object):
         for dd in ld:
             for kk in dd.keys():
                 if dd==self.dlt and kk=='prof':
-                    print("ok 2")
                     pass
                 elif 'h' in dd[kk].keys() and type(dd[kk]['h'][0]) is list:
                     for ii in range(len(dd[kk]['h'])):
