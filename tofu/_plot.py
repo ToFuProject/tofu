@@ -150,10 +150,9 @@ def _plot_shotoverview(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
             tref = list(dd.values())[0]['t']
             for jj in range(0,nt):
                 lt += [axt.axvline(np.nan, ls='--', c=lcol[jj], lw=1.)]
-            dht = {'vline':{'h':lt}}
+                dht = {'vline':[{'h':lt, 'xref':tref}]}
             dhcross = None
 
-        # To be finished !!!!!!!!!!!!!
         else:
             tref = dd[lkEq[0]]['t']
             dk = {}
@@ -164,7 +163,7 @@ def _plot_shotoverview(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
                              lw=1., ls='-', label=r'$R_{Ax}$ (m)')
                     axt.plot(tref, y,
                              lw=1., ls='-', label=r'$Z_{Ax}$ (m)')
-                dk[kk] = {'h':[], 'x':x, 'y':y, 'xref':tref}
+                dk[kk] = [{'h':[], 'x':x, 'y':y, 'xref':tref}]
 
             for jj in range(0,nt):
                 lt += [axt.axvline(np.nan, ls='--', c=lcol[jj], lw=1.)]
@@ -173,9 +172,9 @@ def _plot_shotoverview(db, nt=_nt, indt=0, Ves=None, lStruct=None, dcol=None,
                                    np.full((dd[kk]['nP'],),np.nan),
                                    ls='-', c=lcol[jj], lw=1.,
                                    label=dd[kk]['label'])
-                    dk[kk]['h'].append(ll)
+                    dk[kk][0]['h'].append(ll)
 
-            dht = {'vline':{'h':lt, 'trig':dk}}
+            dht = {'vline':[{'h':lt, 'xref':tref, 'trig':dk}]}
             dhcross = dk
 
         axt.axhline(0., ls='--', lw=1., c='k')

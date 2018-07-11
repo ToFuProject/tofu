@@ -1100,8 +1100,7 @@ def _Cam1D_plot_touch(Cam, key=None,
                 cr = [np.concatenate((lCross[ii],np.full((2,1),np.nan)),axis=1)
                       for ii in ind]
                 cr = np.concatenate(tuple(cr),axis=1)
-                hh = [np.concatenate((lHor[ii],np.full((2,1),np.nan)),axis=1)
-                      for ii in ind]
+                hh = [np.concatenate((lHor[ii],np.full((2,1),np.nan)),axis=1) for ii in ind]
                 hh = np.concatenate(tuple(hh),axis=1)
                 dax['2D'][0].plot(cr[0,:], cr[1,:], ls='-', lw=1., c=c)
                 dax['2D'][1].plot(hh[0,:], hh[1,:], ls='-', lw=1., c=c)

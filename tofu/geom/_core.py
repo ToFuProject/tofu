@@ -1187,9 +1187,9 @@ class Rays(object):
                 osig = tfd.Data2D(data=sig, t=t, LCam=self, Id=self.Id.Name,
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             if plot:
-                dax, KH = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
-                                    plotmethod=plotmethod, invert=invert,
-                                    draw=draw, connect=connect)
+                KH = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
+                               plotmethod=plotmethod, invert=invert,
+                               draw=draw, connect=connect)
             if out is object:
                 sig = osig
         return sig

@@ -24,11 +24,10 @@ __all__ = ['Data1D','Data2D','DataSpectro']
 
 
 
-
 class Data(object):
 
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
-                 Id=None, Exp=None, shot=None, Diag=None, dMag=None,
+                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
                  LCam=None, CamCls='1D', fromdict=None,
                  SavePath=os.path.abspath('./')):
 
@@ -39,7 +38,7 @@ class Data(object):
             self._set_dataRef(data, t=t, dchans=dchans, dunits=dunits)
             self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
             self._set_LCam(LCam=LCam, CamCls=CamCls)
-            self._dMag = dMag
+            self._dextra = dextra
         else:
             self._fromdict(fromdict)
         self._Done = True
@@ -63,11 +62,11 @@ class Data(object):
             else:
                 LCam = [tfg.LOSCam2D(fromdict=cc) for cc in fd['geom']]
             self._set_LCam(LCam=LCam, CamCls=fd['CamCls'])
-        if 'dMag' in fd.keys():
-            dMag = fd['dMag']
+        if 'dextra' in fd.keys():
+            dextra = fd['dextra']
         else:
-            dMag = None
-        self._dMag = dMag
+            dextra = None
+        self._dextra = dextra
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
@@ -77,7 +76,7 @@ class Data(object):
                'data0':self._data0,
                'CamCls':self._CamCls,
                'fft':self._fft,
-                'dMag':self._dMag}
+               'dextra':self._dextra}
         if self.geom is None:
             geom = None
         else:
@@ -125,7 +124,10 @@ class Data(object):
         return self._get_data()
     @property
     def nt(self):
-        return int(np.sum(self.indt))
+        if self._nt is None:
+            return int(np.sum(self.indt))
+        else:
+            return self._nt
     @property
     def nch(self):
         return int(np.sum(self.indch))
@@ -141,8 +143,8 @@ class Data(object):
              'DtRef':self._DtRef, 'fft':self._fft}
         return d
     @property
-    def dMag(self):
-        return self._dMag
+    def dextra(self):
+        return self._dextra
 
     def _check_inputs(self, Id=None, data=None, t=None, dchans=None,
                       dunits=None, Exp=None, shot=None, Diag=None, LCam=None,
@@ -186,7 +188,7 @@ class Data(object):
         self._Ref['dchans'] = dchans
 
         self._dunits = {} if dunits is None else dunits
-        self._data, self._t = None, None
+        self._data, self._t, self._nt = None, None, None
         self._indt, self._indch = None, None
         self._data0 = {'data':None,'t':None,'Dt':None}
         self._fft, self._interp_t = None, None
@@ -247,10 +249,10 @@ class Data(object):
                 lK = self._Ref['dchans'].keys()
                 dchans = {}
                 for kk in lK:
-                    if self._Ref['dchans'].ndim==1:
-                        dchans[kk] = self._Ref['dchans'][ind]
+                    if self._Ref['dchans'][kk].ndim==1:
+                        dchans[kk] = self._Ref['dchans'][kk][ind]
                     else:
-                        dchans[kk] = self._Ref['dchans'][:,ind]
+                        dchans[kk] = self._Ref['dchans'][kk][:,ind]
             else:
                 if self._Ref['dchans'][key].ndim==1:
                     dchans = self._Ref['dchans'][key][ind]
@@ -296,6 +298,7 @@ class Data(object):
         assert np.sum(C)>=1
         if all(C):
             ind = np.ones((self._Ref['nt'],),dtype=bool)
+            self._t, self._nt = None, None
         elif C[0]:
             ind = self.select_t(t=t, out=bool)
         elif C[1]:
@@ -424,8 +427,10 @@ class Data(object):
                                          left=np.nan, right=np.nan)
                                for ii in range(d.shape[1])]).T
                 self._t = t
+                self._nt = t.size
             else:
                 self._t = None
+                self._nt = None
         self._data = d
 
     def _get_data(self):
@@ -485,15 +490,33 @@ class Data(object):
         return data
 
     def plot(self, key=None, invert=None, plotmethod='imshow',
-             cmap=plt.cm.gray, ms=4, Max=None,
-             fs=None, dmargin=None, wintit='tofu',
+             cmap=plt.cm.gray, ms=4, ntMax=3, nchMax=None, nlbdMax=3,
+             Bck=True, fs=None, dmargin=None, wintit=None,
              draw=True, connect=True):
         """ Plot the data content in a predefined figure  """
-        dax, KH = _plot.Data_plot(self, key=key, invert=invert, Max=Max,
-                                  plotmethod=plotmethod, cmap=cmap, ms=ms,
-                                  fs=fs, dmargin=dmargin, wintit=wintit,
-                                  draw=draw, connect=connect)
-        return dax, KH
+        KH = _plot.Data_plot(self, key=key, invert=invert, Bck=Bck,
+                             ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
+                             plotmethod=plotmethod, cmap=cmap, ms=ms,
+                             fs=fs, dmargin=dmargin, wintit=wintit,
+                             draw=draw, connect=connect)
+        return KH
+
+    def compare(self, lD, key=None, invert=None, plotmethod='imshow',
+                cmap=plt.cm.gray, ms=4, ntMax=3, nchMax=None, nlbdMax=3,
+                Bck=True, indref=0, fs=None, dmargin=None, wintit=None,
+                draw=True, connect=True):
+        """ Plot the data content in a predefined figure  """
+        C0 = isinstance(lD,list)
+        C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
+        C1 = issubclass(lD.__class__,Data)
+        assert C0 or C1, 'Provided first arg. must be a tf.data.Data or list !'
+        lD = [lD] if C1 else lD
+        KH = _plot.Data_plot([self]+lD, key=key, invert=invert, Bck=Bck,
+                             ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
+                             plotmethod=plotmethod, cmap=cmap, ms=ms,
+                             fs=fs, dmargin=dmargin, wintit=wintit,
+                             indref=indref, draw=draw, connect=connect)
+        return KH
 
     def save(self, SaveName=None, Path=None,
              Mode='npz', compressed=False, Print=True):
@@ -746,11 +769,13 @@ def _recreatefromoperator(d0, other, opfunc):
         d = opfunc(d0.data, other)
 
         #  Fix LCam and dchans
-        t, LCam, dchans = d0.t, d0._get_lCam(d0.indch), d0.dchans(d0.indch)
+        #t, LCam, dchans = d0.t, d0._get_LCam(), d0.dchans(d0.indch)
+        out = _extractCommonParams([d0, d0])
+        t, LCam, dchans, dunits, Id, Exp, shot, Diag, SavePath = out
 
-        dunits = d0._dunits
-        Id, Exp, shot = d0.Id.Name, d0.Id.Exp, d0.Id.shot
-        Diag, SavePath = d0.Id.Diag, d0.Id.SavePath
+        #dunits = d0._dunits
+        #Id, Exp, shot = d0.Id.Name, d0.Id.Exp, d0.Id.shot
+        #Diag, SavePath = d0.Id.Diag, d0.Id.SavePath
     elif issubclass(other.__class__, Data):
         assert other.__class__==d0.__class__, 'Same class is expected !'
         try:
@@ -788,11 +813,11 @@ def _recreatefromoperator(d0, other, opfunc):
 class Data1D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
-                 Id=None, Exp=None, shot=None, Diag=None,
+                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
                  LCam=None, fromdict=None,
                  SavePath=os.path.abspath('./')):
         Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
-                 Id=Id, Exp=Exp, shot=shot, Diag=Diag, CamCls='1D',
+                 Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra, CamCls='1D',
                  LCam=LCam, fromdict=fromdict, SavePath=SavePath)
 
 
@@ -800,11 +825,11 @@ class Data1D(Data):
 class Data2D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
-                 Id=None, Exp=None, shot=None, Diag=None,
+                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
                  LCam=None, X12=None, fromdict=None,
                  SavePath=os.path.abspath('./')):
         Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
-                      Id=Id, Exp=Exp, shot=shot, Diag=Diag,
+                      Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra,
                       LCam=LCam, CamCls='2D', fromdict=fromdict, SavePath=SavePath)
         self.set_X12(X12)
 

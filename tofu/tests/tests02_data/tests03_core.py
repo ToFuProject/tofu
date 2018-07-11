@@ -232,15 +232,31 @@ class Test01_Data1D:
                 assert oo.data0['data'] is None
                 assert np.allclose(oo.data,oo.Ref['data'])
 
-    def test07_plot(self):
+    def test07_operators(self):
+        o0 = self.LObj[-1]
+        o1 = 100.*(o0-0.1*o0)
+
+    def test08_plot(self):
+        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
-            dax, KH = oo.plot(key=None, Max=None, fs=None,
-                              dmargin=dict(left=0.06, right=0.9))
-            dax, KH = oo.plot(key='Name', Max=2, fs=(10,6), dmargin=None)
-            plt.close('all')
+            KH = oo.plot(key=None, ntMax=4, nchMax=2, fs=None,
+                         dmargin=dict(left=0.06, right=0.9),
+                         connect=toolbar)
+            KH = oo.plot(key='Name', draw=False, dmargin=None, connect=toolbar)
+        plt.close('all')
 
-    def test08_tofromdict(self):
+    def test09_compare(self):
+        if self.__class__ is Test01_Data2D:
+            return
+        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
+        o0 = self.LObj[0]
+        for ii in range(1,len(self.LObj)):
+            oo = self.LObj[ii]
+            KH = oo.compare(o0, connect=toolbar)
+        plt.close('all')
+
+    def test10_tofromdict(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             dd = oo._todict()
@@ -250,7 +266,7 @@ class Test01_Data1D:
                 oo = tfd.Data2D(fromdict=dd)
             assert dd==oo._todict(), "Unequal to and from dict !"
 
-    def test09_saveload(self):
+    def test11_saveload(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             dd = oo._todict()
@@ -258,7 +274,7 @@ class Test01_Data1D:
             PathFileExt = os.path.join(oo.Id.SavePath,
                                        oo.Id.SaveName+'.npz')
             obj = tfpf.Open(PathFileExt, Print=False)
-    # Just to check the loaded version works fine
+            # Just to check the loaded version works fine
             do = obj._todict()
             assert tfu.dict_cmp(dd,do)
             os.remove(PathFileExt)
@@ -293,12 +309,12 @@ class Test01_Data2D(Test01_Data1D):
                     tfd.Data2D(sig00, LCam=C0, Id='2', SavePath=here),
                     tfd.Data2D(sig01, t=t, LCam=C0, Id='3', SavePath=here)]
 
-    def test07_plot(self):
+    def test08_plot(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             if oo._X12 is not None and oo.geom is not None:
-                dax, KH = oo.plot(key=None, Max=None, fs=None,
-                                  dmargin=dict(left=0.05,right=0.9))
-                dax, KH = oo.plot(key='Name', Max=2, fs=(13,5),
-                                  dmargin=None)
-                plt.close('all')
+                KH = oo.plot(key=None, Max=None, fs=None,
+                             dmargin=dict(left=0.05,right=0.9))
+                KH = oo.plot(key='Name', Max=2, fs=(13,5),
+                             dmargin=None)
+        plt.close('all')

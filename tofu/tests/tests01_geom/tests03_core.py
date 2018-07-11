@@ -380,13 +380,15 @@ class Test03_Rays:
                 t = None
                 Ani = False
             plot = self.LObj[ii].Id.Cls in ['LOSCam1D','LOSCam2D']
+            connect = hasattr(plt.get_current_fig_manager(),'toolbar')
             #print(ii, plot, self.LObj[ii].Id.Name, t, ind)  # DB
             sig = self.LObj[ii].calc_signal(ff, t=t, Ani=Ani, fkwdargs={},
                                       dl=0.01, DL=None, dlMode='abs', method='simps',
                                       Warn=False, ind=ind, plot=plot, out='',
-                                      fs=(12,6),dmargin=dict(left=0.06,right=0.9))
+                                      fs=(12,6),dmargin=dict(left=0.06,right=0.9),
+                                      connect=connect)
             #assert sig.shape==(len(ind),) if t is None else (t.size,len(ind))
-            assert ~np.all(np.isnan(sig)), str(ii)
+            assert not np.all(np.isnan(sig)), str(ii)
             plt.close('all')
 
     def test04_plot(self):
@@ -399,8 +401,13 @@ class Test03_Rays:
                                      EltStruct='P', Leg='KD', draw=False)
             plt.close('all')
 
+    def test05_plot_touch(self):
+        if self.__class__ is Test04_LOSCams:
+            for ii in range(0,len(self.LObj)):
+                Lax = self.LObj[ii].plot_touch(plotmethod='scatter', draw=False)
+            plt.close('all')
 
-    def test05_plot_sino(self):
+    def test06_plot_sino(self):
         for ii in range(0,len(self.LObj)):
             self.LObj[ii].set_sino([2.4,0.])
             Lax = self.LObj[ii].plot_sino(Proj='Cross', Elt='L',
@@ -412,14 +419,14 @@ class Test03_Rays:
             plt.close('all')
 
 
-    def test06_tofromdict(self):
+    def test07_tofromdict(self):
         for ii in range(0,len(self.LObj)):
             dd = self.LObj[ii]._todict()
             oo = tfg.Rays(fromdict=dd)
             assert dd==oo._todict(), "Unequal to and from dict !"
 
 
-    def test07_saveload(self):
+    def test08_saveload(self):
         for ii in range(0,len(self.LObj)):
             self.LObj[ii].save(Print=False)
             PFE = os.path.join(self.LObj[ii].Id.SavePath,

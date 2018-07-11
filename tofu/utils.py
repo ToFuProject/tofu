@@ -321,7 +321,7 @@ class KeyHandler(object):
     """ Base class for handling event on tofu interactive figures """
 
     def __init__(self, can=None, daxT=None, ntMax=3, nchMax=3, nlambMax=3):
-        lk = ['t','chan','chan2D','lamb','cross','hor','other']
+        lk = ['t','chan','chan2D','lamb','cross','hor','txtt','txtch','txtlamb','other']
         assert all([kk in lk for kk in daxT.keys()]), str(daxT.keys())
         assert all([type(dd) is list for dd in daxT.values()]), str(daxT.values())
         self.lk = sorted(list(daxT.keys()))
@@ -339,7 +339,7 @@ class KeyHandler(object):
         self.shift = False
         self.ref, dnMax = {}, {'chan':nchMax,'t':ntMax,'lamb':nlambMax}
         for kk in self.lk:
-            if not kk in ['chan2D','cross','hor','other']:
+            if not kk in ['chan2D','cross','hor','txtt','txtch','txtlamb','other']:
                 self.ref[kk] = {'ind':np.zeros((ntMax,),dtype=int),
                                 'val':[None for ii in range(0,dnMax[kk])],
                                 'ncur':1, 'nMax':dnMax[kk]}
@@ -361,8 +361,11 @@ class KeyHandler(object):
                     xref = None
                 if 'dh' in dax.keys() and dax['dh'] is not None:
                     for tt in dax['dh'].keys():
-                        if 'trig' not in dax['dh'][tt].keys():
-                            dax['dh'][tt]['trig'] = None
+                        for jj in range(0,len(dax['dh'][tt])):
+                            if 'trig' not in dax['dh'][tt][jj].keys():
+                                dax['dh'][tt][jj]['trig'] = None
+                            if 'xref' not in dax['dh'][tt][jj].keys():
+                                dax['dh'][tt][jj]['xref'] = xref
                     dhh = dax['dh']
                 else:
                     dhh = None
@@ -370,12 +373,17 @@ class KeyHandler(object):
                                    'xref':xref, 'Bck':None, 'dh':dhh}
                 if dhh is not None:
                     for kh in dhh.keys():
-                        for hh in dhh[kh]['h']:
-                            if hh not in lh:
-                                lh.append(hh)
-                                dh[hh] = {'ax':dax['ax'],
-                                          'Type':kh, 'vis':False,
-                                          'trig':dhh[kh]['trig']}
+                        for jj in range(0,len(dhh[kh])):
+                            for ii in range(0,len(dhh[kh][jj]['h'])):
+                                hh = dhh[kh][jj]['h'][ii]
+                                if hh not in lh:
+                                    lh.append(hh)
+                                    dh[hh] = {'ax':dax['ax'],
+                                              'Type':kh, 'vis':False,
+                                              'xref':dhh[kh][jj]['xref']}
+                                    if ii==0:
+                                        dh[hh]['trig'] = dhh[kh][jj]['trig']
+
         return daxr, dh
 
 
@@ -436,44 +444,55 @@ class KeyHandler(object):
         for ax in lax:
             if self.daxr[ax]['dh'] is not None:
                 for typ in self.daxr[ax]['dh']:
-                    for hh in self.daxr[ax]['dh'][typ]['h']:
-                        hh.set_visible(False)
+                    for ii in range(0,len(self.daxr[ax]['dh'][typ])):
+                        for hh in self.daxr[ax]['dh'][typ][ii]['h']:
+                            hh.set_visible(False)
 
         # Draw and reset Bck
-        #self.can.draw()
+        self.can.draw()
         for ax in lax:
-            ax.draw(self.can.renderer)
+            #ax.draw(self.can.renderer)
             self.daxr[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
 
         # Redraw
         for ax in lax:
             if self.daxr[ax]['dh'] is not None:
                 for typ in self.daxr[ax]['dh']:
-                    for hh in self.daxr[ax]['dh'][typ]['h']:
-                        hh.set_visible(self.dh[hh]['vis'])
-                ax.draw(self.can.renderer)
-        #self.can.draw()
+                    for ii in range(0,len(self.daxr[ax]['dh'][typ])):
+                        for hh in self.daxr[ax]['dh'][typ][ii]['h']:
+                            hh.set_visible(self.dh[hh]['vis'])
+                #ax.draw(self.can.renderer)
+        self.can.draw()
 
     def _update_restore_Bck(self, lax):
         for ax in lax:
             self.can.restore_region(self.daxr[ax]['Bck'])
 
     def _update_vlines_ax(self, ax, axT):
-        for ii in range(0,self.ref[axT]['nMax']):
-            hh = self.daxr[ax]['dh']['vline']['h'][ii]
-            if ii>=self.ref[axT]['ncur']:
-                self.dh[hh]['vis'] = False
+        for jj in range(0,len(self.daxr[ax]['dh']['vline'])):
+            if (self.daxr[ax]['dh']['vline'][jj]['xref'] is
+                self.daxr[self.curax]['xref']):
+                for ii in range(0,self.ref[axT]['ncur']):
+                    hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
+                    hh.set_xdata(self.ref[axT]['val'][ii])
+                    self.dh[hh]['vis'] = True
+                    hh.set_visible(self.dh[hh]['vis'])
+                    ax.draw_artist(hh)
             else:
-                xref = self.daxr[ax]['xref']
-                val = self.ref[axT]['val'][ii]
-                if xref is not self.daxr[self.curax]['xref']:
+                xref = self.daxr[ax]['dh']['vline'][jj]['xref']
+                for ii in range(0,self.ref[axT]['ncur']):
+                    hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
+                    val = self.ref[axT]['val'][ii]
                     ind = np.argmin(np.abs(xref-val))
-                    val = xref[ind]
-                hh.set_xdata(val)
-                self.dh[hh]['vis'] = True
-            hh.set_visible(self.dh[hh]['vis'])
-            ax.draw_artist(hh)
-
+                    hh.set_xdata(xref[ind])
+                    self.dh[hh]['vis'] = True
+                    hh.set_visible(self.dh[hh]['vis'])
+                    ax.draw_artist(hh)
+            for ii in range(self.ref[axT]['ncur'],self.ref[axT]['nMax']):
+                hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
+                self.dh[hh]['vis'] = False
+                hh.set_visible(self.dh[hh]['vis'])
+                ax.draw_artist(hh)
 
     def _update_vlines(self):
         lax = []
@@ -485,7 +504,7 @@ class KeyHandler(object):
 
     def _update_vlines_and_Eq(self):
         axT = self.daxr[self.curax]['Type']
-        if not axT == 't':
+        if not axT in ['t','chan','chan2D','lamb']:
             lax = self._update_vlines()
             return lax
 
@@ -493,45 +512,72 @@ class KeyHandler(object):
         xref = self.ref[axT]['val']
         for dax in self.daxT[axT]:
             ax = dax['ax']
+            if self.daxr[ax]['dh'] is None:
+                continue
             lax.append(ax)
-            dtg = self.daxr[ax]['dh']['vline']['trig']
+            dtg = self.daxr[ax]['dh']['vline'][0]['trig']
             if dtg is None:
                 self._update_vlines_ax(ax, axT)
                 continue
 
-            for ii in range(0,self.ref[axT]['nMax']):
-                hh = self.daxr[ax]['dh']['vline']['h'][ii]
-                if ii>=self.ref[axT]['ncur']:
-                    self.dh[hh]['vis'] = False
-                    for kk in dtg.keys():
-                        self.dh[dtg[kk]['h'][ii]]['vis'] = False
-                else:
-                    xref = self.daxr[ax]['xref']
+            for jj in range(0,len(self.daxr[ax]['dh']['vline'])):
+                dtg = self.daxr[ax]['dh']['vline'][jj]['trig']
+                xref = self.daxr[ax]['dh']['vline'][jj]['xref']
+                for ii in range(0,self.ref[axT]['ncur']):
+                    hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
+                    ind = self.ref[axT]['ind'][ii]
                     val = self.ref[axT]['val'][ii]
-                    if xref is self.daxr[self.curax]['xref']:
-                        ind = self.ref[axT]['ind'][ii]
-                    else:
+                    if xref is not self.daxr[self.curax]['xref']:
                         ind = np.argmin(np.abs(xref-val))
                         val = xref[ind]
                     hh.set_xdata(val)
                     self.dh[hh]['vis'] = True
                     for kk in dtg.keys():
-                        if dtg[kk]['xref'] is xref:
-                            indh = ind
-                        else:
-                            indh = np.argmin(np.abs(dtg[kk]['xref']-val))
-                        dtg[kk]['h'][ii].set_xdata(dtg[kk]['x'][indh,:])
-                        dtg[kk]['h'][ii].set_ydata(dtg[kk]['y'][indh,:])
-                        self.dh[dtg[kk]['h'][ii]]['vis'] = True
+                        for ll in range(0,len(dtg[kk])):
+                            if dtg[kk][ll]['xref'] is xref:
+                                indh = ind
+                            else:
+                                indh = np.argmin(np.abs(dtg[kk][ll]['xref']-val))
+                            h = dtg[kk][ll]['h'][ii]
+                            if 'txt' in dtg[kk][ll].keys():
+                                if 'format' in dtg[kk][ll].keys():
+                                    sss = '{0:%s}'%dtg[kk][ll]['format']
+                                    h.set_text(sss.format(dtg[kk][ll]['txt'][indh]))
+                                else:
+                                    h.set_text(dtg[kk][ll]['txt'][indh])
+                            elif 'xy' in dtg[kk][ll].keys():
+                                h.set_data(dtg[kk][ll]['xy'][indh])
+                            else:
+                                if 'x' in dtg[kk][ll].keys():
+                                    h.set_xdata(dtg[kk][ll]['x'][indh,:])
+                                if 'y' in dtg[kk][ll].keys():
+                                    h.set_ydata(dtg[kk][ll]['y'][indh,:])
+                            self.dh[h]['vis'] = True
+                            h.set_visible(self.dh[h]['vis'])
+                            #self.dh[h]['ax'].draw_artist(h)
+                            if not self.dh[h]['ax'] in lax:
+                                lax.append(self.dh[h]['ax'])
+                    hh.set_visible(self.dh[hh]['vis'])
+                    #ax.draw_artist(hh)
+                for ii in range(self.ref[axT]['ncur'],self.ref[axT]['nMax']):
+                    hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
+                    self.dh[hh]['vis'] = False
+                    for kk in dtg.keys():
+                        for ll in range(0,len(dtg[kk])):
+                            h = dtg[kk][ll]['h'][ii]
+                            self.dh[h]['vis'] = False
+                            h.set_visible(self.dh[h]['vis'])
+                            #self.dh[h]['ax'].draw_artist(h)
+                            if not self.dh[h]['ax'] in lax:
+                                lax.append(self.dh[h]['ax'])
+                    hh.set_visible(self.dh[hh]['vis'])
+                    #ax.draw_artist(hh)
 
-                hh.set_visible(self.dh[hh]['vis'])
-                ax.draw_artist(hh)
-            for kk in dtg.keys():
-                for h in dtg[kk]['h']:
-                    h.set_visible(self.dh[h]['vis'])
-                    self.dh[h]['ax'].draw_artist(h)
-                    if not self.dh[h]['ax'] in lax:
-                        lax.append(self.dh[h]['ax'])
+        for ax in lax:
+            for kk in self.daxr[ax]['dh'].keys():
+                for ii in range(0,len(self.daxr[ax]['dh'][kk])):
+                    for h in self.daxr[ax]['dh'][kk][ii]['h']:
+                        ax.draw_artist(h)
         return lax
 
 

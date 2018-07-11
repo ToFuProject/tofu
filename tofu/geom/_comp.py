@@ -374,15 +374,15 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
         if VType.lower()=='tor':
             pts = pts0
         else:
-            pts = [pp[1,:] for pp in pts] if multi else pts[1:,:]
+            pts = [pp[1:,:] for pp in pts] if multi else pts[1:,:]
     elif Proj.lower()=='all':
         if multi:
             if VType.lower()=='tor':
                 pts = [(p0,pp[:2,:]) for (p0,pp) in zip(*[pts0,pts])]
             else:
-                pts = (pts[1,:],pts[:2,:])
+                pts = (pts[1:,:],pts[:2,:])
         else:
-            pts = (pts0,pts[:2,:]) if VType.lower()=='tor' else (pts[1,:],pts[:2,:])
+            pts = (pts0,pts[:2,:]) if VType.lower()=='tor' else (pts[1:,:],pts[:2,:])
     return pts
 
 
