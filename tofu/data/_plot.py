@@ -37,7 +37,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
               ntMax=_ntMax, nchMax=None, nlbdMax=3,
               lls=_lls, lct=_lct, lcch=_lcch,
               plotmethod='imshow', invert=False,
-              fs=None, dmargin=None, wintit=_wintit,
+              fs=None, dmargin=None, wintit=_wintit, tit=None,
               fontsize=_fontsize, draw=True, connect=True):
     if wintit is None:
         wintit = _wintit
@@ -49,7 +49,8 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
         KH = _Data1D_plot(lData, key=key, indref=indref,
                           nchMax=nchMax, ntMax=ntMax,
                           lls=lls, lct=lct, lcch=lcch,
-                          Bck=Bck, fs=fs, dmargin=dmargin, wintit=wintit,
+                          Bck=Bck, fs=fs, dmargin=dmargin,
+                          wintit=wintit, tit=tit,
                           fontsize=fontsize, draw=draw, connect=connect)
 
     else:
@@ -61,7 +62,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
                                # draw=draw, connect=connect)
         dax, KH = _Data2D_plot(lData[0], key=key, cmap=cmap, ms=ms,
                                Max=nchMax, plot=plotmethod, invert=invert,
-                               fs=fs, dmargin=dmargin, wintit=wintit,
+                               fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
                                draw=draw, connect=connect)
     return KH
 
@@ -145,7 +146,7 @@ def _init_Data1D(fs=None, dmargin=None,
 
 def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                  indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
-                 fs=None, dmargin=None, wintit=_wintit,
+                 fs=None, dmargin=None, wintit=_wintit, tit=None,
                  fontsize=_fontsize, draw=True, connect=True):
 
     #########
@@ -167,11 +168,15 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # Format axes
     dax = _init_Data1D(fs=fs, dmargin=dmargin, wintit=wintit,
                        nchMax=nchMax, ntMax=ntMax)
-    tit = r""
-    if lData[0].Id.Exp is not None:
-        tit += lData[0].Id.Exp
-    if lData[0].shot is not None:
-        tit += r"{0:05.0f}".format(lData[0].shot)
+    if tit is None:
+        tit = []
+        if lData[0].Id.Exp is not None:
+            tit.append(lData[0].Id.Exp)
+        if lData[0].Id.Diag is not None:
+            tit.append(lData[0].Id.Diag)
+        if lData[0].shot is not None:
+            tit.append(r"{0:05.0f}".format(lData[0].shot))
+        tit = ' - '.join(tit)
     dax['t'][0]['ax'].figure.suptitle(tit)
 
 
@@ -505,7 +510,8 @@ def _init_Data2D(fs=None, dmargin=None,
 def _Data2D_plot(Data, key=None,
                  cmap=plt.cm.gray, ms=4,
                  colch=['r','b','g','m','c','y'],
-                 dMag=None, Max=4, fs=None, dmargin=None, wintit='tofu',
+                 dMag=None, Max=4, fs=None, dmargin=None,
+                 wintit='tofu', tit=None,
                  plot='imshow', invert=False, draw=True, connect=True):
 
     # Prepare
@@ -555,8 +561,15 @@ def _Data2D_plot(Data, key=None,
 
     # Format axes
     dax = _init_Data2D(fs=fs, dmargin=dmargin, wintit=wintit, Max=Max)
-    tit = r"" if Data.Id.Exp is None else r"%s"%Data.Id.Exp
-    tit += r"" if Data.shot is None else r" {0:05.0f}".format(Data.shot)
+    if tit is None:
+        tit = []
+        if lData[0].Id.Exp is not None:
+            tit.append(lData[0].Id.Exp)
+        if lData[0].Id.Diag is not None:
+            tit.append(lData[0].Id.Diag)
+        if lData[0].shot is not None:
+            tit.append(r"{0:05.0f}".format(lData[0].shot))
+        tit = ' - '.join(tit)
     dax['t'][0].figure.suptitle(tit)
 
     for ii in range(0,len(dax['t'])):
