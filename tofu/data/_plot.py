@@ -563,12 +563,12 @@ def _Data2D_plot(Data, key=None,
     dax = _init_Data2D(fs=fs, dmargin=dmargin, wintit=wintit, Max=Max)
     if tit is None:
         tit = []
-        if lData[0].Id.Exp is not None:
-            tit.append(lData[0].Id.Exp)
-        if lData[0].Id.Diag is not None:
-            tit.append(lData[0].Id.Diag)
-        if lData[0].shot is not None:
-            tit.append(r"{0:05.0f}".format(lData[0].shot))
+        if Data.Id.Exp is not None:
+            tit.append(Data.Id.Exp)
+        if Data.Id.Diag is not None:
+            tit.append(Data.Id.Diag)
+        if Data.shot is not None:
+            tit.append(r"{0:05.0f}".format(Data.shot))
         tit = ' - '.join(tit)
     dax['t'][0].figure.suptitle(tit)
 
