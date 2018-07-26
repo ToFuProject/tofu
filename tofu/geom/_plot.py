@@ -71,7 +71,7 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
              Vdict=_def.TorVind, IdictHor=_def.TorITord,
              BsdictHor=_def.TorBsTord, BvdictHor=_def.TorBvTord,
              Lim=None, Nstep=_def.TorNTheta, LegDict=_def.TorLegd,
-             draw=True, fs=None, wintit='tofu', Test=True):
+             draw=True, fs=None, wintit='tofu', tit=None, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -127,6 +127,9 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
                                            Pdict=Pdict, Idict=IdictHor,
                                            Bsdict=BsdictHor, Bvdict=BvdictHor,
                                            **kwa)
+    if tit is not None:
+        Lax[0].figure.suptitle(tit)
+
     if not LegDict is None:
         Lax[0].legend(**LegDict)
     if draw:

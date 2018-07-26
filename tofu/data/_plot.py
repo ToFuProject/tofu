@@ -33,7 +33,7 @@ _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
 
 
 def Data_plot(lData, key=None, Bck=True, indref=0,
-              cmap=plt.cm.gray, ms=4,
+              cmap=plt.cm.gray, ms=4, vmin=None, vmax=None, normt=False,
               ntMax=_ntMax, nchMax=None, nlbdMax=3,
               lls=_lls, lct=_lct, lcch=_lcch,
               plotmethod='imshow', invert=False,
@@ -60,10 +60,10 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
                                # nchMax=nchMax, plot=plotmethod, invert=invert,
                                # fs=fs, dmargin=dmargin, wintit=wintit,
                                # draw=draw, connect=connect)
-        dax, KH = _Data2D_plot(lData[0], key=key, cmap=cmap, ms=ms,
+        dax, KH = _Data2D_plot(lData[0], key=key, cmap=cmap, ms=ms, normt=normt,
                                Max=nchMax, plot=plotmethod, invert=invert,
                                fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                               draw=draw, connect=connect)
+                               draw=draw, connect=connect, vmin=vmin, vmax=vmax)
     return KH
 
 
@@ -509,6 +509,7 @@ def _init_Data2D(fs=None, dmargin=None,
 
 def _Data2D_plot(Data, key=None,
                  cmap=plt.cm.gray, ms=4,
+                 vmin=None, vmax=None, normt=False,
                  colch=['r','b','g','m','c','y'],
                  dMag=None, Max=4, fs=None, dmargin=None,
                  wintit='tofu', tit=None,
@@ -598,7 +599,12 @@ def _Data2D_plot(Data, key=None,
                 dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P',
                                     dLeg=None, draw=False)
 
-    vmin, vmax = np.nanmin(data), np.nanmax(data)
+    if normt:
+        data = data/np.nanmax(data,axis=1)[:,np.newaxis]
+        vmin, vmax = 0., 1.
+    else:
+        vmin = np.nanmin(data) if vmin is None else vmin
+        vmax = np.nanmax(data) if vmax is None else vmax
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     mpl.colorbar.ColorbarBase(dax['cax'][0], cmap=cmap,
                               norm=norm, orientation='horizontal')

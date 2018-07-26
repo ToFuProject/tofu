@@ -314,7 +314,8 @@ class Test01_Data2D(Test01_Data1D):
             oo = self.LObj[ii]
             if oo._X12 is not None and oo.geom is not None:
                 KH = oo.plot(key=None, Max=None, fs=None,
+                             invert=True, vmin=0,
                              dmargin=dict(left=0.05,right=0.9))
                 KH = oo.plot(key='Name', Max=2, fs=(13,5),
-                             dmargin=None)
+                             normt=True, dmargin=None)
         plt.close('all')

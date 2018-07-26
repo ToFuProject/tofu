@@ -492,18 +492,20 @@ class Data(object):
     def plot(self, key=None, invert=None, plotmethod='imshow',
              cmap=plt.cm.gray, ms=4, ntMax=3, nchMax=None, nlbdMax=3,
              Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
-             draw=True, connect=True):
+             vmin=None, vmax=None, normt=False, draw=True, connect=True):
         """ Plot the data content in a predefined figure  """
         KH = _plot.Data_plot(self, key=key, invert=invert, Bck=Bck,
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
                              plotmethod=plotmethod, cmap=cmap, ms=ms,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                             vmin=vmin, vmax=vmax, normt=normt,
                              draw=draw, connect=connect)
         return KH
 
     def compare(self, lD, key=None, invert=None, plotmethod='imshow',
                 cmap=plt.cm.gray, ms=4, ntMax=3, nchMax=None, nlbdMax=3,
                 Bck=True, indref=0, fs=None, dmargin=None,
+                vmin=None, vmax=None, normt=False,
                 wintit=None, tit=None, draw=True, connect=True):
         """ Plot the data content in a predefined figure  """
         C0 = isinstance(lD,list)
@@ -515,6 +517,7 @@ class Data(object):
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
                              plotmethod=plotmethod, cmap=cmap, ms=ms,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                             vmin=vmin, vmax=vmax, normt=normt,
                              indref=indref, draw=draw, connect=connect)
         return KH
 
