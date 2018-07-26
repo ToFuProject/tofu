@@ -1577,15 +1577,24 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
     NL = Ds.shape[1]
     IOut = np.zeros((3,Ds.shape[1]))
     if VType.lower()=='tor':
+        # RMin is necessary to avoid looking on the other side of the tokamak
         if RMin is None:
             RMin = 0.95*min(np.min(VPoly[0,:]),
                             np.min(np.hypot(Ds[0,:],Ds[1,:])))
+
+        # Main function to compute intersections with Vessel
         PIn, POut, VperpIn, VperpOut, IIn, IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid, RMin=RMin,
-                                                                         EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
+                                                                           EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
+
+        # k = coordinate (in m) along the line from D
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
         kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
         assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
         assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_nan=True)
+
+        # If there are Struct, call the same function
+        # Structural optimzation : do everything in one big for loop and only
+        # keep the relevant points (to save memory)
         if LSPoly is not None:
             Ind = np.zeros((2,NL))
             for ii in range(0,len(LSPoly)):

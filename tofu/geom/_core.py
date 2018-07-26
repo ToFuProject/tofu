@@ -803,8 +803,19 @@ class Rays(object):
 
     def _set_geom(self, Du, dchans=None,
                   plotdebug=True, fs=None, wintit='tofu', draw=True):
+        """ Compute all geometrical attributes
+
+        Du is a tuple with D (start points) and u (unit vectors)
+        D and u can be (3,) arrays or (3,N) arrays in (X,Y,Z) coordinates
+
+        """
+
+        # Check and format inputs
         tfpf._check_NotNone({'Du':Du})
         self._check_inputs(Du=Du, dchans=dchans)
+
+        # D = start point
+        # u = unit vector
         D, u = np.asarray(Du[0]), np.asarray(Du[1])
         if D.ndim==2:
             if D.shape[1]==3 and not D.shape[0]==3:
@@ -816,10 +827,13 @@ class Rays(object):
         u = np.ascontiguousarray(u)
         nRays = D.shape[1]
 
+        # Prepare the output
         kPIn, kPOut = np.full((nRays,),np.nan), np.full((nRays,),np.nan)
         PIn, POut = np.full((3,nRays),np.nan), np.full((3,nRays),np.nan)
         VPerpIn, VPerpOut = np.full((3,nRays),np.nan), np.full((3,nRays),np.nan)
         IndIn, IndOut = np.full((nRays,),np.nan), np.full((nRays,),np.nan)
+
+        # Only compute is Ves was provided
         if self.Ves is not None:
             if self.LStruct is not None:
                 lSPoly = [ss.Poly for ss in self.LStruct]
@@ -830,11 +844,16 @@ class Rays(object):
 
             kargs = dict(RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
                          EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+
+            #####################
+            # call the dedicated function (Laura)
             out = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly,
                                                 self.Ves.geom['VIn'],
                                                 Lim=self.Ves.Lim, LSPoly=lSPoly,
                                                 LSLim=lSLim, LSVIn=lSVIn,
                                                 VType=self.Ves.Type, **kargs)
+            ######################
+
             PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = out
             ind = (np.isnan(kPOut) | np.isinf(kPOut)
                    | np.any(np.isnan(POut),axis=0))
