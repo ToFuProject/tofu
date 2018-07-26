@@ -436,7 +436,8 @@ def test08_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
     if plot and sys.version[0]=='2':
         f = plt.figure(figsize=(11.7,8.3),facecolor="w")
         axarr = mplgrid.GridSpec(2,len(LPhi)/2)
-        axarr.update(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.05, hspace=0.05)
+        axarr.update(left=0.05, right=0.95, top=0.95, bottom=0.05, wspace=0.05,
+                     hspace=0.05)
         Lax = []
 
     for ii in range(0,len(LPhi)):
