@@ -126,7 +126,6 @@ class Dust(object):
         self._direct_sol = {'lpolyCross':lpolyCross, 'lpolyHor':lpolyHor,
                             'gridCross'}
 
-        pts, dV, ind, dVr = get_sampleV(dV, DV=None, dVMode='abs', ind=None, Out='(X,Y,Z)'):
 
 
 
