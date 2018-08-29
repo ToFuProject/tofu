@@ -1649,6 +1649,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
 
 
 def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
+                                  cnp.ndarray[double, ndim=1,mode='c'] k,
                                   cnp.ndarray[double, ndim=2,mode='c'] pts,
                                   cnp.ndarray[double, ndim=2,mode='c'] VPoly,
                                   cnp.ndarray[double, ndim=2,mode='c'] VIn,
@@ -1687,28 +1688,29 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                             np.min(np.hypot(Ds[0,:],Ds[1,:])))
 
         # Main function to compute intersections with Vessel
-        PIn, POut, VperpIn, VperpOut, IIn, IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid, RMin=RMin,
-                                                                           EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
+        POut = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid,
+                                   RMin=RMin, EpsUz=EpsUz, EpsVz=EpsVz,
+                                   EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)[1]
 
         # k = coordinate (in m) along the line from D
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
-        kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
         assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
-        assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_nan=True)
-
-        # If there are Struct, call the same function
         # Structural optimzation : do everything in one big for loop and only
         # keep the relevant points (to save memory)
         if LSPoly is not None:
             Ind = np.zeros((2,NL))
             for ii in range(0,len(LSPoly)):
-                if LSLim[ii] is None or not all([hasattr(ll,'__iter__') for ll in LSLim[ii]]):
+                C0 = not all([hasattr(ll,'__iter__') for ll in LSLim[ii]])
+                if LSLim[ii] is None or C0:
                     lslim = [LSLim[ii]]
                 else:
                     lslim = LSLim[ii]
                 for jj in range(0,len(lslim)):
-                    pIn, pOut, vperpIn, vperpOut, iIn, iOut = Calc_LOS_PInOut_Tor(Ds, dus, LSPoly[ii], LSVIn[ii], Lim=lslim[jj], Forbid=Forbid, RMin=RMin,
-                                                                                  EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
+                    pIn = Calc_LOS_PInOut_Tor(Ds, dus, LSPoly[ii], LSVIn[ii],
+                                              Lim=lslim[jj], Forbid=Forbid,
+                                              RMin=RMin, EpsUz=EpsUz,
+                                              EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB,
+                                              EpsPlane=EpsPlane)[0]
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
                     indout = np.zeros((NL,),dtype=bool)
@@ -1716,23 +1718,18 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                     indout[(~np.isnan(kpin)) & np.isnan(kPOut)] = True
                     if np.any(indout):
                         kPOut[indout] = kpin[indout]
-                        POut[:,indout] = pIn[:,indout]
-                        VperpOut[:,indout] = vperpIn[:,indout]
-                        IOut[2,indout] = iIn[indout]
-                        IOut[0,indout] = 1+ii
-                        IOut[1,indout] = jj
     else:
-        PIn, POut, VperpIn, VperpOut, IIn, IOut[2,:] = Calc_LOS_PInOut_Lin(Ds, dus, VPoly, VIn, Lim, EpsPlane=EpsPlane)
+        POut = Calc_LOS_PInOut_Lin(Ds, dus, VPoly, VIn, Lim, EpsPlane=EpsPlane)[1]
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
-        kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
         assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
-        assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_nan=True)
         if LSPoly is not None:
             Ind = np.zeros((2,NL))
             for ii in range(0,len(LSPoly)):
-                lslim = [LSLim[ii]] if not all([hasattr(ll,'__iter__') for ll in LSLim[ii]]) else LSLim[ii]
+                C0 = not all([hasattr(ll,'__iter__') for ll in LSLim[ii]])
+                lslim = [LSLim[ii]] if C0 else LSLim[ii]
                 for jj in range(0,len(lslim)):
-                    pIn, pOut, vperpIn, vperpOut, iIn, iOut = Calc_LOS_PInOut_Lin(Ds, dus, LSPoly[ii], LSVIn[ii], lslim[jj], EpsPlane=EpsPlane)
+                    pIn = Calc_LOS_PInOut_Lin(Ds, dus, LSPoly[ii], LSVIn[ii],
+                                              lslim[jj], EpsPlane=EpsPlane)[0]
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
                     indout = np.zeros((NL,),dtype=bool)
@@ -1740,15 +1737,11 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                     indout[(~np.isnan(kpin)) & np.isnan(kPOut)] = True
                     if np.any(indout):
                         kPOut[indout] = kpin[indout]
-                        POut[:,indout] = pIn[:,indout]
-                        VperpOut[:,indout] = vperpIn[:,indout]
-                        IOut[2,indout] = iIn[indout]
-                        IOut[0,indout] = 1+ii
-                        IOut[1,indout] = jj
 
-    if not v:
-        PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut = PIn.flatten(), POut.flatten(), kPIn[0], kPOut[0], VperpIn.flatten(), VperpOut.flatten(), IIn[0], IOut.flatten()
-    return PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut
+    ind = np.zeros((npts,),dtype=bool)
+    indok = (~np.isnan(k)) & (~np.isnan(kPOut))
+    ind[indok] = k[indok]<kPOut[indok]
+    return ind
 
 
 
@@ -2965,7 +2958,8 @@ def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut,
 def Dust_calc_SolidAngle(pos, r, pts,
                          approx=True, out_coefonly=False,
                          VType='Tor', VPoly=None, VIn=None, VLim=None,
-                         LStruct=None):
+                         LSPoly=None, LSLim=None, LSVIn=None, Forbid=True,
+                         Test=True):
     """ Compute the solid angle of a moving particle of varying radius as seen
     from any number of pixed points
 
@@ -2975,7 +2969,7 @@ def Dust_calc_SolidAngle(pos, r, pts,
     cdef block = VPoly is None
     cdef float pir2
     cdef int ii, jj, nptsok, nt=pos.shape[1], npts=pts.shape[1]
-    cdef cnp.ndarray[] sang = np.full((nt,npts),np.nan)
+    cdef cnp.ndarray[double, ndim=2, mode='c'] sang=np.zeros((nt,npts))
 
     if block:
         cdef cnp.ndarray[double, ndim=2,mode='c'] vpoly=VPoly
@@ -2988,39 +2982,56 @@ def Dust_calc_SolidAngle(pos, r, pts,
                 ind = ind & _Ves_isInside(pts, lSPoly[ii], Lim=lSLim[ii],
                                           VType=VType, In='(X,Y,Z)', Test=Test)
         ind = (~ind).nonzero()[0]
+        ptstemp = np.ascontiguousarray(pts[:,ind])
         nptsok = ind.size
-        ptstemp = pts[:,ind]
 
         if approx and out_coefonly:
             for ii in range(0,nt):
-                PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut
-                kPOut = LOS_Calc_PInOut_VesStruct(Ds, dus,
-                                                  VType=VType, vpoly, vin,
-                                                  Lim=VLim, LSPoly=LSPoly,
-                                                  LSLim=LSLim, LSVIn=LSVIn,
-                                                  RMin=None, Forbid=True, Test=Test)
-                vis = isvis_pts_VesStruct(pos[0],pos[1],pos[2],
-                                          ptstemp, VPoly, lSPoly, VType=VType)
+                k = np.sqrt((pos[0,ii]-ptstemp[0,:])**2
+                            + (pos[1,ii]-ptstemp[1,:])**2
+                            + (pos[2,ii]-ptstemp[2,:])**2)
+
+                vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
+                                                    pos[2,ii], k, ptstemp,
+                                                    vpoly, vin, Lim=VLim,
+                                                    lSPoly=LSPoly, LSLim=LSLim,
+                                                    LSVIn=LSVIn, Forbid=Forbid,
+                                                    VType=VType, Test=Test)
                 for jj in range(0,nptsok):
                     if vis[jj]:
-                        indj = ind[jj]
-                        dij2 = ((pos[0,ii]-pts[0,indj])**2
-                                + (pos[1,ii]-pts[1,indj])**2
-                                + (pos[2,ii]-pts[2,indj])**2)
-                        sang[ii,indj] = Cpi/dij2
+                        sang[ii,ind[jj]] = Cpi/k[jj]**2
         elif approx:
             for ii in range(0,nt):
+                k = np.sqrt((pos[0,ii]-ptstemp[0,:])**2
+                            + (pos[1,ii]-ptstemp[1,:])**2
+                            + (pos[2,ii]-ptstemp[2,:])**2)
+
+                vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
+                                                    pos[2,ii], k, ptstemp,
+                                                    vpoly, vin, Lim=VLim,
+                                                    lSPoly=LSPoly, LSLim=LSLim,
+                                                    LSVIn=LSVIn, Forbid=Forbid,
+                                                    VType=VType, Test=Test)
                 pir2 = Cpi*r[ii]**2
-                for jj in range(0,npts):
-                    dij2 = ((pos[0,ii]-pts[0,jj])**2
-                            + (pos[0,ii]-pts[0,jj])**2
-                            + (pos[0,ii]-pts[0,jj])**2)
-                    sang[ii,jj] = pir2/dij2
+                for jj in range(0,nptsok):
+                    if vis[jj]:
+                        sang[ii,ind[jj]] = pir2/k[jj]**2
         else:
             pir2 = 2*Cpi
             for ii in range(0,nt):
-                for jj in range(0,npts):
+                k = np.sqrt((pos[0,ii]-ptstemp[0,:])**2
+                            + (pos[1,ii]-ptstemp[1,:])**2
+                            + (pos[2,ii]-ptstemp[2,:])**2)
 
+                vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
+                                                    pos[2,ii], k, ptstemp,
+                                                    vpoly, vin, Lim=VLim,
+                                                    lSPoly=LSPoly, LSLim=LSLim,
+                                                    LSVIn=LSVIn, Forbid=Forbid,
+                                                    VType=VType, Test=Test)
+                for jj in range(0,nptsok):
+                    if vis[jj]:
+                        sang[ii,ind[jj]] = pir2*(1-Csqrt(1-r[ii]**2/k[jj]**2))
 
     else:
         if approx and out_coefonly:
