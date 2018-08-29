@@ -7,8 +7,12 @@ import matplotlib.pyplot as plt
 
 # ToFu-specific
 import tofu.geom as tfg
-import tofu.dust._comp as _comp
-
+try:
+    import tofu.dust._comp as _comp
+    import tofu.dust._plot as _plot
+except Exception:
+    from . import _comp as _comp
+    from . import _plot as _plot
 
 
 
@@ -21,23 +25,45 @@ class Dust(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, Id=None, dmat=None, traj=None, VType='Tor',
+                 Ves=None, LStruct=None, res=None):
         # Initialize fields
+        self._Id = None
         self._dmat = None
+        self._traj = None
         self._geom = None
         self._res = None
         self._emiss = None
         self._direct = None
+        if Id is not None:
+            self._set_Id(Id)
+        if dmat is not None:
+            self.set_material_properties(dmat)
+        if traj is not None:
+            self.set_traj(traj)
+        if Ves is not None:
+            self.set_geom(Ves=Ves, LStruct=LStruct, res=res)
 
     @property
     def dmat(self):
         return self._dmat
     @property
+    def traj(self):
+        return self._traj
+    @property
     def Ves(self):
-        return self._geom['Ves']
+        if self._geom is None:
+            out = None
+        else:
+            out = self._geom['Ves']
+        return out
     @property
     def LStruct(self):
-        return self._geom['LStruct']
+        if self._geom is None:
+            out = None
+        else:
+            out = self._geom['LStruct']
+        return out
     @property
     def res(self):
         return self._res
@@ -48,9 +74,25 @@ class Dust(object):
     def direct(self):
         return self._direct
 
-    def set_material_properties(self, dmat={}):
-        assert type(dmat) is dict
+    def set_material_properties(self, dmat=None):
+        assert dmat is None or type(dmat) is dict
         self._dmat = dmat
+
+    def set_traj(self, traj=None):
+        C0 = traj is None
+        C1 = type(traj) is dict
+        C2 = hasattr(traj,'__iter__')
+        assert C0 or C1 or C2
+        if C1:
+            assert 'pts' in traj.keys()
+            traj['pts'] = _check_trajpts(traj['pts'])
+            if 't' in traj.keys():
+                traj['t'] = _check_trajt(traj['t'],traj['pts'].shape[0])
+        if C2:
+            pts = _check_trajpts(traj)
+            traj = {'pts':pts}
+        traj['npts'] = traj['pts'].shape[0]
+        self._traj = traj
 
     def set_geom(self, Ves=None, LStruct=None, res=None):
         msg = "Arg Ves must be a tf.geom.Ves"
@@ -107,7 +149,7 @@ class Dust(object):
         self._direct = {'pts':pts, 'r':r, 't':t}
 
 
-
+    """
     def calc_directproblem(self):
         msg = "set the direct problem before !"
         assert self.direct is not None, msg
@@ -118,18 +160,34 @@ class Dust(object):
             lpolyCross, lpolyHor, gridCross, gridHor = out[:4]
             saCross, saHor, volIn, saIn = out[4:]
         else:
-            out = 
+            #out = 
             lpolyCross, lpolyHor, gridCross, gridHor = out[:4]
             saCross, saHor, volIn, saIn = out[4:8]
             contribCross, contribHor, powIn = out[8:]
 
         self._direct_sol = {'lpolyCross':lpolyCross, 'lpolyHor':lpolyHor,
                             'gridCross'}
+    """
+
+    def plot(self):
+        dax, KH = _plot.plot(self)
+        return dax, KH
 
 
 
+def _check_trajpts(pts):
+    pts = np.asarray(pts).astype(float)
+    assert pts.ndim in [1,2]
+    if pts.ndim==1:
+        assert pts.size==3
+        pts = pts.reshape((1,3))
+    assert 3 in pts.shape
+    if not pts.shape[1]==3:
+        pts = pts.T
+    return pts
 
-
-
-
-
+def _check_trajt(t, npts):
+    t = np.asarray(t).astype(float)
+    assert t.ndim==1
+    assert t.size==npts
+    return t
