@@ -32,7 +32,7 @@ __all__ = ['CoordShift',
            '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
            '_Ves_Smesh_TorStruct_SubFromD_cython', '_Ves_Smesh_TorStruct_SubFromInd_cython',
            '_Ves_Smesh_Lin_SubFromD_cython', '_Ves_Smesh_Lin_SubFromInd_cython',
-           'LOS_Calc_PInOut_VesStruct',
+           'LOS_Calc_PInOut_VesStruct', 'LOS_isVis_PtFromPts_VesStruct',
            'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
            'LOS_sino','integrate1d']
 
@@ -1577,15 +1577,24 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
     NL = Ds.shape[1]
     IOut = np.zeros((3,Ds.shape[1]))
     if VType.lower()=='tor':
+        # RMin is necessary to avoid looking on the other side of the tokamak
         if RMin is None:
             RMin = 0.95*min(np.min(VPoly[0,:]),
                             np.min(np.hypot(Ds[0,:],Ds[1,:])))
+
+        # Main function to compute intersections with Vessel
         PIn, POut, VperpIn, VperpOut, IIn, IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid, RMin=RMin,
-                                                                         EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
+                                                                           EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
+
+        # k = coordinate (in m) along the line from D
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
         kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
         assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
         assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_nan=True)
+
+        # If there are Struct, call the same function
+        # Structural optimzation : do everything in one big for loop and only
+        # keep the relevant points (to save memory)
         if LSPoly is not None:
             Ind = np.zeros((2,NL))
             for ii in range(0,len(LSPoly)):
@@ -1639,6 +1648,101 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
 
 
 
+def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
+                                  cnp.ndarray[double, ndim=1,mode='c'] k,
+                                  cnp.ndarray[double, ndim=2,mode='c'] pts,
+                                  cnp.ndarray[double, ndim=2,mode='c'] VPoly,
+                                  cnp.ndarray[double, ndim=2,mode='c'] VIn,
+                                  Lim=None, LSPoly=None, LSLim=None, LSVIn=None,
+                                  RMin=None, Forbid=True, EpsUz=1.e-6,
+                                  EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9,
+                                  EpsPlane=1.e-9, VType='Tor', Test=True):
+    """ Return an array of bool indices indicating whether each point in pts is
+    visible from Pt considering vignetting
+    """
+    if Test:
+        C0 = (VPoly.shape[0]==2 and VIn.shape[0]==2
+              and VIn.shape[1]==VPoly.shape[1]-1)
+        msg = "Args VPoly and VIn must be of the same shape (2,NS) !"
+        assert C0, msg
+        C0 = all([pp is None for pp in [LSPoly,LSLim,LSVIn]])
+        C1 = all([hasattr(pp,'__iter__') and len(pp)==len(LSPoly)
+                  for pp in [LSPoly,LSLim,LSVIn]])
+        msg = "Args LSPoly,LSLim,LSVIn must be None or lists of same len() !"
+        assert C0 or C1, msg
+        C0 = RMin is None or type(RMin) in [float,int,np.float64,np.int64]
+        assert msg, "Arg RMin must be None or a float !"
+        assert type(Forbid) is bool, "Arg Forbid must be a bool !"
+        C0 = all([type(ee) in [int,float,np.int64,np.float64] and ee<1.e-4
+                  for ee in [EpsUz,EpsVz,EpsA,EpsB,EpsPlane]])
+        assert C0, "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-4 !"
+        C0 = type(VType) is str and VType.lower() in ['tor','lin']
+        assert C0, "Arg VType must be a str in ['Tor','Lin'] !"
+
+    cdef int ii, jj, npts=pts.shape[1]
+    cdef cnp.ndarray[double, ndim=2, mode='c'] Ds, dus
+    Ds = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
+    dus = (pts-Ds)/k
+
+    if VType.lower()=='tor':
+        # RMin is necessary to avoid looking on the other side of the tokamak
+        if RMin is None:
+            RMin = 0.95*min(np.min(VPoly[0,:]),
+                            np.min(np.hypot(Ds[0,:],Ds[1,:])))
+
+        # Main function to compute intersections with Vessel
+        POut = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid,
+                                   RMin=RMin, EpsUz=EpsUz, EpsVz=EpsVz,
+                                   EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)[1]
+
+        # k = coordinate (in m) along the line from D
+        kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
+        assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
+        # Structural optimzation : do everything in one big for loop and only
+        # keep the relevant points (to save memory)
+        if LSPoly is not None:
+            for ii in range(0,len(LSPoly)):
+                C0 = not all([hasattr(ll,'__iter__') for ll in LSLim[ii]])
+                if LSLim[ii] is None or C0:
+                    lslim = [LSLim[ii]]
+                else:
+                    lslim = LSLim[ii]
+                for jj in range(0,len(lslim)):
+                    pIn = Calc_LOS_PInOut_Tor(Ds, dus, LSPoly[ii], LSVIn[ii],
+                                              Lim=lslim[jj], Forbid=Forbid,
+                                              RMin=RMin, EpsUz=EpsUz,
+                                              EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB,
+                                              EpsPlane=EpsPlane)[0]
+                    kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
+                    indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
+                    indout = np.zeros((npts,),dtype=bool)
+                    indout[indNoNan] = kpin[indNoNan]<kPOut[indNoNan]
+                    indout[(~np.isnan(kpin)) & np.isnan(kPOut)] = True
+                    if np.any(indout):
+                        kPOut[indout] = kpin[indout]
+    else:
+        POut = Calc_LOS_PInOut_Lin(Ds, dus, VPoly, VIn, Lim, EpsPlane=EpsPlane)[1]
+        kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
+        assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
+        if LSPoly is not None:
+            for ii in range(0,len(LSPoly)):
+                C0 = not all([hasattr(ll,'__iter__') for ll in LSLim[ii]])
+                lslim = [LSLim[ii]] if C0 else LSLim[ii]
+                for jj in range(0,len(lslim)):
+                    pIn = Calc_LOS_PInOut_Lin(Ds, dus, LSPoly[ii], LSVIn[ii],
+                                              lslim[jj], EpsPlane=EpsPlane)[0]
+                    kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
+                    indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
+                    indout = np.zeros((npts,),dtype=bool)
+                    indout[indNoNan] = kpin[indNoNan]<kPOut[indNoNan]
+                    indout[(~np.isnan(kpin)) & np.isnan(kPOut)] = True
+                    if np.any(indout):
+                        kPOut[indout] = kpin[indout]
+
+    ind = np.zeros((npts,),dtype=bool)
+    indok = (~np.isnan(k)) & (~np.isnan(kPOut))
+    ind[indok] = k[indok]<kPOut[indok]
+    return ind
 
 
 
@@ -2827,3 +2931,128 @@ def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut,
             ((PMin[0,ii],PMin[1,ii],PMin[2,ii]),
              kPMin[ii], RMin[ii], Theta[ii], p[ii], ImpTheta[ii], phi[ii]) = out
     return PMin, kPMin, RMin, Theta, p, ImpTheta, phi
+
+
+
+
+
+
+
+"""
+########################################################
+########################################################
+########################################################
+#                   Solid Angle
+########################################################
+########################################################
+########################################################
+"""
+
+
+######################################################
+######################################################
+#               Dust
+######################################################
+######################################################
+
+
+def Dust_calc_SolidAngle(pos, r, pts,
+                         approx=True, out_coefonly=False,
+                         VType='Tor', VPoly=None, VIn=None, VLim=None,
+                         LSPoly=None, LSLim=None, LSVIn=None, Forbid=True,
+                         Test=True):
+    """ Compute the solid angle of a moving particle of varying radius as seen
+    from any number of pixed points
+
+    Can be done w/o the approximation that r<<d
+    If Ves (and optionally LSPoly) are provided, takes into account vignetting
+    """
+    cdef block = VPoly is not None
+    cdef float pir2
+    cdef int ii, jj, nptsok, nt=pos.shape[1], npts=pts.shape[1]
+    cdef cnp.ndarray[double, ndim=2, mode='c'] sang=np.zeros((nt,npts))
+
+    if block:
+        ind = ~_Ves_isInside(pts, VPoly, Lim=VLim, VType=VType,
+                             In='(X,Y,Z)', Test=Test)
+        if LSPoly is not None:
+            for ii in range(0,len(LSPoly)):
+                ind = ind & _Ves_isInside(pts, LSPoly[ii], Lim=LSLim[ii],
+                                          VType=VType, In='(X,Y,Z)', Test=Test)
+        ind = (~ind).nonzero()[0]
+        ptstemp = np.ascontiguousarray(pts[:,ind])
+        nptsok = ind.size
+
+        if approx and out_coefonly:
+            for ii in range(0,nt):
+                k = np.sqrt((pos[0,ii]-ptstemp[0,:])**2
+                            + (pos[1,ii]-ptstemp[1,:])**2
+                            + (pos[2,ii]-ptstemp[2,:])**2)
+
+                vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
+                                                    pos[2,ii], k, ptstemp,
+                                                    VPoly, VIn, Lim=VLim,
+                                                    LSPoly=LSPoly, LSLim=LSLim,
+                                                    LSVIn=LSVIn, Forbid=Forbid,
+                                                    VType=VType, Test=Test)
+                for jj in range(0,nptsok):
+                    if vis[jj]:
+                        sang[ii,ind[jj]] = Cpi/k[jj]**2
+        elif approx:
+            for ii in range(0,nt):
+                k = np.sqrt((pos[0,ii]-ptstemp[0,:])**2
+                            + (pos[1,ii]-ptstemp[1,:])**2
+                            + (pos[2,ii]-ptstemp[2,:])**2)
+
+                vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
+                                                    pos[2,ii], k, ptstemp,
+                                                    VPoly, VIn, Lim=VLim,
+                                                    LSPoly=LSPoly, LSLim=LSLim,
+                                                    LSVIn=LSVIn, Forbid=Forbid,
+                                                    VType=VType, Test=Test)
+                pir2 = Cpi*r[ii]**2
+                for jj in range(0,nptsok):
+                    if vis[jj]:
+                        sang[ii,ind[jj]] = pir2/k[jj]**2
+        else:
+            pir2 = 2*Cpi
+            for ii in range(0,nt):
+                k = np.sqrt((pos[0,ii]-ptstemp[0,:])**2
+                            + (pos[1,ii]-ptstemp[1,:])**2
+                            + (pos[2,ii]-ptstemp[2,:])**2)
+
+                vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
+                                                    pos[2,ii], k, ptstemp,
+                                                    VPoly, VIn, Lim=VLim,
+                                                    LSPoly=LSPoly, LSLim=LSLim,
+                                                    LSVIn=LSVIn, Forbid=Forbid,
+                                                    VType=VType, Test=Test)
+                for jj in range(0,nptsok):
+                    if vis[jj]:
+                        sang[ii,ind[jj]] = pir2*(1-Csqrt(1-r[ii]**2/k[jj]**2))
+
+    else:
+        if approx and out_coefonly:
+            for ii in range(0,nt):
+                for jj in range(0,npts):
+                    dij2 = ((pos[0,ii]-pts[0,jj])**2
+                            + (pos[1,ii]-pts[1,jj])**2
+                            + (pos[2,ii]-pts[2,jj])**2)
+                    sang[ii,jj] = Cpi/dij2
+        elif approx:
+            for ii in range(0,nt):
+                pir2 = Cpi*r[ii]**2
+                for jj in range(0,npts):
+                    dij2 = ((pos[0,ii]-pts[0,jj])**2
+                            + (pos[0,ii]-pts[0,jj])**2
+                            + (pos[0,ii]-pts[0,jj])**2)
+                    sang[ii,jj] = pir2/dij2
+        else:
+            pir2 = 2*Cpi
+            for ii in range(0,nt):
+                for jj in range(0,npts):
+                    dij2 = ((pos[0,ii]-pts[0,jj])**2
+                            + (pos[0,ii]-pts[0,jj])**2
+                            + (pos[0,ii]-pts[0,jj])**2)
+                    sang[ii,jj] = pir2*(1-Csqrt(1-r[ii]**2/dij2))
+    return sang

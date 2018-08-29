@@ -1680,6 +1680,9 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         assert C0, "Arg VType must be a str in ['Tor','Lin'] !"
 
     cdef int ii, jj, npts=pts.shape[1]
+    cdef cnp.ndarray[double, ndim=2, mode='c'] Ds, dus
+    Ds = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
+    dus = (pts-Ds)/k
 
     if VType.lower()=='tor':
         # RMin is necessary to avoid looking on the other side of the tokamak
@@ -1698,7 +1701,6 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         # Structural optimzation : do everything in one big for loop and only
         # keep the relevant points (to save memory)
         if LSPoly is not None:
-            Ind = np.zeros((2,NL))
             for ii in range(0,len(LSPoly)):
                 C0 = not all([hasattr(ll,'__iter__') for ll in LSLim[ii]])
                 if LSLim[ii] is None or C0:
@@ -1713,7 +1715,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                               EpsPlane=EpsPlane)[0]
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
-                    indout = np.zeros((NL,),dtype=bool)
+                    indout = np.zeros((npts,),dtype=bool)
                     indout[indNoNan] = kpin[indNoNan]<kPOut[indNoNan]
                     indout[(~np.isnan(kpin)) & np.isnan(kPOut)] = True
                     if np.any(indout):
@@ -1723,7 +1725,6 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
         assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
         if LSPoly is not None:
-            Ind = np.zeros((2,NL))
             for ii in range(0,len(LSPoly)):
                 C0 = not all([hasattr(ll,'__iter__') for ll in LSLim[ii]])
                 lslim = [LSLim[ii]] if C0 else LSLim[ii]
@@ -1732,7 +1733,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                               lslim[jj], EpsPlane=EpsPlane)[0]
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
-                    indout = np.zeros((NL,),dtype=bool)
+                    indout = np.zeros((npts,),dtype=bool)
                     indout[indNoNan] = kpin[indNoNan]<kPOut[indNoNan]
                     indout[(~np.isnan(kpin)) & np.isnan(kPOut)] = True
                     if np.any(indout):
@@ -2964,22 +2965,19 @@ def Dust_calc_SolidAngle(pos, r, pts,
     from any number of pixed points
 
     Can be done w/o the approximation that r<<d
-    If Ves (and optionally LStruct) are provided, takes into account vignetting
+    If Ves (and optionally LSPoly) are provided, takes into account vignetting
     """
-    cdef block = VPoly is None
+    cdef block = VPoly is not None
     cdef float pir2
     cdef int ii, jj, nptsok, nt=pos.shape[1], npts=pts.shape[1]
     cdef cnp.ndarray[double, ndim=2, mode='c'] sang=np.zeros((nt,npts))
 
     if block:
-        cdef cnp.ndarray[double, ndim=2,mode='c'] vpoly=VPoly
-        cdef cnp.ndarray[double, ndim=2,mode='c'] vin=VIn
-
         ind = ~_Ves_isInside(pts, VPoly, Lim=VLim, VType=VType,
                              In='(X,Y,Z)', Test=Test)
-        if LStruct is not None:
-            for ii in range(0,len(LStruct)):
-                ind = ind & _Ves_isInside(pts, lSPoly[ii], Lim=lSLim[ii],
+        if LSPoly is not None:
+            for ii in range(0,len(LSPoly)):
+                ind = ind & _Ves_isInside(pts, LSPoly[ii], Lim=LSLim[ii],
                                           VType=VType, In='(X,Y,Z)', Test=Test)
         ind = (~ind).nonzero()[0]
         ptstemp = np.ascontiguousarray(pts[:,ind])
@@ -2993,8 +2991,8 @@ def Dust_calc_SolidAngle(pos, r, pts,
 
                 vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
                                                     pos[2,ii], k, ptstemp,
-                                                    vpoly, vin, Lim=VLim,
-                                                    lSPoly=LSPoly, LSLim=LSLim,
+                                                    VPoly, VIn, Lim=VLim,
+                                                    LSPoly=LSPoly, LSLim=LSLim,
                                                     LSVIn=LSVIn, Forbid=Forbid,
                                                     VType=VType, Test=Test)
                 for jj in range(0,nptsok):
@@ -3008,8 +3006,8 @@ def Dust_calc_SolidAngle(pos, r, pts,
 
                 vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
                                                     pos[2,ii], k, ptstemp,
-                                                    vpoly, vin, Lim=VLim,
-                                                    lSPoly=LSPoly, LSLim=LSLim,
+                                                    VPoly, VIn, Lim=VLim,
+                                                    LSPoly=LSPoly, LSLim=LSLim,
                                                     LSVIn=LSVIn, Forbid=Forbid,
                                                     VType=VType, Test=Test)
                 pir2 = Cpi*r[ii]**2
@@ -3025,8 +3023,8 @@ def Dust_calc_SolidAngle(pos, r, pts,
 
                 vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
                                                     pos[2,ii], k, ptstemp,
-                                                    vpoly, vin, Lim=VLim,
-                                                    lSPoly=LSPoly, LSLim=LSLim,
+                                                    VPoly, VIn, Lim=VLim,
+                                                    LSPoly=LSPoly, LSLim=LSLim,
                                                     LSVIn=LSVIn, Forbid=Forbid,
                                                     VType=VType, Test=Test)
                 for jj in range(0,nptsok):
@@ -3058,7 +3056,3 @@ def Dust_calc_SolidAngle(pos, r, pts,
                             + (pos[0,ii]-pts[0,jj])**2)
                     sang[ii,jj] = pir2*(1-Csqrt(1-r[ii]**2/dij2))
     return sang
-
-
-
-
