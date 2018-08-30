@@ -1,0 +1,237 @@
+
+
+
+The low-level routines, courrently in tofu/geom/_GG02.pyx (copy-pasted to _GG03.pyx for python 3 and compiled with cython when the setup.py is run upon installation) need to be optimized.
+
+Based on my experience, taking into account that:
+* Each routine should be as fast as possible as possible, parallelized and use a litlle memory as possible
+* The user may need to access some key intermediate results, so each routine need to be written in several versions, some returning intermediate results, some only returning the main result
+* The choice between each routine will be made in tofu/geom/_comp.py, i.e.: in the python code, where the inputs will be analyzed to understand what is needed by the user
+
+
+On the whole we need something like this (in C or C++ or Fortran):
+
+* A series of basic functions written to be put inline at compilation to save time because it will be called hunderds of millions of times
+* Several higher level functions calling theses and making relevant tests if for loops to eliminate unnecessary cases
+
+############################################
+############################################
+# Intersections of a single LOS with torus, torus fraction and cylinder fraction
+# 	Basic inlined functions
+############################################
+
+
+def inline Intersect_Line1_Torus1(line, torus_polygon):
+	...
+	return 0, 1 or several intersection points, with perpendicular vectors, indices
+
+
+def inline Intersect_Line1_Torus_Polygon1_FractionsMultiple(line, torus_polygon, list_limits):
+	...
+	return 0, 1 or several intersection points for each fraction, with perpendicular vectors, indices
+
+
+def inline Intersect_Line1_Cylinder_Polygon1_FractionsMultiple(line, torus_polygon, list_limits):
+	...
+	return 0, 1 or several intersection points for each fraction, with perpendicular vectors, indices
+
+##########
+# Basic inlined functions for multiple toruses / cylinders, optionnally parallelized
+
+def inline Intersect_Line1_TorusMultiple(line, torus_polygons (list), torus_lims (list of None / list)):
+	for loop on toruses:
+		for loop on torus:
+			if lim is None:
+				continuous torus case (e.g.: vessel)
+			else:
+				for loop on limits:
+					only keep :
+						closest PIn
+						closest POut
+	return all relevant (PIn, POut, vectors, indices...)
+
+
+def inline Intersect_Line1_TorusMultiple_Par(line, torus_polygons (list), torus_lims (list of None / list)):
+	for loop on toruses: (parallelized)
+		...
+	return all relevant (PIn, POut, vectors, indices...)
+
+
+def inline Intersect_Line1_CylMultiple(line, cyl_polygons (list), cyl_lims (list of None / list)):
+	for loop on cyl:
+		...
+	return all relevant (PIn, POut, vectors, indices...)
+
+
+def inline Intersect_Line1_TorusMultiple_Par(line, cyl_polygons (list), cyl_lims (list of None / list)):
+	for loop on cyl: (parallelized)
+		...
+	return all relevant (PIn, POut, vectors, indices...)
+
+
+
+
+############################################
+############################################
+# Extra (useful for later) : test if 2 points can see each other
+# 	(i.e.: there is no intersection with any torus, torus fraction or cylinder on the way)
+# 	Basic inlined functions, parrellelized and non-parallelized versions
+############################################
+
+def inline isVis_Pts2_Tor(pA0,pA1,pA2, pB0,pB1,pB2, torus_vessel, torus_struct (list)):
+
+	Get distance k between 2 points (or provide as arg ?)
+	for loop on vessel and structs:
+		find POut for each element
+		check if distance between pA and POut < k
+		if yes, then pB is not visible from pA
+		Interrupt for loop, return False
+	Otherwise return True
+
+def inline isVis_Pts2_Lin(pA0,pA1,pA2, pB0,pB1,pB2, Cyl_vessel, Cyl_struct (list)):
+	The same but in linear geometry
+
+def inline isVis_Pts2_Tor_Par(pA0,pA1,pA2, pB0,pB1,pB2, torus_vessel, torus_struct (list)):
+	for loop on vessel and structs: (parallelized)
+		...
+	Otherwise return True
+
+def inline isVis_Pts2_Lin_Par(pA0,pA1,pA2, pB0,pB1,pB2, Cyl_vessel, Cyl_struct (list)):
+	The same but in linear geometry, parallelized
+
+Note:
+* is it better to provide (pA and pB) or (pA and normalized vector u and distance k) or (pA and fulll vector pApB=ku) ?
+* (depends on what is already computed in the functions that call this one. e.g.: no need to compute k twice)
+
+
+
+
+
+
+############################################
+############################################
+# Extra (useful for later) : compute solid angle of:
+#	sphere, polygon, intersection of polygons, intersectionS of polygons
+# 	As seen from any arbitrary single point
+# 	Basic inlined functions
+############################################
+
+def inline solidAngle_Pt1_Sphere_approx(p0,p1,p2, C0,C1,C2, r):
+	""" Sphere of radius r, center C, as seen from p, approximation of the real expression  """
+	d = distance(p,C)
+	sang = pi*r**2/d**2
+	return sang
+
+def inline solidAngle_Pt1_Sphere_exact(p0,p1,p2, C0,C1,C2, r):
+	""" Sphere of radius r, center C, as seen from p, real expression, see note  """
+	d = distance(p,C)
+	sang = 2*pi*(1-sqrt(1-r**2/d**2))
+	return sang
+
+def inline solidAngle_Pt1_ElementaryTriangle(p0,p1,p2, P0,P1,P2):
+	""" There exist an analytical exact formula for the solid angle of a triangle
+	    (see code and https//en.wikipedia.org/wiki/Solid_angle#Solid_angles_for_common_objects) """
+
+Note :
+* Think about also implementing directly the solid angle of a pyramid ? (may be more efficient for rectangular surfaces ?)
+* For arbitrary polygons (i.e. intersections of multiple arbitrary polygons), the general strategy decompose in triangles from center is probably the best ?
+
+def inline solidAngle_Pt1_Pyramid(p0,p1,p2, P0,P1,P2,P3):
+	""" There exist an analytical exact formula for the solid angle of a pyramid
+	    (see code and https//en.wikipedia.org/wiki/Solid_angle#Solid_angles_for_common_objects) """
+	This routine will be used when we are sure that the polygon of interest is a rectangle
+	return sang
+
+def online solidAngle_Pt1_Polygon(p0,p1,p2, Poly, C):
+	""" Ideally : project polygon on sphere and compute solid angle from elementary triangles (defined from projected center C ?)
+	    Alternatively : project polygon on plane (but beware of non-standard cases) and compute solid angle from elementary triangles (defined from projected center C?) """
+
+	return sang
+
+
+
+
+############################################
+############################################
+# Intersections of a multiple LOS with multiple toruss, torus fractions and cylinder fractions
+#      inlined functions ?
+############################################
+
+Note :
+* in the following, we use a par=True flag to indicate whether we want to use a parallelized version of the function
+* Most functions are dealing with 2 or more ways of being parallelized, so if par=True, a test is run to automatically determine where the parallelization should occur
+
+def Intersect_LinesMultiple_TorusAndFractions(lines, torus_polygons, lims, par=True):
+
+	if par:
+		if nb. lines == 1:
+			call inlined parallelized version for a single line
+		else:
+			for loop on lines (parallelize here):
+				call inlined non-parallelized version for single line
+	else:
+		for loop on lines:
+			for loop on torus:
+				call inlined non-parallelized version for single line
+
+	return all relevant (PIn, POut, indices, vectors...)
+
+def Intersect_LinesMultiple_CylindersFractions(lines, torus_polygons, lims):
+	The same in cylindrical geometry
+	return all relevant (PIn, POut, indices, vectors...)
+
+
+############################################
+############################################
+# Check if several points are visible from multiple other points
+############################################
+
+def isVis_PtsMultiple_Tor(ptsA, ptsB, torus_vessel, torus_struct (list), par=True):
+
+	if par:
+		nA, nB = nb. of ptsA, nb. of ptsB
+		if nA==1 and nB==1:
+			call parallelized inlined version
+		elif nA==1:
+			for loop on ptsB (parallelize here):
+				call non-parallelized inlined version
+
+		else:
+			for loop on ptsA (parallelize here):
+				for loop on ptsB:
+					call non-parallelized inlined version
+	else:
+		for loop on ptsA:
+			for loop on ptsB:
+				call non-parallelized inlined version
+
+	return bool array (nA,nB)
+
+def isVis_PtsMultiple_Lin(ptsA, ptsB, Cylinders_Polygons (list), Cylinder_Lim (list of lists/None)):
+
+	return bool array (nA,nB)
+
+
+############################################
+############################################
+# Solid angles (only) for multiple points and multiple objects (spheres / triangles / pyramids / polygons)
+############################################
+
+Make function for sphere, triangles, pyramids and arbitrary polygons with for loops on points
+* parallelized on points if only 1 object
+* parallelized on objects otherwise
+
+
+
+
+############################################
+############################################
+# Solid angles with isVis check for multiple points
+############################################
+
+The same but, for each point, include a check whether it is visible or not (if not, solid angle = 0)
+
+
+############################################
+############################################
+# Solid angles integrals (Cross-section) and contour (requires volume sampling of Vessel)

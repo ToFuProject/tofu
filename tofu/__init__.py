@@ -68,9 +68,10 @@ import tofu.utils as utils
 import tofu._plot as _plot
 import tofu.geom as geom
 import tofu.data as data
+#import tofu.dust as dust
 
 
-__all__ = ['pathfile','utils','_plot','geom','data']
+__all__ = ['pathfile','utils','_plot','geom','data']#,'dust']
 
 del sys, version
 

@@ -13,7 +13,7 @@ import tofu.pathfile as tfpf
 import tofu.utils as utils
 try:
     import tofu.geom._def as _def
-    import tofu.geom._GG as _GG 
+    import tofu.geom._GG as _GG
     import tofu.geom._comp as _comp
     import tofu.geom._plot as _plot
 except Exception:
