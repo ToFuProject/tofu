@@ -332,11 +332,12 @@ class KeyHandler(object):
         self.daxT = daxT
         self.daxr, self.dh = daxr, dh
         self.store_rcParams = None
-        self.lkeys = ['right','left','shift']
+        self.lkeys = ['right','left','shift','alt']
         if 'chan2D' in self.daxT.keys() and len(self.daxT['chan2D'])>0:
             self.lkeys += ['up','down']
         self.curax = None
         self.shift = False
+        self.alt = False
         self.ref, dnMax = {}, {'chan':nchMax,'t':ntMax,'lamb':nlambMax}
         for kk in self.lk:
             if not kk in ['chan2D','cross','hor','txtt','txtch','txtlamb','other']:
@@ -622,12 +623,16 @@ class KeyHandler(object):
         C1 = [kk in event.key for kk in self.lkeys]
         C2 = event.name is 'key_release_event' and event.key=='shift'
         C3 = event.name is 'key_press_event'
+        C4 = event.name is 'key_release_event' and event.key=='alt'
 
-        if not (C0 and any(C1) and (C2 or C3)):
+        if not (C0 and any(C1) and (C2 or C3 or C4)):
             return
 
         if event.key=='shift':
             self.shift = False if C2 else True
+            return
+        if event.key=='alt':
+            self.alt = False if C4 else True
             return
 
         Type = self.daxr[self.curax]['Type']
@@ -638,15 +643,19 @@ class KeyHandler(object):
 
         kdir = [kk for kk in self.lkeys if kk in event.key and not kk=='shift']
         val = self.daxr[self.curax]['xref']
+        if self.alt:
+            inc = 50 if Type=='t' else 10
+        else:
+            inc = 1
         if self.daxr[self.curax]['Type']=='chan2D':
-            c = -1. if self.daxr[self.curax]['invert'] else 1.
+            c = -inc if self.daxr[self.curax]['invert'] else inc
             x12 = val[:,self.ref[Type]['ind'][self.ref[Type]['ncur']-1]]
             x12 = x12 + c*self.daxr[self.curax]['incx'][kdir]
             d2 = np.sum((val-x12[:,np.newaxis])**2,axis=0)
             ind = np.nanargmin(d2)
         else:
-            inc = -1 if 'left' in event.key else 1
-            ind = (self.ref[Type]['ind'][self.ref[Type]['ncur']-1]+inc)
+            c = -inc if 'left' in event.key else inc
+            ind = (self.ref[Type]['ind'][self.ref[Type]['ncur']-1]+c)
             ind = ind%val.size
         val = val[ind]
         ii = self.ref[Type]['ncur'] if self.shift else self.ref[Type]['ncur']-1
