@@ -529,14 +529,21 @@ class KeyHandler(object):
             for jj in range(0,len(self.daxr[ax]['dh']['vline'])):
                 dtg = self.daxr[ax]['dh']['vline'][jj]['trig']
                 xref = self.daxr[ax]['dh']['vline'][jj]['xref']
+                if xref.ndim==1:
+                    xvfunc = np.abs
+                    xvset = lambda h, v: h.set_xdata(v)
+                else:
+                    xvfunc = lambda xv: np.sum(xv**2,axis=1)
+                    xvset = lambda h, v: h.set_data(v)
                 for ii in range(0,self.ref[axT]['ncur']):
                     hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
                     ind = self.ref[axT]['ind'][ii]
                     val = self.ref[axT]['val'][ii]
                     if xref is not self.daxr[self.curax]['xref']:
-                        ind = np.argmin(np.abs(xref-val))
+                        ind = np.argmin(xvfunc(xref-val))
                         val = xref[ind]
-                    hh.set_xdata(val)
+                    xvset(hh,val)
+                    #hh.set_xdata(val)
                     self.dh[hh]['vis'] = True
                     for kk in dtg.keys():
                         for ll in range(0,len(dtg[kk])):
