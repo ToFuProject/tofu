@@ -316,12 +316,11 @@ class DChans(object):
 #           Plot KeyHandler
 ###############################################
 
-
 class KeyHandler(object):
     """ Base class for handling event on tofu interactive figures """
 
     def __init__(self, can=None, daxT=None, ntMax=3, nchMax=3, nlambMax=3):
-        lk = ['t','chan','chan2D','lamb','cross','hor','txtt','txtch','txtlamb','other']
+        lk = ['t','chan','chan2D','lamb','cross','hor','colorbar','txtt','txtch','txtlamb','other']
         assert all([kk in lk for kk in daxT.keys()]), str(daxT.keys())
         assert all([type(dd) is list for dd in daxT.values()]), str(daxT.values())
         self.lk = sorted(list(daxT.keys()))
@@ -332,15 +331,16 @@ class KeyHandler(object):
         self.daxT = daxT
         self.daxr, self.dh = daxr, dh
         self.store_rcParams = None
-        self.lkeys = ['right','left','shift','alt']
+        self.lkeys = ['right','left','control','shift','alt']
         if 'chan2D' in self.daxT.keys() and len(self.daxT['chan2D'])>0:
             self.lkeys += ['up','down']
         self.curax = None
+        self.ctrl = False
         self.shift = False
         self.alt = False
         self.ref, dnMax = {}, {'chan':nchMax,'t':ntMax,'lamb':nlambMax}
         for kk in self.lk:
-            if not kk in ['chan2D','cross','hor','txtt','txtch','txtlamb','other']:
+            if not kk in ['chan2D','cross','hor','colorbar','txtt','txtch','txtlamb','other']:
                 self.ref[kk] = {'ind':np.zeros((ntMax,),dtype=int),
                                 'val':[None for ii in range(0,dnMax[kk])],
                                 'ncur':1, 'nMax':dnMax[kk]}
@@ -416,6 +416,7 @@ class KeyHandler(object):
         res = self.can.mpl_connect('resize_event', self.resize)
         #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
         self.can.manager.toolbar.release = self.mouserelease
+
         self._cid = {'keyp':keyp, 'keyr':keyr,
                      'butp':butp, 'res':res}#, 'butr':butr}
 
@@ -424,11 +425,15 @@ class KeyHandler(object):
             self.can.mpl_disconnect(self._cid[kk])
         self.can.manager.toolbar.release = lambda event: None
 
+    def home(self):
+        """ To be filled when matplotlib issue completed """
+
     def mouserelease(self, event):
         msg = "Make sure you release the mouse button on an axes !"
         msg += "\n Otherwise the background plot cannot be properly updated !"
         C0 = self.can.manager.toolbar._active == 'PAN'
         C1 = self.can.manager.toolbar._active == 'ZOOM'
+
         if C0 or C1:
             ax = self.curax_panzoom
             assert ax is not None, msg
@@ -612,7 +617,12 @@ class KeyHandler(object):
             d2 = np.abs(event.xdata-val)
         ind = np.nanargmin(d2)
         val = val[ind]
-        ii = int(self.ref[Type]['ncur']) if self.shift else 0
+        if self.ctrl:
+            ii = 0
+        elif self.shift:
+            ii = int(self.ref[Type]['ncur'])
+        else:
+            ii = int(self.ref[Type]['ncur'])-1
         self.ref[Type]['ind'][ii] = ind
         self.ref[Type]['val'][ii] = val
         self.ref[Type]['ncur'] = ii+1
@@ -624,10 +634,14 @@ class KeyHandler(object):
         C2 = event.name is 'key_release_event' and event.key=='shift'
         C3 = event.name is 'key_press_event'
         C4 = event.name is 'key_release_event' and event.key=='alt'
+        C5 = event.name is 'key_release_event' and event.key=='control'
 
-        if not (C0 and any(C1) and (C2 or C3 or C4)):
+        if not (C0 and any(C1) and (C2 or C3 or C4 or C5)):
             return
 
+        if event.key=='control':
+            self.ctrl = False if C5 else True
+            return
         if event.key=='shift':
             self.shift = False if C2 else True
             return
@@ -641,7 +655,8 @@ class KeyHandler(object):
                 print("     Max. nb. of %s plots reached !!!"%Type)
                 return
 
-        kdir = [kk for kk in self.lkeys if kk in event.key and not kk=='shift']
+        kdir = [kk for kk in self.lkeys
+                if (kk in event.key and not kk in ['shift','control','alt'])]
         val = self.daxr[self.curax]['xref']
         if self.alt:
             inc = 50 if Type=='t' else 10
@@ -658,11 +673,15 @@ class KeyHandler(object):
             ind = (self.ref[Type]['ind'][self.ref[Type]['ncur']-1]+c)
             ind = ind%val.size
         val = val[ind]
-        ii = self.ref[Type]['ncur'] if self.shift else self.ref[Type]['ncur']-1
+        if self.ctrl:
+            ii = 0
+        elif self.shift:
+            ii = self.ref[Type]['ncur']
+        else:
+            ii = self.ref[Type]['ncur']-1
         self.ref[Type]['ind'][ii] = ind
         self.ref[Type]['val'][ii] = val
-        if self.shift:
-            self.ref[Type]['ncur'] = ii+1
+        self.ref[Type]['ncur'] = ii+1
         self.update()
 
     ##### To be implemented for each case ####

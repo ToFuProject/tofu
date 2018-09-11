@@ -435,6 +435,25 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 ###################################################
 ###################################################
 
+class KH2D(utils.KeyHandler):
+
+    def __init__(self, can, daxT, ntMax=3, nchMax=3):
+
+        utils.KeyHandler.__init__(self, can, daxT=daxT,
+                                  ntMax=ntMax, nchMax=nchMax, nlambMax=1)
+
+    def update(self):
+
+        # Restore background
+        self._update_restore_Bck(list(self.daxr.keys()))
+
+        # Update and get lax
+        lax = self._update_vlines_and_Eq()
+
+        # Blit
+        self._update_blit(lax)
+
+
 def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
     assert out.lower() in ['pcolormesh','imshow']
     x1, x2, ind, DX12 = utils.get_X12fromflat(X12_1d)
@@ -444,9 +463,9 @@ def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
     return x1, x2, ind, DX12
 
 
-
 def _init_Data2D(fs=None, dmargin=None,
-                 wintit='tofu', Max=4):
+                 fontsize=8,  wintit=_wintit,
+                 nchMax=4, ntMax=1):
     axCol = "w"
     if fs is None:
         fs = _def.fs2D
@@ -466,46 +485,47 @@ def _init_Data2D(fs=None, dmargin=None,
     axp = fig.add_subplot(gs1[:5,2:-1], fc='w')
     axH = fig.add_subplot(gs1[0:2,4], fc='w')
     axC = fig.add_subplot(gs1[2:,4], fc='w')
-    Ytxt = Laxt[1].get_position().bounds[1]+Laxt[1].get_position().bounds[3]
-    DY = Laxt[0].get_position().bounds[1] - Ytxt
-    right = Laxt[1].get_position().bounds[0]+Laxt[1].get_position().bounds[2]
-    gst = gridspec.GridSpec(1, Max,
-                           left=0.1, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
-                           wspace=0.10, hspace=None)
-    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
-    left = axp.get_position().bounds[0]
-    right = axp.get_position().bounds[0]+axp.get_position().bounds[2]
-    gsc = gridspec.GridSpec(1, 3,
-                           left=left, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
-                           wspace=0.10, hspace=None)
-    LaxTxtt = [fig.add_subplot(gst[0,ii], fc='w') for ii in range(0,Max)]
-    LaxTxtc = [fig.add_subplot(gsc[0,ii], fc='w') for ii in range(0,1)]
-
     axC.set_aspect('equal', adjustable='datalim')
     axH.set_aspect('equal', adjustable='datalim')
-    for ii in range(0,Max):
-        LaxTxtt[ii].spines['top'].set_visible(False)
-        LaxTxtt[ii].spines['bottom'].set_visible(False)
-        LaxTxtt[ii].spines['right'].set_visible(False)
-        LaxTxtt[ii].spines['left'].set_visible(False)
-        LaxTxtt[ii].set_xticks([]), LaxTxtt[ii].set_yticks([])
-        LaxTxtt[ii].set_xlim(0,1),  LaxTxtt[ii].set_ylim(0,1)
 
-    LaxTxtc[0].spines['top'].set_visible(False)
-    LaxTxtc[0].spines['bottom'].set_visible(False)
-    LaxTxtc[0].spines['right'].set_visible(False)
-    LaxTxtc[0].spines['left'].set_visible(False)
-    LaxTxtc[0].set_xticks([]), LaxTxtc[0].set_yticks([])
-    LaxTxtc[0].set_xlim(0,1),  LaxTxtc[0].set_ylim(0,1)
+    # Text boxes
+    Ytxt = Laxt[1].get_position().bounds[1]+Laxt[1].get_position().bounds[3]
+    DY = Laxt[0].get_position().bounds[1] - Ytxt
+    Xtxt = Laxt[1].get_position().bounds[0]
+    DX = Laxt[1].get_position().bounds[2]
+    axtxtch = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
 
-    dax = {'t':Laxt, 'prof':[axp], '2D':[axC,axH], 'cax':[cax],
-           'Txtt':LaxTxtc, 'Txtc':LaxTxtt}
+    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
+    Xtxt = axp.get_position().bounds[0]
+    DX = axp.get_position().bounds[2]
+    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+
+    for ax in [axtxtch, axtxtt]:
+        axtxtch.patch.set_alpha(0.)
+        for ss in ['left','right','bottom','top']:
+            ax.spines[ss].set_visible(False)
+        ax.set_xticks([]), ax.set_yticks([])
+        ax.set_xlim(0,1),  ax.set_ylim(0,1)
+
+    # Dict
+    dax = {'t':[{'ax':aa, 'dh':{'vline':[]}} for aa in Laxt],
+           'chan':[{'ax':axp, 'dh':{'vline':[]}}],
+           'cross':[{'ax':axC, 'dh':{}}],
+           'hor':[{'ax':axH, 'dh':{}}],
+           'colorbar':[{'ax':cax, 'dh':{}}],
+           'txtch':[{'ax':axtxtch, 'dh':{}}],
+           'txtt':[{'ax':axtxtt, 'dh':{}}]}
     for kk in dax.keys():
         for ii in range(0,len(dax[kk])):
-            dax[kk][ii].tick_params(labelsize=8)
+            dax[kk][ii]['ax'].tick_params(labelsize=fontsize)
     return dax
 
 
+
+# def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
+                 # indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
+                 # fs=None, dmargin=None, wintit=_wintit, tit=None,
+                 # fontsize=_fontsize, draw=True, connect=True):
 
 def _Data2D_plot(Data, key=None,
                  cmap=plt.cm.gray, ms=4,
@@ -618,6 +638,24 @@ def _Data2D_plot(Data, key=None,
     if connect:
         KH.connect()
     return dax, KH
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # Define keyHandlker class for interactivity
 class KH_2D(object):
