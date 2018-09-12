@@ -129,6 +129,7 @@ class Test01_Data1D:
         sig21 = np.concatenate((sig01,sig11),axis=1)
         cls.LObj = [tfd.Data1D(sig00, Id='0', SavePath=here),
                    tfd.Data1D(sig01, t=t, Id='1', SavePath=here),
+                   tfd.Data1D(sig01, t=t, Ves=V, Id='1', SavePath=here),
                    tfd.Data1D(sig00, LCam=C0, Id='2', SavePath=here),
                    tfd.Data1D(sig01, t=t, LCam=C0, Id='3', SavePath=here),
                    tfd.Data1D(sig20, LCam=[C0,C1], Id='4', SavePath=here),
@@ -306,7 +307,7 @@ class Test01_Data2D(Test01_Data1D):
                                plot=False, out='')
         cls.LObj = [tfd.Data2D(sig00, Id='0', SavePath=here),
                     tfd.Data2D(sig01, t=t, Id='1', SavePath=here),
-                    tfd.Data2D(sig01, t=t, Ves=C0.Ves, LStruct=C0.LStruct,
+                    tfd.Data2D(sig01, t=t, Ves=V, LStruct=C0.LStruct,
                                Id='1', SavePath=here),
                     tfd.Data2D(sig00, LCam=C0, Id='2', SavePath=here),
                     tfd.Data2D(sig01, t=t, LCam=C0, Id='3', SavePath=here)]

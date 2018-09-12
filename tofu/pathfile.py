@@ -1028,13 +1028,26 @@ def _save_np(obj, pathfileext, compressed=False):
 
     elif obj.Id.Cls in ['Data','Data1D','Data2D']:
         dsave = obj._todict()
-        if dsave['geom'] is not None:
+        if dsave['geom'] is not None and dsave['geom']['LCam'] is not None:
             LCam = []
-            for cc in dsave['geom']:
+            for cc in dsave['geom']['LCam']:
                 pathS = cc['Id']['SavePath']
                 pathN = cc['Id']['SaveName']
                 LCam.append(os.path.join(pathS,pathN+'.npz'))
             dsave['geom'] = LCam
+        elif dsave['geom'] is not None:
+            geom = []
+            if dsave['geom']['Ves'] is not None:
+                pathS = dsave['geom']['Ves']['Id']['SavePath']
+                pathN = dsave['geom']['Ves']['Id']['SaveName']
+                Ves = os.path.join(pathS,pathN+'.npz')
+                geom += [Ves]
+            if dsave['geom']['LStruct'] is not None:
+                for ss in dsave['geom']['LStruct']:
+                    sf = os.path.join(ss['Id']['SavePath'],
+                                      ss['Id']['SaveName']+'.npz')
+                    geom += [sf]
+            dsave['geom'] = geom
         func(pathfileext, **dsave)
 
     """
@@ -1392,12 +1405,21 @@ def _open_np(pathfileext, Ves=None,
         indt = None if Out['indt'].tolist() is None else Out['indt']
         indch = None if Out['indch'].tolist() is None else Out['indch']
         if Out['geom'].tolist() is None:
-            LCam = None
+            geom = None
         else:
-            LCam = [Open(ss)._todict() for ss in Out['geom']]
+            if 'Cam' in Out['geom'][0]:
+                LCam = [Open(ss)._todict() for ss in Out['geom']]
+                geom = {'LCam':LCam}
+            else:
+                Ves = Open(Out['geom'][0])._todict()
+                if len(Out['geom'])>1:
+                    LStruct = [Open(ss)._todict() for ss in Out['geom'][1:]]
+                else:
+                    LStruct = None
+                    geom = {'LCam':None, 'Ves':Ves, 'LStruct':LStruct}
         dobj['indt'] = indt
         dobj['indch'] = indch
-        dobj['geom'] = LCam
+        dobj['geom'] = geom
         if 'dMag' in Out.keys():
             dMag = Out['dMag'].tolist()
         else:

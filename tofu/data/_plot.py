@@ -225,7 +225,7 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         chans = chansRef[lData[ii].indch]
         Dchans = [-1,lData[ii].Ref['nch']]
         Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
-        if lData[ii].geom is None:
+        if lData[ii].Ref['dchans'] in [None,{}]:
             chlabRef = chansRef
             chlab = chans
         else:
@@ -359,7 +359,8 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                          prop={'size':fontsize})
 
         # Adding mobile LOS and text
-        if ii == 0 and lData[ii].geom is not None:
+        C0 =  lData[ii].geom is not None and lData[ii].geom['LCam'] is not None
+        if ii == 0 and C0:
             if 'LOS' in lData[ii]._CamCls:
                 lCross, lHor, llab = [], [], []
                 for ll in range(0,len(lData[ii].geom['LCam'])):
@@ -630,7 +631,7 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
         chans = chansRef[lData[ii].indch]
         Dchans = [-1,lData[ii].Ref['nch']]
         Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
-        if lData[ii].geom is None:
+        if lData[ii].Ref['dchans'] in [None,{}]:
             chlabRef = chansRef
             chlab = chans
         else:

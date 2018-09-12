@@ -50,7 +50,6 @@ class Data(object):
         self._dunits = fd['dunits']
         self._indt, self._indch = fd['indt'], fd['indch']
         self._data0 = fd['data0']
-        self._CamCls = fd['CamCls']
         self._fft = fd['fft']
         if fd['geom'] is None:
             self._geom = None
@@ -62,8 +61,7 @@ class Data(object):
             if fd['geom']['LStruct'] is not None:
                 LStruct = [tfg.Struct(fromdict=ss)
                            for ss in fd['geom']['LStruct']]
-            self._set_LCam(LCam=None, Ves=Ves, LStruct=LStruct,
-                           CamCls = fd['geom']['CamCls'])
+            self._set_LCam(LCam=None, Ves=Ves, LStruct=LStruct)
         else:
             import tofu.geom as tfg
             if '1D' in fd['CamCls']:
@@ -76,6 +74,7 @@ class Data(object):
         else:
             dextra = None
         self._dextra = dextra
+        self._CamCls = fd['CamCls']
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
