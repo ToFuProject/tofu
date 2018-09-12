@@ -28,7 +28,7 @@ class Data(object):
 
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, CamCls='1D', fromdict=None,
+                 LCam=None, Ves=None, LStruct=None, CamCls='1D', fromdict=None,
                  SavePath=os.path.abspath('./')):
 
         self._Done = False
@@ -37,13 +37,13 @@ class Data(object):
             assert np.sum([dchans is None, LCam is None])>=1, msg
             self._set_dataRef(data, t=t, dchans=dchans, dunits=dunits)
             self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-            self._set_LCam(LCam=LCam, CamCls=CamCls)
+            self._set_LCam(LCam=LCam, Ves=Ves, LStruct=LStruct, CamCls=CamCls)
             self._dextra = dextra
         else:
             self._fromdict(fromdict)
         self._Done = True
 
-
+    # To be updated acording to self._geom
     def _fromdict(self, fd):
         _Data_check_fromdict(fd)
         self._Id = tfpf.ID(fromdict=fd['Id'])
@@ -55,6 +55,12 @@ class Data(object):
         self._fft = fd['fft']
         if fd['geom'] is None:
             self._geom = None
+        elif fd['geom']['LCam'] is None:
+            self._set_LCam(LCam = None,
+                           Ves = tfg.Ves(fromdict=fd['geom']['Ves']),
+                           LStruct = [tfg.Struct(fromdict=ss)
+                                      for ss in fd['geom']['LStruct']],
+                           CamCls = fd['geom']['CamCls'])
         else:
             import tofu.geom as tfg
             if '1D' in fd['CamCls']:
@@ -68,6 +74,7 @@ class Data(object):
             dextra = None
         self._dextra = dextra
 
+    # To be updated acording to self._geom
     def _todict(self):
         out = {'Id':self.Id._todict(),
                'Ref':self._Ref,
@@ -79,6 +86,13 @@ class Data(object):
                'dextra':self._dextra}
         if self.geom is None:
             geom = None
+        elif self.geom['LCam'] is None:
+            geom = {'Ves':None, 'LStruct':None,
+                    'LCam':None, 'CamCls':self._CamCls}
+            if geom['Ves'] is not None:
+                geom['Ves'] = self.geom['Ves']._todict()
+            if geom['LStruct'] is not None:
+                geom['LStruct'] = [ss._todict() for ss in geom['LStruct']]
         else:
             geom = [cc._todict() for cc in self.geom['LCam']]
         out['geom'] = geom
@@ -194,13 +208,22 @@ class Data(object):
         self._fft, self._interp_t = None, None
         self._indt_corr, self._indch_corr = None, None
 
-    def _set_LCam(self, LCam=None, CamCls='1D'):
+    def _set_LCam(self, LCam=None, Ves=None, LStruct=None, CamCls='1D'):
         self._check_inputs(LCam=LCam, CamCls=CamCls, data=self._Ref['data'])
         if LCam is None:
-            self._geom = None
             self._CamCls = CamCls
             if 'data' not in self._dunits.keys():
                 self._dunits['data'] = r"a.u."
+            if Ves is None and LStruct is None:
+                self._geom = None
+            else:
+                self._geom = {'LCam':None, 'Ves':None, 'LStruct':None}
+                if Ves is not None:
+                    self._geom['Ves'] = Ves
+                if LStruct is not None:
+                    if not type(LStruct) is list:
+                        LStruct = [LStruct]
+                    self._geom['LStruct'] = LStruct
         else:
             LCam = LCam if type(LCam) is list else [LCam]
             # Set up dchans
@@ -238,7 +261,7 @@ class Data(object):
 
         Return their indices (default) or the chosen criterion
         """
-        if self.geom is None:
+        if self.geom is None or self.geom['LCam'] is None:
             dchans = None
         elif self._Ref['dchans']=={}:
             dchans = self._Ref['dchans']
@@ -261,7 +284,7 @@ class Data(object):
         return dchans
 
     def _get_LCam(self):
-        if self.geom['LCam'] is None:
+        if self.geom is None or self.geom['LCam'] is None:
             lC = None
         else:
             if np.all(self.indch):
@@ -331,7 +354,8 @@ class Data(object):
                 else:
                     ind = ~np.any(ind,axis=0)
             elif touch is not None:
-                assert self._geom is not None, "Geometry (LCam) not defined !"
+                C0 = self._geom is not None and self.geom['LCam'] is not None
+                assert C0, "Geometry (LCam) not defined !"
                 ind = []
                 for cc in self._geom['LCam']:
                     ind.append(cc.select(touch=touch, log=log, out=bool))

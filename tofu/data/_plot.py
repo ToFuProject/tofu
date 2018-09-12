@@ -539,7 +539,7 @@ def _init_Data2D(fs=None, dmargin=None,
 
 def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                  indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
-                 cmap=plt.cm.gray, ms=4,
+                 cmap=plt.cm.gray, ms=4, NaN0=np.nan,
                  vmin=None, vmax=None, normt=False, dMag=None,
                  fs=None, dmargin=None, wintit=_wintit, tit=None,
                  plotmethod='imshow', invert=False, fontsize=_fontsize,
@@ -568,6 +568,12 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
     DX1 = [np.nanmin(X1p),np.nanmax(X1p)]
     DX2 = [np.nanmin(X2p),np.nanmax(X2p)]
 
+    indp = indp.T
+    indpnan = np.isnan(indp)
+    indp[indpnan] = 0
+    indp = indp.astype(int)
+    incx = {'left':np.r_[-dX12[0],0.], 'right':np.r_[dX12[0],0.],
+            'down':np.r_[0.,-dX12[1]], 'up':np.r_[0.,dX12[1]]}
 
     if normt:
         data = lData[0].data/np.nanmax(lData[0].data,axis=1)[:,np.newaxis]
@@ -620,11 +626,11 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                               Elt='P', dLeg=None, draw=False)
                 dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
 
-
     # Plot
     Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
     cbck = (0.8,0.8,0.8,0.8)
     lEq = ['Ax','Sep','q1']
+
     for ii in range(0,nDat):
         nt, nch = lData[ii].nt, lData[ii].nch
 
@@ -650,7 +656,10 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
         else:
             Dti = [np.nanmin(t), np.nanmax(t)]
         Dt = [min(Dt[0],Dti[0]), max(Dt[1],Dti[1])]
-        data = lData[ii].data.reshape((nt,nch))
+        data = lData[ii].data
+        if nt==1:
+            data = data.reshape((nt,nch))
+        data[:,indpnan.T.ravel()] = np.nan
 
         # Setting tref and plotting handles
         if ii==0:
@@ -664,7 +673,6 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                 dax['t'][1]['ax'].fill_between(t, np.nanmin(data,axis=1),
                                                np.nanmax(data, axis=1),
                                                facecolor=cbck)
-
         # Adding vline t and trig
         ltg, lt = [], []
         for ll in range(0,len(dax['t'])):
@@ -675,25 +683,24 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                                                lw=1.)
                 lv.append(l0)
                 if ll==0:
-                    for kk in range(0,len(dax['chan2D'])):
-                        nanY = np.full(indp.shape,np.nan)
-                        if plotmethod=='imshow':
-                            extent = (DX1[0],DX1[1],DX2[0],DX2[1])
-                            l1 = dax['chan2D'][0]['ax'].imshow(nanY,
-                                                               interpolation='nearest',
+                    nanY = np.full(indp.shape,np.nan)
+                    if plotmethod=='imshow':
+                        extent = (DX1[0],DX1[1],DX2[0],DX2[1])
+                        l1 = dax['chan2D'][ii]['ax'].imshow(nanY,
+                                                           interpolation='nearest',
+                                                           norm=norm,
+                                                           cmap=cmap,
+                                                           extent=extent,
+                                                           aspect='equal',
+                                                           origin='lower',
+                                                           zorder=-1)
+                    elif plotmethod=='pcolormesh':
+                        l1 = dax['chan2D'][ii]['ax'].pcolormesh(X1p, X2p, nanY,
+                                                               edgecolors='None',
                                                                norm=norm,
                                                                cmap=cmap,
-                                                               extent=extent,
-                                                               aspect='equal',
-                                                               origin='lower',
                                                                zorder=-1)
-                        elif plotmethod=='pcolormesh':
-                            l1 = dax['chan2D'][0]['ax'].pcolormesh(X1p, X2p, nanY,
-                                                                   edgecolors='None',
-                                                                   norm=norm,
-                                                                   cmap=cmap,
-                                                                   zorder=-1)
-                        ltg.append(l1)
+                    ltg.append(l1)
                     if ii==0:
                         l = dax['txtt'][0]['ax'].text((0.5+jj)/ntMax, 0., r'',
                                                       color=lct[jj], fontweight='bold',
@@ -701,9 +708,14 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                                                       va='bottom')
                         lt.append(l)
             if ll==0:
-                dtg = {'xref':t, 'h':ltg, 'y':data}
+                dtg = {'xref':t, 'h':ltg}
+                if plotmethod=='imshow':
+                    dtg.update({plotmethod:{'data':data,'ind':indp}})
+                else:
+                    dtg.update({plotmethod:{'data':data, 'norm':norm,'cm':cmap}})
             dax['t'][ll]['dh']['vline'][ii]['h'] = lv
         dax['t'][1]['dh']['vline'][ii]['trig']['2dprof'][ii] = dtg
+
         if ii==0:
             dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
             dax['t'][1]['dh']['vline'][0]['trig'].update(dttxt)
@@ -718,8 +730,9 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
             for jj in range(0,nchMax):
                 lab = r"Data{0} ch{1}".format(ii,jj)
                 l0, = dax['chan2D'][ll]['ax'].plot([np.nan],[np.nan],
-                                                   mec=lcch[jj], ls=lls[ii],
-                                                   marker='s', mew=2., ms=8,
+                                                   mec=lcch[jj], ls='None',
+                                                   marker='s', mew=2.,
+                                                   ms=ms, mfc='None',
                                                    label=lab, zorder=10)
                 lv.append(l0)
                 if ll==0:
@@ -778,9 +791,9 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                 dax['t'][0]['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
                                          ncol=4, mode='expand', borderaxespad=0.,
                                          prop={'size':fontsize})
-
         # Adding mobile LOS and text
-        if ii == 0 and lData[ii].geom is not None:
+        C0 = lData[ii].geom is not None and lData[ii].geom['LCam'] is not None
+        if ii == 0 and C0:
             if 'LOS' in lData[ii]._CamCls:
                 lCross, lHor, llab = [], [], []
                 for ll in range(0,len(lData[ii].geom['LCam'])):
@@ -817,17 +830,15 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                 dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dchtxt)
             else:
                 raise Exception("Not coded yet !")
+        dax['chan2D'][ii]['incx'] = incx
+        dax['chan2D'][ii]['ax'].set_ylabel(r"pix.", fontsize=fontsize)
 
     dax['t'][0]['ax'].set_xlim(Dt)
     dax['t'][1]['ax'].set_ylabel(r"data (%s)"%Dunits, fontsize=fontsize)
     dax['t'][1]['ax'].set_xlabel(r"t ($s$)", fontsize=fontsize)
-    dax['chan2D'][0]['ax'].set_xlim(Dch)
-    dax['chan2D'][0]['ax'].set_ylim(Dd)
-    dax['chan2D'][0]['ax'].set_xlabel(r"", fontsize=fontsize)
-    dax['chan2D'][0]['ax'].set_ylabel(r"data (%s)"%Dunits, fontsize=fontsize)
-    dax['chan2D'][0]['ax'].set_xticks(chansRef)
-    dax['chan2D'][0]['ax'].set_xticklabels(chlabRef, rotation=45)
-
+    dax['chan2D'][0]['ax'].set_xlim(DX1)
+    dax['chan2D'][0]['ax'].set_ylim(DX2)
+    dax['chan2D'][-1]['ax'].set_xlabel(r"pix.", fontsize=fontsize)
 
     # Plot mobile parts
     can = dax['t'][0]['ax'].figure.canvas

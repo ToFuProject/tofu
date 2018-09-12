@@ -338,9 +338,9 @@ class KeyHandler(object):
         self.ctrl = False
         self.shift = False
         self.alt = False
-        self.ref, dnMax = {}, {'chan':nchMax,'t':ntMax,'lamb':nlambMax}
+        self.ref, dnMax = {}, {'chan':nchMax, 'chan2D':nchMax,'t':ntMax,'lamb':nlambMax}
         for kk in self.lk:
-            if not kk in ['chan2D','cross','hor','colorbar','txtt','txtch','txtlamb','other']:
+            if not kk in ['cross','hor','colorbar','txtt','txtch','txtlamb','other']:
                 self.ref[kk] = {'ind':np.zeros((ntMax,),dtype=int),
                                 'val':[None for ii in range(0,dnMax[kk])],
                                 'ncur':1, 'nMax':dnMax[kk]}
@@ -372,6 +372,9 @@ class KeyHandler(object):
                     dhh = None
                 daxr[dax['ax']] = {'Type':kk, 'invert':invert,
                                    'xref':xref, 'Bck':None, 'dh':dhh}
+                if 'incx' in dax.keys():
+                    daxr[dax['ax']]['incx'] = dax['incx']
+
                 if dhh is not None:
                     for kh in dhh.keys():
                         for jj in range(0,len(dhh[kh])):
@@ -560,6 +563,11 @@ class KeyHandler(object):
                                     h.set_text(dtg[kk][ll]['txt'][indh])
                             elif 'xy' in dtg[kk][ll].keys():
                                 h.set_data(dtg[kk][ll]['xy'][indh])
+                            elif 'imshow' in dtg[kk][ll].keys():
+                                h.set_data(dtg[kk][ll]['imshow']['data'][indh,:][dtg[kk][ll]['imshow']['ind']])
+                            elif 'pcolormesh' in dtg[kk][ll].keys():
+                                ncol = dtg[kk][ll]['pcolormesh']['cm'](dtg[kk][ll]['pcolormesh']['norm'](dtg[kk][ll]['pcolormesh']['data'][indh,:]))
+                                h.set_facecolor(ncol)
                             else:
                                 if 'x' in dtg[kk][ll].keys():
                                     h.set_xdata(dtg[kk][ll]['x'][indh,:])
@@ -587,7 +595,9 @@ class KeyHandler(object):
                     #ax.draw_artist(hh)
 
         for ax in lax:
-            for kk in self.daxr[ax]['dh'].keys():
+            # Sort alphabetically to make sure vline (pix) is plotted after
+            # imshow / pcolormesh (otherwise pixel not visible)
+            for kk in sorted(list(self.daxr[ax]['dh'].keys())):
                 for ii in range(0,len(self.daxr[ax]['dh'][kk])):
                     for h in self.daxr[ax]['dh'][kk][ii]['h']:
                         ax.draw_artist(h)
@@ -611,7 +621,7 @@ class KeyHandler(object):
         self.curax = event.inaxes
 
         Type = self.daxr[self.curax]['Type']
-        Type = 'chan' if 'chan' in Type else Type
+        #Type = 'chan' if 'chan' in Type else Type
         if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
             print("     Max. nb. of %s plots reached !!!"%Type)
             return
@@ -619,7 +629,7 @@ class KeyHandler(object):
         val = self.daxr[event.inaxes]['xref']
         if C3:
             evxy = np.r_[event.xdata,event.ydata]
-            d2 = np.sum((val-evxy[:,np.newaxis])**2,axis=0)
+            d2 = np.sum((val-evxy[np.newaxis,:])**2,axis=1)
         else:
             d2 = np.abs(event.xdata-val)
         ind = np.nanargmin(d2)
@@ -657,23 +667,23 @@ class KeyHandler(object):
             return
 
         Type = self.daxr[self.curax]['Type']
-        Type = 'chan' if 'chan' in Type else Type
+        #Type = 'chan' if 'chan' in Type else Type
         if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
                 print("     Max. nb. of %s plots reached !!!"%Type)
                 return
 
-        kdir = [kk for kk in self.lkeys
-                if (kk in event.key and not kk in ['shift','control','alt'])]
         val = self.daxr[self.curax]['xref']
         if self.alt:
             inc = 50 if Type=='t' else 10
         else:
             inc = 1
         if self.daxr[self.curax]['Type']=='chan2D':
+            kdir = [kk for kk in self.lkeys
+                    if (kk in event.key and not kk in ['shift','control','alt'])]
             c = -inc if self.daxr[self.curax]['invert'] else inc
-            x12 = val[:,self.ref[Type]['ind'][self.ref[Type]['ncur']-1]]
-            x12 = x12 + c*self.daxr[self.curax]['incx'][kdir]
-            d2 = np.sum((val-x12[:,np.newaxis])**2,axis=0)
+            x12 = val[self.ref[Type]['ind'][self.ref[Type]['ncur']-1],:]
+            x12 = x12 + c*self.daxr[self.curax]['incx'][kdir[0]]
+            d2 = np.sum((val-x12[np.newaxis,:])**2,axis=1)
             ind = np.nanargmin(d2)
         else:
             c = -inc if 'left' in event.key else inc
