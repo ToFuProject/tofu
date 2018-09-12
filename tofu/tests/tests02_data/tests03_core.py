@@ -284,7 +284,7 @@ class Test01_Data1D:
 
 
 
-class Test01_Data2D(Test01_Data1D):
+class Test02_Data2D(Test01_Data1D):
     @classmethod
     def setup_class(cls):
         thet = np.linspace(0,2.*np.pi,100)
@@ -316,6 +316,7 @@ class Test01_Data2D(Test01_Data1D):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             if oo._X12 is not None and oo.geom is not None:
+                oo.set_indch()
                 KH = oo.plot(key=None, Max=None, fs=None,
                              invert=True, vmin=0, wintit='test', tit='AHAH',
                              dmargin=dict(left=0.05,right=0.9))
