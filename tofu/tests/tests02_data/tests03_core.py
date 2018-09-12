@@ -253,7 +253,7 @@ class Test01_Data1D:
         o0 = self.LObj[0]
         for ii in range(1,len(self.LObj)):
             oo = self.LObj[ii]
-            KH = oo.compare(o0, connect=toolbar)
+            KH = oo.plot_compare(o0, connect=toolbar)
         plt.close('all')
 
     def test10_tofromdict(self):
@@ -306,6 +306,8 @@ class Test01_Data2D(Test01_Data1D):
                                plot=False, out='')
         cls.LObj = [tfd.Data2D(sig00, Id='0', SavePath=here),
                     tfd.Data2D(sig01, t=t, Id='1', SavePath=here),
+                    tfd.Data2D(sig01, t=t, Ves=C0.Ves, LStruct=C0.LStruct,
+                               Id='1', SavePath=here),
                     tfd.Data2D(sig00, LCam=C0, Id='2', SavePath=here),
                     tfd.Data2D(sig01, t=t, LCam=C0, Id='3', SavePath=here)]
 

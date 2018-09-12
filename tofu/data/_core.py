@@ -64,9 +64,9 @@ class Data(object):
         else:
             import tofu.geom as tfg
             if '1D' in fd['CamCls']:
-                LCam = [tfg.LOSCam1D(fromdict=cc) for cc in fd['geom']]
+                LCam = [tfg.LOSCam1D(fromdict=cc) for cc in fd['geom']['LCam']]
             else:
-                LCam = [tfg.LOSCam2D(fromdict=cc) for cc in fd['geom']]
+                LCam = [tfg.LOSCam2D(fromdict=cc) for cc in fd['geom']['LCam']]
             self._set_LCam(LCam=LCam, CamCls=fd['CamCls'])
         if 'dextra' in fd.keys():
             dextra = fd['dextra']
@@ -94,7 +94,7 @@ class Data(object):
             if geom['LStruct'] is not None:
                 geom['LStruct'] = [ss._todict() for ss in geom['LStruct']]
         else:
-            geom = [cc._todict() for cc in self.geom['LCam']]
+            geom = {'LCam':[cc._todict() for cc in self.geom['LCam']]}
         out['geom'] = geom
         return out
 
@@ -514,7 +514,7 @@ class Data(object):
         return data
 
     def plot(self, key=None, invert=None, plotmethod='imshow',
-             cmap=plt.cm.gray, ms=4, ntMax=3, nchMax=None, nlbdMax=3,
+             cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
              Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
              vmin=None, vmax=None, normt=False, draw=True, connect=True):
         """ Plot the data content in a predefined figure  """
@@ -526,11 +526,11 @@ class Data(object):
                              draw=draw, connect=connect)
         return KH
 
-    def compare(self, lD, key=None, invert=None, plotmethod='imshow',
-                cmap=plt.cm.gray, ms=4, ntMax=3, nchMax=None, nlbdMax=3,
-                Bck=True, indref=0, fs=None, dmargin=None,
-                vmin=None, vmax=None, normt=False,
-                wintit=None, tit=None, draw=True, connect=True):
+    def plot_compare(self, lD, key=None, invert=None, plotmethod='imshow',
+                     cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
+                     Bck=True, indref=0, fs=None, dmargin=None,
+                     vmin=None, vmax=None, normt=False,
+                     wintit=None, tit=None, draw=True, connect=True):
         """ Plot the data content in a predefined figure  """
         C0 = isinstance(lD,list)
         C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
@@ -841,11 +841,11 @@ class Data1D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, fromdict=None,
+                 LCam=None, Ves=None, LStruct=None, fromdict=None,
                  SavePath=os.path.abspath('./')):
         Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
                  Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra, CamCls='1D',
-                 LCam=LCam, fromdict=fromdict, SavePath=SavePath)
+                 LCam=LCam, Ves=Ves, LStruct=LStruct, fromdict=fromdict, SavePath=SavePath)
 
 
 
@@ -853,11 +853,12 @@ class Data2D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, X12=None, fromdict=None,
+                 LCam=None, Ves=None, LStruct=None, X12=None, fromdict=None,
                  SavePath=os.path.abspath('./')):
         Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
                       Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra,
-                      LCam=LCam, CamCls='2D', fromdict=fromdict, SavePath=SavePath)
+                      LCam=LCam, Ves=Ves, LStruct=LStruct, CamCls='2D',
+                      fromdict=fromdict, SavePath=SavePath)
         self.set_X12(X12)
 
     def set_X12(self, X12=None):

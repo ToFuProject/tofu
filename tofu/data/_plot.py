@@ -24,7 +24,7 @@ except Exception:
 __all__ = ['Data_plot']
 __author_email__ = 'didier.vezinet@cea.fr'
 _wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
-_nchMax, _ntMax = 3, 3
+_nchMax, _ntMax = 4, 3
 _fontsize = 8
 _lls = ['-','--','.-',':']
 _lct = [plt.cm.tab20.colors[ii] for ii in [0,2,4,1,3,5]]
@@ -34,7 +34,7 @@ _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
 
 def Data_plot(lData, key=None, Bck=True, indref=0,
               cmap=plt.cm.gray, ms=4, vmin=None, vmax=None, normt=False,
-              ntMax=_ntMax, nchMax=None, nlbdMax=3,
+              ntMax=None, nchMax=None, nlbdMax=3,
               lls=_lls, lct=_lct, lcch=_lcch,
               plotmethod='imshow', invert=False,
               fs=None, dmargin=None, wintit=_wintit, tit=None,
@@ -46,6 +46,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
         lData = [lData]
 
     if '1D' in lData[0]._CamCls:
+        ntMax = _ntMax if ntMax is None else ntMax
         nchMax = _nchMax if nchMax is None else nchMax
         KH = _Data1D_plot(lData, key=key, indref=indref,
                           nchMax=nchMax, ntMax=ntMax,
@@ -54,17 +55,8 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
                           fontsize=fontsize, draw=draw, connect=connect)
 
     else:
-        nchMax = 6 if nchMax is None else nchMax
-        assert len(lData)==1
-        # dax, KH = _Data2D_plot(lData, key=key, Bck=Bck, cmap=cmap, ms=ms,
-                               # nchMax=nchMax, plot=plotmethod, invert=invert,
-                               # fs=fs, dmargin=dmargin, wintit=wintit,
-                               # draw=draw, connect=connect)
-        # dax, KH = _Data2D_plot(lData[0], key=key, cmap=cmap, ms=ms, normt=normt,
-                               # Max=nchMax, plot=plotmethod, invert=invert,
-                               # fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                               # draw=draw, connect=connect, vmin=vmin, vmax=vmax)
-
+        ntMax = 1 if ntMax is None else ntMax
+        nchMax = _nchMax if nchMax is None else nchMax
         KH = _Data2D_plot(lData, key=key, indref=indref,
                           nchMax=nchMax, ntMax=ntMax,
                           Bck=Bck, lls=lls, lct=lct, lcch=lcch,

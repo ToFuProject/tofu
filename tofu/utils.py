@@ -341,7 +341,13 @@ class KeyHandler(object):
         self.ref, dnMax = {}, {'chan':nchMax, 'chan2D':nchMax,'t':ntMax,'lamb':nlambMax}
         for kk in self.lk:
             if not kk in ['cross','hor','colorbar','txtt','txtch','txtlamb','other']:
-                self.ref[kk] = {'ind':np.zeros((ntMax,),dtype=int),
+                if kk=='t':
+                    nn = ntMax
+                elif 'chan' in kk:
+                    nn = nchMax
+                else:
+                    nn = nlambMax
+                self.ref[kk] = {'ind':np.zeros((nn,),dtype=int),
                                 'val':[None for ii in range(0,dnMax[kk])],
                                 'ncur':1, 'nMax':dnMax[kk]}
 
