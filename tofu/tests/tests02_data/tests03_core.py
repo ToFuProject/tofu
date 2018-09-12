@@ -151,7 +151,7 @@ class Test01_Data1D:
             oo = self.LObj[ii]
             out0 = oo.dchans()
             out1 = oo.dchans(key='Name')
-            if oo.geom is None:
+            if oo.geom is None or oo.geom['LCam'] is None:
                 assert out0 is None and out1 is None
             else:
                 lK = list(oo.dchans().keys())
@@ -192,7 +192,7 @@ class Test01_Data1D:
     def test04_select_ch(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
-            if oo.geom is not None:
+            if oo.geom is not None and oo.geom['LCam'] is not None:
                 ind = oo.select_ch(touch='Ves', out=bool)
                 assert ind.sum()==oo.Ref['nch']
             if oo.Ref['dchans'] not in [None,{}] :
@@ -202,7 +202,7 @@ class Test01_Data1D:
     def test05_set_indch(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
-            if oo.geom is not None:
+            if oo.geom is not None and oo.geom['LCam'] is not None:
                 oo.set_indch(touch='Ves')
                 assert oo.indch.sum()==oo.Ref['nch']
             if oo.Ref['dchans'] not in [None,{}] :

@@ -43,7 +43,6 @@ class Data(object):
             self._fromdict(fromdict)
         self._Done = True
 
-    # To be updated acording to self._geom
     def _fromdict(self, fd):
         _Data_check_fromdict(fd)
         self._Id = tfpf.ID(fromdict=fd['Id'])
@@ -56,10 +55,14 @@ class Data(object):
         if fd['geom'] is None:
             self._geom = None
         elif fd['geom']['LCam'] is None:
-            self._set_LCam(LCam = None,
-                           Ves = tfg.Ves(fromdict=fd['geom']['Ves']),
-                           LStruct = [tfg.Struct(fromdict=ss)
-                                      for ss in fd['geom']['LStruct']],
+            import tofu.geom as tfg
+            Ves, LStruct = None, None
+            if fd['geom']['Ves'] is not None:
+                Ves = tfg.Ves(fromdict=fd['geom']['Ves'])
+            if fd['geom']['LStruct'] is not None:
+                LStruct = [tfg.Struct(fromdict=ss)
+                           for ss in fd['geom']['LStruct']]
+            self._set_LCam(LCam=None, Ves=Ves, LStruct=LStruct,
                            CamCls = fd['geom']['CamCls'])
         else:
             import tofu.geom as tfg
@@ -74,7 +77,6 @@ class Data(object):
             dextra = None
         self._dextra = dextra
 
-    # To be updated acording to self._geom
     def _todict(self):
         out = {'Id':self.Id._todict(),
                'Ref':self._Ref,
@@ -89,10 +91,10 @@ class Data(object):
         elif self.geom['LCam'] is None:
             geom = {'Ves':None, 'LStruct':None,
                     'LCam':None, 'CamCls':self._CamCls}
-            if geom['Ves'] is not None:
+            if self.geom['Ves'] is not None:
                 geom['Ves'] = self.geom['Ves']._todict()
-            if geom['LStruct'] is not None:
-                geom['LStruct'] = [ss._todict() for ss in geom['LStruct']]
+            if self.geom['LStruct'] is not None:
+                geom['LStruct'] = [ss._todict() for ss in self.geom['LStruct']]
         else:
             geom = {'LCam':[cc._todict() for cc in self.geom['LCam']]}
         out['geom'] = geom
@@ -646,7 +648,7 @@ def _Data_check_fromdict(fd):
     k0 = {'Id':dict, 'Ref':dict, 'dunits':[None,dict],
           'indt':[None,np.ndarray], 'indch':[None,np.ndarray],
           'data0':[None,dict], 'CamCls':str, 'fft':[None,dict],
-          'geom':[None,list]}
+          'geom':[None,dict]}
     keys = list(fd.keys())
     for kk in k0:
         assert kk in keys, "%s must be a key of fromdict"%kk
