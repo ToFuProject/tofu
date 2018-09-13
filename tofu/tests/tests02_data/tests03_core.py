@@ -248,7 +248,7 @@ class Test01_Data1D:
         plt.close('all')
 
     def test09_compare(self):
-        if self.__class__ is Test01_Data2D:
+        if self.__class__ is Test02_Data2D:
             return
         toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
         o0 = self.LObj[0]
