@@ -882,7 +882,7 @@ class Data2D(Data):
         self.set_X12(X12)
 
     def set_X12(self, X12=None):
-        X12 = X12 if self.geom is None else None
+        X12 = X12 if (self.geom is None or self.geom['LCam'] is None) else None
         if X12 is not None:
             X12 = np.asarray(X12)
             assert X12.shape==(2,self.Ref['nch'])
