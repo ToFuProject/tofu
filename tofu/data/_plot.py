@@ -652,7 +652,20 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
         data = lData[ii].data
         if nt==1:
             data = data.reshape((nt,nch))
-        data[:,indpnan.ravel()[lData[ii]._indch]] = np.nan
+
+        try:
+            if lData[ii]._indch is None:
+                data[:,indpnan.ravel()] = np.nan
+            else:
+                data[:,indpnan.ravel()[lData[ii]._indch]] = np.nan
+        except Exception as err:
+            if lData[ii]._indch is None:
+                msg = [data.shape, indpnan.shape]
+            else:
+                msg = [data.shape, indpnan.shape,
+                       lData[ii]._indch.shape, lData[ii]._indch.max()]
+            msg = '\n' + ' \n'.join([str(ss) for ss in msg])
+            raise Exception(msg)
 
         # Setting tref and plotting handles
         if ii==0:
