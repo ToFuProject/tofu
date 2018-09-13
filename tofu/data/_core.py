@@ -127,6 +127,9 @@ class Data(object):
         else:
             return self._indch
     @property
+    def mask(self):
+        return self._mask
+    @property
     def t(self):
         if self._Ref['t'] is None:
             return None
@@ -204,7 +207,7 @@ class Data(object):
 
         self._dunits = {} if dunits is None else dunits
         self._data, self._t, self._nt = None, None, None
-        self._indt, self._indch = None, None
+        self._indt, self._indch, self._mask = None, None, None
         self._data0 = {'data':None,'t':None,'Dt':None}
         self._fft, self._interp_t = None, None
         self._indt_corr, self._indch_corr = None, None
@@ -321,7 +324,7 @@ class Data(object):
         C = [indt is None,t is None]
         assert np.sum(C)>=1
         if all(C):
-            ind = np.ones((self._Ref['nt'],),dtype=bool)
+            ind = None
             self._t, self._nt = None, None
         elif C[0]:
             ind = self.select_t(t=t, out=bool)
@@ -372,12 +375,21 @@ class Data(object):
         C = [indch is None, key is None, touch is None]
         assert np.sum(C)>=2
         if all(C):
-            ind = np.ones((self._Ref['nch'],),dtype=bool)
+            ind = None
         elif C[0]:
             ind = self.select_ch(key=key, val=val, touch=touch, log=log, out=bool)
         elif C[1]:
             ind = _format_ind(indch, n=self._Ref['nch'])
         self._indch = ind
+
+    def set_mask(self, ind=None, val=np.nan):
+        assert type(val) in [int,float,np.int64,np.float64]
+        C = ind is None
+        if C:
+            mask = None
+        else:
+            mask = {'ind':_format_ind(ind, n=self._Ref['nch']), 'val':val}
+        self._mask = mask
 
     def set_data0(self, data0=None, Dt=None, indt=None):
         assert self._Ref['nt']>1, "Useless if only one data slice !"
@@ -429,13 +441,20 @@ class Data(object):
         self._set_data()
 
     def _calc_data_core(self):
-         # Get time interval
-        d = self._Ref['data'][self.indt,:]
+        d = self._Ref['data'].copy()
+        # Get time interval
+        if self._indt is not None:
+            d = d[self.indt,:]
         # Substract reference time data
         if self._data0['data'] is not None:
             d = d - self._data0['data'][np.newaxis,:]
+        # Apply mask of any
+        mask = self.mask
+        if mask is not None:
+            d[:,mask['ind']] = mask['val']
         # Get desired channels
-        d = d[:,self.indch]
+        if self._indch is not None:
+            d = d[:,self.indch]
         return d
 
     def _set_data(self):
