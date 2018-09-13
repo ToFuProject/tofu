@@ -652,7 +652,7 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
         data = lData[ii].data
         if nt==1:
             data = data.reshape((nt,nch))
-        data[:,indpnan.ravel()] = np.nan
+        data[:,indpnan.ravel()[lData[ii]._indch]] = np.nan
 
         # Setting tref and plotting handles
         if ii==0:
