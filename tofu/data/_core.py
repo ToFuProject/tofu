@@ -890,8 +890,10 @@ class Data2D(Data):
 
     def get_X12(self, out='1d'):
         if self._X12 is None:
+            C0 = self.geom is not None
+            C0 = C0 and self.geom['LCam'] is not None
             msg = "X12 must be set for plotting if LCam not provided !"
-            assert self.geom is not None, msg
+            assert C0, msg
             X12, DX12 = self.geom['LCam'][0].get_X12(out=out)
         else:
             X12 = self._X12
