@@ -569,11 +569,10 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
             'down':np.r_[0.,-dX12[1]], 'up':np.r_[0.,dX12[1]]}
 
     if normt:
-        data = lData[0].data/np.nanmax(lData[0].data,axis=1)[:,np.newaxis]
         vmin, vmax = 0., 1.
     else:
-        vmin = np.nanmin(lData[0].data) if vmin is None else vmin
-        vmax = np.nanmax(lData[0].data) if vmax is None else vmax
+        vmin = np.nanmin(lDlim[:,0]) if vmin is None else vmin
+        vmax = np.nanmax(lDlim[:,1]) if vmax is None else vmax
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
 
     # Format axes
@@ -590,17 +589,17 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
         tit = ' - '.join(tit)
     dax['t'][0]['ax'].figure.suptitle(tit)
 
-    # Prepare data in axes
-    for ii in range(0,len(dax['t'])):
-        dtrig = {'2dprof':[0 for jj in range(0,nDat)]} if ii==1 else None
-        dax['t'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}
-                                       for jj in range(0,nDat)]
+    # Prepare data in axe
+    dax['t'][0]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':None}
+                                  for jj in range(0,nDat)]
+    dax['t'][1]['dh']['vline'] = [{'h':[0], 'xref':0,
+                                   'trig':{'2dprof':[0]}}
+                                  for jj in range(0,nDat)]
     dax['t'][1]['dh']['ttrace'] = [0 for jj in range(0,nDat)]
 
     for ii in range(0,len(dax['chan2D'])):
-        dtrig = {'ttrace':[0 for jj in range(0,nDat)]} if ii==0 else None
-        dax['chan2D'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}
-                                            for jj in range(0,nDat)]
+        dtrig = {'ttrace':[0]}
+        dax['chan2D'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
         dax['chan2D'][ii]['dh']['2dprof'] = [0]
 
     mpl.colorbar.ColorbarBase(dax['colorbar'][0]['ax'], cmap=cmap,
@@ -656,6 +655,8 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
         msg = "Cannot plot CamLOS2D if indch is not None !"
         assert lData[ii]._indch is None, msg
         data[:,indpnan.ravel()] = np.nan
+        if normt:
+            data = data/np.nanmax(data,axis=1)[:,np.newaxis]
 
         # Setting tref and plotting handles
         if ii==0:
@@ -663,12 +664,12 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
             chref = chans.copy()
             for jj in range(0,len(dax['t'])):
                 dax['t'][jj]['xref'] = tref
-            for jj in range(0,len(dax['chan2D'])):
-                dax['chan2D'][jj]['xref'] = X12T
             if Bck:
                 dax['t'][1]['ax'].fill_between(t, np.nanmin(data,axis=1),
                                                np.nanmax(data, axis=1),
                                                facecolor=cbck)
+        dax['chan2D'][ii]['xref'] = X12T
+
         # Adding vline t and trig
         ltg, lt = [], []
         for ll in range(0,len(dax['t'])):
@@ -678,7 +679,7 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                 l0 = dax['t'][ll]['ax'].axvline(np.nan, c=lct[jj], ls=lls[ii],
                                                lw=1.)
                 lv.append(l0)
-                if ll==0:
+                if ll==1:
                     nanY = np.full(indp.shape,np.nan)
                     if plotmethod=='imshow':
                         extent = (DX1[0],DX1[1],DX2[0],DX2[1])
@@ -703,14 +704,14 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                                                       fontsize=6., ha='center',
                                                       va='bottom')
                         lt.append(l)
-            if ll==0:
+            if ll==1:
                 dtg = {'xref':t, 'h':ltg}
                 if plotmethod=='imshow':
                     dtg.update({plotmethod:{'data':data,'ind':indp}})
                 else:
                     dtg.update({plotmethod:{'data':data, 'norm':norm,'cm':cmap}})
             dax['t'][ll]['dh']['vline'][ii]['h'] = lv
-        dax['t'][1]['dh']['vline'][ii]['trig']['2dprof'][ii] = dtg
+        dax['t'][1]['dh']['vline'][ii]['trig']['2dprof'][0] = dict(dtg)
 
         if ii==0:
             dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
@@ -720,26 +721,29 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
 
         # Adding vline ch
         ltg = []
-        for ll in range(0,len(dax['chan2D'])):
-            dax['chan2D'][ll]['dh']['vline'][ii]['xref'] = X12T
-            lv = []
-            for jj in range(0,nchMax):
-                lab = r"Data{0} ch{1}".format(ii,jj)
-                l0, = dax['chan2D'][ll]['ax'].plot([np.nan],[np.nan],
-                                                   mec=lcch[jj], ls='None',
-                                                   marker='s', mew=2.,
-                                                   ms=ms, mfc='None',
-                                                   label=lab, zorder=10)
-                lv.append(l0)
-                if ll==0:
-                    l1, = dax['t'][1]['ax'].plot(t,np.full((nt,),np.nan),
-                                                 c=lcch[jj], ls=lls[ii], lw=1.,
-                                                 label=lab)
-                    ltg.append(l1)
-            if ll==0:
-                dtg = {'xref':X12T, 'h':ltg, 'y':data.T}
-            dax['chan2D'][ll]['dh']['vline'][ii]['h'] = lv
-        dax['chan2D'][0]['dh']['vline'][ii]['trig']['ttrace'][ii] = dtg
+        #for ll in range(0,len(dax['chan2D'])):
+        #
+        dax['chan2D'][ii]['dh']['vline'][0]['xref'] = X12T
+        lv = []
+        for jj in range(0,nchMax):
+            lab = r"Data{0} ch{1}".format(ii,jj)
+            l0, = dax['chan2D'][ii]['ax'].plot([np.nan],[np.nan],
+                                               mec=lcch[jj], ls='None',
+                                               marker='s', mew=2.,
+                                               ms=ms, mfc='None',
+                                               label=lab, zorder=10)
+            lv.append(l0)
+            #if ll==0:
+            #
+            l1, = dax['t'][1]['ax'].plot(t,np.full((nt,),np.nan),
+                                         c=lcch[jj], ls=lls[ii], lw=1.,
+                                         label=lab)
+            ltg.append(l1)
+            #
+        dtg = {'xref':X12T, 'h':ltg, 'y':data.T}
+        dax['chan2D'][ii]['dh']['vline'][0]['h'] = lv
+        #
+        dax['chan2D'][ii]['dh']['vline'][0]['trig']['ttrace'][0] = dtg
         dax['t'][1]['dh']['ttrace'][ii] = dtg
 
         # Adding Equilibrium and extra
