@@ -314,7 +314,7 @@ class DChans(object):
 
 ###############################################
 #           Plot KeyHandler
-###############################################
+################ ##############################
 
 class KeyHandler(object):
     """ Base class for handling event on tofu interactive figures """
@@ -324,6 +324,10 @@ class KeyHandler(object):
         assert all([kk in lk for kk in daxT.keys()]), str(daxT.keys())
         assert all([type(dd) is list for dd in daxT.values()]), str(daxT.values())
         self.lk = sorted(list(daxT.keys()))
+
+        # Remove None axes from daxT
+        for kk in daxT.keys():
+            daxT[kk] = [dd for dd in daxT[kk] if dd['ax'] is not None]
 
         self.can = can
         daxr, dh = self._make_daxr_dh(daxT)

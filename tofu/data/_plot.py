@@ -27,6 +27,7 @@ __author_email__ = 'didier.vezinet@cea.fr'
 _wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
 _nchMax, _ntMax = 4, 3
 _fontsize = 8
+_labelpad = 0
 _lls = ['-','--','.-',':']
 _lct = [plt.cm.tab20.colors[ii] for ii in [0,2,4,1,3,5]]
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
@@ -48,7 +49,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
     if fontsize is None:
         fontsize = _fontsize
 
-    if '1D' in lData[0]._CamCls:
+    if '1d' in lData[0]._CamCls.lower():
         ntMax = _ntMax if ntMax is None else ntMax
         nchMax = _nchMax if nchMax is None else nchMax
         KH = _Data1D_plot(lData, key=key, indref=indref,
@@ -947,7 +948,7 @@ def _init_Data_combine(fs=None, dmargin=None,
     # Axes
     gs1 = gridspec.GridSpec(nDat+1, 5, **dmargin)
 
-    laxp, laxc, laxC, laxtxtch = [], [], [], []
+    laxp, laxp2, laxT, laxc, laxC, laxtxtch = [], [], [], [], [], []
     Laxt = [fig.add_subplot(gs1[0,:2], fc='w')]
     axH = fig.add_subplot(gs1[0,4], fc='w')
     axH.set_aspect('equal', adjustable='datalim')
@@ -955,16 +956,20 @@ def _init_Data_combine(fs=None, dmargin=None,
         Laxt.append(fig.add_subplot(gs1[ii,:2],fc='w', sharex=Laxt[0]))
         if '2d' in lTypes[ii-1].lower():
             axp = fig.add_subplot(gs1[ii,2:-1],fc='w')
+            axp.set_aspect('equal', adjustable='datalim')
             cb = make_axes_locatable(axp)
             cb = cb.append_axes('right', size='10%', pad=0.1)
             cb.yaxis.tick_right()
             cb.set_xticks([])
             cb.set_xticklabels([])
+            laxp2.append(axp)
+            laxp.append(None)
         else:
             axp = fig.add_subplot(gs1[ii,2:-1],fc='w', sharey=Laxt[-1])
             cb = None
-        axp.set_aspect('equal', adjustable='datalim')
-        laxp.append(axp)
+            laxp.append(axp)
+            laxp2.append(None)
+        laxT.append(axp)
         laxc.append(cb)
         axC = fig.add_subplot(gs1[ii,4], fc='w')
         axC.set_aspect('equal', adjustable='datalim')
@@ -978,9 +983,9 @@ def _init_Data_combine(fs=None, dmargin=None,
             DX = Laxt[-1].get_position().bounds[2]
         laxtxtch.append( fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w') )
 
-    Ytxt = laxp[0].get_position().bounds[1] + laxp[0].get_position().bounds[3]
-    Xtxt = laxp[0].get_position().bounds[0]
-    DX = laxp[0].get_position().bounds[2]
+    Ytxt = laxT[0].get_position().bounds[1] + laxT[0].get_position().bounds[3]
+    Xtxt = laxT[0].get_position().bounds[0]
+    DX = laxT[0].get_position().bounds[2]
     axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
 
     for ax in laxtxtch + [axtxtt]:
@@ -992,7 +997,8 @@ def _init_Data_combine(fs=None, dmargin=None,
 
     # Dict
     dax = {'t':[{'ax':aa, 'dh':{'vline':[]}} for aa in Laxt],
-           'chan2D':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp],
+           'chan':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp],
+           'chan2D':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp2],
            'cross':[{'ax':aa, 'dh':{}} for aa in laxC],
            'hor':[{'ax':axH, 'dh':{}}],
            'colorbar':[{'ax':aa, 'dh':{}} for aa in laxc],
@@ -1012,7 +1018,8 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
                        cmap=plt.cm.gray, ms=4, NaN0=np.nan,
                        vmin=None, vmax=None, normt=False, dMag=None,
                        fs=None, dmargin=None, wintit=_wintit, tit=None,
-                       plotmethod='imshow', invert=False, fontsize=_fontsize,
+                       plotmethod='imshow', invert=False,
+                       fontsize=_fontsize, labelpad=_labelpad,
                        draw=True, connect=True):
 
     #########
@@ -1023,14 +1030,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
         lData[0], lData[indref] = lData[indref], lData[0]
     nDat = len(lData)
 
-    # Get data and time limits
-    Dunits = lData[0].units['data']
-    lDlim = np.array([(np.nanmin(dd.data),
-                       np.nanmax(dd.data)) for dd in lData])
-    Dd = [min(0.,np.min(lDlim[:,0])),
-          max(0.,np.max(lDlim[:,1]))]
-    Dd = [Dd[0]-0.05*np.diff(Dd), Dd[1]+0.05*np.diff(Dd)]
-
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
 
     # Format axes
     lTypes = [dd.Id.Cls for dd in lData]
@@ -1046,8 +1046,11 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
     dax['t'][0]['ax'].figure.suptitle(tit)
 
     for ii in range(nDat):
-        ylab = r"{0} ({1})".format(lData[ii].Id.Diag, lData[ii].units['data'])
-        dax['t'][ii+1]['ax'].set_ylabel(ylab, fontsize=fontsize)
+        dax['cross'][ii]['ax'].set_ylabel(r"Z (m)", **fldict)
+    dax['cross'][-1]['ax'].set_xlabel(r"R (m)", **fldict)
+    dax['hor'][0]['ax'].set_xlabel(r"X (m)", **fldict)
+    dax['hor'][0]['ax'].set_ylabel(r"Y (m)", **fldict)
+
 
 
     # Plot vessel
@@ -1108,17 +1111,54 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
                                  ncol=4, mode='expand', borderaxespad=0.,
                                  prop={'size':fontsize})
 
-
+    ###################
     # Plot
-    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
+    ###################
+    dax['t'][0]['xref'] = lData[0].t
+    dax['t'][0]['dh']['vline'] = [{'h':[0], 'xref':lData[0].t, 'trig':None}]
+    lt = []
+    for ii in range(0,ntMax):
+        l0 = dax['t'][0]['ax'].axvline(np.nan, lw=1., ls='-', c=lct[ii])
+        lt.append(l0)
+    dax['t'][0]['dh']['vline'][0]['h'] = lt
+
+    Dt = [np.inf,-np.inf]
     cbck = (0.8,0.8,0.8,0.8)
     for ii in range(0,nDat):
+        kax = 'chan2D' if '2d' in lData[ii].Id.Cls.lower() else 'chan'
+        print("")   # DB
+        print(ii, kax, lData[ii].Id.Name, lData[ii].Id.Diag, lData[ii].Id.Cls)    # DB
+
+        ylab = r"{0} ({1})".format(lData[ii].Id.Diag, lData[ii].units['data'])
+        dax['t'][ii+1]['ax'].set_ylabel(ylab, **fldict)
+
+        # Plot cross-section
+        if lData[ii].geom is not None:
+            if lData[ii].geom['Ves'] is not None:
+                out = lData[ii].geom['Ves'].plot(Lax=dax['cross'][ii]['ax'],
+                                                 Proj='Cross', Elt='P',
+                                                 dLeg=None, draw=False)
+                dax['cross'][ii]['ax'] = out
+            if lData[ii].geom['LStruct'] is not None:
+                for ss in lData[ii].geom['LStruct']:
+                    out = ss.plot(Lax=dax['cross'][ii]['ax'], Proj='Cross',
+                                  Elt='P', dLeg=None, draw=False)
+                    dax['cross'][ii]['ax'] = out
+            if kax=='chan' and lData[ii].geom['LCam'] is not None:
+                for cc in lData[ii].geom['LCam']:
+                    out = cc.plot(Lax=[dax['cross'][ii]['ax'], dax['hor'][0]['ax']],
+                                  Elt='L', Lplot='In', EltVes='',
+                                  EltStruct='',
+                                  dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
+                                  dLeg=None, draw=False)
+                    dax['cross'][ii]['ax'], dax['hor'][0]['ax'] = out
+
+
         nt, nch = lData[ii].nt, lData[ii].nch
 
         chansRef = np.arange(0,lData[ii].Ref['nch'])
         chans = chansRef[lData[ii].indch]
-        Dchans = [-1,lData[ii].Ref['nch']]
-        Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
+        Dch = [-1,lData[ii].Ref['nch']]
         if lData[ii].Ref['dchans'] in [None,{}]:
             chlabRef = chansRef
             chlab = chans
@@ -1141,21 +1181,173 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
         if nt==1:
             data = data.reshape((nt,nch))
 
+        # Get data and time limits
+        Dunits = lData[ii].units['data']
+        Dd0 = [min(0.,np.nanmin(data)), max(0.,np.nanmax(data))]
+        Dd = [Dd0[0]-0.05*np.diff(Dd0), Dd0[1]+0.05*np.diff(Dd0)]
+
+        # Prepare data in axe
+        dtrig = {'ttrace':[0]}
+        if '2d' in lData[ii].Id.Cls.lower():
+            dax['t'][ii+1]['dh']['vline'] = [{'h':[0], 'xref':0,
+                                              'trig':{'2dprof':[0]}}]
+            #dax['chan2D'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+            dax['chan2D'][ii]['dh']['2dprof'] = [0]
+            if normt:
+                vmin, vmax = 0., 1.
+            else:
+                vmin = Dd0[0] if vmin is None else vmin
+                vmax = Dd0[1] if vmax is None else vmax
+            norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+            mpl.colorbar.ColorbarBase(dax['colorbar'][ii]['ax'], cmap=cmap,
+                                      norm=norm, orientation='vertical')
+        else:
+            dax['t'][ii+1]['dh']['vline'] = [{'h':[0], 'xref':0,
+                                              'trig':{'1dprof':[0]}}]
+            #dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+            dax['chan'][ii]['dh']['1dprof'] = [0]
+        #dax['t'][ii+1]['dh']['ttrace'] = [0]
+
+
+        if kax=='chan2D':
+            msg = "Cannot plot CamLOS2D if indch is not None !"
+            assert lData[ii]._indch is None, msg
+
+            if normt:
+                data = data/np.nanmax(data,axis=1)[:,np.newaxis]
+
+            X12, DX12 = lData[ii].get_X12(out='1d')
+            X12T = X12.T
+            #X12[:,np.all(np.isnan(lData[0].data),axis=0)] = np.nan
+            X1p, X2p, indp, dX12 = _prepare_pcolormeshimshow(X12, out=plotmethod)
+            DX1 = [np.nanmin(X1p),np.nanmax(X1p)]
+            DX2 = [np.nanmin(X2p),np.nanmax(X2p)]
+
+            indp = indp.T
+            indpnan = np.isnan(indp)
+            indp[indpnan] = 0
+            indp = indp.astype(int)
+            incx = {'left':np.r_[-dX12[0],0.], 'right':np.r_[dX12[0],0.],
+                    'down':np.r_[0.,-dX12[1]], 'up':np.r_[0.,dX12[1]]}
+
+            data[:,indpnan.ravel()] = np.nan
+
+            dax[kax][ii]['xref'] = X12T
+
+            DX, DY = DX1, DX2
+            xticks = []
+            xtlab = []
+            xtrot = 0.
+            xlab = r"pix."
+            ylab = r"pix."
+        else:
+            DX, DY = Dch, Dd
+            xticks = chansRef
+            xtlab = chlabRef
+            xtrot = 45
+            xlab = r"chans. (indices)"
+
+        # Setting tref and plotting handles
+        tref = t.copy()
+        chref = chans.copy()
+        dax['t'][ii+1]['xref'] = tref
+
+        if kax=='chan':
+            dax[kax][ii]['xref'] = chref
+        else:
+            dax[kax][ii]['xref'] = X12T
+
+
+        # Adding vline t and trig
+        ltg, lt = [], []
+        dax['t'][ii+1]['dh']['vline'][0]['xref'] = t
+        lv = []
+        for jj in range(0,ntMax):
+            l0 = dax['t'][ii+1]['ax'].axvline(np.nan, c=lct[jj], ls=lls[0],
+                                           lw=1.)
+            lv.append(l0)
+            if kax=='chan':
+                l1, = dax['chan'][ii]['ax'].plot(chans,
+                                                 np.full((nch,),np.nan),
+                                                 c=lct[jj], ls=lls[0],
+                                                 lw=1.)
+            else:
+                nanY = np.full(indp.shape,np.nan)
+                if plotmethod=='imshow':
+                    extent = (DX1[0],DX1[1],DX2[0],DX2[1])
+                    l1 = dax[kax][ii]['ax'].imshow(nanY, interpolation='nearest',
+                                                   norm=norm, cmap=cmap,
+                                                   extent=extent, aspect='equal',
+                                                   origin='lower', zorder=-1)
+                elif plotmethod=='pcolormesh':
+                    l1 = dax[kax][ii]['ax'].pcolormesh(X1p, X2p, nanY,
+                                                       edgecolors='None',
+                                                       norm=norm, cmap=cmap,
+                                                       zorder=-1)
+            ltg.append(l1)
+
+
+            if ii==0:
+                l = dax['txtt'][0]['ax'].text((0.5+jj)/ntMax, 0., r'',
+                                              color=lct[jj], fontweight='bold',
+                                              fontsize=6., ha='center', va='bottom')
+                lt.append(l)
+
+        dtg = {'xref':t, 'h':ltg, 'y':data}
+        if kax=='chan':
+            dtg['y'] = data
+            dax[kax][ii]['dh']['1dprof'][0] = dtg
+            dax['t'][ii+1]['dh']['vline'][0]['trig']['1dprof'][0] = dtg
+        else:
+            if plotmethod=='imshow':
+                dtg.update({plotmethod:{'data':data,'ind':indp}})
+            else:
+                dtg.update({plotmethod:{'data':data, 'norm':norm,'cm':cmap}})
+            dax[kax][ii]['dh']['2dprof'][0] = dtg
+            dax['t'][ii+1]['dh']['vline'][0]['trig']['2dprof'][0] = dtg
+
+        dax['t'][ii+1]['dh']['vline'][0]['h'] = lv
+
+        if ii==0:
+            dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
+            dax['t'][ii+1]['dh']['vline'][0]['trig'].update(dttxt)
+            dax['txtt'][0]['dh'] = dttxt
+
+        print("Background") # DB
+        if Bck and '2d' in lData[ii].Id.Cls.lower():
+            dax['t'][ii+1]['ax'].fill_between(t, np.nanmin(data,axis=1),
+                                              np.nanmax(data, axis=1),
+                                              facecolor=cbck)
+        elif Bck:
+            env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
+            dax[kax][ii]['ax'].fill_between(chans, env[0], env[1], facecolor=cbck)
+            tbck = np.tile(np.r_[t, np.nan], nch)
+            dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
+            dax['t'][ii+1]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+
+        dax[kax][ii]['ax'].set_xlim(DX)
+        dax[kax][ii]['ax'].set_ylim(DY)
+        dax[kax][ii]['ax'].set_xlabel(xlab, **fldict)
+        dax[kax][ii]['ax'].set_ylabel(ylab, **fldict)
+        dax[kax][ii]['ax'].set_xticks(xticks)
+        dax[kax][ii]['ax'].set_xticklabels(xtlab, rotation=xtrot)
+
+
+
 
     # Format end
     dax['t'][0]['ax'].set_xlim(Dt)
-    dax['t'][-1]['ax'].set_xlabel(r"t ($s$)", fontsize=fontsize)
+    dax['t'][-1]['ax'].set_xlabel(r"t ($s$)", **fldict)
 
 
     # Plot mobile parts
     can = dax['t'][0]['ax'].figure.canvas
     can.draw()
-    #KH = KH2D(can, dax, ntMax=ntMax, nchMax=nchMax)
-    KH = None
+    KH = KH_Comb(can, dax, ntMax=ntMax, nchMax=nchMax)
 
-    # if connect:
-        # KH.disconnect_old()
-        # KH.connect()
+    if connect:
+        KH.disconnect_old()
+        KH.connect()
     if draw:
         can.draw()
     return KH
