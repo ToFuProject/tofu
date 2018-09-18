@@ -28,7 +28,7 @@ _wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
 _nchMax, _ntMax = 4, 3
 _fontsize = 8
 _labelpad = 0
-_lls = ['-','--','.-',':']
+_lls = ['-','--','-.',':']
 _lct = [plt.cm.tab20.colors[ii] for ii in [0,2,4,1,3,5]]
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
@@ -1127,7 +1127,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
     for ii in range(0,nDat):
         kax = 'chan2D' if '2d' in lData[ii].Id.Cls.lower() else 'chan'
         print("")   # DB
-        print(ii, kax, lData[ii].Id.Name, lData[ii].Id.Diag, lData[ii].Id.Cls)    # DB
+        print(ii, lData[ii].Id.Name, lData[ii].Id.Diag, lData[ii].Id.Cls, kax)    # DB
 
         ylab = r"{0} ({1})".format(lData[ii].Id.Diag, lData[ii].units['data'])
         dax['t'][ii+1]['ax'].set_ylabel(ylab, **fldict)
@@ -1187,11 +1187,11 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
         Dd = [Dd0[0]-0.05*np.diff(Dd0), Dd0[1]+0.05*np.diff(Dd0)]
 
         # Prepare data in axe
-        dtrig = {'ttrace':[0]}
-        if '2d' in lData[ii].Id.Cls.lower():
+        if kax=='chan2D':
             dax['t'][ii+1]['dh']['vline'] = [{'h':[0], 'xref':0,
                                               'trig':{'2dprof':[0]}}]
-            #dax['chan2D'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+            dax['chan2D'][ii]['dh']['vline'] = [{'h':[0], 'xref':0,
+                                                 'trig':{'ttrace':[0]}}]
             dax['chan2D'][ii]['dh']['2dprof'] = [0]
             if normt:
                 vmin, vmax = 0., 1.
@@ -1204,9 +1204,10 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
         else:
             dax['t'][ii+1]['dh']['vline'] = [{'h':[0], 'xref':0,
                                               'trig':{'1dprof':[0]}}]
-            #dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+            dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0,
+                                               'trig':{'ttrace':[0]}}]
             dax['chan'][ii]['dh']['1dprof'] = [0]
-        #dax['t'][ii+1]['dh']['ttrace'] = [0]
+        dax['t'][ii+1]['dh']['ttrace'] = [0]
 
 
         if kax=='chan2D':
@@ -1229,10 +1230,9 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
             indp = indp.astype(int)
             incx = {'left':np.r_[-dX12[0],0.], 'right':np.r_[dX12[0],0.],
                     'down':np.r_[0.,-dX12[1]], 'up':np.r_[0.,dX12[1]]}
+            dax[kax][ii]['incx'] = incx
 
             data[:,indpnan.ravel()] = np.nan
-
-            dax[kax][ii]['xref'] = X12T
 
             DX, DY = DX1, DX2
             xticks = []
@@ -1257,7 +1257,20 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
         else:
             dax[kax][ii]['xref'] = X12T
 
+        # ---------------
+        # Background
+        if Bck and '2d' in lData[ii].Id.Cls.lower():
+            dax['t'][ii+1]['ax'].fill_between(t, np.nanmin(data,axis=1),
+                                              np.nanmax(data, axis=1),
+                                              facecolor=cbck)
+        elif Bck:
+            env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
+            dax[kax][ii]['ax'].fill_between(chans, env[0], env[1], facecolor=cbck)
+            tbck = np.tile(np.r_[t, np.nan], nch)
+            dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
+            dax['t'][ii+1]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
 
+        # ---------------
         # Adding vline t and trig
         ltg, lt = [], []
         dax['t'][ii+1]['dh']['vline'][0]['xref'] = t
@@ -1267,10 +1280,10 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
                                            lw=1.)
             lv.append(l0)
             if kax=='chan':
-                l1, = dax['chan'][ii]['ax'].plot(chans,
-                                                 np.full((nch,),np.nan),
-                                                 c=lct[jj], ls=lls[0],
-                                                 lw=1.)
+                l1, = dax[kax][ii]['ax'].plot(chans,
+                                              np.full((nch,),np.nan),
+                                              c=lct[jj], ls=lls[0],
+                                              lw=1.)
             else:
                 nanY = np.full(indp.shape,np.nan)
                 if plotmethod=='imshow':
@@ -1293,7 +1306,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
                                               fontsize=6., ha='center', va='bottom')
                 lt.append(l)
 
-        dtg = {'xref':t, 'h':ltg, 'y':data}
+        dtg = {'xref':t, 'h':ltg}
         if kax=='chan':
             dtg['y'] = data
             dax[kax][ii]['dh']['1dprof'][0] = dtg
@@ -1313,18 +1326,51 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
             dax['t'][ii+1]['dh']['vline'][0]['trig'].update(dttxt)
             dax['txtt'][0]['dh'] = dttxt
 
-        print("Background") # DB
-        if Bck and '2d' in lData[ii].Id.Cls.lower():
-            dax['t'][ii+1]['ax'].fill_between(t, np.nanmin(data,axis=1),
-                                              np.nanmax(data, axis=1),
-                                              facecolor=cbck)
-        elif Bck:
-            env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
-            dax[kax][ii]['ax'].fill_between(chans, env[0], env[1], facecolor=cbck)
-            tbck = np.tile(np.r_[t, np.nan], nch)
-            dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
-            dax['t'][ii+1]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+        # ---------------
+        # Adding vline ch
+        ltg = []
+        if kax=='chan2D':
+            dax[kax][ii]['dh']['vline'][0]['xref'] = X12T
+            lv, lch = [], []
+            for jj in range(0,nchMax):
+                lab = r"Data{0} ch{1}".format(ii,jj)
+                l0, = dax[kax][ii]['ax'].plot([np.nan],[np.nan],
+                                              mec=lcch[jj], ls='None',
+                                              marker='s', mew=2.,
+                                              ms=ms, mfc='None',
+                                              label=lab, zorder=10)
+                lv.append(l0)
+                l1, = dax['t'][ii+1]['ax'].plot(t,np.full((nt,),np.nan),
+                                                c=lcch[jj], ls=lls[0], lw=1.,
+                                                label=lab)
+                ltg.append(l1)
 
+                l2 = dax['colorbar'][ii]['ax'].axhline(np.nan, ls=lls[0], c=lcch[jj],
+                                                       label=lab)
+                lch.append(l2)
+            dtg = {'xref':X12T, 'h':ltg, 'y':data.T}
+
+        else:
+            dax[kax][ii]['dh']['vline'][0]['xref'] = chans
+            lv = []
+            for jj in range(0,nchMax):
+                lab = r"Data{0} ch{1}".format(ii,jj)
+                l0 = dax[kax][ii]['ax'].axvline(np.nan, c=lcch[jj], ls=lls[0],
+                                                lw=1., label=lab)
+                lv.append(l0)
+                l1, = dax['t'][ii+1]['ax'].plot(t,np.full((nt,),np.nan),
+                                                c=lcch[jj], ls=lls[0], lw=1.,
+                                                label=lab)
+                ltg.append(l1)
+            dtg = {'xref':chans, 'h':ltg, 'y':data.T}
+
+        dax[kax][ii]['dh']['vline'][0]['h'] = lv
+        dax[kax][ii]['dh']['vline'][0]['trig']['ttrace'][0] = dtg
+        dax['t'][ii+1]['dh']['ttrace'][0] = dtg
+
+
+        # ---------------
+        # Lims and labels
         dax[kax][ii]['ax'].set_xlim(DX)
         dax[kax][ii]['ax'].set_ylim(DY)
         dax[kax][ii]['ax'].set_xlabel(xlab, **fldict)
