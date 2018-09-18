@@ -257,7 +257,17 @@ class Test01_Data1D:
             KH = oo.plot_compare(o0, connect=toolbar)
         plt.close('all')
 
-    def test10_tofromdict(self):
+    def test10_combine(self):
+        if self.__class__ is Test02_Data2D:
+            return
+        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
+        o0 = self.LObj[0]
+        for ii in range(1,len(self.LObj)):
+            oo = self.LObj[ii]
+            KH = oo.plot_combine(o0, connect=toolbar)
+        plt.close('all')
+
+    def test11_tofromdict(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             dd = oo._todict()
@@ -267,7 +277,7 @@ class Test01_Data1D:
                 oo = tfd.Data2D(fromdict=dd)
             assert dd==oo._todict(), "Unequal to and from dict !"
 
-    def test11_saveload(self):
+    def test12_saveload(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             dd = oo._todict()
