@@ -550,8 +550,15 @@ class Data(object):
                      cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
                      Bck=True, indref=0, fs=None, dmargin=None,
                      vmin=None, vmax=None, normt=False,
-                     wintit=None, tit=None, draw=True, connect=True):
-        """ Plot the data content in a predefined figure  """
+                     wintit=None, tit=None, fontsize=None,
+                     draw=True, connect=True):
+        """ Plot several Data instances of the same diag
+
+        Useful to compare :
+                - the diag data for 2 different shots
+                - experimental vs synthetic data for the same shot
+
+        """
         C0 = isinstance(lD,list)
         C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
         C1 = issubclass(lD.__class__,Data)
@@ -562,7 +569,33 @@ class Data(object):
                              plotmethod=plotmethod, cmap=cmap, ms=ms,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
                              vmin=vmin, vmax=vmax, normt=normt,
-                             indref=indref, draw=draw, connect=connect)
+                             fontsize=fontsize, indref=indref,
+                             draw=draw, connect=connect)
+        return KH
+
+    def plot_combine(self, lD, key=None, invert=None, plotmethod='imshow',
+                     cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
+                     Bck=True, indref=0, fs=None, dmargin=None,
+                     vmin=None, vmax=None, normt=False,
+                     wintit=None, tit=None, fontsize=None,
+                     draw=True, connect=True):
+        """ Plot several Data instances of different diags
+
+        Useful to visualize several diags for the same shot
+
+        """
+        C0 = isinstance(lD,list)
+        C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
+        C1 = issubclass(lD.__class__,Data)
+        assert C0 or C1, 'Provided first arg. must be a tf.data.Data or list !'
+        lD = [lD] if C1 else lD
+        KH = _plot.Data_plot_combine([self]+lD, key=key, invert=invert, Bck=Bck,
+                                     ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
+                                     plotmethod=plotmethod, cmap=cmap, ms=ms,
+                                     fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                                     vmin=vmin, vmax=vmax, normt=normt,
+                                     indref=indref, fontsize=fontsize,
+                                     draw=draw, connect=connect)
         return KH
 
     def save(self, SaveName=None, Path=None,

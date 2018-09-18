@@ -524,7 +524,7 @@ class KeyHandler(object):
             return lax
 
         lax = []
-        xref = self.ref[axT]['val']
+        #xref = self.ref[axT]['val']
         for dax in self.daxT[axT]:
             ax = dax['ax']
             if self.daxr[ax]['dh'] is None:
@@ -556,11 +556,12 @@ class KeyHandler(object):
                     self.dh[hh]['vis'] = True
                     for kk in dtg.keys():
                         for ll in range(0,len(dtg[kk])):
+                            h = dtg[kk][ll]['h'][ii]
                             if dtg[kk][ll]['xref'] is xref:
                                 indh = ind
                             else:
                                 indh = np.argmin(np.abs(dtg[kk][ll]['xref']-val))
-                            h = dtg[kk][ll]['h'][ii]
+
                             if 'txt' in dtg[kk][ll].keys():
                                 if 'format' in dtg[kk][ll].keys():
                                     sss = '{0:%s}'%dtg[kk][ll]['format']
