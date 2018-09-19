@@ -1065,15 +1065,25 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
                               Elt='P', dLeg=None, draw=False)
                 dax['hor'][0]['ax'] = out
 
+    # Prepare vline trig
+    dax['t'][0]['xref'] = lData[0].t
+    dax['t'][0]['dh']['vline'] = [{'h':[0], 'xref':lData[0].t, 'trig':None}]
+
     # Adding Equilibrium and extra
     lEq = ['Ax','Sep','q1']
+    for ii in range(0,nDat):
+        dax['t'][ii+1]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':{}}]
+
+    dhCross = None
     if hasattr(lData[0],'dextra') and lData[0].dextra is not None:
         dextra = lData[0].dextra
         lk = list(dextra.keys())
         lkEq = [lk.pop(lk.index(lEq[jj]))
                 for jj in range(len(lEq)) if lEq[jj] in lk]
-        dhcross = None if len(lkEq)==0 else {}
-        axcross = dax['cross'][0]['ax']
+        isCross2D = any([kk in lkEq for kk in dextra.keys()])
+        if isCross2D:
+            dax['t'][0]['dh']['vline'][0]['trig'] = {}
+            #dhCross = {}
         for kk in dextra.keys():
             dd = dextra[kk]
             if kk == 'Ax':
@@ -1085,17 +1095,28 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
                                        ls=lls[0], lw=1.,
                                        label=r'$Z_{Ax}$ (m)')
             # Plot 2d equilibrium
+            dhcross = None if len(lkEq)==0 else {}
             if kk in lkEq:
-                tref = dextra[lkEq[0]]['t']
-                x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
-                dhcross[kk] = [{'h':[], 'x':x, 'y':y, 'xref':tref}]
+                lV = []
+                for ii in range(0,nDat):
+                    axcross = dax['cross'][ii]['ax']
+                    tref = dextra[lkEq[0]]['t']
+                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
+                    dhcross[kk] = [{'h':[], 'x':x, 'y':y, 'xref':tref}]
+                    for jj in range(0,ntMax):
+                        ll, = axcross.plot(np.full((dd['nP'],),np.nan),
+                                           np.full((dd['nP'],),np.nan),
+                                           ls=lls[0], c=lct[jj], lw=1.,
+                                           label=dd['label'])
+                        dhcross[kk][0]['h'].append(ll)
+                        lV.append(ll)
 
-                for jj in range(0,ntMax):
-                    ll, = axcross.plot(np.full((dd['nP'],),np.nan),
-                                       np.full((dd['nP'],),np.nan),
-                                       ls=lls[0], c=lct[jj], lw=1.,
-                                       label=dd['label'])
-                    dhcross[kk][0]['h'].append(ll)
+                    if dhcross is not None:
+                        dax['cross'][ii]['dh'].update(dhcross)
+
+                        dax['t'][ii+1]['dh']['vline'][0]['trig'].update(dhcross)
+
+                #dhCross[kk] = [{'h':lV, 'x':x, 'y':y, 'xref':tref}]
 
             elif 'data2D' not in dd.keys() and 't' in dd.keys():
                 c = dd['c'] if 'c' in dd.keys() else 'k'
@@ -1103,9 +1124,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
                 dax['t'][0]['ax'].plot(dd['t'], dd['data'],
                                        ls=lls[0], lw=1., c=c, label=lab)
 
-        if dhcross is not None:
-            dax['cross'][0]['dh'].update(dhcross)
-            #dax['t'][1]['dh']['vline'][0]['trig'].update(dhcross)
+        #dax['t'][0]['dh']['vline'][0]['trig'].update(dhCross)
 
         dax['t'][0]['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
                                  ncol=4, mode='expand', borderaxespad=0.,
@@ -1114,8 +1133,6 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
     ###################
     # Plot
     ###################
-    dax['t'][0]['xref'] = lData[0].t
-    dax['t'][0]['dh']['vline'] = [{'h':[0], 'xref':lData[0].t, 'trig':None}]
     lt = []
     for ii in range(0,ntMax):
         l0 = dax['t'][0]['ax'].axvline(np.nan, lw=1., ls='-', c=lct[ii])
@@ -1188,8 +1205,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
 
         # Prepare data in axe
         if kax=='chan2D':
-            dax['t'][ii+1]['dh']['vline'] = [{'h':[0], 'xref':0,
-                                              'trig':{'2dprof':[0]}}]
+            dax['t'][ii+1]['dh']['vline'][0]['trig'].update({'2dprof':[0]})
             dax['chan2D'][ii]['dh']['vline'] = [{'h':[0], 'xref':0,
                                                  'trig':{'ttrace':[0]}}]
             dax['chan2D'][ii]['dh']['2dprof'] = [0]
@@ -1202,8 +1218,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
             mpl.colorbar.ColorbarBase(dax['colorbar'][ii]['ax'], cmap=cmap,
                                       norm=norm, orientation='vertical')
         else:
-            dax['t'][ii+1]['dh']['vline'] = [{'h':[0], 'xref':0,
-                                              'trig':{'1dprof':[0]}}]
+            dax['t'][ii+1]['dh']['vline'][0]['trig'].update({'1dprof':[0]})
             dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0,
                                                'trig':{'ttrace':[0]}}]
             dax['chan'][ii]['dh']['1dprof'] = [0]
