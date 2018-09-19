@@ -319,7 +319,8 @@ class DChans(object):
 class KeyHandler(object):
     """ Base class for handling event on tofu interactive figures """
 
-    def __init__(self, can=None, daxT=None, ntMax=3, nchMax=3, nlambMax=3):
+    def __init__(self, can=None, daxT=None, ntMax=3, nchMax=3, nlambMax=3,
+                 combine=False):
         lk = ['t','chan','chan2D','lamb','cross','hor','colorbar','txtt','txtch','txtlamb','other']
         assert all([kk in lk for kk in daxT.keys()]), str(daxT.keys())
         assert all([type(dd) is list for dd in daxT.values()]), str(daxT.values())
@@ -330,6 +331,7 @@ class KeyHandler(object):
             daxT[kk] = [dd for dd in daxT[kk] if dd['ax'] is not None]
 
         self.can = can
+        self.combine = combine
         daxr, dh = self._make_daxr_dh(daxT)
 
         self.daxT = daxT
@@ -528,8 +530,12 @@ class KeyHandler(object):
             return lax
 
         lax = []
+        if self.combine and axT in ['chan','chan2D']:
+            ldAX = [dd for dd in self.daxT[axT] if self.curax==dd['ax']]
+        else:
+            ldAX = self.daxT[axT]
         #xref = self.ref[axT]['val']
-        for dax in self.daxT[axT]:
+        for dax in ldAX:
             ax = dax['ax']
             if self.daxr[ax]['dh'] is None:
                 continue

@@ -905,7 +905,7 @@ class KH_Comb(utils.KeyHandler):
 
     def __init__(self, can, daxT, ntMax=3, nchMax=3):
 
-        utils.KeyHandler.__init__(self, can, daxT=daxT,
+        utils.KeyHandler.__init__(self, can, daxT=daxT, combine=True,
                                   ntMax=ntMax, nchMax=nchMax, nlambMax=1)
 
     def update(self):
