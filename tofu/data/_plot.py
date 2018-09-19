@@ -773,8 +773,8 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
                                          label=lab)
             ltg.append(l1)
 
-            l2 = dax['colorbar'].axvline(np.nan, ls=lls[ii], c=lcch[jj],
-                                         label=lab)
+            l2 = dax['colorbar'][0]['ax'].axvline(np.nan, ls=lls[ii], c=lcch[jj],
+                                                  label=lab)
             lch.append(l2)
             #
         dax['chan2D'][ii]['dh']['vline'][0]['h'] = lv
