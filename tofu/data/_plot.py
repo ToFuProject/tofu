@@ -1368,6 +1368,46 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
         dax[kax][ii]['dh']['vline'][0]['trig']['ttrace'][0] = dtg
         dax['t'][ii+1]['dh']['ttrace'][0] = dtg
 
+        # --------------------------
+        # Adding mobile LOS and text
+        C0 = lData[ii].geom is not None and lData[ii].geom['LCam'] is not None
+        if C0:
+            if 'LOS' in lData[ii]._CamCls:
+                lCross, lHor, llab = [], [], []
+                for ll in range(0,len(lData[ii].geom['LCam'])):
+                    lCross += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Cross',
+                                                                   multi=True)
+                    lHor += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Hor',
+                                                                  multi=True)
+                    llab += [lData[ii].geom['LCam'][ll].Id.Name + s
+                             for s in lData[ii].geom['LCam'][ll].dchans['Name']]
+
+                lHor = np.stack(lHor)
+                dlosc = {'los':[{'h':[],'xy':lCross, 'xref':chans}]}
+                dlosh = {'los':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':chans}]}
+                dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':chans}]}
+                for jj in range(0,nchMax):
+                    l, = dax['cross'][ii]['ax'].plot([np.nan,np.nan],
+                                                     [np.nan,np.nan],
+                                                     c=lcch[jj], ls=lls[0], lw=2.)
+                    dlosc['los'][0]['h'].append(l)
+                    l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
+                                                  [np.nan,np.nan],
+                                                  c=lcch[jj], ls=lls[0], lw=2.)
+                    dlosh['los'][0]['h'].append(l)
+                    l = dax['txtch'][ii]['ax'].text((0.5+jj)/nchMax,0., r"",
+                                                    color=lcch[jj],
+                                                    fontweight='bold', fontsize=6.,
+                                                    ha='center', va='bottom')
+                    dchtxt['txt'][0]['h'].append(l)
+                dax['hor'][0]['dh'].update(dlosh)
+                dax['cross'][ii]['dh'].update(dlosc)
+                dax['txtch'][ii]['dh'].update(dchtxt)
+                dax[kax][ii]['dh']['vline'][0]['trig'].update(dlosh)
+                dax[kax][ii]['dh']['vline'][0]['trig'].update(dlosc)
+                dax[kax][ii]['dh']['vline'][0]['trig'].update(dchtxt)
+            else:
+                raise Exception("Not coded yet !")
 
         # ---------------
         # Lims and labels
