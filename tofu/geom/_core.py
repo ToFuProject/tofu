@@ -886,7 +886,7 @@ class Rays(object):
             crossn2 = np.sum(cross**2,axis=0)
             if np.all(np.abs(crossn2)<1.e-12):
                 msg = "Is %s really a 2D camera ? (LOS aligned?)"%self.Id.Name
-                warning.warn(msg)
+                warnings.warn(msg)
             cross = cross[:,np.nanargmax(crossn2)]
             cross = cross / np.linalg.norm(cross)
             nIn = cross if np.sum(cross*np.nanmean(u,axis=1))>0. else -cross
