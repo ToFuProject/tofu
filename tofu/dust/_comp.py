@@ -31,7 +31,7 @@ def calc_directproblem(pts=None, r=None,
 
     DV = [None, None, DPhi]
     pts, dV, ind, dVr = Ves.get_sampleV(res, DV=DV, dVMode='abs', ind=None, Out='(X,Y,Z)'):
-    nR = 
+    nR =
 
     dout = {''}
     if demiss is None or demiss=={}:
@@ -55,9 +55,9 @@ def calc_directproblem(pts=None, r=None,
         if verb:
             print(s0+": step {0}/{1}".format(ii,nt))
         for jj in range(0,nR):
-            pp = 
-            vis = 
-            sa = 
+            pp =
+            vis =
+            sa =
 
 
 
@@ -65,11 +65,3 @@ def calc_directproblem(pts=None, r=None,
     saCross, saHor, volIn, saIn = out[4:8]
     contribCross, contribHor, powIn
 """
-
-
-
-
-
-
-
-

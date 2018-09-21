@@ -452,19 +452,24 @@ class Test04_LOSCams(Test03_Rays):
         cls.N = N
         for ii in range(0,len(LVes)):
             P1M = LVes[ii].geom['P1Max'][0]
-            Ds = np.array([np.linspace(-0.5,0.5,N),
-                           np.full((N,),(0.95+0.3*ii/len(LVes))*P1M),
-                           np.zeros((N,))])
-            us = np.array([np.linspace(-0.5,0.5,N),
-                           -np.ones((N,)),
-                           np.linspace(-0.5,0.5,N)])
             dchans = {'Name':['{0:02.0f}'.format(jj) for jj in range(0,N)]}
             if ii%2==0:
+                Ds = np.array([np.linspace(-0.5,0.5,N),
+                               np.full((N,),(0.95+0.3*ii/len(LVes))*P1M),
+                               np.zeros((N,))])
+                us = np.array([np.linspace(-0.5,0.5,N),
+                               -np.ones((N,)),
+                               np.linspace(-0.5,0.5,N)])
                 cls.LObj[ii] = tfg.LOSCam1D('Test'+str(ii), (Ds,us), Ves=LVes[ii],
                                            LStruct=LS[ii], Exp=None, Diag='Test',
                                            SavePath=here, dchans=dchans)
             else:
-                Ds[1,:] = Ds[1,:] + 0.05*np.random.rand(N)
+                Ds = np.array([np.repeat(np.linspace(-0.5,0.5,int(N/10)),10),
+                               np.full((N,),(0.95+0.3*ii/len(LVes))*P1M),
+                               np.tile(np.linspace(-0.1,0.1,10),int(N/10))])
+                us = np.array([np.linspace(-0.5,0.5,N),
+                               -np.ones((N,)),
+                               np.linspace(-0.5,0.5,N)])
                 cls.LObj[ii] = tfg.LOSCam2D('Test'+str(ii), (Ds,us), Ves=LVes[ii],
                                             LStruct=LS[ii], Exp=None, Diag='Test',
                                             SavePath=here, dchans=dchans)

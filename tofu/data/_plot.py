@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib as mpl
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 # tofu
 try:
@@ -21,12 +22,13 @@ except Exception:
 
 
 
-__all__ = ['Data_plot']
+__all__ = ['Data_plot', 'Data_plot_combine']
 __author_email__ = 'didier.vezinet@cea.fr'
 _wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
-_nchMax, _ntMax = 3, 3
+_nchMax, _ntMax = 4, 3
 _fontsize = 8
-_lls = ['-','--','.-',':']
+_labelpad = 0
+_lls = ['-','--','-.',':']
 _lct = [plt.cm.tab20.colors[ii] for ii in [0,2,4,1,3,5]]
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
@@ -34,39 +36,70 @@ _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
 
 def Data_plot(lData, key=None, Bck=True, indref=0,
               cmap=plt.cm.gray, ms=4, vmin=None, vmax=None, normt=False,
-              ntMax=_ntMax, nchMax=None, nlbdMax=3,
+              ntMax=None, nchMax=None, nlbdMax=3,
               lls=_lls, lct=_lct, lcch=_lcch,
               plotmethod='imshow', invert=False,
               fs=None, dmargin=None, wintit=_wintit, tit=None,
-              fontsize=_fontsize, draw=True, connect=True):
+              fontsize=None, draw=True, connect=True):
+
     if wintit is None:
         wintit = _wintit
     if not isinstance(lData,list):
         lData = [lData]
+    if fontsize is None:
+        fontsize = _fontsize
 
-    if '1D' in lData[0]._CamCls:
+    if '1d' in lData[0]._CamCls.lower():
+        ntMax = _ntMax if ntMax is None else ntMax
         nchMax = _nchMax if nchMax is None else nchMax
         KH = _Data1D_plot(lData, key=key, indref=indref,
                           nchMax=nchMax, ntMax=ntMax,
-                          lls=lls, lct=lct, lcch=lcch,
-                          Bck=Bck, fs=fs, dmargin=dmargin,
-                          wintit=wintit, tit=tit,
+                          Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+                          fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
                           fontsize=fontsize, draw=draw, connect=connect)
 
     else:
-        nchMax = 6 if nchMax is None else nchMax
-        assert len(lData)==1
-        # dax, KH = _Data2D_plot(lData, key=key, Bck=Bck, cmap=cmap, ms=ms,
-                               # nchMax=nchMax, plot=plotmethod, invert=invert,
-                               # fs=fs, dmargin=dmargin, wintit=wintit,
-                               # draw=draw, connect=connect)
-        dax, KH = _Data2D_plot(lData[0], key=key, cmap=cmap, ms=ms, normt=normt,
-                               Max=nchMax, plot=plotmethod, invert=invert,
-                               fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                               draw=draw, connect=connect, vmin=vmin, vmax=vmax)
+        ntMax = 1 if ntMax is None else ntMax
+        nchMax = _nchMax if nchMax is None else nchMax
+        KH = _Data2D_plot(lData, key=key, indref=indref,
+                          nchMax=nchMax, ntMax=ntMax,
+                          Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+                          cmap=cmap, ms=ms, vmin=vmin, vmax=vmax, normt=normt,
+                          fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                          plotmethod=plotmethod, invert=invert,
+                          fontsize=fontsize, draw=draw, connect=connect)
     return KH
 
 
+def Data_plot_combine(lData, key=None, Bck=True, indref=0,
+                      cmap=plt.cm.gray, ms=4, vmin=None, vmax=None, normt=False,
+                      ntMax=None, nchMax=None, nlbdMax=3,
+                      lls=_lls, lct=_lct, lcch=_lcch,
+                      plotmethod='imshow', invert=False,
+                      fs=None, dmargin=None, wintit=_wintit, tit=None,
+                      fontsize=None, draw=True, connect=True):
+
+    if wintit is None:
+        wintit = _wintit
+    if not isinstance(lData,list):
+        lData = [lData]
+    if fontsize is None:
+        fontsize = _fontsize
+
+    if ntMax is None:
+        if any(['2d' in dd.Id.Cls.lower() for dd in lData]):
+            ntMax = 1
+        else:
+            ntMax = _ntMax
+    nchMax = _nchMax if nchMax is None else nchMax
+    KH = _Data_plot_combine(lData, key=key, indref=indref,
+                            nchMax=nchMax, ntMax=ntMax,
+                            Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+                            cmap=cmap, ms=ms, vmin=vmin, vmax=vmax, normt=normt,
+                            fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                            plotmethod=plotmethod, invert=invert,
+                            fontsize=fontsize, draw=draw, connect=connect)
+    return KH
 
 ###################################################
 ###################################################
@@ -179,7 +212,6 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         tit = ' - '.join(tit)
     dax['t'][0]['ax'].figure.suptitle(tit)
 
-
     for ii in range(0,len(dax['t'])):
         dtrig = {'1dprof':[0 for jj in range(0,nDat)]} if ii==1 else None
         dax['t'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}
@@ -226,7 +258,7 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         chans = chansRef[lData[ii].indch]
         Dchans = [-1,lData[ii].Ref['nch']]
         Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
-        if lData[ii].geom is None:
+        if lData[ii].Ref['dchans'] in [None,{}]:
             chlabRef = chansRef
             chlab = chans
         else:
@@ -360,7 +392,8 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                          prop={'size':fontsize})
 
         # Adding mobile LOS and text
-        if ii == 0 and lData[ii].geom is not None:
+        C0 =  lData[ii].geom is not None and lData[ii].geom['LCam'] is not None
+        if ii == 0 and C0:
             if 'LOS' in lData[ii]._CamCls:
                 lCross, lHor, llab = [], [], []
                 for ll in range(0,len(lData[ii].geom['LCam'])):
@@ -435,18 +468,38 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 ###################################################
 ###################################################
 
+class KH2D(utils.KeyHandler):
+
+    def __init__(self, can, daxT, ntMax=3, nchMax=3):
+
+        utils.KeyHandler.__init__(self, can, daxT=daxT,
+                                  ntMax=ntMax, nchMax=nchMax, nlambMax=1)
+
+    def update(self):
+
+        # Restore background
+        self._update_restore_Bck(list(self.daxr.keys()))
+
+        # Update and get lax
+        lax = self._update_vlines_and_Eq()
+
+        # Blit
+        self._update_blit(lax)
+
+
 def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
     assert out.lower() in ['pcolormesh','imshow']
-    x1, x2, ind, DX12 = utils.get_X12fromflat(X12_1d)
+    x1, x2, ind, dX12 = utils.get_X12fromflat(X12_1d)
     if out=='pcolormesh':
-        x1 = np.r_[x1-DX12[0],x1[-1]+DX12[0]]
-        x2 = np.r_[x2-DX12[1],x2[-1]+DX12[1]]
-    return x1, x2, ind, DX12
-
+        x1 = np.r_[x1-dX12[0]/2., x1[-1]+dX12[0]/2.]
+        x2 = np.r_[x2-dX12[1]/2., x2[-1]+dX12[1]/2.]
+    return x1, x2, ind, dX12
 
 
 def _init_Data2D(fs=None, dmargin=None,
-                 wintit='tofu', Max=4):
+                 fontsize=8,  wintit=_wintit,
+                 nchMax=4, ntMax=1, nDat=1):
+    assert nDat<=3, "Cannot display more than 3 Data objects !"
     axCol = "w"
     if fs is None:
         fs = _def.fs2D
@@ -457,535 +510,945 @@ def _init_Data2D(fs=None, dmargin=None,
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit is not None:
         fig.canvas.set_window_title(wintit)
-    gs1 = gridspec.GridSpec(6, 5, **dmargin)
-    Laxt = [fig.add_subplot(gs1[:3,:2], fc='w'),
-            fig.add_subplot(gs1[3:,:2],fc='w')]
-    pos = list(gs1[5,2:-1].get_position(fig).bounds)
+    gs1 = gridspec.GridSpec(7, 5, **dmargin)
+    Laxt = [fig.add_subplot(gs1[:3,:2], fc='w')]
+    Laxt.append(fig.add_subplot(gs1[3:,:2],fc='w', sharex=Laxt[0]))
+    pos = list(gs1[6,2:-1].get_position(fig).bounds)
     pos[-1] = pos[-1]/2.
     cax = fig.add_axes(pos, fc='w')
-    axp = fig.add_subplot(gs1[:5,2:-1], fc='w')
-    axH = fig.add_subplot(gs1[0:2,4], fc='w')
-    axC = fig.add_subplot(gs1[2:,4], fc='w')
-    Ytxt = Laxt[1].get_position().bounds[1]+Laxt[1].get_position().bounds[3]
-    DY = Laxt[0].get_position().bounds[1] - Ytxt
-    right = Laxt[1].get_position().bounds[0]+Laxt[1].get_position().bounds[2]
-    gst = gridspec.GridSpec(1, Max,
-                           left=0.1, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
-                           wspace=0.10, hspace=None)
-    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
-    left = axp.get_position().bounds[0]
-    right = axp.get_position().bounds[0]+axp.get_position().bounds[2]
-    gsc = gridspec.GridSpec(1, 3,
-                           left=left, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
-                           wspace=0.10, hspace=None)
-    LaxTxtt = [fig.add_subplot(gst[0,ii], fc='w') for ii in range(0,Max)]
-    LaxTxtc = [fig.add_subplot(gsc[0,ii], fc='w') for ii in range(0,1)]
-
+    daxpii = {1:[(0,6)], 2:[(0,3),(3,6)], 3:[(0,2),(2,4),(4,6)]}
+    axpi = daxpii[nDat]
+    laxp = [fig.add_subplot(gs1[axpi[0][0]:axpi[0][1],2:-1], fc='w')]
+    if nDat>1:
+        for ii in range(1,nDat):
+            laxp.append(fig.add_subplot(gs1[axpi[ii][0]:axpi[ii][1],2:-1],
+                                        fc='w', sharex=laxp[0], sharey=laxp[0]))
+    axH = fig.add_subplot(gs1[:3,4], fc='w')
+    axC = fig.add_subplot(gs1[3:,4], fc='w')
     axC.set_aspect('equal', adjustable='datalim')
     axH.set_aspect('equal', adjustable='datalim')
-    for ii in range(0,Max):
-        LaxTxtt[ii].spines['top'].set_visible(False)
-        LaxTxtt[ii].spines['bottom'].set_visible(False)
-        LaxTxtt[ii].spines['right'].set_visible(False)
-        LaxTxtt[ii].spines['left'].set_visible(False)
-        LaxTxtt[ii].set_xticks([]), LaxTxtt[ii].set_yticks([])
-        LaxTxtt[ii].set_xlim(0,1),  LaxTxtt[ii].set_ylim(0,1)
 
-    LaxTxtc[0].spines['top'].set_visible(False)
-    LaxTxtc[0].spines['bottom'].set_visible(False)
-    LaxTxtc[0].spines['right'].set_visible(False)
-    LaxTxtc[0].spines['left'].set_visible(False)
-    LaxTxtc[0].set_xticks([]), LaxTxtc[0].set_yticks([])
-    LaxTxtc[0].set_xlim(0,1),  LaxTxtc[0].set_ylim(0,1)
+    # Text boxes
+    Ytxt = Laxt[1].get_position().bounds[1]+Laxt[1].get_position().bounds[3]
+    DY = Laxt[0].get_position().bounds[1] - Ytxt
+    Xtxt = Laxt[1].get_position().bounds[0]
+    DX = Laxt[1].get_position().bounds[2]
+    axtxtch = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
 
-    dax = {'t':Laxt, 'prof':[axp], '2D':[axC,axH], 'cax':[cax],
-           'Txtt':LaxTxtc, 'Txtc':LaxTxtt}
+    Ytxt = laxp[0].get_position().bounds[1] + laxp[0].get_position().bounds[3]
+    Xtxt = laxp[0].get_position().bounds[0]
+    DX = laxp[0].get_position().bounds[2]
+    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+
+    for ax in [axtxtch, axtxtt]:
+        axtxtch.patch.set_alpha(0.)
+        for ss in ['left','right','bottom','top']:
+            ax.spines[ss].set_visible(False)
+        ax.set_xticks([]), ax.set_yticks([])
+        ax.set_xlim(0,1),  ax.set_ylim(0,1)
+
+    # Dict
+    dax = {'t':[{'ax':aa, 'dh':{'vline':[]}} for aa in Laxt],
+           'chan2D':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp],
+           'cross':[{'ax':axC, 'dh':{}}],
+           'hor':[{'ax':axH, 'dh':{}}],
+           'colorbar':[{'ax':cax, 'dh':{}}],
+           'txtch':[{'ax':axtxtch, 'dh':{}}],
+           'txtt':[{'ax':axtxtt, 'dh':{}}]}
     for kk in dax.keys():
         for ii in range(0,len(dax[kk])):
-            dax[kk][ii].tick_params(labelsize=8)
+            dax[kk][ii]['ax'].tick_params(labelsize=fontsize)
     return dax
 
 
 
-def _Data2D_plot(Data, key=None,
-                 cmap=plt.cm.gray, ms=4,
-                 vmin=None, vmax=None, normt=False,
-                 colch=['r','b','g','m','c','y'],
-                 dMag=None, Max=4, fs=None, dmargin=None,
-                 wintit='tofu', tit=None,
-                 plot='imshow', invert=False, draw=True, connect=True):
 
+def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
+                 indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
+                 cmap=plt.cm.gray, ms=4, NaN0=np.nan,
+                 vmin=None, vmax=None, normt=False, dMag=None,
+                 fs=None, dmargin=None, wintit=_wintit, tit=None,
+                 plotmethod='imshow', invert=False, fontsize=_fontsize,
+                 draw=True, connect=True):
+
+    #########
     # Prepare
-    Dname = 'data'
-    Dunits = Data.units['data']
-    Dd = [min(0,np.nanmin(Data.data)), 1.2*np.nanmax(Data.data)]
+    #########
+    # Use tuple unpacking to make sure indref is 0
+    if not indref==0:
+        lData[0], lData[indref] = lData[indref], lData[0]
+    nDat = len(lData)
 
-    if Data.t is None:
-        t = np.asarray([0])
-        Dt = [-1,1]
-        data = Data.data.reshape((1,Data.nch))
-    elif Data.nt==1:
-        t = Data.t
-        Dt = [t[0]-1,t[0]+1]
-        data = Data.data.reshape((1,Data.nch))
-    else:
-        t = Data.t
-        Dt = [np.nanmin(Data.t), np.nanmax(Data.t)]
-        data = Data.data
-    chansRef = np.arange(0,Data.Ref['nch'])
-    chans = chansRef[Data.indch]
-    Dchans = [-1,Data.Ref['nch']]
-    if Data.geom is None:
-        chlabRef = chansRef
-        chlab = chans
-    else:
-        chlabRef = chansRef if key is None else Data.Ref['dchans'][key]
-        chlab = chans if key is None else Data.dchans(key)
-    X12, DX12 = Data.get_X12(out='1d')
-    X12[:,np.all(np.isnan(data),axis=0)] = np.nan
-    X1p, X2p, indp, DX12 = _prepare_pcolormeshimshow(X12, out='imshow')
+    # Get data and time limits
+    Dunits = lData[0].units['data']
+    lDlim = np.array([(np.nanmin(dd.data),
+                       np.nanmax(dd.data)) for dd in lData])
+    Dd = [min(0.,np.min(lDlim[:,0])),
+          max(0.,np.max(lDlim[:,1]))]
+    Dd = [Dd[0]-0.05*np.diff(Dd), Dd[1]+0.05*np.diff(Dd)]
 
-    DX1 = [np.nanmin(X1p)-DX12[0]/2.,np.nanmax(X1p)+DX12[0]/2.]
-    DX2 = [np.nanmin(X2p)-DX12[1]/2.,np.nanmax(X2p)+DX12[1]/2.]
-    denv = [np.nanmin(data,axis=1), np.nanmax(data,axis=1)]
+    X12, DX12 = lData[0].get_X12(out='1d')
+    X12T = X12.T
+    #X12[:,np.all(np.isnan(lData[0].data),axis=0)] = np.nan
+    X1p, X2p, indp, dX12 = _prepare_pcolormeshimshow(X12, out=plotmethod)
+    DX1 = [np.nanmin(X1p),np.nanmax(X1p)]
+    DX2 = [np.nanmin(X2p),np.nanmax(X2p)]
 
-    if Data.geom is not None:
-        if 'LOS' in Data._CamCls:
-            lCross = Data.geom['LCam'][0]._get_plotL(Lplot='In', Proj='Cross',
-                                                     multi=True)
-            lHor = Data.geom['LCam'][0]._get_plotL(Lplot='In', Proj='Hor',
-                                                   multi=True)
-        else:
-            raise Exception("Not coded yet !")
-    else:
-        lCross, lHor = None, None
-
-    # Format axes
-    dax = _init_Data2D(fs=fs, dmargin=dmargin, wintit=wintit, Max=Max)
-    if tit is None:
-        tit = []
-        if Data.Id.Exp is not None:
-            tit.append(Data.Id.Exp)
-        if Data.Id.Diag is not None:
-            tit.append(Data.Id.Diag)
-        if Data.shot is not None:
-            tit.append(r"{0:05.0f}".format(Data.shot))
-        tit = ' - '.join(tit)
-    dax['t'][0].figure.suptitle(tit)
-
-    for ii in range(0,len(dax['t'])):
-        dax['t'][ii].set_xlim(Dt)
-        dax['t'][ii].set_ylim(Dd)
-    dax['t'][1].set_ylabel(r"data (%s)"%Dunits, fontsize=8)
-    dax['t'][1].set_xlabel(r"t ($s$)", fontsize=8)
-    dax['prof'][0].set_xlim(DX1),   dax['prof'][0].set_ylim(DX2)
-    dax['prof'][0].set_xlabel(r"$X_1$", fontsize=8)
-    dax['prof'][0].set_ylabel(r"$X_2$", fontsize=8)
-    dax['prof'][0].set_aspect('equal', adjustable='datalim')
-    if invert:
-        dax['prof'][0].invert_xaxis()
-        dax['prof'][0].invert_yaxis()
-
-    # Plot fixed parts
-    cbck = (0.8,0.8,0.8,0.8)
-    dax['t'][1].fill_between(t, denv[0], denv[1], facecolor=cbck)
-
-    if Data.geom is not None:
-        if Data.geom['Ves'] is not None:
-            dax['2D'] = Data.geom['Ves'].plot(Lax=dax['2D'], Elt='P',
-                                              dLeg=None, draw=False)
-        if Data.geom['LStruct'] is not None:
-            for ss in Data.geom['LStruct']:
-                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P',
-                                    dLeg=None, draw=False)
+    indp = indp.T
+    indpnan = np.isnan(indp)
+    indp[indpnan] = 0
+    indp = indp.astype(int)
+    incx = {'left':np.r_[-dX12[0],0.], 'right':np.r_[dX12[0],0.],
+            'down':np.r_[0.,-dX12[1]], 'up':np.r_[0.,dX12[1]]}
 
     if normt:
-        data = data/np.nanmax(data,axis=1)[:,np.newaxis]
         vmin, vmax = 0., 1.
     else:
-        vmin = np.nanmin(data) if vmin is None else vmin
-        vmax = np.nanmax(data) if vmax is None else vmax
+        vmin = np.nanmin(lDlim[:,0]) if vmin is None else vmin
+        vmax = np.nanmax(lDlim[:,1]) if vmax is None else vmax
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
-    mpl.colorbar.ColorbarBase(dax['cax'][0], cmap=cmap,
+
+    # Format axes
+    dax = _init_Data2D(fs=fs, dmargin=dmargin, wintit=wintit,
+                       nchMax=nchMax, ntMax=ntMax, nDat=nDat)
+    if tit is None:
+        tit = []
+        if lData[0].Id.Exp is not None:
+            tit.append(lData[0].Id.Exp)
+        if lData[0].Id.Diag is not None:
+            tit.append(lData[0].Id.Diag)
+        if lData[0].shot is not None:
+            tit.append(r"{0:05.0f}".format(lData[0].shot))
+        tit = ' - '.join(tit)
+    dax['t'][0]['ax'].figure.suptitle(tit)
+
+    # Prepare data in axe
+    dax['t'][0]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':None}
+                                  for jj in range(0,nDat)]
+    dax['t'][1]['dh']['vline'] = [{'h':[0], 'xref':0,
+                                   'trig':{'2dprof':[0]}}
+                                  for jj in range(0,nDat)]
+    dax['t'][1]['dh']['ttrace'] = [0 for jj in range(0,nDat)]
+
+    for ii in range(0,len(dax['chan2D'])):
+        dtrig = {'ttrace':[0]}
+        dax['chan2D'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+        dax['chan2D'][ii]['dh']['2dprof'] = [0]
+
+    mpl.colorbar.ColorbarBase(dax['colorbar'][0]['ax'], cmap=cmap,
                               norm=norm, orientation='horizontal')
 
-    can = dax['t'][0].figure.canvas
-    KH = KH_2D(data, X12, t, Data._CamCls, dMag,
-               DX12=DX12, X1p=X1p, X2p=X2p, indp=indp,
-               lCross=lCross, lH=lHor, dax=dax, can=can,
-               Max=Max, invert=invert, plot=plot,
-               colch=colch, cm=cmap, ms=ms, norm=norm)
-    if connect:
-        KH.connect()
-    return dax, KH
+    # Plot vessel
+    if lData[0].geom is not None:
+        if lData[0].geom['Ves'] is not None:
+            out = lData[0].geom['Ves'].plot(Lax=[dax['cross'][0]['ax'],
+                                                 dax['hor'][0]['ax']],
+                                            Elt='P', dLeg=None, draw=False)
+            dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
+        if lData[0].geom['LStruct'] is not None:
+            for ss in lData[0].geom['LStruct']:
+                out = ss.plot(Lax=[dax['cross'][0]['ax'], dax['hor'][0]['ax']],
+                              Elt='P', dLeg=None, draw=False)
+                dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
 
-# Define keyHandlker class for interactivity
-class KH_2D(object):
-    def __init__(self, Y, X12, t, CamCls, dMag,
-                 DX12=None, X1p=None, X2p=None, indp=None,
-                 lCross=None, lH=None, dax=None, can=None, invert=False,
-                 indt=[0], indch=[], Max=4,
-                 ms=4, cm=plt.cm.gray, norm=None, plot='imshow',
-                 colch=['m','c','y','w'], colt=['k','r','b','g']):
-        self.t, self.X12, self.Y = t, X12, Y
-        self.incX12 = {'left':-np.r_[DX12[0],0.], 'right':np.r_[DX12[0],0.],
-                       'up':np.r_[0.,DX12[1]], 'down':-np.r_[0.,DX12[1]]}
-        indpnan = np.isnan(indp)
-        indp[indpnan] = 0
-        self.indpnan = indpnan.T
-        self.X1p, self.X2p, self.indp = X1p, X2p, indp.astype(int).T
-        self.CamCls = CamCls
-        self.lCross, self.lH = lCross, lH
-        self.dMag = dMag
-        self.nt, self.nch = t.size, Y.shape[1]
-        self.indt, self.indch = indt, indch
-        self.can, self.dax = can, dax
-        self.naxt, self.naxprof = len(dax['t']), len(dax['prof'])
-        self.Max = Max
-        self.shift = False
-        self.nant = np.full((self.nt,),np.nan)
-        self.nanch = np.full((self.nch,),np.nan)
-        if self.dMag is not None:
-            self.nansep = np.full((dMag['nPSep'],2),np.nan)
-            self.nanax = np.array([np.nan,np.nan])
-        self.colch, self.colt = colch, colt
-        self.curax = 'time'
-        self.ms, self.cm = ms, cm
-        self.norm = norm
-        self.invert = invert
-        self.nanYi = np.full((X2p.size-1,X1p.size-1),np.nan)
-        self.plot = plot
-        self.initplot()
+    # Plot
+    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
+    cbck = (0.8,0.8,0.8,0.8)
+    lEq = ['Ax','Sep','q1']
 
-    def connect(self):
-        # Disconnect matplotlib built-in event handlers
-        self.can.mpl_disconnect(self.can.manager.key_press_handler_id)
-        self.can.mpl_disconnect(self.can.button_pick_id)
-        keyp = self.can.mpl_connect('key_press_event', self.onkeypress)
-        keyr = self.can.mpl_connect('key_release_event', self.onkeypress)
-        butp = self.can.mpl_connect('button_press_event', self.mouseclic)
-        butr = self.can.mpl_connect('button_release_event', self.mouserelease)
-        res = self.can.mpl_connect('resize_event', self.resize)
-        self._cid = {'keyp':keyp, 'keyr':keyr,
-                     'butp':butp, 'butr':butr, 'res':res}
+    for ii in range(0,nDat):
+        nt, nch = lData[ii].nt, lData[ii].nch
 
-    def disconnect(self):
-        for kk in self._cid.keys():
-            self.can.mpl_disconnect(self._cid[kk])
-
-    def initplot(self):
-        if self.dMag is not None:
-            c = (0.8,0.8,0.8)
-
-        # Initialize handles and visibility booleans
-        t0b = np.zeros((self.naxt,),dtype=bool)
-        t1b = np.zeros((self.Max,),dtype=bool)
-        t0l, t1l = list(t0b.tolist()), list(t1b.tolist())
-        self.dlt = {'t':{'h':t0l,'v':t0b}, 'prof':{'h':[0],'v':[True]}}
-        self.dlprof = {'t':{'h':list(t1l), 'v':t1b.copy()},
-                       'prof':{'h':list(t1l), 'v':t1b.copy()},
-                       'col':{'h':list(t1l), 'v':t1b.copy()},
-                       'C':{'h':list(t1l),'v':t1b.copy()},
-                       'H':{'h':list(t1l),'v':t1b.copy()}}
-        self.Txt = {'t':{'h':list(t1l),'v':t1b.copy()},
-                    'prof':{'h':list(t1l),'v':t1b.copy()}}
-        self.dlmag = {'prof':{'Ax':{'h':list(t1l),'v':t1b.copy()},
-                              'Sep':{'h':list(t1l),'v':t1b.copy()}},
-                      '2D':{'Ax':{'h':list(t1l),'v':t1b.copy()},
-                            'Sep':{'h':list(t1l),'v':t1b.copy()}}}
-
-        # Set handles
-        for jj in range(0,self.naxt):
-            axj = self.dax['t'][jj]
-            self.dlt['t']['h'][jj] = axj.axvline(np.nan,0,1, c='k',
-                                            ls='--',lw=1.)
-            if jj>=1:
-                for ii in range(0,self.Max):
-                    self.dlprof['t']['h'][ii], = axj.plot(self.t, self.nant,
-                                                     c=self.colch[ii],ls='-',lw=2.)
-        self.nanYi = self.Y[self.indt[0],:][self.indp]
-        self.nanYi[self.indpnan] = np.nan
-        if self.plot=='pcolormesh':
-            self.dlt['prof']['h'][0] = self.dax['prof'][0].pcolormesh(self.X1p, self.X2p,
-                                                    self.nanYi, edgecolors='None',
-                                                    norm=self.norm, cmap=self.cm,
-                                                    zorder=-1)
+        chansRef = np.arange(0,lData[ii].Ref['nch'])
+        chans = chansRef[lData[ii].indch]
+        Dchans = [-1,lData[ii].Ref['nch']]
+        Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
+        if lData[ii].Ref['dchans'] in [None,{}]:
+            chlabRef = chansRef
+            chlab = chans
         else:
-            extent = (np.nanmin(self.X12[0,:]), np.nanmax(self.X12[0,:]),
-                      np.nanmin(self.X12[1,:]), np.nanmax(self.X12[1,:]))
-            self.dlt['prof']['h'][0] = self.dax['prof'][0].imshow(self.nanYi,
-                                                    interpolation='nearest',
-                                                    norm=self.norm, cmap=self.cm,
-                                                    extent=extent, aspect='equal',
-                                                    origin='lower', zorder=-1)
-        self.dax['prof'][0].autoscale(False)
-        nanC = np.full((10,),np.nan)
-        nanH = np.full((2,),np.nan)
-        for ii in range(0,self.Max):
-            self.dlprof['prof']['h'][ii],=self.dax['prof'][0].plot([np.nan],[np.nan],
-                                                marker='s',
-                                                ms=self.ms, mfc='None', mew=2.,
-                                                mec=self.colch[ii], zorder=10)
-            self.dlprof['col']['h'][ii] = self.dax['cax'][0].axvline(np.nan,0,1,
-                                                                c=self.colch[ii],
-                                                                ls='--',lw=1.,
-                                                                zorder=10)
-            self.dlprof['C']['h'][ii], = self.dax['2D'][0].plot(nanC, nanC,
-                                                           lw=2., ls='-',
-                                                           c=self.colch[ii])
-            self.dlprof['H']['h'][ii], = self.dax['2D'][1].plot(nanH, nanH,
-                                                           lw=2., ls='-',
-                                                           c=self.colch[ii])
+            chlabRef = chansRef if key is None else lData[ii].Ref['dchans'][key]
+            chlab = chans if key is None else lData[ii].dchans(key)
 
-        if self.dMag is not None:
-            for ii in range(0,self.Max):
-                l, = self.dax['2D'][0].plot([np.nan],[np.nan],
-                                            marker='x',ms=12,c=self.colt[ii])
-                self.dlmag['2D']['Ax']['h'][ii] = l
-                l, = self.dax['2D'][0].plot(self.nansep[:,0],self.nansep[:,1],
-                                            ls='-',lw=2.,c=self.colt[ii])
-                self.dlmag['2D']['Sep']['h'][ii] = l
-        txt = self.dax['Txtt'][0].text(0.5,0.5, r"",
-                                       color='k', size=8, fontweight='bold',
-                                       va='center', ha='center')
-        self.Txt['t']['h'][0] = txt
-        for ii in range(0,self.Max):
-            txt = self.dax['Txtc'][ii].text(0.5,0.5, r"",
-                                            color=self.colch[ii], size=8,
-                                            fontweight='bold',
-                                            va='center', ha='center')
-            self.Txt['prof']['h'][ii] = txt
+        if lData[ii].t is None:
+            t = np.arange(0,lData[ii].nt)
+        elif nt==1:
+            t = np.array([lData[ii].t]).ravel()
+        else:
+            t = lData[ii].t
+        if nt==1:
+            Dti = [t[0]-0.001,t[0]+0.001]
+        else:
+            Dti = [np.nanmin(t), np.nanmax(t)]
+        Dt = [min(Dt[0],Dti[0]), max(Dt[1],Dti[1])]
+        data = lData[ii].data
+        if nt==1:
+            data = data.reshape((nt,nch))
 
-        # set background
-        self._set_dBck()
+        msg = "Cannot plot CamLOS2D if indch is not None !"
+        assert lData[ii]._indch is None, msg
+        data[:,indpnan.ravel()] = np.nan
+        if normt:
+            data = data/np.nanmax(data,axis=1)[:,np.newaxis]
 
-    def _set_dBck(self):
-        # Make all invisible
-        ld = [self.dlt, self.dlprof, self.dlmag, self.Txt]
-        for dd in ld:
-            for kk in dd.keys():
-                if dd==self.dlt and kk=='prof':
-                    pass
-                elif 'h' in dd[kk].keys() and type(dd[kk]['h'][0]) is list:
-                    for ii in range(len(dd[kk]['h'])):
-                        for jj in range(0,self.Max):
-                            if dd[kk]['h'][ii][jj] is not False:
-                                dd[kk]['h'][ii][jj].set_visible(False)
-                elif 'h' in dd[kk].keys():
-                    for ii in range(len(dd[kk]['h'])):
-                        if dd[kk]['h'][ii] is not False:
-                            dd[kk]['h'][ii].set_visible(False)
-                elif self.dMag is not None:
-                    for k in dd[kk].keys():
-                        for ii in range(0,self.Max):
-                            dd[kk][k]['h'][ii].set_visible(False)
+        # Setting tref and plotting handles
+        if ii==0:
+            tref = t.copy()
+            chref = chans.copy()
+            for jj in range(0,len(dax['t'])):
+                dax['t'][jj]['xref'] = tref
+            if Bck:
+                dax['t'][1]['ax'].fill_between(t, np.nanmin(data,axis=1),
+                                               np.nanmax(data, axis=1),
+                                               facecolor=cbck)
+        dax['chan2D'][ii]['xref'] = X12T
 
-        # Draw and reset Bck
-        self.can.draw()
-        dBck = {}
-        for kk in self.dax.keys():
-            dBck[kk] = [self.can.copy_from_bbox(aa.bbox) for aa in self.dax[kk]]
-        self.dBck = dBck
+        # Adding vline t and trig
+        ltg, lt = [], []
+        for ll in range(0,len(dax['t'])):
+            dax['t'][ll]['dh']['vline'][ii]['xref'] = t
+            lv = []
+            for jj in range(0,ntMax):
+                l0 = dax['t'][ll]['ax'].axvline(np.nan, c=lct[jj], ls=lls[ii],
+                                               lw=1.)
+                lv.append(l0)
+                if ll==1:
+                    nanY = np.full(indp.shape,np.nan)
+                    if plotmethod=='imshow':
+                        extent = (DX1[0],DX1[1],DX2[0],DX2[1])
+                        l1 = dax['chan2D'][ii]['ax'].imshow(nanY,
+                                                           interpolation='nearest',
+                                                           norm=norm,
+                                                           cmap=cmap,
+                                                           extent=extent,
+                                                           aspect='equal',
+                                                           origin='lower',
+                                                           zorder=-1)
+                    elif plotmethod=='pcolormesh':
+                        l1 = dax['chan2D'][ii]['ax'].pcolormesh(X1p, X2p, nanY,
+                                                               edgecolors='None',
+                                                               norm=norm,
+                                                               cmap=cmap,
+                                                               zorder=-1)
+                    ltg.append(l1)
+                    if ii==0:
+                        l = dax['txtt'][0]['ax'].text((0.5+jj)/ntMax, 0., r'',
+                                                      color=lct[jj], fontweight='bold',
+                                                      fontsize=6., ha='center',
+                                                      va='bottom')
+                        lt.append(l)
+            if ll==1:
+                dtg = {'xref':t, 'h':ltg}
+                if plotmethod=='imshow':
+                    dtg.update({plotmethod:{'data':data,'ind':indp}})
+                else:
+                    dtg.update({plotmethod:{'data':data, 'norm':norm,'cm':cmap}})
+            dax['t'][ll]['dh']['vline'][ii]['h'] = lv
+        dax['t'][1]['dh']['vline'][ii]['trig']['2dprof'][0] = dict(dtg)
 
-        # Redraw
-        for dd in ld:
-            for kk in dd.keys():
-                if dd==self.dlt and kk=='prof':
-                    pass
-                elif 'h' in dd[kk].keys() and type(dd[kk]['h'][0]) is list:
-                    for ii in range(len(dd[kk]['h'])):
-                        for jj in range(0,self.Max):
-                            if dd[kk]['h'][ii][jj] is not False:
-                                dd[kk]['h'][ii][jj].set_visible(dd[kk]['v'][ii][jj])
-                elif 'h' in dd[kk].keys():
-                    for ii in range(len(dd[kk]['h'])):
-                        if dd[kk]['h'][ii] is not False:
-                            dd[kk]['h'][ii].set_visible(dd[kk]['v'][ii])
-                elif self.dMag is not None:
-                    for k in dd[kk].keys():
-                        for ii in range(0,self.Max):
-                            dd[kk][k]['h'][ii].set_visible(dd[kk][k]['v'][ii])
-        self.can.draw()
+        if ii==0:
+            dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
+            dax['t'][1]['dh']['vline'][0]['trig'].update(dttxt)
+            dax['txtt'][0]['dh'] = dttxt
+        dax['chan2D'][ii]['dh']['2dprof'][0] = dtg
 
+        # Adding vline ch
+        ltg = []
+        #for ll in range(0,len(dax['chan2D'])):
+        #
+        dax['chan2D'][ii]['dh']['vline'][0]['xref'] = X12T
+        lv, lch = [], []
+        for jj in range(0,nchMax):
+            lab = r"Data{0} ch{1}".format(ii,jj)
+            l0, = dax['chan2D'][ii]['ax'].plot([np.nan],[np.nan],
+                                               mec=lcch[jj], ls='None',
+                                               marker='s', mew=2.,
+                                               ms=ms, mfc='None',
+                                               label=lab, zorder=10)
+            lv.append(l0)
+            #if ll==0:
+            #
+            l1, = dax['t'][1]['ax'].plot(t,np.full((nt,),np.nan),
+                                         c=lcch[jj], ls=lls[ii], lw=1.,
+                                         label=lab)
+            ltg.append(l1)
+
+            l2 = dax['colorbar'][0]['ax'].axvline(np.nan, ls=lls[ii], c=lcch[jj],
+                                                  label=lab)
+            lch.append(l2)
+            #
+        dax['chan2D'][ii]['dh']['vline'][0]['h'] = lv
+        #
+        dtg = {'xref':X12T, 'h':ltg, 'y':data.T}
+        dax['chan2D'][ii]['dh']['vline'][0]['trig']['ttrace'][0] = dtg
+        dax['t'][1]['dh']['ttrace'][ii] = dtg
+
+        # Adding Equilibrium and extra
+        if hasattr(lData[ii],'dextra') and lData[ii].dextra is not None:
+            lk = list(lData[ii].dextra.keys())
+            lkEq = [lk.pop(lk.index(lEq[jj]))
+                    for jj in range(len(lEq)) if lEq[jj] in lk]
+            if ii == 0:
+                dhcross = None if len(lkEq)==0 else {}
+            axcross = dax['cross'][0]['ax']
+            for kk in lData[ii].dextra.keys():
+                dd = lData[ii].dextra[kk]
+                if kk == 'Ax':
+                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
+                    dax['t'][0]['ax'].plot(dd['t'], x,
+                                           ls=lls[ii], lw=1.,
+                                           label=r'$R_{Ax}$ (m)')
+                    dax['t'][0]['ax'].plot(dd['t'], y,
+                                           ls=lls[ii], lw=1.,
+                                           label=r'$Z_{Ax}$ (m)')
+                # Plot 2d equilibrium
+                if kk in lkEq and ii == 0:
+                    tref = lData[ii].dextra[lkEq[0]]['t']
+                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
+                    dhcross[kk] = [{'h':[], 'x':x, 'y':y, 'xref':tref}]
+
+                    for jj in range(0,ntMax):
+                        ll, = axcross.plot(np.full((dd['nP'],),np.nan),
+                                           np.full((dd['nP'],),np.nan),
+                                           ls=lls[ii], c=lct[jj], lw=1.,
+                                           label=dd['label'])
+                        dhcross[kk][0]['h'].append(ll)
+
+                elif 'data2D' not in dd.keys() and 't' in dd.keys():
+                    c = dd['c'] if 'c' in dd.keys() else 'k'
+                    lab = dd['label'] + ' (%s)'%dd['units']
+                    dax['t'][0]['ax'].plot(dd['t'], dd['data'],
+                                           ls=lls[ii], lw=1., c=c, label=lab)
+
+            if ii == 0 and dhcross is not None:
+                dax['cross'][0]['dh'].update(dhcross)
+                dax['t'][1]['dh']['vline'][ii]['trig'].update(dhcross)
+
+            if ii == 0:
+                dax['t'][0]['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
+                                         ncol=4, mode='expand', borderaxespad=0.,
+                                         prop={'size':fontsize})
+        # Adding mobile LOS and text
+        C0 = lData[ii].geom is not None and lData[ii].geom['LCam'] is not None
+        if ii == 0 and C0:
+            if 'LOS' in lData[ii]._CamCls:
+                lCross, lHor, llab = [], [], []
+                for ll in range(0,len(lData[ii].geom['LCam'])):
+                    lCross += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Cross',
+                                                                   multi=True)
+                    lHor += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Hor',
+                                                                 multi=True)
+                    llab += [lData[ii].geom['LCam'][ll].Id.Name + s
+                             for s in lData[ii].geom['LCam'][ll].dchans['Name']]
+
+                lHor = np.stack(lHor)
+                dlosc = {'los':[{'h':[],'xy':lCross, 'xref':chans}]}
+                dlosh = {'los':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':chans}]}
+                dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':chans}]}
+                for jj in range(0,nchMax):
+                    l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
+                                                   [np.nan,np.nan],
+                                                   c=lcch[jj], ls=lls[ii], lw=2.)
+                    dlosc['los'][0]['h'].append(l)
+                    l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
+                                                  [np.nan,np.nan],
+                                                  c=lcch[jj], ls=lls[ii], lw=2.)
+                    dlosh['los'][0]['h'].append(l)
+                    l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
+                                               color=lcch[jj],
+                                               fontweight='bold', fontsize=6.,
+                                               ha='center', va='bottom')
+                    dchtxt['txt'][0]['h'].append(l)
+                dax['hor'][0]['dh'].update(dlosh)
+                dax['cross'][0]['dh'].update(dlosc)
+                dax['txtch'][0]['dh'].update(dchtxt)
+                dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dlosh)
+                dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dlosc)
+                dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dchtxt)
+            else:
+                raise Exception("Not coded yet !")
+        dax['chan2D'][ii]['incx'] = incx
+        dax['chan2D'][ii]['ax'].set_ylabel(r"pix.", fontsize=fontsize)
+
+    dax['t'][0]['ax'].set_xlim(Dt)
+    dax['t'][1]['ax'].set_ylabel(r"data (%s)"%Dunits, fontsize=fontsize)
+    dax['t'][1]['ax'].set_xlabel(r"t ($s$)", fontsize=fontsize)
+    dax['chan2D'][0]['ax'].set_xlim(DX1)
+    dax['chan2D'][0]['ax'].set_ylim(DX2)
+    dax['chan2D'][-1]['ax'].set_xlabel(r"pix.", fontsize=fontsize)
+
+    # Plot mobile parts
+    can = dax['t'][0]['ax'].figure.canvas
+    can.draw()
+    KH = KH2D(can, dax, ntMax=ntMax, nchMax=nchMax)
+
+    if connect:
+        KH.disconnect_old()
+        KH.connect()
+    if draw:
+        can.draw()
+    return KH
+
+
+
+
+
+
+
+###################################################
+###################################################
+#           Combine
+###################################################
+###################################################
+
+class KH_Comb(utils.KeyHandler):
+
+    def __init__(self, can, daxT, ntMax=3, nchMax=3):
+
+        utils.KeyHandler.__init__(self, can, daxT=daxT, combine=True,
+                                  ntMax=ntMax, nchMax=nchMax, nlambMax=1)
 
     def update(self):
-        if self.curax=='time':
-            rest = [('t',[0,1]),('Txtt',[0]),('prof',[0]),('cax',[0])]
-            for kk in rest:
-                for ii in kk[1]:
-                    self.can.restore_region(self.dBck[kk[0]][ii])
-            ti = self.t[self.indt[0]]
-            txti = r"t = {0:07.3f} s".format(ti)
-            Yi = self.Y[self.indt[0],:]
-            if self.dMag is not None:
-                it = self.dMag['indt'][self.indt[ii]]
-                sepi = self.dMag['Sep'][it,:,:]
-                axi = self.dMag['Ax'][it,:]
 
-            for jj in range(0,self.naxt):
-                self.dlt['t']['h'][jj].set_xdata(ti)
-                self.dlt['t']['h'][jj].set_visible(True)
-                self.dlt['t']['v'][jj] = True
-                self.dax['t'][jj].draw_artist(self.dlt['t']['h'][jj])
+        # Restore background
+        self._update_restore_Bck(list(self.daxr.keys()))
 
-            self.nanYi = Yi[self.indp]
-            self.nanYi[self.indpnan] = np.nan
-            if self.plot=='pcolormesh':
-                ncol = self.cm(self.norm(self.nanYi.ravel()))
-                self.dlt['prof']['h'][0].set_facecolor(ncol)
+        # Update and get lax
+        lax = self._update_vlines_and_Eq()
+
+        # Blit
+        self._update_blit(lax)
+
+
+def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
+    assert out.lower() in ['pcolormesh','imshow']
+    x1, x2, ind, dX12 = utils.get_X12fromflat(X12_1d)
+    if out=='pcolormesh':
+        x1 = np.r_[x1-dX12[0]/2., x1[-1]+dX12[0]/2.]
+        x2 = np.r_[x2-dX12[1]/2., x2[-1]+dX12[1]/2.]
+    return x1, x2, ind, dX12
+
+
+def _init_Data_combine(fs=None, dmargin=None,
+                       fontsize=8,  wintit=_wintit,
+                       nchMax=4, ntMax=1, nDat=1, lTypes=None):
+    assert nDat<=5, "Cannot display more than 5 Data objects !"
+
+    axCol = "w"
+    if fs is None:
+        fs = _def.fs2D
+    elif type(fs) is str and fs.lower()=='a4':
+        fs = (8.27,11.69)
+    if dmargin is None:
+        dmargin = _def.dmargin_combine
+    fig = plt.figure(facecolor=axCol,figsize=fs)
+    if wintit is not None:
+        fig.canvas.set_window_title(wintit)
+
+    # Axes
+    gs1 = gridspec.GridSpec(nDat+1, 5, **dmargin)
+
+    laxp, laxp2, laxT, laxc, laxC, laxtxtch = [], [], [], [], [], []
+    Laxt = [fig.add_subplot(gs1[0,:2], fc='w')]
+    axH = fig.add_subplot(gs1[0,4], fc='w')
+    axH.set_aspect('equal', adjustable='datalim')
+    for ii in range(1,nDat+1):
+        Laxt.append(fig.add_subplot(gs1[ii,:2],fc='w', sharex=Laxt[0]))
+        if '2d' in lTypes[ii-1].lower():
+            axp = fig.add_subplot(gs1[ii,2:-1],fc='w')
+            axp.set_aspect('equal', adjustable='datalim')
+            cb = make_axes_locatable(axp)
+            cb = cb.append_axes('right', size='10%', pad=0.1)
+            cb.yaxis.tick_right()
+            cb.set_xticks([])
+            cb.set_xticklabels([])
+            laxp2.append(axp)
+            laxp.append(None)
+        else:
+            axp = fig.add_subplot(gs1[ii,2:-1],fc='w', sharey=Laxt[-1])
+            cb = None
+            laxp.append(axp)
+            laxp2.append(None)
+        laxT.append(axp)
+        laxc.append(cb)
+        axC = fig.add_subplot(gs1[ii,4], fc='w')
+        axC.set_aspect('equal', adjustable='datalim')
+        laxC.append(axC)
+
+        # Text boxes
+        Ytxt = Laxt[-1].get_position().bounds[1]+Laxt[-1].get_position().bounds[3]
+        if ii==1:
+            DY = Laxt[-2].get_position().bounds[1] - Ytxt
+            Xtxt = Laxt[-1].get_position().bounds[0]
+            DX = Laxt[-1].get_position().bounds[2]
+        laxtxtch.append( fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w') )
+
+    Ytxt = laxT[0].get_position().bounds[1] + laxT[0].get_position().bounds[3]
+    Xtxt = laxT[0].get_position().bounds[0]
+    DX = laxT[0].get_position().bounds[2]
+    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+
+    for ax in laxtxtch + [axtxtt]:
+        ax.patch.set_alpha(0.)
+        for ss in ['left','right','bottom','top']:
+            ax.spines[ss].set_visible(False)
+        ax.set_xticks([]), ax.set_yticks([])
+        ax.set_xlim(0,1),  ax.set_ylim(0,1)
+
+    # Dict
+    dax = {'t':[{'ax':aa, 'dh':{'vline':[]}} for aa in Laxt],
+           'chan':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp],
+           'chan2D':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp2],
+           'cross':[{'ax':aa, 'dh':{}} for aa in laxC],
+           'hor':[{'ax':axH, 'dh':{}}],
+           'colorbar':[{'ax':aa, 'dh':{}} for aa in laxc],
+           'txtch':[{'ax':aa, 'dh':{}} for aa in laxtxtch],
+           'txtt':[{'ax':axtxtt, 'dh':{}}]}
+    for kk in dax.keys():
+        for ii in range(0,len(dax[kk])):
+            if dax[kk][ii]['ax'] is not None:
+                dax[kk][ii]['ax'].tick_params(labelsize=fontsize)
+    return dax
+
+
+
+
+def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
+                       indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
+                       cmap=plt.cm.gray, ms=4, NaN0=np.nan,
+                       vmin=None, vmax=None, normt=False, dMag=None,
+                       fs=None, dmargin=None, wintit=_wintit, tit=None,
+                       plotmethod='imshow', invert=False,
+                       fontsize=_fontsize, labelpad=_labelpad,
+                       draw=True, connect=True):
+
+    #########
+    # Prepare
+    #########
+    # Use tuple unpacking to make sure indref is 0
+    if not indref==0:
+        lData[0], lData[indref] = lData[indref], lData[0]
+    nDat = len(lData)
+
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
+
+    # Format axes
+    lTypes = [dd.Id.Cls for dd in lData]
+    dax = _init_Data_combine(fs=fs, dmargin=dmargin, wintit=wintit,
+                             nchMax=nchMax, ntMax=ntMax, nDat=nDat, lTypes=lTypes)
+    if tit is None:
+        tit = []
+        if lData[0].Id.Exp is not None:
+            tit.append(lData[0].Id.Exp)
+        if lData[0].shot is not None:
+            tit.append(r"{0:05.0f}".format(lData[0].shot))
+        tit = ' - '.join(tit)
+    dax['t'][0]['ax'].figure.suptitle(tit)
+
+    for ii in range(nDat):
+        dax['cross'][ii]['ax'].set_ylabel(r"Z (m)", **fldict)
+    dax['cross'][-1]['ax'].set_xlabel(r"R (m)", **fldict)
+    dax['hor'][0]['ax'].set_xlabel(r"X (m)", **fldict)
+    dax['hor'][0]['ax'].set_ylabel(r"Y (m)", **fldict)
+
+
+
+    # Plot vessel
+    if lData[0].geom is not None:
+        if lData[0].geom['Ves'] is not None:
+            out = lData[0].geom['Ves'].plot(Lax=dax['hor'][0]['ax'], Proj='Hor',
+                                            Elt='P', dLeg=None, draw=False)
+            dax['hor'][0]['ax'] = out
+        if lData[0].geom['LStruct'] is not None:
+            for ss in lData[0].geom['LStruct']:
+                out = ss.plot(Lax=dax['hor'][0]['ax'], Proj='Hor',
+                              Elt='P', dLeg=None, draw=False)
+                dax['hor'][0]['ax'] = out
+
+    # Prepare vline trig
+    dax['t'][0]['xref'] = lData[0].t
+    dax['t'][0]['dh']['vline'] = [{'h':[0], 'xref':lData[0].t, 'trig':None}]
+
+    # Adding Equilibrium and extra
+    lEq = ['Ax','Sep','q1']
+    for ii in range(0,nDat):
+        dax['t'][ii+1]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':{}}]
+
+    dhCross = None
+    if hasattr(lData[0],'dextra') and lData[0].dextra is not None:
+        dextra = lData[0].dextra
+        lk = list(dextra.keys())
+        lkEq = [lk.pop(lk.index(lEq[jj]))
+                for jj in range(len(lEq)) if lEq[jj] in lk]
+        isCross2D = any([kk in lkEq for kk in dextra.keys()])
+        if isCross2D:
+            dax['t'][0]['dh']['vline'][0]['trig'] = {}
+            #dhCross = {}
+        for kk in dextra.keys():
+            dd = dextra[kk]
+            if kk == 'Ax':
+                x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
+                dax['t'][0]['ax'].plot(dd['t'], x,
+                                       ls=lls[0], lw=1.,
+                                       label=r'$R_{Ax}$ (m)')
+                dax['t'][0]['ax'].plot(dd['t'], y,
+                                       ls=lls[0], lw=1.,
+                                       label=r'$Z_{Ax}$ (m)')
+            # Plot 2d equilibrium
+            dhcross = None if len(lkEq)==0 else {}
+            if kk in lkEq:
+                lV = []
+                for ii in range(0,nDat):
+                    axcross = dax['cross'][ii]['ax']
+                    tref = dextra[lkEq[0]]['t']
+                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
+                    dhcross[kk] = [{'h':[], 'x':x, 'y':y, 'xref':tref}]
+                    for jj in range(0,ntMax):
+                        ll, = axcross.plot(np.full((dd['nP'],),np.nan),
+                                           np.full((dd['nP'],),np.nan),
+                                           ls=lls[0], c=lct[jj], lw=1.,
+                                           label=dd['label'])
+                        dhcross[kk][0]['h'].append(ll)
+                        lV.append(ll)
+
+                    if dhcross is not None:
+                        dax['cross'][ii]['dh'].update(dhcross)
+
+                        dax['t'][ii+1]['dh']['vline'][0]['trig'].update(dhcross)
+
+                #dhCross[kk] = [{'h':lV, 'x':x, 'y':y, 'xref':tref}]
+
+            elif 'data2D' not in dd.keys() and 't' in dd.keys():
+                c = dd['c'] if 'c' in dd.keys() else 'k'
+                lab = dd['label'] + ' (%s)'%dd['units']
+                dax['t'][0]['ax'].plot(dd['t'], dd['data'],
+                                       ls=lls[0], lw=1., c=c, label=lab)
+
+        #dax['t'][0]['dh']['vline'][0]['trig'].update(dhCross)
+
+        dax['t'][0]['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
+                                 ncol=4, mode='expand', borderaxespad=0.,
+                                 prop={'size':fontsize})
+
+    ###################
+    # Plot
+    ###################
+    lt = []
+    for ii in range(0,ntMax):
+        l0 = dax['t'][0]['ax'].axvline(np.nan, lw=1., ls='-', c=lct[ii])
+        lt.append(l0)
+    dax['t'][0]['dh']['vline'][0]['h'] = lt
+
+    Dt = [np.inf,-np.inf]
+    cbck = (0.8,0.8,0.8,0.8)
+    for ii in range(0,nDat):
+        kax = 'chan2D' if '2d' in lData[ii].Id.Cls.lower() else 'chan'
+        print("")   # DB
+        print(ii, lData[ii].Id.Name, lData[ii].Id.Diag, lData[ii].Id.Cls, kax)    # DB
+
+        ylab = r"{0} ({1})".format(lData[ii].Id.Diag, lData[ii].units['data'])
+        dax['t'][ii+1]['ax'].set_ylabel(ylab, **fldict)
+
+        # Plot cross-section
+        if lData[ii].geom is not None:
+            if lData[ii].geom['Ves'] is not None:
+                out = lData[ii].geom['Ves'].plot(Lax=dax['cross'][ii]['ax'],
+                                                 Proj='Cross', Elt='P',
+                                                 dLeg=None, draw=False)
+                dax['cross'][ii]['ax'] = out
+            if lData[ii].geom['LStruct'] is not None:
+                for ss in lData[ii].geom['LStruct']:
+                    out = ss.plot(Lax=dax['cross'][ii]['ax'], Proj='Cross',
+                                  Elt='P', dLeg=None, draw=False)
+                    dax['cross'][ii]['ax'] = out
+            if kax=='chan' and lData[ii].geom['LCam'] is not None:
+                for cc in lData[ii].geom['LCam']:
+                    out = cc.plot(Lax=[dax['cross'][ii]['ax'], dax['hor'][0]['ax']],
+                                  Elt='L', Lplot='In', EltVes='',
+                                  EltStruct='',
+                                  dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
+                                  dLeg=None, draw=False)
+                    dax['cross'][ii]['ax'], dax['hor'][0]['ax'] = out
+
+
+        nt, nch = lData[ii].nt, lData[ii].nch
+
+        chansRef = np.arange(0,lData[ii].Ref['nch'])
+        chans = chansRef[lData[ii].indch]
+        Dch = [-1,lData[ii].Ref['nch']]
+        if lData[ii].Ref['dchans'] in [None,{}]:
+            chlabRef = chansRef
+            chlab = chans
+        else:
+            chlabRef = chansRef if key is None else lData[ii].Ref['dchans'][key]
+            chlab = chans if key is None else lData[ii].dchans(key)
+
+        if lData[ii].t is None:
+            t = np.arange(0,lData[ii].nt)
+        elif nt==1:
+            t = np.array([lData[ii].t]).ravel()
+        else:
+            t = lData[ii].t
+        if nt==1:
+            Dti = [t[0]-0.001,t[0]+0.001]
+        else:
+            Dti = [np.nanmin(t), np.nanmax(t)]
+        Dt = [min(Dt[0],Dti[0]), max(Dt[1],Dti[1])]
+        data = lData[ii].data
+        if nt==1:
+            data = data.reshape((nt,nch))
+
+        # Get data and time limits
+        Dunits = lData[ii].units['data']
+        Dd0 = [min(0.,np.nanmin(data)), max(0.,np.nanmax(data))]
+        Dd = [Dd0[0]-0.05*np.diff(Dd0), Dd0[1]+0.05*np.diff(Dd0)]
+
+        # Prepare data in axe
+        if kax=='chan2D':
+            dax['t'][ii+1]['dh']['vline'][0]['trig'].update({'2dprof':[0]})
+            dax['chan2D'][ii]['dh']['vline'] = [{'h':[0], 'xref':0,
+                                                 'trig':{'ttrace':[0]}}]
+            dax['chan2D'][ii]['dh']['2dprof'] = [0]
+            if normt:
+                vmin, vmax = 0., 1.
             else:
-                self.dlt['prof']['h'][0].set_data(self.nanYi)
-            #self.dlt['prof']['h'][0].set_visible(True)
-            #self.dlt['prof']['v'][0] = True
-            self.dlt['prof']['h'][0].set_zorder(-1)
-            self.dax['prof'][0].draw_artist(self.dlt['prof']['h'][0])
-            #print("")
+                vmin = Dd0[0] if vmin is None else vmin
+                vmax = Dd0[1] if vmax is None else vmax
+            norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+            mpl.colorbar.ColorbarBase(dax['colorbar'][ii]['ax'], cmap=cmap,
+                                      norm=norm, orientation='vertical')
+        else:
+            dax['t'][ii+1]['dh']['vline'][0]['trig'].update({'1dprof':[0]})
+            dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0,
+                                               'trig':{'ttrace':[0]}}]
+            dax['chan'][ii]['dh']['1dprof'] = [0]
+        dax['t'][ii+1]['dh']['ttrace'] = [0]
 
-            self.Txt['t']['h'][0].set_text(txti)
-            self.Txt['t']['h'][0].set_visible(True)
-            self.Txt['t']['v'][0] = True
-            self.dax['Txtt'][0].draw_artist(self.Txt['t']['h'][0])
 
-            for ii in range(0,self.Max):
-                self.dax['t'][1].draw_artist(self.dlprof['t']['h'][ii])
-                self.dax['prof'][0].draw_artist(self.dlprof['prof']['h'][ii])
-                if ii<=len(self.indch)-1:
-                    self.dlprof['col']['h'][ii].set_xdata(self.norm(Yi[self.indch[ii]]))
-                    self.dlprof['col']['h'][ii].set_visible(True)
-                    self.dlprof['col']['v'][ii] = True
-                    self.dax['cax'][0].draw_artist(self.dlprof['col']['h'][ii])
-            if self.dMag is not None:
-                self.dlmag['2D']['Sep']['h'][0].set_xdata(sepi[:,0])
-                self.dlmag['2D']['Sep']['h'][0].set_ydata(sepi[:,1])
-                self.dlmag['2D']['Sep']['h'][0].set_visible(True)
-                self.dlmag['2D']['Sep']['v'][0] = True
-                self.dlmag['2D']['Ax']['h'][0].set_xdata([axi[0]])
-                self.dlmag['2D']['Ax']['h'][0].set_ydata([axi[1]])
-                self.dlmag['2D']['Ax']['h'][0].set_visible(True)
-                self.dlmag['2D']['Ax']['v'][0] = True
-                self.dax['2D'][0].draw_artist(self.dlmag['2D']['Sep']['h'][0])
-                self.dax['2D'][0].draw_artist(self.dlmag['2D']['Ax']['h'][0])
+        if kax=='chan2D':
+            msg = "Cannot plot CamLOS2D if indch is not None !"
+            assert lData[ii]._indch is None, msg
 
-        elif self.curax=="chan":
-            rest = [('t',[1]),('Txtc',list(range(self.Max))),
-                    ('prof',[0]),('2D',[0,1]),('cax',[0])]
-            for kk in rest:
-                for ii in kk[1]:
-                    self.can.restore_region(self.dBck[kk[0]][ii])
-            self.dax['prof'][0].draw_artist(self.dlt['prof']['h'][0])
-            self.dax['t'][1].draw_artist(self.dlt['t']['h'][1])
-            for ii in range(0,self.Max):
-                if ii<=len(self.indch)-1:
-                    x12 = self.X12[:,self.indch[ii]]
-                    txtci = str(self.indch[ii])
-                    Yii = self.Y[:,self.indch[ii]]
+            if normt:
+                data = data/np.nanmax(data,axis=1)[:,np.newaxis]
 
-                    self.dlprof['t']['h'][ii].set_ydata(Yii)
-                    self.dlprof['t']['h'][ii].set_visible(True)
-                    self.dlprof['t']['v'][ii] = True
-                    self.dax['t'][1].draw_artist(self.dlprof['t']['h'][ii])
+            X12, DX12 = lData[ii].get_X12(out='1d')
+            X12T = X12.T
+            #X12[:,np.all(np.isnan(lData[0].data),axis=0)] = np.nan
+            X1p, X2p, indp, dX12 = _prepare_pcolormeshimshow(X12, out=plotmethod)
+            DX1 = [np.nanmin(X1p),np.nanmax(X1p)]
+            DX2 = [np.nanmin(X2p),np.nanmax(X2p)]
 
-                    self.dlprof['prof']['h'][ii].set_xdata([x12[0]])
-                    self.dlprof['prof']['h'][ii].set_ydata([x12[1]])
-                    self.dlprof['prof']['h'][ii].set_visible(True)
-                    self.dlprof['prof']['v'][ii] = True
-                    self.dax['prof'][0].draw_artist(self.dlprof['prof']['h'][ii])
-                    self.Txt['prof']['h'][ii].set_text(txtci)
-                    self.Txt['prof']['h'][ii].set_visible(True)
-                    self.Txt['prof']['v'][ii] = True
-                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof']['h'][ii])
-                    self.dlprof['col']['h'][ii].set_xdata(self.norm(Yii[self.indt[0]]))
-                    self.dlprof['col']['h'][ii].set_visible(True)
-                    self.dlprof['col']['v'][ii] = True
-                    self.dax['cax'][0].draw_artist(self.dlprof['col']['h'][ii])
-                    if self.lCross is not None:
-                        if 'LOS' in self.CamCls:
-                            self.dlprof['C']['h'][ii].set_data(self.lCross[self.indch[ii]])
-                            self.dlprof['H']['h'][ii].set_data(self.lH[self.indch[ii]])
-                        else:
-                            raise Exception("Not coded yet !")
-                        self.dlprof['C']['h'][ii].set_visible(True)
-                        self.dlprof['H']['h'][ii].set_visible(True)
-                        self.dlprof['C']['v'][ii] = True
-                        self.dlprof['H']['v'][ii] = True
-                        self.dax['2D'][0].draw_artist(self.dlprof['C']['h'][ii])
-                        self.dax['2D'][1].draw_artist(self.dlprof['H']['h'][ii])
-                else:
-                    self.dlprof['t']['h'][ii].set_visible(False)
-                    self.dlprof['t']['v'][ii] = False
-                    self.dax['t'][1].draw_artist(self.dlprof['t']['h'][ii])
-                    self.dlprof['prof']['h'][ii].set_visible(False)
-                    self.dlprof['prof']['v'][ii] = False
-                    self.dax['prof'][0].draw_artist(self.dlprof['prof']['h'][ii])
-                    self.Txt['prof']['h'][ii].set_visible(False)
-                    self.Txt['prof']['v'][ii] = False
-                    self.dax['Txtc'][ii].draw_artist(self.Txt['prof']['h'][ii])
-                    self.dlprof['col']['h'][ii].set_visible(False)
-                    self.dlprof['col']['v'][ii] = False
-                    self.dax['cax'][0].draw_artist(self.dlprof['col']['h'][ii])
-                    if self.lCross is not None:
-                        self.dlprof['C']['h'][ii].set_visible(False)
-                        self.dlprof['H']['h'][ii].set_visible(False)
-                        self.dlprof['C']['v'][ii] = False
-                        self.dlprof['H']['v'][ii] = False
-                        self.dax['2D'][0].draw_artist(self.dlprof['C']['h'][ii])
-                        self.dax['2D'][1].draw_artist(self.dlprof['H']['h'][ii])
-        for kk in rest:
-            for ii in kk[1]:
-                self.can.blit(self.dax[kk[0]][ii].bbox)
+            indp = indp.T
+            indpnan = np.isnan(indp)
+            indp[indpnan] = 0
+            indp = indp.astype(int)
+            incx = {'left':np.r_[-dX12[0],0.], 'right':np.r_[dX12[0],0.],
+                    'down':np.r_[0.,-dX12[1]], 'up':np.r_[0.,dX12[1]]}
+            dax[kax][ii]['incx'] = incx
 
-    def onkeypress(self,event):
-        lk = ['left','right','up','down']
-        C = [ss in event.key for ss in lk]
-        if event.name is 'key_press_event' and any(C):
-            key = lk[np.nonzero(C)[0][0]]
-            if self.curax=='time' and key in ['left','right']:
-                inc = -1 if 'left' in key else 1
-                self.indt[-1] += inc
-                self.indt[-1] = self.indt[-1]%self.nt
-                self.update()
-            elif self.curax=='chan':
-                if self.shift and len(self.indch)>=self.Max:
-                    print("     Max. nb. of simultaneous plots reached !")
-                    return
-                c = -1. if self.invert else 1.
-                x12 = self.X12[:,self.indch[-1]] + c*self.incX12[key]
-                ii = np.nanargmin(np.sum((self.X12-x12[:,np.newaxis])**2,axis=0))
-                if self.shift:
-                    self.indch.append(ii)
-                else:
-                    self.indch[-1] = ii
-                self.update()
-        elif event.name is 'key_press_event' and event.key == 'shift':
-            self.shift = True
-        elif event.name is 'key_release_event' and event.key == 'shift':
-            self.shift = False
+            data[:,indpnan.ravel()] = np.nan
 
-    def mouseclic(self,event):
-        if not self.can.manager.toolbar._active is None:
-            return
-        if event.button == 1 and event.inaxes in self.dax['t']:
-            self.curax = 'time'
-            self.indt = [np.argmin(np.abs(self.t-event.xdata))]
-            self.update()
-        elif event.button == 1 and event.inaxes in self.dax['prof']:
-            self.curax = 'chan'
-            evxy = np.r_[event.xdata,event.ydata]
-            ii = np.nanargmin(np.sum((self.X12-evxy[:,np.newaxis])**2,axis=0))
-            if self.shift:
-                if len(self.indch)<self.Max:
-                    self.indch.append(ii)
-                else:
-                    print("     Max. nb. of simultaneous plots reached !!!")
+            DX, DY = DX1, DX2
+            xticks = []
+            xtlab = []
+            xtrot = 0.
+            xlab = r"pix."
+            ylab = r"pix."
+        else:
+            DX, DY = Dch, Dd
+            xticks = chansRef
+            xtlab = chlabRef
+            xtrot = 45
+            xlab = r"chans. (indices)"
+
+        # Setting tref and plotting handles
+        tref = t.copy()
+        chref = chans.copy()
+        dax['t'][ii+1]['xref'] = tref
+
+        if kax=='chan':
+            dax[kax][ii]['xref'] = chref
+        else:
+            dax[kax][ii]['xref'] = X12T
+
+        # ---------------
+        # Background
+        if Bck and '2d' in lData[ii].Id.Cls.lower():
+            dax['t'][ii+1]['ax'].fill_between(t, np.nanmin(data,axis=1),
+                                              np.nanmax(data, axis=1),
+                                              facecolor=cbck)
+        elif Bck:
+            env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
+            dax[kax][ii]['ax'].fill_between(chans, env[0], env[1], facecolor=cbck)
+            tbck = np.tile(np.r_[t, np.nan], nch)
+            dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
+            dax['t'][ii+1]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+
+        # ---------------
+        # Adding vline t and trig
+        ltg, lt = [], []
+        dax['t'][ii+1]['dh']['vline'][0]['xref'] = t
+        lv = []
+        for jj in range(0,ntMax):
+            l0 = dax['t'][ii+1]['ax'].axvline(np.nan, c=lct[jj], ls=lls[0],
+                                           lw=1.)
+            lv.append(l0)
+            if kax=='chan':
+                l1, = dax[kax][ii]['ax'].plot(chans,
+                                              np.full((nch,),np.nan),
+                                              c=lct[jj], ls=lls[0],
+                                              lw=1.)
             else:
-                self.indch = [ii]
-            self.update()
+                nanY = np.full(indp.shape,np.nan)
+                if plotmethod=='imshow':
+                    extent = (DX1[0],DX1[1],DX2[0],DX2[1])
+                    l1 = dax[kax][ii]['ax'].imshow(nanY, interpolation='nearest',
+                                                   norm=norm, cmap=cmap,
+                                                   extent=extent, aspect='equal',
+                                                   origin='lower', zorder=-1)
+                elif plotmethod=='pcolormesh':
+                    l1 = dax[kax][ii]['ax'].pcolormesh(X1p, X2p, nanY,
+                                                       edgecolors='None',
+                                                       norm=norm, cmap=cmap,
+                                                       zorder=-1)
+            ltg.append(l1)
 
-    def mouserelease(self, event):
-        if self.can.manager.toolbar._active == 'PAN':
-            self._set_dBck()
-        elif self.can.manager.toolbar._active == 'ZOOM':
-            self._set_dBck()
 
-    def resize(self, event):
-        self._set_dBck()
+            if ii==0:
+                l = dax['txtt'][0]['ax'].text((0.5+jj)/ntMax, 0., r'',
+                                              color=lct[jj], fontweight='bold',
+                                              fontsize=6., ha='center', va='bottom')
+                lt.append(l)
+
+        dtg = {'xref':t, 'h':ltg}
+        if kax=='chan':
+            dtg['y'] = data
+            dax[kax][ii]['dh']['1dprof'][0] = dtg
+            dax['t'][ii+1]['dh']['vline'][0]['trig']['1dprof'][0] = dtg
+        else:
+            if plotmethod=='imshow':
+                dtg.update({plotmethod:{'data':data,'ind':indp}})
+            else:
+                dtg.update({plotmethod:{'data':data, 'norm':norm,'cm':cmap}})
+            dax[kax][ii]['dh']['2dprof'][0] = dtg
+            dax['t'][ii+1]['dh']['vline'][0]['trig']['2dprof'][0] = dtg
+
+        dax['t'][ii+1]['dh']['vline'][0]['h'] = lv
+
+        if ii==0:
+            dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
+            dax['t'][ii+1]['dh']['vline'][0]['trig'].update(dttxt)
+            dax['txtt'][0]['dh'] = dttxt
+
+        # ---------------
+        # Adding vline ch
+        ltg = []
+        if kax=='chan2D':
+            dax[kax][ii]['dh']['vline'][0]['xref'] = X12T
+            lv, lch = [], []
+            for jj in range(0,nchMax):
+                lab = r"Data{0} ch{1}".format(ii,jj)
+                l0, = dax[kax][ii]['ax'].plot([np.nan],[np.nan],
+                                              mec=lcch[jj], ls='None',
+                                              marker='s', mew=2.,
+                                              ms=ms, mfc='None',
+                                              label=lab, zorder=10)
+                lv.append(l0)
+                l1, = dax['t'][ii+1]['ax'].plot(t,np.full((nt,),np.nan),
+                                                c=lcch[jj], ls=lls[0], lw=1.,
+                                                label=lab)
+                ltg.append(l1)
+
+                l2 = dax['colorbar'][ii]['ax'].axhline(np.nan, ls=lls[0], c=lcch[jj],
+                                                       label=lab)
+                lch.append(l2)
+            dtg = {'xref':X12T, 'h':ltg, 'y':data.T}
+
+        else:
+            dax[kax][ii]['dh']['vline'][0]['xref'] = chans
+            lv = []
+            for jj in range(0,nchMax):
+                lab = r"Data{0} ch{1}".format(ii,jj)
+                l0 = dax[kax][ii]['ax'].axvline(np.nan, c=lcch[jj], ls=lls[0],
+                                                lw=1., label=lab)
+                lv.append(l0)
+                l1, = dax['t'][ii+1]['ax'].plot(t,np.full((nt,),np.nan),
+                                                c=lcch[jj], ls=lls[0], lw=1.,
+                                                label=lab)
+                ltg.append(l1)
+            dtg = {'xref':chans, 'h':ltg, 'y':data.T}
+
+        dax[kax][ii]['dh']['vline'][0]['h'] = lv
+        dax[kax][ii]['dh']['vline'][0]['trig']['ttrace'][0] = dtg
+        dax['t'][ii+1]['dh']['ttrace'][0] = dtg
+
+        # --------------------------
+        # Adding mobile LOS and text
+        C0 = lData[ii].geom is not None and lData[ii].geom['LCam'] is not None
+        if C0:
+            if 'LOS' in lData[ii]._CamCls:
+                lCross, lHor, llab = [], [], []
+                for ll in range(0,len(lData[ii].geom['LCam'])):
+                    lCross += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Cross',
+                                                                   multi=True)
+                    lHor += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Hor',
+                                                                  multi=True)
+                    llab += [lData[ii].geom['LCam'][ll].Id.Name + s
+                             for s in lData[ii].geom['LCam'][ll].dchans['Name']]
+
+                lHor = np.stack(lHor)
+                dlosc = {'los':[{'h':[],'xy':lCross, 'xref':chans}]}
+                dlosh = {'los':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':chans}]}
+                dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':chans}]}
+                for jj in range(0,nchMax):
+                    l, = dax['cross'][ii]['ax'].plot([np.nan,np.nan],
+                                                     [np.nan,np.nan],
+                                                     c=lcch[jj], ls=lls[0], lw=2.)
+                    dlosc['los'][0]['h'].append(l)
+                    l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
+                                                  [np.nan,np.nan],
+                                                  c=lcch[jj], ls=lls[0], lw=2.)
+                    dlosh['los'][0]['h'].append(l)
+                    l = dax['txtch'][ii]['ax'].text((0.5+jj)/nchMax,0., r"",
+                                                    color=lcch[jj],
+                                                    fontweight='bold', fontsize=6.,
+                                                    ha='center', va='bottom')
+                    dchtxt['txt'][0]['h'].append(l)
+                dax['hor'][0]['dh'].update(dlosh)
+                dax['cross'][ii]['dh'].update(dlosc)
+                dax['txtch'][ii]['dh'].update(dchtxt)
+                dax[kax][ii]['dh']['vline'][0]['trig'].update(dlosh)
+                dax[kax][ii]['dh']['vline'][0]['trig'].update(dlosc)
+                dax[kax][ii]['dh']['vline'][0]['trig'].update(dchtxt)
+            else:
+                raise Exception("Not coded yet !")
+
+        # ---------------
+        # Lims and labels
+        dax[kax][ii]['ax'].set_xlim(DX)
+        dax[kax][ii]['ax'].set_ylim(DY)
+        dax[kax][ii]['ax'].set_xlabel(xlab, **fldict)
+        dax[kax][ii]['ax'].set_ylabel(ylab, **fldict)
+        dax[kax][ii]['ax'].set_xticks(xticks)
+        dax[kax][ii]['ax'].set_xticklabels(xtlab, rotation=xtrot)
+
+
+
+
+    # Format end
+    dax['t'][0]['ax'].set_xlim(Dt)
+    dax['t'][-1]['ax'].set_xlabel(r"t ($s$)", **fldict)
+
+
+    # Plot mobile parts
+    can = dax['t'][0]['ax'].figure.canvas
+    can.draw()
+    KH = KH_Comb(can, dax, ntMax=ntMax, nchMax=nchMax)
+
+    if connect:
+        KH.disconnect_old()
+        KH.connect()
+    if draw:
+        can.draw()
+    return KH

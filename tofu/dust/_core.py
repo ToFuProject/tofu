@@ -112,7 +112,7 @@ class Dust(object):
             self.set_sampleV(res)
 
     def set_sampleV(self, res=None):
-        #assert 
+        #assert
         self._res = res
 
     def set_emiss(self, emiss=None, t=None, Ani=None, axisym=True):
@@ -160,7 +160,7 @@ class Dust(object):
             lpolyCross, lpolyHor, gridCross, gridHor = out[:4]
             saCross, saHor, volIn, saIn = out[4:]
         else:
-            #out = 
+            #out =
             lpolyCross, lpolyHor, gridCross, gridHor = out[:4]
             saCross, saHor, volIn, saIn = out[4:8]
             contribCross, contribHor, powIn = out[8:]

@@ -129,6 +129,7 @@ class Test01_Data1D:
         sig21 = np.concatenate((sig01,sig11),axis=1)
         cls.LObj = [tfd.Data1D(sig00, Id='0', SavePath=here),
                    tfd.Data1D(sig01, t=t, Id='1', SavePath=here),
+                   tfd.Data1D(sig01, t=t, Ves=V, Id='1', SavePath=here),
                    tfd.Data1D(sig00, LCam=C0, Id='2', SavePath=here),
                    tfd.Data1D(sig01, t=t, LCam=C0, Id='3', SavePath=here),
                    tfd.Data1D(sig20, LCam=[C0,C1], Id='4', SavePath=here),
@@ -151,7 +152,7 @@ class Test01_Data1D:
             oo = self.LObj[ii]
             out0 = oo.dchans()
             out1 = oo.dchans(key='Name')
-            if oo.geom is None:
+            if oo.geom is None or oo.geom['LCam'] is None:
                 assert out0 is None and out1 is None
             else:
                 lK = list(oo.dchans().keys())
@@ -192,7 +193,7 @@ class Test01_Data1D:
     def test04_select_ch(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
-            if oo.geom is not None:
+            if oo.geom is not None and oo.geom['LCam'] is not None:
                 ind = oo.select_ch(touch='Ves', out=bool)
                 assert ind.sum()==oo.Ref['nch']
             if oo.Ref['dchans'] not in [None,{}] :
@@ -202,7 +203,7 @@ class Test01_Data1D:
     def test05_set_indch(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
-            if oo.geom is not None:
+            if oo.geom is not None and oo.geom['LCam'] is not None:
                 oo.set_indch(touch='Ves')
                 assert oo.indch.sum()==oo.Ref['nch']
             if oo.Ref['dchans'] not in [None,{}] :
@@ -247,16 +248,26 @@ class Test01_Data1D:
         plt.close('all')
 
     def test09_compare(self):
-        if self.__class__ is Test01_Data2D:
+        if self.__class__ is Test02_Data2D:
             return
         toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
         o0 = self.LObj[0]
         for ii in range(1,len(self.LObj)):
             oo = self.LObj[ii]
-            KH = oo.compare(o0, connect=toolbar)
+            KH = oo.plot_compare(o0, connect=toolbar)
         plt.close('all')
 
-    def test10_tofromdict(self):
+    def test10_combine(self):
+        if self.__class__ is Test02_Data2D:
+            return
+        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
+        o0 = self.LObj[0]
+        for ii in range(1,len(self.LObj)):
+            oo = self.LObj[ii]
+            KH = oo.plot_combine(o0, connect=toolbar)
+        plt.close('all')
+
+    def test11_tofromdict(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             dd = oo._todict()
@@ -266,7 +277,7 @@ class Test01_Data1D:
                 oo = tfd.Data2D(fromdict=dd)
             assert dd==oo._todict(), "Unequal to and from dict !"
 
-    def test11_saveload(self):
+    def test12_saveload(self):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             dd = oo._todict()
@@ -283,7 +294,7 @@ class Test01_Data1D:
 
 
 
-class Test01_Data2D(Test01_Data1D):
+class Test02_Data2D(Test01_Data1D):
     @classmethod
     def setup_class(cls):
         thet = np.linspace(0,2.*np.pi,100)
@@ -306,6 +317,8 @@ class Test01_Data2D(Test01_Data1D):
                                plot=False, out='')
         cls.LObj = [tfd.Data2D(sig00, Id='0', SavePath=here),
                     tfd.Data2D(sig01, t=t, Id='1', SavePath=here),
+                    tfd.Data2D(sig01, t=t, Ves=V, LStruct=C0.LStruct,
+                               Id='1', SavePath=here),
                     tfd.Data2D(sig00, LCam=C0, Id='2', SavePath=here),
                     tfd.Data2D(sig01, t=t, LCam=C0, Id='3', SavePath=here)]
 
@@ -313,6 +326,7 @@ class Test01_Data2D(Test01_Data1D):
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             if oo._X12 is not None and oo.geom is not None:
+                oo.set_indch()
                 KH = oo.plot(key=None, Max=None, fs=None,
                              invert=True, vmin=0, wintit='test', tit='AHAH',
                              dmargin=dict(left=0.05,right=0.9))

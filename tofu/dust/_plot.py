@@ -38,5 +38,3 @@ def _plot_traj(dust, lax=None, Proj='All'):
     if lax[1] is not None:
         lax[1].plot(ptsHor[0,:],ptsHor[1,:], c='k', lw=1., ls='-')
     return lax
-
-

@@ -28,7 +28,7 @@ class Data(object):
 
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, CamCls='1D', fromdict=None,
+                 LCam=None, Ves=None, LStruct=None, CamCls='1D', fromdict=None,
                  SavePath=os.path.abspath('./')):
 
         self._Done = False
@@ -37,12 +37,11 @@ class Data(object):
             assert np.sum([dchans is None, LCam is None])>=1, msg
             self._set_dataRef(data, t=t, dchans=dchans, dunits=dunits)
             self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-            self._set_LCam(LCam=LCam, CamCls=CamCls)
+            self._set_LCam(LCam=LCam, Ves=Ves, LStruct=LStruct, CamCls=CamCls)
             self._dextra = dextra
         else:
             self._fromdict(fromdict)
         self._Done = True
-
 
     def _fromdict(self, fd):
         _Data_check_fromdict(fd)
@@ -51,22 +50,31 @@ class Data(object):
         self._dunits = fd['dunits']
         self._indt, self._indch = fd['indt'], fd['indch']
         self._data0 = fd['data0']
-        self._CamCls = fd['CamCls']
         self._fft = fd['fft']
         if fd['geom'] is None:
             self._geom = None
+        elif fd['geom']['LCam'] is None:
+            import tofu.geom as tfg
+            Ves, LStruct = None, None
+            if fd['geom']['Ves'] is not None:
+                Ves = tfg.Ves(fromdict=fd['geom']['Ves'])
+            if fd['geom']['LStruct'] is not None:
+                LStruct = [tfg.Struct(fromdict=ss)
+                           for ss in fd['geom']['LStruct']]
+            self._set_LCam(LCam=None, Ves=Ves, LStruct=LStruct)
         else:
             import tofu.geom as tfg
             if '1D' in fd['CamCls']:
-                LCam = [tfg.LOSCam1D(fromdict=cc) for cc in fd['geom']]
+                LCam = [tfg.LOSCam1D(fromdict=cc) for cc in fd['geom']['LCam']]
             else:
-                LCam = [tfg.LOSCam2D(fromdict=cc) for cc in fd['geom']]
+                LCam = [tfg.LOSCam2D(fromdict=cc) for cc in fd['geom']['LCam']]
             self._set_LCam(LCam=LCam, CamCls=fd['CamCls'])
         if 'dextra' in fd.keys():
             dextra = fd['dextra']
         else:
             dextra = None
         self._dextra = dextra
+        self._CamCls = fd['CamCls']
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
@@ -79,8 +87,15 @@ class Data(object):
                'dextra':self._dextra}
         if self.geom is None:
             geom = None
+        elif self.geom['LCam'] is None:
+            geom = {'Ves':None, 'LStruct':None,
+                    'LCam':None, 'CamCls':self._CamCls}
+            if self.geom['Ves'] is not None:
+                geom['Ves'] = self.geom['Ves']._todict()
+            if self.geom['LStruct'] is not None:
+                geom['LStruct'] = [ss._todict() for ss in self.geom['LStruct']]
         else:
-            geom = [cc._todict() for cc in self.geom['LCam']]
+            geom = {'LCam':[cc._todict() for cc in self.geom['LCam']]}
         out['geom'] = geom
         return out
 
@@ -111,6 +126,9 @@ class Data(object):
             return np.ones((self._Ref['nch'],),dtype=bool)
         else:
             return self._indch
+    @property
+    def mask(self):
+        return self._mask
     @property
     def t(self):
         if self._Ref['t'] is None:
@@ -189,18 +207,27 @@ class Data(object):
 
         self._dunits = {} if dunits is None else dunits
         self._data, self._t, self._nt = None, None, None
-        self._indt, self._indch = None, None
+        self._indt, self._indch, self._mask = None, None, None
         self._data0 = {'data':None,'t':None,'Dt':None}
         self._fft, self._interp_t = None, None
         self._indt_corr, self._indch_corr = None, None
 
-    def _set_LCam(self, LCam=None, CamCls='1D'):
+    def _set_LCam(self, LCam=None, Ves=None, LStruct=None, CamCls='1D'):
         self._check_inputs(LCam=LCam, CamCls=CamCls, data=self._Ref['data'])
         if LCam is None:
-            self._geom = None
             self._CamCls = CamCls
             if 'data' not in self._dunits.keys():
                 self._dunits['data'] = r"a.u."
+            if Ves is None and LStruct is None:
+                self._geom = None
+            else:
+                self._geom = {'LCam':None, 'Ves':None, 'LStruct':None}
+                if Ves is not None:
+                    self._geom['Ves'] = Ves
+                if LStruct is not None:
+                    if not type(LStruct) is list:
+                        LStruct = [LStruct]
+                    self._geom['LStruct'] = LStruct
         else:
             LCam = LCam if type(LCam) is list else [LCam]
             # Set up dchans
@@ -238,7 +265,7 @@ class Data(object):
 
         Return their indices (default) or the chosen criterion
         """
-        if self.geom is None:
+        if self.geom is None or self.geom['LCam'] is None:
             dchans = None
         elif self._Ref['dchans']=={}:
             dchans = self._Ref['dchans']
@@ -261,7 +288,7 @@ class Data(object):
         return dchans
 
     def _get_LCam(self):
-        if self.geom['LCam'] is None:
+        if self.geom is None or self.geom['LCam'] is None:
             lC = None
         else:
             if np.all(self.indch):
@@ -297,7 +324,7 @@ class Data(object):
         C = [indt is None,t is None]
         assert np.sum(C)>=1
         if all(C):
-            ind = np.ones((self._Ref['nt'],),dtype=bool)
+            ind = None
             self._t, self._nt = None, None
         elif C[0]:
             ind = self.select_t(t=t, out=bool)
@@ -331,7 +358,8 @@ class Data(object):
                 else:
                     ind = ~np.any(ind,axis=0)
             elif touch is not None:
-                assert self._geom is not None, "Geometry (LCam) not defined !"
+                C0 = self._geom is not None and self.geom['LCam'] is not None
+                assert C0, "Geometry (LCam) not defined !"
                 ind = []
                 for cc in self._geom['LCam']:
                     ind.append(cc.select(touch=touch, log=log, out=bool))
@@ -347,12 +375,21 @@ class Data(object):
         C = [indch is None, key is None, touch is None]
         assert np.sum(C)>=2
         if all(C):
-            ind = np.ones((self._Ref['nch'],),dtype=bool)
+            ind = None
         elif C[0]:
             ind = self.select_ch(key=key, val=val, touch=touch, log=log, out=bool)
         elif C[1]:
             ind = _format_ind(indch, n=self._Ref['nch'])
         self._indch = ind
+
+    def set_mask(self, ind=None, val=np.nan):
+        assert type(val) in [int,float,np.int64,np.float64]
+        C = ind is None
+        if C:
+            mask = None
+        else:
+            mask = {'ind':_format_ind(ind, n=self._Ref['nch']), 'val':val}
+        self._mask = mask
 
     def set_data0(self, data0=None, Dt=None, indt=None):
         assert self._Ref['nt']>1, "Useless if only one data slice !"
@@ -404,13 +441,20 @@ class Data(object):
         self._set_data()
 
     def _calc_data_core(self):
-         # Get time interval
-        d = self._Ref['data'][self.indt,:]
+        d = self._Ref['data'].copy()
+        # Get time interval
+        if self._indt is not None:
+            d = d[self.indt,:]
         # Substract reference time data
         if self._data0['data'] is not None:
             d = d - self._data0['data'][np.newaxis,:]
+        # Apply mask of any
+        mask = self.mask
+        if mask is not None:
+            d[:,mask['ind']] = mask['val']
         # Get desired channels
-        d = d[:,self.indch]
+        if self._indch is not None:
+            d = d[:,self.indch]
         return d
 
     def _set_data(self):
@@ -490,7 +534,7 @@ class Data(object):
         return data
 
     def plot(self, key=None, invert=None, plotmethod='imshow',
-             cmap=plt.cm.gray, ms=4, ntMax=3, nchMax=None, nlbdMax=3,
+             cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
              Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
              vmin=None, vmax=None, normt=False, draw=True, connect=True):
         """ Plot the data content in a predefined figure  """
@@ -502,12 +546,19 @@ class Data(object):
                              draw=draw, connect=connect)
         return KH
 
-    def compare(self, lD, key=None, invert=None, plotmethod='imshow',
-                cmap=plt.cm.gray, ms=4, ntMax=3, nchMax=None, nlbdMax=3,
-                Bck=True, indref=0, fs=None, dmargin=None,
-                vmin=None, vmax=None, normt=False,
-                wintit=None, tit=None, draw=True, connect=True):
-        """ Plot the data content in a predefined figure  """
+    def plot_compare(self, lD, key=None, invert=None, plotmethod='imshow',
+                     cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
+                     Bck=True, indref=0, fs=None, dmargin=None,
+                     vmin=None, vmax=None, normt=False,
+                     wintit=None, tit=None, fontsize=None,
+                     draw=True, connect=True):
+        """ Plot several Data instances of the same diag
+
+        Useful to compare :
+                - the diag data for 2 different shots
+                - experimental vs synthetic data for the same shot
+
+        """
         C0 = isinstance(lD,list)
         C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
         C1 = issubclass(lD.__class__,Data)
@@ -518,7 +569,33 @@ class Data(object):
                              plotmethod=plotmethod, cmap=cmap, ms=ms,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
                              vmin=vmin, vmax=vmax, normt=normt,
-                             indref=indref, draw=draw, connect=connect)
+                             fontsize=fontsize, indref=indref,
+                             draw=draw, connect=connect)
+        return KH
+
+    def plot_combine(self, lD, key=None, invert=None, plotmethod='imshow',
+                     cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
+                     Bck=True, indref=0, fs=None, dmargin=None,
+                     vmin=None, vmax=None, normt=False,
+                     wintit=None, tit=None, fontsize=None,
+                     draw=True, connect=True):
+        """ Plot several Data instances of different diags
+
+        Useful to visualize several diags for the same shot
+
+        """
+        C0 = isinstance(lD,list)
+        C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
+        C1 = issubclass(lD.__class__,Data)
+        assert C0 or C1, 'Provided first arg. must be a tf.data.Data or list !'
+        lD = [lD] if C1 else lD
+        KH = _plot.Data_plot_combine([self]+lD, key=key, invert=invert, Bck=Bck,
+                                     ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
+                                     plotmethod=plotmethod, cmap=cmap, ms=ms,
+                                     fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                                     vmin=vmin, vmax=vmax, normt=normt,
+                                     indref=indref, fontsize=fontsize,
+                                     draw=draw, connect=connect)
         return KH
 
     def save(self, SaveName=None, Path=None,
@@ -622,7 +699,7 @@ def _Data_check_fromdict(fd):
     k0 = {'Id':dict, 'Ref':dict, 'dunits':[None,dict],
           'indt':[None,np.ndarray], 'indch':[None,np.ndarray],
           'data0':[None,dict], 'CamCls':str, 'fft':[None,dict],
-          'geom':[None,list]}
+          'geom':[None,dict]}
     keys = list(fd.keys())
     for kk in k0:
         assert kk in keys, "%s must be a key of fromdict"%kk
@@ -817,11 +894,11 @@ class Data1D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, fromdict=None,
+                 LCam=None, Ves=None, LStruct=None, fromdict=None,
                  SavePath=os.path.abspath('./')):
         Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
                  Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra, CamCls='1D',
-                 LCam=LCam, fromdict=fromdict, SavePath=SavePath)
+                 LCam=LCam, Ves=Ves, LStruct=LStruct, fromdict=fromdict, SavePath=SavePath)
 
 
 
@@ -829,15 +906,16 @@ class Data2D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
     def __init__(self, data=None, t=None, dchans=None, dunits=None,
                  Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, X12=None, fromdict=None,
+                 LCam=None, Ves=None, LStruct=None, X12=None, fromdict=None,
                  SavePath=os.path.abspath('./')):
         Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
                       Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra,
-                      LCam=LCam, CamCls='2D', fromdict=fromdict, SavePath=SavePath)
+                      LCam=LCam, Ves=Ves, LStruct=LStruct, CamCls='2D',
+                      fromdict=fromdict, SavePath=SavePath)
         self.set_X12(X12)
 
     def set_X12(self, X12=None):
-        X12 = X12 if self.geom is None else None
+        X12 = X12 if (self.geom is None or self.geom['LCam'] is None) else None
         if X12 is not None:
             X12 = np.asarray(X12)
             assert X12.shape==(2,self.Ref['nch'])
@@ -845,8 +923,10 @@ class Data2D(Data):
 
     def get_X12(self, out='1d'):
         if self._X12 is None:
+            C0 = self.geom is not None
+            C0 = C0 and self.geom['LCam'] is not None
             msg = "X12 must be set for plotting if LCam not provided !"
-            assert self.geom is not None, msg
+            assert C0, msg
             X12, DX12 = self.geom['LCam'][0].get_X12(out=out)
         else:
             X12 = self._X12

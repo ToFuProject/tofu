@@ -175,7 +175,7 @@ def create_CamLOS2D(P, F, D12, N12,
     e1 = e1/np.linalg.norm(e1)
     assert np.abs(np.sum(nIn*e1))<1.e-12
     if e2 is None:
-        e2 = np.cross(nIn,e1)
+        e2 = np.cross(e1,nIn)
     e2 = np.asarray(e2)
     e2 = e2/np.linalg.norm(e2)
     assert np.abs(np.sum(nIn*e2))<1.e-12
@@ -184,8 +184,8 @@ def create_CamLOS2D(P, F, D12, N12,
     # Get starting points
     d1 = D12[0]*np.linspace(-0.5,0.5,N12[0],endpoint=True)
     d2 = D12[1]*np.linspace(-0.5,0.5,N12[1],endpoint=True)
-    d1 = np.tile(d1,N12[1])
-    d2 = np.repeat(d2,N12[0])
+    d1 = np.repeat(d1,N12[1])
+    d2 = np.tile(d2,N12[0])
     d1 = d1[np.newaxis,:]*e1[:,np.newaxis]
     d2 = d2[np.newaxis,:]*e2[:,np.newaxis]
 
@@ -314,33 +314,46 @@ class DChans(object):
 
 ###############################################
 #           Plot KeyHandler
-###############################################
-
+################ ##############################
 
 class KeyHandler(object):
     """ Base class for handling event on tofu interactive figures """
 
-    def __init__(self, can=None, daxT=None, ntMax=3, nchMax=3, nlambMax=3):
-        lk = ['t','chan','chan2D','lamb','cross','hor','txtt','txtch','txtlamb','other']
+    def __init__(self, can=None, daxT=None, ntMax=3, nchMax=3, nlambMax=3,
+                 combine=False):
+        lk = ['t','chan','chan2D','lamb','cross','hor','colorbar','txtt','txtch','txtlamb','other']
         assert all([kk in lk for kk in daxT.keys()]), str(daxT.keys())
         assert all([type(dd) is list for dd in daxT.values()]), str(daxT.values())
         self.lk = sorted(list(daxT.keys()))
 
+        # Remove None axes from daxT
+        for kk in daxT.keys():
+            daxT[kk] = [dd for dd in daxT[kk] if dd['ax'] is not None]
+
         self.can = can
+        self.combine = combine
         daxr, dh = self._make_daxr_dh(daxT)
 
         self.daxT = daxT
         self.daxr, self.dh = daxr, dh
         self.store_rcParams = None
-        self.lkeys = ['right','left','shift']
+        self.lkeys = ['right','left','control','shift','alt']
         if 'chan2D' in self.daxT.keys() and len(self.daxT['chan2D'])>0:
             self.lkeys += ['up','down']
         self.curax = None
+        self.ctrl = False
         self.shift = False
-        self.ref, dnMax = {}, {'chan':nchMax,'t':ntMax,'lamb':nlambMax}
+        self.alt = False
+        self.ref, dnMax = {}, {'chan':nchMax, 'chan2D':nchMax,'t':ntMax,'lamb':nlambMax}
         for kk in self.lk:
-            if not kk in ['chan2D','cross','hor','txtt','txtch','txtlamb','other']:
-                self.ref[kk] = {'ind':np.zeros((ntMax,),dtype=int),
+            if not kk in ['cross','hor','colorbar','txtt','txtch','txtlamb','other']:
+                if kk=='t':
+                    nn = ntMax
+                elif 'chan' in kk:
+                    nn = nchMax
+                else:
+                    nn = nlambMax
+                self.ref[kk] = {'ind':np.zeros((nn,),dtype=int),
                                 'val':[None for ii in range(0,dnMax[kk])],
                                 'ncur':1, 'nMax':dnMax[kk]}
 
@@ -371,6 +384,9 @@ class KeyHandler(object):
                     dhh = None
                 daxr[dax['ax']] = {'Type':kk, 'invert':invert,
                                    'xref':xref, 'Bck':None, 'dh':dhh}
+                if 'incx' in dax.keys():
+                    daxr[dax['ax']]['incx'] = dax['incx']
+
                 if dhh is not None:
                     for kh in dhh.keys():
                         for jj in range(0,len(dhh[kh])):
@@ -415,6 +431,7 @@ class KeyHandler(object):
         res = self.can.mpl_connect('resize_event', self.resize)
         #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
         self.can.manager.toolbar.release = self.mouserelease
+
         self._cid = {'keyp':keyp, 'keyr':keyr,
                      'butp':butp, 'res':res}#, 'butr':butr}
 
@@ -423,11 +440,15 @@ class KeyHandler(object):
             self.can.mpl_disconnect(self._cid[kk])
         self.can.manager.toolbar.release = lambda event: None
 
+    def home(self):
+        """ To be filled when matplotlib issue completed """
+
     def mouserelease(self, event):
         msg = "Make sure you release the mouse button on an axes !"
         msg += "\n Otherwise the background plot cannot be properly updated !"
         C0 = self.can.manager.toolbar._active == 'PAN'
         C1 = self.can.manager.toolbar._active == 'ZOOM'
+
         if C0 or C1:
             ax = self.curax_panzoom
             assert ax is not None, msg
@@ -509,8 +530,12 @@ class KeyHandler(object):
             return lax
 
         lax = []
-        xref = self.ref[axT]['val']
-        for dax in self.daxT[axT]:
+        if self.combine and axT in ['chan','chan2D']:
+            ldAX = [dd for dd in self.daxT[axT] if self.curax==dd['ax']]
+        else:
+            ldAX = self.daxT[axT]
+        #xref = self.ref[axT]['val']
+        for dax in ldAX:
             ax = dax['ax']
             if self.daxr[ax]['dh'] is None:
                 continue
@@ -523,22 +548,30 @@ class KeyHandler(object):
             for jj in range(0,len(self.daxr[ax]['dh']['vline'])):
                 dtg = self.daxr[ax]['dh']['vline'][jj]['trig']
                 xref = self.daxr[ax]['dh']['vline'][jj]['xref']
+                if xref.ndim==1:
+                    xvfunc = np.abs
+                    xvset = lambda h, v: h.set_xdata(v)
+                else:
+                    xvfunc = lambda xv: np.sum(xv**2,axis=1)
+                    xvset = lambda h, v: h.set_data(v)
                 for ii in range(0,self.ref[axT]['ncur']):
                     hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
                     ind = self.ref[axT]['ind'][ii]
                     val = self.ref[axT]['val'][ii]
                     if xref is not self.daxr[self.curax]['xref']:
-                        ind = np.argmin(np.abs(xref-val))
+                        ind = np.argmin(xvfunc(xref-val))
                         val = xref[ind]
-                    hh.set_xdata(val)
+                    xvset(hh,val)
+                    #hh.set_xdata(val)
                     self.dh[hh]['vis'] = True
                     for kk in dtg.keys():
                         for ll in range(0,len(dtg[kk])):
+                            h = dtg[kk][ll]['h'][ii]
                             if dtg[kk][ll]['xref'] is xref:
                                 indh = ind
                             else:
                                 indh = np.argmin(np.abs(dtg[kk][ll]['xref']-val))
-                            h = dtg[kk][ll]['h'][ii]
+
                             if 'txt' in dtg[kk][ll].keys():
                                 if 'format' in dtg[kk][ll].keys():
                                     sss = '{0:%s}'%dtg[kk][ll]['format']
@@ -547,6 +580,11 @@ class KeyHandler(object):
                                     h.set_text(dtg[kk][ll]['txt'][indh])
                             elif 'xy' in dtg[kk][ll].keys():
                                 h.set_data(dtg[kk][ll]['xy'][indh])
+                            elif 'imshow' in dtg[kk][ll].keys():
+                                h.set_data(dtg[kk][ll]['imshow']['data'][indh,:][dtg[kk][ll]['imshow']['ind']])
+                            elif 'pcolormesh' in dtg[kk][ll].keys():
+                                ncol = dtg[kk][ll]['pcolormesh']['cm'](dtg[kk][ll]['pcolormesh']['norm'](dtg[kk][ll]['pcolormesh']['data'][indh,:]))
+                                h.set_facecolor(ncol)
                             else:
                                 if 'x' in dtg[kk][ll].keys():
                                     h.set_xdata(dtg[kk][ll]['x'][indh,:])
@@ -574,7 +612,9 @@ class KeyHandler(object):
                     #ax.draw_artist(hh)
 
         for ax in lax:
-            for kk in self.daxr[ax]['dh'].keys():
+            # Sort alphabetically to make sure vline (pix) is plotted after
+            # imshow / pcolormesh (otherwise pixel not visible)
+            for kk in sorted(list(self.daxr[ax]['dh'].keys())):
                 for ii in range(0,len(self.daxr[ax]['dh'][kk])):
                     for h in self.daxr[ax]['dh'][kk][ii]['h']:
                         ax.draw_artist(h)
@@ -598,7 +638,7 @@ class KeyHandler(object):
         self.curax = event.inaxes
 
         Type = self.daxr[self.curax]['Type']
-        Type = 'chan' if 'chan' in Type else Type
+        #Type = 'chan' if 'chan' in Type else Type
         if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
             print("     Max. nb. of %s plots reached !!!"%Type)
             return
@@ -606,12 +646,17 @@ class KeyHandler(object):
         val = self.daxr[event.inaxes]['xref']
         if C3:
             evxy = np.r_[event.xdata,event.ydata]
-            d2 = np.sum((val-evxy[:,np.newaxis])**2,axis=0)
+            d2 = np.sum((val-evxy[np.newaxis,:])**2,axis=1)
         else:
             d2 = np.abs(event.xdata-val)
         ind = np.nanargmin(d2)
         val = val[ind]
-        ii = int(self.ref[Type]['ncur']) if self.shift else 0
+        if self.ctrl:
+            ii = 0
+        elif self.shift:
+            ii = int(self.ref[Type]['ncur'])
+        else:
+            ii = int(self.ref[Type]['ncur'])-1
         self.ref[Type]['ind'][ii] = ind
         self.ref[Type]['val'][ii] = val
         self.ref[Type]['ncur'] = ii+1
@@ -622,38 +667,55 @@ class KeyHandler(object):
         C1 = [kk in event.key for kk in self.lkeys]
         C2 = event.name is 'key_release_event' and event.key=='shift'
         C3 = event.name is 'key_press_event'
+        C4 = event.name is 'key_release_event' and event.key=='alt'
+        C5 = event.name is 'key_release_event' and event.key=='control'
 
-        if not (C0 and any(C1) and (C2 or C3)):
+        if not (C0 and any(C1) and (C2 or C3 or C4 or C5)):
             return
 
+        if event.key=='control':
+            self.ctrl = False if C5 else True
+            return
         if event.key=='shift':
             self.shift = False if C2 else True
             return
+        if event.key=='alt':
+            self.alt = False if C4 else True
+            return
 
         Type = self.daxr[self.curax]['Type']
-        Type = 'chan' if 'chan' in Type else Type
+        #Type = 'chan' if 'chan' in Type else Type
         if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
                 print("     Max. nb. of %s plots reached !!!"%Type)
                 return
 
-        kdir = [kk for kk in self.lkeys if kk in event.key and not kk=='shift']
         val = self.daxr[self.curax]['xref']
+        if self.alt:
+            inc = 50 if Type=='t' else 10
+        else:
+            inc = 1
         if self.daxr[self.curax]['Type']=='chan2D':
-            c = -1. if self.daxr[self.curax]['invert'] else 1.
-            x12 = val[:,self.ref[Type]['ind'][self.ref[Type]['ncur']-1]]
-            x12 = x12 + c*self.daxr[self.curax]['incx'][kdir]
-            d2 = np.sum((val-x12[:,np.newaxis])**2,axis=0)
+            kdir = [kk for kk in self.lkeys
+                    if (kk in event.key and not kk in ['shift','control','alt'])]
+            c = -inc if self.daxr[self.curax]['invert'] else inc
+            x12 = val[self.ref[Type]['ind'][self.ref[Type]['ncur']-1],:]
+            x12 = x12 + c*self.daxr[self.curax]['incx'][kdir[0]]
+            d2 = np.sum((val-x12[np.newaxis,:])**2,axis=1)
             ind = np.nanargmin(d2)
         else:
-            inc = -1 if 'left' in event.key else 1
-            ind = (self.ref[Type]['ind'][self.ref[Type]['ncur']-1]+inc)
+            c = -inc if 'left' in event.key else inc
+            ind = (self.ref[Type]['ind'][self.ref[Type]['ncur']-1]+c)
             ind = ind%val.size
         val = val[ind]
-        ii = self.ref[Type]['ncur'] if self.shift else self.ref[Type]['ncur']-1
+        if self.ctrl:
+            ii = 0
+        elif self.shift:
+            ii = self.ref[Type]['ncur']
+        else:
+            ii = self.ref[Type]['ncur']-1
         self.ref[Type]['ind'][ii] = ind
         self.ref[Type]['val'][ii] = val
-        if self.shift:
-            self.ref[Type]['ncur'] = ii+1
+        self.ref[Type]['ncur'] = ii+1
         self.update()
 
     ##### To be implemented for each case ####

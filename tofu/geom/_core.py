@@ -845,15 +845,29 @@ class Rays(object):
         # D = start point
         # u = unit vector
         D, u = np.asarray(Du[0]), np.asarray(Du[1])
+        msg = "D and u must be arrays of (X,Y,Z) coordinates !"
+        assert D.size%3==0 and u.size%3==0, msg
+        nRays = int(max(D.size/3, u.size/3))
         if D.ndim==2:
             if D.shape[1]==3 and not D.shape[0]==3:
-                D, u = D.T, u.T
-        if D.ndim==1:
-            D, u = D.reshape((3,1)), u.reshape((3,1))
+                D = D.T
+        else:
+            D = D.reshape((3,1))
+        assert D.shape[1] in [1,nRays]
+        if D.shape[1]<nRays:
+            D = np.repeat(D, nRays, axis=1)
+        if u.ndim==2:
+            if u.shape[1]==3 and not u.shape[0]==3:
+                u = u.T
+        else:
+            assert u.size==3
+            u = u.reshape((3,1))
+        assert u.shape[1] in [1,nRays]
+        if u.shape[1]<nRays:
+            u = np.repeat(u, nRays, axis=1)
         u = u/np.sqrt(np.sum(u**2,axis=0))
         D = np.ascontiguousarray(D)
         u = np.ascontiguousarray(u)
-        nRays = D.shape[1]
 
         # Prepare the output
         kPIn, kPOut = np.full((nRays,),np.nan), np.full((nRays,),np.nan)
@@ -914,7 +928,7 @@ class Rays(object):
             crossn2 = np.sum(cross**2,axis=0)
             if np.all(np.abs(crossn2)<1.e-12):
                 msg = "Is %s really a 2D camera ? (LOS aligned?)"%self.Id.Name
-                warning.warn(msg)
+                warnings.warn(msg)
             cross = cross[:,np.nanargmax(crossn2)]
             cross = cross / np.linalg.norm(cross)
             nIn = cross if np.sum(cross*np.nanmean(u,axis=1))>0. else -cross
@@ -962,9 +976,16 @@ class Rays(object):
                 VType = 'Lin'
             kMax = np.copy(self.geom['kPOut'])
             kMax[np.isnan(kMax)] = np.inf
-            out = _GG.LOS_sino(self.D, self.u, RefPt, kMax,
-                               Mode='LOS', VType=VType)
-            Pt, kPt, r, Theta, p, theta, Phi = out
+            try:
+                out = _GG.LOS_sino(self.D, self.u, RefPt, kMax,
+                                   Mode='LOS', VType=VType)
+                Pt, kPt, r, Theta, p, theta, Phi = out
+            except Exception as err:
+                msg = "Could not compute sinogram !\n"
+                msg += str(err)
+                warnings.warn(msg)
+                Pt, kPt, r = None, None, None
+                Theta, p, theta, Phi = None, None, None, None
             self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
                           'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
 
@@ -1453,11 +1474,11 @@ def _Rays_check_inputs(Id=None, Du=None, Vess=None, LStruct=None,
         C0 = hasattr(Du,'__iter__') and len(Du)==2
         C1 = 3 in np.asarray(Du[0]).shape and np.asarray(Du[0]).ndim in [1,2]
         C2 = 3 in np.asarray(Du[1]).shape and np.asarray(Du[1]).ndim in [1,2]
-        C3 = np.asarray(Du[0]).shape==np.asarray(Du[1]).shape
+        #C3 = np.asarray(Du[0]).shape==np.asarray(Du[1]).shape
         assert C0, "Arg Du must be an iterable of len()=2 !"
         assert C1, "Du[0] must contain 3D coordinates of all starting points !"
         assert C2, "Du[1] must contain 3D coordinates of all unit vectors !"
-        assert C3, "Du[0] and Du[1] must be of same shape !"
+        #assert C3, "Du[0] and Du[1] must be of same shape !"
     if not Vess is None:
         assert type(Vess) is Ves, "Arg Ves must be a Ves instance !"
         if Exp is not None and Vess.Id.Exp is not None:

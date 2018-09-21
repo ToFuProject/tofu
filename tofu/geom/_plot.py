@@ -1211,7 +1211,7 @@ def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
         ind = Cam.select(touch=ee,out=bool)
         if np.any(ind):
             if type(lcol) is list:
-                c = lcol[jj]
+                c = lcol[jj%len(lcol)]
             else:
                 c = lcol[[kk for kk in lcol.keys() if kk in ee][0]]
             cmap = _make_cmap(c)
@@ -1228,13 +1228,6 @@ def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
     tit = r"%s - %s"%(Cam.Id.Exp,Cam.Id.Diag)
     dax['prof'][0].figure.suptitle(tit)
 
-    dax['prof'][0].set_xlim(DX1),   dax['prof'][0].set_ylim(DX2)
-    dax['prof'][0].set_xlabel(r"$X_1$", fontsize=8)
-    dax['prof'][0].set_ylabel(r"$X_2$", fontsize=8)
-    dax['prof'][0].set_aspect('equal', adjustable='datalim')
-    if invert:
-        dax['prof'][0].invert_xaxis()
-        dax['prof'][0].invert_yaxis()
 
     # Plot fixed parts
     if Cam.Ves is not None:
@@ -1250,6 +1243,14 @@ def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
         cols = cols.reshape((nx1,nx2,4)).swapaxes(0,1)
         dax['prof'][0].imshow(cols, extent=extent, aspect='equal',
                               interpolation='nearest', origin='lower')
+
+    #dax['prof'][0].set_xlim(DX1),   dax['prof'][0].set_ylim(DX2)
+    dax['prof'][0].set_xlabel(r"$X_1$", fontsize=8)
+    dax['prof'][0].set_ylabel(r"$X_2$", fontsize=8)
+    dax['prof'][0].set_aspect('equal', adjustable='datalim')
+    if invert:
+        dax['prof'][0].invert_xaxis()
+        dax['prof'][0].invert_yaxis()
 
     if draw:
         dax['prof'][0].figure.canvas.draw()
