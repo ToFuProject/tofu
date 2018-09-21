@@ -819,7 +819,7 @@ class Rays(object):
         D, u = np.asarray(Du[0]), np.asarray(Du[1])
         msg = "D and u must be arrays of (X,Y,Z) coordinates !"
         assert D.size%3==0 and u.size%3==0, msg
-        nRays = max(D.size/3, u.size/3)
+        nRays = int(max(D.size/3, u.size/3))
         if D.ndim==2:
             if D.shape[1]==3 and not D.shape[0]==3:
                 D = D.T
