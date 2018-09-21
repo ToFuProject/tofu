@@ -1211,7 +1211,7 @@ def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
         ind = Cam.select(touch=ee,out=bool)
         if np.any(ind):
             if type(lcol) is list:
-                c = lcol[jj]
+                c = lcol[jj%len(lcol)]
             else:
                 c = lcol[[kk for kk in lcol.keys() if kk in ee][0]]
             cmap = _make_cmap(c)
