@@ -13,7 +13,7 @@ import tofu.pathfile as tfpf
 import tofu.utils as utils
 try:
     import tofu.geom._def as _def
-    import tofu.geom._GG as _GG 
+    import tofu.geom._GG as _GG
     import tofu.geom._comp as _comp
     import tofu.geom._plot as _plot
 except Exception:
@@ -37,46 +37,67 @@ __all__ = ['Ves', 'Struct',
 
 
 class Ves(object):
-    """ A class defining a Linear or Toroidal vaccum vessel (i.e. a 2D polygon representing a cross-section and assumed to be linearly or toroidally invariant)
+    """ A class defining a Linear or Toroidal vaccum vessel (i.e. a 2D polygon
+    representing a cross-section and assumed to be linearly or toroidally
+    invariant)
 
-    A Ves object is mostly defined by a close 2D polygon, which can be understood as a poloidal cross-section in (R,Z) cylindrical coordinates if Type='Tor' (toroidal shape) or as a straight cross-section through a cylinder in (Y,Z) cartesian coordinates if Type='Lin' (linear shape).
-    Attributes such as the surface, the angular volume (if Type='Tor') or the center of mass are automatically computed.
-    The instance is identified thanks to an attribute Id (which is itself a tofu.ID class object) which contains informations on the specific instance (name, Type...).
+    A Ves object is mostly defined by a close 2D polygon, which can be
+    understood as a poloidal cross-section in (R,Z) cylindrical coordinates
+    if Type='Tor' (toroidal shape) or as a straight cross-section through a
+    cylinder in (Y,Z) cartesian coordinates if Type='Lin' (linear shape).
+    Attributes such as the surface, the angular volume (if Type='Tor') or the
+    center of mass are automatically computed.
+    The instance is identified thanks to an attribute Id (which is itself a
+    tofu.ID class object) which contains informations on the specific instance
+    (name, Type...).
 
     Parameters
     ----------
     Id :            str / tfpf.ID
-        A name string or a pre-built tfpf.ID class to be used to identify this particular instance, if a string is provided, it is fed to tfpf.ID()
+        A name string or a pre-built tfpf.ID class to be used to identify this
+        particular instance, if a string is provided, it is fed to tfpf.ID()
     Poly :          np.ndarray
-        An array (2,N) or (N,2) defining the contour of the vacuum vessel in a cross-section, if not closed, will be closed automatically
+        An array (2,N) or (N,2) defining the contour of the vacuum vessel in a
+        cross-section, if not closed, will be closed automatically
     Type :          str
-        Flag indicating whether the vessel will be a torus ('Tor') or a linear device ('Lin')
+        Flag indicating whether the vessel will be a torus ('Tor') or a linear
+        device ('Lin')
     Lim :         list / np.ndarray
-        Array or list of len=2 indicating the limits of the linear device volume on the x axis
+        Array or list of len=2 indicating the limits of the linear device volume
+        on the x axis
     Sino_RefPt :    None / np.ndarray
-        Array specifying a reference point for computing the sinogram (i.e. impact parameter), if None automatically set to the (surfacic) center of mass of the cross-section
+        Array specifying a reference point for computing the sinogram (i.e.
+        impact parameter), if None automatically set to the (surfacic) center of
+        mass of the cross-section
     Sino_NP :       int
-        Number of points in [0,2*pi] to be used to plot the vessel sinogram envelop
+        Number of points in [0,2*pi] to be used to plot the vessel sinogram
+        envelop
     Clock :         bool
-        Flag indicating whether the input polygon should be made clockwise (True) or counter-clockwise (False)
+        Flag indicating whether the input polygon should be made clockwise
+        (True) or counter-clockwise (False)
     arrayorder:     str
-        Flag indicating whether the attributes of type=np.ndarray (e.g.: Poly) should be made C-contiguous ('C') or Fortran-contiguous ('F')
+        Flag indicating whether the attributes of type=np.ndarray (e.g.: Poly)
+        should be made C-contiguous ('C') or Fortran-contiguous ('F')
     Exp :           None / str
-        Flag indicating which experiment the object corresponds to, allowed values are in [None,'AUG','MISTRAL','JET','ITER','TCV','TS','Misc']
+        Flag indicating which experiment the object corresponds to, allowed
+        values are in [None,'AUG','MISTRAL','JET','ITER','TCV','TS','Misc']
     shot :          None / int
-        Shot number from which this Ves is usable (in case of change of geometry)
+        Shot number from which this Ves is usable (in case of change of
+        geometry)
     SavePath :      None / str
-        If provided, forces the default saving path of the object to the provided value
+        If provided, forces the default saving path of the object to the
+        provided value
 
     Returns
     -------
     Ves :        Ves object
-        The created Ves object, with all necessary computed attributes and methods
+        The created Ves object, with all necessary computed attributes and
+        methods
 
     """
 
-    def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None, Exp=None, shot=0,
-                 Sino_RefPt=None, Sino_NP=_def.TorNP,
+    def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None, Exp=None,
+                 shot=0, Sino_RefPt=None, Sino_NP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
@@ -88,7 +109,8 @@ class Ves(object):
             self._Clock = Clock
             self._set_Id(Id, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath,
                          SavePath_Include=SavePath_Include)
-            self._set_geom(Poly, Lim=Lim, Clock=Clock, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP)
+            self._set_geom(Poly, Lim=Lim, Clock=Clock, Sino_RefPt=Sino_RefPt,
+                           Sino_NP=Sino_NP)
             self._set_arrayorder(arrayorder)
         else:
             self._fromdict(fromdict)
@@ -149,8 +171,11 @@ class Ves(object):
                 SavePath=os.path.abspath('./'),
                 SavePath_Include=None):
         if self._Done:
-            Out = tfpf._get_FromItself(self.Id,{'Type':Type, 'Exp':Exp, 'shot':shot, 'SavePath':SavePath})
-            Type, Exp, shot, SavePath = Out['Type'], Out['Exp'], Out['shot'], Out['SavePath']
+            Out = tfpf._get_FromItself(self.Id,{'Type':Type, 'Exp':Exp,
+                                                'shot':shot,
+                                                'SavePath':SavePath})
+            Type, Exp, shot, SavePath = Out['Type'], Out['Exp'], Out['shot'],\
+              Out['SavePath']
         tfpf._check_NotNone({'Id':Val})
         _Ves_check_inputs(Id=Val)
         if type(Val) is str:
@@ -163,13 +188,15 @@ class Ves(object):
     def _set_arrayorder(self, arrayorder):
         tfpf._set_arrayorder(self, arrayorder)
 
-    def _set_geom(self, Poly, Lim=None, Clock=False, Sino_RefPt=None, Sino_NP=_def.TorNP):
+    def _set_geom(self, Poly, Lim=None, Clock=False, Sino_RefPt=None,
+                  Sino_NP=_def.TorNP):
         if self._Done:
             Out = tfpf._get_FromItself(self, {'Lim':Lim, '_Clock':Clock})
             Lim, Clock = Out['Lim'], Out['_Clock']
         tfpf._check_NotNone({'Poly':Poly, 'Clock':Clock})
         self._check_inputs(Poly=Poly)
-        out = _comp._Ves_set_Poly(np.array(Poly), self._arrayorder, self.Type, Lim=Lim, Clock=Clock)
+        out = _comp._Ves_set_Poly(np.array(Poly), self._arrayorder, self.Type,
+                                  Lim=Lim, Clock=Clock)
         SS = ['Poly','NP','P1Max','P1Min','P2Max','P2Min','BaryP','BaryL',
               'Surf','BaryS','Lim','VolLin','BaryV','Vect','VIn']
         self._geom = dict([(SS[ii],out[ii]) for ii in range(0,len(SS))])
@@ -206,7 +233,8 @@ class Ves(object):
             Array of booleans of shape (N,), True if a point is inside the Ves volume
 
         """
-        ind = _GG._Ves_isInside(Pts, self.Poly, Lim=self.geom['Lim'], VType=self.Type, In=In, Test=True)
+        ind = _GG._Ves_isInside(Pts, self.Poly, Lim=self.geom['Lim'],
+                                VType=self.Type, In=In, Test=True)
         return ind
 
 

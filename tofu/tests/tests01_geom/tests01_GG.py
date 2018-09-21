@@ -155,22 +155,32 @@ def test02_Ves_isInside(VPoly=VPoly):
     Pts = np.array([[-10.,-10.,5.,5.,5.,5., 5.,30.,30.,30.],
                     [  0.,  2.,0.,2.,4.,2., 2., 2., 0., 0.],
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
-    ind = GG._Ves_isInside(Pts, VPoly, Lim=[0.,10.], VType='Lin', In='(X,Y,Z)', Test=True)
-    assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,False,False,False,False,False,False])
+    ind = GG._Ves_isInside(Pts, VPoly, Lim=[0.,10.], VType='Lin',
+                           In='(X,Y,Z)', Test=True)
+    assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,
+                                                       False,False,False,False,
+                                                       False,False])
 
     # Tor Ves
     Pts = np.array([[  0.,-10.,5.,5.,5.,5., 5.,30.,30.,30.],
                     [  0.,  2.,0.,2.,4.,2., 2., 2., 0., 0.],
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
-    ind = GG._Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(Phi,R,Z)', Test=True)
-    assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,True,False,True,False,False,False,True,False,False])
+    ind = GG._Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(Phi,R,Z)',
+                           Test=True)
+    assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,True,False,True,
+                                                       False,False,False,True,
+                                                       False,False])
 
     # Tor Struct
-    Pts = np.array([[  0.,  0.,2.*np.pi,np.pi,np.pi,np.pi,np.pi,2.*np.pi,2.*np.pi,2.*np.pi],
-                    [  0.,  2.,      0.,   2.,   4.,   2.,   2.,      2.,      0.,      0.],
-                    [  0.,  0.,      0.,   0.,   0.,   2.,  -2.,      0.,      0.,      2.]])
-    ind = GG._Ves_isInside(Pts, VPoly, Lim=[np.pi/2.,3.*np.pi/2.], VType='Tor', In='(Phi,R,Z)', Test=True)
-    assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,False,False,False,False,False,False])
+    pi2 = 2.*np.pi
+    Pts = np.array([[  0.,  0.,pi2,np.pi,np.pi,np.pi,np.pi,pi2,pi2,pi2],
+                    [  0.,  2., 0., 2., 4., 2.,  2., 2., 0., 0.],
+                    [  0.,  0., 0., 0., 0., 2., -2., 0., 0., 2.]])
+    ind = GG._Ves_isInside(Pts, VPoly, Lim=[np.pi/2.,3.*np.pi/2.], VType='Tor',
+                           In='(Phi,R,Z)', Test=True)
+    assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,
+                                                       False,False,False,False,
+                                                       False,False])
 
 
 #####################################################

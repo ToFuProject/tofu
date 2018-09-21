@@ -242,7 +242,7 @@ class Test01_Data1D:
             oo = self.LObj[ii]
             KH = oo.plot(key=None, ntMax=4, nchMax=2, fs=None,
                          dmargin=dict(left=0.06, right=0.9),
-                         connect=toolbar)
+                         connect=toolbar, wintit='test', tit='AHAH')
             KH = oo.plot(key='Name', draw=False, dmargin=None, connect=toolbar)
         plt.close('all')
 
@@ -314,7 +314,8 @@ class Test01_Data2D(Test01_Data1D):
             oo = self.LObj[ii]
             if oo._X12 is not None and oo.geom is not None:
                 KH = oo.plot(key=None, Max=None, fs=None,
+                             invert=True, vmin=0, wintit='test', tit='AHAH',
                              dmargin=dict(left=0.05,right=0.9))
                 KH = oo.plot(key='Name', Max=2, fs=(13,5),
-                             dmargin=None)
+                             normt=True, dmargin=None)
         plt.close('all')
