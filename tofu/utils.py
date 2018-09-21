@@ -184,8 +184,8 @@ def create_CamLOS2D(P, F, D12, N12,
     # Get starting points
     d1 = D12[0]*np.linspace(-0.5,0.5,N12[0],endpoint=True)
     d2 = D12[1]*np.linspace(-0.5,0.5,N12[1],endpoint=True)
-    d1 = np.tile(d1,N12[1])
-    d2 = np.repeat(d2,N12[0])
+    d1 = np.repeat(d1,N12[1])
+    d2 = np.tile(d2,N12[0])
     d1 = d1[np.newaxis,:]*e1[:,np.newaxis]
     d2 = d2[np.newaxis,:]*e2[:,np.newaxis]
 
