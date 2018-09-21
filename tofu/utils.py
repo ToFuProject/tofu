@@ -175,7 +175,7 @@ def create_CamLOS2D(P, F, D12, N12,
     e1 = e1/np.linalg.norm(e1)
     assert np.abs(np.sum(nIn*e1))<1.e-12
     if e2 is None:
-        e2 = np.cross(nIn,e1)
+        e2 = np.cross(e1,nIn)
     e2 = np.asarray(e2)
     e2 = e2/np.linalg.norm(e2)
     assert np.abs(np.sum(nIn*e2))<1.e-12
