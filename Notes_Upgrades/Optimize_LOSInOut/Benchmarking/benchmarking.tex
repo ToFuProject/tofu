@@ -1,0 +1,92 @@
+\documentclass[11pt]{amsart}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{epstopdf}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\title{\Large ToFu's benchmarking\\
+  \small AWP18-EEG-CEA-Mendoza}
+
+\author{Laura S. Mendoza}
+\author{Didier Vezinet}
+
+%\date{}                                           % Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+
+\section{Starting Point}
+
+ToFu's versioning is set automatically with each \verb|git| tag. We will set as a reference point the version number \verb|1.3.22-6-g45cb446|, which also corresponds to the \verb|git| tag. 
+
+\subsection{Set of tests}
+
+In order to have an extensive benchmarking, we need to set a series of tests configurations that will encompass the maximum scenarios, as well as allow us to test the speed-up of simple yet essential methods. Let us first define the different geometries:\\
+
+\begin{itemize}
+	\item Tests with only a vessel:
+	\begin{itemize}
+		\item   Config A1: 
+		\begin{itemize}
+			\item  WEST -- V1 (realistic) : 63 points
+		\end{itemize}
+		\item   Config A2: 
+		\begin{itemize} 
+			\item  TER -- Test (artificial) : 551 points
+		\end{itemize}
+		\item   Config A3: 
+		\begin{itemize}
+			\item  WESTSep -- Test (artificial, inspired by the separatrix of an experimental shock of WEST) : 1001 points\\
+		\end{itemize}
+	\end{itemize}
+	\item      Tests with a vessel and structural elements:
+	\begin{itemize}
+		\item   Config B1 : 'min' (only axisymmetric structures)
+		\begin{itemize}
+			\item  Ves : WEST V0
+			\item  Struct :
+			\begin{itemize}
+				\item         Baffle : Baffle-V0
+				\item         Upper divertor : UpDiv-V1
+				\item         Lower divertor : LowDiv-V1
+			\end{itemize}
+		\end{itemize}
+		\item  Config B2 : 'light'  (same as B1 + some toroidal structures)
+		\begin{itemize}
+			\item  Ves : WEST V0
+			\item  Struct :
+			\begin{itemize}
+				\item         Baffle : Baffle-V1
+				\item         Upper divertor : UpDiv-V2
+				\item         Lower divertor : LowDiv-V2
+				\item         Inner Bumpers : InnerBumpers-V1
+				\item         Outer Bumper : OuterBumper-V1
+				\item         IC antennas : IC1-V1 + IC2-V1 + IC3-V1
+			\end{itemize}
+		\end{itemize}
+	      \item   Config B3 : 'full'
+                \begin{itemize}
+			\item  Ves : WEST-V0
+			\item  Struct :
+			\begin{itemize}
+				\item         Baffle : Baffle-V2
+			         \item         Upper divertor : UpDiv-V3
+			         \item         Lower divertor : LowDiv-V3
+			         \item         Inner Bumpers : InnerBumpers-V3
+				\item         Outer Bumper : OuterBumper-V3
+				\item         IC antennas : IC1-V1 + IC2-V1 + IC3-V1
+				\item         LH antennas : LH-V1, LH2-V1
+				\item         Ripple : Ripple-V1
+				\item         VDE : VDE-V0
+			\end{itemize}
+	\end{itemize}
+\end{itemize}
+\end{itemize}
+
+We will also vary the number of lines sights $N_i = 10^i$ with $i=0, \cdots, 6$.
+
+\end{document}  
