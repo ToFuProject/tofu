@@ -26,11 +26,11 @@ _path = os.path.abspath(os.path.dirname(__file__))
 _dconfig = {'A1': {'Ves': ['WEST','V1']},
             'A2': {'Ves': ['ITER','Test']},
             'A3': {'Ves': ['WEST','Sep']},
-            'B1': {'Ves': ['WEST','V0'],
+            'B1': {'Ves': ['WEST','V2'],
                    'Struct': {'Baffle': ['Baffle','V0'],
                               'UpDiv':  ['UpDiv','V1'],
-                              'LowDiv': ['LowDiv','V1']}}, #no limits
-            'B2': {'Ves': ['WEST','V0'],
+                              'LowDiv': ['LowDiv','V1']}},
+            'B2': {'Ves': ['WEST','V2'],
                    'Struct': {'Baffle': ['Baffle','V1'],
                               'UpDiv':  ['UpDiv','V2'],
                               'LowDiv': ['LowDiv','V2'],
@@ -39,7 +39,7 @@ _dconfig = {'A1': {'Ves': ['WEST','V1']},
                               'IC1':    ['IC1','V1'],
                               'IC2':    ['IC2','V1'],
                               'IC3':    ['IC3','V1']}},
-            'B3': {'Ves': ['WEST','V0'],
+            'B3': {'Ves': ['WEST','V2'],
                    'Struct': {'Baffle': ['Baffle','V2'],
                               'UpDiv':  ['UpDiv','V3'],
                               'LowDiv': ['LowDiv','V3'],
@@ -53,6 +53,21 @@ _dconfig = {'A1': {'Ves': ['WEST','V1']},
                               'Ripple': ['Ripple','V1'],
                               'VDE':    ['VDE','V0']}}}
 
+_P = [1.5,3.2,0.]
+_F = 0.1
+_D12 = [0.3,0.1]
+_nIn = [-0.5,-1.,0.]
+
+
+_dcam = {'V1':       {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1,1]},
+         'V10':      {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[5,2]},
+         'V100':     {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[20,5]},
+         'V1000':    {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[50,20]},
+         'V10000':   {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[125,80]},
+         'V100000':  {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[500,200]},
+         'V1000000': {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1600,625]}}
+
+
 
 #########################################
 #########################################
@@ -62,6 +77,7 @@ _dconfig = {'A1': {'Ves': ['WEST','V1']},
 def _get_filenames(dconf, path=_path):
     """ Preliminary hidden routine for getting file names of desired objects
     """
+
     # Get all files avbailable in path
     lf = os.listdir(path)
 
@@ -74,23 +90,24 @@ def _get_filenames(dconf, path=_path):
     msg = "None / several matches for {0} in {1}:".format(dconf['Ves'], path)
     msg += "\n    ".join([ff for ff in f])
     assert len(f)==1, msg
-    dconf['Ves'] = f[0]
+
+    dout = {'Ves':f[0]}
 
     if 'Struct' in dconf.keys():
+        dout['Struct'] = {}
         for kk in dconf['Struct'].keys():
             f = [ff for ff in lf
                  if all([ss in ff for ss in ['_Struct']+dconf['Struct'][kk]])]
             msg = "None / several matches for {0} in {1}:".format(kk, path)
             msg += "\n    ".join([ff for ff in f])
             assert len(f)==1, msg
-            dconf['Struct'][kk] = f[0]
-    return dconf
+            dout['Struct'][kk] = f[0]
+    return dout
 
 
 def load_config(config, path=_path, dconfig=_dconfig, plot=True):
     """ Load all objects in the desired configuration
 
-    config = "A1", "A2", ....
     Return them as a dictionary
     """
     assert type(config) is str
@@ -98,12 +115,8 @@ def load_config(config, path=_path, dconfig=_dconfig, plot=True):
     assert type(dconfig) is dict
     assert type(plot) is bool
 
-    # Prepare output dictionary
-    # Copy the input one, and then replace the names by loaded tofu objects
-    dout = dict(dconfig[config])
-
     # Get file names from config
-    dout = _get_filenames(dout, path=_path)
+    dout = _get_filenames(dconfig[config], path=_path)
 
     # Load Ves object
     dout['Ves'] = tf.pathfile.Open(os.path.join(path,dout['Ves']))
@@ -123,3 +136,36 @@ def load_config(config, path=_path, dconfig=_dconfig, plot=True):
                 axC, axH = dout['Struct'][kk].plot(Lax=[axC,axH], Elt='P')
 
     return dout
+
+
+def get_Du(cam, dcam=_dcam, plot=False, config=None, path=_path):
+    """ Get the (D,u) tuple for the desired camera
+
+    Optionally plot the camera with the chosen config
+    """
+
+    P, F = dcam[cam]['P'], dcam[cam]['F']
+    D12, N12, nIn = dcam[cam]['D12'], dcam[cam]['N12'], dcam[cam]['nIn']
+
+    (D,u) = tf.utils.create_CamLOS2D(P, F, D12, N12, nIn=nIn)
+
+    if plot:
+        assert config is not None, "You must specify a config !"
+
+        # Load the config
+        dconf = load_config(config, path=path, plot=False)
+        if 'Struct' in dconf.keys():
+            LStruct = list(dconf['Struct'].values())
+        else:
+            LStruct = None
+
+        # Create the LOSCam2D object
+        Cam = tf.geom.LOSCam2D(Id=cam, Du=(D,u), Ves=dconf['Ves'], LStruct=LStruct)
+
+        # Plot
+        Cam.plot(Elt='L', EltVes='P', EltStruct='P')
+
+    return D, u
+
+
+
