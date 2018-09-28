@@ -1244,14 +1244,49 @@ def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
         dax['prof'][0].imshow(cols, extent=extent, aspect='equal',
                               interpolation='nearest', origin='lower')
 
-    #dax['prof'][0].set_xlim(DX1),   dax['prof'][0].set_ylim(DX2)
+    # Plot LOS
+    if 'LOS' in Cam.Id.Cls:
+        lCross = Cam._get_plotL(Lplot='In', Proj='Cross', multi=True)
+        lHor = Cam._get_plotL(Lplot='In', Proj='Hor', multi=True)
+        llab = [Cam.Id.Name + s for s in Cam.dchans['Name']]
+
+        dlosc = {'los':[{'h':[],'xy':lCross, 'xref':chans}]}
+        dlosh = {'los':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':chans}]}
+        dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':chans}]}
+        for jj in range(0,nchMax):
+            l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
+                                           [np.nan,np.nan],
+                                           c=lcch[jj], ls=lls[ii], lw=2.)
+            dlosc['los'][0]['h'].append(l)
+            l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
+                                          [np.nan,np.nan],
+                                          c=lcch[jj], ls=lls[ii], lw=2.)
+            dlosh['los'][0]['h'].append(l)
+            l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
+                                       color=lcch[jj],
+                                       fontweight='bold', fontsize=6.,
+                                       ha='center', va='bottom')
+            dchtxt['txt'][0]['h'].append(l)
+        dax['hor'][0]['dh'].update(dlosh)
+        dax['cross'][0]['dh'].update(dlosc)
+        dax['txtch'][0]['dh'].update(dchtxt)
+        dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dlosh)
+        dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dlosc)
+        dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dchtxt)
+    else:
+        raise Exception("Not coded yet !")
+    dax['chan2D'][ii]['incx'] = incx
+    dax['chan2D'][ii]['ax'].set_ylabel(r"pix.", fontsize=fontsize)
+
+
     dax['prof'][0].set_xlabel(r"$X_1$", fontsize=8)
     dax['prof'][0].set_ylabel(r"$X_2$", fontsize=8)
     dax['prof'][0].set_aspect('equal', adjustable='datalim')
     if invert:
         dax['prof'][0].invert_xaxis()
         dax['prof'][0].invert_yaxis()
+    KH = dax
 
     if draw:
         dax['prof'][0].figure.canvas.draw()
-    return dax
+    return KH
