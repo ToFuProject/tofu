@@ -1396,16 +1396,16 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
             LdS.append( dsF )
 
         # Main body
-        PtsM, dSM,
-                indM, NL,
-                dLr, Rref,
-                dRPhir, nRPhi0,
-                VPbis = _Ves_Smesh_Tor_SubFromD_cython(dL, dRPhi, VPoly,
-                                                       DR=DR, DZ=DZ,
-                                                       DPhi=[DPhi0,DPhi1],
-                                                       DIn=DIn, VIn=VIn,
-                                                       PhiMinMax=phiMinMax,
-                                                       Out=Out, margin=margin)
+        PtsM, dSM,\
+          indM, NL,\
+          dLr, Rref,\
+          dRPhir, nRPhi0,\
+          VPbis = _Ves_Smesh_Tor_SubFromD_cython(dL, dRPhi, VPoly,
+                                                 DR=DR, DZ=DZ,
+                                                 DPhi=[DPhi0,DPhi1],
+                                                 DIn=DIn, VIn=VIn,
+                                                 PhiMinMax=phiMinMax,
+                                                 Out=Out, margin=margin)
 
         if PtsM.shape[1]>=1:
             if PtsM.shape[1]==1:
