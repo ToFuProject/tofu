@@ -93,9 +93,11 @@ def test01_CoordShift():
     # Test 2D input
     Pts = np.array([[1.,1.],[1.,1.],[1.,1.]])
     pts = GG.CoordShift(Pts, In='(X,Y,Z)', Out='(R,Phi,Z)', CrossRef=0.)
-    assert pts.shape==(3,2) and np.allclose(pts,[[np.sqrt(2.),np.sqrt(2.)],[np.pi/4.,np.pi/4.],[1.,1.]])
+    assert pts.shape==(3,2) and np.allclose(pts,[[np.sqrt(2.),np.sqrt(2.)],
+                                                 [np.pi/4.,np.pi/4.],[1.,1.]])
     pts = GG.CoordShift(Pts, In='(Phi,Z,R)', Out='(X,Y)', CrossRef=0.)
-    assert pts.shape==(2,2) and np.allclose(pts,[[np.cos(1.),np.cos(1.)],[np.sin(1.),np.sin(1.)]])
+    assert pts.shape==(2,2) and np.allclose(pts,[[np.cos(1.),np.cos(1.)],
+                                                 [np.sin(1.),np.sin(1.)]])
 
 
 
@@ -111,22 +113,33 @@ def test02_Poly_CLockOrder():
 
     # Test arbitrary 2D polygon
     Poly = np.array([[0.,1.,1.,0.],[0.,0.,1.,1.]])
-    P = GG.Poly_Order(Poly, order='C', Clock=False, close=True, layout='(N,cc)', layout_in=None, Test=True)
-    assert all([np.allclose(P[0,:],P[-1,:]), P.shape==(5,2), not GG.Poly_isClockwise(P), P.flags['C_CONTIGUOUS'], not P.flags['F_CONTIGUOUS']])
-    P = GG.Poly_Order(Poly, order='F', Clock=True, close=False, layout='(cc,N)', layout_in=None, Test=True)
-    assert all([not np.allclose(P[:,0],P[:,-1]), P.shape==(2,4), GG.Poly_isClockwise(np.concatenate((P,P[:,0:1]),axis=1)), not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])
+    P = GG.Poly_Order(Poly, order='C', Clock=False, close=True,
+                      layout='(N,cc)', layout_in=None, Test=True)
+    assert all([np.allclose(P[0,:],P[-1,:]), P.shape==(5,2),
+                not GG.Poly_isClockwise(P), P.flags['C_CONTIGUOUS'],
+                not P.flags['F_CONTIGUOUS']])
+    P = GG.Poly_Order(Poly, order='F', Clock=True, close=False,
+                      layout='(cc,N)', layout_in=None, Test=True)
+    assert all([not np.allclose(P[:,0],P[:,-1]), P.shape==(2,4),
+                GG.Poly_isClockwise(np.concatenate((P,P[:,0:1]),axis=1)),
+                not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])
 
     # Test arbitrary 3D polygon
     Poly = np.array([[0.,1.,1.,0.],[0.,0.,1.,1.],[0.,0.,0.,0.]])
-    P = GG.Poly_Order(Poly, order='C', Clock=False, close=False, layout='(N,cc)', layout_in=None, Test=True)
-    assert all([not np.allclose(P[0,:],P[-1,:]), P.shape==(4,3), P.flags['C_CONTIGUOUS'], not P.flags['F_CONTIGUOUS']])
-    P = GG.Poly_Order(Poly, order='F', Clock=True, close=True, layout='(cc,N)', layout_in=None, Test=True)
-    assert all([np.allclose(P[:,0],P[:,-1]), P.shape==(3,5), not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])
+    P = GG.Poly_Order(Poly, order='C', Clock=False, close=False,
+                      layout='(N,cc)', layout_in=None, Test=True)
+    assert all([not np.allclose(P[0,:],P[-1,:]), P.shape==(4,3),
+                P.flags['C_CONTIGUOUS'], not P.flags['F_CONTIGUOUS']])
+    P = GG.Poly_Order(Poly, order='F', Clock=True, close=True,
+                      layout='(cc,N)', layout_in=None, Test=True)
+    assert all([np.allclose(P[:,0],P[:,-1]), P.shape==(3,5),
+                not P.flags['C_CONTIGUOUS'], P.flags['F_CONTIGUOUS']])
 
 
 def test03_Poly_VolAngTor():
     Poly = np.array([[1.,1.5,2.,2.,2.,1.5,1.],[0.,0.,0.,0.5,1.,1.,1.]])
-    Poly = GG.Poly_Order(Poly, order='C', Clock=False, close=True, layout='(cc,N)', Test=True)
+    Poly = GG.Poly_Order(Poly, order='C', Clock=False, close=True,
+                         layout='(cc,N)', Test=True)
     V, B = GG.Poly_VolAngTor(Poly)
     assert V==1.5
     assert np.allclose(B,[7./(3.*1.5),0.5])
@@ -190,16 +203,25 @@ def test02_Ves_isInside(VPoly=VPoly):
 def test03_Ves_mesh_dlfromL():
 
     LMinMax = np.array([0.,10.])
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 20., DL=None, Lim=True, margin=1.e-9)
+    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 20., DL=None,
+                                                  Lim=True, margin=1.e-9)
     assert np.allclose(L,[5.]) and dLr==10. and np.allclose(indL,[0]) and N==1
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=None, Lim=True, margin=1.e-9)
-    assert np.allclose(L,0.5+np.arange(0,10)) and dLr==1. and np.allclose(indL,range(0,10)) and N==10
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,8.], Lim=True, margin=1.e-9)
-    assert np.allclose(L,0.5+np.arange(2,8)) and dLr==1. and np.allclose(indL,range(2,8)) and N==10
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,12.], Lim=True, margin=1.e-9)
-    assert np.allclose(L,0.5+np.arange(2,10)) and dLr==1. and np.allclose(indL,range(2,10)) and N==10
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,12.], Lim=False, margin=1.e-9)
-    assert np.allclose(L,0.5+np.arange(2,12)) and dLr==1. and np.allclose(indL,range(2,12)) and N==10
+    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=None,
+                                                  Lim=True, margin=1.e-9)
+    assert np.allclose(L,0.5+np.arange(0,10)) and dLr==1. and \
+        np.allclose(indL,range(0,10)) and N==10
+    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,8.],
+                                                  Lim=True, margin=1.e-9)
+    assert np.allclose(L,0.5+np.arange(2,8)) and dLr==1. and \
+        np.allclose(indL,range(2,8)) and N==10
+    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,12.],
+                                                  Lim=True, margin=1.e-9)
+    assert np.allclose(L,0.5+np.arange(2,10)) and dLr==1. and \
+        np.allclose(indL,range(2,10)) and N==10
+    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,12.],
+                                                  Lim=False, margin=1.e-9)
+    assert np.allclose(L,0.5+np.arange(2,12)) and dLr==1. and \
+        np.allclose(indL,range(2,12)) and N==10
 
 
 
@@ -210,25 +232,41 @@ def test03_Ves_Smesh_Cross(VPoly=VPoly):
     VIn = VIn/np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:]
     dL = 0.01
 
-    PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None, margin=1.e-9, DIn=0., VIn=VIn)
-    assert PtsCross.ndim==2 and PtsCross.shape[1]>=VPoly.shape[1]-1 and not np.allclose(PtsCross[:,0],PtsCross[:,-1])
+    PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL, D1=None,
+                                                             D2=None,
+                                                             margin=1.e-9,
+                                                             DIn=0., VIn=VIn)
+    assert PtsCross.ndim==2 and PtsCross.shape[1]>=VPoly.shape[1]-1 and \
+        not np.allclose(PtsCross[:,0],PtsCross[:,-1])
     assert dLr.shape==(PtsCross.shape[1],) and np.all(dLr<=dL)
-    assert ind.shape==(PtsCross.shape[1],) and np.all(np.unique(ind)==ind) and np.all(~np.isnan(ind)) and np.max(ind)<PtsCross.shape[1]
+    assert ind.shape==(PtsCross.shape[1],) and np.all(np.unique(ind)==ind) and \
+        np.all(~np.isnan(ind)) and np.max(ind)<PtsCross.shape[1]
     assert N.shape==(VPoly.shape[1]-1,) and np.all(N>=1)
     assert Rref.shape==(PtsCross.shape[1],) and np.all(Rref==PtsCross[0,:])
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
 
-    PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL, D1=[0.,2.], D2=[-2.,0.], margin=1.e-9, DIn=0.05, VIn=VIn)
-    assert np.all(PtsCross[0,:]>=0.) and np.all(PtsCross[0,:]<=2.) and np.all(PtsCross[1,:]>=-2.) and np.all(PtsCross[1,:]<=0.)
+    PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL,
+                                                             D1=[0.,2.],
+                                                             D2=[-2.,0.],
+                                                             margin=1.e-9,
+                                                             DIn=0.05, VIn=VIn)
+    assert np.all(PtsCross[0,:]>=0.) and np.all(PtsCross[0,:]<=2.) and \
+        np.all(PtsCross[1,:]>=-2.) and np.all(PtsCross[1,:]<=0.)
     assert np.all(Path(VPoly.T).contains_points(PtsCross.T))
     assert dLr.shape==(PtsCross.shape[1],) and np.all(dLr<=dL)
-    assert ind.shape==(PtsCross.shape[1],) and np.all(np.unique(ind)==ind) and np.all(~np.isnan(ind))
+    assert ind.shape==(PtsCross.shape[1],) and np.all(np.unique(ind)==ind) and \
+        np.all(~np.isnan(ind))
     assert N.shape==(VPoly.shape[1]-1,) and np.all(N>=1)
     assert Rref.size>3*PtsCross.shape[1]
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
 
-    PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL, D1=[0.,2.], D2=[-2.,0.], margin=1.e-9, DIn=-0.05, VIn=VIn)
-    assert np.all(PtsCross[0,:]>=0.-0.05) and np.all(PtsCross[0,:]<=2.) and np.all(PtsCross[1,:]>=-2.-0.05) and np.all(PtsCross[1,:]<=0.)
+    PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL,
+                                                             D1=[0.,2.],
+                                                             D2=[-2.,0.],
+                                                             margin=1.e-9,
+                                                             DIn=-0.05, VIn=VIn)
+    assert np.all(PtsCross[0,:]>=0.-0.05) and np.all(PtsCross[0,:]<=2.) and \
+        np.all(PtsCross[1,:]>=-2.-0.05) and np.all(PtsCross[1,:]<=0.)
     assert np.all(~Path(VPoly.T).contains_points(PtsCross.T))
 
 
@@ -244,11 +282,19 @@ def test04_Ves_Vmesh_Tor(VPoly=VPoly):
     LDPhi = [None, [3.*np.pi/4.,5.*np.pi/4.], [-np.pi/4.,np.pi/4.]]
 
     for ii in range(0,len(LDPhi)):
-        Pts, dV, ind, dRr, dZr, dRPhir = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi, RMinMax, ZMinMax,
-                                                                           DR=[0.5,2.], DZ=[0.,1.2], DPhi=LDPhi[ii], VPoly=VPoly,
-                                                                           Out='(R,Z,Phi)', margin=1.e-9)
+        Pts, dV, ind, \
+            dRr, dZr, dRPhir = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi,
+                                                                 RMinMax,
+                                                                 ZMinMax,
+                                                                 DR=[0.5,2.],
+                                                                 DZ=[0.,1.2],
+                                                                 DPhi=LDPhi[ii],
+                                                                 VPoly=VPoly,
+                                                                 Out='(R,Z,Phi)',
+                                                                 margin=1.e-9)
         assert Pts.ndim==2 and Pts.shape[0]==3
-        assert np.all(Pts[0,:]>=1.) and np.all(Pts[0,:]<=2.) and np.all(Pts[1,:]>=0.) and np.all(Pts[1,:]<=1.)
+        assert np.all(Pts[0,:]>=1.) and np.all(Pts[0,:]<=2.) and \
+            np.all(Pts[1,:]>=0.) and np.all(Pts[1,:]<=1.)
         marg = np.abs(np.arctan(np.mean(dRPhir)/np.min(VPoly[1,:])))
         if not LDPhi[ii] is None:
             LDPhi[ii][0] = np.arctan2(np.sin(LDPhi[ii][0]),np.cos(LDPhi[ii][0]))
