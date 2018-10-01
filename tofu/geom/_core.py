@@ -685,7 +685,7 @@ class Rays(object):
     """
 
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
-                 Sino_RefPt=None, fromdict=None,
+                 Etendues=None, Sino_RefPt=None, fromdict=None,
                  Exp=None, Diag=None, shot=0, dchans=None,
                  SavePath=os.path.abspath('./'),
                  plotdebug=True):
@@ -699,6 +699,7 @@ class Rays(object):
             self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
             self._set_Ves(Ves, LStruct=LStruct, Du=Du, dchans=dchans,
                           plotdebug=plotdebug)
+            self.set_Etendues(Entendues)
             self.set_sino(RefPt=Sino_RefPt)
         else:
             self._fromdict(fromdict)
@@ -717,12 +718,15 @@ class Rays(object):
         else:
             self._LStruct = [Struct(fromdict=ds) for ds in fd['LStruct']]
         self._geom = fd['geom']
+        self.Etendues = fd['Etendues']
         self._sino = fd['sino']
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
                'dchans':self.dchans,
-               'geom':self.geom, 'sino':self.sino}
+               'geom':self.geom,
+               'Etendues': self.Etendues,
+               'sino':self.sino}
         out['Ves'] = None if self.Ves is None else self.Ves._todict()
         if self.LStruct is None:
             out['LStruct'] = None
@@ -760,6 +764,9 @@ class Rays(object):
     @property
     def LStruct(self):
         return self._LStruct
+    @property
+    def Etendues(self):
+        return self._Etendues
     @property
     def sino(self):
         return self._sino
@@ -927,6 +934,15 @@ class Rays(object):
         else:
             lK = list(dchans.keys())
             self._dchans = dict([(kk,np.asarray(dchans[kk]).ravel()) for kk in lK])
+
+
+    def set_Etendues(self, E=None):
+        if E is not None:
+            E = np.asarray(E, dtype=float).ravel()
+            msg = "E must be an iterable of size == self.nRays !"
+            assert E.size==self.nRays, msg
+        self._Etendues = E
+
 
     def set_sino(self, RefPt=None):
         self._check_inputs(Sino_RefPt=RefPt)
@@ -1136,21 +1152,21 @@ class Rays(object):
         return Pts, kPts, dlr
 
 
-    def calc_signal(self, ff, t=None, Ani=None, fkwdargs={},
+    def calc_signal(self, ff, t=None, Ani=None, fkwdargs={}, Brightness=True,
                     dl=0.005, DL=None, dlMode='abs', method='sum',
                     ind=None, out=object, plot=True, plotmethod='imshow',
                     fs=None, dmargin=None, wintit='tofu', invert=True,
-                    draw=True, connect=True, Warn=True):
+                    draw=True, connect=True):
         """ Return the line-integrated emissivity
 
-        Beware that it is only a line-integral !
-        There is no multiplication by an Etendue
-        (which cannot be computed for a LOS object, because it depends on the
-        surfaces and respective positions of the detector and its apertures,
-        which are not provided for a LOS object).
+        Beware, by default, Brightness=True and it is only a line-integral !
 
-        Hence, if the emissivity is provided in W/m3 (resp. W/m3/sr),
-        the method returns W/m2 (resp. W/m2/sr)
+        Indeed, to get the received power, you need an estimate of the Etendue
+        (previously set using self.set_Etendue()) and use Brightness=False.
+
+        Hence, if Brightness=True and if
+        the emissivity is provided in W/m3 (resp. W/m3/sr),
+        => the method returns W/m2 (resp. W/m2/sr)
         The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,
 
         The integral can be computed using three different methods:
@@ -1165,10 +1181,21 @@ class Rays(object):
         ff :    callable
             The user-provided
 
+        Returns
+        -------
+        sig :   np.ndarray
+            The computed signal, a 1d or 2d array depending on whether a time
+            vector was provided.
+        units:  str
+            Units of the result
+
         """
-        if Warn:
-            warnings.warn("! CAUTION : returns W/m^2 (no Etendue, see help) !")
         self._check_inputs(ind=ind)
+        assert type(Brightness) is bool, "Arg Brightness must be a bool !"
+        if Brightness is False:
+            msg = "Etendue must be set if Brightness is False !"
+            assert self.Etendues is not None, msg
+
         # Preformat ind
         if ind is None:
             ind = np.arange(0,self.nRays)
@@ -1190,8 +1217,10 @@ class Rays(object):
         DL[1,ii] = self.geom['kPOut'][ind][ii]
         ii = DL[1,:]<=self.geom['kPIn'][ind]
         DL[1,ii] = self.geom['kPIn'][ind][ii]
-        # Preformat Ds, us
+        # Preformat Ds, us and Etendue
         Ds, us = self.D[:,ind], self.u[:,ind]
+        if Brightness is False:
+            E = self.Etendues[ind]
         if len(ind)==1:
             Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         if t is None or len(t)==1:
@@ -1216,6 +1245,14 @@ class Rays(object):
                 sig[indok] = s
             else:
                 sig[:,indok] = s
+        if Brightness is False:
+            if t is None or len(t)==1:
+                sig = sig*E
+            else:
+                sig = sig*E[np.newaxis,:]
+            units = r"origin x $m^3.sr$"
+        else:
+            units = r"origin x m"
 
         if plot or out is object:
             assert '1D' in self.Id.Cls or '2D' in self.Id.Cls, "Set Cam type!!"
@@ -1232,7 +1269,7 @@ class Rays(object):
                                draw=draw, connect=connect)
             if out is object:
                 sig = osig
-        return sig
+        return sig, units
 
     def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
              EltVes='', EltStruct='', Leg='', dL=None, dPtD=_def.LOSMd,

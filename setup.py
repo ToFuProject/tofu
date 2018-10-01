@@ -1,7 +1,7 @@
 """ A tomography library for fusion devices
 
 See:
-https://github.com/ToFuProject/tofu 
+https://github.com/ToFuProject/tofu
 """
 
 import sys
