@@ -1551,22 +1551,22 @@ def _Rays_check_fromdict(fd):
 class LOSCam1D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
-                 Exp=None, Diag=None, shot=0,
+                 Exp=None, Diag=None, shot=0, Etendue=None,
                  dchans=None, SavePath=os.path.abspath('./'),
                  plotdebug=True):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
-                 Sino_RefPt=Sino_RefPt, fromdict=fromdict,
+                 Sino_RefPt=Sino_RefPt, fromdict=fromdict, Etendue=Etendue,
                  Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,
                  dchans=dchans, SavePath=SavePath)
 
 class LOSCam2D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
-                 Sino_RefPt=None, fromdict=None,
+                 Sino_RefPt=None, fromdict=None, Etendue=None,
                  Exp=None, Diag=None, shot=0, X12=None,
                  dchans=None, SavePath=os.path.abspath('./'),
                  plotdebug=True):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
-                 Sino_RefPt=Sino_RefPt, fromdict=fromdict,
+                 Sino_RefPt=Sino_RefPt, fromdict=fromdict, Etendue=Etendue,
                  Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,
                  dchans=dchans, SavePath=SavePath)
         self.set_X12(X12)
