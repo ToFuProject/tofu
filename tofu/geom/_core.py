@@ -1152,6 +1152,43 @@ class Rays(object):
         return Pts, kPts, dlr
 
 
+    def get_kInkOut(self, lPoly, Lim=None):
+        msg = "Arg lPoly must be a list or np.ndarray !"
+        assert type(lPoly) in [list, np.ndarray], msg
+
+        # Preformat input
+        if type(lPoly) is np.ndarray:
+            lPoly = [lPoly]
+        lPoly = [np.ascontiguousarray(pp) for pp in lPoly]
+        msg = "Arg lPoly must be a list of (2,N) or (N,2) np.ndarrays !"
+        assert all([pp.ndim==2 and 2 in pp.shape for pp in lPoly]), msg
+        nPoly = len(lPoly)
+        for ii in range(0,nPoly):
+            if lPoly[ii].shape[0]!=2:
+                lPoly[ii] = lPoly[ii].T
+
+        if Lim is None and self.Ves is not None and self.Ves.Type=='Lin':
+            Lim = self.Ves.Lim
+
+        # Prepare output
+        kIn = np.full((self.nRays,nPoly), np.nan)
+        kOut = np.full((self.nRays,nPoly), np.nan)
+
+        # Compute intersections
+        for ii in range(0,nPoly):
+            VIn = np.diff(lPoly[ii],axis=1)
+            VIn = VIn/(np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:])
+            VIn = np.ascontiguousarray([-VIn[1,:],VIn[0,:]])
+            sca = VIn[0,0]*(isoR[0,0]-VP[0,0]) + VIn[1,0]*(isoZ[0,0]-VP[1,0])
+            if sca<0:
+                VIn = -VIn
+            Out = tf.geom._GG.LOS_Calc_PInOut_VesStruct(self.D, self.u,
+                                                        lPoly[ii], VIn, Lim=Lim)
+            kPIn[:,ii], kPOut[:,ii] = Out[2:4]
+
+        return kIn, kOut
+
+
     def calc_signal(self, ff, t=None, Ani=None, fkwdargs={}, Brightness=True,
                     dl=0.005, DL=None, dlMode='abs', method='sum',
                     ind=None, out=object, plot=True, plotmethod='imshow',
