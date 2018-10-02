@@ -718,7 +718,7 @@ class Rays(object):
         else:
             self._LStruct = [Struct(fromdict=ds) for ds in fd['LStruct']]
         self._geom = fd['geom']
-        self.Etendues = fd['Etendues']
+        self._Etendues = fd['Etendues']
         self._sino = fd['sino']
 
     def _todict(self):
@@ -1588,22 +1588,22 @@ def _Rays_check_fromdict(fd):
 class LOSCam1D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
                  Sino_RefPt=None, fromdict=None,
-                 Exp=None, Diag=None, shot=0, Etendue=None,
+                 Exp=None, Diag=None, shot=0, Etendues=None,
                  dchans=None, SavePath=os.path.abspath('./'),
                  plotdebug=True):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
-                 Sino_RefPt=Sino_RefPt, fromdict=fromdict, Etendue=Etendue,
+                 Sino_RefPt=Sino_RefPt, fromdict=fromdict, Etendues=Etendues,
                  Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,
                  dchans=dchans, SavePath=SavePath)
 
 class LOSCam2D(Rays):
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
-                 Sino_RefPt=None, fromdict=None, Etendue=None,
+                 Sino_RefPt=None, fromdict=None, Etendues=None,
                  Exp=None, Diag=None, shot=0, X12=None,
                  dchans=None, SavePath=os.path.abspath('./'),
                  plotdebug=True):
         Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
-                 Sino_RefPt=Sino_RefPt, fromdict=fromdict, Etendue=Etendue,
+                 Sino_RefPt=Sino_RefPt, fromdict=fromdict, Etendues=Etendues,
                  Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,
                  dchans=dchans, SavePath=SavePath)
         self.set_X12(X12)
