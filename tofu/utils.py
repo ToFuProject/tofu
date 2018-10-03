@@ -9,6 +9,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 
+_dict_lexcept = []
+_dict_lgetrid = [{},None]
+
+
+
 ###############################################
 #           File searching
 ###############################################
@@ -42,16 +47,36 @@ def FindFilePattern(pattern, path, nocc=1, ntab=0):
 #############################################
 
 
-def flattendict(d, parent_key='', sep='_', lexcept=[]):
+def flattendict(d, parent_key='', sep='_',
+                lexcept=_dict_lexcept,
+                lgetrid=_dict_lgetrid):
     items = []
     for k, v in d.items():
-        if k not in lexcept:
+        if not (k in lexcept or v in lgetrid):
             new_key = parent_key + sep + k if parent_key else k
-            if v and isinstance(v, collections.MutableMapping):
+            if isinstance(v, collections.MutableMapping):
                 items.extend(flatten(v, new_key, sep=sep).items())
             else:
                 items.append((new_key, v))
     return dict(items)
+
+def reshapedict(d, sep='_'):
+
+    # Get all individual keys
+    lk = sorted(list(d.keys()))
+    luk = []
+    for k in lk:
+        lki = k.split(sep)
+        if len(lki)>1 and lki[0] not in luk:
+            luk.append(lki[0])
+
+
+    lk, ln = [], []
+    for k in d.keys():
+        llk.append(k.split(sep))
+        ln.append(len(lk))
+    nMax = np.max(ln)
+
 
 
 def get_todictfields(ld, ls):
@@ -69,6 +94,57 @@ def get_todictfields(ld, ls):
     return out
 
 
+
+#############################################
+#       Generic tofu object
+#############################################
+
+
+class ToFuObject(Object):
+
+    _strip = {'strip':None, 'allowed':None}
+
+    def strip(self, strip=0):
+
+        # ----------------------------------------------------------
+        # Call class-specific method with None to get allowed values
+        allowed = self._strip(None)
+        # ----------------------------------------------------------
+
+        C0 = (isinstance(allowed, list)
+              and all([isinstance(aa,int) for aa in allowed])
+        msg = "Arg allowed must be a list of int !"
+        assert C0, msg
+        assert strip in [-1]+allowed
+        strip = allowed[strip]
+
+        # --------------------------------
+        # Call class-specific strip method
+        self._strip(strip)
+        # --------------------------------
+
+        self._strip['strip'] = strip
+
+
+    def _strip(self, strip):
+        """ To be overloaded for each class """
+        pass
+
+
+
+
+    def to_dict(self, dd, strip=0, sep='_'):
+        if self._strip['strip'] != strip:
+            self.strip(strip, verb=verb)
+        out = {}
+        for k, v in dd.items():
+            lexcept = v.get('lexcept', _dict_lexcept)
+            lgetrid = v.get('lgetrid', _dict_lgetrid)
+            d = flattendict(v['dict'],
+                            parent_key='', sep=sep,
+                            lexcept=lexcept, lgetrid=lgetrid)
+            out[k] = d
+        return out
 
 
 
