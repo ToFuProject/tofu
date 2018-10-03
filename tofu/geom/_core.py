@@ -711,23 +711,39 @@ class Rays(object):
         assert lvl in [-1]+allowed
         lvl = allowed[lvl]
 
-        _Rays_check_fromdict(fd)
-        self._Id = tfpf.ID(fromdict=fd['Id'])
-        self._dchans = fd['dchans']
-        if fd['Ves'] is None:
-            self._Ves = None
-        else:
-            self._Ves = Ves(fromdict=fd['Ves'])
-        if fd['LStruct'] is None:
-            self._LStruct = None
-        else:
-            self._LStruct = [Struct(fromdict=ds) for ds in fd['LStruct']]
-        self._geom = fd['geom']
-        self._sino = fd['sino']
-        if 'extra' in fd.keys():
+        if lvl==0:
+            _Rays_check_fromdict(fd)
+            self._Id = tfpf.ID(fromdict=fd['Id'])
+            self._dchans = fd['dchans']
+            if fd['Ves'] is None:
+                self._Ves = None
+            else:
+                self._Ves = Ves(fromdict=fd['Ves'])
+            if fd['LStruct'] is None:
+                self._LStruct = None
+            else:
+                self._LStruct = [Struct(fromdict=ds) for ds in fd['LStruct']]
+            self._geom = fd['geom']
+            self._sino = fd['sino']
+            if 'extra' in fd.keys():
+                self._extra = fd['extra']
+            else:
+                self._extra = {'Etendues':None, 'Surfaces':None}
+        elif lvl==1:
+            fd = utils.reshapedict(fd, )
+            self._Id = tfpf.ID(fromdict=fd['Id'])
+            self._dchans = fd['dchans']
+
+            # Get Ves and LStruct here to get VType
+
+            geom = fd['geom']
+            geom['PIn'] = geom['D'] + geom['kPIn'][np.newaxis,:]*geom['u']
+            geom['POut'] = geom['D'] + geom['kPOut'][np.newaxis,:]*geom['u']
+            geom['PRMin'] = geom['D'] + geom['kPRMin'][np.newaxis,:]*geom['u']
+            geom['RMin'] = np.hypot(geom['PRMin'][0,:],geom['PRMin'][1,:])
+            self._geom = geom
+
             self._extra = fd['extra']
-        else:
-            self._extra = {'Etendues':None, 'Surfaces':None}
 
     def _todict(self, lvl=0):
         allowed = [0,1]
