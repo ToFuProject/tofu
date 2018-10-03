@@ -1,6 +1,7 @@
 
 # Built-in
 import os
+import collections
 
 # Common
 import numpy as np
@@ -35,6 +36,41 @@ def FindFilePattern(pattern, path, nocc=1, ntab=0):
     lF = [ff for ff in lF if all([ss in ff for ss in pat])]
     assert len(lF)==nocc, FileNotFoundMsg(pat,path,lF, nocc, ntab=ntab)
     return lF
+
+#############################################
+#       todict formatting
+#############################################
+
+
+def flattendict(d, parent_key='', sep='_', lexcept=[]):
+    items = []
+    for k, v in d.items():
+        if k not in lexcept:
+            new_key = parent_key + sep + k if parent_key else k
+            if v and isinstance(v, collections.MutableMapping):
+                items.extend(flatten(v, new_key, sep=sep).items())
+            else:
+                items.append((new_key, v))
+    return dict(items)
+
+
+def get_todictfields(ld, ls):
+    C0 = type(ld) is list and type(ls) is list and len(ld)==len(ls)
+    C1 = type(ld) is dict and type(ls) is dict
+    assert C0 or C1, "Provide two list of dict or two dict !"
+    if C1:
+        ld, ls = [ld], [ls]
+    nd = len(ld)
+    out = {}
+    for ii in range(0,nd):
+        for ss in ld[ii].keys():
+            ks = '{0}_{1}'.format(ls[ii], ss)
+            out[ks] = ld[ii][ss]
+    return out
+
+
+
+
 
 
 #############################################

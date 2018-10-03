@@ -685,10 +685,10 @@ class Rays(object):
     """
 
     def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
-                 Etendues=None, Sino_RefPt=None, fromdict=None,
-                 Exp=None, Diag=None, shot=0, dchans=None,
-                 SavePath=os.path.abspath('./'),
-                 plotdebug=True):
+                 Etendues=None, Surfaces=None, Sino_RefPt=None,
+                 fromdict=None, Exp=None, Diag=None, shot=0, dchans=None,
+                 SavePath=os.path.abspath('./'), plotdebug=True):
+
         self._Done = False
         if fromdict is None:
             self._check_inputs(Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
@@ -700,12 +700,17 @@ class Rays(object):
             self._set_Ves(Ves, LStruct=LStruct, Du=Du, dchans=dchans,
                           plotdebug=plotdebug)
             self.set_Etendues(Entendues)
+            self.set_Surfaces(Surfaces)
             self.set_sino(RefPt=Sino_RefPt)
         else:
             self._fromdict(fromdict)
         self._Done = True
 
-    def _fromdict(self, fd):
+    def _fromdict(self, fd, lvl=0):
+        allowed = [0,1]
+        assert lvl in [-1]+allowed
+        lvl = allowed[lvl]
+
         _Rays_check_fromdict(fd)
         self._Id = tfpf.ID(fromdict=fd['Id'])
         self._dchans = fd['dchans']
@@ -718,20 +723,36 @@ class Rays(object):
         else:
             self._LStruct = [Struct(fromdict=ds) for ds in fd['LStruct']]
         self._geom = fd['geom']
-        self._Etendues = fd['Etendues']
         self._sino = fd['sino']
-
-    def _todict(self):
-        out = {'Id':self.Id._todict(),
-               'dchans':self.dchans,
-               'geom':self.geom,
-               'Etendues': self.Etendues,
-               'sino':self.sino}
-        out['Ves'] = None if self.Ves is None else self.Ves._todict()
-        if self.LStruct is None:
-            out['LStruct'] = None
+        if 'extra' in fd.keys():
+            self._extra = fd['extra']
         else:
-            out['LStruct'] = [ss._todict() for ss in self.LStruct]
+            self._extra = {'Etendues':None, 'Surfaces':None}
+
+    def _todict(self, lvl=0):
+        allowed = [0,1]
+        assert lvl in [-1]+allowed
+        lvl = allowed[lvl]
+
+        if lvl==0:
+            out = {'Id':self.Id._todict(),
+                   'dchans':self.dchans,
+                   'geom':self.geom,
+                   'extra': self._extra,
+                   'sino':self.sino}
+            out['Ves'] = None if self.Ves is None else self.Ves._todict()
+            if self.LStruct is None:
+                out['LStruct'] = None
+            else:
+                out['LStruct'] = [ss._todict() for ss in self.LStruct]
+        elif lvl==1:
+            Id = self.Id._todict(-1)
+            dchans = utils.flattendict(self.dchans)
+            lexcept = ['PIn','POut','PRMin','RMin']
+            geom = utils.flattendict(self.geom, lexcept=lexcept)
+            extra = utils.flattendict(self._extra)
+            out = utils.get_todictfields([Id,   dchans,  geom],
+                                         ['Id','dchans','geom'])
         return out
 
     @property
@@ -766,7 +787,10 @@ class Rays(object):
         return self._LStruct
     @property
     def Etendues(self):
-        return self._Etendues
+        return self._extra['Etendues']
+    @property
+    def Surfaces(self):
+        return self._extra['Surfaces']
     @property
     def sino(self):
         return self._sino
@@ -937,12 +961,32 @@ class Rays(object):
 
 
     def set_Etendues(self, E=None):
-        if E is not None:
+        C0 = E is None
+        C1 = type(E) in [int,float,np.int64,np.float64]
+        C2 = type(E) in [list,tuple,np.ndarray]
+        msg = "Arg E must be None, a float or a np.ndarray !"
+        assert C0 or C1 or C2, msg
+        if not C0:
+            if  C1:
+                E = [E]
             E = np.asarray(E, dtype=float).ravel()
-            msg = "E must be an iterable of size == self.nRays !"
-            assert E.size==self.nRays, msg
-        self._Etendues = E
+            msg = "E must be an iterable of size == 1 or self.nRays !"
+            assert E.size in [1, self.nRays], msg
+        self._extra['Etendues'] = E
 
+    def set_Surfaces(self, S=None):
+        C0 = S is None
+        C1 = type(S) in [int,float,np.int64,np.float64]
+        C2 = type(S) in [list,tuple,np.ndarray]
+        msg = "Arg S must be None, a float or a np.ndarray !"
+        assert C0 or C1 or C2, msg
+        if not C0:
+            if C1:
+                S = [S]
+            S = np.asarray(S, dtype=float).ravel()
+            msg = "S must be an iterable of size == 1 or self.nRays !"
+            assert S.size in [1, self.nRays], msg
+        self._extra['Surfaces'] = S
 
     def set_sino(self, RefPt=None):
         self._check_inputs(Sino_RefPt=RefPt)
@@ -1193,13 +1237,13 @@ class Rays(object):
                     dl=0.005, DL=None, dlMode='abs', method='sum',
                     ind=None, out=object, plot=True, plotmethod='imshow',
                     fs=None, dmargin=None, wintit='tofu', invert=True,
-                    draw=True, connect=True):
+                    units=None, draw=True, connect=True):
         """ Return the line-integrated emissivity
 
         Beware, by default, Brightness=True and it is only a line-integral !
 
         Indeed, to get the received power, you need an estimate of the Etendue
-        (previously set using self.set_Etendue()) and use Brightness=False.
+        (previously set using self.set_Etendues()) and use Brightness=False.
 
         Hence, if Brightness=True and if
         the emissivity is provided in W/m3 (resp. W/m3/sr),
@@ -1257,7 +1301,9 @@ class Rays(object):
         # Preformat Ds, us and Etendue
         Ds, us = self.D[:,ind], self.u[:,ind]
         if Brightness is False:
-            E = self.Etendues[ind]
+            E = self.Etendues
+            if self.Etendues.size==self.nRays:
+                E = E[ind]
         if len(ind)==1:
             Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         if t is None or len(t)==1:
@@ -1283,22 +1329,25 @@ class Rays(object):
             else:
                 sig[:,indok] = s
         if Brightness is False:
-            if t is None or len(t)==1:
+            if t is None or len(t)==1 or E.size==1:
                 sig = sig*E
             else:
                 sig = sig*E[np.newaxis,:]
-            units = r"origin x $m^3.sr$"
-        else:
+            if units is None:
+                units = r"origin x $m^3.sr$"
+        elif units is None:
             units = r"origin x m"
 
         if plot or out is object:
             assert '1D' in self.Id.Cls or '2D' in self.Id.Cls, "Set Cam type!!"
             import tofu.data as tfd
             if '1D' in self.Id.Cls:
-                osig = tfd.Data1D(data=sig, t=t, LCam=self, Id=self.Id.Name,
+                osig = tfd.Data1D(data=sig, t=t, LCam=self,
+                                  Id=self.Id.Name, dunits={'data':units},
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             else:
-                osig = tfd.Data2D(data=sig, t=t, LCam=self, Id=self.Id.Name,
+                osig = tfd.Data2D(data=sig, t=t, LCam=self,
+                                  Id=self.Id.Name, dunits={'data':units},
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             if plot:
                 KH = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
