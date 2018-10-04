@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-
+_sep = '_'
 _dict_lexcept = []
 _dict_lgetrid = [{},None]
 
@@ -42,43 +42,72 @@ def FindFilePattern(pattern, path, nocc=1, ntab=0):
     assert len(lF)==nocc, FileNotFoundMsg(pat,path,lF, nocc, ntab=ntab)
     return lF
 
+
+def get_pathfileext(path=None, name=None,
+                    path_def='./', name_def='dummy', mode='npz'):
+    modeok = ['npz']
+    modeokstr = '['+', '.join(modeok)+']'
+
+    if name is not None:
+        C = type(name) is str and not (name[-4]=='.')
+        assert C, "name should not include the extension !"
+    assert path is None or type(path) is str, "Arg path must be None or a str !"
+    assert mode in modeok, "Arg mode must be in {0}".format(modeokstr)
+
+    if path is None:
+        path = path_def
+    path = os.path.abspath(path)
+    if name is None:
+        name = name_def
+    return path, name, mode
+
+
+
+
 #############################################
 #       todict formatting
 #############################################
 
 
-def flattendict(d, parent_key='', sep='_',
-                lexcept=_dict_lexcept,
-                lgetrid=_dict_lgetrid):
+def flatten_dict(d, parent_key='', sep=_sep,
+                 lexcept=_dict_lexcept,
+                 lgetrid=_dict_lgetrid):
     items = []
     for k, v in d.items():
         if not (k in lexcept or v in lgetrid):
             new_key = parent_key + sep + k if parent_key else k
             if isinstance(v, collections.MutableMapping):
-                items.extend(flatten(v, new_key, sep=sep).items())
+                items.extend(flatten_dict(v, new_key, sep=sep).items())
             else:
                 items.append((new_key, v))
     return dict(items)
 
-def reshapedict(d, sep='_'):
+def _reshape_dict(ss, vv, dinit={}, sep=_sep):
+    ls = ss.split(sep)
+    k = ss if len(ls)==1 else ls[0]
+    if len(ls)==2:
+        dk = {ls[1]:vv}
+        if k not in dinit.keys():
+            dinit[k] = {}
+        assert isinstance(dinit[k],dict)
+        dinit[k].update({ls[1]:vv})
+    elif len(ls)>2:
+        if k not in dinit.keys():
+            dinit[k] = {}
+        _reshape_dict(sep.join(ls[1:]), vv, dinit=dinit[k], sep=sep)
+    else:
+        assert k not in dinit.keys()
+        dinit[k] = vv
 
+def reshape_dict(d, sep=_sep):
     # Get all individual keys
-    lk = sorted(list(d.keys()))
-    luk = []
-    for k in lk:
-        lki = k.split(sep)
-        if len(lki)>1 and lki[0] not in luk:
-            luk.append(lki[0])
+    out = {}
+    for ss, vv in d.items():
+        _reshape_dict(ss, vv, dinit=out, sep=sep)
+    return out
 
 
-    lk, ln = [], []
-    for k in d.keys():
-        llk.append(k.split(sep))
-        ln.append(len(lk))
-    nMax = np.max(ln)
-
-
-
+# Check if deprecated ???
 def get_todictfields(ld, ls):
     C0 = type(ld) is list and type(ls) is list and len(ld)==len(ls)
     C1 = type(ld) is dict and type(ls) is dict
@@ -100,42 +129,37 @@ def get_todictfields(ld, ls):
 #############################################
 
 
-class ToFuObject(Object):
+class ToFuObject(object):
 
-    _strip = {'strip':None, 'allowed':None}
+    _Id = None
+    _dstrip = {'strip':None, 'allowed':None}
 
     def strip(self, strip=0):
 
-        # ----------------------------------------------------------
-        # Call class-specific method with None to get allowed values
-        allowed = self._strip(None)
-        # ----------------------------------------------------------
-
         C0 = (isinstance(allowed, list)
-              and all([isinstance(aa,int) for aa in allowed])
+              and all([isinstance(aa,int) for aa in self._dstrip['allowed']]))
         msg = "Arg allowed must be a list of int !"
         assert C0, msg
-        assert strip in [-1]+allowed
-        strip = allowed[strip]
+        assert strip in [-1]+self._dstrip['allowed']
+        strip = self._dstrip['allowed'][strip]
 
         # --------------------------------
         # Call class-specific strip method
         self._strip(strip)
         # --------------------------------
 
-        self._strip['strip'] = strip
+        self._dstrip['strip'] = strip
 
 
-    def _strip(self, strip):
-        """ To be overloaded for each class """
-        pass
-
-
-
-
-    def to_dict(self, dd, strip=0, sep='_'):
-        if self._strip['strip'] != strip:
+    def get_dict(self, strip=0, sep=_sep):
+        if self._dstrip['strip'] != strip:
             self.strip(strip, verb=verb)
+
+        # ---------------------
+        # Call class-specific
+        dd = self._get_dict()
+        # ---------------------
+
         out = {}
         for k, v in dd.items():
             lexcept = v.get('lexcept', _dict_lexcept)
@@ -146,6 +170,122 @@ class ToFuObject(Object):
             out[k] = d
         return out
 
+    def from_dict(self, fd, sep=_sep, strip=0):
+
+        dd = reshape_dict(fd)
+
+        # ---------------------
+        # Call class-specific
+        self._from_dict(fd)
+        # ---------------------
+
+        if self._dstrip['strip'] != strip:
+            self.strip(strip, verb=verb)
+
+    def get_size(self, method='nbytes'):
+        dd = self.get_dict()
+        dsize = dd.fromkeys(dd.keys(),0)
+        total = 0
+        if method=='nbytes':
+            for k, v in dd.items():
+                dsize[kk] = np.asarray(v).nbytes
+                total += size[kk]
+        elif method=='sizeof':
+            for k, v in dd.items():
+                dsize[kk] = np.asarray(v).__sizeof__
+                total += size[kk]
+        return total, dsize
+
+
+    def __equal__(self, obj, strip=-1, verb=True):
+        msg = "The have different "
+        # Check class
+        eq = self.__class__==obj.__class__
+        if not eq:
+            msg += "classes :\n"
+            msg += str(self.__class__)+"\n"
+            msg += str(obj.__class__)
+
+        # Check content
+        if eq:
+            d0 = self.get_dict(strip=strip)
+            d1 = obj.get_dict(strip=strip)
+            lkd0 = sorted(list(d0.keys()))
+            lkd1 = sorted(list(d1.keys()))
+            eq = lkd0==lkd1
+            if not eq:
+                msg += "dict keys :\n"
+                msg += sorted(', '.join(lkd0))+"\n"
+                msg += sorted(', '.join(lkd1))
+        if eq:
+            for k in lkdo:
+                eq = d0[k]==d1[k]
+                if not eq:
+                    msg += k+" :\n"
+                    msg += str(d0[k])+"\n"
+                    msg += str(d1[k])
+                    break
+
+        if eq:
+            msg = "All ok"
+        if verb:
+            print(msg)
+        return eq, msg
+
+
+    def save(self, path=None, name=None,
+             strip=0, sep=_sep,
+             mode='npz', compressed=False, verb=True):
+        """ Save the tofu object in folder path, under name
+
+        Leave None to use default values (recommended)
+
+        Parameters
+        ----------
+        path :      None / str
+            Path specifying where to save the file
+            If None (recommended) uses self.Id.SavePath
+        name :      None / str
+            The name to be used for the saved file
+            If None (recommended) uses self.Id.SaveName
+        strip:      int
+            Flag indicating how much to strip the object
+            Fed to self.strip() before saving
+        sep  :      str
+            Separator used for naming the keys of the flattened dictionnary
+            Fed to self.get_dict()
+        mode :      str
+            Flag specifying how to save the object:
+                'npz': as a numpy array file (recommended)
+        compressed :    bool
+            Flag, used when mode='npz', indicates whether to use:
+                - False : np.savez
+                - True :  np.savez_compressed (slower but smaller files)
+        verb :      bool
+            Flag indicating whether to print a message saying what was saved
+        """
+
+        # Check path, name, mode
+        path, name, mode = get_pathfileext(path=path, name=name,
+                                           path_def=self.Id.SavePath,
+                                           name_def=self.Id.SaveName, mode=mode)
+
+        # Update self._Id fields
+        self._Id._SavePath = path
+        self._Id.set_SaveName(name)
+
+        # Get stripped dictionnary
+        dd = self.get_dict(strip=strip)
+
+        # save
+        pathfileext = tfpf.Save_Generic2(dd, path, name, mode,
+                                         compressed=compressed)
+
+        # print
+        if verb:
+            msg = "Saved in :\n"
+            msg += "    "+pathfileext
+            print(msg)
 
 
 
