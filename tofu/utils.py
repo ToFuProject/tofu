@@ -131,8 +131,51 @@ def get_todictfields(ld, ls):
 
 class ToFuObject(object):
 
-    _Id = None
     _dstrip = {'strip':None, 'allowed':None}
+
+    def __init__(self, fromdict=None,
+                 **kwdargs):
+
+        self._reset()
+        if fromdict is not None:
+            self.from_dict(fromdict)
+        else:
+            dId = self._extract_dId(**kwdargs)
+            self._set_Id(**dId)
+            self._init(**kwdargs)
+
+    def _reset(self):
+        """ To be overloaded """
+        pass
+
+    def _init(self, **kwdargs):
+        """ To be overladed """
+        pass
+
+    def _extract_dId(self, **kwdargs):
+        lk = ['Id', 'Name', 'Type', 'Deg', 'Exp', 'Diag', 'shot', 'SaveName',
+              'SavePath', 'usr', 'dUSR', 'lObj', 'include']
+        d = {}
+        for k in lk:
+            if k in kwdargs.keys():
+                d[k] = kwdargs[k]
+        return d
+
+    def _set_Id(self, Id=None, Name=None, SaveName=None, SavePath=None,
+                Type=None, Deg=None, Exp=None, Diag=None, shot=None, usr=None,
+                dUSR=None, lObj=None, include=None):
+        import tofu.pathfile as tfpf
+        if Id is None:
+            Id = tfpf.ID2(Cls=self.__class__.name, Name=Name, SaveName=SaveName,
+                          SavePath=SavePath, Type=Type, Deg=Deg, Exp=Exp, Diag=Diag,
+                          shot=shot, usr=usr, dUSR=dUSR, lObj=lObj, include=include)
+        else:
+            assert isinstance(Id,tfpf.ID2)
+        self._Id = Id
+
+    @property
+    def Id(self):
+        return self._Id
 
     def strip(self, strip=0):
 
@@ -197,7 +240,8 @@ class ToFuObject(object):
         return total, dsize
 
 
-    def __equal__(self, obj, strip=-1, verb=True):
+    def __equal__(self, obj, strip=-1,
+                  detail=True, verb=True):
         msg = "The have different "
         # Check class
         eq = self.__class__==obj.__class__
@@ -206,7 +250,7 @@ class ToFuObject(object):
             msg += str(self.__class__)+"\n"
             msg += str(obj.__class__)
 
-        # Check content
+        # Check keys
         if eq:
             d0 = self.get_dict(strip=strip)
             d1 = obj.get_dict(strip=strip)
@@ -217,14 +261,18 @@ class ToFuObject(object):
                 msg += "dict keys :\n"
                 msg += sorted(', '.join(lkd0))+"\n"
                 msg += sorted(', '.join(lkd1))
+
+        # Check values
         if eq:
+            msg += "dict values :\n"
             for k in lkdo:
                 eq = d0[k]==d1[k]
                 if not eq:
                     msg += k+" :\n"
-                    msg += str(d0[k])+"\n"
-                    msg += str(d1[k])
-                    break
+                    msg += "    "+str(d0[k])+"\n"
+                    msg += "    "+str(d1[k])
+                    if not detail:
+                        break
 
         if eq:
             msg = "All ok"
@@ -234,8 +282,8 @@ class ToFuObject(object):
 
 
     def save(self, path=None, name=None,
-             strip=0, sep=_sep,
-             mode='npz', compressed=False, verb=True):
+             strip=0, sep=_sep, mode='npz',
+             compressed=False, verb=True):
         """ Save the tofu object in folder path, under name
 
         Leave None to use default values (recommended)
