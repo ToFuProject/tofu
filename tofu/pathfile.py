@@ -18,9 +18,8 @@ import datetime as dtm
 # ToFu specific
 from tofu import __version__
 
-
 __author__ = "Didier Vezinet"
-__all__ = ["ID",
+__all__ = ["ID", "ID2",
            "SaveName_Conv","CheckSameObj","SelectFromListId",
            "get_InfoFromFileName","get_FileFromInfos",
            "convert_units","get_PolyFromPolyFileObj",
@@ -160,7 +159,6 @@ def _get_FromItself(obj, Dict):
 ###############################################################################
 ###############################################################################
 """
-
 
 class ID(object):
     """ A class used by all ToFu objects as an attribute
@@ -418,6 +416,266 @@ class ID(object):
     @property
     def USRdict(self):
         return self._USRdict
+
+class ID2(object):
+    """ A class used by all ToFu objects as an attribute
+
+    It stores all relevant data for the identification of instances
+    Stored info can be the name of the instance, the experiment and diagnostics
+    it belongs to, or other user-defined info
+    Also provides default names for saving the instances
+
+    Parameters
+    ----------
+    Cls :       str
+        Class of the object on which info should be stored:
+    Name :      str
+        Name of the instance (user-defined)
+        Should be a str without space ' ' or underscore '_'
+        (automatically removed if present)
+    Type :      None / str
+        Type of object (i.e.: 'Tor' or 'Lin' for a :class:`~tofu.geom.Ves`)
+    Deg :       None / int
+        Degree of the b-splines constituting the :mod:`tofu.mesh` object
+    Exp :       None / str
+        Flag specifying the experiment (e.g.: 'WEST', 'AUG', 'ITER', 'JET'...)
+    Diag :      None / str
+        Flag indicating the diagnostic (e.g.: 'SXR', 'HXR', 'Bolo'...)
+    shot :      None / int
+        A shot number from which the instance is valid (for tracking changes)
+    SaveName :  None / str
+        Overrides the default file name for saving (not recommended)
+    SavePath :  None / str
+        Absolute path where the instance should be saved
+    dUSR :   None / dict
+        A user-defined dictionary containing information about the instance
+        All info considered relevant can be passed here
+        (e.g.: thickness of the diode, date of installation...)
+    lObj :      None / dict / list
+        Either:
+            - list: list of other ID instances of objects on which the created object depends
+              (this list will then be sorted by class and formatted into a dictionary storign key attributes)
+            - dict: a ready-made such dictionary
+
+    """
+
+    def __init__(self, Cls=None, Name=None, Type=None, Deg=None,
+                 Exp=None, Diag=None, shot=None, SaveName=None,
+                 SavePath=os.path.abspath('./'), usr=None,
+                 dUSR={}, lObj=None, fromdict=None,
+                 include=defInclude):
+
+        if fromdict is None:
+            assert Cls is not None
+            assert Name is not None
+            self._check_inputs(Cls=Cls, Name=Name, Type=Type, Deg=Deg,
+                               Exp=Exp, Diag=Diag, shot=shot, SaveName=SaveName,
+                               SavePath=SavePath, dUSR=dUSR,
+                               Include=Include)
+
+            # Try to get the user name
+            self._version = __version__
+            if usr is None:
+                try:
+                    usr = getpass.getuser()
+                except:
+                    pass
+            self._usr = usr
+
+            # Set fixed attributes
+            self._Mod, self._Cls = _extract_ModClsFrom_class(Cls)
+            self._Type, self._SavePath = Type, SavePath
+            self._Exp, self._Diag, self._shot = Exp, Diag, shot
+            self._Deg = Deg
+
+            # Set variable attributes
+            self.set_Name(Name, SaveName=SaveName, Include=Include)
+
+            self._lObj = {}
+            self.set_lObj(lObj)
+            self.set_dUSR(dUSR)
+        else:
+            self._fromdict(fromdict)
+
+    def _fromdict(self, fd):
+        self._check_inputs(fromdict=fd)
+        # Set fixed attributes
+        self._Mod, self._Cls, self._Type = fd['Mod'], fd['Cls'], fd['Type']
+        self._Exp, self._Diag, self._shot = fd['Exp'], fd['Diag'], fd['shot']
+        self._Deg, self._SavePath = fd['Deg'], fd['SavePath']
+        self._version, self._usr = fd['version'], fd['usr']
+        self._dUSR = fd['dUSR']
+        self._lObj = fd['lObj']
+        # Set variable attributes
+        self._Name, self._SaveName = fd['Name'], fd['SaveName']
+        # Check the original tofu version against the current version
+        if not self._version==__version__:
+            Str = self._Name+" was created from a different ToFu version !\n"
+            Str += "original : %s\n"%self._version
+            Str += "current  : %s"%__version__
+            warnings.warn(Str)
+
+    def _todict(self):
+        d = {'Mod':self._Mod, 'Cls':self.Cls, 'Type':self.Type,
+             'Name':self.Name, 'SaveName':self.SaveName,
+             'SavePath':self.SavePath, 'Exp':self.Exp, 'Diag':self.Diag,
+             'shot':self.shot, 'Deg':self._Deg, 'version':self._version,
+             'usr':self._usr, 'dUSR':self.dUSR, 'lObj':self.lObj}
+        return d
+
+    def _check_inputs(self, Cls=None, Name=None, Type=None, Deg=None,
+                      Exp=None, Diag=None, shot=None, SaveName=None,
+                      SavePath=None, dUSR=None, lObj=None, version=None,
+                      usr=None, fromdict=None, Include=None):
+        _ID_check_inputs(Cls=Cls, Name=Name, Type=Type, Deg=Deg, Exp=Exp,
+                         Diag=Diag, shot=shot, SaveName=SaveName,
+                         SavePath=SavePath, USRdict=dUSR, LObj=lObj,
+                         version=version, usr=usr, fromdict=fromdict,
+                         Include=Include)
+
+    def set_Name(self, Name, SaveName=None,
+                 Include=defInclude,
+                 ForceUpdate=False):
+        """ Set the Name of the instance, automatically updating the SaveName
+
+        The name should be a str without spaces or underscores (removed)
+        When the name is changed, if SaveName (i.e. the name used for saving)
+        was not user-defined, it is automatically updated
+
+        Parameters
+        ----------
+        Name :      str
+            Name of the instance, without ' ' or '_' (automatically removed)
+        SaveName :  None / str
+            If provided, overrides the default name for saving (not recommended)
+        Include:    list
+            Controls how te default SaveName is generated
+            Each element of the list is a key str indicating whether an element
+            should be present in the SaveName
+
+        """
+        self._check_inputs(Name=Name, SaveName=SaveName, Include=Include)
+        self._Name = Name
+        self.set_SaveName(SaveName=SaveName, Include=Include,
+                          ForceUpdate=ForceUpdate)
+
+    def set_SaveName(self,SaveName=None,
+                     Include=defInclude,
+                     ForceUpdate=False):
+        """ Set the name for saving the instance (SaveName)
+
+        SaveName can be either:
+            - provided by the user (no constraint) - not recommended
+            - automatically generated from Name and key attributes (cf. Include)
+
+        Parameters
+        ----------
+        SaveName :      None / str
+            If provided, overrides the default name for saving (not recommended)
+        Include :       list
+            Controls how te default SaveName is generated
+            Each element of the list is a key str indicating whether an element
+            should be present in the SaveName
+        ForceUpdate :   bool
+            Flag indicating the behaviour when SaveName=None:
+                - True : A new SaveName is generated, overriding the old one
+                - False : The former SaveName is preserved (default)
+        """
+        self._check_inputs(SaveName=SaveName, Include=Include)
+        if not hasattr(self,'_SaveName_usr'):
+            self._SaveName_usr = (SaveName is not None)
+        # If SaveName provided by user, override
+        if SaveName is not None:
+            self._SaveName = SaveName
+            self._SaveName_usr = True
+        else:
+            # Don't update if former is user-defined and ForceUpdate is False
+            # Override if previous was:
+            # automatic or (user-defined but ForceUpdate is True)
+            if (not self._SaveName_usr) or (self._SaveName_usr and ForceUpdate):
+                SN = SaveName_Conv(Mod=self._Mod, Cls=self.Cls, Type=self.Type,
+                                   Name=self.Name, Deg=self._Deg, Exp=self.Exp,
+                                   Diag=self.Diag, shot=self.shot,
+                                   version=self._version, usr=self._usr,
+                                   Include=Include)
+                self._SaveName = SN
+                self._SaveName_usr = False
+
+    def set_lObj(self, lObj=None):
+        """ Set the lObj attribute, storing objects the instance depends on
+
+        For example:
+        A Detect object depends on a vessel and some apertures
+        That link between should be stored somewhere (for saving/loading).
+        lObj does this: it stores the ID (as dict) of all objects depended on.
+
+        Parameters
+        ----------
+        lObj :  None / dict / :class:`~tofu.pathfile.ID` / list of such
+            Provide either:
+                - A dict (derived from :meth:`~tofu.pathfile.ID._todict`)
+                - A :class:`~tofu.pathfile.ID` instance
+                - A list of dict or :class:`~tofu.pathfile.ID` instances
+
+        """
+        self._lObj = {}
+        if lObj is not None:
+            if type(lObj) is not list:
+                lObj = [lObj]
+            for ii in range(0,len(lObj)):
+                if type(lObj[ii]) is ID:
+                    lObj[ii] = lObj[ii]._todict()
+            ClsU = list(set([oo['Cls'] for oo in lObj]))
+            for c in ClsU:
+                self._lObj[c] = [oo for oo in lObj if oo['Cls']==c]
+
+    def set_dUSR(self, dUSR={}):
+        """ Set the dUSR, containing user-defined info about the instance
+
+        Useful for arbitrary info (e.g.: manufacturing date, material...)
+
+        Parameters
+        ----------
+        dUSR :   dict
+            A user-defined dictionary containing info about the instance
+
+        """
+        self._check_inputs(dUSR=dUSR)
+        self._dUSR = dUSR
+
+    @property
+    def Cls(self):
+        return self._Cls
+    @property
+    def Name(self):
+        return self._Name
+    @property
+    def NameLTX(self):
+        return r"$"+self.Name.replace('_','\_')+r"$"
+    @property
+    def Exp(self):
+        return self._Exp
+    @property
+    def Diag(self):
+        return self._Diag
+    @property
+    def shot(self):
+        return self._shot
+    @property
+    def Type(self):
+        return self._Type
+    @property
+    def SaveName(self):
+        return self._SaveName
+    @property
+    def SavePath(self):
+        return self._SavePath
+    @property
+    def lObj(self):
+        return self._lObj
+    @property
+    def dUSR(self):
+        return self._dUSR
 
 
 
@@ -984,7 +1242,7 @@ def Save_Generic2(dd, path, name, mode, compressed=False):
     pathfileext = os.path.join(path,name+'.'+mode)
 
     if mode=='.npz':
-        _save_np(dd, pathfileext, compressed=compressed)
+        _save_np2(dd, pathfileext, compressed=compressed)
     elif mode=='mat':
         _save_mat(dd, pathfileext)
 
@@ -1200,6 +1458,18 @@ def save_np_IdObj(Id):
         LObj.append( np.concatenate(tuple(Larr),axis=0) )
         LObjUSR.append( np.concatenate(tuple(LarrUSR),axis=0) )
     return LObj, LObjUSR
+
+
+def _save_np2(dd, pathfileext, compressed=False):
+    func = np.savez_compressed if compressed else np.savez
+    for k in dd.keys():
+        if dd[k] is None:
+            dd[k] = np.asarray([None])
+        elif type(dd[k]) in [int,float,np.int64,np.float64]:
+            dd[k] = np.asarray([dd[k]])
+        elif isinstance(dd[k],str):
+            dd[k] = np.asarray(dd[k])
+    func(pathfileext, **dd)
 
 
 
