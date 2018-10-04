@@ -951,6 +951,46 @@ def Save_Generic(obj, SaveName=None, Path='./',
         print("Saved in :  "+pathfileext)
 
 
+def Save_Generic2(dd, path, name, mode, compressed=False):
+    """ Save a ToFu object under file name SaveName, in folder Path
+
+    ToFu provides built-in saving and loading functions for ToFu objects.
+    There is now only one saving mode:
+        - 'npz': saves a dict of key attributes using :meth:`numpy.savez`
+
+    Good practices are:
+        - save :class:`~tofu.geom.Ves` and :class:`~tofu.geom.Struct`
+        - intermediate optics (:class:`~tofu.geom.Apert` and
+          :class:`~tofu.geom.Lens`) generally do not need to be saved
+          Indeed, they will be autoamtically included in larger objects
+          like Detect or Cam objects
+
+    Parameters
+    ----------
+    SaveName :      str
+        The file name, if None (recommended) uses obj.Id.SaveName
+    Path :          str
+        Path where to save the file
+    Mode :          str
+        Flag specifying the saving mode
+            - 'npz': Only mode currently available ('pck' deprecated)
+    compressed :    bool
+        Indicate whether to use np.savez_compressed (slower but smaller files)
+
+    """
+    assert isinstance(dd,dict), "Arg dd must be a dict !"
+    assert type(compressed) is bool, "Arg compressed must be a bool !"
+
+    pathfileext = os.path.join(path,name+'.'+mode)
+
+    if mode=='.npz':
+        _save_np(dd, pathfileext, compressed=compressed)
+    elif mode=='mat':
+        _save_mat(dd, pathfileext)
+
+    return pathfileext
+
+
 """
 def _convert_Detect2Ldict(obj):
     # Store LOS data
