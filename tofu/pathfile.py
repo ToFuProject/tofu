@@ -134,12 +134,13 @@ def get_PolyFromPolyFileObj(PolyFileObj, SavePathInp=None, units='m', comments='
 ###############################################################################
 """
 
-
+# Deprecated ???
 def _check_NotNone(Dict):
     for aa in Dict.keys():
         assert not Dict[aa] is None, "Arg "+aa+" must not be None !"
 
 
+# Deprecated ???
 def _get_FromItself(obj, Dict):
     for aa in Dict.keys():
         if Dict[aa] is None:
