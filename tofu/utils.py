@@ -10,8 +10,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 _sep = '_'
-_dict_lexcept = []
-_dict_lgetrid = [{},None]
+_dict_lexcept_key = []
+_dict_lexcept_val = [{},None]
 
 
 
@@ -71,11 +71,16 @@ def get_pathfileext(path=None, name=None,
 
 
 def flatten_dict(d, parent_key='', sep=_sep,
-                 lexcept=_dict_lexcept,
-                 lgetrid=_dict_lgetrid):
+                 lexcept_key=None,
+                 lexcept_val=None):
+    if lexcept_key is None:
+        lexcept_key = _dict_lexcept_key,
+    if lexcept_val is None:
+        lexcept_val = _dict_lexcept_val,
+
     items = []
     for k, v in d.items():
-        if not (k in lexcept or v in lgetrid):
+        if not (k in lexcept_key or v in lexcept_val):
             new_key = parent_key + sep + k if parent_key else k
             if isinstance(v, collections.MutableMapping):
                 items.extend(flatten_dict(v, new_key, sep=sep).items())
@@ -185,7 +190,7 @@ class ToFuObject(object):
             largsId = ToFuObject._get_largs_Id()
             dId = ToFuObject._extract_kwdargs(kwdargs, largsId)
             self._set_Id(**dId)
-            self._init(kwdargs)
+            self._init(**kwdargs)
             self._dstrip['allowed'] = self._strip(None)
         self._Done = True
 
@@ -210,9 +215,11 @@ class ToFuObject(object):
         dout = {}
         for k in largs:
             if k in din.keys():
-                dout[k] = kwdargs[k]
+                dout[k] = din[k]
         return dout
 
+
+    # Deprecated ???
     def _get_fromItself(self, d):
         for aa in Dict.keys():
             if Dict[aa] is None:
@@ -227,14 +234,11 @@ class ToFuObject(object):
                 Type=None, Deg=None, Exp=None, Diag=None, shot=None, usr=None,
                 dUSR=None, lObj=None, include=None):
         import tofu.pathfile as tfpf
-        lnotNone = self._check_inputs_Id()
-        if Id is None:
-            if self._Done:
-                dId = _get_attrdictfromobj(self.Id, dId)
+        if Id is None or type(Id) is str:
+            dId = locals()
+            del dId['self'], dId['Id'], dId['tfpf']
             dId = self._checkformat_inputs_Id(**dId)
-            Id = tfpf.ID2(Cls=self.__class__.name, Name=Name, SaveName=SaveName,
-                          SavePath=SavePath, Type=Type, Deg=Deg, Exp=Exp, Diag=Diag,
-                          shot=shot, usr=usr, dUSR=dUSR, lObj=lObj, include=include)
+            Id = tfpf.ID2(Cls=self.__class__, **dId)
         else:
             assert isinstance(Id,tfpf.ID2)
             dId = self._checkformat_inputs_Id(Id=Id)
@@ -255,13 +259,34 @@ class ToFuObject(object):
             self.from_dict(d)
             self._dextra['arrayorder'] = arrayorder
 
-    def strip(self, strip=0):
+    @staticmethod
+    def _strip_dict(dd, lkeep=[]):
+        for k in dd.keys():
+            if not k in lkeep:
+                dd[k] = None
 
-        C0 = (isinstance(allowed, list)
-              and all([isinstance(aa,int) for aa in self._dstrip['allowed']]))
-        msg = "Arg allowed must be a list of int !"
-        assert C0, msg
-        assert strip in [-1]+self._dstrip['allowed']
+    @staticmethod
+    def _test_Rebuild(dd, lkeep=[]):
+        reset = False
+        for k in self._dgeom.keys():
+            if self._dgeom[k] is None and k not in lkeep:
+                reset = True
+                break
+        return reset
+
+    @staticmethod
+    def _check_Fields4Rebuild(dd, lkeep=[], dname=''):
+        for kk in lkeep:
+            if dd[kk] is None:
+                msg = "Rebuilding {0}:\n".format(dname)
+                msg += "Field '{0}' is missing !".format(kk)
+                raise Exception(msg)
+
+    def strip(self, strip=0):
+        msg = "Only allowed strip values are:\n"
+        msg += "    "+ ", ".join(["{0}".format(ii)
+                                  for ii in self._dstrip['allowed']])
+        assert strip in [-1]+self._dstrip['allowed'], msg
         strip = self._dstrip['allowed'][strip]
 
         # --------------------------------
@@ -274,7 +299,7 @@ class ToFuObject(object):
 
     def get_dict(self, strip=0, sep=_sep):
         if self._dstrip['strip'] != strip:
-            self.strip(strip, verb=verb)
+            self.strip(strip)
 
         # ---------------------
         # Call class-specific
@@ -283,9 +308,9 @@ class ToFuObject(object):
 
         out = {}
         for k, v in dd.items():
-            lexcept = v.get('lexcept', _dict_lexcept)
-            lgetrid = v.get('lgetrid', _dict_lgetrid)
-            d = flattendict(v['dict'],
+            lexcept = v.get('lexcept_key', _dict_lexcept_key)
+            lgetrid = v.get('lexcept_val', _dict_lexcept_val)
+            d = flatten_dict(v['dict'],
                             parent_key='', sep=sep,
                             lexcept=lexcept, lgetrid=lgetrid)
             out[k] = d

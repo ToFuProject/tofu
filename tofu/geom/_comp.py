@@ -89,13 +89,13 @@ def _Struct_set_Poly(Poly, Lim=None, arrayorder='C',
 
     # Get bounding circle
     circC = BaryS
-    r = np.sqrt(np.sum((poly-dcirc['C'][:,np.newaxis])**2,axis=0))
+    r = np.sqrt(np.sum((poly-circC[:,np.newaxis])**2,axis=0))
     circr = np.max(r)
 
     dout = {'Poly':poly, 'Lim':Lim, 'nLim':nLim, 'Multi':Multi, 'nP':NP,
             'P1Max':P1Max, 'P1Min':P1Min, 'P2Max':P2Max, 'P2Min':P2Min,
             'BaryP':BaryP, 'BaryL':BaryL, 'BaryS':BaryS, 'BaryV':BaryV,
-            'Surf':Surf, 'VolAng':VolAng, 'Vect':Vect, 'VIn':Vin,
+            'Surf':Surf, 'VolAng':Vol, 'Vect':Vect, 'VIn':Vin,
             'circ-C':circC, 'circ-r':circr, 'Clock':Clock}
     return dout
 

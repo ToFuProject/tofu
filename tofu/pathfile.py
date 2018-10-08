@@ -472,7 +472,7 @@ class ID2(object):
             self._check_inputs(Cls=Cls, Name=Name, Type=Type, Deg=Deg,
                                Exp=Exp, Diag=Diag, shot=shot, SaveName=SaveName,
                                SavePath=SavePath, dUSR=dUSR,
-                               Include=Include)
+                               Include=include)
 
             # Try to get the user name
             self._version = __version__
@@ -490,7 +490,7 @@ class ID2(object):
             self._Deg = Deg
 
             # Set variable attributes
-            self.set_Name(Name, SaveName=SaveName, Include=Include)
+            self.set_Name(Name, SaveName=SaveName, Include=include)
 
             self._lObj = {}
             self.set_lObj(lObj)
@@ -749,6 +749,7 @@ def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
 
     """
     Modstr = dModes[Mod] if Mod is not None else None
+    Include = defInclude if Include is None else Include
     if Cls is not None and Type is not None and 'Type' in Include:
         Clsstr = Cls+Type
     else:
