@@ -39,11 +39,17 @@ except Exception:
 
 
 
-def _Ves_set_Poly(Poly, arrayorder='C', Type='Tor', Lim=None, Clock=False):
-    """ Prepare, format and compute all key geometrical attributes of a Ves object based on its Poly  """
-    # Make Poly closed, counter-clockwise, with '(cc,N)' layout and good arrayorder
-    Poly = _GG.Poly_Order(Poly, order='C', Clock=False, close=True, layout='(cc,N)', Test=True)
+def _Struct_set_Poly(Poly, Lim=None, arrayorder='C',
+                     Type='Tor', Clock=False):
+    """ Compute geometrical attributes of a Struct object """
+
+    # Make Poly closed, counter-clockwise, with '(cc,N)' layout and arrayorder
+    Poly = _GG.Poly_Order(Poly, order='C', Clock=False,
+                          close=True, layout='(cc,N)', Test=True)
     assert Poly.shape[0]==2, "Arg Poly must be a 2D polygon !"
+    fPfmt = np.ascontiguousarray if arrayorder=='C' else np.asfortranarray
+
+    # Get all remarkable points and moments
     NP = Poly.shape[1]
     P1Max = Poly[:,np.argmax(Poly[0,:])]
     P1Min = Poly[:,np.argmin(Poly[0,:])]
@@ -54,34 +60,44 @@ def _Ves_set_Poly(Poly, arrayorder='C', Type='Tor', Lim=None, Clock=False):
     TorP = plg.Polygon(Poly.T)
     Surf = TorP.area()
     BaryS = np.array(TorP.center()).flatten()
-    Multi = False
+
+    # Get lim-related indicators
+    nLim = 0 if Lim is None else Lim.shape
+    Multi = nLim>1
+
+    # Get Tor-related quantities
     if Type.lower()=='lin':
-        if all([hasattr(ll,'__iter__') for ll in Lim]):
-            assert all([len(ll)==2 and not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') and ll[0]<ll[1] for ll in Lim])
-            Multi = True
-        else:
-            assert len(Lim)==2 and not hasattr(Lim[0],'__iter__') and not hasattr(Lim[1],'__iter__') and Lim[0]<Lim[1]
-        Lim = np.asarray(Lim)
         Vol, BaryV = None, None
     else:
-        if Lim is not None:
-            if all([hasattr(ll,'__iter__') for ll in Lim]):
-                assert all([len(ll)==2 and not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') for ll in Lim])
-                Multi = True
-            else:
-                assert len(Lim)==2 and not hasattr(Lim[0],'__iter__') and not hasattr(Lim[1],'__iter__')
-            Lim = np.asarray(Lim)
         Vol, BaryV = _GG.Poly_VolAngTor(Poly)
-        assert Vol > 0., "Pb. with volume computation for Ves object of type 'Tor' !"
+        msg = "Pb. with volume computation for Ves object of type 'Tor' !"
+        assert Vol>0., msg
+
     # Compute the non-normalized vector of each side of the Poly
     Vect = np.diff(Poly,n=1,axis=1)
-    Vect = np.ascontiguousarray(Vect) if arrayorder=='C' else np.asfortranarray(Vect)
+    Vect = fPfmt(Vect)
+
     # Compute the normalised vectors directed inwards
-    Vin = np.array([Vect[1,:],-Vect[0,:]]) if _GG.Poly_isClockwise(Poly) else np.array([-Vect[1,:],Vect[0,:]])
-    Vin = Vin/np.tile(np.hypot(Vin[0,:],Vin[1,:]),(2,1))
-    Vin = np.ascontiguousarray(Vin) if arrayorder=='C' else np.asfortranarray(Vin)
-    poly = _GG.Poly_Order(Poly, order=arrayorder, Clock=Clock, close=True, layout='(cc,N)', Test=True)
-    return poly, NP, P1Max, P1Min, P2Max, P2Min, BaryP, BaryL, Surf, BaryS, Lim, Vol, BaryV, Vect, Vin, Multi
+    Vin = np.array([Vect[1,:],-Vect[0,:]])
+    if not _GG.Poly_isClockwise(Poly):
+        Vin = -Vin
+    Vin = Vin/np.hypot(Vin[0,:],Vin[1,:])[np.newaxis,:]
+    Vin = fPfmt(Vin)
+
+    poly = _GG.Poly_Order(Poly, order=arrayorder, Clock=Clock,
+                          close=False, layout='(cc,N)', Test=True)
+
+    # Get bounding circle
+    circC = BaryS
+    r = np.sqrt(np.sum((poly-dcirc['C'][:,np.newaxis])**2,axis=0))
+    circr = np.max(r)
+
+    dout = {'Poly':poly, 'Lim':Lim, 'nLim':nLim, 'Multi':Multi, 'nP':NP,
+            'P1Max':P1Max, 'P1Min':P1Min, 'P2Max':P2Max, 'P2Min':P2Min,
+            'BaryP':BaryP, 'BaryL':BaryL, 'BaryS':BaryS, 'BaryV':BaryV,
+            'Surf':Surf, 'VolAng':VolAng, 'Vect':Vect, 'VIn':Vin,
+            'circ-C':circC, 'circ-r':circr, 'Clock':Clock}
+    return dout
 
 
 def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, ZLim='Def', Spline=True, Splprms=_def.TorSplprms, NP=_def.TorInsideNP, Plot=False, Test=True):

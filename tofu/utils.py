@@ -2,6 +2,7 @@
 # Built-in
 import os
 import collections
+from abc import ABCMeta, abstractmethod
 
 # Common
 import numpy as np
@@ -123,59 +124,136 @@ def get_todictfields(ld, ls):
     return out
 
 
+#############################################
+#       Miscellaneous
+#############################################
+
+def _set_arrayorder(obj, arrayorder='C'):
+    """ Set the memory order of all np.ndarrays in a tofu object """
+    msg = "Arg arrayorder must be in ['C','F']"
+    assert arrayorder in ['C','F'], msg
+
+    d = obj.get_dict(strip=-1)
+    account = {'Success':[], 'Failed':[]}
+    for k, v in d.items():
+        if type(v) is np.array and v.ndim>1:
+            try:
+                if arrayorder=='C':
+                    d[k] = np.ascontiguousarray(v)
+                else:
+                    d[k] = np.asfortranarray(v)
+                account['Success'].append(k)
+            except Exception as err:
+                warnings.warn(str(err))
+                account['Failed'].append(k)
+
+    return d, account
+
 
 #############################################
 #       Generic tofu object
 #############################################
 
+def _check_notNone(dd, lk):
+    for k, v in dd.items():
+        if k in lk:
+            assert v is not None, "{0} should not be None !".format(k)
+
+
+def _get_attrdictfromobj(obj, dd):
+    for k in dd.keys():
+        if dd[k] is None:
+            dd[k] = getattr(obj,k)
+    return dd
+
+
+
 
 class ToFuObject(object):
 
+    __metaclass__ = ABCMeta
     _dstrip = {'strip':None, 'allowed':None}
 
     def __init__(self, fromdict=None,
                  **kwdargs):
 
+        self._Done = False
         self._reset()
         if fromdict is not None:
             self.from_dict(fromdict)
         else:
-            dId = self._extract_dId(**kwdargs)
+            largsId = ToFuObject._get_largs_Id()
+            dId = ToFuObject._extract_kwdargs(kwdargs, largsId)
             self._set_Id(**dId)
-            self._init(**kwdargs)
+            self._init(kwdargs)
+            self._dstrip['allowed'] = self._strip(None)
+        self._Done = True
 
+    @abstractmethod
     def _reset(self):
         """ To be overloaded """
         pass
 
+    @abstractmethod
     def _init(self, **kwdargs):
         """ To be overladed """
         pass
 
-    def _extract_dId(self, **kwdargs):
-        lk = ['Id', 'Name', 'Type', 'Deg', 'Exp', 'Diag', 'shot', 'SaveName',
-              'SavePath', 'usr', 'dUSR', 'lObj', 'include']
-        d = {}
-        for k in lk:
-            if k in kwdargs.keys():
-                d[k] = kwdargs[k]
-        return d
+    @staticmethod
+    def _get_largs_Id():
+        largs = ['Id','Name','Type','Deg','Exp','Diag','shot',
+                 'SaveName','SavePath','usr','dUSR','lObj','include']
+        return largs
+
+    @staticmethod
+    def _extract_kwdargs(din, largs):
+        dout = {}
+        for k in largs:
+            if k in din.keys():
+                dout[k] = kwdargs[k]
+        return dout
+
+    def _get_fromItself(self, d):
+        for aa in Dict.keys():
+            if Dict[aa] is None:
+                try:
+                    Dict[aa] = getattr(obj,aa)
+                except:
+                    pass
+        return Dict
+
 
     def _set_Id(self, Id=None, Name=None, SaveName=None, SavePath=None,
                 Type=None, Deg=None, Exp=None, Diag=None, shot=None, usr=None,
                 dUSR=None, lObj=None, include=None):
         import tofu.pathfile as tfpf
+        lnotNone = self._check_inputs_Id()
         if Id is None:
+            if self._Done:
+                dId = _get_attrdictfromobj(self.Id, dId)
+            dId = self._checkformat_inputs_Id(**dId)
             Id = tfpf.ID2(Cls=self.__class__.name, Name=Name, SaveName=SaveName,
                           SavePath=SavePath, Type=Type, Deg=Deg, Exp=Exp, Diag=Diag,
                           shot=shot, usr=usr, dUSR=dUSR, lObj=lObj, include=include)
         else:
             assert isinstance(Id,tfpf.ID2)
+            dId = self._checkformat_inputs_Id(Id=Id)
         self._Id = Id
 
     @property
     def Id(self):
         return self._Id
+
+    def _set_arrayorder(self, arrayorder='C', verb=True):
+        d, account = _set_arrayorder(self, arrayorder=arrayorder)
+        if len(account['Failed'])>0:
+            msg = "All np.ndarrays were not set to {0} :\n".format(arrayorder)
+            msg += "Success : [{0}]".format(', '.join(account['Success']))
+            msg += "Failed :  [{0}]".format(', '.join(account['Failed']))
+            raise Exception(msg)
+        else:
+            self.from_dict(d)
+            self._dextra['arrayorder'] = arrayorder
 
     def strip(self, strip=0):
 

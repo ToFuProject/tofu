@@ -26,6 +26,12 @@ __all__ = ['Ves', 'Struct',
            'Rays','LOSCam1D','LOSCam2D']
 
 
+_arrayorder = 'C'
+_Clock = False
+_Type = 'Tor'
+
+
+
 
 """
 ###############################################################################
@@ -36,7 +42,7 @@ __all__ = ['Ves', 'Struct',
 
 
 
-class Ves(object):
+class Struct(object):
     """ A class defining a Linear or Toroidal vaccum vessel (i.e. a 2D polygon representing a cross-section and assumed to be linearly or toroidally invariant)
 
     A Ves object is mostly defined by a close 2D polygon, which can be understood as a poloidal cross-section in (R,Z) cylindrical coordinates if Type='Tor' (toroidal shape) or as a straight cross-section through a cylinder in (Y,Z) cartesian coordinates if Type='Lin' (linear shape).
@@ -75,25 +81,158 @@ class Ves(object):
 
     """
 
-    def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None, Exp=None, shot=0,
+    _dplot = {}
+
+    def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None,
+                 Exp=None, shot=0,
                  Sino_RefPt=None, Sino_NP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
-        self._Done = False
-        if fromdict is None:
-            tfpf._check_NotNone({'Clock':Clock,'arrayorder':arrayorder})
-            _Ves_check_inputs(Clock=Clock, arrayorder=arrayorder)
-            self._arrayorder = arrayorder
-            self._Clock = Clock
-            self._set_Id(Id, Type=Type, Exp=Exp, shot=shot, SavePath=SavePath,
-                         SavePath_Include=SavePath_Include)
-            self._set_geom(Poly, Lim=Lim, Clock=Clock, Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP)
-            self._set_arrayorder(arrayorder)
-        else:
-            self._fromdict(fromdict)
-        self._Done = True
 
+        kwdargs = locals()
+        del kwdargs['self']
+        super(Ves, self).__init__(**kwdargs)
+
+    def _reset(self):
+        self._Id = None
+        self._dgeom = dict.fromkeys(self._get_keys_dgeom())
+        self._dsino = dict.fromkeys(self._get_keys_dsino())
+        self._dextra = {'arrayorder':None}
+        self._dplot = {}
+
+    @staticmethod
+    def _checkformat_inputs_Id(Id=None, Exp=None, shot=None, Type=None,
+                               **kwdargs):
+        if Id is not None:
+            Exp, shot, Type = Id.Exp, Id.shot, Id.Type
+        assert type(Exp) is str
+        assert type(shot) is int
+        assert Type in ['Tor','Lin']
+        kwdargs.update({'Exp':Exp, 'shot':shot, 'Type':Type})
+        return kwdargs
+
+    @staticmethod
+    def _get_largs_dgeom(sino=True):
+        largs = ['Poly','Lim','Clock']
+        if sino:
+            lsino = Ves._get_largs_dsino()
+            largs += ['sino_{0}'.format(s) for s in lsino]
+        return largs
+
+    @staticmethod
+    def _get_largs_dsino():
+        largs = ['RefPt','nP']
+        return largs
+
+    @staticmethod
+    def _checkformat_inputs_dgeom(Poly=None, Lim=None,
+                                  Type='Tor', Clock=False):
+        assert type(Clock) is bool
+        assert Poly is not None and hasattr(Poly,'__iter__')
+        Poly = np.asarray(Poly).astype(float)
+        assert Poly.ndim==2 and 2 in Poly.shape
+        if Poly.shape[0]!=2:
+            Poly = Poly.T
+        assert Type in ['Tor','Lin']
+        assert Lim is None or hasattr(Lim,'__iter__')
+        if Lim is not None:
+            Lim = np.asarray(Lim).astype(float)
+            assert Lim.ndim in [1,2] and 2 in Lim.shape
+            if Lim.ndim==1:
+                assert Lim.size==2
+                Lim = Lim.reshape((2,1))
+            else:
+                if Lim.shape[0]!=2:
+                    Lim = Lim.T
+        if Type=='Lin':
+            assert Lim is not None
+        return Poly, Lim
+
+    @staticmethod
+    def _checkformat_inputs_dsino(RefPt=None, nP=None):
+        assert type(nP) is int and nP>0
+        assert RefPt is None or hasattr(RefPt,'__iter__')
+        if RefPt is None:
+            RefPt = self._dgeom['BaryS']
+        RefPt = np.asarray(RefPt,dtype=float).flatten()
+        return RefPt
+
+
+    @staticmethod
+    def _get_keys_dgeom():
+        lk = ['Poly','Lim','nLim','Multi','nP',
+              'P1Max','P1Min','P2Max','P2Min',
+              'BaryP','BaryL','BaryS','BaryV',
+              'Surf','VolAng','Vect','VIn',
+              'circ-C','circ-r','Clock']
+        return lk
+
+    @staticmethod
+    def _get_keys_dsino():
+        lk = ['RefPt','nP','EnvTheta','EnvMinMax']
+        return lk
+
+    def _init(self, Poly=None, Type=_Type, Lim=None,
+              Clock=_Clock, arrayorder=_arrayorder,
+              Sino_RefPt=None, Sino_NP=_def.TorNP, **kwdargs):
+        kwdargs = locals()
+        largsgeom = self._get_largs_dgeom(sino=True)
+        kwdgeom = self._extract_kwdargs(kwdargs, largsgeom)
+        self._set_dgeom(**kwdgeom)
+
+    def _set_dgeom(self, Poly, Lim=None, Clock=False,
+                   sino_RefPt=None, sino_NP=_def.TorNP):
+        if self._Done:
+            Out = utils._get_attrdictfromobj(self,
+                                             {'Lim':Lim, '_Clock':Clock})
+            Lim, Clock = Out['Lim'], Out['_Clock']
+        Poly, Lim = Struct._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim,
+                                                     Type=self.Id.Type,
+                                                     Clock=Clock)
+        dgeom = _comp._Struct_set_Poly(Poly, Lim=Lim,
+                                       arrayorder=self._dextra['arrayorder'],
+                                       Type=self.Id.Type, Clock=Clock)
+        self._dgeom = dgeom
+        self.set_sino(sino_RefPt, NP=sino_NP)
+
+    def _strip_dgeom(self, lkeep=['Poly','Lim','Clock']):
+        for k in self._dgeom.keys():
+            if not k in lkeep:
+                self._dgeom[k] = None
+
+    def _rebuild_dgeom(self, lkeep=['Poly','Lim','Clock']):
+        reset = False
+        for k in self._dgeom.keys():
+            if self._dgeom[k] is None and k not in lkeep:
+                reset = True
+                break
+        self._set_dgeom()
+
+
+    def set_dsino(self, RefPt=None, nP=_def.TorNP):
+        if self._Done:
+            RefPt, NP = self.dsino['RefPt'], self.dsino['nP']
+        RefPt = Struct._checkformat_inputs_dsino(RefPt=RefPt, nP=nP)
+        EnvTheta, EnvMinMax = _GG.Sino_ImpactEnv(RefPt, self.Poly,
+                                                 NP=nP, Test=False)
+        self._dsino = {'RefPt':RefPt, 'nP':nP,
+                       'EnvTheta':EnvTheta, 'EnvMinMax':EnvMinMax}
+
+    #########
+
+    def _strip(self, strip=0):
+        assert strip is None or type(strip) is int
+        if strip is None:
+            return [0,1,2]
+
+        if strip==0:
+
+        else:
+            for k in self._dsino.keys():
+                self._dsino[k] = None
+            if strip==2:
+                self._strip_dgeom()
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
@@ -115,98 +254,56 @@ class Ves(object):
             self._mobile = fd['mobile']
 
     @property
-    def Id(self):
-        """Return the tfpf.ID object of the vessel"""
-        return self._Id
-    @property
     def Type(self):
-        """Return the type of vessel"""
-        return self.Id.Type
+        """Return the type of structure """
+        return self._Id._Type
     @property
-    def geom(self):
-        return self._geom
+    def dgeom(self):
+        return self._dgeom
     @property
     def Poly(self):
-        """Return the polygon defining the vessel cross-section"""
-        return self.geom['Poly']
+        """Return the polygon defining the structure cross-section"""
+        return self._dgeom['Poly']
+    @property
+    def Poly_closed(self):
+        """ Returned the closed polygon """
+        return np.hstack(self._dgeom['Poly'],self._dgeom['Poly'][:,0:1])
     @property
     def Lim(self):
-        return self.geom['Lim']
+        return self._dgeom['Lim']
     @property
-    def sino(self):
-        return self._sino
+    def dsino(self):
+        return self._dsino
+    @property
+    def dplot(self):
+        return self._dplot
 
 
-    def _check_inputs(self, Id=None, Poly=None, Type=None, Lim=None,
-                      Sino_RefPt=None, Sino_NP=None, Clock=None,
-                      arrayorder=None, Exp=None, shot=None, SavePath=None):
-        _Ves_check_inputs(Id=Id, Poly=Poly, Type=Type, Lim=Lim,
-                          Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP, Clock=Clock,
-                          arrayorder=arrayorder, Exp=Exp, shot=shot,
-                          SavePath=SavePath, Cls=self.Id.Cls)
+    def isInside(self, pts, In='(X,Y,Z)'):
+        """ Return an array of booleans indicating whether each point lies
+        inside the Struct volume
 
-    def _set_Id(self, Val, Type=None, Exp=None, shot=None,
-                SavePath=os.path.abspath('./'),
-                SavePath_Include=None):
-        if self._Done:
-            Out = tfpf._get_FromItself(self.Id,{'Type':Type, 'Exp':Exp, 'shot':shot, 'SavePath':SavePath})
-            Type, Exp, shot, SavePath = Out['Type'], Out['Exp'], Out['shot'], Out['SavePath']
-        tfpf._check_NotNone({'Id':Val})
-        _Ves_check_inputs(Id=Val)
-        if type(Val) is str:
-            tfpf._check_NotNone({'Type':Type, 'Exp':Exp, 'shot':shot})
-            _Ves_check_inputs(Type=Type, Exp=Exp, shot=shot, SavePath=SavePath)
-            Val = tfpf.ID(self.__class__, Val, Type=Type, Exp=Exp, shot=shot,
-                          SavePath=SavePath, Include=SavePath_Include)
-        self._Id = Val
-
-    def _set_arrayorder(self, arrayorder):
-        tfpf._set_arrayorder(self, arrayorder)
-
-    def _set_geom(self, Poly, Lim=None, Clock=False, Sino_RefPt=None, Sino_NP=_def.TorNP):
-        if self._Done:
-            Out = tfpf._get_FromItself(self, {'Lim':Lim, '_Clock':Clock})
-            Lim, Clock = Out['Lim'], Out['_Clock']
-        tfpf._check_NotNone({'Poly':Poly, 'Clock':Clock})
-        self._check_inputs(Poly=Poly)
-        out = _comp._Ves_set_Poly(np.array(Poly), self._arrayorder, self.Type, Lim=Lim, Clock=Clock)
-        SS = ['Poly','NP','P1Max','P1Min','P2Max','P2Min','BaryP','BaryL',
-              'Surf','BaryS','Lim','VolLin','BaryV','Vect','VIn']
-        self._geom = dict([(SS[ii],out[ii]) for ii in range(0,len(SS))])
-        self._Multi = out[-1]
-        self.set_sino(Sino_RefPt, NP=Sino_NP)
-
-    def set_sino(self, RefPt=None, NP=_def.TorNP):
-        if self._Done:
-            RefPt, NP = self.sino['RefPt'], self.sino['NP']
-            tfpf._check_NotNone({'NP':NP})
-        if RefPt is None:
-            RefPt = self.geom['BaryS']
-        RefPt = np.asarray(RefPt).flatten()
-        EnvTheta, EnvMinMax = _GG.Sino_ImpactEnv(RefPt, self.Poly, NP=NP, Test=False)
-        self._sino = {'RefPt':RefPt, 'NP':NP, 'EnvTheta':EnvTheta, 'EnvMinMax':EnvMinMax}
-
-    def isInside(self, Pts, In='(X,Y,Z)'):
-        """ Return an array of booleans indicating whether each point lies inside the Ves volume
-
-        Tests for each point whether it lies inside the Ves object.
-        The points coordinates can be provided in 2D or 3D, just specify which coordinate system is provided using the 'In' parameter.
+        Tests for each point whether it lies inside the Struct object.
+        The points coordinates can be provided in 2D or 3D
+        You must specify which coordinate system is used with 'In' kwdarg.
         An array of boolean flags is returned.
 
         Parameters
         ----------
-        Pts :   np.ndarray
-            (2,N) or (3,N) array with the coordinates of the points to be tested
+        pts :   np.ndarray
+            (2,N) or (3,N) array, coordinates of the points to be tested
         In :    str
-            Flag indicating the coordinate system in which the points are provided, e.g '(X,Y,Z)' or '(R,Z)'
+            Flag indicating the coordinate system in which pts are provided
+            e.g.: '(X,Y,Z)' or '(R,Z)'
 
         Returns
         -------
         ind :   np.ndarray
-            Array of booleans of shape (N,), True if a point is inside the Ves volume
+            (N,) array of booleans, True if a point is inside the volume
 
         """
-        ind = _GG._Ves_isInside(Pts, self.Poly, Lim=self.geom['Lim'], VType=self.Type, In=In, Test=True)
+        ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.geom['Lim'],
+                                VType=self.Type, In=In, Test=True)
         return ind
 
 
@@ -539,7 +636,7 @@ def _Ves_check_fromdict(fd):
 ###############################################################################
 """
 
-class Struct(Ves):
+class StructOut(Struct):
 
     def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None,
                  Sino_RefPt=None, Sino_NP=_def.TorNP,
