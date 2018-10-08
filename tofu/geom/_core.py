@@ -42,7 +42,7 @@ _Type = 'Tor'
 
 
 
-class Struct(object):
+class Ves(utils.ToFuObject):
     """ A class defining a Linear or Toroidal vaccum vessel (i.e. a 2D polygon representing a cross-section and assumed to be linearly or toroidally invariant)
 
     A Ves object is mostly defined by a close 2D polygon, which can be understood as a poloidal cross-section in (R,Z) cylindrical coordinates if Type='Tor' (toroidal shape) or as a straight cross-section through a cylinder in (Y,Z) cartesian coordinates if Type='Lin' (linear shape).
@@ -81,11 +81,14 @@ class Struct(object):
 
     """
 
-    _dplot = {}
+    _def = {'Id':{},
+            'dgeom':{'Type':'Tor'},
+            'dsino':{},
+            'plot':{}}
 
-    def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None,
-                 Exp=None, shot=0,
-                 Sino_RefPt=None, Sino_NP=_def.TorNP,
+    def __init__(self, Poly=None, Type=None, Lim=None,
+                 Id=None, Name=None, Exp=None, shot=None,
+                 sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
@@ -98,11 +101,11 @@ class Struct(object):
         self._Id = None
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
-        self._dextra = {'arrayorder':None}
-        self._dplot = {}
+        self._dextra = {}
 
     @staticmethod
-    def _checkformat_inputs_Id(Id=None, Exp=None, shot=None, Type=None,
+    def _checkformat_inputs_Id(Id=None,
+                               Exp=None, shot=None, Type=None,
                                **kwdargs):
         if Id is not None:
             Exp, shot, Type = Id.Exp, Id.shot, Id.Type
@@ -114,7 +117,7 @@ class Struct(object):
 
     @staticmethod
     def _get_largs_dgeom(sino=True):
-        largs = ['Poly','Lim','Clock']
+        largs = ['Poly','Lim','Clock','arrayorder']
         if sino:
             lsino = Ves._get_largs_dsino()
             largs += ['sino_{0}'.format(s) for s in lsino]
@@ -127,8 +130,9 @@ class Struct(object):
 
     @staticmethod
     def _checkformat_inputs_dgeom(Poly=None, Lim=None,
-                                  Type='Tor', Clock=False):
+                                  Type='Tor', Clock=False, arrayorder='C'):
         assert type(Clock) is bool
+        assert type(arrayorder) is str and arrayorder in ['C','F']
         assert Poly is not None and hasattr(Poly,'__iter__')
         Poly = np.asarray(Poly).astype(float)
         assert Poly.ndim==2 and 2 in Poly.shape
@@ -149,8 +153,7 @@ class Struct(object):
             assert Lim is not None
         return Poly, Lim
 
-    @staticmethod
-    def _checkformat_inputs_dsino(RefPt=None, nP=None):
+    def _checkformat_inputs_dsino(self, RefPt=None, nP=None):
         assert type(nP) is int and nP>0
         assert RefPt is None or hasattr(RefPt,'__iter__')
         if RefPt is None:
@@ -165,7 +168,7 @@ class Struct(object):
               'P1Max','P1Min','P2Max','P2Min',
               'BaryP','BaryL','BaryS','BaryV',
               'Surf','VolAng','Vect','VIn',
-              'circ-C','circ-r','Clock']
+              'circ-C','circ-r','Clock','arrayorder']
         return lk
 
     @staticmethod
@@ -175,51 +178,51 @@ class Struct(object):
 
     def _init(self, Poly=None, Type=_Type, Lim=None,
               Clock=_Clock, arrayorder=_arrayorder,
-              Sino_RefPt=None, Sino_NP=_def.TorNP, **kwdargs):
-        kwdargs = locals()
+              sino_RefPt=None, sino_nP=_def.TorNP, **kwdargs):
         largsgeom = self._get_largs_dgeom(sino=True)
-        kwdgeom = self._extract_kwdargs(kwdargs, largsgeom)
+        kwdgeom = self._extract_kwdargs(locals(), largsgeom)
         self._set_dgeom(**kwdgeom)
 
-    def _set_dgeom(self, Poly, Lim=None, Clock=False,
-                   sino_RefPt=None, sino_NP=_def.TorNP):
-        if self._Done:
-            Out = utils._get_attrdictfromobj(self,
-                                             {'Lim':Lim, '_Clock':Clock})
-            Lim, Clock = Out['Lim'], Out['_Clock']
-        Poly, Lim = Struct._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim,
+    def _set_dgeom(self, Poly=None, Lim=None, Clock=False, arrayorder='C',
+                   sino_RefPt=None, sino_nP=_def.TorNP, sino=True):
+        Poly, Lim = Ves._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim,
                                                      Type=self.Id.Type,
                                                      Clock=Clock)
         dgeom = _comp._Struct_set_Poly(Poly, Lim=Lim,
-                                       arrayorder=self._dextra['arrayorder'],
+                                       arrayorder=arrayorder,
                                        Type=self.Id.Type, Clock=Clock)
+        dgeom['arrayorder'] = arrayorder
         self._dgeom = dgeom
-        self.set_sino(sino_RefPt, NP=sino_NP)
+        if sino:
+            self.set_dsino(sino_RefPt, nP=sino_nP)
 
-    def _strip_dgeom(self, lkeep=['Poly','Lim','Clock']):
-        for k in self._dgeom.keys():
-            if not k in lkeep:
-                self._dgeom[k] = None
+    def _strip_dgeom(self, lkeep=['Poly','Lim','Clock','arrayorder']):
+        utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
-    def _rebuild_dgeom(self, lkeep=['Poly','Lim','Clock']):
-        reset = False
-        for k in self._dgeom.keys():
-            if self._dgeom[k] is None and k not in lkeep:
-                reset = True
-                break
-        self._set_dgeom()
-
+    def _rebuild_dgeom(self, lkeep=['Poly','Lim','Clock','arrayorder']):
+        reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
+        if reset:
+            utils.ToFuObject(self._dgeom, lkeep=lkeep, dname='dgeom')
+            self._set_dgeom(self.Poly, Lim=self.Lim,
+                            Clock=self.dgeom['Clock'],
+                            arrayorder=self.dgeom['arrayorder'],
+                            calc=False)
 
     def set_dsino(self, RefPt=None, nP=_def.TorNP):
-        if self._Done:
-            RefPt, NP = self.dsino['RefPt'], self.dsino['nP']
-        RefPt = Struct._checkformat_inputs_dsino(RefPt=RefPt, nP=nP)
+        RefPt = self._checkformat_inputs_dsino(RefPt=RefPt, nP=nP)
         EnvTheta, EnvMinMax = _GG.Sino_ImpactEnv(RefPt, self.Poly,
                                                  NP=nP, Test=False)
         self._dsino = {'RefPt':RefPt, 'nP':nP,
                        'EnvTheta':EnvTheta, 'EnvMinMax':EnvMinMax}
 
-    #########
+    def _strip_dsino(self, lkeep=['RefPt','nP']):
+        utils.ToFuObject._strip_dict(self._dsino, lkeep=lkeep)
+
+    def _rebuild_dsino(self, lkeep=['RefPt','nP']):
+        reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
+        if reset:
+            utils.ToFuObject(self._dgeom, lkeep=lkeep, dname='dgeom')
+            self.set_dsino(RefPt=self.dsino['RefPt'], nP=self.dsino['nP'])
 
     def _strip(self, strip=0):
         assert strip is None or type(strip) is int
@@ -227,12 +230,21 @@ class Struct(object):
             return [0,1,2]
 
         if strip==0:
-
+            self._rebuild_dgeom()
+            self._rebuild_dsino()
+        elif strip==1:
+            self._strip_dsino()
+            self._rebuild_dgeom()
         else:
-            for k in self._dsino.keys():
-                self._dsino[k] = None
-            if strip==2:
-                self._strip_dgeom()
+            self._strip_dsino()
+            self._strip_dgeom()
+
+    def _get_dict(self):
+        dout = {'dgeom':{'dict':self.dgeom, 'lexcept':[], 'lgetrid':[{},None]},
+                'dsino':{'dict':self.dsino, 'lexcept':[], 'lgetrid':[{},None]}}
+        return dout
+
+    #########
 
     def _todict(self):
         out = {'Id':self.Id._todict(),
@@ -636,7 +648,7 @@ def _Ves_check_fromdict(fd):
 ###############################################################################
 """
 
-class StructOut(Struct):
+class Struct(Ves):
 
     def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None,
                  Sino_RefPt=None, Sino_NP=_def.TorNP,
