@@ -371,21 +371,17 @@ class Struct(utils.ToFuObject):
             self._strip_dmisc()
 
     def _get_dict(self):
-        dout = {# 'dId':{'dict':self.Id.get_dict()},
-                'dgeom':{'dict':self.dgeom, 'lexcept':None},
+        dout = {'dgeom':{'dict':self.dgeom, 'lexcept':None},
                 'dsino':{'dict':self.dsino, 'lexcept':None},
                 'dphys':{'dict':self.dphys, 'lexcept':None},
-                'dmisc':{'dict':self.dmisc, 'lexcept':None},
-                'dstrip':{'dict':self._dstrip, 'lexcept':None}}
+                'dmisc':{'dict':self.dmisc, 'lexcept':None}}
         return dout
 
     def _from_dict(self, fd):
-        self._reset()
         self._dgeom.update(**fd['dgeom'])
         self._dsino.update(**fd['dsino'])
         self._dphys.update(**fd['dphys'])
         self._dmisc.update(**fd['dmisc'])
-        self._dstrip.update(**fd['dstrip'])
 
 
     ###########
