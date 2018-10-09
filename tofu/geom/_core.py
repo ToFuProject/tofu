@@ -3,9 +3,13 @@ This module is the geometrical part of the ToFu general package
 It includes all functions and object classes necessary for tomography on Tokamaks
 """
 
+# Built-in
 import os
 import warnings
+
+# Common
 import numpy as np
+import matplotlib as mpl
 import datetime as dtm
 
 # ToFu-specific
@@ -22,7 +26,7 @@ except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
 
-__all__ = ['Ves', 'Struct',
+__all__ = ['Struct',
            'Rays','LOSCam1D','LOSCam2D']
 
 
@@ -42,7 +46,7 @@ _Type = 'Tor'
 
 
 
-class Ves(utils.ToFuObject):
+class Struct(utils.ToFuObject):
     """ A class defining a Linear or Toroidal vaccum vessel (i.e. a 2D polygon representing a cross-section and assumed to be linearly or toroidally invariant)
 
     A Ves object is mostly defined by a close 2D polygon, which can be understood as a poloidal cross-section in (R,Z) cylindrical coordinates if Type='Tor' (toroidal shape) or as a straight cross-section through a cylinder in (Y,Z) cartesian coordinates if Type='Lin' (linear shape).
@@ -81,10 +85,12 @@ class Ves(utils.ToFuObject):
 
     """
 
-    _def = {'Id':{},
-            'dgeom':{'Type':'Tor'},
-            'dsino':{},
-            'plot':{}}
+    # Fixed (class-wise) dictionary of default properties
+    _ddef = {'Id':{'shot':0},
+             'dgeom':{'Type':'Tor', 'Lim':[], 'arrayorder':'C'},
+             'dsino':{},
+             'dphys':{},
+             'dmisc':{'color':(0.8,0.8,0.8,0.8)}}
 
     def __init__(self, Poly=None, Type=None, Lim=None,
                  Id=None, Name=None, Exp=None, shot=None,
@@ -95,31 +101,41 @@ class Ves(utils.ToFuObject):
 
         kwdargs = locals()
         del kwdargs['self']
-        super(Ves, self).__init__(**kwdargs)
+        super(Struct, self).__init__(**kwdargs)
 
     def _reset(self):
         self._Id = None
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
-        self._dextra = {}
+        self._dphys = dict.fromkeys(self._get_keys_dphys())
+        self._dmisc = dict.fromkeys(self._get_keys_dmisc())
 
-    @staticmethod
-    def _checkformat_inputs_Id(Id=None,
+    def _checkformat_inputs_Id(self, Id=None, Name=None,
                                Exp=None, shot=None, Type=None,
                                **kwdargs):
         if Id is not None:
-            Exp, shot, Type = Id.Exp, Id.shot, Id.Type
+            assert isinstance(Id,tfpf.ID2)
+            Name, Exp, shot, Type = Id.Name, Id.Exp, Id.shot, Id.Type
+        assert type(Name) is str
         assert type(Exp) is str
+        if shot is None:
+            shot = self._ddef['Id']['shot']
         assert type(shot) is int
+        if Type is None:
+            Type = self._ddef['dgeom']['Type']
         assert Type in ['Tor','Lin']
-        kwdargs.update({'Exp':Exp, 'shot':shot, 'Type':Type})
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot, 'Type':Type})
         return kwdargs
+
+    ###########
+    # Get largs
+    ###########
 
     @staticmethod
     def _get_largs_dgeom(sino=True):
         largs = ['Poly','Lim','Clock','arrayorder']
         if sino:
-            lsino = Ves._get_largs_dsino()
+            lsino = Struct._get_largs_dsino()
             largs += ['sino_{0}'.format(s) for s in lsino]
         return largs
 
@@ -129,29 +145,49 @@ class Ves(utils.ToFuObject):
         return largs
 
     @staticmethod
+    def _get_largs_dphys():
+        largs = ['lSymbols']
+        return largs
+
+    @staticmethod
+    def _get_largs_dmisc():
+        largs = ['color']
+        return largs
+
+    ###########
+    # Get check and format inputs
+    ###########
+
+    @staticmethod
     def _checkformat_inputs_dgeom(Poly=None, Lim=None,
-                                  Type='Tor', Clock=False, arrayorder='C'):
+                                  Type=None, Clock=False, arrayorder=None):
         assert type(Clock) is bool
-        assert type(arrayorder) is str and arrayorder in ['C','F']
+        if arrayorder is None:
+            arrayorder = Struct._ddef['dgeom']['arrayorder']
+        assert arrayorder in ['C','F']
         assert Poly is not None and hasattr(Poly,'__iter__')
         Poly = np.asarray(Poly).astype(float)
         assert Poly.ndim==2 and 2 in Poly.shape
         if Poly.shape[0]!=2:
             Poly = Poly.T
+        if Type is None:
+            Type = Struct._ddef['dgeom']['Type']
         assert Type in ['Tor','Lin']
-        assert Lim is None or hasattr(Lim,'__iter__')
-        if Lim is not None:
-            Lim = np.asarray(Lim).astype(float)
-            assert Lim.ndim in [1,2] and 2 in Lim.shape
-            if Lim.ndim==1:
-                assert Lim.size==2
+        if Lim is None:
+            Lim = Struct._ddef['dgeom']['Lim']
+        assert hasattr(Lim,'__iter__')
+        Lim = np.asarray(Lim).astype(float)
+        assert Lim.ndim in [1,2] and (2 in Lim.shape or 0 in Lim.shape)
+        if Lim.ndim==1:
+            assert Lim.size in [0,2]
+            if Lim.size==2:
                 Lim = Lim.reshape((2,1))
-            else:
-                if Lim.shape[0]!=2:
-                    Lim = Lim.T
+        else:
+            if Lim.shape[0]!=2:
+                Lim = Lim.T
         if Type=='Lin':
             assert Lim is not None
-        return Poly, Lim
+        return Poly, Lim, Type, arrayorder
 
     def _checkformat_inputs_dsino(self, RefPt=None, nP=None):
         assert type(nP) is int and nP>0
@@ -161,6 +197,28 @@ class Ves(utils.ToFuObject):
         RefPt = np.asarray(RefPt,dtype=float).flatten()
         return RefPt
 
+    @staticmethod
+    def _checkformat_inputs_dphys(lSymbols=None):
+        if lSymbols is not None:
+            assert type(lSymbols) in [list,str]
+            if type(lSymbols) is list:
+                assert all([type(ss) is str for ss in lSymbols])
+            else:
+                lSymbols = [lSymbols]
+            lSymbols = np.asarray(lSymbols,dtype=str)
+        return lSymbols
+
+    @staticmethod
+    def _checkformat_inputs_dmisc(color=None):
+        if color is None:
+            color = Struct._ddef['dmisc']['color']
+        assert mpl.colors.is_color_like(color)
+        color = mpl.colors.to_rgba(color)
+        return color
+
+    ###########
+    # Get keys of dictionnaries
+    ###########
 
     @staticmethod
     def _get_keys_dgeom():
@@ -176,18 +234,43 @@ class Ves(utils.ToFuObject):
         lk = ['RefPt','nP','EnvTheta','EnvMinMax']
         return lk
 
+    @staticmethod
+    def _get_keys_dphys():
+        lk = ['lSymbols']
+        return lk
+
+    @staticmethod
+    def _get_keys_dmisc():
+        lk = ['color']
+        return lk
+
+    ###########
+    # _init
+    ###########
+
     def _init(self, Poly=None, Type=_Type, Lim=None,
               Clock=_Clock, arrayorder=_arrayorder,
               sino_RefPt=None, sino_nP=_def.TorNP, **kwdargs):
-        largsgeom = self._get_largs_dgeom(sino=True)
-        kwdgeom = self._extract_kwdargs(locals(), largsgeom)
+        largs = self._get_largs_dgeom(sino=True)
+        kwdgeom = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dphys()
+        kwdphys = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dmisc()
+        kwdmisc = self._extract_kwdargs(locals(), largs)
         self._set_dgeom(**kwdgeom)
+        self.set_dphys(**kwdphys)
+        self._set_dmisc(**kwdmisc)
+        self._dstrip['strip'] = 0
+
+    ###########
+    # set dictionaries
+    ###########
 
     def _set_dgeom(self, Poly=None, Lim=None, Clock=False, arrayorder='C',
                    sino_RefPt=None, sino_nP=_def.TorNP, sino=True):
-        Poly, Lim = Ves._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim,
-                                                     Type=self.Id.Type,
-                                                     Clock=Clock)
+        out = self._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim,
+                                             Type=self.Id.Type, Clock=Clock)
+        Poly, Lim, Type, arrayorder = out
         dgeom = _comp._Struct_set_Poly(Poly, Lim=Lim,
                                        arrayorder=arrayorder,
                                        Type=self.Id.Type, Clock=Clock)
@@ -196,18 +279,6 @@ class Ves(utils.ToFuObject):
         if sino:
             self.set_dsino(sino_RefPt, nP=sino_nP)
 
-    def _strip_dgeom(self, lkeep=['Poly','Lim','Clock','arrayorder']):
-        utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
-
-    def _rebuild_dgeom(self, lkeep=['Poly','Lim','Clock','arrayorder']):
-        reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
-        if reset:
-            utils.ToFuObject(self._dgeom, lkeep=lkeep, dname='dgeom')
-            self._set_dgeom(self.Poly, Lim=self.Lim,
-                            Clock=self.dgeom['Clock'],
-                            arrayorder=self.dgeom['arrayorder'],
-                            calc=False)
-
     def set_dsino(self, RefPt=None, nP=_def.TorNP):
         RefPt = self._checkformat_inputs_dsino(RefPt=RefPt, nP=nP)
         EnvTheta, EnvMinMax = _GG.Sino_ImpactEnv(RefPt, self.Poly,
@@ -215,14 +286,68 @@ class Ves(utils.ToFuObject):
         self._dsino = {'RefPt':RefPt, 'nP':nP,
                        'EnvTheta':EnvTheta, 'EnvMinMax':EnvMinMax}
 
+    def set_dphys(self, lSymbols=None):
+        lSymbols = self._checkformat_inputs_dphys(lSymbols)
+        self._dphys['lSymbols'] = lSymbols
+
+    def _set_dmisc(self, color=None):
+        color = self._checkformat_inputs_dmisc(color=color)
+        self._dmisc['color'] = color
+
+    ###########
+    # strip dictionaries
+    ###########
+
+    def _strip_dgeom(self, lkeep=['Poly','Lim','Clock','arrayorder']):
+        utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
+
     def _strip_dsino(self, lkeep=['RefPt','nP']):
         utils.ToFuObject._strip_dict(self._dsino, lkeep=lkeep)
 
-    def _rebuild_dsino(self, lkeep=['RefPt','nP']):
+    def _strip_dphys(self, lkeep=['lSymbols']):
+        utils.ToFuObject._strip_dict(self._dphys, lkeep=lkeep)
+
+    def _strip_dmisc(self, lkeep=['color']):
+        utils.ToFuObject._strip_dict(self._dmisc, lkeep=lkeep)
+
+    ###########
+    # rebuild dictionaries
+    ###########
+
+    def _rebuild_dgeom(self, lkeep=['Poly','Lim','Clock','arrayorder']):
         reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
         if reset:
-            utils.ToFuObject(self._dgeom, lkeep=lkeep, dname='dgeom')
+            utils.ToFuObject._check_Fields4Rebuild(self._dgeom,
+                                                   lkeep=lkeep, dname='dgeom')
+            self._set_dgeom(self.Poly, Lim=self.Lim,
+                            Clock=self.dgeom['Clock'],
+                            arrayorder=self.dgeom['arrayorder'],
+                            sino=False)
+
+    def _rebuild_dsino(self, lkeep=['RefPt','nP']):
+        reset = utils.ToFuObject._test_Rebuild(self._dsino, lkeep=lkeep)
+        if reset:
+            utils.ToFuObject._check_Fields4Rebuild(self._dsino,
+                                                   lkeep=lkeep, dname='dsino')
             self.set_dsino(RefPt=self.dsino['RefPt'], nP=self.dsino['nP'])
+
+    def _rebuild_dphys(self, lkeep=['lSymbols']):
+        reset = utils.ToFuObject._test_Rebuild(self._dphys, lkeep=lkeep)
+        if reset:
+            utils.ToFuObject._check_Fields4Rebuild(self._dphys,
+                                                   lkeep=lkeep, dname='dphys')
+            self.set_dphys(lSymbols=self.dphys['lSymbols'])
+
+    def _rebuild_dmisc(self, lkeep=['color']):
+        reset = utils.ToFuObject._test_Rebuild(self._dmisc, lkeep=lkeep)
+        if reset:
+            utils.ToFuObject._check_Fields4Rebuild(self._dmisc,
+                                                   lkeep=lkeep, dname='dmisc')
+            self._set_dmisc(color=self.dmisc['color'])
+
+    ###########
+    # _strip and get/from dict
+    ###########
 
     def _strip(self, strip=0):
         assert strip is None or type(strip) is int
@@ -232,38 +357,40 @@ class Ves(utils.ToFuObject):
         if strip==0:
             self._rebuild_dgeom()
             self._rebuild_dsino()
+            self._rebuild_dphys()
+            self._rebuild_dmisc()
         elif strip==1:
             self._strip_dsino()
             self._rebuild_dgeom()
+            self._rebuild_dphys()
+            self._rebuild_dmisc()
         else:
             self._strip_dsino()
             self._strip_dgeom()
+            self._strip_dphys()
+            self._strip_dmisc()
 
     def _get_dict(self):
-        dout = {'dgeom':{'dict':self.dgeom, 'lexcept':[], 'lgetrid':[{},None]},
-                'dsino':{'dict':self.dsino, 'lexcept':[], 'lgetrid':[{},None]}}
+        dout = {# 'dId':{'dict':self.Id.get_dict()},
+                'dgeom':{'dict':self.dgeom, 'lexcept':None},
+                'dsino':{'dict':self.dsino, 'lexcept':None},
+                'dphys':{'dict':self.dphys, 'lexcept':None},
+                'dmisc':{'dict':self.dmisc, 'lexcept':None},
+                'dstrip':{'dict':self._dstrip, 'lexcept':None}}
         return dout
 
-    #########
+    def _from_dict(self, fd):
+        self._reset()
+        self._dgeom.update(**fd['dgeom'])
+        self._dsino.update(**fd['dsino'])
+        self._dphys.update(**fd['dphys'])
+        self._dmisc.update(**fd['dmisc'])
+        self._dstrip.update(**fd['dstrip'])
 
-    def _todict(self):
-        out = {'Id':self.Id._todict(),
-               'Multi':self._Multi,
-               'geom':self.geom, 'sino':self.sino,
-               'arrayorder':self._arrayorder}
-        if self._Id.Cls=='Struct':
-            out['mobile'] = self._mobile
-        return out
 
-    def _fromdict(self, fd):
-        _Ves_check_fromdict(fd)
-        self._Id = tfpf.ID(fromdict=fd['Id'])
-        self._geom = fd['geom']
-        self._Multi = fd['Multi']
-        self._sino = fd['sino']
-        self._set_arrayorder(fd['arrayorder'])
-        if self._Id.Cls=='Struct':
-            self._mobile = fd['mobile']
+    ###########
+    # Properties
+    ###########
 
     @property
     def Type(self):
@@ -287,9 +414,22 @@ class Ves(utils.ToFuObject):
     def dsino(self):
         return self._dsino
     @property
-    def dplot(self):
-        return self._dplot
+    def dphys(self):
+        return self._dphys
+    @property
+    def dmisc(self):
+        return self._dmisc
+    @property
+    def color(self):
+        return self._dmisc['color']
+    @color.setter
+    def color(self, val):
+        self._dmisc['color'] = mpl.colors.to_rgba(val)
 
+
+    ###########
+    # public methods
+    ###########
 
     def isInside(self, pts, In='(X,Y,Z)'):
         """ Return an array of booleans indicating whether each point lies
@@ -556,29 +696,6 @@ class Ves(utils.ToFuObject):
             ax.figure.canvas.draw()
         return ax
 
-    def save(self, SaveName=None, Path=None,
-             Mode='npz', compressed=False, Print=True):
-        """ Save the object in folder Name, under SaveName
-
-        Parameters
-        ----------
-        SaveName :  None / str
-            The name to be used for the saved file
-            If None (recommended) uses self.Id.SaveName
-        Path :      None / str
-            Path specifying where to save the file
-            If None (recommended) uses self.Id.SavePath
-        Mode :      str
-            Flag specifying how to save the object:
-                'npz': as a numpy array file (recommended)
-        compressed :    bool
-            Flag, used when Mode='npz', indicates whether to use:
-                - False : np.savez
-                - True :  np.savez_compressed (slower but smaller files)
-
-        """
-        tfpf.Save_Generic(self, SaveName=SaveName, Path=Path,
-                          Mode=Mode, compressed=compressed, Print=Print)
 
 
 
@@ -648,7 +765,7 @@ def _Ves_check_fromdict(fd):
 ###############################################################################
 """
 
-class Struct(Ves):
+class Structbis(Struct):
 
     def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None,
                  Sino_RefPt=None, Sino_NP=_def.TorNP,
