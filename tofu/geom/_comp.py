@@ -50,7 +50,7 @@ def _Struct_set_Poly(Poly, Lim=None, arrayorder='C',
     fPfmt = np.ascontiguousarray if arrayorder=='C' else np.asfortranarray
 
     # Get all remarkable points and moments
-    NP = Poly.shape[1]
+    NP = Poly.shape[1]-1
     P1Max = Poly[:,np.argmax(Poly[0,:])]
     P1Min = Poly[:,np.argmin(Poly[0,:])]
     P2Max = Poly[:,np.argmax(Poly[1,:])]
@@ -62,7 +62,7 @@ def _Struct_set_Poly(Poly, Lim=None, arrayorder='C',
     BaryS = np.array(TorP.center()).flatten()
 
     # Get lim-related indicators
-    nLim = 0 if Lim is None else Lim.shape
+    nLim = int(Lim.size/2)
     Multi = nLim>1
 
     # Get Tor-related quantities

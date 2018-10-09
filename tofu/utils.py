@@ -11,9 +11,6 @@ import matplotlib.pyplot as plt
 
 _sep = '_'
 _dict_lexcept_key = []
-_dict_lexcept_val = [{},None]
-
-
 
 ###############################################
 #           File searching
@@ -46,8 +43,8 @@ def FindFilePattern(pattern, path, nocc=1, ntab=0):
 
 def get_pathfileext(path=None, name=None,
                     path_def='./', name_def='dummy', mode='npz'):
-    modeok = ['npz']
-    modeokstr = '['+', '.join(modeok)+']'
+    modeok = ['npz','mat']
+    modeokstr = "["+", ".join(modeok)+"]"
 
     if name is not None:
         C = type(name) is str and not (name[-4]=='.')
@@ -71,21 +68,24 @@ def get_pathfileext(path=None, name=None,
 
 
 def flatten_dict(d, parent_key='', sep=_sep,
-                 lexcept_key=None,
-                 lexcept_val=None):
-    if lexcept_key is None:
-        lexcept_key = _dict_lexcept_key,
-    if lexcept_val is None:
-        lexcept_val = _dict_lexcept_val,
+                 lexcept_key=_dict_lexcept_key):
 
     items = []
-    for k, v in d.items():
-        if not (k in lexcept_key or v in lexcept_val):
+    if lexcept_key is None:
+        for k, v in d.items():
             new_key = parent_key + sep + k if parent_key else k
             if isinstance(v, collections.MutableMapping):
                 items.extend(flatten_dict(v, new_key, sep=sep).items())
             else:
                 items.append((new_key, v))
+    else:
+        for k, v in d.items():
+            if k not in lexcept_key:
+                new_key = parent_key + sep + k if parent_key else k
+                if isinstance(v, collections.MutableMapping):
+                    items.extend(flatten_dict(v, new_key, sep=sep).items())
+                else:
+                    items.append((new_key, v))
     return dict(items)
 
 def _reshape_dict(ss, vv, dinit={}, sep=_sep):
@@ -183,10 +183,10 @@ class ToFuObject(object):
                  **kwdargs):
 
         self._Done = False
-        self._reset()
         if fromdict is not None:
             self.from_dict(fromdict)
         else:
+            self._reset()
             largsId = ToFuObject._get_largs_Id()
             dId = ToFuObject._extract_kwdargs(kwdargs, largsId)
             self._set_Id(**dId)
@@ -233,15 +233,12 @@ class ToFuObject(object):
     def _set_Id(self, Id=None, Name=None, SaveName=None, SavePath=None,
                 Type=None, Deg=None, Exp=None, Diag=None, shot=None, usr=None,
                 dUSR=None, lObj=None, include=None):
-        import tofu.pathfile as tfpf
-        if Id is None or type(Id) is str:
-            dId = locals()
-            del dId['self'], dId['Id'], dId['tfpf']
-            dId = self._checkformat_inputs_Id(**dId)
+        dId = locals()
+        del dId['self']
+        dId = self._checkformat_inputs_Id(**dId)
+        if Id is None:
+            import tofu.pathfile as tfpf
             Id = tfpf.ID2(Cls=self.__class__, **dId)
-        else:
-            assert isinstance(Id,tfpf.ID2)
-            dId = self._checkformat_inputs_Id(Id=Id)
         self._Id = Id
 
     @property
@@ -268,8 +265,8 @@ class ToFuObject(object):
     @staticmethod
     def _test_Rebuild(dd, lkeep=[]):
         reset = False
-        for k in self._dgeom.keys():
-            if self._dgeom[k] is None and k not in lkeep:
+        for k in dd.keys():
+            if dd[k] is None and k not in lkeep:
                 reset = True
                 break
         return reset
@@ -277,7 +274,7 @@ class ToFuObject(object):
     @staticmethod
     def _check_Fields4Rebuild(dd, lkeep=[], dname=''):
         for kk in lkeep:
-            if dd[kk] is None:
+            if kk not in dd.keys() or dd[kk] is None:
                 msg = "Rebuilding {0}:\n".format(dname)
                 msg += "Field '{0}' is missing !".format(kk)
                 raise Exception(msg)
@@ -297,7 +294,9 @@ class ToFuObject(object):
         self._dstrip['strip'] = strip
 
 
-    def get_dict(self, strip=0, sep=_sep):
+    def get_dict(self, strip=None, sep=_sep):
+        if strip is None:
+            strip = self._dstrip['strip']
         if self._dstrip['strip'] != strip:
             self.strip(strip)
 
@@ -308,43 +307,51 @@ class ToFuObject(object):
 
         out = {}
         for k, v in dd.items():
-            lexcept = v.get('lexcept_key', _dict_lexcept_key)
-            lgetrid = v.get('lexcept_val', _dict_lexcept_val)
+            lexcept_key = v.get('lexcept_key', None)
             d = flatten_dict(v['dict'],
                             parent_key='', sep=sep,
-                            lexcept=lexcept, lgetrid=lgetrid)
+                            lexcept_key=lexcept_key)
             out[k] = d
+        out = flatten_dict(out, parent_key='', sep=sep)
         return out
 
-    def from_dict(self, fd, sep=_sep, strip=0):
+    def from_dict(self, fd, sep=_sep, strip=None):
 
+        self._reset()
         dd = reshape_dict(fd)
 
         # ---------------------
         # Call class-specific
-        self._from_dict(fd)
+        self._from_dict(dd)
         # ---------------------
 
+        if strip is None:
+            strip = self._dstrip['strip']
         if self._dstrip['strip'] != strip:
             self.strip(strip, verb=verb)
 
-    def get_size(self, method='nbytes'):
+    def copy(self, strip=None):
+        dd = self.get_dict(strip=strip)
+        obj = self.__class__(dd)
+        return obj
+
+    def get_nbytes(self, method='nbytes'):
         dd = self.get_dict()
         dsize = dd.fromkeys(dd.keys(),0)
         total = 0
         if method=='nbytes':
             for k, v in dd.items():
-                dsize[kk] = np.asarray(v).nbytes
-                total += size[kk]
+                dsize[k] = np.asarray(v).nbytes
+                total += dsize[k]
         elif method=='sizeof':
+            import sys
             for k, v in dd.items():
-                dsize[kk] = np.asarray(v).__sizeof__
-                total += size[kk]
+                dsize[k] = sys.getsizeof(np.asarray(v))
+                total += dsize[k]
         return total, dsize
 
 
-    def __equal__(self, obj, strip=-1,
-                  detail=True, verb=True):
+    def __eq__(self, obj, detail=True, verb=True):
         msg = "The have different "
         # Check class
         eq = self.__class__==obj.__class__
@@ -355,8 +362,8 @@ class ToFuObject(object):
 
         # Check keys
         if eq:
-            d0 = self.get_dict(strip=strip)
-            d1 = obj.get_dict(strip=strip)
+            d0 = self.get_dict(strip=None)
+            d1 = obj.get_dict(strip=None)
             lkd0 = sorted(list(d0.keys()))
             lkd1 = sorted(list(d1.keys()))
             eq = lkd0==lkd1
@@ -368,24 +375,45 @@ class ToFuObject(object):
         # Check values
         if eq:
             msg += "dict values :\n"
-            for k in lkdo:
-                eq = d0[k]==d1[k]
-                if not eq:
-                    msg += k+" :\n"
-                    msg += "    "+str(d0[k])+"\n"
-                    msg += "    "+str(d1[k])
+            lsimple = [str,bool,int,float,
+                       np.int64,np.float64,
+                       tuple, list]
+            for k in lkd0:
+                eqk = type(d0[k]) == type(d1[k])
+                if not eqk:
+                    eq = False
+                    msg += k+" types :\n"
+                    msg += "    "+str(type(d0[k]))+"\n"
+                    msg += "    "+str(type(d1[k]))+"\n"
                     if not detail:
                         break
+                if eqk:
+                    if d0[k] is None or type(d0[k]) in lsimple:
+                        eqk = d0[k]==d1[k]
+                    elif type(d0[k]) is np.ndarray:
+                        eqk = np.allclose(d0[k],d1[k],equal_nan=True)
+                    else:
+                        msg = "How to handle :\n"
+                        msg += "    {0} is a {1}".format(k,str(type(d0[k])))
+                        raise Exception(msg)
+                    if not eqk:
+                        eq = False
+                        msg += k+" :\n"
+                        msg += "    "+str(d0[k])+"\n"
+                        msg += "    "+str(d1[k])+"\n"
+                        if not detail:
+                            break
 
-        if eq:
-            msg = "All ok"
-        if verb:
+        if not eq and verb:
             print(msg)
-        return eq, msg
+        return eq
+
+    def __neq__(self, obj, detail=True, verb=True):
+        return not self.__eq__(obj, detail=detail, verb=verb)
 
 
     def save(self, path=None, name=None,
-             strip=0, sep=_sep, mode='npz',
+             strip=None, sep=_sep, mode='npz',
              compressed=False, verb=True):
         """ Save the tofu object in folder path, under name
 
@@ -415,6 +443,7 @@ class ToFuObject(object):
         verb :      bool
             Flag indicating whether to print a message saying what was saved
         """
+        import tofu.pathfile as tfpf
 
         # Check path, name, mode
         path, name, mode = get_pathfileext(path=path, name=name,

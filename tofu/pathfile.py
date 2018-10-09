@@ -14,6 +14,7 @@ import warnings
 # Common
 import numpy as np
 import datetime as dtm
+import scipy.io as scpio
 
 # ToFu specific
 from tofu import __version__
@@ -498,7 +499,7 @@ class ID2(object):
         else:
             self._fromdict(fromdict)
 
-    def _fromdict(self, fd):
+    def from_dict(self, fd):
         self._check_inputs(fromdict=fd)
         # Set fixed attributes
         self._Mod, self._Cls, self._Type = fd['Mod'], fd['Cls'], fd['Type']
@@ -516,7 +517,7 @@ class ID2(object):
             Str += "current  : %s"%__version__
             warnings.warn(Str)
 
-    def _todict(self):
+    def get_dict(self):
         d = {'Mod':self._Mod, 'Cls':self.Cls, 'Type':self.Type,
              'Name':self.Name, 'SaveName':self.SaveName,
              'SavePath':self.SavePath, 'Exp':self.Exp, 'Diag':self.Diag,
@@ -1240,13 +1241,14 @@ def Save_Generic2(dd, path, name, mode, compressed=False):
     """
     assert isinstance(dd,dict), "Arg dd must be a dict !"
     assert type(compressed) is bool, "Arg compressed must be a bool !"
+    assert mode in ['npz','mat']
 
     pathfileext = os.path.join(path,name+'.'+mode)
 
-    if mode=='.npz':
+    if mode=='npz':
         _save_np2(dd, pathfileext, compressed=compressed)
     elif mode=='mat':
-        _save_mat(dd, pathfileext)
+        _save_mat(dd, pathfileext, compressed=compressed)
 
     return pathfileext
 
@@ -1473,6 +1475,19 @@ def _save_np2(dd, pathfileext, compressed=False):
             dd[k] = np.asarray(dd[k])
     func(pathfileext, **dd)
 
+def _save_mat(dd, pathfileext, compressed=False):
+    # Create intermediate dict to make sure to get rid of None values
+    dmat = {}
+    for k in dd.keys():
+        if type(dd[k]) in [int,float,np.int64,np.float64]:
+            dmat[k] = np.asarray([dd[k]])
+        elif type(dd[k]) in [tuple,list]:
+            dmat[k] = np.asarray(dd[k])
+        elif isinstance(dd[k],str):
+            dmat[k] = np.asarray([dd[k]])
+        elif type(dd[k]) is np.ndarray:
+            dmat[k] = dd[k]
+    scpio.savemat(pathfileext, dmat, do_compression=compressed, format='5')
 
 
 ###########################
