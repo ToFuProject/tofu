@@ -1,3 +1,4 @@
+# package et recettes en depots differents
 package:
   name: 'tofu'
   version: {{ environ['VERSION'] }}
@@ -16,6 +17,7 @@ build:
     - PCK
 
 requirements:
+  # build: necessaire pour build.sh
   build:
     - python
     - setuptools
@@ -28,6 +30,7 @@ requirements:
     - pygments
     - {{ environ['PCK'] }}
 
+  # necessaire pour tourner
   run:
     - python
     - setuptools
