@@ -3,6 +3,7 @@
 import os
 import collections
 from abc import ABCMeta, abstractmethod
+import getpass
 
 # Common
 import numpy as np
@@ -194,6 +195,7 @@ class ToFuObjectBase(object):
             self._dstrip['allowed'] = self._strip(None)
         self._Done = True
 
+
     @abstractmethod
     def _reset(self):
         """ To be overloaded """
@@ -282,7 +284,7 @@ class ToFuObjectBase(object):
         # Call class-specific
         dd = self._get_dict()
         # ---------------------
-        self._get_dId()
+        dd['dId'] = self._get_dId()
         dd['dstrip'] = {'dict':self._dstrip, 'lexcept':None}
 
         out = {}
@@ -298,7 +300,7 @@ class ToFuObjectBase(object):
     @abstractmethod
     def _get_dId(self):
         """ To be overloaded """
-        pass
+        return {'dict':{}}
 
     def from_dict(self, fd, sep=_sep, strip=None):
 
@@ -339,7 +341,7 @@ class ToFuObjectBase(object):
 
 
     def __eq__(self, obj, detail=True, verb=True):
-        msg = "The have different "
+        msg = "The 2 objects have different "
         # Check class
         eq = self.__class__==obj.__class__
         if not eq:
@@ -351,13 +353,13 @@ class ToFuObjectBase(object):
         if eq:
             d0 = self.get_dict(strip=None)
             d1 = obj.get_dict(strip=None)
-            lkd0 = sorted(list(d0.keys()))
-            lkd1 = sorted(list(d1.keys()))
-            eq = lkd0==lkd1
+            lk0 = sorted(list(d0.keys()))
+            lk1 = sorted(list(d1.keys()))
+            eq = lk0==lk1
             if not eq:
                 msg += "dict keys :\n"
-                msg += sorted(', '.join(lkd0))+"\n"
-                msg += sorted(', '.join(lkd1))
+                msg += '    ['+', '.join([k for k in lk0 if k not in lk1])+']\n'
+                msg += '    ['+', '.join([k for k in lk1 if k not in lk0])+']'
 
         # Check values
         if eq:
@@ -365,7 +367,7 @@ class ToFuObjectBase(object):
             lsimple = [str,bool,int,float,
                        np.int64,np.float64,
                        tuple, list]
-            for k in lkd0:
+            for k in lk0:
                 eqk = type(d0[k]) == type(d1[k])
                 if not eqk:
                     eq = False
@@ -419,6 +421,10 @@ class ToFuObject(ToFuObjectBase):
 
     def _get_dId(self):
         return {'dict':self.Id.get_dict()}
+
+    def _reset(self):
+        if hasattr(self,'_Id'):
+            self._Id._reset()
 
     def save(self, path=None, name=None,
              strip=None, sep=_sep, mode='npz',
@@ -521,6 +527,11 @@ class ID(ToFuObjectBase):
 
     """
 
+    _dModes = {'geom':'TFG', 'data':'TFD'}
+    _defInclude = ['Mod','Cls','Type','Exp','Deg','Diag','Name','shot']
+    _dPref = {'Exp':'Exp','Diag':'Dg','shot':'sh','Deg':'Deg',
+              'version':'Vers','usr':'U'}
+
     def __init__(self, Cls=None, Name=None, Type=None, Deg=None,
                  Exp=None, Diag=None, shot=None, SaveName=None,
                  SavePath=None, usr=None, dUSR=None, lObj=None,
@@ -565,7 +576,7 @@ class ID(ToFuObjectBase):
         assert shot is None or type(shot) is int and shot>=0
         assert Deg is None or type(Deg) is int and Deg>=0
         assert Cls is not None
-        assert issubclass(Cls, object)
+        assert issubclass(Cls, ToFuObject)
         assert include is None or type(include) is list
         dout = locals()
         del dout['ls']
@@ -618,9 +629,8 @@ class ID(ToFuObjectBase):
         self._dall['Cls'] = Cls
 
         # Set variable attributes
-        self.set_Name(Name, SaveName=SaveName, Include=include)
+        self.set_Name(Name, SaveName=SaveName, include=include)
 
-        self._lObj = {}
         self.set_lObj(lObj)
         self.set_dUSR(dUSR)
 
@@ -664,6 +674,9 @@ class ID(ToFuObjectBase):
     def dall(self):
         return self._dall
     @property
+    def Mod(self):
+        return self._dall['Mod']
+    @property
     def Cls(self):
         return self._dall['Cls']
     @property
@@ -681,6 +694,9 @@ class ID(ToFuObjectBase):
     @property
     def shot(self):
         return self._dall['shot']
+    @property
+    def usr(self):
+        return self._dall['usr']
     @property
     def Type(self):
         return self._dall['Type']
@@ -722,7 +738,7 @@ class ID(ToFuObjectBase):
     @staticmethod
     def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
                       Exp=None, Diag=None, shot=None, version=None, usr=None,
-                      Include=None):
+                      include=None):
         """ Return a default name for saving the object
 
         Includes key info for fast identification of the object from file name
@@ -730,30 +746,32 @@ class ID(ToFuObjectBase):
         It is recommended to use this default name.
 
         """
-        Modstr = dModes[Mod] if Mod is not None else None
-        Include = defInclude if Include is None else Include
-        if Cls is not None and Type is not None and 'Type' in Include:
+        Modstr = ID._dModes[Mod] if Mod is not None else None
+        include = ID._defInclude if include is None else include
+        if Cls is not None and Type is not None and 'Type' in include:
             Clsstr = Cls+Type
         else:
             Clsstr = Cls
         Dict = {'Mod':Modstr, 'Cls':Clsstr, 'Name':Name}
-        for ii in Include:
+        for ii in include:
             if not ii in ['Mod','Cls','Type','Name']:
                 Dict[ii] = None
             if ii=='Deg' and Deg is not None:
-                Dict[ii] = dPref[ii]+'{0:02.0f}'.format(Deg)
+                Dict[ii] = ID._dPref[ii]+'{0:02.0f}'.format(Deg)
             elif ii=='shot' and shot is not None:
-                Dict[ii] = dPref[ii]+'{0:05.0f}'.format(shot)
-            elif not ii in ['Mod','Cls','Type','Name'] and eval(ii+' is not None'):
-                Dict[ii] = dPref[ii]+eval(ii)
+                Dict[ii] = ID._dPref[ii]+'{0:05.0f}'.format(shot)
+            elif not (ii in ['Mod','Cls','Type','Name'] or eval(ii+' is None')):
+                Dict[ii] = ID._dPref[ii]+eval(ii)
         if 'Data' in Cls:
-            Order = ['Mod','Cls','Exp','Deg','Diag','shot','Name','version','usr']
+            Order = ['Mod','Cls','Exp','Deg','Diag','shot',
+                     'Name','version','usr']
         else:
-            Order = ['Mod','Cls','Exp','Deg','Diag','Name','shot','version','usr']
+            Order = ['Mod','Cls','Exp','Deg','Diag','Name',
+                     'shot','version','usr']
 
         SVN = ""
         for ii in range(0,len(Order)):
-            if Order[ii] in Include and Dict[Order[ii]] is not None:
+            if Order[ii] in include and Dict[Order[ii]] is not None:
                 SVN += '_' + Dict[Order[ii]]
         SVN = SVN.replace('__','_')
         if SVN[0]=='_':
@@ -766,7 +784,7 @@ class ID(ToFuObjectBase):
 
 
     def set_Name(self, Name, SaveName=None,
-                 Include=None,
+                 include=None,
                  ForceUpdate=False):
         """ Set the Name of the instance, automatically updating the SaveName
 
@@ -780,30 +798,30 @@ class ID(ToFuObjectBase):
             Name of the instance, without ' ' or '_' (automatically removed)
         SaveName :  None / str
             If provided, overrides the default name for saving (not recommended)
-        Include:    list
+        include:    list
             Controls how te default SaveName is generated
             Each element of the list is a key str indicating whether an element
             should be present in the SaveName
 
         """
         self._dall['Name'] = Name
-        self.set_SaveName(SaveName=SaveName, Include=Include,
+        self.set_SaveName(SaveName=SaveName, include=include,
                           ForceUpdate=ForceUpdate)
 
     def set_SaveName(self,SaveName=None,
-                     Include=None,
+                     include=None,
                      ForceUpdate=False):
         """ Set the name for saving the instance (SaveName)
 
         SaveName can be either:
             - provided by the user (no constraint) - not recommended
-            - automatically generated from Name and key attributes (cf. Include)
+            - automatically generated from Name and key attributes (cf. include)
 
         Parameters
         ----------
         SaveName :      None / str
             If provided, overrides the default name for saving (not recommended)
-        Include :       list
+        include :       list
             Controls how te default SaveName is generated
             Each element of the list is a key str indicating whether an element
             should be present in the SaveName
@@ -830,7 +848,7 @@ class ID(ToFuObjectBase):
                                       Deg=self.Deg, Exp=self.Exp,
                                       Diag=self.Diag, shot=self.shot,
                                       version=self.version, usr=self.usr,
-                                      Include=Include)
+                                      include=include)
                 self._dall['SaveName'] = SN
                 self._dall['SaveName-usr'] = False
 
@@ -851,7 +869,8 @@ class ID(ToFuObjectBase):
                 - A list of dict or :class:`~tofu.pathfile.ID` instances
 
         """
-        self._dall['lObj'] = {}
+        if self.lObj is None and lObj is not None:
+            self._dall['lObj'] = {}
         if lObj is not None:
             if type(lObj) is not list:
                 lObj = [lObj]

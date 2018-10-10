@@ -6,6 +6,8 @@ It includes all functions and object classes necessary for tomography on Tokamak
 # Built-in
 import os
 import warnings
+from abc import ABCMeta, abstractmethod
+import copy
 
 # Common
 import numpy as np
@@ -26,7 +28,7 @@ except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
 
-__all__ = ['Struct',
+__all__ = ['Ves', 'PFC', 'CoilPF',
            'Rays','LOSCam1D','LOSCam2D']
 
 
@@ -85,6 +87,9 @@ class Struct(utils.ToFuObject):
 
     """
 
+    __metaclass__ = ABCMeta
+
+
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'shot':0},
              'dgeom':{'Type':'Tor', 'Lim':[], 'arrayorder':'C'},
@@ -92,19 +97,24 @@ class Struct(utils.ToFuObject):
              'dphys':{},
              'dmisc':{'color':(0.8,0.8,0.8,0.8)}}
 
-    def __init__(self, Poly=None, Type=None, Lim=None,
+    def __init_subclass__(cls, color=_ddef['dmisc']['color'], **kwdargs):
+        super().__init_subclass__(**kwdargs)
+        cls._ddef = copy.deepcopy(Struct._ddef)
+        cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
+
+    def __init__(self, Poly=None, Type=None, Lim=None, mobile=False,
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
                  SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude):
+                 SavePath_Include=tfpf.defInclude, color=None):
 
         kwdargs = locals()
         del kwdargs['self']
         super(Struct, self).__init__(**kwdargs)
 
     def _reset(self):
-        self._Id = None
+        super(Struct, self)._reset()
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
         self._dphys = dict.fromkeys(self._get_keys_dphys())
@@ -133,7 +143,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dgeom(sino=True):
-        largs = ['Poly','Lim','Clock','arrayorder']
+        largs = ['Poly','Lim','mobile','Clock','arrayorder']
         if sino:
             lsino = Struct._get_largs_dsino()
             largs += ['sino_{0}'.format(s) for s in lsino]
@@ -159,9 +169,10 @@ class Struct(utils.ToFuObject):
     ###########
 
     @staticmethod
-    def _checkformat_inputs_dgeom(Poly=None, Lim=None,
+    def _checkformat_inputs_dgeom(Poly=None, Lim=None, mobile=False,
                                   Type=None, Clock=False, arrayorder=None):
         assert type(Clock) is bool
+        assert type(mobile) is bool
         if arrayorder is None:
             arrayorder = Struct._ddef['dgeom']['arrayorder']
         assert arrayorder in ['C','F']
@@ -186,7 +197,7 @@ class Struct(utils.ToFuObject):
             if Lim.shape[0]!=2:
                 Lim = Lim.T
         if Type=='Lin':
-            assert Lim is not None
+            assert Lim.size>0
         return Poly, Lim, Type, arrayorder
 
     def _checkformat_inputs_dsino(self, RefPt=None, nP=None):
@@ -208,10 +219,10 @@ class Struct(utils.ToFuObject):
             lSymbols = np.asarray(lSymbols,dtype=str)
         return lSymbols
 
-    @staticmethod
-    def _checkformat_inputs_dmisc(color=None):
+    @classmethod
+    def _checkformat_inputs_dmisc(cls, color=None):
         if color is None:
-            color = Struct._ddef['dmisc']['color']
+            color = cls._ddef['dmisc']['color']
         assert mpl.colors.is_color_like(color)
         color = mpl.colors.to_rgba(color)
         return color
@@ -225,7 +236,7 @@ class Struct(utils.ToFuObject):
         lk = ['Poly','Lim','nLim','Multi','nP',
               'P1Max','P1Min','P2Max','P2Min',
               'BaryP','BaryL','BaryS','BaryV',
-              'Surf','VolAng','Vect','VIn',
+              'Surf','VolAng','Vect','VIn','mobile',
               'circ-C','circ-r','Clock','arrayorder']
         return lk
 
@@ -266,15 +277,17 @@ class Struct(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    def _set_dgeom(self, Poly=None, Lim=None, Clock=False, arrayorder='C',
+    def _set_dgeom(self, Poly=None, Lim=None, mobile=False,
+                   Clock=False, arrayorder='C',
                    sino_RefPt=None, sino_nP=_def.TorNP, sino=True):
-        out = self._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim,
+        out = self._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim, mobile=mobile,
                                              Type=self.Id.Type, Clock=Clock)
         Poly, Lim, Type, arrayorder = out
         dgeom = _comp._Struct_set_Poly(Poly, Lim=Lim,
                                        arrayorder=arrayorder,
                                        Type=self.Id.Type, Clock=Clock)
         dgeom['arrayorder'] = arrayorder
+        dgeom['mobile'] = mobile
         self._dgeom = dgeom
         if sino:
             self.set_dsino(sino_RefPt, nP=sino_nP)
@@ -298,7 +311,7 @@ class Struct(utils.ToFuObject):
     # strip dictionaries
     ###########
 
-    def _strip_dgeom(self, lkeep=['Poly','Lim','Clock','arrayorder']):
+    def _strip_dgeom(self, lkeep=['Poly','Lim','mobile','Clock','arrayorder']):
         utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
     def _strip_dsino(self, lkeep=['RefPt','nP']):
@@ -314,7 +327,7 @@ class Struct(utils.ToFuObject):
     # rebuild dictionaries
     ###########
 
-    def _rebuild_dgeom(self, lkeep=['Poly','Lim','Clock','arrayorder']):
+    def _rebuild_dgeom(self, lkeep=['Poly','Lim','mobile','Clock','arrayorder']):
         reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
         if reset:
             utils.ToFuObject._check_Fields4Rebuild(self._dgeom,
@@ -391,7 +404,7 @@ class Struct(utils.ToFuObject):
     @property
     def Type(self):
         """Return the type of structure """
-        return self._Id._Type
+        return self._Id.Type
     @property
     def dgeom(self):
         return self._dgeom
@@ -402,10 +415,13 @@ class Struct(utils.ToFuObject):
     @property
     def Poly_closed(self):
         """ Returned the closed polygon """
-        return np.hstack(self._dgeom['Poly'],self._dgeom['Poly'][:,0:1])
+        return np.hstack((self._dgeom['Poly'],self._dgeom['Poly'][:,0:1]))
     @property
     def Lim(self):
         return self._dgeom['Lim']
+    @property
+    def nLim(self):
+        return self._dgeom['nLim']
     @property
     def dsino(self):
         return self._dsino
@@ -426,6 +442,11 @@ class Struct(utils.ToFuObject):
     ###########
     # public methods
     ###########
+
+
+    @abstractmethod
+    def isMobile(self):
+        return self._dgeom['mobile']
 
     def isInside(self, pts, In='(X,Y,Z)'):
         """ Return an array of booleans indicating whether each point lies
@@ -450,12 +471,14 @@ class Struct(utils.ToFuObject):
             (N,) array of booleans, True if a point is inside the volume
 
         """
-        ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.geom['Lim'],
-                                VType=self.Type, In=In, Test=True)
+        ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.Lim,
+                                VType=self.Id.Type, In=In, Test=True)
         return ind
 
 
-    def get_InsideConvexPoly(self, RelOff=_def.TorRelOff, ZLim='Def', Spline=True, Splprms=_def.TorSplprms, NP=_def.TorInsideNP, Plot=False, Test=True):
+    def get_InsideConvexPoly(self, RelOff=_def.TorRelOff, ZLim='Def',
+                             Spline=True, Splprms=_def.TorSplprms,
+                             NP=_def.TorInsideNP, Plot=False, Test=True):
         """ Return a polygon that is a smaller and smoothed approximation of Ves.Poly, useful for excluding the divertor region in a Tokamak
 
         For some uses, it can be practical to approximate the polygon defining the Ves object (which can be non-convex, like with a divertor), by a simpler, sligthly smaller and convex polygon.
@@ -484,79 +507,118 @@ class Struct(utils.ToFuObject):
             (2,N) polygon resulting from homothetic transform, truncating and optional smoothing
 
         """
-        return _comp._Ves_get_InsideConvexPoly(self.Poly, self.geom['P2Min'], self.geom['P2Max'], self.geom['BaryS'], RelOff=RelOff, ZLim=ZLim, Spline=Spline, Splprms=Splprms, NP=NP, Plot=Plot, Test=Test)
+        return _comp._Ves_get_InsideConvexPoly(self.Poly, self.dgeom['P2Min'],
+                                               self.dgeom['P2Max'],
+                                               self.dgeom['BaryS'],
+                                               RelOff=RelOff, ZLim=ZLim,
+                                               Spline=Spline, Splprms=Splprms,
+                                               NP=NP, Plot=Plot, Test=Test)
 
-    def get_sampleEdge(self, dl, DS=None, dlMode='abs', DIn=0.):
-        """ Sample the polygon edges
+    def get_sampleEdge(self, res, DS=None, resMode='abs', offsetIn=0.):
+        """ Sample the polygon edges, with resolution res
 
         Sample each segment of the 2D polygon
         Sampling can be limited to a subdomain defined by DS
-        It is done with resolution dl
         """
-        Pts, dlr, ind = _comp._Ves_get_sampleEdge(self.Poly, dl, DS=DS,
-                                                  dLMode=dlMode, DIn=DIn,
-                                                  VIn=self.geom['VIn'],
+        pts, dlr, ind = _comp._Ves_get_sampleEdge(self.Poly, res, DS=DS,
+                                                  dLMode=resMode, DIn=offsetIn,
+                                                  VIn=self.dgeom['VIn'],
                                                   margin=1.e-9)
-        return Pts, dlr, ind
+        return pts, dlr, ind
 
-    def get_sampleCross(self, dS, DS=None, dSMode='abs', ind=None):
-        """ Mesh the 2D cross-section fraction defined by DS or ind, with resolution dS """
-        Pts, dS, ind, dSr = _comp._Ves_get_sampleCross(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, margin=1.e-9)
-        return Pts, dS, ind, dSr
+    def get_sampleCross(self, res, DS=None, resMode='abs', ind=None):
+        """ Sample, with resolution res, the 2D cross-section
 
-    def get_sampleS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)'):
-        """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn
+        The sampling domain can be limited by DS or ind
+        """
+        args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
+                self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
+        kwdargs = dict(DS=DS, dsMode=resMode, ind=ind, margin=1.e-9)
+        pts, dS, ind, reseff = _comp._Ves_get_sampleCross(*args, **kwdargs)
+        return pts, dS, ind, reseff
+
+    def get_sampleS(self, res, DS=None, dSMode='abs',
+                    ind=None, offsetIn=0., Out='(X,Y,Z)', Ind=None):
+        """ Sample, with resolution res, the surface defined by DS or ind
+
+        An optionnal offset perpendicular to the surface can be used
+        (offsetIn>0 => inwards)
 
         Parameters
         ----------
-        dS      :   float / list of 2 floats
+        res     :   float / list of 2 floats
             Desired resolution of the surfacic sample
                 float   : same resolution for all directions of the sample
                 list    : [dl,dXPhi] where:
-                    dl      : resolution along the polygon contour in the cross-section
-                    dXPhi   : resolution along the axis (toroidal direction if self.Id.Type=='Tor' or linear direction if self.Id.Type=='Lin')
+                    dl      : res. along polygon contours (cross-section)
+                    dXPhi   : res. along axis (toroidal/linear direction)
         DS      :   None / list of 3 lists of 2 floats
-            Limits of the domain in which the surfacic sample should be computed
+            Limits of the domain in which the sample should be computed
                 None : whole surface of the object
-                list : [D1,D2,D3] where each Di is a len()=2 list of increasing floats marking the boundaries of the domain along coordinate i, with
-                    [DR,DZ,DPhi]: if toroidal geometry (self.Id.Type=='Tor')
-                    [DX,DY,DZ]  : if linear geometry (self.Id.Type=='Lin')
-        dSMode  :   str
-            Flag specifying whether the resoltion dS shall be understood as an absolute distance or as a fraction of the distance of each element
-                'abs'   :   dS is an absolute distance
-                'rel'   :   if dS=0.1, each segment of the polygon will be divided in 10, and the toroidal/linear length will also be divided in 10
+                list : [D1,D2,D3], where Di is a len()=2 list
+                       (increasing floats, setting limits along coordinate i)
+                    [DR,DZ,DPhi]: in toroidal geometry (self.Id.Type=='Tor')
+                    [DX,DY,DZ]  : in linear geometry (self.Id.Type=='Lin')
+        resMode  :   str
+            Flag, specifies if res is absolute or relative to element sizes
+                'abs'   :   res is an absolute distance
+                'rel'   :   if res=0.1, each polygon segment is divided in 10,
+                            as is the toroidal/linear length
         ind     :   None / np.ndarray of int
-            If provided, then DS is ignored and the method computes the points of the sample corresponding to the provided indices
-            Example (assuming S is a Ves or Struct object)
+            If provided, DS is ignored and the sample points corresponding to
+            the provided indices are returned
+            Example (assuming obj is a Ves object)
                 > # We create a 5x5 cm2 sample of the whole surface
-                > Pts, dS, ind, dSr = S.get_sample(0.05)
-                > # Performing operations, saving only the indices of the points and not the points themselves (to save space)
+                > pts, dS, ind, reseff = obj.get_sample(0.05)
+                > # Perform operations, save only the points indices (save space)
                 > ...
-                > # Retrieving the points from their indices (requires the same resolution), here Ptsbis = Pts
-                > Ptsbis, dSbis, indbis, dSrbis = S.get_sample(0.05, ind=ind)
-        DIn     :   float
-            Offset distance from the actual surface of the object, can be positive (towards the inside) or negative (towards the outside), useful to avoid numerical errors
+                > # Retrieve the points from their indices (requires same res)
+                > pts2, dS2, ind2, reseff2 = obj.get_sample(0.05, ind=ind)
+                > np.allclose(pts,pts2)
+                True
+        offsetIn:   float
+            Offset distance from the actual surface of the object
+            Inwards if positive
+            Useful to avoid numerical errors
         Out     :   str
-            Flag indicating which coordinate systems the points should be returned, e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
+            Flag indicating the coordinate system of returned points
+            e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
+        Ind     :   None / iterable of ints
+            Array of indices of the entities to be considered
+            (only when multiple entities, i.e.: self.nLim>1)
 
         Returns
         -------
-        Pts :   np.ndarray / list of np.ndarrays
-            The points coordinates as a (3,N) array. A list is returned if the Struct object has multiple entities in the toroidal / linear direction
-        dS  :   np.ndarray / list of np.ndarrays
+        pts     :   np.ndarray / list of np.ndarrays
+            Sample points coordinates, as a (3,N) array.
+            A list is returned if the object has multiple entities
+        dS      :   np.ndarray / list of np.ndarrays
             The surface (in m^2) associated to each point
-        ind :   np.ndarray / list of np.ndarrays
-            The index of each points
-        dSr :   np.ndarray / list of np.ndarrays
-            The effective resolution in both directions after computation of the sample
+        ind     :   np.ndarray / list of np.ndarrays
+            The index of each point
+        reseff  :   np.ndarray / list of np.ndarrays
+            Effective resolution in both directions after sample computation
         """
-        Pts, dS, ind, dSr = _comp._Ves_get_sampleS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9)
-        return Pts, dS, ind, dSr
+        if Ind is not None:
+            assert self.dgeom['Multi']
+        kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, DIn=offsetIn,
+                       VIn=self.dgeom['VIn'], VType=self.Id.Type,
+                       VLim=self.Lim, Out=Out, margin=1.e-9,
+                       Multi=self.dgeom['Multi'], Ind=Ind)
+        args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
+                self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
+        pts, dS, ind, reseff = _comp._Ves_get_sampleS(*args, **kwdargs)
+        return pts, dS, ind, reseff
 
-    def get_sampleV(self, dV, DV=None, dVMode='abs', ind=None, Out='(X,Y,Z)'):
-        """ Sample the volume defined by DV or ind, with resolution dV """
-        Pts, dV, ind, dVr = _comp._Ves_get_sampleV(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dV, DV=DV, dVMode=dVMode, ind=ind, VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9)
-        return Pts, dV, ind, dVr
+    def get_sampleV(self, res, DV=None, resMode='abs', ind=None, Out='(X,Y,Z)'):
+        """ Sample, with resolution res, the volume defined by DV or ind """
+
+        args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
+                self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
+        kwdargs = dict(DV=res, dVMode=resMode, ind=ind, VType=self.Id.Type,
+                      VLim=self.Lim, Out=Out, margin=1.e-9)
+        pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
+        return pts, dV, ind, reseff
 
 
     def plot(self, Lax=None, Proj='All', Elt='PIBsBvV',
@@ -628,11 +690,18 @@ class Struct(utils.ToFuObject):
             Handles of the axes used for plotting (list if several axes where used)
 
         """
-        return _plot.Ves_plot(self, Lax=Lax, Proj=Proj, Elt=Elt,
-                              Pdict=dP, Idict=dI, Bsdict=dBs, Bvdict=dBv,
-                              Vdict=dVect, IdictHor=dIHor, BsdictHor=dBsHor,
-                              BvdictHor=dBvHor, Lim=Lim, Nstep=Nstep,
-                              LegDict=dLeg, draw=draw, fs=fs, wintit=wintit, Test=Test)
+        kwdargs = locals()
+        lout = ['self']
+        lrepl = [('dP','Pdict'),('dI','Idict'),('dBs','Bsdict'),
+                 ('dBv','Bvdict'),('dVect','Vdict'),('dIHor','IdictHor'),
+                 ('dBsHor','BsdictHor'),('dBvHor','BvdictHor'),
+                 ('dLeg','LegDict')]
+        for k in lout:
+            del kwdargs[k]
+        for k in lrepl:
+            kwdargs[k[1]] = kwdargs[k[0]]
+            del kwdargs[k[0]]
+        return _plot.Ves_plot(self, **kwdargs)
 
 
     def plot_sino(self, Proj='Cross', ax=None, Ang=_def.LOSImpAng,
@@ -674,8 +743,10 @@ class Struct(utils.ToFuObject):
 
         """
         if Test:
-            assert not self.sino['RefPt'] is None, 'The impact parameters must be computed first !'
-            assert Proj in ['Cross','3d'], "Arg Proj must be in ['Cross','3d'] !"
+            msg = "The impact parameters must be set ! (self.set_dsino())"
+            assert not self.dsino['RefPt'] is None, msg
+            msg = "Arg Proj must be in ['Cross','3d'] !"
+            assert Proj in ['Cross','3d'], msg
         if Proj=='Cross':
             Pdict = _def.TorPFilld if Pdict is None else Pdict
             ax = _plot.Plot_Impact_PolProjPoly(self, ax=ax, Ang=Ang,
@@ -694,89 +765,48 @@ class Struct(utils.ToFuObject):
 
 
 
-
-
-def _Ves_check_inputs(Id=None, Poly=None, Type=None, Lim=None, Sino_RefPt=None,
-                      Sino_NP=None, Clock=None, arrayorder=None, Exp=None,
-                      shot=None, SavePath=None, Cls=None, fromdict=None):
-    if not Id is None:
-        assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID object !"
-    if not Poly is None:
-        assert hasattr(Poly,'__iter__') and np.asarray(Poly).ndim==2 and 2 in np.asarray(Poly).shape, "Arg Poly must be a dict or an iterable with 2D coordinates of cross section poly !"
-    bools = [Clock]
-    if any([not aa is None for aa in bools]):
-        assert all([aa is None or type(aa) is bool for aa in bools]), " Args [Clock] must all be bool !"
-    if not arrayorder is None:
-        assert arrayorder in ['C','F'], "Arg arrayorder must be in ['C','F'] !"
-    if not Type is None:
-        assert Type in ['Tor','Lin'], "Arg Type must be in ['Tor','Lin'] !"
-    strs = [Exp,SavePath]
-    if any([not aa is None for aa in strs]):
-        assert all([aa is None or type(aa) is str for aa in strs]), "Args [Exp,SavePath] must all be str !"
-    Iter2 = [Sino_RefPt]
-    if any([not aa is None for aa in Iter2]):
-        assert all([aa is None or (hasattr(aa,'__iter__') and np.asarray(aa).ndim==1 and np.asarray(aa).size==2) for aa in Iter2]), "Args [Lim,Sino_RefPt] must be an iterable with len()=2 !"
-    assert Cls is None or (type(Cls) is str and Cls in ['Ves','Struct']), "Arg Cls must be a Ves or Struct !"
-    if Cls is not None:
-        if Cls=='Ves':
-            assert Lim is None or (hasattr(Lim,'__iter__') and len(Lim)==2 and all([not hasattr(ll,'__iter__') for ll in Lim])), "Arg Lim must be an iterable of 2 scalars !"
-        else:
-            assert Lim is None or hasattr(Lim,'__iter__'), "Arg Lim must be an iterable !"
-            if Lim is not None:
-                assert (len(Lim)==2 and all([not hasattr(ll,'__iter__') for ll in Lim])) or all([hasattr(ll,'__iter__') and len(ll)==2 and all([not hasattr(lll,'__iter__') for lll in ll]) for ll in Lim]), "Arg Lim must be an iterable of 2 scalars or of iterables of 2 scalars !"
-    Ints = [Sino_NP,shot]
-    if any([not aa is None for aa in Ints]):
-        assert all([aa is None or type(aa) is int for aa in Ints]), "Args [Sino_NP,shot] must be int !"
-
-
-def _Ves_check_fromdict(fd):
-    assert type(fd) is dict, "Arg from dict must be a dict !"
-    k0 = {'Id':dict,'geom':dict,'sino':dict,'arrayorder':str, 'Multi':bool}
-    keys = list(fd.keys())
-    for kk in k0:
-        assert kk in keys, "%s must be a key of fromdict"%kk
-        typ = type(fd[kk])
-        C = typ is k0[kk] or typ in k0[kk] or fd[kk] in k0[kk]
-        assert C, "Wrong type of fromdict[%s]: %s"%(kk,str(typ))
-    # Maybe more details ?
-    #k0 = {'Poly':{'type':np.ndarray,'dim':2},
-    #      'NP':{'type':int,'val':fd['geom']['Poly'].shape[1]-1},
-    #      'P1Max':{'type':np.ndarray,'shape':(3,)},
-    #      'P1Min':{'type':np.ndarray,'shape':(3,)},
-    #      'P2Max':{'type':np.ndarray,'shape':(3,)},
-    #      'P2Min':{'type':np.ndarray,'shape':(3,)},
-    #      'BaryP':{'type':np.ndarray,'shape':(3,)},
-    #      'BaryL':{'type':np.ndarray,'shape':(3,)},
-    #      'BaryS':{'type':np.ndarray,'shape':(3,)},
-    #      'BaryV':{'type':np.ndarray,'shape':(3,)}} # To be finsihed ?
-
-
-
-
-
 """
 ###############################################################################
 ###############################################################################
-                        Struct class and functions
+                      Effective Struct subclasses
 ###############################################################################
 """
 
-class Structbis(Struct):
+class Ves(Struct, color='k'):
 
-    def __init__(self, Id=None, Poly=None, Type='Tor', Lim=None,
-                 Sino_RefPt=None, Sino_NP=_def.TorNP,
+    def __init__(self, Poly=None, Type=None, Lim=None,
+                 Id=None, Name=None, Exp=None, shot=None,
+                 sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
-                 Exp=None, shot=0,
                  SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude,
-                 mobile=False):
-        assert type(mobile) is bool
-        self._mobile = mobile
-        Ves.__init__(self, Id, Poly, Type=Type, Lim=Lim,
-                     Sino_RefPt=Sino_RefPt, Sino_NP=Sino_NP,
-                     Clock=Clock, arrayorder=arrayorder, fromdict=fromdict,
-                     Exp=Exp, shot=shot, SavePath=SavePath,
-                     SavePath_Include=SavePath_Include)
+                 SavePath_Include=tfpf.defInclude, color=None):
+        kwdargs = locals()
+        del kwdargs['self'], kwdargs['__class__']
+        super(Ves,self).__init__(mobile=False, **kwdargs)
+
+
+    @staticmethod
+    def _checkformat_inputs_dgeom(Poly=None, Lim=None, mobile=False,
+                                  Type=None, Clock=False, arrayorder=None):
+        kwdargs = locals()
+        out = Struct._checkformat_inputs_dgeom(**kwdargs)
+        Poly, Lim, Type, arrayorder = out
+        msg = "Ves instances cannot be mobile !"
+        assert mobile is False, msg
+        msg = "There cannot be Lim if Type='Tor' !"
+        if Type=='Tor':
+            assert Lim.size==0, msg
+        return out
+
+    ######
+    # Overloading of asbtract methods
+
+    def isMobile(self):
+        assert self._dgeom['mobile'] is False
+        return False
+
+
+class PFC(Struct, color=(0.8,0.8,0.8,0.8)):
 
     def move(self):
         """ To be overriden at object-level after instance creation
@@ -799,59 +829,43 @@ class Structbis(Struct):
         """
         print(self.move.__doc__)
 
-    def get_sampleS(self, dS, DS=None, dSMode='abs', ind=None, DIn=0., Out='(X,Y,Z)', Ind=None):
-        """ Mesh the surface fraction defined by DS or ind, with resolution dS and optional offset DIn
 
-        Parameters
-        ----------
-        dS      :   float / list of 2 floats
-            Desired resolution of the surfacic sample
-                float   : same resolution for all directions of the sample
-                list    : [dl,dXPhi] where:
-                    dl      : resolution along the polygon contour in the cross-section
-                    dXPhi   : resolution along the axis (toroidal direction if self.Id.Type=='Tor' or linear direction if self.Id.Type=='Lin')
-        DS      :   None / list of 3 lists of 2 floats
-            Limits of the domain in which the surfacic sample should be computed
-                None : whole surface of the object
-                list : [D1,D2,D3] where each Di is a len()=2 list of increasing floats marking the boundaries of the domain along coordinate i, with
-                    [DR,DZ,DPhi]: if toroidal geometry (self.Id.Type=='Tor')
-                    [DX,DY,DZ]  : if linear geometry (self.Id.Type=='Lin')
-        dSMode  :   str
-            Flag specifying whether the resoltion dS shall be understood as an absolute distance or as a fraction of the distance of each element
-                'abs'   :   dS is an absolute distance
-                'rel'   :   if dS=0.1, each segment of the polygon will be divided in 10, and the toroidal/linear length will also be divided in 10
-        ind     :   None / np.ndarray of int
-            If provided, then DS is ignored and the method computes the points of the sample corresponding to the provided indices
-            Example (assuming S is a Ves or Struct object)
-                > # We create a 5x5 cm2 sample of the whole surface
-                > Pts, dS, ind, dSr = S.get_sample(0.05)
-                > # Performing operations, saving only the indices of the points and not the points themselves (to save space)
-                > ...
-                > # Retrieving the points from their indices (requires the same resolution), here Ptsbis = Pts
-                > Ptsbis, dSbis, indbis, dSrbis = S.get_sample(0.05, ind=ind)
-        DIn     :   float
-            Offset distance from the actual surface of the object, can be positive (towards the inside) or negative (towards the outside), useful to avoid numerical errors
-        Out     :   str
-            Flag indicating which coordinate systems the points should be returned, e.g. : '(X,Y,Z)' or '(R,Z,Phi)'
-        Ind     :   None / iterable of ints
-            Array of indices of the entities to be considered (in the case of Struct object with multiple entities in the toroidal / linear direction)
+    def get_sampleV(self, *args, **kwdargs):
+        msg = "class cannot use get_sampleV() method !"
+        raise Exception(msg)
 
-        Returns
-        -------
-        Pts :   np.ndarray / list of np.ndarrays
-            The points coordinates as a (3,N) array. A list is returned if the Struct object has multiple entities in the toroidal / linear direction
-        dS  :   np.ndarray / list of np.ndarrays
-            The surface (in m^2) associated to each point
-        ind :   np.ndarray / list of np.ndarrays
-            The index of each points
-        dSr :   np.ndarray / list of np.ndarrays
-            The effective resolution in both directions after computation of the sample
-        """
-        Pts, dS, ind, dSr = _comp._Ves_get_sampleS(self.Poly, self.geom['P1Min'][0], self.geom['P1Max'][0], self.geom['P2Min'][1], self.geom['P2Max'][1], dS, DS=DS, dSMode=dSMode, ind=ind, DIn=DIn, VIn=self.geom['VIn'], VType=self.Type, VLim=self.Lim, Out=Out, margin=1.e-9, Multi=self._Multi, Ind=Ind)
-        return Pts, dS, ind, dSr
+    ######
+    # Overloading of asbtract methods
 
-    def get_sampleV(self, dV, DV=None, dVMode='abs', ind=None, Out='(X,Y,Z)'):
-        raise AttributeError("Struct class cannot use the get_sampleV() method (only surface sampleing) !")
+    def isMobile(self):
+        super(PFC, self).isMobile()
+
+
+class CoilPF(Ves, color='r'):
+
+    #def _init(self, **kwdargs):
+    #    super(CoilPF,self)._init(**kwdargs)
+    #    self.set_dmag()
+
+    def set_dmag(self, superconducting=False, nturns=0, I=0):
+
+        self._dmag = {'superconducting':superconducting,
+                      'nturns':nturns, 'I':I}
+
+    def set_I(self, I=0):
+        self._dmag['I'] = I
+
+    @property
+    def I(self):
+        return self._dmag['I']
+
+    @property
+    def nturns(self):
+        return self._dmag['nturns']
+
+    @property
+    def superconducting(self):
+        return self._dmag['superconducting']
 
 
 
