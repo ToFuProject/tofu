@@ -87,7 +87,10 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
         axT          The plt.Axes instance on which the toroidal plot was performed
     """
     if Test:
-        assert Proj in ['Cross','Hor','All','3d'], "Arg Proj must be in ['Cross','Hor','All','3d'] !"
+        msg = 'Arg V should a Ves, PFC or CoilPF instance !'
+        assert Ves.Id.Cls in ['Ves','PFC','CoilPF'], msg
+        msg = "Arg Proj must be in ['Cross','Hor','All','3d'] !"
+        assert Proj in ['Cross','Hor','All','3d'], msg
         Lax, C0, C1, C2 = _check_Lax(Lax,n=2)
         assert type(draw) is bool, "Arg draw must be a bool !"
 
@@ -95,6 +98,7 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
     if any(['P' in Elt, 'I' in Elt]):
         if Proj=='3d':
             Pdict = dict(_def.TorP3Dd) if Pdict is None else Pdict
+            Pdict['color'] = Ves.color
             Lax[0] = _Plot_3D_plt_Ves(Ves,ax=Lax[0], Elt=Elt, Nstep=Nstep,
                                       Lim=Lim, Pdict=Pdict, **kwa)
             # Due to temporary issue in matplotlib with 3d legends
@@ -103,8 +107,13 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
             if Pdict is None:
                 if Ves.Id.Cls=='Ves':
                     Pdict = _def.TorPd
+                    Pdict['c'] = Ves.color
                 else:
-                    Pdict = _def.StructPd_Tor if Ves.Lim is None else _def.StructPd
+                    if Ves.nLim==0:
+                        Pdict = _def.StructPd_Tor
+                    else:
+                        Pdict = _def.StructPd
+                    Pdict['fc'] = Ves.color
             if Proj=='Cross':
                 Lax[0] = _Plot_CrossProj_Ves(Ves, ax=Lax[0], Elt=Elt, Pdict=Pdict,
                                              Idict=Idict, Bsdict=Bsdict,
@@ -162,7 +171,6 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV',
         ax          The plt.Axes instance on which the plot was performed
     """
     if Test:
-        assert V.Id.Cls in ['Ves','Struct'], 'Arg V should a Ves instance !'
         ax, C0, C1, C2 = _check_Lax(ax,n=1)
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
         assert type(Idict) is dict, "Arg Idict should be a dictionary !"
@@ -172,22 +180,26 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV',
         assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Cross', fs=fs,
-                                       wintit=wintit, Type=V.Type)
+                                       wintit=wintit, Type=V.Id.Type)
     if 'P' in Elt:
         if V.Id.Cls=='Ves':
-            ax.plot(V.Poly[0,:],V.Poly[1,:],label=V.Id.NameLTX,**Pdict)
-        elif V.Id.Cls=='Struct':
+            ax.plot(V.Poly_closed[0,:], V.Poly_closed[1,:],
+                    label=V.Id.NameLTX,**Pdict)
+        elif V.Id.Cls in ['PFC','CoilPF']:
             ax.add_patch(mPolygon(V.Poly.T, closed=True, **Pdict))
     if 'I' in Elt:
-        ax.plot(V.sino['RefPt'][0],V.sino['RefPt'][1], label=V.Id.NameLTX+" Imp", **Idict)
+        ax.plot(V.dsino['RefPt'][0], V.dsino['RefPt'][1],
+                label=V.Id.NameLTX+" Imp", **Idict)
     if 'Bs' in Elt:
-        ax.plot(V.geom['BaryS'][0],V.geom['BaryS'][1], label=V.Id.NameLTX+" Bs", **Bsdict)
-    if 'Bv' in Elt and V.Type=='Tor':
-        ax.plot(V.geom['BaryV'][0],V.geom['BaryV'][1], label=V.Id.NameLTX+" Bv", **Bvdict)
+        ax.plot(V.dgeom['BaryS'][0], V.dgeom['BaryS'][1],
+                label=V.Id.NameLTX+" Bs", **Bsdict)
+    if 'Bv' in Elt and V.Id.Type=='Tor':
+        ax.plot(V.dgeom['BaryV'][0], V.dgeom['BaryV'][1],
+                label=V.Id.NameLTX+" Bv", **Bvdict)
     if 'V' in Elt:
-        X = 0.5*(V.Poly[0,:-1]+V.Poly[0,1:])
-        Y = 0.5*(V.Poly[1,:-1]+V.Poly[1,1:])
-        ax.quiver(X, Y, V.geom['VIn'][0,:],V.geom['VIn'][1,:], angles='xy',
+        X = 0.5*(V.Poly_closed[0,:-1]+V.Poly_closed[0,1:])
+        Y = 0.5*(V.Poly_closed[1,:-1]+V.Poly_closed[1,1:])
+        ax.quiver(X, Y, V.dgeom['VIn'][0,:],V.dgeom['VIn'][1,:], angles='xy',
                   scale_units='xy', label=V.Id.NameLTX+" Vin", **Vdict)
     if not LegDict is None:
         ax.legend(**LegDict)
@@ -218,7 +230,6 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
         ax          The plt.Axes instance on which the plot was performed
     """
     if Test:
-        assert V.Id.Cls in ['Ves','Struct'], 'Arg V should a Ves instance !'
         assert type(Nstep) is int
         ax, C0, C1, C2 = _check_Lax(ax,n=1)
         assert type(Pdict) is dict, 'Arg Pdict should be a dictionary !'
@@ -226,57 +237,86 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
         assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
 
     if ax is None:
-        ax = _def.Plot_LOSProj_DefAxes('Hor', Type=V.Type, fs=fs, wintit=wintit)
-    P1Min = V.geom['P1Min']
-    P1Max = V.geom['P1Max']
+        ax = _def.Plot_LOSProj_DefAxes('Hor', Type=V.Id.Type,
+                                       fs=fs, wintit=wintit)
+    P1Min = V.dgeom['P1Min']
+    P1Max = V.dgeom['P1Max']
     if 'P' in Elt:
         if V.Id.Cls=='Ves':
-            if V.Type=='Tor':
-                Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False)
-                lx = np.concatenate((P1Min[0]*np.cos(Theta),np.array([np.nan]),P1Max[0]*np.cos(Theta)))
-                ly = np.concatenate((P1Min[0]*np.sin(Theta),np.array([np.nan]),P1Max[0]*np.sin(Theta)))
-            elif V.Type=='Lin':
+            if V.Id.Type=='Tor':
+                Theta = np.linspace(0, 2*np.pi, num=Nstep,
+                                    endpoint=True, retstep=False)
+                lx = np.concatenate((P1Min[0]*np.cos(Theta),np.array([np.nan]),
+                                     P1Max[0]*np.cos(Theta)))
+                ly = np.concatenate((P1Min[0]*np.sin(Theta),np.array([np.nan]),
+                                     P1Max[0]*np.sin(Theta)))
+            elif V.Id.Type=='Lin':
                 lx = np.array([V.Lim[0],V.Lim[1],V.Lim[1],V.Lim[0],V.Lim[0]])
                 ly = np.array([P1Min[0],P1Min[0],P1Max[0],P1Max[0],P1Min[0]])
             ax.plot(lx,ly,label=V.Id.NameLTX,**Pdict)
-        elif V.Id.Cls=='Struct':
-            if V.Type=='Tor':
-                Theta = np.linspace(0, 2*np.pi, num=Nstep, endpoint=True, retstep=False)
-                if V.Lim is None:
-                    lx = np.concatenate((P1Min[0]*np.cos(Theta),P1Max[0]*np.cos(Theta[::-1])))
-                    ly = np.concatenate((P1Min[0]*np.sin(Theta),P1Max[0]*np.sin(Theta[::-1])))
-                    Lp = [mPolygon(np.array([lx,ly]).T, closed=True, label=V.Id.NameLTX, **Pdict)]
+        elif V.Id.Cls in ['PFC','CoilPF']:
+            if V.Id.Type=='Tor':
+                Theta = np.linspace(0, 2*np.pi, num=Nstep,
+                                    endpoint=True, retstep=False)
+                if V.nLim==0:
+                    lx = np.concatenate((P1Min[0]*np.cos(Theta),
+                                         P1Max[0]*np.cos(Theta[::-1])))
+                    ly = np.concatenate((P1Min[0]*np.sin(Theta),
+                                         P1Max[0]*np.sin(Theta[::-1])))
+                    Lp = [mPolygon(np.array([lx,ly]).T, closed=True,
+                                   label=V.Id.NameLTX, **Pdict)]
                 else:
-                    if V._Multi:
-                        Lp = [mWedge((0,0), P1Max[0], V.Lim[ii][0]*180./np.pi, V.Lim[ii][1]*180./np.pi, width=P1Max[0]-P1Min[0], label=V.Id.NameLTX, **Pdict) for ii in range(0,len(V.Lim))]
+                    if V.nLim>1:
+                        Lp = [mWedge((0,0), P1Max[0],
+                                     V.Lim[ii][0]*180./np.pi,
+                                     V.Lim[ii][1]*180./np.pi,
+                                     width=P1Max[0]-P1Min[0],
+                                     label=V.Id.NameLTX, **Pdict)
+                              for ii in range(0,len(V.Lim))]
                     else:
-                        Lp = [mWedge((0,0), P1Max[0], V.Lim[0]*180./np.pi, V.Lim[1]*180./np.pi, width=P1Max[0]-P1Min[0], label=V.Id.NameLTX, **Pdict)]
-            elif V.Type=='Lin':
-                    ly = np.array([P1Min[0],P1Min[0],P1Max[0],P1Max[0],P1Min[0]])
-                    if V._Multi:
+                        Lp = [mWedge((0,0), P1Max[0],
+                                     V.Lim[0]*180./np.pi,
+                                     V.Lim[1]*180./np.pi,
+                                     width=P1Max[0]-P1Min[0],
+                                     label=V.Id.NameLTX, **Pdict)]
+            elif V.Id.Type=='Lin':
+                    ly = np.array([P1Min[0],P1Min[0],
+                                   P1Max[0],P1Max[0],P1Min[0]])
+                    if V.nLim>1:
                         Lp = []
                         for ii in range(0,len(V.Lim)):
-                            lx = np.array([V.Lim[ii][0],V.Lim[ii][1],V.Lim[ii][1],V.Lim[ii][0],V.Lim[ii][0]])
-                            Lp.append(mPolygon(np.array([lx,ly]).T, closed=True, label=V.Id.NameLTX, **Pdict))
+                            lx = np.array([V.Lim[ii][0],V.Lim[ii][1],
+                                           V.Lim[ii][1],V.Lim[ii][0],
+                                           V.Lim[ii][0]])
+                            Lp.append(mPolygon(np.array([lx,ly]).T,
+                                               closed=True, label=V.Id.NameLTX,
+                                               **Pdict))
                     else:
-                        lx = np.array([V.Lim[0],V.Lim[1],V.Lim[1],V.Lim[0],V.Lim[0]])
-                        Lp = [mPolygon(np.array([lx,ly]).T, closed=True, label=V.Id.NameLTX, **Pdict)]
+                        lx = np.array([V.Lim[0],V.Lim[1],
+                                       V.Lim[1],V.Lim[0],V.Lim[0]])
+                        Lp = [mPolygon(np.array([lx,ly]).T, closed=True,
+                                       label=V.Id.NameLTX, **Pdict)]
             for pp in Lp:
                 ax.add_patch(pp)
     if 'I' in Elt:
-        if V.Type=='Tor':
-            lx, ly = V.sino['RefPt'][0]*np.cos(Theta), V.sino['RefPt'][0]*np.sin(Theta)
-        elif V.Type=='Lin':
-            lx, ly = np.array([np.min(V.Lim),np.max(V.Lim)]), V.sino['RefPt'][0]*np.ones((2,))
+        if V.Id.Type=='Tor':
+            lx = V.dsino['RefPt'][0]*np.cos(Theta)
+            ly = V.dsino['RefPt'][0]*np.sin(Theta)
+        elif V.Id.Type=='Lin':
+            lx = np.array([np.min(V.Lim),np.max(V.Lim)])
+            ly = V.dsino['RefPt'][0]*np.ones((2,))
         ax.plot(lx,ly,label=V.Id.NameLTX+" Imp",**Idict)
     if 'Bs' in Elt:
-        if V.Type=='Tor':
-            lx, ly = V.geom['BaryS'][0]*np.cos(Theta), V.geom['BaryS'][0]*np.sin(Theta)
-        elif V.Type=='Lin':
-            lx, ly = np.array([np.min(V.Lim),np.max(V.Lim)]), V.geom['BaryS'][0]*np.ones((2,))
+        if V.Id.Type=='Tor':
+            lx = V.dgeom['BaryS'][0]*np.cos(Theta)
+            ly = V.dgeom['BaryS'][0]*np.sin(Theta)
+        elif V.Id.Type=='Lin':
+            lx = np.array([np.min(V.Lim),np.max(V.Lim)])
+            ly = V.dgeom['BaryS'][0]*np.ones((2,))
         ax.plot(lx,ly,label=V.Id.NameLTX+" Bs", **Bsdict)
     if 'Bv' in Elt and V.Type=='Tor':
-        lx, ly = V.geom['BaryV'][0]*np.cos(Theta), V.geom['BaryV'][0]*np.sin(Theta)
+        lx = V.dgeom['BaryV'][0]*np.cos(Theta)
+        ly = V.dgeom['BaryV'][0]*np.sin(Theta)
         ax.plot(lx,ly,label=V.Id.NameLTX+" Bv", **Bvdict)
     if not LegDict is None:
         ax.legend(**LegDict)
@@ -291,11 +331,12 @@ def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=None,
                      LegDict=_def.TorLegd,
                      draw=True, fs=None, wintit='tofu', Test=True):
     if Test:
-        assert V.Id.Cls in ['Ves','Struct'], "Arg V should be a Ves instance !"
-        assert isinstance(ax,Axes3D) or ax is None, 'Arg ax should a plt.Axes instance !'
+        msg = 'Arg ax should a plt.Axes instance !'
+        assert isinstance(ax,Axes3D) or ax is None, msg
         assert Lim is None or (hasattr(Lim,'__iter__') and len(Lim)==2), "Arg Lim should be an iterable of 2 elements !"
         assert type(Pdict) is dict and (type(LegDict) is dict or LegDict is None), "Args Pdict and LegDict should be dictionnaries !"
         assert type(Elt)is str, "Arg Elt must be a str !"
+
     if ax is None:
         ax = _def.Plot_3D_plt_Tor_DefAxes(fs=fs, wintit=wintit)
     if V.Type=='Lin':
@@ -305,7 +346,7 @@ def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=None,
             for ii in range(lim.shape[0]):
                 lim[ii,:] = [max(Lim[0],lim[ii,0]),min(lim[1],Lim[1])]
     else:
-        lim = np.array([[0.,2.*np.pi]]) if V.Lim is None else np.array(V.Lim)
+        lim = np.array([[0.,2.*np.pi]]) if V.nLim==0 else np.array(V.Lim)
         lim = lim.reshape((1,2)) if lim.ndim==1 else lim
         if Lim is not None and V.Id.Cls=='Ves':
             Lim[0] = np.arctan2(np.sin(Lim[0]),np.cos(Lim[0]))
@@ -318,13 +359,14 @@ def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=None,
             theta = np.linspace(lim[ii,0],lim[ii,1],Nstep)
             theta = theta.reshape((1,Nstep))
             if V.Type=='Tor':
-                X = np.dot(V.Poly[0:1,:].T,np.cos(theta))
-                Y = np.dot(V.Poly[0:1,:].T,np.sin(theta))
-                Z = np.dot(V.Poly[1:2,:].T,np.ones(theta.shape))
+                X = np.dot(V.Poly_closed[0:1,:].T,np.cos(theta))
+                Y = np.dot(V.Poly_closed[0:1,:].T,np.sin(theta))
+                Z = np.dot(V.Poly_closed[1:2,:].T,np.ones(theta.shape))
             elif V.Type=='Lin':
-                X = np.dot(theta.reshape((Nstep,1)),np.ones((1,V.Poly.shape[1]))).T
-                Y = np.dot(V.Poly[0:1,:].T,np.ones((1,Nstep)))
-                Z = np.dot(V.Poly[1:2,:].T,np.ones((1,Nstep)))
+                X = np.dot(theta.reshape((Nstep,1)),
+                           np.ones((1,V.Poly_closed.shape[1]))).T
+                Y = np.dot(V.Poly_closed[0:1,:].T,np.ones((1,Nstep)))
+                Z = np.dot(V.Poly_closed[1:2,:].T,np.ones((1,Nstep)))
             ax.plot_surface(X,Y,Z, label=V.Id.NameLTX, **Pdict)
         proxy = plt.Rectangle((0,0),1,1, fc=Pdict['color'])
         handles.append(proxy)
@@ -389,7 +431,8 @@ def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad',
         Theta, pP, pN = T
     elif T.Id.Cls in ['Ves','Struct']:
         Leg = T.Id.NameLTX
-        Theta, pP, pN = T.sino['EnvTheta'], T.sino['EnvMinMax'][0,:], T.sino['EnvMinMax'][1,:]
+        Theta, pP = T.dsino['EnvTheta'], T.dsino['EnvMinMax'][0,:]
+        pN = T.dsino['EnvMinMax'][1,:]
     if Ang=='xi':
         Theta, pP, pN = _GG.ConvertImpact_Theta2Xi(Theta, pP, pN)
     DoUp = (pN.min(),pP.max())
