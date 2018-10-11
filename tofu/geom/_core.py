@@ -28,7 +28,7 @@ except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
 
-__all__ = ['Ves', 'PFC', 'CoilPF',
+__all__ = ['Ves', 'PFC', 'CoilPF', 'CoilCS',
            'Rays','LOSCam1D','LOSCam2D']
 
 
@@ -111,16 +111,17 @@ class Struct(utils.ToFuObject):
 
         kwdargs = locals()
         del kwdargs['self']
-        super(Struct, self).__init__(**kwdargs)
+        super().__init__(**kwdargs)
 
     def _reset(self):
-        super(Struct, self)._reset()
+        super()._reset()
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
         self._dphys = dict.fromkeys(self._get_keys_dphys())
         self._dmisc = dict.fromkeys(self._get_keys_dmisc())
 
-    def _checkformat_inputs_Id(self, Id=None, Name=None,
+    @classmethod
+    def _checkformat_inputs_Id(cls, Id=None, Name=None,
                                Exp=None, shot=None, Type=None,
                                **kwdargs):
         if Id is not None:
@@ -129,10 +130,10 @@ class Struct(utils.ToFuObject):
         assert type(Name) is str
         assert type(Exp) is str
         if shot is None:
-            shot = self._ddef['Id']['shot']
+            shot = cls._ddef['Id']['shot']
         assert type(shot) is int
         if Type is None:
-            Type = self._ddef['dgeom']['Type']
+            Type = cls._ddef['dgeom']['Type']
         assert Type in ['Tor','Lin']
         kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot, 'Type':Type})
         return kwdargs
@@ -843,29 +844,225 @@ class PFC(Struct, color=(0.8,0.8,0.8,0.8)):
 
 class CoilPF(Ves, color='r'):
 
-    #def _init(self, **kwdargs):
-    #    super(CoilPF,self)._init(**kwdargs)
-    #    self.set_dmag()
+    def __init_subclass__(cls, **kwdargs):
+        super().__init_subclass__(**kwdargs)
 
-    def set_dmag(self, superconducting=False, nturns=0, I=0):
+    def __init__(self, nturns=None, superconducting=None, **kwdargs):
+        super().__init__(**kwdargs)
 
-        self._dmag = {'superconducting':superconducting,
-                      'nturns':nturns, 'I':I}
+    def _reset(self):
+        super()._reset()
+        self._dmag = dict.fromkeys(self._get_keys_dmag())
+        self._dmag['nI'] = 0
 
-    def set_I(self, I=0):
-        self._dmag['I'] = I
+    ###########
+    # Get largs
+    ###########
+
+    @staticmethod
+    def _get_largs_dmag():
+        largs = ['nturns','superconducting']
+        return largs
+
+    ###########
+    # Get check and format inputs
+    ###########
+
+    @staticmethod
+    def _checkformat_inputs_dmag(nturns=None, superconducting=None):
+        C0 = nturns is None
+        C1 = type(nturns) in [int,float,np.int64,np.float64] and nturns>0
+        assert C0 or C1
+        if C1:
+            nturns = int(nturns)
+        C0 = superconducting is None
+        C1 = type(superconducting) is bool
+        assert C0 or C1
+        return nturns
+
+    ###########
+    # Get keys of dictionnaries
+    ###########
+
+    @staticmethod
+    def _get_keys_dmag():
+        lk = ['nturns','superconducting','I','nI']
+        return lk
+
+    ###########
+    # _init
+    ###########
+
+    def _init(self, nturns=None, superconducting=None, **kwdargs):
+        super()._init(**kwdargs)
+        self.set_dmag(nturns=nturns, superconducting=superconducting)
+
+
+    ###########
+    # set dictionaries
+    ###########
+
+    def set_dmag(self, superconducting=None, nturns=0):
+        nturns = self._checkformat_inputs_dmag(nturns=nturns,
+                                                superconducting=superconducting)
+        self._dmag.update({'superconducting':superconducting,
+                           'nturns':nturns})
+
+    ###########
+    # strip dictionaries
+    ###########
+
+    def _strip_dmag(self, lkeep=['nturns','superconducting']):
+        utils.ToFuObject._strip_dict(self._dmag, lkeep=lkeep)
+        self._dmag['nI'] = 0
+
+    ###########
+    # rebuild dictionaries
+    ###########
+
+    def _rebuild_dmag(self, lkeep=['nturns','superconducting']):
+        reset = utils.ToFuObject._test_Rebuild(self._dmag, lkeep=lkeep)
+        if reset:
+            utils.ToFuObject._check_Fields4Rebuild(self._dmag,
+                                                   lkeep=lkeep, dname='dmag')
+            self.set_dmag(nturns=self.nturns,
+                          superconducting=self.dmag['superconducting'])
+
+    ###########
+    # _strip and get/from dict
+    ###########
+
+    def _strip(self, strip=0):
+        out = super()._strip(strip=strip)
+        if strip==0:
+            self._rebuild_dmag()
+        else:
+            self._strip_dmag()
+        return out
+
+    def _get_dict(self):
+        dout = super()._get_dict()
+        dout.update({'dmag':{'dict':self.dmag, 'lexcept':None}})
+        return dout
+
+    def _from_dict(self, fd):
+        super()._from_dict(fd)
+        self._dmag.update(**fd['dmag'])
+
+
+    ###########
+    # Properties
+    ###########
 
     @property
-    def I(self):
-        return self._dmag['I']
+    def dmag(self):
+        return self._dmag
 
     @property
     def nturns(self):
         return self._dmag['nturns']
 
     @property
-    def superconducting(self):
-        return self._dmag['superconducting']
+    def I(self):
+        return self._dmag['I']
+
+    ###########
+    # public methods
+    ###########
+
+    def set_I(self, I=None):
+        """ Set the current circulating on the coil (A) """
+        C0 = I is None
+        C1 = type(I) in [int,float,np.int64,np.float64]
+        C2 = type(I) in [list,tuple,np.ndarray]
+        msg = "Arg I must be None, a float or an 1D np.ndarray !"
+        assert C0 or C1 or C2, msg
+        if C1:
+            I = np.array([I],dtype=float)
+        elif C2:
+            I = np.asarray(I,dtype=float).ravel()
+        self._dmag['I'] = I
+        if C0:
+            self._dmag['nI'] = 0
+        else:
+            self._dmag['nI'] = I.size
+
+
+class CoilCS(CoilPF, color='r'): pass
+
+
+
+"""
+###############################################################################
+###############################################################################
+                        Overall Config object
+###############################################################################
+"""
+
+class Config(utils.ToFuObject):
+
+    # Fixed (class-wise) dictionary of default properties
+    _ddef = {'Id':{'shot':0},
+             'dstruct':{}}
+
+    def __init__(self, lStruct=None,
+                 Id=None, Name=None, Exp=None, shot=None,
+                 SavePath=os.path.abspath('./'),
+                 SavePath_Include=tfpf.defInclude,
+                 fromdict=None):
+
+        kwdargs = locals()
+        del kwdargs['self']
+        super().__init__(**kwdargs)
+
+    def _reset(self):
+        super()._reset()
+        self._dstruct = dict.fromkeys(self._get_keys_dstruct())
+
+    @classmethod
+    def _checkformat_inputs_Id(cls, Id=None, Name=None,
+                               Exp=None, shot=None,
+                               **kwdargs):
+        if Id is not None:
+            assert isinstance(Id,tfpf.ID2)
+            Name, Exp, shot = Id.Name, Id.Exp, Id.shot
+        assert type(Name) is str
+        assert type(Exp) is str
+        if shot is None:
+            shot = cls._ddef['Id']['shot']
+        assert type(shot) is int
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot})
+        return kwdargs
+
+    ###########
+    # Get largs
+    ###########
+
+    @staticmethod
+    def _get_largs_dstruct():
+        largs = ['lStruct']
+        return largs
+
+    ###########
+    # Get check and format inputs
+    ###########
+
+    @staticmethod
+    def _checkformat_inputs_dstruct(lStruct=None):
+        msg = "Arg lStruct must be"
+        msg += " a tofu.geom.Struct subclass or a list of such !"
+        msg += "\nValid subclasses include:"
+        lsub = ['Ves','PFC','CoilPF','CoilCS']
+        for ss in lsub:
+            msg += "\n    - tf.geom.{0}".format(ss)
+        assert type(lStruct) is not None, msg
+        lStruct = list(lStruct)
+        Ci = 0
+
+
+        return lStruct
+
+
 
 
 
