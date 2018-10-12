@@ -14,13 +14,13 @@ import warnings
 # Common
 import numpy as np
 import datetime as dtm
+import scipy.io as scpio
 
 # ToFu specific
 from tofu import __version__
 
-
 __author__ = "Didier Vezinet"
-__all__ = ["ID",
+__all__ = ["ID", "ID2",
            "SaveName_Conv","CheckSameObj","SelectFromListId",
            "get_InfoFromFileName","get_FileFromInfos",
            "convert_units","get_PolyFromPolyFileObj",
@@ -135,12 +135,13 @@ def get_PolyFromPolyFileObj(PolyFileObj, SavePathInp=None, units='m', comments='
 ###############################################################################
 """
 
-
+# Deprecated ???
 def _check_NotNone(Dict):
     for aa in Dict.keys():
         assert not Dict[aa] is None, "Arg "+aa+" must not be None !"
 
 
+# Deprecated ???
 def _get_FromItself(obj, Dict):
     for aa in Dict.keys():
         if Dict[aa] is None:
@@ -161,7 +162,7 @@ def _get_FromItself(obj, Dict):
 ###############################################################################
 """
 
-
+# Deprecated ????
 class ID(object):
     """ A class used by all ToFu objects as an attribute
 
@@ -421,6 +422,8 @@ class ID(object):
 
 
 
+
+# Deprecated ????
 def _ID_check_inputs(Mod=None, Cls=None, Name=None, Type=None, Deg=None,
                  Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None,
                  USRdict=None, LObj=None, version=None, usr=None,
@@ -459,13 +462,13 @@ def _ID_check_inputs(Mod=None, Cls=None, Name=None, Type=None, Deg=None,
     if fromdict is not None:
         assert type(fromdict) is dict
         k = ['Cls','Name','SaveName','SavePath','Type','Deg','Exp','Diag',
-             'shot','USRdict','version','usr','LObj']
+             'shot','dUSR','version','usr','lObj']
         K = fromdict.keys()
         for kk in k:
             assert kk in K, "%s missing from provided dict !"%kk
 
 
-
+# Deprecated ????
 def _extract_ModClsFrom_class(Cls):
     strc = str(Cls)
     ind0 = strc.index('tofu.')+5
@@ -490,6 +493,7 @@ def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
 
     """
     Modstr = dModes[Mod] if Mod is not None else None
+    Include = defInclude if Include is None else Include
     if Cls is not None and Type is not None and 'Type' in Include:
         Clsstr = Cls+Type
     else:
@@ -951,6 +955,47 @@ def Save_Generic(obj, SaveName=None, Path='./',
         print("Saved in :  "+pathfileext)
 
 
+def Save_Generic2(dd, path, name, mode, compressed=False):
+    """ Save a ToFu object under file name SaveName, in folder Path
+
+    ToFu provides built-in saving and loading functions for ToFu objects.
+    There is now only one saving mode:
+        - 'npz': saves a dict of key attributes using :meth:`numpy.savez`
+
+    Good practices are:
+        - save :class:`~tofu.geom.Ves` and :class:`~tofu.geom.Struct`
+        - intermediate optics (:class:`~tofu.geom.Apert` and
+          :class:`~tofu.geom.Lens`) generally do not need to be saved
+          Indeed, they will be autoamtically included in larger objects
+          like Detect or Cam objects
+
+    Parameters
+    ----------
+    SaveName :      str
+        The file name, if None (recommended) uses obj.Id.SaveName
+    Path :          str
+        Path where to save the file
+    Mode :          str
+        Flag specifying the saving mode
+            - 'npz': Only mode currently available ('pck' deprecated)
+    compressed :    bool
+        Indicate whether to use np.savez_compressed (slower but smaller files)
+
+    """
+    assert isinstance(dd,dict), "Arg dd must be a dict !"
+    assert type(compressed) is bool, "Arg compressed must be a bool !"
+    assert mode in ['npz','mat']
+
+    pathfileext = os.path.join(path,name+'.'+mode)
+
+    if mode=='npz':
+        _save_np2(dd, pathfileext, compressed=compressed)
+    elif mode=='mat':
+        _save_mat(dd, pathfileext, compressed=compressed)
+
+    return pathfileext
+
+
 """
 def _convert_Detect2Ldict(obj):
     # Store LOS data
@@ -1023,7 +1068,7 @@ def _save_np(obj, pathfileext, compressed=False):
              Poly=obj.Poly, Lim=obj.Lim, mobile=obj._mobile)
 
     elif obj.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
-        func(pathfileext, Id=dId,
+        func(pathfileext, Id=dId, extra=obj._extra,
              geom=obj.geom, sino=obj.sino, dchans=obj.dchans)
 
     elif obj.Id.Cls in ['Data','Data1D','Data2D']:
@@ -1161,6 +1206,31 @@ def save_np_IdObj(Id):
         LObjUSR.append( np.concatenate(tuple(LarrUSR),axis=0) )
     return LObj, LObjUSR
 
+
+def _save_np2(dd, pathfileext, compressed=False):
+    func = np.savez_compressed if compressed else np.savez
+    for k in dd.keys():
+        if dd[k] is None:
+            dd[k] = np.asarray([None])
+        elif type(dd[k]) in [int,float,np.int64,np.float64]:
+            dd[k] = np.asarray([dd[k]])
+        elif isinstance(dd[k],str):
+            dd[k] = np.asarray(dd[k])
+    func(pathfileext, **dd)
+
+def _save_mat(dd, pathfileext, compressed=False):
+    # Create intermediate dict to make sure to get rid of None values
+    dmat = {}
+    for k in dd.keys():
+        if type(dd[k]) in [int,float,np.int64,np.float64]:
+            dmat[k] = np.asarray([dd[k]])
+        elif type(dd[k]) in [tuple,list]:
+            dmat[k] = np.asarray(dd[k])
+        elif isinstance(dd[k],str):
+            dmat[k] = np.asarray([dd[k]])
+        elif type(dd[k]) is np.ndarray:
+            dmat[k] = dd[k]
+    scpio.savemat(pathfileext, dmat, do_compression=compressed, format='5')
 
 
 ###########################
@@ -1382,7 +1452,10 @@ def _open_np(pathfileext, Ves=None,
     elif Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
         Ves, LStruct = _tryloadVesStruct(Id, Print=Print)
         dobj = {'Id':Id._todict(), 'dchans':Out['dchans'].tolist(),
-                'geom':Out['geom'].tolist(), 'sino':Out['sino'].tolist()}
+                'geom':Out['geom'].tolist(),
+                'sino':Out['sino'].tolist()}
+        if 'extra' in Out.keys():
+            dobj['extra'] = Out['extra'].tolist()
         if Ves is None:
             dobj['Ves'] = None
         else:

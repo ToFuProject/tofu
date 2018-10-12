@@ -1,12 +1,21 @@
 
 # Built-in
 import os
+import collections
+from abc import ABCMeta, abstractmethod
+import getpass
 
 # Common
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+# tofu-specific
+from tofu import __version__
+import tofu.pathfile as tfpf
+
+_sep = '_'
+_dict_lexcept_key = []
 
 ###############################################
 #           File searching
@@ -35,6 +44,859 @@ def FindFilePattern(pattern, path, nocc=1, ntab=0):
     lF = [ff for ff in lF if all([ss in ff for ss in pat])]
     assert len(lF)==nocc, FileNotFoundMsg(pat,path,lF, nocc, ntab=ntab)
     return lF
+
+
+def get_pathfileext(path=None, name=None,
+                    path_def='./', name_def='dummy', mode='npz'):
+    modeok = ['npz','mat']
+    modeokstr = "["+", ".join(modeok)+"]"
+
+    if name is not None:
+        C = type(name) is str and not (name[-4]=='.')
+        assert C, "name should not include the extension !"
+    assert path is None or type(path) is str, "Arg path must be None or a str !"
+    assert mode in modeok, "Arg mode must be in {0}".format(modeokstr)
+
+    if path is None:
+        path = path_def
+    path = os.path.abspath(path)
+    if name is None:
+        name = name_def
+    return path, name, mode
+
+
+
+
+#############################################
+#       todict formatting
+#############################################
+
+
+def flatten_dict(d, parent_key='', sep=_sep,
+                 lexcept_key=_dict_lexcept_key):
+
+    items = []
+    if lexcept_key is None:
+        for k, v in d.items():
+            new_key = parent_key + sep + k if parent_key else k
+            if isinstance(v, collections.MutableMapping):
+                items.extend(flatten_dict(v, new_key, sep=sep).items())
+            else:
+                items.append((new_key, v))
+    else:
+        for k, v in d.items():
+            if k not in lexcept_key:
+                new_key = parent_key + sep + k if parent_key else k
+                if isinstance(v, collections.MutableMapping):
+                    items.extend(flatten_dict(v, new_key, sep=sep).items())
+                else:
+                    items.append((new_key, v))
+    return dict(items)
+
+def _reshape_dict(ss, vv, dinit={}, sep=_sep):
+    ls = ss.split(sep)
+    k = ss if len(ls)==1 else ls[0]
+    if len(ls)==2:
+        dk = {ls[1]:vv}
+        if k not in dinit.keys():
+            dinit[k] = {}
+        assert isinstance(dinit[k],dict)
+        dinit[k].update({ls[1]:vv})
+    elif len(ls)>2:
+        if k not in dinit.keys():
+            dinit[k] = {}
+        _reshape_dict(sep.join(ls[1:]), vv, dinit=dinit[k], sep=sep)
+    else:
+        assert k not in dinit.keys()
+        dinit[k] = vv
+
+def reshape_dict(d, sep=_sep):
+    # Get all individual keys
+    out = {}
+    for ss, vv in d.items():
+        _reshape_dict(ss, vv, dinit=out, sep=sep)
+    return out
+
+
+# Check if deprecated ???
+def get_todictfields(ld, ls):
+    C0 = type(ld) is list and type(ls) is list and len(ld)==len(ls)
+    C1 = type(ld) is dict and type(ls) is dict
+    assert C0 or C1, "Provide two list of dict or two dict !"
+    if C1:
+        ld, ls = [ld], [ls]
+    nd = len(ld)
+    out = {}
+    for ii in range(0,nd):
+        for ss in ld[ii].keys():
+            ks = '{0}_{1}'.format(ls[ii], ss)
+            out[ks] = ld[ii][ss]
+    return out
+
+
+#############################################
+#       Miscellaneous
+#############################################
+
+def _set_arrayorder(obj, arrayorder='C'):
+    """ Set the memory order of all np.ndarrays in a tofu object """
+    msg = "Arg arrayorder must be in ['C','F']"
+    assert arrayorder in ['C','F'], msg
+
+    d = obj.get_dict(strip=-1)
+    account = {'Success':[], 'Failed':[]}
+    for k, v in d.items():
+        if type(v) is np.array and v.ndim>1:
+            try:
+                if arrayorder=='C':
+                    d[k] = np.ascontiguousarray(v)
+                else:
+                    d[k] = np.asfortranarray(v)
+                account['Success'].append(k)
+            except Exception as err:
+                warnings.warn(str(err))
+                account['Failed'].append(k)
+
+    return d, account
+
+
+#############################################
+#       Generic tofu object
+#############################################
+
+def _check_notNone(dd, lk):
+    for k, v in dd.items():
+        if k in lk:
+            assert v is not None, "{0} should not be None !".format(k)
+
+
+def _get_attrdictfromobj(obj, dd):
+    for k in dd.keys():
+        if dd[k] is None:
+            dd[k] = getattr(obj,k)
+    return dd
+
+
+class ToFuObjectBase(object):
+
+    __metaclass__ = ABCMeta
+    _dstrip = {'strip':None, 'allowed':None}
+
+    def __init__(self, fromdict=None,
+                 **kwdargs):
+
+        self._Done = False
+        if fromdict is not None:
+            self.from_dict(fromdict)
+        else:
+            self._reset()
+            self._set_Id(**kwdargs)
+            self._init(**kwdargs)
+            self._dstrip['allowed'] = self._strip(None)
+        self._Done = True
+
+
+    @abstractmethod
+    def _reset(self):
+        """ To be overloaded """
+        pass
+
+    @abstractmethod
+    def _set_Id(self, *args, **kwdargs):
+        """ To be overloaded """
+        pass
+
+    @abstractmethod
+    def _init(self, **kwdargs):
+        """ To be overladed """
+        pass
+
+    @staticmethod
+    def _get_largs_Id():
+        largs = ['Id','Name','Type','Deg','Exp','Diag','shot',
+                 'SaveName','SavePath','usr','dUSR','lObj','include']
+        return largs
+
+    @staticmethod
+    def _extract_kwdargs(din, largs):
+        dout = {}
+        for k in largs:
+            if k in din.keys():
+                dout[k] = din[k]
+        return dout
+
+    def _set_arrayorder(self, arrayorder='C', verb=True):
+        d, account = _set_arrayorder(self, arrayorder=arrayorder)
+        if len(account['Failed'])>0:
+            msg = "All np.ndarrays were not set to {0} :\n".format(arrayorder)
+            msg += "Success : [{0}]".format(', '.join(account['Success']))
+            msg += "Failed :  [{0}]".format(', '.join(account['Failed']))
+            raise Exception(msg)
+        else:
+            self.from_dict(d)
+            self._dextra['arrayorder'] = arrayorder
+
+    @staticmethod
+    def _strip_dict(dd, lkeep=[]):
+        for k in dd.keys():
+            if not k in lkeep:
+                dd[k] = None
+
+    @staticmethod
+    def _test_Rebuild(dd, lkeep=[]):
+        reset = False
+        for k in dd.keys():
+            if dd[k] is None and k not in lkeep:
+                reset = True
+                break
+        return reset
+
+    @staticmethod
+    def _check_Fields4Rebuild(dd, lkeep=[], dname=''):
+        for kk in lkeep:
+            if kk not in dd.keys() or dd[kk] is None:
+                msg = "Rebuilding {0}:\n".format(dname)
+                msg += "Field '{0}' is missing !".format(kk)
+                raise Exception(msg)
+
+    def strip(self, strip=0):
+        msg = "Only allowed strip values are:\n"
+        msg += "    "+ ", ".join(["{0}".format(ii)
+                                  for ii in self._dstrip['allowed']])
+        assert strip in [-1]+self._dstrip['allowed'], msg
+        strip = self._dstrip['allowed'][strip]
+
+        # --------------------------------
+        # Call class-specific strip method
+        self._strip(strip)
+        # --------------------------------
+
+        self._dstrip['strip'] = strip
+
+
+    def get_dict(self, strip=None, sep=_sep):
+        if strip is None:
+            strip = self._dstrip['strip']
+        if self._dstrip['strip'] != strip:
+            self.strip(strip)
+
+        # ---------------------
+        # Call class-specific
+        dd = self._get_dict()
+        # ---------------------
+        dd['dId'] = self._get_dId()
+        dd['dstrip'] = {'dict':self._dstrip, 'lexcept':None}
+
+        out = {}
+        for k, v in dd.items():
+            lexcept_key = v.get('lexcept_key', None)
+            d = flatten_dict(v['dict'],
+                            parent_key='', sep=sep,
+                            lexcept_key=lexcept_key)
+            out[k] = d
+        out = flatten_dict(out, parent_key='', sep=sep)
+        return out
+
+    @abstractmethod
+    def _get_dId(self):
+        """ To be overloaded """
+        return {'dict':{}}
+
+    def from_dict(self, fd, sep=_sep, strip=None):
+
+        self._reset()
+        dd = reshape_dict(fd)
+
+        # ---------------------
+        # Call class-specific
+        self._from_dict(dd)
+        # ---------------------
+        self._dstrip.update(**dd['dstrip'])
+        self._set_Id()
+
+        if strip is None:
+            strip = self._dstrip['strip']
+        if self._dstrip['strip'] != strip:
+            self.strip(strip, verb=verb)
+
+    def copy(self, strip=None):
+        dd = self.get_dict(strip=strip)
+        obj = self.__class__(fromdict=dd)
+        return obj
+
+    def get_nbytes(self, method='nbytes'):
+        dd = self.get_dict()
+        dsize = dd.fromkeys(dd.keys(),0)
+        total = 0
+        if method=='nbytes':
+            for k, v in dd.items():
+                dsize[k] = np.asarray(v).nbytes
+                total += dsize[k]
+        elif method=='sizeof':
+            import sys
+            for k, v in dd.items():
+                dsize[k] = sys.getsizeof(np.asarray(v))
+                total += dsize[k]
+        return total, dsize
+
+
+    def __eq__(self, obj, detail=True, verb=True):
+        msg = "The 2 objects have different "
+        # Check class
+        eq = self.__class__==obj.__class__
+        if not eq:
+            msg += "classes :\n"
+            msg += str(self.__class__)+"\n"
+            msg += str(obj.__class__)
+
+        # Check keys
+        if eq:
+            d0 = self.get_dict(strip=None)
+            d1 = obj.get_dict(strip=None)
+            lk0 = sorted(list(d0.keys()))
+            lk1 = sorted(list(d1.keys()))
+            eq = lk0==lk1
+            if not eq:
+                msg += "dict keys :\n"
+                msg += '    ['+', '.join([k for k in lk0 if k not in lk1])+']\n'
+                msg += '    ['+', '.join([k for k in lk1 if k not in lk0])+']'
+
+        # Check values
+        if eq:
+            msg += "dict values :\n"
+            lsimple = [str,bool,int,float,
+                       np.int64,np.float64,
+                       tuple, list]
+            for k in lk0:
+                eqk = type(d0[k]) == type(d1[k])
+                if not eqk:
+                    eq = False
+                    msg += k+" types :\n"
+                    msg += "    "+str(type(d0[k]))+"\n"
+                    msg += "    "+str(type(d1[k]))+"\n"
+                    if not detail:
+                        break
+                if eqk:
+                    if d0[k] is None or type(d0[k]) in lsimple:
+                        eqk = d0[k]==d1[k]
+                    elif type(d0[k]) is np.ndarray:
+                        eqk = np.allclose(d0[k],d1[k],equal_nan=True)
+                    else:
+                        msg = "How to handle :\n"
+                        msg += "    {0} is a {1}".format(k,str(type(d0[k])))
+                        raise Exception(msg)
+                    if not eqk:
+                        eq = False
+                        msg += k+" :\n"
+                        msg += "    "+str(d0[k])+"\n"
+                        msg += "    "+str(d1[k])+"\n"
+                        if not detail:
+                            break
+
+        if not eq and verb:
+            print(msg)
+        return eq
+
+    def __neq__(self, obj, detail=True, verb=True):
+        return not self.__eq__(obj, detail=detail, verb=verb)
+
+
+
+
+class ToFuObject(ToFuObjectBase):
+
+    def _set_Id(self, Id=None, Name=None, SaveName=None, SavePath=None,
+                Type=None, Deg=None, Exp=None, Diag=None, shot=None, usr=None,
+                dUSR=None, lObj=None, include=None, **kwdargs):
+        largs = self._get_largs_Id()
+        dId = self._extract_kwdargs(locals(), largs)
+        dId = self._checkformat_inputs_Id(**dId)
+        if Id is None:
+            Id = ID(Cls=self.__class__, **dId)
+        self._Id = Id
+
+    @property
+    def Id(self):
+        return self._Id
+
+    def _get_dId(self):
+        return {'dict':self.Id.get_dict()}
+
+    def _reset(self):
+        if hasattr(self,'_Id'):
+            self._Id._reset()
+
+    def save(self, path=None, name=None,
+             strip=None, sep=_sep, mode='npz',
+             compressed=False, verb=True):
+        """ Save the tofu object in folder path, under name
+
+        Leave None to use default values (recommended)
+
+        Parameters
+        ----------
+        path :      None / str
+            Path specifying where to save the file
+            If None (recommended) uses self.Id.SavePath
+        name :      None / str
+            The name to be used for the saved file
+            If None (recommended) uses self.Id.SaveName
+        strip:      int
+            Flag indicating how much to strip the object
+            Fed to self.strip() before saving
+        sep  :      str
+            Separator used for naming the keys of the flattened dictionnary
+            Fed to self.get_dict()
+        mode :      str
+            Flag specifying how to save the object:
+                'npz': as a numpy array file (recommended)
+        compressed :    bool
+            Flag, used when mode='npz', indicates whether to use:
+                - False : np.savez
+                - True :  np.savez_compressed (slower but smaller files)
+        verb :      bool
+            Flag indicating whether to print a message saying what was saved
+        """
+        # Check path, name, mode
+        path, name, mode = get_pathfileext(path=path, name=name,
+                                           path_def=self.Id.SavePath,
+                                           name_def=self.Id.SaveName, mode=mode)
+
+        # Update self._Id fields
+        self._Id._SavePath = path
+        self._Id.set_SaveName(name)
+
+        # Get stripped dictionnary
+        dd = self.get_dict(strip=strip)
+
+        # save
+        pathfileext = tfpf.Save_Generic2(dd, path, name, mode,
+                                         compressed=compressed)
+
+        # print
+        if verb:
+            msg = "Saved in :\n"
+            msg += "    "+pathfileext
+            print(msg)
+
+
+#############################################
+#       ID class
+#############################################
+
+
+class ID(ToFuObjectBase):
+    """ A class used by all ToFu objects as an attribute
+
+    It stores all relevant data for the identification of instances
+    Stored info can be the name of the instance, the experiment and diagnostics
+    it belongs to, or other user-defined info
+    Also provides default names for saving the instances
+
+    Parameters
+    ----------
+    Cls :       str
+        Class of the object on which info should be stored:
+    Name :      str
+        Name of the instance (user-defined)
+        Should be a str without space ' ' or underscore '_'
+        (automatically removed if present)
+    Type :      None / str
+        Type of object (i.e.: 'Tor' or 'Lin' for a :class:`~tofu.geom.Ves`)
+    Deg :       None / int
+        Degree of the b-splines constituting the :mod:`tofu.mesh` object
+    Exp :       None / str
+        Flag specifying the experiment (e.g.: 'WEST', 'AUG', 'ITER', 'JET'...)
+    Diag :      None / str
+        Flag indicating the diagnostic (e.g.: 'SXR', 'HXR', 'Bolo'...)
+    shot :      None / int
+        A shot number from which the instance is valid (for tracking changes)
+    SaveName :  None / str
+        Overrides the default file name for saving (not recommended)
+    SavePath :  None / str
+        Absolute path where the instance should be saved
+    dUSR :   None / dict
+        A user-defined dictionary containing information about the instance
+        All info considered relevant can be passed here
+        (e.g.: thickness of the diode, date of installation...)
+    lObj :      None / dict / list
+        Either:
+            - list: list of other ID instances of objects on which the created object depends
+              (this list will then be sorted by class and formatted into a dictionary storign key attributes)
+            - dict: a ready-made such dictionary
+
+    """
+
+    _dModes = {'geom':'TFG', 'data':'TFD'}
+    _defInclude = ['Mod','Cls','Type','Exp','Deg','Diag','Name','shot']
+    _dPref = {'Exp':'Exp','Diag':'Dg','shot':'sh','Deg':'Deg',
+              'version':'Vers','usr':'U'}
+
+    def __init__(self, Cls=None, Name=None, Type=None, Deg=None,
+                 Exp=None, Diag=None, shot=None, SaveName=None,
+                 SavePath=None, usr=None, dUSR=None, lObj=None,
+                 fromdict=None, include=None):
+
+        kwdargs = locals()
+        del kwdargs['self']
+        super(ID, self).__init__(**kwdargs)
+
+    def _reset(self):
+        self._dall = dict.fromkeys(self._get_keys_dall())
+
+    ###########
+    # Get largs
+    ###########
+
+    @staticmethod
+    def _get_largs_dall():
+        largs = ['Cls', 'Name', 'Type', 'Deg',
+                 'Exp', 'Diag', 'shot', 'SaveName',
+                 'SavePath', 'usr', 'dUSR', 'lObj', 'include']
+        return largs
+
+    ###########
+    # Get check and format inputs
+    ###########
+
+    @staticmethod
+    def _checkformat_inputs_dall(usr=None, Cls=None, Type=None,
+                                 SavePath=None, Exp=None, Diag=None,
+                                 shot=None, Deg=None, Name=None,
+                                 SaveName=None, include=None,
+                                 lObj=None, dUSR=None):
+        # Str args
+        ls = [usr,Type,SavePath,Exp,Diag,SaveName]
+        assert all(ss is None or type(ss) is str for ss in ls)
+        if usr is None:
+            try:
+                usr = getpass.getuser()
+            except:
+                pass
+        assert shot is None or type(shot) is int and shot>=0
+        assert Deg is None or type(Deg) is int and Deg>=0
+        assert Cls is not None
+        assert issubclass(Cls, ToFuObject)
+        assert include is None or type(include) is list
+        dout = locals()
+        del dout['ls']
+        return dout
+
+    ###########
+    # Get keys of dictionnaries
+    ###########
+
+    @staticmethod
+    def _get_keys_dall():
+        lk = ['Mod', 'Cls', 'Type', 'Name', 'SaveName',
+              'SavePath', 'Exp', 'Diag', 'shot', 'Deg',
+              'version', 'usr', 'dUSR', 'lObj', 'SaveName-usr']
+        return lk
+
+    ###########
+    # _init
+    ###########
+
+    def _init(self, usr=None, Cls=None, Type=None, SavePath=None,
+              Exp=None, Diag=None, shot=None, Deg=None,
+              Name=None, SaveName=None, include=None,
+              lObj=None, dUSR=None, **kwdargs):
+        largs = self._get_largs_dall()
+        kwd = self._extract_kwdargs(locals(), largs)
+        largs = self._set_dall(**kwd)
+
+    ###########
+    # set dictionaries
+    ###########
+
+    def _set_dall(self, usr=None, Cls=None, Type=None, SavePath=None,
+                  Exp=None, Diag=None, shot=None, Deg=None,
+                  Name=None, SaveName=None, include=None,
+                  lObj=None, dUSR=None):
+
+        dargs = locals()
+        del dargs['self']
+        dargs = ID._checkformat_inputs_dall(**dargs)
+
+        self._dall['version'] = __version__
+        lasis = ['usr','Type','SavePath','Exp','Diag','shot','Deg']
+        dasis = dict([(k,dargs[k]) for k in lasis])
+        self._dall.update(dasis)
+
+        # Set fixed attributes
+        Mod, Cls = ID._extract_ModClsFrom_class(dargs['Cls'])
+        self._dall['Mod'] = Mod
+        self._dall['Cls'] = Cls
+
+        # Set variable attributes
+        self.set_Name(Name, SaveName=SaveName, include=include)
+
+        self.set_lObj(lObj)
+        self.set_dUSR(dUSR)
+
+    ###########
+    # strip dictionaries
+    ###########
+
+    def _strip_dall(self, lkeep=[]):
+        pass
+
+    ###########
+    # rebuild dictionaries
+    ###########
+
+    def _rebuild_dall(self, lkeep=[]):
+        pass
+
+
+    ###########
+    # _strip and get/from dict
+    ###########
+
+    def _strip(self, strip=0):
+        assert strip is None or type(strip) is int
+        if strip is None:
+            return [0]
+        pass
+
+    def _get_dict(self):
+        dout = {'dall':{'dict':self.dall, 'lexcept':None}}
+        return dout
+
+    def _from_dict(self, fd):
+        self._dall.update(**fd['dall'])
+
+    ###########
+    # Properties
+    ###########
+
+    @property
+    def dall(self):
+        return self._dall
+    @property
+    def Mod(self):
+        return self._dall['Mod']
+    @property
+    def Cls(self):
+        return self._dall['Cls']
+    @property
+    def Name(self):
+        return self._dall['Name']
+    @property
+    def NameLTX(self):
+        return r"$"+self.Name.replace('_','\_')+r"$"
+    @property
+    def Exp(self):
+        return self._dall['Exp']
+    @property
+    def Diag(self):
+        return self._dall['Diag']
+    @property
+    def shot(self):
+        return self._dall['shot']
+    @property
+    def usr(self):
+        return self._dall['usr']
+    @property
+    def Type(self):
+        return self._dall['Type']
+    @property
+    def Deg(self):
+        return self._dall['Deg']
+    @property
+    def SaveName(self):
+        return self._dall['SaveName']
+    @property
+    def SavePath(self):
+        return self._dall['SavePath']
+    @property
+    def lObj(self):
+        return self._dall['lObj']
+    @property
+    def dUSR(self):
+        return self._dall['dUSR']
+    @property
+    def version(self):
+        return self._dall['version']
+
+    ###########
+    # semi-public methods
+    ###########
+
+    @staticmethod
+    def _extract_ModClsFrom_class(Cls):
+        strc = str(Cls)
+        ind0 = strc.index('tofu.')+5
+        indeol = strc.index("'>")
+        strc = strc[ind0:indeol]
+        indp = strc.index('.')
+        Mod = strc[:indp]
+        strc = strc[indp+1:][::-1]
+        cls = strc[:strc.index('.')][::-1]
+        return Mod, cls
+
+    @staticmethod
+    def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
+                      Exp=None, Diag=None, shot=None, version=None, usr=None,
+                      include=None):
+        """ Return a default name for saving the object
+
+        Includes key info for fast identification of the object from file name
+        Used on object creation by :class:`~tofu.pathfile.ID`
+        It is recommended to use this default name.
+
+        """
+        Modstr = ID._dModes[Mod] if Mod is not None else None
+        include = ID._defInclude if include is None else include
+        if Cls is not None and Type is not None and 'Type' in include:
+            Clsstr = Cls+Type
+        else:
+            Clsstr = Cls
+        Dict = {'Mod':Modstr, 'Cls':Clsstr, 'Name':Name}
+        for ii in include:
+            if not ii in ['Mod','Cls','Type','Name']:
+                Dict[ii] = None
+            if ii=='Deg' and Deg is not None:
+                Dict[ii] = ID._dPref[ii]+'{0:02.0f}'.format(Deg)
+            elif ii=='shot' and shot is not None:
+                Dict[ii] = ID._dPref[ii]+'{0:05.0f}'.format(shot)
+            elif not (ii in ['Mod','Cls','Type','Name'] or eval(ii+' is None')):
+                Dict[ii] = ID._dPref[ii]+eval(ii)
+        if 'Data' in Cls:
+            Order = ['Mod','Cls','Exp','Deg','Diag','shot',
+                     'Name','version','usr']
+        else:
+            Order = ['Mod','Cls','Exp','Deg','Diag','Name',
+                     'shot','version','usr']
+
+        SVN = ""
+        for ii in range(0,len(Order)):
+            if Order[ii] in include and Dict[Order[ii]] is not None:
+                SVN += '_' + Dict[Order[ii]]
+        SVN = SVN.replace('__','_')
+        if SVN[0]=='_':
+            SVN = SVN[1:]
+        return SVN
+
+    ###########
+    # public methods
+    ###########
+
+
+    def set_Name(self, Name, SaveName=None,
+                 include=None,
+                 ForceUpdate=False):
+        """ Set the Name of the instance, automatically updating the SaveName
+
+        The name should be a str without spaces or underscores (removed)
+        When the name is changed, if SaveName (i.e. the name used for saving)
+        was not user-defined, it is automatically updated
+
+        Parameters
+        ----------
+        Name :      str
+            Name of the instance, without ' ' or '_' (automatically removed)
+        SaveName :  None / str
+            If provided, overrides the default name for saving (not recommended)
+        include:    list
+            Controls how te default SaveName is generated
+            Each element of the list is a key str indicating whether an element
+            should be present in the SaveName
+
+        """
+        self._dall['Name'] = Name
+        self.set_SaveName(SaveName=SaveName, include=include,
+                          ForceUpdate=ForceUpdate)
+
+    def set_SaveName(self,SaveName=None,
+                     include=None,
+                     ForceUpdate=False):
+        """ Set the name for saving the instance (SaveName)
+
+        SaveName can be either:
+            - provided by the user (no constraint) - not recommended
+            - automatically generated from Name and key attributes (cf. include)
+
+        Parameters
+        ----------
+        SaveName :      None / str
+            If provided, overrides the default name for saving (not recommended)
+        include :       list
+            Controls how te default SaveName is generated
+            Each element of the list is a key str indicating whether an element
+            should be present in the SaveName
+        ForceUpdate :   bool
+            Flag indicating the behaviour when SaveName=None:
+                - True : A new SaveName is generated, overriding the old one
+                - False : The former SaveName is preserved (default)
+        """
+        if not 'SaveName-usr' in self.dall.keys():
+            self._dall['SaveName-usr'] = (SaveName is not None)
+        # If SaveName provided by user, override
+        if SaveName is not None:
+            self._dall['SaveName'] = SaveName
+            self._dall['SaveName-usr'] = True
+        else:
+            # Don't update if former is user-defined and ForceUpdate is False
+            # Override if previous was:
+            # automatic or (user-defined but ForceUpdate is True)
+            C0 = self._dall['SaveName-usr']
+            C1 = self._dall['SaveName-usr'] and ForceUpdate
+            if (not C0) or C1:
+                SN = ID.SaveName_Conv(Mod=self.Mod, Cls=self.Cls,
+                                      Type=self.Type, Name=self.Name,
+                                      Deg=self.Deg, Exp=self.Exp,
+                                      Diag=self.Diag, shot=self.shot,
+                                      version=self.version, usr=self.usr,
+                                      include=include)
+                self._dall['SaveName'] = SN
+                self._dall['SaveName-usr'] = False
+
+    def set_lObj(self, lObj=None):
+        """ Set the lObj attribute, storing objects the instance depends on
+
+        For example:
+        A Detect object depends on a vessel and some apertures
+        That link between should be stored somewhere (for saving/loading).
+        lObj does this: it stores the ID (as dict) of all objects depended on.
+
+        Parameters
+        ----------
+        lObj :  None / dict / :class:`~tofu.pathfile.ID` / list of such
+            Provide either:
+                - A dict (derived from :meth:`~tofu.pathfile.ID._todict`)
+                - A :class:`~tofu.pathfile.ID` instance
+                - A list of dict or :class:`~tofu.pathfile.ID` instances
+
+        """
+        if self.lObj is None and lObj is not None:
+            self._dall['lObj'] = {}
+        if lObj is not None:
+            if type(lObj) is not list:
+                lObj = [lObj]
+            for ii in range(0,len(lObj)):
+                if type(lObj[ii]) is ID:
+                    lObj[ii] = lObj[ii].get_dict()
+            ClsU = list(set([oo['Cls'] for oo in lObj]))
+            for c in ClsU:
+                self._dall['lObj'][c] = [oo for oo in lObj if oo['Cls']==c]
+
+    def set_dUSR(self, dUSR={}):
+        """ Set the dUSR, containing user-defined info about the instance
+
+        Useful for arbitrary info (e.g.: manufacturing date, material...)
+
+        Parameters
+        ----------
+        dUSR :   dict
+            A user-defined dictionary containing info about the instance
+
+        """
+        self._dall['dUSR'] = dUSR
+
+
+
+
 
 
 #############################################
