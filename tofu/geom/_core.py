@@ -13,6 +13,15 @@ import copy
 import numpy as np
 import matplotlib as mpl
 import datetime as dtm
+try:
+    import pandas as pd
+except Exception:
+    lm = ['tf.geom.Config.get_description()']
+    msg = "Could not import pandas, "
+    msg += "the following may not work :"
+    msg += "\n    - ".join(lm)
+    warnings.warn(msg)
+
 
 # ToFu-specific
 import tofu.pathfile as tfpf
@@ -384,7 +393,7 @@ class Struct(utils.ToFuObject):
             self._strip_dphys()
             self._strip_dmisc()
 
-    def _get_dict(self):
+    def _to_dict(self):
         dout = {'dgeom':{'dict':self.dgeom, 'lexcept':None},
                 'dsino':{'dict':self.dsino, 'lexcept':None},
                 'dphys':{'dict':self.dphys, 'lexcept':None},
@@ -622,10 +631,10 @@ class Struct(utils.ToFuObject):
         return pts, dV, ind, reseff
 
 
-    def plot(self, Lax=None, Proj='All', Elt='PIBsBvV',
+    def plot(self, lax=None, proj='All', Elt='PIBsBvV',
              dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
              dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
-             dBvHor=_def.TorBvTord, Lim=None,Nstep=_def.TorNTheta,
+             dBvHor=_def.TorBvTord, Lim=None, Nstep=_def.TorNTheta,
              dLeg=_def.TorLegd, draw=True, fs=None, wintit='tofu', Test=True):
         """ Plot the polygon defining the vessel, in chosen projection
 
@@ -693,7 +702,8 @@ class Struct(utils.ToFuObject):
         """
         kwdargs = locals()
         lout = ['self']
-        lrepl = [('dP','Pdict'),('dI','Idict'),('dBs','Bsdict'),
+        lrepl = [('lax','Lax'), ('proj','Proj'),
+                 ('dP','Pdict'),('dI','Idict'),('dBs','Bsdict'),
                  ('dBv','Bvdict'),('dVect','Vdict'),('dIHor','IdictHor'),
                  ('dBsHor','BsdictHor'),('dBvHor','BvdictHor'),
                  ('dLeg','LegDict')]
@@ -940,8 +950,8 @@ class CoilPF(Ves, color='r'):
             self._strip_dmag()
         return out
 
-    def _get_dict(self):
-        dout = super()._get_dict()
+    def _to_dict(self):
+        dout = super()._to_dict()
         dout.update({'dmag':{'dict':self.dmag, 'lexcept':None}})
         return dout
 
@@ -1001,9 +1011,13 @@ class CoilCS(CoilPF, color='r'): pass
 
 class Config(utils.ToFuObject):
 
+
+    # SPecial dict subclass with attr-like value access
+
+
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'shot':0},
-             'dstruct':{}}
+             'dstruct':{'order':['Ves','PFC','CoilPF','CoilCS']}}
 
     def __init__(self, lStruct=None,
                  Id=None, Name=None, Exp=None, shot=None,
@@ -1021,17 +1035,15 @@ class Config(utils.ToFuObject):
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
-                               Exp=None, shot=None,
-                               **kwdargs):
+                               shot=None, **kwdargs):
         if Id is not None:
             assert isinstance(Id,tfpf.ID2)
-            Name, Exp, shot = Id.Name, Id.Exp, Id.shot
+            Name, shot = Id.Name, Id.shot
         assert type(Name) is str
-        assert type(Exp) is str
         if shot is None:
             shot = cls._ddef['Id']['shot']
         assert type(shot) is int
-        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot})
+        kwdargs.update({'Name':Name, 'shot':shot})
         return kwdargs
 
     ###########
@@ -1056,14 +1068,161 @@ class Config(utils.ToFuObject):
         for ss in lsub:
             msg += "\n    - tf.geom.{0}".format(ss)
         assert type(lStruct) is not None, msg
-        lStruct = list(lStruct)
-        Ci = 0
-
-
+        C0 = isinstance(lStruct,list) or isinstance(lStruct,tuple)
+        C1 = issubclass(lStruct.__class__,Struct)
+        assert C0 or C1, msg
+        if C0:
+            Ci = [issubclass(ss.__class__,Struct) for ss in lStruct]
+            assert all(Ci), msg
+            lStruct = list(lStruct)
+        else:
+            lStruct = [lStruct]
+        C = all([ss.Id.Exp==lStruct[0].Id.Exp for ss in lStruct])
+        msg = "All Struct objects must have the same Exp !"
+        msg += "\nCurrently we have:"
+        ls = ["{0}: {1}".format(ss.Id.SaveName, ss.Id.Exp)for ss in lStruct]
+        msg += "\n    - " + "\n    - ".join(ls)
+        assert C, msg
         return lStruct
 
+    ###########
+    # Get keys of dictionnaries
+    ###########
+
+    @staticmethod
+    def _get_keys_dstruct():
+        lk = ['lStruct','lCls']
+        return lk
+
+    ###########
+    # _init
+    ###########
+
+    def _init(self, lStruct=None, **kwdargs):
+        largs = self._get_largs_dstruct()
+        kwdstruct = self._extract_kwdargs(locals(), largs)
+        self._set_dstruct(**kwdstruct)
+
+    ###########
+    # set dictionaries
+    ###########
+
+    def _set_dstruct(self, lStruct=None):
+        lStruct = self._checkformat_inputs_dstruct(lStruct=lStruct)
+        # Make sure to kill the link to the mutable being provided
+        lStruct = lStruct.copy()
+        # Get extra info
+        lCls = list(set([ss.Id.Cls for ss in lStruct]))
+        self._dstruct = {'lStruct':lStruct, 'lCls':lCls}
+
+        self._dstruct_dynamicattr()
+
+    def _dstruct_dynamicattr(self):
+        # get (key, val) pairs
+        for k in self._ddef['dstruct']['order']:
+            if k in self._dstruct['lCls']:
+                dd = utils.dictattr([(ss.Id.Name,ss)
+                                     for ss in self._dstruct['lStruct']
+                                     if ss.Id.Cls==k])
+                setattr(self, k, dd)
+            elif hasattr(self,k):
+                exec('del self.{0}'.format(k))
+
+    ###########
+    # strip dictionaries
+    ###########
+
+    def _strip_dstruct(self, lkeep=['lStruct']):
+        utils.ToFuObject._strip_dict(self._dstruct, lkeep=lkeep)
+
+    ###########
+    # rebuild dictionaries
+    ###########
+
+    def _rebuild_dstruct(self, lkeep=['lStruct']):
+        reset = utils.ToFuObject._test_Rebuild(self._dstruct, lkeep=lkeep)
+        if reset:
+            utils.ToFuObject._check_Fields4Rebuild(self._dstruct,
+                                                   lkeep=lkeep, dname='dstruct')
+            self.set_dstruct(lStruct=self.lStruct)
+
+    ###########
+    # _strip and get/from dict
+    ###########
+
+    ### To be revised !!!
+    def _strip(self, strip=0):
+        assert strip is None or type(strip) is int
+        if strip is None:
+            return [0,1,2]
+        if strip==0:
+            self._rebuild_dstruct()
+        else:
+            self._strip_dstruct()
+        return out
+
+    def _to_dict(self):
+        dout = {'dstruct':{'dict':self.dstruct, 'lexcept':None}}
+        return dout
+
+    def _from_dict(self, fd):
+        self._dstruct.update(**fd['dstruct'])
 
 
+    ###########
+    # Properties
+    ###########
+
+    @property
+    def dstruct(self):
+        return self._dstruct
+    @property
+    def dStruct(self):
+       d = dict([(cc,[ss for ss in self._dstruct['lStruct'] if ss.Id.Cls==cc])
+                 for cc in self._dstruct['lCls']])
+       return d
+
+    ###########
+    # public methods
+    ###########
+
+    def get_description(self, verb=False, max_columns=100, width=1000):
+        """ Summary description of the object content as a pandas DataFrame """
+        d = self.dStruct
+        data = []
+        for k in self._ddef['dstruct']['order']:
+            if k not in d.keys():
+                continue
+            for ins in d[k]:
+                tu = (k, ins._Id._dall['SaveName'], ins._dgeom['nP'],
+                      ins._dgeom['nLim'], ins._dgeom['mobile'],
+                      ins._dmisc['color'])
+                data.append(tu)
+        col = ['class', 'SaveName', 'nP', 'nLim', 'mobile', 'color']
+        df = pd.DataFrame(data, columns=col)
+        pd.set_option('display.max_columns',max_columns)
+        pd.set_option('display.width',width)
+
+        if verb:
+            print(df)
+        return df
+
+    def plot(self, lax=None, proj='All', Elt='P', dLeg=_def.TorLegd,
+             draw=True, fs=None, wintit=None, Test=True):
+        kwdargs = locals()
+        del kwdargs['self'], kwdargs['lax']
+        del kwdargs['dLeg'], kwdargs['draw']
+        for k in self._dstruct['lCls']:
+            for v in self.dStruct[k]:
+                lax = v.plot(lax=lax, dLeg=None, draw=False, **kwdargs)
+        if dLeg is not None:
+            lax[0].legend(**dLeg)
+        if draw:
+            lax[0].figure.canvas.draw()
+        return lax
+
+    def plot_sino(self, **kwdargs):
+        pass
 
 
 """
