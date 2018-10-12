@@ -135,6 +135,19 @@ def get_todictfields(ld, ls):
 
 
 #############################################
+#       Special dict subclass for dynamic attributes creation
+#############################################
+
+class dictattr(dict):
+    __getattr__ = dict.__getitem__
+
+    def __dir__(self):
+        return [str(k) for k in self.keys()]
+
+
+
+
+#############################################
 #       Miscellaneous
 #############################################
 
@@ -143,7 +156,7 @@ def _set_arrayorder(obj, arrayorder='C'):
     msg = "Arg arrayorder must be in ['C','F']"
     assert arrayorder in ['C','F'], msg
 
-    d = obj.get_dict(strip=-1)
+    d = obj.to_dict(strip=-1)
     account = {'Success':[], 'Failed':[]}
     for k, v in d.items():
         if type(v) is np.array and v.ndim>1:
@@ -274,7 +287,7 @@ class ToFuObjectBase(object):
         self._dstrip['strip'] = strip
 
 
-    def get_dict(self, strip=None, sep=_sep):
+    def to_dict(self, strip=None, sep=_sep):
         if strip is None:
             strip = self._dstrip['strip']
         if self._dstrip['strip'] != strip:
@@ -282,7 +295,7 @@ class ToFuObjectBase(object):
 
         # ---------------------
         # Call class-specific
-        dd = self._get_dict()
+        dd = self._to_dict()
         # ---------------------
         dd['dId'] = self._get_dId()
         dd['dstrip'] = {'dict':self._dstrip, 'lexcept':None}
@@ -320,12 +333,12 @@ class ToFuObjectBase(object):
             self.strip(strip, verb=verb)
 
     def copy(self, strip=None):
-        dd = self.get_dict(strip=strip)
+        dd = self.to_dict(strip=strip)
         obj = self.__class__(fromdict=dd)
         return obj
 
     def get_nbytes(self, method='nbytes'):
-        dd = self.get_dict()
+        dd = self.to_dict()
         dsize = dd.fromkeys(dd.keys(),0)
         total = 0
         if method=='nbytes':
@@ -351,8 +364,8 @@ class ToFuObjectBase(object):
 
         # Check keys
         if eq:
-            d0 = self.get_dict(strip=None)
-            d1 = obj.get_dict(strip=None)
+            d0 = self.to_dict(strip=None)
+            d1 = obj.to_dict(strip=None)
             lk0 = sorted(list(d0.keys()))
             lk1 = sorted(list(d1.keys()))
             eq = lk0==lk1
@@ -420,7 +433,7 @@ class ToFuObject(ToFuObjectBase):
         return self._Id
 
     def _get_dId(self):
-        return {'dict':self.Id.get_dict()}
+        return {'dict':self.Id.to_dict()}
 
     def _reset(self):
         if hasattr(self,'_Id'):
@@ -446,7 +459,7 @@ class ToFuObject(ToFuObjectBase):
             Fed to self.strip() before saving
         sep  :      str
             Separator used for naming the keys of the flattened dictionnary
-            Fed to self.get_dict()
+            Fed to self.to_dict()
         mode :      str
             Flag specifying how to save the object:
                 'npz': as a numpy array file (recommended)
@@ -467,7 +480,7 @@ class ToFuObject(ToFuObjectBase):
         self._Id.set_SaveName(name)
 
         # Get stripped dictionnary
-        dd = self.get_dict(strip=strip)
+        dd = self.to_dict(strip=strip)
 
         # save
         pathfileext = tfpf.Save_Generic2(dd, path, name, mode,
@@ -659,7 +672,7 @@ class ID(ToFuObjectBase):
             return [0]
         pass
 
-    def _get_dict(self):
+    def _to_dict(self):
         dout = {'dall':{'dict':self.dall, 'lexcept':None}}
         return dout
 
@@ -876,7 +889,7 @@ class ID(ToFuObjectBase):
                 lObj = [lObj]
             for ii in range(0,len(lObj)):
                 if type(lObj[ii]) is ID:
-                    lObj[ii] = lObj[ii].get_dict()
+                    lObj[ii] = lObj[ii].to_dict()
             ClsU = list(set([oo['Cls'] for oo in lObj]))
             for c in ClsU:
                 self._dall['lObj'][c] = [oo for oo in lObj if oo['Cls']==c]
