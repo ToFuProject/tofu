@@ -1091,7 +1091,7 @@ class Config(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dstruct():
-        lk = ['lStruct','lCls']
+        lk = ['lStruct','nStruct','lCls']
         return lk
 
     ###########
@@ -1110,20 +1110,32 @@ class Config(utils.ToFuObject):
     def _set_dstruct(self, lStruct=None):
         lStruct = self._checkformat_inputs_dstruct(lStruct=lStruct)
         # Make sure to kill the link to the mutable being provided
-        lStruct = lStruct.copy()
+        nStruct = len(lStruct)
         # Get extra info
         lCls = list(set([ss.Id.Cls for ss in lStruct]))
-        self._dstruct = {'lStruct':lStruct, 'lCls':lCls}
+        lorder = [ss.Id.SaveName_Conv(Cls=ss.Id.Cls,
+                                      Name=ss.Id.Name
+                                      Include=['Cls','Name']) for ss in lStruct]
 
+        msg = "There is an ambiguity in the names :"
+        msg += "\n    - " + "\n    - ".join(lorder)
+        msg += "\n => Please clarify (choose unique Cls/Names)"
+        assert len(list(set(lorder)))==nStruct, msg
+
+        self._dstruct = {'dStruct':{}}
+        for k in lCls:
+            self._struct['dStruct'][k] = dict([(ss.Id.Name,ss.copy())
+                                               for ss in lStruct
+                                               if ss.Id.Cls==k])
+        self._dstruct.update({'nStruct':nStruct,
+                              'lorder':lorder, 'lCls':lCls})
         self._dstruct_dynamicattr()
 
     def _dstruct_dynamicattr(self):
         # get (key, val) pairs
         for k in self._ddef['dstruct']['order']:
             if k in self._dstruct['lCls']:
-                dd = utils.dictattr([(ss.Id.Name,ss)
-                                     for ss in self._dstruct['lStruct']
-                                     if ss.Id.Cls==k])
+                dd = utils.dictattr(self._dstruct['dStruct'][k])
                 setattr(self, k, dd)
             elif hasattr(self,k):
                 exec('del self.{0}'.format(k))
@@ -1132,14 +1144,41 @@ class Config(utils.ToFuObject):
     # strip dictionaries
     ###########
 
-    def _strip_dstruct(self, lkeep=['lStruct']):
+    def _strip_dstruct(self, lkeep=['dStruct'], strip=1, force=False):
+        if strip in [1,2]:
+            for k in self._dstruct['lCls']:
+                for kk, v  in self._dstruct['dStruct'][k].items():
+                    self._dstruct['dStruct'][k][kk].strip(strip=strip)
+        elif strip>2:
+            for k in self._dstruct['lCls']:
+                for kk, v  in self._dstruct['dStruct'][k].items():
+                    pathfile = os.path.join(v.Id.SavePath, v.Id.SaveName)
+                    # --- Check !
+                    lf = os.listdir(v.Id.SavePath)
+                    lf = [ff for ff in lf
+                          if all([ss in ff for ss in [v.Id.SaveName,'.npz']])]
+                    exist = len(lf)==1
+                    # ----------
+                    if not exist:
+                        msg = "BEWARE : You are about to delete the Struct
+                        objects and keep only the reference to there saved
+                        files (Struct.Id.SavePath + Struct.Id.SaveName)"
+                        msg += "\nBut It appears that the following Struct has
+                        not be saved where specified and won't be retrieved
+                        (unless still available in the current python console):"
+                        msg += "\n    - {0}".format(pathfile+'.npz')
+                        if force:
+                            warning.warn(msg)
+                        else:
+                            raise Exception(msg)
+                    self._dstruct['dStruct'][k][kk] = pathfile
         utils.ToFuObject._strip_dict(self._dstruct, lkeep=lkeep)
 
     ###########
     # rebuild dictionaries
     ###########
 
-    def _rebuild_dstruct(self, lkeep=['lStruct']):
+    def _rebuild_dstruct(self, lkeep=['dStruct']):
         reset = utils.ToFuObject._test_Rebuild(self._dstruct, lkeep=lkeep)
         if reset:
             utils.ToFuObject._check_Fields4Rebuild(self._dstruct,
@@ -1151,14 +1190,15 @@ class Config(utils.ToFuObject):
     ###########
 
     ### To be revised !!!
-    def _strip(self, strip=0):
+    def _strip(self, strip=0, force=False):
         assert strip is None or type(strip) is int
         if strip is None:
             return [0,1,2]
+
         if strip==0:
             self._rebuild_dstruct()
         else:
-            self._strip_dstruct()
+            self._strip_dstruct(strip=strip, force=force)
         return out
 
     def _to_dict(self):
