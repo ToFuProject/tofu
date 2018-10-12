@@ -49,7 +49,6 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
     2D to 3D, 3D to 2D, cylindrical to cartesian...
     (CrossRef is an angle (Tor) or a distance (X for Lin))
     """
-    print("in coordshift !!!!!!!")
     assert all([type(ff) is str and ',' in ff for ff in [In,Out]]), (
         "Arg In and Out (coordinate format) must be comma-separated  !")
     assert type(Pts) is np.ndarray and Pts.ndim in [1,2] and \
@@ -2122,6 +2121,8 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                             # (i.e.: k>=0)
                             # First solution
                             if -upscaDp - sqd >=0:
+                                # TODO : @LM - est-ce que c'est possible de le mat ?
+                                # ou le sortir d'ici
                                 k = (-upscaDp - sqd)/upar2
                                 sol0, sol1 = Ds[0,ii] + k*us[0,ii], \
                                              Ds[1,ii] + k*us[1,ii]
