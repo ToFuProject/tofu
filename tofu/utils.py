@@ -66,7 +66,6 @@ def get_pathfileext(path=None, name=None,
 
 
 
-
 #############################################
 #       todict formatting
 #############################################
@@ -343,12 +342,18 @@ class ToFuObjectBase(object):
         total = 0
         if method=='nbytes':
             for k, v in dd.items():
-                dsize[k] = np.asarray(v).nbytes
+                if issubclass(v.__class__, ToFuObjectBase):
+                    dsize[k] = v.get_nbytes(method=method)[0]
+                else:
+                    dsize[k] = np.asarray(v).nbytes
                 total += dsize[k]
         elif method=='sizeof':
             import sys
             for k, v in dd.items():
-                dsize[k] = sys.getsizeof(np.asarray(v))
+                if issubclass(v.__class__, ToFuObjectBase):
+                    dsize[k] = v.get_nbytes(method=method)[0]
+                else:
+                    dsize[k] = sys.getsizeof(np.asarray(v))
                 total += dsize[k]
         return total, dsize
 
