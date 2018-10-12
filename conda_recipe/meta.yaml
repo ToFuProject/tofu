@@ -18,6 +18,7 @@ build:
 
 requirements:
   # build: necessaire pour build.sh
+  # here same as run, as we are using cython
   # checker "host:"
   build:
     - python
@@ -32,10 +33,10 @@ requirements:
     - polygon2 # [py27]
     - polygon3 # [not py27]
 
-  # necessaire pour tourner
+  # for running the library
   run:
     - python
-    - setuptools
+    - setuptools # ? is it necessary
     - setuptools_scm
     - numpy
     - scipy
