@@ -194,6 +194,11 @@ class ToFuObjectBase(object):
     __metaclass__ = ABCMeta
     _dstrip = {'strip':None, 'allowed':None}
 
+
+    def __init_subclass__(cls, *args, **kwdargs):
+        super().__init_subclass__(*args, **kwdargs)
+        cls._strip_init()
+
     def __init__(self, fromdict=None,
                  **kwdargs):
 
@@ -204,7 +209,6 @@ class ToFuObjectBase(object):
             self._reset()
             self._set_Id(**kwdargs)
             self._init(**kwdargs)
-            self._dstrip['allowed'] = self._strip(None)
         self._Done = True
 
 
@@ -220,7 +224,12 @@ class ToFuObjectBase(object):
 
     @abstractmethod
     def _init(self, **kwdargs):
-        """ To be overladed """
+        """ To be overloaded """
+        pass
+
+    @classmethod
+    def _strip_init(cls):
+        """ To be overloaded """
         pass
 
     @staticmethod
@@ -272,6 +281,24 @@ class ToFuObjectBase(object):
                 raise Exception(msg)
 
     def strip(self, strip=0):
+        """ Remove non-essential attributes to save memory / disk usage
+
+        Useful to save a very compressed version of the object
+        The higher strip => the more stripped the object
+        Use strip=0 to recover all atributes
+
+        See the difference by doing:
+            > self.get_nbytes()
+            > self.strip(-1)
+            > self.get_nbytes()
+
+        Parameters
+        ----------
+        strip:      int
+            Flag indicating how much to strip from the object
+                 0: Make complete (retrieve all attributes){0}
+                -1: Equivalent to strip={1}
+        """
         msg = "Only allowed strip values are:\n"
         msg += "    "+ ", ".join(["{0}".format(ii)
                                   for ii in self._dstrip['allowed']])
@@ -324,7 +351,8 @@ class ToFuObjectBase(object):
         self._from_dict(dd)
         # ---------------------
         self._dstrip.update(**dd['dstrip'])
-        self._set_Id()
+        if 'dId' in dd.keys():
+            self._set_Id(**dd['dId']['dall'])
 
         if strip is None:
             strip = self._dstrip['strip']
@@ -423,6 +451,9 @@ class ToFuObjectBase(object):
 
 class ToFuObject(ToFuObjectBase):
 
+    def __init_subclass__(cls, *args, **kwdargs):
+        super().__init_subclass__(*args, **kwdargs)
+
     def _set_Id(self, Id=None, Name=None, SaveName=None, SavePath=None,
                 Type=None, Deg=None, Exp=None, Diag=None, shot=None, usr=None,
                 dUSR=None, lObj=None, include=None, **kwdargs):
@@ -432,6 +463,7 @@ class ToFuObject(ToFuObjectBase):
         if Id is None:
             Id = ID(Cls=self.__class__, **dId)
         self._Id = Id
+
 
     @property
     def Id(self):
@@ -671,10 +703,18 @@ class ID(ToFuObjectBase):
     # _strip and get/from dict
     ###########
 
+    @classmethod
+    def _strip_init(cls):
+        cls._dstrip['allowed'] = [0]
+        nMax = max(cls._dstrip['allowed'])
+        doc = ""
+        doc = ToFuObjectBase.strip.__doc__.format(doc,nMax)
+        cls.strip.__doc__ = doc
+
+    def strip(self, strip=0):
+        super().strip(strip=strip)
+
     def _strip(self, strip=0):
-        assert strip is None or type(strip) is int
-        if strip is None:
-            return [0]
         pass
 
     def _to_dict(self):
