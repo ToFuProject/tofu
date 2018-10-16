@@ -372,11 +372,20 @@ class Struct(utils.ToFuObject):
     # _strip and get/from dict
     ###########
 
-    def _strip(self, strip=0):
-        assert strip is None or type(strip) is int
-        if strip is None:
-            return [0,1,2]
+    @classmethod
+    def _strip_init(cls):
+        cls._dstrip['allowed'] = [0,1,2]
+        nMax = max(cls._dstrip['allowed'])
+        doc = """
+                 1: Remove dsino expendables
+                 2: Remove also dgeom, dphys and dmisc expendables"""
+        doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
+        cls.strip.__doc__ = doc
 
+    def strip(self, strip=0):
+        super().strip(strip=strip)
+
+    def _strip(self, strip=0):
         if strip==0:
             self._rebuild_dgeom()
             self._rebuild_dsino()
@@ -942,6 +951,19 @@ class CoilPF(Ves, color='r'):
     # _strip and get/from dict
     ###########
 
+    @classmethod
+    def _strip_init(cls):
+        cls._dstrip['allowed'] = [0,1,2]
+        nMax = max(cls._dstrip['allowed'])
+        doc = """
+                 1: Remove dsino and dmag expendables
+                 2: Remove also dgeom, dphys and dmisc expendables"""
+        doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
+        cls.strip.__doc__ = doc
+
+    def strip(self, strip=0):
+        super().strip(strip=strip)
+
     def _strip(self, strip=0):
         out = super()._strip(strip=strip)
         if strip==0:
@@ -1012,7 +1034,7 @@ class CoilCS(CoilPF, color='r'): pass
 class Config(utils.ToFuObject):
 
 
-    # SPecial dict subclass with attr-like value access
+    # Special dict subclass with attr-like value access
 
 
     # Fixed (class-wise) dictionary of default properties
@@ -1114,8 +1136,8 @@ class Config(utils.ToFuObject):
         # Get extra info
         lCls = list(set([ss.Id.Cls for ss in lStruct]))
         lorder = [ss.Id.SaveName_Conv(Cls=ss.Id.Cls,
-                                      Name=ss.Id.Name
-                                      Include=['Cls','Name']) for ss in lStruct]
+                                      Name=ss.Id.Name,
+                                      include=['Cls','Name']) for ss in lStruct]
 
         msg = "There is an ambiguity in the names :"
         msg += "\n    - " + "\n    - ".join(lorder)
@@ -1124,9 +1146,9 @@ class Config(utils.ToFuObject):
 
         self._dstruct = {'dStruct':{}}
         for k in lCls:
-            self._struct['dStruct'][k] = dict([(ss.Id.Name,ss.copy())
-                                               for ss in lStruct
-                                               if ss.Id.Cls==k])
+            self._dstruct['dStruct'][k] = dict([(ss.Id.Name,ss.copy())
+                                                for ss in lStruct
+                                                if ss.Id.Cls==k])
         self._dstruct.update({'nStruct':nStruct,
                               'lorder':lorder, 'lCls':lCls})
         self._dstruct_dynamicattr()
@@ -1160,12 +1182,14 @@ class Config(utils.ToFuObject):
                     exist = len(lf)==1
                     # ----------
                     if not exist:
-                        msg = "BEWARE : You are about to delete the Struct
-                        objects and keep only the reference to there saved
-                        files (Struct.Id.SavePath + Struct.Id.SaveName)"
-                        msg += "\nBut It appears that the following Struct has
-                        not be saved where specified and won't be retrieved
-                        (unless still available in the current python console):"
+                        msg = """BEWARE:
+                            You are about to delete the Struct objects
+                            Only the path/name to saved objects will be kept
+
+                            But it appears that the following object has no
+                            saved file were specified (obj.Id.SavePath)
+                            Thus it won't be possible to retrieve it
+                            (unless available in the current console:"""
                         msg += "\n    - {0}".format(pathfile+'.npz')
                         if force:
                             warning.warn(msg)
@@ -1189,12 +1213,22 @@ class Config(utils.ToFuObject):
     # _strip and get/from dict
     ###########
 
+    @classmethod
+    def _strip_init(cls):
+        cls._dstrip['allowed'] = [0,1,2]
+        nMax = max(cls._dstrip['allowed'])
+        doc = """
+                 1: apply strip(1) to objects in self.lStruct
+                 2: apply strip(2) to objects in self.lStruct
+                 3: replace objects in self.lStruct by their SavePath+SaveName"""
+        doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
+        cls.strip.__doc__ = doc
+
+    def strip(self, strip=0):
+        super().strip(strip=strip)
+
     ### To be revised !!!
     def _strip(self, strip=0, force=False):
-        assert strip is None or type(strip) is int
-        if strip is None:
-            return [0,1,2]
-
         if strip==0:
             self._rebuild_dstruct()
         else:
