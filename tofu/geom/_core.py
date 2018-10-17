@@ -100,7 +100,8 @@ class Struct(utils.ToFuObject):
 
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'shot':0},
+    _ddef = {'Id':{'shot':0,
+                   'include':['Mod','Cls','Exp','Diag','Name','shot']},
              'dgeom':{'Type':'Tor', 'Lim':[], 'arrayorder':'C'},
              'dsino':{},
              'dphys':{},
@@ -132,6 +133,7 @@ class Struct(utils.ToFuObject):
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
                                Exp=None, shot=None, Type=None,
+                               include=None,
                                **kwdargs):
         if Id is not None:
             assert isinstance(Id,utils.ID)
@@ -144,7 +146,10 @@ class Struct(utils.ToFuObject):
         if Type is None:
             Type = cls._ddef['dgeom']['Type']
         assert Type in ['Tor','Lin']
-        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot, 'Type':Type})
+        if include is None:
+            include = cls._ddef['Id']['include']
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot, 'Type':Type,
+                        'include':include})
         return kwdargs
 
     ###########
