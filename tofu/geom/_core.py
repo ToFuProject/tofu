@@ -134,7 +134,7 @@ class Struct(utils.ToFuObject):
                                Exp=None, shot=None, Type=None,
                                **kwdargs):
         if Id is not None:
-            assert isinstance(Id,tfpf.ID2)
+            assert isinstance(Id,utils.ID)
             Name, Exp, shot, Type = Id.Name, Id.Exp, Id.shot, Id.Type
         assert type(Name) is str
         assert type(Exp) is str
@@ -1059,7 +1059,7 @@ class Config(utils.ToFuObject):
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
                                shot=None, **kwdargs):
         if Id is not None:
-            assert isinstance(Id,tfpf.ID2)
+            assert isinstance(Id,utils.ID)
             Name, shot = Id.Name, Id.shot
         assert type(Name) is str
         if shot is None:
@@ -1144,19 +1144,37 @@ class Config(utils.ToFuObject):
         msg += "\n => Please clarify (choose unique Cls/Names)"
         assert len(list(set(lorder)))==nStruct, msg
 
-        self._dstruct = {'dStruct':{}}
+        self._dstruct = {'dStruct':dict([(k,{}) for k in lCls]),
+                         'dvisible':dict([(k,{}) for k in lCls])}
         for k in lCls:
-            self._dstruct['dStruct'][k] = dict([(ss.Id.Name,ss.copy())
-                                                for ss in lStruct
-                                                if ss.Id.Cls==k])
+            lk = [ss for ss in lStruct if ss.Id.Cls==k]
+            for ss in lk:
+                self._dstruct['dStruct'][k].update({ss.Id.Name:ss.copy()})
+                self._dstruct['dvisible'][k].update({ss.Id.Name:True})
+
         self._dstruct.update({'nStruct':nStruct,
                               'lorder':lorder, 'lCls':lCls})
         self._dstruct_dynamicattr()
 
     def _dstruct_dynamicattr(self):
         # get (key, val) pairs
+        def set_vis(obj, k0, k1, val):
+            assert type(val) is bool
+            obj._dstruct['dvisible'][k0][k1] = val
+        def get_vis(obj, k0, k1):
+            return obj._dstruct['dvisible'][k0][k1]
         for k in self._ddef['dstruct']['order']:
             if k in self._dstruct['lCls']:
+                # Find a way to programmatically add dynamic properties to the
+                # instances , like visible
+                # In the meantime use a simple functions
+                for kk in self._dstruct['dStruct'][k].keys():
+                    setattr(self._dstruct['dStruct'][k][kk],
+                            'set_visible',
+                            lambda vis, k0=k, k1=kk: set_vis(self, k0, k1, vis))
+                    setattr(self._dstruct['dStruct'][k][kk],
+                            'get_visible',
+                            lambda k0=k, k1=kk: get_vis(self, k0, k1))
                 dd = utils.dictattr(self._dstruct['dStruct'][k])
                 setattr(self, k, dd)
             elif hasattr(self,k):
@@ -1249,12 +1267,38 @@ class Config(utils.ToFuObject):
 
     @property
     def dstruct(self):
-        return self._dstruct
+       return self._dstruct
     @property
-    def dStruct(self):
-       d = dict([(cc,[ss for ss in self._dstruct['lStruct'] if ss.Id.Cls==cc])
-                 for cc in self._dstruct['lCls']])
-       return d
+    def lStruct(self):
+        """ Return the list of Struct that was used for creation
+
+        As tofu objects of SavePath+SaveNames (according to strip status)
+        """
+        lStruct = []
+        for k in self._dstruct['lorder']:
+            k0, k1 = k.split('_')
+            lStruct.append(self._dstruct['dStruct'][k0][k1])
+        return lStruct
+    @property
+    def visible(self):
+        """ Return the array of visible bool (same order as lStruct) """
+        vis = np.ones((self._dstruct['nStruct'],),dtype=bool)
+        ii = 0
+        for k in self._dstruct['lorder']:
+            k0, k1 = k.split('_')
+            vis[ii] = self._dstruct['dvisible'][k0][k1]
+            ii += 1
+        return vis
+    @property
+    def color(self):
+        """ Return the array of rgba colors (same order as lStruct) """
+        col = np.full((self._dstruct['nStruct'],4),dtype=float)
+        ii = 0
+        for k in self._dstruct['lorder']:
+            k0, k1 = k.split('_')
+            col[ii,:] = self._dstruct['dStruct'][k0][k1].color
+            ii += 1
+        return col
 
     ###########
     # public methods
@@ -1262,17 +1306,29 @@ class Config(utils.ToFuObject):
 
     def get_description(self, verb=False, max_columns=100, width=1000):
         """ Summary description of the object content as a pandas DataFrame """
-        d = self.dStruct
+        # Make sure the data is accessible
+        msg = "The data is not accessible because self.strip(2) was used !"
+        assert self._dstrip['strip']<2, msg
+
+        # Build the list
+        d = self._dstruct['dStruct']
         data = []
         for k in self._ddef['dstruct']['order']:
             if k not in d.keys():
                 continue
-            for ins in d[k]:
-                tu = (k, ins._Id._dall['SaveName'], ins._dgeom['nP'],
-                      ins._dgeom['nLim'], ins._dgeom['mobile'],
-                      ins._dmisc['color'])
+            for kk in d[k].keys():
+                tu = (k,
+                      self._dstruct['dStruct'][k][kk]._Id._dall['SaveName'],
+                      self._dstruct['dStruct'][k][kk]._dgeom['nP'],
+                      self._dstruct['dStruct'][k][kk]._dgeom['nLim'],
+                      self._dstruct['dStruct'][k][kk]._dgeom['mobile'],
+                      self._dstruct['dStruct'][k][kk].visible,
+                      self._dstruct['dStruct'][k][kk]._dmisc['color'])
                 data.append(tu)
-        col = ['class', 'SaveName', 'nP', 'nLim', 'mobile', 'color']
+
+        # Build the pandas DataFrame
+        col = ['class', 'SaveName', 'nP', 'nLim',
+               'mobile', 'visible', 'color']
         df = pd.DataFrame(data, columns=col)
         pd.set_option('display.max_columns',max_columns)
         pd.set_option('display.width',width)
