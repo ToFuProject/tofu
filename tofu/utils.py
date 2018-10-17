@@ -71,25 +71,50 @@ def get_pathfileext(path=None, name=None,
 #############################################
 
 
-def flatten_dict(d, parent_key='', sep=_sep,
+def flatten_dict(d, parent_key='', sep=_sep, rec=False,
                  lexcept_key=_dict_lexcept_key):
 
     items = []
-    if lexcept_key is None:
-        for k, v in d.items():
-            new_key = parent_key + sep + k if parent_key else k
-            if isinstance(v, collections.MutableMapping):
-                items.extend(flatten_dict(v, new_key, sep=sep).items())
-            else:
-                items.append((new_key, v))
-    else:
-        for k, v in d.items():
-            if k not in lexcept_key:
+    if rec:
+        if lexcept_key is None:
+            for k, v in d.items():
                 new_key = parent_key + sep + k if parent_key else k
+                if issubclass(v.__class__, ToFuObjectBase):
+                    v = v.to_dict()
                 if isinstance(v, collections.MutableMapping):
-                    items.extend(flatten_dict(v, new_key, sep=sep).items())
+                    items.extend(flatten_dict(v, new_key,
+                                              rec=rec, sep=sep).items())
                 else:
                     items.append((new_key, v))
+        else:
+            for k, v in d.items():
+                if k not in lexcept_key:
+                    if issubclass(v.__class__, ToFuObjectBase):
+                        v = v.to_dict()
+                    new_key = parent_key + sep + k if parent_key else k
+                    if isinstance(v, collections.MutableMapping):
+                        items.extend(flatten_dict(v, new_key,
+                                                  rec=rec, sep=sep).items())
+                    else:
+                        items.append((new_key, v))
+    else:
+        if lexcept_key is None:
+            for k, v in d.items():
+                new_key = parent_key + sep + k if parent_key else k
+                if isinstance(v, collections.MutableMapping):
+                    items.extend(flatten_dict(v, new_key,
+                                              rec=rec, sep=sep).items())
+                else:
+                    items.append((new_key, v))
+        else:
+            for k, v in d.items():
+                if k not in lexcept_key:
+                    new_key = parent_key + sep + k if parent_key else k
+                    if isinstance(v, collections.MutableMapping):
+                        items.extend(flatten_dict(v, new_key,
+                                                  rec=rec, sep=sep).items())
+                    else:
+                        items.append((new_key, v))
     return dict(items)
 
 def _reshape_dict(ss, vv, dinit={}, sep=_sep):
@@ -313,7 +338,35 @@ class ToFuObjectBase(object):
         self._dstrip['strip'] = strip
 
 
-    def to_dict(self, strip=None, sep=_sep):
+    def to_dict(self, strip=None, sep=_sep, rec=False):
+        """ Return a flat dict view of the object's attributes
+
+        Useful for:
+            * displaying all attributes
+            * saving to file
+            * exchaning data with non-tofu libraries
+
+        Parameters
+        ----------
+        strip :     int
+            Flag indicating how stripped the object should be
+            Fed to self.strip()
+        sep :       str
+            Separator char used for flattening the dict
+            The output dict is flat (i.e.: no nested dict)
+            Keys are created from the keys of nested dict, separated by sep
+        rec :       bool
+            Flag indicating how to deal with attributes which are themselves
+            tofu objects:
+                - True : recursively turn them to flat dict
+                - False : keep them as tofu objects
+
+        Return
+        ------
+        dout :      dict
+            Flat dict containing all the objects attributes
+
+        """
         if strip is None:
             strip = self._dstrip['strip']
         if self._dstrip['strip'] != strip:
@@ -326,15 +379,15 @@ class ToFuObjectBase(object):
         dd['dId'] = self._get_dId()
         dd['dstrip'] = {'dict':self._dstrip, 'lexcept':None}
 
-        out = {}
+        dout = {}
         for k, v in dd.items():
             lexcept_key = v.get('lexcept_key', None)
             d = flatten_dict(v['dict'],
-                            parent_key='', sep=sep,
-                            lexcept_key=lexcept_key)
-            out[k] = d
-        out = flatten_dict(out, parent_key='', sep=sep)
-        return out
+                             parent_key='', sep=sep, rec=rec,
+                             lexcept_key=lexcept_key)
+            dout[k] = d
+        dout = flatten_dict(dout, parent_key='', sep=sep, rec=rec)
+        return dout
 
     @abstractmethod
     def _get_dId(self):
@@ -342,6 +395,21 @@ class ToFuObjectBase(object):
         return {'dict':{}}
 
     def from_dict(self, fd, sep=_sep, strip=None):
+        """ Populate the instances attributes using an input dict
+
+        The input dict must be properly formatted
+        In practice it should be the return output of a similar class to_dict()
+
+        Parameters
+        ----------
+        fd :    dict
+            The properly formatted ditionnary from which to read the attributes
+        sep :   str
+            The separator that was used to format fd keys (cf. self.to_dict())
+        strip : int
+            Flag indicating how stripped the resulting object shouyld be
+            (cf. self.strip())
+        """
 
         self._reset()
         dd = reshape_dict(fd)
@@ -352,7 +420,7 @@ class ToFuObjectBase(object):
         # ---------------------
         self._dstrip.update(**dd['dstrip'])
         if 'dId' in dd.keys():
-            self._set_Id(**dd['dId']['dall'])
+            self._set_Id(Id=ID(fromdict=dd['dId']))
 
         if strip is None:
             strip = self._dstrip['strip']
@@ -360,29 +428,37 @@ class ToFuObjectBase(object):
             self.strip(strip, verb=verb)
 
     def copy(self, strip=None):
+        """ Return another instance of the object, with the same attributes
+        """
         dd = self.to_dict(strip=strip)
         obj = self.__class__(fromdict=dd)
         return obj
 
-    def get_nbytes(self, method='nbytes'):
+    def get_nbytes(self):
+        """ Compute and return the object size in bytes (i.e.: octets)
+
+        A flat dict containing all the objects attributes is first created
+        The size of each attribute is then estimated with np.asarray().nbytes
+
+        Note :
+            if the attribute is a tofu object, get_nbytes() is recursive
+
+        Returns
+        -------
+        total :     int
+            The total object estimated size, in bytes
+        dsize :     dict
+            A dictionnary giving the size of each attribute
+        """
         dd = self.to_dict()
         dsize = dd.fromkeys(dd.keys(),0)
         total = 0
-        if method=='nbytes':
-            for k, v in dd.items():
-                if issubclass(v.__class__, ToFuObjectBase):
-                    dsize[k] = v.get_nbytes(method=method)[0]
-                else:
-                    dsize[k] = np.asarray(v).nbytes
-                total += dsize[k]
-        elif method=='sizeof':
-            import sys
-            for k, v in dd.items():
-                if issubclass(v.__class__, ToFuObjectBase):
-                    dsize[k] = v.get_nbytes(method=method)[0]
-                else:
-                    dsize[k] = sys.getsizeof(np.asarray(v))
-                total += dsize[k]
+        for k, v in dd.items():
+            if issubclass(v.__class__, ToFuObjectBase):
+                dsize[k] = v.get_nbytes()[0]
+            else:
+                dsize[k] = np.asarray(v).nbytes
+            total += dsize[k]
         return total, dsize
 
 
@@ -467,6 +543,22 @@ class ToFuObject(ToFuObjectBase):
 
     @property
     def Id(self):
+        """ The ID instance of the object
+
+        The ID class in tofu objects contains all information used for
+        identifying the instance and automatically managing saving / loading
+        In particular, it yields information such as:
+                - Name of the object
+                - Name that would be used for the file in case of saving
+                - Path under which it would be saved
+                - Experiment the object is associated to
+                - Diagnostic the object is associated to
+                - Type of the object
+                - shot the object is associated to
+                - version of tofu used for creating the object
+                - ...
+
+        """
         return self._Id
 
     def _get_dId(self):
