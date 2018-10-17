@@ -503,6 +503,8 @@ class ToFuObjectBase(object):
                         eqk = d0[k]==d1[k]
                     elif type(d0[k]) is np.ndarray:
                         eqk = np.allclose(d0[k],d1[k],equal_nan=True)
+                    elif issubclass(d0[k].__class__, ToFuObjectBase):
+                        eqk = d0[k]==d1[k]
                     else:
                         msg = "How to handle :\n"
                         msg += "    {0} is a {1}".format(k,str(type(d0[k])))

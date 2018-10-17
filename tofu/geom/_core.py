@@ -1113,7 +1113,8 @@ class Config(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dstruct():
-        lk = ['lStruct','nStruct','lCls']
+        lk = ['dStruct','dvisible',
+              'nStruct','lorder','lCls']
         return lk
 
     ###########
@@ -1292,7 +1293,7 @@ class Config(utils.ToFuObject):
     @property
     def color(self):
         """ Return the array of rgba colors (same order as lStruct) """
-        col = np.full((self._dstruct['nStruct'],4),dtype=float)
+        col = np.full((self._dstruct['nStruct'],4), np.nan)
         ii = 0
         for k in self._dstruct['lorder']:
             k0, k1 = k.split('_')
@@ -1322,7 +1323,7 @@ class Config(utils.ToFuObject):
                       self._dstruct['dStruct'][k][kk]._dgeom['nP'],
                       self._dstruct['dStruct'][k][kk]._dgeom['nLim'],
                       self._dstruct['dStruct'][k][kk]._dgeom['mobile'],
-                      self._dstruct['dStruct'][k][kk].visible,
+                      self._dstruct['dvisible'][k][kk],
                       self._dstruct['dStruct'][k][kk]._dmisc['color'])
                 data.append(tu)
 
