@@ -901,7 +901,7 @@ def get_FileFromInfos(Path='./', Mod=None, Cls=None, Type=None, Name=None,
 #   Saving
 ###########################
 
-
+# Deprecated ???
 def Save_Generic(obj, SaveName=None, Path='./',
                  Mode='npz', compressed=False, Print=True):
     """ Save a ToFu object under file name SaveName, in folder Path
@@ -954,46 +954,6 @@ def Save_Generic(obj, SaveName=None, Path='./',
     if Print:
         print("Saved in :  "+pathfileext)
 
-
-def Save_Generic2(dd, path, name, mode, compressed=False):
-    """ Save a ToFu object under file name SaveName, in folder Path
-
-    ToFu provides built-in saving and loading functions for ToFu objects.
-    There is now only one saving mode:
-        - 'npz': saves a dict of key attributes using :meth:`numpy.savez`
-
-    Good practices are:
-        - save :class:`~tofu.geom.Ves` and :class:`~tofu.geom.Struct`
-        - intermediate optics (:class:`~tofu.geom.Apert` and
-          :class:`~tofu.geom.Lens`) generally do not need to be saved
-          Indeed, they will be autoamtically included in larger objects
-          like Detect or Cam objects
-
-    Parameters
-    ----------
-    SaveName :      str
-        The file name, if None (recommended) uses obj.Id.SaveName
-    Path :          str
-        Path where to save the file
-    Mode :          str
-        Flag specifying the saving mode
-            - 'npz': Only mode currently available ('pck' deprecated)
-    compressed :    bool
-        Indicate whether to use np.savez_compressed (slower but smaller files)
-
-    """
-    assert isinstance(dd,dict), "Arg dd must be a dict !"
-    assert type(compressed) is bool, "Arg compressed must be a bool !"
-    assert mode in ['npz','mat']
-
-    pathfileext = os.path.join(path,name+'.'+mode)
-
-    if mode=='npz':
-        _save_np2(dd, pathfileext, compressed=compressed)
-    elif mode=='mat':
-        _save_mat(dd, pathfileext, compressed=compressed)
-
-    return pathfileext
 
 
 """
@@ -1207,30 +1167,6 @@ def save_np_IdObj(Id):
     return LObj, LObjUSR
 
 
-def _save_np2(dd, pathfileext, compressed=False):
-    func = np.savez_compressed if compressed else np.savez
-    for k in dd.keys():
-        if dd[k] is None:
-            dd[k] = np.asarray([None])
-        elif type(dd[k]) in [int,float,np.int64,np.float64]:
-            dd[k] = np.asarray([dd[k]])
-        elif isinstance(dd[k],str):
-            dd[k] = np.asarray(dd[k])
-    func(pathfileext, **dd)
-
-def _save_mat(dd, pathfileext, compressed=False):
-    # Create intermediate dict to make sure to get rid of None values
-    dmat = {}
-    for k in dd.keys():
-        if type(dd[k]) in [int,float,np.int64,np.float64]:
-            dmat[k] = np.asarray([dd[k]])
-        elif type(dd[k]) in [tuple,list]:
-            dmat[k] = np.asarray(dd[k])
-        elif isinstance(dd[k],str):
-            dmat[k] = np.asarray([dd[k]])
-        elif type(dd[k]) is np.ndarray:
-            dmat[k] = dd[k]
-    scpio.savemat(pathfileext, dmat, do_compression=compressed, format='5')
 
 
 ###########################
