@@ -165,8 +165,12 @@ def get_todictfields(ld, ls):
 class dictattr(dict):
     __getattr__ = dict.__getitem__
 
+    def __init__(self, *args, extra=[], **kwdargs):
+        super().__init__(*args, **kwdargs)
+        self._extra = extra
+
     def __dir__(self):
-        return [str(k) for k in self.keys()]
+        return [str(k) for k in self.keys()]+self._extra
 
 
 
@@ -197,6 +201,256 @@ def _set_arrayorder(obj, arrayorder='C'):
     return d, account
 
 
+
+#############################################
+#       save / load
+#############################################
+
+def save(obj, path=None, name=None, mode='npz',
+         strip=None, compressed=False, verb=True):
+    """ Save the ToFu object
+
+    ToFu provides built-in saving and loading functions for ToFu objects.
+    Specifying saving path ad name is optional (defaults recommended)
+    The mode refers to the file format
+
+    Good practices are:
+        - save all struct objects
+
+    Parameters
+    ----------
+    obj  :      ToFuObject subclass instance
+        The object to be saved
+    path :      None / str
+        The folder where to save, if None (recommended), uses obj.Id.SavePath
+    name :      None / str
+        The file name, if None (recommended), uses obj.Id.SaveName
+    mode :      str
+        Flag specifying the saving mode
+            - 'npz': numpy file
+            - 'mat': matlab file
+    strip:      int
+        Flag indicating how stripped the saved object should be
+        See docstring of self.strip()
+    compressed :    bool
+        Flag indicating whether to compress the file (slower, not recommended)
+    verb :          bool
+        Flag indicating whether to print a summary (recommended)
+
+    """
+    msg = "Arg obj must be a tofu subclass instance !"
+    assert issubclass(obj.__class__, ToFuObject), msg
+    msg = "Arg path must be None or a str (folder) !"
+    assert path is None or isinstance(path,str), msg
+    msg = "Arg name must be None or a str (file name) !"
+    assert name is None or isinstance(name,str), msg
+    msg = "Arg mode must be in ['npz','mat'] !"
+    assert mode in ['npz','mat'], msg
+    msg = "Arg compressed must be a bool !"
+    assert type(compressed) is bool, msg
+    msg = "Arg verb must be a bool !"
+    assert type(verb) is bool, msg
+
+    # Check path, name, mode
+    path, name, mode = get_pathfileext(path=path, name=name,
+                                       path_def=obj.Id.SavePath,
+                                       name_def=obj.Id.SaveName, mode=mode)
+
+    # Update self._Id fields
+    obj._Id._SavePath = path
+    if name!=obj.Id.SaveName:
+        obj._Id.set_SaveName(name)
+
+    # Get stripped dictionnary
+    dd = obj.to_dict(strip=strip)
+
+    pathfileext = os.path.join(path,name+'.'+mode)
+
+    if mode=='npz':
+        _save_npz(dd, pathfileext, compressed=compressed)
+    elif mode=='mat':
+        _save_mat(dd, pathfileext, compressed=compressed)
+
+    # print
+    if verb:
+        msg = "Saved in :\n"
+        msg += "    "+pathfileext
+        print(msg)
+
+def _save_npz(dd, pathfileext, compressed=False):
+
+    func = np.savez_compressed if compressed else np.savez
+    msg = "How to deal with:"
+    msg += "\n SaveName : {0}".format(dd['dId_dall_SaveName'])
+    msg += "\n Attributes:"
+    err = False
+    dt = {}
+    for k in dd.keys():
+        kt = k+'_type'
+        dt[kt] = np.asarray([type(dd[k]).__name__])
+        if dd[k] is None:
+            dd[k] = np.asarray([None])
+        elif type(dd[k]) in [int,float,np.int64,np.float64,bool,str]:
+            dd[k] = np.asarray([dd[k]])
+        elif type(dd[k]) in [list,tuple]:
+            dd[k] = np.asarray(dd[k])
+        elif not isinstance(dd[k],np.ndarray):
+            msg += "\n    {0} : {1}".format(k,str(type(dd[k])))
+            err = True
+    if err:
+        raise Exception(msg)
+    dd.update(**dt)
+    func(pathfileext, **dd)
+
+def _save_mat(dd, pathfileext, compressed=False):
+    # Create intermediate dict to make sure to get rid of None values
+    dmat = {}
+    msg = "How to deal with:"
+    msg += "\n SaveName : {0}".format(dd['dId_dall_SaveName'])
+    msg += "\n Attributes:"
+    err = False
+    dt = {}
+    for k in dd.keys():
+        kt = k+'_type'
+        dt[kt] = np.asarray([type(d[k]).__name__])
+        if type(dd[k]) in [int,float,np.int64,np.float64,bool]:
+            dmat[k] = np.asarray([dd[k]])
+        elif type(dd[k]) in [tuple,list]:
+            dmat[k] = np.asarray(dd[k])
+        elif isinstance(dd[k],str):
+            dmat[k] = np.asarray([dd[k]])
+        elif type(dd[k]) is np.ndarray:
+            dmat[k] = dd[k]
+        else:
+            msg += "\n    {0} : {1}".format(k,str(type(dd[k])))
+            err = True
+    if err:
+        raise Exception(msg)
+    dmat.update(**dt)
+    scpio.savemat(pathfileext, dmat, do_compression=compressed, format='5')
+
+
+
+
+def load(name, path=None, strip=None, verb=True):
+    """
+
+    """
+    msg = "Arg name must be a str (file name or full path+file)"
+    msg += " or a list of str patterns to be found at path"
+    C0 = isinstance(name,str)
+    C1 = isinstance(name,list) and all([isinstance(ss,str) for ss in name])
+    assert C0 or C1, msg
+    msg = "Arg path must be a str !"
+    assert path is None or isinstance(path,str), msg
+
+    # Extract folder and file name
+    if isinstance(name,str):
+        p, f = os.path.split(name)
+        name = [f]
+        if p!='':
+            path = p
+        elif path is None:
+            path = './'
+    path = os.path.normpath(os.path.abspath(path))
+    msg = "Specified folder does not exist :"
+    msg += "\n    {0}".format(path)
+    assert os.path.isdir(path), msg
+
+    # Check unicity of matching file
+    lf = os.listdir(path)
+    lf = [ff for ff in lf if all([ss in ff for ss in name])]
+    if len(lf)!=1:
+        msg = "No / several matching files found:"
+        msg += "\n  folder: {0}".format(path)
+        msg += "\n  for   : {0}".format('['+', '.join(name)+']')
+        msg += "\n    " + "\n    ".join(lf)
+        raise Exception(msg)
+    name = lf[0]
+
+    # Check file extension
+    lmodes = ['.npz','.mat']
+    msg = "None / too many of the available file extensions !"
+    msg += "\n  file: {0}".format(name)
+    msg += "\n  ext.: {0}:".format('['+', '.format(lmodes)+']')
+    indend = [ss==name[-4:] for ss in lmodes]
+    indin = [ss in name for ss in lmodes]
+    assert np.sum(indend)==1 and np.sum(indin)==1, msg
+
+    # load and format dict
+    mode = lmodes[np.argmax(indend)].replace('.','')
+    pathfileext = os.path.join(path,name)
+    if mode=='npz':
+        dd = _load_npz(pathfileext)
+    elif mode=='npz':
+        dd = _load_mat(pathfileext)
+
+    # Recreate from dict
+    exec("import tofu.{0} as mod".format(dd['dId_dall_Mod']))
+    obj = eval("mod.{0}(fromdict=dd)".format(dd['dId_dall_Cls']))
+
+    if strip is not None:
+        obj.strip(strip=strip)
+
+    # print
+    if verb:
+        msg = "Loaded from:\n"
+        msg += "    "+pathfileext
+        print(msg)
+    return obj
+
+def _load_npz(pathfileext):
+
+    try:
+        out = np.load(pathfileext, mmap_mode=None)
+    except UnicodeError:
+        out = np.load(pathfileext, mmap_mode=None, encoding='latin1')
+    except Exception as err:
+        raise err
+
+    C = ['dId' in kk for kk in out.keys()]
+    if np.sum(C)<1:
+        msg = "There does not seem to be a dId in {0}".format(pathfileext)
+        msg += "\n    => Is it really a tofu-generated file ?"
+        raise Exception(msg)
+
+    lk = [k for k in out.keys() if not k[-5:]=='_type']
+    dout = dict.fromkeys(lk)
+
+    msg = "How to deal with:"
+    msg += "\n SaveName : {0}".format(out['dId_dall_SaveName'])
+    msg += "\n Attributes:"
+    err = False
+    for k in lk:
+        kt = k+'_type'
+        typ = out[kt]
+        if typ=='NoneType':
+            dout[k] = None
+        elif typ in ['int','int64']:
+            dout[k] = int(out[k][0]) if typ=='int' else out[k][0]
+        elif typ in ['float','float64']:
+            dout[k] = float(out[k][0]) if typ=='float' else out[k][0]
+        elif typ in ['bool','bool_']:
+            dout[k] = bool(out[k][0]) if typ=='bool' else out[k][0]
+        elif typ in ['str','str_']:
+            dout[k] = str(out[k][0]) if typ=='str' else out[k][0]
+        elif typ in ['list','tuple']:
+            dout[k] = out[k].tolist()
+            if typ=='tuple':
+                dout[k] = tuple(out[k])
+        elif typ=='ndarray':
+            dout[k] = np.array(out[k])
+        else:
+            msg += "\n    {0} : {1}".format(k,typ)
+            err = True
+    if err:
+        raise Exception(msg)
+    return dout
+
+
+
+
+
 #############################################
 #       Generic tofu object
 #############################################
@@ -222,6 +476,7 @@ class ToFuObjectBase(object):
 
     def __init_subclass__(cls, *args, **kwdargs):
         super().__init_subclass__(*args, **kwdargs)
+        cls._dstrip = ToFuObjectBase._dstrip.copy()
         cls._strip_init()
 
     def __init__(self, fromdict=None,
@@ -305,7 +560,7 @@ class ToFuObjectBase(object):
                 msg += "Field '{0}' is missing !".format(kk)
                 raise Exception(msg)
 
-    def strip(self, strip=0):
+    def strip(self, strip=0, **kwdargs):
         """ Remove non-essential attributes to save memory / disk usage
 
         Useful to save a very compressed version of the object
@@ -332,13 +587,13 @@ class ToFuObjectBase(object):
 
         # --------------------------------
         # Call class-specific strip method
-        self._strip(strip)
+        self._strip(strip, **kwdargs)
         # --------------------------------
 
         self._dstrip['strip'] = strip
 
 
-    def to_dict(self, strip=None, sep=_sep, rec=False):
+    def to_dict(self, strip=None, sep=_sep, rec=False, deepcopy=False):
         """ Return a flat dict view of the object's attributes
 
         Useful for:
@@ -360,6 +615,10 @@ class ToFuObjectBase(object):
             tofu objects:
                 - True : recursively turn them to flat dict
                 - False : keep them as tofu objects
+        deepcopy:   bool
+            Flag indicating whether to populate the dict with:
+                - True : copies the object attributes
+                - False: references to the object attributes
 
         Return
         ------
@@ -387,6 +646,13 @@ class ToFuObjectBase(object):
                              lexcept_key=lexcept_key)
             dout[k] = d
         dout = flatten_dict(dout, parent_key='', sep=sep, rec=rec)
+        if deepcopy:
+            lkobj = [k for k in dout.keys()
+                     if issubclass(dout[k].__class__,ToFuObjectBase)]
+            lk = [k for k in dout.keys() if k not in lkobj]
+            dout.update(**dict([(k,dout[k]) for k in lk]))
+            dout.update(**dict([(k,dout[k].copy(deepcopy=True))
+                                for k in lkobj]))
         return dout
 
     @abstractmethod
@@ -427,10 +693,12 @@ class ToFuObjectBase(object):
         if self._dstrip['strip'] != strip:
             self.strip(strip, verb=verb)
 
-    def copy(self, strip=None):
+    def copy(self, strip=None, deepcopy=True):
         """ Return another instance of the object, with the same attributes
+
+        If deep=True, all attributes themselves are also copies
         """
-        dd = self.to_dict(strip=strip)
+        dd = self.to_dict(strip=strip, deepcopy=deepcopy)
         obj = self.__class__(fromdict=dd)
         return obj
 
@@ -486,8 +754,7 @@ class ToFuObjectBase(object):
         # Check values
         if eq:
             msg += "dict values :\n"
-            lsimple = [str,bool,int,float,
-                       np.int64,np.float64,
+            lsimple = [str,bool,np.str_,np.bool_,
                        tuple, list]
             for k in lk0:
                 eqk = type(d0[k]) == type(d1[k])
@@ -501,8 +768,10 @@ class ToFuObjectBase(object):
                 if eqk:
                     if d0[k] is None or type(d0[k]) in lsimple:
                         eqk = d0[k]==d1[k]
+                    elif type(d0[k]) in [int,float,np.int64,np.float64]:
+                        eqk = np.allclose([d0[k]],[d1[k]], equal_nan=True)
                     elif type(d0[k]) is np.ndarray:
-                        eqk = np.allclose(d0[k],d1[k],equal_nan=True)
+                        eqk = np.allclose(d0[k],d1[k], equal_nan=True)
                     elif issubclass(d0[k].__class__, ToFuObjectBase):
                         eqk = d0[k]==d1[k]
                     else:
@@ -573,56 +842,10 @@ class ToFuObject(ToFuObjectBase):
     def save(self, path=None, name=None,
              strip=None, sep=_sep, mode='npz',
              compressed=False, verb=True):
-        """ Save the tofu object in folder path, under name
+        save(self, path=path, name=name,
+             strip=strip, compressed=compressed)
 
-        Leave None to use default values (recommended)
-
-        Parameters
-        ----------
-        path :      None / str
-            Path specifying where to save the file
-            If None (recommended) uses self.Id.SavePath
-        name :      None / str
-            The name to be used for the saved file
-            If None (recommended) uses self.Id.SaveName
-        strip:      int
-            Flag indicating how much to strip the object
-            Fed to self.strip() before saving
-        sep  :      str
-            Separator used for naming the keys of the flattened dictionnary
-            Fed to self.to_dict()
-        mode :      str
-            Flag specifying how to save the object:
-                'npz': as a numpy array file (recommended)
-        compressed :    bool
-            Flag, used when mode='npz', indicates whether to use:
-                - False : np.savez
-                - True :  np.savez_compressed (slower but smaller files)
-        verb :      bool
-            Flag indicating whether to print a message saying what was saved
-        """
-        # Check path, name, mode
-        path, name, mode = get_pathfileext(path=path, name=name,
-                                           path_def=self.Id.SavePath,
-                                           name_def=self.Id.SaveName, mode=mode)
-
-        # Update self._Id fields
-        self._Id._SavePath = path
-        self._Id.set_SaveName(name)
-
-        # Get stripped dictionnary
-        dd = self.to_dict(strip=strip)
-
-        # save
-        pathfileext = tfpf.Save_Generic2(dd, path, name, mode,
-                                         compressed=compressed)
-
-        # print
-        if verb:
-            msg = "Saved in :\n"
-            msg += "    "+pathfileext
-            print(msg)
-
+ToFuObject.save.__doc__ = save.__doc__
 
 #############################################
 #       ID class
@@ -817,6 +1040,12 @@ class ID(ToFuObjectBase):
 
     def _from_dict(self, fd):
         self._dall.update(**fd['dall'])
+        if 'version' in fd.keys() and fd['version']!=__version__:
+            msg = "The object was created with a different tofu version !"
+            msg += "\n  object: {0}".format(fd['SaveName'])
+            msg += "\n    original : tofu {0}".fd['version']
+            msg += "\n    current  : tofu {0}".__version__
+            warnings.warn(msg)
 
     ###########
     # Properties

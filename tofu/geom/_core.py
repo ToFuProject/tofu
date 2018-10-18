@@ -37,7 +37,7 @@ except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
 
-__all__ = ['Ves', 'PFC', 'CoilPF', 'CoilCS',
+__all__ = ['Ves', 'PFC', 'CoilPF', 'CoilCS', 'Config',
            'Rays','LOSCam1D','LOSCam2D']
 
 
@@ -926,7 +926,7 @@ class CoilPF(Ves, color='r'):
     # set dictionaries
     ###########
 
-    def set_dmag(self, superconducting=None, nturns=0):
+    def set_dmag(self, superconducting=None, nturns=None):
         nturns = self._checkformat_inputs_dmag(nturns=nturns,
                                                 superconducting=superconducting)
         self._dmag.update({'superconducting':superconducting,
@@ -945,12 +945,8 @@ class CoilPF(Ves, color='r'):
     ###########
 
     def _rebuild_dmag(self, lkeep=['nturns','superconducting']):
-        reset = utils.ToFuObject._test_Rebuild(self._dmag, lkeep=lkeep)
-        if reset:
-            utils.ToFuObject._check_Fields4Rebuild(self._dmag,
-                                                   lkeep=lkeep, dname='dmag')
-            self.set_dmag(nturns=self.nturns,
-                          superconducting=self.dmag['superconducting'])
+        self.set_dmag(nturns=self.nturns,
+                      superconducting=self.dmag['superconducting'])
 
     ###########
     # _strip and get/from dict
@@ -1130,6 +1126,7 @@ class Config(utils.ToFuObject):
         largs = self._get_largs_dstruct()
         kwdstruct = self._extract_kwdargs(locals(), largs)
         self._set_dstruct(**kwdstruct)
+        self._dstrip['strip'] = 0
 
     ###########
     # set dictionaries
@@ -1164,74 +1161,107 @@ class Config(utils.ToFuObject):
 
     def _dstruct_dynamicattr(self):
         # get (key, val) pairs
-        def set_vis(obj, k0, k1, val):
+        def set_vis(obj, k0, val, k1=None):
             assert type(val) is bool
-            obj._dstruct['dvisible'][k0][k1] = val
-        def get_vis(obj, k0, k1):
+            if k1 is None:
+                for k1 in obj._dstruct['dvisible'][k0].keys():
+                    obj._dstruct['dvisible'][k0][k1] = val
+            else:
+                obj._dstruct['dvisible'][k0][k1] = val
+        def get_vis(obj, k0, k1=None):
             return obj._dstruct['dvisible'][k0][k1]
+
+        # Purge
         for k in self._ddef['dstruct']['order']:
-            if k in self._dstruct['lCls']:
-                # Find a way to programmatically add dynamic properties to the
-                # instances , like visible
-                # In the meantime use a simple functions
+            if hasattr(self,k):
+                exec("del self.{0}".format(k))
+
+        # Set
+        for k in self._dstruct['dStruct'].keys():
+            # Find a way to programmatically add dynamic properties to the
+            # instances , like visible
+            # In the meantime use a simple functions
+            if not type(list(self._dstruct['dStruct'][k].values())[0]) is str:
                 for kk in self._dstruct['dStruct'][k].keys():
                     setattr(self._dstruct['dStruct'][k][kk],
                             'set_visible',
-                            lambda vis, k0=k, k1=kk: set_vis(self, k0, k1, vis))
+                            lambda vis, k0=k, k1=kk: set_vis(self, k0, vis, k1))
                     setattr(self._dstruct['dStruct'][k][kk],
                             'get_visible',
                             lambda k0=k, k1=kk: get_vis(self, k0, k1))
-                dd = utils.dictattr(self._dstruct['dStruct'][k])
+                dd = utils.dictattr(self._dstruct['dStruct'][k],
+                                    extra=['set_visible'])
+                setattr(dd,
+                        'set_visible',
+                        lambda vis, k0=k, k1=kk: set_vis(self, k0, vis))
                 setattr(self, k, dd)
-            elif hasattr(self,k):
-                exec('del self.{0}'.format(k))
 
     ###########
     # strip dictionaries
     ###########
 
-    def _strip_dstruct(self, lkeep=['dStruct'], strip=1, force=False):
-        if strip in [1,2]:
-            for k in self._dstruct['lCls']:
-                for kk, v  in self._dstruct['dStruct'][k].items():
+    def _strip_dstruct(self, strip=0, force=False):
+        if self._dstrip['strip']==strip:
+            return
+
+        if self._dstrip['strip']>strip:
+
+            # Reload if necessary
+            if self._dstrip['strip']==3:
+                for k in self._dstruct['dStruct'].keys():
+                    for kk in self._dstruct['dStruct'][k].keys():
+                        pfe = self._dstruct['dStruct'][k][kk]
+                        self._dstruct['dStruct'][k][kk] = utils.load(pfe)
+
+            for k in self._dstruct['dStruct'].keys():
+                for kk in self._dstruct['dStruct'][k].keys():
                     self._dstruct['dStruct'][k][kk].strip(strip=strip)
-        elif strip>2:
-            for k in self._dstruct['lCls']:
-                for kk, v  in self._dstruct['dStruct'][k].items():
-                    pathfile = os.path.join(v.Id.SavePath, v.Id.SaveName)
-                    # --- Check !
-                    lf = os.listdir(v.Id.SavePath)
-                    lf = [ff for ff in lf
-                          if all([ss in ff for ss in [v.Id.SaveName,'.npz']])]
-                    exist = len(lf)==1
-                    # ----------
-                    if not exist:
-                        msg = """BEWARE:
-                            You are about to delete the Struct objects
-                            Only the path/name to saved objects will be kept
 
-                            But it appears that the following object has no
-                            saved file were specified (obj.Id.SavePath)
-                            Thus it won't be possible to retrieve it
-                            (unless available in the current console:"""
-                        msg += "\n    - {0}".format(pathfile+'.npz')
-                        if force:
-                            warning.warn(msg)
-                        else:
-                            raise Exception(msg)
-                    self._dstruct['dStruct'][k][kk] = pathfile
-        utils.ToFuObject._strip_dict(self._dstruct, lkeep=lkeep)
+            lkeep = self._get_keys_dstruct()
+            reset = utils.ToFuObject._test_Rebuild(self._dstruct, lkeep=lkeep)
+            if reset:
+                utils.ToFuObject._check_Fields4Rebuild(self._dstruct,
+                                                       lkeep=lkeep,
+                                                       dname='dstruct')
+            self._set_dstruct(lStruct=self.lStruct)
 
-    ###########
-    # rebuild dictionaries
-    ###########
+        else:
+            if strip in [1,2]:
+                for k in self._dstruct['lCls']:
+                    for kk, v  in self._dstruct['dStruct'][k].items():
+                        self._dstruct['dStruct'][k][kk].strip(strip=strip)
+                lkeep = self._get_keys_dstruct()
 
-    def _rebuild_dstruct(self, lkeep=['dStruct']):
-        reset = utils.ToFuObject._test_Rebuild(self._dstruct, lkeep=lkeep)
-        if reset:
-            utils.ToFuObject._check_Fields4Rebuild(self._dstruct,
-                                                   lkeep=lkeep, dname='dstruct')
-            self.set_dstruct(lStruct=self.lStruct)
+            elif strip==3:
+                for k in self._dstruct['lCls']:
+                    for kk, v  in self._dstruct['dStruct'][k].items():
+                        # --- Check !
+                        lf = os.listdir(v.Id.SavePath)
+                        lf = [ff for ff in lf
+                              if all([s in ff for s in [v.Id.SaveName,'.npz']])]
+                        exist = len(lf)==1
+                        # ----------
+                        pathfile = os.path.join(v.Id.SavePath,
+                                                v.Id.SaveName)+'.npz'
+                        if not exist:
+                            msg = """BEWARE:
+                                You are about to delete the Struct objects
+                                Only the path/name to saved objects will be kept
+
+                                But it appears that the following object has no
+                                saved file were specified (obj.Id.SavePath)
+                                Thus it won't be possible to retrieve it
+                                (unless available in the current console:"""
+                            msg += "\n    - {0}".format(pathfile+'.npz')
+                            if force:
+                                warning.warn(msg)
+                            else:
+                                raise Exception(msg)
+                        self._dstruct['dStruct'][k][kk] = pathfile
+                self._dstruct_dynamicattr()
+                lkeep = ['dStruct','dvisible','lorder']
+            utils.ToFuObject._strip_dict(self._dstruct, lkeep=lkeep)
+
 
     ###########
     # _strip and get/from dict
@@ -1239,7 +1269,7 @@ class Config(utils.ToFuObject):
 
     @classmethod
     def _strip_init(cls):
-        cls._dstrip['allowed'] = [0,1,2]
+        cls._dstrip['allowed'] = [0,1,2,3]
         nMax = max(cls._dstrip['allowed'])
         doc = """
                  1: apply strip(1) to objects in self.lStruct
@@ -1248,16 +1278,11 @@ class Config(utils.ToFuObject):
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
         cls.strip.__doc__ = doc
 
-    def strip(self, strip=0):
-        super().strip(strip=strip)
+    def strip(self, strip=0, force=False):
+        super().strip(strip=strip, force=force)
 
-    ### To be revised !!!
     def _strip(self, strip=0, force=False):
-        if strip==0:
-            self._rebuild_dstruct()
-        else:
-            self._strip_dstruct(strip=strip, force=force)
-        return out
+        self._strip_dstruct(strip=strip, force=force)
 
     def _to_dict(self):
         dout = {'dstruct':{'dict':self.dstruct, 'lexcept':None}}
@@ -1265,6 +1290,7 @@ class Config(utils.ToFuObject):
 
     def _from_dict(self, fd):
         self._dstruct.update(**fd['dstruct'])
+        self._dstruct_dynamicattr()
 
 
     ###########
@@ -1310,7 +1336,7 @@ class Config(utils.ToFuObject):
     # public methods
     ###########
 
-    def get_description(self, verb=False, max_columns=100, width=1000):
+    def get_summary(self, verb=False, max_columns=100, width=1000):
         """ Summary description of the object content as a pandas DataFrame """
         # Make sure the data is accessible
         msg = "The data is not accessible because self.strip(2) was used !"
@@ -1343,6 +1369,17 @@ class Config(utils.ToFuObject):
             print(df)
         return df
 
+    def isInside(self, pts, In='(X,Y,Z)'):
+        """ Return a 2D array of bool
+
+        Equivalent to applying isInside to each Struct
+        Check self.lStruct[0].isInside? for details
+        """
+        ind = np.zeros((self._dstruct['nStruct'],pts.shape), dtype=bool)
+        ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.Lim,
+                                VType=self.Id.Type, In=In, Test=True)
+        return ind
+
     def plot(self, lax=None, proj='All', Elt='P', dLeg=_def.TorLegd,
              draw=True, fs=None, wintit=None, Test=True):
         kwdargs = locals()
@@ -1359,6 +1396,7 @@ class Config(utils.ToFuObject):
 
     def plot_sino(self, **kwdargs):
         pass
+
 
 
 """
