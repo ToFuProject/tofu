@@ -1159,17 +1159,26 @@ class Config(utils.ToFuObject):
                               'lorder':lorder, 'lCls':lCls})
         self._dstruct_dynamicattr()
 
+    @staticmethod
+    def set_vis(obj, k0, val, k1=None):
+        assert type(val) is bool
+        if k1 is None:
+            for k1 in obj._dstruct['dvisible'][k0].keys():
+                obj._dstruct['dvisible'][k0][k1] = val
+        else:
+            obj._dstruct['dvisible'][k0][k1] = val
+
+    @staticmethod
+    def get_vis(obj, k0, k1=None):
+        return obj._dstruct['dvisible'][k0][k1]
+
+    @staticmethod
+    def set_color(obj, k0, val):
+        for k1 in obj._dstruct['dStruct'][k0].keys():
+            obj._dstruct['dStruct'][k0].color = val
+
     def _dstruct_dynamicattr(self):
         # get (key, val) pairs
-        def set_vis(obj, k0, val, k1=None):
-            assert type(val) is bool
-            if k1 is None:
-                for k1 in obj._dstruct['dvisible'][k0].keys():
-                    obj._dstruct['dvisible'][k0][k1] = val
-            else:
-                obj._dstruct['dvisible'][k0][k1] = val
-        def get_vis(obj, k0, k1=None):
-            return obj._dstruct['dvisible'][k0][k1]
 
         # Purge
         for k in self._ddef['dstruct']['order']:
@@ -1193,7 +1202,10 @@ class Config(utils.ToFuObject):
                                     extra=['set_visible'])
                 setattr(dd,
                         'set_visible',
-                        lambda vis, k0=k, k1=kk: set_vis(self, k0, vis))
+                        lambda vis, k0=kk: set_vis(self, k0, vis))
+                setattr(dd,
+                        'set_color',
+                        lambda col, k0=kk: set_color(self, k0, col))
                 setattr(self, k, dd)
 
     ###########
@@ -1350,6 +1362,7 @@ class Config(utils.ToFuObject):
                 continue
             for kk in d[k].keys():
                 tu = (k,
+                      self._dstruct['dStruct'][k][kk]._Id._dall['Name'],
                       self._dstruct['dStruct'][k][kk]._Id._dall['SaveName'],
                       self._dstruct['dStruct'][k][kk]._dgeom['nP'],
                       self._dstruct['dStruct'][k][kk]._dgeom['nLim'],
@@ -1359,7 +1372,7 @@ class Config(utils.ToFuObject):
                 data.append(tu)
 
         # Build the pandas DataFrame
-        col = ['class', 'SaveName', 'nP', 'nLim',
+        col = ['class', 'Name', 'SaveName', 'nP', 'nLim',
                'mobile', 'visible', 'color']
         df = pd.DataFrame(data, columns=col)
         pd.set_option('display.max_columns',max_columns)
@@ -1375,9 +1388,25 @@ class Config(utils.ToFuObject):
         Equivalent to applying isInside to each Struct
         Check self.lStruct[0].isInside? for details
         """
-        ind = np.zeros((self._dstruct['nStruct'],pts.shape), dtype=bool)
-        ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.Lim,
-                                VType=self.Id.Type, In=In, Test=True)
+        msg = "Arg pts must be a 1D or 2D np.ndarray !"
+        assert isinstance(pts,np.ndarray) and pts.ndim in [1,2], msg
+        if pts.ndim==1:
+            msg = "Arg pts must contain the coordinates of a point !"
+            assert pts.size in [2,3], msg
+            pts = pts.reshape((pts.size,1)).astype(float)
+        else:
+            msg = "Arg pts must contain the coordinates of points !"
+            assert pts.shape[0] in [2,3], pts
+        np = pts.shape[1]
+
+        ind = np.zeros((self._dstruct['nStruct'],np), dtype=bool)
+        lStruct = self.lStruct
+        for ii in range(0,self._dstruct['nStruct']):
+            ind[ii,:] = _GG._Ves_isInside(pts,
+                                          lStruct[ii].Poly,
+                                          Lim=lSTruct[ii].Lim,
+                                          VType=lStruct[ii].Id.Type,
+                                          In=In, Test=True)
         return ind
 
     def plot(self, lax=None, proj='All', Elt='P', dLeg=_def.TorLegd,
