@@ -469,10 +469,10 @@ def Plot_3D_mlab_Tor(T,fig='None',thetaLim=(np.pi/2,2*np.pi),Tdict=Dict_3D_mlab_
 
 
 
-def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad',
-                            Sketch=True, Pdict=_def.TorPFilld,
-                            dLeg=_def.TorLegd,
-                            draw=True, fs=None, wintit='tofu', Test=True):
+def Plot_Impact_PolProjPoly(lS, Leg="", ax=None, Ang='theta', AngUnit='rad',
+                            Sketch=True, dP=None,
+                            dLeg=_def.TorLegd, draw=True, fs=None,
+                            wintit='tofu', tit=None, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -486,38 +486,65 @@ def Plot_Impact_PolProjPoly(T, Leg="", ax=None, Ang='theta', AngUnit='rad',
         ax          The plt.Axes instance on which the poloidal plot was performed
     """
     if Test:
-        msg = "Arg T must be tfg.Ves or tuple (Theta,pP,pN) 3 np.ndarrays !"
-        assert T.Id.Cls in ['Ves','Struct'] or len(T)==3, msg
         Lax, C0, C1, C2 = _check_Lax(ax,n=1)
         assert C0 or C1, 'Arg ax should a plt.Axes instance !'
-        assert type(Pdict) is dict, "Arg Pdict must be a dictionary !"
+        assert dP is None or type(dP) is dict, "Arg dP must be a dictionary !"
         assert dLeg is None or type(dLeg) is dict, "Arg dLeg must be a dictionary !"
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
         assert AngUnit in ['rad','deg'], "Arg AngUnit must be in ['rad','deg'] !"
+    C0 = issubclass(lS.__class__, utils.ToFuObject)
+    C1 = (isinstance(lS,list)
+          and all([issubclass(ss.__class__, utils.ToFuObject) for ss in lS]))
+    msg = "Arg lves must be a Struct subclass or a list of such !"
+    assert C0 or C1, msg
+    if C0:
+        lS = [lS]
+    nS = len(lS)
+
+    # Get Sketch
     if ax is None:
         ax, axsketch = _def.Plot_Impact_DefAxes('Cross', fs=fs, wintit=wintit,
                                                 Ang=Ang, AngUnit=AngUnit,
                                                 Sketch=Sketch)
 
-    if type(T) is tuple:
-        msg =  "Args Theta, pP and pN should be np.ndarrays !"
-        assert all([type(tt) is np.ndarray for tt in T]), msg
-        assert T[0].shape==T[1].shape==T[2].shape, "Theta, pP, pN must have same shape !"
-        Theta, pP, pN = T
-    elif T.Id.Cls in ['Ves','Struct']:
-        Leg = T.Id.NameLTX
-        Theta, pP = T.dsino['EnvTheta'], T.dsino['EnvMinMax'][0,:]
-        pN = T.dsino['EnvMinMax'][1,:]
-    if Ang=='xi':
-        Theta, pP, pN = _GG.ConvertImpact_Theta2Xi(Theta, pP, pN)
-    DoUp = (pN.min(),pP.max())
-    handles, labels = ax.get_legend_handles_labels()
-    ax.fill_between(Theta.flatten(),pP.flatten(),DoUp[1]*np.ones(pP.flatten().shape),**Pdict)
-    ax.fill_between(Theta.flatten(),DoUp[0]*np.ones(pP.flatten().shape),pN.flatten(),**Pdict)
-    ax.set_ylim(DoUp)
-    proxy = plt.Rectangle((0,0),1,1, fc=Pdict['facecolor'])
-    handles.append(proxy)
-    labels.append(Leg)
+    if dP is not None:
+        dp = dP
+
+    # Get up/down limits
+    pPmax, pPmin = 0, 0
+    for ss in lS:
+        pmax = np.max(ss.dsino['EnvMinMax'][0,:])
+        if pmax>pPmax:
+            pPmax = pmax
+        pmin = np.min(ss.dsino['EnvMinMax'][1,:])
+        if pmin<pPmin:
+            pPmin = pmin
+
+    nP = pmax.size
+    for ii in range(0,nS):
+
+        Theta, pP = lS[ii].dsino['EnvTheta'], lS[ii].dsino['EnvMinMax'][0,:]
+        pN = lS[ii].dsino['EnvMinMax'][1,:]
+        if Ang=='xi':
+            Theta, pP, pN = _GG.ConvertImpact_Theta2Xi(Theta, pP, pN)
+        Theta = Theta.ravel()
+        DoUp = (pPmin,pPmax)
+
+        if dP is None:
+            dp = {'facecolor':lS[ii].get_color(), 'edgecolor':'k',
+                  'linewidth':1., 'linestyle':'-'}
+
+        handles, labels = ax.get_legend_handles_labels()
+        if lS[ii].Id.Cls=='Ves':
+            ax.fill_between(Theta, pP, DoUp[1]*np.ones((nP,)),**dp)
+            ax.fill_between(Theta, DoUp[0]*np.ones((nP,)), pN,**dp)
+            ax.set_ylim(DoUp)
+            proxy = plt.Rectangle((0,0),1,1, fc=dp['facecolor'])
+            handles.append(proxy)
+            labels.append(lS[ii].Id.Cls+' '+lS[ii].Id.Name)
+        else:
+            warnings.warn("Not coded yet for non-Ves types ! (TODO)")
+
     if not dLeg is None:
         ax.legend(handles,labels,**dLeg)
     if draw:
