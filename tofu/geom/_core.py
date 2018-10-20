@@ -249,6 +249,7 @@ class Struct(utils.ToFuObject):
         if RefPt is None:
             RefPt = self._dgeom['BaryS']
         RefPt = np.asarray(RefPt,dtype=float).flatten()
+        assert RefPt.size==2, "RefPt must be of size=2 !"
         return RefPt
 
     @staticmethod
@@ -1136,6 +1137,7 @@ class Config(utils.ToFuObject):
     def _reset(self):
         super()._reset()
         self._dstruct = dict.fromkeys(self._get_keys_dstruct())
+        self._dsino = dict.fromkeys(self._get_keys_dsino())
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
@@ -1157,6 +1159,10 @@ class Config(utils.ToFuObject):
     @staticmethod
     def _get_largs_dstruct():
         largs = ['lStruct']
+        return largs
+    @staticmethod
+    def _get_largs_dsino():
+        largs = ['RefPt','nP']
         return largs
 
     ###########
@@ -1189,6 +1195,13 @@ class Config(utils.ToFuObject):
         assert C, msg
         return lStruct
 
+    def _checkformat_inputs_dsino(self, RefPt=None, nP=None):
+        assert type(nP) is int and nP>0
+        assert hasattr(RefPt,'__iter__')
+        RefPt = np.asarray(RefPt,dtype=float).flatten()
+        assert RefPt.size==2, "RefPt must be of size=2 !"
+        return RefPt
+
     ###########
     # Get keys of dictionnaries
     ###########
@@ -1197,6 +1210,11 @@ class Config(utils.ToFuObject):
     def _get_keys_dstruct():
         lk = ['dStruct','dvisible',
               'nStruct','lorder','lCls']
+        return lk
+
+    @staticmethod
+    def _get_keys_dsino():
+        lk = ['RefPt','nP']
         return lk
 
     ###########
@@ -1253,7 +1271,7 @@ class Config(utils.ToFuObject):
 
     def _set_color(self, k0, val):
         for k1 in self._dstruct['dStruct'][k0].keys():
-            self._dstruct['dStruct'][k0][k1].color = val
+            self._dstruct['dStruct'][k0][k1].set_color(val)
 
     def _dstruct_dynamicattr(self):
         # get (key, val) pairs
@@ -1285,6 +1303,14 @@ class Config(utils.ToFuObject):
                         'set_color',
                         lambda col, k0=k: self._set_color(k0, col))
                 setattr(self, k, dd)
+
+    def set_dsino(self, RefPt, nP=_def.TorNP):
+        RefPt = self._checkformat_inputs_dsino(RefPt=RefPt, nP=nP)
+        for k in self._dstruct['dStruct'].keys():
+            for kk in self._dstruct['dStruct'][k].keys():
+                self._dstruct['dStruct'][k][kk].set_dsino(RefPt=RefPt, nP=nP)
+        self._dsino = {'RefPt':RefPt, 'nP':nP}
+
 
     ###########
     # strip dictionaries
@@ -1352,6 +1378,8 @@ class Config(utils.ToFuObject):
                 lkeep = ['dStruct','dvisible','lorder']
             utils.ToFuObject._strip_dict(self._dstruct, lkeep=lkeep)
 
+    def _strip_dsino(self, lkeep=['RefPt','nP']):
+        utils.ToFuObject._strip_dict(self._dsino, lkeep=lkeep)
 
     ###########
     # _strip and get/from dict
@@ -1402,6 +1430,9 @@ class Config(utils.ToFuObject):
             lStruct.append(self._dstruct['dStruct'][k0][k1])
         return lStruct
 
+    @property
+    def dsino(self):
+       return self._dsino
 
     ###########
     # public methods
@@ -1489,21 +1520,60 @@ class Config(utils.ToFuObject):
                                           In=In, Test=True)
         return ind
 
-    def plot(self, lax=None, proj='All', Elt='P', dLeg=_def.TorLegd,
-             draw=True, fs=None, wintit=None, Test=True):
+    def plot(self, lax=None, proj='all', Elt='P', dLeg=_def.TorLegd,
+             draw=True, fs=None, wintit=None, tit=None, Test=True):
+        assert tit is None or isinstance(tit,str)
         vis = self.get_visible()
         lStruct, lS = self.lStruct, []
         for ii in range(0,self._dstruct['nStruct']):
             if vis[ii]:
                 lS.append(lStruct[ii])
 
+        if tit is None:
+            tit = self.Id.Name
         lax = _plot.Struct_plot(lS, lax=lax, proj=proj, Elt=Elt,
-                                dLeg=dLeg, draw=draw, fs=fs, wintit=wintit,
-                                Test=Test)
+                                dLeg=dLeg, draw=draw, fs=fs,
+                                wintit=wintit, tit=tit, Test=Test)
         return lax
 
-    def plot_sino(self, **kwdargs):
-        pass
+
+    def plot_sino(self, ax=None, proj='cross', dP=None,
+                  Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
+                  Sketch=True, dLeg=_def.TorLegd,
+                  draw=True, fs=None, wintit=None, tit=None, Test=True):
+
+        msg = "Set the sino params before plotting !"
+        msg += "\n    => run self.set_sino(...)"
+        assert self.dsino['RefPt'] is not None, msg
+        assert tit is None or isinstance(tit,str)
+        assert proj in ['cross','3d']
+        # Check uniformity of sinogram parameters
+        for ss in self.lStruct:
+            msg = "{0} {1} has different".format(ss.Id.Cls, ss.Id.Name)
+            msgf = "\n    => run self.set_sino(...)"
+            msg0 = msg+" sino RefPt"+msgf
+            assert np.allclose(self.dsino['RefPt'],ss.dsino['RefPt']), msg0
+            msg1 = msg+" sino nP"+msgf
+            assert self.dsino['nP']==ss.dsino['nP'], msg1
+
+        vis = self.get_visible()
+        lStruct, lS = self.lStruct, []
+        for ii in range(0,self._dstruct['nStruct']):
+            if vis[ii]:
+                lS.append(lStruct[ii])
+
+        if tit is None:
+            tit = c.Id.Name
+        if proj=='cross':
+            ax = _plot.Plot_Impact_PolProjPoly(lS, ax=ax, Ang=Ang,
+                                               AngUnit=AngUnit, Sketch=Sketch,
+                                               dP=dP, dLeg=dLeg, draw=draw,
+                                               fs=fs, tit=tit, wintit=wintit, Test=Test)
+        else:
+            ax = _plot.Plot_Impact_3DPoly(lS, ax=ax, Ang=Ang, AngUnit=AngUnit,
+                                          dP=dP, dLeg=dLeg, draw=draw,
+                                          fs=fs, tit=tit, wintit=wintit, Test=Test)
+        return lax
 
 
 
