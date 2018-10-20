@@ -143,6 +143,9 @@ class Struct(utils.ToFuObject):
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude, color=None):
 
+        # Create a dplot at instance level
+        self._dplot = copy.deepcopy(self.__class__._dplot)
+
         kwdargs = locals()
         del kwdargs['self']
         super().__init__(**kwdargs)
@@ -264,8 +267,7 @@ class Struct(utils.ToFuObject):
         if color is None:
             color = mpl.colors.to_rgba(cls._ddef['dmisc']['color'])
         assert mpl.colors.is_color_like(color)
-        color = tuple(mpl.colors.to_rgba(color))
-        return color
+        return tuple(mpl.colors.to_rgba(color))
 
     ###########
     # Get keys of dictionnaries

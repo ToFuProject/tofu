@@ -202,6 +202,15 @@ def Struct_plot(lS, lax=None, proj='all', Elt=None, dP=None,
                 lax[1] = _Plot_HorProj_Ves(lS[ii], ax=lax[1], LegDict=None,
                                              draw=False, **dplot['hor'])
 
+    # recompute the ax.dataLim
+    lax[0].relim()
+    if proj=='all':
+        lax[1].relim()
+    # update ax.viewLim using the new dataLim
+    lax[0].autoscale_view()
+    if proj=='all':
+        lax[1].autoscale_view()
+
     if tit is not None:
         lax[0].figure.suptitle(tit)
 
