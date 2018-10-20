@@ -1563,7 +1563,7 @@ class Config(utils.ToFuObject):
                 lS.append(lStruct[ii])
 
         if tit is None:
-            tit = c.Id.Name
+            tit = self.Id.Name
         if proj=='cross':
             ax = _plot.Plot_Impact_PolProjPoly(lS, ax=ax, Ang=Ang,
                                                AngUnit=AngUnit, Sketch=Sketch,
@@ -1573,7 +1573,7 @@ class Config(utils.ToFuObject):
             ax = _plot.Plot_Impact_3DPoly(lS, ax=ax, Ang=Ang, AngUnit=AngUnit,
                                           dP=dP, dLeg=dLeg, draw=draw,
                                           fs=fs, tit=tit, wintit=wintit, Test=Test)
-        return lax
+        return ax
 
 
 
