@@ -281,16 +281,18 @@ def ConvertImpact_Theta2Xi(theta, pP, pN, sort=True):
 #       isInside
 ########################################################
 
-def _Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(X,Y,Z)', Test=True):
+def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
+                  VType='Tor', In='(X,Y,Z)', Test=True):
     if Test:
         assert type(Pts) is np.ndarray and Pts.ndim in [1,2], "Arg Pts must be a 1D or 2D np.ndarray !"
         assert type(VPoly) is np.ndarray and VPoly.ndim==2 and VPoly.shape[0]==2, "Arg VPoly must be a (2,N) np.ndarray !"
         assert Lim is None or (hasattr(Lim,'__iter__') and len(Lim)==2) or (hasattr(Lim,'__iter__') and all([hasattr(ll,'__iter__') and len(ll)==2 for ll in Lim])), "Arg Lim must be a len()==2 iterable or a list of such !"
         assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin'] !"
+        assert type(nLim) in [int,np.int64] and nLim>=0
 
     path = Path(VPoly.T)
     if VType.lower()=='tor':
-        if Lim is None:
+        if Lim is None or nLim==0:
             pts = CoordShift(Pts, In=In, Out='(R,Z)')
             ind = Path(VPoly.T).contains_points(pts.T, transform=None, radius=0.0)
         else:

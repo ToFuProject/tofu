@@ -65,14 +65,77 @@ def _check_Lax(Lax=None, n=2):
 ############################################
 
 
+def _Struct_plot_format(ss, proj='all', **kwdargs):
 
-def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
-             Idict=_def.TorId, Bsdict=_def.TorBsd, Bvdict=_def.TorBvd,
-             Vdict=_def.TorVind, IdictHor=_def.TorITord,
-             BsdictHor=_def.TorBsTord, BvdictHor=_def.TorBvTord,
-             Lim=None, Nstep=_def.TorNTheta, LegDict=_def.TorLegd,
-             draw=True, fs=None, wintit='tofu', tit=None, Test=True):
-    """ Plotting the toroidal projection of a Ves instance
+    # Local default
+    defplot = {'cross':{'Elt':'PIBsBvV',
+                        'dP':{'empty':_def.TorPd , 'full':_def.StructPd},
+                        'dI':_def.TorId,
+                        'dBs':_def.TorBsd,
+                        'dBv':_def.TorBvd,
+                        'dVect':_def.TorVind},
+               'hor':{'Elt':'PIBsBvV',
+                      'dP':{'empty':_def.TorPd , 'full':_def.StructPd_Tor},
+                      'dI':_def.TorITord,
+                      'dBs':_def.TorBsTord,
+                      'dBv':_def.TorBvTord,
+                      'Nstep':_def.TorNTheta},
+               '3d':{'Elt':'P',
+                     'dP':{'color':(0.8,0.8,0.8,1.),
+                           'rstride':1,'cstride':1,
+                           'linewidth':0., 'antialiased':False},
+                     'Lim':None,
+                     'Nstep':_def.TorNTheta}}
+
+    # Select keys for proj
+    lproj = ['cross','hor'] if proj=='all' else [proj]
+
+    # Match with kwdargs
+    dk = {}
+    dk['cross']= dict([(k,k) for k in defplot['cross'].keys()])
+    dk['hor']= dict([(k,k+'Hor') for k in defplot['hor'].keys()])
+    dk['hor']['Elt'] = 'Elt'
+    dk['hor']['dP'] = 'dP'
+    dk['hor']['Nstep'] = 'Nstep'
+    dk['3d']= dict([(k,k) for k in defplot['3d'].keys()])
+
+    # Rename keys (retro-compatibility)
+    lrepl = [('Elt','Elt'),('dP','Pdict'),('dI','Idict'),('dBs','Bsdict'),
+             ('dBv','Bvdict'),('dVect','Vdict'),('dIHor','IdictHor'),
+             ('dBsHor','BsdictHor'),('dBvHor','BvdictHor'),
+             ('Nstep','Nstep'),('Lim','Lim')]
+    dnk = dict(lrepl)
+
+    # Map out dict
+    dout = {}
+    for pp in lproj:
+        dout[pp] = {}
+        for k in defplot[pp].keys():
+            v = kwdargs[dk[pp][k]]
+            if v is None:
+                if k in ss._dplot[pp].keys():
+                    dout[pp][dnk[k]] = ss._dplot[pp][k]
+                else:
+                    if k=='dP':
+                        if ss.Id.Cls=='Ves':
+                            dout[pp][dnk[k]] = defplot[pp][k]['empty']
+                        else:
+                            dout[pp][dnk[k]] = defplot[pp][k]['full']
+                    else:
+                        dout[pp][dnk[k]] = defplot[pp][k]
+            else:
+                dout[pp][dnk[k]] = v
+
+    return dout
+
+
+
+def Struct_plot(lS, lax=None, proj='all', Elt=None, dP=None,
+                dI=None, dBs=None, dBv=None,
+                dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
+                Lim=None, Nstep=None, dLeg=None,
+                draw=True, fs=None, wintit='tofu', tit=None, Test=True):
+    """ Plot the projections of a list of Struct subclass instances
 
     D. VEZINET, Aug. 2014
     Inputs :
@@ -86,65 +149,68 @@ def Ves_plot(Ves, Lax=None, Proj='All', Elt='PIBsBvV', Pdict=None,
         axP          The plt.Axes instance on which the poloidal plot was performed
         axT          The plt.Axes instance on which the toroidal plot was performed
     """
+    proj = proj.lower()
     if Test:
-        msg = 'Arg V should a Ves, PFC or CoilPF instance !'
-        assert Ves.Id.Cls in ['Ves','PFC','CoilPF'], msg
-        msg = "Arg Proj must be in ['Cross','Hor','All','3d'] !"
-        assert Proj in ['Cross','Hor','All','3d'], msg
-        Lax, C0, C1, C2 = _check_Lax(Lax,n=2)
+        msg = "Arg proj must be in ['cross','hor','all','3d'] !"
+        assert proj in ['cross','hor','all','3d'], msg
+        lax, C0, C1, C2 = _check_Lax(lax,n=2)
         assert type(draw) is bool, "Arg draw must be a bool !"
 
-    kwa = dict(LegDict=None, fs=fs, wintit=wintit, draw=False, Test=Test)
-    if any(['P' in Elt, 'I' in Elt]):
-        if Proj=='3d':
-            Pdict = dict(_def.TorP3Dd) if Pdict is None else Pdict
-            Pdict['color'] = Ves.color
-            Lax[0] = _Plot_3D_plt_Ves(Ves,ax=Lax[0], Elt=Elt, Nstep=Nstep,
-                                      Lim=Lim, Pdict=Pdict, **kwa)
-            # Due to temporary issue in matplotlib with 3d legends
-            LegDict = None
-        else:
-            if Pdict is None:
-                if Ves.Id.Cls=='Ves':
-                    Pdict = _def.TorPd
-                    Pdict['c'] = Ves.color
-                else:
-                    if Ves.nLim==0:
-                        Pdict = _def.StructPd_Tor
-                    else:
-                        Pdict = _def.StructPd
-                    Pdict['fc'] = Ves.color
-            if Proj=='Cross':
-                Lax[0] = _Plot_CrossProj_Ves(Ves, ax=Lax[0], Elt=Elt, Pdict=Pdict,
-                                             Idict=Idict, Bsdict=Bsdict,
-                                             Bvdict=Bvdict, Vdict=Vdict, **kwa)
-            elif Proj=='Hor':
-                Lax[0] = _Plot_HorProj_Ves(Ves, ax=Lax[0], Elt=Elt, Nstep=Nstep,
-                                           Pdict=Pdict, Idict=IdictHor,
-                                           Bsdict=BsdictHor, Bvdict=BvdictHor,
-                                           **kwa)
-            elif Proj=='All':
-                if Lax[0] is None or Lax[1] is None:
-                    Lax = list(_def.Plot_LOSProj_DefAxes('All', fs=fs,
-                                                         wintit=wintit,
-                                                         Type=Ves.Type))
-                Lax[0] = _Plot_CrossProj_Ves(Ves, ax=Lax[0], Elt=Elt,
-                                             Pdict=Pdict, Idict=Idict,
-                                             Bsdict=Bsdict, Bvdict=Bvdict,
-                                             Vdict=Vdict, **kwa)
-                Lax[1] = _Plot_HorProj_Ves(Ves, ax=Lax[1], Elt=Elt, Nstep=Nstep,
-                                           Pdict=Pdict, Idict=IdictHor,
-                                           Bsdict=BsdictHor, Bvdict=BvdictHor,
-                                           **kwa)
-    if tit is not None:
-        Lax[0].figure.suptitle(tit)
+    C0 = issubclass(lS.__class__, utils.ToFuObject)
+    C1 = (isinstance(lS,list)
+          and all([issubclass(ss.__class__, utils.ToFuObject) for ss in lS]))
+    msg = "Arg lves must be a Struct subclass or a list of such !"
+    assert C0 or C1, msg
+    if C0:
+        lS = [lS]
+    nS = len(lS)
 
-    if not LegDict is None:
-        Lax[0].legend(**LegDict)
+    kwa = dict(fs=fs, wintit=wintit, Test=Test)
+    if proj=='3d':
+        # Temporary matplotlib issue
+        dLeg = None
+
+    for ii in  range(0,nS):
+
+        dplot = _Struct_plot_format(lS[ii], proj=proj, Elt=Elt,
+                                    dP=dP, dI=dI, dBs=dBs,
+                                    dBv=dBv, dVect=dVect, dIHor=dIHor,
+                                    dBsHor=dBsHor, dBvHor=dBvHor,
+                                    Lim=Lim, Nstep=Nstep)
+        for k in dplot.keys():
+            dplot[k].update(kwa)
+
+        if proj=='3d':
+            lax[0] = _Plot_3D_plt_Ves(lS[ii], ax=lax[0], LegDict=None,
+                                      draw=False, **dplot[proj])
+        else:
+            if proj=='cross':
+                lax[0] = _Plot_CrossProj_Ves(lS[ii], ax=lax[0],
+                                             LegDict=None,
+                                             draw=False, **dplot[proj])
+            elif proj=='hor':
+                lax[0] = _Plot_HorProj_Ves(lS[ii], ax=lax[0],
+                                           LegDict=None,
+                                           draw=False, **dplot[proj])
+            elif proj=='all':
+                if lax[0] is None or lax[1] is None:
+                    lax = list(_def.Plot_LOSProj_DefAxes('All', fs=fs,
+                                                         wintit=wintit,
+                                                         Type=lS[ii].Id.Type))
+                lax[0] = _Plot_CrossProj_Ves(lS[ii], ax=lax[0], LegDict=None,
+                                             draw=False, **dplot['cross'])
+                lax[1] = _Plot_HorProj_Ves(lS[ii], ax=lax[1], LegDict=None,
+                                             draw=False, **dplot['hor'])
+
+    if tit is not None:
+        lax[0].figure.suptitle(tit)
+
+    if not dLeg is None:
+        lax[0].legend(**dLeg)
     if draw:
-        Lax[0].figure.canvas.draw()
-    Lax = Lax if Proj=='All' else Lax[0]
-    return Lax
+        lax[0].figure.canvas.draw()
+    lax = lax if proj=='all' else lax[0]
+    return lax
 
 
 

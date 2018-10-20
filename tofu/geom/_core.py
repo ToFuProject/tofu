@@ -105,11 +105,35 @@ class Struct(utils.ToFuObject):
              'dgeom':{'Type':'Tor', 'Lim':[], 'arrayorder':'C'},
              'dsino':{},
              'dphys':{},
-             'dmisc':{'color':(0.8,0.8,0.8,0.8)}}
+             'dmisc':{'color':'k'}}
+    _dplot = {'cross':{'Elt':'P',
+                       'dP':{'c':'k','lw':2},
+                       'dI':{'c':'k','ls':'--','m':'x','ms':8,'mew':2},
+                       'dBs':{'c':'b','ls':'--','m':'x','ms':8,'mew':2},
+                       'dBv':{'c':'g','ls':'--','m':'x','ms':8,'mew':2},
+                       'dVect':{'color':'r','scale':10}},
+              'hor':{'Elt':'P',
+                     'dP':{'c':'k','lw':2},
+                     'dI':{'c':'k','ls':'--'},
+                     'dBs':{'c':'b','ls':'--'},
+                     'dBv':{'c':'g','ls':'--'},
+                     'Nstep':50},
+              '3d':{'Elt':'P',
+                    'dP':{'color':(0.8,0.8,0.8,1.),
+                          'rstride':1,'cstride':1,
+                          'linewidth':0., 'antialiased':False},
+                    'Lim':None,
+                    'Nstep':50}}
 
-    def __init_subclass__(cls, color=_ddef['dmisc']['color'], **kwdargs):
+
+    def __init_subclass__(cls, color='k', **kwdargs):
         super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Struct._ddef)
+        cls._dplot = copy.deepcopy(Struct._dplot)
+        cls._set_color_ddef(color)
+
+    @classmethod
+    def _set_color_ddef(cls, color):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
     def __init__(self, Poly=None, Type=None, Lim=None, mobile=False,
@@ -129,6 +153,7 @@ class Struct(utils.ToFuObject):
         self._dsino = dict.fromkeys(self._get_keys_dsino())
         self._dphys = dict.fromkeys(self._get_keys_dphys())
         self._dmisc = dict.fromkeys(self._get_keys_dmisc())
+        #self._dplot = copy.deepcopy(self.__class__._ddef['dplot'])
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
@@ -237,9 +262,9 @@ class Struct(utils.ToFuObject):
     @classmethod
     def _checkformat_inputs_dmisc(cls, color=None):
         if color is None:
-            color = cls._ddef['dmisc']['color']
+            color = mpl.colors.to_rgba(cls._ddef['dmisc']['color'])
         assert mpl.colors.is_color_like(color)
-        color = mpl.colors.to_rgba(color)
+        color = tuple(mpl.colors.to_rgba(color))
         return color
 
     ###########
@@ -318,9 +343,15 @@ class Struct(utils.ToFuObject):
         lSymbols = self._checkformat_inputs_dphys(lSymbols)
         self._dphys['lSymbols'] = lSymbols
 
-    def _set_dmisc(self, color=None):
+    def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
         self._dmisc['color'] = color
+        self._dplot['cross']['dP']['c'] = color
+        self._dplot['hor']['dP']['c'] = color
+        self._dplot['3d']['dP']['color'] = color
+
+    def _set_dmisc(self, color=None):
+        self._set_color(color)
 
     ###########
     # strip dictionaries
@@ -455,18 +486,17 @@ class Struct(utils.ToFuObject):
     @property
     def dmisc(self):
         return self._dmisc
-    @property
-    def color(self):
-        return self._dmisc['color']
-    @color.setter
-    def color(self, val):
-        self._dmisc['color'] = mpl.colors.to_rgba(val)
 
 
     ###########
     # public methods
     ###########
 
+    def set_color(self, col):
+        self._set_color(col)
+
+    def get_color(self):
+        return self._dmisc['color']
 
     @abstractmethod
     def isMobile(self):
@@ -496,7 +526,9 @@ class Struct(utils.ToFuObject):
 
         """
         ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.Lim,
-                                VType=self.Id.Type, In=In, Test=True)
+                                nLim=self._dgeom['nLim'],
+                                VType=self.Id.Type,
+                                In=In, Test=True)
         return ind
 
 
@@ -627,7 +659,7 @@ class Struct(utils.ToFuObject):
             assert self.dgeom['Multi']
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, DIn=offsetIn,
                        VIn=self.dgeom['VIn'], VType=self.Id.Type,
-                       VLim=self.Lim, Out=Out, margin=1.e-9,
+                       VLim=self.Lim, nVLim=self.dgeom['nLim'], Out=Out, margin=1.e-9,
                        Multi=self.dgeom['Multi'], Ind=Ind)
         args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
@@ -640,12 +672,12 @@ class Struct(utils.ToFuObject):
         args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
         kwdargs = dict(DV=res, dVMode=resMode, ind=ind, VType=self.Id.Type,
-                      VLim=self.Lim, Out=Out, margin=1.e-9)
+                      VLim=self.Lim, nVLim=self.dgeom['nLim'], Out=Out, margin=1.e-9)
         pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
         return pts, dV, ind, reseff
 
 
-    def plot(self, lax=None, proj='All', Elt='PIBsBvV',
+    def plot(self, lax=None, proj='all', Elt='PIBsBvV',
              dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
              dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
              dBvHor=_def.TorBvTord, Lim=None, Nstep=_def.TorNTheta,
@@ -661,9 +693,9 @@ class Struct(utils.ToFuObject):
         ----------
         Lax :       list or plt.Axes
             The axes to be used for plotting
-            Provide a list of 2 axes if Proj='All'
+            Provide a list of 2 axes if proj='All'
             If None a new figure with axes is created
-        Proj :      str
+        proj :      str
             Flag specifying the kind of projection
                 - 'Cross' : cross-section projection
                 - 'Hor' : horizontal projection
@@ -679,7 +711,7 @@ class Struct(utils.ToFuObject):
                 * 'V': vector pointing inward perpendicular to each segment
         dP :        dict / None
             Dict of properties for plotting the polygon
-            Fed to plt.Axes.plot() or plt.plot_surface() if Proj='3d'
+            Fed to plt.Axes.plot() or plt.plot_surface() if proj='3d'
         dI :        dict / None
             Dict of properties for plotting point 'I' in Cross-section projection
         dIHor :     dict / None
@@ -698,7 +730,8 @@ class Struct(utils.ToFuObject):
             Dict of properties for plotting the legend, fed to plt.legend()
             The legend is not plotted if None
         Lim :       list or tuple
-            Array of a lower and upper limit of angle (rad.) or length for plotting the '3d' Proj
+            Array of a lower and upper limit of angle (rad.) or length for
+            plotting the '3d' proj
         Nstep :     int
             Number of points for sampling in ignorable coordinate (toroidal angle or length)
         draw :      bool
@@ -716,32 +749,27 @@ class Struct(utils.ToFuObject):
         """
         kwdargs = locals()
         lout = ['self']
-        lrepl = [('lax','Lax'), ('proj','Proj'),
-                 ('dP','Pdict'),('dI','Idict'),('dBs','Bsdict'),
-                 ('dBv','Bvdict'),('dVect','Vdict'),('dIHor','IdictHor'),
-                 ('dBsHor','BsdictHor'),('dBvHor','BvdictHor'),
-                 ('dLeg','LegDict')]
         for k in lout:
             del kwdargs[k]
-        for k in lrepl:
-            kwdargs[k[1]] = kwdargs[k[0]]
-            del kwdargs[k[0]]
-        return _plot.Ves_plot(self, **kwdargs)
+        return _plot.Struct_plot(self, **kwdargs)
 
 
-    def plot_sino(self, Proj='Cross', ax=None, Ang=_def.LOSImpAng,
+    def plot_sino(self, proj='Cross', ax=None, Ang=_def.LOSImpAng,
                   AngUnit=_def.LOSImpAngUnit, Sketch=True, Pdict=None,
                   LegDict=_def.TorLegd, draw=True, fs=None, wintit='tofu',
                   Test=True):
         """ Plot the sinogram of the vessel polygon, by computing its envelopp in a cross-section, can also plot a 3D version of it
 
-        The envelop of the polygon is computed using self.Sino_RefPt as a reference point in projection space, and plotted using the provided dictionary of properties.
-        Optionaly a smal sketch can be included illustrating how the angle and the impact parameters are defined (if the axes is not provided).
+        The envelop of the polygon is computed using self.Sino_RefPt as a reference point in projection space,
+        and plotted using the provided dictionary of properties.
+        Optionaly a small sketch can be included illustrating how the angle
+        and the impact parameters are defined (if the axes is not provided).
 
         Parameters
         ----------
-        Proj :      str
-            Flag indicating whether to plot a classic sinogram ('Cross') from the vessel cross-section (assuming 2D), or an extended 3D version '3d' of it with additional angle
+        proj :      str
+            Flag indicating whether to plot a classic sinogram ('Cross') from the vessel cross-section (assuming 2D)
+            or an extended 3D version '3d' of it with additional angle
         ax   :      None or plt.Axes
             The axes on which the plot should be done, if None a new figure and axes is created
         Ang  :      str
@@ -751,7 +779,8 @@ class Struct(utils.ToFuObject):
         Sketch :    bool
             Flag indicating whether a small skecth showing the definitions of angles 'theta' and 'xi' should be included or not
         Pdict :     dict
-            Dictionary of properties used for plotting the polygon envelopp, fed to plt.plot() if Proj='Cross' and to plt.plot_surface() if Proj='3d'
+            Dictionary of properties used for plotting the polygon envelopp,
+            fed to plt.plot() if proj='Cross' and to plt.plot_surface() if proj='3d'
         LegDict :   None or dict
             Dictionary of properties used for plotting the legend, fed to plt.legend(), the legend is not plotted if None
         draw :      bool
@@ -770,9 +799,9 @@ class Struct(utils.ToFuObject):
         if Test:
             msg = "The impact parameters must be set ! (self.set_dsino())"
             assert not self.dsino['RefPt'] is None, msg
-            msg = "Arg Proj must be in ['Cross','3d'] !"
-            assert Proj in ['Cross','3d'], msg
-        if Proj=='Cross':
+            msg = "Arg proj must be in ['cross','3d'] !"
+            assert proj in ['cross','3d'], msg
+        if proj=='cross':
             Pdict = _def.TorPFilld if Pdict is None else Pdict
             ax = _plot.Plot_Impact_PolProjPoly(self, ax=ax, Ang=Ang,
                                                AngUnit=AngUnit, Sketch=Sketch,
@@ -809,6 +838,14 @@ class Ves(Struct, color='k'):
         del kwdargs['self'], kwdargs['__class__']
         super(Ves,self).__init__(mobile=False, **kwdargs)
 
+    @classmethod
+    def _set_color_ddef(cls, color):
+        super()._set_color_ddef(color)
+        color = mpl.colors.to_rgba(color)
+        cls._dplot['cross']['dP']['c'] = color
+        cls._dplot['hor']['dP']['c'] = color
+        cls._dplot['3d']['dP']['color'] = color
+
 
     @staticmethod
     def _checkformat_inputs_dgeom(Poly=None, Lim=None, mobile=False,
@@ -832,6 +869,21 @@ class Ves(Struct, color='k'):
 
 
 class PFC(Struct, color=(0.8,0.8,0.8,0.8)):
+
+    @classmethod
+    def _set_color_ddef(cls, color):
+        super()._set_color_ddef(color)
+        color = mpl.colors.to_rgba(color)
+        cls._dplot['cross']['dP'] = {'fc':color,'ec':'k','linewidth':1}
+        cls._dplot['hor']['dP'] = {'fc':color,'ec':'none'}
+        cls._dplot['3d']['dP']['color'] = color
+
+    def _set_color(self, color=None):
+        color = self._checkformat_inputs_dmisc(color=color)
+        self._dmisc['color'] = color
+        self._dplot['cross']['dP']['fc'] = color
+        self._dplot['hor']['dP']['fc'] = color
+        self._dplot['3d']['dP']['color'] = color
 
     def move(self):
         """ To be overriden at object-level after instance creation
@@ -866,12 +918,35 @@ class PFC(Struct, color=(0.8,0.8,0.8,0.8)):
         super(PFC, self).isMobile()
 
 
-class CoilPF(Ves, color='r'):
+class CoilPF(Struct, color='r'):
 
-    def __init_subclass__(cls, **kwdargs):
-        super().__init_subclass__(**kwdargs)
+    def __init__(self, Poly=None, Type=None, Lim=None,
+                 Id=None, Name=None, Exp=None, shot=None,
+                 sino_RefPt=None, sino_nP=_def.TorNP,
+                 Clock=False, arrayorder='C', fromdict=None,
+                 SavePath=os.path.abspath('./'),
+                 SavePath_Include=tfpf.defInclude, color=None):
+        kwdargs = locals()
+        del kwdargs['self'], kwdargs['__class__']
+        super().__init__(mobile=False, **kwdargs)
 
-    def __init__(self, nturns=None, superconducting=None, **kwdargs):
+    @classmethod
+    def _set_color_ddef(cls, color):
+        super()._set_color_ddef(color)
+        color = mpl.colors.to_rgba(color)
+        cls._dplot['cross']['dP'] = {'fc':color,'ec':'k','linewidth':1}
+        cls._dplot['hor']['dP'] = {'fc':color,'ec':'none'}
+        cls._dplot['3d']['dP']['color'] = color
+
+    def _set_color(self, color=None):
+        color = self._checkformat_inputs_dmisc(color=color)
+        self._dmisc['color'] = color
+        self._dplot['cross']['dP']['fc'] = color
+        self._dplot['hor']['dP']['fc'] = color
+        self._dplot['3d']['dP']['color'] = color
+
+    def __init__(self, nturns=None, superconducting=None, active=None,
+                 **kwdargs):
         super().__init__(**kwdargs)
 
     def _reset(self):
@@ -885,7 +960,7 @@ class CoilPF(Ves, color='r'):
 
     @staticmethod
     def _get_largs_dmag():
-        largs = ['nturns','superconducting']
+        largs = ['nturns','superconducting','active']
         return largs
 
     ###########
@@ -893,7 +968,7 @@ class CoilPF(Ves, color='r'):
     ###########
 
     @staticmethod
-    def _checkformat_inputs_dmag(nturns=None, superconducting=None):
+    def _checkformat_inputs_dmag(nturns=None, superconducting=None, active=None):
         C0 = nturns is None
         C1 = type(nturns) in [int,float,np.int64,np.float64] and nturns>0
         assert C0 or C1
@@ -901,6 +976,9 @@ class CoilPF(Ves, color='r'):
             nturns = int(nturns)
         C0 = superconducting is None
         C1 = type(superconducting) is bool
+        assert C0 or C1
+        C0 = active is None
+        C1 = type(active) is bool
         assert C0 or C1
         return nturns
 
@@ -910,33 +988,34 @@ class CoilPF(Ves, color='r'):
 
     @staticmethod
     def _get_keys_dmag():
-        lk = ['nturns','superconducting','I','nI']
+        lk = ['nturns','superconducting','active','I','nI']
         return lk
 
     ###########
     # _init
     ###########
 
-    def _init(self, nturns=None, superconducting=None, **kwdargs):
+    def _init(self, nturns=None, superconducting=None, active=None, **kwdargs):
         super()._init(**kwdargs)
-        self.set_dmag(nturns=nturns, superconducting=superconducting)
+        self.set_dmag(nturns=nturns, superconducting=superconducting,
+                      active=active)
 
 
     ###########
     # set dictionaries
     ###########
 
-    def set_dmag(self, superconducting=None, nturns=None):
-        nturns = self._checkformat_inputs_dmag(nturns=nturns,
+    def set_dmag(self, superconducting=None, nturns=None, active=None):
+        nturns = self._checkformat_inputs_dmag(nturns=nturns, active=active,
                                                 superconducting=superconducting)
         self._dmag.update({'superconducting':superconducting,
-                           'nturns':nturns})
+                           'nturns':nturns, 'active':active})
 
     ###########
     # strip dictionaries
     ###########
 
-    def _strip_dmag(self, lkeep=['nturns','superconducting']):
+    def _strip_dmag(self, lkeep=['nturns','superconducting','active']):
         utils.ToFuObject._strip_dict(self._dmag, lkeep=lkeep)
         self._dmag['nI'] = 0
 
@@ -944,9 +1023,9 @@ class CoilPF(Ves, color='r'):
     # rebuild dictionaries
     ###########
 
-    def _rebuild_dmag(self, lkeep=['nturns','superconducting']):
-        self.set_dmag(nturns=self.nturns,
-                      superconducting=self.dmag['superconducting'])
+    def _rebuild_dmag(self, lkeep=['nturns','superconducting','active']):
+        self.set_dmag(nturns=self.nturns, active=self._dmag['active'],
+                      superconducting=self._dmag['superconducting'])
 
     ###########
     # _strip and get/from dict
@@ -1159,23 +1238,20 @@ class Config(utils.ToFuObject):
                               'lorder':lorder, 'lCls':lCls})
         self._dstruct_dynamicattr()
 
-    @staticmethod
-    def set_vis(obj, k0, val, k1=None):
+    def _set_vis(self, k0, val, k1=None):
         assert type(val) is bool
         if k1 is None:
-            for k1 in obj._dstruct['dvisible'][k0].keys():
-                obj._dstruct['dvisible'][k0][k1] = val
+            for k1 in self._dstruct['dvisible'][k0].keys():
+                self._dstruct['dvisible'][k0][k1] = val
         else:
-            obj._dstruct['dvisible'][k0][k1] = val
+            self._dstruct['dvisible'][k0][k1] = val
 
-    @staticmethod
-    def get_vis(obj, k0, k1=None):
-        return obj._dstruct['dvisible'][k0][k1]
+    def _get_vis(self, k0, k1=None):
+        return self._dstruct['dvisible'][k0][k1]
 
-    @staticmethod
-    def set_color(obj, k0, val):
-        for k1 in obj._dstruct['dStruct'][k0].keys():
-            obj._dstruct['dStruct'][k0].color = val
+    def _set_color(self, k0, val):
+        for k1 in self._dstruct['dStruct'][k0].keys():
+            self._dstruct['dStruct'][k0][k1].color = val
 
     def _dstruct_dynamicattr(self):
         # get (key, val) pairs
@@ -1194,18 +1270,18 @@ class Config(utils.ToFuObject):
                 for kk in self._dstruct['dStruct'][k].keys():
                     setattr(self._dstruct['dStruct'][k][kk],
                             'set_visible',
-                            lambda vis, k0=k, k1=kk: set_vis(self, k0, vis, k1))
+                            lambda vis, k0=k, k1=kk: self._set_vis(k0, vis, k1))
                     setattr(self._dstruct['dStruct'][k][kk],
                             'get_visible',
-                            lambda k0=k, k1=kk: get_vis(self, k0, k1))
+                            lambda k0=k, k1=kk: self._get_vis(k0, k1))
                 dd = utils.dictattr(self._dstruct['dStruct'][k],
-                                    extra=['set_visible'])
+                                    extra=['set_visible', 'set_color'])
                 setattr(dd,
                         'set_visible',
-                        lambda vis, k0=kk: set_vis(self, k0, vis))
+                        lambda vis, k0=k: self._set_vis(k0, vis))
                 setattr(dd,
                         'set_color',
-                        lambda col, k0=kk: set_color(self, k0, col))
+                        lambda col, k0=k: self._set_color(k0, col))
                 setattr(self, k, dd)
 
     ###########
@@ -1323,8 +1399,13 @@ class Config(utils.ToFuObject):
             k0, k1 = k.split('_')
             lStruct.append(self._dstruct['dStruct'][k0][k1])
         return lStruct
-    @property
-    def visible(self):
+
+
+    ###########
+    # public methods
+    ###########
+
+    def get_visible(self):
         """ Return the array of visible bool (same order as lStruct) """
         vis = np.ones((self._dstruct['nStruct'],),dtype=bool)
         ii = 0
@@ -1333,20 +1414,16 @@ class Config(utils.ToFuObject):
             vis[ii] = self._dstruct['dvisible'][k0][k1]
             ii += 1
         return vis
-    @property
-    def color(self):
+
+    def get_color(self):
         """ Return the array of rgba colors (same order as lStruct) """
         col = np.full((self._dstruct['nStruct'],4), np.nan)
         ii = 0
         for k in self._dstruct['lorder']:
             k0, k1 = k.split('_')
-            col[ii,:] = self._dstruct['dStruct'][k0][k1].color
+            col[ii,:] = self._dstruct['dStruct'][k0][k1].get_color()
             ii += 1
         return col
-
-    ###########
-    # public methods
-    ###########
 
     def get_summary(self, verb=False, max_columns=100, width=1000):
         """ Summary description of the object content as a pandas DataFrame """
@@ -1397,30 +1474,30 @@ class Config(utils.ToFuObject):
         else:
             msg = "Arg pts must contain the coordinates of points !"
             assert pts.shape[0] in [2,3], pts
-        np = pts.shape[1]
+        nP = pts.shape[1]
 
-        ind = np.zeros((self._dstruct['nStruct'],np), dtype=bool)
+        ind = np.zeros((self._dstruct['nStruct'],nP), dtype=bool)
         lStruct = self.lStruct
         for ii in range(0,self._dstruct['nStruct']):
             ind[ii,:] = _GG._Ves_isInside(pts,
                                           lStruct[ii].Poly,
-                                          Lim=lSTruct[ii].Lim,
+                                          Lim=lStruct[ii].Lim,
+                                          nLim=lStruct[ii].dgeom['nLim'],
                                           VType=lStruct[ii].Id.Type,
                                           In=In, Test=True)
         return ind
 
     def plot(self, lax=None, proj='All', Elt='P', dLeg=_def.TorLegd,
              draw=True, fs=None, wintit=None, Test=True):
-        kwdargs = locals()
-        del kwdargs['self'], kwdargs['lax']
-        del kwdargs['dLeg'], kwdargs['draw']
-        for k in self._dstruct['lCls']:
-            for v in self.dStruct[k]:
-                lax = v.plot(lax=lax, dLeg=None, draw=False, **kwdargs)
-        if dLeg is not None:
-            lax[0].legend(**dLeg)
-        if draw:
-            lax[0].figure.canvas.draw()
+        vis = self.get_visible()
+        lStruct, lS = self.lStruct, []
+        for ii in range(0,self._dstruct['nStruct']):
+            if vis[ii]:
+                lS.append(lStruct[ii])
+
+        lax = _plot.Struct_plot(lS, lax=lax, proj=proj, Elt=Elt,
+                                dLeg=dLeg, draw=draw, fs=fs, wintit=wintit,
+                                Test=Test)
         return lax
 
     def plot_sino(self, **kwdargs):

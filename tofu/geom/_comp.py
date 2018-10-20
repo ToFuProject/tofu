@@ -208,11 +208,15 @@ def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', i
     return Pts, dV, ind, dVr
 
 
-def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, DIn=0., VIn=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9, Multi=False, Ind=None):
+def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
+                     DS=None, dSMode='abs', ind=None, DIn=0., VIn=None,
+                     VType='Tor', VLim=None, nVLim=None, Out='(X,Y,Z)',
+                     margin=1.e-9, Multi=False, Ind=None):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dS) in types or (hasattr(dS,'__iter__') and len(dS)==2 and all([type(ds) in types for ds in dS])), "Arg dS must be a float or a list of 2 floats !"
     dS = [float(dS),float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1]),float(dS[2])]
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==3)
+    assert type(nVLim) is int and nVLim>0
     if DS is None:
         DS = [None,None,None]
     else:
@@ -220,7 +224,7 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', i
     assert type(dSMode) is str and dSMode.lower() in ['abs','rel'], "Arg dSMode must be in ['abs','rel'] !"
     assert type(Multi) is bool, "Arg Multi must be a bool !"
 
-    VLim = None if VLim is None else np.array(VLim)
+    VLim = None if (VLim is None or nVLim==0) else np.array(VLim)
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
 
