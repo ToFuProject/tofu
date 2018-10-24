@@ -40,7 +40,8 @@ def setup_module(module):
         ff = f.split('_')
         v = [fff[len(keyVers):] for fff in ff
              if fff[:len(keyVers)]==keyVers]
-        assert len(v)==1
+        msg = f + "\n    "+str(ff) + "\n    " + str(v)
+        assert len(v)==1, msg
         v = v[0]
         if '.npz' in v:
             v = v[:v.index('.npz')]
@@ -66,7 +67,8 @@ def teardown_module(module):
         ff = f.split('_')
         v = [fff[len(keyVers):] for fff in ff
              if fff[:len(keyVers)]==keyVers]
-        assert len(v)==1
+        msg = f + "\n    "+str(ff) + "\n    " + str(v)
+        assert len(v)==1, msg
         v = v[0]
         if '.npz' in v:
             v = v[:v.index('.npz')]
@@ -126,9 +128,9 @@ class Test01_Ves:
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("---- "+cls.__name__)
-        cls.LObj = [tfg.Ves(Name='Test', Poly=PVes, Type='Tor',
+        cls.lObj = [tfg.Ves(Name='Test', Poly=PVes, Type='Tor',
                             shot=0, Exp='Test', SavePath=here)]
-        cls.LObj.append(tfg.Ves(Name='Test', Poly=PVes, Type='Lin',
+        cls.lObj.append(tfg.Ves(Name='Test', Poly=PVes, Type='Lin',
                                 Lim=Lim, shot=0, Exp='Test', SavePath=here))
 
     @classmethod
@@ -150,61 +152,61 @@ class Test01_Ves:
         pass
 
     def test01_isInside(self, NR=20, NZ=20, NThet=10):
-        for ii in range(0,len(self.LObj)):
+        for ii in range(0,len(self.lObj)):
             print("test01 : ",ii,
-                  self.LObj[ii].nLim, self.LObj[ii].Lim)
-            PtsR = np.linspace(self.LObj[ii].dgeom['P1Min'][0],
-                               self.LObj[ii].dgeom['P1Max'][0],NR)
-            PtsZ = np.linspace(self.LObj[ii].dgeom['P2Min'][0],
-                               self.LObj[ii].dgeom['P2Max'][0],NZ)
+                  self.lObj[ii].nLim, self.lObj[ii].Lim)
+            PtsR = np.linspace(self.lObj[ii].dgeom['P1Min'][0],
+                               self.lObj[ii].dgeom['P1Max'][0],NR)
+            PtsZ = np.linspace(self.lObj[ii].dgeom['P2Min'][0],
+                               self.lObj[ii].dgeom['P2Max'][0],NZ)
             PtsRZ = np.array([np.tile(PtsR,(NZ,1)).flatten(),
                               np.tile(PtsZ,(NR,1)).T.flatten()])
-            if self.LObj[ii].Type=='Tor' and self.LObj[ii].nLim==0:
+            if self.lObj[ii].Type=='Tor' and self.lObj[ii].nLim==0:
                 In = '(R,Z)'
-            if self.LObj[ii].Type=='Lin':
+            if self.lObj[ii].Type=='Lin':
                 PtsRZ = np.concatenate((np.zeros((1,NR*NZ)),PtsRZ),axis=0)
                 In = '(X,Y,Z)'
-            elif self.LObj[ii].Type=='Tor' and self.LObj[ii].nLim!=0:
+            elif self.lObj[ii].Type=='Tor' and self.lObj[ii].nLim!=0:
                 PtsRZ = np.concatenate((PtsRZ,np.zeros((1,NR*NZ))),axis=0)
                 In = '(R,Z,Phi)'
-            indRZ = self.LObj[ii].isInside(PtsRZ, In=In)
+            indRZ = self.lObj[ii].isInside(PtsRZ, In=In)
             assert type(indRZ) is np.ndarray
-            if self.LObj[ii].nLim<=1:
+            if self.lObj[ii].nLim<=1:
                 assert indRZ.shape==(PtsRZ.shape[1],)
             else:
-                assert indRZ.shape==(self.LObj[ii].nLim, PtsRZ.shape[1])
+                assert indRZ.shape==(self.lObj[ii].nLim, PtsRZ.shape[1])
 
     def test02_InsideConvexPoly(self):
-        self.LObj[0].get_InsideConvexPoly(Plot=False, Test=True)
+        self.lObj[0].get_InsideConvexPoly(Plot=False, Test=True)
 
     def test03_get_sampleEdge(self):
-        pts, dlr, ind = self.LObj[0].get_sampleEdge(0.05, DS=None,
+        pts, dlr, ind = self.lObj[0].get_sampleEdge(0.05, DS=None,
                                                     resMode='abs',
                                                     offsetIn=0.001)
-        pts, dlr, ind = self.LObj[0].get_sampleEdge(0.1, DS=None,
+        pts, dlr, ind = self.lObj[0].get_sampleEdge(0.1, DS=None,
                                                     resMode='rel',
                                                     offsetIn=-0.001)
-        pts, dlr, ind = self.LObj[0].get_sampleEdge(0.05, DS=[None,[-2.,0.]],
+        pts, dlr, ind = self.lObj[0].get_sampleEdge(0.05, DS=[None,[-2.,0.]],
                                                     resMode='abs',
                                                     offsetIn=0.)
 
     def test04_get_sampleCross(self):
-        pts, dS, ind, reseff = self.LObj[0].get_sampleCross(0.02, DS=None,
+        pts, dS, ind, reseff = self.lObj[0].get_sampleCross(0.02, DS=None,
                                                             resMode='abs',
                                                             ind=None)
-        pts, dS, ind, reseff = self.LObj[0].get_sampleCross(0.02, DS=None,
+        pts, dS, ind, reseff = self.lObj[0].get_sampleCross(0.02, DS=None,
                                                             resMode='abs',
                                                             ind=ind)
-        pts, dS, ind, reseff = self.LObj[0].get_sampleCross(0.1,
+        pts, dS, ind, reseff = self.lObj[0].get_sampleCross(0.1,
                                                             DS=[[0.,2.5],None],
                                                             resMode='rel',
                                                             ind=None)
 
     def test05_get_sampleS(self):
         DS = [[2.,3.],[0.,5.],[0.,np.pi/2.]]
-        for ii in range(0,len(self.LObj)):
+        for ii in range(0,len(self.lObj)):
             try:
-                pts0, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=DS,
+                pts0, dS, ind, dSr = self.lObj[ii].get_sampleS(0.02, DS=DS,
                                                                resMode='abs',
                                                                ind=None,
                                                                offsetIn=0.001,
@@ -212,11 +214,11 @@ class Test01_Ves:
             except Exception as err:
                 msg = str(err)
                 msg += "\n    ii={0}".format(ii)
-                msg += "\n      Lim={0}".format(str(self.LObj[ii].Lim))
+                msg += "\n      Lim={0}".format(str(self.lObj[ii].Lim))
                 msg += "\n      DS={0}".format(str(DS))
                 raise Exception(msg)
             try:
-                pts1, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=None,
+                pts1, dS, ind, dSr = self.lObj[ii].get_sampleS(0.02, DS=None,
                                                                resMode='abs',
                                                                ind=ind,
                                                                offsetIn=0.001,
@@ -224,7 +226,7 @@ class Test01_Ves:
             except Exception as err:
                 msg = str(err)
                 msg += "\n    ii={0}".format(ii)
-                msg += "\n      Lim={0}".format(str(self.LObj[ii].Lim))
+                msg += "\n      Lim={0}".format(str(self.lObj[ii].Lim))
                 msg += "\n      DS={0}".format(str(DS))
                 raise Exception(msg)
 
@@ -237,85 +239,85 @@ class Test01_Ves:
     def test06_get_sampleV(self):
         LDV = [[[1.,2.],[0.,2.],[3.*np.pi/4.,5.*np.pi/4.]],
                [[-1.,1.],[1.,2.],[0.,2.]]]
-        if self.LObj[0].Id.Cls=='Ves':
-            for ii in range(0,len(self.LObj)):
-                pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=LDV[ii],
+        if self.lObj[0].Id.Cls=='Ves':
+            for ii in range(0,len(self.lObj)):
+                pts, dV, ind, dVr = self.lObj[ii].get_sampleV(0.05, DV=LDV[ii],
                                                               resMode='abs',
                                                               ind=None,
                                                               Out='(R,Z,Phi)')
-                pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=None,
+                pts, dV, ind, dVr = self.lObj[ii].get_sampleV(0.05, DV=None,
                                                               resMode='abs',
                                                               ind=ind,
                                                               Out='(R,Z,Phi)')
 
     def test07_plot(self):
-        for ii in range(0,len(self.LObj)):
-            if self.LObj[ii].Id.Cls=='Ves':
+        for ii in range(0,len(self.lObj)):
+            if self.lObj[ii].Id.Cls=='Ves':
                 dP = {'c':'k'}
             else:
                 dP = {'ec':'None','fc':(0.8,0.8,0.8,0.5)}
-            Lax1 = self.LObj[ii].plot(proj='All', Elt='PIBsBvV', dP=dP,
+            Lax1 = self.lObj[ii].plot(proj='All', Elt='PIBsBvV', dP=dP,
                                       draw=False, fs=None, Test=True)
-            Lax2 = self.LObj[ii].plot(proj='Cross', Elt='PIBsBvV', dP=dP,
+            Lax2 = self.lObj[ii].plot(proj='Cross', Elt='PIBsBvV', dP=dP,
                                       draw=False, fs=(10,6), Test=True)
-            Lax3 = self.LObj[ii].plot(proj='Hor', Elt='PIBsBvV', dP=dP,
+            Lax3 = self.lObj[ii].plot(proj='Hor', Elt='PIBsBvV', dP=dP,
                                       draw=False, fs=None, Test=True)
             plt.close('all')
 
     def test08_plot_sino(self):
-        Lax1 = self.LObj[0].plot_sino(Ang='xi', AngUnit='deg',
+        Lax1 = self.lObj[0].plot_sino(Ang='xi', AngUnit='deg',
                                       Sketch=True, draw=False,
                                       fs=None, Test=True)
-        Lax2 = self.LObj[0].plot_sino(Ang='theta', AngUnit='rad',
+        Lax2 = self.lObj[0].plot_sino(Ang='theta', AngUnit='rad',
                                       Sketch=True, draw=False,
                                       fs='a4', Test=True)
         plt.close('all')
 
     def test09_strip(self):
-        for ii in range(0,len(self.LObj)):
-            lok = self.LObj[ii]._dstrip['allowed']
+        for ii in range(0,len(self.lObj)):
+            lok = self.lObj[ii]._dstrip['allowed']
             for ss in lok:
-                self.LObj[ii].strip(ss)
+                self.lObj[ii].strip(ss)
             for ss in lok[::-1]:
-                self.LObj[ii].strip(ss)
+                self.lObj[ii].strip(ss)
 
     def test10_get_nbytes(self):
-        for ii in range(0,len(self.LObj)):
-            print(self.LObj[ii].get_nbytes()[0])
+        for ii in range(0,len(self.lObj)):
+            print(self.lObj[ii].get_nbytes()[0])
 
     def test11_stripandnbytes(self):
-        for ii in range(0,len(self.LObj)):
+        for ii in range(0,len(self.lObj)):
             nb = []
-            lok = self.LObj[ii]._dstrip['allowed']
+            lok = self.lObj[ii]._dstrip['allowed']
             for ss in lok:
-                self.LObj[ii].strip(ss)
-                nb.append(self.LObj[ii].get_nbytes()[0])
+                self.lObj[ii].strip(ss)
+                nb.append(self.lObj[ii].get_nbytes()[0])
             # Check decreasing sizes
             assert np.all(np.diff(nb)<0)
 
     def test12_copy(self):
-        for ii in range(0,len(self.LObj)):
-            obj = self.LObj[ii].copy()
-            assert obj==self.LObj[ii]
+        for ii in range(0,len(self.lObj)):
+            obj = self.lObj[ii].copy()
+            assert obj==self.lObj[ii]
 
     def test13_tofromdict(self):
-        for ii in range(0,len(self.LObj)):
-            dd = self.LObj[ii].to_dict(strip=-1)
+        for ii in range(0,len(self.lObj)):
+            dd = self.lObj[ii].to_dict(strip=-1)
             msg = "obj.to_dict() should return a dict !"
             assert isinstance(dd,dict), msg
-            obj2 = self.LObj[ii].__class__(fromdict=dd)
+            obj2 = self.lObj[ii].__class__(fromdict=dd)
             mg = "Unequal to and from dict !"
-            assert obj2==self.LObj[ii], msg
+            assert obj2==self.lObj[ii], msg
 
     def test14_saveload(self):
-        for ii in range(0,len(self.LObj)):
-            self.LObj[ii].strip(0)
-            self.LObj[ii].save(verb=False)
-            pfe = os.path.join(self.LObj[ii].Id.SavePath,
-                               self.LObj[ii].Id.SaveName+'.npz')
+        for ii in range(0,len(self.lObj)):
+            self.lObj[ii].strip(0)
+            self.lObj[ii].save(verb=False)
+            pfe = os.path.join(self.lObj[ii].Id.SavePath,
+                               self.lObj[ii].Id.SaveName+'.npz')
             obj = tfu.load(pfe, verb=False)
             msg = "Unequal saved / loaded objects !"
-            assert obj==self.LObj[ii], msg
+            assert obj==self.lObj[ii], msg
             # Just to check the loaded version works fine
             out = obj.get_sampleCross(0.02, DS=None, resMode='abs', ind=None)
             os.remove(pfe)
@@ -334,37 +336,198 @@ class Test02_Struct(Test01_Ves):
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("--------- "+VerbHead+cls.__name__)
-        cls.LObj = [tfg.PFC(Name='Test02', Poly=PVes, Type='Tor',
+        cls.lObj = [tfg.PFC(Name='Test02', Poly=PVes, Type='Tor',
                                shot=0, Exp='Test', SavePath=here)]
-        cls.LObj.append(tfg.CoilPF(Name='Test', Poly=PVes, Type='Tor',
+        cls.lObj.append(tfg.CoilPF(Name='Test', Poly=PVes, Type='Tor',
                                    Lim=[-np.pi/2.,np.pi/4.],
                                    shot=0, Exp='Test', SavePath=here))
-        cls.LObj.append(tfg.CoilCS(Name='Test', Poly=PVes,
+        cls.lObj.append(tfg.CoilCS(Name='Test', Poly=PVes,
                                    Type='Lin', Lim=Lim,
                                    shot=0, Exp='Test', SavePath=here,
                                    mobile=True))
-        cls.LObj.append(tfg.PFC(Name='Test', Poly=PVes, Type='Tor',
+        cls.lObj.append(tfg.PFC(Name='Test', Poly=PVes, Type='Tor',
                                    Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
                                    shot=0, Exp='Test', SavePath=here))
-        cls.LObj.append(tfg.CoilPF(Name='Test', Poly=PVes, Type='Lin',
+        cls.lObj.append(tfg.CoilPF(Name='Test', Poly=PVes, Type='Lin',
                                    Lim=np.array([[0.,1.],[0.5,1.5],[-2.,-1.]]),
                                    shot=0, Exp='Test', SavePath=here))
 
     @classmethod
     def teardown_class(cls):
         #print("teardown_class() after any methods in this class")
-        cls.SL0 = tfg.PFC(Name='Test02', Poly=PVes, Type='Lin', Lim=np.array([0.,1.]),
-                             shot=0, Exp='Test', SavePath=here)
-        cls.SL1 = tfg.CoilPF(Name='Test03', Poly=PVes, Type='Lin',
-                             Lim=np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
-                             shot=0, Exp='Test', SavePath=here)
-        cls.ST0 = tfg.CoilCS(Name='Test02', Poly=PVes*0.8, Type='Tor', Lim=None, shot=0, Exp='Test',
-                             SavePath=here, mobile=True)
-        cls.ST1 = tfg.PFC(Name='Test03', Poly=PVes, Type='Tor',
-                             Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
-                             shot=0, Exp='Test', SavePath=here)
-        cls.SL0.save(), cls.SL1.save()
-        cls.ST0.save(), cls.ST1.save()
+        # cls.SL0 = tfg.PFC(Name='Test02', Poly=PVes, Type='Lin', Lim=np.array([0.,1.]),
+                             # shot=0, Exp='Test', SavePath=here)
+        # cls.SL1 = tfg.CoilPF(Name='Test03', Poly=PVes, Type='Lin',
+                             # Lim=np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
+                             # shot=0, Exp='Test', SavePath=here)
+        # cls.ST0 = tfg.CoilCS(Name='Test02', Poly=PVes*0.8, Type='Tor', Lim=None, shot=0, Exp='Test',
+                             # SavePath=here, mobile=True)
+        # cls.ST1 = tfg.PFC(Name='Test03', Poly=PVes, Type='Tor',
+                             # Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
+                             # shot=0, Exp='Test', SavePath=here)
+        pass
+
+
+#######################################################
+#
+#  Creating Config objects and testing methods
+#
+#######################################################
+
+class Test03_Config(object):
+
+    @classmethod
+    def setup_class(cls, PVes=PVes, Lim=Lim):
+        #print("")
+        #print("--------- "+VerbHead+cls.__name__)
+        lobjTor = [tfg.Ves(Name='Test', Poly=PVes, Type='Tor',
+                           Exp='Test', SavePath=here),
+                   tfg.CoilPF(Name='Test', Poly=PVes, Type='Tor',
+                              Exp='Test', SavePath=here),
+                   tfg.PFC(Name='Test', Poly=PVes, Type='Tor',
+                           Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
+                           Exp='Test', SavePath=here)]
+        lobjLin = [tfg.Ves(Name='Test', Poly=PVes, Type='Lin',
+                           Lim=Lim, Exp='Test', SavePath=here),
+                   tfg.CoilPF(Name='Test', Poly=PVes, Type='Lin',
+                              Lim=Lim, Exp='Test', SavePath=here),
+                   tfg.PFC(Name='Test', Poly=PVes, Type='Lin',
+                           Lim=np.array([[0.,1.],[0.5,1.5],[-2.,-1.]]),
+                           Exp='Test', SavePath=here)]
+        cls.lObj = [tfg.Config(Name='Test', lStruct=lobjTor, Exp='Test',
+                               SavePath=here),
+                    tfg.Config(Name='Test', lStruct=lobjLin, Exp='Test',
+                              SavePath=here)]
+
+    @classmethod
+    def teardown_class(cls):
+        #print("teardown_class() after any methods in this class")
+        for obj in cls.lObj:
+            obj.strip(-1)
+            obj.save()
+
+    def test01_properties(self):
+        for obj in self.lObj:
+            dS = obj.dstruct
+            lS = obj.lStruct
+            ds = obj.dsino
+
+    def test02_set_dsino(self):
+        for obj in self.lObj:
+            obj.set_dsino([2.4,0])
+
+    def test03_get_visible(self):
+        for obj in self.lObj:
+            vis = obj.get_visible()
+            assert vis.size==obj.dstruct['nStruct']
+
+    def test04_get_color(self):
+        for obj in self.lObj:
+            col = obj.get_color()
+            assert col.shape==(obj.dstruct['nStruct'],4)
+
+    def test05_get_summary(self):
+        for obj in self.lObj:
+            df = obj.get_summary()
+
+    def test06_isInside(self, NR=20, NZ=20):
+        for ii in range(0,len(self.lObj)):
+            R = np.linspace(self.lObj[ii].Ves.Test.dgeom['P1Min'][0],
+                            self.lObj[ii].Ves.Test.dgeom['P1Max'][0],NR)
+            Z = np.linspace(self.lObj[ii].Ves.Test.dgeom['P2Min'][0],
+                            self.lObj[ii].Ves.Test.dgeom['P2Max'][0],NZ)
+            ptsRZ = np.array([np.tile(R,(NZ,1)).ravel(),
+                              np.tile(Z,(NR,1)).T.ravel()])
+            if self.lObj[ii].Ves.Test.Id.Type=='Tor':
+                In = '(R,Z,phi)'
+                pts = np.array([ptsRZ[0,:],
+                                ptsRZ[1,:],
+                                np.zeros((ptsRZ.shape[1],))])
+            elif self.lObj[ii].Ves.Test.Id.Type=='Lin':
+                pts = np.array([np.zeros((ptsRZ.shape[1],)),
+                                ptsRZ[0,:],
+                                ptsRZ[1,:]])
+                In = '(X,Y,Z)'
+            try:
+                ind = self.lObj[ii].isInside(pts, In=In)
+            except Exception as err:
+                msg = str(err)
+                msg += "\n    ii={0}".format(ii)
+                msg += "\n    In={0}".format(In)
+                msg += "\n    pts.shape={0}".format(str(pts.shape))
+                msg += "\n    obj.Ves.Id.Type={0}".format(self.lObj[ii].Ves.Test.Id.Type)
+                msg += "\n    obj.Ves.Lim={0}".format(str(self.lObj[ii].Ves.Test.Lim))
+                msg += "\n    obj.Ves.nLim={0}".format(self.lObj[ii].Ves.Test.nLim)
+                raise Exception(msg)
+            assert ind.shape==(self.lObj[ii].dstruct['nStruct'],pts.shape[1])
+
+    def test07_plot(self):
+        for obj in self.lObj:
+            lax = obj.plot()
+        plt.close('all')
+
+    def test08_plotafterchanges(self):
+        for obj in self.lObj:
+            obj.CoilPF.set_color('g')
+            obj.PFC.Test.set_visible(False)
+            obj.Ves.Test.set_color('m')
+            lax = obj.plot()
+        plt.close('all')
+
+    def test09_plot_sino(self):
+        for obj in self.lObj:
+            lax = obj.plot_sino()
+        plt.close('all')
+
+    def test10_strip(self):
+        for obj in self.lObj:
+            [ss.save() for ss in obj.lStruct]
+            ns = obj._dstrip['allowed']
+            for ss in ns:
+                obj.strip(ss)
+                assert ss==obj._dstrip['strip']
+            for ss in ns[::-1]:
+                obj.strip(ss)
+                assert ss==obj._dstrip['strip']
+
+    def test11_stripandgetnbytes(self):
+        for obj in self.lObj:
+            ls = []
+            ns = obj._dstrip['allowed']
+            for ss in ns:
+                obj.strip(ss)
+                ls.append(obj.get_nbytes()[0])
+            assert np.all(np.diff(ls)<0)
+
+    def test12_copy(self):
+        for ii in range(0,len(self.lObj)):
+            obj = self.lObj[ii].copy()
+            assert obj==self.lObj[ii]
+
+    def test13_tofromdict(self):
+        for ii in range(0,len(self.lObj)):
+            dd = self.lObj[ii].to_dict(strip=-1)
+            msg = "obj.to_dict() should return a dict !"
+            assert isinstance(dd,dict), msg
+            obj2 = self.lObj[ii].__class__(fromdict=dd)
+            mg = "Unequal to and from dict !"
+            assert obj2==self.lObj[ii], msg
+
+
+    def test14_saveload(self):
+        for ii in range(0,len(self.lObj)):
+            self.lObj[ii].strip(-1)
+            self.lObj[ii].save(verb=False)
+            pfe = os.path.join(self.lObj[ii].Id.SavePath,
+                               self.lObj[ii].Id.SaveName+'.npz')
+            obj = tfu.load(pfe, verb=False)
+            msg = "Unequal saved / loaded objects !"
+            assert obj==self.lObj[ii], msg
+            # Just to check the loaded version works fine
+            obj.strip(0)
+            out = obj.get_summary()
+            os.remove(pfe)
+
 
 
 
@@ -389,7 +552,7 @@ class Test03_Rays:
         LVes = [Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3
         LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1],
               None, Test02_Struct.ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
-        cls.LObj = [None for vv in LVes]
+        cls.lObj = [None for vv in LVes]
         N = 50
         cls.N = N
         for ii in range(0,len(LVes)):
@@ -400,7 +563,7 @@ class Test03_Rays:
             us = np.array([np.linspace(-0.5,0.5,N),
                            -np.ones((N,)),
                            np.linspace(-0.5,0.5,N)])
-            cls.LObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
+            cls.lObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
                                     LStruct=LS[ii], Exp=None, Diag='Test',
                                     SavePath=here)
 
@@ -418,8 +581,8 @@ class Test03_Rays:
         pass
 
     def test01_select(self):
-        for ii in range(0,len(self.LObj)):
-            if self.LObj[ii].LStruct is None:
+        for ii in range(0,len(self.lObj)):
+            if self.lObj[ii].LStruct is None:
                 el = 'Ves'
             else:
                 el = self.LObj[ii].LStruct[-1].Id.Name

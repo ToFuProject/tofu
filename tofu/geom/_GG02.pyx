@@ -304,7 +304,16 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
             pts = CoordShift(Pts, In=In, Out='(R,Z)')
             ind = Path(VPoly.T).contains_points(pts.T, transform=None, radius=0.0)
         else:
-            pts = CoordShift(Pts, In=In, Out='(R,Z,Phi)')
+            try:
+                pts = CoordShift(Pts, In=In, Out='(R,Z,Phi)')
+            except Exception as err:
+                msg = str(err)
+                msg += "\n    You may have specified points in (R,Z)"
+                msg += "\n    But there are toroidally limited elements !"
+                msg += "\n      (i.e.: element with self.nLim>0)"
+                msg += "\n    These require to know the phi of points !"
+                raise Exception(msg)
+
             ind0 = Path(VPoly.T).contains_points(pts[:2,:].T,
                                                  transform=None, radius=0.0)
             if nLim>1:
