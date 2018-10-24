@@ -242,10 +242,10 @@ def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ,
     vect = np.array([np.cos(theta), np.sin(theta)])
 
     # Scalar product
-    sca = np.sum(vect[:,:,np.newaxis]*Poly[:,np.newaxis,:],axis=0)
+    sca = np.sum(vect[:,:,np.newaxis]*(Poly-RZ[:,np.newaxis])[:,np.newaxis,:],axis=0)
     scamin = np.min(sca,axis=1)
     scamax = np.max(sca,axis=1)
-    return theta, np.array([scamin, scamax])
+    return theta, np.array([scamax, scamin])
 
 
 # For sinograms
