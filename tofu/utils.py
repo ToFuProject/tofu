@@ -483,6 +483,7 @@ class ToFuObjectBase(object):
                  **kwdargs):
 
         self._Done = False
+        self._dstrip = self.__class__._dstrip.copy()
         if fromdict is not None:
             self.from_dict(fromdict)
         else:

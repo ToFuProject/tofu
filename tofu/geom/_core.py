@@ -1122,7 +1122,9 @@ class Config(utils.ToFuObject):
 
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'shot':0},
+    _ddef = {'Id':{'shot':0,
+                   'include':['Mod','Cls','Exp',
+                              'Name','shot','version']},
              'dstruct':{'order':['Ves','PFC','CoilPF','CoilCS']}}
 
     def __init__(self, lStruct=None,
@@ -1142,7 +1144,7 @@ class Config(utils.ToFuObject):
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
-                               shot=None, **kwdargs):
+                               shot=None, include=None, **kwdargs):
         if Id is not None:
             assert isinstance(Id,utils.ID)
             Name, shot = Id.Name, Id.shot
@@ -1150,7 +1152,9 @@ class Config(utils.ToFuObject):
         if shot is None:
             shot = cls._ddef['Id']['shot']
         assert type(shot) is int
-        kwdargs.update({'Name':Name, 'shot':shot})
+        if include is None:
+            include = cls._ddef['Id']['include']
+        kwdargs.update({'Name':Name, 'include':include, 'shot':shot})
         return kwdargs
 
     ###########
@@ -1328,7 +1332,14 @@ class Config(utils.ToFuObject):
                 for k in self._dstruct['dStruct'].keys():
                     for kk in self._dstruct['dStruct'][k].keys():
                         pfe = self._dstruct['dStruct'][k][kk]
-                        self._dstruct['dStruct'][k][kk] = utils.load(pfe)
+                        try:
+                            self._dstruct['dStruct'][k][kk] = utils.load(pfe)
+                        except Exception as err:
+                            msg = str(err)
+                            msg += "\n    type(pfe) = {0}".format(str(type(pfe)))
+                            msg += "\n    self._dstrip['strip'] = {0}".format(self._dstrip['strip'])
+                            msg += "\n    strip = {0}".format(strip)
+                            raise Exception(msg)
 
             for k in self._dstruct['dStruct'].keys():
                 for kk in self._dstruct['dStruct'][k].keys():
@@ -1404,6 +1415,7 @@ class Config(utils.ToFuObject):
 
     def _strip(self, strip=0, force=False):
         self._strip_dstruct(strip=strip, force=force)
+        #self._strip_dsino()
 
     def _to_dict(self):
         dout = {'dstruct':{'dict':self.dstruct, 'lexcept':None}}
@@ -1495,14 +1507,20 @@ class Config(utils.ToFuObject):
             print(df)
         return df
 
-    def isInside(self, pts, In='(X,Y,Z)'):
+    def isInside(self, pts, In='(X,Y,Z)', log='any'):
         """ Return a 2D array of bool
 
         Equivalent to applying isInside to each Struct
         Check self.lStruct[0].isInside? for details
+
+        Arg log determines how Struct with multiple Limits are treated
+            - 'all' : True only if pts belong to all elements
+            - 'any' : True if pts belong to any element
         """
         msg = "Arg pts must be a 1D or 2D np.ndarray !"
         assert isinstance(pts,np.ndarray) and pts.ndim in [1,2], msg
+        msg = "Arg log must be in ['any','all']"
+        assert log in ['any','all'], msg
         if pts.ndim==1:
             msg = "Arg pts must contain the coordinates of a point !"
             assert pts.size in [2,3], msg
@@ -1515,12 +1533,18 @@ class Config(utils.ToFuObject):
         ind = np.zeros((self._dstruct['nStruct'],nP), dtype=bool)
         lStruct = self.lStruct
         for ii in range(0,self._dstruct['nStruct']):
-            ind[ii,:] = _GG._Ves_isInside(pts,
-                                          lStruct[ii].Poly,
-                                          Lim=lStruct[ii].Lim,
-                                          nLim=lStruct[ii].dgeom['nLim'],
-                                          VType=lStruct[ii].Id.Type,
-                                          In=In, Test=True)
+            indi = _GG._Ves_isInside(pts,
+                                     lStruct[ii].Poly,
+                                     Lim=lStruct[ii].Lim,
+                                     nLim=lStruct[ii].nLim,
+                                     VType=lStruct[ii].Id.Type,
+                                     In=In, Test=True)
+            if lStruct[ii].nLim>1:
+                if log=='any':
+                    indi = np.any(indi,axis=0)
+                else:
+                    indi = np.all(indi,axis=0)
+            ind[ii,:] = indi
         return ind
 
     def plot(self, lax=None, proj='all', Elt='P', dLeg=_def.TorLegd,
