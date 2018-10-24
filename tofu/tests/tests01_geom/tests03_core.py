@@ -22,7 +22,7 @@ import tofu.geom as tfg
 
 here = os.path.abspath(os.path.dirname(__file__))
 VerbHead = 'tofu.geom.tests03_core'
-
+keyVers = 'Vers'
 
 #######################################################
 #
@@ -32,28 +32,51 @@ VerbHead = 'tofu.geom.tests03_core'
 
 def setup_module(module):
     print("") # this is to get a newline after the dots
-    LF = os.listdir(here)
-    LF = [lf for lf in LF if all([ss in lf for ss in ['TFG_','Test','_Vv','.npz']])]
-    LF = [lf for lf in LF if not lf[lf.index('_Vv')+2:lf.index('_U')]==__version__]
-    print("Removing the following previous test files:")
-    print (LF)
-    for lf in LF:
-        os.remove(os.path.join(here,lf))
-    #print("setup_module before anything in this file")
+    lf = os.listdir(here)
+    lf = [f for f in lf
+         if all([s in f for s in ['TFG_','Test','.npz']])]
+    lF = []
+    for f in lf:
+        ff = f.split('_')
+        v = [fff[len(keyVers):] for fff in ff
+             if fff[:len(keyVers)]==keyVers]
+        assert len(v)==1
+        v = v[0]
+        if '.npz' in v:
+            v = v[:v.index('.npz')]
+        print(v, __version__)
+        if v!=__version__:
+            lF.append(f)
+    if len(lF)>0:
+        print("Removing the following previous test files:")
+        for f in lF:
+            os.remove(os.path.join(here,f))
+        #print("setup_module before anything in this file")
 
 def teardown_module(module):
     #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
     #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
     #print("teardown_module after everything in this file")
     #print("") # this is to get a newline
-    LF = os.listdir(here)
-    LF = [lf for lf in LF if all([ss in lf for ss in ['TFG_','Test','_Vv','.npz']])]
-    LF = [lf for lf in LF if lf[lf.index('_Vv')+2:lf.index('_U')]==__version__]
-    print("Removing the following test files:")
-    print (LF)
-    for lf in LF:
-        os.remove(os.path.join(here,lf))
-    pass
+    lf = os.listdir(here)
+    lf = [f for f in lf
+         if all([s in f for s in ['TFG_','Test','.npz']])]
+    lF = []
+    for f in lf:
+        ff = f.split('_')
+        v = [fff[len(keyVers):] for fff in ff
+             if fff[:len(keyVers)]==keyVers]
+        assert len(v)==1
+        v = v[0]
+        if '.npz' in v:
+            v = v[:v.index('.npz')]
+        print(v, __version__)
+        if v==__version__:
+            lF.append(f)
+    if len(lF)>0:
+        print("Removing the following test files:")
+        for f in lF:
+            os.remove(os.path.join(here,f))
 
 
 #def my_setup_function():
@@ -91,8 +114,9 @@ def teardown_module(module):
 #PVes = np.concatenate((PVes,PDiv),axis=1)
 
 PVes = np.loadtxt(os.path.join(here,'test_Ves.txt'),
-                               dtype='float', skiprows=1, ndmin=2, comments='#')
+                  dtype='float', skiprows=1, ndmin=2, comments='#')
 Lim = 2.*np.pi*1.7*np.array([-0.5,0.5])
+
 
 
 
@@ -102,16 +126,18 @@ class Test01_Ves:
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("---- "+cls.__name__)
-        cls.LObj = [tfg.Ves('Test', PVes, Type='Tor', shot=0, Exp='Test',
-                            SavePath=here)]
-        cls.LObj.append(tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0,
-                                Exp='Test', SavePath=here))
+        cls.LObj = [tfg.Ves(Name='Test', Poly=PVes, Type='Tor',
+                            shot=0, Exp='Test', SavePath=here)]
+        cls.LObj.append(tfg.Ves(Name='Test', Poly=PVes, Type='Lin',
+                                Lim=Lim, shot=0, Exp='Test', SavePath=here))
 
     @classmethod
     def teardown_class(cls):
         #print("teardown_class() after any methods in this class")
-        cls.VesTor = tfg.Ves('Test00', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here)
-        cls.VesLin = tfg.Ves('Test00', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here)
+        cls.VesTor = tfg.Ves(Name='Test00', Poly=PVes, Type='Tor',
+                             shot=0, Exp='Test', SavePath=here)
+        cls.VesLin = tfg.Ves(Name='Test00', Poly=PVes, Type='Lin',
+                             Lim=Lim, shot=0, Exp='Test', SavePath=here)
         cls.VesTor.save()
         cls.VesLin.save()
 
@@ -125,98 +151,152 @@ class Test01_Ves:
 
     def test01_isInside(self, NR=20, NZ=20, NThet=10):
         for ii in range(0,len(self.LObj)):
-            PtsR = np.linspace(self.LObj[ii].geom['P1Min'][0],self.LObj[ii].geom['P1Max'][0],NR)
-            PtsZ = np.linspace(self.LObj[ii].geom['P2Min'][0],self.LObj[ii].geom['P2Max'][0],NZ)
-            PtsRZ = np.array([np.tile(PtsR,(NZ,1)).flatten(), np.tile(PtsZ,(NR,1)).T.flatten()])
-            if self.LObj[ii].Type=='Tor' and self.LObj[ii].Lim is None:
+            print("test01 : ",ii,
+                  self.LObj[ii].nLim, self.LObj[ii].Lim)
+            PtsR = np.linspace(self.LObj[ii].dgeom['P1Min'][0],
+                               self.LObj[ii].dgeom['P1Max'][0],NR)
+            PtsZ = np.linspace(self.LObj[ii].dgeom['P2Min'][0],
+                               self.LObj[ii].dgeom['P2Max'][0],NZ)
+            PtsRZ = np.array([np.tile(PtsR,(NZ,1)).flatten(),
+                              np.tile(PtsZ,(NR,1)).T.flatten()])
+            if self.LObj[ii].Type=='Tor' and self.LObj[ii].nLim==0:
                 In = '(R,Z)'
             if self.LObj[ii].Type=='Lin':
                 PtsRZ = np.concatenate((np.zeros((1,NR*NZ)),PtsRZ),axis=0)
                 In = '(X,Y,Z)'
-            elif self.LObj[ii].Type=='Tor' and self.LObj[ii].Lim is not None:
+            elif self.LObj[ii].Type=='Tor' and self.LObj[ii].nLim!=0:
                 PtsRZ = np.concatenate((PtsRZ,np.zeros((1,NR*NZ))),axis=0)
                 In = '(R,Z,Phi)'
             indRZ = self.LObj[ii].isInside(PtsRZ, In=In)
             assert type(indRZ) is np.ndarray
-            if self.LObj[ii].Lim is None or self.LObj[ii]._Multi is False:
+            if self.LObj[ii].nLim<=1:
                 assert indRZ.shape==(PtsRZ.shape[1],)
             else:
-                assert indRZ.shape==(len(self.LObj[ii].Lim),PtsRZ.shape[1])
+                assert indRZ.shape==(self.LObj[ii].nLim, PtsRZ.shape[1])
 
     def test02_InsideConvexPoly(self):
         self.LObj[0].get_InsideConvexPoly(Plot=False, Test=True)
 
     def test03_get_sampleEdge(self):
-        Pts, dlr, ind = self.LObj[0].get_sampleEdge(dl=0.05, DS=None,
-                                                    dlMode='abs', DIn=0.001)
-        Pts, dlr, ind = self.LObj[0].get_sampleEdge(dl=0.1, DS=None,
-                                                    dlMode='rel', DIn=-0.001)
-        Pts, dlr, ind = self.LObj[0].get_sampleEdge(dl=0.05, DS=[None,[-2.,0.]],
-                                                    dlMode='abs', DIn=0.)
+        pts, dlr, ind = self.LObj[0].get_sampleEdge(0.05, DS=None,
+                                                    resMode='abs',
+                                                    offsetIn=0.001)
+        pts, dlr, ind = self.LObj[0].get_sampleEdge(0.1, DS=None,
+                                                    resMode='rel',
+                                                    offsetIn=-0.001)
+        pts, dlr, ind = self.LObj[0].get_sampleEdge(0.05, DS=[None,[-2.,0.]],
+                                                    resMode='abs',
+                                                    offsetIn=0.)
 
     def test04_get_sampleCross(self):
-        Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.02, DS=None, dSMode='abs', ind=None)
-        Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.02, DS=None, dSMode='abs', ind=ind)
-        Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.1, DS=[[0.,2.5],None], dSMode='rel', ind=None)
+        pts, dS, ind, reseff = self.LObj[0].get_sampleCross(0.02, DS=None,
+                                                            resMode='abs',
+                                                            ind=None)
+        pts, dS, ind, reseff = self.LObj[0].get_sampleCross(0.02, DS=None,
+                                                            resMode='abs',
+                                                            ind=ind)
+        pts, dS, ind, reseff = self.LObj[0].get_sampleCross(0.1,
+                                                            DS=[[0.,2.5],None],
+                                                            resMode='rel',
+                                                            ind=None)
 
     def test05_get_sampleS(self):
+        DS = [[2.,3.],[0.,5.],[0.,np.pi/2.]]
         for ii in range(0,len(self.LObj)):
-            Pts0, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=[[2.,3.],[0.,5.],[0.,np.pi/2.]],
-                                                           dSMode='abs', ind=None, DIn=0.001, Out='(X,Y,Z)')
-            Pts1, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=None, dSMode='abs', ind=ind, DIn=0.001, Out='(X,Y,Z)')
-            if type(Pts0) is list:
-                assert all([np.allclose(Pts0[ii],Pts1[ii]) for ii in range(0,len(Pts0))])
+            try:
+                pts0, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=DS,
+                                                               resMode='abs',
+                                                               ind=None,
+                                                               offsetIn=0.001,
+                                                               Out='(X,Y,Z)')
+            except Exception as err:
+                msg = str(err)
+                msg += "\n    ii={0}".format(ii)
+                msg += "\n      Lim={0}".format(str(self.LObj[ii].Lim))
+                msg += "\n      DS={0}".format(str(DS))
+                raise Exception(msg)
+            try:
+                pts1, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=None,
+                                                               resMode='abs',
+                                                               ind=ind,
+                                                               offsetIn=0.001,
+                                                               Out='(X,Y,Z)')
+            except Exception as err:
+                msg = str(err)
+                msg += "\n    ii={0}".format(ii)
+                msg += "\n      Lim={0}".format(str(self.LObj[ii].Lim))
+                msg += "\n      DS={0}".format(str(DS))
+                raise Exception(msg)
+
+            if type(pts0) is list:
+                assert all([np.allclose(pts0[ii],pts1[ii])
+                            for ii in range(0,len(pts0))])
             else:
-                assert np.allclose(Pts0,Pts1)
+                assert np.allclose(pts0,pts1)
 
     def test06_get_sampleV(self):
+        LDV = [[[1.,2.],[0.,2.],[3.*np.pi/4.,5.*np.pi/4.]],
+               [[-1.,1.],[1.,2.],[0.,2.]]]
         if self.LObj[0].Id.Cls=='Ves':
-            LDV = [[[1.,2.],[0.,2.],[3.*np.pi/4.,5.*np.pi/4.]], [[-1.,1.],[1.,2.],[0.,2.]]]
             for ii in range(0,len(self.LObj)):
-                Pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=LDV[ii], dVMode='abs', ind=None, Out='(R,Z,Phi)')
-                Pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=None, dVMode='abs', ind=ind, Out='(R,Z,Phi)')
+                pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=LDV[ii],
+                                                              resMode='abs',
+                                                              ind=None,
+                                                              Out='(R,Z,Phi)')
+                pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=None,
+                                                              resMode='abs',
+                                                              ind=ind,
+                                                              Out='(R,Z,Phi)')
 
     def test07_plot(self):
         for ii in range(0,len(self.LObj)):
             if self.LObj[ii].Id.Cls=='Ves':
-                Pdict = {'c':'k'}
+                dP = {'c':'k'}
             else:
-                Pdict = {'ec':'None','fc':(0.8,0.8,0.8,0.5)}
-            Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', dP=Pdict,
+                dP = {'ec':'None','fc':(0.8,0.8,0.8,0.5)}
+            Lax1 = self.LObj[ii].plot(proj='All', Elt='PIBsBvV', dP=dP,
                                       draw=False, fs=None, Test=True)
-            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', dP=Pdict,
+            Lax2 = self.LObj[ii].plot(proj='Cross', Elt='PIBsBvV', dP=dP,
                                       draw=False, fs=(10,6), Test=True)
-            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', dP=Pdict,
+            Lax3 = self.LObj[ii].plot(proj='Hor', Elt='PIBsBvV', dP=dP,
                                       draw=False, fs=None, Test=True)
             plt.close('all')
 
     def test08_plot_sino(self):
-        Lax1 = self.LObj[0].plot_sino(Proj='Cross', Ang='xi', AngUnit='deg',
-                                      Sketch=True, draw=False, fs=None, Test=True)
-        Lax2 = self.LObj[0].plot_sino(Proj='Cross', Ang='theta', AngUnit='rad',
-                                      Sketch=True, draw=False, fs='a4', Test=True)
+        Lax1 = self.LObj[0].plot_sino(Ang='xi', AngUnit='deg',
+                                      Sketch=True, draw=False,
+                                      fs=None, Test=True)
+        Lax2 = self.LObj[0].plot_sino(Ang='theta', AngUnit='rad',
+                                      Sketch=True, draw=False,
+                                      fs='a4', Test=True)
         plt.close('all')
 
     def test09_tofromdict(self):
         for ii in range(0,len(self.LObj)):
-            dd = self.LObj[ii]._todict()
-            if self.LObj[ii].Id.Cls=='Ves':
-                oo = tfg.Ves(fromdict=dd)
-            else:
-                oo = tfg.Struct(fromdict=dd)
-            assert dd==oo._todict(), "Unequal to and from dict !"
+            dd = self.LObj[ii].to_dict()
+            msg = "obj.to_dict() should return a dict !"
+            assert isinstance(dd,dict), msg
+            obj2 = self.LObj[ii].__class__(fromdict=dd)
+            mg = "Unequal to and from dict !"
+            assert obj2==self.LObj[ii], msg
+            obj3 = self.LObj[ii].copy()
+            assert obj2==obj3
 
     def test10_saveload(self):
         for ii in range(0,len(self.LObj)):
-            self.LObj[ii].save(Print=False)
-            PathFileExt = os.path.join(self.LObj[ii].Id.SavePath, self.LObj[ii].Id.SaveName+'.npz')
-            obj = tfpf.Open(PathFileExt, Print=False)
+            self.LObj[ii].save(verb=False)
+            pfe = os.path.join(self.LObj[ii].Id.SavePath,
+                               self.LObj[ii].Id.SaveName+'.npz')
+            obj = tfu.load(pfe, verb=False)
+            msg = "Unequal saved / loaded objects !"
+            assert obj==self.LObj[ii], msg
             # Just to check the loaded version works fine
-            out = obj.get_sampleCross(0.02, DS=None, dSMode='abs', ind=None)
-            Lax = obj.plot(Proj='All', Elt='P')
-            dd = self.LObj[ii]._todict()
-            assert tfu.dict_cmp(dd,obj._todict())
-            os.remove(PathFileExt)
+            out = obj.get_sampleCross(0.02, DS=None, resMode='abs', ind=None)
+            os.remove(pfe)
+
+    def test11_get_nbytes(self):
+        for ii in range(0,len(self.LObj)):
+            print(self.LObj[ii].get_nbytes()[0])
 
 
 #######################################################
@@ -231,32 +311,33 @@ class Test02_Struct(Test01_Ves):
     def setup_class(cls, PVes=PVes, Lim=Lim):
         #print("")
         #print("--------- "+VerbHead+cls.__name__)
-        cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor',
+        cls.LObj = [tfg.PFC(Name='Test02', Poly=PVes, Type='Tor',
                                shot=0, Exp='Test', SavePath=here)]
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor',
+        cls.LObj.append(tfg.CoilPF(Name='Test', Poly=PVes, Type='Tor',
                                    Lim=[-np.pi/2.,np.pi/4.],
                                    shot=0, Exp='Test', SavePath=here))
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin', Lim=Lim,
+        cls.LObj.append(tfg.CoilCS(Name='Test', Poly=PVes,
+                                   Type='Lin', Lim=Lim,
                                    shot=0, Exp='Test', SavePath=here,
                                    mobile=True))
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor',
+        cls.LObj.append(tfg.PFC(Name='Test', Poly=PVes, Type='Tor',
                                    Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
                                    shot=0, Exp='Test', SavePath=here))
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin',
+        cls.LObj.append(tfg.CoilPF(Name='Test', Poly=PVes, Type='Lin',
                                    Lim=np.array([[0.,1.],[0.5,1.5],[-2.,-1.]]),
                                    shot=0, Exp='Test', SavePath=here))
 
     @classmethod
     def teardown_class(cls):
         #print("teardown_class() after any methods in this class")
-        cls.SL0 = tfg.Struct('Test02', PVes, Type='Lin', Lim=np.array([0.,1.]),
+        cls.SL0 = tfg.PFC(Name='Test02', Poly=PVes, Type='Lin', Lim=np.array([0.,1.]),
                              shot=0, Exp='Test', SavePath=here)
-        cls.SL1 = tfg.Struct('Test03', PVes, Type='Lin',
+        cls.SL1 = tfg.CoilPF(Name='Test03', Poly=PVes, Type='Lin',
                              Lim=np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
                              shot=0, Exp='Test', SavePath=here)
-        cls.ST0 = tfg.Struct('Test02', PVes*0.8, Type='Tor', Lim=None, shot=0, Exp='Test',
+        cls.ST0 = tfg.CoilCS(Name='Test02', Poly=PVes*0.8, Type='Tor', Lim=None, shot=0, Exp='Test',
                              SavePath=here, mobile=True)
-        cls.ST1 = tfg.Struct('Test03', PVes, Type='Tor',
+        cls.ST1 = tfg.PFC(Name='Test03', Poly=PVes, Type='Tor',
                              Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
                              shot=0, Exp='Test', SavePath=here)
         cls.SL0.save(), cls.SL1.save()
@@ -274,7 +355,7 @@ class Test02_Struct(Test01_Ves):
 #
 #######################################################
 
-
+"""
 
 class Test03_Rays:
 
@@ -484,7 +565,7 @@ class Test04_LOSCams(Test03_Rays):
             ind = self.LObj[ii].select(key='Name', val='15', out=bool)
             ind = self.LObj[ii].select(key='Name', val=['02','35'], out=int)
 
-
+"""
 
 
 """
