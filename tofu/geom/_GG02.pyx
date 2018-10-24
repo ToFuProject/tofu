@@ -215,29 +215,37 @@ def Poly_VolAngTor(cnp.ndarray[double,ndim=2,mode='c'] Poly):
 """
 
 
-def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ, cnp.ndarray[double,ndim=2] Poly, int NP=50, Test=True):
+def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ,
+                   cnp.ndarray[double,ndim=2] Poly, int NP=50, Test=True):
     """ Computes impact parameters of a Tor enveloppe (Tor is a closed 2D polygon)
 
     D. VEZINET, Aug. 2014
-    Inputs :
-        RZ          A (2,1) np.ndarray indicating the impact point
-        Poly        A (2,N) np.ndarray (ideally with 1st point = last point, but optionnal) representing the 2D polygon to be used
-        NP          An integer (default = 50) indicating the number of points used for discretising theta between 0 and pi
-    Outputs :
+    Parameters
+    ----------
+    RZ :    np.ndarray
+        (2,) array indicating the reference impact point
+    Poly :  np.ndarray
+        (2,N) array containing the coordinatesof a closed polygon
+    NP :    int
+        Number of indicating the number of points used for discretising theta between 0 and pi
+
+    Returns
+    -------
         theta
     """
     if Test:
         assert RZ.size==2, 'Arg RZ should be a (2,) np.ndarray !'
         assert Poly.shape[0]==2, 'Arg Poly should be a (2,N) np.ndarray !'
     cdef int NPoly = Poly.shape[1]
-    EnvTheta = np.linspace(0.,np.pi,NP,endpoint=True).reshape((NP,1))
-    Vect = np.concatenate((np.cos(EnvTheta),np.sin(EnvTheta)),axis=1)
-    Vectbis = np.swapaxes(np.resize(Vect,(NPoly,NP,2)),0,1)
+    # Theta sampling and unit vector
+    theta = np.linspace(0.,np.pi,NP,endpoint=True)
+    vect = np.array([np.cos(theta), np.sin(theta)])
 
-    RZPoly = Poly - np.tile(RZ,(NPoly,1)).T
-    RZPoly = np.resize(RZPoly.T,(NP,NPoly,2))
-    Sca = np.sum(Vectbis*RZPoly,axis=2)
-    return EnvTheta.flatten(), np.array([np.max(Sca,axis=1).T, np.min(Sca,axis=1).T])
+    # Scalar product
+    sca = np.sum(vect[:,:,np.newaxis]*Poly[:,np.newaxis,:],axis=0)
+    scamin = np.min(sca,axis=1)
+    scamax = np.max(sca,axis=1)
+    return theta, np.array([scamin, scamax])
 
 
 # For sinograms

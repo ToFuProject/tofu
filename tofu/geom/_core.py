@@ -337,7 +337,7 @@ class Struct(utils.ToFuObject):
 
     def set_dsino(self, RefPt=None, nP=_def.TorNP):
         RefPt = self._checkformat_inputs_dsino(RefPt=RefPt, nP=nP)
-        EnvTheta, EnvMinMax = _GG.Sino_ImpactEnv(RefPt, self.Poly,
+        EnvTheta, EnvMinMax = _GG.Sino_ImpactEnv(RefPt, self.Poly_closed,
                                                  NP=nP, Test=False)
         self._dsino = {'RefPt':RefPt, 'nP':nP,
                        'EnvTheta':EnvTheta, 'EnvMinMax':EnvMinMax}
@@ -839,7 +839,7 @@ class Ves(Struct, color='k'):
                  SavePath_Include=tfpf.defInclude, color=None):
         kwdargs = locals()
         del kwdargs['self'], kwdargs['__class__']
-        super(Ves,self).__init__(mobile=False, **kwdargs)
+        super().__init__(mobile=False, **kwdargs)
 
     @classmethod
     def _set_color_ddef(cls, color):
@@ -1379,7 +1379,9 @@ class Config(utils.ToFuObject):
             utils.ToFuObject._strip_dict(self._dstruct, lkeep=lkeep)
 
     def _strip_dsino(self, lkeep=['RefPt','nP']):
-        utils.ToFuObject._strip_dict(self._dsino, lkeep=lkeep)
+        for k in self._dstruct['dStruct'].keys():
+            for kk in self._dstruct['dStruct'][k].keys():
+                self._dstruct['dStruct'][k][kk]._strip_dsino(lkeep=lkeep)
 
     ###########
     # _strip and get/from dict
@@ -1537,7 +1539,7 @@ class Config(utils.ToFuObject):
         return lax
 
 
-    def plot_sino(self, ax=None, proj='cross', dP=None,
+    def plot_sino(self, ax=None, dP=None,
                   Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
                   Sketch=True, dLeg=_def.TorLegd,
                   draw=True, fs=None, wintit=None, tit=None, Test=True):
@@ -1545,8 +1547,9 @@ class Config(utils.ToFuObject):
         msg = "Set the sino params before plotting !"
         msg += "\n    => run self.set_sino(...)"
         assert self.dsino['RefPt'] is not None, msg
+        msg = "The sinogram can only be plotted for a Ves object !"
+        assert 'Ves' in self.dstruct['dStruct'], msg
         assert tit is None or isinstance(tit,str)
-        assert proj in ['cross','3d']
         # Check uniformity of sinogram parameters
         for ss in self.lStruct:
             msg = "{0} {1} has different".format(ss.Id.Cls, ss.Id.Name)
@@ -1556,23 +1559,21 @@ class Config(utils.ToFuObject):
             msg1 = msg+" sino nP"+msgf
             assert self.dsino['nP']==ss.dsino['nP'], msg1
 
-        vis = self.get_visible()
-        lStruct, lS = self.lStruct, []
-        for ii in range(0,self._dstruct['nStruct']):
-            if vis[ii]:
-                lS.append(lStruct[ii])
+        # Check there is only one Ves object and it is visible
+        msg = "There should be only one Ves object !"
+        assert len(self.dstruct['dvisible']['Ves'].keys())==1, msg
+        msg = "The Ves object is not visible !"
+        assert list(self.dstruct['dvisible']['Ves'].values())[0], msg
 
         if tit is None:
             tit = self.Id.Name
-        if proj=='cross':
-            ax = _plot.Plot_Impact_PolProjPoly(lS, ax=ax, Ang=Ang,
-                                               AngUnit=AngUnit, Sketch=Sketch,
-                                               dP=dP, dLeg=dLeg, draw=draw,
-                                               fs=fs, tit=tit, wintit=wintit, Test=Test)
-        else:
-            ax = _plot.Plot_Impact_3DPoly(lS, ax=ax, Ang=Ang, AngUnit=AngUnit,
-                                          dP=dP, dLeg=dLeg, draw=draw,
-                                          fs=fs, tit=tit, wintit=wintit, Test=Test)
+
+        Ves = list(self.dstruct['dStruct']['Ves'].values())[0]
+        ax = _plot.Plot_Impact_PolProjPoly([Ves],
+                                           ax=ax, Ang=Ang,
+                                           AngUnit=AngUnit, Sketch=Sketch,
+                                           dP=dP, dLeg=dLeg, draw=draw,
+                                           fs=fs, tit=tit, wintit=wintit, Test=Test)
         return ax
 
 
