@@ -271,19 +271,45 @@ class Test01_Ves:
                                       fs='a4', Test=True)
         plt.close('all')
 
-    def test09_tofromdict(self):
+    def test09_strip(self):
         for ii in range(0,len(self.LObj)):
-            dd = self.LObj[ii].to_dict()
+            lok = self.LObj[ii]._dstrip['allowed']
+            for ss in lok:
+                self.LObj[ii].strip(ss)
+            for ss in lok[::-1]:
+                self.LObj[ii].strip(ss)
+
+    def test10_get_nbytes(self):
+        for ii in range(0,len(self.LObj)):
+            print(self.LObj[ii].get_nbytes()[0])
+
+    def test11_stripandnbytes(self):
+        for ii in range(0,len(self.LObj)):
+            nb = []
+            lok = self.LObj[ii]._dstrip['allowed']
+            for ss in lok:
+                self.LObj[ii].strip(ss)
+                nb.append(self.LObj[ii].get_nbytes()[0])
+            # Check decreasing sizes
+            assert np.all(np.diff(nb)<0)
+
+    def test12_copy(self):
+        for ii in range(0,len(self.LObj)):
+            obj = self.LObj[ii].copy()
+            assert obj==self.LObj[ii]
+
+    def test13_tofromdict(self):
+        for ii in range(0,len(self.LObj)):
+            dd = self.LObj[ii].to_dict(strip=-1)
             msg = "obj.to_dict() should return a dict !"
             assert isinstance(dd,dict), msg
             obj2 = self.LObj[ii].__class__(fromdict=dd)
             mg = "Unequal to and from dict !"
             assert obj2==self.LObj[ii], msg
-            obj3 = self.LObj[ii].copy()
-            assert obj2==obj3
 
-    def test10_saveload(self):
+    def test14_saveload(self):
         for ii in range(0,len(self.LObj)):
+            self.LObj[ii].strip(0)
             self.LObj[ii].save(verb=False)
             pfe = os.path.join(self.LObj[ii].Id.SavePath,
                                self.LObj[ii].Id.SaveName+'.npz')
@@ -294,9 +320,6 @@ class Test01_Ves:
             out = obj.get_sampleCross(0.02, DS=None, resMode='abs', ind=None)
             os.remove(pfe)
 
-    def test11_get_nbytes(self):
-        for ii in range(0,len(self.LObj)):
-            print(self.LObj[ii].get_nbytes()[0])
 
 
 #######################################################
