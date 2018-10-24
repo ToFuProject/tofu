@@ -101,7 +101,8 @@ class Struct(utils.ToFuObject):
 
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'shot':0,
-                   'include':['Mod','Cls','Exp','Diag','Name','shot']},
+                   'include':['Mod','Cls','Exp','Diag',
+                              'Name','shot','version']},
              'dgeom':{'Type':'Tor', 'Lim':[], 'arrayorder':'C'},
              'dsino':{},
              'dphys':{},
@@ -235,9 +236,9 @@ class Struct(utils.ToFuObject):
         if Lim.ndim==1:
             assert Lim.size in [0,2]
             if Lim.size==2:
-                Lim = Lim.reshape((2,1))
+                Lim = Lim.reshape((1,2))
         else:
-            if Lim.shape[0]!=2:
+            if Lim.shape[1]!=2:
                 Lim = Lim.T
         if Type=='Lin':
             assert Lim.size>0
@@ -592,11 +593,11 @@ class Struct(utils.ToFuObject):
         """
         args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
-        kwdargs = dict(DS=DS, dsMode=resMode, ind=ind, margin=1.e-9)
+        kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, margin=1.e-9)
         pts, dS, ind, reseff = _comp._Ves_get_sampleCross(*args, **kwdargs)
         return pts, dS, ind, reseff
 
-    def get_sampleS(self, res, DS=None, dSMode='abs',
+    def get_sampleS(self, res, DS=None, resMode='abs',
                     ind=None, offsetIn=0., Out='(X,Y,Z)', Ind=None):
         """ Sample, with resolution res, the surface defined by DS or ind
 
@@ -662,7 +663,8 @@ class Struct(utils.ToFuObject):
             assert self.dgeom['Multi']
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, DIn=offsetIn,
                        VIn=self.dgeom['VIn'], VType=self.Id.Type,
-                       VLim=self.Lim, nVLim=self.dgeom['nLim'], Out=Out, margin=1.e-9,
+                       VLim=self.Lim, nVLim=self.nLim,
+                       Out=Out, margin=1.e-9,
                        Multi=self.dgeom['Multi'], Ind=Ind)
         args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
@@ -674,8 +676,8 @@ class Struct(utils.ToFuObject):
 
         args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
-        kwdargs = dict(DV=res, dVMode=resMode, ind=ind, VType=self.Id.Type,
-                      VLim=self.Lim, nVLim=self.dgeom['nLim'], Out=Out, margin=1.e-9)
+        kwdargs = dict(DV=DV, dVMode=resMode, ind=ind, VType=self.Id.Type,
+                      VLim=self.Lim, Out=Out, margin=1.e-9)
         pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
         return pts, dV, ind, reseff
 
@@ -757,9 +759,9 @@ class Struct(utils.ToFuObject):
         return _plot.Struct_plot(self, **kwdargs)
 
 
-    def plot_sino(self, proj='Cross', ax=None, Ang=_def.LOSImpAng,
-                  AngUnit=_def.LOSImpAngUnit, Sketch=True, Pdict=None,
-                  LegDict=_def.TorLegd, draw=True, fs=None, wintit='tofu',
+    def plot_sino(self, ax=None, Ang=_def.LOSImpAng,
+                  AngUnit=_def.LOSImpAngUnit, Sketch=True, dP=None,
+                  dLeg=_def.TorLegd, draw=True, fs=None, wintit='tofu',
                   Test=True):
         """ Plot the sinogram of the vessel polygon, by computing its envelopp in a cross-section, can also plot a 3D version of it
 
@@ -802,20 +804,19 @@ class Struct(utils.ToFuObject):
         if Test:
             msg = "The impact parameters must be set ! (self.set_dsino())"
             assert not self.dsino['RefPt'] is None, msg
-            msg = "Arg proj must be in ['cross','3d'] !"
-            assert proj in ['cross','3d'], msg
-        if proj=='cross':
-            Pdict = _def.TorPFilld if Pdict is None else Pdict
-            ax = _plot.Plot_Impact_PolProjPoly(self, ax=ax, Ang=Ang,
-                                               AngUnit=AngUnit, Sketch=Sketch,
-                                               Leg=self.Id.NameLTX, Pdict=Pdict,
-                                               dLeg=LegDict, draw=False,
-                                               fs=fs, wintit=wintit, Test=Test)
-        else:
-            Pdict = _def.TorP3DFilld if Pdict is None else Pdict
-            ax = _plot.Plot_Impact_3DPoly(self, ax=ax, Ang=Ang, AngUnit=AngUnit,
-                                          Pdict=Pdict, dLeg=LegDict, draw=False,
-                                          fs=fs, wintit=wintit, Test=Test)
+
+        # Only plot cross sino, from version 1.4.0
+        dP = _def.TorPFilld if dP is None else dP
+        ax = _plot.Plot_Impact_PolProjPoly(self, ax=ax, Ang=Ang,
+                                           AngUnit=AngUnit, Sketch=Sketch,
+                                           Leg=self.Id.NameLTX, dP=dP,
+                                           dLeg=dLeg, draw=False,
+                                           fs=fs, wintit=wintit, Test=Test)
+        # else:
+        # Pdict = _def.TorP3DFilld if Pdict is None else Pdict
+        # ax = _plot.Plot_Impact_3DPoly(self, ax=ax, Ang=Ang, AngUnit=AngUnit,
+                                      # Pdict=Pdict, dLeg=LegDict, draw=False,
+                                      # fs=fs, wintit=wintit, Test=Test)
         if draw:
             ax.figure.canvas.draw()
         return ax

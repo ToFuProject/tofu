@@ -305,30 +305,40 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
             ind = Path(VPoly.T).contains_points(pts.T, transform=None, radius=0.0)
         else:
             pts = CoordShift(Pts, In=In, Out='(R,Z,Phi)')
-            ind0 = Path(VPoly.T).contains_points(pts[:2,:].T, transform=None, radius=0.0)
-            if hasattr(Lim[0],'__iter__'):
-                ind = np.zeros((len(Lim),Pts.shape[1]),dtype=bool)
+            ind0 = Path(VPoly.T).contains_points(pts[:2,:].T,
+                                                 transform=None, radius=0.0)
+            if nLim>1:
+                ind = np.zeros((nLim,Pts.shape[1]),dtype=bool)
                 for ii in range(0,len(Lim)):
-                    lim = [Catan2(Csin(Lim[ii][0]),Ccos(Lim[ii][0])), Catan2(Csin(Lim[ii][1]),Ccos(Lim[ii][1]))]
+                    lim = [Catan2(Csin(Lim[ii][0]),Ccos(Lim[ii][0])),
+                           Catan2(Csin(Lim[ii][1]),Ccos(Lim[ii][1]))]
                     if lim[0]<lim[1]:
-                        ind[ii,:] = ind0 & (pts[2,:]>=lim[0]) & (pts[2,:]<=lim[1])
+                        ind[ii,:] = (ind0
+                                     & (pts[2,:]>=lim[0])
+                                     & (pts[2,:]<=lim[1]))
                     else:
-                        ind[ii,:] = ind0 & ((pts[2,:]>=lim[0]) | (pts[2,:]<=lim[1]))
+                        ind[ii,:] = (ind0
+                                     & ((pts[2,:]>=lim[0])
+                                        | (pts[2,:]<=lim[1])))
             else:
-                Lim = [Catan2(Csin(Lim[0]),Ccos(Lim[0])), Catan2(Csin(Lim[1]),Ccos(Lim[1]))]
+                Lim = [Catan2(Csin(Lim[0,0]),Ccos(Lim[0,0])),
+                       Catan2(Csin(Lim[0,1]),Ccos(Lim[0,1]))]
                 if Lim[0]<Lim[1]:
                     ind = ind0 & (pts[2,:]>=Lim[0]) & (pts[2,:]<=Lim[1])
                 else:
                     ind = ind0 & ((pts[2,:]>=Lim[0]) | (pts[2,:]<=Lim[1]))
     else:
         pts = CoordShift(Pts, In=In, Out='(X,Y,Z)')
-        ind0 = Path(VPoly.T).contains_points(pts[1:,:].T, transform=None, radius=0.0)
-        if hasattr(Lim[0],'__iter__'):
-            ind = np.zeros((len(Lim),Pts.shape[1]),dtype=bool)
-            for ii in range(0,len(Lim)):
-                ind[ii,:] = ind0 & (pts[0,:]>=Lim[ii][0]) & (pts[0,:]<=Lim[ii][1])
+        ind0 = Path(VPoly.T).contains_points(pts[1:,:].T,
+                                             transform=None, radius=0.0)
+        if nLim>1:
+            ind = np.zeros((nLim,Pts.shape[1]),dtype=bool)
+            for ii in range(0,nLim):
+                ind[ii,:] = (ind0
+                             & (pts[0,:]>=Lim[ii][0])
+                             & (pts[0,:]<=Lim[ii][1]))
         else:
-            ind = ind0 & (pts[0,:]>=Lim[0]) & (pts[0,:]<=Lim[1])
+            ind = ind0 & (pts[0,:]>=Lim[0,0]) & (pts[0,:]<=Lim[0,1])
     return ind
 
 

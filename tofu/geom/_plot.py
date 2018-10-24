@@ -326,7 +326,8 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
                 ly = np.concatenate((P1Min[0]*np.sin(Theta),np.array([np.nan]),
                                      P1Max[0]*np.sin(Theta)))
             elif V.Id.Type=='Lin':
-                lx = np.array([V.Lim[0],V.Lim[1],V.Lim[1],V.Lim[0],V.Lim[0]])
+                lx = np.array([V.Lim[0,0],V.Lim[0,1],V.Lim[0,1],
+                               V.Lim[0,0],V.Lim[0,0]])
                 ly = np.array([P1Min[0],P1Min[0],P1Max[0],P1Max[0],P1Min[0]])
             ax.plot(lx,ly,label=V.Id.NameLTX,**Pdict)
         elif V.Id.Cls in ['PFC','CoilPF']:
@@ -341,36 +342,23 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
                     Lp = [mPolygon(np.array([lx,ly]).T, closed=True,
                                    label=V.Id.NameLTX, **Pdict)]
                 else:
-                    if V.nLim>1:
-                        Lp = [mWedge((0,0), P1Max[0],
-                                     V.Lim[ii][0]*180./np.pi,
-                                     V.Lim[ii][1]*180./np.pi,
-                                     width=P1Max[0]-P1Min[0],
-                                     label=V.Id.NameLTX, **Pdict)
-                              for ii in range(0,len(V.Lim))]
-                    else:
-                        Lp = [mWedge((0,0), P1Max[0],
-                                     V.Lim[0]*180./np.pi,
-                                     V.Lim[1]*180./np.pi,
-                                     width=P1Max[0]-P1Min[0],
-                                     label=V.Id.NameLTX, **Pdict)]
+                    Lp = [mWedge((0,0), P1Max[0],
+                                 V.Lim[ii][0]*180./np.pi,
+                                 V.Lim[ii][1]*180./np.pi,
+                                 width=P1Max[0]-P1Min[0],
+                                 label=V.Id.NameLTX, **Pdict)
+                          for ii in range(0,len(V.Lim))]
             elif V.Id.Type=='Lin':
                     ly = np.array([P1Min[0],P1Min[0],
                                    P1Max[0],P1Max[0],P1Min[0]])
-                    if V.nLim>1:
-                        Lp = []
-                        for ii in range(0,len(V.Lim)):
-                            lx = np.array([V.Lim[ii][0],V.Lim[ii][1],
-                                           V.Lim[ii][1],V.Lim[ii][0],
-                                           V.Lim[ii][0]])
-                            Lp.append(mPolygon(np.array([lx,ly]).T,
-                                               closed=True, label=V.Id.NameLTX,
-                                               **Pdict))
-                    else:
-                        lx = np.array([V.Lim[0],V.Lim[1],
-                                       V.Lim[1],V.Lim[0],V.Lim[0]])
-                        Lp = [mPolygon(np.array([lx,ly]).T, closed=True,
-                                       label=V.Id.NameLTX, **Pdict)]
+                    Lp = []
+                    for ii in range(0,len(V.Lim)):
+                        lx = np.array([V.Lim[ii][0],V.Lim[ii][1],
+                                       V.Lim[ii][1],V.Lim[ii][0],
+                                       V.Lim[ii][0]])
+                        Lp.append(mPolygon(np.array([lx,ly]).T,
+                                           closed=True, label=V.Id.NameLTX,
+                                           **Pdict))
             for pp in Lp:
                 ax.add_patch(pp)
     if 'I' in Elt:

@@ -168,7 +168,7 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs
         assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
     assert type(dSMode) is str and dSMode.lower() in ['abs','rel'], "Arg dSMode must be in ['abs','rel'] !"
     assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
-    
+
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
     if ind is None:
@@ -179,7 +179,10 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs
     return Pts, dS, ind, (d1r,d2r)
 
 
-def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', ind=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9):
+def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV,
+                     DV=None, dVMode='abs', ind=None,
+                     VType='Tor', VLim=None,
+                     Out='(X,Y,Z)', margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dV) in types or (hasattr(dV,'__iter__') and len(dV)==3 and all([type(ds) in types for ds in dV])), "Arg dV must be a float or a list 3 floats !"
     dV = [float(dV),float(dV),float(dV)] if type(dV) in types else [float(dV[0]),float(dV[1]),float(dV[2])]
@@ -193,7 +196,7 @@ def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', i
 
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
-    VLim = None if VType.lower()=='tor' else np.array(VLim)
+    VLim = None if VType.lower()=='tor' else np.array(VLim).ravel()
     dVr = [None,None,None]
     if ind is None:
         if VType.lower()=='tor':
@@ -216,7 +219,8 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
     assert type(dS) in types or (hasattr(dS,'__iter__') and len(dS)==2 and all([type(ds) in types for ds in dS])), "Arg dS must be a float or a list of 2 floats !"
     dS = [float(dS),float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1]),float(dS[2])]
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==3)
-    assert type(nVLim) is int and nVLim>0
+    msg = "type(nVLim)={0} and nVLim={1}".format(str(type(nVLim)),nVLim)
+    assert type(nVLim) is int and nVLim>=0, msg
     if DS is None:
         DS = [None,None,None]
     else:
@@ -228,11 +232,12 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
 
-    if Multi:
+    # Check if Multi
+    if nVLim>1:
         assert VLim is not None, "For multiple Struct, Lim cannot be None !"
         assert all([hasattr(ll,'__iter__') and len(ll)==2 for ll in VLim])
         if Ind is None:
-            Ind = np.arange(0,len(VLim))
+            Ind = np.arange(0,nVLim)
         else:
             Ind = [Ind] if not hasattr(Ind,'__iter__') else Ind
             Ind = np.asarray(Ind).astype(int)
@@ -241,7 +246,7 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
             assert all([type(ind[ii]) is np.ndarray and ind[ii].ndim==1 and ind[ii].dtype in ['int32','int64'] and np.all(ind[ii]>=0) for ii in range(0,len(ind))]), "For multiple Struct, ind must be a list of index arrays !"
 
     else:
-        VLim = [VLim]
+        VLim = [None] if VLim is None else [VLim.ravel()]
         assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
         Ind = [0]
 
