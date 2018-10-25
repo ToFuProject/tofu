@@ -322,14 +322,9 @@ def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
     if kPOut is not None:
         kRMin[kRMin>kPOut] = kPOut[kRMin>kPOut]
 
-    # Derive
-    PRMin = Ds + kRMin[np.newaxis,:]*dus
-    RMin = np.sqrt(PRMin[0,:]**2+PRMin[1,:]**2)
-
     if v:
-        PRMin = PRMin.flatten()
-        kRMin, RMin = kRMin[0], RMin[0]
-    return PRMin, kRMin, RMin
+        kRMin = kRMin[0]
+    return kRMin
 
 
 def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
