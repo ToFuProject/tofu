@@ -427,8 +427,15 @@ class Test03_Config(object):
             assert col.shape==(obj.dstruct['nStruct'],4)
 
     def test05_get_summary(self):
-        for obj in self.lObj:
-            df = obj.get_summary()
+        try:
+            import pandas as pd
+            ok = True
+        except Exception:
+            ok = False
+            warnings.warn("pandas dependency not available")
+        if ok:
+            for obj in self.lObj:
+                df = obj.get_summary()
 
     def test06_isInside(self, NR=20, NZ=20):
         for ii in range(0,len(self.lObj)):
@@ -525,7 +532,6 @@ class Test03_Config(object):
             assert obj==self.lObj[ii], msg
             # Just to check the loaded version works fine
             obj.strip(0)
-            out = obj.get_summary()
             os.remove(pfe)
 
 

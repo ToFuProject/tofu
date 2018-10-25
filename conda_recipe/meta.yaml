@@ -26,6 +26,7 @@ requirements:
     - cython
     - nose
     - pygments
+    - pandas
     - {{ environ['PCK'] }}
 
   run:
@@ -38,6 +39,7 @@ requirements:
     - cython
     - nose
     - pygments
+    - pandas
     - {{ environ['PCK'] }}
 
 test:
