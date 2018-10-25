@@ -1143,6 +1143,7 @@ class Config(utils.ToFuObject):
     def _reset(self):
         super()._reset()
         self._dstruct = dict.fromkeys(self._get_keys_dstruct())
+        self._dextraprop = dict.fromkeys(self._get_keys_dextraprop())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
 
     @classmethod
@@ -1166,7 +1167,11 @@ class Config(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dstruct():
-        largs = ['lStruct', 'dextraprop']
+        largs = ['lStruct']
+        return largs
+    @staticmethod
+    def _get_largs_dextraprop():
+        largs = ['dextraprop']
         return largs
     @staticmethod
     def _get_largs_dsino():
@@ -1177,20 +1182,8 @@ class Config(utils.ToFuObject):
     # Get check and format inputs
     ###########
 
-    def _checkformat_inputs_dstruct_extraval(self, extraval, key=''):
-        C0 = type(extraval) in [bool,float,int,np.int64,np.float64]
-        C1 = isinstance(extraval,np.ndarray)
-        assert C0 or C1
-        if C1:
-            C = extraval.shape==((self._dstruct['nStruct'],))
-            msg = "The value for %s has wrong shape!"%key
-            msg += "\n    Expected: ({0},)".format(self._dstruct['nStruct'])
-            msg += "\n    Got:      {1}".format(str(extraval.shape))
-            assert C, msg
-
-    def _checkformat_inputs_dstruct(self, lStruct=None, dextraprop=None):
-        assert isinstance(dextraprop,dict)
-        assert all([type(vv) is bool for vv in dextraprop.values()])
+    @staticmethod
+    def _checkformat_inputs_dstruct(lStruct=None):
         msg = "Arg lStruct must be"
         msg += " a tofu.geom.Struct subclass or a list of such !"
         msg += "\nValid subclasses include:"
@@ -1214,13 +1207,33 @@ class Config(utils.ToFuObject):
         msg += "\n    - " + "\n    - ".join(ls)
         assert C, msg
 
+        return lStruct
+
+    def _checkformat_inputs_extraval(self, extraval, key='',
+                                             multi=True, size=None):
+        C0 = type(extraval) in [bool,float,int,np.int64,np.float64]
+        C1 = isinstance(extraval,np.ndarray)
+        if multi:
+            assert C0 or C1
+        else:
+            assert C0
+        if multi and C1:
+            size = self._dstruct['nStruct'] if size is None else size
+            C = extraval.shape==((self._dstruct['nStruct'],))
+            msg = "The value for %s has wrong shape!"%key
+            msg += "\n    Expected: ({0},)".format(self._dstruct['nStruct'])
+            msg += "\n    Got:      {0}".format(str(extraval.shape))
+            assert C, msg
+
+    def _checkformat_inputs_dextraprop(self, dextraprop=None):
         if dextraprop is None:
             dextraprop = self._ddef['dstruct']['dextraprop']
         if dextraprop is None:
             dextraprop = {}
+        assert isinstance(dextraprop,dict)
         for k in dextraprop.keys():
-            self._checkformat_inputs_dstruct_extraval(dextraprop[k], key=k)
-        return lStruct, dextraprop
+            self._checkformat_inputs_extraval(dextraprop[k], key=k)
+        return dextraprop
 
     def _checkformat_inputs_dsino(self, RefPt=None, nP=None):
         assert type(nP) is int and nP>0
@@ -1236,7 +1249,12 @@ class Config(utils.ToFuObject):
     @staticmethod
     def _get_keys_dstruct():
         lk = ['dStruct',
-              'nStruct','lorder','lCls', 'lextraprop']
+              'nStruct','lorder','lCls']
+        return lk
+
+    @staticmethod
+    def _get_keys_dextraprop():
+        lk = ['lprop']
         return lk
 
     @staticmethod
@@ -1251,7 +1269,11 @@ class Config(utils.ToFuObject):
     def _init(self, lStruct=None, dextraprop=None, **kwdargs):
         largs = self._get_largs_dstruct()
         kwdstruct = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dextraprop()
+        kwdextraprop = self._extract_kwdargs(locals(), largs)
         self._set_dstruct(**kwdstruct)
+        self._set_dextraprop(**kwdextraprop)
+        self._dynamicattr()
         self._dstrip['strip'] = 0
 
     ###########
@@ -1259,9 +1281,8 @@ class Config(utils.ToFuObject):
     ###########
 
 
-    def _set_dstruct(self, lStruct=None, dextraprop=None):
-        lStruct, dextraprop = self._checkformat_inputs_dstruct(lStruct=lStruct,
-                                                               dextraprop=dextraprop)
+    def _set_dstruct(self, lStruct=None):
+        lStruct = self._checkformat_inputs_dstruct(lStruct=lStruct)
         # Make sure to kill the link to the mutable being provided
         nStruct = len(lStruct)
         # Get extra info
@@ -1275,36 +1296,68 @@ class Config(utils.ToFuObject):
         msg += "\n => Please clarify (choose unique Cls/Names)"
         assert len(list(set(lorder)))==nStruct, msg
 
-        self._dstruct = {'dStruct':dict([(k,{}) for k in lCls]),
-                         'lextraprop':sorted(list(dextraprop.keys()))}
-        for pp in dextraprop.keys():
-            self._dstruct.update({'d'+pp:dict([(k,{}) for k in lCls])})
+        self._dstruct = {'dStruct':dict([(k,{}) for k in lCls])}
 
         for k in lCls:
             lk = [ss for ss in lStruct if ss.Id.Cls==k]
             for ss in lk:
                 self._dstruct['dStruct'][k].update({ss.Id.Name:ss.copy()})
-                for pp in dextraprop.keys():
-                    self._dstruct['d'+pp][k].update({ss.Id.Name:dextraprop[pp]})
 
         self._dstruct.update({'nStruct':nStruct,
                               'lorder':lorder, 'lCls':lCls})
-        self._dstruct_dynamicattr()
 
+
+    def _set_dextraprop(self, dextraprop=None):
+        dextraprop = self._checkformat_inputs_dextraprop(dextraprop)
+        self._dextraprop['lprop'] = sorted(list(dextraprop.keys()))
+        for pp in dextraprop.keys():
+            self._dextraprop.update({'d'+pp:dict([(k,{})
+                                                  for k in self._dstruct['lCls']])})
+        for k in self._dstruct['lCls']:
+            for ss in self._dstruct['dStruct'][k].keys():
+                for pp in dextraprop.keys():
+                    self._dextraprop['d'+pp][k].update({ss:dextraprop[pp]})
+
+    def add_extraprop(self, key, val):
+        assert type(key) is str
+        dx = {}
+        for k in self._dextraprop['lprop']:
+            dx[k] = eval('self.get_%s()'%k)
+        dx[key] = val
+        self._set_dextraprop(dx)
+        self._dynamicattr()
 
     def _set_extraprop(self, pp, val, k0=None, k1=None):
-        assert type(val) is bool
         assert not (k0 is None and k1 is not None)
         dp = 'd'+pp
         if k0 is None and k1 is None:
-            for k0 in self._dstruct['dStruct'].keys():
-                for k1 in self._dstruct[dp][k0].keys():
-                    self._dstruct[dp][k0][k1] = val
+            self._checkformat_inputs_extraval(val, pp)
+            if isinstance(val,np.ndarray):
+                ii = 0
+                for k in self._dstruct['lorder']:
+                    k0, k1 = k.split('_')
+                    self._dextraprop[dp][k0][k1] = val[ii]
+                    ii += 1
+            else:
+                for k0 in self._dstruct['dStruct'].keys():
+                    for k1 in self._dextraprop[dp][k0].keys():
+                        self._dextraprop[dp][k0][k1] = val
         elif k1 is None:
-            for k1 in self._dstruct[dp][k0].keys():
-                self._dstruct[dp][k0][k1] = val
+            size = len(self._dextraprop[dp][k0].keys())
+            self._checkformat_inputs_extraval(val, pp, size=size)
+            if isinstance(val,np.ndarray):
+                ii = 0
+                for k in self._dstruct['lorder']:
+                    kk, k1 = k.split('_')
+                    if k0==kk:
+                        self._dextraprop[dp][k0][k1] = val[ii]
+                        ii += 1
+            else:
+                for k1 in self._dextraprop[dp][k0].keys():
+                    self._dextraprop[dp][k0][k1] = val
         else:
-            self._dstruct[dp][k0][k1] = val
+            self._checkformat_inputs_extraval(val, pp, multi=False)
+            self._dextraprop[dp][k0][k1] = val
 
     def _get_extraprop(self, pp, k0=None, k1=None):
         assert not (k0 is None and k1 is not None)
@@ -1314,7 +1367,7 @@ class Config(utils.ToFuObject):
             ii = 0
             for k in self._dstruct['lorder']:
                 k0, k1 = k.split('_')
-                val[ii] = self._dstruct[dp][k0][k1]
+                val[ii] = self._dextraprop[dp][k0][k1]
                 ii += 1
         elif k1 is None:
             val = np.zeros((len(self._dstruct['dStruct'][k0].keys()),),dtype=bool)
@@ -1322,17 +1375,17 @@ class Config(utils.ToFuObject):
             for k in self._dstruct['lorder']:
                 k, k1 = k.split('_')
                 if k0==k:
-                    val[ii] = self._dstruct[dp][k0][k1]
+                    val[ii] = self._dextraprop[dp][k0][k1]
                     ii += 1
         else:
-            val = self._dstruct[dp][k0][k1]
+            val = self._dextraprop[dp][k0][k1]
         return val
 
     def _set_color(self, k0, val):
         for k1 in self._dstruct['dStruct'][k0].keys():
             self._dstruct['dStruct'][k0][k1].set_color(val)
 
-    def _dstruct_dynamicattr(self):
+    def _dynamicattr(self):
         # get (key, val) pairs
 
         # Purge
@@ -1345,11 +1398,11 @@ class Config(utils.ToFuObject):
             # Find a way to programmatically add dynamic properties to the
             # instances , like visible
             # In the meantime use a simple functions
-            lset = ['set_%s'%pp for pp in self._dstruct['lextraprop']]
-            lget = ['get_%s'%pp for pp in self._dstruct['lextraprop']]
+            lset = ['set_%s'%pp for pp in self._dextraprop['lprop']]
+            lget = ['get_%s'%pp for pp in self._dextraprop['lprop']]
             if not type(list(self._dstruct['dStruct'][k].values())[0]) is str:
                 for kk in self._dstruct['dStruct'][k].keys():
-                    for pp in self._dstruct['lextraprop']:
+                    for pp in self._dextraprop['lprop']:
                         setattr(self._dstruct['dStruct'][k][kk],
                                 'set_%s'%pp,
                                 lambda val, pk=pp, k0=k, k1=kk: self._set_extraprop(pk, val, k0, k1))
@@ -1358,7 +1411,7 @@ class Config(utils.ToFuObject):
                                 lambda pk=pp, k0=k, k1=kk: self._get_extraprop(pk, k0, k1))
                 dd = utils.dictattr(self._dstruct['dStruct'][k],
                                     extra=['set_color']+lset+lget)
-                for pp in self._dstruct['lextraprop']:
+                for pp in self._dextraprop['lprop']:
                     setattr(dd,
                             'set_%s'%pp,
                             lambda val, pk=pp, k0=k: self._set_extraprop(pk, val, k0))
@@ -1369,7 +1422,7 @@ class Config(utils.ToFuObject):
                         'set_color',
                         lambda col, k0=k: self._set_color(k0, col))
                 setattr(self, k, dd)
-        for pp in self._dstruct['lextraprop']:
+        for pp in self._dextraprop['lprop']:
             setattr(self, 'set_%s'%pp,
                     lambda val, pk=pp: self._set_extraprop(pk,val))
             setattr(self, 'get_%s'%pp,
@@ -1417,8 +1470,7 @@ class Config(utils.ToFuObject):
                 utils.ToFuObject._check_Fields4Rebuild(self._dstruct,
                                                        lkeep=lkeep,
                                                        dname='dstruct')
-            self._set_dstruct(lStruct=self.lStruct,
-                              dextraprop=self._dstruct['lextraprop'])
+            self._set_dstruct(lStruct=self.lStruct)
 
         else:
             if strip in [1,2]:
@@ -1453,10 +1505,13 @@ class Config(utils.ToFuObject):
                             else:
                                 raise Exception(msg)
                         self._dstruct['dStruct'][k][kk] = pathfile
-                self._dstruct_dynamicattr()
+                self._dynamicattr()
                 lkeep = self._get_keys_dstruct()
-                lkeep.extend(self._dstruct['lextraprop'])
             utils.ToFuObject._strip_dict(self._dstruct, lkeep=lkeep)
+
+    def _strip_dextraprop(self, strip=0):
+        lkeep = list(self._dextraprop.keys())
+        utils.ToFuObject._strip_dict(self._dextraprop, lkeep=lkeep)
 
     def _strip_dsino(self, lkeep=['RefPt','nP']):
         for k in self._dstruct['dStruct'].keys():
@@ -1483,15 +1538,20 @@ class Config(utils.ToFuObject):
 
     def _strip(self, strip=0, force=False):
         self._strip_dstruct(strip=strip, force=force)
+        #self._strip_dextraprop()
         #self._strip_dsino()
 
     def _to_dict(self):
-        dout = {'dstruct':{'dict':self.dstruct, 'lexcept':None}}
+        dout = {'dstruct':{'dict':self.dstruct, 'lexcept':None},
+                'dextraprop':{'dict':self._dextraprop, 'lexcept':None},
+                'dsino':{'dict':self.dsino, 'lexcept':None}}
         return dout
 
     def _from_dict(self, fd):
         self._dstruct.update(**fd['dstruct'])
-        self._dstruct_dynamicattr()
+        self._dextraprop.update(**fd['dextraprop'])
+        self._dsino.update(**fd['dsino'])
+        self._dynamicattr()
 
 
     ###########
@@ -1513,6 +1573,9 @@ class Config(utils.ToFuObject):
             lStruct.append(self._dstruct['dStruct'][k0][k1])
         return lStruct
 
+    @property
+    def dextraprop(self):
+       return self._dextraprop
     @property
     def dsino(self):
        return self._dsino
@@ -1544,19 +1607,20 @@ class Config(utils.ToFuObject):
             if k not in d.keys():
                 continue
             for kk in d[k].keys():
-                tu = (k,
+                lu = [k,
                       self._dstruct['dStruct'][k][kk]._Id._dall['Name'],
                       self._dstruct['dStruct'][k][kk]._Id._dall['SaveName'],
                       self._dstruct['dStruct'][k][kk]._dgeom['nP'],
                       self._dstruct['dStruct'][k][kk]._dgeom['nLim'],
                       self._dstruct['dStruct'][k][kk]._dgeom['mobile'],
-                      self._dstruct['dvisible'][k][kk],
-                      self._dstruct['dStruct'][k][kk]._dmisc['color'])
-                data.append(tu)
+                      self._dstruct['dStruct'][k][kk]._dmisc['color']]
+                for pp in self._dextraprop['lprop']:
+                    lu.append(self._dextraprop['d'+pp][k][kk])
+                data.append(lu)
 
         # Build the pandas DataFrame
         col = ['class', 'Name', 'SaveName', 'nP', 'nLim',
-               'mobile', 'visible', 'color']
+               'mobile', 'color'] + self._dextraprop['lprop']
         df = pd.DataFrame(data, columns=col)
         pd.set_option('display.max_columns',max_columns)
         pd.set_option('display.width',width)
@@ -1644,9 +1708,10 @@ class Config(utils.ToFuObject):
 
         # Check there is only one Ves object and it is visible
         msg = "There should be only one Ves object !"
-        assert len(self.dstruct['dvisible']['Ves'].keys())==1, msg
-        msg = "The Ves object is not visible !"
-        assert list(self.dstruct['dvisible']['Ves'].values())[0], msg
+        assert len(self.dstruct['dStruct']['Ves'].keys())==1, msg
+        if 'visible' in self._dextraprop['lprop']:
+            msg = "The Ves object is not visible !"
+            assert list(self.dextraprop['dvisible']['Ves'].values())[0], msg
 
         if tit is None:
             tit = self.Id.Name
@@ -1905,6 +1970,9 @@ class Rays(utils.ToFuObject):
         msg = "Arg config must be either a Config with a PlasmaDomain !"
         assert C0, msg
         assert 'PlasmaDomain' in config.dstruct['dStruct'].keys(), msg
+        if not 'compute' in config._dextraprop['lprop']:
+            config = config.copy()
+            config.add_extraprop('compute',True)
         return config
 
     def _checkformat_inputs_dsino(self, RefPt=None):
