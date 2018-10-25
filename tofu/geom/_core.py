@@ -1611,7 +1611,7 @@ class Config(utils.ToFuObject):
 """
 
 
-class Rays(object):
+class Rays(utils.ToFuObject):
     """ Parent class of rays (ray-tracing), LOS, LOSCam1D and LOSCam2D
 
     Focused on optimizing the computation time for many rays.
@@ -1654,27 +1654,235 @@ class Rays(object):
 
     """
 
-    def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
-                 Etendues=None, Surfaces=None, Sino_RefPt=None,
-                 fromdict=None, Exp=None, Diag=None, shot=0, dchans=None,
-                 SavePath=os.path.abspath('./'), plotdebug=True):
+    # Fixed (class-wise) dictionary of default properties
+    _ddef = {'Id':{'shot':0,
+                   'include':['Mod','Cls','Exp','Diag',
+                              'Name','shot','version']},
+             'dgeom':{'Type':'Tor', 'Lim':[], 'arrayorder':'C'},
+             'dsino':{},
+             'dmisc':{'color':'k'}}
+    _dplot = {'cross':{'Elt':'P',
+                       'dP':{'c':'k','lw':2},
+                       'dI':{'c':'k','ls':'--','m':'x','ms':8,'mew':2},
+                       'dBs':{'c':'b','ls':'--','m':'x','ms':8,'mew':2},
+                       'dBv':{'c':'g','ls':'--','m':'x','ms':8,'mew':2},
+                       'dVect':{'color':'r','scale':10}},
+              'hor':{'Elt':'P',
+                     'dP':{'c':'k','lw':2},
+                     'dI':{'c':'k','ls':'--'},
+                     'dBs':{'c':'b','ls':'--'},
+                     'dBv':{'c':'g','ls':'--'},
+                     'Nstep':50},
+              '3d':{'Elt':'P',
+                    'dP':{'color':(0.8,0.8,0.8,1.),
+                          'rstride':1,'cstride':1,
+                          'linewidth':0., 'antialiased':False},
+                    'Lim':None,
+                    'Nstep':50}}
 
-        self._Done = False
-        if fromdict is None:
-            self._check_inputs(Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
-                               Sino_RefPt=Sino_RefPt, Exp=Exp, Diag=Diag,
-                               shot=shot, dchans=dchans, SavePath=SavePath)
-            if Ves is not None:
-                Exp = Ves.Id.Exp if Exp is None else Exp
-            self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-            self._set_Ves(Ves, LStruct=LStruct, Du=Du, dchans=dchans,
-                          plotdebug=plotdebug)
-            self.set_Etendues(Entendues)
-            self.set_Surfaces(Surfaces)
-            self.set_sino(RefPt=Sino_RefPt)
+    def __init_subclass__(cls, color='k', **kwdargs):
+        super().__init_subclass__(**kwdargs)
+        cls._ddef = copy.deepcopy(Rays._ddef)
+        cls._dplot = copy.deepcopy(Rays._dplot)
+        cls._set_color_ddef(color)
+
+    @classmethod
+    def _set_color_ddef(cls, color):
+        cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
+
+    def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
+                 config=None, dcompute=None, dchans=None,
+                 Id=None, Name=None, Exp=None, shot=None, Diag=None,
+                 sino_RefPt=None, fromdict=None,
+                 SavePath=os.path.abspath('./'), color=None, plotdebug=True):
+
+        # Create a dplot at instance level
+        self._dplot = copy.deepcopy(self.__class__._dplot)
+
+        kwdargs = locals()
+        del kwdargs['self']
+        super().__init__(**kwdargs)
+
+
+
+
+    # def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
+                 # Etendues=None, Surfaces=None, Sino_RefPt=None,
+                 # fromdict=None, Exp=None, Diag=None, shot=0, dchans=None,
+                 # SavePath=os.path.abspath('./'), plotdebug=True):
+
+        # self._Done = False
+        # if fromdict is None:
+            # self._check_inputs(Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
+                               # Sino_RefPt=Sino_RefPt, Exp=Exp, Diag=Diag,
+                               # shot=shot, dchans=dchans, SavePath=SavePath)
+            # if Ves is not None:
+                # Exp = Ves.Id.Exp if Exp is None else Exp
+            # self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
+            # self._set_Ves(Ves, LStruct=LStruct, Du=Du, dchans=dchans,
+                          # plotdebug=plotdebug)
+            # self.set_Etendues(Entendues)
+            # self.set_Surfaces(Surfaces)
+            # self.set_sino(RefPt=Sino_RefPt)
+        # else:
+            # self._fromdict(fromdict)
+        # self._Done = True
+
+
+    def _reset(self):
+        super()._reset()
+        self._dgeom = dict.fromkeys(self._get_keys_dgeom())
+        self._dconfig = dict.fromkeys(self._get_keys_dconfig())
+        self._dsino = dict.fromkeys(self._get_keys_dsino())
+        self._dmisc = dict.fromkeys(self._get_keys_dmisc())
+        #self._dplot = copy.deepcopy(self.__class__._ddef['dplot'])
+
+    @classmethod
+    def _checkformat_inputs_Id(cls, Id=None, Name=None,
+                               Exp=None, shot=None, Diag=None,
+                               include=None,
+                               **kwdargs):
+        if Id is not None:
+            assert isinstance(Id,utils.ID)
+            Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
+        assert type(Name) is str
+        assert type(Exp) is str
+        assert type(Diag) is str
+        if shot is None:
+            shot = cls._ddef['Id']['shot']
+        assert type(shot) is int
+        if include is None:
+            include = cls._ddef['Id']['include']
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot, 'Diag':Diag,
+                        'include':include})
+        return kwdargs
+
+    ###########
+    # Get largs
+    ###########
+
+    @staticmethod
+    def _get_largs_dgeom(sino=True):
+        largs = ['dgeom']
+        if sino:
+            lsino = Struct._get_largs_dsino()
+            largs += ['sino_{0}'.format(s) for s in lsino]
+        return largs
+
+    @staticmethod
+    def _get_largs_dconfig():
+        largs = ['config']
+        return largs
+
+    @staticmethod
+    def _get_largs_dsino():
+        largs = ['RefPt']
+        return largs
+
+    @staticmethod
+    def _get_largs_dmisc():
+        largs = ['color']
+        return largs
+
+    ###########
+    # Get check and format inputs
+    ###########
+
+
+    @staticmethod
+    def _checkformat_inputs_dgeom(dgeom=None):
+        assert dgeom is not None
+        C0 = (isinstance(dgeom,dict)
+              and all([k in dgeom.keys() for k in ['D','u']]))
+        C1 = (isinstance(dgeom,dict)
+              and all([k in dgeom.keys() for k in ['D','pinhole']]))
+        C2 = isinstance(dgeom,tuple) and len(dgeom)==2
+        msg = "Arg dgeom must be a dict or a tuple of len=2"
+        assert C0 or C1 or C2, msg
+
+        def _checkformat_Du(arr, name):
+            arr = np.asarray(arr,dtype=float)
+            msg = "Arg %s must be an iterable convertible into either:"%name
+            msg += "\n    - a 1D np.ndarray of size=3"
+            msg += "\n    - a 2D np.ndarray of shape (3,N)"
+            assert arr.ndim in [1,2], msg
+            if arr.ndim==1:
+                assert arr.size==3, msg
+                arr = arr.reshape((3,1))
+            else:
+                assert 3 in arr.shape, msg
+                if arr[0]!=3:
+                    arr = arr.T
+            return arr
+
+        D = dgeom[0] if C2 else dgeom['D']
+        D = _checkformat_Du(D, 'D')
+        if C1:
+            pinhole = _checkformat_Du(dgeom['pinhole'], 'pinhole')
+            nD, npinhole = D.shape[1], pinhole.shape[1]
+            assert npinhole==1
+            pinhole = pinhole.ravel()
+            nRays = nD
+            dgeom = {'D':D, 'pinhole':pinhole, 'nRays':nRays}
+
         else:
-            self._fromdict(fromdict)
-        self._Done = True
+            u = dgeom[1] if C2 else dgeom['u']
+            u = _checkformat_Du(u, 'u')
+            nD, nu = D.shape[1], u.shape[1]
+            C0 = nD==1 and nu>1
+            C1 = nD>1 and nu==1
+            C2 = nD==nu
+            msg = "The number of rays is ambiguous from D and u shapes !"
+            assert C0 or C1 or C2, msg
+            nRays = max(nD,nu)
+            dgeom = {'D':D, 'u':u, 'nRays':nRays}
+        return dgeom
+
+    @staticmethod
+    def _checkformat_inputs_dconfig(config=None):
+        C0 = isinstance(config,Config)
+        C1 = isinstance(config,PlasmaDomain)
+        msg = "Arg config must be either a Config or a PlasmaDomain !"
+        assert C0 or C1, msg
+        # if C0:
+
+        # else:
+
+
+        return config
+
+    def _checkformat_inputs_dsino(self, RefPt=None):
+        assert RefPt is None or hasattr(RefPt,'__iter__')
+        if RefPt is not None:
+            RefPt = np.asarray(RefPt,dtype=float).flatten()
+            assert RefPt.size==2, "RefPt must be of size=2 !"
+        return RefPt
+
+    @classmethod
+    def _checkformat_inputs_dmisc(cls, color=None):
+        if color is None:
+            color = mpl.colors.to_rgba(cls._ddef['dmisc']['color'])
+        assert mpl.colors.is_color_like(color)
+        return tuple(mpl.colors.to_rgba(color))
+
+    ###########
+    # Get keys of dictionnaries
+    ###########
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     def _fromdict(self, fd, lvl=0):
         allowed = [0,1]
