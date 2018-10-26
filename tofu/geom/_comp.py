@@ -406,32 +406,6 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
     return pts
 
 
-##############################################
-#       Selection
-##############################################
-
-def Rays_touch(VesOk, StructOk, IndOut, StructNames, touch='Ves'):
-    assert type(touch) in [str,list,tuple], "Arg touch must be a str or list !"
-    if VesOk and touch=='Ves':
-        ind = IndOut[0,:]==0
-    elif StructOk:
-       if type(touch) is str:
-            ii = [ii for ii in range(0,len(StructNames))
-                  if StructNames[ii]==touch]
-            assert len(ii)==1, "Required Struct Name not found !"
-            ind = IndOut[0,:]==ii[0]+1
-       else:
-            assert len(touch)==2, "Arg touch must be a list of len()==2 !"
-            assert type(touch[0]) is str, "touch[0] must be str (Struct Name)"
-            assert type(touch[1]) is int, "touch[1] must be int (Struct index)"
-            ii = [ii for ii in range(0,len(StructNames))
-                  if StructNames[ii]==touch[0]]
-            assert len(ii)==1, "Required Struct Name not found !"
-            ind = (IndOut[0,:]==ii[0]+1) & (IndOut[1,:]==touch[1])
-    return ind
-
-
-
 
 
 ##############################################

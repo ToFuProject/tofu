@@ -642,9 +642,15 @@ class ToFuObjectBase(object):
         dout = {}
         for k, v in dd.items():
             lexcept_key = v.get('lexcept_key', None)
-            d = flatten_dict(v['dict'],
-                             parent_key='', sep=sep, rec=rec,
-                             lexcept_key=lexcept_key)
+            try:
+                d = flatten_dict(v['dict'],
+                                 parent_key='', sep=sep, rec=rec,
+                                 lexcept_key=lexcept_key)
+            except Exception as err:
+                msg = str(err)
+                msg += "\nIssue flattening dict %s"%k
+                msg += "\n\n\n" + str(v['dict'])
+                raise Exception(msg)
             dout[k] = d
         dout = flatten_dict(dout, parent_key='', sep=sep, rec=rec)
         if deepcopy:

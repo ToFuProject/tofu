@@ -1559,9 +1559,13 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 
 
 def LOS_Calc_PInOut_VesStruct(Ds, dus,
-                              cnp.ndarray[double, ndim=2,mode='c'] VPoly, cnp.ndarray[double, ndim=2,mode='c'] VIn, Lim=None,
-                              LSPoly=None, LSLim=None, LSVIn=None,
-                              RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
+                              cnp.ndarray[double, ndim=2,mode='c'] VPoly,
+                              cnp.ndarray[double, ndim=2,mode='c'] VIn,
+                              Lim=None, nLim=None,
+                              LSPoly=None, LSLim=None, lSnLim=None, LSVIn=None,
+                              RMin=None, Forbid=True,
+                              EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9,
+                              EpsB=1.e-9, EpsPlane=1.e-9,
                               VType='Tor', Test=True):
     """ Compute the entry and exit point of all provided LOS for the provided vessel polygon (toroidal or linear), also return the normal vector at impact point and the index of the impact segment
 
@@ -1599,6 +1603,16 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin'] !"
 
     cdef int ii, jj
+
+    if nLim==0:
+        Lim = None
+    elif nLim==1:
+        Lim = [Lim[0,0],Lim[0,1]]
+    for ii in range(0,len(lSnLim)):
+        if lSnLim[ii]==0:
+            LSLim[ii] = None
+        elif lSnLim[ii]==1:
+            LSLim[ii] = [LSLim[ii][0,0],LSLim[ii][0,1]]
 
     v = Ds.ndim==2
     if not v:
