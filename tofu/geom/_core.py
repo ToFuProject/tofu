@@ -37,7 +37,7 @@ except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
 
-__all__ = ['Ves', 'PFC', 'CoilPF', 'CoilCS', 'Config',
+__all__ = ['PlasmaDomain', 'Ves', 'PFC', 'CoilPF', 'CoilCS', 'Config',
            'Rays','LOSCam1D','LOSCam2D']
 
 
@@ -1124,14 +1124,14 @@ class Config(utils.ToFuObject):
 
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'shot':0,
+    _ddef = {'Id':{'shot':0, 'Type':'Tor',
                    'include':['Mod','Cls','Exp',
                               'Name','shot','version']},
              'dstruct':{'order':['Ves','PFC','CoilPF','CoilCS'],
                         'dextraprop':{'visible':True}}}
 
     def __init__(self, lStruct=None, dextraprop=None,
-                 Id=None, Name=None, Exp=None, shot=None,
+                 Id=None, Name=None, Exp=None, shot=None, Type=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude,
                  fromdict=None):
@@ -1147,18 +1147,22 @@ class Config(utils.ToFuObject):
         self._dsino = dict.fromkeys(self._get_keys_dsino())
 
     @classmethod
-    def _checkformat_inputs_Id(cls, Id=None, Name=None,
+    def _checkformat_inputs_Id(cls, Id=None, Name=None, Type=None,
                                shot=None, include=None, **kwdargs):
         if Id is not None:
             assert isinstance(Id,utils.ID)
             Name, shot = Id.Name, Id.shot
         assert type(Name) is str
+        if Type is None:
+            Type = cls._ddef['Id']['Type']
+        assert Type in ['Tor','Lin']
         if shot is None:
             shot = cls._ddef['Id']['shot']
         assert type(shot) is int
         if include is None:
             include = cls._ddef['Id']['include']
-        kwdargs.update({'Name':Name, 'include':include, 'shot':shot})
+            kwdargs.update({'Name':Name, 'Type':Type,
+                            'include':include, 'shot':shot})
         return kwdargs
 
     ###########
@@ -1482,24 +1486,24 @@ class Config(utils.ToFuObject):
             elif strip==3:
                 for k in self._dstruct['lCls']:
                     for kk, v  in self._dstruct['dStruct'][k].items():
+                        path, name = v.Id.SavePath, v.Id.SaveName
                         # --- Check !
-                        lf = os.listdir(v.Id.SavePath)
+                        lf = os.listdir(path)
                         lf = [ff for ff in lf
-                              if all([s in ff for s in [v.Id.SaveName,'.npz']])]
+                              if all([s in ff for s in [name,'.npz']])]
                         exist = len(lf)==1
                         # ----------
-                        pathfile = os.path.join(v.Id.SavePath,
-                                                v.Id.SaveName)+'.npz'
+                        pathfile = os.path.join(path, name)+'.npz'
                         if not exist:
                             msg = """BEWARE:
                                 You are about to delete the Struct objects
                                 Only the path/name to saved objects will be kept
 
                                 But it appears that the following object has no
-                                saved file were specified (obj.Id.SavePath)
+                                saved file where specified (obj.Id.SavePath)
                                 Thus it won't be possible to retrieve it
                                 (unless available in the current console:"""
-                            msg += "\n    - {0}".format(pathfile+'.npz')
+                            msg += "\n    - {0}".format(pathfile)
                             if force:
                                 warning.warn(msg)
                             else:
@@ -1814,7 +1818,7 @@ class Rays(utils.ToFuObject):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
     def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
-                 config=None, dcompute=None, dchans=None,
+                 config=None, dchans=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  sino_RefPt=None, fromdict=None,
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
@@ -1826,37 +1830,12 @@ class Rays(utils.ToFuObject):
         del kwdargs['self']
         super().__init__(**kwdargs)
 
-
-
-
-    # def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
-                 # Etendues=None, Surfaces=None, Sino_RefPt=None,
-                 # fromdict=None, Exp=None, Diag=None, shot=0, dchans=None,
-                 # SavePath=os.path.abspath('./'), plotdebug=True):
-
-        # self._Done = False
-        # if fromdict is None:
-            # self._check_inputs(Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
-                               # Sino_RefPt=Sino_RefPt, Exp=Exp, Diag=Diag,
-                               # shot=shot, dchans=dchans, SavePath=SavePath)
-            # if Ves is not None:
-                # Exp = Ves.Id.Exp if Exp is None else Exp
-            # self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-            # self._set_Ves(Ves, LStruct=LStruct, Du=Du, dchans=dchans,
-                          # plotdebug=plotdebug)
-            # self.set_Etendues(Entendues)
-            # self.set_Surfaces(Surfaces)
-            # self.set_sino(RefPt=Sino_RefPt)
-        # else:
-            # self._fromdict(fromdict)
-        # self._Done = True
-
-
     def _reset(self):
         super()._reset()
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dconfig = dict.fromkeys(self._get_keys_dconfig())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
+        self._dchans = dict.fromkeys(self._get_keys_dchans())
         self._dmisc = dict.fromkeys(self._get_keys_dmisc())
         #self._dplot = copy.deepcopy(self.__class__._ddef['dplot'])
 
@@ -1888,7 +1867,7 @@ class Rays(utils.ToFuObject):
     def _get_largs_dgeom(sino=True):
         largs = ['dgeom']
         if sino:
-            lsino = Struct._get_largs_dsino()
+            lsino = Rays._get_largs_dsino()
             largs += ['sino_{0}'.format(s) for s in lsino]
         return largs
 
@@ -1903,6 +1882,11 @@ class Rays(utils.ToFuObject):
         return largs
 
     @staticmethod
+    def _get_largs_dchans():
+        largs = ['dchans']
+        return largs
+
+    @staticmethod
     def _get_largs_dmisc():
         largs = ['color']
         return largs
@@ -1911,6 +1895,16 @@ class Rays(utils.ToFuObject):
     # Get check and format inputs
     ###########
 
+
+    def _checkformat_inputs_dES(self, val=None):
+        if val is not None:
+            C0 = type(val) in [int,float,np.int64,np.float64]
+            C1 = hasattr(val,'__iter__')
+            assert C0 or C1
+            if C1:
+                val = np.asarray(val,dtype=float).ravel()
+                assert val.size==self._dgeom['nRays']
+        return val
 
     @staticmethod
     def _checkformat_inputs_dgeom(dgeom=None):
@@ -1934,7 +1928,7 @@ class Rays(utils.ToFuObject):
                 arr = arr.reshape((3,1))
             else:
                 assert 3 in arr.shape, msg
-                if arr[0]!=3:
+                if arr.shape[0]!=3:
                     arr = arr.T
             arr = np.ascontiguousarray(arr)
             return arr
@@ -1967,8 +1961,11 @@ class Rays(utils.ToFuObject):
     @staticmethod
     def _checkformat_inputs_dconfig(config=None):
         C0 = isinstance(config,Config)
-        msg = "Arg config must be either a Config with a PlasmaDomain !"
+        msg = "Arg config must be a Config instance !"
+        msg += "\n    expected : {0}".format(str(Config))
+        msg += "\n    obtained : {0}".format(str(config.__class__))
         assert C0, msg
+        msg = "Arg config must have a PlasmaDomain !"
         assert 'PlasmaDomain' in config.dstruct['dStruct'].keys(), msg
         if not 'compute' in config._dextraprop['lprop']:
             config = config.copy()
@@ -1981,6 +1978,17 @@ class Rays(utils.ToFuObject):
             RefPt = np.asarray(RefPt,dtype=float).flatten()
             assert RefPt.size==2, "RefPt must be of size=2 !"
         return RefPt
+
+    def _checkformat_inputs_dchans(self, dchans=None):
+        assert dchans is None or isinstance(dchans,dict)
+        if dchans is None:
+            dchans = {}
+        for k in dchans.keys():
+            arr = np.asarray(dchans[k]).ravel()
+            assert arr.size==self_dgeom['nRays']
+            dchans[k] = arr
+        return dchans
+
 
     @classmethod
     def _checkformat_inputs_dmisc(cls, color=None):
@@ -2003,12 +2011,18 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dsino():
-        lk = ['RefPt','Theta','p']
+        lk = ['RefPt', 'k', 'pts',
+              'theta','p','phi']
         return lk
 
     @staticmethod
     def _get_keys_dconfig():
         lk = ['config']
+        return lk
+
+    @staticmethod
+    def _get_keys_dchans():
+        lk = []
         return lk
 
     @staticmethod
@@ -2020,16 +2034,19 @@ class Rays(utils.ToFuObject):
     # _init
     ###########
 
-    def _init(self, dgeom=None,
-              sino_RefPt=None, sino_nP=_def.TorNP, **kwdargs):
+    def _init(self, dgeom=None, config=None, Etendues=None, Surfaces=None,
+              sino_RefPt=None, dchans=None, **kwdargs):
         largs = self._get_largs_dgeom(sino=True)
         kwdgeom = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dconfig()
         kwdconfig = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dchans()
+        kwdchans = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dmisc()
         kwdmisc = self._extract_kwdargs(locals(), largs)
-        self._set_dconfig(calcdgeom=False, **kwdconfig)
-        self._set_dgeom(**kwdgeom)
+        self.set_dconfig(calcdgeom=False, **kwdconfig)
+        self._set_dgeom(sino=True, **kwdgeom)
+        self.set_dchans(**kwdchans)
         self._set_dmisc(**kwdmisc)
         self._dstrip['strip'] = 0
 
@@ -2039,8 +2056,8 @@ class Rays(utils.ToFuObject):
 
     def set_dconfig(self, config=None, calcdgeom=True):
         config = self._checkformat_inputs_dconfig(config)
-        self._dconfig['config'] = config
-        if calcgeom:
+        self._dconfig['config'] = config.copy()
+        if calcdgeom:
             self._compute_dgeom()
 
     def _compute_dgeom(self, extra=True):
@@ -2053,21 +2070,24 @@ class Rays(utils.ToFuObject):
         # Prepare input
         D = np.ascontiguousarray(self.D)
         u = np.ascontiguousarray(self.u)
-        assert self.config.PlasmaDomain.get_compute()
-        VPoly = self.config.PlasmaDomain.Poly
-        VVIn =  self.config.PlasmaDomain.dgeom['VIn']
-        Lim = self.config.PlasmaDomain.Lim
-        nLim = self.config.PlasmaDomain.nLim
-        VType = self.config.PlasmaDomain.Id.Type
 
-        lS = self.lStruct
-        compute = self.config.get_compute().nonzero()[0]
-        for ii in compute:
-            if not lS[ii].Id.Cls=='PlasmaDomain':
-                lSPoly.append(lS[ii].Poly)
-                lSVIn.append(lS[ii].dgeom['VIn'])
-                lSLim.append(lS[ii].Lim)
-                lSnLim.append(lS[ii].nLim)
+        # Get reference
+        S = list(self.config._dstruct['dStruct']['PlasmaDomain'].values())[0]
+        assert S.get_compute()
+        VPoly = S.Poly_closed
+        VVIn =  S.dgeom['VIn']
+        Lim = S.Lim
+        nLim = S.nLim
+        VType = S.Id.Type
+
+        lS = self.lStruct_compute
+        lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
+        for ss in lS:
+            if not ss.Id.Cls=='PlasmaDomain':
+                lSPoly.append(ss.Poly_closed)
+                lSVIn.append(ss.dgeom['VIn'])
+                lSLim.append(ss.Lim)
+                lSnLim.append(ss.nLim)
 
         kargs = dict(RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
                      EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
@@ -2075,8 +2095,9 @@ class Rays(utils.ToFuObject):
         #####################
         # call the dedicated function (Laura)
         out = _GG.LOS_Calc_PInOut_VesStruct(D, u,
-                                            VPoly, VVIn, Lim=Lim,
-                                            LSPoly=lSPoly, LSLim=lSLim, LSVIn=lSVIn,
+                                            VPoly, VVIn, Lim=Lim, nLim=nLim,
+                                            LSPoly=lSPoly, LSLim=lSLim,
+                                            lSnLim=lSnLim, LSVIn=lSVIn,
                                             VType=VType, **kargs)
         # Currently computes and returns too many things
         PIn, POut, kMin, kMax, VperpIn, vperp, IIn, indout = out
@@ -2096,19 +2117,22 @@ class Rays(utils.ToFuObject):
                                                    fs=fs, wintit=wintit,
                                                    draw=draw)
 
-        # Get RMin if Type is Tor
-        if self.config.PlasmaDomain.Id.Type=='Tor':
-            kRMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12)
-        else:
-            kRMin = None
-
-        dd = {'kMin':kMin, 'kMax':kMax, 'vperp':vperp, 'indout':indout,
-              'kRMin':kRMin}
+        dd = {'kMin':kMin, 'kMax':kMax, 'vperp':vperp, 'indout':indout}
         self._dgeom.update(dd)
         if extra:
-            self._compute_dgeom_extra()
+            self._compute_dgeom_kRMin()
+            self._compute_dgeom_extra1()
+            self._compute_dgeom_extra2D()
 
-    def _compute_dgeom_extra(self):
+    def _compute_dgeom_kRMin(self):
+        # Get RMin if Type is Tor
+        if self.config.Id.Type=='Tor':
+            kRMin = _comp.LOS_PRMin(D, u, kPOut=kMax, Eps=1.e-12)
+        else:
+            kRMin = None
+        self._dgeom.update({'kRMin':kRMin})
+
+    def _compute_dgeom_extra1(self):
         if self._dgeom['kRMin'] is not None:
             PRMin = self.D + self._dgeom['kRMin'][np.newaxis,:]*self.u
             RMin = np.hypot(PRMin[0,:],PRMin[1,:])
@@ -2117,21 +2141,102 @@ class Rays(utils.ToFuObject):
         dd = {'PkMin':PkMin, 'PkMax':PkMax, 'PRMin':PRMin, 'RMin':RMin}
         self._dgeom.update(dd)
 
+    def _compute_dgeom_extra2D(self):
+        if not '2d' in self.Id.Cls.lower():
+            return
+        D, u = self.D, self.u
+        C = np.nanmean(D,axis=1)
+        CD0 = D[:,:-1] - C[:,np.newaxis]
+        CD1 = D[:,1:] - C[:,np.newaxis]
+        cross = np.array([CD1[1,1:]*CD0[2,:-1]-CD1[2,1:]*CD0[1,:-1],
+                          CD1[2,1:]*CD0[0,:-1]-CD1[0,1:]*CD0[2,:-1],
+                          CD1[0,1:]*CD0[1,:-1]-CD1[1,1:]*CD0[0,:-1]])
+        crossn2 = np.sum(cross**2,axis=0)
+        if np.all(np.abs(crossn2)<1.e-12):
+            msg = "Is %s really a 2D camera ? (LOS aligned?)"%self.Id.Name
+            warnings.warn(msg)
+        cross = cross[:,np.nanargmax(crossn2)]
+        cross = cross / np.linalg.norm(cross)
+        nIn = cross if np.sum(cross*np.nanmean(u,axis=1))>0. else -cross
+        # Find most relevant e1 (for pixels alignment), without a priori info
+        D0D = D-D[:,0][:,np.newaxis]
+        dist = np.sqrt(np.sum(D0D**2,axis=0))
+        dd = np.min(dist[1:])
+        e1 = (D[:,1]-D[:,0])/np.linalg.norm(D[:,1]-D[:,0])
+        cross = np.sqrt((D0D[1,:]*e1[2]-D0D[2,:]*e1[1])**2
+                        + (D0D[2,:]*e1[0]-D0D[0,:]*e1[2])**2
+                        + (D0D[0,:]*e1[1]-D0D[1,:]*e1[0])**2)
+        D0D = D0D[:,cross<dd/3.]
+        sca = np.sum(D0D*e1[:,np.newaxis],axis=0)
+        e1 = D0D[:,np.argmax(np.abs(sca))]
+        nIn, e1, e2 = utils.get_nIne1e2(C, nIn=nIn, e1=e1)
+        if np.abs(np.abs(nIn[2])-1.)>1.e-12:
+            if np.abs(e1[2])>np.abs(e2[2]):
+                e1, e2 = e2, e1
+        e2 = e2 if e2[2]>0. else -e2
+        self._geom.update({'C':C, 'nIn':nIn, 'e1':e1, 'e2':e2})
 
-    def _set_dgeom(self, dgeom=None,
-                   sino_RefPt=None, sino_nP=_def.TorNP,
+    def set_Etendues(self, val):
+        val = self._checkformat_inputs_dES(val)
+        self._dgeom['Etendues'] = val
+
+    def set_Surfaces(self, val):
+        val = self._checkformat_inputs_dES(val)
+        self._dgeom['Surfaces'] = val
+
+    def _set_dgeom(self, dgeom=None, Etendues=None, Surfaces=None,
+                   sino_RefPt=None,
                    extra=True, sino=True):
         dgeom = self._checkformat_inputs_dgeom(dgeom=dgeom)
         self._dgeom.update(dgeom)
         self._compute_dgeom(extra=extra)
+        self.set_Etendues(Etendues)
+        self.set_Etendues(Surfaces)
         if sino:
-            self.set_dsino(sino_RefPt, nP=sino_nP)
+            self.set_dsino(sino_RefPt)
 
-    def set_dsino(self, RefPt=None):
+    def _compute_dsino_extra(self):
+        if self._dsino['k'] is not None:
+            pts = self.D + self._dsino['k'][np.newaxis,:]*self.u
+            R = np.hypot(pts[0,:],pts[1,:])
+            DR = R-self._dsino['RefPt'][0]
+            DZ = pts[2,:]-self._dsino['RefPt'][1]
+            p = np.hypot(DR,DZ)
+            theta = np.arctan2(DZ,DR)
+            ind = theta<0
+            p[ind] = -p[ind]
+            theta[ind] = -theta[ind]
+            phipts = np.arctan2(pts[1,:],pts[0,:])
+            etheta = np.array([np.cos(phipts)*np.cos(theta),
+                               np.sin(phipts)*np.cos(theta),
+                               np.sin(theta)])
+            phi = np.arccos(np.abs(np.sum(etheta*self.u,axis=0)))
+            dd = {'pts':pts, 'p':p, 'theta':theta, 'phi':phi}
+            self._dsino.update(dd)
+
+    def set_dsino(self, RefPt=None, extra=True):
         RefPt = self._checkformat_inputs_dsino(RefPt=RefPt)
-        Theta, p = _GG.Sino_ImpactEnv(RefPt, self.Poly_closed,
-                                                 NP=nP, Test=False)
-        self._dsino = {'RefPt':RefPt, 'Theta':Theta, 'p':p}
+        self._dsino.update({'RefPt':RefPt})
+        VType = self.config.Id.Type
+        if RefPt is not None:
+            self._dconfig['config'].set_dsino(RefPt=RefPt)
+            kMax = np.copy(self._dgeom['kMax'])
+            kMax[np.isnan(kMax)] = np.inf
+            try:
+                out = _GG.LOS_sino(self.D, self.u, RefPt, kMax,
+                                   Mode='LOS', VType=VType)
+                Pt, k, r, Theta, p, theta, Phi = out
+                self._dsino.update({'k':k})
+            except Exception as err:
+                msg = str(err)
+                msg += "\nError while computing sinogram !"
+                raise Exception(msg)
+        if extra:
+            self._compute_dsino_extra()
+
+    def set_dchans(self, dchans=None):
+        dchans = self._checkformat_inputs_dchans(dchans)
+        self._dchans = dchans
 
     def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
@@ -2147,13 +2252,150 @@ class Rays(utils.ToFuObject):
     # strip dictionaries
     ###########
 
+    def _strip_dgeom(self, strip=0):
+        if self._dstrip['strip']==strip:
+            return
+
+        if strip<self._dstrip['strip']:
+            # Reload
+            if self._dstrip['strip']==1:
+                self._compute_dgeom_extra1()
+                self._compute_dgeom_extra2D()
+            elif self._dstrip['strip']>=2 and srip==1:
+                self._compute_dgeom_kRMin()
+            elif self._dstrip['strip']>=2 and srip==0:
+                self._compute_dgeom_kRMin()
+                self._compute_dgeom_extra1()
+                self._compute_dgeom_extra2D()
+        else:
+            # strip
+            if strip==1:
+                lkeep = ['D','u','pinhole','nRays',
+                         'kMin','kMax','vperp','indout', 'kRMin',
+                         'Etendues','Surfaces']
+                utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
+            elif self._dstrip['strip']<=1 and strip>=2:
+                lkeep = ['D','u','pinhole','nRays',
+                         'kMin','kMax','vperp','indout',
+                         'Etendues','Surfaces']
+                utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
+
+    def _strip_dconfig(self, strip=0):
+        if self._dstrip['strip']==strip:
+            return
+
+        if strip<self._dstrip['strip']:
+            if self._dstrip['strip']==4:
+                pfe = self._dconfig['config']
+                try:
+                    self._dconfig['config'] = utils.load(pfe)
+                except Exception as err:
+                    msg = str(err)
+                    msg += "\n    type(pfe) = {0}".format(str(type(pfe)))
+                    msg += "\n    self._dstrip['strip'] = {0}".format(self._dstrip['strip'])
+                    msg += "\n    strip = {0}".format(strip)
+                    raise Exception(msg)
+
+            self._dconfig['config'].strip(strip)
+        else:
+            if strip==4:
+                path, name = self.config.Id.SavePath, self.config.Id.SaveName
+                # --- Check !
+                lf = os.listdir(path)
+                lf = [ff for ff in lf
+                      if all([s in ff for s in [name,'.npz']])]
+                exist = len(lf)==1
+                # ----------
+                pathfile = os.path.join(path,name)+'.npz'
+                if not exist:
+                    msg = """BEWARE:
+                        You are about to delete the Config object
+                        Only the path/name to saved a object will be kept
+
+                        But it appears that the following object has no
+                        saved file where specified (obj.Id.SavePath)
+                        Thus it won't be possible to retrieve it
+                        (unless available in the current console:"""
+                    msg += "\n    - {0}".format(pathfile)
+                    if force:
+                        warning.warn(msg)
+                    else:
+                        raise Exception(msg)
+                self._dconfig['config'] = pathfile
+
+            else:
+                self._dconfig['config'].strip(strip)
 
 
+    def _strip_dsino(self, strip=0):
+        if self._dstrip['strip']==strip:
+            return
+
+        if strip<self._dstrip['strip']:
+            if strip<=1 and self._dsino['k'] is not None:
+                self._compute_dsino_extra()
+        else:
+            if self._dstrip['strip']<=1:
+                utils.ToFuObject._strip_dict(self._dsino, lkeep=['RefPt','k'])
+
+    def _strip_dmisc(self, lkeep=['color']):
+        utils.ToFuObject._strip_dict(self._dmisc, lkeep=lkeep)
+
+
+    ###########
+    # _strip and get/from dict
+    ###########
+
+    @classmethod
+    def _strip_init(cls):
+        cls._dstrip['allowed'] = [0,1,2,3,4]
+        nMax = max(cls._dstrip['allowed'])
+        doc = """
+                 1: dgeom w/o pts + config.strip(1)
+                 2: dgeom w/o pts + config.strip(2) + dsino empty
+                 3: dgeom w/o pts + config.strip(3) + dsino empty
+                 4: dgeom w/o pts + config=pathfile + dsino empty
+                 """
+        doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
+        cls.strip.__doc__ = doc
+
+    def strip(self, strip=0):
+        super().strip(strip=strip)
+
+    def _strip(self, strip=0):
+        self._strip_dconfig(strip=strip)
+        self._strip_dgeom(strip=strip)
+        self._strip_dsino(strip=strip)
+
+    def _to_dict(self):
+        dout = {'dconfig':{'dict':self._dconfig, 'lexcept':None},
+                'dgeom':{'dict':self.dgeom, 'lexcept':None},
+                'dchans':{'dict':self.dchans, 'lexcept':None},
+                'dsino':{'dict':self.dsino, 'lexcept':None}}
+        return dout
+
+    def _from_dict(self, fd):
+        self._dconfig.update(**fd['dconfig'])
+        self._dgeom.update(**fd['dgeom'])
+        self._dsino.update(**fd['dsino'])
+        if 'dchans' in fd.keys():
+            self._dchans.update(**fd['dchans'])
 
 
     ###########
     # properties
     ###########
+
+
+    @property
+    def dgeom(self):
+        return self._dgeom
+    @property
+    def dchans(self):
+        return self._dchans
+    @property
+    def dsino(self):
+        return self._dsino
 
     @property
     def isPinhole(self):
@@ -2193,355 +2435,77 @@ class Rays(utils.ToFuObject):
     def config(self):
         return self._dconfig['config']
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    def _fromdict(self, fd, lvl=0):
-        allowed = [0,1]
-        assert lvl in [-1]+allowed
-        lvl = allowed[lvl]
-
-        if lvl==0:
-            _Rays_check_fromdict(fd)
-            self._Id = tfpf.ID(fromdict=fd['Id'])
-            self._dchans = fd['dchans']
-            if fd['Ves'] is None:
-                self._Ves = None
-            else:
-                self._Ves = Ves(fromdict=fd['Ves'])
-            if fd['LStruct'] is None:
-                self._LStruct = None
-            else:
-                self._LStruct = [Struct(fromdict=ds) for ds in fd['LStruct']]
-            self._geom = fd['geom']
-            self._sino = fd['sino']
-            if 'extra' in fd.keys():
-                self._extra = fd['extra']
-            else:
-                self._extra = {'Etendues':None, 'Surfaces':None}
-        elif lvl==1:
-            fd = utils.reshapedict(fd, )
-            self._Id = tfpf.ID(fromdict=fd['Id'])
-            self._dchans = fd['dchans']
-
-            # Get Ves and LStruct here to get VType
-
-            geom = fd['geom']
-            geom['PIn'] = geom['D'] + geom['kPIn'][np.newaxis,:]*geom['u']
-            geom['POut'] = geom['D'] + geom['kPOut'][np.newaxis,:]*geom['u']
-            geom['PRMin'] = geom['D'] + geom['kPRMin'][np.newaxis,:]*geom['u']
-            geom['RMin'] = np.hypot(geom['PRMin'][0,:],geom['PRMin'][1,:])
-            self._geom = geom
-
-            self._extra = fd['extra']
-
-    def _todict(self, lvl=0):
-        allowed = [0,1]
-        assert lvl in [-1]+allowed
-        lvl = allowed[lvl]
-
-        if lvl==0:
-            out = {'Id':self.Id._todict(),
-                   'dchans':self.dchans,
-                   'geom':self.geom,
-                   'extra': self._extra,
-                   'sino':self.sino}
-            out['Ves'] = None if self.Ves is None else self.Ves._todict()
-            if self.LStruct is None:
-                out['LStruct'] = None
-            else:
-                out['LStruct'] = [ss._todict() for ss in self.LStruct]
-        elif lvl==1:
-            Id = self.Id._todict(-1)
-            dchans = utils.flattendict(self.dchans)
-            lexcept = ['PIn','POut','PRMin','RMin']
-            geom = utils.flattendict(self.geom, lexcept=lexcept)
-            extra = utils.flattendict(self._extra)
-            out = utils.get_todictfields([Id,   dchans,  geom],
-                                         ['Id','dchans','geom'])
-        return out
-
     @property
-    def Id(self):
-        return self._Id
-    @property
-    def geom(self):
-        return self._geom
-    @property
-    def nRays(self):
-        return self.geom['nRays']
-    @property
-    def D(self):
-        return self.geom['D']
-    @property
-    def u(self):
-        return self.geom['u']
-    @property
-    def PIn(self):
-        return self.geom['PIn']
-    @property
-    def POut(self):
-        return self.geom['POut']
-    @property
-    def dchans(self):
-        return self._dchans
-    @property
-    def Ves(self):
-        return self._Ves
-    @property
-    def LStruct(self):
-        return self._LStruct
+    def lStruct_compute(self):
+        compute = self.config.get_compute()
+        lS = self.config.lStruct
+        lS = [lS[ii] for ii in range(0,len(lS)) if compute[ii]]
+        return lS
+
     @property
     def Etendues(self):
-        return self._extra['Etendues']
+        return self._dgeom['Etendues']
     @property
     def Surfaces(self):
-        return self._extra['Surfaces']
+        return self._dgeom['Surfaces']
+
     @property
-    def sino(self):
-        return self._sino
-
-    def _check_inputs(self, Id=None, Du=None, Ves=None, LStruct=None,
-                      Sino_RefPt=None, Exp=None, shot=None, Diag=None,
-                      SavePath=None, ind=None,
-                      dchans=None, fromdict=None):
-        _Rays_check_inputs(Id=Id, Du=Du, Vess=Ves, LStruct=LStruct,
-                          Sino_RefPt=Sino_RefPt, Exp=Exp, shot=shot, ind=ind,
-                          Diag=Diag, SavePath=SavePath,
-                          dchans=dchans, fromdict=fromdict)
-
-    def _set_Id(self, Val,
-                Exp=None, Diag=None, shot=None,
-                SavePath=os.path.abspath('./')):
-        dd = {'Exp':Exp, 'shot':shot, 'Diag':Diag, 'SavePath':SavePath}
-        if self._Done:
-            tfpf._get_FromItself(self.Id, dd)
-        tfpf._check_NotNone({'Id':Val})
-        self._check_inputs(Id=Val)
-        if type(Val) is str:
-            Val = tfpf.ID(self.__class__, Val, **dd)
-        self._Id = Val
-
-    def _set_Ves(self, Ves=None, LStruct=None, Du=None, dchans=None,
-                 plotdebug=True):
-        self._check_inputs(Ves=Ves, Exp=self.Id.Exp, LStruct=LStruct, Du=Du)
-        LObj = []
-        if not Ves is None:
-            LObj.append(Ves.Id)
-        if not LStruct is None:
-            LStruct = [LStruct] if type(LStruct) is Struct else LStruct
-            LObj += [ss.Id for ss in LStruct]
-        if len(LObj)>0:
-            self.Id.set_LObj(LObj)
-        self._Ves = Ves
-        self._LStruct = LStruct
-        Du = Du if Du is not None else (self.D,self.u)
-        self._set_geom(Du, dchans=dchans, plotdebug=plotdebug)
-
-    def _set_geom(self, Du, dchans=None,
-                  plotdebug=True, fs=None, wintit='tofu', draw=True):
-        """ Compute all geometrical attributes
-
-        Du is a tuple with D (start points) and u (unit vectors)
-        D and u can be (3,) arrays or (3,N) arrays in (X,Y,Z) coordinates
-
-        """
-
-        # Check and format inputs
-        tfpf._check_NotNone({'Du':Du})
-        self._check_inputs(Du=Du, dchans=dchans)
-
-        # D = start point
-        # u = unit vector
-        D, u = np.asarray(Du[0]), np.asarray(Du[1])
-        msg = "D and u must be arrays of (X,Y,Z) coordinates !"
-        assert D.size%3==0 and u.size%3==0, msg
-        nRays = int(max(D.size/3, u.size/3))
-        if D.ndim==2:
-            if D.shape[1]==3 and not D.shape[0]==3:
-                D = D.T
-        else:
-            D = D.reshape((3,1))
-        assert D.shape[1] in [1,nRays]
-        if D.shape[1]<nRays:
-            D = np.repeat(D, nRays, axis=1)
-        if u.ndim==2:
-            if u.shape[1]==3 and not u.shape[0]==3:
-                u = u.T
-        else:
-            assert u.size==3
-            u = u.reshape((3,1))
-        assert u.shape[1] in [1,nRays]
-        if u.shape[1]<nRays:
-            u = np.repeat(u, nRays, axis=1)
-        u = u/np.sqrt(np.sum(u**2,axis=0))
-        D = np.ascontiguousarray(D)
-        u = np.ascontiguousarray(u)
-
-        # Prepare the output
-        kPIn, kPOut = np.full((nRays,),np.nan), np.full((nRays,),np.nan)
-        PIn, POut = np.full((3,nRays),np.nan), np.full((3,nRays),np.nan)
-        VPerpIn, VPerpOut = np.full((3,nRays),np.nan), np.full((3,nRays),np.nan)
-        IndIn, IndOut = np.full((nRays,),np.nan), np.full((nRays,),np.nan)
-
-        # Only compute is Ves was provided
-        if self.Ves is not None:
-            if self.LStruct is not None:
-                lSPoly = [ss.Poly for ss in self.LStruct]
-                lSLim = [ss.Lim for ss in self.LStruct]
-                lSVIn = [ss.geom['VIn'] for ss in self.LStruct]
-            else:
-                lSPoly, lSLim, lSVIn = None, None, None
-
-            kargs = dict(RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
-                         EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
-
-            #####################
-            # call the dedicated function (Laura)
-            out = _GG.LOS_Calc_PInOut_VesStruct(D, u, self.Ves.Poly,
-                                                self.Ves.geom['VIn'],
-                                                Lim=self.Ves.Lim, LSPoly=lSPoly,
-                                                LSLim=lSLim, LSVIn=lSVIn,
-                                                VType=self.Ves.Type, **kargs)
-            ######################
-
-            PIn, POut, kPIn, kPOut, VPerpIn, VPerpOut, IndIn, IndOut = out
-            ind = (np.isnan(kPOut) | np.isinf(kPOut)
-                   | np.any(np.isnan(POut),axis=0))
-            kPOut[ind] = np.nan
-            if np.any(ind):
-                warnings.warn("Some LOS have no visibility inside the vessel !")
-                if plotdebug:
-                    _plot._LOS_calc_InOutPolProj_Debug(self.Ves, D[:,ind], u[:,ind],
-                                                       PIn[:,ind], POut[:,ind],
-                                                       fs=fs, wintit=wintit,
-                                                       draw=draw)
-            ind = np.isnan(kPIn)
-            PIn[:,ind], kPIn[ind] = D[:,ind], 0.
-
-        PRMin, kRMin, RMin = _comp.LOS_PRMin(D, u, kPOut=kPOut, Eps=1.e-12)
-        self._geom = {'D':D, 'u':u, 'nRays':nRays,
-                      'PIn':PIn, 'POut':POut, 'kPIn':kPIn, 'kPOut':kPOut,
-                      'VPerpIn':VPerpIn, 'VPerpOut':VPerpOut,
-                      'IndIn':IndIn, 'IndOut':IndOut,
-                      'PRMin':PRMin, 'kRMin':kRMin, 'RMin':RMin}
-
-        # Get basics of 2D geometry
-        if self.Id.Cls=='LOSCam2D':
-            C = np.nanmean(D,axis=1)
-            CD0 = D[:,:-1] - C[:,np.newaxis]
-            CD1 = D[:,1:] - C[:,np.newaxis]
-            cross = np.array([CD1[1,1:]*CD0[2,:-1]-CD1[2,1:]*CD0[1,:-1],
-                              CD1[2,1:]*CD0[0,:-1]-CD1[0,1:]*CD0[2,:-1],
-                              CD1[0,1:]*CD0[1,:-1]-CD1[1,1:]*CD0[0,:-1]])
-            crossn2 = np.sum(cross**2,axis=0)
-            if np.all(np.abs(crossn2)<1.e-12):
-                msg = "Is %s really a 2D camera ? (LOS aligned?)"%self.Id.Name
-                warnings.warn(msg)
-            cross = cross[:,np.nanargmax(crossn2)]
-            cross = cross / np.linalg.norm(cross)
-            nIn = cross if np.sum(cross*np.nanmean(u,axis=1))>0. else -cross
-            # Find most relevant e1 (for pixels alignment), without a priori info
-            D0D = D-D[:,0][:,np.newaxis]
-            dist = np.sqrt(np.sum(D0D**2,axis=0))
-            dd = np.min(dist[1:])
-            e1 = (D[:,1]-D[:,0])/np.linalg.norm(D[:,1]-D[:,0])
-            cross = np.sqrt((D0D[1,:]*e1[2]-D0D[2,:]*e1[1])**2
-                            + (D0D[2,:]*e1[0]-D0D[0,:]*e1[2])**2
-                            + (D0D[0,:]*e1[1]-D0D[1,:]*e1[0])**2)
-            D0D = D0D[:,cross<dd/3.]
-            sca = np.sum(D0D*e1[:,np.newaxis],axis=0)
-            e1 = D0D[:,np.argmax(np.abs(sca))]
-            nIn, e1, e2 = utils.get_nIne1e2(C, nIn=nIn, e1=e1)
-            if np.abs(np.abs(nIn[2])-1.)>1.e-12:
-                if np.abs(e1[2])>np.abs(e2[2]):
-                    e1, e2 = e2, e1
-            e2 = e2 if e2[2]>0. else -e2
-            self._geom.update({'C':C, 'nIn':nIn, 'e1':e1, 'e2':e2})
-
-        if dchans is None:
-            self._dchans = dchans
-        else:
-            lK = list(dchans.keys())
-            self._dchans = dict([(kk,np.asarray(dchans[kk]).ravel()) for kk in lK])
+    def PkMin(self):
+        return self._dgeom['PkMin']
+    @property
+    def PkMax(self):
+        return self._dgeom['PkMax']
 
 
-    def set_Etendues(self, E=None):
-        C0 = E is None
-        C1 = type(E) in [int,float,np.int64,np.float64]
-        C2 = type(E) in [list,tuple,np.ndarray]
-        msg = "Arg E must be None, a float or a np.ndarray !"
-        assert C0 or C1 or C2, msg
-        if not C0:
-            if  C1:
-                E = [E]
-            E = np.asarray(E, dtype=float).ravel()
-            msg = "E must be an iterable of size == 1 or self.nRays !"
-            assert E.size in [1, self.nRays], msg
-        self._extra['Etendues'] = E
-
-    def set_Surfaces(self, S=None):
-        C0 = S is None
-        C1 = type(S) in [int,float,np.int64,np.float64]
-        C2 = type(S) in [list,tuple,np.ndarray]
-        msg = "Arg S must be None, a float or a np.ndarray !"
-        assert C0 or C1 or C2, msg
-        if not C0:
-            if C1:
-                S = [S]
-            S = np.asarray(S, dtype=float).ravel()
-            msg = "S must be an iterable of size == 1 or self.nRays !"
-            assert S.size in [1, self.nRays], msg
-        self._extra['Surfaces'] = S
-
-    def set_sino(self, RefPt=None):
-        self._check_inputs(Sino_RefPt=RefPt)
-        if RefPt is None and self.Ves is None:
-            self._sino = None
-        else:
-            if RefPt is None:
-                RefPt = self.Ves.sino['RefPt']
-            if RefPt is None:
-                if self.Ves.Type=='Tor':
-                    RefPt = self.Ves.geom['BaryV']
-                else:
-                    RefPt = self.Ves.geom['BaryS']
-            RefPt = np.asarray(RefPt).ravel()
-            if self.Ves is not None:
-                self._Ves.set_sino(RefPt)
-                VType = self.Ves.Type
-            else:
-                VType = 'Lin'
-            kMax = np.copy(self.geom['kPOut'])
-            kMax[np.isnan(kMax)] = np.inf
-            try:
-                out = _GG.LOS_sino(self.D, self.u, RefPt, kMax,
-                                   Mode='LOS', VType=VType)
-                Pt, kPt, r, Theta, p, theta, Phi = out
-            except Exception as err:
-                msg = "Could not compute sinogram !\n"
-                msg += str(err)
-                warnings.warn(msg)
-                Pt, kPt, r = None, None, None
-                Theta, p, theta, Phi = None, None, None, None
-            self._sino = {'RefPt':RefPt, 'Pt':Pt, 'kPt':kPt, 'r':r,
-                          'Theta':Theta, 'p':p, 'theta':theta, 'Phi':Phi}
+    ###########
+    # public methods
+    ###########
 
     def select(self, key=None, val=None, touch=None, log='any', out=int):
+        """ Return the indices of the rays matching selection criteria
+
+        The criterion can be of two types:
+            - a key found in self.dchans, with a matching value
+            - a touch tuple (indicating which element in self.config is touched
+                by the desired rays)
+
+        Parameters
+        ----------
+        key :    None / str
+            A key to be found in self.dchans
+        val :   int / str / float / list of such
+            The value to be matched
+            If a list of values is provided, the behaviour depends on log
+        log :   str
+            A flag indicating which behaviour to use when val is a list
+                - any : Returns indices of rays matching any value in val
+                - all : Returns indices of rays matching all values in val
+                - not : Returns indices of rays matching None of the val
+        touch:  None / str / int / tuple
+            Used if key is None
+            Tuple that can be of len()=1, 2 or 3
+            Tuple indicating you want the rays that are touching some specifi            elements of self.config:
+                - touch[0] : str / int or list of such
+                    str : a 'Cls_Name' string indicating the element
+                    int : the index of the element in self.lStruct_compute
+                - touch[1] : int / list of int
+                    Indices of the desired segments on the polygon
+                    (i.e.: of the cross-section polygon of the above element)
+                - touch[2] : int / list of int
+                    Indices, if relevant, of the toroidal / linear unit
+                    Only relevant when the element has nLim>1
+            In this case only log='not' has an effect
+        out :   str
+            Flag indicating whether to return:
+                - bool : a (nRays,) boolean array of indices
+                - int :  a (N,) array of int indices (N=number of matching rays)
+
+        Returns
+        -------
+        ind :   np.ndarray
+            The array of matching rays
+
+        """
         assert out in [int,bool]
         assert log in ['any','all','not']
         C = [key is None,touch is None]
@@ -2566,11 +2530,48 @@ class Rays(utils.ToFuObject):
                     ind = np.all(ind,axis=0)
                 else:
                     ind = ~np.any(ind,axis=0)
+
             elif touch is not None:
-                VesOk, StructOk = self.Ves is not None, self.LStruct is not None
-                StructNames = [ss.Id.Name for ss in self.LStruct] if StructOk else None
-                ind = _comp.Rays_touch(VesOk, StructOk, self.geom['IndOut'],
-                                       StructNames,touch=touch)
+                C0 = type(touch) is str and '_' in touch
+                C1 = type(touch) in [int,np.int64]
+                C2 = type(touch) in [list,tuple] and len(touch) in [2,3]
+                assert C0 or C1 or C2
+                if C0 or C1:
+                    touch = [touch]
+                else:
+                    lint = [int,np.int64]
+                    larr = [list,tuple,np.ndarray]
+                    C0 = type(touch[0]) is str and '_' in touch[0]
+                    C1a = type(touch[1]) in lint
+                    C1b = (type(touch[1]) in larr
+                           and all([type(t) in lint for t in touch[1]]))
+                    assert C0 and (C1a or C1b)
+                    if C1a:
+                        touch[1] = [touch[1]]
+                    if len(touch)==3:
+                        C2a = type(touch[2]) in lint
+                        C2b = (type(touch[2]) in larr
+                               and all([type(t) in lint for t in touch[2]]))
+                        assert C2a or C2b
+                        if C2a:
+                            touch[2] = [touch[2]]
+                ntouch = len(touch)
+
+                # Common part
+                if type(touch[0]) is str:
+                    lS = self.lStruct_compute
+                    k0, k1 = touch[0].split('_')
+                    ind = [ii for ii in range(0,len(lS))
+                           if lS[ii].Id.Cls==k0 and lS[ii].Id.Name==k1]
+                    assert len(ind)==1
+                    touch[0] = ind[0]
+
+                ind = np.zeros((ntouch,self.nRays),dtype=bool)
+                for i in range(0,ntouch):
+                    for n in len(touch[i]):
+                        ind[i,:] = (ind[i,:]
+                                    | self._dgeom['indout'][i,:]==touch[i][n])
+                ind = np.all(ind,axis=0)
                 ind = ~ind if log=='not' else ind
         if out is int:
             ind = ind.nonzero()[0]
