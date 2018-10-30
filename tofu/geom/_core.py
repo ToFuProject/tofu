@@ -1215,19 +1215,54 @@ class Config(utils.ToFuObject):
 
     def _checkformat_inputs_extraval(self, extraval, key='',
                                              multi=True, size=None):
-        C0 = type(extraval) in [bool,float,int,np.int64,np.float64]
+        lsimple = [bool,float,int,np.int64,np.float64]
+        C0 = type(extraval) in lsimple
         C1 = isinstance(extraval,np.ndarray)
+        C2 = isinstance(extraval,dict)
         if multi:
-            assert C0 or C1
+            assert C0 or C1 or C2
         else:
             assert C0
         if multi and C1:
             size = self._dstruct['nStruct'] if size is None else size
             C = extraval.shape==((self._dstruct['nStruct'],))
-            msg = "The value for %s has wrong shape!"%key
-            msg += "\n    Expected: ({0},)".format(self._dstruct['nStruct'])
-            msg += "\n    Got:      {0}".format(str(extraval.shape))
-            assert C, msg
+            if not C:
+                msg = "The value for %s has wrong shape!"%key
+                msg += "\n    Expected: ({0},)".format(self._dstruct['nStruct'])
+                msg += "\n    Got:      {0}".format(str(extraval.shape))
+                raise Exception(msg)
+            C = np.ndarray
+        elif multi and C2:
+            msg0 = "If an extra attribute is provided as a dict,"
+            msg0 += "It should have the same structure as self.dStruct !"
+            lk = sorted(self._dstruct['lCls'])
+            c = lk==sorted(extraval.keys())
+            if not c:
+                msg = "\nThe value for %s has wrong keys !"%key
+                msg += "\n    expected : "+str(lk)
+                msg += "\n    received : "+str(sorted(extraval.keys()))
+                raise Exception(msg0+msg)
+            c = [isinstance(extraval[k],dict) for k in lk]
+            if not all(c):
+                msg = "\nThe value for %s shall be a dict of nested dict !"%key
+                msg += "\n    "
+                msg += "\n    ".join(['{0} : {1}'.format(lk[ii],c[ii])
+                                     for ii in range(0,len(lk))])
+                raise Exception(msg0+msg)
+            c = [sorted(v.keys())==sorted(self.dstruct['dStruct'][k].keys())
+                 for k, v in extraval.items()]
+            if not all(c):
+                msg = "\nThe value for %s shall has wrong nested dict !"%key
+                msg += "\n    "
+                raise Exception(msg0+msg)
+            for k in lk:
+                for kk,v in extraval[k].items():
+                    msg = "\n%s[%s][%s] should be in %s"%(key,k,kk,str(lsimple))
+                    assert v in lsimple, msg
+            C = dict
+        elif C0:
+            C = int
+        return C
 
     def _checkformat_inputs_dextraprop(self, dextraprop=None):
         if dextraprop is None:
@@ -1235,9 +1270,10 @@ class Config(utils.ToFuObject):
         if dextraprop is None:
             dextraprop = {}
         assert isinstance(dextraprop,dict)
+        dC = {}
         for k in dextraprop.keys():
-            self._checkformat_inputs_extraval(dextraprop[k], key=k)
-        return dextraprop
+            dC[k] = self._checkformat_inputs_extraval(dextraprop[k], key=k)
+        return dextraprop, dC
 
     def _checkformat_inputs_dsino(self, RefPt=None, nP=None):
         assert type(nP) is int and nP>0
@@ -1312,15 +1348,22 @@ class Config(utils.ToFuObject):
 
 
     def _set_dextraprop(self, dextraprop=None):
-        dextraprop = self._checkformat_inputs_dextraprop(dextraprop)
+        dextraprop, dC = self._checkformat_inputs_dextraprop(dextraprop)
         self._dextraprop['lprop'] = sorted(list(dextraprop.keys()))
+
+        # Init dict
+        lCls = self._dstruct['lCls']
         for pp in dextraprop.keys():
-            self._dextraprop.update({'d'+pp:dict([(k,{})
-                                                  for k in self._dstruct['lCls']])})
-        for k in self._dstruct['lCls']:
-            for ss in self._dstruct['dStruct'][k].keys():
-                for pp in dextraprop.keys():
-                    self._dextraprop['d'+pp][k].update({ss:dextraprop[pp]})
+            dp = 'd'+pp
+            dd = dict.fromkeys(lCls,{})
+            for k in lCls:
+                dd[k] = dict.fromkeys(self._dstruct['dStruct'][k].keys())
+            self._dextraprop.update({dp:dd})
+
+        # Populate
+        for pp in dextraprop.keys():
+            self._set_extraprop(pp, dextraprop[pp])
+
 
     def add_extraprop(self, key, val):
         assert type(key) is str
@@ -1328,15 +1371,22 @@ class Config(utils.ToFuObject):
         for k in self._dextraprop['lprop']:
             dx[k] = eval('self.get_%s()'%k)
         dx[key] = val
-        self._set_dextraprop(dx)
+
+        # Decide what is best here---------------------
+        for k in dx.keys():
+            self._set_extraprop(k, dx[k])
         self._dynamicattr()
 
     def _set_extraprop(self, pp, val, k0=None, k1=None):
         assert not (k0 is None and k1 is not None)
         dp = 'd'+pp
         if k0 is None and k1 is None:
-            self._checkformat_inputs_extraval(val, pp)
-            if isinstance(val,np.ndarray):
+            C = self._checkformat_inputs_extraval(val, pp)
+            if C is int:
+                for k0 in self._dstruct['dStruct'].keys():
+                    for k1 in self._dextraprop[dp][k0].keys():
+                        self._dextraprop[dp][k0][k1] = val
+            elif C is np.ndarray:
                 ii = 0
                 for k in self._dstruct['lorder']:
                     k0, k1 = k.split('_')
@@ -1345,22 +1395,24 @@ class Config(utils.ToFuObject):
             else:
                 for k0 in self._dstruct['dStruct'].keys():
                     for k1 in self._dextraprop[dp][k0].keys():
-                        self._dextraprop[dp][k0][k1] = val
+                        self._dextraprop[dp][k0][k1] = val[k0][k1]
         elif k1 is None:
             size = len(self._dextraprop[dp][k0].keys())
-            self._checkformat_inputs_extraval(val, pp, size=size)
-            if isinstance(val,np.ndarray):
+            C = self._checkformat_inputs_extraval(val, pp, size=size)
+            assert C in [int,np.ndarray]
+            if C is int:
+                for k1 in self._dextraprop[dp][k0].keys():
+                    self._dextraprop[dp][k0][k1] = val
+            elif C is np.ndarray:
                 ii = 0
                 for k in self._dstruct['lorder']:
                     kk, k1 = k.split('_')
                     if k0==kk:
                         self._dextraprop[dp][k0][k1] = val[ii]
                         ii += 1
-            else:
-                for k1 in self._dextraprop[dp][k0].keys():
-                    self._dextraprop[dp][k0][k1] = val
         else:
-            self._checkformat_inputs_extraval(val, pp, multi=False)
+            C = self._checkformat_inputs_extraval(val, pp, multi=False)
+            assert C is int
             self._dextraprop[dp][k0][k1] = val
 
     def _get_extraprop(self, pp, k0=None, k1=None):
@@ -2127,7 +2179,7 @@ class Rays(utils.ToFuObject):
     def _compute_dgeom_kRMin(self):
         # Get RMin if Type is Tor
         if self.config.Id.Type=='Tor':
-            kRMin = _comp.LOS_PRMin(D, u, kPOut=kMax, Eps=1.e-12)
+            kRMin = _comp.LOS_PRMin(self.D, self.u, kPOut=self.kMax, Eps=1.e-12)
         else:
             kRMin = None
         self._dgeom.update({'kRMin':kRMin})
@@ -2261,9 +2313,9 @@ class Rays(utils.ToFuObject):
             if self._dstrip['strip']==1:
                 self._compute_dgeom_extra1()
                 self._compute_dgeom_extra2D()
-            elif self._dstrip['strip']>=2 and srip==1:
+            elif self._dstrip['strip']>=2 and strip==1:
                 self._compute_dgeom_kRMin()
-            elif self._dstrip['strip']>=2 and srip==0:
+            elif self._dstrip['strip']>=2 and strip==0:
                 self._compute_dgeom_kRMin()
                 self._compute_dgeom_extra1()
                 self._compute_dgeom_extra2D()
@@ -2450,11 +2502,11 @@ class Rays(utils.ToFuObject):
         return self._dgeom['Surfaces']
 
     @property
-    def PkMin(self):
-        return self._dgeom['PkMin']
+    def kMin(self):
+        return self._dgeom['kMin']
     @property
-    def PkMax(self):
-        return self._dgeom['PkMax']
+    def kMax(self):
+        return self._dgeom['kMax']
 
 
     ###########
