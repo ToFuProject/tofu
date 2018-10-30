@@ -1367,14 +1367,17 @@ class Config(utils.ToFuObject):
 
     def add_extraprop(self, key, val):
         assert type(key) is str
-        dx = {}
-        for k in self._dextraprop['lprop']:
-            dx[k] = eval('self.get_%s()'%k)
-        dx[key] = val
 
-        # Decide what is best here---------------------
-        for k in dx.keys():
-            self._set_extraprop(k, dx[k])
+        # Init dict
+        lCls = self._dstruct['lCls']
+        dp = 'd'+key
+        dd = dict.fromkeys(lCls,{})
+        for k in lCls:
+            dd[k] = dict.fromkeys(self._dstruct['dStruct'][k].keys())
+        self._dextraprop.update({dp:dd})
+
+        # Populate
+        self._set_extraprop(key, val)
         self._dynamicattr()
 
     def _set_extraprop(self, pp, val, k0=None, k1=None):
