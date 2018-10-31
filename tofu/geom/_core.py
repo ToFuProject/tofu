@@ -6,7 +6,7 @@ It includes all functions and object classes necessary for tomography on Tokamak
 # Built-in
 import os
 import warnings
-from abc import ABCMeta, abstractmethod
+#from abc import ABCMeta, abstractmethod
 import copy
 
 # Common
@@ -96,7 +96,7 @@ class Struct(utils.ToFuObject):
 
     """
 
-    __metaclass__ = ABCMeta
+    #__metaclass__ = ABCMeta
 
 
     # Fixed (class-wise) dictionary of default properties
@@ -131,7 +131,7 @@ class Struct(utils.ToFuObject):
         super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Struct._ddef)
         cls._dplot = copy.deepcopy(Struct._dplot)
-        cls._set_color_ddef(color)
+        cls._set_color_ddef(cls._color)
 
     @classmethod
     def _set_color_ddef(cls, color):
@@ -502,9 +502,26 @@ class Struct(utils.ToFuObject):
     def get_color(self):
         return self._dmisc['color']
 
-    @abstractmethod
-    def isMobile(self):
-        return self._dgeom['mobile']
+    def move(self):
+        """ To be overriden at object-level after instance creation
+
+        To do so:
+            1/ create the instance:
+                >> S = tfg.Struct('test', poly, Exp='Test')
+            2/ Define a moving function f taking the instance as first argument
+                >> def f(self, Delta=1.):
+                       Polynew = self.Poly
+                       Polynew[0,:] = Polynew[0,:] + Delta
+                       self._set_geom(Polynew, Lim=self.Lim)
+            3/ Bound your custom function to the self.move() method
+               using types.MethodType() found in the types module
+                >> import types
+                >> S.move = types.MethodType(f, S)
+
+            See the following page for info and details on method-patching:
+            https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
+        """
+        print(self.move.__doc__)
 
     def isInside(self, pts, In='(X,Y,Z)'):
         """ Return an array of booleans indicating whether each point lies
@@ -686,7 +703,8 @@ class Struct(utils.ToFuObject):
              dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
              dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
              dBvHor=_def.TorBvTord, Lim=None, Nstep=_def.TorNTheta,
-             dLeg=_def.TorLegd, draw=True, fs=None, wintit='tofu', Test=True):
+             dLeg=_def.TorLegd, indices=False,
+             draw=True, fs=None, wintit='tofu', Test=True):
         """ Plot the polygon defining the vessel, in chosen projection
 
         Generic method for plotting the Ves object
@@ -830,58 +848,42 @@ class Struct(utils.ToFuObject):
 ###############################################################################
 """
 
-class Ves(Struct, color='k'):
-
-    def __init__(self, Poly=None, Type=None, Lim=None,
-                 Id=None, Name=None, Exp=None, shot=None,
-                 sino_RefPt=None, sino_nP=_def.TorNP,
-                 Clock=False, arrayorder='C', fromdict=None,
-                 SavePath=os.path.abspath('./'),
-                 SavePath_Include=tfpf.defInclude, color=None):
-        kwdargs = locals()
-        del kwdargs['self'], kwdargs['__class__']
-        super().__init__(mobile=False, **kwdargs)
+class StructIn(Struct):
+    _color = 'k'
+    _InOut = 'in'
 
     @classmethod
     def _set_color_ddef(cls, color):
-        super()._set_color_ddef(color)
+        # super
         color = mpl.colors.to_rgba(color)
-        cls._dplot['cross']['dP']['c'] = color
-        cls._dplot['hor']['dP']['c'] = color
-        cls._dplot['3d']['dP']['color'] = color
-
+        cls._ddef['dmisc']['color'] = color
+        cls._dplot['cross']['dP']['c'] = cls._ddef['dmisc']['color']
+        cls._dplot['hor']['dP']['c'] = cls._ddef['dmisc']['color']
+        cls._dplot['3d']['dP']['color'] = cls._ddef['dmisc']['color']
 
     @staticmethod
     def _checkformat_inputs_dgeom(Poly=None, Lim=None, mobile=False,
                                   Type=None, Clock=False, arrayorder=None):
         kwdargs = locals()
+        # super
         out = Struct._checkformat_inputs_dgeom(**kwdargs)
         Poly, Lim, Type, arrayorder = out
-        msg = "Ves instances cannot be mobile !"
-        assert mobile is False, msg
-        msg = "There cannot be Lim if Type='Tor' !"
         if Type=='Tor':
+            msg = "StructIn subclasses cannot have nLim>0 if Type='Tor'!"
             assert Lim.size==0, msg
         return out
 
-    ######
-    # Overloading of asbtract methods
 
-    def isMobile(self):
-        assert self._dgeom['mobile'] is False
-        return False
-
-class PlasmaDomain(Ves, color='k'): pass
-
-
-class PFC(Struct, color=(0.8,0.8,0.8,0.8)):
+class StructOut(Struct):
+    _color = (0.8,0.8,0.8,0.8)
+    _InOut = 'out'
 
     @classmethod
     def _set_color_ddef(cls, color):
-        super()._set_color_ddef(color)
         color = mpl.colors.to_rgba(color)
-        cls._dplot['cross']['dP'] = {'fc':color,'ec':'k','linewidth':1}
-        cls._dplot['hor']['dP'] = {'fc':color,'ec':'none'}
+        cls._ddef['dmisc']['color'] = color
+        cls._dplot['cross']['dP'] = {'fc':color, 'ec':'k','linewidth':1}
+        cls._dplot['hor']['dP'] = {'fc':color, 'ec':'none'}
         cls._dplot['3d']['dP']['color'] = color
 
     def _set_color(self, color=None):
@@ -891,65 +893,33 @@ class PFC(Struct, color=(0.8,0.8,0.8,0.8)):
         self._dplot['hor']['dP']['fc'] = color
         self._dplot['3d']['dP']['color'] = color
 
-    def move(self):
-        """ To be overriden at object-level after instance creation
-
-        To do so:
-            1/ create the instance:
-                >> S = tfg.Struct('test', poly, Exp='Test')
-            2/ Define a moving function f taking the instance as first argument
-                >> def f(self, Delta=1.):
-                       Polynew = self.Poly
-                       Polynew[0,:] = Polynew[0,:] + Delta
-                       self._set_geom(Polynew, Lim=self.Lim)
-            3/ Bound your custom function to the self.move() method
-               using types.MethodType() found in the types module
-                >> import types
-                >> S.move = types.MethodType(f, S)
-
-            See the following page for info and details on method-patching:
-            https://tryolabs.com/blog/2013/07/05/run-time-method-patching-python/
-        """
-        print(self.move.__doc__)
-
-
     def get_sampleV(self, *args, **kwdargs):
-        msg = "class cannot use get_sampleV() method !"
+        msg = "StructOut subclasses cannot use get_sampleV()!"
         raise Exception(msg)
 
-    ######
-    # Overloading of asbtract methods
+class PlasmaDomain(StructIn):
+    _color = (0.8,0.8,0.8,1.)
 
-    def isMobile(self):
-        super(PFC, self).isMobile()
+class Ves(StructIn):
+    _color = 'k'
+
+class PFC(StructOut):
+    _color = (0.8,0.8,0.8,0.8)
 
 
-class CoilPF(Struct, color='r'):
+class CoilPF(StructOut):
+    _color = 'r'
 
     def __init__(self, Poly=None, Type=None, Lim=None,
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
+                 nturns=None, superconducting=None, active=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude, color=None):
         kwdargs = locals()
         del kwdargs['self'], kwdargs['__class__']
         super().__init__(mobile=False, **kwdargs)
-
-    @classmethod
-    def _set_color_ddef(cls, color):
-        super()._set_color_ddef(color)
-        color = mpl.colors.to_rgba(color)
-        cls._dplot['cross']['dP'] = {'fc':color,'ec':'k','linewidth':1}
-        cls._dplot['hor']['dP'] = {'fc':color,'ec':'none'}
-        cls._dplot['3d']['dP']['color'] = color
-
-    def _set_color(self, color=None):
-        color = self._checkformat_inputs_dmisc(color=color)
-        self._dmisc['color'] = color
-        self._dplot['cross']['dP']['fc'] = color
-        self._dplot['hor']['dP']['fc'] = color
-        self._dplot['3d']['dP']['color'] = color
 
     def __init__(self, nturns=None, superconducting=None, active=None,
                  **kwdargs):
@@ -1002,7 +972,7 @@ class CoilPF(Struct, color='r'):
     ###########
 
     def _init(self, nturns=None, superconducting=None, active=None, **kwdargs):
-        super()._init(**kwdargs)
+        super(CoilPF,self)._init(**kwdargs)
         self.set_dmag(nturns=nturns, superconducting=superconducting,
                       active=active)
 
@@ -1048,10 +1018,10 @@ class CoilPF(Struct, color='r'):
         cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
-        super().strip(strip=strip)
+        super(CoilPF, self).strip(strip=strip)
 
     def _strip(self, strip=0):
-        out = super()._strip(strip=strip)
+        out = super(CoilPF, self)._strip(strip=strip)
         if strip==0:
             self._rebuild_dmag()
         else:
@@ -1059,12 +1029,12 @@ class CoilPF(Struct, color='r'):
         return out
 
     def _to_dict(self):
-        dout = super()._to_dict()
+        dout = super(CoilPF,self)._to_dict()
         dout.update({'dmag':{'dict':self.dmag, 'lexcept':None}})
         return dout
 
     def _from_dict(self, fd):
-        super()._from_dict(fd)
+        super(CoilPF,self)._from_dict(fd)
         self._dmag.update(**fd['dmag'])
 
 
@@ -1106,7 +1076,7 @@ class CoilPF(Struct, color='r'):
             self._dmag['nI'] = I.size
 
 
-class CoilCS(CoilPF, color='r'): pass
+class CoilCS(CoilPF): pass
 
 
 
@@ -1138,10 +1108,10 @@ class Config(utils.ToFuObject):
 
         kwdargs = locals()
         del kwdargs['self']
-        super().__init__(**kwdargs)
+        super(Config,self).__init__(**kwdargs)
 
     def _reset(self):
-        super()._reset()
+        super(Config,self)._reset()
         self._dstruct = dict.fromkeys(self._get_keys_dstruct())
         self._dextraprop = dict.fromkeys(self._get_keys_dextraprop())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
@@ -1188,13 +1158,15 @@ class Config(utils.ToFuObject):
 
     @staticmethod
     def _checkformat_inputs_dstruct(lStruct=None):
-        msg = "Arg lStruct must be"
-        msg += " a tofu.geom.Struct subclass or a list of such !"
-        msg += "\nValid subclasses include:"
-        lsub = ['Ves','PFC','CoilPF','CoilCS']
-        for ss in lsub:
-            msg += "\n    - tf.geom.{0}".format(ss)
-        assert type(lStruct) is not None, msg
+        if lStruct is None:
+            msg = "Arg lStruct must be"
+            msg += " a tofu.geom.Struct subclass or a list of such !"
+            msg += "\nValid subclasses include:"
+            lsub = ['PlasmaDomain','Ves','PFC','CoilPF','CoilCS']
+            for ss in lsub:
+                msg += "\n    - tf.geom.{0}".format(ss)
+            raise Exception(msg)
+
         C0 = isinstance(lStruct,list) or isinstance(lStruct,tuple)
         C1 = issubclass(lStruct.__class__,Struct)
         assert C0 or C1, msg
@@ -1204,17 +1176,18 @@ class Config(utils.ToFuObject):
             lStruct = list(lStruct)
         else:
             lStruct = [lStruct]
-        C = all([ss.Id.Exp==lStruct[0].Id.Exp for ss in lStruct])
-        msg = "All Struct objects must have the same Exp !"
-        msg += "\nCurrently we have:"
-        ls = ["{0}: {1}".format(ss.Id.SaveName, ss.Id.Exp)for ss in lStruct]
-        msg += "\n    - " + "\n    - ".join(ls)
-        assert C, msg
+        C = [ss.Id.Exp==lStruct[0].Id.Exp for ss in lStruct]
+        if not all(C):
+            msg = "All Struct objects must have the same Exp !"
+            msg += "\nCurrently we have:"
+            ls = ["{0}: {1}".format(ss.Id.SaveName, ss.Id.Exp)for ss in lStruct]
+            msg += "\n    - " + "\n    - ".join(ls)
+            raise Exception(msg)
 
         return lStruct
 
     def _checkformat_inputs_extraval(self, extraval, key='',
-                                             multi=True, size=None):
+                                     multi=True, size=None):
         lsimple = [bool,float,int,np.int64,np.float64]
         C0 = type(extraval) in lsimple
         C1 = isinstance(extraval,np.ndarray)
@@ -1367,6 +1340,8 @@ class Config(utils.ToFuObject):
 
     def add_extraprop(self, key, val):
         assert type(key) is str
+        d, dC = self._checkformat_inputs_dextraprop({key:val})
+        self._dextraprop['lprop'] = sorted(set(self.dextraprop['lprop']+[key]))
 
         # Init dict
         lCls = self._dstruct['lCls']
@@ -1729,7 +1704,7 @@ class Config(utils.ToFuObject):
         return ind
 
     def plot(self, lax=None, proj='all', Elt='P', dLeg=_def.TorLegd,
-             draw=True, fs=None, wintit=None, tit=None, Test=True):
+             indices=False, draw=True, fs=None, wintit=None, tit=None, Test=True):
         assert tit is None or isinstance(tit,str)
         vis = self.get_visible()
         lStruct, lS = self.lStruct, []
@@ -1740,7 +1715,7 @@ class Config(utils.ToFuObject):
         if tit is None:
             tit = self.Id.Name
         lax = _plot.Struct_plot(lS, lax=lax, proj=proj, Elt=Elt,
-                                dLeg=dLeg, draw=draw, fs=fs,
+                                dLeg=dLeg, draw=draw, fs=fs, indices=indices,
                                 wintit=wintit, tit=tit, Test=Test)
         return lax
 
@@ -1753,8 +1728,6 @@ class Config(utils.ToFuObject):
         msg = "Set the sino params before plotting !"
         msg += "\n    => run self.set_sino(...)"
         assert self.dsino['RefPt'] is not None, msg
-        msg = "The sinogram can only be plotted for a Ves object !"
-        assert 'Ves' in self.dstruct['dStruct'], msg
         assert tit is None or isinstance(tit,str)
         # Check uniformity of sinogram parameters
         for ss in self.lStruct:
@@ -1765,18 +1738,14 @@ class Config(utils.ToFuObject):
             msg1 = msg+" sino nP"+msgf
             assert self.dsino['nP']==ss.dsino['nP'], msg1
 
-        # Check there is only one Ves object and it is visible
-        msg = "There should be only one Ves object !"
-        assert len(self.dstruct['dStruct']['Ves'].keys())==1, msg
-        if 'visible' in self._dextraprop['lprop']:
-            msg = "The Ves object is not visible !"
-            assert list(self.dextraprop['dvisible']['Ves'].values())[0], msg
-
         if tit is None:
             tit = self.Id.Name
 
-        Ves = list(self.dstruct['dStruct']['Ves'].values())[0]
-        ax = _plot.Plot_Impact_PolProjPoly([Ves],
+        vis = self.get_visible()
+        lS = self.lStruct
+        lS = [lS[ii] for ii in range(0,self._dstruct['nStruct']) if vis[ii]]
+
+        ax = _plot.Plot_Impact_PolProjPoly(lS,
                                            ax=ax, Ang=Ang,
                                            AngUnit=AngUnit, Sketch=Sketch,
                                            dP=dP, dLeg=dLeg, draw=draw,
@@ -2020,8 +1989,14 @@ class Rays(utils.ToFuObject):
         msg += "\n    expected : {0}".format(str(Config))
         msg += "\n    obtained : {0}".format(str(config.__class__))
         assert C0, msg
-        msg = "Arg config must have a PlasmaDomain !"
-        assert 'PlasmaDomain' in config.dstruct['dStruct'].keys(), msg
+        lS = config.lStruct
+        lC = [hasattr(ss,'_InOut') and ss._InOut in ['in','out']
+              for ss in lS]
+        msg = "All Struct in config must have self._InOut in ['in','out']"
+        assert all(lC), msg
+        lSIn = [ss for ss in lS if ss._InOut=='in']
+        msg = "Arg config must have at least a StructIn subclass !"
+        assert len(lSIn)>0, msg
         if not 'compute' in config._dextraprop['lprop']:
             config = config.copy()
             config.add_extraprop('compute',True)
@@ -2113,9 +2088,9 @@ class Rays(utils.ToFuObject):
         config = self._checkformat_inputs_dconfig(config)
         self._dconfig['config'] = config.copy()
         if calcdgeom:
-            self._compute_dgeom()
+            self.compute_dgeom()
 
-    def _compute_dgeom(self, extra=True):
+    def compute_dgeom(self, extra=True):
         # Can only be computed if config if provided
         if self._dconfig['config'] is None:
             msg = "The dgeom cannot be computed without a config !"
@@ -2135,7 +2110,7 @@ class Rays(utils.ToFuObject):
         nLim = S.nLim
         VType = S.Id.Type
 
-        lS = self.lStruct_compute
+        lS = self.lStruct_computeInOut
         lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
         for ss in lS:
             if not ss.Id.Cls=='PlasmaDomain':
@@ -2244,9 +2219,9 @@ class Rays(utils.ToFuObject):
                    extra=True, sino=True):
         dgeom = self._checkformat_inputs_dgeom(dgeom=dgeom)
         self._dgeom.update(dgeom)
-        self._compute_dgeom(extra=extra)
+        self.compute_dgeom(extra=extra)
         self.set_Etendues(Etendues)
-        self.set_Etendues(Surfaces)
+        self.set_Surfaces(Surfaces)
         if sino:
             self.set_dsino(sino_RefPt)
 
@@ -2491,11 +2466,17 @@ class Rays(utils.ToFuObject):
         return self._dconfig['config']
 
     @property
-    def lStruct_compute(self):
+    def lStruct_computeInOut(self):
         compute = self.config.get_compute()
         lS = self.config.lStruct
-        lS = [lS[ii] for ii in range(0,len(lS)) if compute[ii]]
-        return lS
+        lSI, lSO = [], []
+        for ii in range(0,self._dconfig['config']._dstruct['nStruct']):
+            if compute[ii]:
+                if lS[ii]._InOut=='in':
+                    lSI.append(lS[ii])
+                elif lS[ii]._InOut=='out':
+                    lSO.append(lS[ii])
+        return lSI+lSO
 
     @property
     def Etendues(self):
@@ -2539,10 +2520,10 @@ class Rays(utils.ToFuObject):
         touch:  None / str / int / tuple
             Used if key is None
             Tuple that can be of len()=1, 2 or 3
-            Tuple indicating you want the rays that are touching some specifi            elements of self.config:
+            Tuple indicating you want the rays that are touching some specific elements of self.config:
                 - touch[0] : str / int or list of such
                     str : a 'Cls_Name' string indicating the element
-                    int : the index of the element in self.lStruct_compute
+                    int : the index of the element in self.lStruct_computeInOut
                 - touch[1] : int / list of int
                     Indices of the desired segments on the polygon
                     (i.e.: of the cross-section polygon of the above element)
@@ -2587,45 +2568,49 @@ class Rays(utils.ToFuObject):
                     ind = ~np.any(ind,axis=0)
 
             elif touch is not None:
+                lint = [int,np.int64]
+                larr = [list,tuple,np.ndarray]
                 C0 = type(touch) is str and '_' in touch
-                C1 = type(touch) in [int,np.int64]
-                C2 = type(touch) in [list,tuple] and len(touch) in [2,3]
+                C1 = type(touch) in lint
+                C2 = type(touch) in larr and len(touch) in [1,2,3]
                 assert C0 or C1 or C2
                 if C0 or C1:
                     touch = [touch]
                 else:
-                    lint = [int,np.int64]
-                    larr = [list,tuple,np.ndarray]
-                    C0 = type(touch[0]) is str and '_' in touch[0]
-                    C1a = type(touch[1]) in lint
-                    C1b = (type(touch[1]) in larr
-                           and all([type(t) in lint for t in touch[1]]))
-                    assert C0 and (C1a or C1b)
-                    if C1a:
-                        touch[1] = [touch[1]]
-                    if len(touch)==3:
-                        C2a = type(touch[2]) in lint
-                        C2b = (type(touch[2]) in larr
-                               and all([type(t) in lint for t in touch[2]]))
-                        assert C2a or C2b
-                        if C2a:
-                            touch[2] = [touch[2]]
+                    C0a = type(touch[0]) is str and '_' in touch[0]
+                    C0b = type(touch[0]) in lint
+                    assert C0a or C0b
+                    if len(touch)>1:
+                        C1a = type(touch[1]) in lint
+                        C1b = (type(touch[1]) in larr
+                               and all([type(t) in lint for t in touch[1]]))
+                        assert C1a or C1b
+                        if C1a:
+                            touch[1] = [touch[1]]
+                        if len(touch)==3:
+                            C2a = type(touch[2]) in lint
+                            C2b = (type(touch[2]) in larr
+                                   and all([type(t) in lint for t in touch[2]]))
+                            assert C2a or C2b
+                            if C2a:
+                                touch[2] = [touch[2]]
                 ntouch = len(touch)
 
                 # Common part
                 if type(touch[0]) is str:
-                    lS = self.lStruct_compute
+                    lS = self.lStruct_computeInOut
                     k0, k1 = touch[0].split('_')
                     ind = [ii for ii in range(0,len(lS))
                            if lS[ii].Id.Cls==k0 and lS[ii].Id.Name==k1]
                     assert len(ind)==1
                     touch[0] = ind[0]
+                touch[0] = [touch[0]]
 
                 ind = np.zeros((ntouch,self.nRays),dtype=bool)
                 for i in range(0,ntouch):
-                    for n in len(touch[i]):
-                        ind[i,:] = (ind[i,:]
-                                    | self._dgeom['indout'][i,:]==touch[i][n])
+                    for n in range(0,len(touch[i])):
+                        ind[i,:] = np.logical_or(ind[i,:],
+                                                 self._dgeom['indout'][i,:]==touch[i][n])
                 ind = np.all(ind,axis=0)
                 ind = ~ind if log=='not' else ind
         if out is int:
@@ -2638,7 +2623,7 @@ class Rays(utils.ToFuObject):
         else:
             assert type(indch) is np.ndarray and indch.ndim==1
             assert indch.dtype in [np.int64,np.bool_]
-            d = self._todict()
+            d = self.to_dict()
             d['Id']['Name'] = d['Id']['Name']+'-subset'
             d['dchans'] = dict([(vv,vv[indch]) for vv in d['chans'].keys()])
 
@@ -2660,18 +2645,9 @@ class Rays(utils.ToFuObject):
                 elif d['sino'][kk].ndim==1:
                     d['sino'][kk] = d['sino'][kk][indch]
 
-            if 'Rays' in self.Id.Cls:
-                c = tfg.Rays(fromdict=d)
-            elif 'LOSCam1D' in self.Id.Cls:
-                c = tfg.LOSCam1D(fromdict=d)
-            elif 'LOSCam2D' in self.Id.Cls:
-                c = tfg.LOSCam2D(fromdict=d)
-            elif 'Cam1D' in self.Id.Cls:
-                c = tfg.Cam1D(fromdict=d)
-            elif 'Cam2D' in self.Id.Cls:
-                c = tfg.Cam2D(fromdict=d)
-
-        return c
+            # Recreate from dict
+            obj = self.__class__(fromdict=d)
+        return obj
 
     def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, multi=False):
         self._check_inputs(ind=ind)
