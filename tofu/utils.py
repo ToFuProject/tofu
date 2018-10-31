@@ -1120,8 +1120,8 @@ class ID(ToFuObjectBase):
         indp = strc.index('.')
         Mod = strc[:indp]
         strc = strc[indp+1:][::-1]
-        cls = strc[:strc.index('.')][::-1]
-        return Mod, cls
+        #cls = strc[:strc.index('.')][::-1]
+        return Mod, Cls.__name__
 
     @staticmethod
     def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,

@@ -133,7 +133,7 @@ def _Struct_plot_format(ss, proj='all', **kwdargs):
 def Struct_plot(lS, lax=None, proj='all', Elt=None, dP=None,
                 dI=None, dBs=None, dBv=None,
                 dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
-                Lim=None, Nstep=None, dLeg=None,
+                Lim=None, Nstep=None, dLeg=None, indices=False,
                 draw=True, fs=None, wintit='tofu', tit=None, Test=True):
     """ Plot the projections of a list of Struct subclass instances
 
@@ -186,11 +186,11 @@ def Struct_plot(lS, lax=None, proj='all', Elt=None, dP=None,
         else:
             if proj=='cross':
                 lax[0] = _Plot_CrossProj_Ves(lS[ii], ax=lax[0],
-                                             LegDict=None,
+                                             indices=indices, LegDict=None,
                                              draw=False, **dplot[proj])
             elif proj=='hor':
                 lax[0] = _Plot_HorProj_Ves(lS[ii], ax=lax[0],
-                                           LegDict=None,
+                                           indices=indices, LegDict=None,
                                            draw=False, **dplot[proj])
             elif proj=='all':
                 if lax[0] is None or lax[1] is None:
@@ -198,9 +198,11 @@ def Struct_plot(lS, lax=None, proj='all', Elt=None, dP=None,
                                                          wintit=wintit,
                                                          Type=lS[ii].Id.Type))
                 lax[0] = _Plot_CrossProj_Ves(lS[ii], ax=lax[0], LegDict=None,
+                                             indices=indices,
                                              draw=False, **dplot['cross'])
                 lax[1] = _Plot_HorProj_Ves(lS[ii], ax=lax[1], LegDict=None,
-                                             draw=False, **dplot['hor'])
+                                           indices=indices,
+                                           draw=False, **dplot['hor'])
 
     # recompute the ax.dataLim
     lax[0].relim()
@@ -217,6 +219,11 @@ def Struct_plot(lS, lax=None, proj='all', Elt=None, dP=None,
     if not dLeg is None:
         lax[0].legend(**dLeg)
     if draw:
+        lax[0].relim()
+        lax[0].autoscale_view()
+        if len(lax)==2:
+            lax[1].relim()
+            lax[1].autoscale_view()
         lax[0].figure.canvas.draw()
     lax = lax if proj=='all' else lax[0]
     return lax
@@ -226,7 +233,7 @@ def Struct_plot(lS, lax=None, proj='all', Elt=None, dP=None,
 def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV',
                         Pdict=_def.TorPd, Idict=_def.TorId, Bsdict=_def.TorBsd,
                         Bvdict=_def.TorBvd, Vdict=_def.TorVind,
-                        LegDict=_def.TorLegd,
+                        LegDict=_def.TorLegd, indices=False,
                         draw=True, fs=None, wintit='tofu', Test=True):
     """ Plot the poloidal projection of a Ves instance
 
@@ -253,15 +260,27 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV',
         assert type(Bvdict) is dict, "Arg Bvdict should be a dictionary !"
         assert type(Vdict) is dict, "Arg Vdict should be a dictionary !"
         assert type(LegDict) is dict or LegDict is None, 'Arg LegDict should be a dictionary !'
+        assert type(indices) is bool
+        if indices:
+            assert 'P' in Elt
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Cross', fs=fs,
                                        wintit=wintit, Type=V.Id.Type)
+    if 'P' in Elt or 'V' in Elt:
+        P_closed = V.Poly_closed
+    if 'V' in Elt or indices:
+        midX = (P_closed[0,:-1]+P_closed[0,1:])/2.
+        midY = (P_closed[1,:-1]+P_closed[1,1:])/2.
+        VInX, VInY = V.dgeom['VIn'][0,:], V.dgeom['VIn'][1,:]
     if 'P' in Elt:
-        if V.Id.Cls=='Ves':
-            ax.plot(V.Poly_closed[0,:], V.Poly_closed[1,:],
+        if V._InOut=='in':
+            ax.plot(P_closed[0,:], P_closed[1,:],
                     label=V.Id.NameLTX,**Pdict)
-        elif V.Id.Cls in ['PFC','CoilPF']:
+        elif V._InOut=='out':
             ax.add_patch(mPolygon(V.Poly.T, closed=True, **Pdict))
+        else:
+            msg = "self._InOut not defined !"
+            raise Exception(msg)
     if 'I' in Elt:
         ax.plot(V.dsino['RefPt'][0], V.dsino['RefPt'][1],
                 label=V.Id.NameLTX+" Imp", **Idict)
@@ -272,13 +291,22 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV',
         ax.plot(V.dgeom['BaryV'][0], V.dgeom['BaryV'][1],
                 label=V.Id.NameLTX+" Bv", **Bvdict)
     if 'V' in Elt:
-        X = 0.5*(V.Poly_closed[0,:-1]+V.Poly_closed[0,1:])
-        Y = 0.5*(V.Poly_closed[1,:-1]+V.Poly_closed[1,1:])
-        ax.quiver(X, Y, V.dgeom['VIn'][0,:],V.dgeom['VIn'][1,:], angles='xy',
-                  scale_units='xy', label=V.Id.NameLTX+" Vin", **Vdict)
+        ax.quiver(midX, midY, VInX, VInY,
+                  angles='xy', scale_units='xy',
+                  label=V.Id.NameLTX+" Vin", **Vdict)
+    if indices:
+        for ii in range(0,V.dgeom['nP']):
+            ax.annotate(r"{0}".format(ii), size=10,
+                        xy = (midX[ii],midY[ii]),
+                        xytext = (midX[ii]-0.01*VInX[ii],
+                                  midY[ii]-0.01*VInY[ii]),
+                        horizontalalignment='center',
+                        verticalalignment='center')
     if not LegDict is None:
         ax.legend(**LegDict)
     if draw:
+        ax.relim()
+        ax.autoscale_view()
         ax.figure.canvas.draw()
     return ax
 
@@ -288,7 +316,7 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV',
 def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
                       Pdict=_def.TorPd, Idict=_def.TorITord,
                       Bsdict=_def.TorBsTord, Bvdict=_def.TorBvTord,
-                      LegDict=_def.TorLegd,
+                      LegDict=_def.TorLegd, indices=False,
                       draw=True, fs=None, wintit='tofu', Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
@@ -317,7 +345,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
     P1Min = V.dgeom['P1Min']
     P1Max = V.dgeom['P1Max']
     if 'P' in Elt:
-        if V.Id.Cls=='Ves':
+        if V._InOut=='in':
             if V.Id.Type=='Tor':
                 Theta = np.linspace(0, 2*np.pi, num=Nstep,
                                     endpoint=True, retstep=False)
@@ -330,7 +358,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
                                V.Lim[0,0],V.Lim[0,0]])
                 ly = np.array([P1Min[0],P1Min[0],P1Max[0],P1Max[0],P1Min[0]])
             ax.plot(lx,ly,label=V.Id.NameLTX,**Pdict)
-        elif V.Id.Cls in ['PFC','CoilPF']:
+        elif V._InOut=='out':
             if V.Id.Type=='Tor':
                 Theta = np.linspace(0, 2*np.pi, num=Nstep,
                                     endpoint=True, retstep=False)
@@ -361,6 +389,10 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
                                            **Pdict))
             for pp in Lp:
                 ax.add_patch(pp)
+        else:
+            msg = "Unknown self._InOut !"
+            raise Exception(msg)
+
     if 'I' in Elt:
         if V.Id.Type=='Tor':
             lx = V.dsino['RefPt'][0]*np.cos(Theta)
@@ -381,9 +413,32 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
         lx = V.dgeom['BaryV'][0]*np.cos(Theta)
         ly = V.dgeom['BaryV'][0]*np.sin(Theta)
         ax.plot(lx,ly,label=V.Id.NameLTX+" Bv", **Bvdict)
+
+    if indices and V.nLim>1:
+        if V.Id.Type=='Tor':
+            for ii in range(0,V.nLim):
+                R, theta = V.dgeom['P1Max'][0], np.mean(V.Lim[ii])
+                X, Y = R*np.cos(theta), R*np.sin(theta)
+                ax.annotate(r"{0}".format(ii), size=10,
+                            xy = (X,Y),
+                            xytext = (X+0.02*np.cos(theta),
+                                      Y+0.02*np.sin(theta)),
+                            horizontalalignment='center',
+                            verticalalignment='center')
+        elif V.Id.Type=='Lin':
+            for ii in range(0,V.nLim):
+                X, Y = np.mean(V.Lim[ii]), V.dgeom['P1Max'][0]
+                ax.annotate(r"{0}".format(ii), size=10,
+                            xy = (X,Y),
+                            xytext = (X, Y+0.02),
+                            horizontalalignment='center',
+                            verticalalignment='center')
+
     if not LegDict is None:
         ax.legend(**LegDict)
     if draw:
+        ax.relim()
+        ax.autoscale_view()
         ax.figure.canvas.draw()
     return ax
 
@@ -501,14 +556,16 @@ def Plot_Impact_PolProjPoly(lS, Leg="", ax=None, Ang='theta', AngUnit='rad',
     # Get up/down limits
     pPmax, pPmin = 0, 0
     for ss in lS:
-        pmax = np.max(ss.dsino['EnvMinMax'][0,:])
+        pmax = np.max(ss.dsino['EnvMinMax'])
         if pmax>pPmax:
             pPmax = pmax
-        pmin = np.min(ss.dsino['EnvMinMax'][1,:])
+        pmin = np.min(ss.dsino['EnvMinMax'])
         if pmin<pPmin:
             pPmin = pmin
+    DoUp = (pPmin,pPmax)
 
     nP = pmax.size
+    handles, labels = ax.get_legend_handles_labels()
     for ii in range(0,nS):
 
         Theta, pP = lS[ii].dsino['EnvTheta'], lS[ii].dsino['EnvMinMax'][0,:]
@@ -516,23 +573,24 @@ def Plot_Impact_PolProjPoly(lS, Leg="", ax=None, Ang='theta', AngUnit='rad',
         if Ang=='xi':
             Theta, pP, pN = _GG.ConvertImpact_Theta2Xi(Theta, pP, pN)
         Theta = Theta.ravel()
-        DoUp = (pPmin,pPmax)
 
         if dP is None:
             dp = {'facecolor':lS[ii].get_color(), 'edgecolor':'k',
                   'linewidth':1., 'linestyle':'-'}
 
-        handles, labels = ax.get_legend_handles_labels()
-        if lS[ii].Id.Cls=='Ves':
+        if lS[ii]._InOut=='in':
             ax.fill_between(Theta, pP, DoUp[1]*np.ones((nP,)),**dp)
             ax.fill_between(Theta, DoUp[0]*np.ones((nP,)), pN,**dp)
-            ax.set_ylim(DoUp)
-            proxy = plt.Rectangle((0,0),1,1, fc=dp['facecolor'])
-            handles.append(proxy)
-            labels.append(lS[ii].Id.Cls+' '+lS[ii].Id.Name)
+        elif lS[ii]._InOut=='out':
+            ax.fill_between(Theta, pP, pN, **dp)
         else:
-            warnings.warn("Not coded yet for non-Ves types ! (TODO)")
+            msg = "self._InOut not defined for {0}".format(lS[ii].Id.Cls)
+            raise Exception(msg)
+        proxy = plt.Rectangle((0,0),1,1, fc=dp['facecolor'])
+        handles.append(proxy)
+        labels.append(lS[ii].Id.Cls+' '+lS[ii].Id.Name)
 
+    ax.set_ylim(DoUp)
     if not dLeg is None:
         ax.legend(handles,labels,**dLeg)
     if draw:
@@ -540,7 +598,7 @@ def Plot_Impact_PolProjPoly(lS, Leg="", ax=None, Ang='theta', AngUnit='rad',
     return ax
 
 
-
+# Deprecated ?
 def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
                        AngUnit=_def.TorPAngUnit, Pdict=_def.TorP3DFilld,
                        dLeg=_def.TorLegd,
