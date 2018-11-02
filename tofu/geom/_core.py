@@ -2624,26 +2624,35 @@ class Rays(utils.ToFuObject):
             assert type(indch) is np.ndarray and indch.ndim==1
             assert indch.dtype in [np.int64,np.bool_]
             d = self.to_dict()
-            d['Id']['Name'] = d['Id']['Name']+'-subset'
-            d['dchans'] = dict([(vv,vv[indch]) for vv in d['chans'].keys()])
+            d['Id_dall_Name'] = d['Id_dall_Name']+'-subset'
+            if self.dchans!={}:
+                for k in self.dchans.keys():
+                    C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
+                    if C0:
+                        if v.ndim==1:
+                            d['dchans_%s'%k] = v[indch]
+                        elif v.ndim==2 and v.shape[1]==self.nRays:
+                            d['dchans_%s'%k] = v[:,indch]
 
             # Geom
-            for kk in d['geom']:
-                C0 = type(d['geom'][kk]) is np.ndarray
-                C1 = d['geom'][kk].ndim==1 and d['geom'][kk].size==self.nRays
-                C2 = d['geom'][kk].ndim==2 and d['geom'][kk].shape[1]==self.nRays
-                C3 = kk in ['C','nIn','e1','e2']
-                if C0 and C1 and not C3:
-                    d['geom'][kk] = d['geom'][kk][indch]
-                elif C0 and C2 and not C3:
-                    d['geom'][kk] = d['geom'][kk][:,indch]
+            for k in self.dgeom.keys():
+                v = d['dgeom_%s'%k]
+                C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
+                if C0:
+                    if v.ndim==1:
+                        d['dgeom_%s'%k] = v[indch]
+                    elif v.ndim==2 and v.shape[1]==self.nRays:
+                        d['dgeom_%s'%k] = v[:,indch]
 
             # Sino
-            for kk in d['sino'].keys():
-                if d['sino'][kk].ndim==2:
-                    d['sino'][kk] = d['sino'][kk][:,indch]
-                elif d['sino'][kk].ndim==1:
-                    d['sino'][kk] = d['sino'][kk][indch]
+            for k in self.dsino.keys():
+                v = d['dsino_%s'%k]
+                C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
+                if C0:
+                    if v.ndim==1:
+                        d['dsino_%s'%k] = v[indch]
+                    elif v.ndim==2 and v.shape[1]==self.nRays:
+                        d['dsino_%s'%k] = v[:,indch]
 
             # Recreate from dict
             obj = self.__class__(fromdict=d)
@@ -3074,8 +3083,10 @@ class Rays(utils.ToFuObject):
     def plot_touch(self, key=None, invert=None, plotmethod='imshow',
                    lcol=['k','r','b','g','y','m','c'],
                    fs=None, wintit='tofu', draw=True):
-        assert self.Id.Cls in ['LOSCam1D','LOSCam2D'], "Specify camera type !"
-        assert self.Ves is not None, "self.Ves should not be None !"
+        lC = [ss in self.Id.Cls for ss in ['1D','2D']]
+        if not np.um(lC)==1:
+            msg = "The camera type (1D or 2D) must be specified!"
+            raise Exception(msg)
         out = _plot.Rays_plot_touch(self, key=key, invert=invert,
                                     lcol=lcol, plotmethod=plotmethod,
                                     fs=fs, wintit=wintit, draw=draw)
