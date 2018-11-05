@@ -328,16 +328,18 @@ def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
 
 
 def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
-                  Lplot='In', Proj='All', multi=False):
+                  Lplot='In', proj='All', multi=False):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
     assert type(VType) is str and VType.lower() in ['tor','lin']
     assert Lplot.lower() in ['tot','in']
-    assert Proj.lower() in ['cross','hor','all','3d']
+    assert type(proj) is str
+    proj = proj.lower()
+    assert proj in ['cross','hor','all','3d']
     assert Ds.ndim==2 and Ds.shape==us.shape
     nL = Ds.shape[1]
     k0 = kPIns if Lplot.lower()=='in' else np.zeros((nL,))
 
-    if VType.lower()=='tor' and Proj.lower() in ['cross','all']:
+    if VType.lower()=='tor' and proj in ['cross','all']:
         CrossProjAng = np.arccos(np.sqrt(us[0,:]**2+us[1,:]**2)
                                  /np.sqrt(np.sum(us**2,axis=0)))
         nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
@@ -366,7 +368,7 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
             pts0 = np.concatenate(tuple(pts0),axis=1)
             pts0 = np.array([np.hypot(pts0[0,:],pts0[1,:]),pts0[2,:]])
 
-    if not (VType.lower()=='tor' and Proj.lower()=='cross'):
+    if not (VType.lower()=='tor' and proj=='cross'):
         pts = []
         if multi:
             for ii in range(0,nL):
@@ -388,14 +390,14 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
                     pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
             pts = np.concatenate(tuple(pts),axis=1)
 
-    if Proj.lower()=='hor':
+    if proj=='hor':
         pts = [pp[:2,:] for pp in pts] if multi else pts[:2,:]
-    elif Proj.lower()=='cross':
+    elif proj=='cross':
         if VType.lower()=='tor':
             pts = pts0
         else:
             pts = [pp[1:,:] for pp in pts] if multi else pts[1:,:]
-    elif Proj.lower()=='all':
+    elif proj=='all':
         if multi:
             if VType.lower()=='tor':
                 pts = [(p0,pp[:2,:]) for (p0,pp) in zip(*[pts0,pts])]

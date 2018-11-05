@@ -1100,7 +1100,7 @@ class Config(utils.ToFuObject):
              'dstruct':{'order':['Ves','PFC','CoilPF','CoilCS'],
                         'dextraprop':{'visible':True}}}
 
-    def __init__(self, lStruct=None, dextraprop=None,
+    def __init__(self, lStruct=None, Lim=None, dextraprop=None,
                  Id=None, Name=None, Exp=None, shot=None, Type=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude,
@@ -1141,7 +1141,7 @@ class Config(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dstruct():
-        largs = ['lStruct']
+        largs = ['lStruct', 'Lim']
         return largs
     @staticmethod
     def _get_largs_dextraprop():
@@ -1157,7 +1157,7 @@ class Config(utils.ToFuObject):
     ###########
 
     @staticmethod
-    def _checkformat_inputs_dstruct(lStruct=None):
+    def _checkformat_inputs_dstruct(lStruct=None, Lim=None):
         if lStruct is None:
             msg = "Arg lStruct must be"
             msg += " a tofu.geom.Struct subclass or a list of such !"
@@ -1184,7 +1184,17 @@ class Config(utils.ToFuObject):
             msg += "\n    - " + "\n    - ".join(ls)
             raise Exception(msg)
 
-        return lStruct
+        if Lim is None:
+            assert self.Id.Type=='Tor'
+            nLim = 0
+        else:
+            assert self.Id.Type=='Lin'
+            Lim = np.asarray(Lim,dtype=float).ravel()
+            assert Lim.size==2 and Lim[0]<Lim[1]
+            Lim = Lim.reshape((1,2))
+            nLim = 1
+
+        return lStruct, Lim, nLim
 
     def _checkformat_inputs_extraval(self, extraval, key='',
                                      multi=True, size=None):
@@ -1294,8 +1304,8 @@ class Config(utils.ToFuObject):
     ###########
 
 
-    def _set_dstruct(self, lStruct=None):
-        lStruct = self._checkformat_inputs_dstruct(lStruct=lStruct)
+    def _set_dstruct(self, lStruct=None, Lim=None):
+        lStruct, Lim, nLim = self._checkformat_inputs_dstruct(lStruct=lStruct, Lim=Lim)
         # Make sure to kill the link to the mutable being provided
         nStruct = len(lStruct)
         # Get extra info
@@ -1316,7 +1326,7 @@ class Config(utils.ToFuObject):
             for ss in lk:
                 self._dstruct['dStruct'][k].update({ss.Id.Name:ss.copy()})
 
-        self._dstruct.update({'nStruct':nStruct,
+        self._dstruct.update({'nStruct':nStruct, 'Lim':Lim, 'nLim':nLim,
                               'lorder':lorder, 'lCls':lCls})
 
 
@@ -2090,6 +2100,63 @@ class Rays(utils.ToFuObject):
         if calcdgeom:
             self.compute_dgeom()
 
+    def _prepare_inputs_kMinMax(self, method='ref'):
+        if method=='ref':
+            # Prepare input
+            D = np.ascontiguousarray(self.D)
+            u = np.ascontiguousarray(self.u)
+
+            # Get reference
+            S = list(self.config._dstruct['dStruct']['PlasmaDomain'].values())[0]
+            assert S.get_compute()
+            VPoly = S.Poly_closed
+            VVIn =  S.dgeom['VIn']
+            Lim = S.Lim
+            nLim = S.nLim
+            VType = self.config.Id.Type
+
+            lS = self.lStruct_computeInOut
+            lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
+            for ss in lS:
+                if not ss.Id.Cls=='PlasmaDomain':
+                    lSPoly.append(ss.Poly_closed)
+                    lSVIn.append(ss.dgeom['VIn'])
+                    lSLim.append(ss.Lim)
+                    lSnLim.append(ss.nLim)
+
+            largs = [D, u, VPoly, VVIn]
+            dkwd = dict(Lim=Lim, nLim=nLim,
+                        lSPoly=lSPoly, LSLim=lSLim,
+                        lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
+                        RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
+                        EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+        else:
+            # --------------------------------
+            # Here I can prepare the inputs as requested by your routine
+            pass
+            # --------------------------------
+
+        return largs, dkwd
+
+    def _compute_kMinMax(self, method='ref'):
+
+        # Prepare inputs
+        largs, dkwd = self._prepare_inputs_kMinMax(method)
+
+        if method=='ref':
+            # call the dedicated function
+            out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+            # Currently computes and returns too many things
+            PIn, POut, kMin, kMax, VperpIn, vperp, IIn, indout = out
+        else:
+            # --------------------------------
+            # Here you can put another version
+            pass
+            # --------------------------------
+
+        return kMin, kMax, vperp, indout
+
+
     def compute_dgeom(self, extra=True):
         # Can only be computed if config if provided
         if self._dconfig['config'] is None:
@@ -2097,42 +2164,10 @@ class Rays(utils.ToFuObject):
             warnings.warn(msg)
             return
 
-        # Prepare input
-        D = np.ascontiguousarray(self.D)
-        u = np.ascontiguousarray(self.u)
+        # Perform computation of kMin and kMax
+        kMin, kMax, vperp, indout = self._compute_kMinMax(method='ref')
 
-        # Get reference
-        S = list(self.config._dstruct['dStruct']['PlasmaDomain'].values())[0]
-        assert S.get_compute()
-        VPoly = S.Poly_closed
-        VVIn =  S.dgeom['VIn']
-        Lim = S.Lim
-        nLim = S.nLim
-        VType = S.Id.Type
-
-        lS = self.lStruct_computeInOut
-        lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
-        for ss in lS:
-            if not ss.Id.Cls=='PlasmaDomain':
-                lSPoly.append(ss.Poly_closed)
-                lSVIn.append(ss.dgeom['VIn'])
-                lSLim.append(ss.Lim)
-                lSnLim.append(ss.nLim)
-
-        kargs = dict(RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
-                     EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
-
-        #####################
-        # call the dedicated function (Laura)
-        out = _GG.LOS_Calc_PInOut_VesStruct(D, u,
-                                            VPoly, VVIn, Lim=Lim, nLim=nLim,
-                                            LSPoly=lSPoly, LSLim=lSLim,
-                                            lSnLim=lSnLim, LSVIn=lSVIn,
-                                            VType=VType, **kargs)
-        # Currently computes and returns too many things
-        PIn, POut, kMin, kMax, VperpIn, vperp, IIn, indout = out
-        ######################
-
+        # Clean up (in case of nans)
         ind = np.isnan(kMin)
         kMin[ind] = 0.
         ind = np.isnan(kMax) | np.isinf(kMax)
@@ -2141,14 +2176,19 @@ class Rays(utils.ToFuObject):
             msg = "Some LOS have no visibility inside the plasma domain !"
             warnings.warn(msg)
             if plotdebug:
+                PIn = D[:,ind] + kMin[np.newaxis,:]*u[:,ind]
+                POut = D[:,ind] + kMax[np.newaxis,:]*u[:,ind]
                 # To be updated
                 _plot._LOS_calc_InOutPolProj_Debug(self.Ves, D[:,ind], u[:,ind],
-                                                   PIn[:,ind], POut[:,ind],
+                                                   PIn, POut,
                                                    fs=fs, wintit=wintit,
                                                    draw=draw)
 
+        # Update dgeom
         dd = {'kMin':kMin, 'kMax':kMax, 'vperp':vperp, 'indout':indout}
         self._dgeom.update(dd)
+
+        # Run extra computations
         if extra:
             self._compute_dgeom_kRMin()
             self._compute_dgeom_extra1()
@@ -2497,6 +2537,18 @@ class Rays(utils.ToFuObject):
     # public methods
     ###########
 
+    def _check_indch(self, indch):
+        if indch is not None:
+            indch = np.asarray(indch)
+            assert indch.ndim==1
+            assert indch.dtype in [np.int64,np.bool_]
+            if indch.dtype == np.bool_:
+                assert indch.size==self.nRays
+                indch = indch.nonzero()[0]
+        else:
+            indch = np.arange(0,self.nRays)
+        return indch
+
     def select(self, key=None, val=None, touch=None, log='any', out=int):
         """ Return the indices of the rays matching selection criteria
 
@@ -2621,11 +2673,10 @@ class Rays(utils.ToFuObject):
         if indch is None:
             return self
         else:
-            assert type(indch) is np.ndarray and indch.ndim==1
-            assert indch.dtype in [np.int64,np.bool_]
+            indch = self._check_indch(indch)
             d = self.to_dict()
-            d['Id_dall_Name'] = d['Id_dall_Name']+'-subset'
-            if self.dchans!={}:
+            d['dId_dall_Name'] = d['dId_dall_Name']+'-subset'
+            if self.dchans!={} and self.dchans is not None:
                 for k in self.dchans.keys():
                     C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
                     if C0:
@@ -2658,40 +2709,36 @@ class Rays(utils.ToFuObject):
             obj = self.__class__(fromdict=d)
         return obj
 
-    def _get_plotL(self, Lplot='Tot', Proj='All', ind=None, multi=False):
-        self._check_inputs(ind=ind)
-        if ind is not None:
-            ind = np.asarray(ind)
-            if ind.dtype in [bool,np.bool_]:
-                ind = ind.nonzero()[0]
-        else:
-            ind = np.arange(0,self.nRays)
-        if len(ind)>0:
+    def _get_plotL(self, Lplot='Tot', proj='All', ind=None, multi=False):
+        """ Get the (R,Z) coordinates of the cross-section projections """
+        ind = self._check_indch(ind)
+        if ind.size>0:
             Ds, us = self.D[:,ind], self.u[:,ind]
-            if len(ind)==1:
+            if ind.size==1:
                 Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
-            kPIn, kPOut = self.geom['kPIn'][ind], self.geom['kPOut'][ind]
-            kRMin = self.geom['kRMin'][ind]
-            pts = _comp.LOS_CrossProj(self.Ves.Type, Ds, us, kPIn, kPOut,
-                                      kRMin, Proj=Proj,Lplot=Lplot,multi=multi)
+            kPIn, kPOut = self.kMin[ind], self.kMax[ind]
+            kRMin = self._dgeom['kRMin'][ind]
+            pts = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
+                                      kPIn, kPOut, kRMin, proj=proj,
+                                      Lplot=Lplot, multi=multi)
         else:
             pts = None
         return pts
 
-    def get_sample(self, dl, dlMode='abs', DL=None, method='sum', ind=None):
+    def get_sample(self, res, resMode='abs', DL=None, method='sum', ind=None):
         """ Return a linear sampling of the LOS
 
         The LOS is sampled into a series a points and segments lengths
-        The resolution (segments length) is <= dl
+        The resolution (segments length) is <= res
         The sampling can be done according to different methods
         It is possible to sample only a subset of the LOS
 
         Parameters
         ----------
-        dl:     float
+        res:     float
             Desired resolution
-        dlMode: str
-            Flag indicating dl should be understood as:
+        resMode: str
+            Flag indicating res should be understood as:
                 - 'abs':    an absolute distance in meters
                 - 'rel':    a relative distance (fraction of the LOS length)
         DL:     None / iterable
@@ -2701,63 +2748,88 @@ class Rays(utils.ToFuObject):
             Flag indicating which to use for sampling:
                 - 'sum':    the LOS is sampled into N segments of equal length,
                             where N is the smallest int such that:
-                                * segment length <= resolution(dl,dlMode)
+                                * segment length <= resolution(res,resMode)
                             The points returned are the center of each segment
                 - 'simps':  the LOS is sampled into N segments of equal length,
                             where N is the smallest int such that:
-                                * segment length <= resolution(dl,dlMode)
+                                * segment length <= resolution(res,resMode)
                                 * N is even
                             The points returned are the egdes of each segment
                 - 'romb':   the LOS is sampled into N segments of equal length,
                             where N is the smallest int such that:
-                                * segment length <= resolution(dl,dlMode)
+                                * segment length <= resolution(res,resMode)
                                 * N = 2^k + 1
                             The points returned are the egdes of each segment
 
         Returns
         -------
-        Pts:    np.ndarray
+        pts:    np.ndarray
             A (3,NP) array of NP points along the LOS in (X,Y,Z) coordinates
-        kPts:   np.ndarray
+        k:      np.ndarray
             A (NP,) array of the points distances from the LOS starting point
-        dl:     float
-            The effective resolution (<= dl input), as an absolute distance
+        reseff: float
+            The effective resolution (<= res input), as an absolute distance
 
         """
-        self._check_inputs(ind=ind)
-        # Preformat ind
-        if ind is None:
-            ind = np.arange(0,self.nRays)
-        if np.asarray(ind).dtype is bool:
-            ind = ind.nonzero()[0]
+        ind = self._check_indch(ind)
+        # preload k
+        kMin = self.kMin
+        kMax = self.kMax
+
         # Preformat DL
         if DL is None:
-            DL = np.array([self.geom['kPIn'][ind],self.geom['kPOut'][ind]])
+            DL = np.array([kMin[ind], kMax[ind]])
         elif np.asarray(DL).size==2:
             DL = np.tile(np.asarray(DL).ravel(),(len(ind),1)).T
         DL = np.ascontiguousarray(DL).astype(float)
         assert type(DL) is np.ndarray and DL.ndim==2
         assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
-        ii = DL[0,:]<self.geom['kPIn'][ind]
-        DL[0,ii] = self.geom['kPIn'][ind][ii]
-        ii = DL[0,:]>=self.geom['kPOut'][ind]
-        DL[0,ii] = self.geom['kPOut'][ind][ii]
-        ii = DL[1,:]>self.geom['kPOut'][ind]
-        DL[1,ii] = self.geom['kPOut'][ind][ii]
-        ii = DL[1,:]<=self.geom['kPIn'][ind]
-        DL[1,ii] = self.geom['kPIn'][ind][ii]
+
+        # Check consistency of limits
+        ii = DL[0,:] < kMin[ind]
+        DL[0,ii] = kMin[ind][ii]
+        ii = DL[0,:] >= kMax[ind]
+        DL[0,ii] = kMax[ind][ii]
+        ii = DL[1,:] > kMax[ind]
+        DL[1,ii] = kMax[ind][ii]
+        ii = DL[1,:] <= kMin[ind]
+        DL[1,ii] = kMin[ind][ii]
+
         # Preformat Ds, us
         Ds, us = self.D[:,ind], self.u[:,ind]
         if len(ind)==1:
             Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
+
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
-        Pts, kPts, dlr = _GG.LOS_get_sample(Ds, us, dl, DL,
-                                            dLMode=dlMode, method=method)
-        return Pts, kPts, dlr
+        pts, k, reseff = _GG.LOS_get_sample(Ds, us, res, DL,
+                                               dLMode=resMode, method=method)
+        return pts, k, reseff
 
+    def _get_kInOut_IsoFlux_prepareinputs(self, lPoly, axis, method='ref'):
 
-    def get_kInkOut(self, lPoly, Lim=None):
+        if method=='ref':
+            D, u = np.ascontiguousarray(self.D), np.ascontiguousarray(self.u)
+
+            VIn = np.diff(lPoly[0],axis=1)
+            VIn = VIn/(np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:])
+            VIn = np.ascontiguousarray([-VIn[1,:],VIn[0,:]])
+            sca = VIn[0,0]*(axis[0]-lPoly[0][0,0]) + VIn[1,0]*(axis[1]-lPoly[0][1,0])
+            if sca<0:
+                VIn = -VIn
+
+            Lim = self.config.Lim
+            nLim = self.config.nLim
+            Type = self.config.Id.Type
+
+            largs = [D, u, lPoly[0], VIn]
+            dkwd = dict(Lim=Lim, nLim=nLim, VType=Type)
+        else:
+            # To be adjusted later
+            pass
+        return largs, dkwd
+
+    def get_kInkOut_IsoFlux(self, lPoly, Lim=None):
         msg = "Arg lPoly must be a list or np.ndarray !"
         assert type(lPoly) in [list, np.ndarray], msg
 
@@ -2772,30 +2844,23 @@ class Rays(utils.ToFuObject):
             if lPoly[ii].shape[0]!=2:
                 lPoly[ii] = lPoly[ii].T
 
-        if Lim is None and self.Ves is not None and self.Ves.Type=='Lin':
-            Lim = self.Ves.Lim
-
         # Prepare output
         kIn = np.full((self.nRays,nPoly), np.nan)
         kOut = np.full((self.nRays,nPoly), np.nan)
 
         # Compute intersections
         for ii in range(0,nPoly):
-            VIn = np.diff(lPoly[ii],axis=1)
-            VIn = VIn/(np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:])
-            VIn = np.ascontiguousarray([-VIn[1,:],VIn[0,:]])
-            sca = VIn[0,0]*(isoR[0,0]-VP[0,0]) + VIn[1,0]*(isoZ[0,0]-VP[1,0])
-            if sca<0:
-                VIn = -VIn
-            Out = tf.geom._GG.LOS_Calc_PInOut_VesStruct(self.D, self.u,
-                                                        lPoly[ii], VIn, Lim=Lim)
-            kPIn[:,ii], kPOut[:,ii] = Out[2:4]
+            largs, dkwd = self._get_kInOut_prepareinputs([lPoly[ii]],
+                                                         method='ref')
+            out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+            PIn, POut, kMin, kMax, VperpIn, vperp, IIn, indout = out
+            kIn[:,ii], kOut[:,ii] = kMin, kMax
 
         return kIn, kOut
 
 
     def calc_signal(self, ff, t=None, Ani=None, fkwdargs={}, Brightness=True,
-                    dl=0.005, DL=None, dlMode='abs', method='sum',
+                    res=0.005, DL=None, resMode='abs', method='sum',
                     ind=None, out=object, plot=True, plotmethod='imshow',
                     fs=None, dmargin=None, wintit='tofu', invert=True,
                     units=None, draw=True, connect=True):
@@ -2839,32 +2904,35 @@ class Rays(utils.ToFuObject):
             assert self.Etendues is not None, msg
 
         # Preformat ind
-        if ind is None:
-            ind = np.arange(0,self.nRays)
-        if np.asarray(ind).dtype is bool:
-            ind = ind.nonzero()[0]
+        ind = self._check_indch(ind)
         # Preformat DL
+        kMin, kMax = self.kMin, self.kMax
         if DL is None:
-            DL = np.array([self.geom['kPIn'][ind],self.geom['kPOut'][ind]])
+            DL = np.array([kMin[ind], kMax[ind]])
         elif np.asarray(DL).size==2:
             DL = np.tile(np.asarray(DL).ravel(),(len(ind),1)).T
         DL = np.ascontiguousarray(DL).astype(float)
         assert type(DL) is np.ndarray and DL.ndim==2
         assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
-        ii = DL[0,:]<self.geom['kPIn'][ind]
-        DL[0,ii] = self.geom['kPIn'][ind][ii]
-        ii = DL[0,:]>=self.geom['kPOut'][ind]
-        DL[0,ii] = self.geom['kPOut'][ind][ii]
-        ii = DL[1,:]>self.geom['kPOut'][ind]
-        DL[1,ii] = self.geom['kPOut'][ind][ii]
-        ii = DL[1,:]<=self.geom['kPIn'][ind]
-        DL[1,ii] = self.geom['kPIn'][ind][ii]
+
+        # check limits
+        ii = DL[0,:] < kMin[ind]
+        DL[0,ii] = kMin[ind][ii]
+        ii = DL[0,:] >= kMax[ind]
+        DL[0,ii] = kMax[ind][ii]
+        ii = DL[1,:] > kMax[ind]
+        DL[1,ii] = kMax[ind][ii]
+        ii = DL[1,:] <= kMin[ind]
+        DL[1,ii] = kMin[ind][ii]
+
         # Preformat Ds, us and Etendue
         Ds, us = self.D[:,ind], self.u[:,ind]
         if Brightness is False:
             E = self.Etendues
             if self.Etendues.size==self.nRays:
                 E = E[ind]
+
+        # Preformat signal
         if len(ind)==1:
             Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         if t is None or len(t)==1:
@@ -2873,6 +2941,7 @@ class Rays(utils.ToFuObject):
             sig = np.full((len(t),Ds.shape[1]),np.nan)
         indok = ~(np.any(np.isnan(DL),axis=0) | np.any(np.isinf(DL),axis=0)
                   | ((DL[1,:]-DL[0,:])<=0.))
+
         if np.any(indok):
             Ds, us, DL = Ds[:,indok], us[:,indok], DL[:,indok]
             if indok.sum()==1:
@@ -2889,6 +2958,8 @@ class Rays(utils.ToFuObject):
                 sig[indok] = s
             else:
                 sig[:,indok] = s
+
+        # Format output
         if Brightness is False:
             if t is None or len(t)==1 or E.size==1:
                 sig = sig*E

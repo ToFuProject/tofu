@@ -775,12 +775,29 @@ class ToFuObjectBase(object):
                 if eqk:
                     if d0[k] is None or type(d0[k]) in lsimple:
                         eqk = d0[k]==d1[k]
+                        if not eqk:
+                            m0 = str(d0[k])
+                            m1 = str(d1[k])
                     elif type(d0[k]) in [int,float,np.int64,np.float64]:
                         eqk = np.allclose([d0[k]],[d1[k]], equal_nan=True)
+                        if not eqk:
+                            m0 = str(d0[k])
+                            m1 = str(d1[k])
                     elif type(d0[k]) is np.ndarray:
-                        eqk = np.allclose(d0[k],d1[k], equal_nan=True)
+                        eqk = d0[k].shape==d1[k].shape
+                        if eqk:
+                            eqk = np.allclose(d0[k],d1[k], equal_nan=True)
+                            if not eqk:
+                                m0 = str(d0[k])
+                                m1 = str(d1[k])
+                        else:
+                            m0 = "shape {0}".format(d0[k].shape)
+                            m1 = "shape {0}".format(d1[k].shape)
                     elif issubclass(d0[k].__class__, ToFuObjectBase):
                         eqk = d0[k]==d1[k]
+                        if not eqk:
+                            m0 = str(d0[k])
+                            m1 = str(d1[k])
                     else:
                         msg = "How to handle :\n"
                         msg += "    {0} is a {1}".format(k,str(type(d0[k])))
@@ -788,8 +805,8 @@ class ToFuObjectBase(object):
                     if not eqk:
                         eq = False
                         msg += k+" :\n"
-                        msg += "    "+str(d0[k])+"\n"
-                        msg += "    "+str(d1[k])+"\n"
+                        msg += "    "+m0+"\n"
+                        msg += "    "+m1+"\n"
                         if not detail:
                             break
 
