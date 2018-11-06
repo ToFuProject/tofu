@@ -59,8 +59,13 @@ _F = 0.1
 _D12 = [0.3,0.1]
 _nIn = [-0.5,-1.,0.]
 
+_P1 = [1.5,-3.2,0.]
+#_F = 0.1
+#_D12 = [0.3,0.1]
+_nIn1 = [-0.5,1.,0.]
 
-_dcam = {'V1':       {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1,1]},
+
+_dcam = {'V1':       {'P':_P1, 'F':_F, 'D12':_D12, 'nIn':_nIn1, 'N12':[1,1]},
          'V10':      {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[5,2]},
          'V100':     {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[20,5]},
          'V1000':    {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[50,20]},
@@ -117,13 +122,10 @@ def load_config(config, path=_path, dconfig=_dconfig, plot=True):
     assert type(plot) is bool
 
     # Get file names from config
-    print(dconfig[config], _path)
     dout = _get_filenames(dconfig[config], path=_path)
 
     # Load Ves object
-    print("about to...................")
     dout['Ves'] = tf.pathfile.Open(os.path.join(path,dout['Ves']))
-    print("done !!!!!!!!!!!!!!!!!!!!!!!!")
     
     # Load Struct objects
     if 'Struct' in dout.keys():
@@ -147,6 +149,8 @@ def get_Du(cam, dcam=_dcam, plot=False, config=None, path=_path):
 
     Optionally plot the camera with the chosen config
     """
+
+    print("getting cam =", cam)
 
     P, F = dcam[cam]['P'], dcam[cam]['F']
     D12, N12, nIn = dcam[cam]['D12'], dcam[cam]['N12'], dcam[cam]['nIn']
