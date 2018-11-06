@@ -27,8 +27,8 @@ import _updateversion as up
 os.environ['CC'] = 'gcc'
 os.environ['CXX'] = 'gcc'
 
-here = os.path.abspath(os.path.dirname(__file__))
-version_git = up.updateversion(os.path.join(here,'tofu'))
+
+
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6']:
@@ -36,6 +36,29 @@ if sys.version[:3] in ['2.7','3.6']:
     poly = 'polygon%s' % sys.version[0]
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
+
+if sys.version[0]=='2':
+    git_branch = subprocess.check_output(["git",
+                                          "rev-parse",
+                                          "--symbolic-full-name",
+                                          "--abbrev-ref",
+                                          "HEAD"]).rstrip()
+elif sys.version[0]=='3':
+    git_branch = subprocess.check_output(["git",
+                                          "rev-parse",
+                                          "--symbolic-full-name",
+                                          "--abbrev-ref",
+                                          "HEAD"]).rstrip().decode()
+
+here = os.path.abspath(os.path.dirname(__file__))
+if git_branch == "master" :
+    version_git = up.updateversion(os.path.join(here,'tofu'))
+else:
+    version_py = os.path.join(here,'tofu')
+    version_py = os.path.join(version_py,"version.py")
+    with open(version_py,'r') as fh:
+        version_git = fh.read().strip().split("=")[-1].replace("'",'')
+    version_git = version_git[1:] if version_git[0].lower()=='v' else version_git
 
 print("")
 print("Version for setup.py : ", version_git)
