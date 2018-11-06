@@ -1608,11 +1608,12 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         Lim = None
     elif nLim==1:
         Lim = [Lim[0,0],Lim[0,1]]
-    for ii in range(0,len(lSnLim)):
-        if lSnLim[ii]==0:
-            LSLim[ii] = None
-        elif lSnLim[ii]==1:
-            LSLim[ii] = [LSLim[ii][0,0],LSLim[ii][0,1]]
+    if lSnLim is not None:
+        for ii in range(0,len(lSnLim)):
+            if lSnLim[ii]==0:
+                LSLim[ii] = None
+            elif lSnLim[ii]==1:
+                LSLim[ii] = [LSLim[ii][0,0],LSLim[ii][0,1]]
 
     v = Ds.ndim==2
     if not v:

@@ -1094,7 +1094,7 @@ class Config(utils.ToFuObject):
 
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'shot':0, 'Type':'Tor',
+    _ddef = {'Id':{'shot':0, 'Type':'Tor', 'Exp':'Dummy',
                    'include':['Mod','Cls','Exp',
                               'Name','shot','version']},
              'dstruct':{'order':['Ves','PFC','CoilPF','CoilCS'],
@@ -1118,7 +1118,7 @@ class Config(utils.ToFuObject):
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None, Type=None,
-                               shot=None, include=None, **kwdargs):
+                               Exp=None, shot=None, include=None, **kwdargs):
         if Id is not None:
             assert isinstance(Id,utils.ID)
             Name, shot = Id.Name, Id.shot
@@ -1126,13 +1126,16 @@ class Config(utils.ToFuObject):
         if Type is None:
             Type = cls._ddef['Id']['Type']
         assert Type in ['Tor','Lin']
+        if Exp is None:
+            Exp = cls._ddef['Id']['Exp']
+        assert type(Exp) is str
         if shot is None:
             shot = cls._ddef['Id']['shot']
         assert type(shot) is int
         if include is None:
             include = cls._ddef['Id']['include']
-            kwdargs.update({'Name':Name, 'Type':Type,
-                            'include':include, 'shot':shot})
+            kwdargs.update({'Name':Name, 'Type':Type, 'Exp':Exp,
+                        'include':include, 'shot':shot})
         return kwdargs
 
     ###########
@@ -1156,15 +1159,31 @@ class Config(utils.ToFuObject):
     # Get check and format inputs
     ###########
 
-    @staticmethod
-    def _checkformat_inputs_dstruct(lStruct=None, Lim=None):
+    def _checkformat_inputs_Struct(self, struct, err=True):
+        assert issubclass(struct.__class__,Struct)
+        C0 = struct.Id.Exp==self.Id.Exp
+        C1 = struct.Id.Type==self.Id.Type
+        msgi = None
+        if not (C0 and C1):
+            msgi = "\n    - {0} :".format(struct.Id.SaveName)
+            if not C0:
+                msgi += "\n     Exp: {0}".format(struct.Id.Exp)
+            if not C1:
+                msgi += "\n     Type: {0}".format(struct.Id.Type)
+            if err:
+                msg = "Non-conform struct Id:"+msgi
+                raise Exception(msg)
+        return msgi
+
+
+    def _checkformat_inputs_dstruct(self, lStruct=None, Lim=None):
         if lStruct is None:
             msg = "Arg lStruct must be"
             msg += " a tofu.geom.Struct subclass or a list of such !"
             msg += "\nValid subclasses include:"
             lsub = ['PlasmaDomain','Ves','PFC','CoilPF','CoilCS']
             for ss in lsub:
-                msg += "\n    - tf.geom.{0}".format(ss)
+                msg = "\n    - tf.geom.{0}".format(ss)
             raise Exception(msg)
 
         C0 = isinstance(lStruct,list) or isinstance(lStruct,tuple)
@@ -1176,12 +1195,14 @@ class Config(utils.ToFuObject):
             lStruct = list(lStruct)
         else:
             lStruct = [lStruct]
-        C = [ss.Id.Exp==lStruct[0].Id.Exp for ss in lStruct]
-        if not all(C):
-            msg = "All Struct objects must have the same Exp !"
-            msg += "\nCurrently we have:"
-            ls = ["{0}: {1}".format(ss.Id.SaveName, ss.Id.Exp)for ss in lStruct]
-            msg += "\n    - " + "\n    - ".join(ls)
+
+        msg = ""
+        for ss in lStruct:
+            msgi = self._checkformat_inputs_Struct(ss, err=False)
+            if msgi is not None:
+                msg += msgi
+        if msg!="":
+            msg = "The following objects have non-confrom Id:" + msg
             raise Exception(msg)
 
         if Lim is None:
@@ -1203,9 +1224,9 @@ class Config(utils.ToFuObject):
         C1 = isinstance(extraval,np.ndarray)
         C2 = isinstance(extraval,dict)
         if multi:
-            assert C0 or C1 or C2
+            assert C0 or C1 or C2, str(type(extraval))
         else:
-            assert C0
+            assert C0, str(type(extraval))
         if multi and C1:
             size = self._dstruct['nStruct'] if size is None else size
             C = extraval.shape==((self._dstruct['nStruct'],))
@@ -1232,16 +1253,21 @@ class Config(utils.ToFuObject):
                 msg += "\n    ".join(['{0} : {1}'.format(lk[ii],c[ii])
                                      for ii in range(0,len(lk))])
                 raise Exception(msg0+msg)
-            c = [sorted(v.keys())==sorted(self.dstruct['dStruct'][k].keys())
+            c = [(k, sorted(v.keys()), sorted(self.dstruct['dStruct'][k].keys()))
                  for k, v in extraval.items()]
-            if not all(c):
+            if not all([cc[1]==cc[2] for cc in c]):
+                lc = [(cc[0], str(cc[1]), str(cc[2])) for cc in c if cc[1]!=cc[2]]
                 msg = "\nThe value for %s shall has wrong nested dict !"%key
-                msg += "\n    "
+                msg += "\n    - " + '\n    - '.join([' '.join(cc)
+                                                     for cc in lc])
                 raise Exception(msg0+msg)
             for k in lk:
                 for kk,v in extraval[k].items():
-                    msg = "\n%s[%s][%s] should be in %s"%(key,k,kk,str(lsimple))
-                    assert v in lsimple, msg
+                    if not type(v) in lsimple:
+                        msg = "\n    type(%s[%s][%s])"%(key,k,kk)
+                        msg += " = %s"%str(type(v))
+                        msg += " should be in %s"%str(lsimple)
+                        raise Exception(msg)
             C = dict
         elif C0:
             C = int
@@ -1271,7 +1297,7 @@ class Config(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dstruct():
-        lk = ['dStruct',
+        lk = ['dStruct', 'Lim', 'nLim',
               'nStruct','lorder','lCls']
         return lk
 
@@ -1289,7 +1315,7 @@ class Config(utils.ToFuObject):
     # _init
     ###########
 
-    def _init(self, lStruct=None, dextraprop=None, **kwdargs):
+    def _init(self, lStruct=None, Lim=None, dextraprop=None, **kwdargs):
         largs = self._get_largs_dstruct()
         kwdstruct = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dextraprop()
@@ -1305,7 +1331,8 @@ class Config(utils.ToFuObject):
 
 
     def _set_dstruct(self, lStruct=None, Lim=None):
-        lStruct, Lim, nLim = self._checkformat_inputs_dstruct(lStruct=lStruct, Lim=Lim)
+        lStruct, Lim, nLim = self._checkformat_inputs_dstruct(lStruct=lStruct,
+                                                              Lim=Lim)
         # Make sure to kill the link to the mutable being provided
         nStruct = len(lStruct)
         # Get extra info
@@ -1314,17 +1341,29 @@ class Config(utils.ToFuObject):
                                       Name=ss.Id.Name,
                                       include=['Cls','Name']) for ss in lStruct]
 
-        msg = "There is an ambiguity in the names :"
-        msg += "\n    - " + "\n    - ".join(lorder)
-        msg += "\n => Please clarify (choose unique Cls/Names)"
-        assert len(list(set(lorder)))==nStruct, msg
+        if not len(list(set(lorder)))==nStruct:
+            msg = "There is an ambiguity in the names :"
+            msg += "\n    - " + "\n    - ".join(lorder)
+            msg += "\n => Please clarify (choose unique Cls/Names)"
+            raise Exception(msg)
 
-        self._dstruct = {'dStruct':dict([(k,{}) for k in lCls])}
+        # Initisalize (not necessary in case of update)
+        C = (hasattr(self,'_dstruct')
+             and 'dStruct' in self._dstruct.keys()
+             and isinstance(self._dstruct['dStruct'],dict))
+        if not C:
+            self._dstruct = {'dStruct':dict([(k,{}) for k in lCls])}
 
         for k in lCls:
-            lk = [ss for ss in lStruct if ss.Id.Cls==k]
-            for ss in lk:
-                self._dstruct['dStruct'][k].update({ss.Id.Name:ss.copy()})
+            if not k in self._dstruct['dStruct'].keys():
+                self._dstruct['dStruct'][k] = {}
+            lk = self._dstruct['dStruct'][k].keys()
+            ls = [ss for ss in lStruct if ss.Id.Cls==k]
+            for ss in ls:
+                if not ss.Id.Name in lk:
+                    self._dstruct['dStruct'][k][ss.Id.Name] = ss.copy()
+                if self._dstruct['dStruct'][k][ss.Id.Name]._dstrip['strip']!=0:
+                    self._dstruct['dStruct'][k][ss.Id.Name].strip(0)
 
         self._dstruct.update({'nStruct':nStruct, 'Lim':Lim, 'nLim':nLim,
                               'lorder':lorder, 'lCls':lCls})
@@ -1618,6 +1657,13 @@ class Config(utils.ToFuObject):
         return lStruct
 
     @property
+    def Lim(self):
+        return self._dstruct['Lim']
+    @property
+    def nLim(self):
+        return self._dstruct['nLim']
+
+    @property
     def dextraprop(self):
        return self._dextraprop
     @property
@@ -1627,6 +1673,118 @@ class Config(utils.ToFuObject):
     ###########
     # public methods
     ###########
+
+    def add_Struct(self, struct=None,
+                   Cls=None, Name=None, Poly=None,
+                   mobile=False, shot=None,
+                   Lim=None, Type=None,
+                   dextraprop=None):
+        """ Add a Struct instance to the config
+
+        An already existing Struct subclass instance can be added
+        Or it will be created from the (Cls,Name,Poly,Lim) keyword args
+
+        """
+        # Check inputs
+        C0a = struct is None
+        C1a = all([ss is None for ss in [Cls,Name,Poly,Lim,Type]])
+        if not np.sum([C0a,C1a])==1:
+            msg = "Provide either:"
+            msg += "\n    - struct: a Struct subclass instance"
+            msg += "\n    - the keyword args to create one"
+            msg += "\n        (Cls,Name,Poly,Lim,Type)"
+            raise Exception(msg)
+
+        # Create struct if not provided
+        if C0a:
+            if not (type(Cls) is str or issubclass(Cls,Struct)):
+                msg = "Cls must be either:"
+                msg += "\n    - a Struct subclass"
+                msg += "\n    - the str Name of it (e.g.: 'PFC','CoilPF',...)"
+                raise Exception(msg)
+            if type(Cls) is str:
+                Cls = eval('%s'%Cls)
+
+            # Preformat Lim and Type
+            if Lim is None:
+                Lim = self.Lim
+            if Type is None:
+                Type = self.Id.Type
+
+            # Create instance
+            struct = Cls(Poly=Poly, Name=Name, Lim=Lim, Type=Type,
+                         mobile=mobile, shot=shot, Exp=self.Id.Exp)
+
+        C0b = issubclass(struct.__class__, Struct)
+        assert C0b, "struct must be a Struct subclass instance !"
+
+        # Prepare dextraprop
+        dextra = self.dextraprop
+        lk = sorted([k[1:] for k in dextra.keys() if k!='lprop'])
+        if dextraprop is None:
+            if not dextra in [None,{}]:
+                msg = "The current Config instance has the following extraprop:"
+                msg += "\n    - " + "\n    - ".join(lk)
+                msg += "\n  => Please specify a dextraprop for struct !"
+                msg += "\n     (using the same keys !)"
+                raise Exception(msg)
+        else:
+            assert isinstance(dextraprop,dict)
+            assert all([k in lk for k in dextraprop.keys()])
+            assert all([k in dextraprop.keys() for k in lk])
+            dx = copy.deepcopy(dextra)
+            del dx['lprop']
+            for k in dx.keys():
+                if not struct.Id.Cls in dx[k].keys():
+                    dx[k][struct.Id.Cls] = {Name:dextraprop[k[1:]]}
+                else:
+                    dx[k][struct.Id.Cls][Name] = dextraprop[k[1:]]
+
+        # Set self.lStruct
+        lS = self.lStruct + [struct]
+        self._init(lStruct=lS, Lim=self.Lim, dextraprop=dx)
+
+    def remove_Struct(self, Cls=None, Name=None):
+        # Check inputs
+        assert type(Cls) is str
+        assert type(Name) is str
+        C0 = Cls in self._dstruct['lCls']
+        if not C0:
+            msg = "The Cls must be a class existing in self.dstruct['lCls']:"
+            msg += "\n    [{0}]".format(', '.join(self._dstruct['lCls']))
+            raise Exception(msg)
+        C0 = Name in self._dstruct['dStruct'][Cls].keys()
+        if not C0:
+            ln = self.dstruct['dStruct'][Cls].keys()
+            msg = "The Name must match an instance in"
+            msg += " self.dstruct['dStruct'][{0}].keys():".format(Cls)
+            msg += "\n    [{0}]".format(', '.join(ln))
+            raise Exception(msg)
+
+        # Create list
+        lS = self.lStruct
+        if not Cls+"_"+Name in self._dstruct['lorder']:
+            msg = "The desired instance is not in self.dstruct['lorder'] !"
+            raise Exception(msg)
+
+        ind = self._dstruct['lorder'].index(Cls+"_"+Name)
+        del lS[ind]
+        # Important : also remove from dict ! (no reset() !)
+        del self._dstruct['dStruct'][Cls][Name]
+
+        # Prepare dextraprop
+        dextra = self.dextraprop
+        dx = {}
+        for k in dextra.keys():
+            if k=='lprop':
+                continue
+            dx[k[1:]] = {}
+            for cc in dextra[k].keys():
+                dx[k[1:]][cc] = dict(dextra[k][cc])
+            del dx[k[1:]][Cls][Name]
+
+        self._init(lStruct=lS, Lim=self.Lim, dextraprop=dx)
+
 
     def get_color(self):
         """ Return the array of rgba colors (same order as lStruct) """
@@ -2126,7 +2284,7 @@ class Rays(utils.ToFuObject):
 
             largs = [D, u, VPoly, VVIn]
             dkwd = dict(Lim=Lim, nLim=nLim,
-                        lSPoly=lSPoly, LSLim=lSLim,
+                        LSPoly=lSPoly, LSLim=lSLim,
                         lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
                         RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
                         EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
@@ -2806,34 +2964,24 @@ class Rays(utils.ToFuObject):
                                                dLMode=resMode, method=method)
         return pts, k, reseff
 
-    def _get_kInOut_IsoFlux_prepareinputs(self, lPoly, axis, method='ref'):
+    def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None, method='ref'):
 
         if method=='ref':
             D, u = np.ascontiguousarray(self.D), np.ascontiguousarray(self.u)
-
-            VIn = np.diff(lPoly[0],axis=1)
-            VIn = VIn/(np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:])
-            VIn = np.ascontiguousarray([-VIn[1,:],VIn[0,:]])
-            sca = VIn[0,0]*(axis[0]-lPoly[0][0,0]) + VIn[1,0]*(axis[1]-lPoly[0][1,0])
-            if sca<0:
-                VIn = -VIn
-
             Lim = self.config.Lim
             nLim = self.config.nLim
             Type = self.config.Id.Type
 
-            largs = [D, u, lPoly[0], VIn]
+            largs = [D, u, lPoly[0], lVIn[0]]
             dkwd = dict(Lim=Lim, nLim=nLim, VType=Type)
         else:
             # To be adjusted later
             pass
         return largs, dkwd
 
-    def get_kInkOut_IsoFlux(self, lPoly, Lim=None):
-        msg = "Arg lPoly must be a list or np.ndarray !"
-        assert type(lPoly) in [list, np.ndarray], msg
+    def _kInOut_IsoFlux_inputs_usr(self, lPoly, lVIn=None):
 
-        # Preformat input
+        # Check lPoly
         if type(lPoly) is np.ndarray:
             lPoly = [lPoly]
         lPoly = [np.ascontiguousarray(pp) for pp in lPoly]
@@ -2843,18 +2991,76 @@ class Rays(utils.ToFuObject):
         for ii in range(0,nPoly):
             if lPoly[ii].shape[0]!=2:
                 lPoly[ii] = lPoly[ii].T
+                # Check closed and anti-clockwise
+                lPoly[ii] = _GG.Poly_Order(lPoly[ii], Clock=False, close=True)
+
+        # Check lVIn
+        if lVIn is None:
+            lVIn = []
+            for pp in lPoly:
+                VIn = np.diff(pp, axis=1)
+                VIn = VIn/(np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:])
+                VIn = np.ascontiguousarray([-VIn[1,:],VIn[0,:]])
+                lVIn.append(VIn)
+        else:
+            if type(lVIn) is np.ndarray:
+                lVIn = [lVIn]
+            assert len(lVIn)==nPoly
+            lVIn = [np.ascontiguousarray(pp) for pp in lVIn]
+            msg = "Arg lVIn must be a list of (2,N) or (N,2) np.ndarrays !"
+            assert all([pp.ndim==2 and 2 in pp.shape for pp in lVIn]), msg
+            for ii in range(0,nPoly):
+                if lVIn[ii].shape[0]!=2:
+                    lVIn[ii] = lVIn[ii].T
+                    lVIn[ii] = lVIn[ii]/(np.sqrt(np.sum(lVIn[ii]**2,axis=0))[np.newaxis,:])
+                    assert lVIn[ii].shape==(2,lPoly[ii].shape[1]-1)
+                    vect = np.diff(lPoly[ii],axis=1)
+                    det = vect[0,:]*lVIn[ii][1,:] - vect[1,:]*lVIn[ii][0,:]
+                    if not np.allclose(np.abs(det),1.):
+                        msg = "Each lVIn must be perp. to each lPoly segment !"
+                        raise Exception(msg)
+                    ind = np.abs(det+1)<1.e-12
+                    lVIn[ii][:,ind] = -lVIn[ii][:,ind]
+
+        return nPoly, lPoly, lVIn
+
+    def calc_kInkOut_IsoFlux(self, lPoly, lVIn=None, Lim=None, method='ref'):
+        """ Calculate the intersection points of each ray with each isoflux
+
+        The isofluxes are provided as a list of 2D closed polygons
+
+        The intersections are the inward and outward intersections
+        They are retruned as two np.ndarrays: kIn and kOut
+        Each array contains the length parameter along the ray for each isoflux
+
+        Parameters
+        ----------
+
+
+        Returns
+        -------
+
+        """
+
+        # Preformat input
+        nPoly, lPoly, lVIn = self._kInOut_IsoFlux_inputs_usr(lPoly, lVIn=lVIn)
 
         # Prepare output
         kIn = np.full((self.nRays,nPoly), np.nan)
         kOut = np.full((self.nRays,nPoly), np.nan)
 
         # Compute intersections
-        for ii in range(0,nPoly):
-            largs, dkwd = self._get_kInOut_prepareinputs([lPoly[ii]],
-                                                         method='ref')
-            out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
-            PIn, POut, kMin, kMax, VperpIn, vperp, IIn, indout = out
-            kIn[:,ii], kOut[:,ii] = kMin, kMax
+        if method=='ref':
+            for ii in range(0,nPoly):
+                largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
+                                                          lVIn=[lVIn[ii]],
+                                                          method='ref')
+                out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+                PIn, POut, kMin, kMax, VperpIn, vperp, IIn, indout = out
+                kIn[:,ii], kOut[:,ii] = kMin, kMax
+        else:
+            # To be implemented according to Laura's needs
+            pass
 
         return kIn, kOut
 
