@@ -1,20 +1,19 @@
 # coding: utf-8
-import tofu.geom._GG as _GG
 from tofu_LauraBenchmarck_load_config import *
-plt.ion()
+import tofu.geom._GG as _GG
 
 
 
-def test_LOS_west_A1() :
-    out = load_config('A1', plot=False)
+def test_LOS_west_Aconfig(config) :
+    out = load_config(config, plot=False)
     ves = out["Ves"]
 
     # 1 LOS .............................
     Du = get_Du("V1")
-    cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
-    # for plot Calc_Los_PInOut_Tor is being called....
-    cam.plot(Elt='L', EltVes="P")
-    plt.show(block=True)
+    # cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
+    # # for plot Calc_Los_PInOut_Tor is being called....
+    # cam.plot(Elt='L', EltVes="P")
+    # plt.show(block=True)
     out = _GG.LOS_Calc_PInOut_VesStruct(Du[0],
                                         Du[1]/np.sqrt(np.sum(Du[1]**2, axis=0)),
                                         ves.Poly,
@@ -24,10 +23,10 @@ def test_LOS_west_A1() :
 
     # 10 LOS .............................
     Du = get_Du("V10")
-    cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
-    # for plot Calc_Los_PInOut_Tor is being called....
-    cam.plot(Elt='L', EltVes="P")
-    plt.show(block=True)
+    # cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
+    # # for plot Calc_Los_PInOut_Tor is being called....
+    # cam.plot(Elt='L', EltVes="P")
+    # plt.show(block=True)
     out = _GG.LOS_Calc_PInOut_VesStruct(Du[0],
                                         Du[1]/np.sqrt(np.sum(Du[1]**2, axis=0)),
                                         ves.Poly, 
@@ -91,3 +90,14 @@ def test_LOS_west_A1() :
                                         ves.geom['VIn'],
                                         Lim=ves.Lim,
                                         VType=ves.Type)
+
+if __name__ == "__main__":
+    Aconfigs = ["A1", "A2", "A3"]
+    for icon in Aconfigs :
+        print("*..................................*")
+        print("*      Testing the "+icon+" config       *")
+        print("*..................................*")
+        test_LOS_west_Aconfig(icon)
+
+
+
