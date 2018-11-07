@@ -34,6 +34,10 @@ tofu.egg-info/
 build/
 #Notes_Upgrades/
 
+# Tex files
+*.aux
+*.log
+
 # .gitignore
 1
 Introduction
