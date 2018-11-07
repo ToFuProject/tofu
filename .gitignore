@@ -32,7 +32,7 @@ conda-bld/
 dist/
 tofu.egg-info/
 build/
-Notes_Upgrades/
+#Notes_Upgrades/
 
 # .gitignore
 1

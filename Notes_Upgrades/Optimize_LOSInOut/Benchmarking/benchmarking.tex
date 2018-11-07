@@ -1,0 +1,123 @@
+\documentclass[11pt]{amsart}
+\usepackage{geometry}
+\geometry{letterpaper}
+%\geometry{landscape}                % Activate for for rotated page geometry
+%\usepackage[parfill]{parskip}
+% Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{epstopdf}
+\usepackage{booktabs}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\title{\Large ToFu's benchmarking\\
+  \small AWP18-EEG-CEA-Mendoza}
+
+\author{Laura S. Mendoza}
+\author{Didier Vezinet}
+
+\date{}                           % Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+
+\section{Starting Point}
+
+ToFu's versioning is set automatically with each \verb|git| tag.
+We will set as a reference point the version number \verb|1.3.22-6-g45cb446|,
+which also corresponds to the \verb|git| tag.
+
+\subsection{Set of tests}
+
+In order to have an extensive benchmarking, we need to set a series of tests
+configurations that will encompass the maximum scenarios, as well as allow us
+to test the speed-up of simple yet essential methods. Let us first define the
+different geometries:\\
+
+\begin{itemize}
+	\item Tests with only a vessel:
+	\begin{itemize}
+		\item   Config A1:
+		\begin{itemize}
+			\item  WEST -- V1 (realistic) : 63 points
+		\end{itemize}
+		\item   Config A2:
+		\begin{itemize}
+			\item  TER -- Test (artificial) : 551 points
+		\end{itemize}
+		\item   Config A3:
+		\begin{itemize}
+		\item  WESTSep -- Test (artificial, inspired by the
+                  separatrix of an experimental shock of WEST) : 1001 points\\
+		\end{itemize}
+	\end{itemize}
+	\item      Tests with a vessel and structural elements:
+	\begin{itemize}
+		\item   Config B1 : 'min' (only axisymmetric structures)
+		\begin{itemize}
+			\item  Ves : WEST V0
+			\item  Struct :
+			\begin{itemize}
+				\item         Baffle : Baffle-V0
+				\item         Upper divertor : UpDiv-V1
+				\item         Lower divertor : LowDiv-V1
+			\end{itemize}
+		\end{itemize}
+	      \item  Config B2 : 'light'  (same as B1 + some toroidal
+                structures)
+		\begin{itemize}
+			\item  Ves : WEST V0
+			\item  Struct :
+			\begin{itemize}
+				\item         Baffle : Baffle-V1
+				\item         Upper divertor : UpDiv-V2
+				\item         Lower divertor : LowDiv-V2
+				\item         Inner Bumpers : InnerBumpers-V1
+				\item         Outer Bumper : OuterBumper-V1
+				\item         IC antennas : IC1-V1 + IC2-V1
+                                  + IC3-V1
+			\end{itemize}
+		\end{itemize}
+	      \item   Config B3 : 'full'
+                \begin{itemize}
+			\item  Ves : WEST-V0
+			\item  Struct :
+			\begin{itemize}
+			        \item         Baffle : Baffle-V2
+			        \item         Upper divertor : UpDiv-V3
+			        \item         Lower divertor : LowDiv-V3
+			        \item         Inner Bumpers : InnerBumpers-V3
+				\item         Outer Bumper : OuterBumper-V3
+				\item         IC antennas : IC1-V1 + IC2-V1
+                                  + IC3-V1
+				\item         LH antennas : LH-V1, LH2-V1
+				\item         Ripple : Ripple-V1
+				\item         VDE : VDE-V0
+			\end{itemize}
+	\end{itemize}
+\end{itemize}
+\end{itemize}
+
+We will also vary the number of lines sights $N_i = 10^i$
+with $i=0, \cdots, 6$.\\
+
+\begin{table}[h] % just use this specifier if really needed.
+    \centering
+    \caption{Execution time of unit tests 1 to 13, time computed as the mean of 5 runs}\label{tab:UT}
+    \begin{tabular}{@{}lrrrrrr@{}} \toprule
+      \textbf{Machine} & Test 1 & Test 2 & Test 3 & Test 4 & Test 5 & Test 6 \\ \midrule
+      Ubuntu & 0.0003126 & 0.0004468 & 0.0001554 & 0.0003012 & 0.000482 & 0.0052582  \\
+      Sirrah & 0.0086206 & 0.0003952 & 0.0001658 & 0.00032  &  0.0005792 & 0.0081134\\
+      Atlas & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+      \bottomrule
+    \end{tabular}
+    \begin{tabular}{@{}lrrrrrrr@{}} \toprule
+      \textbf{Machine} & Test 7 & Test 8 & Test 9 & Test 10 & Test 11 & Test 12 & Test 13 \\ \midrule
+      Ubuntu  & 0.0476964 & 0.005901 & 0.0350598 & 0.0479324 & 0.1106498 & 0.0283896 & 0.0061352 \\
+      Sirrah &   0.0516274  & 0.006856 &  0.046948  &  0.05907 &   0.132117 &  0.036295 &   0.0066378\\
+      Atlas &  0.0 & 0.0 &  0.0 & 0.0 & 0.0 & 0.0 & 0.0 \\
+      \bottomrule
+    \end{tabular}
+\end{table}
+
+\end{document}
