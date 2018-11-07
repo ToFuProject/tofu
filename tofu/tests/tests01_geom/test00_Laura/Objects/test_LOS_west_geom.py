@@ -118,7 +118,7 @@ def test_LOS_west_Bconfig(config, cams, plot=False):
         plt.show(block=True)
     ves = dconf["Ves"]
     struct = list(dconf['Struct'].values())
-
+    times = []
     for vcam in cams:
         D, u = get_Du(vcam)
         u = u/np.sqrt(np.sum(u**2, axis=0))
@@ -148,7 +148,8 @@ if __name__ == "__main__":
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
         times = test_LOS_west_Aconfig_short(icon, Cams)
-        print(times)
+        for ttt in times:
+            print(ttt)
 
     for icon in Bconfigs :
         print("*..................................*")
@@ -156,5 +157,7 @@ if __name__ == "__main__":
         print("*..................................*")
         times = test_LOS_west_Bconfig(icon, Cams)
         print(times)
+        for ttt in times:
+            print(ttt)
 
 
