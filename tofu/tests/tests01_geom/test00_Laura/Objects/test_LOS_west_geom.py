@@ -142,7 +142,7 @@ if __name__ == "__main__":
     Cams = ["V1", "V10", "V100", "V1000", "V10000",
             "V100000", "V1000000"]
     Aconfigs = ["A1", "A2", "A3"]
-    Bconfigs = ["B1", "B2", "B3"]
+    Bconfigs = ["B1"]#, "B2", "B3"]
     for icon in Aconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
