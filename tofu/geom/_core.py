@@ -109,9 +109,9 @@ class Struct(utils.ToFuObject):
              'dmisc':{'color':'k'}}
     _dplot = {'cross':{'Elt':'P',
                        'dP':{'c':'k','lw':2},
-                       'dI':{'c':'k','ls':'--','m':'x','ms':8,'mew':2},
-                       'dBs':{'c':'b','ls':'--','m':'x','ms':8,'mew':2},
-                       'dBv':{'c':'g','ls':'--','m':'x','ms':8,'mew':2},
+                       'dI':{'c':'k','ls':'--','marker':'x','ms':8,'mew':2},
+                       'dBs':{'c':'b','ls':'--','marker':'x','ms':8,'mew':2},
+                       'dBv':{'c':'g','ls':'--','marker':'x','ms':8,'mew':2},
                        'dVect':{'color':'r','scale':10}},
               'hor':{'Elt':'P',
                      'dP':{'c':'k','lw':2},
@@ -699,7 +699,7 @@ class Struct(utils.ToFuObject):
         return pts, dV, ind, reseff
 
 
-    def plot(self, lax=None, proj='all', Elt='PIBsBvV',
+    def plot(self, lax=None, proj='all', element='PIBsBvV',
              dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
              dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
              dBvHor=_def.TorBvTord, Lim=None, Nstep=_def.TorNTheta,
@@ -724,7 +724,7 @@ class Struct(utils.ToFuObject):
                 - 'Hor' : horizontal projection
                 - 'All' : both
                 - '3d' : a 3d matplotlib plot
-        Elt  :      str
+        element :   str
             Flag specifying which elements to plot
             Each capital letter corresponds to an element:
                 * 'P': polygon
@@ -1871,7 +1871,7 @@ class Config(utils.ToFuObject):
             ind[ii,:] = indi
         return ind
 
-    def plot(self, lax=None, proj='all', Elt='P', dLeg=_def.TorLegd,
+    def plot(self, lax=None, proj='all', element='P', dLeg=_def.TorLegd,
              indices=False, draw=True, fs=None, wintit=None, tit=None, Test=True):
         assert tit is None or isinstance(tit,str)
         vis = self.get_visible()
@@ -1882,7 +1882,7 @@ class Config(utils.ToFuObject):
 
         if tit is None:
             tit = self.Id.Name
-        lax = _plot.Struct_plot(lS, lax=lax, proj=proj, Elt=Elt,
+        lax = _plot.Struct_plot(lS, lax=lax, proj=proj, element=element,
                                 dLeg=dLeg, draw=draw, fs=fs, indices=indices,
                                 wintit=wintit, tit=tit, Test=Test)
         return lax
@@ -2093,7 +2093,9 @@ class Rays(utils.ToFuObject):
             C0 = type(val) in [int,float,np.int64,np.float64]
             C1 = hasattr(val,'__iter__')
             assert C0 or C1
-            if C1:
+            if C0:
+                val = np.asarray([val],dtype=float)
+            else:
                 val = np.asarray(val,dtype=float).ravel()
                 assert val.size==self._dgeom['nRays']
         return val
@@ -2678,10 +2680,28 @@ class Rays(utils.ToFuObject):
 
     @property
     def Etendues(self):
-        return self._dgeom['Etendues']
+        if self._dgeom['Etendues'] is None:
+            E = None
+        elif self._dgeom['Etendues'].size==self._dgeom['nRays']:
+            E = self._dgeom['Etendues']
+        elif self._dgeom['Etendues'].size==1:
+            E = np.repeat(self._dgeom['Etendues'], self._dgeom['nRays'])
+        else:
+            msg = "Stored Etendues is not conform !"
+            raise Exception(msg)
+        return E
     @property
     def Surfaces(self):
-        return self._dgeom['Surfaces']
+        if self._dgeom['Surfaces'] is None:
+            S = None
+        elif self._dgeom['Surfaces'].size==self._dgeom['nRays']:
+            S = self._dgeom['Surfaces']
+        elif self._dgeom['Surfaces'].size==1:
+            S = np.repeat(self._dgeom['Surfaces'], self._dgeom['nRays'])
+        else:
+            msg = "Stored Surfaces not conform !"
+            raise Exception(msg)
+        return S
 
     @property
     def kMin(self):
@@ -2946,11 +2966,11 @@ class Rays(utils.ToFuObject):
         # Check consistency of limits
         ii = DL[0,:] < kMin[ind]
         DL[0,ii] = kMin[ind][ii]
-        ii = DL[0,:] >= kMax[ind]
+        ii[:] = DL[0,:] >= kMax[ind]
         DL[0,ii] = kMax[ind][ii]
-        ii = DL[1,:] > kMax[ind]
+        ii[:] = DL[1,:] > kMax[ind]
         DL[1,ii] = kMax[ind][ii]
-        ii = DL[1,:] <= kMin[ind]
+        ii[:] = DL[1,:] <= kMin[ind]
         DL[1,ii] = kMin[ind][ii]
 
         # Preformat Ds, us
@@ -3024,7 +3044,8 @@ class Rays(utils.ToFuObject):
 
         return nPoly, lPoly, lVIn
 
-    def calc_kInkOut_IsoFlux(self, lPoly, lVIn=None, Lim=None, method='ref'):
+    def calc_kInkOut_IsoFlux(self, lPoly, lVIn=None, Lim=None,
+                             kMinMax=True, method='ref'):
         """ Calculate the intersection points of each ray with each isoflux
 
         The isofluxes are provided as a list of 2D closed polygons
@@ -3061,6 +3082,19 @@ class Rays(utils.ToFuObject):
         else:
             # To be implemented according to Laura's needs
             pass
+
+        if kMinMax:
+            indok = ~np.isnan(kIn)
+            ind = np.zeros((self.nRays,nPoly), dtype=bool)
+            kMin = np.tile(self.kMin[:,np.newaxis],nPoly)
+            kMax = np.tile(self.kMax[:,np.newaxis],nPoly)
+            ind[indok] = (kIn[indok]>kMin[indok]) & (kIn[indok]<kMax[indok])
+            kIn[ind] = np.nan
+
+            ind[:] = False
+            indok[:] = ~np.isnan(kOut)
+            ind[indok] = (kOut[indok]>kMin[indok]) & (kOut[indok]<kMax[indok])
+            kOut[ind] = np.nan
 
         return kIn, kOut
 
@@ -3103,11 +3137,12 @@ class Rays(utils.ToFuObject):
             Units of the result
 
         """
-        self._check_inputs(ind=ind)
+        msg = "Arg out must be in [object,np.ndarray]"
+        assert out in [object,np.ndarray], msg
         assert type(Brightness) is bool, "Arg Brightness must be a bool !"
-        if Brightness is False:
+        if Brightness is False and self.Etendues is None:
             msg = "Etendue must be set if Brightness is False !"
-            assert self.Etendues is not None, msg
+            raise Exception(msg)
 
         # Preformat ind
         ind = self._check_indch(ind)
@@ -3116,7 +3151,7 @@ class Rays(utils.ToFuObject):
         if DL is None:
             DL = np.array([kMin[ind], kMax[ind]])
         elif np.asarray(DL).size==2:
-            DL = np.tile(np.asarray(DL).ravel(),(len(ind),1)).T
+            DL = np.tile(np.asarray(DL).ravel()[:,np.newaxis],len(ind))
         DL = np.ascontiguousarray(DL).astype(float)
         assert type(DL) is np.ndarray and DL.ndim==2
         assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
@@ -3124,18 +3159,18 @@ class Rays(utils.ToFuObject):
         # check limits
         ii = DL[0,:] < kMin[ind]
         DL[0,ii] = kMin[ind][ii]
-        ii = DL[0,:] >= kMax[ind]
+        ii[:] = DL[0,:] >= kMax[ind]
         DL[0,ii] = kMax[ind][ii]
-        ii = DL[1,:] > kMax[ind]
+        ii[:] = DL[1,:] > kMax[ind]
         DL[1,ii] = kMax[ind][ii]
-        ii = DL[1,:] <= kMin[ind]
+        ii[:] = DL[1,:] <= kMin[ind]
         DL[1,ii] = kMin[ind][ii]
 
         # Preformat Ds, us and Etendue
         Ds, us = self.D[:,ind], self.u[:,ind]
         if Brightness is False:
             E = self.Etendues
-            if self.Etendues.size==self.nRays:
+            if E.size==self.nRays:
                 E = E[ind]
 
         # Preformat signal
@@ -3157,8 +3192,8 @@ class Rays(utils.ToFuObject):
             DL = np.ascontiguousarray(DL)
             # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
             # Exclude Rays not seeing the plasma
-            s = _GG.LOS_calc_signal(ff, Ds, us, dl, DL,
-                                    dLMode=dlMode, method=method,
+            s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
+                                    dLMode=resMode, method=method,
                                     t=t, Ani=Ani, fkwdargs=fkwdargs, Test=True)
             if t is None or len(t)==1:
                 sig[indok] = s
@@ -3195,11 +3230,10 @@ class Rays(utils.ToFuObject):
                 sig = osig
         return sig, units
 
-    def plot(self, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
-             EltVes='', EltStruct='', Leg='', dL=None, dPtD=_def.LOSMd,
+    def plot(self, lax=None, proj='all', Lplot=_def.LOSLplot, element='LDIORP',
+             element_config='P', Leg='', dL=None, dPtD=_def.LOSMd,
              dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
-             dPtP=_def.LOSMd, dLeg=_def.TorLegd, dVes=_def.Vesdict,
-             dStruct=_def.Structdict, multi=False, ind=None,
+             dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False, ind=None,
              fs=None, wintit='tofu', draw=True, Test=True):
         """ Plot the Rays / LOS, in the chosen projection(s)
 
@@ -3219,7 +3253,7 @@ class Rays(utils.ToFuObject):
                 - 'Hor' : horizontal
                 - 'All' : both cross-section and horizontal (on 2 axes)
                 - '3d' : a (matplotlib) 3d plot
-        Elt :       str
+        element :   str
             Flag specifying which elements to plot
             Each capital letter corresponds to an element:
                 * 'L': LOS
@@ -3233,10 +3267,8 @@ class Rays(utils.ToFuObject):
             Flag specifying the length to plot:
                 - 'Tot': total length, from starting point (D) to output point
                 - 'In' : only the in-vessel fraction (from input to output)
-        EltVes :    str
-            Flag for Ves elements to plot (:meth:`~tofu.geom.Ves.plot`)
-        EltStruct : str
-            Flag for Struct elements to plot (:meth:`~tofu.geom.Struct.plot`)
+        element_config : str
+            Fed to self.config.plot()
         Leg :       str
             Legend, if Leg='' the LOS name is used
         dL :     dict / None
@@ -3255,12 +3287,6 @@ class Rays(utils.ToFuObject):
         dLeg :      dict or None
             Dictionary of properties for plotting the legend
             Fed to plt.legend(), the legend is not plotted if None
-        dVes :      dict
-            Dictionary of kwdargs to fed to :meth:`~tofu.geom.Ves.plot`
-            And 'EltVes' is used instead of 'Elt'
-        dStruct:    dict
-            Dictionary of kwdargs to fed to :meth:`~tofu.geom.Struct.plot`
-            And 'EltStruct' is used instead of 'Elt'
         draw :      bool
             Flag indicating whether fig.canvas.draw() shall be called
         a4 :        bool
@@ -3285,11 +3311,10 @@ class Rays(utils.ToFuObject):
 
         """
 
-        return _plot.Rays_plot(self, Lax=Lax, Proj=Proj, Lplot=Lplot, Elt=Elt,
-                               EltVes=EltVes, EltStruct=EltStruct, Leg=Leg,
+        return _plot.Rays_plot(self, Lax=lax, Proj=proj, Lplot=Lplot,
+                               element=element, element_config=element_config, Leg=Leg,
                                dL=dL, dPtD=dPtD, dPtI=dPtI, dPtO=dPtO, dPtR=dPtR,
-                               dPtP=dPtP, dLeg=dLeg, dVes=dVes, dStruct=dStruct,
-                               multi=multi, ind=ind,
+                               dPtP=dPtP, dLeg=dLeg, multi=multi, ind=ind,
                                fs=fs, wintit=wintit, draw=draw, Test=Test)
 
 
