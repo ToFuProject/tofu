@@ -1,3 +1,4 @@
+# cython: profile=True
 
 # cimport
 cimport cython
@@ -35,8 +36,6 @@ __all__ = ['CoordShift',
            'LOS_Calc_PInOut_VesStruct', 'LOS_isVis_PtFromPts_VesStruct',
            'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
            'LOS_sino','integrate1d']
-
-
 
 
 
