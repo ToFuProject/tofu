@@ -130,7 +130,7 @@ def _Struct_plot_format(ss, proj='all', **kwdargs):
 
 
 
-def Struct_plot(lS, lax=None, proj='all', Elt=None, dP=None,
+def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
                 dI=None, dBs=None, dBv=None,
                 dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
                 Lim=None, Nstep=None, dLeg=None, indices=False,
@@ -172,7 +172,7 @@ def Struct_plot(lS, lax=None, proj='all', Elt=None, dP=None,
 
     for ii in  range(0,nS):
 
-        dplot = _Struct_plot_format(lS[ii], proj=proj, Elt=Elt,
+        dplot = _Struct_plot_format(lS[ii], proj=proj, Elt=element,
                                     dP=dP, dI=dI, dBs=dBs,
                                     dBv=dBv, dVect=dVect, dIHor=dIHor,
                                     dBsHor=dBsHor, dBvHor=dBvHor,
@@ -775,20 +775,24 @@ def Get_FieldsFrom_LLOS(L,Fields):
 
 
 
-def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
-              EltVes='', EltStruct='', Leg=None, dL=None, dPtD=_def.LOSMd,
+def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
+              element='LDIORP', element_config='P',
+              Leg=None, dL=None, dPtD=_def.LOSMd,
               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
-              dPtP=_def.LOSMd, dLeg=_def.TorLegd, dVes=_def.Vesdict,
-              dStruct=_def.Structdict, multi=False,
+              dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False,
               draw=True, fs=None, wintit='tofu', Test=True, ind=None):
 
     if Test:
         C = GLos.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']
         assert C, "Arg GLos must be an object child of tfg.Rays !"
-        C = Proj.lower() in ['cross','hor','all','3d']
+        Proj = Proj.lower()
+        C = Proj in ['cross','hor','all','3d']
         assert C, "Arg Proj must be in ['Cross','Hor','All','3d'] !"
         Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
-        assert type(Elt) is str, "Arg Elt must be a str !"
+        assert type(element) is str, "Arg element must be a str !"
+        C = element_config is None or type(element_config) is str
+        msg = "Arg element must be None or a str !"
+        assert C, msg
         assert Lplot in ['Tot','In'], "Arg Lplot must be in ['Tot','In']"
         C = all([type(dd) is dict for dd in [dPtD,dPtI,dPtO,dPtR,dPtP]])
         assert C, "Args dPtD,dPtI,dPtO,dPtR,dPtP must all be dict !"
@@ -797,30 +801,12 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
         assert type(dLeg) is dict or dLeg is None, 'dLeg must be dict !'
         assert type(draw) is bool, "Arg draw must be a bool !"
 
-    if GLos.Ves is not None:
-        if EltVes is None:
-            if (not 'Elt' in dVes.keys() or dVes['Elt'] is None):
-                dVes['Elt'] = ''
-        else:
-            dVes['Elt'] = EltVes
-        dVes['Lax'], dVes['Proj'], dVes['dLeg'] = Lax, Proj, None
-        dVes['draw'], dVes['fs'] = False, fs
-        dVes['wintit'], dVes['Test'] = wintit, Test
-        Lax = GLos.Ves.plot(**dVes)
-        Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
-    if GLos.LStruct is not None:
-        if EltStruct is None:
-            if (not 'Elt' in dStruct.keys() or dStruct['Elt'] is None):
-                dStruct['Elt'] = ''
-        else:
-            dStruct['Elt'] = EltStruct
-        dStruct['Lax'], dStruct['Proj'], dStruct['dLeg'] = Lax, Proj, None
-        dStruct['draw'], dStruct['fs'] = False, fs
-        dStruct['wintit'], dStruct['Test'] = wintit, Test
-        for ii in range(0,len(GLos.LStruct)):
-            Lax = GLos.LStruct[ii].plot(**dStruct)
-            Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
+    if element_config is not '':
+        Lax = GLos.config.plot(lax=Lax, element=element_config,
+                               proj=proj, indices=False, fs=fs, tit=None,
+                               draw=False, dLeg=None, wintit=wintit, Test=Test)
+        Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
     # Select subset
     if ind is None:
@@ -839,30 +825,30 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
 
     # Check sino
     if GLos._sino is None:
-        Elt = Elt.replace('P','')
+        element = element.replace('P','')
 
-    if len(ind)>0 and not Elt=='':
+    if len(ind)>0 and not element=='':
         if Proj=='3d':
-            Lax[0] = _Rays_plot_3D(GLos, ax=Lax[0], Elt=Elt, Lplot=Lplot,
+            Lax[0] = _Rays_plot_3D(GLos, ax=Lax[0], Elt=element, Lplot=Lplot,
                                    Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                    dPtO=dPtO, dPtR=dPtR, dPtP=dPtP, dLeg=None,
                                    multi=multi, ind=ind,
                                    draw=False, fs=fs, wintit=wintit, Test=Test)
         else:
-            if Proj=='All' and None in Lax:
+            if Proj=='all' and None in Lax:
                 Lax = list(_def.Plot_LOSProj_DefAxes('All',
                                                      fs=fs, wintit=wintit,
-                                                     Type=GLos.Ves.Type))
-            if Proj in ['Cross','All']:
-                Lax[0] = _Rays_plot_Cross(GLos, ax=Lax[0], Elt=Elt, Lplot=Lplot,
+                                                     Type=GLos.config.Type))
+            if Proj in ['cross','all']:
+                Lax[0] = _Rays_plot_Cross(GLos, ax=Lax[0], Elt=element, Lplot=Lplot,
                                           Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                           dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
                                           dLeg=None, multi=multi, ind=ind,
                                           draw=False, fs=fs, wintit=wintit,
                                           Test=Test)
-            if Proj in ['Hor','All']:
-                ii = 0 if Proj=='Hor' else 1
-                Lax[ii] = _Rays_plot_Hor(GLos, ax=Lax[ii], Elt=Elt, Lplot=Lplot,
+            if Proj in ['hor','all']:
+                ii = 0 if Proj=='hor' else 1
+                Lax[ii] = _Rays_plot_Hor(GLos, ax=Lax[ii], Elt=element, Lplot=Lplot,
                                          Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                          dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
                                          dLeg=None, multi=multi, ind=ind,
@@ -872,7 +858,7 @@ def Rays_plot(GLos, Lax=None, Proj='All', Lplot=_def.LOSLplot, Elt='LDIORP',
         Lax[0].legend(**dLeg)
     if draw:
         Lax[0].figure.canvas.draw()
-    Lax = Lax if Proj=='All' else Lax[0]
+    Lax = Lax if Proj=='all' else Lax[0]
     return Lax
 
 
@@ -890,7 +876,7 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                                        Type=L.Ves.Type)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, Proj='Cross', ind=ind, multi=multi)
+        pts = L._get_plotL(Lplot=Lplot, proj='Cross', ind=ind, multi=multi)
         if multi:
             for ii in range(0,len(pts)):
                 ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
@@ -934,7 +920,7 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
         ax = _def.Plot_LOSProj_DefAxes('Hor', fs=fs,
                                        wintit=wintit, Type=L.Ves.Type)
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, Proj='Hor', ind=ind, multi=multi)
+        pts = L._get_plotL(Lplot=Lplot, proj='Hor', ind=ind, multi=multi)
         if multi:
             for ii in range(0,len(pts)):
                 ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
@@ -974,7 +960,7 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
         ax = _def.Plot_3D_plt_Tor_DefAxes(fs=fs, wintit=wintit)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, Proj='3d', ind=ind, multi=multi)
+        pts = L._get_plotL(Lplot=Lplot, proj='3d', ind=ind, multi=multi)
         if multi:
             for ii in range(0,len(pts)):
                 ax.plot(pts[ii][0,:], pts[ii][1,:], pts[ii][2,:],
