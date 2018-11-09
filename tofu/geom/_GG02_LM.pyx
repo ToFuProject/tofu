@@ -490,3 +490,5 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                 indIn[ii] = indin
 
     return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut)
+# et creer vecteurs
+#    return np.asarray(kIn), np.asarray(kOut), np.asarray(vPerpOut), np.asarray(indOut)
