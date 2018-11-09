@@ -49,4 +49,4 @@ Details
 !.travis.yml
 
 # installation dir
-./usr/
+usr/
