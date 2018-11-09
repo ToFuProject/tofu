@@ -2344,6 +2344,12 @@ class Rays(utils.ToFuObject):
                                                    fs=fs, wintit=wintit,
                                                    draw=draw)
 
+        # Handle particular cases with kMin > kMax
+        ind = np.zeros(kMin.shape,dtype=bool)
+        ind[~np.isnan(kMax)] = True
+        ind[ind] = kMin[ind] > kMax[ind]
+        kMin[ind] = 0.
+
         # Update dgeom
         dd = {'kMin':kMin, 'kMax':kMax, 'vperp':vperp, 'indout':indout}
         self._dgeom.update(dd)
@@ -2404,7 +2410,7 @@ class Rays(utils.ToFuObject):
             if np.abs(e1[2])>np.abs(e2[2]):
                 e1, e2 = e2, e1
         e2 = e2 if e2[2]>0. else -e2
-        self._geom.update({'C':C, 'nIn':nIn, 'e1':e1, 'e2':e2})
+        self._dgeom.update({'C':C, 'nIn':nIn, 'e1':e1, 'e2':e2})
 
     def set_Etendues(self, val):
         val = self._checkformat_inputs_dES(val)
@@ -2715,16 +2721,29 @@ class Rays(utils.ToFuObject):
     # public methods
     ###########
 
-    def _check_indch(self, indch):
-        if indch is not None:
-            indch = np.asarray(indch)
-            assert indch.ndim==1
-            assert indch.dtype in [np.int64,np.bool_]
-            if indch.dtype == np.bool_:
-                assert indch.size==self.nRays
-                indch = indch.nonzero()[0]
+    def _check_indch(self, ind, out=int):
+        if ind is not None:
+            ind = np.asarray(ind)
+            assert ind.ndim==1
+            assert ind.dtype in [np.int64,np.bool_]
+            if ind.dtype == np.bool_:
+                assert ind.size==self.nRays
+                if out is int:
+                    indch = ind.nonzero()[0]
+                else:
+                    indch = ind
+            else:
+                assert np.max(ind)<self.nRays
+                if out is bool:
+                    indch = np.zeros((self.nRays,),dtype=bool)
+                    indch[ind] = True
+                else:
+                    indch = ind
         else:
-            indch = np.arange(0,self.nRays)
+            if out is int:
+                indch = np.arange(0,self.nRays)
+            elif out is bool:
+                indch = np.ones((self.nRays,),dtype=bool)
         return indch
 
     def select(self, key=None, val=None, touch=None, log='any', out=int):
@@ -3230,7 +3249,7 @@ class Rays(utils.ToFuObject):
                 sig = osig
         return sig, units
 
-    def plot(self, lax=None, proj='all', Lplot=_def.LOSLplot, element='LDIORP',
+    def plot(self, lax=None, proj='all', Lplot=_def.LOSLplot, element='L',
              element_config='P', Leg='', dL=None, dPtD=_def.LOSMd,
              dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
              dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False, ind=None,
@@ -3318,7 +3337,7 @@ class Rays(utils.ToFuObject):
                                fs=fs, wintit=wintit, draw=draw, Test=Test)
 
 
-    def plot_sino(self, Proj='Cross', ax=None, Elt=_def.LOSImpElt, Sketch=True,
+    def plot_sino(self, ax=None, element=_def.LOSImpElt, Sketch=True,
                   Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Leg=None,
                   dL=_def.LOSMImpd, dVes=_def.TorPFilld, dLeg=_def.TorLegd,
                   ind=None, multi=False,
@@ -3375,22 +3394,27 @@ class Rays(utils.ToFuObject):
             The axes used to plot
 
         """
-        assert self.sino is not None, "The sinogram ref. point is not set !"
-        return _plot.GLOS_plot_Sino(self, Proj=Proj, ax=ax, Elt=Elt, Leg=Leg,
+        if self._dsino['RefPt'] is None:
+            msg = "The sinogram ref. point is not set !"
+            msg += "\n  => run self.set_dsino()"
+            raise Exception(msg)
+        return _plot.GLOS_plot_Sino(self, Proj='Cross', ax=ax, Elt=element, Leg=Leg,
                                     Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
                                     dL=dL, dVes=dVes, dLeg=dLeg,
                                     ind=ind, fs=fs, wintit=wintit,
                                     draw=draw, Test=Test)
 
-    def plot_touch(self, key=None, invert=None, plotmethod='imshow',
-                   lcol=['k','r','b','g','y','m','c'],
+    def plot_touch(self, key=None, invert=None,
+                   ind=None, plotmethod='imshow',
                    fs=None, wintit='tofu', draw=True):
         lC = [ss in self.Id.Cls for ss in ['1D','2D']]
-        if not np.um(lC)==1:
+        if not np.sum(lC)==1:
             msg = "The camera type (1D or 2D) must be specified!"
             raise Exception(msg)
-        out = _plot.Rays_plot_touch(self, key=key, invert=invert,
-                                    lcol=lcol, plotmethod=plotmethod,
+
+
+        out = _plot.Rays_plot_touch(self, key=key, ind=ind, invert=invert,
+                                    plotmethod=plotmethod,
                                     fs=fs, wintit=wintit, draw=draw)
         return out
 
@@ -3402,70 +3426,45 @@ class Rays(utils.ToFuObject):
 
 
 
-def _Rays_check_fromdict(fd):
-    assert type(fd) is dict, "Arg from dict must be a dict !"
-    k0 = {'Id':dict,'geom':dict,'sino':dict,
-          'dchans':[None,dict],
-          'Ves':[None,dict], 'LStruct':[None,list]}
-    keys = list(fd.keys())
-    for kk in k0:
-        assert kk in keys, "%s must be a key of fromdict"%kk
-        typ = type(fd[kk])
-        C = typ is k0[kk] or typ in k0[kk] or fd[kk] in k0[kk]
-        assert C, "Wrong type of fromdict[%s]: %s"%(kk,str(typ))
 
 
 
-
-
-
-
-class LOSCam1D(Rays):
-    def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
-                 Sino_RefPt=None, fromdict=None,
-                 Exp=None, Diag=None, shot=0, Etendues=None,
-                 dchans=None, SavePath=os.path.abspath('./'),
-                 plotdebug=True):
-        Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
-                 Sino_RefPt=Sino_RefPt, fromdict=fromdict, Etendues=Etendues,
-                 Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,
-                 dchans=dchans, SavePath=SavePath)
+class LOSCam1D(Rays): pass
 
 class LOSCam2D(Rays):
-    def __init__(self, Id=None, Du=None, Ves=None, LStruct=None,
-                 Sino_RefPt=None, fromdict=None, Etendues=None,
-                 Exp=None, Diag=None, shot=0, X12=None,
-                 dchans=None, SavePath=os.path.abspath('./'),
-                 plotdebug=True):
-        Rays.__init__(self, Id=Id, Du=Du, Ves=Ves, LStruct=LStruct,
-                 Sino_RefPt=Sino_RefPt, fromdict=fromdict, Etendues=Etendues,
-                 Exp=Exp, Diag=Diag, shot=shot, plotdebug=plotdebug,
-                 dchans=dchans, SavePath=SavePath)
+    def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
+                 config=None, dchans=None, X12=None,
+                 Id=None, Name=None, Exp=None, shot=None, Diag=None,
+                 sino_RefPt=None, fromdict=None,
+                 SavePath=os.path.abspath('./'), color=None, plotdebug=True):
+        kwdargs = locals()
+        del kwdargs['__class__'], kwdargs['self'], kwdargs['X12']
+        super(LOSCam2D,self).__init__(**kwdargs)
         self.set_X12(X12)
 
     def set_e12(self, e1=None, e2=None):
         assert e1 is None or (hasattr(e1,'__iter__') and len(e1)==3)
         assert e2 is None or (hasattr(e2,'__iter__') and len(e2)==3)
         if e1 is None:
-            e1 = self._geom['e1']
+            e1 = self._dgeom['e1']
         else:
             e1 = np.asarray(e1).astype(float).ravel()
         e1 = e1 / np.linalg.norm(e1)
         if e2 is None:
-            e2 = self._geom['e2']
+            e2 = self._dgeom['e2']
         else:
             e2 = np.asarray(e1).astype(float).ravel()
         e2 = e2 / np.linalg.norm(e2)
-        assert np.abs(np.sum(e1*self._geom['nIn']))<1.e-12
-        assert np.abs(np.sum(e2*self._geom['nIn']))<1.e-12
+        assert np.abs(np.sum(e1*self._dgeom['nIn']))<1.e-12
+        assert np.abs(np.sum(e2*self._dgeom['nIn']))<1.e-12
         assert np.abs(np.sum(e1*e2))<1.e-12
-        self._geom['e1'] = e1
-        self._geom['e2'] = e2
+        self._dgeom['e1'] = e1
+        self._dgeom['e2'] = e2
 
     def set_X12(self, X12=None):
         if X12 is not None:
             X12 = np.asarray(X12)
-            assert X12.shape==(2,self.Ref['nch'])
+            assert X12.shape==(2,self._dgeom['nRays'])
         self._X12 = X12
 
     def get_X12(self, out='1d'):
@@ -3473,8 +3472,8 @@ class LOSCam2D(Rays):
             Ds = self.D
             C = np.mean(Ds,axis=1)
             X12 = Ds-C[:,np.newaxis]
-            X12 = np.array([np.sum(X12*self.geom['e1'][:,np.newaxis],axis=0),
-                            np.sum(X12*self.geom['e2'][:,np.newaxis],axis=0)])
+            X12 = np.array([np.sum(X12*self._dgeom['e1'][:,np.newaxis],axis=0),
+                            np.sum(X12*self._dgeom['e2'][:,np.newaxis],axis=0)])
         else:
             X12 = self._X12
         if X12 is None or out.lower()=='1d':

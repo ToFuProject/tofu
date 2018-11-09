@@ -26,6 +26,10 @@ except Exception:
     from . import _GG as _GG
 
 
+_cdef = (0.8,0.8,0.8)
+
+
+
 # Generic
 def _check_Lax(Lax=None, n=2):
     assert n in [1,2]
@@ -562,9 +566,10 @@ def Plot_Impact_PolProjPoly(lS, Leg="", ax=None, Ang='theta', AngUnit='rad',
         pmin = np.min(ss.dsino['EnvMinMax'])
         if pmin<pPmin:
             pPmin = pmin
-    DoUp = (pPmin,pPmax)
+    if nS>0:
+        DoUp = (pPmin,pPmax)
+        nP = pmax.size
 
-    nP = pmax.size
     handles, labels = ax.get_legend_handles_labels()
     for ii in range(0,nS):
 
@@ -590,7 +595,8 @@ def Plot_Impact_PolProjPoly(lS, Leg="", ax=None, Ang='theta', AngUnit='rad',
         handles.append(proxy)
         labels.append(lS[ii].Id.Cls+' '+lS[ii].Id.Name)
 
-    ax.set_ylim(DoUp)
+    if nS>0:
+        ax.set_ylim(DoUp)
     if not dLeg is None:
         ax.legend(handles,labels,**dLeg)
     if draw:
@@ -787,7 +793,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
         assert C, "Arg GLos must be an object child of tfg.Rays !"
         Proj = Proj.lower()
         C = Proj in ['cross','hor','all','3d']
-        assert C, "Arg Proj must be in ['Cross','Hor','All','3d'] !"
+        assert C, "Arg Proj must be in ['cross','hor','all','3d'] !"
         Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
         assert type(element) is str, "Arg element must be a str !"
         C = element_config is None or type(element_config) is str
@@ -802,9 +808,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
         assert type(draw) is bool, "Arg draw must be a bool !"
 
 
-    if element_config is not '':
+    if element_config != '':
         Lax = GLos.config.plot(lax=Lax, element=element_config,
-                               proj=proj, indices=False, fs=fs, tit=None,
+                               proj=Proj, indices=False, fs=fs, tit=None,
                                draw=False, dLeg=None, wintit=wintit, Test=Test)
         Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
@@ -824,7 +830,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
             del dL['c']
 
     # Check sino
-    if GLos._sino is None:
+    if GLos._dsino['RefPt'] is None:
         element = element.replace('P','')
 
     if len(ind)>0 and not element=='':
@@ -869,8 +875,8 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                      dLeg=_def.TorLegd, multi=False, ind=None,
                      draw=True, fs=None, wintit='tofu', Test=True):
     assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
-    dPts = {'D':('D',dPtD), 'I':('PIn',dPtI), 'O':('POut',dPtO),
-            'R':('PRMin',dPtR),'P':('Pt',dPtP)}
+    dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
+            'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Cross', fs=fs, wintit=wintit,
                                        Type=L.Ves.Type)
@@ -885,10 +891,10 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
 
     for kk in dPts.keys():
         if kk in Elt:
-            P = L._sino['Pt'][:,ind] if kk=='P' else L.geom[dPts[kk][0]][:,ind]
+            P = L._dsino['RefPt'][:,ind] if kk=='P' else L._dgeom[dPts[kk][0]][:,ind]
             if len(ind)==1:
                 P = P.reshape((3,1))
-            if L.Ves.Type=='Tor':
+            if L.config.Id.Type=='Tor':
                 P = np.array([np.hypot(P[0,:],P[1,:]),P[2,:]])
             else:
                 P = P[1:,:]
@@ -913,14 +919,14 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
                    dLeg=_def.TorLegd, multi=False, ind=None,
                    draw=True, fs=None, wintit='tofu', Test=True):
     assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
-    dPts = {'D':('D',dPtD), 'I':('PIn',dPtI), 'O':('POut',dPtO),
-            'R':('PRMin',dPtR),'P':('Pt',dPtP)}
+    dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
+            'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
 
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Hor', fs=fs,
                                        wintit=wintit, Type=L.Ves.Type)
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='Hor', ind=ind, multi=multi)
+        pts = L._get_plotL(Lplot=Lplot, proj='hor', ind=ind, multi=multi)
         if multi:
             for ii in range(0,len(pts)):
                 ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
@@ -929,7 +935,7 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
 
     for kk in dPts.keys():
         if kk in Elt:
-            P = L._sino['Pt'][:,ind] if kk=='P' else L.geom[dPts[kk][0]][:,ind]
+            P = L._dsino['RefPt'][:,ind] if kk=='P' else L._dgeom[dPts[kk][0]][:,ind]
             if len(ind)==1:
                 P = P.reshape((3,1))
             if multi:
@@ -953,8 +959,8 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
                    dLeg=_def.TorLegd, multi=False, ind=None,
                    draw=True, fs=None, wintit='tofu', Test=True):
     assert ax is None or isinstance(ax,Axes3D), 'Arg ax should be plt.Axes instance !'
-    dPts = {'D':('D',dPtD), 'I':('PIn',dPtI), 'O':('POut',dPtO),
-            'R':('PRMin',dPtR),'P':('Pt',dPtP)}
+    dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
+            'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
 
     if ax is None:
         ax = _def.Plot_3D_plt_Tor_DefAxes(fs=fs, wintit=wintit)
@@ -970,7 +976,7 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
 
     for kk in dPts.keys():
         if kk in Elt:
-            P = L._sino['Pt'][:,ind] if kk=='P' else L.geom[dPts[kk][0]][:,ind]
+            P = L._dsino['RefPt'][:,ind] if kk=='P' else L._dgeom[dPts[kk][0]][:,ind]
             if len(ind)==1:
                 P = P.reshape((3,1))
             if multi:
@@ -1044,12 +1050,11 @@ def GLOS_plot_Sino(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt,
         assert Proj in ['Cross','3d'], "Arg Proj must be in ['Pol','3d'] !"
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
         assert AngUnit in ['rad','deg'], "Arg Ang must be in ['rad','deg'] !"
-    if not GLos.sino['RefPt'] is None:
-        if 'V' in Elt:
-            ax = GLos.Ves.plot_sino(ax=ax, Proj=Proj, Pdict=dVes, Ang=Ang,
-                                    AngUnit=AngUnit, Sketch=Sketch,
-                                    LegDict=None, draw=False, fs=fs,
-                                    wintit=wintit, Test=Test)
+    if not GLos.dsino['RefPt'] is None:
+        ax = GLos.config.plot_sino(ax=ax, dP=dVes, Ang=Ang,
+                                   AngUnit=AngUnit, Sketch=Sketch,
+                                   dLeg=None, draw=False, fs=fs,
+                                   wintit=wintit, Test=Test)
 
         # Select subset
         if ind is None:
@@ -1092,12 +1097,12 @@ def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad',
         ax, axSketch = _def.Plot_Impact_DefAxes('Cross', fs=fs, wintit=wintit,
                                                 Ang=Ang, AngUnit=AngUnit,
                                                 Sketch=Sketch)
-    Impp, Imptheta = L.sino['p'][ind], L.sino['theta'][ind]
+    Impp, Imptheta = L._dsino['p'][ind], L._dsino['theta'][ind]
     if Ang=='xi':
         Imptheta, Impp, bla = _GG.ConvertImpact_Theta2Xi(Imptheta, Impp, Impp)
     if multi:
         for ii in range(0,len(ind)):
-            if not L[ii]._sino['RefPt'] is None:
+            if not L[ii]._dsino['RefPt'] is None:
                 ax.plot(Imptheta[ii],Impp[ii],label=Leg[ind[ii]], **dL)
     else:
         ax.plot(Imptheta,Impp,label=Leg, **dL)
@@ -1148,19 +1153,31 @@ def _make_cmap(c):
 
 
 
-def Rays_plot_touch(Cam, key=None, invert=None, plotmethod='imshow',
-                    lcol=['k','r','b','g','y','m','c'],
+def Rays_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
+                    invert=None, plotmethod='imshow',
                     fs=None, wintit='tofu', draw=True):
+
+    if type(Cam) is list:
+        assert all([cc.config==Cam[0].config for cc in Cam])
+    if ind is not None and type(Cam) is list and len(Cam)>1:
+        msg = "Cannot provide ind if Cam is a list !"
+        raise Exception(msg)
+    if ind is not None:
+        if type(Cam) is list:
+            ind = Cam[0]._check_indch(ind,out=bool)
+        else:
+            ind = Cam._check_indch(ind,out=bool)
+
 
     if type(Cam) is list or '1D' in Cam.Id.Cls:
         if not type(Cam) is list:
             Cam = [Cam]
-        out = _Cam1D_plot_touch(Cam, key=key, lcol=lcol,
+        out = _Cam1D_plot_touch(Cam, key=key, ind=ind, cdef=cdef,
                                 fs=fs, wintit=wintit, draw=draw)
     else:
         invert = True if invert is None else invert
-        out = _Cam2D_plot_touch(Cam, lcol=lcol, invert=invert,
-                                plotmethod=plotmethod,
+        out = _Cam2D_plot_touch(Cam, ind=ind, cdef=cdef,
+                                invert=invert, plotmethod=plotmethod,
                                 fs=fs, wintit=wintit, draw=draw)
     return out
 
@@ -1190,15 +1207,14 @@ def  _Cam1D_plot_touch_init(fs=None, wintit='tofu', Max=4):
     return dax
 
 
-def _Cam1D_plot_touch(Cam, key=None,
-                 lcol=['k','r','b','g','y','m','c'],
-                 Max=4, fs=None, wintit='tofu', draw=True):
+def _Cam1D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
+                      Max=4, fs=None, wintit='tofu', draw=True):
 
     # Prepare
     if 'LOS' in Cam[0].Id.Cls:
         Dname = 'LOS length'
         Dunits = r"$m$"
-        data = [cc.geom['kPOut']-cc.geom['kPIn'] for cc in Cam]
+        data = [cc._dgeom['kMax']-cc._dgeom['kMin'] for cc in Cam]
         data = np.concatenate(tuple(data))
     else:
         Dname = 'VOS volume'
@@ -1208,46 +1224,71 @@ def _Cam1D_plot_touch(Cam, key=None,
     Dd = [min(0,np.nanmin(data)), 1.2*np.nanmax(data)]
 
     nch = data.size
+    nchmax = min(nch,50)
+    if nch>nchmax:
+        indchans = np.arange(0,nch, nch//nchmax)
+    else:
+        indchans = np.arange(0,nch)
     chans = np.arange(0,nch)
     Dchans = [-1,nch]
     if key is None:
         chlab = chans
     else:
-        chlab = itt.chain.from_iterable([cc.dchans[kk] for cc in Cam])
+        chlab = itt.chain.from_iterable([cc._dchans[kk] for cc in Cam])
 
+    lS = [cc.lStruct_computeInOut for cc in Cam]
+    lS = lS[0] if len(lS)==1 else list(itt.chain.from_iterable(lS))
+    lSP = [os.path.join(s.Id.SavePath,s.Id.SaveName) for s in lS]
+    lS = [lS[lSP.index(ss)] for ss in list(set(lSP))]
+
+    if ind is not None:
+        indl = np.zeros((Cam[0].nRays,),dtype=int)
+        indl[ind] = np.arange(0,ind.sum())
+
+    dElt = {}
+    for ss in lS:
+        kn = ss.Id.Cls+'_'+ss.Id.Name
+        inde = []
+        for cc in Cam:
+            try:
+                ii = cc.select(touch=kn,out=bool)
+            except:
+                ii = np.zeros((cc.nRays,),dtype=bool)
+            inde.append(ii)
+        inde = np.concatenate(tuple(inde))
+        if ind is not None:
+            indi = indl[inde]
+            inde[:] = inde & ind
+        else:
+            indi = inde.nonzero()[0]
+        dElt[kn] = {'inde':inde.nonzero()[0], 'indi':indi, 'c':ss.get_color()}
+
+    nan = np.full((2,1),np.nan)
     if 'LOS' in Cam[0].Id.Cls:
-        lCross = [cc._get_plotL(Lplot='In', Proj='Cross', multi=True)
-                  for cc in Cam]
-        lHor = [cc._get_plotL(Lplot='In', Proj='Hor', multi=True)
-                for cc in Cam]
-        lCross = list(itt.chain.from_iterable(lCross))
-        lHor = list(itt.chain.from_iterable(lHor))
+        if ind is not None:
+            lCross = Cam[0]._get_plotL(Lplot='In', proj='cross', ind=ind, multi=True)
+            lHor = Cam[0]._get_plotL(Lplot='In', proj='hor', ind=ind, multi=True)
+        else:
+            lCross = [cc._get_plotL(Lplot='In', proj='Cross', multi=True)
+                      for cc in Cam]
+            lHor = [cc._get_plotL(Lplot='In', proj='Hor', multi=True)
+                    for cc in Cam]
+            lCross = list(itt.chain.from_iterable(lCross))
+            lHor = list(itt.chain.from_iterable(lHor))
+        for ee in dElt.keys():
+            if dElt[ee]['inde'].size>0:
+                cr = [np.concatenate((lCross[ii],nan),axis=1)
+                      for ii in dElt[ee]['indi']]
+                cr = np.concatenate(tuple(cr),axis=1)
+                hh = [np.concatenate((lHor[ii],nan),axis=1)
+                      for ii in dElt[ee]['indi']]
+                hh = np.concatenate(tuple(hh),axis=1)
+                dElt[ee]['cr'] = cr
+                dElt[ee]['hh'] = hh
+
     else:
         raise Exception("Not coded yet !")
 
-
-    lS = [cc.LStruct for cc in Cam if cc.LStruct is not None]
-    if len(lS)==0:
-        lS = None
-    else:
-        lS = lS[0] if len(lS)==1 else list(itt.chain.from_iterable(lS))
-        lSP = [os.path.join(s.Id.SavePath,s.Id.SaveName) for s in lS]
-        lS = [lS[lSP.index(ss)] for ss in list(set(lSP))]
-
-    lElt = ['Ves']
-    if lS is not None:
-        lElt += [ss.Id.Name for ss in lS]
-    dElt = {}
-    for ee in lElt:
-        ind = []
-        for cc in Cam:
-            try:
-                ii = cc.select(touch=ee,out=bool)
-            except:
-                ii = np.zeros((cc.nRays,),dtype=bool)
-            ind.append(ii)
-        ind = np.concatenate(tuple(ind))
-        dElt[ee] = {'ind':ind}
 
     # Format axes
     dax = _Cam1D_plot_touch_init(fs=fs, wintit=wintit)
@@ -1257,34 +1298,22 @@ def _Cam1D_plot_touch(Cam, key=None,
     dax['prof'][0].set_xlim(Dchans),   dax['prof'][0].set_ylim(Dd)
     dax['prof'][0].set_xlabel(r"", fontsize=8)
     dax['prof'][0].set_ylabel(r"%s (%s)"%(Dname,Dunits), fontsize=8)
-    dax['prof'][0].set_xticks(chans)
-    dax['prof'][0].set_xticklabels(chlab, rotation=45)
+    dax['prof'][0].set_xticks(chans[indchans])
+    dax['prof'][0].set_xticklabels([chlab[ii] for ii in indchans], rotation=45)
 
     # Plot fixed parts
-    if Cam[0].Ves is not None:
-        dax['2D'] = Cam[0].Ves.plot(Lax=dax['2D'], Elt='P', dLeg=None)
-        if lS is not None:
-            for ss in lS:
-                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
-    jj = 0
-    for ee in lElt:
-        ind = dElt[ee]['ind'].nonzero()[0]
-        if ind.size>0:
-            if type(lcol) is list:
-                c = lcol[jj]
-            else:
-                c = lcol[[kk for kk in lcol.keys() if kk in ee][0]]
-            dax['prof'][0].plot(chans[ind], data[ind],
+    if Cam[0].config is not None:
+        dax['2D'] = Cam[0].config.plot(lax=dax['2D'], element='P', dLeg=None)
+
+    for ee in dElt.keys():
+        if dElt[ee]['inde'].size>0:
+            c, inde = dElt[ee]['c'], dElt[ee]['inde']
+            cr, hh = dElt[ee]['cr'], dElt[ee]['hh']
+            dax['prof'][0].plot(chans[inde], data[inde],
                                 ls='None', marker='x', ms=8, c=c)
             if 'LOS' in Cam[0].Id.Cls:
-                cr = [np.concatenate((lCross[ii],np.full((2,1),np.nan)),axis=1)
-                      for ii in ind]
-                cr = np.concatenate(tuple(cr),axis=1)
-                hh = [np.concatenate((lHor[ii],np.full((2,1),np.nan)),axis=1) for ii in ind]
-                hh = np.concatenate(tuple(hh),axis=1)
                 dax['2D'][0].plot(cr[0,:], cr[1,:], ls='-', lw=1., c=c)
                 dax['2D'][1].plot(hh[0,:], hh[1,:], ls='-', lw=1., c=c)
-            jj += 1
 
     if draw:
         dax['prof'][0].figure.canvas.draw()
@@ -1341,15 +1370,15 @@ def _Cam2D_plot_touch_init(fs=None, wintit='tofu', Max=4):
 
 
 
-def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
-                      lcol=['k','r','b','g','y','m','c'],
-                      Max=4, invert=False, fs=None, wintit='tofu', draw=True):
+def _Cam2D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
+                      plotmethod='scatter', invert=False,
+                      Max=4, fs=None, wintit='tofu', draw=True):
 
     # Prepare
     if 'LOS' in Cam.Id.Cls:
         Dname = 'LOS length'
         Dunits = r"$m$"
-        data = Cam.geom['kPOut']-Cam.geom['kPIn']
+        data = Cam.kMax-Cam.kMin
         data[np.isinf(data)] = np.nan
     else:
         Dname = 'VOS volume'
@@ -1371,30 +1400,40 @@ def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
     DX2 = [np.nanmin(X12[1,:])-DX12[1]/2.,np.nanmax(X12[1,:])+DX12[1]/2.]
 
     if 'LOS' in Cam.Id.Cls:
-        lCross = Cam._get_plotL(Lplot='In', Proj='Cross', multi=True)
-        lHor = Cam._get_plotL(Lplot='In', Proj='Hor', multi=True)
+        lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
+        lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
     else:
         raise Exception("Not coded yet !")
 
-    # Prepare colors
+    # Get colors
     norm = mpl.colors.Normalize(vmin=np.nanmin(data),vmax=1.1*np.nanmax(data))
-    lS = Cam.LStruct
-    lElt = ['Ves']
-    if lS is not None:
-        lElt += [ss.Id.Name for ss in lS]
-    dElt, jj = {}, 0
+    if ind is not None:
+        cmapdef = _make_cmap(cdef)
+        scamapdef = mpl.cm.ScalarMappable(norm=norm, cmap=cmapdef)
+    lS = Cam.lStruct_computeInOut
     cols = np.full((data.size,4),np.nan)
-    for ee in lElt:
-        ind = Cam.select(touch=ee,out=bool)
-        if np.any(ind):
-            if type(lcol) is list:
-                c = lcol[jj%len(lcol)]
-            else:
-                c = lcol[[kk for kk in lcol.keys() if kk in ee][0]]
-            cmap = _make_cmap(c)
-            dElt[ee] = {'ind':ind, 'cmap':cmap}
-            cols[ind,:] = mpl.cm.ScalarMappable(norm=norm, cmap=cmap).to_rgba(data[ind])
-            jj += 1
+    dElt = {}
+    for ss in lS:
+        kn = ss.Id.Cls+'_'+ss.Id.Name
+        inde = Cam.select(touch=kn,out=bool)
+        if ind is not None:
+            #indi = indl[inde]
+            indin = inde & ind
+            indout = inde & (~ind)
+        #else:
+            #indi = inde.nonzero()[0]
+        c = ss.get_color()[:-1]
+        cmap = _make_cmap(c)
+        scamap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+        if ind is None:
+            cols[inde,:] = scamap.to_rgba(data[inde])
+        else:
+            cols[indin,:] = scamap.to_rgba(data[indin])
+            cols[indout,:] = scamapdef.to_rgba(data[indout])
+        #dElt[kn] = {'inde':inde.nonzero()[0], 'indi':indi, 'c':c}
+
+
+    # Prepare colors
     if plotmethod=='imshow':
         x1u, x2u, ind, DX12 = utils.get_X12fromflat(X12)
         nx1, nx2 = x1u.size, x2u.size
@@ -1407,11 +1446,7 @@ def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
 
 
     # Plot fixed parts
-    if Cam.Ves is not None:
-        dax['2D'] = Cam.Ves.plot(Lax=dax['2D'], Elt='P', dLeg=None)
-        if lS is not None:
-            for ss in lS:
-                dax['2D'] = ss.plot(Lax=dax['2D'], Elt='P', dLeg=None)
+    dax['2D'] = Cam.config.plot(lax=dax['2D'], element='P', dLeg=None)
 
     if plotmethod=='scatter':
         dax['prof'][0].scatter(X12[0,:],X12[1,:], c=cols,
@@ -1423,9 +1458,13 @@ def _Cam2D_plot_touch(Cam, key=None, plotmethod='scatter',
 
     # Plot LOS
     if 'LOS' in Cam.Id.Cls:
-        lCross = Cam._get_plotL(Lplot='In', Proj='Cross', multi=True)
-        lHor = Cam._get_plotL(Lplot='In', Proj='Hor', multi=True)
-        llab = [Cam.Id.Name + s for s in Cam.dchans['Name']]
+        lCross = Cam._get_plotL(Lplot='In', proj='Cross', multi=True)
+        lHor = Cam._get_plotL(Lplot='In', proj='Hor', multi=True)
+        if 'Name' in Cam.dchans.keys():
+            llab = [Cam.Id.Name + s for s in Cam.dchans['Name']]
+        else:
+            llab = [Cam.Id.Name + '-{0}'.format(ii)
+                    for ii in range(0,Cam.nRays)]
 
         dlosc = {'los':[{'h':[],'xy':lCross, 'xref':chans}]}
         dlosh = {'los':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':chans}]}
