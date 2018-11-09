@@ -6,94 +6,8 @@ import time
 import pstats, cProfile
 
 
-def test_LOS_west_Aconfig(config) :
-    out = load_config(config, plot=False)
-    ves = out["Ves"]
 
-    # 1 LOS .............................
-    Du = get_Du("V1")
-    # cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
-    # # for plot Calc_Los_PInOut_Tor is being called....
-    # cam.plot(Elt='L', EltVes="P")
-    # plt.show(block=True)
-    out = _GG.LOS_Calc_PInOut_VesStruct(Du[0],
-                                        Du[1]/np.sqrt(np.sum(Du[1]**2, axis=0)),
-                                        ves.Poly,
-                                        ves.geom['VIn'],
-                                        Lim=ves.Lim,
-                                        VType=ves.Type)
-
-    # 10 LOS .............................
-    Du = get_Du("V10")
-    # cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
-    # # for plot Calc_Los_PInOut_Tor is being called....
-    # cam.plot(Elt='L', EltVes="P")
-    # plt.show(block=True)
-    out = _GG.LOS_Calc_PInOut_VesStruct(Du[0],
-                                        Du[1]/np.sqrt(np.sum(Du[1]**2, axis=0)),
-                                        ves.Poly, 
-                                        ves.geom['VIn'],
-                                        Lim=ves.Lim,
-                                        VType=ves.Type)
-
-
-    # 100 LOS .............................
-    Du = get_Du("V100")
-    # cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
-    # # for plot Calc_Los_PInOut_Tor is being called....
-    # cam.plot(Elt='L', EltVes="P")
-    # plt.show(block=True)
-    out = _GG.LOS_Calc_PInOut_VesStruct(Du[0],
-                                        Du[1]/np.sqrt(np.sum(Du[1]**2, axis=0)),
-                                        ves.Poly,
-                                        ves.geom['VIn'],
-                                        Lim=ves.Lim,
-                                        VType=ves.Type)
-
-
-    # 1000 LOS .............................
-    Du = get_Du("V1000")
-    # cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
-    # # for plot Calc_Los_PInOut_Tor is being called....
-    # cam.plot(Elt='L', EltVes="P")
-    # plt.show(block=True)
-    out = _GG.LOS_Calc_PInOut_VesStruct(Du[0], Du[1]/np.sqrt(np.sum(Du[1]**2, axis=0)), ves.Poly,
-                                        ves.geom['VIn'],
-                                        Lim=ves.Lim,
-                                        VType=ves.Type)
-
-    # 10000 LOS .............................
-    Du = get_Du("V10000")
-    # cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
-    # # for plot Calc_Los_PInOut_Tor is being called....
-    # cam.plot(Elt='L', EltVes="P")
-    # plt.show(block=True)
-    out = _GG.LOS_Calc_PInOut_VesStruct(Du[0], Du[1]/np.sqrt(np.sum(Du[1]**2, axis=0)), ves.Poly,
-                                        ves.geom['VIn'],
-                                        Lim=ves.Lim,
-                                        VType=ves.Type)
-
-    # 100000 LOS .............................
-    Du = get_Du("V100000")
-    # cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
-    out = _GG.LOS_Calc_PInOut_VesStruct(Du[0],
-                                        Du[1]/np.sqrt(np.sum(Du[1]**2, axis=0)),
-                                        ves.Poly,
-                                        ves.geom['VIn'],
-                                        Lim=ves.Lim,
-                                        VType=ves.Type)
- 
-    # 1000000 LOS .............................
-    Du = get_Du("V1000000")
-    # cam = tf.geom.LOSCam1D(Id="Test", Du = Du, Ves = ves)
-    out = _GG.LOS_Calc_PInOut_VesStruct(Du[0],
-                                        Du[1]/np.sqrt(np.sum(Du[1]**2, axis=0)),
-                                        ves.Poly,
-                                        ves.geom['VIn'],
-                                        Lim=ves.Lim,
-                                        VType=ves.Type)
-
-def test_LOS_west_Aconfig_short(config, cams, plot=False):
+def test_LOS_west_Aconfig(config, cams, plot=False, save=False, saveCam=[]):
     dconf = load_config(config, plot=plot)
     if plot:
         plt.show(block=True)
@@ -109,11 +23,18 @@ def test_LOS_west_Aconfig_short(config, cams, plot=False):
                                             Lim=ves.Lim,
                                             VType=ves.Type)
         elapsed = time.time() - start
+        if save and vcam in saveCam :
+            np.savez("out_sin_"+config+"_"+vcam+".npz", out[0])
+            np.savez("out_sout_"+config+"_"+vcam+".npz", out[1])
+            np.savez("out_vperpin_"+config+"_"+vcam+".npz", out[2])
+            np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[3])
+            np.savez("out_indin_"+config+"_"+vcam+".npz", out[4])
+            np.savez("out_indout_"+config+"_"+vcam+".npz", out[5])
         times.append(elapsed)
     return times
 
 
-def test_LOS_west_Bconfig(config, cams, plot=False):
+def test_LOS_west_Bconfig(config, cams, plot=False, save=False, saveCam=[]):
     dconf = load_config(config, plot=plot)
     if plot:
         plt.show(block=True)
@@ -136,19 +57,31 @@ def test_LOS_west_Bconfig(config, cams, plot=False):
                                             LSVIn=lSVIn,
                                             VType=ves.Type)
         elapsed = time.time() - start
+        if save and vcam in saveCam :
+            np.savez("out_sin_"+config+"_"+vcam+".npz", out[0])
+            np.savez("out_sout_"+config+"_"+vcam+".npz", out[1])
+            np.savez("out_vperpin_"+config+"_"+vcam+".npz", out[2])
+            np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[3])
+            np.savez("out_indin_"+config+"_"+vcam+".npz", out[4])
+            np.savez("out_indout_"+config+"_"+vcam+".npz", out[5])
         times.append(elapsed)
     return times
 
-def test_LOS_compact():
+def test_LOS_compact(save=False, saveCam=[]):
     Cams = ["V1", "V10", "V100", "V1000", "V10000",
             "V100000", "V1000000"]
+    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
+            "VA100000", "VA1000000"]
     Aconfigs = ["A1", "A2", "A3"]
     Bconfigs = ["B1"]#, "B2", "B3"]
     for icon in Aconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_Aconfig_short(icon, Cams)
+        if icon == "A2":
+            times = test_LOS_west_Aconfig(icon, CamsA, save=save, saveCam=saveCam)
+        else:
+            times = test_LOS_west_Aconfig(icon, Cams, save=save, saveCam=saveCam)
         for ttt in times:
             print(ttt)
 
@@ -156,20 +89,25 @@ def test_LOS_compact():
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_Bconfig(icon, Cams)
+        times = test_LOS_west_Bconfig(icon, Cams, save=save, saveCam=saveCam)
         for ttt in times:
             print(ttt)
 
-def test_LOS_all():
+def test_LOS_all(save=False, saveCam=[]):
     Cams = ["V1", "V10", "V100", "V1000", "V10000",
             "V100000", "V1000000"]
+    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
+             "VA100000", "VA1000000"]
     Aconfigs = ["A1", "A2", "A3"]
     Bconfigs = ["B1", "B2", "B3"]
     for icon in Aconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_Aconfig_short(icon, Cams)
+        if icon == 2:
+            times = test_LOS_west_Aconfig(icon, CamsA, save=save, saveCam=saveCam)
+        else:
+            times = test_LOS_west_Aconfig(icon, Cams, save=save, saveCam=saveCam)
         for ttt in times:
             print(ttt)
 
@@ -177,7 +115,7 @@ def test_LOS_all():
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_Bconfig(icon, Cams)
+        times = test_LOS_west_Bconfig(icon, Cams, save=save, saveCam=saveCam)
         print(times)
         for ttt in times:
             print(ttt)
@@ -194,13 +132,13 @@ def test_LOS_profiling():
             print(ttt)
 
 def test_LOS_profilingA():
-    Cams = ["V1000000"]
+    CamsA = ["VA1000000"]
     Aconfigs = ["A2"]
     for icon in Aconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_Aconfig_short(icon, Cams)
+        times = test_LOS_west_Aconfig(icon, Cams)
         for ttt in times:
             print(ttt)
 
@@ -214,9 +152,65 @@ def test_LOS_cprofiling(num=0):
     s = pstats.Stats("Profile.prof")
     s.strip_dirs().sort_stats("cumtime").print_stats()
 
- 
+
+def plot_all_configs():
+    ABconfigs = ["A1", "A2", "A3", "B1", "B2", "B3"]
+    for config in ABconfigs:
+        out = load_config(config, plot=True)
+        plt.savefig("config"+config)
+
+def touch_plot_all_configs():
+    ABconfigs = ["A1", "A2", "A3", "B1", "B2", "B3"]
+    Cams = ["V1", "V10", "V100", "V1000", "V10000",
+            "V100000", "V1000000"]
+    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
+            "VA100000", "VA1000000"]
+
+    for indx, config in enumerate(ABconfigs):
+        dconfig = load_config(config, plot=False)
+        indcam = -1
+        if indx < 3:
+            indcam = indcam-1
+        else:
+            indcam = indcam-2
+        if indx == 1:
+            cam = CamsA[indcam]
+        else:
+            cam = Cams[indcam]
+        (D,u) = get_Du(cam)
+        if 'Struct' in dconfig.keys():
+            LStruct = list(dconfig['Struct'].values())
+        else:
+            LStruct = None
+
+        # Create the LOSCam2D object
+        Cam = tf.geom.LOSCam2D(Id=cam, Du=(D,u), Ves=dconfig['Ves'], LStruct=LStruct)
+        Cam.plot_touch()
+        plt.savefig("plottouch_dconfig"+config+"_"+cam)
+
+def touch_plot_config_cam(config, cam):
+    dconfig = load_config(config, plot=True)
+    (D,u) = get_Du(cam)
+    if 'Struct' in dconfig.keys():
+        LStruct = list(dconfig['Struct'].values())
+    else:
+        LStruct = None
+
+    # Create the LOSCam2D object
+    Cam = tf.geom.LOSCam2D(Id=cam, Du=(D,u), Ves=dconfig['Ves'], LStruct=LStruct)
+    Cam.plot(Elt='L', EltVes='P', EltStruct='P')
+    plt.savefig("erasemeplz")
+    Cam.plot_touch()
+    plt.savefig("plottouch_dconfig"+config+"_"+cam)
+
+
+    
 if __name__ == "__main__":
     # test_LOS_compact()
-    # test_LOS_all()
-    #test_LOS_profiling()
-    test_LOS_cprofiling()
+    test_LOS_all(save=True,saveCam=["V1000"])
+    # test_LOS_profiling()
+    # test_LOS_cprofiling()
+    # plot_all_configs()
+    # touch_plot_all_configs()
+    #touch_plot_config_cam("A2", "VA100")
+
