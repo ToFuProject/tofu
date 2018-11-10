@@ -17,17 +17,23 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # ToFu-specific
 try:
+    from tofu.version import __version__
     import tofu.utils as utils
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
 except Exception:
+    from tofu.version import __version__
     from .. import utils as utils
     from . import _def as _def
     from . import _GG as _GG
 
 
+__author_email__ = 'didier.vezinet@cea.fr'
+_fontsize = 8
+_wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
+_nchMax = 4
 _cdef = (0.8,0.8,0.8)
-
+_lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 
 
 # Generic
@@ -138,7 +144,7 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
                 dI=None, dBs=None, dBv=None,
                 dVect=None, dIHor=None, dBsHor=None, dBvHor=None,
                 Lim=None, Nstep=None, dLeg=None, indices=False,
-                draw=True, fs=None, wintit='tofu', tit=None, Test=True):
+                draw=True, fs=None, wintit=None, tit=None, Test=True):
     """ Plot the projections of a list of Struct subclass instances
 
     D. VEZINET, Aug. 2014
@@ -168,6 +174,8 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
     if C0:
         lS = [lS]
     nS = len(lS)
+    if wintit is None:
+        wintit = _wintit
 
     kwa = dict(fs=fs, wintit=wintit, Test=Test)
     if proj=='3d':
@@ -238,7 +246,7 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV',
                         Pdict=_def.TorPd, Idict=_def.TorId, Bsdict=_def.TorBsd,
                         Bvdict=_def.TorBvd, Vdict=_def.TorVind,
                         LegDict=_def.TorLegd, indices=False,
-                        draw=True, fs=None, wintit='tofu', Test=True):
+                        draw=True, fs=None, wintit=_wintit, Test=True):
     """ Plot the poloidal projection of a Ves instance
 
     Parameters
@@ -321,7 +329,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
                       Pdict=_def.TorPd, Idict=_def.TorITord,
                       Bsdict=_def.TorBsTord, Bvdict=_def.TorBvTord,
                       LegDict=_def.TorLegd, indices=False,
-                      draw=True, fs=None, wintit='tofu', Test=True):
+                      draw=True, fs=None, wintit=_wintit, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     Parameters
@@ -451,7 +459,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
 def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=None,
                      Nstep=_def.Tor3DThetamin, Pdict=_def.TorP3Dd,
                      LegDict=_def.TorLegd,
-                     draw=True, fs=None, wintit='tofu', Test=True):
+                     draw=True, fs=None, wintit=_wintit, Test=True):
     if Test:
         msg = 'Arg ax should a plt.Axes instance !'
         assert isinstance(ax,Axes3D) or ax is None, msg
@@ -519,7 +527,7 @@ def Plot_3D_mlab_Tor(T,fig='None',thetaLim=(np.pi/2,2*np.pi),Tdict=Dict_3D_mlab_
 def Plot_Impact_PolProjPoly(lS, Leg="", ax=None, Ang='theta', AngUnit='rad',
                             Sketch=True, dP=None,
                             dLeg=_def.TorLegd, draw=True, fs=None,
-                            wintit='tofu', tit=None, Test=True):
+                            wintit=None, tit=None, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -550,6 +558,8 @@ def Plot_Impact_PolProjPoly(lS, Leg="", ax=None, Ang='theta', AngUnit='rad',
 
     # Get Sketch
     if ax is None:
+        if wintit is None:
+            wintit = _wintit
         ax, axsketch = _def.Plot_Impact_DefAxes('Cross', fs=fs, wintit=wintit,
                                                 Ang=Ang, AngUnit=AngUnit,
                                                 Sketch=Sketch)
@@ -608,7 +618,7 @@ def Plot_Impact_PolProjPoly(lS, Leg="", ax=None, Ang='theta', AngUnit='rad',
 def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
                        AngUnit=_def.TorPAngUnit, Pdict=_def.TorP3DFilld,
                        dLeg=_def.TorLegd,
-                       draw=True, fs=None, wintit='tofu', Test=True):
+                       draw=True, fs=None, wintit=_wintit, Test=True):
     """ Plotting the toroidal projection of a Ves instance
 
     D. VEZINET, Aug. 2014
@@ -689,7 +699,7 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
 ############################################
 
 def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3,
-                                 fs=None, wintit="tofu", draw=True):
+                                 fs=None, wintit=_wintit, draw=True):
     # Preformat
     assert Ds.shape==us.shape==PIns.shape==POuts.shape
     if Ds.ndim==1:
@@ -786,7 +796,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
               Leg=None, dL=None, dPtD=_def.LOSMd,
               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
               dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False,
-              draw=True, fs=None, wintit='tofu', Test=True, ind=None):
+              draw=True, fs=None, wintit=None, Test=True, ind=None):
 
     if Test:
         C = GLos.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']
@@ -807,6 +817,8 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
         assert type(dLeg) is dict or dLeg is None, 'dLeg must be dict !'
         assert type(draw) is bool, "Arg draw must be a bool !"
 
+    if wintit is None:
+        wintit = _wintit
 
     if element_config != '':
         Lax = GLos.config.plot(lax=Lax, element=element_config,
@@ -873,7 +885,7 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                      dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                      dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                      dLeg=_def.TorLegd, multi=False, ind=None,
-                     draw=True, fs=None, wintit='tofu', Test=True):
+                     draw=True, fs=None, wintit=_wintit, Test=True):
     assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
     dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
             'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
@@ -917,7 +929,7 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
                    dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                    dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                    dLeg=_def.TorLegd, multi=False, ind=None,
-                   draw=True, fs=None, wintit='tofu', Test=True):
+                   draw=True, fs=None, wintit=_wintit, Test=True):
     assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
     dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
             'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
@@ -957,7 +969,7 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
                    dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                    dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                    dLeg=_def.TorLegd, multi=False, ind=None,
-                   draw=True, fs=None, wintit='tofu', Test=True):
+                   draw=True, fs=None, wintit=_wintit, Test=True):
     assert ax is None or isinstance(ax,Axes3D), 'Arg ax should be plt.Axes instance !'
     dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
             'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
@@ -1045,11 +1057,13 @@ def GLOS_plot_Sino(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt,
                    Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
                    Leg=None, dL=_def.LOSMImpd, dVes=_def.TorPFilld,
                    dLeg=_def.TorLegd, ind=None, multi=False,
-                   draw=True, fs=None, wintit='tofu', Test=True):
+                   draw=True, fs=None, wintit=None, Test=True):
     if Test:
         assert Proj in ['Cross','3d'], "Arg Proj must be in ['Pol','3d'] !"
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
         assert AngUnit in ['rad','deg'], "Arg Ang must be in ['rad','deg'] !"
+    if wintit is None:
+        wintit = _wintit
     if not GLos.dsino['RefPt'] is None:
         ax = GLos.config.plot_sino(ax=ax, dP=dVes, Ang=Ang,
                                    AngUnit=AngUnit, Sketch=Sketch,
@@ -1090,7 +1104,7 @@ def GLOS_plot_Sino(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt,
 def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad',
                              Sketch=True, dL=_def.LOSMImpd, LegDict=_def.TorLegd,
                              ind=None, multi=False,
-                             draw=True, fs=None, wintit='tofu', Test=True):
+                             draw=True, fs=None, wintit=_wintit, Test=True):
     if Test:
         assert ax is None or isinstance(ax,plt.Axes), 'Arg ax should be Axes instance !'
     if ax is None:
@@ -1115,7 +1129,7 @@ def _Plot_Sinogram_CrossProj(L, ax=None, Leg ='', Ang='theta', AngUnit='rad',
 
 def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad',
                       dL=_def.LOSMImpd, ind=None, multi=False,
-                      draw=True, fs=None, wintit='tofu', LegDict=_def.TorLegd):
+                      draw=True, fs=None, wintit=_wintit, LegDict=_def.TorLegd):
     assert ax is None or isinstance(ax,plt.Axes), 'Arg ax should be Axes instance !'
     if ax is None:
         ax = _def.Plot_Impact_DefAxes('3D', fs=fs, wintit=wintit)
@@ -1155,7 +1169,8 @@ def _make_cmap(c):
 
 def Rays_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
                     invert=None, plotmethod='imshow',
-                    fs=None, wintit='tofu', draw=True):
+                    nchMax=_nchMax, lcch=_lcch, fs=None, wintit=None, tit=None,
+                    fontsize=_fontsize, draw=True, connect=True):
 
     if type(Cam) is list:
         assert all([cc.config==Cam[0].config for cc in Cam])
@@ -1168,21 +1183,24 @@ def Rays_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
         else:
             ind = Cam._check_indch(ind,out=bool)
 
+    if wintit is None:
+        wintit = _wintit
 
     if type(Cam) is list or '1D' in Cam.Id.Cls:
         if not type(Cam) is list:
             Cam = [Cam]
         out = _Cam1D_plot_touch(Cam, key=key, ind=ind, cdef=cdef,
-                                fs=fs, wintit=wintit, draw=draw)
+                                fs=fs, wintit=wintit, tit=tit, draw=draw)
     else:
         invert = True if invert is None else invert
-        out = _Cam2D_plot_touch(Cam, ind=ind, cdef=cdef,
+        out = _Cam2D_plot_touch(Cam, ind=ind, cdef=cdef, nchMax=nchMax,
                                 invert=invert, plotmethod=plotmethod,
-                                fs=fs, wintit=wintit, draw=draw)
+                                lcch=lcch, fs=fs, wintit=wintit, tit=tit,
+                                fontsize=fontsize, draw=draw, connect=connect)
     return out
 
 
-def  _Cam1D_plot_touch_init(fs=None, wintit='tofu', Max=4):
+def  _Cam1D_plot_touch_init(fs=None, wintit=_wintit, nchMax=_nchMax):
     axCol = "w"
     if fs is None:
         fs = (10,7)
@@ -1208,7 +1226,7 @@ def  _Cam1D_plot_touch_init(fs=None, wintit='tofu', Max=4):
 
 
 def _Cam1D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
-                      Max=4, fs=None, wintit='tofu', draw=True):
+                      nchMax=_nchMax, fs=None, tit=None, wintit=_wintit, draw=True):
 
     # Prepare
     if 'LOS' in Cam[0].Id.Cls:
@@ -1292,8 +1310,6 @@ def _Cam1D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
 
     # Format axes
     dax = _Cam1D_plot_touch_init(fs=fs, wintit=wintit)
-    tit = r"%s - %s"%(Cam[0].Id.Exp,Cam[0].Id.Diag)
-    dax['prof'][0].figure.suptitle(tit)
 
     dax['prof'][0].set_xlim(Dchans),   dax['prof'][0].set_ylim(Dd)
     dax['prof'][0].set_xlabel(r"", fontsize=8)
@@ -1304,6 +1320,11 @@ def _Cam1D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
     # Plot fixed parts
     if Cam[0].config is not None:
         dax['2D'] = Cam[0].config.plot(lax=dax['2D'], element='P', dLeg=None)
+    if tit is None:
+        tit = r"%s - %s"%(Cam[0].Id.Exp,Cam[0].Id.Diag)
+        if len(Cam)==1:
+            tit += r" - %s"%Cam[0].Id.Name
+    dax['prof'][0].figure.suptitle(tit)
 
     for ee in dElt.keys():
         if dElt[ee]['inde'].size>0:
@@ -1320,10 +1341,40 @@ def _Cam1D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
     return dax
 
 
-# Cam2D
+###################################################
+###################################################
+#           Data2D
+###################################################
+###################################################
 
+class KH2D(utils.KeyHandler):
 
-def _Cam2D_plot_touch_init(fs=None, wintit='tofu', Max=4):
+    def __init__(self, can, daxT, ntMax=3, nchMax=3):
+
+        utils.KeyHandler.__init__(self, can, daxT=daxT,
+                                  ntMax=ntMax, nchMax=nchMax, nlambMax=1)
+
+    def update(self):
+
+        # Restore background
+        self._update_restore_Bck(list(self.daxr.keys()))
+
+        # Update and get lax
+        lax = self._update_vlines_and_Eq()
+
+        # Blit
+        self._update_blit(lax)
+
+def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
+    assert out.lower() in ['pcolormesh','imshow']
+    x1, x2, ind, dX12 = utils.get_X12fromflat(X12_1d)
+    if out=='pcolormesh':
+        x1 = np.r_[x1-dX12[0]/2., x1[-1]+dX12[0]/2.]
+        x2 = np.r_[x2-dX12[1]/2., x2[-1]+dX12[1]/2.]
+    return x1, x2, ind, dX12
+
+def _Cam2D_plot_touch_init(fs=None, dmargin=None,
+                           fontsize=8, wintit=_wintit, nchMax=_nchMax):
     axCol = "w"
     if fs is None:
         fs = (10,7)
@@ -1332,47 +1383,50 @@ def _Cam2D_plot_touch_init(fs=None, wintit='tofu', Max=4):
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit is not None:
         fig.canvas.set_window_title(wintit)
-    gs1 = gridspec.GridSpec(6, 3,
-                            left=0.03, bottom=0.05, right=0.99, top=0.94,
-                            wspace=None, hspace=0.4)
+    if dmargin is None:
+        dmargin = {'left':0.03, 'right':0.99,
+                   'bottom':0.05, 'top':0.92,
+                   'wspace':None, 'hspace':0.4}
+    gs1 = gridspec.GridSpec(6, 3, **dmargin)
     pos = list(gs1[5,:-1].get_position(fig).bounds)
     pos[-1] = pos[-1]/2.
     cax = fig.add_axes(pos, fc='w')
     axp = fig.add_subplot(gs1[:5,:-1], fc='w')
     axH = fig.add_subplot(gs1[0:2,2], fc='w')
     axC = fig.add_subplot(gs1[2:,2], fc='w')
-    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
-    DY = (axp.get_position().bounds[1]
-          - cax.get_position().bounds[1] - cax.get_position().bounds[3])
-    left = axp.get_position().bounds[0]
-    right = axp.get_position().bounds[0]+axp.get_position().bounds[2]
-    gst = gridspec.GridSpec(1, Max,
-                           left=left, bottom=Ytxt, right=right, top=Ytxt+DY/2.,
-                           wspace=0.10, hspace=None)
-    LaxTxtt = [fig.add_subplot(gst[0,ii], fc='w') for ii in range(0,Max)]
 
     axC.set_aspect('equal', adjustable='datalim')
     axH.set_aspect('equal', adjustable='datalim')
-    for ii in range(0,Max):
-        LaxTxtt[ii].spines['top'].set_visible(False)
-        LaxTxtt[ii].spines['bottom'].set_visible(False)
-        LaxTxtt[ii].spines['right'].set_visible(False)
-        LaxTxtt[ii].spines['left'].set_visible(False)
-        LaxTxtt[ii].set_xticks([]), LaxTxtt[ii].set_yticks([])
-        LaxTxtt[ii].set_xlim(0,1),  LaxTxtt[ii].set_ylim(0,1)
 
-    dax = {'prof':[axp], '2D':[axC,axH], 'cax':[cax],
-           'Txtt':LaxTxtt}
+    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
+    DY = (axp.get_position().bounds[1]
+          - cax.get_position().bounds[1] - cax.get_position().bounds[3])
+    Xtxt = axp.get_position().bounds[0]
+    DX = axp.get_position().bounds[2]
+    axtxtch = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    for ax in [axtxtch]:
+        ax.patch.set_alpha(0.)
+        for ss in ['left','right','bottom','top']:
+            ax.spines[ss].set_visible(False)
+        ax.set_xticks([]), ax.set_yticks([])
+        ax.set_xlim(0,1),  ax.set_ylim(0,1)
+
+    dax = {'chan2D':[{'ax':axp,'dh':{'vline':[]}}],
+           'cross':[{'ax':axC, 'dh':{}}],
+           'hor':[{'ax':axH, 'dh':{}}],
+           'colorbar':[{'ax':cax, 'dh':{}}],
+           'txtch':[{'ax':axtxtch, 'dh':{}}]}
     for kk in dax.keys():
         for ii in range(0,len(dax[kk])):
-            dax[kk][ii].tick_params(labelsize=8)
+            dax[kk][ii]['ax'].tick_params(labelsize=fontsize)
     return dax
 
 
 
-def _Cam2D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
-                      plotmethod='scatter', invert=False,
-                      Max=4, fs=None, wintit='tofu', draw=True):
+def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
+                      plotmethod='scatter', invert=False, nchMax=_nchMax,
+                      dmargin=None, fs=None, wintit=_wintit, tit=None,
+                      fontsize=_fontsize, draw=True, connect=True):
 
     # Prepare
     if 'LOS' in Cam.Id.Cls:
@@ -1394,10 +1448,14 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
     else:
         chlab = Cam.dchans[kk]
     X12, DX12 = Cam.get_X12(out='1d')
-    DX12 = [np.nanmean(np.diff(np.unique(X12[0,:]))),
-            np.nanmean(np.diff(np.unique(X12[1,:])))]
-    DX1 = [np.nanmin(X12[0,:])-DX12[0]/2.,np.nanmax(X12[0,:])+DX12[0]/2.]
-    DX2 = [np.nanmin(X12[1,:])-DX12[1]/2.,np.nanmax(X12[1,:])+DX12[1]/2.]
+    X12T = X12.T
+
+    X1p, X2p, indp, dX12 = _prepare_pcolormeshimshow(X12, out=plotmethod)
+    DX1 = [np.nanmin(X1p),np.nanmax(X1p)]
+    DX2 = [np.nanmin(X2p),np.nanmax(X2p)]
+
+    incx = {'left':np.r_[-dX12[0],0.], 'right':np.r_[dX12[0],0.],
+            'down':np.r_[0.,-dX12[1]], 'up':np.r_[0.,dX12[1]]}
 
     if 'LOS' in Cam.Id.Cls:
         lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
@@ -1406,10 +1464,10 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
         raise Exception("Not coded yet !")
 
     # Get colors
-    norm = mpl.colors.Normalize(vmin=np.nanmin(data),vmax=1.1*np.nanmax(data))
-    if ind is not None:
-        cmapdef = _make_cmap(cdef)
-        scamapdef = mpl.cm.ScalarMappable(norm=norm, cmap=cmapdef)
+    datamin, datamax = np.nanmin(data), np.nanmax(data)
+    norm = mpl.colors.Normalize(vmin=datamin, vmax=datamax)
+    cmapdef = _make_cmap(cdef)
+    scamapdef = mpl.cm.ScalarMappable(norm=norm, cmap=cmapdef)
     lS = Cam.lStruct_computeInOut
     cols = np.full((data.size,4),np.nan)
     dElt = {}
@@ -1417,11 +1475,8 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
         kn = ss.Id.Cls+'_'+ss.Id.Name
         inde = Cam.select(touch=kn,out=bool)
         if ind is not None:
-            #indi = indl[inde]
             indin = inde & ind
             indout = inde & (~ind)
-        #else:
-            #indi = inde.nonzero()[0]
         c = ss.get_color()[:-1]
         cmap = _make_cmap(c)
         scamap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
@@ -1430,8 +1485,6 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
         else:
             cols[indin,:] = scamap.to_rgba(data[indin])
             cols[indout,:] = scamapdef.to_rgba(data[indout])
-        #dElt[kn] = {'inde':inde.nonzero()[0], 'indi':indi, 'c':c}
-
 
     # Prepare colors
     if plotmethod=='imshow':
@@ -1440,69 +1493,113 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
         extent = (x1u.min(),x1u.max(),x2u.min(),x2u.max())
 
     # Format axes
-    dax = _Cam2D_plot_touch_init(fs=fs, wintit=wintit, Max=Max)
-    tit = r"%s - %s"%(Cam.Id.Exp,Cam.Id.Diag)
-    dax['prof'][0].figure.suptitle(tit)
-
+    dax = _Cam2D_plot_touch_init(fs=fs, wintit=wintit, nchMax=nchMax,
+                                 dmargin=dmargin, fontsize=fontsize)
 
     # Plot fixed parts
-    dax['2D'] = Cam.config.plot(lax=dax['2D'], element='P', dLeg=None)
+    out = Cam.config.plot(lax=[dax['cross'][0]['ax'],
+                               dax['hor'][0]['ax']],
+                          element='P', dLeg=None, draw=False)
+    dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
 
+    if tit is None:
+        tit = r"%s - %s - %s"%(Cam.Id.Exp, Cam.Id.Diag, Cam.Id.Name)
+    dax['chan2D'][0]['ax'].figure.suptitle(tit)
+
+    dax['chan2D'][0]['xref'] = X12T
     if plotmethod=='scatter':
-        dax['prof'][0].scatter(X12[0,:],X12[1,:], c=cols,
-                               s=8, marker='s', edgecolors='None')
+        dax['chan2D'][0]['ax'].set_xlim(DX1)
+        dax['chan2D'][0]['ax'].set_ylim(DX2)
+        dax['chan2D'][0]['ax'].scatter(X12[0,:],X12[1,:], c=cols,
+                                       s=8, marker='s', edgecolors='None',
+                                       zorder=-1)
     elif plotmethod=='imshow':
+        dax['chan2D'][0]['ax'].set_xlim(extent[0:2])
+        dax['chan2D'][0]['ax'].set_ylim(extent[2:])
         cols = cols.reshape((nx1,nx2,4)).swapaxes(0,1)
-        dax['prof'][0].imshow(cols, extent=extent, aspect='equal',
-                              interpolation='nearest', origin='lower')
+        dax['chan2D'][0]['ax'].imshow(cols, extent=extent, aspect='equal',
+                                      interpolation='nearest', origin='lower',
+                                      zorder=-1)
+
+    # Plot colorbar
+    cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0]['ax'],
+                                   cmap=cmapdef, norm=norm,
+                                   orientation='horizontal')
+    cb.set_label(r"LOS length (m)")
+    # Define datanorm because colorbar => xlim in (0,1)
+    datanorm = ((data-datamin)/(datamax-datamin))[:,np.newaxis]
+
 
     # Plot LOS
     if 'LOS' in Cam.Id.Cls:
-        lCross = Cam._get_plotL(Lplot='In', proj='Cross', multi=True)
-        lHor = Cam._get_plotL(Lplot='In', proj='Hor', multi=True)
+        lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
+        lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
         if 'Name' in Cam.dchans.keys():
             llab = [Cam.Id.Name + s for s in Cam.dchans['Name']]
         else:
             llab = [Cam.Id.Name + '-{0}'.format(ii)
                     for ii in range(0,Cam.nRays)]
 
-        dlosc = {'los':[{'h':[],'xy':lCross, 'xref':chans}]}
-        dlosh = {'los':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':chans}]}
-        dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':chans}]}
+        lv = []
+        dlosc = {'losc':[{'h':[],'xy':lCross, 'xref':X12T}]}
+        lHor= np.stack(tuple(lHor),axis=0)
+        dlosh = {'losh':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':X12T}]}
+        dcolb = {'vline':[{'h':[],'x':datanorm, 'xref':X12T}]}
+        dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':X12T}]}
         for jj in range(0,nchMax):
+            lab = r"ch{0}".format(jj)
+            l, = dax['chan2D'][0]['ax'].plot([np.nan],[np.nan],
+                                              mec=lcch[jj], ls='None',
+                                              marker='s', mew=2.,
+                                              ms=ms, mfc='None',
+                                              label=lab, zorder=10)
+            lv.append(l)
             l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
                                            [np.nan,np.nan],
-                                           c=lcch[jj], ls=lls[ii], lw=2.)
-            dlosc['los'][0]['h'].append(l)
+                                           c=lcch[jj], ls='-', lw=2.)
+            dlosc['losc'][0]['h'].append(l)
             l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
                                           [np.nan,np.nan],
-                                          c=lcch[jj], ls=lls[ii], lw=2.)
-            dlosh['los'][0]['h'].append(l)
+                                          c=lcch[jj], ls='-', lw=2.)
+            dlosh['losh'][0]['h'].append(l)
+            l = dax['colorbar'][0]['ax'].axvline(np.nan, ls='-', lw=1,
+                                                 c=lcch[jj], zorder=10)
+            dcolb['vline'][0]['h'].append(l)
             l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
                                        color=lcch[jj],
                                        fontweight='bold', fontsize=6.,
                                        ha='center', va='bottom')
             dchtxt['txt'][0]['h'].append(l)
+        dax['chan2D'][0]['dh']['vline'] = [{'h':lv, 'xref':X12T,
+                                            'trig':{}}]
         dax['hor'][0]['dh'].update(dlosh)
         dax['cross'][0]['dh'].update(dlosc)
+        dax['colorbar'][0]['dh'].update(dcolb)
         dax['txtch'][0]['dh'].update(dchtxt)
-        dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dlosh)
-        dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dlosc)
-        dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dchtxt)
+        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dlosh)
+        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dlosc)
+        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dcolb)
+        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dchtxt)
     else:
         raise Exception("Not coded yet !")
-    dax['chan2D'][ii]['incx'] = incx
-    dax['chan2D'][ii]['ax'].set_ylabel(r"pix.", fontsize=fontsize)
+    dax['chan2D'][0]['incx'] = incx
+    dax['chan2D'][0]['ax'].set_ylabel(r"pix.", fontsize=fontsize)
 
-
-    dax['prof'][0].set_xlabel(r"$X_1$", fontsize=8)
-    dax['prof'][0].set_ylabel(r"$X_2$", fontsize=8)
-    dax['prof'][0].set_aspect('equal', adjustable='datalim')
+    dax['chan2D'][0]['ax'].set_xlabel(r"$X_1$", fontsize=8)
+    dax['chan2D'][0]['ax'].set_ylabel(r"$X_2$", fontsize=8)
     if invert:
-        dax['prof'][0].invert_xaxis()
-        dax['prof'][0].invert_yaxis()
-    KH = dax
+        dax['chan2D'][0]['ax'].invert_xaxis()
+        dax['chan2D'][0]['ax'].invert_yaxis()
+    dax['chan2D'][0]['invert'] = invert
 
+    # Plot mobile parts
+    can = dax['chan2D'][0]['ax'].figure.canvas
+    can.draw()
+    KH = KH2D(can, dax, nchMax=nchMax)
+
+    if connect:
+        KH.disconnect_old()
+        KH.connect()
     if draw:
-        dax['prof'][0].figure.canvas.draw()
+        can.draw()
     return KH

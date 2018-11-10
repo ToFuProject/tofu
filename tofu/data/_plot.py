@@ -159,7 +159,7 @@ def _init_Data1D(fs=None, dmargin=None,
     DX = axp.get_position().bounds[2]
     axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
     for ax in [axtxtch, axtxtt]:
-        axtxtch.patch.set_alpha(0.)
+        ax.patch.set_alpha(0.)
         for ss in ['left','right','bottom','top']:
             ax.spines[ss].set_visible(False)
         ax.set_xticks([]), ax.set_yticks([])
