@@ -47,7 +47,6 @@ _Type = 'Tor'
 
 
 
-
 """
 ###############################################################################
 ###############################################################################
@@ -704,7 +703,7 @@ class Struct(utils.ToFuObject):
              dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
              dBvHor=_def.TorBvTord, Lim=None, Nstep=_def.TorNTheta,
              dLeg=_def.TorLegd, indices=False,
-             draw=True, fs=None, wintit='tofu', Test=True):
+             draw=True, fs=None, wintit=None, Test=True):
         """ Plot the polygon defining the vessel, in chosen projection
 
         Generic method for plotting the Ves object
@@ -779,7 +778,7 @@ class Struct(utils.ToFuObject):
 
     def plot_sino(self, ax=None, Ang=_def.LOSImpAng,
                   AngUnit=_def.LOSImpAngUnit, Sketch=True, dP=None,
-                  dLeg=_def.TorLegd, draw=True, fs=None, wintit='tofu',
+                  dLeg=_def.TorLegd, draw=True, fs=None, wintit=None,
                   Test=True):
         """ Plot the sinogram of the vessel polygon, by computing its envelopp in a cross-section, can also plot a 3D version of it
 
@@ -2819,49 +2818,43 @@ class Rays(utils.ToFuObject):
             elif touch is not None:
                 lint = [int,np.int64]
                 larr = [list,tuple,np.ndarray]
-                C0 = type(touch) is str and '_' in touch
-                C1 = type(touch) in lint
-                C2 = type(touch) in larr and len(touch) in [1,2,3]
-                assert C0 or C1 or C2
-                if C0 or C1:
-                    touch = [touch]
-                else:
-                    C0a = type(touch[0]) is str and '_' in touch[0]
-                    C0b = type(touch[0]) in lint
-                    assert C0a or C0b
-                    if len(touch)>1:
-                        C1a = type(touch[1]) in lint
-                        C1b = (type(touch[1]) in larr
-                               and all([type(t) in lint for t in touch[1]]))
-                        assert C1a or C1b
-                        if C1a:
-                            touch[1] = [touch[1]]
-                        if len(touch)==3:
-                            C2a = type(touch[2]) in lint
-                            C2b = (type(touch[2]) in larr
-                                   and all([type(t) in lint for t in touch[2]]))
-                            assert C2a or C2b
-                            if C2a:
-                                touch[2] = [touch[2]]
+                touch = [touch] if not type(touch) is list else touch
+                assert len(touch) in [1,2,3]
+                def _check_touch(tt):
+                    cS = type(tt) is str and len(tt.split('_'))==2
+                    c0 = type(tt) in lint
+                    c1 = type(tt) in larr and len(tt)>=0
+                    c1 = c1 and all([type(t) in lint for t in tt])
+                    return cS, c0, c1
+                for ii in range(0,3-len(touch)):
+                    touch.append([])
                 ntouch = len(touch)
+                assert ntouch==3
+                for ii in range(0,ntouch):
+                    cS, c0, c1 = _check_touch(touch[ii])
+                    assert cS or c0 or c1
+                    if cS:
+                        lS = self.lStruct_computeInOut
+                        k0, k1 = touch[ii].split('_')
+                        ind = [jj for jj in range(0,len(lS))
+                               if lS[jj].Id.Cls==k0 and lS[jj].Id.Name==k1]
+                        assert len(ind)==1
+                        touch[ii] = [ind[0]]
+                    elif c0:
+                        touch[ii] = [touch[ii]]
 
                 # Common part
-                if type(touch[0]) is str:
-                    lS = self.lStruct_computeInOut
-                    k0, k1 = touch[0].split('_')
-                    ind = [ii for ii in range(0,len(lS))
-                           if lS[ii].Id.Cls==k0 and lS[ii].Id.Name==k1]
-                    assert len(ind)==1
-                    touch[0] = ind[0]
-                touch[0] = [touch[0]]
-
                 ind = np.zeros((ntouch,self.nRays),dtype=bool)
                 for i in range(0,ntouch):
-                    for n in range(0,len(touch[i])):
-                        ind[i,:] = np.logical_or(ind[i,:],
-                                                 self._dgeom['indout'][i,:]==touch[i][n])
+                    if len(touch[i])==0:
+                        ind[i,:] = True
+                    else:
+                        for n in range(0,len(touch[i])):
+                            ind[i,:] = np.logical_or(ind[i,:],
+                                                     self._dgeom['indout'][i,:]==touch[i][n])
                 ind = np.all(ind,axis=0)
-                ind = ~ind if log=='not' else ind
+                if log=='not':
+                    ind[:] = ~ind
         if out is int:
             ind = ind.nonzero()[0]
         return ind
@@ -3121,7 +3114,7 @@ class Rays(utils.ToFuObject):
     def calc_signal(self, ff, t=None, Ani=None, fkwdargs={}, Brightness=True,
                     res=0.005, DL=None, resMode='abs', method='sum',
                     ind=None, out=object, plot=True, plotmethod='imshow',
-                    fs=None, dmargin=None, wintit='tofu', invert=True,
+                    fs=None, dmargin=None, wintit=None, invert=True,
                     units=None, draw=True, connect=True):
         """ Return the line-integrated emissivity
 
@@ -3253,7 +3246,7 @@ class Rays(utils.ToFuObject):
              element_config='P', Leg='', dL=None, dPtD=_def.LOSMd,
              dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
              dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False, ind=None,
-             fs=None, wintit='tofu', draw=True, Test=True):
+             fs=None, wintit=None, draw=True, Test=True):
         """ Plot the Rays / LOS, in the chosen projection(s)
 
         Optionnally also plot associated :class:`~tofu.geom.Ves` and Struct
@@ -3341,7 +3334,7 @@ class Rays(utils.ToFuObject):
                   Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Leg=None,
                   dL=_def.LOSMImpd, dVes=_def.TorPFilld, dLeg=_def.TorLegd,
                   ind=None, multi=False,
-                  fs=None, wintit='tofu', draw=True, Test=True):
+                  fs=None, wintit=None, draw=True, Test=True):
         """ Plot the LOS in projection space (sinogram)
 
         Plot the Rays in projection space (cf. sinograms) as points.
@@ -3406,7 +3399,7 @@ class Rays(utils.ToFuObject):
 
     def plot_touch(self, key=None, invert=None,
                    ind=None, plotmethod='imshow',
-                   fs=None, wintit='tofu', draw=True):
+                   fs=None, wintit=None, tit=None, draw=True):
         lC = [ss in self.Id.Cls for ss in ['1D','2D']]
         if not np.sum(lC)==1:
             msg = "The camera type (1D or 2D) must be specified!"
@@ -3415,7 +3408,7 @@ class Rays(utils.ToFuObject):
 
         out = _plot.Rays_plot_touch(self, key=key, ind=ind, invert=invert,
                                     plotmethod=plotmethod,
-                                    fs=fs, wintit=wintit, draw=draw)
+                                    fs=fs, wintit=wintit, tit=tit, draw=draw)
         return out
 
 
