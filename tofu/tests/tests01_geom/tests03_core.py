@@ -422,28 +422,29 @@ class Test01_Struct(object):
 #
 #######################################################
 
+dconf = {}
+for typ in dobj.keys():
+    lS = []
+    for c in dobj[typ].keys():
+        lS += list(dobj[typ][c].values())
+    Lim = None if typ=='Tor' else [0.,10.]
+    dconf[typ] = tfg.Config(Name='Test', Exp=_Exp,
+                            lStruct=lS, Lim=Lim,
+                            Type=typ, SavePath=_here)
+
+
 class Test02_Config(object):
 
     @classmethod
-    def setup_class(cls, dobjS=dobj):
+    def setup_class(cls, dobj=dconf):
         #print("")
         #print("--------- "+VerbHead+cls.__name__)
-        dobj = {}
-        for typ in dobjS.keys():
-            lS = []
-            for c in dobjS[typ].keys():
-                lS += list(dobjS[typ][c].values())
-            Lim = None if typ=='Tor' else [0.,10.]
-            dobj[typ] = tfg.Config(Name='Test', Exp=_Exp,
-                                   lStruct=lS, Lim=Lim,
-                                   Type=typ, SavePath=_here)
+        cls.dobj = dobj
 
     @classmethod
     def teardown_class(cls):
         #print("teardown_class() after any methods in this class")
-        for obj in cls.lObj:
-            obj.strip(-1)
-            obj.save()
+        pass
 
     def test01_todict(self):
         for typ in self.dobj.keys():
@@ -473,27 +474,55 @@ class Test02_Config(object):
         nb = np.full((len(lok),), np.nan)
         for typ in self.dobj.keys():
             obj = self.dobj[typ]
+            lS = obj.lStruct
+            lpfe = [os.path.join(ss.Id.SavePath,ss.Id.SaveName+'.npz')
+                    for ss in lS]
+            [ss.save() for ss in lS]
             for ii in lok:
                 obj.strip(ii)
                 nb[ii] = obj.get_nbytes()[0]
             assert np.all(np.diff(nb)<0.)
             for ii in lok[::-1]:
                 obj.strip(ii)
+            [os.remove(pp) for pp in lpfe]
 
     def test06_set_dsino(self):
         for typ in self.dobj.keys():
             self.dobj[typ].set_dsino([2.4,0.])
 
-    def test07_setget_color(self):
+    def test07_addremove_struct(self):
         for typ in self.dobj.keys():
-            for c in self.dobj[typ].keys():
-                for n in self.dobj[typ][c].keys():
-                    col = self.dobj[typ][c][n].get_color()
-                    self.dobj[typ][c][n].set_color(col)
+            obj = self.dobj[typ]
+            B = obj.dstruct['dStruct']['PFC']['Baffle'].copy()
+            assert 'Baffle' in obj.dstruct['dStruct']['PFC'].keys()
+            assert 'Baffle' in obj.dextraprop['dvisible']['PFC'].keys()
+            assert hasattr(obj.PFC,'Baffle')
+            obj.remove_Struct('PFC','Baffle')
+            assert 'Baffle' not in obj.dstruct['dStruct']['PFC'].keys()
+            assert 'Baffle' not in obj.dextraprop['dvisible']['PFC'].keys()
+            try:
+                hasattr(obj.PFC,'Baffle')
+            except Exception as err:
+                assert err.__class__.__name__=='KeyError'
+            self.dobj[typ].add_Struct(struct=B,
+                                      dextraprop={'visible':True})
+            assert 'Baffle' in obj.dstruct['dStruct']['PFC'].keys()
+            assert 'Baffle' in obj.dextraprop['dvisible']['PFC'].keys()
+            assert hasattr(obj.PFC,'Baffle')
 
-    def test08_isInside(self, NR=20, NZ=20, NThet=10):
+    def test08_setget_color(self):
         for typ in self.dobj.keys():
-            if tt=='Tor':
+            col = self.dobj[typ].get_color()
+            for c in self.dobj[typ].dstruct['dStruct'].keys():
+                eval("self.dobj[typ].%s.set_color('r')"%c)
+
+    def test09_get_summary(self):
+        for typ in self.dobj.keys():
+            self.dobj[typ].get_summary()
+
+    def test10_isInside(self, NR=20, NZ=20, NThet=10):
+        for typ in self.dobj.keys():
+            if typ=='Tor':
                 R = np.linspace(1,3,100)
                 Z = np.linspace(-1,1,100)
                 phi = np.pi/4.
@@ -510,144 +539,49 @@ class Test02_Config(object):
                                 np.repeat(Z,Y.size)])
                 In = '(X,Y,Z)'
 
-            for c in self.dobj[typ].keys():
-                for n in self.dobj[typ][c].keys():
-                    obj = self.dobj[typ][c][n]
-                    ind = obj.isInside(pts, In=In)
-                    if obj.nLim<=1:
-                        assert ind.shape==(pts.shape[1],)
-                    elif not ind.shape == (obj.nLim,pts.shape[1]):
-                        msg = "ind.shape = {0}".format(str(ind.shape))
-                        msg += "\n  But nLim = {0}".format(obj.nLim)
-                        msg += "\n  and npts = {0}".format(pts.shape[1])
-                        raise Exception(msg)
-    # def test01_properties(self):
-        # for obj in self.lObj:
-            # dS = obj.dstruct
-            # lS = obj.lStruct
-            # ds = obj.dsino
+                obj = self.dobj[typ]
+                ind = obj.isInside(pts, In=In)
+                if not ind.shape == (obj.nStruct, pts.shape[1]):
+                    msg = "ind.shape = {0}".format(str(ind.shape))
+                    msg += "\n  But nStruct = {0}".format(obj.nStruct)
+                    msg += "\n  and npts = {0}".format(pts.shape[1])
+                    raise Exception(msg)
 
-    # def test02_set_dsino(self):
-        # for obj in self.lObj:
-            # obj.set_dsino([2.4,0])
+    def test11_setget_visible(self):
+        for typ in self.dobj.keys():
+            vis = self.dobj[typ].get_visible()
+            self.dobj[typ].CoilPF.set_visible(False)
 
-    # def test03_get_visible(self):
-        # for obj in self.lObj:
-            # vis = obj.get_visible()
-            # assert vis.size==obj.dstruct['nStruct']
+    def test12_plot(self):
+        for typ in self.dobj.keys():
+            self.dobj[typ].PFC.Baffle.set_color('g')
+            lax = self.dobj[typ].plot()
+        plt.close('all')
 
-    # def test04_get_color(self):
-        # for obj in self.lObj:
-            # col = obj.get_color()
-            # assert col.shape==(obj.dstruct['nStruct'],4)
+    def test13_plot_sino(self):
+        for typ in self.dobj.keys():
+            lax = self.dobj[typ].plot_sino()
+        plt.close('all')
 
-    # def test05_get_summary(self):
-        # try:
-            # import pandas as pd
-            # ok = True
-        # except Exception:
-            # ok = False
-            # warnings.warn("pandas dependency not available")
-        # if ok:
-            # for obj in self.lObj:
-                # df = obj.get_summary()
-
-    # def test06_isInside(self, NR=20, NZ=20):
-        # for ii in range(0,len(self.lObj)):
-            # R = np.linspace(self.lObj[ii].Ves.Test.dgeom['P1Min'][0],
-                            # self.lObj[ii].Ves.Test.dgeom['P1Max'][0],NR)
-            # Z = np.linspace(self.lObj[ii].Ves.Test.dgeom['P2Min'][0],
-                            # self.lObj[ii].Ves.Test.dgeom['P2Max'][0],NZ)
-            # ptsRZ = np.array([np.tile(R,(NZ,1)).ravel(),
-                              # np.tile(Z,(NR,1)).T.ravel()])
-            # if self.lObj[ii].Ves.Test.Id.Type=='Tor':
-                # In = '(R,Z,phi)'
-                # pts = np.array([ptsRZ[0,:],
-                                # ptsRZ[1,:],
-                                # np.zeros((ptsRZ.shape[1],))])
-            # elif self.lObj[ii].Ves.Test.Id.Type=='Lin':
-                # pts = np.array([np.zeros((ptsRZ.shape[1],)),
-                                # ptsRZ[0,:],
-                                # ptsRZ[1,:]])
-                # In = '(X,Y,Z)'
-            # try:
-                # ind = self.lObj[ii].isInside(pts, In=In)
-            # except Exception as err:
-                # msg = str(err)
-                # msg += "\n    ii={0}".format(ii)
-                # msg += "\n    In={0}".format(In)
-                # msg += "\n    pts.shape={0}".format(str(pts.shape))
-                # msg += "\n    obj.Ves.Id.Type={0}".format(self.lObj[ii].Ves.Test.Id.Type)
-                # msg += "\n    obj.Ves.Lim={0}".format(str(self.lObj[ii].Ves.Test.Lim))
-                # msg += "\n    obj.Ves.nLim={0}".format(self.lObj[ii].Ves.Test.nLim)
-                # raise Exception(msg)
-            # assert ind.shape==(self.lObj[ii].dstruct['nStruct'],pts.shape[1])
-
-    # def test07_plot(self):
-        # for obj in self.lObj:
-            # lax = obj.plot()
-        # plt.close('all')
-
-    # def test08_plotafterchanges(self):
-        # for obj in self.lObj:
-            # obj.CoilPF.set_color('g')
-            # obj.PFC.Test.set_visible(False)
-            # obj.Ves.Test.set_color('m')
-            # lax = obj.plot()
-        # plt.close('all')
-
-    # def test09_plot_sino(self):
-        # for obj in self.lObj:
-            # lax = obj.plot_sino()
-        # plt.close('all')
-
-    # def test10_strip(self):
-        # for obj in self.lObj:
-            # [ss.save() for ss in obj.lStruct]
-            # ns = obj._dstrip['allowed']
-            # for ss in ns:
-                # obj.strip(ss)
-                # assert ss==obj._dstrip['strip']
-            # for ss in ns[::-1]:
-                # obj.strip(ss)
-                # assert ss==obj._dstrip['strip']
-
-    # def test11_stripandgetnbytes(self):
-        # for obj in self.lObj:
-            # ls = []
-            # ns = obj._dstrip['allowed']
-            # for ss in ns:
-                # obj.strip(ss)
-                # ls.append(obj.get_nbytes()[0])
-            # assert np.all(np.diff(ls)<0)
-
-    # def test12_copy(self):
-        # for ii in range(0,len(self.lObj)):
-            # obj = self.lObj[ii].copy()
-            # assert obj==self.lObj[ii]
-
-    # def test13_tofromdict(self):
-        # for ii in range(0,len(self.lObj)):
-            # dd = self.lObj[ii].to_dict(strip=-1)
-            # msg = "obj.to_dict() should return a dict !"
-            # assert isinstance(dd,dict), msg
-            # obj2 = self.lObj[ii].__class__(fromdict=dd)
-            # mg = "Unequal to and from dict !"
-            # assert obj2==self.lObj[ii], msg
-
-
-    # def test14_saveload(self):
-        # for ii in range(0,len(self.lObj)):
-            # self.lObj[ii].strip(-1)
-            # self.lObj[ii].save(verb=False)
-            # pfe = os.path.join(self.lObj[ii].Id.SavePath,
-                               # self.lObj[ii].Id.SaveName+'.npz')
-            # obj = tfu.load(pfe, verb=False)
-            # msg = "Unequal saved / loaded objects !"
-            # assert obj==self.lObj[ii], msg
-            # # Just to check the loaded version works fine
-            # obj.strip(0)
-            # os.remove(pfe)
+    def test14_saveload(self):
+        for typ in self.dobj.keys():
+            lS = self.dobj[typ].lStruct
+            lpfe = [os.path.join(ss.Id.SavePath, ss.Id.SaveName+'.npz')
+                    for ss in lS]
+            for ss in lS:
+                ss.save()
+            self.dobj[typ].strip(-1)
+            self.dobj[typ].save(verb=False)
+            pfe = os.path.join(self.dobj[typ].Id.SavePath,
+                               self.dobj[typ].Id.SaveName+'.npz')
+            obj = tf.load(pfe, verb=False)
+            msg = "Unequal saved / loaded objects !"
+            assert obj==self.dobj[typ], msg
+            # Just to check the loaded version works fine
+            obj.strip(0)
+            os.remove(pfe)
+            for f in lpfe:
+                os.remove(f)
 
 
 
