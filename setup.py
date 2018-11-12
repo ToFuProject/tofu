@@ -169,7 +169,7 @@ setup(
     #    # And include any *.csv files found in the 'ITER' package, too:
     #    'ITER': ['*.csv'],
     #},
-    package_data={'tofu.tests.tests01_geom':['test_Ves.txt']},
+    package_data={'tofu.tests.tests01_geom.tests03core_data':['*.py','*.txt']},
     include_package_data=True,
 
     # Although 'package_data' is the preferred approach, in some case you may
