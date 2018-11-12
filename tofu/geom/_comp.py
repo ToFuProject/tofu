@@ -2,8 +2,11 @@
 This module is the computational part of the geometrical module of ToFu
 """
 
-# General common libraries
+# Built-in
 import sys
+import warnings
+
+# Common
 import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.integrate as scpintg
@@ -109,6 +112,11 @@ def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, 
         if ZLim=='Def':
             ZLim = (P2Min[1]+0.1*(P2Max[1]-P2Min[1]), P2Max[1]-0.05*(P2Max[1]-P2Min[1]))
         indZLim = (Poly[1,:]<ZLim[0]) | (Poly[1,:]>ZLim[1])
+        if Poly.shape[1]-indZLim.sum()<10:
+            msg = "Poly seems to be Convex and simple enough !"
+            msg += "\n  Poly.shape[1] - indZLim.sum() < 10"
+            warnings.warn(msg)
+            return Poly
         Poly = np.delete(Poly, indZLim.nonzero()[0], axis=1)
     if np.all(Poly[:,0]==Poly[:,-1]):
         Poly = Poly[:,:-1]
