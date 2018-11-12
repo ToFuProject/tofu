@@ -1215,12 +1215,18 @@ class Config(utils.ToFuObject):
 
         if Lim is None:
             if not self.Id.Type=='Tor':
-                msg = "tf.Config.Lim cannot be None if Type!='Tor'"
+                msg = "Issue with tf.geom.Config {0}:".format(self.Id.Name)
+                msg += "\n  If input Lim is None, Type should be 'Tor':"
+                msg += "\n    Type = {0}".format(self.Id.Type)
+                msg += "\n    Lim = {0}".format(str(Lim))
                 raise Exception(msg)
             nLim = 0
         else:
             if not self.Id.Type=='Lin':
-                msg = "self.Config.Id.Type must be 'Lin' if Lim!=None"
+                msg = "Issue with tf.geom.Config {0}:".format(self.Id.Name)
+                msg = "  If input Lim!=None, Type should be 'Lin':"
+                msg += "\n    Type = {0}".format(self.Id.Type)
+                msg += "\n    Lim = {0}".format(str(Lim))
                 raise Exception(msg)
             Lim = np.asarray(Lim,dtype=float).ravel()
             assert Lim.size==2 and Lim[0]<Lim[1]
@@ -1250,7 +1256,7 @@ class Config(utils.ToFuObject):
             C = np.ndarray
         elif multi and C2:
             msg0 = "If an extra attribute is provided as a dict,"
-            msg0 += "It should have the same structure as self.dStruct !"
+            msg0 += " it should have the same structure as self.dStruct !"
             lk = sorted(self._dstruct['lCls'])
             c = lk==sorted(extraval.keys())
             if not c:
@@ -1269,7 +1275,7 @@ class Config(utils.ToFuObject):
                  for k, v in extraval.items()]
             if not all([cc[1]==cc[2] for cc in c]):
                 lc = [(cc[0], str(cc[1]), str(cc[2])) for cc in c if cc[1]!=cc[2]]
-                msg = "\nThe value for %s shall has wrong nested dict !"%key
+                msg = "\nThe value for %s has wrong nested dict !"%key
                 msg += "\n    - " + '\n    - '.join([' '.join(cc)
                                                      for cc in lc])
                 raise Exception(msg0+msg)
@@ -1395,6 +1401,7 @@ class Config(utils.ToFuObject):
             self._dextraprop.update({dp:dd})
 
         # Populate
+        print('\n set_d', self._dextraprop)
         for pp in dextraprop.keys():
             self._set_extraprop(pp, dextraprop[pp])
 
@@ -1565,7 +1572,8 @@ class Config(utils.ToFuObject):
                 utils.ToFuObject._check_Fields4Rebuild(self._dstruct,
                                                        lkeep=lkeep,
                                                        dname='dstruct')
-            self._set_dstruct(lStruct=self.lStruct)
+            self._set_dstruct(lStruct=self.lStruct, Lim=self._dstruct['Lim'])
+            self._dynamicattr()
 
         else:
             if strip in [1,2]:
@@ -1657,6 +1665,9 @@ class Config(utils.ToFuObject):
     def dstruct(self):
        return self._dstruct
     @property
+    def nStruct(self):
+       return self._dstruct['nStruct']
+    @property
     def lStruct(self):
         """ Return the list of Struct that was used for creation
 
@@ -1704,7 +1715,10 @@ class Config(utils.ToFuObject):
             msg = "Provide either:"
             msg += "\n    - struct: a Struct subclass instance"
             msg += "\n    - the keyword args to create one"
-            msg += "\n        (Cls,Name,Poly,Lim,Type)"
+            msg += "\n        (Cls,Name,Poly,Lim,Type)\n"
+            msg += "\n You provded:"
+            msg += "\n    - struct: {0}, {1}".format(str(struct),
+                                                     type(struct))
             raise Exception(msg)
 
         # Create struct if not provided
@@ -1744,13 +1758,18 @@ class Config(utils.ToFuObject):
             assert isinstance(dextraprop,dict)
             assert all([k in lk for k in dextraprop.keys()])
             assert all([k in dextraprop.keys() for k in lk])
-            dx = copy.deepcopy(dextra)
-            del dx['lprop']
-            for k in dx.keys():
+            dx = {}
+            for k in lk:
+                dk = 'd'+k
+                dx[k] = {}
+                for k0 in dextra[dk].keys():
+                    dx[k][k0] = {}
+                    for k1 in dextra[dk][k0].keys():
+                        dx[k][k0][k1] = dextra[dk][k0][k1]
                 if not struct.Id.Cls in dx[k].keys():
-                    dx[k][struct.Id.Cls] = {Name:dextraprop[k[1:]]}
+                    dx[k][struct.Id.Cls] = {struct.Id.Name:dextraprop[k]}
                 else:
-                    dx[k][struct.Id.Cls][Name] = dextraprop[k[1:]]
+                    dx[k][struct.Id.Cls][struct.Id.Name] = dextraprop[k]
 
         # Set self.lStruct
         lS = self.lStruct + [struct]
@@ -1777,6 +1796,9 @@ class Config(utils.ToFuObject):
         lS = self.lStruct
         if not Cls+"_"+Name in self._dstruct['lorder']:
             msg = "The desired instance is not in self.dstruct['lorder'] !"
+            lord = ', '.join(self.dstruct['lorder'])
+            msg += "\n    lorder = [{0}]".format(lord)
+            msg += "\n    Cls_Name = {0}".format(Cls+'_'+Name)
             raise Exception(msg)
 
         ind = self._dstruct['lorder'].index(Cls+"_"+Name)
