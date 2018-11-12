@@ -233,7 +233,7 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
     if draw:
         lax[0].relim()
         lax[0].autoscale_view()
-        if len(lax)==2:
+        if len(lax)==2 and lax[1] is not None:
             lax[1].relim()
             lax[1].autoscale_view()
         lax[0].figure.canvas.draw()
@@ -289,7 +289,8 @@ def _Plot_CrossProj_Ves(V, ax=None, Elt='PIBsBvV',
             ax.plot(P_closed[0,:], P_closed[1,:],
                     label=V.Id.NameLTX,**Pdict)
         elif V._InOut=='out':
-            ax.add_patch(mPolygon(V.Poly.T, closed=True, **Pdict))
+            ax.add_patch(mPolygon(V.Poly.T, closed=True,
+                                  label=V.Id.NameLTX, **Pdict))
         else:
             msg = "self._InOut not defined !"
             raise Exception(msg)
@@ -1527,8 +1528,10 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
                                    orientation='horizontal')
     cb.set_label(r"LOS length (m)")
     # Define datanorm because colorbar => xlim in (0,1)
-    datanorm = ((data-datamin)/(datamax-datamin))[:,np.newaxis]
-
+    if dax['colorbar'][0]['ax'].get_xlim()==(0.,1.):
+        datanorm = ((data-datamin)/(datamax-datamin))[:,np.newaxis]
+    else:
+        datanorm = data[:,np.newaxis]
 
     # Plot LOS
     if 'LOS' in Cam.Id.Cls:
