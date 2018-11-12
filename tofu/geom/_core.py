@@ -583,7 +583,8 @@ class Struct(utils.ToFuObject):
             (2,N) polygon resulting from homothetic transform, truncating and optional smoothing
 
         """
-        return _comp._Ves_get_InsideConvexPoly(self.Poly, self.dgeom['P2Min'],
+        return _comp._Ves_get_InsideConvexPoly(self.Poly_closed,
+                                               self.dgeom['P2Min'],
                                                self.dgeom['P2Max'],
                                                self.dgeom['BaryS'],
                                                RelOff=RelOff, ZLim=ZLim,
@@ -679,7 +680,7 @@ class Struct(utils.ToFuObject):
             assert self.dgeom['Multi']
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, DIn=offsetIn,
                        VIn=self.dgeom['VIn'], VType=self.Id.Type,
-                       VLim=self.Lim, nVLim=self.nLim,
+                       VLim=np.ascontiguousarray(self.Lim), nVLim=self.nLim,
                        Out=Out, margin=1.e-9,
                        Multi=self.dgeom['Multi'], Ind=Ind)
         args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
@@ -1162,13 +1163,16 @@ class Config(utils.ToFuObject):
         assert issubclass(struct.__class__,Struct)
         C0 = struct.Id.Exp==self.Id.Exp
         C1 = struct.Id.Type==self.Id.Type
+        C2 = struct.Id.Name.isidentifier() and '_' not in struct.Id.Name
         msgi = None
-        if not (C0 and C1):
+        if not (C0 and C1 and C2):
             msgi = "\n    - {0} :".format(struct.Id.SaveName)
             if not C0:
                 msgi += "\n     Exp: {0}".format(struct.Id.Exp)
             if not C1:
                 msgi += "\n     Type: {0}".format(struct.Id.Type)
+            if not C2:
+                msgi += "\n     Name: {0}".format(struct.Id.Name)
             if err:
                 msg = "Non-conform struct Id:"+msgi
                 raise Exception(msg)
@@ -1202,13 +1206,22 @@ class Config(utils.ToFuObject):
                 msg += msgi
         if msg!="":
             msg = "The following objects have non-confrom Id:" + msg
+            msg += "\n  => Expected values are:"
+            msg += "\n      Exp: {0}".format(self.Id.Exp)
+            msg += "\n      Type: {0}".format(self.Id.Type)
+            msg += "\n      Name: a valid identifier, without '_'"
+            msg += " (check str.isidentifier())"
             raise Exception(msg)
 
         if Lim is None:
-            assert self.Id.Type=='Tor'
+            if not self.Id.Type=='Tor':
+                msg = "tf.Config.Lim cannot be None if Type!='Tor'"
+                raise Exception(msg)
             nLim = 0
         else:
-            assert self.Id.Type=='Lin'
+            if not self.Id.Type=='Lin':
+                msg = "self.Config.Id.Type must be 'Lin' if Lim!=None"
+                raise Exception(msg)
             Lim = np.asarray(Lim,dtype=float).ravel()
             assert Lim.size==2 and Lim[0]<Lim[1]
             Lim = Lim.reshape((1,2))
