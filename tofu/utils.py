@@ -165,7 +165,7 @@ def get_todictfields(ld, ls):
 class dictattr(dict):
     __getattr__ = dict.__getitem__
 
-    def __init__(self, *args, extra=[], **kwdargs):
+    def __init__(self, extra, *args, **kwdargs):
         super().__init__(*args, **kwdargs)
         self._extra = extra
 

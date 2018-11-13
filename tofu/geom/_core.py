@@ -1401,7 +1401,6 @@ class Config(utils.ToFuObject):
             self._dextraprop.update({dp:dd})
 
         # Populate
-        print('\n set_d', self._dextraprop)
         for pp in dextraprop.keys():
             self._set_extraprop(pp, dextraprop[pp])
 
@@ -1511,8 +1510,8 @@ class Config(utils.ToFuObject):
                         setattr(self._dstruct['dStruct'][k][kk],
                                 'get_%s'%pp,
                                 lambda pk=pp, k0=k, k1=kk: self._get_extraprop(pk, k0, k1))
-                dd = utils.dictattr(self._dstruct['dStruct'][k],
-                                    extra=['set_color']+lset+lget)
+                dd = utils.dictattr(['set_color']+lset+lget,
+                                    self._dstruct['dStruct'][k])
                 for pp in self._dextraprop['lprop']:
                     setattr(dd,
                             'set_%s'%pp,
@@ -2301,22 +2300,30 @@ class Rays(utils.ToFuObject):
             u = np.ascontiguousarray(self.u)
 
             # Get reference
-            S = list(self.config._dstruct['dStruct']['PlasmaDomain'].values())[0]
-            assert S.get_compute()
+            lS = self.lStruct_computeInOut
+
+            lSIn = [ss for ss in lS if ss._InOut=='in']
+            if len(lSIn)==0:
+                msg = "self.config must have at least a StructIn subclass !"
+                assert len(lSIn)>0, msg
+            elif len(lSIn)>1:
+                S = lSIn[np.argmin([ss.dgeom['Surf'] for ss in lSIn])]
+            else:
+                S = lSIn[0]
+
             VPoly = S.Poly_closed
             VVIn =  S.dgeom['VIn']
             Lim = S.Lim
             nLim = S.nLim
             VType = self.config.Id.Type
 
-            lS = self.lStruct_computeInOut
+            lS = [ss for ss in lS if ss._InOut=='out']
             lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
             for ss in lS:
-                if not ss.Id.Cls=='PlasmaDomain':
-                    lSPoly.append(ss.Poly_closed)
-                    lSVIn.append(ss.dgeom['VIn'])
-                    lSLim.append(ss.Lim)
-                    lSnLim.append(ss.nLim)
+                lSPoly.append(ss.Poly_closed)
+                lSVIn.append(ss.dgeom['VIn'])
+                lSLim.append(ss.Lim)
+                lSnLim.append(ss.nLim)
 
             largs = [D, u, VPoly, VVIn]
             dkwd = dict(Lim=Lim, nLim=nLim,
@@ -2351,7 +2358,7 @@ class Rays(utils.ToFuObject):
         return kMin, kMax, vperp, indout
 
 
-    def compute_dgeom(self, extra=True):
+    def compute_dgeom(self, extra=True, plotdebug=True):
         # Can only be computed if config if provided
         if self._dconfig['config'] is None:
             msg = "The dgeom cannot be computed without a config !"
@@ -2370,13 +2377,13 @@ class Rays(utils.ToFuObject):
             msg = "Some LOS have no visibility inside the plasma domain !"
             warnings.warn(msg)
             if plotdebug:
-                PIn = D[:,ind] + kMin[np.newaxis,:]*u[:,ind]
-                POut = D[:,ind] + kMax[np.newaxis,:]*u[:,ind]
+                PIn = self.D[:,ind] + kMin[np.newaxis,ind]*self.u[:,ind]
+                POut = self.D[:,ind] + kMax[np.newaxis,ind]*self.u[:,ind]
                 # To be updated
-                _plot._LOS_calc_InOutPolProj_Debug(self.Ves, D[:,ind], u[:,ind],
-                                                   PIn, POut,
-                                                   fs=fs, wintit=wintit,
-                                                   draw=draw)
+                _plot._LOS_calc_InOutPolProj_Debug(self.config,
+                                                   self.D[:,ind],
+                                                   self.u[:,ind],
+                                                   PIn, POut)
 
         # Handle particular cases with kMin > kMax
         ind = np.zeros(kMin.shape,dtype=bool)
@@ -2406,6 +2413,8 @@ class Rays(utils.ToFuObject):
         if self._dgeom['kRMin'] is not None:
             PRMin = self.D + self._dgeom['kRMin'][np.newaxis,:]*self.u
             RMin = np.hypot(PRMin[0,:],PRMin[1,:])
+        else:
+            PRMin, RMin = None, None
         PkMin = self.D + self._dgeom['kMin'][np.newaxis,:]*self.u
         PkMax = self.D + self._dgeom['kMax'][np.newaxis,:]*self.u
         dd = {'PkMin':PkMin, 'PkMax':PkMax, 'PRMin':PRMin, 'RMin':RMin}
@@ -2942,7 +2951,10 @@ class Rays(utils.ToFuObject):
             if ind.size==1:
                 Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
             kPIn, kPOut = self.kMin[ind], self.kMax[ind]
-            kRMin = self._dgeom['kRMin'][ind]
+            if self.config.Id.Type=='Tor':
+                kRMin = self._dgeom['kRMin'][ind]
+            else:
+                kRMin = None
             pts = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
                                       kPIn, kPOut, kRMin, proj=proj,
                                       Lplot=Lplot, multi=multi)
@@ -3146,7 +3158,7 @@ class Rays(utils.ToFuObject):
         return kIn, kOut
 
 
-    def calc_signal(self, ff, t=None, Ani=None, fkwdargs={}, Brightness=True,
+    def calc_signal(self, ff, t=None, ani=None, fkwdargs={}, Brightness=True,
                     res=0.005, DL=None, resMode='abs', method='sum',
                     ind=None, out=object, plot=True, plotmethod='imshow',
                     fs=None, dmargin=None, wintit=None, invert=True,
@@ -3241,7 +3253,7 @@ class Rays(utils.ToFuObject):
             # Exclude Rays not seeing the plasma
             s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
                                     dLMode=resMode, method=method,
-                                    t=t, Ani=Ani, fkwdargs=fkwdargs, Test=True)
+                                    t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
             if t is None or len(t)==1:
                 sig[indok] = s
             else:
