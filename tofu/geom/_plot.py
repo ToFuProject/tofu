@@ -713,7 +713,7 @@ def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3,
     l2 = np.array([Ds[2,:], Ps[2,:], np.full((nP,),np.nan)]).T.ravel()
 
     # Plot
-    ax = Ves.plot(Elt='P', Proj='3d', dLeg=None,
+    ax = Ves.plot(element='P', proj='3d', dLeg=None,
                   fs=fs, wintit=wintit, draw=False)
     ax.set_title('_LOS_calc_InOutPolProj / Debugging')
     ax.plot(l0,l1,l2, c='k', lw=1, ls='-')
