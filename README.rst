@@ -7,8 +7,21 @@
 .. image:: https://anaconda.org/tofuproject/tofu/badges/downloads.svg
       :target: https://anaconda.org/tofuproject/tofu/badges/
 
+.. image:: https://anaconda.org/tofuproject/tofu/badges/latest_release_date.svg
+      :target: https://anaconda.org/tofuproject/tofu/badges/
+
+.. image:: https://anaconda.org/tofuproject/tofu/badges/platforms.svg
+      :target: https://anaconda.org/tofuproject/tofu/badges/
+
+.. image:: https://anaconda.org/tofuproject/tofu/badges/license.svg
+      :target: https://anaconda.org/tofuproject/tofu/badges/
+
+.. image:: https://anaconda.org/tofuproject/tofu/badges/installer/conda.svg
+      :target: https://anaconda.org/tofuproject/tofu/badges/
+
 .. image:: https://codecov.io/gh/ToFuProject/tofu/branch/master/graph/badge.svg
          :target: https://codecov.io/gh/ToFuProject/tofu
+
 
 
 ToFu

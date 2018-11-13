@@ -904,7 +904,12 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
 
     for kk in dPts.keys():
         if kk in Elt:
-            P = L._dsino['RefPt'][:,ind] if kk=='P' else L._dgeom[dPts[kk][0]][:,ind]
+            if kk=='P' and L._dsino['RefPt'] is not None:
+                P = L._dsino['pts'][:,ind]
+            elif kk=='D':
+                P = L.D[:,ind]
+            elif not (kk=='R' and L.config.Id.Type=='Lin'):
+                P = L._dgeom[dPts[kk][0]][:,ind]
             if len(ind)==1:
                 P = P.reshape((3,1))
             if L.config.Id.Type=='Tor':
@@ -948,7 +953,12 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
 
     for kk in dPts.keys():
         if kk in Elt:
-            P = L._dsino['RefPt'][:,ind] if kk=='P' else L._dgeom[dPts[kk][0]][:,ind]
+            if kk=='P' and L._dsino['RefPt'] is not None:
+                P = L._dsino['pts'][:,ind]
+            elif kk=='D':
+                P = L.D[:,ind]
+            elif not (kk=='R' and L.config.Id.Type=='Lin'):
+                P = L._dgeom[dPts[kk][0]][:,ind]
             if len(ind)==1:
                 P = P.reshape((3,1))
             if multi:
