@@ -742,8 +742,10 @@ class Test03_Rays(object):
                 assert len(pts)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
                     assert pts[ii].shape[1]==k[ii].size
-                    assert np.all((k[ii]>=obj.kMin[ii])
-                                  & (k[ii]<=obj.kMax[ii]))
+                    if not (np.isnan(obj.kMin[ii]) or np.isnan(obj.kMax[ii])):
+                        ind = ~np.isnan(k[ii])
+                        assert np.all((k[ii][ind]>=obj.kMin[ii]-res[ii])
+                                      & (k[ii][ind]<=obj.kMax[ii]+res[ii]))
                 assert np.all(res[~np.isnan(res)]<0.02)
 
                 out = obj.get_sample(0.1, resMode='rel',
@@ -752,19 +754,25 @@ class Test03_Rays(object):
                 assert len(pts)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
                     assert pts[ii].shape[1]==k[ii].size
-                    assert np.all((k[ii]>=obj.kMin[ii])
-                                  & (k[ii]<=obj.kMax[ii]))
-                assert np.all(res[~np.isnan(res)]<0.1)
-
+                    if not (np.isnan(obj.kMin[ii]) or np.isnan(obj.kMax[ii])):
+                        ind = ~np.isnan(k[ii])
+                        if not np.all((k[ii][ind]>=obj.kMin[ii]-res[ii])
+                                      & (k[ii][ind]<=obj.kMax[ii]+res[ii])):
+                            msg = typ+' '+c+' '+str(ii)
+                            msg += "\n {0} {1}".format(obj.kMin[ii],obj.kMax[ii])
+                            msg += "\n {0}".format(str(k[ii][ind]))
+                            print(msg)
+                            raise Exception(msg)
                 out = obj.get_sample(0.1, resMode='rel',
                                      method='romb',DL=[0,1])
                 pts, k, res = out
                 assert len(pts)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
                     assert pts[ii].shape[1]==k[ii].size
-                    assert np.all((k[ii]>=obj.kMin[ii])
-                                  & (k[ii]<=obj.kMax[ii]))
-                assert np.all(res[~np.isnan(res)]<0.1)
+                    if not (np.isnan(obj.kMin[ii]) or np.isnan(obj.kMax[ii])):
+                        ind = ~np.isnan(k[ii])
+                        assert np.all((k[ii][ind]>=obj.kMin[ii]-res[ii])
+                                      & (k[ii][ind]<=obj.kMax[ii]+res[ii]))
 
 
     def test09_calc_kInkOut_IsoFlux(self):
@@ -781,12 +789,30 @@ class Test03_Rays(object):
                 assert kOut.shape==(obj.nRays, nP)
                 for ii in range(0,nP):
                     ind = ~np.isnan(kIn[:,ii])
-                    assert np.all((kIn[ind,ii]>=obj.kMin[ind])
-                                  & (kIn[ind,ii]<=obj.kMax[ind]))
+                    if not np.all((kIn[ind,ii]>=obj.kMin[ind])
+                                  & (kIn[ind,ii]<=obj.kMax[ind])):
+                        msg = typ+' '+c+' '+str(ii)
+                        msg += "\n {0} {1}".format(obj.kMin[ind],obj.kMax[ind])
+                        msg += "\n {0}".format(str(kIn[ind,ii]))
+                        print(msg)
+                        raise Exception(msg)
+
                     ind = ~np.isnan(kOut[:,ii])
-                    assert np.all((kOut[ind,ii]>=obj.kMin[ind])
-                                  & (kOut[ind,ii]<=obj.kMax[ind]))
-                    assert np.all(kIn[ind,:]<=kOut[ind,:])
+                    if not np.all((kOut[ind,ii]>=obj.kMin[ind])
+                                  & (kOut[ind,ii]<=obj.kMax[ind])):
+                        msg = typ+' '+c+' '+str(ii)
+                        msg += "\n {0} {1}".format(obj.kMin[ind],obj.kMax[ind])
+                        msg += "\n {0}".format(str(kOut[ind,ii]))
+                        print(msg)
+                        raise Exception(msg)
+                    ind = (~np.isnan(kIn[:,ii])) & (~np.isnan(kOut[:,ii]))
+                    if not np.all(kIn[ind,ii]<=kOut[ind,ii]):
+                        msg = typ+' '+c+' '+str(ii)
+                        msg += "\n {0}".format(str(kIn[ind,ii]))
+                        msg += "\n {0}".format(str(kOut[ind,ii]))
+                        print(msg)
+                        raise Exception(msg)
+
 
     def test10_calc_signal(self):
         def ffL(Pts, t=None, Vect=None):
@@ -835,12 +861,17 @@ class Test03_Rays(object):
                     ind = np.arange(0,obj.nRays,100)
                 else:
                     ind = None
-                lax = obj.plot(proj='all', element='LDIORP',
-                               Leg='', draw=False)
-                lax = obj.plot(proj='cross', element='L',
-                               Leg=None, draw=False)
-                lax = obj.plot(proj='hor', element='LDIO',
-                               Leg='KD', draw=False)
+                try:
+                    lax = obj.plot(proj='all', element='LDIORP',
+                                   Leg='', draw=False)
+                    lax = obj.plot(proj='cross', element='L',
+                                   Leg=None, draw=False)
+                    lax = obj.plot(proj='hor', element='LDIO',
+                                   Leg='KD', draw=False)
+                except Exception as err:
+                    msg = str(err)
+                    msg += typ+' '+c
+                    print(msg)
                 plt.close('all')
 
     def test11_plot_touch(self):

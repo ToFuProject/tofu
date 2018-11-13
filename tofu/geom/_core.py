@@ -3147,12 +3147,12 @@ class Rays(utils.ToFuObject):
             ind = np.zeros((self.nRays,nPoly), dtype=bool)
             kMin = np.tile(self.kMin[:,np.newaxis],nPoly)
             kMax = np.tile(self.kMax[:,np.newaxis],nPoly)
-            ind[indok] = (kIn[indok]>kMin[indok]) & (kIn[indok]<kMax[indok])
+            ind[indok] = (kIn[indok]<kMin[indok]) | (kIn[indok]>kMax[indok])
             kIn[ind] = np.nan
 
             ind[:] = False
             indok[:] = ~np.isnan(kOut)
-            ind[indok] = (kOut[indok]>kMin[indok]) & (kOut[indok]<kMax[indok])
+            ind[indok] = (kOut[indok]<kMin[indok]) | (kOut[indok]>kMax[indok])
             kOut[ind] = np.nan
 
         return kIn, kOut
