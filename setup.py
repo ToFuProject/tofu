@@ -12,6 +12,13 @@ from codecs import open
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
+from Cython.Compiler.Options import get_directive_defaults
+
+directive_defaults = get_directive_defaults()
+directive_defaults['profile'] = True
+directive_defaults['linetrace'] = True
+directive_defaults['binding'] = True
+
 
 # Always prefer setuptools over distutils
 try:
@@ -89,8 +96,11 @@ if USE_CYTHON:
     print("")
     print("Using Cython !!!!!!!!!")
     print("")
-    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"]),
-                  Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"])]
+    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"],   define_macros=[('CYTHON_TRACE_NOGIL', '1')],
+                            compiler_directives={'profile': True}),
+                  Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"],   define_macros=[('CYTHON_TRACE_NOGIL', '1')],
+                            compiler_directives={'profile': True})]
+    extensions = cythonize(extensions)
 else:
     print("")
     print("NOT Using Cython !!!!!!!!!")
