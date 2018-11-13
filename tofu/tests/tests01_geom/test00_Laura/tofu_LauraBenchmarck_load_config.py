@@ -88,10 +88,11 @@ _dcam = {'V1':       {'P':_P1, 'F':_F, 'D12':_D12, 'nIn':_nIn1, 'N12':[1,1]},
 #       Loading routine
 #########################################
 
-def _get_filenames(dconf, path=_path):
+def _get_filenames(dconf, path=_path, add_path_obj=True):
     """ Preliminary hidden routine for getting file names of desired objects
     """
-
+    if add_path_obj:
+        path=path+"/Objects"
     # Get all files avbailable in path
     lf = os.listdir(path)
 
@@ -119,7 +120,7 @@ def _get_filenames(dconf, path=_path):
     return dout
 
 
-def load_config(config, path=_path, dconfig=_dconfig, plot=True):
+def load_config(config, path=_path, dconfig=_dconfig, plot=True, add_path_obj=True):
     """ Load all objects in the desired configuration
 
     Return them as a dictionary
@@ -128,6 +129,9 @@ def load_config(config, path=_path, dconfig=_dconfig, plot=True):
     assert type(path) is str
     assert type(dconfig) is dict
     assert type(plot) is bool
+
+    if add_path_obj:
+        path=path+"/Objects"
 
     # Get file names from config
     dout = _get_filenames(dconfig[config], path=_path)
@@ -152,11 +156,14 @@ def load_config(config, path=_path, dconfig=_dconfig, plot=True):
     return dout
 
 
-def get_Du(cam, dcam=_dcam, plot=False, config=None, path=_path):
+def get_Du(cam, dcam=_dcam, plot=False, config=None, path=_path, add_path_obj=True):
     """ Get the (D,u) tuple for the desired camera
 
     Optionally plot the camera with the chosen config
     """
+
+    if add_path_obj:
+        path=path+"/Objects"
 
     print("getting cam =", cam)
 
