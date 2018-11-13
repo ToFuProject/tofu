@@ -1,4 +1,3 @@
-# cython: profile=True
 # cimport
 cimport cython
 cimport numpy as cnp
@@ -7,13 +6,14 @@ from libc.math cimport sqrt as Csqrt, ceil as Cceil, abs as Cabs
 from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
-
+import line_profiler
 # import
 import sys
 import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
 
+from tofu.geom._poly_utils import get_bbox_poly_extruded
 if sys.version[0]=='3':
     from inspect import signature as insp
 elif sys.version[0]=='2':
@@ -22,7 +22,6 @@ elif sys.version[0]=='2':
 
 
 __all__ = ['LOS_Calc_PInOut_VesStruct']
-
 
 
 
@@ -159,10 +158,9 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
     return PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut
 
 
-
-
-
-
+@cython.profile(True)
+@cython.linetrace(True)
+@cython.binding(True)
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -207,6 +205,12 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
     else:
         Forbid0, Forbidbis = 0, 0
     for ii in range(0,Nl):
+
+        # Let us first check if the line intersects the bounding box of structure
+        get_bbox_poly_extruded(np.asarray(VPoly))
+        import sys
+        sys.exit()
+        
         upscaDp = us[0,ii]*Ds[0,ii] + us[1,ii]*Ds[1,ii]
         upar2 = us[0,ii]**2 + us[1,ii]**2
         Dpar2 = Ds[0,ii]**2 + Ds[1,ii]**2
@@ -492,3 +496,4 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
     return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut)
 # et creer vecteurs
 #    return np.asarray(kIn), np.asarray(kOut), np.asarray(vPerpOut), np.asarray(indOut)
+
