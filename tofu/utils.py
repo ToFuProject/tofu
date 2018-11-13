@@ -1,6 +1,7 @@
 
 # Built-in
 import os
+import sys
 import collections
 from abc import ABCMeta, abstractmethod
 import getpass
@@ -869,7 +870,11 @@ class ToFuObject(ToFuObjectBase):
         save(self, path=path, name=name,
              strip=strip, compressed=compressed)
 
-ToFuObject.save.__doc__ = save.__doc__
+if sys.version[0]=='2':
+    ToFuObject.save.__func__.__doc__ = save.__doc__
+else:
+    ToFuObject.save.__doc__ = save.__doc__
+
 
 #############################################
 #       ID class

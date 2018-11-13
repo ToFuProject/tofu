@@ -665,10 +665,16 @@ class Test03_Rays(object):
     @classmethod
     def teardown_class(cls):
         #print ("teardown_class() after any methods in this class")
-        for typ in cls.dobj.keys():
-            for c in cls.dobj[typ].keys():
-                for f in cls.dlpfe[typ][c]:
-                    os.remove(f)
+        pass
+        # for typ in cls.dobj.keys():
+            # for c in cls.dobj[typ].keys():
+                # for f in cls.dlpfe[typ][c]:
+                    # try:
+                        # os.remove(f)
+                    # except Exception as err:
+                        # msg = str(err)
+                        # msg += '\n\n'+str(f)
+                        # raise Exception(msg)
 
     def setup(self):
         #print ("TestUM:setup() before each test method")
@@ -874,32 +880,36 @@ class Test03_Rays(object):
                     print(msg)
                 plt.close('all')
 
-    def test11_plot_touch(self):
-        if self.__class__ is Test04_LOSCams:
-            for ii in range(0,len(self.LObj)):
-                Lax = self.LObj[ii].plot_touch(plotmethod='scatter', draw=False)
+    def test11_plot_sino(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                ax = obj.plot_sino()
             plt.close('all')
 
-    def test12_plot_sino(self):
-        for ii in range(0,len(self.LObj)):
-            self.LObj[ii].set_sino([2.4,0.])
-            Lax = self.LObj[ii].plot_sino(Proj='Cross', Elt='L',
-                                          Leg=None, draw=False)
-            Lax = self.LObj[ii].plot_sino(Proj='Cross', Elt='LV',
-                                          Leg=None, multi=True, draw=False)
-            #Lax = self.LObj[ii].plot_sino(Proj='3d', Elt='LV',
-            #                              multi=False, Leg='KD', draw=False)
+    def test12_plot_touch(self):
+        connect = hasattr(plt.get_current_fig_manager(),'toolbar')
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                ind = np.arange(0,obj.nRays,100)
+                lax = obj.plot_touch(ind=ind, connect=connect)
             plt.close('all')
 
     def test13_saveload(self):
-        for ii in range(0,len(self.LObj)):
-            self.LObj[ii].save(Print=False)
-            PFE = os.path.join(self.LObj[ii].Id.SavePath,
-                               self.LObj[ii].Id.SaveName+'.npz')
-            obj = tfpf.Open(PFE, Print=False)
-            dd = self.LObj[ii]._todict()
-            assert tfu.dict_cmp(dd,obj._todict())
-            os.remove(PFE)
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                obj.strip(-1)
+                obj.save(verb=False)
+                pfe = os.path.join(obj.Id.SavePath,
+                                   obj.Id.SaveName+'.npz')
+                obj2 = tf.load(pfe, verb=False)
+                msg = "Unequal saved / loaded objects !"
+                assert obj2==obj, msg
+                # Just to check the loaded version works fine
+                obj2.strip(0)
+                os.remove(pfe)
 
 
 """
