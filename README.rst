@@ -20,8 +20,10 @@
       :target: https://anaconda.org/tofuproject/tofu/badges/
 
 .. image:: https://codecov.io/gh/ToFuProject/tofu/branch/master/graph/badge.svg
-         :target: https://codecov.io/gh/ToFuProject/tofu
+      :target: https://codecov.io/gh/ToFuProject/tofu
 
+.. image:: https://badge.fury.io/py/tofu.svg
+    :target: https://badge.fury.io/py/tofu
 
 
 ToFu
