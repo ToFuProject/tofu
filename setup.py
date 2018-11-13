@@ -12,6 +12,13 @@ from codecs import open
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
+from Cython.Compiler.Options import get_directive_defaults
+
+directive_defaults = get_directive_defaults()
+directive_defaults['profile'] = True
+directive_defaults['linetrace'] = True
+directive_defaults['binding'] = True
+
 
 # Always prefer setuptools over distutils
 try:
@@ -33,6 +40,7 @@ os.environ['CXX'] = 'gcc'
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6']:
     gg = '_GG0%s' % sys.version[0]
+    gg_lm = '_GG0%s_LM' % sys.version[0]
     poly = 'polygon%s' % sys.version[0]
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
@@ -69,6 +77,7 @@ print("")
 if sys.version[0]=='3':
     #if not '_GG03.pyx' in os.listdir(os.path.join(here,'tofu/geom/')):
     shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'), os.path.join(here,'tofu/geom/_GG03.pyx'))
+    shutil.copy2(os.path.join(here,'tofu/geom/_GG02_LM.pyx'), os.path.join(here,'tofu/geom/_GG03_LM.pyx'))
 
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
@@ -87,7 +96,10 @@ if USE_CYTHON:
     print("")
     print("Using Cython !!!!!!!!!")
     print("")
-    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"])]
+    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"],   define_macros=[('CYTHON_TRACE_NOGIL', '1')],
+                            compiler_directives={'profile': True}),
+                  Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"],   define_macros=[('CYTHON_TRACE_NOGIL', '1')],
+                            compiler_directives={'profile': True})]
     extensions = cythonize(extensions)
 else:
     print("")

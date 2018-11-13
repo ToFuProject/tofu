@@ -47,3 +47,6 @@ Details
 
 # Include travis
 !.travis.yml
+
+# installation dir
+usr/
