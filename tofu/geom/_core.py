@@ -127,7 +127,10 @@ class Struct(utils.ToFuObject):
 
 
     def __init_subclass__(cls, color='k', **kwdargs):
-        super().__init_subclass__(**kwdargs)
+        # Python 2
+        utils.ToFuObject.__init_subclass__(**kwdargs)
+        # Python 3
+        #super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Struct._ddef)
         cls._dplot = copy.deepcopy(Struct._dplot)
         cls._set_color_ddef(cls._color)
@@ -148,10 +151,12 @@ class Struct(utils.ToFuObject):
 
         kwdargs = locals()
         del kwdargs['self']
-        super().__init__(**kwdargs)
+        # super()
+        super(Struct,self).__init__(**kwdargs)
 
     def _reset(self):
-        super()._reset()
+        # super()
+        super(Struct,self)._reset()
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
         self._dphys = dict.fromkeys(self._get_keys_dphys())
@@ -422,7 +427,8 @@ class Struct(utils.ToFuObject):
         cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
-        super().strip(strip=strip)
+        # super()
+        super(Struct,self).strip(strip=strip)
 
     def _strip(self, strip=0):
         if strip==0:
@@ -919,14 +925,17 @@ class CoilPF(StructOut):
                  SavePath_Include=tfpf.defInclude, color=None):
         kwdargs = locals()
         del kwdargs['self'], kwdargs['__class__']
-        super().__init__(mobile=False, **kwdargs)
+        # super()
+        super(CoilPF,self).__init__(mobile=False, **kwdargs)
 
     def __init__(self, nturns=None, superconducting=None, active=None,
                  **kwdargs):
-        super().__init__(**kwdargs)
+        # super()
+        super(CoilPF,self).__init__(**kwdargs)
 
     def _reset(self):
-        super()._reset()
+        # super()
+        super(CoilPF,self)._reset()
         self._dmag = dict.fromkeys(self._get_keys_dmag())
         self._dmag['nI'] = 0
 
@@ -1492,7 +1501,11 @@ class Config(utils.ToFuObject):
         # Purge
         for k in self._ddef['dstruct']['order']:
             if hasattr(self,k):
-                exec("del self.{0}".format(k))
+                delattr(self,k)
+                # if sys.version[0]=='2':
+                    # exec "del self.{0}".format(k) in locals()
+                # else:
+                    # exec("del self.{0}".format(k))
 
         # Set
         for k in self._dstruct['dStruct'].keys():
@@ -1636,7 +1649,8 @@ class Config(utils.ToFuObject):
         cls.strip.__doc__ = doc
 
     def strip(self, strip=0, force=False):
-        super().strip(strip=strip, force=force)
+        # super()
+        super(Config,self).strip(strip=strip, force=force)
 
     def _strip(self, strip=0, force=False):
         self._strip_dstruct(strip=strip, force=force)
@@ -2033,7 +2047,10 @@ class Rays(utils.ToFuObject):
                     'Nstep':50}}
 
     def __init_subclass__(cls, color='k', **kwdargs):
-        super().__init_subclass__(**kwdargs)
+        # Python 2
+        utils.ToFuObject.__init_subclass__(**kwdargs)
+        # Python 3
+        #super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Rays._ddef)
         cls._dplot = copy.deepcopy(Rays._dplot)
         cls._set_color_ddef(color)
@@ -2053,10 +2070,12 @@ class Rays(utils.ToFuObject):
 
         kwdargs = locals()
         del kwdargs['self']
-        super().__init__(**kwdargs)
+        # super()
+        super(Rays,self).__init__(**kwdargs)
 
     def _reset(self):
-        super()._reset()
+        # super()
+        super(Rays,self)._reset()
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dconfig = dict.fromkeys(self._get_keys_dconfig())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
@@ -2639,7 +2658,8 @@ class Rays(utils.ToFuObject):
         cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
-        super().strip(strip=strip)
+        # super()
+        super(Rays,self).strip(strip=strip)
 
     def _strip(self, strip=0):
         self._strip_dconfig(strip=strip)
@@ -3446,24 +3466,17 @@ class Rays(utils.ToFuObject):
 
     def plot_touch(self, key=None, invert=None,
                    ind=None, plotmethod='imshow',
-                   fs=None, wintit=None, tit=None, draw=True):
+                   fs=None, wintit=None, tit=None,
+                   connect=True, draw=True):
         lC = [ss in self.Id.Cls for ss in ['1D','2D']]
         if not np.sum(lC)==1:
             msg = "The camera type (1D or 2D) must be specified!"
             raise Exception(msg)
 
-
         out = _plot.Rays_plot_touch(self, key=key, ind=ind, invert=invert,
-                                    plotmethod=plotmethod,
+                                    plotmethod=plotmethod, connect=connect,
                                     fs=fs, wintit=wintit, tit=tit, draw=draw)
         return out
-
-
-
-
-
-
-
 
 
 
