@@ -12,6 +12,8 @@ import sys
 import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
+from ray_box_test import check_inter_bbox_ray
+from ray_box_test import Box, Ray
 
 from tofu.geom._poly_utils import get_bbox_poly_extruded
 if sys.version[0]=='3':
@@ -109,11 +111,6 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                                                  EpsUz=EpsUz, EpsVz=EpsVz,
                                                  EpsA=EpsA, EpsB=EpsB,
                                                  EpsPlane=EpsPlane)
-        # Main function to compute intersections with Vessel
-        # profile = line_profiler.LineProfiler(test_dumb)
-        # abba = 1
-        # profile.runcall(test_dumb, abba)
-        # profile.print_stats()
 
         # k = coordinate (in m) along the line from D
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
@@ -209,13 +206,21 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
         Forbid0, Forbidbis = 1, 1
     else:
         Forbid0, Forbidbis = 0, 0
+
+    # print("")
+    # print("New box................................")
+    bounds = get_bbox_poly_extruded(np.asarray(VPoly))
+
+    #bbox = Box(bounds)
+    #ax = bbox.plot()
     for ii in range(0,Nl):
 
         # Let us first check if the line intersects the bounding box of structure
-        get_bbox_poly_extruded(np.asarray(VPoly))
-        import sys
-        sys.exit()
-        
+        inter_bbox = check_inter_bbox_ray(bounds, Ds[:,ii], us[:,ii])
+        if not inter_bbox:
+            continue
+        # ray = Ray(Ds[:,ii], us[:,ii], notVec=True)
+        #ray.plot(ax=ax,block=ii==(Nl-1))
         upscaDp = us[0,ii]*Ds[0,ii] + us[1,ii]*Ds[1,ii]
         upar2 = us[0,ii]**2 + us[1,ii]**2
         Dpar2 = Ds[0,ii]**2 + Ds[1,ii]**2
@@ -461,6 +466,7 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                             kin = k
                             indin = -2
 
+        # print("  For Line ", ii, "  test = ", inter_bbox, " and kout = ", Done, kin, kout)
         if Done==1:
             SOut[0,ii] = Ds[0,ii] + kout*us[0,ii]
             SOut[1,ii] = Ds[1,ii] + kout*us[1,ii]

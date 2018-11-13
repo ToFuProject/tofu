@@ -34,7 +34,8 @@ def test_LOS_west_Aconfig(config, cams, plot=False, save=False, saveCam=[]):
     return times
 
 
-def test_LOS_west_Bconfig(config, cams, plot=False, save=False, saveCam=[]):
+def test_LOS_west_Bconfig(config, cams, plot=False, save=False, saveCam=[],
+                          plot_cam=False):
     dconf = load_config(config, plot=plot)
     if plot:
         plt.show(block=True)
@@ -43,6 +44,10 @@ def test_LOS_west_Bconfig(config, cams, plot=False, save=False, saveCam=[]):
     times = []
     for vcam in cams:
         D, u = get_Du(vcam)
+        if plot_cam :
+            Cam = tf.geom.LOSCam1D(Id=vcam, Du=(D,u), Ves=ves, LStruct=struct)
+            Cam.plot(Elt='L', EltVes='P', EltStruct='P')
+            plt.show(block=True)
         u = u/np.sqrt(np.sum(u**2, axis=0))
         lSPoly = [ss.Poly for ss in struct]
         lSLim = [ss.Lim for ss in struct]
@@ -78,12 +83,12 @@ def test_LOS_west_Bconfig(config, cams, plot=False, save=False, saveCam=[]):
     return times
 
 def test_LOS_compact(save=False, saveCam=[]):
-    Cams = ["V1", "V10", "V100", "V1000", "V10000",
-            "V100000", "V1000000"]
-    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
-            "VA100000", "VA1000000"]
+    Cams = ["V1", "V10", "V100", "V1000", "V10000"]#,
+    #"V100000"]#, "V1000000"]
+    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000"]#,
+    #"VA100000", "VA1000000"]
     Aconfigs = ["A1", "A2", "A3"]
-    Bconfigs = ["B1"]#, "B2", "B3"]
+    Bconfigs = ["B1", "B2", "B3"]
     for icon in Aconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
@@ -131,13 +136,13 @@ def test_LOS_all(save=False, saveCam=[]):
             print(ttt)
 
 def test_LOS_profiling():
-    Cams = ["V100000"]
+    Cams = ["V10"]
     Bconfigs = ["B2"]
     for icon in Bconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_Bconfig(icon, Cams)
+        times = test_LOS_west_Bconfig(icon, Cams, plot=True, save=True, plot_cam=True)
         for ttt in times:
             print(ttt)
 
@@ -216,7 +221,7 @@ def touch_plot_config_cam(config, cam):
 
     
 if __name__ == "__main__":
-    # test_LOS_compact()
+    test_LOS_compact()
     # test_LOS_all(save=True,saveCam=["V1000"])
     # test_LOS_profiling()
     # test_LOS_cprofiling()
@@ -227,4 +232,4 @@ if __name__ == "__main__":
     # profile = line_profiler.LineProfiler(test_LOS_profilingA)
     # profile.runcall(test_LOS_profilingA)
     # profile.print_stats()
-    test_LOS_profiling()
+    # test_LOS_profiling()
