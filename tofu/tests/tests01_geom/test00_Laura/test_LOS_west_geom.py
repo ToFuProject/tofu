@@ -36,9 +36,14 @@ def test_LOS_west_Aconfig(config, cams, plot=False, save=False, saveCam=[]):
 
 def test_LOS_west_Bconfig(config, cams, plot=False, save=False, saveCam=[],
                           plot_cam=False):
+    if plot:
+        plt.ion()
+        plt.show()
     dconf = load_config(config, plot=plot)
     if plot:
-        plt.show(block=True)
+        plt.draw()
+        plt.pause(0.001)
+        input("Press enter to continue")
     ves = dconf["Ves"]
     struct = list(dconf['Struct'].values())
     times = []
@@ -142,7 +147,7 @@ def test_LOS_profiling():
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_Bconfig(icon, Cams, plot=True, save=True, plot_cam=True)
+        times = test_LOS_west_Bconfig(icon, Cams, plot=True, save=False, plot_cam=False)
         for ttt in times:
             print(ttt)
 
@@ -221,7 +226,7 @@ def touch_plot_config_cam(config, cam):
 
     
 if __name__ == "__main__":
-    test_LOS_compact()
+    # test_LOS_compact()
     # test_LOS_all(save=True,saveCam=["V1000"])
     # test_LOS_profiling()
     # test_LOS_cprofiling()
@@ -232,4 +237,4 @@ if __name__ == "__main__":
     # profile = line_profiler.LineProfiler(test_LOS_profilingA)
     # profile.runcall(test_LOS_profilingA)
     # profile.print_stats()
-    #test_LOS_profiling()
+    test_LOS_profiling()

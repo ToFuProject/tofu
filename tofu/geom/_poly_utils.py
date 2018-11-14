@@ -58,4 +58,31 @@ def get_bbox_poly_extruded(lpoly):
 
 
 def get_bbox_poly_limited(lpoly, llim):
-    return
+    npts = lpoly.shape[1]
+    ones = np.ones_like(lpoly[0,:])
+    poly_rzmin = np.zeros((3, npts))
+    poly_rzmin[0, :] = lpoly[0,:]
+    poly_rzmin[1, :] = lpoly[1,:]
+    poly_rzmin[2, :] = ones*llim[0]
+    poly_rzmax = np.zeros((3, npts))
+    poly_rzmax[0, :] = lpoly[0,:]
+    poly_rzmax[1, :] = lpoly[1,:]
+    poly_rzmax[2, :] = ones*llim[1]
+
+    poly_xyz_min = CoordShift(poly_rzmin, In='(R,Z,Phi)', Out="(X,Y,Z)")
+    poly_xyz_max = CoordShift(poly_rzmax, In='(R,Z,Phi)', Out="(X,Y,Z)")
+
+    xmin = min(poly_xyz_min[0,:].min(), poly_xyz_max[0,:].min())
+    ymin = min(poly_xyz_min[1,:].min(), poly_xyz_max[1,:].min())
+    zmin = min(poly_xyz_min[2,:].min(), poly_xyz_max[2,:].min())
+    xmax = max(poly_xyz_min[0,:].max(), poly_xyz_max[0,:].max())
+    ymax = max(poly_xyz_min[1,:].max(), poly_xyz_max[1,:].max())
+    zmax = max(poly_xyz_min[2,:].max(), poly_xyz_max[2,:].max())
+
+    axes = plt.gcf().get_axes()
+    axes[1].plot([xmin, xmin, xmax, xmax, xmin], [ymin, ymax, ymax, ymin, ymin], 'C3', zorder=1, lw=3, color="blue")
+    axes[0].plot(    poly_xyz_min[0,:], poly_xyz_min[2,:], 'C3', zorder=1, lw=3)
+    axes[0].plot([xmin, xmin, xmax, xmax, xmin], [zmin, zmax, zmax, zmin, zmin], 'C3', zorder=1, lw=3, color="blue")
+    plt.savefig("bbox")
+
+    return [xmin, ymin, zmin, xmax, ymax, zmax]

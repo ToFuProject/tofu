@@ -15,7 +15,7 @@ from matplotlib.path import Path
 from ray_box_test import check_inter_bbox_ray
 from ray_box_test import Box, Ray
 
-from tofu.geom._poly_utils import get_bbox_poly_extruded
+from tofu.geom._poly_utils import get_bbox_poly_extruded, get_bbox_poly_limited
 if sys.version[0]=='3':
     from inspect import signature as insp
 elif sys.version[0]=='2':
@@ -210,6 +210,8 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
     # print("")
     # print("New box................................")
     bounds = get_bbox_poly_extruded(np.asarray(VPoly))
+    if Lim is not None:
+        get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
 
     #bbox = Box(bounds)
     #ax = bbox.plot()
