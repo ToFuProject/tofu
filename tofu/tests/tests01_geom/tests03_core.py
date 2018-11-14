@@ -37,7 +37,7 @@ def setup_module(module):
     print("") # this is to get a newline after the dots
     lf = os.listdir(_here)
     lf = [f for f in lf
-         if all([s in f for s in ['TFG_','Test','.npz']])]
+         if all([s in f for s in ['TFG_',_Exp,'.npz']])]
     lF = []
     for f in lf:
         ff = f.split('_')
@@ -64,7 +64,7 @@ def teardown_module(module):
     #print("") # this is to get a newline
     lf = os.listdir(_here)
     lf = [f for f in lf
-         if all([s in f for s in ['TFG_','Test','.npz']])]
+         if all([s in f for s in ['TFG_',_Exp,'.npz']])]
     lF = []
     for f in lf:
         ff = f.split('_')

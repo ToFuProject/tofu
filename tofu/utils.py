@@ -163,11 +163,12 @@ def get_todictfields(ld, ls):
 #       Special dict subclass for dynamic attributes creation
 #############################################
 
-class dictattr(dict):
+class Dictattr(dict):
     __getattr__ = dict.__getitem__
 
     def __init__(self, extra, *args, **kwdargs):
-        super().__init__(*args, **kwdargs)
+        #super()
+        super(Dictattr, self).__init__(*args, **kwdargs)
         self._extra = extra
 
     def __dir__(self):
@@ -474,9 +475,10 @@ class ToFuObjectBase(object):
     __metaclass__ = ABCMeta
     _dstrip = {'strip':None, 'allowed':None}
 
-
+    # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, *args, **kwdargs):
-        super().__init_subclass__(*args, **kwdargs)
+        # super()
+        super(ToFuObjectBase,cls).__init_subclass__(*args, **kwdargs)
         cls._dstrip = ToFuObjectBase._dstrip.copy()
         cls._strip_init()
 
@@ -499,7 +501,6 @@ class ToFuObjectBase(object):
         """ To be overloaded """
         pass
 
-    @abstractmethod
     def _set_Id(self, *args, **kwdargs):
         """ To be overloaded """
         pass
@@ -663,7 +664,6 @@ class ToFuObjectBase(object):
                                 for k in lkobj]))
         return dout
 
-    @abstractmethod
     def _get_dId(self):
         """ To be overloaded """
         return {'dict':{}}
@@ -815,16 +815,22 @@ class ToFuObjectBase(object):
             print(msg)
         return eq
 
+    # Python 3
     def __neq__(self, obj, detail=True, verb=True):
         return not self.__eq__(obj, detail=detail, verb=verb)
 
+    # Python 2
+    def __ne__(self, obj, detail=True, verb=True):
+        return not self.__eq__(obj, detail=detail, verb=verb)
 
 
 
 class ToFuObject(ToFuObjectBase):
 
+    # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, *args, **kwdargs):
-        super().__init_subclass__(*args, **kwdargs)
+        # super()
+        super(ToFuObject,cls).__init_subclass__(*args, **kwdargs)
 
     def _set_Id(self, Id=None, Name=None, SaveName=None, SavePath=None,
                 Type=None, Deg=None, Exp=None, Diag=None, shot=None, usr=None,
@@ -933,8 +939,14 @@ class ID(ToFuObjectBase):
                  SavePath=None, usr=None, dUSR=None, lObj=None,
                  fromdict=None, include=None):
 
+        # To replace __init_subclass__ for Python 2
+        if sys.version[0]=='2':
+            self._dstrip = ToFuObjectBase._dstrip.copy()
+            self.__class__._strip_init()
+
         kwdargs = locals()
         del kwdargs['self']
+        #super()
         super(ID, self).__init__(**kwdargs)
 
     def _reset(self):
@@ -1055,10 +1067,14 @@ class ID(ToFuObjectBase):
         nMax = max(cls._dstrip['allowed'])
         doc = ""
         doc = ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        cls.strip.__doc__ = doc
+        if sys.version[0]=='2':
+            cls.strip.__func__.__doc__ = doc
+        else:
+            cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
-        super().strip(strip=strip)
+        #super()
+        super(ID,self).strip(strip=strip)
 
     def _strip(self, strip=0):
         pass
