@@ -227,9 +227,9 @@ if __name__ == "__main__":
     # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
-    #touch_plot_config_cam("A2", "VA100")
+    # touch_plot_config_cam("A2", "VA100")
     # line profiling.....
     # profile = line_profiler.LineProfiler(test_LOS_profilingA)
     # profile.runcall(test_LOS_profilingA)
     # profile.print_stats()
-    # test_LOS_profiling()
+    #test_LOS_profiling()

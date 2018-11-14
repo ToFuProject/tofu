@@ -16,19 +16,19 @@ def get_bbox_poly_extruded(lpoly):
     # plt.scatter(-lpoly[0,:], lpoly[1,:], s=120, zorder=2)
     # plt.title('Poly in R,Z')
     # plt.tight_layout()
-    npts = lpoly.shape[1]
-    ones = np.ones_like(lpoly[0,:])*np.pi/2.
-    rzphi_poly = np.zeros((3, npts))
-    rzphi_poly[0, :] = lpoly[0,:]
-    rzphi_poly[1, :] = lpoly[1,:]
-    rzphi_poly[2, :] = ones
-    xyz_poly = CoordShift(rzphi_poly, In='(R,Z,Phi)', Out="(X,Y,Z)")
-    ymax = xyz_poly[1,:].max()
+    # npts = lpoly.shape[1]
+    # ones = np.ones_like(lpoly[0,:])*np.pi/2.
+    # rzphi_poly = np.zeros((3, npts))
+    # rzphi_poly[0, :] = lpoly[0,:]
+    # rzphi_poly[1, :] = lpoly[1,:]
+    # rzphi_poly[2, :] = ones
+    # xyz_poly = CoordShift(rzphi_poly, In='(R,Z,Phi)', Out="(X,Y,Z)")
+    ymax = lpoly[0,:].max()
     ymin = -ymax + 0.
     xmin = -ymax + 0.
     xmax = ymax + 0.
-    zmin = xyz_poly[2,:].min()
-    zmax = xyz_poly[2,:].max()
+    zmin = lpoly[1,:].min()
+    zmax = lpoly[1,:].max()
     # plt.clf()
     # plt.subplot(311)
     # plt.plot(    xyz_poly[0,:],  xyz_poly[1,:], 'C3', zorder=1, lw=3)
@@ -56,3 +56,6 @@ def get_bbox_poly_extruded(lpoly):
     # plt.show(block=True)
     return [xmin, ymin, zmin, xmax, ymax, zmax]
 
+
+def get_bbox_poly_limited(lpoly, llim):
+    return
