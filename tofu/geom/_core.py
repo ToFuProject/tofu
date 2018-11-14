@@ -5,9 +5,13 @@ It includes all functions and object classes necessary for tomography on Tokamak
 
 # Built-in
 import os
+import sys
 import warnings
 #from abc import ABCMeta, abstractmethod
 import copy
+if sys.version[0]=='2':
+    import re, tokenize, keyword
+
 
 # Common
 import numpy as np
@@ -107,16 +111,16 @@ class Struct(utils.ToFuObject):
              'dphys':{},
              'dmisc':{'color':'k'}}
     _dplot = {'cross':{'Elt':'P',
-                       'dP':{'c':'k','lw':2},
-                       'dI':{'c':'k','ls':'--','marker':'x','ms':8,'mew':2},
-                       'dBs':{'c':'b','ls':'--','marker':'x','ms':8,'mew':2},
-                       'dBv':{'c':'g','ls':'--','marker':'x','ms':8,'mew':2},
+                       'dP':{'color':'k','lw':2},
+                       'dI':{'color':'k','ls':'--','marker':'x','ms':8,'mew':2},
+                       'dBs':{'color':'b','ls':'--','marker':'x','ms':8,'mew':2},
+                       'dBv':{'color':'g','ls':'--','marker':'x','ms':8,'mew':2},
                        'dVect':{'color':'r','scale':10}},
               'hor':{'Elt':'P',
-                     'dP':{'c':'k','lw':2},
-                     'dI':{'c':'k','ls':'--'},
-                     'dBs':{'c':'b','ls':'--'},
-                     'dBv':{'c':'g','ls':'--'},
+                     'dP':{'color':'k','lw':2},
+                     'dI':{'color':'k','ls':'--'},
+                     'dBs':{'color':'b','ls':'--'},
+                     'dBv':{'color':'g','ls':'--'},
                      'Nstep':50},
               '3d':{'Elt':'P',
                     'dP':{'color':(0.8,0.8,0.8,1.),
@@ -126,9 +130,10 @@ class Struct(utils.ToFuObject):
                     'Nstep':50}}
 
 
+    # Does not exist beofre Python 3.6 !!!
     def __init_subclass__(cls, color='k', **kwdargs):
         # Python 2
-        utils.ToFuObject.__init_subclass__(**kwdargs)
+        super(Struct,cls).__init_subclass__(**kwdargs)
         # Python 3
         #super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Struct._ddef)
@@ -145,6 +150,11 @@ class Struct(utils.ToFuObject):
                  Clock=False, arrayorder='C', fromdict=None,
                  SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude, color=None):
+
+        # To replace __init_subclass__ for Python 2
+        if sys.version[0]=='2':
+            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
+            self.__class__._strip_init()
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -354,8 +364,8 @@ class Struct(utils.ToFuObject):
     def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
         self._dmisc['color'] = color
-        self._dplot['cross']['dP']['c'] = color
-        self._dplot['hor']['dP']['c'] = color
+        self._dplot['cross']['dP']['color'] = color
+        self._dplot['hor']['dP']['color'] = color
         self._dplot['3d']['dP']['color'] = color
 
     def _set_dmisc(self, color=None):
@@ -424,7 +434,10 @@ class Struct(utils.ToFuObject):
                  1: Remove dsino expendables
                  2: Remove also dgeom, dphys and dmisc expendables"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        cls.strip.__doc__ = doc
+        if sys.version[0]=='2':
+            cls.strip.__func__.__doc__ = doc
+        else:
+            cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         # super()
@@ -863,8 +876,8 @@ class StructIn(Struct):
         # super
         color = mpl.colors.to_rgba(color)
         cls._ddef['dmisc']['color'] = color
-        cls._dplot['cross']['dP']['c'] = cls._ddef['dmisc']['color']
-        cls._dplot['hor']['dP']['c'] = cls._ddef['dmisc']['color']
+        cls._dplot['cross']['dP']['color'] = cls._ddef['dmisc']['color']
+        cls._dplot['hor']['dP']['color'] = cls._ddef['dmisc']['color']
         cls._dplot['3d']['dP']['color'] = cls._ddef['dmisc']['color']
 
     @staticmethod
@@ -1024,7 +1037,10 @@ class CoilPF(StructOut):
                  1: Remove dsino and dmag expendables
                  2: Remove also dgeom, dphys and dmisc expendables"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        cls.strip.__doc__ = doc
+        if sys.version[0]=='2':
+            cls.strip.__func__.__doc__ = doc
+        else:
+            cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         super(CoilPF, self).strip(strip=strip)
@@ -1115,6 +1131,11 @@ class Config(utils.ToFuObject):
                  SavePath_Include=tfpf.defInclude,
                  fromdict=None):
 
+        # To replace __init_subclass__ for Python 2
+        if sys.version[0]=='2':
+            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
+            self.__class__._strip_init()
+
         kwdargs = locals()
         del kwdargs['self']
         super(Config,self).__init__(**kwdargs)
@@ -1172,7 +1193,12 @@ class Config(utils.ToFuObject):
         assert issubclass(struct.__class__,Struct)
         C0 = struct.Id.Exp==self.Id.Exp
         C1 = struct.Id.Type==self.Id.Type
-        C2 = struct.Id.Name.isidentifier() and '_' not in struct.Id.Name
+        if sys.version[0]=='2':
+            C2 = (re.match(tokenize.Name + '$', struct.Id.Name)
+                  and not keyword.iskeyword(struct.Id.Name))
+        else:
+            C2 = struct.Id.Name.isidentifier()
+        C2 = C2 and '_' not in struct.Id.Name
         msgi = None
         if not (C0 and C1 and C2):
             msgi = "\n    - {0} :".format(struct.Id.SaveName)
@@ -1523,7 +1549,7 @@ class Config(utils.ToFuObject):
                         setattr(self._dstruct['dStruct'][k][kk],
                                 'get_%s'%pp,
                                 lambda pk=pp, k0=k, k1=kk: self._get_extraprop(pk, k0, k1))
-                dd = utils.dictattr(['set_color']+lset+lget,
+                dd = utils.Dictattr(['set_color']+lset+lget,
                                     self._dstruct['dStruct'][k])
                 for pp in self._dextraprop['lprop']:
                     setattr(dd,
@@ -1646,7 +1672,10 @@ class Config(utils.ToFuObject):
                  2: apply strip(2) to objects in self.lStruct
                  3: replace objects in self.lStruct by their SavePath+SaveName"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        cls.strip.__doc__ = doc
+        if sys.version[0]=='2':
+            cls.strip.__func__.__doc__ = doc
+        else:
+            cls.strip.__doc__ = doc
 
     def strip(self, strip=0, force=False):
         # super()
@@ -2028,16 +2057,16 @@ class Rays(utils.ToFuObject):
              'dsino':{},
              'dmisc':{'color':'k'}}
     _dplot = {'cross':{'Elt':'P',
-                       'dP':{'c':'k','lw':2},
-                       'dI':{'c':'k','ls':'--','m':'x','ms':8,'mew':2},
-                       'dBs':{'c':'b','ls':'--','m':'x','ms':8,'mew':2},
-                       'dBv':{'c':'g','ls':'--','m':'x','ms':8,'mew':2},
+                       'dP':{'color':'k','lw':2},
+                       'dI':{'color':'k','ls':'--','m':'x','ms':8,'mew':2},
+                       'dBs':{'color':'b','ls':'--','m':'x','ms':8,'mew':2},
+                       'dBv':{'color':'g','ls':'--','m':'x','ms':8,'mew':2},
                        'dVect':{'color':'r','scale':10}},
               'hor':{'Elt':'P',
-                     'dP':{'c':'k','lw':2},
-                     'dI':{'c':'k','ls':'--'},
-                     'dBs':{'c':'b','ls':'--'},
-                     'dBv':{'c':'g','ls':'--'},
+                     'dP':{'color':'k','lw':2},
+                     'dI':{'color':'k','ls':'--'},
+                     'dBs':{'color':'b','ls':'--'},
+                     'dBv':{'color':'g','ls':'--'},
                      'Nstep':50},
               '3d':{'Elt':'P',
                     'dP':{'color':(0.8,0.8,0.8,1.),
@@ -2046,9 +2075,10 @@ class Rays(utils.ToFuObject):
                     'Lim':None,
                     'Nstep':50}}
 
+    # Does not exist beofre Python 3.6 !!!
     def __init_subclass__(cls, color='k', **kwdargs):
         # Python 2
-        utils.ToFuObject.__init_subclass__(**kwdargs)
+        super(Rays,cls).__init_subclass__(**kwdargs)
         # Python 3
         #super().__init_subclass__(**kwdargs)
         cls._ddef = copy.deepcopy(Rays._ddef)
@@ -2064,6 +2094,11 @@ class Rays(utils.ToFuObject):
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  sino_RefPt=None, fromdict=None,
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
+
+        # To replace __init_subclass__ for Python 2
+        if sys.version[0]=='2':
+            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
+            self.__class__._strip_init()
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
@@ -2539,8 +2574,8 @@ class Rays(utils.ToFuObject):
     def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
         self._dmisc['color'] = color
-        self._dplot['cross']['dP']['c'] = color
-        self._dplot['hor']['dP']['c'] = color
+        self._dplot['cross']['dP']['color'] = color
+        self._dplot['hor']['dP']['color'] = color
         self._dplot['3d']['dP']['color'] = color
 
     def _set_dmisc(self, color=None):
@@ -2655,7 +2690,10 @@ class Rays(utils.ToFuObject):
                  4: dgeom w/o pts + config=pathfile + dsino empty
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
-        cls.strip.__doc__ = doc
+        if sys.version[0]=='2':
+            cls.strip.__func__.__doc__ = doc
+        else:
+            cls.strip.__doc__ = doc
 
     def strip(self, strip=0):
         # super()
@@ -3491,7 +3529,10 @@ class LOSCam2D(Rays):
                  sino_RefPt=None, fromdict=None,
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
         kwdargs = locals()
-        del kwdargs['__class__'], kwdargs['self'], kwdargs['X12']
+        del kwdargs['self'], kwdargs['X12']
+        # Python 2 vs 3
+        if '__class__' in kwdargs.keys():
+            del kwdargs['__class__']
         super(LOSCam2D,self).__init__(**kwdargs)
         self.set_X12(X12)
 
