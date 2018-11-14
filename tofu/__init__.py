@@ -74,7 +74,7 @@ import tofu.data as data
 
 __all__ = ['pathfile','utils','_plot','geom','data']#,'dust']
 
-del sys, version
+del sys
 
 #__all__.extend(['__version__'])
 #__all__.extend(core.__all__)
