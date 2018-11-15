@@ -1,4 +1,4 @@
-def compute_sign(origin, direction):
+def compute_inv(direction):
     try:
         dx = 1./direction[0]
     except ZeroDivisionError:
@@ -12,10 +12,15 @@ def compute_sign(origin, direction):
     except ZeroDivisionError:
         dz = float('Inf')
     inv_direction = [dx, dy, dz]
-    sign = [0, 0, 0]
-    sign[0] = int(inv_direction[0] < 0)
-    sign[1] = int(inv_direction[1] < 0)
-    sign[2] = int(inv_direction[2] < 0)
+    return inv_direction
+
+def compute_sign(direction):
+    inv_direction = compute_inv(direction)
+    # sign = [0, 0, 0]
+    # sign[0] = int(inv_direction[0] < 0)
+    # sign[1] = int(inv_direction[1] < 0)
+    # sign[2] = int(inv_direction[2] < 0)
+    sign = [1 if inv < 0 else 0 for inv in inv_direction]
     return inv_direction, sign
 
 def intersect(bounds, inv_direction, sign, origin, t0, t1) :
@@ -43,5 +48,5 @@ def check_inter_bbox_ray(bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax, u
     # print("  Ray u =", us.shape, us[0], us[1], us[2],
     #       "  Ds = ", ds.shape, ds[0], ds[1], ds[2])
     bounds = [[bb_xmin, bb_ymin, bb_zmin], [bb_xmax, bb_ymax, bb_zmax]]
-    inv, sign = compute_sign(us, ds)
+    inv, sign = compute_sign(ds)
     return intersect(bounds, inv, sign, us, -100000,100000)

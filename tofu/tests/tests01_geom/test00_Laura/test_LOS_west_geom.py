@@ -139,7 +139,7 @@ def test_LOS_all(save=False, saveCam=[]):
             print(ttt)
 
 def test_LOS_profiling():
-    Cams = ["V100000"]
+    Cams = ["V1000000"]
     Bconfigs = ["B2"]
     for icon in Bconfigs :
         print("*..................................*")

@@ -230,7 +230,9 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
 
         # Let us first check if the line intersects the bounding box of structure
         if ind_lim == 0 or (Lim is not None and nlims < 10):
-            inter_bbox = check_inter_bbox_ray(bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax, Ds[:,ii], us[:,ii])
+            inter_bbox = check_inter_bbox_ray(bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax,
+                                              [Ds[:,ii][0], Ds[:,ii][1], Ds[:,ii][2]],
+                                              [us[:,ii][0], us[:,ii][1], us[:,ii][2]])
             if not inter_bbox:
                 linter_bbox[ii] = 0
                 continue
@@ -528,4 +530,3 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
       linter_bbox
 # et creer vecteurs
 #    return np.asarray(kIn), np.asarray(kOut), np.asarray(vPerpOut), np.asarray(indOut)
-
