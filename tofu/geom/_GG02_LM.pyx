@@ -13,7 +13,6 @@ import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
 from ray_box_test import check_inter_bbox_ray
-from ray_box_test import Box, Ray
 
 from tofu.geom._poly_utils import get_bbox_poly_extruded, get_bbox_poly_limited
 if sys.version[0]=='3':
@@ -91,6 +90,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
             "Arg VType must be a str in ['Tor','Lin']!")
 
     cdef int ii, jj
+    cdef int[:] linter_bbox=np.ones((Ds.shape[1],),dtype=np.intc)
 
     v = Ds.ndim==2
     if not v:
@@ -106,7 +106,9 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         # Main function to compute intersections with Vessel
         PIn, POut, \
             VperpIn, VperpOut, \
-            IIn, IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim,
+            IIn, IOut[2,:], \
+            linter_bbox = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, linter_bbox,
+                                                 Lim=Lim,
                                                  Forbid=Forbid, RMin=RMin,
                                                  EpsUz=EpsUz, EpsVz=EpsVz,
                                                  EpsA=EpsA, EpsB=EpsB,
@@ -128,15 +130,19 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                     lslim = [LSLim[ii]]
                 else:
                     lslim = LSLim[ii]
+                linter_bbox=np.ones((Ds.shape[1],),dtype=np.intc)
                 for jj in range(0,len(lslim)):
                     pIn, pOut,\
                         vperpIn, vperpOut,\
-                        iIn, iOut = Calc_LOS_PInOut_Tor(Ds, dus, LSPoly[ii],
-                                                        LSVIn[ii], Lim=lslim[jj],
-                                                        Forbid=Forbid, RMin=RMin,
-                                                        EpsUz=EpsUz, EpsVz=EpsVz,
-                                                        EpsA=EpsA, EpsB=EpsB,
-                                                        EpsPlane=EpsPlane)
+                        iIn, iOut,\
+                        linter_bbox = Calc_LOS_PInOut_Tor(Ds, dus, LSPoly[ii],
+                                                          LSVIn[ii], linter_bbox,
+                                                          Lim=lslim[jj],
+                                                          Forbid=Forbid, RMin=RMin,
+                                                          EpsUz=EpsUz, EpsVz=EpsVz,
+                                                          EpsA=EpsA, EpsB=EpsB,
+                                                          EpsPlane=EpsPlane,
+                                                          ind_lim=jj, nlims=len(lslim))
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
                     indout = np.zeros((NL,),dtype=bool)
@@ -167,10 +173,11 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
-                         double [:,::1] VPoly, double [:,::1] vIn, Lim=None,
+                         double [:,::1] VPoly, double [:,::1] vIn,
+                         int [:] linter_bbox, Lim=None,
                          bool Forbid=True, RMin=None, double EpsUz=1.e-6,
                          double EpsVz=1.e-9, double EpsA=1.e-9,
-                         double EpsB=1.e-9, double EpsPlane=1.e-9):
+                         double EpsB=1.e-9, double EpsPlane=1.e-9, int ind_lim=0, int nlims=1):
 
     cdef int ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
     cdef double Rmin, upscaDp, upar2, Dpar2, Crit2, kout, kin
@@ -185,6 +192,9 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
     cdef cnp.ndarray[double,ndim=2] VPerp_Out=np.nan*np.ones((3,Nl))
     cdef cnp.ndarray[double,ndim=1] indIn_=np.nan*np.ones((Nl,))
     cdef cnp.ndarray[double,ndim=1] indOut_=np.nan*np.ones((Nl,))
+
+    cdef bool inter_bbox
+    cdef double bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax
 
     cdef double[:,::1] SIn=SIn_, SOut=SOut_
     cdef double[:,::1] VPerpIn=VPerp_In, VPerpOut=VPerp_Out
@@ -209,18 +219,25 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
 
     # print("")
     # print("New box................................")
-    bounds = get_bbox_poly_extruded(np.asarray(VPoly))
-    if Lim is not None:
-        get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
+    if ind_lim == 0 :
+        bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax = get_bbox_poly_extruded(np.asarray(VPoly))
+    if Lim is not None and nlims < 10:
+        bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax = get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
 
     #bbox = Box(bounds)
     #ax = bbox.plot()
     for ii in range(0,Nl):
 
         # Let us first check if the line intersects the bounding box of structure
-        inter_bbox = check_inter_bbox_ray(bounds, Ds[:,ii], us[:,ii])
-        if not inter_bbox:
-            continue
+        if ind_lim == 0 or (Lim is not None and nlims < 10):
+            inter_bbox = check_inter_bbox_ray(bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax, Ds[:,ii], us[:,ii])
+            if not inter_bbox:
+                linter_bbox[ii] = 0
+                continue
+        else:
+            if linter_bbox[ii] == 0:
+                continue
+
         # ray = Ray(Ds[:,ii], us[:,ii], notVec=True)
         #ray.plot(ax=ax,block=ii==(Nl-1))
         upscaDp = us[0,ii]*Ds[0,ii] + us[1,ii]*Ds[1,ii]
@@ -506,7 +523,9 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                     VPerpIn[2,ii] = -vIn[1,indin]
                 indIn[ii] = indin
 
-    return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut)
+    return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), \
+      np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut), \
+      linter_bbox
 # et creer vecteurs
 #    return np.asarray(kIn), np.asarray(kOut), np.asarray(vPerpOut), np.asarray(indOut)
 

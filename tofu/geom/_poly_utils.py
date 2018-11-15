@@ -54,7 +54,7 @@ def get_bbox_poly_extruded(lpoly):
     # plt.title('Poly in Y,Z')
     # plt.tight_layout()    
     # plt.show(block=True)
-    return [xmin, ymin, zmin, xmax, ymax, zmax]
+    return xmin, ymin, zmin, xmax, ymax, zmax
 
 
 def get_bbox_poly_limited(lpoly, llim):
@@ -79,10 +79,11 @@ def get_bbox_poly_limited(lpoly, llim):
     ymax = max(poly_xyz_min[1,:].max(), poly_xyz_max[1,:].max())
     zmax = max(poly_xyz_min[2,:].max(), poly_xyz_max[2,:].max())
 
-    axes = plt.gcf().get_axes()
-    axes[1].plot([xmin, xmin, xmax, xmax, xmin], [ymin, ymax, ymax, ymin, ymin], 'C3', zorder=1, lw=3, color="blue")
-    axes[0].plot(    poly_xyz_min[0,:], poly_xyz_min[2,:], 'C3', zorder=1, lw=3)
-    axes[0].plot([xmin, xmin, xmax, xmax, xmin], [zmin, zmax, zmax, zmin, zmin], 'C3', zorder=1, lw=3, color="blue")
-    plt.savefig("bbox")
+    # axes = plt.gcf().get_axes()
+    # if len(axes) > 1:
+    #     axes[1].plot([xmin, xmin, xmax, xmax, xmin], [ymin, ymax, ymax, ymin, ymin], 'C3', zorder=1, lw=3, color="blue")
+    #     axes[0].plot(    poly_xyz_min[0,:], poly_xyz_min[2,:], 'C3', zorder=1, lw=3)
+    #     axes[0].plot([xmin, xmin, xmax, xmax, xmin], [zmin, zmax, zmax, zmin, zmin], 'C3', zorder=1, lw=3, color="blue")
+    #     plt.savefig("bbox")
 
-    return [xmin, ymin, zmin, xmax, ymax, zmax]
+    return xmin, ymin, zmin, xmax, ymax, zmax

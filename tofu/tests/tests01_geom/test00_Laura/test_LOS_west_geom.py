@@ -1,11 +1,9 @@
 # coding: utf-8
 from tofu_LauraBenchmarck_load_config import *
-plt.ion()
 import tofu.geom._GG_LM as _GG
 import time
 import pstats, cProfile
 import line_profiler
-
 
 def test_LOS_west_Aconfig(config, cams, plot=False, save=False, saveCam=[]):
     dconf = load_config(config, plot=plot)
@@ -141,13 +139,13 @@ def test_LOS_all(save=False, saveCam=[]):
             print(ttt)
 
 def test_LOS_profiling():
-    Cams = ["V10"]
+    Cams = ["V100000"]
     Bconfigs = ["B2"]
     for icon in Bconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_Bconfig(icon, Cams, plot=True, save=False, plot_cam=False)
+        times = test_LOS_west_Bconfig(icon, Cams, plot=False, save=False, plot_cam=False)
         for ttt in times:
             print(ttt)
 
@@ -211,16 +209,25 @@ def touch_plot_all_configs():
 def touch_plot_config_cam(config, cam):
     dconfig = load_config(config, plot=True)
     (D,u) = get_Du(cam)
+    print("getting cam *done*")
     if 'Struct' in dconfig.keys():
         LStruct = list(dconfig['Struct'].values())
     else:
         LStruct = None
 
     # Create the LOSCam2D object
+    print("creating cam")
+    start = time.time()
     Cam = tf.geom.LOSCam2D(Id=cam, Du=(D,u), Ves=dconfig['Ves'], LStruct=LStruct)
-    # Cam.plot(Elt='L', EltVes='P', EltStruct='P')
-    # plt.savefig("erasemeplz")
+    end = time.time()
+    print("creating cam *done*")
+    print("Time for creating LOS Cam 2D  = ", end-start)
+    Cam.plot(Elt='L', EltVes='P', EltStruct='P')
+    plt.savefig("erasemeplz")
+    start = time.time()
     Cam.plot_touch()
+    end = time.time()
+    print("Time for calling plot_touch = ", end-start)
     plt.savefig("plottouch_dconfig"+config+"_"+cam)
 
 
@@ -229,12 +236,12 @@ if __name__ == "__main__":
     # test_LOS_compact()
     # test_LOS_all(save=True,saveCam=["V1000"])
     # test_LOS_profiling()
-    # test_LOS_cprofiling()
+    test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
-    # touch_plot_config_cam("A2", "VA100")
+    # touch_plot_config_cam("B3", "V10000")
     # line profiling.....
     # profile = line_profiler.LineProfiler(test_LOS_profilingA)
     # profile.runcall(test_LOS_profilingA)
     # profile.print_stats()
-    test_LOS_profiling()
+    # test_LOS_profiling()
