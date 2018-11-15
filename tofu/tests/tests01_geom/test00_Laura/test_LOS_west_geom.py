@@ -4,7 +4,7 @@ plt.ion()
 import tofu.geom._GG_LM as _GG
 import time
 import pstats, cProfile
-import line_profiler
+
 
 
 def test_LOS_west_Aconfig(config, cams, plot=False, save=False, saveCam=[]):
@@ -221,8 +221,8 @@ def touch_plot_config_cam(config, cam):
 
     
 if __name__ == "__main__":
-    test_LOS_compact()
-    # test_LOS_all(save=True,saveCam=["V1000"])
+    # test_LOS_compact()
+    test_LOS_all(save=False,saveCam=["V1000"])
     # test_LOS_profiling()
     # test_LOS_cprofiling()
     # plot_all_configs()
