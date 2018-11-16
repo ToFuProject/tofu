@@ -1,3 +1,12 @@
 # TODO list : Optimization of intersection LOS - TOR
-- [ ] for an empty checkbox
-- [x] for a checked checkbox
+- [x] Add a first test of inter between ray and bounding-box of structures
+- [x] Cythonized inter bbox computation
+- [] Use Forbid to ignore structures that are completly in the forbid zone
+- [] Inverse loop Poly-struct/Nlines (for parallelization) (?)
+- [] Parellelize code
+- [] Use new version of develop
+- [] Optimize inter between ray and frustum
+- [] Recreate function for matplotlib.Path.polygon.contains_point()
+- [] "Ignore" a structure if the kout obtained from inter Bbox-Ray is bigger than last kout computed
+- [] Memory profile code
+- [] Compute bbox coordinates in cython ?
