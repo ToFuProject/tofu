@@ -186,11 +186,7 @@ def touch_plot_all_configs():
 
     for indx, config in enumerate(ABconfigs):
         dconfig = load_config(config, plot=False)
-        indcam = -1
-        if indx < 3:
-            indcam = indcam-1
-        else:
-            indcam = indcam-2
+        indcam = -2
         if indx == 1:
             cam = CamsA[indcam]
         else:
@@ -234,13 +230,13 @@ def touch_plot_config_cam(config, cam):
 
     
 if __name__ == "__main__":
-    test_LOS_compact()
+    # test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000"])
     # test_LOS_profiling()
     # test_LOS_cprofiling()
     # plot_all_configs()
-    # touch_plot_all_configs()
+    touch_plot_all_configs()
     # touch_plot_config_cam("B3", "V10000")
     # line profiling.....
     # profile = line_profiler.LineProfiler(test_LOS_profilingA)
