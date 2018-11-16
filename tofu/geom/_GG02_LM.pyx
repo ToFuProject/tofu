@@ -126,7 +126,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                     lslim = [LSLim[ii]]
                 else:
                     lslim = LSLim[ii]
-                linter_bbox=np.ones((Ds.shape[1],),dtype=np.intc)
+                linter_bbox=np.ones((Ds.shape[1],),dtype=np.int32)
                 for jj in range(0,len(lslim)):
                     pIn, pOut,\
                         vperpIn, vperpOut,\
@@ -200,6 +200,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
         L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
         L1 = Catan2(Csin(Lim[1]),Ccos(Lim[1]))
 
+    path_poly_t = Path(VPoly.T)
     ################
     # Prepare input
     if RMin is None:
@@ -454,7 +455,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     # Check if in VPoly
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L0) + (Ds[1,ii]+k*us[1,ii])*Csin(L0), Ds[2,ii]+k*us[2,ii]
                     # TODO create Path(Vpoly.t)
-                    if Path(VPoly.T).contains_point([sol0,sol1], transform=None, radius=0.0):
+                    if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
@@ -472,7 +473,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L1) + (Ds[1,ii]+k*us[1,ii])*Csin(L1), Ds[2,ii]+k*us[2,ii]
                     # Check if in VPoly
                     # TODO create Path(Vpoly.t)
-                    if Path(VPoly.T).contains_point([sol0,sol1], transform=None, radius=0.0):
+                    if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:

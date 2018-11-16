@@ -126,7 +126,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                     lslim = [LSLim[ii]]
                 else:
                     lslim = LSLim[ii]
-                linter_bbox=np.ones((Ds.shape[1],),dtype=np.intc)
+                linter_bbox=np.ones((Ds.shape[1],),dtype=np.int32)
                 for jj in range(0,len(lslim)):
                     pIn, pOut,\
                         vperpIn, vperpOut,\
@@ -191,7 +191,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
     cdef cnp.ndarray[double,ndim=1] indOut_=np.nan*np.ones((Nl,))
 
     cdef bool inter_bbox
-    cdef double bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax
     cdef cnp.ndarray[double,ndim=1] bounds = np.zeros(6)
 
     cdef double[:,::1] SIn=SIn_, SOut=SOut_
@@ -201,6 +200,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
         L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
         L1 = Catan2(Csin(Lim[1]),Ccos(Lim[1]))
 
+    path_poly_t = Path(VPoly.T)
     ################
     # Prepare input
     if RMin is None:
@@ -221,13 +221,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
         bounds = get_bbox_poly_extruded(np.asarray(VPoly))
     elif Lim is not None:
         bounds = get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
-
-    # bounds[0] = bb_xmin
-    # bounds[1] = bb_ymin
-    # bounds[2] = bb_zmin
-    # bounds[3] = bb_xmax
-    # bounds[4] = bb_ymax
-    # bounds[5] = bb_zmax
 
     for ii in range(0,Nl):
 
@@ -462,7 +455,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     # Check if in VPoly
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L0) + (Ds[1,ii]+k*us[1,ii])*Csin(L0), Ds[2,ii]+k*us[2,ii]
                     # TODO create Path(Vpoly.t)
-                    if Path(VPoly.T).contains_point([sol0,sol1], transform=None, radius=0.0):
+                    if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
@@ -480,7 +473,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L1) + (Ds[1,ii]+k*us[1,ii])*Csin(L1), Ds[2,ii]+k*us[2,ii]
                     # Check if in VPoly
                     # TODO create Path(Vpoly.t)
-                    if Path(VPoly.T).contains_point([sol0,sol1], transform=None, radius=0.0):
+                    if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
