@@ -12,7 +12,6 @@ import sys
 import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
-from ray_box_test import check_inter_bbox_ray
 
 from tofu.geom._poly_utils import get_bbox_poly_extruded, get_bbox_poly_limited
 if sys.version[0]=='3':
@@ -141,7 +140,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                                                           EpsA=EpsA, EpsB=EpsB,
                                                           EpsPlane=EpsPlane,
                                                           ind_lim=jj, nlims=len(lslim))
-                    # print("
+
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
                     indout = np.zeros((NL,),dtype=bool)
@@ -231,23 +230,17 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
     bounds[4] = bb_ymax
     bounds[5] = bb_zmax
 
-    cdef tmp_skipped_comp = 0
     for ii in range(0,Nl):
 
         # Let us first check if the line intersects the bounding box of structure
         if ind_lim == 0 or Lim is not None:
-            # inter_bbox = check_inter_bbox_ray(bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax,
-            #                                   [Ds[:,ii][0], Ds[:,ii][1], Ds[:,ii][2]],
-            #                                   [us[:,ii][0], us[:,ii][1], us[:,ii][2]])
             inter_bbox = ray_intersects_abba_bbox(bounds,
                                                   Ds[:,ii], us[:,ii])
             if not inter_bbox:
                 linter_bbox[ii] = 0
-                tmp_skipped_comp +=1
                 continue
         else:
             if linter_bbox[ii] == 0:
-                tmp_skipped_comp += 1
                 continue
 
         # ray = Ray(Ds[:,ii], us[:,ii], notVec=True)
@@ -535,7 +528,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     VPerpIn[2,ii] = -vIn[1,indin]
                 indIn[ii] = indin
 
-    #print("percent of skipped lines = ", tmp_skipped_comp/Nl)
     return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), \
       np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut), \
       linter_bbox
