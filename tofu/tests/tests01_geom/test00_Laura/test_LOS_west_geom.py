@@ -139,8 +139,8 @@ def test_LOS_all(save=False, saveCam=[]):
             print(ttt)
 
 def test_LOS_profiling():
-    Cams = ["V1000000"]
-    Bconfigs = ["B2"]
+    Cams = ["V1000"]
+    Bconfigs = ["B3"]
     for icon in Bconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
@@ -234,12 +234,13 @@ if __name__ == "__main__":
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000"])
     # test_LOS_profiling()
-    # test_LOS_cprofiling()
+    test_LOS_cprofiling()
     # plot_all_configs()
-    touch_plot_all_configs()
+    # touch_plot_all_configs()
     # touch_plot_config_cam("B3", "V10000")
     # line profiling.....
     # profile = line_profiler.LineProfiler(test_LOS_profilingA)
     # profile.runcall(test_LOS_profilingA)
     # profile.print_stats()
     # test_LOS_profiling()
+    #print(test_LOS_west_Bconfig("B2", ["V100000"]))
