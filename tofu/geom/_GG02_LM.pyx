@@ -10,7 +10,6 @@ import line_profiler
 # import
 import sys
 import numpy as np
-import scipy.integrate as scpintg
 from matplotlib.path import Path
 
 from tofu.geom._poly_utils import get_bbox_poly_extruded, get_bbox_poly_limited
@@ -192,8 +191,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
     cdef cnp.ndarray[double,ndim=1] indOut_=np.nan*np.ones((Nl,))
 
     cdef bool inter_bbox
-    cdef double bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax
-    cdef double[6] bounds
+    cdef cnp.ndarray[double,ndim=1] bounds = np.zeros(6)
 
     cdef double[:,::1] SIn=SIn_, SOut=SOut_
     cdef double[:,::1] VPerpIn=VPerp_In, VPerpOut=VPerp_Out
@@ -219,16 +217,9 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
     # print("")
     # print("New box................................")
     if ind_lim == 0 and Lim is None:
-        bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax = get_bbox_poly_extruded(np.asarray(VPoly))
+        bounds = get_bbox_poly_extruded(np.asarray(VPoly))
     elif Lim is not None:
-        bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax = get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
-
-    bounds[0] = bb_xmin
-    bounds[1] = bb_ymin
-    bounds[2] = bb_zmin
-    bounds[3] = bb_xmax
-    bounds[4] = bb_ymax
-    bounds[5] = bb_zmax
+        bounds = get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
 
     for ii in range(0,Nl):
 
@@ -462,6 +453,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                 if k>=0:
                     # Check if in VPoly
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L0) + (Ds[1,ii]+k*us[1,ii])*Csin(L0), Ds[2,ii]+k*us[2,ii]
+                    # TODO create Path(Vpoly.t)
                     if Path(VPoly.T).contains_point([sol0,sol1], transform=None, radius=0.0):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
@@ -479,6 +471,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                 if k>=0:
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L1) + (Ds[1,ii]+k*us[1,ii])*Csin(L1), Ds[2,ii]+k*us[2,ii]
                     # Check if in VPoly
+                    # TODO create Path(Vpoly.t)
                     if Path(VPoly.T).contains_point([sol0,sol1], transform=None, radius=0.0):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
@@ -538,7 +531,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef ray_intersects_abba_bbox(double[:] bounds, double [:] ds, double [:] us):
+cdef inline bool ray_intersects_abba_bbox(double[:] bounds, double [:] ds, double [:] us):
     """
     bounds = [3d coords of lowerleftback point of bounding box,
               3d coords of upperrightfront point of bounding box]
@@ -846,6 +839,7 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                 if k>=0:
                     # Check if in VPoly
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L0) + (Ds[1,ii]+k*us[1,ii])*Csin(L0), Ds[2,ii]+k*us[2,ii]
+                    # TODO create Path(Vpoly.t)
                     if Path(VPoly.T).contains_point([sol0,sol1], transform=None, radius=0.0):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
@@ -863,6 +857,7 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                 if k>=0:
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L1) + (Ds[1,ii]+k*us[1,ii])*Csin(L1), Ds[2,ii]+k*us[2,ii]
                     # Check if in VPoly
+                    # TODO create Path(Vpoly.t)
                     if Path(VPoly.T).contains_point([sol0,sol1], transform=None, radius=0.0):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1

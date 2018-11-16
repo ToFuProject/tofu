@@ -1,7 +1,7 @@
 # This function contain functions that probably should be defined by functions
 # directly in ToFu (by D. Vezinet). In the mean time we get this messy functions...
 from tofu.geom._GG import CoordShift
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -54,7 +54,7 @@ def get_bbox_poly_extruded(lpoly):
     # plt.title('Poly in Y,Z')
     # plt.tight_layout()    
     # plt.show(block=True)
-    return xmin, ymin, zmin, xmax, ymax, zmax
+    return np.asarray([xmin, ymin, zmin, xmax, ymax, zmax])
 
 
 def get_bbox_poly_limited(lpoly, llim):
@@ -86,4 +86,4 @@ def get_bbox_poly_limited(lpoly, llim):
     #     axes[0].plot([xmin, xmin, xmax, xmax, xmin], [zmin, zmax, zmax, zmin, zmin], 'C3', zorder=1, lw=3, color="blue")
     #     plt.savefig("bbox")
 
-    return xmin, ymin, zmin, xmax, ymax, zmax
+    return np.asarray([xmin, ymin, zmin, xmax, ymax, zmax])
