@@ -1,12 +1,13 @@
 # TODO list : Optimization of intersection LOS - TOR
 - [x] Add a first test of inter between ray and bounding-box of structures
 - [x] Cythonized inter bbox computation
+- [ ] Optimize inter between ray and frustum:
+  - pre compute the fact is a line is horizontal or not: store information in array of size (Ns) or in a dynamic list that only keeps the index of segment of the polygon that are horizontal ? or as a long/int = sum of binary meaning True or False
+- [ ] Recreate function for matplotlib.Path.polygon.contains_point()
 - [ ] Use Forbid to ignore structures that are completly in the forbid zone
+- [ ] "Ignore" a structure if the kout obtained from inter Bbox-Ray is bigger than last kout computed
 - [ ] Inverse loop Poly-struct/Nlines (for parallelization) (?)
 - [ ] Parellelize code
 - [ ] Use new version of develop
-- [ ] Optimize inter between ray and frustum
-- [ ] Recreate function for matplotlib.Path.polygon.contains_point()
-- [ ] "Ignore" a structure if the kout obtained from inter Bbox-Ray is bigger than last kout computed
 - [ ] Memory profile code
 - [ ] Compute bbox coordinates in cython ?
