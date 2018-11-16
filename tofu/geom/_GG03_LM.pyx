@@ -141,6 +141,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                                                           EpsA=EpsA, EpsB=EpsB,
                                                           EpsPlane=EpsPlane,
                                                           ind_lim=jj, nlims=len(lslim))
+                    # print("
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
                     indout = np.zeros((NL,),dtype=bool)
@@ -193,6 +194,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
 
     cdef bool inter_bbox
     cdef double bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax
+    cdef double[6] bounds
 
     cdef double[:,::1] SIn=SIn_, SOut=SOut_
     cdef double[:,::1] VPerpIn=VPerp_In, VPerpOut=VPerp_Out
@@ -217,25 +219,35 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
 
     # print("")
     # print("New box................................")
-    if ind_lim == 0 :
+    if ind_lim == 0 and Lim is None:
         bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax = get_bbox_poly_extruded(np.asarray(VPoly))
-    if Lim is not None:
+    elif Lim is not None:
         bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax = get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
 
-    #bbox = Box(bounds)
-    #ax = bbox.plot()
+    bounds[0] = bb_xmin
+    bounds[1] = bb_ymin
+    bounds[2] = bb_zmin
+    bounds[3] = bb_xmax
+    bounds[4] = bb_ymax
+    bounds[5] = bb_zmax
+
+    cdef tmp_skipped_comp = 0
     for ii in range(0,Nl):
 
         # Let us first check if the line intersects the bounding box of structure
-        if ind_lim == 0 or (Lim is not None):
-            inter_bbox = check_inter_bbox_ray(bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax,
-                                              [Ds[:,ii][0], Ds[:,ii][1], Ds[:,ii][2]],
-                                              [us[:,ii][0], us[:,ii][1], us[:,ii][2]])
+        if ind_lim == 0 or Lim is not None:
+            # inter_bbox = check_inter_bbox_ray(bb_xmin, bb_ymin, bb_zmin, bb_xmax, bb_ymax, bb_zmax,
+            #                                   [Ds[:,ii][0], Ds[:,ii][1], Ds[:,ii][2]],
+            #                                   [us[:,ii][0], us[:,ii][1], us[:,ii][2]])
+            inter_bbox = ray_intersects_abba_bbox(bounds,
+                                                  Ds[:,ii], us[:,ii])
             if not inter_bbox:
                 linter_bbox[ii] = 0
+                tmp_skipped_comp +=1
                 continue
         else:
             if linter_bbox[ii] == 0:
+                tmp_skipped_comp += 1
                 continue
 
         # ray = Ray(Ds[:,ii], us[:,ii], notVec=True)
@@ -523,11 +535,61 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     VPerpIn[2,ii] = -vIn[1,indin]
                 indIn[ii] = indin
 
+    #print("percent of skipped lines = ", tmp_skipped_comp/Nl)
     return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), \
       np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut), \
       linter_bbox
 # et creer vecteurs
 #    return np.asarray(kIn), np.asarray(kOut), np.asarray(vPerpOut), np.asarray(indOut)
+
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef ray_intersects_abba_bbox(double[:] bounds, double [:] ds, double [:] us):
+    """
+    bounds = [3d coords of lowerleftback point of bounding box,
+              3d coords of upperrightfront point of bounding box]
+    ds = [3d coords of origin of ray]
+    us = [3d coords of direction of ray]
+    returns True if ray intersects bounding box, else False
+    """
+    cdef int[3] sign
+    cdef double[3] inv_direction
+    cdef double tmin, tmax, tymin, tymax
+    cdef int t0 = -1000000
+    cdef int t1 =  1000000
+    cdef int ii
+    # computing sing and direction
+    for  ii in range(3):
+        if us[ii]*us[ii] < 1.e-9:
+            inv_direction[ii] = np.inf
+        else:
+            inv_direction[ii] = 1./us[ii]
+        if us[ii] < 0.:
+            sign[ii] = 1
+        else:
+            sign[ii] = 0
+    # computing intersection
+    tmin = (bounds[sign[0]*3] - ds[0]) * inv_direction[0];
+    tmax = (bounds[(1-sign[0])*3] - ds[0]) * inv_direction[0];
+    tymin = (bounds[(sign[1])*3 + 1] - ds[1]) * inv_direction[1];
+    tymax = (bounds[(1-sign[1])*3+1] - ds[1]) * inv_direction[1];
+    if ( (tmin > tymax) or (tymin > tmax) ):
+        return False
+    if (tymin > tmin):
+        tmin = tymin
+    if (tymax < tmax):
+        tmax = tymax
+    tzmin = (bounds[(sign[2])*3+2] - ds[2]) * inv_direction[2]
+    tzmax = (bounds[(1-sign[2])*3+2] - ds[2]) * inv_direction[2]
+    if ( (tmin > tzmax) or (tzmin > tmax) ):
+        return False
+    if (tzmin > tmin):
+        tmin = tzmin
+    if (tzmax < tmax):
+        tmax = tzmax
+    return ( (tmin < t1) and (tmax > t0) )
 
 
 
