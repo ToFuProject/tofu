@@ -981,12 +981,12 @@ def _init_Data_combine(fs=None, dmargin=None,
             DY = Laxt[-2].get_position().bounds[1] - Ytxt
             Xtxt = Laxt[-1].get_position().bounds[0]
             DX = Laxt[-1].get_position().bounds[2]
-        laxtxtch.append( fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w') )
+        laxtxtch.append( fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None') )
 
     Ytxt = laxT[0].get_position().bounds[1] + laxT[0].get_position().bounds[3]
     Xtxt = laxT[0].get_position().bounds[0]
     DX = laxT[0].get_position().bounds[2]
-    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
 
     for ax in laxtxtch + [axtxtt]:
         ax.patch.set_alpha(0.)
