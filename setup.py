@@ -16,10 +16,10 @@ from Cython.Compiler.Options import get_directive_defaults
 from Cython.Compiler import Options
 
 Options.annotate = True
-# directive_defaults = get_directive_defaults()
-# directive_defaults['profile'] = True
-# directive_defaults['linetrace'] = True
-# directive_defaults['binding'] = True
+directive_defaults = get_directive_defaults()
+directive_defaults['profile'] = True
+directive_defaults['linetrace'] = True
+directive_defaults['binding'] = True
 
 
 # Always prefer setuptools over distutils
@@ -61,7 +61,7 @@ elif sys.version[0]=='3':
                                           "HEAD"]).rstrip().decode()
 
 here = os.path.abspath(os.path.dirname(__file__))
-here_lm = os.path.abspath(os.path.dirname(__file__))
+
 if git_branch == "master" :
     version_git = up.updateversion(os.path.join(here,'tofu'))
 else:
@@ -100,9 +100,13 @@ if USE_CYTHON:
     print("")
     print("Using Cython !!!!!!!!!")
     print("")
-    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"]),
+    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"],
+                            define_macros=[('CYTHON_TRACE_NOGIL', '1')],
+                            compiler_directives={'profile': True}),
                             # add the needed argument
-                  Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"]) # add the needed argument
+                  Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"],
+                            define_macros=[('CYTHON_TRACE_NOGIL', '1')],
+                            compiler_directives={'profile': True})
                   ]
     extensions = cythonize(extensions)
 else:
@@ -110,8 +114,6 @@ else:
     print("NOT Using Cython !!!!!!!!!")
     print("")
     extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".cpp"],
-                            language='c++', include_dirs=['tofu/cpp/']),
-                  Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".cpp"],
                             language='c++', include_dirs=['tofu/cpp/'])]
 
 setup(
@@ -137,7 +139,6 @@ setup(
     author='Didier VEZINET',
     author_email='didier.vezinet@gmail.com',
 
-    zip_safe=False,
 
     # Choose your license
     license='MIT',

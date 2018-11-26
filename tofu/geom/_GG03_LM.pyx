@@ -7,10 +7,10 @@ from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 
-# import
+import line_profiler
 
 import numpy as np
-from matplotlib.path import Path
+#from matplotlib.path import Path
 
 from tofu.geom._poly_utils import get_bbox_poly_extruded, get_bbox_poly_limited
 
@@ -453,8 +453,9 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                 if k>=0:
                     # Check if in VPoly
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L0) + (Ds[1,ii]+k*us[1,ii])*Csin(L0), Ds[2,ii]+k*us[2,ii]
-                    # if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
-                    if ray_tracing(VPoly, sol0, sol1):
+                    #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
+                    #if ray_tracing(VPoly, sol0, sol1):
+                    if pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
@@ -471,8 +472,9 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                 if k>=0:
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L1) + (Ds[1,ii]+k*us[1,ii])*Csin(L1), Ds[2,ii]+k*us[2,ii]
                     # Check if in VPoly
-                    # if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
-                    if ray_tracing(VPoly, sol0, sol1):
+                    #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
+                    # if ray_tracing(VPoly, sol0, sol1):
+                    if pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
@@ -585,12 +587,12 @@ cdef inline bool ray_intersects_abba_bbox(double[:] bounds, double [:] ds, doubl
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef bool ray_tracing(double[:,::1] poly, double x, double y):
+cdef inline bool ray_tracing(double[:,::1] poly, double x, double y):
     cdef Py_ssize_t n = poly.shape[1]
     cdef Py_ssize_t ii
     cdef bool inside = False
     cdef double p2x, p2y
-    cdef double xints = 0.
+    cdef double xints =0.
     cdef double p1x, p1y
 
     p1x, p1y = poly[:,0]
@@ -604,6 +606,18 @@ cdef bool ray_tracing(double[:,::1] poly, double x, double y):
         p1x,p1y = p2x,p2y
 
     return inside
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline bool pnpoly(int nvert, double[:] vertx, double[:] verty, double testx, double testy):
+    cdef int i
+    cdef bool c = False
+    for i in range(nvert):
+        if ( ((verty[i]>testy) != (verty[i+1]>testy)) and
+            (testx < (vertx[i+1]-vertx[i]) * (testy-verty[i]) / (verty[i+1]-verty[i]) + vertx[i]) ):
+            c = not c
+    return c
 
 @cython.cdivision(True)
 @cython.wraparound(False)
@@ -635,7 +649,7 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
         L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
         L1 = Catan2(Csin(Lim[1]),Ccos(Lim[1]))
 
-    # path_poly_t = Path(VPoly.T)
+    #path_poly_t = Path(VPoly.T)
     ################
     # Prepare input
     if RMin is None:
@@ -868,7 +882,8 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                     # Check if in VPoly
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L0) + (Ds[1,ii]+k*us[1,ii])*Csin(L0), Ds[2,ii]+k*us[2,ii]
                     #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
-                    if ray_tracing(VPoly, sol0, sol1):
+                    # if ray_tracing(VPoly, sol0, sol1):
+                    if pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
@@ -886,7 +901,8 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L1) + (Ds[1,ii]+k*us[1,ii])*Csin(L1), Ds[2,ii]+k*us[2,ii]
                     # Check if in VPoly
                     #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
-                    if ray_tracing(VPoly, sol0, sol1):
+                    # if ray_tracing(VPoly, sol0, sol1):
+                    if pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1):
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:

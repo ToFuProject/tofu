@@ -2,6 +2,7 @@
 from tofu_LauraBenchmarck_load_config import *
 import tofu.geom._GG_LM as _GG
 import time
+import line_profiler
 import pstats, cProfile
 
 def test_LOS_west_Aconfig(config, cams, plot=False, save=False, saveCam=[]):
@@ -85,8 +86,8 @@ def test_LOS_west_Bconfig(config, cams, plot=False, save=False, saveCam=[],
     return times
 
 def test_LOS_compact(save=False, saveCam=[]):
-    Cams = ["V1", "V10", "V100", "V1000", "V10000"]#,
-    #"V100000"]#, "V1000000"]
+    Cams = ["V1", "V10", "V100", "V1000", "V10000",
+            "V100000"]#, "V1000000"]
     CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000"]#,
     #"VA100000", "VA1000000"]
     Aconfigs = ["A1", "A2", "A3"]
@@ -138,8 +139,8 @@ def test_LOS_all(save=False, saveCam=[]):
             print(ttt)
 
 def test_LOS_profiling():
-    Cams = ["V100000"]
-    Bconfigs = ["B3"]
+    Cams = ["V1000000"]
+    Bconfigs = ["B2"]
     for icon in Bconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
@@ -233,7 +234,7 @@ if __name__ == "__main__":
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000"])
     # test_LOS_profiling()
-    test_LOS_cprofiling()
+    # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
     # touch_plot_config_cam("B3", "V10000")
@@ -242,4 +243,4 @@ if __name__ == "__main__":
     # profile.runcall(test_LOS_profilingA)
     # profile.print_stats()
     # test_LOS_profiling()
-    #print(test_LOS_west_Bconfig("B2", ["V100000"]))
+    # print(test_LOS_west_Bconfig("B3", ["V1000000"]))
