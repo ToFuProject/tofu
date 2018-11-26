@@ -266,7 +266,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     # TODO : @LM this probably can done matrix wise (qmatrix)
                     q = (Ds[2,ii]-VPoly[1,jj]) / (VPoly[1,jj+1]-VPoly[1,jj])
                     # The intersection must stand on the segment
-                    # TODO : @LM why is q==1 rejected ?
                     if q>=0 and q<1:
                         C = q**2*(VPoly[0,jj+1]-VPoly[0,jj])**2 + \
                             2.*q*VPoly[0,jj]*(VPoly[0,jj+1]-VPoly[0,jj]) + \
@@ -490,7 +489,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
             SOut[0,ii] = Ds[0,ii] + kout*us[0,ii]
             SOut[1,ii] = Ds[1,ii] + kout*us[1,ii]
             SOut[2,ii] = Ds[2,ii] + kout*us[2,ii]
-            phi = Catan2(SOut[1,ii],SOut[0,ii])
             if indout==-1:
                 VPerpOut[0,ii] = -Csin(L0)
                 VPerpOut[1,ii] = Ccos(L0)
@@ -500,6 +498,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                 VPerpOut[1,ii] = -Ccos(L1)
                 VPerpOut[2,ii] = 0.
             else:
+                phi = Catan2(SOut[1,ii],SOut[0,ii])
                 VPerpOut[0,ii] = Ccos(phi)*vIn[0,indout]
                 VPerpOut[1,ii] = Csin(phi)*vIn[0,indout]
                 VPerpOut[2,ii] = vIn[1,indout]
@@ -508,7 +507,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                 SIn[0,ii] = Ds[0,ii] + kin*us[0,ii]
                 SIn[1,ii] = Ds[1,ii] + kin*us[1,ii]
                 SIn[2,ii] = Ds[2,ii] + kin*us[2,ii]
-                phi = Catan2(SIn[1,ii],SIn[0,ii])
                 if indin==-1:
                     VPerpIn[0,ii] = Csin(L0)
                     VPerpIn[1,ii] = -Ccos(L0)
@@ -518,6 +516,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     VPerpIn[1,ii] = Ccos(L1)
                     VPerpIn[2,ii] = 0.
                 else:
+                    phi = Catan2(SIn[1,ii],SIn[0,ii])
                     VPerpIn[0,ii] = -Ccos(phi)*vIn[0,indin]
                     VPerpIn[1,ii] = -Csin(phi)*vIn[0,indin]
                     VPerpIn[2,ii] = -vIn[1,indin]
