@@ -46,8 +46,11 @@ __all__ = ['CoordShift',
 ########################################################
 
 def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
-    """ Check the shape of an array of points coordinates and/or converts from 2D to 3D, 3D to 2D, cylindrical to cartesian... (CrossRef is an angle (Tor) or a distance (X for Lin))"""
-    assert all([type(ff) is str and ',' in ff for ff in [In,Out]]), "Arg In and Out (coordinate format) must be comma-separated  !"
+    """ Check the shape of an array of points coordinates and/or converts from
+    2D to 3D, 3D to 2D, cylindrical to cartesian... (CrossRef is an angle (Tor)
+    or a distance (X for Lin))"""
+    assert all([type(ff) is str and ',' in ff for ff in [In,Out]]), (
+        "Arg In and Out (coordinate format) must be comma-separated  !")
     assert type(Pts) is np.ndarray and Pts.ndim in [1,2] and Pts.shape[0] in (2,3), "Points must be a 1D or 2D np.ndarray of 2 or 3 coordinates !"
     assert CrossRef is None or type(CrossRef) in [int,float,np.int64,np.float64], "Arg CrossRef must be a float !"
 

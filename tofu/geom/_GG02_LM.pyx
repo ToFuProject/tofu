@@ -6,17 +6,13 @@ from libc.math cimport sqrt as Csqrt, ceil as Cceil, abs as Cabs
 from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
-import line_profiler
+
 # import
-import sys
+
 import numpy as np
 from matplotlib.path import Path
 
 from tofu.geom._poly_utils import get_bbox_poly_extruded, get_bbox_poly_limited
-if sys.version[0]=='3':
-    from inspect import signature as insp
-elif sys.version[0]=='2':
-    from inspect import getargspec as insp
 
 
 
@@ -89,6 +85,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
 
     cdef int ii, jj
     cdef int[:] linter_bbox=np.ones((Ds.shape[1],),dtype=np.intc)
+    #cdef cnp.ndarray[double,ndim=1] kPOut=np.zeros_like()
 
     v = Ds.ndim==2
     if not v:
@@ -170,11 +167,12 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
-                         double [:,::1] VPoly, double [:,::1] vIn,
-                         int [:] linter_bbox, Lim=None,
-                         bool Forbid=True, RMin=None, double EpsUz=1.e-6,
-                         double EpsVz=1.e-9, double EpsA=1.e-9,
-                         double EpsB=1.e-9, double EpsPlane=1.e-9, int ind_lim=0, int nlims=1):
+                             double [:,::1] VPoly, double [:,::1] vIn,
+                             int [:] linter_bbox, Lim=None,
+                             bool Forbid=True, RMin=None, double EpsUz=1.e-6,
+                             double EpsVz=1.e-9, double EpsA=1.e-9,
+                             double EpsB=1.e-9, double EpsPlane=1.e-9,
+                             int ind_lim=0, int nlims=1):
 
     cdef Py_ssize_t ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
     cdef double Rmin, upscaDp, upar2, Dpar2, Crit2, kout, kin
@@ -183,19 +181,20 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
     cdef double q, C, delta, sqd, k, sol0, sol1, phi=0., L0=0., L1=0.
     cdef double v0, v1, A, B, ephiIn0, ephiIn1
     cdef int Forbidbis, Forbid0
-    cdef cnp.ndarray[double,ndim=2] SIn_=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=2] SOut_=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=2] VPerp_In=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=2] VPerp_Out=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=1] indIn_=np.nan*np.ones((Nl,))
-    cdef cnp.ndarray[double,ndim=1] indOut_=np.nan*np.ones((Nl,))
+    cdef cnp.ndarray[double,ndim=2] SIn=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=2] SOut=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=2] VPerpIn=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=2] VPerpOut=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=1] indIn=np.nan*np.ones((Nl,))
+    cdef cnp.ndarray[double,ndim=1] indOut=np.nan*np.ones((Nl,))
 
     cdef bool inter_bbox
     cdef double[:] bounds
 
-    cdef double[:,::1] SIn=SIn_, SOut=SOut_
-    cdef double[:,::1] VPerpIn=VPerp_In, VPerpOut=VPerp_Out
-    cdef double[::1] indIn=indIn_, indOut=indOut_
+    # cdef double[:,::1] SOut=SOut_#, SIn=SIn_
+    # cdef double[:,::1] VPerpIn=VPerp_In, VPerpOut=VPerp_Out
+    # cdef double[::1] indIn=indIn_, indOut=indOut_
+
     if Lim is not None:
         L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
         L1 = Catan2(Csin(Lim[1]),Ccos(Lim[1]))
@@ -522,9 +521,13 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     VPerpIn[2,ii] = -vIn[1,indin]
                 indIn[ii] = indin
 
+    # return SIn, SOut, VPerpIn, \
+    #   VPerpOut, indIn, indOut, \
+    #   linter_bbox
+
     return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), \
-      np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut), \
-      linter_bbox
+        np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut), \
+        linter_bbox
 # et creer vecteurs
 #    return np.asarray(kIn), np.asarray(kOut), np.asarray(vPerpOut), np.asarray(indOut)
 
@@ -543,6 +546,7 @@ cdef inline bool ray_intersects_abba_bbox(double[:] bounds, double [:] ds, doubl
     cdef int[3] sign
     cdef double[3] inv_direction
     cdef double tmin, tmax, tymin, tymax
+    cdef double tzmin, tzmax
     cdef int t0 = -1000000
     cdef int t1 =  1000000
     cdef Py_ssize_t ii
@@ -586,7 +590,7 @@ cdef inline bool ray_tracing(double[:,::1] poly, double x, double y):
     cdef Py_ssize_t ii
     cdef bool inside = False
     cdef double p2x, p2y
-    cdef double xints
+    cdef double xints =0.
     cdef double p1x, p1y
 
     p1x, p1y = poly[:,0]

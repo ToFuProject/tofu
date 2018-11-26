@@ -14,13 +14,11 @@ import tofu.utils as utils
 try:
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
-    import tofu.geom._GG_LM as _GG_LM
     import tofu.geom._comp as _comp
     import tofu.geom._plot as _plot
 except Exception:
     from . import _def as _def
     from . import _GG as _GG
-    from . import _GG_LM as _GG_LM
     from . import _comp as _comp
     from . import _plot as _plot
 

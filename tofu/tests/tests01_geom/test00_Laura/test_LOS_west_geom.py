@@ -3,7 +3,6 @@ from tofu_LauraBenchmarck_load_config import *
 import tofu.geom._GG_LM as _GG
 import time
 import pstats, cProfile
-import line_profiler
 
 def test_LOS_west_Aconfig(config, cams, plot=False, save=False, saveCam=[]):
     dconf = load_config(config, plot=plot)
@@ -139,7 +138,7 @@ def test_LOS_all(save=False, saveCam=[]):
             print(ttt)
 
 def test_LOS_profiling():
-    Cams = ["V1000"]
+    Cams = ["V100000"]
     Bconfigs = ["B3"]
     for icon in Bconfigs :
         print("*..................................*")
