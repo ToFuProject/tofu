@@ -230,11 +230,11 @@ def touch_plot_config_cam(config, cam):
 
     
 if __name__ == "__main__":
-    # test_LOS_compact()
+    test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000"])
     # test_LOS_profiling()
-    test_LOS_cprofiling()
+    # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
     # touch_plot_config_cam("B3", "V10000")
