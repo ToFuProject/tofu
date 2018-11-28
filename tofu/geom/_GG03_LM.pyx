@@ -84,37 +84,27 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         assert type(VType) is str and VType.lower() in ['tor','lin'], (
             "Arg VType must be a str in ['Tor','Lin']!")
 
-    cdef Py_ssize_t num_los = Ds.shape[1]
-    cdef Py_ssize_t ind_tmp
-    cdef Py_ssize_t len_lim
-    cdef double[:] kpin
-    cdef double [:] kpout_view
-    cdef double [:,:] struct_pin_view, pout_view
-    cdef double [:,:] struct_vperpin_view, vperp_out_view
-    cdef double [:] struct_iin_view
-    cdef double [:,:] iout_view
     cdef int ii, jj
-    cdef cnp.uint8_t nonan_jj, mask2_jj
-    # cdef int[::1] linter_bbox = clone(array('i'), num_los, False)
-    # cdef cnp.ndarray[double,ndim=2] PIn=np.nan*np.ones((3,num_los))
-    cdef cnp.ndarray[double,ndim=2] IOut=np.zeros((3, num_los))
-    #cdef cnp.uint8_t[::1] indout = clone(array('B'), num_los, False)
     cdef bool v
-    #cdef cnp.uint8_t[::1] indNoNan = clone(array('B'), num_los, False)
-    # cdef cnp.ndarray[cnp.uint8_t, ndim = 1, cast=True] indNoNan
-    # cdef cnp.ndarray[cnp.uint8_t, ndim = 1, cast=True] mask2
-    #cdef cnp.ndarray[cnp.uint8_t, cast=True, ndim=1] indout = np.zeros((num_los,),dtype=bool)
     cdef double kpin_jj
     cdef double kpout_jj
-    cdef cnp.uint8_t bool1
-    cdef cnp.uint8_t bool2
+    cdef Py_ssize_t ind_tmp
+    cdef Py_ssize_t len_lim
+    cdef Py_ssize_t num_los = Ds.shape[1]
+    cdef cnp.uint8_t bool1, bool2
+    cdef cnp.uint8_t nonan_jj, mask2_jj
+    cdef long [:] struct_iin_view
+    cdef long [:,:] iout_view
+    cdef double [:] kpin_view, kpout_view
+    cdef double [:,:] struct_pin_view, pout_view
+    cdef double [:,:] struct_vperpin_view, vperp_out_view
+
+    cdef cnp.ndarray[long,ndim=2] IOut=np.zeros((3, num_los), dtype=int)
 
     
     v = Ds.ndim==2
     if not v:
         Ds, dus = Ds.reshape((3,1)), dus.reshape((3,1))
-
-    # IOut = np.zeros((3, num_los))
         
     if VType.lower()=='tor':
         # RMin is necessary to avoid looking on the other side of the tokamak
@@ -153,7 +143,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                 else:
                     lslim = LSLim[ii]
                 len_lim = len(lslim)
-                # linter_bbox=np.ones((Ds.shape[1],),dtype=np.int32)
+
                 for jj in range(len_lim):
                     pIn, pOut,\
                         vperpIn, vperpOut,\
@@ -165,19 +155,15 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                                                               EpsA=EpsA, EpsB=EpsB,
                                                               EpsPlane=EpsPlane)
 
-                    kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
+                    kpin_view = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     struct_pin_view = pIn
                     struct_vperpin_view = vperpIn
                     struct_iin_view = iIn
-                    # indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
-                    # mask2 = (~np.isnan(kpin)) & np.isnan(kPOut)
                     for ind_tmp in range(num_los):
-                        # nonan_jj = indNoNan[ind_tmp]
-                        # mask2_jj = mask2[ind_tmp]
-                        kpin_jj = kpin[ind_tmp]
+                        kpin_jj = kpin_view[ind_tmp]
                         kpout_jj = kpout_view[ind_tmp]
-                        bool1 = kpin_jj > 0. or kpin_jj <= 0.#~np.isnan(kpin_jj)
-                        bool2 = kpout_jj > 0. or kpout_jj <= 0.#np.isnan(kpout_jj)
+                        bool1 = kpin_jj > 0. or kpin_jj <= 0.
+                        bool2 = kpout_jj > 0. or kpout_jj <= 0.
                         nonan_jj = bool1 & bool2
                         mask2_jj = bool1 & ~bool2
                         if (nonan_jj and kpin_jj<kpout_jj) or mask2_jj:
@@ -222,8 +208,8 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
     cdef cnp.ndarray[double,ndim=2] SOut=np.nan*np.ones((3,Nl))
     cdef cnp.ndarray[double,ndim=2] VPerpIn=np.nan*np.ones((3,Nl))
     cdef cnp.ndarray[double,ndim=2] VPerpOut=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=1] indIn=np.nan*np.ones((Nl,))
-    cdef cnp.ndarray[double,ndim=1] indOut=np.nan*np.ones((Nl,))
+    cdef cnp.ndarray[long,ndim=1] indIn = np.zeros((Nl,), dtype=long)
+    cdef cnp.ndarray[long,ndim=1] indOut= np.zeros((Nl,), dtype=long)
 
     cdef bool inter_bbox
     cdef double[:] bounds
@@ -678,12 +664,13 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
     cdef cnp.ndarray[double,ndim=2] SOut_=np.nan*np.ones((3,Nl))
     cdef cnp.ndarray[double,ndim=2] VPerp_In=np.nan*np.ones((3,Nl))
     cdef cnp.ndarray[double,ndim=2] VPerp_Out=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=1] indIn_=np.nan*np.ones((Nl,))
-    cdef cnp.ndarray[double,ndim=1] indOut_=np.nan*np.ones((Nl,))
+    cdef cnp.ndarray[long,ndim=1] indIn = np.zeros((Nl,), dtype=long)
+    cdef cnp.ndarray[long,ndim=1] indOut= np.zeros((Nl,), dtype=long)
 
     cdef double[:,::1] SIn=SIn_, SOut=SOut_
     cdef double[:,::1] VPerpIn=VPerp_In, VPerpOut=VPerp_Out
-    cdef double[::1] indIn=indIn_, indOut=indOut_
+    # cdef double[::1] indIn=indIn_, indOut=indOut_
+
     if Lim is not None:
         L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
         L1 = Catan2(Csin(Lim[1]),Ccos(Lim[1]))
