@@ -7,6 +7,7 @@ from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 
+
 import line_profiler
 
 import numpy as np
@@ -31,9 +32,9 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                               cnp.ndarray[double, ndim=2,mode='c'] VIn,
                               Lim=None, LSPoly=None, LSLim=None, LSVIn=None,
                               RMin=None, Forbid=True,
-                              EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9,
-                              EpsB=1.e-9, EpsPlane=1.e-9,
-                              VType='Tor', Test=True):
+                              double EpsUz=1.e-6, double EpsVz=1.e-9, double EpsA=1.e-9,
+                              double EpsB=1.e-9, double EpsPlane=1.e-9,
+                              VType='Tor', bool Test=True):
     """ Compute the entry and exit point of all provided LOS for the provided
     vessel polygon (toroidal or linear), also return the normal vector at
     impact point and the index of the impact segment
@@ -83,15 +84,38 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         assert type(VType) is str and VType.lower() in ['tor','lin'], (
             "Arg VType must be a str in ['Tor','Lin']!")
 
+    cdef Py_ssize_t num_los = Ds.shape[1]
+    cdef Py_ssize_t ind_tmp
+    cdef Py_ssize_t len_lim
+    cdef double[:] kpin
+    cdef double [:] kpout_view
+    cdef double [:,:] struct_pin_view, pout_view
+    cdef double [:,:] struct_vperpin_view, vperp_out_view
+    cdef double [:] struct_iin_view
+    cdef double [:,:] iout_view
     cdef int ii, jj
-    cdef int[:] linter_bbox=np.ones((Ds.shape[1],),dtype=np.intc)
-    #cdef cnp.ndarray[double,ndim=1] kPOut=np.zeros_like()
+    cdef cnp.uint8_t nonan_jj, mask2_jj
+    # cdef int[::1] linter_bbox = clone(array('i'), num_los, False)
+    # cdef cnp.ndarray[double,ndim=2] PIn=np.nan*np.ones((3,num_los))
+    cdef cnp.ndarray[double,ndim=2] IOut=np.zeros((3, num_los))
+    #cdef cnp.uint8_t[::1] indout = clone(array('B'), num_los, False)
+    cdef bool v
+    #cdef cnp.uint8_t[::1] indNoNan = clone(array('B'), num_los, False)
+    # cdef cnp.ndarray[cnp.uint8_t, ndim = 1, cast=True] indNoNan
+    # cdef cnp.ndarray[cnp.uint8_t, ndim = 1, cast=True] mask2
+    #cdef cnp.ndarray[cnp.uint8_t, cast=True, ndim=1] indout = np.zeros((num_los,),dtype=bool)
+    cdef double kpin_jj
+    cdef double kpout_jj
+    cdef cnp.uint8_t bool1
+    cdef cnp.uint8_t bool2
 
+    
     v = Ds.ndim==2
     if not v:
         Ds, dus = Ds.reshape((3,1)), dus.reshape((3,1))
-    NL = Ds.shape[1]
-    IOut = np.zeros((3,Ds.shape[1]))
+
+    # IOut = np.zeros((3, num_los))
+        
     if VType.lower()=='tor':
         # RMin is necessary to avoid looking on the other side of the tokamak
         if RMin is None:
@@ -117,38 +141,52 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         # Structural optimzation : do everything in one big for loop and only
         # keep the relevant points (to save memory)
         if LSPoly is not None:
-            Ind = np.zeros((2,NL))
+
+            kpout_view = kPOut
+            pout_view = POut
+            vperp_out_view = VperpOut
+            iout_view = IOut
             for ii in range(0,len(LSPoly)):
+
                 if LSLim[ii] is None or not all([hasattr(ll,'__iter__') for ll in LSLim[ii]]):
                     lslim = [LSLim[ii]]
                 else:
                     lslim = LSLim[ii]
-                linter_bbox=np.ones((Ds.shape[1],),dtype=np.int32)
-                for jj in range(0,len(lslim)):
+                len_lim = len(lslim)
+                # linter_bbox=np.ones((Ds.shape[1],),dtype=np.int32)
+                for jj in range(len_lim):
                     pIn, pOut,\
                         vperpIn, vperpOut,\
-                        iIn, iOut,\
-                        linter_bbox = Calc_LOS_PInOut_Tor_Lim(Ds, dus, LSPoly[ii],
-                                                          LSVIn[ii], linter_bbox,
-                                                          Lim=lslim[jj],
-                                                          Forbid=Forbid, RMin=RMin,
-                                                          EpsUz=EpsUz, EpsVz=EpsVz,
-                                                          EpsA=EpsA, EpsB=EpsB,
-                                                          EpsPlane=EpsPlane,
-                                                          ind_lim=jj, nlims=len(lslim))
+                        iIn, iOut = Calc_LOS_PInOut_Tor_Lim(Ds, dus, LSPoly[ii],
+                                                              LSVIn[ii],
+                                                              Lim=lslim[jj],
+                                                              Forbid=Forbid, RMin=RMin,
+                                                              EpsUz=EpsUz, EpsVz=EpsVz,
+                                                              EpsA=EpsA, EpsB=EpsB,
+                                                              EpsPlane=EpsPlane)
 
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
-                    indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
-                    indout = np.zeros((NL,),dtype=bool)
-                    indout[indNoNan] = kpin[indNoNan]<kPOut[indNoNan]
-                    indout[(~np.isnan(kpin)) & np.isnan(kPOut)] = True
-                    if np.any(indout):
-                        kPOut[indout] = kpin[indout]
-                        POut[:,indout] = pIn[:,indout]
-                        VperpOut[:,indout] = vperpIn[:,indout]
-                        IOut[2,indout] = iIn[indout]
-                        IOut[0,indout] = 1+ii
-                        IOut[1,indout] = jj
+                    struct_pin_view = pIn
+                    struct_vperpin_view = vperpIn
+                    struct_iin_view = iIn
+                    # indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
+                    # mask2 = (~np.isnan(kpin)) & np.isnan(kPOut)
+                    for ind_tmp in range(num_los):
+                        # nonan_jj = indNoNan[ind_tmp]
+                        # mask2_jj = mask2[ind_tmp]
+                        kpin_jj = kpin[ind_tmp]
+                        kpout_jj = kpout_view[ind_tmp]
+                        bool1 = kpin_jj > 0. or kpin_jj <= 0.#~np.isnan(kpin_jj)
+                        bool2 = kpout_jj > 0. or kpout_jj <= 0.#np.isnan(kpout_jj)
+                        nonan_jj = bool1 & bool2
+                        mask2_jj = bool1 & ~bool2
+                        if (nonan_jj and kpin_jj<kpout_jj) or mask2_jj:
+                            kpout_view[ind_tmp] = kpin_jj
+                            pout_view[:,ind_tmp] = struct_pin_view[:,ind_tmp]
+                            vperp_out_view[:,ind_tmp] = struct_vperpin_view[:,ind_tmp]
+                            iout_view[2,ind_tmp] = struct_iin_view[ind_tmp]
+                            iout_view[0,ind_tmp] = 1+ii
+                            iout_view[1,ind_tmp] = jj
 
     if not v:
         PIn, POut, \
@@ -168,11 +206,10 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
 @cython.boundscheck(False)
 cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                              double [:,::1] VPoly, double [:,::1] vIn,
-                             int [:] linter_bbox, Lim=None,
+                             Lim=None,
                              bool Forbid=True, RMin=None, double EpsUz=1.e-6,
                              double EpsVz=1.e-9, double EpsA=1.e-9,
-                             double EpsB=1.e-9, double EpsPlane=1.e-9,
-                             int ind_lim=0, int nlims=1):
+                             double EpsB=1.e-9, double EpsPlane=1.e-9):
 
     cdef Py_ssize_t ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
     cdef double Rmin, upscaDp, upar2, Dpar2, Crit2, kout, kin
@@ -198,7 +235,9 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
     if Lim is not None:
         L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
         L1 = Catan2(Csin(Lim[1]),Ccos(Lim[1]))
-
+        bounds = get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
+    else:
+        bounds = get_bbox_poly_extruded(np.asarray(VPoly))    
     #path_poly_t = Path(VPoly.T)
     ################
     # Prepare input
@@ -213,25 +252,20 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
         Forbid0, Forbidbis = 1, 1
     else:
         Forbid0, Forbidbis = 0, 0
-
-    # print("")
-    # print("New box................................")
-    if ind_lim == 0 and Lim is None:
-        bounds = get_bbox_poly_extruded(np.asarray(VPoly))
-    elif Lim is not None:
-        bounds = get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
+        
 
     for ii in range(0,Nl):
 
         # Let us first check if the line intersects the bounding box of structure
-        if ind_lim == 0 or Lim is not None:
+        # inter_bbox = ray_intersects_abba_bbox(bounds,
+        #                                       Ds[:,ii], us[:,ii])
+        # if not inter_bbox:
+        #     continue
+
+        if Lim is not None:
             inter_bbox = ray_intersects_abba_bbox(bounds,
                                                   Ds[:,ii], us[:,ii])
             if not inter_bbox:
-                linter_bbox[ii] = 0
-                continue
-        else:
-            if linter_bbox[ii] == 0:
                 continue
 
         # ray = Ray(Ds[:,ii], us[:,ii], notVec=True)
@@ -454,7 +488,8 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L0) + (Ds[1,ii]+k*us[1,ii])*Csin(L0), Ds[2,ii]+k*us[2,ii]
                     #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                     #if ray_tracing(VPoly, sol0, sol1):
-                    if pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1):
+                    inter_bbox = pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1)
+                    if inter_bbox:
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
@@ -473,7 +508,8 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     # Check if in VPoly
                     #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                     # if ray_tracing(VPoly, sol0, sol1):
-                    if pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1):
+                    inter_bbox = pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1)
+                    if inter_bbox:
                         # Check PIn (POut not possible for limited torus)
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
@@ -527,11 +563,14 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
     #   linter_bbox
 
     return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), \
-        np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut), \
-        linter_bbox
+        np.asarray(VPerpOut), np.asarray(indIn), indOut
+
+    # return SIn, SOut, \
+    #   VPerpIn,VPerpOut, \
+    #   indIn, indOut
+
 # et creer vecteurs
 #    return np.asarray(kIn), np.asarray(kOut), np.asarray(vPerpOut), np.asarray(indOut)
-
 
 @cython.cdivision(True)
 @cython.wraparound(False)
@@ -548,13 +587,13 @@ cdef inline bool ray_intersects_abba_bbox(double[:] bounds, double [:] ds, doubl
     cdef double[3] inv_direction
     cdef double tmin, tmax, tymin, tymax
     cdef double tzmin, tzmax
-    cdef int t0 = -1000000
-    cdef int t1 =  1000000
+    cdef int t0 = 1000000
+    cdef bool res
     cdef Py_ssize_t ii
     # computing sing and direction
     for  ii in range(3):
         if us[ii]*us[ii] < 1.e-9:
-            inv_direction[ii] = np.inf
+            inv_direction[ii] = t0
         else:
             inv_direction[ii] = 1./us[ii]
         if us[ii] < 0.:
@@ -580,7 +619,8 @@ cdef inline bool ray_intersects_abba_bbox(double[:] bounds, double [:] ds, doubl
         tmin = tzmin
     if (tzmax < tmax):
         tmax = tzmax
-    return ( (tmin < t1) and (tmax > t0) )
+    res = (tmin < t0) and (tmax > -t0)
+    return  res
 
 
 @cython.cdivision(True)
@@ -949,4 +989,9 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                     VPerpIn[2,ii] = -vIn[1,indin]
                 indIn[ii] = indin
 
-    return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut)
+    return np.asarray(SIn), np.asarray(SOut), \
+      np.asarray(VPerpIn), np.asarray(VPerpOut), \
+      np.asarray(indIn), indOut
+    # return SIn, SOut, \
+    #   VPerpIn,VPerpOut, \
+    #   indIn, indOut
