@@ -14,13 +14,13 @@ import warnings
 # Common
 import numpy as np
 import datetime as dtm
+import scipy.io as scpio
 
 # ToFu specific
 from tofu import __version__
 
-
 __author__ = "Didier Vezinet"
-__all__ = ["ID",
+__all__ = ["ID", "ID2",
            "SaveName_Conv","CheckSameObj","SelectFromListId",
            "get_InfoFromFileName","get_FileFromInfos",
            "convert_units","get_PolyFromPolyFileObj",
@@ -135,12 +135,13 @@ def get_PolyFromPolyFileObj(PolyFileObj, SavePathInp=None, units='m', comments='
 ###############################################################################
 """
 
-
+# Deprecated ???
 def _check_NotNone(Dict):
     for aa in Dict.keys():
         assert not Dict[aa] is None, "Arg "+aa+" must not be None !"
 
 
+# Deprecated ???
 def _get_FromItself(obj, Dict):
     for aa in Dict.keys():
         if Dict[aa] is None:
@@ -161,7 +162,7 @@ def _get_FromItself(obj, Dict):
 ###############################################################################
 """
 
-
+# Deprecated ????
 class ID(object):
     """ A class used by all ToFu objects as an attribute
 
@@ -421,6 +422,8 @@ class ID(object):
 
 
 
+
+# Deprecated ????
 def _ID_check_inputs(Mod=None, Cls=None, Name=None, Type=None, Deg=None,
                  Exp=None, Diag=None, shot=None, SaveName=None, SavePath=None,
                  USRdict=None, LObj=None, version=None, usr=None,
@@ -459,13 +462,13 @@ def _ID_check_inputs(Mod=None, Cls=None, Name=None, Type=None, Deg=None,
     if fromdict is not None:
         assert type(fromdict) is dict
         k = ['Cls','Name','SaveName','SavePath','Type','Deg','Exp','Diag',
-             'shot','USRdict','version','usr','LObj']
+             'shot','dUSR','version','usr','lObj']
         K = fromdict.keys()
         for kk in k:
             assert kk in K, "%s missing from provided dict !"%kk
 
 
-
+# Deprecated ????
 def _extract_ModClsFrom_class(Cls):
     strc = str(Cls)
     ind0 = strc.index('tofu.')+5
@@ -490,6 +493,7 @@ def SaveName_Conv(Mod=None, Cls=None, Type=None, Name=None, Deg=None,
 
     """
     Modstr = dModes[Mod] if Mod is not None else None
+    Include = defInclude if Include is None else Include
     if Cls is not None and Type is not None and 'Type' in Include:
         Clsstr = Cls+Type
     else:
@@ -897,7 +901,7 @@ def get_FileFromInfos(Path='./', Mod=None, Cls=None, Type=None, Name=None,
 #   Saving
 ###########################
 
-
+# Deprecated ???
 def Save_Generic(obj, SaveName=None, Path='./',
                  Mode='npz', compressed=False, Print=True):
     """ Save a ToFu object under file name SaveName, in folder Path
@@ -949,6 +953,7 @@ def Save_Generic(obj, SaveName=None, Path='./',
         _save_np(obj, pathfileext, compressed=compressed)
     if Print:
         print("Saved in :  "+pathfileext)
+
 
 
 """
@@ -1023,7 +1028,7 @@ def _save_np(obj, pathfileext, compressed=False):
              Poly=obj.Poly, Lim=obj.Lim, mobile=obj._mobile)
 
     elif obj.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
-        func(pathfileext, Id=dId,
+        func(pathfileext, Id=dId, extra=obj._extra,
              geom=obj.geom, sino=obj.sino, dchans=obj.dchans)
 
     elif obj.Id.Cls in ['Data','Data1D','Data2D']:
@@ -1160,6 +1165,7 @@ def save_np_IdObj(Id):
         LObj.append( np.concatenate(tuple(Larr),axis=0) )
         LObjUSR.append( np.concatenate(tuple(LarrUSR),axis=0) )
     return LObj, LObjUSR
+
 
 
 
@@ -1382,7 +1388,10 @@ def _open_np(pathfileext, Ves=None,
     elif Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']:
         Ves, LStruct = _tryloadVesStruct(Id, Print=Print)
         dobj = {'Id':Id._todict(), 'dchans':Out['dchans'].tolist(),
-                'geom':Out['geom'].tolist(), 'sino':Out['sino'].tolist()}
+                'geom':Out['geom'].tolist(),
+                'sino':Out['sino'].tolist()}
+        if 'extra' in Out.keys():
+            dobj['extra'] = Out['extra'].tolist()
         if Ves is None:
             dobj['Ves'] = None
         else:

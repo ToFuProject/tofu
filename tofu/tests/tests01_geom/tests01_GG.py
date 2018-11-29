@@ -155,21 +155,21 @@ def test02_Ves_isInside(VPoly=VPoly):
     Pts = np.array([[-10.,-10.,5.,5.,5.,5., 5.,30.,30.,30.],
                     [  0.,  2.,0.,2.,4.,2., 2., 2., 0., 0.],
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
-    ind = GG._Ves_isInside(Pts, VPoly, Lim=[0.,10.], VType='Lin', In='(X,Y,Z)', Test=True)
+    ind = GG._Ves_isInside(Pts, VPoly, Lim=np.array([[0.,10.]]), nLim=1, VType='Lin', In='(X,Y,Z)', Test=True)
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,False,False,False,False,False,False])
 
     # Tor Ves
     Pts = np.array([[  0.,-10.,5.,5.,5.,5., 5.,30.,30.,30.],
                     [  0.,  2.,0.,2.,4.,2., 2., 2., 0., 0.],
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
-    ind = GG._Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(Phi,R,Z)', Test=True)
+    ind = GG._Ves_isInside(Pts, VPoly, Lim=None, nLim=0, VType='Tor', In='(Phi,R,Z)', Test=True)
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,True,False,True,False,False,False,True,False,False])
 
     # Tor Struct
     Pts = np.array([[  0.,  0.,2.*np.pi,np.pi,np.pi,np.pi,np.pi,2.*np.pi,2.*np.pi,2.*np.pi],
                     [  0.,  2.,      0.,   2.,   4.,   2.,   2.,      2.,      0.,      0.],
                     [  0.,  0.,      0.,   0.,   0.,   2.,  -2.,      0.,      0.,      2.]])
-    ind = GG._Ves_isInside(Pts, VPoly, Lim=[np.pi/2.,3.*np.pi/2.], VType='Tor', In='(Phi,R,Z)', Test=True)
+    ind = GG._Ves_isInside(Pts, VPoly, Lim=np.array([[np.pi/2.,3.*np.pi/2.]]), nLim=1, VType='Tor', In='(Phi,R,Z)', Test=True)
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,False,False,False,False,False,False])
 
 
@@ -310,7 +310,8 @@ def test06_Ves_Smesh_Tor(VPoly=VPoly):
                 assert np.all((Pts[2,:]>=LDPhi[ii][0]-marg) & (Pts[2,:]<=LDPhi[ii][1]+marg))
             else:
                 assert np.all( (Pts[2,:]>=LDPhi[ii][0]-marg) | (Pts[2,:]<=LDPhi[ii][1]+marg))
-        assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', In='(R,Z,Phi)', Test=True))
+        assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', In='(R,Z,Phi)',
+                                       Lim=None, nLim=0, Test=True))
         assert dS.shape==(Pts.shape[1],)
         assert all([ind.shape==(Pts.shape[1],), ind.dtype==int, np.unique(ind).size==ind.size, np.all(ind==np.unique(ind)), np.all(ind>=0)])
         assert ind.shape==(Pts.shape[1],) and ind.dtype==int and np.all(ind==np.unique(ind)) and np.all(ind>=0)
@@ -376,7 +377,8 @@ def test07_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
             assert np.all((Pts[2,:]>=LPhi[ii][0][0]-marg) & (Pts[2,:]<=LPhi[ii][0][1]+marg))
         else:
             assert np.all( (Pts[2,:]>=LPhi[ii][0][0]-marg) | (Pts[2,:]<=LPhi[ii][0][1]+marg))
-        assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', In='(R,Z,Phi)', Test=True))
+        assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', Lim=None,
+                                       nLim=0, In='(R,Z,Phi)', Test=True))
         assert dS.shape==(Pts.shape[1],)
         assert np.all([ind.shape==(Pts.shape[1],), ind.dtype==int, ind.size==np.unique(ind).size, np.all(ind==np.unique(ind)), np.all(ind>=0)])
         assert NL.ndim==1 and NL.size==VPoly.shape[1]-1
@@ -460,9 +462,11 @@ def test08_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
         else:
             assert np.all( (Pts[2,:]>=LPhi[ii][0][0]-marg) | (Pts[2,:]<=LPhi[ii][0][1]+marg))
         if DIn>=0:
-            assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', In='(R,Z,Phi)', Test=True))
+            assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', Lim=None,
+                                           nLim=0, In='(R,Z,Phi)', Test=True))
         else:
-            assert not np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', In='(R,Z,Phi)', Test=True))
+            assert not np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor',
+                                               Lim=None, nLim=0, In='(R,Z,Phi)', Test=True))
         assert dS.shape==(Pts.shape[1],)
         assert np.all([ind.shape==(Pts.shape[1],), ind.dtype==int, ind.size==np.unique(ind).size, np.all(ind==np.unique(ind)), np.all(ind>=0)])
         assert NL.ndim==1 and NL.size==VPoly.shape[1]-1
@@ -524,9 +528,11 @@ def test09_Ves_Smesh_Lin(VPoly=VPoly):
         assert np.all(Pts[1,:]>=1.-np.abs(DIn)) and np.all(Pts[1,:]<=3.+np.abs(DIn))
         assert np.all(Pts[2,:]>=-np.abs(DIn)) and np.all(Pts[2,:]<=1.+np.abs(DIn))
         if DIn>=0:
-            assert np.all(GG._Ves_isInside(Pts, VPoly, Lim=XMinMax, VType='Lin', In='(X,Y,Z)', Test=True))
+            assert np.all(GG._Ves_isInside(Pts, VPoly, Lim=XMinMax.reshape((1,2)), nLim=1, VType='Lin', In='(X,Y,Z)', Test=True))
         else:
-            assert not np.all(GG._Ves_isInside(Pts, VPoly, Lim=XMinMax, VType='Lin', In='(X,Y,Z)', Test=True))
+            assert not np.all(GG._Ves_isInside(Pts, VPoly,
+                                               Lim=XMinMax.reshape((1,2)),
+                                               nLim=1, VType='Lin', In='(X,Y,Z)', Test=True))
         assert dS.shape==(Pts.shape[1],)
         assert all([ind.shape==(Pts.shape[1],), ind.dtype==int, np.unique(ind).size==ind.size, np.all(ind==np.unique(ind)), np.all(ind>=0)])
         assert ind.shape==(Pts.shape[1],) and ind.dtype==int and np.all(ind==np.unique(ind)) and np.all(ind>=0)

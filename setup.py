@@ -1,7 +1,7 @@
 """ A tomography library for fusion devices
 
 See:
-https://github.com/ToFuProject/tofu 
+https://github.com/ToFuProject/tofu
 """
 
 import sys
@@ -189,6 +189,7 @@ setup(
             'matplotlib',
             poly,
             'cython',
+            'pandas',
             ],
 
     python_requires = '>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*',
@@ -212,7 +213,7 @@ setup(
     #    # And include any *.csv files found in the 'ITER' package, too:
     #    'ITER': ['*.csv'],
     #},
-    package_data={'tofu.tests.tests01_geom':['test_Ves.txt']},
+    package_data={'tofu.tests.tests01_geom.tests03core_data':['*.py','*.txt']},
     include_package_data=True,
 
     # Although 'package_data' is the preferred approach, in some case you may

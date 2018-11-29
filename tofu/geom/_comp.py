@@ -2,8 +2,11 @@
 This module is the computational part of the geometrical module of ToFu
 """
 
-# General common libraries
+# Built-in
 import sys
+import warnings
+
+# Common
 import numpy as np
 import scipy.interpolate as scpinterp
 import scipy.integrate as scpintg
@@ -39,12 +42,18 @@ except Exception:
 
 
 
-def _Ves_set_Poly(Poly, arrayorder='C', Type='Tor', Lim=None, Clock=False):
-    """ Prepare, format and compute all key geometrical attributes of a Ves object based on its Poly  """
-    # Make Poly closed, counter-clockwise, with '(cc,N)' layout and good arrayorder
-    Poly = _GG.Poly_Order(Poly, order='C', Clock=False, close=True, layout='(cc,N)', Test=True)
+def _Struct_set_Poly(Poly, Lim=None, arrayorder='C',
+                     Type='Tor', Clock=False):
+    """ Compute geometrical attributes of a Struct object """
+
+    # Make Poly closed, counter-clockwise, with '(cc,N)' layout and arrayorder
+    Poly = _GG.Poly_Order(Poly, order='C', Clock=False,
+                          close=True, layout='(cc,N)', Test=True)
     assert Poly.shape[0]==2, "Arg Poly must be a 2D polygon !"
-    NP = Poly.shape[1]
+    fPfmt = np.ascontiguousarray if arrayorder=='C' else np.asfortranarray
+
+    # Get all remarkable points and moments
+    NP = Poly.shape[1]-1
     P1Max = Poly[:,np.argmax(Poly[0,:])]
     P1Min = Poly[:,np.argmin(Poly[0,:])]
     P2Max = Poly[:,np.argmax(Poly[1,:])]
@@ -54,34 +63,44 @@ def _Ves_set_Poly(Poly, arrayorder='C', Type='Tor', Lim=None, Clock=False):
     TorP = plg.Polygon(Poly.T)
     Surf = TorP.area()
     BaryS = np.array(TorP.center()).flatten()
-    Multi = False
+
+    # Get lim-related indicators
+    nLim = int(Lim.size/2)
+    Multi = nLim>1
+
+    # Get Tor-related quantities
     if Type.lower()=='lin':
-        if all([hasattr(ll,'__iter__') for ll in Lim]):
-            assert all([len(ll)==2 and not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') and ll[0]<ll[1] for ll in Lim])
-            Multi = True
-        else:
-            assert len(Lim)==2 and not hasattr(Lim[0],'__iter__') and not hasattr(Lim[1],'__iter__') and Lim[0]<Lim[1]
-        Lim = np.asarray(Lim)
         Vol, BaryV = None, None
     else:
-        if Lim is not None:
-            if all([hasattr(ll,'__iter__') for ll in Lim]):
-                assert all([len(ll)==2 and not hasattr(ll[0],'__iter__') and not hasattr(ll[1],'__iter__') for ll in Lim])
-                Multi = True
-            else:
-                assert len(Lim)==2 and not hasattr(Lim[0],'__iter__') and not hasattr(Lim[1],'__iter__')
-            Lim = np.asarray(Lim)
         Vol, BaryV = _GG.Poly_VolAngTor(Poly)
-        assert Vol > 0., "Pb. with volume computation for Ves object of type 'Tor' !"
+        msg = "Pb. with volume computation for Ves object of type 'Tor' !"
+        assert Vol>0., msg
+
     # Compute the non-normalized vector of each side of the Poly
     Vect = np.diff(Poly,n=1,axis=1)
-    Vect = np.ascontiguousarray(Vect) if arrayorder=='C' else np.asfortranarray(Vect)
+    Vect = fPfmt(Vect)
+
     # Compute the normalised vectors directed inwards
-    Vin = np.array([Vect[1,:],-Vect[0,:]]) if _GG.Poly_isClockwise(Poly) else np.array([-Vect[1,:],Vect[0,:]])
-    Vin = Vin/np.tile(np.hypot(Vin[0,:],Vin[1,:]),(2,1))
-    Vin = np.ascontiguousarray(Vin) if arrayorder=='C' else np.asfortranarray(Vin)
-    poly = _GG.Poly_Order(Poly, order=arrayorder, Clock=Clock, close=True, layout='(cc,N)', Test=True)
-    return poly, NP, P1Max, P1Min, P2Max, P2Min, BaryP, BaryL, Surf, BaryS, Lim, Vol, BaryV, Vect, Vin, Multi
+    Vin = np.array([Vect[1,:],-Vect[0,:]])
+    if not _GG.Poly_isClockwise(Poly):
+        Vin = -Vin
+    Vin = Vin/np.hypot(Vin[0,:],Vin[1,:])[np.newaxis,:]
+    Vin = fPfmt(Vin)
+
+    poly = _GG.Poly_Order(Poly, order=arrayorder, Clock=Clock,
+                          close=False, layout='(cc,N)', Test=True)
+
+    # Get bounding circle
+    circC = BaryS
+    r = np.sqrt(np.sum((poly-circC[:,np.newaxis])**2,axis=0))
+    circr = np.max(r)
+
+    dout = {'Poly':poly, 'Lim':Lim, 'nLim':nLim, 'Multi':Multi, 'nP':NP,
+            'P1Max':P1Max, 'P1Min':P1Min, 'P2Max':P2Max, 'P2Min':P2Min,
+            'BaryP':BaryP, 'BaryL':BaryL, 'BaryS':BaryS, 'BaryV':BaryV,
+            'Surf':Surf, 'VolAng':Vol, 'Vect':Vect, 'VIn':Vin,
+            'circ-C':circC, 'circ-r':circr, 'Clock':Clock}
+    return dout
 
 
 def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, ZLim='Def', Spline=True, Splprms=_def.TorSplprms, NP=_def.TorInsideNP, Plot=False, Test=True):
@@ -93,6 +112,11 @@ def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, 
         if ZLim=='Def':
             ZLim = (P2Min[1]+0.1*(P2Max[1]-P2Min[1]), P2Max[1]-0.05*(P2Max[1]-P2Min[1]))
         indZLim = (Poly[1,:]<ZLim[0]) | (Poly[1,:]>ZLim[1])
+        if Poly.shape[1]-indZLim.sum()<10:
+            msg = "Poly seems to be Convex and simple enough !"
+            msg += "\n  Poly.shape[1] - indZLim.sum() < 10"
+            warnings.warn(msg)
+            return Poly
         Poly = np.delete(Poly, indZLim.nonzero()[0], axis=1)
     if np.all(Poly[:,0]==Poly[:,-1]):
         Poly = Poly[:,:-1]
@@ -152,7 +176,7 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs
         assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
     assert type(dSMode) is str and dSMode.lower() in ['abs','rel'], "Arg dSMode must be in ['abs','rel'] !"
     assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
-    
+
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
     if ind is None:
@@ -163,7 +187,10 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs
     return Pts, dS, ind, (d1r,d2r)
 
 
-def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', ind=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9):
+def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV,
+                     DV=None, dVMode='abs', ind=None,
+                     VType='Tor', VLim=None,
+                     Out='(X,Y,Z)', margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dV) in types or (hasattr(dV,'__iter__') and len(dV)==3 and all([type(ds) in types for ds in dV])), "Arg dV must be a float or a list 3 floats !"
     dV = [float(dV),float(dV),float(dV)] if type(dV) in types else [float(dV[0]),float(dV[1]),float(dV[2])]
@@ -177,7 +204,7 @@ def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', i
 
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
-    VLim = None if VType.lower()=='tor' else np.array(VLim)
+    VLim = None if VType.lower()=='tor' else np.array(VLim).ravel()
     dVr = [None,None,None]
     if ind is None:
         if VType.lower()=='tor':
@@ -192,11 +219,16 @@ def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV, DV=None, dVMode='abs', i
     return Pts, dV, ind, dVr
 
 
-def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, DIn=0., VIn=None, VType='Tor', VLim=None, Out='(X,Y,Z)', margin=1.e-9, Multi=False, Ind=None):
+def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
+                     DS=None, dSMode='abs', ind=None, DIn=0., VIn=None,
+                     VType='Tor', VLim=None, nVLim=None, Out='(X,Y,Z)',
+                     margin=1.e-9, Multi=False, Ind=None):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dS) in types or (hasattr(dS,'__iter__') and len(dS)==2 and all([type(ds) in types for ds in dS])), "Arg dS must be a float or a list of 2 floats !"
     dS = [float(dS),float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1]),float(dS[2])]
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==3)
+    msg = "type(nVLim)={0} and nVLim={1}".format(str(type(nVLim)),nVLim)
+    assert type(nVLim) is int and nVLim>=0, msg
     if DS is None:
         DS = [None,None,None]
     else:
@@ -204,15 +236,16 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', i
     assert type(dSMode) is str and dSMode.lower() in ['abs','rel'], "Arg dSMode must be in ['abs','rel'] !"
     assert type(Multi) is bool, "Arg Multi must be a bool !"
 
-    VLim = None if VLim is None else np.array(VLim)
+    VLim = None if (VLim is None or nVLim==0) else np.array(VLim)
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
 
-    if Multi:
+    # Check if Multi
+    if nVLim>1:
         assert VLim is not None, "For multiple Struct, Lim cannot be None !"
         assert all([hasattr(ll,'__iter__') and len(ll)==2 for ll in VLim])
         if Ind is None:
-            Ind = np.arange(0,len(VLim))
+            Ind = np.arange(0,nVLim)
         else:
             Ind = [Ind] if not hasattr(Ind,'__iter__') else Ind
             Ind = np.asarray(Ind).astype(int)
@@ -221,7 +254,7 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', i
             assert all([type(ind[ii]) is np.ndarray and ind[ii].ndim==1 and ind[ii].dtype in ['int32','int64'] and np.all(ind[ii]>=0) for ii in range(0,len(ind))]), "For multiple Struct, ind must be a list of index arrays !"
 
     else:
-        VLim = [VLim]
+        VLim = [None] if VLim is None else [VLim.ravel()]
         assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
         Ind = [0]
 
@@ -297,27 +330,24 @@ def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
     if kPOut is not None:
         kRMin[kRMin>kPOut] = kPOut[kRMin>kPOut]
 
-    # Derive
-    PRMin = Ds + kRMin[np.newaxis,:]*dus
-    RMin = np.sqrt(PRMin[0,:]**2+PRMin[1,:]**2)
-
     if v:
-        PRMin = PRMin.flatten()
-        kRMin, RMin = kRMin[0], RMin[0]
-    return PRMin, kRMin, RMin
+        kRMin = kRMin[0]
+    return kRMin
 
 
 def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
-                  Lplot='In', Proj='All', multi=False):
+                  Lplot='In', proj='All', multi=False):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
     assert type(VType) is str and VType.lower() in ['tor','lin']
     assert Lplot.lower() in ['tot','in']
-    assert Proj.lower() in ['cross','hor','all','3d']
+    assert type(proj) is str
+    proj = proj.lower()
+    assert proj in ['cross','hor','all','3d']
     assert Ds.ndim==2 and Ds.shape==us.shape
     nL = Ds.shape[1]
     k0 = kPIns if Lplot.lower()=='in' else np.zeros((nL,))
 
-    if VType.lower()=='tor' and Proj.lower() in ['cross','all']:
+    if VType.lower()=='tor' and proj in ['cross','all']:
         CrossProjAng = np.arccos(np.sqrt(us[0,:]**2+us[1,:]**2)
                                  /np.sqrt(np.sum(us**2,axis=0)))
         nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
@@ -346,7 +376,7 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
             pts0 = np.concatenate(tuple(pts0),axis=1)
             pts0 = np.array([np.hypot(pts0[0,:],pts0[1,:]),pts0[2,:]])
 
-    if not (VType.lower()=='tor' and Proj.lower()=='cross'):
+    if not (VType.lower()=='tor' and proj=='cross'):
         pts = []
         if multi:
             for ii in range(0,nL):
@@ -368,14 +398,14 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
                     pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
             pts = np.concatenate(tuple(pts),axis=1)
 
-    if Proj.lower()=='hor':
+    if proj=='hor':
         pts = [pp[:2,:] for pp in pts] if multi else pts[:2,:]
-    elif Proj.lower()=='cross':
+    elif proj=='cross':
         if VType.lower()=='tor':
             pts = pts0
         else:
             pts = [pp[1:,:] for pp in pts] if multi else pts[1:,:]
-    elif Proj.lower()=='all':
+    elif proj=='all':
         if multi:
             if VType.lower()=='tor':
                 pts = [(p0,pp[:2,:]) for (p0,pp) in zip(*[pts0,pts])]
@@ -384,32 +414,6 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
         else:
             pts = (pts0,pts[:2,:]) if VType.lower()=='tor' else (pts[1:,:],pts[:2,:])
     return pts
-
-
-##############################################
-#       Selection
-##############################################
-
-def Rays_touch(VesOk, StructOk, IndOut, StructNames, touch='Ves'):
-    assert type(touch) in [str,list,tuple], "Arg touch must be a str or list !"
-    if VesOk and touch=='Ves':
-        ind = IndOut[0,:]==0
-    elif StructOk:
-       if type(touch) is str:
-            ii = [ii for ii in range(0,len(StructNames))
-                  if StructNames[ii]==touch]
-            assert len(ii)==1, "Required Struct Name not found !"
-            ind = IndOut[0,:]==ii[0]+1
-       else:
-            assert len(touch)==2, "Arg touch must be a list of len()==2 !"
-            assert type(touch[0]) is str, "touch[0] must be str (Struct Name)"
-            assert type(touch[1]) is int, "touch[1] must be int (Struct index)"
-            ii = [ii for ii in range(0,len(StructNames))
-                  if StructNames[ii]==touch[0]]
-            assert len(ii)==1, "Required Struct Name not found !"
-            ind = (IndOut[0,:]==ii[0]+1) & (IndOut[1,:]==touch[1])
-    return ind
-
 
 
 

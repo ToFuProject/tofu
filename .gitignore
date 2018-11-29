@@ -32,6 +32,7 @@ conda-bld/
 dist/
 tofu.egg-info/
 build/
+
 #Notes_Upgrades/
 
 # Tex files
@@ -50,3 +51,4 @@ Details
 
 # installation dir
 usr/
+
