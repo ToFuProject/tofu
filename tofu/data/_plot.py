@@ -153,11 +153,11 @@ def _init_Data1D(fs=None, dmargin=None,
     DY = Laxt[0].get_position().bounds[1] - Ytxt
     Xtxt = Laxt[1].get_position().bounds[0]
     DX = Laxt[1].get_position().bounds[2]
-    axtxtch = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtch = fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None')
     Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
     Xtxt = axp.get_position().bounds[0]
     DX = axp.get_position().bounds[2]
-    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
     for ax in [axtxtch, axtxtt]:
         ax.patch.set_alpha(0.)
         for ss in ['left','right','bottom','top']:
@@ -533,12 +533,12 @@ def _init_Data2D(fs=None, dmargin=None,
     DY = Laxt[0].get_position().bounds[1] - Ytxt
     Xtxt = Laxt[1].get_position().bounds[0]
     DX = Laxt[1].get_position().bounds[2]
-    axtxtch = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtch = fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None')
 
     Ytxt = laxp[0].get_position().bounds[1] + laxp[0].get_position().bounds[3]
     Xtxt = laxp[0].get_position().bounds[0]
     DX = laxp[0].get_position().bounds[2]
-    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
 
     for ax in [axtxtch, axtxtt]:
         axtxtch.patch.set_alpha(0.)
@@ -981,12 +981,12 @@ def _init_Data_combine(fs=None, dmargin=None,
             DY = Laxt[-2].get_position().bounds[1] - Ytxt
             Xtxt = Laxt[-1].get_position().bounds[0]
             DX = Laxt[-1].get_position().bounds[2]
-        laxtxtch.append( fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w') )
+        laxtxtch.append( fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None') )
 
     Ytxt = laxT[0].get_position().bounds[1] + laxT[0].get_position().bounds[3]
     Xtxt = laxT[0].get_position().bounds[0]
     DX = laxT[0].get_position().bounds[2]
-    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
 
     for ax in laxtxtch + [axtxtt]:
         ax.patch.set_alpha(0.)
