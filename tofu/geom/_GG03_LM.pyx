@@ -146,12 +146,13 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                     pIn, pOut,\
                         vperpIn, vperpOut,\
                         iIn, iOut = Calc_LOS_PInOut_Tor_Lim(Ds, dus, LSPoly[ii],
-                                                              LSVIn[ii],
-                                                              Lim=lslim[jj],
-                                                              Forbid=Forbid, RMin=RMin,
-                                                              EpsUz=EpsUz, EpsVz=EpsVz,
-                                                              EpsA=EpsA, EpsB=EpsB,
-                                                              EpsPlane=EpsPlane)
+                                                            LSVIn[ii],
+                                                            POut,
+                                                            Lim=lslim[jj],
+                                                            Forbid=Forbid, RMin=RMin,
+                                                            EpsUz=EpsUz, EpsVz=EpsVz,
+                                                            EpsA=EpsA, EpsB=EpsB,
+                                                            EpsPlane=EpsPlane)
 
                     kpin_view = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     struct_pin_view = pIn
@@ -190,7 +191,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
 @cython.boundscheck(False)
 cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                              double [:,::1] VPoly, double [:,::1] vIn,
-                             Lim=None,
+                             double[:,::1] POut, Lim=None,
                              bool Forbid=True, RMin=None, double EpsUz=1.e-6,
                              double EpsVz=1.e-9, double EpsA=1.e-9,
                              double EpsB=1.e-9, double EpsPlane=1.e-9):
