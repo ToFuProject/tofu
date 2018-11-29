@@ -13,3 +13,4 @@
 - [ ] Use new version of develop
 - [ ] Memory profile code
 - [ ] Compute bbox coordinates in cython ?
+- [ ] Function _Lim et _Tor : par des structures vides et des pleiones

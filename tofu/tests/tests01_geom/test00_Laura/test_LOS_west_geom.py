@@ -1,5 +1,5 @@
 # coding: utf-8
-from new_tofu_LauraBenchmarck_load_config import *
+from tofu_LauraBenchmarck_load_config import *
 import tofu.geom._GG_LM as _GG
 import time
 import line_profiler
@@ -60,12 +60,10 @@ def test_LOS_west_configs(config, cams, plot=False, save=False, saveCam=[]):
         out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
         elapsed = time.time() - start
         if save and vcam in saveCam :
-            np.savez("out_sin_"+config+"_"+vcam+".npz", out[0])
-            np.savez("out_sout_"+config+"_"+vcam+".npz", out[1])
-            np.savez("out_vperpin_"+config+"_"+vcam+".npz", out[2])
-            np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[3])
-            np.savez("out_indin_"+config+"_"+vcam+".npz", out[4])
-            np.savez("out_indout_"+config+"_"+vcam+".npz", out[5])
+            np.savez("out_kin_"     +config+"_"+vcam+".npz", out[0])
+            np.savez("out_kout_"    +config+"_"+vcam+".npz", out[1])
+            np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[2])
+            np.savez("out_iout_"    +config+"_"+vcam+".npz", out[3])
         times.append(elapsed)
     return times
 
@@ -130,13 +128,13 @@ def touch_plot_all_configs():
         indcam = -2
         cam = Cams[indcam]
         D, u, loscam = get_Du(cam, config=config, make_cam=True)
-        los_cam.plot_touch()
+        loscam.plot_touch()
         plt.savefig("plottouch_dconfig"+config+"_"+cam)
 
 def touch_plot_config_cam(config, cam):
     D, u, loscam = get_Du(cam, config=config, make_cam=True)
-    loscam.plot(Elt='L', EltVes='P', EltStruct='P')
-    plt.savefig("erasemeplz")
+    # loscam.plot(Elt='L', EltVes='P', EltStruct='P')
+    # plt.savefig("erasemeplz")
     start = time.time()
     loscam.plot_touch()
     end = time.time()
@@ -148,12 +146,13 @@ if __name__ == "__main__":
     test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000"])
-
     # test_LOS_profiling()
     # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
-    # touch_plot_config_cam("B3", "V10000")
+    # touch_plot_config_cam("B1", "V100000")
+    # touch_plot_config_cam("B2", "V100000")
+    # touch_plot_config_cam("B3", "V100000")
     # line profiling.....
     # profile = line_profiler.LineProfiler(test_LOS_profilingA)
     # profile.runcall(test_LOS_profilingA)

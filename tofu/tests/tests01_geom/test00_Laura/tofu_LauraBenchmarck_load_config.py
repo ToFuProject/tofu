@@ -6,6 +6,7 @@ import os
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
+# plt.swtich_backend("Qt5Agg")
 
 # tofu-specific ( >= 1.3.23-58 )
 import tofu as tf
@@ -223,7 +224,7 @@ def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
         # Create the LOSCam2D object
         # Note : thsis is where the computation goes on...
         cam = tf.geom.LOSCam2D(Exp=conf.Id.Exp, Name=cam, dgeom=(D,u),
-                               config=conf, Diag='Test')
+                               config=conf, Diag='Test', method="optimized")
 
     else:
         cam = None

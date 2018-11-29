@@ -2076,6 +2076,7 @@ class Rays(utils.ToFuObject):
                           'linewidth':0., 'antialiased':False},
                     'Lim':None,
                     'Nstep':50}}
+    _method = "ref"
 
     # Does not exist beofre Python 3.6 !!!
     def __init_subclass__(cls, color='k', **kwdargs):
@@ -2086,6 +2087,7 @@ class Rays(utils.ToFuObject):
         cls._ddef = copy.deepcopy(Rays._ddef)
         cls._dplot = copy.deepcopy(Rays._dplot)
         cls._set_color_ddef(color)
+        cls._method = Rays._method
 
     @classmethod
     def _set_color_ddef(cls, color):
@@ -2094,7 +2096,7 @@ class Rays(utils.ToFuObject):
     def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 sino_RefPt=None, fromdict=None,
+                 sino_RefPt=None, fromdict=None, method='ref',
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
 
         # To replace __init_subclass__ for Python 2
@@ -2104,6 +2106,8 @@ class Rays(utils.ToFuObject):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
+
+        self._method=method
 
         kwdargs = locals()
         del kwdargs['self']
@@ -2324,7 +2328,7 @@ class Rays(utils.ToFuObject):
     ###########
 
     def _init(self, dgeom=None, config=None, Etendues=None, Surfaces=None,
-              sino_RefPt=None, dchans=None, **kwdargs):
+              sino_RefPt=None, dchans=None, method='ref', **kwdargs):
         largs = self._get_largs_dgeom(sino=True)
         kwdgeom = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dconfig()
@@ -2333,7 +2337,7 @@ class Rays(utils.ToFuObject):
         kwdchans = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dmisc()
         kwdmisc = self._extract_kwdargs(locals(), largs)
-        self.set_dconfig(calcdgeom=False, **kwdconfig)
+        self.set_dconfig(calcdgeom=False, method=method, **kwdconfig)
         self._set_dgeom(sino=True, **kwdgeom)
         self.set_dchans(**kwdchans)
         self._set_dmisc(**kwdmisc)
@@ -2343,14 +2347,51 @@ class Rays(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    def set_dconfig(self, config=None, calcdgeom=True):
+    def set_dconfig(self, config=None, calcdgeom=True, method='ref'):
         config = self._checkformat_inputs_dconfig(config)
         self._dconfig['config'] = config.copy()
         if calcdgeom:
-            self.compute_dgeom()
+            self.compute_dgeom(method=method)
 
-    def _prepare_inputs_kMinMax(self, method='ref'):
-        if method=='ref':
+    def _prepare_inputs_kMinMax(self):
+        if self._method=='ref':
+            # Prepare input
+            D = np.ascontiguousarray(self.D)
+            u = np.ascontiguousarray(self.u)
+
+            # Get reference
+            lS = self.lStruct_computeInOut
+
+            lSIn = [ss for ss in lS if ss._InOut=='in']
+            if len(lSIn)==0:
+                msg = "self.config must have at least a StructIn subclass !"
+                assert len(lSIn)>0, msg
+            elif len(lSIn)>1:
+                S = lSIn[np.argmin([ss.dgeom['Surf'] for ss in lSIn])]
+            else:
+                S = lSIn[0]
+
+            VPoly = S.Poly_closed
+            VVIn =  S.dgeom['VIn']
+            Lim = S.Lim
+            nLim = S.nLim
+            VType = self.config.Id.Type
+
+            lS = [ss for ss in lS if ss._InOut=='out']
+            lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
+            for ss in lS:
+                lSPoly.append(ss.Poly_closed)
+                lSVIn.append(ss.dgeom['VIn'])
+                lSLim.append(ss.Lim)
+                lSnLim.append(ss.nLim)
+
+            largs = [D, u, VPoly, VVIn]
+            dkwd = dict(Lim=Lim, nLim=nLim,
+                        LSPoly=lSPoly, LSLim=lSLim,
+                        lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
+                        RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
+                        EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+        elif self._method=='optimized':
             # Prepare input
             D = np.ascontiguousarray(self.D)
             u = np.ascontiguousarray(self.u)
@@ -2395,26 +2436,27 @@ class Rays(utils.ToFuObject):
 
         return largs, dkwd
 
-    def _compute_kMinMax(self, method='ref'):
+    def _compute_kMinMax(self):
 
         # Prepare inputs
-        largs, dkwd = self._prepare_inputs_kMinMax(method)
+        largs, dkwd = self._prepare_inputs_kMinMax()
 
-        if method=='ref':
+        if self._method=='ref':
             # call the dedicated function
             out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
             # Currently computes and returns too many things
             PIn, POut, kMin, kMax, VperpIn, vperp, IIn, indout = out
+        elif self._method=="optimized":
+            # call the dedicated function
+            out = _GG_LM.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+            # Currently computes and returns too many things
+            kMin, kMax, vperp, indout = out
         else:
-            # --------------------------------
-            # Here you can put another version
             pass
-            # --------------------------------
-
         return kMin, kMax, vperp, indout
 
 
-    def compute_dgeom(self, extra=True, plotdebug=True):
+    def compute_dgeom(self, extra=True, plotdebug=True, method='ref'):
         # Can only be computed if config if provided
         if self._dconfig['config'] is None:
             msg = "The dgeom cannot be computed without a config !"
@@ -2422,7 +2464,7 @@ class Rays(utils.ToFuObject):
             return
 
         # Perform computation of kMin and kMax
-        kMin, kMax, vperp, indout = self._compute_kMinMax(method='ref')
+        kMin, kMax, vperp, indout = self._compute_kMinMax()
 
         # Clean up (in case of nans)
         ind = np.isnan(kMin)
@@ -3528,7 +3570,7 @@ class LOSCam2D(Rays):
     def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None, X12=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 sino_RefPt=None, fromdict=None,
+                 sino_RefPt=None, fromdict=None, method='ref',
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
         kwdargs = locals()
         del kwdargs['self'], kwdargs['X12']

@@ -96,7 +96,6 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
     cdef long [:] struct_iin_view
     cdef long [:,:] iout_view
     cdef double [:] kpin_view, kpout_view
-    cdef double [:,:] struct_pin_view, pout_view
     cdef double [:,:] struct_vperpin_view, vperp_out_view
 
     cdef cnp.ndarray[long,ndim=2] IOut=np.zeros((3, num_los), dtype=int)
@@ -123,19 +122,15 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                             np.min(np.hypot(Ds[0,:],Ds[1,:])))
 
         # Main function to compute intersections with Vessel
-        PIn, POut, \
-            VperpIn, VperpOut, \
-            IIn, IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim,
-                                                 Forbid=Forbid, RMin=RMin,
-                                                 EpsUz=EpsUz, EpsVz=EpsVz,
-                                                 EpsA=EpsA, EpsB=EpsB,
-                                                 EpsPlane=EpsPlane)
+        kPIn, kPOut, \
+          VperpOut, \
+          IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim,
+                                               Forbid=Forbid, RMin=RMin,
+                                               EpsUz=EpsUz, EpsVz=EpsVz,
+                                               EpsA=EpsA, EpsB=EpsB,
+                                               EpsPlane=EpsPlane)
 
-        # k = coordinate (in m) along the line from D
-        kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
-        kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
-        assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
-        assert np.allclose(kPIn,np.sum((PIn-Ds)*dus,axis=0),equal_nan=True)
+        kpout_view = kPOut
 
         # If there are Struct, call the same function
         # Structural optimzation : do everything in one big for loop and only
@@ -143,7 +138,7 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         if LSPoly is not None:
 
             kpout_view = kPOut
-            pout_view = POut
+            #pout_view = POut
             vperp_out_view = VperpOut
             iout_view = IOut
             for ii in range(0,len(LSPoly)):
@@ -155,19 +150,19 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                 len_lim = len(lslim)
 
                 for jj in range(len_lim):
-                    pIn, pOut,\
-                        vperpIn, vperpOut,\
-                        iIn, iOut = Calc_LOS_PInOut_Tor_Lim(Ds, dus, LSPoly[ii],
-                                                            LSVIn[ii],
-                                                            POut,
-                                                            Lim=lslim[jj],
-                                                            Forbid=Forbid, RMin=RMin,
-                                                            EpsUz=EpsUz, EpsVz=EpsVz,
-                                                            EpsA=EpsA, EpsB=EpsB,
-                                                            EpsPlane=EpsPlane)
+                    # Warning: for "full" (aka "In") Structures we get kpin, vperpIn, iIn
+                    # and not kpout, vperpOut, iOut
+                    kpin_view, vperpIn,\
+                      iIn  = Calc_LOS_PInOut_Tor_Lim(Ds, dus, LSPoly[ii],
+                                                          LSVIn[ii],
+                                                          Lim=lslim[jj],
+                                                          Forbid=Forbid, RMin=RMin,
+                                                          EpsUz=EpsUz, EpsVz=EpsVz,
+                                                          EpsA=EpsA, EpsB=EpsB,
+                                                          EpsPlane=EpsPlane)
 
-                    kpin_view = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
-                    struct_pin_view = pIn
+                    # kpin_view = kpIn
+                    # struct_pin_view = pIn
                     struct_vperpin_view = vperpIn
                     struct_iin_view = iIn
                     for ind_tmp in range(num_los):
@@ -179,21 +174,15 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                         mask2_jj = bool1 & ~bool2
                         if (nonan_jj and kpin_jj<kpout_jj) or mask2_jj:
                             kpout_view[ind_tmp] = kpin_jj
-                            pout_view[:,ind_tmp] = struct_pin_view[:,ind_tmp]
                             vperp_out_view[:,ind_tmp] = struct_vperpin_view[:,ind_tmp]
                             iout_view[2,ind_tmp] = struct_iin_view[ind_tmp]
                             iout_view[0,ind_tmp] = 1+ii
                             iout_view[1,ind_tmp] = jj
 
     if not v:
-        PIn, POut, \
-            kPIn, kPOut, \
-            VperpIn, VperpOut, \
-            IIn, IOut = PIn.flatten(), POut.flatten(), kPIn[0], kPOut[0], \
-                        VperpIn.flatten(), VperpOut.flatten(), IIn[0], \
-                        IOut.flatten()
-    return PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut
-
+        kPIn, kPOut, \
+          VperpOut, IOut = kPIn[0], kPOut[0], VperpOut.flatten(), IOut.flatten()
+    return kPIn, kPOut, VperpOut, IOut
 
 @cython.profile(True)
 @cython.linetrace(True)
@@ -203,31 +192,25 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
 @cython.boundscheck(False)
 cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                              double [:,::1] VPoly, double [:,::1] vIn,
-                             double[:,::1] POut, Lim=None,
+                             Lim=None,
                              bool Forbid=True, RMin=None, double EpsUz=1.e-6,
                              double EpsVz=1.e-9, double EpsA=1.e-9,
                              double EpsB=1.e-9, double EpsPlane=1.e-9):
 
     cdef Py_ssize_t ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
     cdef double Rmin, upscaDp, upar2, Dpar2, Crit2, kout, kin
-    cdef int indin=0, indout=0, Done=0
+    cdef int indin=0, Done=0
     cdef double L, S1X=0., S1Y=0., S2X=0., S2Y=0., sca, sca0, sca1, sca2
     cdef double q, C, delta, sqd, k, sol0, sol1, phi=0., L0=0., L1=0.
     cdef double v0, v1, A, B, ephiIn0, ephiIn1
+    cdef double SOut1, SOut0
     cdef int Forbidbis, Forbid0
-    cdef cnp.ndarray[double,ndim=2] SIn=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=2] SOut=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=1] kIn=np.nan*np.ones((Nl,))
     cdef cnp.ndarray[double,ndim=2] VPerpIn=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=2] VPerpOut=np.nan*np.ones((3,Nl))
     cdef cnp.ndarray[long,ndim=1] indIn = np.zeros((Nl,), dtype=long)
-    cdef cnp.ndarray[long,ndim=1] indOut= np.zeros((Nl,), dtype=long)
 
     cdef bool inter_bbox
     cdef double[:] bounds
-
-    # cdef double[:,::1] SOut=SOut_#, SIn=SIn_
-    # cdef double[:,::1] VPerpIn=VPerp_In, VPerpOut=VPerp_Out
-    # cdef double[::1] indIn=indIn_, indOut=indOut_
 
     if Lim is not None:
         L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
@@ -235,7 +218,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
         bounds = get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
     else:
         bounds = get_bbox_poly_extruded(np.asarray(VPoly))
-    #path_poly_t = Path(VPoly.T)
+
     ################
     # Prepare input
     if RMin is None:
@@ -252,20 +235,12 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
 
     for ii in range(0,Nl):
 
-        # Let us first check if the line intersects the bounding box of structure
-        # inter_bbox = ray_intersects_abba_bbox(bounds,
-        #                                       Ds[:,ii], us[:,ii])
-        # if not inter_bbox:
-        #     continue
-
         if Lim is not None:
             inter_bbox = ray_intersects_abba_bbox(bounds,
                                                   Ds[:,ii], us[:,ii])
             if not inter_bbox:
                 continue
 
-        # ray = Ray(Ds[:,ii], us[:,ii], notVec=True)
-        #ray.plot(ax=ax,block=ii==(Nl-1))
         upscaDp = us[0,ii]*Ds[0,ii] + us[1,ii]*Ds[1,ii]
         upar2 = us[0,ii]**2 + us[1,ii]**2
         Dpar2 = Ds[0,ii]**2 + Ds[1,ii]**2
@@ -337,7 +312,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                                               vIn[1,jj]*us[2,ii]
                                         if sca<=0 and k<kout:
                                             kout = k
-                                            indout = jj
                                             Done = 1
                                             #print(1, k)
                                         elif sca>=0 and k<min(kin,kout):
@@ -374,7 +348,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                                               vIn[1,jj]*us[2,ii]
                                         if sca<=0 and k<kout:
                                             kout = k
-                                            indout = jj
                                             Done = 1
                                             #print(3, k)
                                         elif sca>=0 and k<min(kin,kout):
@@ -410,7 +383,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                                 sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + Csin(phi)*vIn[0,jj]*us[1,ii] + vIn[1,jj]*us[2,ii]
                                 if sca<=0 and k<kout:
                                     kout = k
-                                    indout = jj
                                     Done = 1
                                     #print(5, k)
                                 elif sca>=0 and k<min(kin,kout):
@@ -439,7 +411,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                                     sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + Csin(phi)*vIn[0,jj]*us[1,ii] + vIn[1,jj]*us[2,ii]
                                     if sca<=0 and k<kout:
                                         kout = k
-                                        indout = jj
                                         Done = 1
                                         #print(7, k, q, A, B, C, sqd)
                                     elif sca>=0 and k<min(kin,kout):
@@ -467,7 +438,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                                     sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + Csin(phi)*vIn[0,jj]*us[1,ii] + vIn[1,jj]*us[2,ii]
                                     if sca<=0 and k<kout:
                                         kout = k
-                                        indout = jj
                                         Done = 1
                                         #print(9, k, jj)
                                     elif sca>=0 and k<min(kin,kout):
@@ -490,7 +460,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
                             kout = k
-                            indout = -1
                             Done = 1
                         elif sca>=0 and k<min(kin,kout):
                             kin = k
@@ -510,7 +479,6 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                         sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
                         if sca<=0 and k<kout:
                             kout = k
-                            indout = -2
                             Done = 1
                         elif sca>=0 and k<min(kin,kout):
                             kin = k
@@ -518,27 +486,8 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
 
         # print("  For Line ", ii, "  test = ", inter_bbox, " and kout = ", Done, kin, kout)
         if Done==1:
-            SOut[0,ii] = Ds[0,ii] + kout*us[0,ii]
-            SOut[1,ii] = Ds[1,ii] + kout*us[1,ii]
-            SOut[2,ii] = Ds[2,ii] + kout*us[2,ii]
-            if indout==-1:
-                VPerpOut[0,ii] = -Csin(L0)
-                VPerpOut[1,ii] = Ccos(L0)
-                VPerpOut[2,ii] = 0.
-            elif indout==-2:
-                VPerpOut[0,ii] = Csin(L1)
-                VPerpOut[1,ii] = -Ccos(L1)
-                VPerpOut[2,ii] = 0.
-            else:
-                phi = Catan2(SOut[1,ii],SOut[0,ii])
-                VPerpOut[0,ii] = Ccos(phi)*vIn[0,indout]
-                VPerpOut[1,ii] = Csin(phi)*vIn[0,indout]
-                VPerpOut[2,ii] = vIn[1,indout]
-            indOut[ii] = indout
             if kin<kout:
-                SIn[0,ii] = Ds[0,ii] + kin*us[0,ii]
-                SIn[1,ii] = Ds[1,ii] + kin*us[1,ii]
-                SIn[2,ii] = Ds[2,ii] + kin*us[2,ii]
+                kIn[ii] = kin
                 if indin==-1:
                     VPerpIn[0,ii] = Csin(L0)
                     VPerpIn[1,ii] = -Ccos(L0)
@@ -548,22 +497,15 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                     VPerpIn[1,ii] = Ccos(L1)
                     VPerpIn[2,ii] = 0.
                 else:
-                    phi = Catan2(SIn[1,ii],SIn[0,ii])
+                    SIn0 = Ds[0,ii] + kin*us[0,ii]
+                    SIn1 = Ds[1,ii] + kin*us[1,ii]
+                    phi = Catan2(SIn1,SIn0)
                     VPerpIn[0,ii] = -Ccos(phi)*vIn[0,indin]
                     VPerpIn[1,ii] = -Csin(phi)*vIn[0,indin]
                     VPerpIn[2,ii] = -vIn[1,indin]
                 indIn[ii] = indin
 
-    # return SIn, SOut, VPerpIn, \
-    #   VPerpOut, indIn, indOut, \
-    #   linter_bbox
-
-    return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), \
-        np.asarray(VPerpOut), np.asarray(indIn), indOut
-
-    # return SIn, SOut, \
-    #   VPerpIn,VPerpOut, \
-    #   indIn, indOut
+    return np.asarray(kIn), np.asarray(VPerpIn), np.asarray(indIn)
 
 # et creer vecteurs
 #    return np.asarray(kIn), np.asarray(kOut), np.asarray(vPerpOut), np.asarray(indOut)
@@ -665,21 +607,19 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
 
     cdef int ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
     cdef double Rmin, upscaDp, upar2, Dpar2, Crit2, kout, kin
-    cdef int indin=0, indout=0, Done=0
+    cdef int indout=0, Done=0
     cdef double L, S1X=0., S1Y=0., S2X=0., S2Y=0., sca, sca0, sca1, sca2
     cdef double q, C, delta, sqd, k, sol0, sol1, phi=0., L0=0., L1=0.
     cdef double v0, v1, A, B, ephiIn0, ephiIn1
+    cdef double SOut1, SOut0
     cdef int Forbidbis, Forbid0
-    cdef cnp.ndarray[double,ndim=2] SIn_=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=2] SOut_=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=2] VPerp_In=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=1] kIn_=np.nan*np.ones((Nl,))
+    cdef cnp.ndarray[double,ndim=1] kOut_=np.nan*np.ones((Nl,))
     cdef cnp.ndarray[double,ndim=2] VPerp_Out=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[long,ndim=1] indIn = np.zeros((Nl,), dtype=long)
     cdef cnp.ndarray[long,ndim=1] indOut= np.zeros((Nl,), dtype=long)
 
-    cdef double[:,::1] SIn=SIn_, SOut=SOut_
-    cdef double[:,::1] VPerpIn=VPerp_In, VPerpOut=VPerp_Out
-    # cdef double[::1] indIn=indIn_, indOut=indOut_
+    cdef double[:] kIn=kIn_, kOut=kOut_
+    cdef double[:,::1] VPerpOut=VPerp_Out
 
     if Lim is not None:
         L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
@@ -777,7 +717,6 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                             #print(1, k)
                                         elif sca>=0 and k<min(kin,kout):
                                             kin = k
-                                            indin = jj
                                             #print(2, k)
 
                             # Second solution
@@ -814,7 +753,6 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                             #print(3, k)
                                         elif sca>=0 and k<min(kin,kout):
                                             kin = k
-                                            indin = jj
                                             #print(4, k)
 
         # More general non-horizontal semi-line case
@@ -850,7 +788,6 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                     #print(5, k)
                                 elif sca>=0 and k<min(kin,kout):
                                     kin = k
-                                    indin = jj
                                     #print(6, k)
 
                 elif A**2>=EpsA**2 and B**2>A*C:
@@ -879,7 +816,6 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                         #print(7, k, q, A, B, C, sqd)
                                     elif sca>=0 and k<min(kin,kout):
                                         kin = k
-                                        indin = jj
                                         #print(8, k, jj)
 
                     # Second solution
@@ -907,7 +843,6 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                         #print(9, k, jj)
                                     elif sca>=0 and k<min(kin,kout):
                                         kin = k
-                                        indin = jj
                                         #print(10, k, q, A, B, C, sqd, v0, v1, jj)
 
         if Lim is not None:
@@ -928,7 +863,6 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                             Done = 1
                         elif sca>=0 and k<min(kin,kout):
                             kin = k
-                            indin = -1
 
             ephiIn0, ephiIn1 = Csin(L1), -Ccos(L1)
             if Cabs(us[0,ii]*ephiIn0+us[1,ii]*ephiIn1)>EpsPlane:
@@ -947,13 +881,9 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                             Done = 1
                         elif sca>=0 and k<min(kin,kout):
                             kin = k
-                            indin = -2
 
         if Done==1:
-            SOut[0,ii] = Ds[0,ii] + kout*us[0,ii]
-            SOut[1,ii] = Ds[1,ii] + kout*us[1,ii]
-            SOut[2,ii] = Ds[2,ii] + kout*us[2,ii]
-            phi = Catan2(SOut[1,ii],SOut[0,ii])
+            kOut[ii] = kout
             if indout==-1:
                 VPerpOut[0,ii] = -Csin(L0)
                 VPerpOut[1,ii] = Ccos(L0)
@@ -963,32 +893,19 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                 VPerpOut[1,ii] = -Ccos(L1)
                 VPerpOut[2,ii] = 0.
             else:
+                SOut0 = Ds[0,ii] + kout*us[0,ii]
+                SOut1 = Ds[1,ii] + kout*us[1,ii]
+                phi = Catan2(SOut1,SOut0)
                 VPerpOut[0,ii] = Ccos(phi)*vIn[0,indout]
                 VPerpOut[1,ii] = Csin(phi)*vIn[0,indout]
                 VPerpOut[2,ii] = vIn[1,indout]
             indOut[ii] = indout
             if kin<kout:
-                SIn[0,ii] = Ds[0,ii] + kin*us[0,ii]
-                SIn[1,ii] = Ds[1,ii] + kin*us[1,ii]
-                SIn[2,ii] = Ds[2,ii] + kin*us[2,ii]
-                phi = Catan2(SIn[1,ii],SIn[0,ii])
-                if indin==-1:
-                    VPerpIn[0,ii] = Csin(L0)
-                    VPerpIn[1,ii] = -Ccos(L0)
-                    VPerpIn[2,ii] = 0.
-                elif indin==-2:
-                    VPerpIn[0,ii] = -Csin(L1)
-                    VPerpIn[1,ii] = Ccos(L1)
-                    VPerpIn[2,ii] = 0.
-                else:
-                    VPerpIn[0,ii] = -Ccos(phi)*vIn[0,indin]
-                    VPerpIn[1,ii] = -Csin(phi)*vIn[0,indin]
-                    VPerpIn[2,ii] = -vIn[1,indin]
-                indIn[ii] = indin
+                kIn[ii] = kin
 
-    return np.asarray(SIn), np.asarray(SOut), \
-      np.asarray(VPerpIn), np.asarray(VPerpOut), \
-      np.asarray(indIn), indOut
+    return np.asarray(kIn), np.asarray(kOut), \
+      np.asarray(VPerpOut), \
+      np.asarray(indOut)
     # return SIn, SOut, \
     #   VPerpIn,VPerpOut, \
     #   indIn, indOut

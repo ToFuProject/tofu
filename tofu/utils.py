@@ -1718,7 +1718,8 @@ class KeyHandler(object):
         butp = self.can.mpl_connect('button_press_event', self.mouseclic)
         res = self.can.mpl_connect('resize_event', self.resize)
         #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
-        self.can.manager.toolbar.release = self.mouserelease
+        if not plt.get_backend() == "agg":
+            self.can.manager.toolbar.release = self.mouserelease
 
         self._cid = {'keyp':keyp, 'keyr':keyr,
                      'butp':butp, 'res':res}#, 'butr':butr}
