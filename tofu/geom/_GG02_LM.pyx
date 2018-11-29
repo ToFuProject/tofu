@@ -93,10 +93,11 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
     cdef Py_ssize_t num_los = Ds.shape[1]
     cdef cnp.uint8_t bool1, bool2
     cdef cnp.uint8_t nonan_jj, mask2_jj
-    cdef long [:] struct_iin_view
+    cdef long iin_jj
     cdef long [:,:] iout_view
     cdef double [:] kpin_view, kpout_view
-    cdef double [:,:] struct_vperpin_view, vperp_out_view
+    cdef double [:] struct_vperpin_view
+    cdef double [:,:] vperp_out_view
 
     cdef cnp.ndarray[long,ndim=2] IOut=np.zeros((3, num_los), dtype=int)
 
@@ -138,9 +139,9 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         if LSPoly is not None:
 
             kpout_view = kPOut
-            #pout_view = POut
             vperp_out_view = VperpOut
             iout_view = IOut
+
             for ii in range(0,len(LSPoly)):
 
                 if LSLim[ii] is None or not all([hasattr(ll,'__iter__') for ll in LSLim[ii]]):
@@ -150,32 +151,42 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                 len_lim = len(lslim)
 
                 for jj in range(len_lim):
-                    # Warning: for "full" (aka "In") Structures we get kpin, vperpIn, iIn
-                    # and not kpout, vperpOut, iOut
-                    kpin_view, vperpIn,\
-                      iIn  = Calc_LOS_PInOut_Tor_Lim(Ds, dus, LSPoly[ii],
-                                                          LSVIn[ii],
-                                                          Lim=lslim[jj],
-                                                          Forbid=Forbid, RMin=RMin,
-                                                          EpsUz=EpsUz, EpsVz=EpsVz,
-                                                          EpsA=EpsA, EpsB=EpsB,
-                                                          EpsPlane=EpsPlane)
+                    # # Warning: for "full" (aka "In") Structures we get kpin, vperpIn, iIn
+                    # # and not kpout, vperpOut, iOut
+                    # kpin_view, vperpIn,\
+                    #   iIn  = Calc_LOS_PInOut_Tor_Lim(Ds, dus, LSPoly[ii],
+                    #                                       LSVIn[ii],
+                    #                                       Lim=lslim[jj],
+                    #                                       Forbid=Forbid, RMin=RMin,
+                    #                                       EpsUz=EpsUz, EpsVz=EpsVz,
+                    #                                       EpsA=EpsA, EpsB=EpsB,
+                    #                                       EpsPlane=EpsPlane)
 
-                    # kpin_view = kpIn
-                    # struct_pin_view = pIn
-                    struct_vperpin_view = vperpIn
-                    struct_iin_view = iIn
+                    # # kpin_view = kpIn
+                    # # struct_pin_view = pIn
+                    # struct_vperpin_view = vperpIn
+                    # struct_iin_view = iIn
                     for ind_tmp in range(num_los):
-                        kpin_jj = kpin_view[ind_tmp]
+                        # We get the last kpout:
                         kpout_jj = kpout_view[ind_tmp]
+                        # We compute new values
+                        kpin_jj, struct_vperpin_view, \
+                          iin_jj = compute_kout_los_on_filled(Ds[:,ind_tmp], dus[:,ind_tmp],
+                                                              LSPoly[ii],
+                                                              LSVIn[ii], kpout_jj,
+                                                              Lim=lslim[jj],
+                                                              Forbid=Forbid, RMin=RMin,
+                                                              EpsUz=EpsUz, EpsVz=EpsVz,
+                                                              EpsA=EpsA, EpsB=EpsB,
+                                                              EpsPlane=EpsPlane)
                         bool1 = kpin_jj > 0. or kpin_jj <= 0.
                         bool2 = kpout_jj > 0. or kpout_jj <= 0.
                         nonan_jj = bool1 & bool2
                         mask2_jj = bool1 & ~bool2
                         if (nonan_jj and kpin_jj<kpout_jj) or mask2_jj:
                             kpout_view[ind_tmp] = kpin_jj
-                            vperp_out_view[:,ind_tmp] = struct_vperpin_view[:,ind_tmp]
-                            iout_view[2,ind_tmp] = struct_iin_view[ind_tmp]
+                            vperp_out_view[:,ind_tmp] = struct_vperpin_view[:]
+                            iout_view[2,ind_tmp] = iin_jj
                             iout_view[0,ind_tmp] = 1+ii
                             iout_view[1,ind_tmp] = jj
 
@@ -506,6 +517,328 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                 indIn[ii] = indin
 
     return np.asarray(kIn), np.asarray(VPerpIn), np.asarray(indIn)
+
+
+
+@cython.profile(True)
+@cython.linetrace(True)
+@cython.binding(True)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef compute_kout_los_on_filled(double [:] Ds, double [:] us,
+                                double [:,::1] VPoly, double [:,::1] vIn,
+                                double last_kout, Lim=None,
+                                bool Forbid=True, RMin=None, double EpsUz=1.e-6,
+                                double EpsVz=1.e-9, double EpsA=1.e-9,
+                                double EpsB=1.e-9, double EpsPlane=1.e-9):
+
+    cdef Py_ssize_t jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
+    cdef double Rmin, upscaDp, upar2, Dpar2, Crit2, kout, kin
+    cdef int indin=0, Done=0
+    cdef double L, S1X=0., S1Y=0., S2X=0., S2Y=0., sca, sca0, sca1, sca2
+    cdef double q, C, delta, sqd, k, sol0, sol1, phi=0., L0=0., L1=0.
+    cdef double v0, v1, A, B, ephiIn0, ephiIn1
+    cdef double SOut1, SOut0
+    cdef int Forbidbis, Forbid0
+    cdef double res_kin = np.nan
+    cdef cnp.ndarray[double,ndim=1] VPerpIn=np.nan*np.ones((3,))
+    cdef long res_indin = -1
+
+    cdef bool inter_bbox
+    cdef double[:] bounds
+
+    if Lim is not None:
+        L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
+        L1 = Catan2(Csin(Lim[1]),Ccos(Lim[1]))
+        bounds = get_bbox_poly_limited(np.asarray(VPoly), [L0, L1])
+    else:
+        bounds = get_bbox_poly_extruded(np.asarray(VPoly))
+
+    ################
+    # Prepare input
+    if RMin is None:
+        Rmin = 0.95*min(np.min(VPoly[0,:]), Csqrt(Ds[0]*Ds[0]+Ds[1]*Ds[1]))
+    else:
+        Rmin = RMin
+
+    ################
+    # Compute
+    if Forbid:
+        Forbid0, Forbidbis = 1, 1
+    else:
+        Forbid0, Forbidbis = 0, 0
+
+    if Lim is not None:
+        inter_bbox = ray_intersects_abba_bbox(bounds, Ds, us)
+        if not inter_bbox:
+            return res_kin, np.asarray(VPerpIn), res_indin
+
+    upscaDp = us[0]*Ds[0] + us[1]*Ds[1]
+    upar2   = us[0]*us[0] + us[1]*us[1]
+    Dpar2   = Ds[0]*Ds[0] + Ds[1]*Ds[1]
+    # Prepare in case Forbid is True
+    if Forbid0 and not Dpar2>0:
+        Forbidbis = 0
+    if Forbidbis:
+        # Compute coordinates of the 2 points where the tangents touch
+        # the inner circle
+        L = Csqrt(Dpar2-Rmin**2)
+        S1X = (Rmin**2*Ds[0]+Rmin*Ds[1]*L)/Dpar2
+        S1Y = (Rmin**2*Ds[1]-Rmin*Ds[0]*L)/Dpar2
+        S2X = (Rmin**2*Ds[0]-Rmin*Ds[1]*L)/Dpar2
+        S2Y = (Rmin**2*Ds[1]+Rmin*Ds[0]*L)/Dpar2
+
+    # Compute all solutions
+    # Set tolerance value for us[2,ii]
+    # EpsUz is the tolerated DZ across 20m (max Tokamak size)
+    Crit2 = EpsUz**2*upar2/400.
+    kout, kin, Done = 1.e12, 1e12, 0
+    # Case with horizontal semi-line
+    if us[2]*us[2]<Crit2:
+        for jj in range(0,Ns):
+            # Solutions exist only in the case with non-horizontal
+            # segment (i.e.: cone, not plane)
+            # TODO : @LM : is this faster than checking abs(diff)>eps ?
+            if (VPoly[1,jj+1] - VPoly[1,jj])**2 > EpsVz**2:
+                # TODO : @LM this probably can done matrix wise (qmatrix)
+                q = (Ds[2]-VPoly[1,jj]) / (VPoly[1,jj+1]-VPoly[1,jj])
+                # The intersection must stand on the segment
+                if q>=0 and q<1:
+                    C = q**2*(VPoly[0,jj+1]-VPoly[0,jj])**2 + \
+                        2.*q*VPoly[0,jj]*(VPoly[0,jj+1]-VPoly[0,jj]) + \
+                        VPoly[0,jj]**2
+                    delta = upscaDp**2 - upar2*(Dpar2-C)
+                    if delta>0.:
+                        sqd = Csqrt(delta)
+                        # The intersection must be on the semi-line
+                        # (i.e.: k>=0)
+                        # First solution
+                        if -upscaDp - sqd >=0:
+                            # TODO : @LM - est-ce que c'est possible de le mat ?
+                            # ou le sortir d'ici
+                            k = (-upscaDp - sqd)/upar2
+                            sol0, sol1 = Ds[0] + k*us[0], \
+                                         Ds[1] + k*us[1]
+                            if Forbidbis:
+                                sca0 = (sol0-S1X)*Ds[0] + \
+                                       (sol1-S1Y)*Ds[1]
+                                sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
+                                sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
+                            if not Forbidbis or (Forbidbis and not
+                                                 (sca0<0 and sca1<0 and
+                                                  sca2<0)):
+                                # Get the normalized perpendicular vector
+                                # at intersection
+                                phi = Catan2(sol1,sol0)
+                                # Check sol inside the Lim
+                                if Lim is None or (Lim is not None and
+                                                   ((L0<L1 and L0<=phi and
+                                                     phi<=L1)
+                                                    or (L0>L1 and
+                                                        (phi>=L0 or
+                                                         phi<=L1)))):
+                                    # Get the scalar product to determine
+                                    # entry or exit point
+                                    sca = Ccos(phi)*vIn[0,jj]*us[0] + \
+                                          Csin(phi)*vIn[0,jj]*us[1] + \
+                                          vIn[1,jj]*us[2]
+                                    if sca<=0 and k<kout:
+                                        kout = k
+                                        Done = 1
+                                        #print(1, k)
+                                    elif sca>=0 and k<min(kin,kout):
+                                        kin = k
+                                        indin = jj
+                                        #print(2, k)
+
+                        # Second solution
+                        if -upscaDp + sqd >=0:
+                            k = (-upscaDp + sqd)/upar2
+                            sol0, sol1 = Ds[0] + k*us[0], Ds[1] \
+                                         + k*us[1]
+                            if Forbidbis:
+                                sca0 = (sol0-S1X)*Ds[0] + \
+                                       (sol1-S1Y)*Ds[1]
+                                sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
+                                sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
+                            if not Forbidbis or (Forbidbis and not
+                                                 (sca0<0 and sca1<0 and
+                                                  sca2<0)):
+                                # Get the normalized perpendicular vector
+                                # at intersection
+                                phi = Catan2(sol1,sol0)
+                                if Lim is None or (Lim is not None and
+                                                   ((L0<L1 and L0<=phi and
+                                                     phi<=L1) or
+                                                    (L0>L1 and
+                                                     (phi>=L0 or phi<=L1))
+                                                   )):
+                                    # Get the scalar product to determine
+                                    # entry or exit point
+                                    sca = Ccos(phi)*vIn[0,jj]*us[0] + \
+                                          Csin(phi)*vIn[0,jj]*us[1] + \
+                                          vIn[1,jj]*us[2]
+                                    if sca<=0 and k<kout:
+                                        kout = k
+                                        Done = 1
+                                        #print(3, k)
+                                    elif sca>=0 and k<min(kin,kout):
+                                        kin = k
+                                        indin = jj
+                                        #print(4, k)
+
+    # More general non-horizontal semi-line case
+    else:
+        for jj in range(Ns):
+            v0, v1 = VPoly[0,jj+1]-VPoly[0,jj], VPoly[1,jj+1]-VPoly[1,jj]
+            A = v0**2 - upar2*(v1/us[2])**2
+            B = VPoly[0,jj]*v0 + v1*(Ds[2]-VPoly[1,jj])*upar2/us[2]**2 - upscaDp*v1/us[2]
+            C = -upar2*(Ds[2]-VPoly[1,jj])**2/us[2]**2 + 2.*upscaDp*(Ds[2]-VPoly[1,jj])/us[2] - Dpar2 + VPoly[0,jj]**2
+
+            if A**2<EpsA**2 and B**2>EpsB**2:
+                q = -C/(2.*B)
+                if q>=0. and q<1.:
+                    k = (q*v1 - (Ds[2]-VPoly[1,jj]))/us[2]
+                    if k>=0:
+                        sol0, sol1 = Ds[0] + k*us[0], Ds[1] + k*us[1]
+                        if Forbidbis:
+                            sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
+                            sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
+                            sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
+                            #print 1, k, kout, sca0, sca1, sca2
+                            if sca0<0 and sca1<0 and sca2<0:
+                                continue
+                        # Get the normalized perpendicular vector at intersection
+                        phi = Catan2(sol1,sol0)
+                        if Lim is None or (Lim is not None and ((L0<L1 and L0<=phi and phi<=L1) or (L0>L1 and (phi>=L0 or phi<=L1)))):
+                            # Get the scalar product to determine entry or exit point
+                            sca = Ccos(phi)*vIn[0,jj]*us[0] + Csin(phi)*vIn[0,jj]*us[1] + vIn[1,jj]*us[2]
+                            if sca<=0 and k<kout:
+                                kout = k
+                                Done = 1
+                                #print(5, k)
+                            elif sca>=0 and k<min(kin,kout):
+                                kin = k
+                                indin = jj
+                                #print(6, k)
+
+            elif A**2>=EpsA**2 and B**2>A*C:
+                sqd = Csqrt(B**2-A*C)
+                # First solution
+                q = (-B + sqd)/A
+                if q>=0. and q<1.:
+                    k = (q*v1 - (Ds[2]-VPoly[1,jj]))/us[2]
+                    if k>=0.:
+                        sol0, sol1 = Ds[0] + k*us[0], Ds[1] + k*us[1]
+                        if Forbidbis:
+                            sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
+                            sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
+                            sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
+                            #print 2, k, kout, sca0, sca1, sca2
+                        if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
+                            # Get the normalized perpendicular vector at intersection
+                            phi = Catan2(sol1,sol0)
+                            if Lim is None or (Lim is not None and ((L0<L1 and L0<=phi and phi<=L1) or (L0>L1 and (phi>=L0 or phi<=L1)))):
+                                # Get the scalar product to determine entry or exit point
+                                sca = Ccos(phi)*vIn[0,jj]*us[0] + Csin(phi)*vIn[0,jj]*us[1] + vIn[1,jj]*us[2]
+                                if sca<=0 and k<kout:
+                                    kout = k
+                                    Done = 1
+                                    #print(7, k, q, A, B, C, sqd)
+                                elif sca>=0 and k<min(kin,kout):
+                                    kin = k
+                                    indin = jj
+                                    #print(8, k, jj)
+
+                # Second solution
+                q = (-B - sqd)/A
+                if q>=0. and q<1.:
+                    k = (q*v1 - (Ds[2]-VPoly[1,jj]))/us[2]
+
+                    if k>=0.:
+                        sol0, sol1 = Ds[0] + k*us[0], Ds[1] + k*us[1]
+                        if Forbidbis:
+                            sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
+                            sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
+                            sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
+                            #print 3, k, kout, sca0, sca1, sca2
+                        if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
+                            # Get the normalized perpendicular vector at intersection
+                            phi = Catan2(sol1,sol0)
+                            if Lim is None or (Lim is not None and ((L0<L1 and L0<=phi and phi<=L1) or (L0>L1 and (phi>=L0 or phi<=L1)))):
+                                # Get the scalar product to determine entry or exit point
+                                sca = Ccos(phi)*vIn[0,jj]*us[0] + Csin(phi)*vIn[0,jj]*us[1] + vIn[1,jj]*us[2]
+                                if sca<=0 and k<kout:
+                                    kout = k
+                                    Done = 1
+                                    #print(9, k, jj)
+                                elif sca>=0 and k<min(kin,kout):
+                                    kin = k
+                                    indin = jj
+                                    #print(10, k, q, A, B, C, sqd, v0, v1, jj)
+
+    if Lim is not None:
+        ephiIn0, ephiIn1 = -Csin(L0), Ccos(L0)
+        if Cabs(us[0]*ephiIn0+us[1]*ephiIn1)>EpsPlane:
+            k = -(Ds[0]*ephiIn0+Ds[1]*ephiIn1)/(us[0]*ephiIn0+us[1]*ephiIn1)
+            if k>=0:
+                # Check if in VPoly
+                sol0, sol1 = (Ds[0]+k*us[0])*Ccos(L0) + (Ds[1]+k*us[1])*Csin(L0), Ds[2]+k*us[2]
+                #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
+                #if ray_tracing(VPoly, sol0, sol1):
+                inter_bbox = pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1)
+                if inter_bbox:
+                    # Check PIn (POut not possible for limited torus)
+                    sca = us[0]*ephiIn0 + us[1]*ephiIn1
+                    if sca<=0 and k<kout:
+                        kout = k
+                        Done = 1
+                    elif sca>=0 and k<min(kin,kout):
+                        kin = k
+                        indin = -1
+
+        ephiIn0, ephiIn1 = Csin(L1), -Ccos(L1)
+        if Cabs(us[0]*ephiIn0+us[1]*ephiIn1)>EpsPlane:
+            k = -(Ds[0]*ephiIn0+Ds[1]*ephiIn1)/(us[0]*ephiIn0+us[1]*ephiIn1)
+            if k>=0:
+                sol0, sol1 = (Ds[0]+k*us[0])*Ccos(L1) + (Ds[1]+k*us[1])*Csin(L1), Ds[2]+k*us[2]
+                # Check if in VPoly
+                #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
+                # if ray_tracing(VPoly, sol0, sol1):
+                inter_bbox = pnpoly(Ns, VPoly[0,:], VPoly[1,:], sol0, sol1)
+                if inter_bbox:
+                    # Check PIn (POut not possible for limited torus)
+                    sca = us[0]*ephiIn0 + us[1]*ephiIn1
+                    if sca<=0 and k<kout:
+                        kout = k
+                        Done = 1
+                    elif sca>=0 and k<min(kin,kout):
+                        kin = k
+                        indin = -2
+
+    # print("  For Line ", ii, "  test = ", inter_bbox, " and kout = ", Done, kin, kout)
+    if Done==1:
+        if kin<kout:
+            res_kin = kin
+            if indin==-1:
+                VPerpIn[0] = Csin(L0)
+                VPerpIn[1] = -Ccos(L0)
+                VPerpIn[2] = 0.
+            elif indin==-2:
+                VPerpIn[0] = -Csin(L1)
+                VPerpIn[1] = Ccos(L1)
+                VPerpIn[2] = 0.
+            else:
+                SIn0 = Ds[0] + kin*us[0]
+                SIn1 = Ds[1] + kin*us[1]
+                phi = Catan2(SIn1,SIn0)
+                VPerpIn[0] = -Ccos(phi)*vIn[0,indin]
+                VPerpIn[1] = -Csin(phi)*vIn[0,indin]
+                VPerpIn[2] = -vIn[1,indin]
+            res_indin = indin
+
+    return res_kin, np.asarray(VPerpIn), res_indin
 
 # et creer vecteurs
 #    return np.asarray(kIn), np.asarray(kOut), np.asarray(vPerpOut), np.asarray(indOut)
