@@ -29,7 +29,8 @@ __all__ = ['LOS_Calc_PInOut_VesStruct']
 def LOS_Calc_PInOut_VesStruct(Ds, dus,
                               cnp.ndarray[double, ndim=2,mode='c'] VPoly,
                               cnp.ndarray[double, ndim=2,mode='c'] VIn,
-                              Lim=None, LSPoly=None, LSLim=None, LSVIn=None,
+                              Lim=None, nLim=None,
+                              LSPoly=None, LSLim=None, lSnLim=None, LSVIn=None,
                               RMin=None, Forbid=True,
                               double EpsUz=1.e-6, double EpsVz=1.e-9, double EpsA=1.e-9,
                               double EpsB=1.e-9, double EpsPlane=1.e-9,
@@ -99,6 +100,17 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
     cdef double [:,:] struct_vperpin_view, vperp_out_view
 
     cdef cnp.ndarray[long,ndim=2] IOut=np.zeros((3, num_los), dtype=int)
+
+    if nLim==0:
+        Lim = None
+    elif nLim==1:
+        Lim = [Lim[0,0],Lim[0,1]]
+    if lSnLim is not None:
+        for ii in range(0,len(lSnLim)):
+            if lSnLim[ii]==0:
+                LSLim[ii] = None
+            elif lSnLim[ii]==1:
+                LSLim[ii] = [LSLim[ii][0,0],LSLim[ii][0,1]]
 
     v = Ds.ndim==2
     if not v:

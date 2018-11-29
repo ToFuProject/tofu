@@ -15,8 +15,8 @@ import tofu as tf
 # Default parameters
 
 _path = os.path.abspath(os.path.dirname(__file__))
-_path_Inputs = os.path.join(_path,'tofu/tests/tests01_geom/tests03_core_laura')
-_path_Objects = os.path.join(_path,'tofu/tests/tests01_geom/tests03_core_laura')
+_path_Inputs = os.path.join(_path, '../tests03_core_laura')
+_path_Objects = os.path.join(_path,'../tests03_core_laura')
 _path_laura_former = '/Home/DV226270/ForOthers/Laura_MENDOZA/tofu_1323'
 
 
@@ -199,7 +199,7 @@ def load_config(config, path=_path_Objects, dconfig=_dconfig, plot=True,
     return config
 
 
-def get_Du(cam, dcam=_dcam, make_cam=True, plot=False,
+def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
            config=None, path=_path_Objects):
     """ Get the (D,u) tuple for the desired camera
 
