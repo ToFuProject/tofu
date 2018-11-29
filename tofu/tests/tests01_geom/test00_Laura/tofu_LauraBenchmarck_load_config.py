@@ -7,16 +7,19 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-# tofu-specific
+# tofu-specific ( >= 1.3.23-58 )
 import tofu as tf
-
-print(tf.__file__)
 
 
 # ------------------
 # Default parameters
 
 _path = os.path.abspath(os.path.dirname(__file__))
+_path_Inputs = os.path.join(_path, '../tests03_core_laura')
+_path_Objects = os.path.join(_path,'../tests03_core_laura')
+_path_laura_former = '/Home/DV226270/ForOthers/Laura_MENDOZA/tofu_1323'
+
+
 
 
 #########################################
@@ -24,63 +27,117 @@ _path = os.path.abspath(os.path.dirname(__file__))
 #       Define config dictionary
 #########################################
 
-_dconfig = {'A1': {'Ves': ['WEST','V1']},
-            'A2': {'Ves': ['ITER','Test']},
-            'A3': {'Ves': ['WEST','Sep']},
-            'B1': {'Ves': ['WEST','V2'],
-                   'Struct': {'Baffle': ['Baffle','V0'],
-                              'UpDiv':  ['UpDiv','V1'],
-                              'LowDiv': ['LowDiv','V1']}},
-            'B2': {'Ves': ['WEST','V2'],
-                   'Struct': {'Baffle': ['Baffle','V1'],
-                              'UpDiv':  ['UpDiv','V2'],
-                              'LowDiv': ['LowDiv','V2'],
-                              'InBump': ['InnerBumper','V1'],
-                              'OutBump':['OuterBumper','V1'],
-                              'IC1':    ['IC1','V1'],
-                              'IC2':    ['IC2','V1'],
-                              'IC3':    ['IC3','V1']}},
-            'B3': {'Ves': ['WEST','V2'],
-                   'Struct': {'Baffle': ['Baffle','V2'],
-                              'UpDiv':  ['UpDiv','V3'],
-                              'LowDiv': ['LowDiv','V3'],
-                              'InBump': ['InnerBumper','V3'],
-                              'OutBump':['OuterBumper','V3'],
-                              'IC1':    ['IC1','V1'],
-                              'IC2':    ['IC2','V1'],
-                              'IC3':    ['IC3','V1'],
-                              'LH1':    ['LH1','V1'],
-                              'LH2':    ['LH2','V1'],
-                              'Ripple': ['Ripple','V1'],
-                              'VDE':    ['VDE','V0']}}}
+_dconfig = {'A1': {'Exp':'WEST',
+                   'Ves': ['V1']},
+            'A2': {'Exp':'ITER',
+                   'Ves': ['V0']},
+            'A3': {'Exp':'WEST',
+                   'PlasmaDomain': ['Sep']},
+            'B1': {'Exp':'WEST',
+                   'Ves': ['V2'],
+                   'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
+            'B2': {'Exp':'WEST',
+                   'Ves': ['V2'],
+                   'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
+                           'BumperInnerV1', 'BumperOuterV1',
+                           'IC1V1', 'IC2V1', 'IC3V1']},
+            'B3': {'Exp':'WEST',
+                   'Ves': ['V2'],
+                   'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
+                           'BumperInnerV3', 'BumperOuterV3',
+                           'IC1V1', 'IC2V1', 'IC3V1',
+                           'LH1V1', 'LH2V1',
+                           'RippleV1', 'VDEV0']}}
 
 _P = [1.5,3.2,0.]
 _F = 0.1
 _D12 = [0.3,0.1]
 _nIn = [-0.5,-1.,0.]
 
-_P1 = [1.5,-3.2,0.]
-#_F = 0.1
-_nIn1 = [-0.5,1.,0.]
 
-_PA = [4.9,-6.9,0.]
-_nInA = [-0.75, 1.,0.]
-_D12A = [0.4,0.3]
-_dcam = {'V1':       {'P':_P1, 'F':_F, 'D12':_D12, 'nIn':_nIn1, 'N12':[1,1]},
+_dcam = {'V1':       {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1,1]},
          'V10':      {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[5,2]},
          'V100':     {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[20,5]},
          'V1000':    {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[50,20]},
          'V10000':   {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[125,80]},
          'V100000':  {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[500,200]},
-         'V1000000': {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1600,625]},
-         'VA1':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[1,1]},
-         'VA10':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[5,2]},
-         'VA100':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[20,5]},
-         'VA1000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[50,20]},
-         'VA10000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[125,80]},
-         'VA100000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[500,200]},
-         'VA1000000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[1600,625]}
-}
+         'V1000000': {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1600,625]}}
+
+
+#########################################
+#########################################
+#       Reset objects
+#########################################
+
+
+def _recreate_compatible_objects(path=_path_laura_former, save=True):
+
+    lf = os.listdir(path)
+    lf = [f for f in lf if all([s in f for s in ['TFG_','.npz']])]
+    for f in lf:
+        cls, Exp, nn = f.split('_')[1:4]
+        cls = cls[:cls.index('Tor')]
+        Exp = Exp[3:]
+        if 'Sep' in Exp:
+            Exp = Exp[:Exp.index('Sep')]
+        if cls=='Ves' and 'Sep' in f:
+            nn, v = 'Sep', ''
+        elif cls=='Ves':
+            nn, v = nn, ''
+        else:
+            nn = nn.split('-')
+            if len(nn)==2:
+                nn, v = nn
+            elif len(nn)==3:
+                nn, v = nn[0]+nn[1], nn[2]
+        if 'Sep' in nn:
+            cls = 'PlasmaDomain'
+        if 'UpDiv' in nn:
+            nn = 'DivUp'
+        if 'LowDivITER' in nn:
+            nn = 'DivLowITER'
+        if 'OuterBumper' in nn:
+            nn = 'BumperOuter'
+        if 'InnerBumper' in nn:
+            nn = 'BumperInner'
+        if 'Test' in nn:
+            nn, v = '', 'V0'
+        if cls=='Struct':
+            cls = 'PFC'
+        out = np.load(os.path.join(path,f))
+        Poly = out['Poly']
+        Lim = out['Lim']
+        print(Exp, cls, nn+v, Poly.shape, Lim.shape)
+        if Lim.shape==():
+            Lim = Lim.tolist()
+        ss = eval("tf.geom.%s"%cls
+                  +"(Name=nn+v, Exp=Exp, Poly=Poly, Lim=Lim, SavePath='./')")
+        if save:
+            ss.save()
+        else:
+            print("    Would be ",ss)
+
+def recreate_config(dconfig=_dconfig,
+                    path=_path_Objects, save=True):
+
+    dout = _get_filenames(dconfig, path)
+    dout2 = {}
+    for conf in dout:
+        Exp = dout[conf]['Exp']
+        lS = []
+        for cls in dout[conf].keys():
+            if cls=='Exp':
+                continue
+            lS += [tf.load(f) for f in dout[conf][cls]]
+        config = tf.geom.Config(Exp=Exp, Name=conf, Type='Tor',
+                                lStruct=lS, SavePath=path)
+        dout2[conf] = config
+        if save:
+            config.strip(-1)
+            config.save()
+        else:
+            print("Would be :", config)
+    return dout2
 
 
 #########################################
@@ -88,107 +145,91 @@ _dcam = {'V1':       {'P':_P1, 'F':_F, 'D12':_D12, 'nIn':_nIn1, 'N12':[1,1]},
 #       Loading routine
 #########################################
 
-def _get_filenames(dconf, path=_path, add_path_obj=True):
+def _get_filenames(dconfig=_dconfig, path=_path_Objects):
     """ Preliminary hidden routine for getting file names of desired objects
     """
-    if add_path_obj:
-        path=path+"/Objects"
+
     # Get all files avbailable in path
     lf = os.listdir(path)
 
     # Keep only those that are tofu.geom objects
     lf = [ff for ff in lf if all([ss in ff for ss in ['TFG_','.npz']])]
 
-    # Get the vessel object (mandatory)
-    # Check there is only one matching file name
-    f = [ff for ff in lf if all([ss in ff for ss in ['_Ves']+dconf['Ves']])]
-    msg = "None / several matches for {0} in {1}:".format(dconf['Ves'], path)
-    msg += "\n    ".join([ff for ff in f])
-    assert len(f)==1, msg
-
-    dout = {'Ves':f[0]}
-
-    if 'Struct' in dconf.keys():
-        dout['Struct'] = {}
-        for kk in dconf['Struct'].keys():
-            f = [ff for ff in lf
-                 if all([ss in ff for ss in ['_Struct']+dconf['Struct'][kk]])]
-            msg = "None / several matches for {0} in {1}:".format(kk, path)
-            msg += "\n    ".join([ff for ff in f])
-            assert len(f)==1, msg
-            dout['Struct'][kk] = f[0]
+    dout = {}
+    for conf in dconfig.keys():
+        exp = dconfig[conf]['Exp']
+        dout[conf] = {'Exp':exp}
+        for cls in dconfig[conf].keys():
+            if cls=='Exp':
+                continue
+            dout[conf][cls] = []
+            for n in dconfig[conf][cls]:
+                f = [f for f in lf
+                     if all([s in f for s in [exp,cls,n]])]
+                if not len(f)==1:
+                    msg = "None / several matches"
+                    msg += " for {0}_{1}_{2}".format(exp,cls,n)
+                    msg += " in {0}:\n".format(path)
+                    msg += "\n    ".join([ff for ff in f])
+                    raise Exception(msg)
+                dout[conf][cls].append(f[0])
     return dout
 
 
-def load_config(config, path=_path, dconfig=_dconfig, plot=True, add_path_obj=True):
-    """ Load all objects in the desired configuration
-
-    Return them as a dictionary
+def load_config(config, path=_path_Objects, dconfig=_dconfig, plot=True,
+                reset=False):
+    """ Load the desired configuration
     """
-    assert type(config) is str
-    assert type(path) is str
+    assert all([type(ss) is str for ss in [config,path]])
     assert type(dconfig) is dict
-    assert type(plot) is bool
-
-    if add_path_obj:
-        path=path+"/Objects"
 
     # Get file names from config
-    dout = _get_filenames(dconfig[config], path=_path)
+    lf = os.listdir(path)
+    lf = [f for f in lf if all([s in f for s in ['TFG_Config',config,'.npz']])]
+    assert len(lf)==1
 
-    # Load Ves object
-    dout['Ves'] = tf.pathfile.Open(os.path.join(path,dout['Ves']))
-    
-    # Load Struct objects
-    if 'Struct' in dout.keys():
-        for kk in dout['Struct'].keys():
-            pathfile = os.path.join(path,dout['Struct'][kk])
-            dout['Struct'][kk] = tf.pathfile.Open(pathfile)
+    config = tf.load(os.path.join(path,lf[0]))
+    config.strip(0)
 
     # ------------------
     # Optionnal plotting
     if plot:
-        axC, axH = dout['Ves'].plot(Elt='P')
-        if 'Struct' in dout.keys():
-            for kk in dout['Struct'].keys():
-                axC, axH = dout['Struct'][kk].plot(Lax=[axC,axH], Elt='P')
+        lax = config.plot(element='P')
 
-    return dout
+    return config
 
 
-def get_Du(cam, dcam=_dcam, plot=False, config=None, path=_path, add_path_obj=True):
+def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
+           config=None, path=_path_Objects):
     """ Get the (D,u) tuple for the desired camera
 
-    Optionally plot the camera with the chosen config
+    Optionally create the camera with the chosen config
+    Optionally plot
     """
 
-    if add_path_obj:
-        path=path+"/Objects"
-
-    print("getting cam =", cam)
-
+    # Extract pinhole, focal length, width, nb. of pix., unit vector
     P, F = dcam[cam]['P'], dcam[cam]['F']
     D12, N12, nIn = dcam[cam]['D12'], dcam[cam]['N12'], dcam[cam]['nIn']
 
+    # Compute the LOS starting points and unit vectors
     (D,u) = tf.utils.create_CamLOS2D(P, F, D12, N12, nIn=nIn)
 
-    if plot:
+    if make_cam or plot:
         assert config is not None, "You must specify a config !"
 
         # Load the config
-        dconf = load_config(config, path=path, plot=False)
-        if 'Struct' in dconf.keys():
-            LStruct = list(dconf['Struct'].values())
-        else:
-            LStruct = None
+        conf = load_config(config, path=path, plot=False)
 
         # Create the LOSCam2D object
-        Cam = tf.geom.LOSCam2D(Id=cam, Du=(D,u), Ves=dconf['Ves'], LStruct=LStruct)
+        # Note : thsis is where the computation goes on...
+        cam = tf.geom.LOSCam2D(Exp=conf.Id.Exp, Name=cam, dgeom=(D,u),
+                               config=conf, Diag='Test')
 
+    else:
+        cam = None
+
+    if plot:
         # Plot
-        Cam.plot(Elt='L', EltVes='P', EltStruct='P')
+        cam.plot_touch()
 
-    return D, u
-
-
-
+    return D, u, cam
