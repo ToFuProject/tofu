@@ -6,7 +6,8 @@ from libc.math cimport sqrt as Csqrt, ceil as Cceil, abs as Cabs
 from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
-from cpython.array cimport array, clone
+
+# from cpython.array cimport array, clone
 
 import line_profiler
 
@@ -27,10 +28,10 @@ __all__ = ['LOS_Calc_PInOut_VesStruct']
 ########################################################
 
 # TODO : @LM > recall
-def LOS_Calc_PInOut_VesStruct(cnp.ndarray Ds, cnp.ndarray dus,
+def LOS_Calc_PInOut_VesStruct(cnp.ndarray[double, ndim=2] Ds, cnp.ndarray[double, ndim=2] dus,
                               cnp.ndarray[double, ndim=2,mode='c'] VPoly,
                               cnp.ndarray[double, ndim=2,mode='c'] VIn,
-                              Lim=None, nLim=None,
+                              Lim=None, int nLim=-1,
                               LSPoly=None, LSLim=None, lSnLim=None, LSVIn=None,
                               RMin=None, Forbid=True,
                               double EpsUz=1.e-6, double EpsVz=1.e-9, double EpsA=1.e-9,
@@ -91,26 +92,36 @@ def LOS_Calc_PInOut_VesStruct(cnp.ndarray Ds, cnp.ndarray dus,
     cdef double kpin_jj
     cdef double kpout_jj
     cdef double L0, L1
-    cdef Py_ssize_t ind_tmp
-    cdef Py_ssize_t len_lim
-    cdef Py_ssize_t num_los = Ds.shape[1]
+    cdef int ind_tmp
+    cdef int len_lim
+    cdef int num_los = Ds.shape[1]
     cdef cnp.uint8_t bool1, bool2
     cdef cnp.uint8_t nonan_jj, mask2_jj
     cdef long iin_jj
-    cdef long [:,:] iout_view
-    cdef double [:] kpin_view, kpout_view
+    # cdef long [:,:] iout_view
+    #cdef double [:] kpout_view
     cdef double [3] struct_vperpin_view
-    cdef double [:,:] vperp_out_view
-    cdef double[3] last_pout_view
+    #cdef double [:,:] vperp_out_view
+    cdef double[3] last_pout
     cdef double[6] bounds
-    cdef double[1] kpin_loc = clone(array('d'), 1, True)
-    cdef int[1] indin_loc = clone(array('i'), 1, True)
+    cdef double[1] kpin_loc
+    cdef double[3] los_orig_loc
+    cdef double[3] los_dirv_loc
+    cdef double[:] lim_ves_view
+    cdef double[2] lim_ves
+    cdef int[1] indin_loc
     cdef cnp.ndarray[long,ndim=2] IOut=np.zeros((3, num_los), dtype=int)
+    cdef cnp.ndarray[double,ndim=1] kPIn
+    cdef cnp.ndarray[double,ndim=1] kPOut
+    cdef cnp.ndarray[double,ndim=2] VPerpOut
+        
 
     if nLim==0:
-        Lim = None
+        lim_ves_view = None
     elif nLim==1:
-        Lim = [Lim[0,0],Lim[0,1]]
+        lim_ves[0] = Lim[0,0]
+        lim_ves[1] = Lim[0,1]
+        lim_ves_view = lim_ves
     if lSnLim is not None:
         for ii in range(0,len(lSnLim)):
             if lSnLim[ii]==0:
@@ -131,22 +142,21 @@ def LOS_Calc_PInOut_VesStruct(cnp.ndarray Ds, cnp.ndarray dus,
         # Main function to compute intersections with Vessel
         kPIn, kPOut, \
           VperpOut, \
-          IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim,
+          IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=lim_ves_view,
                                                Forbid=Forbid, RMin=RMin,
                                                EpsUz=EpsUz, EpsVz=EpsVz,
                                                EpsA=EpsA, EpsB=EpsB,
                                                EpsPlane=EpsPlane)
 
-        kpout_view = kPOut
+        # kpout_view = kPOut
 
         # If there are Struct, call the same function
         # Structural optimzation : do everything in one big for loop and only
         # keep the relevant points (to save memory)
         if LSPoly is not None:
 
-            kpout_view = kPOut
             vperp_out_view = VperpOut
-            iout_view = IOut
+            # iout_view = IOut
 
             for ii in range(0,len(LSPoly)):
 
@@ -176,51 +186,51 @@ def LOS_Calc_PInOut_VesStruct(cnp.ndarray Ds, cnp.ndarray dus,
 
                     # We compute the structure's bounding box:
                     if lslim[jj] is not None:
-                        L0 = Catan2(Csin(lslim[jj][0]),Ccos(lslim[jj][0]))
-                        L1 = Catan2(Csin(lslim[jj][1]),Ccos(lslim[jj][1]))
+                        lim_ves[0] = lslim[jj][0]
+                        lim_ves[1] = lslim[jj][1]
+                        lim_ves_view = lim_ves
+                        L0 = Catan2(Csin(lim_ves_view[0]),Ccos(lim_ves_view[0]))
+                        L1 = Catan2(Csin(lim_ves_view[1]),Ccos(lim_ves_view[1]))
                         bounds = get_bbox_poly_limited(np.asarray(LSPoly[ii]), [L0, L1])
                     else:
+                        lim_ves_view=None
                         bounds = get_bbox_poly_extruded(np.asarray(LSPoly[ii]))
 
                     for ind_tmp in range(num_los):
                         # We get the last kpout:
-                        kpout_jj = kpout_view[ind_tmp]
+                        kpout_jj = kPOut[ind_tmp]
                         kpin_loc[0] = kpout_jj
-                        indin_loc[0] = iout_view[2,ind_tmp]
-                        last_pout_view[0] = kpout_jj * dus[0, ind_tmp] + Ds[0, ind_tmp]
-                        last_pout_view[1] = kpout_jj * dus[1, ind_tmp] + Ds[1, ind_tmp]
-                        last_pout_view[2] = kpout_jj * dus[2, ind_tmp] + Ds[2, ind_tmp]
+                        indin_loc[0] = IOut[2,ind_tmp]
+                        los_orig_loc[0] = Ds[0, ind_tmp]
+                        los_orig_loc[1] = Ds[1, ind_tmp]
+                        los_orig_loc[2] = Ds[2, ind_tmp]
+                        los_dirv_loc[0] = dus[0, ind_tmp]
+                        los_dirv_loc[1] = dus[1, ind_tmp]
+                        los_dirv_loc[2] = dus[2, ind_tmp] 
+                        last_pout[0] = kpout_jj * los_dirv_loc[0] + los_orig_loc[0]
+                        last_pout[1] = kpout_jj * los_dirv_loc[1] + los_orig_loc[1]
+                        last_pout[2] = kpout_jj * los_dirv_loc[2] + los_orig_loc[2]
                         # We compute new values
-                        found_new_kout = compute_kout_los_on_filled(Ds[:,ind_tmp], dus[:,ind_tmp],
+                        found_new_kout = compute_kout_los_on_filled(los_orig_loc, los_dirv_loc,
                                                               LSPoly[ii],
                                                               LSVIn[ii], LSVIn[ii].shape[1],
                                                               bounds,
-                                                              last_pout_view,
+                                                              last_pout,
                                                               RMin,
-                                                              Lim==None, L0, L1,
+                                                              lim_ves_view==None, L0, L1,
                                                               kpin_loc, indin_loc, struct_vperpin_view,
                                                               Forbid=Forbid,
                                                               EpsUz=EpsUz, EpsVz=EpsVz,
                                                               EpsA=EpsA, EpsB=EpsB,
                                                               EpsPlane=EpsPlane)
-                        # bool1 = kpin_jj > 0. or kpin_jj <= 0.
-                        # bool2 = kpout_jj > 0. or kpout_jj <= 0.
-                        # nonan_jj = bool1 & bool2
-                        # mask2_jj = bool1 & ~bool2
-                        # if (nonan_jj and kpin_jj<kpout_jj) or mask2_jj:
-                        #     kpout_view[ind_tmp] = kpin_jj
-                        #     vperp_out_view[:,ind_tmp] = struct_vperpin_view[:]
-                        #     iout_view[2,ind_tmp] = iin_jj
-                        #     iout_view[0,ind_tmp] = 1+ii
-                        #     iout_view[1,ind_tmp] = jj
                         if found_new_kout :
-                            kpout_view[ind_tmp] = kpin_loc[0]
+                            kPOut[ind_tmp] = kpin_loc[0]
                             vperp_out_view[0,ind_tmp] = struct_vperpin_view[0]
                             vperp_out_view[1,ind_tmp] = struct_vperpin_view[1]
                             vperp_out_view[2,ind_tmp] = struct_vperpin_view[2]
-                            iout_view[2,ind_tmp] = indin_loc[0]
-                            iout_view[0,ind_tmp] = 1+ii
-                            iout_view[1,ind_tmp] = jj
+                            IOut[2,ind_tmp] = indin_loc[0]
+                            IOut[0,ind_tmp] = 1+ii
+                            IOut[1,ind_tmp] = jj
 
     if not v:
         kPIn, kPOut, \
@@ -240,7 +250,7 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
                              double EpsVz=1.e-9, double EpsA=1.e-9,
                              double EpsB=1.e-9, double EpsPlane=1.e-9):
 
-    cdef Py_ssize_t ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
+    cdef int ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
     cdef double Rmin, upscaDp, upar2, Dpar2, Crit2, kout, kin
     cdef int indin=0, Done=0
     cdef double L, S1X=0., S1Y=0., S2X=0., S2Y=0., sca, sca0, sca1, sca2
@@ -558,17 +568,17 @@ cdef Calc_LOS_PInOut_Tor_Lim(double [:,::1] Ds, double [:,::1] us,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline bool compute_kout_los_on_filled(double [:] Ds, double [:] us,
+cdef bool compute_kout_los_on_filled(double [:] Ds, double [:] us,
                                 double [:,::1] VPoly, double [:,::1] vIn,
                                 int vin_shape,
                                 double [:] bounds,
                                 double [:] last_pout_coords, double Rmin,
                                 bool lim_is_none, double L0, double L1,
                                 double[1] kpin_loc, int[1] indin_loc, double[3] vperpin,
-                                bool Forbid=True, double EpsUz=1.e-6,
-                                double EpsVz=1.e-9, double EpsA=1.e-9,
-                                double EpsB=1.e-9, double EpsPlane=1.e-9):
-    cdef Py_ssize_t jj#, Ns=vIn.shape[1]
+                                bool Forbid, double EpsUz,
+                                double EpsVz, double EpsA,
+                                double EpsB, double EpsPlane):
+    cdef int jj#, Ns=vIn.shape[1]
     cdef double upscaDp, upar2, Dpar2, Crit2, kout, kin
     cdef int indin=0, Done=0
     cdef double L, S1X=0., S1Y=0., S2X=0., S2Y=0., sca, sca0, sca1, sca2
@@ -580,7 +590,7 @@ cdef inline bool compute_kout_los_on_filled(double [:] Ds, double [:] us,
     # cdef double[3] VPerpIn=np.nan*np.ones((3,))
     # cdef long res_indin = -1
     # cdef array VPerpIn = clone(array('d'), 3, False)
-    cdef cnp.ndarray[double, ndim=1] VPerpIn = np.nan*np.ones((3,)) 
+    # cdef cnp.ndarray[double, ndim=1] VPerpIn = np.nan*np.ones((3,)) 
     cdef bool inter_bbox
 
     # VPerpIn[0] = np.nan
@@ -895,7 +905,7 @@ cdef inline bool ray_intersects_abba_bbox(double[:] bounds, double [:] ds, doubl
     cdef double tzmin, tzmax
     cdef int t0 = 1000000
     cdef bool res
-    cdef Py_ssize_t ii
+    cdef int ii
     # computing sing and direction
     for  ii in range(3):
         if us[ii]*us[ii] < 1.e-9:
@@ -933,8 +943,8 @@ cdef inline bool ray_intersects_abba_bbox(double[:] bounds, double [:] ds, doubl
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline bool ray_tracing(double[:,::1] poly, double x, double y):
-    cdef Py_ssize_t n = poly.shape[1]
-    cdef Py_ssize_t ii
+    cdef int n = poly.shape[1]
+    cdef int ii
     cdef bool inside = False
     cdef double p2x, p2y
     cdef double xints =0.

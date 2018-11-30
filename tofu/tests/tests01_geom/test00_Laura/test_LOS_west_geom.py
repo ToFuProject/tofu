@@ -94,13 +94,13 @@ def test_LOS_all(save=False, saveCam=[]):
             print(ttt)
 
 def test_LOS_profiling():
-    Cams = ["V1000000"]
+    Cams = ["V100000"]
     Bconfigs = ["B2"]
     for icon in Bconfigs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_configs(icon, Cams, plot=False, save=False, plot_cam=False)
+        times = test_LOS_west_configs(icon, Cams, plot=False, save=False)
         for ttt in times:
             print(ttt)
 
