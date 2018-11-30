@@ -101,11 +101,13 @@ if USE_CYTHON:
     print("Using Cython !!!!!!!!!")
     print("")
     extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"],
-                            define_macros=[('CYTHON_TRACE_NOGIL', '1')],
+                            define_macros=[('CYTHON_TRACE', '1')],
+                            #define_macros=[('CYTHON_TRACE_NOGIL', '1')],
                             compiler_directives={'profile': True}),
                             # add the needed argument
                   Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"],
-                            define_macros=[('CYTHON_TRACE_NOGIL', '1')],
+                            define_macros=[('CYTHON_TRACE', '1')],
+                            #define_macros=[('CYTHON_TRACE_NOGIL', '1')],
                             compiler_directives={'profile': True})
                   ]
     extensions = cythonize(extensions)

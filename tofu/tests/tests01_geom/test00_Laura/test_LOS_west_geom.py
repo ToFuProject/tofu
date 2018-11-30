@@ -49,7 +49,7 @@ def prepare_inputs(vcam, config, method='ref'):
     return largs, dkwd
 
 
-def test_LOS_west_configs(config, cams, plot=False, save=False, saveCam=[]):
+def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, saveCam=[]):
     dconf = load_config(config, plot=plot)
     if plot:
         plt.show(block=True)
@@ -66,6 +66,8 @@ def test_LOS_west_configs(config, cams, plot=False, save=False, saveCam=[]):
             np.savez("out_iout_"    +config+"_"+vcam+".npz", out[3])
         times.append(elapsed)
     return times
+
+
 
 
 def test_LOS_compact(save=False, saveCam=[]):
@@ -93,6 +95,13 @@ def test_LOS_all(save=False, saveCam=[]):
         for ttt in times:
             print(ttt)
 
+def test_line_profile(config="B2", cam="V1000"):
+    dconf = load_config(config, plot=False)
+    largs, dkwd = prepare_inputs(cam, dconf)
+    profile = line_profiler.LineProfiler(_GG.LOS_Calc_PInOut_VesStruct)
+    profile.runcall(_GG.LOS_Calc_PInOut_VesStruct, *largs, **dkwd)
+    profile.print_stats()
+
 def test_LOS_profiling():
     Cams = ["V100000"]
     Bconfigs = ["B2"]
@@ -103,7 +112,6 @@ def test_LOS_profiling():
         times = test_LOS_west_configs(icon, Cams, plot=False, save=False)
         for ttt in times:
             print(ttt)
-
 
 def test_LOS_cprofiling():
     import pyximport
@@ -143,19 +151,15 @@ def touch_plot_config_cam(config, cam):
 
 
 if __name__ == "__main__":
-    test_LOS_compact()
+    # test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000"])
-    # test_LOS_profiling()
     # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
     # touch_plot_config_cam("B1", "V100000")
-    # touch_plot_config_cam("B2", "V100000")
+    touch_plot_config_cam("B2", "V100000")
     # touch_plot_config_cam("B3", "V100000")
     # line profiling.....
-    # profile = line_profiler.LineProfiler(test_LOS_profilingA)
-    # profile.runcall(test_LOS_profilingA)
-    # profile.print_stats()
-    # test_LOS_profiling()
-    # print(test_LOS_west_Bconfig("B3", ["V1000000"]))
+    # test_line_profile(cam="V100000")
+    # print(test_LOS_west_configs("B2", ["V10000"]))
