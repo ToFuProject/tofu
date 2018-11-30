@@ -4,6 +4,7 @@
 import os
 import itertools as itt
 import warnings
+#from abc import ABCMeta, abstractmethod
 
 # Common
 import numpy as np
@@ -11,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # tofu
 import tofu.pathfile as tfpf
-import tofu.utils as tfu
+import tofu.utils as utils
 try:
     import tofu.data._plot as _plot
     import tofu.data._def as _def
@@ -22,7 +23,295 @@ except Exception:
 __all__ = ['Data1D','Data2D','DataSpectro']
 
 
+class Data(utils.ToFuObject):
 
+    # Fixed (class-wise) dictionary of default properties
+    _ddef = {'Id':{'shot':0,
+                   'include':['Mod','Cls','Exp','Diag',
+                              'Name','shot','version']},
+             'dgeom':{'Type':'Tor', 'Lim':[], 'arrayorder':'C'},
+             'dsino':{},
+             'dphys':{},
+             'dmisc':{'color':'k'}}
+
+    # Does not exist before Python 3.6 !!!
+    def __init_subclass__(cls, **kwdargs):
+        # Python 2
+        super(Data,cls).__init_subclass__(**kwdargs)
+        # Python 3
+        #super().__init_subclass__(**kwdargs)
+        cls._ddef = copy.deepcopy(Data._ddef)
+        #cls._dplot = copy.deepcopy(Struct._dplot)
+        #cls._set_color_ddef(cls._color)
+
+
+    def __init__(self, data=None, t=None, X=None, lamb=None,
+                 dchans=None, dunits=None,
+                 Id=None, Name=None, Exp=None, shot=None, Diag=None,
+                 dextra=None, lCam=None, config=None, CamCls='1D'
+                 fromdict=None, SavePath=os.path.abspath('./'),
+                 SavePath_Include=tfpf.defInclude):
+
+        # To replace __init_subclass__ for Python 2
+        if sys.version[0]=='2':
+            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
+            self.__class__._strip_init()
+
+        # Create a dplot at instance level
+        self._dplot = copy.deepcopy(self.__class__._dplot)
+
+        kwdargs = locals()
+        del kwdargs['self']
+        # super()
+        super(Data,self).__init__(**kwdargs)
+
+    def _reset(self):
+        # super()
+        super(Data,self)._reset()
+        self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self._dunits = dict.fromkeys(self._get_keys_dunits())
+        self._dgeom = dict.fromkeys(self._get_keys_dgeom())
+        self._dchans = dict.fromkeys(self._get_keys_dchans())
+        self._dextra = dict.fromkeys(self._get_keys_dextra())
+        self._dmisc = dict.fromkeys(self._get_keys_dmisc())
+        #self._dplot = copy.deepcopy(self.__class__._ddef['dplot'])
+
+    @classmethod
+    def _checkformat_inputs_Id(cls, Id=None, Name=None,
+                               Exp=None, shot=None, Type=None,
+                               Diag=None, include=None,
+                               **kwdargs):
+        if Id is not None:
+            assert isinstance(Id,utils.ID)
+            Name, Exp, shot = Id.Name, Id.Exp, Id.shot
+            Type, Diag = Id.Type, Id.Diag
+        assert type(Name) is str
+        assert type(Diag) is str
+        assert type(Exp) is str
+        assert type(Type) is str
+        assert Type in ['1D','2D','1DSpectral','2DSpectral']
+        if include is None:
+            include = cls._ddef['Id']['include']
+        assert shot is None or type(shot) in [int,np.int64]
+        if shot is None:
+            if 'shot' in include:
+                include.remove('shot')
+        else:
+            shot = int(shot)
+            if 'shot' not in include:
+                include.append('shot')
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot, 'Type':Type,
+                        'include':include})
+        return kwdargs
+
+    ###########
+    # Get largs
+    ###########
+        self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self._dunits = dict.fromkeys(self._get_keys_dunits())
+        self._dchans = dict.fromkeys(self._get_keys_dchans())
+        self._dgeom = dict.fromkeys(self._get_keys_dgeom())
+        self._dextra = dict.fromkeys(self._get_keys_dextra())
+        self._dmisc = dict.fromkeys(self._get_keys_dmisc())
+
+    @staticmethod
+    def _get_largs_ddata():
+        largs = ['data','t',
+                 'X', 'indtX',
+                 'lamb', 'indtlamb', 'indXlamb', 'indtXlamb']
+        return largs
+
+    @staticmethod
+    def _get_largs_dunits():
+        largs = ['dunits']
+        return largs
+
+    @staticmethod
+    def _get_largs_dgeom():
+        largs = ['lCam','config']
+        return largs
+
+    @staticmethod
+    def _get_largs_dchans():
+        largs = ['dchans']
+        return largs
+
+    @staticmethod
+    def _get_largs_dextra():
+        largs = ['dextra']
+        return largs
+
+    @staticmethod
+    def _get_largs_dmisc():
+        largs = ['color']
+        return largs
+
+
+    ###########
+    # Get check and format inputs
+    ###########
+
+
+    def _checkformat_inputs_ddata(self, data=None, t=None,
+                                  X=None, indtX=None,
+                                  lamb=None, indtlamb=None, indXlamb=None):
+        assert data is not None
+        data = np.asarray(data).sqeeze()
+        if t is not None:
+            t = np.asarray(t).sqeeze()
+        if X is not None:
+            X = np.asarray(X).sqeeze()
+        if indtX is not None:
+            indtX = np.asarray(indtX).sqeeze()
+        if lamb is not None:
+            lamb = np.asarray(lamb).sqeeze()
+        if indtlamb is not None:
+            indtlamb = np.asarray(indtlamb).sqeeze()
+        if indXlamb is not None:
+            indXlamb = np.asarray(indXlamb).sqeeze()
+
+        ndim = data.ndim
+        assert ndim in [2,3]
+        nt = data.shape[0]
+        if t is None:
+            t = np.arange(0,nt)
+        else:
+            assert t.shape==(nt,)
+
+        n1 = data.shape[1]
+        if ndim==2:
+            lC = [X is None, lamb is None]
+            assert any(lC)
+            if all(lC):
+                if 'spectral' in self.Id.Type.lower():
+                    X = np.array([0])
+                    lamb = np.arange(0,n1)
+                    data = data.reshape((nt,1,n1))
+                else:
+                    X = np.arange(0,n1)
+            elif lC[0]:
+                assert 'spectral' in self.Id.Type.lower()
+                X = np.array([0])
+                data = data.reshape((nt,1,n1))
+                assert lamb.ndim in [1,2]
+                if lamb.ndim==1:
+                    assert lamb.size==n1
+                elif lamb.ndim==2:
+                    assert lamb.shape[1]==n1
+            else:
+                assert 'spectral' not in self.Id.Type.lower()
+                assert X.ndim in [1,2]
+                if X.ndim==1:
+                    assert X.size==n1
+                elif X.ndim==2:
+                    assert X.shape[1]==n1
+        else:
+            assert 'spectral' in self.Id.Type.lower()
+            n2 = data.shape[2]
+            lC = [X is None, lamb is None]
+            if lC[0]:
+                X = np.arange(0,n1)
+            else:
+                assert X.ndim in [1,2]
+                if X.ndim==1:
+                    assert X.size==n1
+                else:
+                    assert X.shape[1]==n1
+
+            if lC[1]:
+                lamb = np.arange(0,n2)
+            else:
+                assert lamb.ndim in [1,2]
+                if lamb.ndim==1:
+                    assert lamb.size==n2
+                else:
+                    assert lamb.shape[1]==n2
+
+        # Get shapes
+        if data.ndim==2:
+            (nt,nX), nlamb = data.shape, 0
+        else:
+            nt, nX, nlamb = data.shape
+        nnX = 1 if X.ndim==1 else X.shape[0]
+        nnlamb = 1 if lamb.ndim==1 else lamb.shape[0]
+
+        # Check indices
+        if indtX is not None:
+            assert indtX.shape==(nt,)
+            assert inp.argmin(indtX)>=0 and np.argmax(indtX)=<nnX
+        lC = [indtlamb is None, indXlamb is None, indtXlamb is None]
+        assert lC[2] or (~lC[2] and np.sum(lC[:2])==2)
+        if lC[2]:
+            if ~lC[0]:
+                assert indtlamb.shape==(nt,)
+                assert inp.argmin(indtlamb)>=0 and np.argmax(indtlamb)=<nnlamb
+            if ~lC[1]:
+                assert indXlamb.shape==(nX,)
+                assert inp.argmin(indXlamb)>=0 and np.argmax(indXlamb)=<nnlamb
+        else:
+            assert indtXlamb.shape==(nt,nX)
+            assert inp.argmin(indtXlamb)>=0 and np.argmax(indtXlamb)=<nnlamb
+
+        l = [data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb,
+             indtX, indtlamb, indXlamb, indtXlamb]
+        return l
+
+
+    def _checkformat_inputs_dunits(self, dunits=None):
+        if dunits is None:
+            dunits = {}
+        assert type(dunits) is dict
+        lk = ['data','t','X']
+        for k in lk:
+            if not k in dunits.keys():
+                dunits[k] = 'a.u.'
+            assert type(dunits[k]) is str
+        if 'spectral' in self.Id.Type.lower():
+            if 'lamb' not in dunits.keys():
+                dunits['lamb'] = 'a.u.'
+            assert type(dunits['lamb']) is str
+        return dunits
+
+    def _checkformat_inputs_dgeom(self, lCam=None, config=None):
+        if config is not None:
+            assert lCam is None
+            nC = 0
+        else:
+            if type(lCam) is not list:
+                lCam = [lCam]
+            nC = len(lCam)
+            # Check type consistency
+            for dd in ['1d','2d']:
+                if dd in self.Id.Type.lower():
+                    lc = [dd in cc.Id.Type.lower()i for cc in lCam]
+                    if not all(lc):
+                        msg = "The following cameras have wrong class (%s)"%dd
+                        lm = ['%s: %s'%s(cc.Id.Name,cc.Id.Cls) for cc in lCam]
+                        msg += "\n    " + "\n    ".join(lm)
+                        raise Exception(msg)
+            # Check config consistency
+            lconf = [cc.config for cc in lCam]
+            if not all([cc is not None for cc in lconf]):
+                msg = "The provided Cams should have a config !"
+                raise Exception(msg)
+            config = [cc for cc in lconf if cc is not None][0].copy()
+
+            # To be finished after modifying __eq__ in tf.utils
+            lexcept =
+            for cc in lconf:
+                if not cc.__eq__(config, lexcept=lexcept):
+
+
+
+            config = lCam[0].config.copy()
+            for cc in lCam
+
+
+
+
+
+
+############################################ To be finished
 
 class Data(object):
 
