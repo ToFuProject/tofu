@@ -2272,7 +2272,7 @@ class Rays(utils.ToFuObject):
             dchans = {}
         for k in dchans.keys():
             arr = np.asarray(dchans[k]).ravel()
-            assert arr.size==self_dgeom['nRays']
+            assert arr.size==self._dgeom['nRays']
             dchans[k] = arr
         return dchans
 

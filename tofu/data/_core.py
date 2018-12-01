@@ -26,13 +26,9 @@ __all__ = ['Data1D','Data2D','DataSpectro']
 class Data(utils.ToFuObject):
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'shot':0,
+    _ddef = {'Id':{'Type':'1D',
                    'include':['Mod','Cls','Exp','Diag',
-                              'Name','shot','version']},
-             'dgeom':{'Type':'Tor', 'Lim':[], 'arrayorder':'C'},
-             'dsino':{},
-             'dphys':{},
-             'dmisc':{'color':'k'}}
+                              'Name','shot','version']}}
 
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
@@ -48,7 +44,7 @@ class Data(utils.ToFuObject):
     def __init__(self, data=None, t=None, X=None, lamb=None,
                  dchans=None, dunits=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 dextra=None, lCam=None, config=None, CamCls='1D'
+                 dextra=None, lCam=None, config=None, Type=None,
                  fromdict=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
 
@@ -68,13 +64,13 @@ class Data(utils.ToFuObject):
     def _reset(self):
         # super()
         super(Data,self)._reset()
+        self._ddataRef = dict.fromkeys(self._get_keys_ddataRef())
         self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self._dtreat = dict.fromkeys(self._get_keys_dtreat())
         self._dunits = dict.fromkeys(self._get_keys_dunits())
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dchans = dict.fromkeys(self._get_keys_dchans())
         self._dextra = dict.fromkeys(self._get_keys_dextra())
-        self._dmisc = dict.fromkeys(self._get_keys_dmisc())
-        #self._dplot = copy.deepcopy(self.__class__._ddef['dplot'])
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
@@ -88,7 +84,8 @@ class Data(utils.ToFuObject):
         assert type(Name) is str
         assert type(Diag) is str
         assert type(Exp) is str
-        assert type(Type) is str
+        if Type is None:
+            Type = cls._def['Id']['Type']
         assert Type in ['1D','2D','1DSpectral','2DSpectral']
         if include is None:
             include = cls._ddef['Id']['include']
@@ -107,18 +104,22 @@ class Data(utils.ToFuObject):
     ###########
     # Get largs
     ###########
-        self._ddata = dict.fromkeys(self._get_keys_ddata())
-        self._dunits = dict.fromkeys(self._get_keys_dunits())
-        self._dchans = dict.fromkeys(self._get_keys_dchans())
-        self._dgeom = dict.fromkeys(self._get_keys_dgeom())
-        self._dextra = dict.fromkeys(self._get_keys_dextra())
-        self._dmisc = dict.fromkeys(self._get_keys_dmisc())
 
     @staticmethod
-    def _get_largs_ddata():
+    def _get_largs_ddataRef():
         largs = ['data','t',
                  'X', 'indtX',
                  'lamb', 'indtlamb', 'indXlamb', 'indtXlamb']
+        return largs
+
+    @staticmethod
+    def _get_largs_ddata():
+        largs = []
+        return largs
+
+    @staticmethod
+    def _get_largs_dtreat():
+        largs = []
         return largs
 
     @staticmethod
@@ -141,18 +142,13 @@ class Data(utils.ToFuObject):
         largs = ['dextra']
         return largs
 
-    @staticmethod
-    def _get_largs_dmisc():
-        largs = ['color']
-        return largs
-
 
     ###########
     # Get check and format inputs
     ###########
 
 
-    def _checkformat_inputs_ddata(self, data=None, t=None,
+    def _checkformat_inputs_ddataRef(self, data=None, t=None,
                                   X=None, indtX=None,
                                   lamb=None, indtlamb=None, indXlamb=None):
         assert data is not None
@@ -276,6 +272,8 @@ class Data(utils.ToFuObject):
         if config is not None:
             assert lCam is None
             nC = 0
+        elif lCam is None:
+            nC = 0
         else:
             if type(lCam) is not list:
                 lCam = [lCam]
@@ -297,14 +295,261 @@ class Data(utils.ToFuObject):
             config = [cc for cc in lconf if cc is not None][0].copy()
 
             # To be finished after modifying __eq__ in tf.utils
-            lexcept =
-            for cc in lconf:
-                if not cc.__eq__(config, lexcept=lexcept):
+            lexcept = ['dvisible','dcompute','color']
+            msg = "The following Cam do not have a consistent config:"
+            flag = False
+            for cc in lCam:
+                if not cc.config.__eq__(config, lexcept=lexcept):
+                    msg += "\n    {0}".format(cc.Id.Name)
+                    flag = True
+            if flag:
+                raise Exception(msg)
+
+            # Check number of channels wrt data
+            nR = np.sum([cc._dgeom['nRays'] for cc in lCam])
+            if not nR==self._ddata['nX']:
+                msg = "Total nb. of rays from lCam != data.shape[1] !"
+                raise Exception(msg)
+        return config, lCam, nC
+
+    def _checkformat_inputs_dchans(self, dchans=None):
+        assert dchans is None or isinstance(dchans,dict)
+        if dchans is None:
+            dchans = {}
+            if self._dgeom['lCam'] is not None:
+                ldchans = [cc._dchans for cc in self._dgeom['lCam']]
+                for k in ldchans[0].keys():
+                    assert ldchans[0][k].ndim in [1,2]
+                    if ldchans[0][k].ndim==1:
+                        dchans[k] = np.concatenate([dd[k] for dd in ldchans])
+                    else:
+                        dchans[k] = np.concatenate([dd[k]
+                                                    for dd in ldchans], axis=1)
+        else:
+            for k in dchans.keys():
+                arr = np.asarray(dchans[k]).ravel()
+                assert arr.size==self._ddata['nX']
+                dchans[k] = arr
+        return dchans
+
+    def _checkformat_inputs_dextra(self, dextra=None):
+        assert dextra is None or isinstance(dextra,dict)
+        if dextra is not None:
+            for k in dextra.keys():
+                assert isinstance(dextra[k],dict)
+                assert 't' in dextra[k].keys()
+
+    ###########
+    # Get keys of dictionnaries
+    ###########
+
+    @staticmethod
+    def _get_keys_ddataRef():
+        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
+              'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
+
+    @staticmethod
+    def _get_keys_ddata():
+        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
+              'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
+
+    @staticmethod
+    def _get_keys_dtreat():
+        lk = ['indt','indch']
+
+    @staticmethod
+    def _get_keys_dunits():
+        lk = ['data','t','X','lamb']
+
+    @staticmethod
+    def _get_keys_dgeom():
+        lk = ['config', 'lCam', 'nC']
+        return lk
+
+    @staticmethod
+    def _get_keys_dchans():
+        lk = []
+        return lk
+
+    @staticmethod
+    def _get_keys_dextra():
+        lk = []
+        return lk
+
+    ###########
+    # _init
+    ###########
+
+    def _init(self, data=None, t=None, X=None, lamb=None, dchans=None,
+              dunits=None, dextra=None, lCam=None, config=None, **kwdargs):
+        largs = self._get_largs_ddataRef()
+        kwddataRef = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dunits()
+        kwdunits = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dgeom()
+        kwdgeom = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dchans()
+        kwdchans = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dextra()
+        kwdextra = self._extract_kwdargs(locals(), largs)
+        self._set_ddataRef(**kwddataRef)
+        self._set_dunits(**kwdunits)
+        self._set_dgeom(**kwdgeom)
+        self.set_dchans(**kwdchans)
+        self.set_dextra(**kwdextra)
+        self._dstrip['strip'] = 0
+
+    ###########
+    # set dictionaries
+    ###########
+
+    def _set_dataRef(self, data=None, t=None,
+                     X=None, indtX=None,
+                     lamb=None, indtlamb=None, indXlamb=None, indtXlamb=None):
+        kwdargs = locals()
+        del kwdargs['self']
+        lout = self._checkformat_inputs_ddataRef(**kwdargs)                                                 )
+        data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb = lout[:9]
+        indtX, indtlamb, indXlamb, indtXlamb = lout[9:]
+
+        self._dataRef = {'data':data, 't':t, 'X':X, 'lamb':lamb,
+                         'nt':nt, 'nX':nX, 'nlamb':nlamb,
+                         'nnX':nnX, 'nnlamb':nnlamb,
+                         'indtX':indtX, 'indtlamb':indtlamb,
+                         'indXlamb':indXlamb, 'indtXlamb':indtXlamb}
+
+    def set_dtreat(self, dtreat=None):
+        dtreat = self._checkformat_inputs_dtreat(dtreat=dtreat)
+        self._dtreat = dtreat
+
+    def _set_dunits(self, dunits=None):
+        dunits = self._checkformat_inputs_dunits(dunits=dunits)
+        self._dunits = dunits
+
+    def _set_dgeom(self, lCam=None, config=None):
+        config, lCam, nC = self._checkformat_inputs_dgeom(lCam=lCam,
+                                                          config=config)
+        self._dgeom = {'lCam':lCam, 'nC':nC, 'config':config}
+
+    def set_dchans(self, dchans=None):
+        dchans = self._checkformat_inputs_dchans(dchans=dchans)
+        self._dchans = dchans
+
+    def set_dextra(self, dextra=None):
+        dextra = self._checkformat_inputs_dextra(dextra=dextra)
+        self._dextra = dextra
+
+    ###########
+    # strip dictionaries
+    ###########
+
+    def _strip_ddata(self, strip=0):
+        if self._dstrip['strip']==strip:
+            return
+
+        if strip<self._dstrip['strip']:
+            if self._dstrip['strip']==2:
+                self._compute_data()
+
+        else:
+            if strip==2:
+                self._ddata = dict.fromkeys(self._get_keys_ddata())
+
+    def _strip_dgeom(self, strip=0, force=False):
+        if self._dstrip['strip']==strip:
+            return
+
+        if strip<self._dstrip['strip']:
+            if strip==0:
+                    # To be finished
+                
+        else:
+            if self._dstrip['strip']==0:
+                if self._dgeom['lCam'] is not None:
+                    lpfe = []
+                    for cc in self._dgeom['lCam']:
+                        path, name = cc.Id.SavePath, cc.Id.SaveName
+                        pfe = os.path.join(path, name+'.npz')
+                        lf = os.listdir(path)
+                        lf = [ff for ff in lf if name+'.npz' in ff]
+                        exist = len(lf)==1
+                        if not exist:
+                            msg = """BEWARE:
+                                You are about to delete the lCam objects
+                                Only the path/name to saved a object will be kept
+
+                                But it appears that the following object has no
+                                saved file where specified (obj.Id.SavePath)
+                                Thus it won't be possible to retrieve it
+                                (unless available in the current console:"""
+                            msg += "\n    - {0}".format(pfe)
+                            if force:
+                                warning.warn(msg)
+                            else:
+                                raise Exception(msg)
+                        lpfe.append(pfe)
+                    self._dgeom['lCam'] = lpfe
+                    self._dgeom['config'] = None
+
+                elif self._dgeom['config'] is not None:
+                    # To be finished
+
+    ###########
+    # _strip and get/from dict
+    ###########
+
+    @classmethod
+    def _strip_init(cls):
+        cls._dstrip['allowed'] = [0,1,2]
+        nMax = max(cls._dstrip['allowed'])
+        doc = """
+                 1: dgeom all pathfile (=> tf.geom.Rays.strip(-1))
+                 2: dgeom all pathfile + data clear
+                 """
+        doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
+        if sys.version[0]=='2':
+            cls.strip.__func__.__doc__ = doc
+        else:
+            cls.strip.__doc__ = doc
+
+    def strip(self, strip=0):
+        # super()
+        super(Data,self).strip(strip=strip)
+
+    def _strip(self, strip=0):
+        self._strip_ddata(strip=strip)
+        self._strip_dgeom(strip=strip)
+
+    def _to_dict(self):
+        dout = {'ddataRef':{'dict':self._ddataRef, 'lexcept':None},
+                'ddata':{'dict':self._ddata, 'lexcept':None},
+                'dtreat':{'dict':self._dtreat, 'lexcept':None},
+                'dunits':{'dict':self._dunits, 'lexcept':None},
+                'dgeom':{'dict':self._dgeom, 'lexcept':None},
+                'dchans':{'dict':self._dchans, 'lexcept':None},
+                'dextra':{'dict':self._dextra, 'lexcept':None}}
+        return dout
+
+    def _from_dict(self, fd):
+        self._ddataRef.update(**fd['ddataRef'])
+        self._ddata.update(**fd['ddata'])
+        self._dtreat.update(**fd['dtreat'])
+        self._dunits.update(**fd['dunits'])
+        self._dgeom.update(**fd['dgeom'])
+        self._dchans.update(**fd['dchans'])
+        self._dextra.update(**fd['dextra'])
+
+
+    ###########
+    # properties
+    ###########
 
 
 
-            config = lCam[0].config.copy()
-            for cc in lCam
+
+
+
+
 
 
 
