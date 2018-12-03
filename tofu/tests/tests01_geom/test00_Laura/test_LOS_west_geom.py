@@ -33,14 +33,19 @@ def prepare_inputs(vcam, config, method='ref'):
 
     lS = [ss for ss in lS if ss._InOut=='out']
     lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
+    num_tot_structs = 0
     for ss in lS:
         lSPoly.append(ss.Poly_closed)
         lSVIn.append(ss.dgeom['VIn'])
         lSLim.append(ss.Lim)
         lSnLim.append(ss.nLim)
+        if ss.Lim == None:
+            num_tot_structs += 1
+        else:
+            num_tot_structs += len(ss.Lim)
 
     largs = [D, u, VPoly, VVIn]
-    dkwd = dict(Lim=Lim, nLim=nLim,
+    dkwd = dict(Lim=Lim, nLim=nLim, ntotStruct=num_tot_structs,
                 LSPoly=lSPoly, LSLim=lSLim,
                 lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
                 RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
@@ -157,9 +162,9 @@ if __name__ == "__main__":
     # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
-    # touch_plot_config_cam("B1", "V100000")
-    touch_plot_config_cam("B2", "V100000")
-    # touch_plot_config_cam("B3", "V100000")
+    # touch_plot_config_cam("B3", "V10000")
+    touch_plot_config_cam("B2", "V10000")
+    #touch_plot_config_cam("B3", "V100000")
     # line profiling.....
-    # test_line_profile(cam="V100000")
-    # print(test_LOS_west_configs("B2", ["V10000"]))
+    # test_line_profile(cam="V1000")
+    # print(test_LOS_west_configs("B2", ["V10"]))

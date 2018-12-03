@@ -2354,6 +2354,7 @@ class Rays(utils.ToFuObject):
             self.compute_dgeom(method=method)
 
     def _prepare_inputs_kMinMax(self):
+        num_tot_structs = 0
         if self._method=='ref':
             # Prepare input
             D = np.ascontiguousarray(self.D)
@@ -2384,7 +2385,6 @@ class Rays(utils.ToFuObject):
                 lSVIn.append(ss.dgeom['VIn'])
                 lSLim.append(ss.Lim)
                 lSnLim.append(ss.nLim)
-
             largs = [D, u, VPoly, VVIn]
             dkwd = dict(Lim=Lim, nLim=nLim,
                         LSPoly=lSPoly, LSLim=lSLim,
@@ -2416,14 +2416,18 @@ class Rays(utils.ToFuObject):
 
             lS = [ss for ss in lS if ss._InOut=='out']
             lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
+            num_tot_structs = 0
             for ss in lS:
                 lSPoly.append(ss.Poly_closed)
                 lSVIn.append(ss.dgeom['VIn'])
                 lSLim.append(ss.Lim)
                 lSnLim.append(ss.nLim)
-
+                if ss.Lim is None:
+                    num_tot_structs += 1
+                else:
+                    num_tot_structs += len(ss.Lim)
             largs = [D, u, VPoly, VVIn]
-            dkwd = dict(Lim=Lim, nLim=nLim,
+            dkwd = dict(Lim=Lim, nLim=nLim, ntotStruct=num_tot_structs,
                         LSPoly=lSPoly, LSLim=lSLim,
                         lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
                         RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
