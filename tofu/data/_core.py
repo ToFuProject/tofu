@@ -23,6 +23,71 @@ except Exception:
 __all__ = ['Data1D','Data2D','DataSpectro']
 
 
+#############################################
+#       utils
+#############################################
+
+def _format_ind(ind=None, n=None):
+    if ind is None:
+        ind = np.ones((n,),dtype=bool)
+    else:
+        lInt = [int,np.int64]
+        if type(ind) in lInt:
+            ii = np.zeros((n,),dtype=bool)
+            ii[int(ii)] = True
+            ind = ii
+        else:
+            assert hasattr(ind,'__iter__')
+            if type(ind[0]) in [bool,np.bool_]:
+                ind = np.asarray(ind).astype(bool)
+                assert ind.size==n
+            elif type(ind[0]) in lInt:
+                ind = np.asarray(ind).astype(int)
+                ii = np.zeros((n,),dtype=bool)
+                ii[ind] = True
+                ind = ii
+            else:
+                msg = "Index must be a int, or an iterable of bool or int !"
+                raise Exception(msg)
+    return ind
+
+
+def _select_ind(v, ref, nRef):
+    ltypes = [int,float,np.int64,np.float64]
+    C0 = type(v) in ltypes
+    C1 = type(v) is np.ndarray
+    C2 = type(v) is list
+    C3 = type(v) is tuple
+    assert v is None or np.sum([C0,C1,C2,C3])==1
+    ind = np.zeros((nRef,),dtype=bool)
+    if v is None:
+        ind = ~ind
+    elif C0 or C1:
+        if C0:
+            v = np.r_[v]
+        for vv in v:
+            ind[np.nanargmin(np.abs(ref-vv))] = True
+    elif C2 or C3:
+        c0 = len(v)==2 and all([type(vv) in ltypes for vv in v])
+        c1 = all([(type(vv) is type(v)
+                   and all([type(vvv) in ltypes for vvv in vv]))
+                  for vv in v])
+        assert c0!=c1
+        if c0:
+            v = [v]
+        for vv in v:
+            ind = ind | ((ref>=v[0]) & (ref<=v[1]))
+        if C3:
+            ind = ~ind
+    return ind
+
+
+
+
+#############################################
+#       class
+#############################################
+
 class Data(utils.ToFuObject):
 
     # Fixed (class-wise) dictionary of default properties
@@ -393,6 +458,7 @@ class Data(utils.ToFuObject):
         largs = self._get_largs_dextra()
         kwdextra = self._extract_kwdargs(locals(), largs)
         self._set_ddataRef(**kwddataRef)
+        self.compute_data()
         self._set_dunits(**kwdunits)
         self._set_dgeom(**kwdgeom)
         self.set_dchans(**kwdchans)
@@ -447,52 +513,80 @@ class Data(utils.ToFuObject):
         if self._dstrip['strip']==strip:
             return
 
-        if strip<self._dstrip['strip']:
-            if self._dstrip['strip']==2:
-                self._compute_data()
-
-        else:
-            if strip==2:
-                self._ddata = dict.fromkeys(self._get_keys_ddata())
+        if strip in [0,2]:
+            self.compute_data()
+        elif strip in [1,3]:
+            self.clear_data()
 
     def _strip_dgeom(self, strip=0, force=False):
         if self._dstrip['strip']==strip:
             return
 
-        if strip<self._dstrip['strip']:
-            if strip==0:
-                    # To be finished
-                
-        else:
-            if self._dstrip['strip']==0:
-                if self._dgeom['lCam'] is not None:
-                    lpfe = []
-                    for cc in self._dgeom['lCam']:
-                        path, name = cc.Id.SavePath, cc.Id.SaveName
-                        pfe = os.path.join(path, name+'.npz')
-                        lf = os.listdir(path)
-                        lf = [ff for ff in lf if name+'.npz' in ff]
-                        exist = len(lf)==1
-                        if not exist:
-                            msg = """BEWARE:
-                                You are about to delete the lCam objects
-                                Only the path/name to saved a object will be kept
+        if strip in [0,1] and self._dstrip['strip'] in [2,3]:
+            lC, config = None, None
+            if self._dgeom['lCam'] is not None:
+                assert type(self._dgeom['lCam']) is list
+                assert all([type(ss) is str for ss in self._dgeom['lCam']])
+                lC = []
+                for ii in range(0,len(self._dgeom['lCam']))
+                    lC.append(utils.load(self._dgeom['lCam'][ii]))
 
-                                But it appears that the following object has no
-                                saved file where specified (obj.Id.SavePath)
-                                Thus it won't be possible to retrieve it
-                                (unless available in the current console:"""
-                            msg += "\n    - {0}".format(pfe)
-                            if force:
-                                warning.warn(msg)
-                            else:
-                                raise Exception(msg)
-                        lpfe.append(pfe)
-                    self._dgeom['lCam'] = lpfe
-                    self._dgeom['config'] = None
+            elif self._dgeom['config'] is not None:
+                assert type(self._dgeom['config']) is str
+                config = utils.load(self._dgeom['config'])
 
-                elif self._dgeom['config'] is not None:
-                    # To be finished
+            self._set_dgeom(lCam=lC, config=config)
+
+        elif strip in [2,3] and self._dstrip['strip'] in [0,1]:
+            if self._dgeom['lCam'] is not None:
+                lpfe = []
+                for cc in self._dgeom['lCam']:
+                    path, name = cc.Id.SavePath, cc.Id.SaveName
+                    pfe = os.path.join(path, name+'.npz')
+                    lf = os.listdir(path)
+                    lf = [ff for ff in lf if name+'.npz' in ff]
+                    exist = len(lf)==1
+                    if not exist:
+                        msg = """BEWARE:
+                            You are about to delete the lCam objects
+                            Only the path/name to saved a object will be kept
+
+                            But it appears that the following object has no
+                            saved file where specified (obj.Id.SavePath)
+                            Thus it won't be possible to retrieve it
+                            (unless available in the current console:"""
+                        msg += "\n    - {0}".format(pfe)
+                        if force:
+                            warning.warn(msg)
+                        else:
+                            raise Exception(msg)
+                    lpfe.append(pfe)
+                self._dgeom['lCam'] = lpfe
+                self._dgeom['config'] = None
+
+            elif self._dgeom['config'] is not None:
+                path = self._dgeom['config'].Id.SavePath
+                name = self._dgeom['config'].Id.SaveName
+                pfe = os.path.join(path, name+'.npz')
+                lf = os.listdir(path)
+                lf = [ff for ff in lf if name+'.npz' in ff]
+                exist = len(lf)==1
+                if not exist:
+                    msg = """BEWARE:
+                        You are about to delete the config object
+                        Only the path/name to saved a object will be kept
+
+                        But it appears that the following object has no
+                        saved file where specified (obj.Id.SavePath)
+                        Thus it won't be possible to retrieve it
+                        (unless available in the current console:"""
+                    msg += "\n    - {0}".format(pfe)
+                    if force:
+                        warning.warn(msg)
+                    else:
+                        raise Exception(msg)
+                self._dgeom['config'] = pfe
+
 
     ###########
     # _strip and get/from dict
@@ -500,11 +594,12 @@ class Data(utils.ToFuObject):
 
     @classmethod
     def _strip_init(cls):
-        cls._dstrip['allowed'] = [0,1,2]
+        cls._dstrip['allowed'] = [0,1,2,3]
         nMax = max(cls._dstrip['allowed'])
         doc = """
-                 1: dgeom all pathfile (=> tf.geom.Rays.strip(-1))
-                 2: dgeom all pathfile + data clear
+                 1: clear data
+                 2: dgeom all pathfile (=> tf.geom.Rays.strip(-1))
+                 3: dgeom all pathfile + data clear
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
         if sys.version[0]=='2':
@@ -544,110 +639,49 @@ class Data(utils.ToFuObject):
     # properties
     ###########
 
-
-
-
-
-
-
-
-
-
-
-
-
-############################################ To be finished
-
-class Data(object):
-
-    def __init__(self, data=None, t=None, dchans=None, dunits=None,
-                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, Ves=None, LStruct=None, CamCls='1D', fromdict=None,
-                 SavePath=os.path.abspath('./')):
-
-        self._Done = False
-        if fromdict is None:
-            msg = "Provide either dchans or LCam !"
-            assert np.sum([dchans is None, LCam is None])>=1, msg
-            self._set_dataRef(data, t=t, dchans=dchans, dunits=dunits)
-            self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-            self._set_LCam(LCam=LCam, Ves=Ves, LStruct=LStruct, CamCls=CamCls)
-            self._dextra = dextra
-        else:
-            self._fromdict(fromdict)
-        self._Done = True
-
-    def _fromdict(self, fd):
-        _Data_check_fromdict(fd)
-        self._Id = tfpf.ID(fromdict=fd['Id'])
-        self._Ref = fd['Ref']
-        self._dunits = fd['dunits']
-        self._indt, self._indch = fd['indt'], fd['indch']
-        self._data0 = fd['data0']
-        self._fft = fd['fft']
-        if fd['geom'] is None:
-            self._geom = None
-        elif fd['geom']['LCam'] is None:
-            import tofu.geom as tfg
-            Ves, LStruct = None, None
-            if fd['geom']['Ves'] is not None:
-                Ves = tfg.Ves(fromdict=fd['geom']['Ves'])
-            if fd['geom']['LStruct'] is not None:
-                LStruct = [tfg.Struct(fromdict=ss)
-                           for ss in fd['geom']['LStruct']]
-            self._set_LCam(LCam=None, Ves=Ves, LStruct=LStruct)
-        else:
-            import tofu.geom as tfg
-            if '1D' in fd['CamCls']:
-                LCam = [tfg.LOSCam1D(fromdict=cc) for cc in fd['geom']['LCam']]
-            else:
-                LCam = [tfg.LOSCam2D(fromdict=cc) for cc in fd['geom']['LCam']]
-            self._set_LCam(LCam=LCam, CamCls=fd['CamCls'])
-        if 'dextra' in fd.keys():
-            dextra = fd['dextra']
-        else:
-            dextra = None
-        self._dextra = dextra
-        self._CamCls = fd['CamCls']
-
-    def _todict(self):
-        out = {'Id':self.Id._todict(),
-               'Ref':self._Ref,
-               'dunits':self._dunits,
-               'indt':self._indt, 'indch':self._indch,
-               'data0':self._data0,
-               'CamCls':self._CamCls,
-               'fft':self._fft,
-               'dextra':self._dextra}
-        if self.geom is None:
-            geom = None
-        elif self.geom['LCam'] is None:
-            geom = {'Ves':None, 'LStruct':None,
-                    'LCam':None, 'CamCls':self._CamCls}
-            if self.geom['Ves'] is not None:
-                geom['Ves'] = self.geom['Ves']._todict()
-            if self.geom['LStruct'] is not None:
-                geom['LStruct'] = [ss._todict() for ss in self.geom['LStruct']]
-        else:
-            geom = {'LCam':[cc._todict() for cc in self.geom['LCam']]}
-        out['geom'] = geom
-        return out
-
     @property
-    def Id(self):
-        return self._Id
+    def ddataRef(self):
+        return self._ddataRef
     @property
-    def shot(self):
-        return self._Id._shot
+    def ddata(self):
+        return self._ddata
     @property
-    def geom(self):
-        return self._geom
+    def dtreat(self):
+        return self._dtreat
     @property
-    def units(self):
+    def dunits(self):
         return self._dunits
     @property
-    def Ref(self):
-        return self._Ref
+    def dchans(self):
+        return self._dchans
+    @property
+    def dgeom(self):
+        return self._dgeom
+    @property
+    def dextra(self):
+        return self._dextra
+
+
+    @property
+    def data(self):
+        if self._ddata['data'] is None:
+            data = self._get_data()
+        else:
+            data = self._ddata['data']
+        return data
+
+    @property
+    def t(self):
+        if self._ddata['t'] is None:
+            t = self._ddataRef['t']
+        else:
+            t = self._ddata['t'][self.indt]
+        else:
+        return t
+
+
+
+
     @property
     def indt(self):
         if self._indt is None:
@@ -663,17 +697,6 @@ class Data(object):
     @property
     def mask(self):
         return self._mask
-    @property
-    def t(self):
-        if self._Ref['t'] is None:
-            return None
-        elif self._t is None:
-            return self._Ref['t'][self.indt]
-        else:
-            return self._t
-    @property
-    def data(self):
-        return self._get_data()
     @property
     def nt(self):
         if self._nt is None:
@@ -698,46 +721,262 @@ class Data(object):
     def dextra(self):
         return self._dextra
 
-    def _check_inputs(self, Id=None, data=None, t=None, dchans=None,
-                      dunits=None, Exp=None, shot=None, Diag=None, LCam=None,
-                      CamCls=None, SavePath=None):
-        _Data_check_inputs(Id=Id, data=data, t=t, dchans=dchans, dunits=dunits,
-                           Exp=Exp, shot=shot, Diag=Diag, LCam=LCam,
-                           CamCls=CamCls, SavePath=SavePath)
 
-    def _set_Id(self, Id, Exp=None, Diag=None, shot=None, SavePath='./'):
-        dd = {'Exp':Exp, 'Diag':Diag, 'shot':shot, 'SavePath':SavePath}
-        if self._Done:
-            tfpf._get_FromItself(self.Id, dd)
-        tfpf._check_NotNone({'Id':Id})
-        self._check_inputs(Id=Id)
-        if type(Id) is str:
-            Id = tfpf.ID(self.__class__, Id, **dd)
-        self._Id = Id
+    ###########
+    # public methods
+    ###########
 
-    def set_Name(self, name=None):
-        if name is not None:
-            assert type(name) is str, "Provide a str !"
-            dId = Id._todict()
-            dId['Name'] = name
-            self._Id = tfpf.ID(fromdict=dId)
+    def clear_data(self):
+        self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self.compute_data()
 
-    def _set_dataRef(self, data, t=None, dchans=None, dunits=None):
-        self._check_inputs(data=data, t=t, dchans=dchans, dunits=dunits)
-        if data.ndim==1:
-            nt, nch = 1, data.size
-            data = data.reshape((1,nch))
-            if t is not None:
-                t = np.asarray(t) if hasattr(t,'__iter__') else np.asarray([t])
+
+    def select_t(self, t=None, out=bool):
+        """ Return a time index array
+
+        Return a boolean or integer index array, hereafter called 'ind'
+        The array refers to the reference time vector self.ddataRef['t']
+
+        Parameters
+        ----------
+        t :     None / float / np.ndarray / list / tuple
+            The time values to be selected:
+                - None : ind matches all time values
+                - float : ind is True only for the time closest to t
+                - np.ndarray : ind is True only for the times closest to t
+                - list (len()==2): ind is True for the times inside [t[0],t[1]]
+                - tuple (len()==2): ind is True for times outside ]t[0];t[1][
+        out :   type
+            Specifies the type of the output index array:
+                - bool : return a boolean array of shape (self.ddataRef['nt'],)
+                - int : return the array as integers indices
+
+        Return
+        ------
+        ind :   np.ndarray
+            The array of indices, of dtype specified by keywordarg out
+
+        """
+        assert out in [bool,int]
+        indt = _select_ind(t, self._ddataRef['t'], self._ddataRef['nt'])
+        if out is int:
+            ind = ind.nonzero()[0]
+        return ind
+
+    def set_indt(self, t=None, indt=None):
+        """ Store the desired index array for the time vector
+
+        If an array of indices (refering to self.ddataRef['t'] is not provided,
+        uses self.select_t(t=t) to produce it
+
+        """
+        lC = [indt is None,t is None]
+        assert np.sum(lC)>=1
+        if all(lC):
+            ind = None
+        elif C[0]:
+            ind = self.select_t(t=t, out=bool)
+        elif C[1]:
+            ind = _format_ind(indt, n=self._Ref['nt'])
+        self._dtreat['indt'] = ind
+
+    def select_ch(self, val=None, key=None, log='any', touch=None, out=bool):
+        """ Return a channels index array
+
+        Return a boolean or integer index array, hereafter called 'ind'
+        The array refers to the reference channel/'X' vector self.ddataRef['X']
+
+        There are 3 different ways of selecting channels, by refering to:
+            - The 'X' vector/array values in self.dataRef['X']
+            - The dict of channels keys/values (if self.dchans != None)
+            - which element each LOS touches (if self.lCam != None)
+
+        Parameters
+        ----------
+        val :   None / str / float / np.array / list / tuple
+            The value against which to dicriminate.
+            Behaviour depends whether key is provided:
+                - key is None => val compares vs self.ddataRef['X']
+                - key provided => val compares vs self.dchans[key]
+            If key is None, the behaviour is similar to self.select_indt():
+                - None : ind matches all channels
+                - float : ind is True only for X closest to val
+                - np.ndarray : ind is True only for X closest to val
+                - list (len()==2): ind is True for X inside [val[0],val[1]]
+                - tuple (len()==2): ind is True for X outside ]val[0];val[1][
+
+        key :   None / str
+            If provided, dict key to indicate which self.dchans[key] to use
+
+        log :   str
+            If key provided, val can be a list of criteria
+            Then, log indicates whether all / any / none should be matched
+
+        touch : None
+            If key and val are None, return the indices of the LOS touching the
+            elements indicated in touch.
+            Requires that self.dgeom['lCam'] is not None (tf.geom.Cam.select())
+
+        out :   type
+            Specifies the type of the output index array:
+                - bool : return a boolean array of shape (self.ddataRef['nt'],)
+                - int : return the array as integers indices
+
+        Return
+        ------
+        ind :   np.ndarray
+            The array of indices, of dtype specified by keywordarg out
+
+        """
+        assert out in [int,bool]
+        assert log in ['any','all','not']
+        lc = [val is None, key is None, touch is None]
+        lC = [all(lc), all(lc[:2]) and ~lc[2],
+              ~lc[0] and all(lc[1:]), ~any(lc[:2]) and lc[2]]
+        assert np.sum(lC)==1
+
+        if lC[0]:
+            # get all channels
+            ind = np.ones((self._ddataRef['nX'],),dtype=bool)
+
+        elif lC[1]:
+            # get touch
+            if self._dgeom['lCam'] is None:
+                msg = "self.dgeom['lCam'] must be set to use touch !"
+                raise Exception(msg)
+            if any([type(cc) is str for ss in self._dgeom['lCam']]):
+                msg = "self.dgeom['lCam'] contains pathfiles !"
+                msg += "\n  => Run self.strip(0)"
+                raise Exception(msg)
+            ind = []
+            for cc in self._dgeom['LCam']:
+                ind.append(cc.select(touch=touch, log=log, out=bool))
+            if len(ind)==1:
+                ind = ind[0]
+            else:
+                ind = np.concatenate(tuple(ind))
+
+        elif lC[2]:
+            # get values on X
+            if self._ddataRef['nnX']==1:
+                ind = _select_ind(val, self._ddataRef['X'], self._ddataRef['nX'])
+            else:
+                ind = np.zeros((self._ddataRef['nt'],self._ddataRef['nX']),dtype=bool)
+                for ii range(0,self._ddataRef['nnX']):
+                    iind = self._ddataRef['indtX']==ii
+                    ind[iind,:] =  _select_ind(val, self._ddataRef['X'],
+                                               self._ddataRef['nX'])[np.newaxis,:]
+
         else:
-            nt, nch= data.shape
-            t = np.asarray(t)
-        self._Ref = {'data':data, 't':t,
-                     'nt':nt, 'nch':nch}
-        dchans = {} if dchans is None else dchans
-        lK = sorted(dchans.keys())
-        dchans = dict([(kk,np.asarray(dchans[kk])) for kk in lK])
-        self._Ref['dchans'] = dchans
+            assert type(key) is str and key in self._dchans['dchans'].keys()
+            ltypes = [str,int,float,np.int64,np.float64]
+            C0 = type(val) in ltypes
+            C1 = type(val) in [list,tuple,np.ndarray]
+            assert C0 or C1
+            if C0:
+                val = [val]
+            else:
+                assert all([type(vv) in ltypes for vv in val])
+            ind = np.vstack([self.Ref['dchans'][key]==ii for ii in val])
+            if log=='any':
+                ind = np.any(ind,axis=0)
+            elif log=='all':
+                ind = np.all(ind,axis=0)
+            else:
+                ind = ~np.any(ind,axis=0)
+        if out is int:
+            ind = ind.nonzero()[0]
+        return ind
+
+    def set_indch(self, indch=None):
+        """ Store the desired index array for the channels
+
+        If None => all channels
+        Must be a 1d array
+
+        """
+        if indch is not None:
+            indch = np.asarray(indch)
+            assert indch.ndim==1
+            indch = _format_ind(indch, n=self._ddataRef['nX'])
+        self._dtreat['indch'] = indch
+
+    def set_mask(self, ind=None, val=np.nan):
+        assert type(val) in [int,float,np.int64,np.float64]
+        self._dtreat['mask-ind'] = ind
+        self._dtreat['mask-val'] = val
+
+    def set_data0(self, data0=None, Dt=None, indt=None):
+        assert self._ddataRef['nt']>1, "Useless if only one data slice !"
+        C = [data0 is None, Dt is None, indt is None]
+        assert np.sum(C)>=2
+        if data0 is not None:
+            data0 = np.asarray(data0).ravel()
+            assert data0.shape==(self._ddataRef['nX'],)
+            Dt, indt = None, None
+        else:
+            if indt is not None:
+                indt = _format_ind(indt, n=self._ddataRef['nt'])
+            else:
+                indt = self.select_t(t=Dt, out=bool)
+            if np.any(indt):
+                data0 = self._ddataRef['data'][indt,:]
+                if np.sum(indt)>1:
+                    data0 = np.nanmean(data,axis=0)
+        self._dtreat['data0-indt'] = indt
+        self._dtreat['data0-data'] = data0
+        self._dtreat['data0-Dt'] = Dt
+
+    def set_interp_ch(self, indch=None):
+        if indch is not None:
+            indch = np.asarray(indch)
+            if indch.ndim==1:
+                indch = _format_ind(indch, n=self._ddataRef['nX'])
+            else:
+                assert indch.shape==(self._ddataRef['nt'],self._ddataRef['nX'])
+                for ii in range(0,self._ddataRef['nt']):
+                    indch[ii,:] = _format_ind(indch[ii,:], n=self._ddataRef['nX'])
+        self._dtreat['interp-indch'] = indch
+
+    def set_interp_t(self, indt=None):
+        if indt is not None:
+            indt = np.asarray(indt)
+            if indt.ndim==1:
+                indt = _format_ind(indch, n=self._ddataRef['nt'])
+            else:
+                assert indt.shape==(self._ddataRef['nt'],self._ddataRef['nX'])
+                for ii in range(0,self._ddataRef['nX']):
+                    indt[:,ii] = _format_ind(indch[:,ii], n=self._ddataRef['nt'])
+
+        self._dtreat['interp-indt'] =
+
+
+
+
+
+
+    def set_fft():
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################ To be finished
+
 
         self._dunits = {} if dunits is None else dunits
         self._data, self._t, self._nt = None, None, None
@@ -746,53 +985,6 @@ class Data(object):
         self._fft, self._interp_t = None, None
         self._indt_corr, self._indch_corr = None, None
 
-    def _set_LCam(self, LCam=None, Ves=None, LStruct=None, CamCls='1D'):
-        self._check_inputs(LCam=LCam, CamCls=CamCls, data=self._Ref['data'])
-        if LCam is None:
-            self._CamCls = CamCls
-            if 'data' not in self._dunits.keys():
-                self._dunits['data'] = r"a.u."
-            if Ves is None and LStruct is None:
-                self._geom = None
-            else:
-                self._geom = {'LCam':None, 'Ves':None, 'LStruct':None}
-                if Ves is not None:
-                    self._geom['Ves'] = Ves
-                if LStruct is not None:
-                    if not type(LStruct) is list:
-                        LStruct = [LStruct]
-                    self._geom['LStruct'] = LStruct
-        else:
-            LCam = LCam if type(LCam) is list else [LCam]
-            # Set up dchans
-            dchans = {}
-            if LCam[0].dchans is not None:
-                for kk in LCam[0].dchans.keys():
-                    dchans[kk] = np.r_[[cc.dchans[kk] for cc in LCam]].ravel()
-            self._Ref['dchans'] = dchans
-            Ves = LCam[0].Ves
-            lS = [c.LStruct for c in LCam if c.LStruct is not None]
-            if len(lS)==0:
-                lS = None
-            else:
-                lS = lS[0] if len(lS)==1 else list(itt.chain.from_iterable(lS))
-                lSP = [os.path.join(s.Id.SavePath,s.Id.SaveName) for s in lS]
-                lS = [lS[lSP.index(ss)] for ss in list(set(lSP))]
-            self._geom = {'Ves':Ves, 'LStruct':lS, 'LCam':LCam}
-            CamCls = LCam[0].Id.Cls
-            self._CamCls = CamCls
-
-            if 'data' not in self._dunits.keys():
-                self._dunits['data'] = r"$W/m^2$" if 'LOS' in CamCls else r"$W$"
-
-            LObj = []
-            if Ves is not None:
-                LObj += [Ves.Id]
-            if lS is not None:
-                LObj += [ss.Id for ss in lS]
-            LObj += [cc.Id for cc in LCam]
-            if len(LObj)>0:
-                self.Id.set_LObj(LObj)
 
     def dchans(self, key=None):
         """ List the channels selected by self.indch
@@ -835,124 +1027,9 @@ class Data(object):
                 lC = [cc.get_subset(indch=iind) for iind in lind]
         return lC
 
-    def select_t(self, t=None, out=bool):
-        assert out in [bool,int]
-        C0 = type(t) in [int,float,np.int64,np.float64]
-        C1 = type(t) in [list,np.ndarray] and len(t)==2
-        C2 = type(t) is tuple and len(t)==2
-        assert t is None or C0 or C1 or C2
-        ind = np.zeros((self._Ref['nt'],),dtype=bool)
-        if t is None or self._Ref['t'] is None:
-            ind = ~ind
-        elif C0:
-            ind[np.nanargmin(np.abs(self._Ref['t']-t))] = True
-        elif C1 or C2:
-            ind[(self._Ref['t']>=t[0]) & (self._Ref['t']<=t[1])] = True
-            if C2:
-                ind = ~ind
-        if out is int:
-            ind = ind.nonzero()[0]
-        return ind
 
-    def set_indt(self, indt=None, t=None):
-        C = [indt is None,t is None]
-        assert np.sum(C)>=1
-        if all(C):
-            ind = None
-            self._t, self._nt = None, None
-        elif C[0]:
-            ind = self.select_t(t=t, out=bool)
-        elif C[1]:
-            ind = _format_ind(indt, n=self._Ref['nt'])
-        self._indt = ind
 
-    def select_ch(self, key=None, val=None, log='any', touch=None, out=bool):
-        assert out in [int,bool]
-        assert log in ['any','all','not']
-        C = [key is None,touch is None]
-        assert np.sum(C)>=1
-        if np.sum(C)==2:
-            ind = np.ones((self.nRays,),dtype=bool)
-        else:
-            if key is not None:
-                assert type(key) is str and key in self.Ref['dchans'].keys()
-                ltypes = [str,int,float,np.int64,np.float64]
-                C0 = type(val) in ltypes
-                C1 = type(val) in [list,tuple,np.ndarray]
-                assert C0 or C1
-                if C0:
-                    val = [val]
-                else:
-                    assert all([type(vv) in ltypes for vv in val])
-                ind = np.vstack([self.Ref['dchans'][key]==ii for ii in val])
-                if log=='any':
-                    ind = np.any(ind,axis=0)
-                elif log=='all':
-                    ind = np.all(ind,axis=0)
-                else:
-                    ind = ~np.any(ind,axis=0)
-            elif touch is not None:
-                C0 = self._geom is not None and self.geom['LCam'] is not None
-                assert C0, "Geometry (LCam) not defined !"
-                ind = []
-                for cc in self._geom['LCam']:
-                    ind.append(cc.select(touch=touch, log=log, out=bool))
-                if len(ind)==1:
-                    ind = ind[0]
-                else:
-                    ind = np.concatenate(tuple(ind))
-        if out is int:
-            ind = ind.nonzero()[0]
-        return ind
 
-    def set_indch(self, indch=None, key=None, val=None, touch=None, log='any'):
-        C = [indch is None, key is None, touch is None]
-        assert np.sum(C)>=2
-        if all(C):
-            ind = None
-        elif C[0]:
-            ind = self.select_ch(key=key, val=val, touch=touch, log=log, out=bool)
-        elif C[1]:
-            ind = _format_ind(indch, n=self._Ref['nch'])
-        self._indch = ind
-
-    def set_mask(self, ind=None, val=np.nan):
-        assert type(val) in [int,float,np.int64,np.float64]
-        C = ind is None
-        if C:
-            mask = None
-        else:
-            mask = {'ind':_format_ind(ind, n=self._Ref['nch']), 'val':val}
-        self._mask = mask
-
-    def set_data0(self, data0=None, Dt=None, indt=None):
-        assert self._Ref['nt']>1, "Useless if only one data slice !"
-        C = [data0 is None, Dt is None, indt is None]
-        assert np.sum(C)>=2
-        if all(C):
-            data, t, indt = None, None, None
-        elif data0 is not None:
-            assert np.asarray(data0).shape==(self._Ref['nch'],)
-            data = np.asarray(data0)
-            Dt, indt = None, None
-        else:
-            if indt is not None:
-                indt = _format_ind(indt, n=self._Ref['nt'])
-            else:
-                indt = self.select_t(t=Dt, out=bool)
-            if indt is not None and np.any(indt):
-                data = self._Ref['data'][indt,:]
-                if np.sum(indt)>1:
-                    data = np.nanmean(data,axis=0)
-                if self._Ref['t'] is not None:
-                    Dt = [np.nanmin(self._Ref['t'][indt]),
-                          np.nanmax(self._Ref['t'][indt])]
-                else:
-                    Dt = None
-            else:
-                data = None
-                Dt = None
-        self._data0 = {'indt':indt,'data':data, 'Dt':Dt}
 
     def set_interp_t(self, t=None):
         if t is not None:
@@ -1132,138 +1209,10 @@ class Data(object):
                                      draw=draw, connect=connect)
         return KH
 
-    def save(self, SaveName=None, Path=None,
-             Mode='npz', compressed=False, Print=True):
-        """ Save the object in folder Name, under SaveName
-
-        Parameters
-        ----------
-        SaveName :  None / str
-            The name to be used for the saved file
-            If None (recommended) uses self.Id.SaveName
-        Path :      None / str
-            Path specifying where to save the file
-            If None (recommended) uses self.Id.SavePath
-        Mode :      str
-            Flag specifying how to save the object:
-                'npz': as a numpy array file (recommended)
-        compressed :    bool
-            Flag, used when Mode='npz', indicates whether to use:
-                - False : np.savez
-                - True :  np.savez_compressed (slower but smaller files)
-
-        """
-        tfpf.Save_Generic(self, SaveName=SaveName, Path=Path,
-                          Mode=Mode, compressed=compressed, Print=Print)
 
 
 
 
-
-
-
-
-
-def _Data_check_inputs(Id=None, data=None, t=None, dchans=None,
-                      dunits=None, Exp=None, shot=None, Diag=None, LCam=None,
-                      CamCls=None, SavePath=None):
-    if Id is not None:
-        assert type(Id) in [str,tfpf.ID], "Arg Id must be a str or a tfpf.ID !"
-    if data is not None:
-        assert type(data) is np.ndarray and data.ndim in [1,2]
-        if t is not None:
-            if t.size==1:
-                assert data.ndim==1 or data.shape[0]==1
-            else:
-                assert data.ndim == 2 and data.shape[0]==t.size
-    if t is not None:
-        assert type(t) is np.ndarray and t.ndim==1
-        if data is not None:
-            if t.size>1:
-                assert data.ndim==2 and data.shape[0]==t.size
-            else:
-                assert data.ndim==1 or (data.ndim==2 and data.shape[0]==t.size)
-    if dchans is not None:
-        assert type(dchans) is dict
-        if data is not None:
-            for kk in dchans.keys():
-                assert hasattr(dchans[kk],'__iter__')
-                assert len(dchans[kk])==data.shape[-1]
-    if dunits is not None:
-        assert type(dunits) is dict
-        assert all([type(dunits[kk]) is str for kk in dunits.keys()])
-    if Exp is not None:
-        assert type(Exp) is str
-    if Diag is not None:
-        assert type(Diag) is str
-    if shot is not None:
-        assert type(shot) is int
-    if SavePath is not None:
-        assert type(SavePath) is str
-    if CamCls is not None:
-        assert CamCls in ['1D','2D','LOSCam1D','LOSCam2D']
-    if LCam is not None:
-        assert type(LCam) is list or issubclass(LCam.__class__,object)
-        if type(LCam) is list:
-            lCls = ['LOSCam1D','Cam1D','LOSCam2D','Cam2D']
-            assert all([cc.Id.Cls in lCls for cc in LCam])
-            assert all([issubclass(cc.__class__,object) for cc in LCam])
-            if len(LCam)>1:
-                msg = "Cannot associate mulitple 2D cameras !"
-                assert all([cc.Id.Cls in ['LOSCam1D','Cam1D'] for cc in LCam]), msg
-                msg = "Cannot associate cameras of different types !"
-                assert all([cc.Id.Cls==LCam[0].Id.Cls for cc in LCam]), msg
-                lVes = [cc.Ves for cc in LCam]
-                C0 = all([vv is None for vv in lVes])
-                C1 = all([tfu.dict_cmp(vv._todict(),lVes[0]._todict())
-                          for vv in lVes])
-                assert C0 or C1
-                lK = [sorted(cc.dchans.keys() for cc in LCam)]
-                assert all([lk==lK[0] for lk in lK])
-            if data is not None:
-                assert np.sum([cc.nRays for cc in LCam])==data.shape[-1]
-        else:
-            assert LCam.Id.Cls in ['LOSCam1D','LOSCam2D','Cam1D','Cam2D']
-            if data is not None:
-                assert LCam.nRays==data.shape[-1]
-
-
-def _Data_check_fromdict(fd):
-    assert type(fd) is dict, "Arg from dict must be a dict !"
-    k0 = {'Id':dict, 'Ref':dict, 'dunits':[None,dict],
-          'indt':[None,np.ndarray], 'indch':[None,np.ndarray],
-          'data0':[None,dict], 'CamCls':str, 'fft':[None,dict],
-          'geom':[None,dict]}
-    keys = list(fd.keys())
-    for kk in k0:
-        assert kk in keys, "%s must be a key of fromdict"%kk
-        typ = type(fd[kk])
-        C = typ is k0[kk] or typ in k0[kk] or fd[kk] in k0[kk]
-        assert C, "Wrong type of fromdict[%s]: %s"%(kk,str(typ))+str(fd[kk])
-
-def _format_ind(ind=None, n=None):
-    if ind is None:
-        ind = np.ones((n,),dtype=bool)
-    else:
-        lInt = [int,np.int64]
-        if type(ind) in lInt:
-            ii = np.zeros((n,),dtype=bool)
-            ii[int(ii)] = True
-            ind = ii
-        else:
-            assert hasattr(ind,'__iter__')
-            if type(ind[0]) in [bool,np.bool_]:
-                ind = np.asarray(ind).astype(bool)
-                assert ind.size==n
-            elif type(ind[0]) in lInt:
-                ind = np.asarray(ind).astype(int)
-                ii = np.zeros((n,),dtype=bool)
-                ii[ind] = True
-                ind = ii
-            else:
-                msg = "Index must be a int, or an iterable of bool or int !"
-                raise Exception(msg)
-    return ind
 
 
 def _compare_(ls, null=None):
