@@ -9,7 +9,6 @@ from libc.math cimport atan2 as Catan2, pi as Cpi
 
 # from cpython.array cimport array, clone
 
-import line_profiler
 
 import numpy as np
 #from matplotlib.path import Path

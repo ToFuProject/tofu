@@ -2,7 +2,7 @@
 from tofu_LauraBenchmarck_load_config import *
 import tofu.geom._GG_LM as _GG
 import time
-import line_profiler
+#import line_profiler
 import pstats, cProfile
 
 

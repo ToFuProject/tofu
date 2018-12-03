@@ -18,7 +18,7 @@ import tofu as tf
 _path = os.path.abspath(os.path.dirname(__file__))
 _path_Inputs = os.path.join(_path, '../tests03_core_laura')
 _path_Objects = os.path.join(_path,'../tests03_core_laura')
-_path_laura_former = '/Home/DV226270/ForOthers/Laura_MENDOZA/tofu_1323'
+_path_laura_former = './Objects'
 
 
 
@@ -71,7 +71,7 @@ _dcam = {'V1':       {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1,1]},
 #########################################
 
 
-def _recreate_compatible_objects(path=_path_laura_former, save=True):
+def recreate_compatible_objects(path=_path_laura_former, save=True):
 
     lf = os.listdir(path)
     lf = [f for f in lf if all([s in f for s in ['TFG_','.npz']])]
