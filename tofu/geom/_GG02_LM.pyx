@@ -113,8 +113,8 @@ def LOS_Calc_PInOut_VesStruct(cnp.ndarray[double, ndim=2] Ds, cnp.ndarray[double
     cdef cnp.ndarray[double,ndim=1] kPIn
     cdef cnp.ndarray[double,ndim=1] kPOut
     cdef cnp.ndarray[double,ndim=2] VPerpOut
-    cdef cnp.ndarray[long, ndim=1] llim_ves = np.zeros((ntotStruct*2,), dtype=int)
-    print("size llim ves = ", ntotStruct)
+    cdef cnp.ndarray[long, ndim=1] llim_ves = np.zeros((ntotStruct,), dtype=int)
+
     lbounds = []
     langles = []
     llen_lim = []

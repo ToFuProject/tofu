@@ -2422,10 +2422,11 @@ class Rays(utils.ToFuObject):
                 lSVIn.append(ss.dgeom['VIn'])
                 lSLim.append(ss.Lim)
                 lSnLim.append(ss.nLim)
-                if ss.Lim is None:
+                if ss.Lim is None or len(ss.Lim) == 0:
                     num_tot_structs += 1
                 else:
                     num_tot_structs += len(ss.Lim)
+                print(num_tot_structs)
             largs = [D, u, VPoly, VVIn]
             dkwd = dict(Lim=Lim, nLim=nLim, ntotStruct=num_tot_structs,
                         LSPoly=lSPoly, LSLim=lSLim,

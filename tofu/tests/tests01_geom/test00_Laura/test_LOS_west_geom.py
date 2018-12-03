@@ -39,7 +39,7 @@ def prepare_inputs(vcam, config, method='ref'):
         lSVIn.append(ss.dgeom['VIn'])
         lSLim.append(ss.Lim)
         lSnLim.append(ss.nLim)
-        if ss.Lim == None:
+        if ss.Lim is None or len(ss.Lim) == 0:
             num_tot_structs += 1
         else:
             num_tot_structs += len(ss.Lim)
