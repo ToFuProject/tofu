@@ -9,7 +9,7 @@ from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.stdlib cimport malloc, free
 
 import numpy as np
-from tofu.geom._poly_utils import get_bbox_poly_limited
+# from tofu.geom._poly_utils import get_bbox_poly_limited
 # from tofu.geom._poly_utils import get_bbox_poly_extruded
 
 
@@ -103,6 +103,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
     cdef int ind_tmp
     cdef int len_lim
     cdef int num_los = Ds.shape[1]
+    cdef int size_lspoly
     cdef double [3] struct_vperpin_view
     cdef double[3] last_pout
     cdef double[6] bounds
@@ -180,6 +181,8 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                     lslim = LSLim[ii]
                 len_lim = len(lslim)
                 llen_lim[ii] = len_lim
+                lspoly_view = LSPoly[ii]
+                nvert = len(lspoly_view[0])
                 # sub strcutres limited:
                 for jj in range(len_lim):
                     # We compute the structure's bounding box:
@@ -189,13 +192,10 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                         llim_ves.append(0)
                         L0 = Catan2(Csin(lim_ves[0]),Ccos(lim_ves[0]))
                         L1 = Catan2(Csin(lim_ves[1]),Ccos(lim_ves[1]))
-                        bounds = get_bbox_poly_limited(np.asarray(LSPoly[ii]), [L0, L1])
+                        # bounds = get_bbox_poly_limited(np.asarray(LSPoly[ii]), [L0, L1])
+                        compute_bbox_lim(nvert, lspoly_view, bounds, L0, L1)
                     else:
                         llim_ves.append(1)
-                        lspoly_view = LSPoly[ii]
-                        # rview = lspoly_view[0,:]
-                        # zview = Poly[1,:]
-                        nvert = len(lspoly_view[0])
                         compute_bbox2(nvert, lspoly_view, bounds)
                         L0 = 0.
                         L1 = 0.
@@ -227,6 +227,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                 last_pout[2] = kpout_jj * los_dirv_loc[2] + los_orig_loc[2]
                 compute_inv_and_sign(los_dirv_loc, sign_ray, invr_ray)
                 for ii in range(len_lspoly):
+                    nvert = LSVIn[ii].shape[1]
                     for jj in range(0, llen_lim[ii]):
                         bounds[0] = lbounds[ind_lim_data*6]
                         bounds[1] = lbounds[ind_lim_data*6 + 1]
@@ -253,7 +254,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                         # We compute new values
                         found_new_kout = compute_kout_los_on_filled(los_orig_loc, los_dirv_loc,
                                                               LSPoly[ii],
-                                                              LSVIn[ii], LSVIn[ii].shape[1],
+                                                              LSVIn[ii], nvert,
                                                               bounds,
                                                               val_rmin,
                                                               lim_is_none, L0, L1,
@@ -682,6 +683,8 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
     cdef double L=0., S1X=0., S1Y=0., S2X=0., S2Y=0., sca=0., sca0=0., sca1=0., sca2=0.
     cdef double q, C, delta, sqd, k, sol0, sol1, phi=0.
     cdef double v0, v1, A, B, ephiIn0, ephiIn1
+    cdef double dsx, dsy, dsz
+    cdef double usx, usy, usz
     cdef double SOut1, SOut0
     cdef int Forbidbis, Forbid0
     cdef cnp.ndarray[double,ndim=1] kIn_=np.nan*np.ones((Nl,))
@@ -698,9 +701,15 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
     else:
         Forbid0, Forbidbis = 0, 0
     for ii in range(0,Nl):
-        upscaDp = us[0,ii]*Ds[0,ii] + us[1,ii]*Ds[1,ii]
-        upar2 = us[0,ii]**2 + us[1,ii]**2
-        Dpar2 = Ds[0,ii]**2 + Ds[1,ii]**2
+        usx = us[0,ii]
+        usy = us[1,ii]
+        usz = us[2,ii]
+        dsx = Ds[0,ii]
+        dsy = Ds[1,ii]
+        dsz = Ds[2,ii]
+        upscaDp = usx*dsx + usy*dsy
+        upar2 = usx**2 + usy**2
+        Dpar2 = dsx**2 + dsy**2
         # Prepare in case Forbid is True
         if Forbid0 and not Dpar2>0:
             Forbidbis = 0
@@ -708,10 +717,10 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
             # Compute coordinates of the 2 points where the tangents touch
             # the inner circle
             L = Csqrt(Dpar2-Rmin**2)
-            S1X = (Rmin**2*Ds[0,ii]+Rmin*Ds[1,ii]*L)/Dpar2
-            S1Y = (Rmin**2*Ds[1,ii]-Rmin*Ds[0,ii]*L)/Dpar2
-            S2X = (Rmin**2*Ds[0,ii]-Rmin*Ds[1,ii]*L)/Dpar2
-            S2Y = (Rmin**2*Ds[1,ii]+Rmin*Ds[0,ii]*L)/Dpar2
+            S1X = (Rmin**2*dsx+Rmin*dsy*L)/Dpar2
+            S1Y = (Rmin**2*dsy-Rmin*dsx*L)/Dpar2
+            S2X = (Rmin**2*dsx-Rmin*dsy*L)/Dpar2
+            S2Y = (Rmin**2*dsy+Rmin*dsx*L)/Dpar2
 
         # Compute all solutions
         # Set tolerance value for us[2,ii]
@@ -719,14 +728,14 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
         Crit2 = EpsUz**2*upar2/400.
         kout, kin, Done = 1.e12, 1e12, 0
         # Case with horizontal semi-line
-        if us[2,ii]**2<Crit2:
+        if usz**2<Crit2:
             for jj in range(0,Ns):
                 # Solutions exist only in the case with non-horizontal
                 # segment (i.e.: cone, not plane)
                 # TODO : @LM : is this faster than checking abs(diff)>eps ?
                 if (VPoly[1,jj+1] - VPoly[1,jj])**2 > EpsVz**2:
                     # TODO : @LM this probably can done matrix wise (qmatrix)
-                    q = (Ds[2,ii]-VPoly[1,jj]) / (VPoly[1,jj+1]-VPoly[1,jj])
+                    q = (dsz-VPoly[1,jj]) / (VPoly[1,jj+1]-VPoly[1,jj])
                     # The intersection must stand on the segment
                     # TODO : @LM why is q==1 rejected ?
                     if q>=0 and q<1:
@@ -743,11 +752,11 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                 # TODO : @LM - est-ce que c'est possible de le mat ?
                                 # ou le sortir d'ici
                                 k = (-upscaDp - sqd)/upar2
-                                sol0, sol1 = Ds[0,ii] + k*us[0,ii], \
-                                             Ds[1,ii] + k*us[1,ii]
+                                sol0, sol1 = dsx + k*usx, \
+                                             dsy + k*usy
                                 if Forbidbis:
-                                    sca0 = (sol0-S1X)*Ds[0,ii] + \
-                                           (sol1-S1Y)*Ds[1,ii]
+                                    sca0 = (sol0-S1X)*dsx + \
+                                           (sol1-S1Y)*dsy
                                     sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                                     sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
                                 if not Forbidbis or (Forbidbis and not
@@ -765,9 +774,9 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                                              phi<=L1)))):
                                         # Get the scalar product to determine
                                         # entry or exit point
-                                        sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + \
-                                              Csin(phi)*vIn[0,jj]*us[1,ii] + \
-                                              vIn[1,jj]*us[2,ii]
+                                        sca = Ccos(phi)*vIn[0,jj]*usx + \
+                                              Csin(phi)*vIn[0,jj]*usy + \
+                                              vIn[1,jj]*usz
                                         if sca<=0 and k<kout:
                                             kout = k
                                             indout = jj
@@ -780,11 +789,11 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                             # Second solution
                             if -upscaDp + sqd >=0:
                                 k = (-upscaDp + sqd)/upar2
-                                sol0, sol1 = Ds[0,ii] + k*us[0,ii], Ds[1,ii] \
-                                             + k*us[1,ii]
+                                sol0, sol1 = dsx + k*usx, dsy \
+                                             + k*usy
                                 if Forbidbis:
-                                    sca0 = (sol0-S1X)*Ds[0,ii] + \
-                                           (sol1-S1Y)*Ds[1,ii]
+                                    sca0 = (sol0-S1X)*dsx + \
+                                           (sol1-S1Y)*dsy
                                     sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                                     sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
                                 if not Forbidbis or (Forbidbis and not
@@ -801,9 +810,9 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                                        )):
                                         # Get the scalar product to determine
                                         # entry or exit point
-                                        sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + \
-                                              Csin(phi)*vIn[0,jj]*us[1,ii] + \
-                                              vIn[1,jj]*us[2,ii]
+                                        sca = Ccos(phi)*vIn[0,jj]*usx + \
+                                              Csin(phi)*vIn[0,jj]*usy + \
+                                              vIn[1,jj]*usz
                                         if sca<=0 and k<kout:
                                             kout = k
                                             indout = jj
@@ -817,18 +826,18 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
         else:
             for jj in range(Ns):
                 v0, v1 = VPoly[0,jj+1]-VPoly[0,jj], VPoly[1,jj+1]-VPoly[1,jj]
-                A = v0**2 - upar2*(v1/us[2,ii])**2
-                B = VPoly[0,jj]*v0 + v1*(Ds[2,ii]-VPoly[1,jj])*upar2/us[2,ii]**2 - upscaDp*v1/us[2,ii]
-                C = -upar2*(Ds[2,ii]-VPoly[1,jj])**2/us[2,ii]**2 + 2.*upscaDp*(Ds[2,ii]-VPoly[1,jj])/us[2,ii] - Dpar2 + VPoly[0,jj]**2
+                A = v0**2 - upar2*(v1/usz)**2
+                B = VPoly[0,jj]*v0 + v1*(dsz-VPoly[1,jj])*upar2/usz**2 - upscaDp*v1/usz
+                C = -upar2*(dsz-VPoly[1,jj])**2/usz**2 + 2.*upscaDp*(dsz-VPoly[1,jj])/usz - Dpar2 + VPoly[0,jj]**2
 
                 if A**2<EpsA**2 and B**2>EpsB**2:
                     q = -C/(2.*B)
                     if q>=0. and q<1.:
-                        k = (q*v1 - (Ds[2,ii]-VPoly[1,jj]))/us[2,ii]
+                        k = (q*v1 - (dsz-VPoly[1,jj]))/usz
                         if k>=0:
-                            sol0, sol1 = Ds[0,ii] + k*us[0,ii], Ds[1,ii] + k*us[1,ii]
+                            sol0, sol1 = dsx + k*usx, dsy + k*usy
                             if Forbidbis:
-                                sca0 = (sol0-S1X)*Ds[0,ii] + (sol1-S1Y)*Ds[1,ii]
+                                sca0 = (sol0-S1X)*dsx + (sol1-S1Y)*dsy
                                 sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                                 sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
                                 #print 1, k, kout, sca0, sca1, sca2
@@ -838,7 +847,7 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                             phi = Catan2(sol1,sol0)
                             if lim_is_none or (not lim_is_none and ((L0<L1 and L0<=phi and phi<=L1) or (L0>L1 and (phi>=L0 or phi<=L1)))):
                                 # Get the scalar product to determine entry or exit point
-                                sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + Csin(phi)*vIn[0,jj]*us[1,ii] + vIn[1,jj]*us[2,ii]
+                                sca = Ccos(phi)*vIn[0,jj]*usx + Csin(phi)*vIn[0,jj]*usy + vIn[1,jj]*usz
                                 if sca<=0 and k<kout:
                                     kout = k
                                     indout = jj
@@ -853,11 +862,11 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                     # First solution
                     q = (-B + sqd)/A
                     if q>=0. and q<1.:
-                        k = (q*v1 - (Ds[2,ii]-VPoly[1,jj]))/us[2,ii]
+                        k = (q*v1 - (dsz-VPoly[1,jj]))/usz
                         if k>=0.:
-                            sol0, sol1 = Ds[0,ii] + k*us[0,ii], Ds[1,ii] + k*us[1,ii]
+                            sol0, sol1 = dsx + k*usx, dsy + k*usy
                             if Forbidbis:
-                                sca0 = (sol0-S1X)*Ds[0,ii] + (sol1-S1Y)*Ds[1,ii]
+                                sca0 = (sol0-S1X)*dsx + (sol1-S1Y)*dsy
                                 sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                                 sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
                                 #print 2, k, kout, sca0, sca1, sca2
@@ -866,7 +875,7 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                 phi = Catan2(sol1,sol0)
                                 if lim_is_none or (not lim_is_none and ((L0<L1 and L0<=phi and phi<=L1) or (L0>L1 and (phi>=L0 or phi<=L1)))):
                                     # Get the scalar product to determine entry or exit point
-                                    sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + Csin(phi)*vIn[0,jj]*us[1,ii] + vIn[1,jj]*us[2,ii]
+                                    sca = Ccos(phi)*vIn[0,jj]*usx + Csin(phi)*vIn[0,jj]*usy + vIn[1,jj]*usz
                                     if sca<=0 and k<kout:
                                         kout = k
                                         indout = jj
@@ -879,12 +888,12 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                     # Second solution
                     q = (-B - sqd)/A
                     if q>=0. and q<1.:
-                        k = (q*v1 - (Ds[2,ii]-VPoly[1,jj]))/us[2,ii]
+                        k = (q*v1 - (dsz-VPoly[1,jj]))/usz
 
                         if k>=0.:
-                            sol0, sol1 = Ds[0,ii] + k*us[0,ii], Ds[1,ii] + k*us[1,ii]
+                            sol0, sol1 = dsx + k*usx, dsy + k*usy
                             if Forbidbis:
-                                sca0 = (sol0-S1X)*Ds[0,ii] + (sol1-S1Y)*Ds[1,ii]
+                                sca0 = (sol0-S1X)*dsx + (sol1-S1Y)*dsy
                                 sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                                 sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
                                 #print 3, k, kout, sca0, sca1, sca2
@@ -893,7 +902,7 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                 phi = Catan2(sol1,sol0)
                                 if lim_is_none or (not lim_is_none and ((L0<L1 and L0<=phi and phi<=L1) or (L0>L1 and (phi>=L0 or phi<=L1)))):
                                     # Get the scalar product to determine entry or exit point
-                                    sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + Csin(phi)*vIn[0,jj]*us[1,ii] + vIn[1,jj]*us[2,ii]
+                                    sca = Ccos(phi)*vIn[0,jj]*usx + Csin(phi)*vIn[0,jj]*usy + vIn[1,jj]*usz
                                     if sca<=0 and k<kout:
                                         kout = k
                                         indout = jj
@@ -905,16 +914,16 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
 
         if not lim_is_none:
             ephiIn0, ephiIn1 = -Csin(L0), Ccos(L0)
-            if Cabs(us[0,ii]*ephiIn0+us[1,ii]*ephiIn1)>EpsPlane:
-                k = -(Ds[0,ii]*ephiIn0+Ds[1,ii]*ephiIn1)/(us[0,ii]*ephiIn0+us[1,ii]*ephiIn1)
+            if Cabs(usx*ephiIn0+usy*ephiIn1)>EpsPlane:
+                k = -(dsx*ephiIn0+dsy*ephiIn1)/(usx*ephiIn0+usy*ephiIn1)
                 if k>=0:
                     # Check if in VPoly
-                    sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L0) + (Ds[1,ii]+k*us[1,ii])*Csin(L0), Ds[2,ii]+k*us[2,ii]
+                    sol0, sol1 = (dsx+k*usx)*Ccos(L0) + (dsy+k*usy)*Csin(L0), dsz+k*usz
                     #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                     # if ray_tracing(VPoly, sol0, sol1):
                     if pnpoly(Ns, VPoly[0,...], VPoly[1,...], sol0, sol1):
                         # Check PIn (POut not possible for limited torus)
-                        sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
+                        sca = usx*ephiIn0 + usy*ephiIn1
                         if sca<=0 and k<kout:
                             kout = k
                             indout = -1
@@ -923,16 +932,16 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                             kin = k
 
             ephiIn0, ephiIn1 = Csin(L1), -Ccos(L1)
-            if Cabs(us[0,ii]*ephiIn0+us[1,ii]*ephiIn1)>EpsPlane:
-                k = -(Ds[0,ii]*ephiIn0+Ds[1,ii]*ephiIn1)/(us[0,ii]*ephiIn0+us[1,ii]*ephiIn1)
+            if Cabs(usx*ephiIn0+usy*ephiIn1)>EpsPlane:
+                k = -(dsx*ephiIn0+dsy*ephiIn1)/(usx*ephiIn0+usy*ephiIn1)
                 if k>=0:
-                    sol0, sol1 = (Ds[0,ii]+k*us[0,ii])*Ccos(L1) + (Ds[1,ii]+k*us[1,ii])*Csin(L1), Ds[2,ii]+k*us[2,ii]
+                    sol0, sol1 = (dsx+k*usx)*Ccos(L1) + (dsy+k*usy)*Csin(L1), dsz+k*usz
                     # Check if in VPoly
                     #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                     # if ray_tracing(VPoly, sol0, sol1):
                     if pnpoly(Ns, VPoly[0,...], VPoly[1,...], sol0, sol1):
                         # Check PIn (POut not possible for limited torus)
-                        sca = us[0,ii]*ephiIn0 + us[1,ii]*ephiIn1
+                        sca = usx*ephiIn0 + usy*ephiIn1
                         if sca<=0 and k<kout:
                             kout = k
                             indout = -2
@@ -951,8 +960,8 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                 VPerpOut[1,ii] = -Ccos(L1)
                 VPerpOut[2,ii] = 0.
             else:
-                SOut0 = Ds[0,ii] + kout*us[0,ii]
-                SOut1 = Ds[1,ii] + kout*us[1,ii]
+                SOut0 = dsx + kout*usx
+                SOut1 = dsy + kout*usy
                 phi = Catan2(SOut1,SOut0)
                 VPerpOut[0,ii] = Ccos(phi)*vIn[0,indout]
                 VPerpOut[1,ii] = Csin(phi)*vIn[0,indout]
@@ -995,8 +1004,8 @@ cdef inline void compute_bbox(int nvert, double[:] vertr, double[:] vertz,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline void compute_bbox2(int nvert, double[:] vert,
-       double[6] bounds):
+cdef inline void compute_bbox2(int nvert, double[:,::1] vert,
+       double[6] bounds) nogil:
     cdef int ii
     cdef double rmax=vert[0,0], zmin=vert[1,0], zmax=vert[1,0]
     cdef double tmp_val
@@ -1017,9 +1026,67 @@ cdef inline void compute_bbox2(int nvert, double[:] vert,
     bounds[5] = zmax
     return
 
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void compute_bbox_lim(int nvert, double[:,::1] vert,
+                                  double[6] bounds, double lmin, double lmax) nogil:
+    cdef int ii
+    cdef double toto=100000.
+    cdef double xmin=toto, xmax=-toto
+    cdef double ymin=toto, ymax=-toto
+    cdef double zmin=toto, zmax=-toto
+    cdef double cos_min = Ccos(lmin)
+    cdef double sin_min = Csin(lmin)
+    cdef double cos_max = Ccos(lmax)
+    cdef double sin_max = Csin(lmax)
+    cdef double[3] temp
+
+    for ii in range(nvert):
+        temp[0] = vert[0, ii]
+        temp[1] = vert[1, ii]
+        coordshift_simple1d(temp, in_is_cartesian=False, CrossRef=1.,
+                          cos_phi=cos_min, sin_phi=sin_min)
+        if xmin > temp[0]:
+            xmin = temp[0]
+        if xmax < temp[0]:
+            xmax = temp[0]
+        if ymin > temp[1]:
+            ymin = temp[1]
+        if ymax < temp[1]:
+            ymax = temp[1]
+        if zmin > temp[2]:
+            zmin = temp[2]
+        if zmax < temp[2]:
+            zmax = temp[2]
+        temp[0] = vert[0, ii]
+        temp[1] = vert[1, ii]
+        coordshift_simple1d(temp, in_is_cartesian=False, CrossRef=1.,
+                          cos_phi=cos_max, sin_phi=sin_max)
+        if xmin > temp[0]:
+            xmin = temp[0]
+        if xmax < temp[0]:
+            xmax = temp[0]
+        if ymin > temp[1]:
+            ymin = temp[1]
+        if ymax < temp[1]:
+            ymax = temp[1]
+        if zmin > temp[2]:
+            zmin = temp[2]
+        if zmax < temp[2]:
+            zmax = temp[2]
+
+    bounds[0] = xmin
+    bounds[1] = ymin
+    bounds[2] = zmin
+    bounds[3] = xmax
+    bounds[4] = ymax
+    bounds[5] = zmax
+    return
+
 
 cdef inline void coordshift_simple(double[:,::1] pts, bool in_is_cartesian=True,
-                       double CrossRef=0.):
+                       double CrossRef=0., double cos_phi=0., double sin_phi=0.):
 
     cdef int npts = pts.shape[1]
     cdef int ii
@@ -1056,8 +1123,48 @@ cdef inline void coordshift_simple(double[:,::1] pts, bool in_is_cartesian=True,
             for ii in range(npts):
                 r = pts[0, ii]
                 z = pts[1, ii]
-                p = pts[2, ii]
-                pts[0, ii] = CrossRef
-                pts[1, ii] = r*Csin(p)
+                pts[0, ii] = r*cos_phi
+                pts[1, ii] = r*sin_phi
                 pts[2, ii] = z
-    return pts
+    return
+
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian=True,
+                                     double CrossRef=0., double cos_phi=0.,
+                                     double sin_phi=0.) nogil:
+
+    cdef double x, y, z
+    cdef double r, p
+    if in_is_cartesian:
+        if CrossRef==0.:
+            x = pts[0]
+            y = pts[1]
+            z = pts[2]
+            pts[0] = Csqrt(x*x+y*y)
+            pts[1] = z
+            pts[2] = Catan2(y,x)
+        else:
+            x = pts[0]
+            y = pts[1]
+            z = pts[2]
+            pts[0] = Csqrt(x*x+y*y)
+            pts[1] = z
+            pts[2] = CrossRef
+    else:
+        if CrossRef==0.:
+            r = pts[0]
+            z = pts[1]
+            p = pts[2]
+            pts[0] = r*Ccos(p)
+            pts[1] = r*Csin(p)
+            pts[2] = z
+        else:
+            r = pts[0]
+            z = pts[1]
+            pts[0] = r*cos_phi
+            pts[1] = r*sin_phi
+            pts[2] = z
+    return
