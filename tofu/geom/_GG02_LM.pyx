@@ -9,29 +9,14 @@ from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.stdlib cimport malloc, free
 
 import numpy as np
-from tofu.geom._poly_utils import get_bbox_poly_extruded, get_bbox_poly_limited
+from tofu.geom._poly_utils import get_bbox_poly_limited
+# from tofu.geom._poly_utils import get_bbox_poly_extruded
 
-
-# cdef extern from *:
-#     """
-#     template <typename T>
-#     T* array_new(int n) {
-#         return new T[n];
-#     }
-
-#     template <typename T>
-#     void array_delete(T* x) {
-#         delete [] x;
-#     }
-#     """
-#     T* array_new[T](int)
-#     void array_delete[T](T* x)
-
-# from libcpp.vector cimport vector
 
 __all__ = ['LOS_Calc_PInOut_VesStruct']
 
-
+cdef double _SMALL = 1.e-6
+cdef double _VERY_SMALL = 1.e-9
 
 ########################################################
 ########################################################
@@ -42,14 +27,21 @@ __all__ = ['LOS_Calc_PInOut_VesStruct']
 @cython.profile(True)
 @cython.linetrace(True)
 @cython.binding(True)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
 def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                               double[:,::1] VPoly,
                               double[:,::1] VIn,
-                              Lim=None, int nLim=<int>-1, int ntotStruct=<int>0, 
-                              list LSPoly=None, list LSLim=None, list lSnLim=None, list LSVIn=None,
+                              Lim=None, int nLim=<int>-1, int ntotStruct=<int>0,
+                              list LSPoly=None, list LSLim=None,
+                              list lSnLim=None, list LSVIn=None,
                               RMin=None, bool Forbid=True,
-                              double EpsUz=<double>1.e-6, double EpsVz=<double>1.e-9, double EpsA=<double>1.e-9,
-                              double EpsB=<double>1.e-9, double EpsPlane=<double>1.e-9,
+                              double EpsUz=_SMALL,
+                              double EpsVz=_VERY_SMALL,
+                              double EpsA=_VERY_SMALL,
+                              double EpsB=_VERY_SMALL,
+                              double EpsPlane=_VERY_SMALL,
                               str VType='Tor', bool Test=True):
     """ Compute the entry and exit point of all provided LOS for the provided
     vessel polygon (toroidal or linear), also return the normal vector at
@@ -134,10 +126,15 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
 
     llim_ves = []
     #cdef double[ntotStruct][6] lbounds
+    # langles = []
     cdef double *lbounds = <double *>malloc(ntotStruct * 6 * sizeof(double))
-    langles = []
-    llen_lim = []
-    lls_lim = []
+    cdef double *langles = <double *>malloc(ntotStruct * 2 * sizeof(double))
+    cdef long *llen_lim
+    # cdef double[:] rview
+    # cdef double[:] zview
+    cdef double[:,::1] lspoly_view
+    cdef int nvert
+
     if nLim==0:
         lim_is_none = 1
     elif nLim==1:
@@ -175,29 +172,35 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
         if LSPoly is not None:
             ind_lim_data = 0
             len_lspoly = len(LSPoly)
+            llen_lim  = <long *>malloc(len_lspoly * sizeof(long))
             for ii in range(len_lspoly):
                 if LSLim[ii] is None or not all([hasattr(ll,'__iter__') for ll in LSLim[ii]]):
                     lslim = [LSLim[ii]]
                 else:
                     lslim = LSLim[ii]
                 len_lim = len(lslim)
-                llen_lim.append(len_lim) # todo as tab !!!
+                llen_lim[ii] = len_lim
                 # sub strcutres limited:
                 for jj in range(len_lim):
                     # We compute the structure's bounding box:
-                    lls_lim.append(lslim[jj])
                     if lslim[jj] is not None:
                         lim_ves[0] = lslim[jj][0]
                         lim_ves[1] = lslim[jj][1]
                         llim_ves.append(0)
                         L0 = Catan2(Csin(lim_ves[0]),Ccos(lim_ves[0]))
                         L1 = Catan2(Csin(lim_ves[1]),Ccos(lim_ves[1]))
-                        langles.append([L0, L1])
                         bounds = get_bbox_poly_limited(np.asarray(LSPoly[ii]), [L0, L1])
                     else:
                         llim_ves.append(1)
-                        bounds = get_bbox_poly_extruded(np.asarray(LSPoly[ii]))
-                        langles.append([0., 0.])
+                        lspoly_view = LSPoly[ii]
+                        # rview = lspoly_view[0,:]
+                        # zview = Poly[1,:]
+                        nvert = len(lspoly_view[0])
+                        compute_bbox2(nvert, lspoly_view, bounds)
+                        L0 = 0.
+                        L1 = 0.
+                    langles[ind_lim_data*2] = L0
+                    langles[ind_lim_data*2 + 1] = L1
                     for jj in range(6):
                         lbounds[ind_lim_data*6 + jj] = bounds[jj]
                     ind_lim_data += 1
@@ -231,7 +234,8 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                         bounds[3] = lbounds[ind_lim_data*6 + 3]
                         bounds[4] = lbounds[ind_lim_data*6 + 4]
                         bounds[5] = lbounds[ind_lim_data*6 + 5]
-                        [L0, L1] = langles[ind_lim_data]
+                        L0 = langles[ind_lim_data*2]
+                        L1 = langles[ind_lim_data*2 + 1]
                         lim_is_none = llim_ves[ind_lim_data]
 
                         ind_lim_data += 1
@@ -270,6 +274,9 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                             last_pout[1] = kPOut_view[ind_tmp] * los_dirv_loc[1] + los_orig_loc[1]
                             last_pout[2] = kPOut_view[ind_tmp] * los_dirv_loc[2] + los_orig_loc[2]
 
+            free(llen_lim)
+    free(lbounds)
+    free(langles)
     return kPIn, kPOut, VperpOut, IOut
 
 @cython.profile(True)
@@ -306,7 +313,7 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
     if Forbid:
         Forbid0, Forbidbis = 1, 1
     else:
-        Forbid0, Forbidbis = 0, 0    
+        Forbid0, Forbidbis = 0, 0
 
     upscaDp = us[0]*Ds[0] + us[1]*Ds[1]
     upar2   = us[0]*us[0] + us[1]*us[1]
@@ -589,7 +596,7 @@ cdef inline void compute_inv_and_sign(const double[3] us,
     cdef int t0 = 1000000
     # computing sign and direction
     for  ii in range(3):
-        if us[ii]*us[ii] < 1.e-9:
+        if us[ii]*us[ii] < _VERY_SMALL:
             inv_direction[ii] = t0
         else:
             inv_direction[ii] = 1./us[ii]
@@ -665,9 +672,9 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                          double[:] kPIn_view, double[:] kPOut_view,
                          double[:,::1] VperpOut_view, long[:,::1] IOut_view,
                          double Rmin, bint lim_is_none, double L0, double L1,
-                         bool Forbid, double EpsUz=1.e-6,
-                         double EpsVz=1.e-9, double EpsA=1.e-9,
-                         double EpsB=1.e-9, double EpsPlane=1.e-9):
+                         bool Forbid, double EpsUz=_SMALL,
+                         double EpsVz=_VERY_SMALL, double EpsA=_VERY_SMALL,
+                         double EpsB=_VERY_SMALL, double EpsPlane=_VERY_SMALL):
 
     cdef int ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
     cdef double upscaDp, upar2, Dpar2, Crit2, kout, kin
@@ -958,3 +965,99 @@ cdef void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
     kPOut_view[...] = kOut[...]
     VperpOut_view[...] = VPerpOut[...]
     return
+
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void compute_bbox(int nvert, double[:] vertr, double[:] vertz,
+       double[6] bounds):
+    cdef int ii
+    cdef double rmax=vertr[0], zmin=vertz[0], zmax=vertz[0]
+    cdef double tmp_val
+    for ii in range(1, nvert):
+        tmp_val = vertr[ii]
+        if tmp_val > rmax:
+            rmax = tmp_val
+        tmp_val = vertz[ii]
+        if tmp_val > zmax:
+            zmax = tmp_val
+        elif tmp_val < zmin:
+            zmin = tmp_val
+    bounds[0] = -rmax
+    bounds[1] = -rmax
+    bounds[2] = zmin
+    bounds[3] = rmax
+    bounds[4] = rmax
+    bounds[5] = zmax
+    return
+
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline void compute_bbox2(int nvert, double[:] vert,
+       double[6] bounds):
+    cdef int ii
+    cdef double rmax=vert[0,0], zmin=vert[1,0], zmax=vert[1,0]
+    cdef double tmp_val
+    for ii in range(1, nvert):
+        tmp_val = vert[0,ii]
+        if tmp_val > rmax:
+            rmax = tmp_val
+        tmp_val = vert[1,ii]
+        if tmp_val > zmax:
+            zmax = tmp_val
+        elif tmp_val < zmin:
+            zmin = tmp_val
+    bounds[0] = -rmax
+    bounds[1] = -rmax
+    bounds[2] = zmin
+    bounds[3] = rmax
+    bounds[4] = rmax
+    bounds[5] = zmax
+    return
+
+
+cdef inline void coordshift_simple(double[:,::1] pts, bool in_is_cartesian=True,
+                       double CrossRef=0.):
+
+    cdef int npts = pts.shape[1]
+    cdef int ii
+    cdef double x, y, z
+    cdef double r, p
+    if in_is_cartesian:
+        if CrossRef==0.:
+            for ii in range(npts):
+                x = pts[0, ii]
+                y = pts[1, ii]
+                z = pts[2, ii]
+                pts[0, ii] = Csqrt(x*x+y*y)
+                pts[1, ii] = z
+                pts[2, ii] = Catan2(y,x)
+        else:
+            for ii in range(npts):
+                x = pts[0, ii]
+                y = pts[1, ii]
+                z = pts[2, ii]
+                pts[0, ii] = Csqrt(x*x+y*y)
+                pts[1, ii] = z
+                pts[2, ii] = CrossRef
+
+    else:
+        if CrossRef==0.:
+            for ii in range(npts):
+                r = pts[0, ii]
+                z = pts[1, ii]
+                p = pts[2, ii]
+                pts[0, ii] = r*Ccos(p)
+                pts[1, ii] = r*Csin(p)
+                pts[2, ii] = z
+        else:
+            for ii in range(npts):
+                r = pts[0, ii]
+                z = pts[1, ii]
+                p = pts[2, ii]
+                pts[0, ii] = CrossRef
+                pts[1, ii] = r*Csin(p)
+                pts[2, ii] = z
+    return pts
