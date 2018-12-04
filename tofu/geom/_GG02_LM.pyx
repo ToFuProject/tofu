@@ -6,11 +6,28 @@ from libc.math cimport sqrt as Csqrt, ceil as Cceil, fabs as Cabs
 from libc.math cimport floor as Cfloor, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
+from libc.stdlib cimport malloc, free
 
 import numpy as np
 from tofu.geom._poly_utils import get_bbox_poly_extruded, get_bbox_poly_limited
 
 
+# cdef extern from *:
+#     """
+#     template <typename T>
+#     T* array_new(int n) {
+#         return new T[n];
+#     }
+
+#     template <typename T>
+#     void array_delete(T* x) {
+#         delete [] x;
+#     }
+#     """
+#     T* array_new[T](int)
+#     void array_delete[T](T* x)
+
+# from libcpp.vector cimport vector
 
 __all__ = ['LOS_Calc_PInOut_VesStruct']
 
@@ -28,8 +45,8 @@ __all__ = ['LOS_Calc_PInOut_VesStruct']
 def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                               double[:,::1] VPoly,
                               double[:,::1] VIn,
-                              Lim=None, int nLim=-1, int ntotStruct=0, 
-                              list LSPoly=None, LSLim=None, lSnLim=None, LSVIn=None,
+                              Lim=None, int nLim=<int>-1, int ntotStruct=<int>0, 
+                              list LSPoly=None, list LSLim=None, list lSnLim=None, list LSVIn=None,
                               RMin=None, bool Forbid=True,
                               double EpsUz=<double>1.e-6, double EpsVz=<double>1.e-9, double EpsA=<double>1.e-9,
                               double EpsB=<double>1.e-9, double EpsPlane=<double>1.e-9,
@@ -116,7 +133,8 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
     #cdef long[:] IOut2_view
 
     llim_ves = []
-    lbounds = []
+    #cdef double[ntotStruct][6] lbounds
+    cdef double *lbounds = <double *>malloc(ntotStruct * 6 * sizeof(double))
     langles = []
     llen_lim = []
     lls_lim = []
@@ -176,12 +194,12 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                         L1 = Catan2(Csin(lim_ves[1]),Ccos(lim_ves[1]))
                         langles.append([L0, L1])
                         bounds = get_bbox_poly_limited(np.asarray(LSPoly[ii]), [L0, L1])
-                        lbounds.append(bounds)
                     else:
                         llim_ves.append(1)
                         bounds = get_bbox_poly_extruded(np.asarray(LSPoly[ii]))
-                        lbounds.append(bounds)
                         langles.append([0., 0.])
+                    for jj in range(6):
+                        lbounds[ind_lim_data*6 + jj] = bounds[jj]
                     ind_lim_data += 1
 
             for ind_tmp in range(0, num_los):
@@ -207,7 +225,12 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                 compute_inv_and_sign(los_dirv_loc, sign_ray, invr_ray)
                 for ii in range(len_lspoly):
                     for jj in range(0, llen_lim[ii]):
-                        bounds = lbounds[ind_lim_data]
+                        bounds[0] = lbounds[ind_lim_data*6]
+                        bounds[1] = lbounds[ind_lim_data*6 + 1]
+                        bounds[2] = lbounds[ind_lim_data*6 + 2]
+                        bounds[3] = lbounds[ind_lim_data*6 + 3]
+                        bounds[4] = lbounds[ind_lim_data*6 + 4]
+                        bounds[5] = lbounds[ind_lim_data*6 + 5]
                         [L0, L1] = langles[ind_lim_data]
                         lim_is_none = llim_ves[ind_lim_data]
 
