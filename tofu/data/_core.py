@@ -93,7 +93,9 @@ class Data(utils.ToFuObject):
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'Type':'1D',
                    'include':['Mod','Cls','Exp','Diag',
-                              'Name','shot','version']}}
+                              'Name','shot','version']},
+             'dtreat':{'order':['mask','interp_t','interp_ch','data0','fft',
+                                'indt', 'indch']}}
 
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
@@ -332,6 +334,14 @@ class Data(utils.ToFuObject):
                 dunits['lamb'] = 'a.u.'
             assert type(dunits['lamb']) is str
         return dunits
+
+    def _checkformat_inputs_dtreat(self, dtreat=None):
+        if dtreat is None:
+            dtreat = {}
+        assert type(dtreat) is dict
+        if 'order' not in dtreat.keys():
+            dtreat['order'] = list(self._ddef['dtreat']['order'])
+        return dtreat
 
     def _checkformat_inputs_dgeom(self, lCam=None, config=None):
         if config is not None:
@@ -664,11 +674,7 @@ class Data(utils.ToFuObject):
 
     @property
     def data(self):
-        if self._ddata['data'] is None:
-            data = self._get_data()
-        else:
-            data = self._ddata['data']
-        return data
+        return self._get_data()
 
     @property
     def t(self):
@@ -676,7 +682,6 @@ class Data(utils.ToFuObject):
             t = self._ddataRef['t']
         else:
             t = self._ddata['t'][self.indt]
-        else:
         return t
 
 
@@ -725,11 +730,6 @@ class Data(utils.ToFuObject):
     ###########
     # public methods
     ###########
-
-    def clear_data(self):
-        self._ddata = dict.fromkeys(self._get_keys_ddata())
-        self.compute_data()
-
 
     def select_t(self, t=None, out=bool):
         """ Return a time index array
@@ -902,7 +902,10 @@ class Data(utils.ToFuObject):
         self._dtreat['indch'] = indch
 
     def set_mask(self, ind=None, val=np.nan):
+        assert ind is None or hasattr(ind,'__iter__')
         assert type(val) in [int,float,np.int64,np.float64]
+        if ind is not None:
+            ind = _format_ind(ind, n=self._ddataRef['nX'])
         self._dtreat['mask-ind'] = ind
         self._dtreat['mask-val'] = val
 
@@ -928,43 +931,226 @@ class Data(utils.ToFuObject):
         self._dtreat['data0-Dt'] = Dt
 
     def set_interp_ch(self, indch=None):
-        if indch is not None:
+        """ Set the indices of the channels for which to interpolate data
+
+        The index can be provided as:
+            - A 1d np.ndarray of boolean or int indices of channels
+                => interpolate data at these channels for all times
+            - A dict with:
+                * keys = int indices of times
+                * values = array of int indices of chan. for which to interpolate
+
+        Time indices refer to self.ddataRef['t']
+        Channel indices refer to self.ddataRef['X']
+        """
+        assert indch is None or type(indch) in [np.ndarray, list, dict]
+        if isinstance(indch,dict):
+            C = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
+            assert all(C)
+            for k in indch.keys():
+                assert hasattr(indch[k],'__iter__')
+                indch[k] = _format_ind(indch[k], n=self._ddataRef['nX'])
+        else:
             indch = np.asarray(indch)
-            if indch.ndim==1:
-                indch = _format_ind(indch, n=self._ddataRef['nX'])
-            else:
-                assert indch.shape==(self._ddataRef['nt'],self._ddataRef['nX'])
-                for ii in range(0,self._ddataRef['nt']):
-                    indch[ii,:] = _format_ind(indch[ii,:], n=self._ddataRef['nX'])
+            assert indch.ndim==1:
+            indch = _format_ind(indch, n=self._ddataRef['nX'])
         self._dtreat['interp-indch'] = indch
+        self._ddata['uptodate'] = False
 
     def set_interp_t(self, indt=None):
-        if indt is not None:
+        """ Set the indices of the times for which to interpolate data
+
+        The index can be provided as:
+            - A 1d np.ndarray of boolean or int indices
+                => interpolate data at these times for all channels
+            - A dict with:
+                * keys = int indices of channels
+                * values = array of int indices of times at which to interpolate
+
+        Time indices refer to self.ddataRef['t']
+        Channel indices refer to self.ddataRef['X']
+        """
+        assert indt is None or type(indt) in [np.ndarray, list, dict]
+        if isinstance(indt,dict):
+            C = [type(k) is int and k<self._ddataRef['nX'] for k in indt.keys()]
+            assert all(C)
+            for k in indt.keys():
+                assert hasattr(indt[k],'__iter__')
+                indt[k] = _format_ind(indt[k], n=self._ddataRef['nt'])
+        else:
             indt = np.asarray(indt)
-            if indt.ndim==1:
-                indt = _format_ind(indch, n=self._ddataRef['nt'])
-            else:
-                assert indt.shape==(self._ddataRef['nt'],self._ddataRef['nX'])
-                for ii in range(0,self._ddataRef['nX']):
-                    indt[:,ii] = _format_ind(indch[:,ii], n=self._ddataRef['nt'])
+            assert indt.ndim==1:
+            indt = _format_ind(indt, n=self._ddataRef['nt'])
+        self._dtreat['interp-indt'] = indt
+        self._ddata['uptodate'] = False
 
-        self._dtreat['interp-indt'] =
+    @staticmethod
+    def _mask(data, mask_ind, mask_val):
+        if mask_ind is not None:
+            if data.ndim==2:
+                data[:,mask_ind] = mask_val
+            elif data.ndim==3:
+                data[:,mask_ind,:] = mask_val
+        return data
+
+    @staticmethod
+    def _interp_indt(data, ind, t):
+        msg = "interp not coded yet for 3d data !"
+        assert data.ndim==2, msg
+        if type(ind) is dict:
+            for kk in ind.keys():
+                data[ind[kk],kk] = np.interp(t[ind[kk]],
+                                             t[~ind[kk]], data[~ind[kk],kk],
+                                             right=np.nan, left=np.nan)
+        elif isinstance(ind,np.ndarray):
+            for ii in range(0,data.shape[1]):
+                data[ind,ii] = np.interp(t[ind], t[~ind], data[~ind,ii])
+
+        return data
+
+    @staticmethod
+    def _interp_indch(data, ind, X):
+        msg = "interp not coded yet for 3d data !"
+        assert data.ndim==2, msg
+        if type(ind) is dict:
+            for kk in ind.keys():
+                data[kk,ind[kk]] = np.interp(X[ind[kk]],
+                                             X[~ind[kk]], data[kk,~ind[kk]],
+                                             right=np.nan, left=np.nan)
+        elif isinstance(ind,np.ndarray):
+            for ii in range(0,data.shape[0]):
+                data[ii,ind] = np.interp(X[ind], X[~ind], data[ii,~ind])
+
+        return data
+
+    @staticmethod
+    def _data0(data, data0):
+        if data0 is not None:
+            if data.shape==data0.shape:
+                data = data - data0
+            elif data.ndim==2:
+                data = data - data0[np.newaxis,:]
+            if data.ndim==3:
+                data = data - data0[np.newaxis,:,np.newaxis]
+        return data
+
+    @staticmethod
+    def _fft(data, df=None, harm=None, dfEx=None, harmEx=None):
+
+
+
+    @staticmethod
+    def _indt(data, indt):
+        if indt is not None:
+            if data.ndim==2:
+                data = data[indt,:]
+            elif data.ndim==3:
+                data = data[indt,:,:]
+        return data
+
+    @staticmethod
+    def _indch(data, indch):
+        if indt is not None:
+            if data.ndim==2:
+                data = data[:,indch]
+            elif data.ndim==3:
+                data = data[:,indch,:]
+        return data
+
+    def _get_data(self):
+        if self._ddata['uptodate']:
+            data = self._ddata['data']
+        else:
+            data = self._get_treated_data()
+            self._ddata['data'] = data
+            self._ddata['uptodate'] = True
+        return data
+
+    def set_dtreat_order(self, order=None):
+        """ Set the order in which the data treatment should be performed
+
+        Provide an ordered list of keywords indicating the order in which
+         you wish the data treatment steps to be performed.
+        Each keyword corresponds to a step.
+            - 'mask' :
+            - 'interp_t' :
+            - 'interp_ch' :
+            - 'data0' :
+            - 'fft' :
+            - 'indt' :
+            - 'indch' :
+
+        All steps are performed on the stored reference self.dataRef['data']
+        Thus, the time and channels restriction must be the last 2 steps
+        """
+        if order is None:
+            order = list(self._ddef['dtreat']['order'])
+        assert type(order) is list and all([type(ss) is str for ss in order])
+        C = [ss in ['indt','indch'] for ss in self._dtreat['order'][-2:]]
+        if not all(C):
+            msg = "indt and indch must be the last 2 treatment steps !"
+            raise Exception(msg)
+        self._dtreat['order'] = order
+
+    def _get_treated_data(self):
+        """ Produce a working copy of the data based on the treated reference
+
+        The reference data is always stored and untouched in self.ddataRef
+        You always interact with self.data, which returns a working copy.
+        That working copy is the reference data, eventually treated along the
+            lines defined (by the user) in self.dtreat
+        By reseting the treatment (self.reset()) all data treatment is
+        cancelled and the working copy returns the reference data.
+
+        """
+        indt, indch = self._dtreat['interp_indt'], self._dtreat['interp_indch']
+        C0 = indch is None
+        C1 = indt is None
+        C2 = self._dtreat['fft-df'] is None
+        C3 = self._dtreat['svd-modes'] is None
+        if np.sum([C2,C3])==0:
+            msg = "You cannot do both a fft and svd filtering, choose one"
+            msg += "\n  => remove fft by self.set_fft()"
+            msg += "\n  => remove svd by self.set_svd()"
+            raise Exception(msg)
+        d = self._ddataRef['data'].copy()
+        for kk in self._dtreat['order']:
+            if kk=='mask' and self._dtreat['mask-ind'] is not None:
+                d = self._mask(d, self._dtreat['mask-ind'],
+                               self._dtreat['mask-val'])
+            if kk=='interp_t':
+                d = self._interp_indt(d, self._dtreat['interp-indt'],
+                                      self._ddataRef['t'])
+            if kk=='interp_ch':
+                d = self._interp_indt(d, self._dtreat['interp-indch'],
+                                      self._ddataRef['X'])
+            if kk=='data0':
+                d = self._data0(d, self._dtreat['data0-data'],
+                                self._dtreat['data-val'])
+            if kk=='fft':
+                d = self._fft(d, self._dtreat['fft-df'], self._dtreat['fft-'])
+            if kk=='indt':
+                d = self._indt(d, self._dtreat['indt'])
+            if kk=='indch':
+                d = self._indch(d, self._dtreat['indt'])
+        return d
+
+
+
+    def get_treatment(self):
 
 
 
 
-
-
-    def set_fft():
-
-
-
-
-
-
-
-
-
+    def reset_treatment(self):
+        self.set_indch()
+        self.set_indt()
+        self.set_data0()
+        self.set_interp_t()
+        self.set_fft()
+        self._set_data()
+        self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self.compute_data()
 
 
 
@@ -976,14 +1162,6 @@ class Data(utils.ToFuObject):
 
 
 ############################################ To be finished
-
-
-        self._dunits = {} if dunits is None else dunits
-        self._data, self._t, self._nt = None, None, None
-        self._indt, self._indch, self._mask = None, None, None
-        self._data0 = {'data':None,'t':None,'Dt':None}
-        self._fft, self._interp_t = None, None
-        self._indt_corr, self._indch_corr = None, None
 
 
     def dchans(self, key=None):
@@ -1031,42 +1209,6 @@ class Data(utils.ToFuObject):
 
 
 
-    def set_interp_t(self, t=None):
-        if t is not None:
-            t = np.asarray(t).astype(float)
-            assert t.ndim==1
-            assert (t>self._Ref['t'][-1]).sum()<=1
-            assert (t<self._Ref['t'][0]).sum()<=1
-        self._interp_t = t
-        self._set_data()
-
-    def set_fft(self, fft=None):
-        pass
-
-    def reset(self):
-        self.set_indch()
-        self.set_indt()
-        self.set_data0()
-        self.set_interp_t()
-        self.set_fft()
-        self._set_data()
-
-    def _calc_data_core(self):
-        d = self._Ref['data'].copy()
-        # Get time interval
-        if self._indt is not None:
-            d = d[self.indt,:]
-        # Substract reference time data
-        if self._data0['data'] is not None:
-            d = d - self._data0['data'][np.newaxis,:]
-        # Apply mask of any
-        mask = self.mask
-        if mask is not None:
-            d[:,mask['ind']] = mask['val']
-        # Get desired channels
-        if self._indch is not None:
-            d = d[:,self.indch]
-        return d
 
     def _set_data(self):
         if self._fft is None and self._interp_t is None:
@@ -1088,16 +1230,6 @@ class Data(utils.ToFuObject):
                 self._nt = None
         self._data = d
 
-    def _get_data(self):
-        if self._data is None:
-            d = self._calc_data_core()
-        else:
-            d = self._data
-        return d
-
-
-    #def get_fft(self, DF=None, Harm=True, DFEx=None, HarmEx=True, Calc=True):
-        #self._set_data()
 
     def __abs__(self):
         opfunc = lambda x: np.abs(x)
