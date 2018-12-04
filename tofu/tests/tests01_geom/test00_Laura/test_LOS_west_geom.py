@@ -2,7 +2,7 @@
 from tofu_LauraBenchmarck_load_config import *
 import tofu.geom._GG_LM as _GG
 import time
-#import line_profiler
+import line_profiler
 import pstats, cProfile
 
 
@@ -108,12 +108,12 @@ def test_line_profile(config="B2", cam="V1000"):
     profile.print_stats()
 
 def test_LOS_profiling():
-    Cams = ["V100000"]
+    Cams = ["V1000000"]
     Bconfigs = ["B2"]
     for icon in Bconfigs :
-        print("*..................................*")
-        print("*      Testing the "+icon+" config       *")
-        print("*..................................*")
+        print("*............................................*")
+        print("*      Testing the "+icon+" config with "+Cams[0]+"  *")
+        print("*............................................*")
         times = test_LOS_west_configs(icon, Cams, plot=False, save=False)
         for ttt in times:
             print(ttt)
@@ -161,9 +161,9 @@ if __name__ == "__main__":
     # test_LOS_all(save=True,saveCam=["V1000"])
     # test_LOS_cprofiling()
     # plot_all_configs()
-    # touch_plot_all_configs()
+    touch_plot_all_configs()
     # touch_plot_config_cam("B3", "V10000")
-    touch_plot_config_cam("B2", "V10000")
+    # touch_plot_config_cam("B2", "V10000")
     #touch_plot_config_cam("B3", "V100000")
     # line profiling.....
     # test_line_profile(cam="V1000")

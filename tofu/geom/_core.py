@@ -2395,7 +2395,6 @@ class Rays(utils.ToFuObject):
             # Prepare input
             D = np.ascontiguousarray(self.D)
             u = np.ascontiguousarray(self.u)
-
             # Get reference
             lS = self.lStruct_computeInOut
 
@@ -2426,7 +2425,7 @@ class Rays(utils.ToFuObject):
                     num_tot_structs += 1
                 else:
                     num_tot_structs += len(ss.Lim)
-                print(num_tot_structs)
+
             largs = [D, u, VPoly, VVIn]
             dkwd = dict(Lim=Lim, nLim=nLim, ntotStruct=num_tot_structs,
                         LSPoly=lSPoly, LSLim=lSLim,
