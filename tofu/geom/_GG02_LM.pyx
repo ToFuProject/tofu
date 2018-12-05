@@ -6,6 +6,7 @@ from libc.math cimport sqrt as Csqrt, ceil as Cceil, fabs as Cabs
 from libc.math cimport floor as Cfloor, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
+from libc.math cimport NAN as Cnan
 from libc.stdlib cimport malloc, free
 
 import numpy as np
@@ -615,9 +616,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                 SIn0 = Ds[0] + kin*us[0]
                 SIn1 = Ds[1] + kin*us[1]
                 phi = Catan2(SIn1,SIn0)
-                vperpin[0] = Ccos(phi)*vIn[0,indin]
-                vperpin[1] = Csin(phi)*vIn[0,indin]
-                vperpin[2] = vIn[1,indin]
+                vperpin[0] = -Ccos(phi)*vIn[0,indin]
+                vperpin[1] = -Csin(phi)*vIn[0,indin]
+                vperpin[2] = -vIn[1,indin]
             indin_loc[0] = indin
 
                 
@@ -787,14 +788,14 @@ cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
             VperpOut_view[2,ii] = loc_vp[2]
 
         else:
-            kPIn_view[ii]       = np.nan
-            kPOut_view[ii]      = np.nan
-            IOut_view[2, ii]    = 0
+            kPIn_view[ii]       = Cnan
+            kPOut_view[ii]      = Cnan
+            IOut_view[2, ii]    = -1000000
             IOut_view[0, ii]    = 0
             IOut_view[1, ii]    = 0
-            VperpOut_view[0,ii] = 0.
-            VperpOut_view[1,ii] = 0.
-            VperpOut_view[2,ii] = 0.
+            VperpOut_view[0,ii] = Cnan
+            VperpOut_view[1,ii] = Cnan
+            VperpOut_view[2,ii] = Cnan
             
 
     return

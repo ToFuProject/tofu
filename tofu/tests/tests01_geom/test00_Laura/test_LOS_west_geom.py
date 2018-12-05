@@ -5,6 +5,9 @@ import time
 import line_profiler
 import pstats, cProfile
 
+_is_new_version = True
+_all_cams = ["V1", "V10", "V100", "V1000", "V10000",
+            "V100000", "V1000000"]
 
 def prepare_inputs(vcam, config, method='ref'):
 
@@ -64,11 +67,17 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
         start = time.time()
         out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
         elapsed = time.time() - start
-        if save and vcam in saveCam :
+        if save and vcam in saveCam and _is_new_version:
             np.savez("out_kin_"     +config+"_"+vcam+".npz", out[0])
             np.savez("out_kout_"    +config+"_"+vcam+".npz", out[1])
             np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[2])
             np.savez("out_iout_"    +config+"_"+vcam+".npz", out[3])
+        if save and vcam in saveCam and not  _is_new_version:
+            np.savez("out_kin_"     +config+"_"+vcam+".npz", out[2])
+            np.savez("out_kout_"    +config+"_"+vcam+".npz", out[3])
+            np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[5])
+            np.savez("out_iout_"    +config+"_"+vcam+".npz", out[7])
+
         times.append(elapsed)
     return times
 
@@ -78,25 +87,35 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
 def test_LOS_compact(save=False, saveCam=[]):
     Cams = ["V1", "V10", "V100", "V1000", "V10000",
             "V100000"]#, "V1000000"]
+    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
+             "VA100000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
     for icon in configs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_configs(icon, Cams, save=save, saveCam=saveCam)
+        if icon == "A2":
+            times = test_LOS_west_configs(icon, CamsA, save=save, saveCam=saveCam)
+        else:
+            times = test_LOS_west_configs(icon, Cams, save=save, saveCam=saveCam)
         for indt,ttt in enumerate(times):
             print(indt, ttt)
 
 
 def test_LOS_all(save=False, saveCam=[]):
-    Cams = ["V1", "V10", "V100", "V1000", "V10000",
-            "V100000", "V1000000"]
+    Cams = ["V1000"]#["V1", "V10", "V100", "V1000", "V10000",
+    #"V100000", "V1000000"]
+    CamsA = ["VA1000"]#["VA1", "VA10", "VA100", "VA1000", "VA10000",
+    #         "VA100000", "VA1000000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
     for icon in configs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
-        times = test_LOS_west_configs(icon, Cams, save=save, saveCam=saveCam)
+        if icon == "A2":
+            times = test_LOS_west_configs(icon, CamsA, save=save, saveCam=saveCam)
+        else:
+            times = test_LOS_west_configs(icon, Cams, save=save, saveCam=saveCam)
         for ttt in times:
             print(ttt)
 
@@ -136,10 +155,14 @@ def touch_plot_all_configs():
     ABconfigs = ["A1", "A2", "A3", "B1", "B2", "B3"]
     Cams = ["V1", "V10", "V100", "V1000", "V10000",
             "V100000", "V1000000"]
-
+    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
+            "VA100000", "VA1000000"]
     for indx, config in enumerate(ABconfigs):
         indcam = -2
-        cam = Cams[indcam]
+        if config=="A2":
+            cam = CamsA[indcam]
+        else:
+            cam = Cams[indcam]
         D, u, loscam = get_Du(cam, config=config, make_cam=True)
         loscam.plot_touch()
         plt.savefig("plottouch_dconfig"+config+"_"+cam)
@@ -155,13 +178,43 @@ def touch_plot_config_cam(config, cam):
     plt.savefig("plottouch_dconfig"+config+"_"+cam)
 
 
+def are_results_the_same():
+    from os import listdir 
+    from os.path import isfile, join
+    mypath = "new_res/"
+    os.system("mv out_*.npz "+mypath)
+    onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
+    for f in onlyfiles: 
+        res_old = np.load("old_res/"+f) 
+        res_new = np.load("new_res/"+f) 
+        arr_old = res_old['arr_0'] 
+        arr_new = res_new['arr_0'] 
+        arr_err = np.sum(np.abs(arr_old - arr_new))
+        arr_eql = np.allclose(arr_old, arr_new, equal_nan=True)
+        if arr_err > 0.0001 and not arr_eql:
+            print(f) 
+            wh_diff = np.where(arr_old != arr_new) 
+            print("where = ", wh_diff) 
+            print("old :\n",arr_old[wh_diff])
+            print("new :\n",arr_new[wh_diff])
+            print(arr_new[0][0], arr_old[0][0], arr_new[0][0]==arr_old[0][0],
+                  type(arr_new), type(arr_old), type(arr_new[0][0]),
+                  type(arr_old[0][0]), arr_err)
+        else : 
+            print(f, ": TRUE ", arr_err, arr_eql)
+        if not arr_eql:
+            print(arr_old[:,:3])
+            print(arr_new[:,:3])
+
 if __name__ == "__main__":
-    # test_LOS_compact()
+    # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
+    # are_results_the_same()
+    test_LOS_compact()
     # test_LOS_all()
-    # test_LOS_all(save=True,saveCam=["V1000"])
+    # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
     # plot_all_configs()
-    touch_plot_all_configs()
+    # touch_plot_all_configs()
     # touch_plot_config_cam("A2", "V10000")
     # touch_plot_config_cam("B2", "V10000")
     #touch_plot_config_cam("B3", "V100000")
