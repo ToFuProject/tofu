@@ -107,6 +107,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
     cdef bint Forbidbis, Forbid0
     cdef double upscaDp, upar2, Dpar2, Crit2, invDpar2, rmin2
     cdef double L=0., S1X=0., S1Y=0., S2X=0., S2Y=0.
+    cdef double Crit2_base = EpsUz*EpsUz/400.
     cdef double [3] struct_vperpin_view
     cdef double[3] last_pout
     cdef double[6] bounds
@@ -233,7 +234,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                 upar2   = los_dirv_loc[0]*los_dirv_loc[0] + los_dirv_loc[1]*los_dirv_loc[1]
                 Dpar2   = los_orig_loc[0]*los_orig_loc[0] + los_orig_loc[1]*los_orig_loc[1]
                 invDpar2 = 1./Dpar2
-                Crit2 = EpsUz*EpsUz*upar2/400.
+                Crit2 = upar2*Crit2_base
                 # Prepare in case Forbid is True
                 if Forbid0 and not Dpar2>0:
                     Forbidbis = 0
@@ -273,7 +274,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                             continue
 
                         # We compute new values
-                        found_new_kout = compute_kout_los_on_filled(los_orig_loc, los_dirv_loc,
+                        found_new_kout = comp_inter_los_vpoly(los_orig_loc, los_dirv_loc,
                                                               LSPoly[ii],
                                                               LSVIn[ii], nvert,
                                                               lim_is_none, L0, L1,
@@ -284,7 +285,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                                                               S1X, S1Y, S2X, S2Y,
                                                               Crit2, EpsUz, EpsVz,
                                                               EpsA, EpsB,
-                                                              EpsPlane, False)                        
+                                                              EpsPlane, False)
                         if found_new_kout :
                             kPOut_view[ind_tmp] = kpin_loc[0]
                             VperpOut_view[0,ind_tmp] = struct_vperpin_view[0]
@@ -308,7 +309,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
+cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                 double [:,::1] VPoly, double [:,::1] vIn,
                                 int vin_shape,
                                 bint lim_is_none, double L0, double L1,
@@ -329,12 +330,17 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
     cdef double SIn1, SIn0
     cdef double res_kin = kpin_loc[0]
     cdef double[3] opp_dir
-
+    cdef double invupar2
+    cdef double invuz
+    cdef double cosl0, cosl1, sinl0, sinl1
     ################
-    # Compute
-
-    # TODO : precompute ccos(L0) csin(L0) and for L1
-
+    # Computing some useful values
+    cosl0 = Ccos(L0)
+    cosl1 = Ccos(L1)
+    sinl0 = Csin(L0)
+    sinl1 = Csin(L1)
+    invupar2 = 1./upar2
+    invuz = 1./us[2]
     # Compute all solutions
     # Set tolerance value for us[2,ii]
     # EpsUz is the tolerated DZ across 20m (max Tokamak size)
@@ -345,15 +351,15 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
             # Solutions exist only in the case with non-horizontal
             # segment (i.e.: cone, not plane)
             # TODO : @LM : is this faster than checking abs(diff)>eps ?
-            if (VPoly[1,jj+1] - VPoly[1,jj])**2 > EpsVz**2:
+            if (VPoly[1,jj+1] - VPoly[1,jj])**2 > EpsVz*EpsVz:
                 # TODO : @LM this probably can done matrix wise (qmatrix)
                 q = (Ds[2]-VPoly[1,jj]) / (VPoly[1,jj+1]-VPoly[1,jj])
                 # The intersection must stand on the segment
                 if q>=0 and q<1:
-                    C = q**2*(VPoly[0,jj+1]-VPoly[0,jj])**2 + \
+                    C = q*q*(VPoly[0,jj+1]-VPoly[0,jj])**2 + \
                         2.*q*VPoly[0,jj]*(VPoly[0,jj+1]-VPoly[0,jj]) + \
-                        VPoly[0,jj]**2
-                    delta = upscaDp**2 - upar2*(Dpar2-C)
+                        VPoly[0,jj]*VPoly[0,jj]
+                    delta = upscaDp*upscaDp - upar2*(Dpar2-C)
                     if delta>0.:
                         sqd = Csqrt(delta)
                         # The intersection must be on the semi-line
@@ -362,7 +368,7 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
                         if -upscaDp - sqd >=0:
                             # TODO : @LM - est-ce que c'est possible de le mat ?
                             # ou le sortir d'ici
-                            k = (-upscaDp - sqd)/upar2
+                            k = (-upscaDp - sqd)*invupar2
                             sol0, sol1 = Ds[0] + k*us[0], \
                                          Ds[1] + k*us[1]
                             if Forbidbis:
@@ -400,7 +406,7 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
 
                         # Second solution
                         if -upscaDp + sqd >=0:
-                            k = (-upscaDp + sqd)/upar2
+                            k = (-upscaDp + sqd)*invupar2
                             sol0, sol1 = Ds[0] + k*us[0], Ds[1] \
                                          + k*us[1]
                             if Forbidbis:
@@ -439,14 +445,14 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
     else:
         for jj in range(vin_shape):
             v0, v1 = VPoly[0,jj+1]-VPoly[0,jj], VPoly[1,jj+1]-VPoly[1,jj]
-            A = v0**2 - upar2*(v1/us[2])**2
-            B = VPoly[0,jj]*v0 + v1*(Ds[2]-VPoly[1,jj])*upar2/us[2]**2 - upscaDp*v1/us[2]
-            C = -upar2*(Ds[2]-VPoly[1,jj])**2/us[2]**2 + 2.*upscaDp*(Ds[2]-VPoly[1,jj])/us[2] - Dpar2 + VPoly[0,jj]**2
+            A = v0*v0 - upar2*(v1*invuz)*(v1*invuz)
+            B = VPoly[0,jj]*v0 + v1*(Ds[2]-VPoly[1,jj])*upar2*invuz*invuz - upscaDp*v1*invuz
+            C = -upar2*(Ds[2]-VPoly[1,jj])**2*invuz*invuz + 2.*upscaDp*(Ds[2]-VPoly[1,jj])*invuz - Dpar2 + VPoly[0,jj]*VPoly[0,jj]
 
-            if A**2<EpsA**2 and B**2>EpsB**2:
+            if A*A<EpsA*EpsA and B*B>EpsB*EpsB:
                 q = -C/(2.*B)
                 if q>=0. and q<1.:
-                    k = (q*v1 - (Ds[2]-VPoly[1,jj]))/us[2]
+                    k = (q*v1 - (Ds[2]-VPoly[1,jj]))*invuz
                     if k>=0:
                         sol0, sol1 = Ds[0] + k*us[0], Ds[1] + k*us[1]
                         if Forbidbis:
@@ -471,12 +477,12 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
                                 indin = jj
                                 #print(6, k)
 
-            elif A**2>=EpsA**2 and B**2>A*C:
-                sqd = Csqrt(B**2-A*C)
+            elif A*A>=EpsA*EpsA and B*B>A*C:
+                sqd = Csqrt(B*B-A*C)
                 # First solution
                 q = (-B + sqd)/A
                 if q>=0. and q<1.:
-                    k = (q*v1 - (Ds[2]-VPoly[1,jj]))/us[2]
+                    k = (q*v1 - (Ds[2]-VPoly[1,jj]))*invuz
                     if k>=0.:
                         sol0, sol1 = Ds[0] + k*us[0], Ds[1] + k*us[1]
                         if Forbidbis:
@@ -503,7 +509,7 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
                 # Second solution
                 q = (-B - sqd)/A
                 if q>=0. and q<1.:
-                    k = (q*v1 - (Ds[2]-VPoly[1,jj]))/us[2]
+                    k = (q*v1 - (Ds[2]-VPoly[1,jj]))*invuz
 
                     if k>=0.:
                         sol0, sol1 = Ds[0] + k*us[0], Ds[1] + k*us[1]
@@ -529,12 +535,12 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
                                     #print(10, k, q, A, B, C, sqd, v0, v1, jj)
 
     if not lim_is_none:
-        ephiIn0, ephiIn1 = -Csin(L0), Ccos(L0)
+        ephiIn0, ephiIn1 = -sinl0, cosl0
         if Cabs(us[0]*ephiIn0+us[1]*ephiIn1)>EpsPlane:
             k = -(Ds[0]*ephiIn0+Ds[1]*ephiIn1)/(us[0]*ephiIn0+us[1]*ephiIn1)
             if k>=0:
                 # Check if in VPoly
-                sol0, sol1 = (Ds[0]+k*us[0])*Ccos(L0) + (Ds[1]+k*us[1])*Csin(L0), Ds[2]+k*us[2]
+                sol0, sol1 = (Ds[0]+k*us[0])*cosl0 + (Ds[1]+k*us[1])*sinl0, Ds[2]+k*us[2]
                 #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                 #if ray_tracing(VPoly, sol0, sol1):
                 inter_bbox = pnpoly(vin_shape, VPoly[0,...], VPoly[1,...], sol0, sol1)
@@ -549,11 +555,11 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
                         kin = k
                         indin = -1
 
-        ephiIn0, ephiIn1 = Csin(L1), -Ccos(L1)
+        ephiIn0, ephiIn1 = sinl1, -cosl1
         if Cabs(us[0]*ephiIn0+us[1]*ephiIn1)>EpsPlane:
             k = -(Ds[0]*ephiIn0+Ds[1]*ephiIn1)/(us[0]*ephiIn0+us[1]*ephiIn1)
             if k>=0:
-                sol0, sol1 = (Ds[0]+k*us[0])*Ccos(L1) + (Ds[1]+k*us[1])*Csin(L1), Ds[2]+k*us[2]
+                sol0, sol1 = (Ds[0]+k*us[0])*cosl1 + (Ds[1]+k*us[1])*sinl1, Ds[2]+k*us[2]
                 # Check if in VPoly
                 #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
                 # if ray_tracing(VPoly, sol0, sol1):
@@ -574,12 +580,12 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
         if struct_is_ves :
             kpout_loc[0] = kout
             if indout==-1:
-                vperpin[0] = -Csin(L0)
-                vperpin[1] = Ccos(L0)
+                vperpin[0] = -sinl0
+                vperpin[1] = cosl0
                 vperpin[2] = 0.
             elif indout==-2:
-                vperpin[0] = Csin(L1)
-                vperpin[1] = -Ccos(L1)
+                vperpin[0] = sinl1
+                vperpin[1] = -cosl1
                 vperpin[2] = 0.
             else:
                 SOut0 = Ds[0] + kout*us[0]
@@ -595,12 +601,12 @@ cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
         elif kin<kout and kin < res_kin:
             kpin_loc[0] = kin
             if indin==-1:
-                vperpin[0] = Csin(L0)
-                vperpin[1] = -Ccos(L0)
+                vperpin[0] = sinl0
+                vperpin[1] = -cosl0
                 vperpin[2] = 0.
             elif indin==-2:
-                vperpin[0] = -Csin(L1)
-                vperpin[1] = Ccos(L1)
+                vperpin[0] = -sinl1
+                vperpin[1] = cosl1
                 vperpin[2] = 0.
             else:
                 SIn0 = Ds[0] + kin*us[0]
@@ -711,7 +717,7 @@ cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
     cdef int indout=0, Done=0
     cdef double L=0., S1X=0., S1Y=0., S2X=0., S2Y=0., sca=0., sca0=0., sca1=0., sca2=0.
     cdef double q, C, delta, sqd, k, sol0, sol1, phi=0., rmin2
-    cdef double v0, v1, A, B, ephiIn0, ephiIn1
+    cdef double v0, v1, A, B, ephiIn0, ephiIn1, Crit2_base = EpsUz*EpsUz/400.
     cdef double[3] loc_ds
     cdef double[3] loc_us
     cdef double[3] loc_vp
@@ -758,15 +764,15 @@ cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
         # Compute all solutions
         # Set tolerance value for us[2,ii]
         # EpsUz is the tolerated DZ across 20m (max Tokamak size)
-        Crit2 = EpsUz**2*upar2/400.
+        Crit2 = upar2*Crit2_base
         kpin_loc[0]  = kPIn_view[ii]
         kpout_loc[0] = kPOut_view[ii]
         indout_loc[0] = IOut_view[2, ii]
-        found_new = compute_kout_los_on_filled(loc_ds, loc_us, VPoly, vIn, Ns, lim_is_none,
-                                               L0, L1, kpin_loc, kpout_loc, indout_loc, loc_vp,
-                                               Forbidbis, upscaDp, upar2, Dpar2, invDpar2,
-                                               S1X, S1Y, S2X, S2Y, Crit2, EpsUz, EpsVz, EpsA, EpsB,
-                                               EpsPlane, True)
+        found_new = comp_inter_los_vpoly(loc_ds, loc_us, VPoly, vIn, Ns, lim_is_none,
+                                         L0, L1, kpin_loc, kpout_loc, indout_loc, loc_vp,
+                                         Forbidbis, upscaDp, upar2, Dpar2, invDpar2,
+                                         S1X, S1Y, S2X, S2Y, Crit2, EpsUz, EpsVz, EpsA, EpsB,
+                                         EpsPlane, True)
         if found_new:
             kPIn_view[ii]    = kpin_loc[0]
             kPOut_view[ii]   = kpout_loc[0]
