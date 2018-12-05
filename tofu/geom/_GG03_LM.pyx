@@ -120,12 +120,15 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
     cdef int[1] indin_loc
 
     VperpOut  = np.zeros((3, num_los), dtype=np.double)
-    kPIn      = np.zeros((num_los,),   dtype=np.double)
-    kPOut     = np.zeros((num_los,),   dtype=np.double)
+    # kPIn      = np.zeros((num_los,),   dtype=np.double)
+    # kPOut     = np.zeros((num_los,),   dtype=np.double)
     IOut      = np.zeros((3, num_los), dtype=int)
+    cdef double *kPIn  = <double *>malloc(num_los * sizeof(double))
+    cdef double *kPOut = <double *>malloc(num_los * sizeof(double))
+
     cdef double[:, ::1] VperpOut_view = VperpOut
-    cdef double[:] kPIn_view = kPIn
-    cdef double[:] kPOut_view = kPOut
+    cdef double[:] kPIn_view = <double[:num_los]>kPIn
+    cdef double[:] kPOut_view = <double[:num_los]>kPOut
     cdef long[:, ::1] IOut_view = IOut
 
     llim_ves = []
@@ -301,7 +304,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
             free(llen_lim)
     free(lbounds)
     free(langles)
-    return kPIn, kPOut, VperpOut, IOut
+    return np.asarray(kPIn_view), np.asarray(kPOut_view), VperpOut, IOut
 
 @cython.profile(True)
 @cython.linetrace(True)
@@ -774,14 +777,26 @@ cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                                          S1X, S1Y, S2X, S2Y, Crit2, EpsUz, EpsVz, EpsA, EpsB,
                                          EpsPlane, True)
         if found_new:
-            kPIn_view[ii]    = kpin_loc[0]
-            kPOut_view[ii]   = kpout_loc[0]
-            IOut_view[2, ii] = indout_loc[0]
-            IOut_view[0, ii] = 0
-            IOut_view[1, ii] = 0
-        elif ii == 0:
-            kPIn_view[ii]    = np.nan
-            kPOut_view[ii]   = np.nan
+            kPIn_view[ii]       = kpin_loc[0]
+            kPOut_view[ii]      = kpout_loc[0]
+            IOut_view[2, ii]    = indout_loc[0]
+            IOut_view[0, ii]    = 0
+            IOut_view[1, ii]    = 0
+            VperpOut_view[0,ii] = loc_vp[0]
+            VperpOut_view[1,ii] = loc_vp[1]
+            VperpOut_view[2,ii] = loc_vp[2]
+
+        else:
+            kPIn_view[ii]       = np.nan
+            kPOut_view[ii]      = np.nan
+            IOut_view[2, ii]    = 0
+            IOut_view[0, ii]    = 0
+            IOut_view[1, ii]    = 0
+            VperpOut_view[0,ii] = 0.
+            VperpOut_view[1,ii] = 0.
+            VperpOut_view[2,ii] = 0.
+            
+
     return
 
 @cython.cdivision(True)
