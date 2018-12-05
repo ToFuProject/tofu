@@ -5,13 +5,61 @@ import warnings
 
 # Common
 import numpy as np
+import scipy.signal as scpsig
 import scipy.interpolate as scpinterp
 
 
 
 #############################################
-#       Fourier analysis
+#       Spectrograms
 #############################################
+
+
+def spectrogram(data, t=None, method='',
+                **kwdargs):
+
+    lm = ['scipy-fourier', 'scipy-welch']
+
+    nt, nch = data.shape
+    if t is not None:
+        assert t.shape==(nt,)
+    else:
+        t = np.arange(0,nt)
+    if not np.allclose(t,t[0]+np.mean(np.diff(t))*np.arange(0,nt)):
+        msg = "Time vector does not seem to be regularly increasing !"
+        raise Exception(msg)
+
+    if method=='scipy-fourier':
+        out = _spectrogram_scipy_fourier(data, 1./dt, nt, nch, **kwdargs)
+    elif method=='scipy-wavelet':
+        out = _spectrogram_scipy_wavelet(data, 1./dt, nt, nch, **kwdargs)
+    elif method=='irfm-ece':
+        out = _spectrogram_irfm_ece(data, 1./dt, nt, nch, **kwdargs)
+
+    return t, f, psd
+
+
+def _spectrogram_scipy_fourier(data, fs, nt, ch,
+                               window=('tukey', 0.25), nperseg=None,
+                               noverlap=None, nfft=None, detrend='constant',
+                               return_onesided=True, scaling='density', mode='psd'):
+
+    powspect = np.full((nt,nch),np.nan)
+
+
+    for ii in range(0,nch):
+        f, t, ssx = scpsig.spectrogram(data[:,ii], fs=fs,
+                                       window=window, nperseg=nperseg,
+                                       noverlap=noverlap, nfft=nfft,
+                                       detrend=detrend, return_onesided=True,
+                                       scaling=scaling, axis=-1, mode=mode)
+    return t, f, ssx
+
+
+
+
+
+
 
 def FourierExtract(t, data, df=None, dfEx=None, Harm=True, HarmEx=True, Test=True):
     """ Return the FFT-filtered signal (and the rest) in the chosen frequency interval (in Hz) and in all the higher harmonics (optional)
