@@ -70,8 +70,12 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
         if save and vcam in saveCam and _is_new_version:
             np.savez("out_kin_"     +config+"_"+vcam+".npz", out[0])
             np.savez("out_kout_"    +config+"_"+vcam+".npz", out[1])
-            np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[2])
-            np.savez("out_iout_"    +config+"_"+vcam+".npz", out[3])
+            if config == "A2":
+                num = int(vcam[2:])
+            else:
+                num = int(vcam[1:])
+            np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[2].reshape(3,num))
+            np.savez("out_iout_"    +config+"_"+vcam+".npz", out[3].reshape(3,num))
         if save and vcam in saveCam and not  _is_new_version:
             np.savez("out_kin_"     +config+"_"+vcam+".npz", out[2])
             np.savez("out_kout_"    +config+"_"+vcam+".npz", out[3])
@@ -128,7 +132,7 @@ def test_line_profile(config="B2", cam="V1000"):
 
 def test_LOS_profiling():
     Cams = ["V1000000"]
-    Bconfigs = ["B2"]
+    Bconfigs = ["B3"]
     for icon in Bconfigs :
         print("*............................................*")
         print("*      Testing the "+icon+" config with "+Cams[0]+"  *")
@@ -207,8 +211,6 @@ def are_results_the_same():
             print(arr_new[:,:3])
 
 if __name__ == "__main__":
-    # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
-    # are_results_the_same()
     test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
@@ -221,3 +223,5 @@ if __name__ == "__main__":
     # line profiling.....
     # test_line_profile(cam="V1000")
     # print(test_LOS_west_configs("B2", ["V10"]))
+    # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
+    # are_results_the_same()

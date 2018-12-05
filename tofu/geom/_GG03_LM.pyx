@@ -85,8 +85,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
         assert C1 or C2, "Args LSPoly,LSLim,LSVIn must be None or lists of same len()!"
         assert RMin is None or type(RMin) in [float,int,np.float64,np.int64], (
             "Arg RMin must be None or a float!")
-        assert all([type(ee) in [int,float,np.int64,np.float64] and ee<1.e-4
-                    for ee in [EpsUz,EpsVz,EpsA,EpsB,EpsPlane]]), \
+        assert all([ee<1.e-4 for ee in [EpsUz,EpsVz,EpsA,EpsB,EpsPlane]]), \
                         "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-4!"
         assert VType.lower() in ['tor','lin'], (
             "Arg VType must be a str in ['Tor','Lin']!")
@@ -120,17 +119,19 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
     cdef int[3] sign_ray
     cdef int[1] indin_loc
 
-    VperpOut  = np.zeros((3, num_los), dtype=np.double)
+    # VperpOut  = np.zeros((3, num_los), dtype=np.double)
     # kPIn      = np.zeros((num_los,),   dtype=np.double)
     # kPOut     = np.zeros((num_los,),   dtype=np.double)
-    IOut      = np.zeros((3, num_los), dtype=int)
+    # IOut      = np.zeros((3, num_los), dtype=int)
+    cdef double *VperpOut = <double *>malloc(3 * num_los * sizeof(double))
     cdef double *kPIn  = <double *>malloc(num_los * sizeof(double))
     cdef double *kPOut = <double *>malloc(num_los * sizeof(double))
+    cdef long *IOut = <long *>malloc(3 * num_los * sizeof(long))
 
-    cdef double[:, ::1] VperpOut_view = VperpOut
-    cdef double[:] kPIn_view = <double[:num_los]>kPIn
+    cdef double[:] VperpOut_view = <double[:num_los*3]> VperpOut
+    cdef double[:] kPIn_view  = <double[:num_los]>kPIn
     cdef double[:] kPOut_view = <double[:num_los]>kPOut
-    cdef long[:, ::1] IOut_view = IOut
+    cdef long[:]   IOut_view  = <long[:3*num_los]>IOut
 
     llim_ves = []
     cdef double *lbounds = <double *>malloc(ntotStruct * 6 * sizeof(double))
@@ -213,9 +214,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                 # We get the last kpout:
                 kpout_jj = kPOut_view[ind_tmp]
                 kpin_loc[0] = kpout_jj
-                indin_loc[0] = IOut_view[2,ind_tmp]
-                # if ind_tmp == 0:
-                #     IOut_view[2, ind_tmp] = IOut2_view[ind_tmp]
+                indin_loc[0] = IOut_view[2+3*ind_tmp]
                 los_orig_loc[0] = Ds[0, ind_tmp]
                 los_orig_loc[1] = Ds[1, ind_tmp]
                 los_orig_loc[2] = Ds[2, ind_tmp]
@@ -292,12 +291,12 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
                                                               EpsPlane, False)
                         if found_new_kout :
                             kPOut_view[ind_tmp] = kpin_loc[0]
-                            VperpOut_view[0,ind_tmp] = struct_vperpin_view[0]
-                            VperpOut_view[1,ind_tmp] = struct_vperpin_view[1]
-                            VperpOut_view[2,ind_tmp] = struct_vperpin_view[2]
-                            IOut_view[2,ind_tmp] = indin_loc[0]
-                            IOut_view[0,ind_tmp] = 1+ii
-                            IOut_view[1,ind_tmp] = jj
+                            VperpOut_view[0+3*ind_tmp] = struct_vperpin_view[0]
+                            VperpOut_view[1+3*ind_tmp] = struct_vperpin_view[1]
+                            VperpOut_view[2+3*ind_tmp] = struct_vperpin_view[2]
+                            IOut_view[2+3*ind_tmp] = indin_loc[0]
+                            IOut_view[0+3*ind_tmp] = 1+ii
+                            IOut_view[1+3*ind_tmp] = jj
                             last_pout[0] = kPOut_view[ind_tmp] * los_dirv_loc[0] + los_orig_loc[0]
                             last_pout[1] = kPOut_view[ind_tmp] * los_dirv_loc[1] + los_orig_loc[1]
                             last_pout[2] = kPOut_view[ind_tmp] * los_dirv_loc[2] + los_orig_loc[2]
@@ -305,7 +304,9 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds, double[:,::1] dus,
             free(llen_lim)
     free(lbounds)
     free(langles)
-    return np.asarray(kPIn_view), np.asarray(kPOut_view), VperpOut, IOut
+    return np.asarray(kPIn_view), np.asarray(kPOut_view),\
+      np.asarray(VperpOut_view),\
+      np.asarray(IOut_view)
 
 @cython.profile(True)
 @cython.linetrace(True)
@@ -710,7 +711,7 @@ cdef inline bint pnpoly(int nvert, double[:] vertx, double[:] verty, double test
 cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
                          double [:,::1] VPoly, double [:,::1] vIn,
                          double[:] kPIn_view, double[:] kPOut_view,
-                         double[:,::1] VperpOut_view, long[:,::1] IOut_view,
+                         double[:] VperpOut_view, long[:] IOut_view,
                          double Rmin, bint lim_is_none, double L0, double L1,
                          bint Forbid, double EpsUz,
                          double EpsVz, double EpsA,
@@ -745,9 +746,9 @@ cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
         loc_ds[0] = Ds[0,ii]
         loc_ds[1] = Ds[1,ii]
         loc_ds[2] = Ds[2,ii]
-        loc_vp[0] = VperpOut_view[0,ii]
-        loc_vp[1] = VperpOut_view[1,ii]
-        loc_vp[2] = VperpOut_view[2,ii]
+        loc_vp[0] = VperpOut_view[0+3*ii]
+        loc_vp[1] = VperpOut_view[1+3*ii]
+        loc_vp[2] = VperpOut_view[2+3*ii]
         upscaDp = loc_us[0]*loc_ds[0] + loc_us[1]*loc_ds[1]
         upar2 = loc_us[0]*loc_us[0] + loc_us[1]*loc_us[1]
         Dpar2 = loc_ds[0]*loc_ds[0] + loc_ds[1]*loc_ds[1]
@@ -771,7 +772,7 @@ cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
         Crit2 = upar2*Crit2_base
         kpin_loc[0]  = kPIn_view[ii]
         kpout_loc[0] = kPOut_view[ii]
-        indout_loc[0] = IOut_view[2, ii]
+        indout_loc[0] = IOut_view[2 + 3*ii]
         found_new = comp_inter_los_vpoly(loc_ds, loc_us, VPoly, vIn, Ns, lim_is_none,
                                          L0, L1, kpin_loc, kpout_loc, indout_loc, loc_vp,
                                          Forbidbis, upscaDp, upar2, Dpar2, invDpar2,
@@ -780,22 +781,22 @@ cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
         if found_new:
             kPIn_view[ii]       = kpin_loc[0]
             kPOut_view[ii]      = kpout_loc[0]
-            IOut_view[2, ii]    = indout_loc[0]
-            IOut_view[0, ii]    = 0
-            IOut_view[1, ii]    = 0
-            VperpOut_view[0,ii] = loc_vp[0]
-            VperpOut_view[1,ii] = loc_vp[1]
-            VperpOut_view[2,ii] = loc_vp[2]
+            IOut_view[2+3*ii]    = indout_loc[0]
+            IOut_view[0+3*ii]    = 0
+            IOut_view[1+3*ii]    = 0
+            VperpOut_view[0+3*ii] = loc_vp[0]
+            VperpOut_view[1+3*ii] = loc_vp[1]
+            VperpOut_view[2+3*ii] = loc_vp[2]
 
         else:
             kPIn_view[ii]       = Cnan
             kPOut_view[ii]      = Cnan
-            IOut_view[2, ii]    = -1000000
-            IOut_view[0, ii]    = 0
-            IOut_view[1, ii]    = 0
-            VperpOut_view[0,ii] = Cnan
-            VperpOut_view[1,ii] = Cnan
-            VperpOut_view[2,ii] = Cnan
+            IOut_view[2+3*ii]    = -1000000
+            IOut_view[0+3*ii]    = 0
+            IOut_view[1+3*ii]    = 0
+            VperpOut_view[0+3*ii] = Cnan
+            VperpOut_view[1+3*ii] = Cnan
+            VperpOut_view[2+3*ii] = Cnan
             
 
     return

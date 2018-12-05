@@ -2455,6 +2455,8 @@ class Rays(utils.ToFuObject):
             out = _GG_LM.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
             # Currently computes and returns too many things
             kMin, kMax, vperp, indout = out
+            vperp = vperp.reshape(3, self._dgeom['nRays'])
+            indout = indout.reshape(3, self._dgeom['nRays'])
         else:
             pass
         return kMin, kMax, vperp, indout
