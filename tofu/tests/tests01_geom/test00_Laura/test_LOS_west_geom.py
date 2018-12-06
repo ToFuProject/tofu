@@ -51,7 +51,7 @@ def prepare_inputs(vcam, config, method='ref'):
     dkwd = dict(Lim=Lim, nLim=nLim, ntotStruct=num_tot_structs,
                 LSPoly=lSPoly, LSLim=lSLim,
                 lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
-                RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
+                RMin=-1, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
                 EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
 
     return largs, dkwd
@@ -211,17 +211,17 @@ def are_results_the_same():
             print(arr_new[:,:3])
 
 if __name__ == "__main__":
-    test_LOS_compact()
+    # test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
     # plot_all_configs()
-    # touch_plot_all_configs()
+    touch_plot_all_configs()
     # touch_plot_config_cam("A2", "V10000")
     # touch_plot_config_cam("B2", "V10000")
     #touch_plot_config_cam("B3", "V100000")
     # line profiling.....
-    # test_line_profile(cam="V1000")
+    # test_line_profile(cam="V100000")
     # print(test_LOS_west_configs("B2", ["V10"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # are_results_the_same()
