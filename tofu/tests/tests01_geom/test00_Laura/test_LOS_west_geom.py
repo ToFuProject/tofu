@@ -4,6 +4,16 @@ import tofu.geom._GG_LM as _GG
 import time
 import line_profiler
 import pstats, cProfile
+from pathlib import Path
+from resource import getpagesize
+
+
+def get_resident_set_size():
+    # Columns are: size resident shared text lib data dt
+    statm = Path('/proc/self/statm').read_text()
+    fields = statm.split()
+    return int(fields[1]) * getpagesize()
+
 
 _is_new_version = True
 _all_cams = ["V1", "V10", "V100", "V1000", "V10000",
@@ -210,16 +220,21 @@ def are_results_the_same():
             print(arr_old[:,:3])
             print(arr_new[:,:3])
 
+
+def check_memory_usage(cam="V1000000", config="B2"):
+    start_memory = get_resident_set_size()
+    test_LOS_west_configs(config, [cam])
+    print(get_resident_set_size() - start_memory)
 if __name__ == "__main__":
     # test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
     # plot_all_configs()
-    touch_plot_all_configs()
+    # touch_plot_all_configs()
     # touch_plot_config_cam("A2", "V10000")
     # touch_plot_config_cam("B2", "V10000")
-    #touch_plot_config_cam("B3", "V100000")
+    touch_plot_config_cam("B3", "V1000000")
     # line profiling.....
     # test_line_profile(cam="V100000")
     # print(test_LOS_west_configs("B2", ["V10"]))

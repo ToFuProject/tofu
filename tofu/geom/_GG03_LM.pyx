@@ -177,6 +177,9 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
         if RMin < 0.:
             val_rmin = <double>0.95*min(np.min(VPoly[0,...]),
                             np.min(np.hypot(Ds[0,...],Ds[1,...])))
+        else:
+            val_rmin = RMin
+
         # Main function to compute intersections with Vessel
         Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, kPIn_view,
                             kPOut_view, VperpOut_view, IOut_view,
