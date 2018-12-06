@@ -39,21 +39,38 @@ def spectrogram(data, t=None, method='',
     return t, f, psd
 
 
-def _spectrogram_scipy_fourier(data, fs, nt, ch,
-                               window=('tukey', 0.25), nperseg=None,
-                               noverlap=None, nfft=None, detrend='constant',
-                               return_onesided=True, scaling='density', mode='psd'):
+def _spectrogram_scipy_fourier(data, fs, nt, ch, fmin=None, fmax=None,
+                               window=('tukey', 0.25), detrend='linear'):
 
-    powspect = np.full((nt,nch),np.nan)
+    # Format inputs
+    if fmin is None:
+        fmin = 10.*(fs/nt)
+    assert fmin > fs/nt
+    if fmax is None:
+        fmax = fs/2.01
+    assert fmax < fs/2.
 
+    # Deduce parameters
+    nperseg = int(np.ceil(fs/fmin))
+    noverlap = nperseg - 1
+    n = int(np.ceil(np.log(nperseg)/np.log(2)))
+    nfft = 2**n
 
-    for ii in range(0,nch):
-        f, t, ssx = scpsig.spectrogram(data[:,ii], fs=fs,
-                                       window=window, nperseg=nperseg,
-                                       noverlap=noverlap, nfft=nfft,
-                                       detrend=detrend, return_onesided=True,
-                                       scaling=scaling, axis=-1, mode=mode)
-    return t, f, ssx
+    # Prepare output
+
+    f, tf, ssx = scpsig.spectrogram(data[:,ii], fs=fs,
+                                    window=window, nperseg=nperseg,
+                                    noverlap=noverlap, nfft=nfft,
+                                    detrend=detrend, return_onesided=True,
+                                    scaling='density', axis=-1, mode='psd')
+
+    lpsd = [np.full((nt,f.size),np.nan) for ii in range(0,nch)]
+    ind = np.arange(nperseg/2, nt-nperseg/2)
+    lssx = np.split(ssx, ind, axis=1)
+
+    for ii in lssx = [ss.squeeze() for ss in lssx]
+
+    return f, lssx
 
 
 
