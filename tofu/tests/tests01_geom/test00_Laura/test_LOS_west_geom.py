@@ -2,10 +2,12 @@
 from tofu_LauraBenchmarck_load_config import *
 import tofu.geom._GG_LM as _GG
 import time
-import line_profiler
+# import line_profiler
 import pstats, cProfile
-from pathlib import Path
-from resource import getpagesize
+# from pathlib import Path
+# from resource import getpagesize
+import os
+import psutil
 
 
 def get_resident_set_size():
@@ -18,7 +20,8 @@ def get_resident_set_size():
 _is_new_version = True
 _all_cams = ["V1", "V10", "V100", "V1000", "V10000",
             "V100000", "V1000000"]
-
+def mem():
+	print(str(round(psutil.Process().memory_info().rss/1024./1024., 2)) + ' MB')
 def prepare_inputs(vcam, config, method='ref'):
 
     D, u, loscam = get_Du(vcam)
@@ -58,11 +61,21 @@ def prepare_inputs(vcam, config, method='ref'):
             num_tot_structs += len(ss.Lim)
 
     largs = [D, u, VPoly, VVIn]
-    dkwd = dict(Lim=Lim, nLim=nLim, ntotStruct=num_tot_structs,
-                LSPoly=lSPoly, LSLim=lSLim,
-                lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
-                RMin=-1, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
-                EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+    if _is_new_version:
+        loc_rmin = -1
+        dkwd = dict(Lim=Lim, nLim=nLim, ntotStruct=num_tot_structs,
+                    LSPoly=lSPoly, LSLim=lSLim,
+                    lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
+                    RMin=loc_rmin, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
+                    EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+
+    else:
+        loc_rmin = None
+        dkwd = dict(Lim=Lim, nLim=nLim,
+                    LSPoly=lSPoly, LSLim=lSLim,
+                    lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
+                    RMin=loc_rmin, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
+                    EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
 
     return largs, dkwd
 
@@ -100,7 +113,7 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
 
 def test_LOS_compact(save=False, saveCam=[]):
     Cams = ["V1", "V10", "V100", "V1000", "V10000",
-            "V100000"]#, "V1000000"]
+            "V100000", "V1000000"]
     CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
              "VA100000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
@@ -225,8 +238,14 @@ def check_memory_usage(cam="V1000000", config="B2"):
     start_memory = get_resident_set_size()
     test_LOS_west_configs(config, [cam])
     print(get_resident_set_size() - start_memory)
+
+def check_memory_usage2(cam="V1000000", config="B2"):
+    process = psutil.Process(os.getpid())
+    test_LOS_west_configs(config, [cam])
+    print(process.memory_info()[0])
+
 if __name__ == "__main__":
-    # test_LOS_compact()
+    test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
@@ -234,9 +253,12 @@ if __name__ == "__main__":
     # touch_plot_all_configs()
     # touch_plot_config_cam("A2", "V10000")
     # touch_plot_config_cam("B2", "V10000")
-    touch_plot_config_cam("B3", "V1000000")
+    # touch_plot_config_cam("B3", "V1000000")
     # line profiling.....
     # test_line_profile(cam="V100000")
     # print(test_LOS_west_configs("B2", ["V10"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # are_results_the_same()
+    # mem()
+    # check_memory_usage2()
+    # mem()
