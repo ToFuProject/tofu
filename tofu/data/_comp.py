@@ -39,39 +39,81 @@ def spectrogram(data, t=None, method='',
     return t, f, psd
 
 
-def _spectrogram_scipy_fourier(data, fs, nt, ch, fmin=None, fmax=None,
-                               window=('tukey', 0.25), detrend='linear'):
+def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
+                               window=('tukey', 0.25),
+                               nperseg=None, noverlap=None,
+                               detrend='linear', stft=False,
+                               boundary='constant', padded=True):
+    """ Return a spectrogram for each channel, and a common frequency vector
+
+    The min frequency of interest fmin fixes the nb. of pt. per seg. (if None)
+    The number of overlapping points is set to nperseg-1 if None
+    The choice of the window type is a trade-off between:
+        Spectral resolution between similar frequencies/amplitudes:
+            =>
+        Dynamic range (lots of != frequencies of != amplitudes):
+            =>
+        Compromise:
+            => 'hann'
+    """
+
+    # Check inputs
+    if nperseg is None and fmin is None:
+        fmin = 10.*(fs/nt)
+        msg = "nperseg and fmin were not provided, fmin set to 10.*fs/nt"
+        raise Exception(msg)
 
     # Format inputs
-    if fmin is None:
-        fmin = 10.*(fs/nt)
-    assert fmin > fs/nt
-    if fmax is None:
-        fmax = fs/2.01
-    assert fmax < fs/2.
+    if nperseg is None:
+        assert fmin > fs/nt
+        nperseg = int(np.ceil(fs/fmin))
 
-    # Deduce parameters
-    nperseg = int(np.ceil(fs/fmin))
-    noverlap = nperseg - 1
+    if nperseg%2==1:
+        nperseg = nperseg + 1
+    if noverlap is None:
+        noverlap = nperseg - 1
     n = int(np.ceil(np.log(nperseg)/np.log(2)))
     nfft = 2**n
 
     # Prepare output
+    if stft:
+        f, tf, ssx = scpsig.stft(data, fs=fs,
+                                 window=window, nperseg=nperseg,
+                                 noverlap=noverlap, nfft=nfft, detrend=detrend,
+                                 return_onesided=True, boundary=boundary,
+                                 padded=padded, axis=0)
+    else:
+        f, tf, ssx = scpsig.spectrogram(data, fs=fs,
+                                        window=window, nperseg=nperseg,
+                                        noverlap=noverlap, nfft=nfft,
+                                        detrend=detrend, return_onesided=True,
+                                        scaling='density', axis=0, mode='psd')
 
-    f, tf, ssx = scpsig.spectrogram(data[:,ii], fs=fs,
-                                    window=window, nperseg=nperseg,
-                                    noverlap=noverlap, nfft=nfft,
-                                    detrend=detrend, return_onesided=True,
-                                    scaling='density', axis=-1, mode='psd')
-
-    lpsd = [np.full((nt,f.size),np.nan) for ii in range(0,nch)]
-    ind = np.arange(nperseg/2, nt-nperseg/2)
+    # Split in list (per channel)
     lssx = np.split(ssx, ind, axis=1)
+    lssx = [ss.squeeze() for ss in lssx]
 
-    for ii in lssx = [ss.squeeze() for ss in lssx]
+    return f, tf, lssx
 
-    return f, lssx
 
+def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):
+
+    # Check inputs
+    if fmin is None:
+        fmin = 10.*(fs/nt)
+        msg = "fmin was not provided => set to 10.*fs/nt"
+        raise Exception(msg)
+
+    widths = np.arange()
+
+    wave = eval('scpsig.%s'%wave)
+
+    for ii in range(0,nch):
+        cwt = scpsig.cwt(data[:,ii], wave, widths)
+        lcwt.append(cwt)
+
+    f = 1./(width*dt)
+    return widths, lcwt
 
 
 
