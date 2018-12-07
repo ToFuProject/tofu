@@ -1,0 +1,16 @@
+@cython.profile(True)
+@cython.linetrace(True)
+@cython.binding(True)
+@cython.cdivision(True)
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef inline bint compute_kout_los_on_filled(double [3] Ds, double [3] us,
+                                double [:,::1] VPoly, double [:,::1] vIn,
+                                int vin_shape,
+                                double [6] bounds,
+                                double [3] last_pout_coords, double Rmin,
+                                bint lim_is_none, double L0, double L1,
+                                double[1] kpin_loc, int[1] indin_loc, double[3] vperpin,
+                                bint Forbid, double EpsUz,
+                                double EpsVz, double EpsA,
+                                double EpsB, double EpsPlane) :

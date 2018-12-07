@@ -10,16 +10,10 @@ from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.math cimport NAN as Cnan
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from cpython.array cimport array, clone
 
 import numpy as np
-
-ctypedef np.npy_intp SIZE_t              # Type for indices and counters
-
-
-cdef extern from "numpy/arrayobject.h":
-   void PyArray_ENABLEFLAGS(np.ndarray arr, int flags)
-
-cdef double _SMALL = 1.e-6
+cdef double _SMALL = 1.e-6 #TODO: change to -9
 cdef double _VERYSMALL = 1.e-9
 
 # =============================================================================
@@ -145,15 +139,15 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
         error_message = "Arg VType must be a str in ['Tor','Lin']!"
         assert VType.lower() in ['tor','lin'], error_message
 
-    cdef double *VperpOut = <double *>PyMem_Malloc(3 * num_los * sizeof(double))
-    cdef double *kPIn  = <double *>PyMem_Malloc(num_los * sizeof(double))
-    cdef double *kPOut = <double *>PyMem_Malloc(num_los * sizeof(double))
-    cdef int *IOut = <int *>PyMem_Malloc(3 * num_los * sizeof(int))
+    # cdef double *VperpOut = <double *>PyMem_Malloc(3 * num_los * sizeof(double))
+    # # cdef double *kPIn  = <double *>PyMem_Malloc(num_los * sizeof(double))
+    # cdef double *kPOut = <double *>PyMem_Malloc(num_los * sizeof(double))
+    # cdef int *IOut = <int *>PyMem_Malloc(3 * num_los * sizeof(int))
 
-    # cdef double[:] VperpOut_view = <double[:num_los*3]> VperpOut
-    # cdef double[:] kPIn_view  = <double[:num_los]>kPIn
-    # cdef double[:] kPOut_view = <double[:num_los]>kPOut
-    # cdef int[:]   IOut_view  = <int[:3*num_los]>IOut
+    # cdef double[:] vperp_view = <double[:num_los*3]> VperpOut
+    # # cdef double[:] kpin_view  = <double[:num_los]>kPIn
+    # cdef double[:] kpout_view = <double[:num_los]>kPOut
+    # cdef int[:] ind_view = <int[:3*num_los]>IOut
 
     llim_ves = []
     cdef double *lbounds = <double *>PyMem_Malloc(ntotStruct * 6 * sizeof(double))
@@ -161,6 +155,10 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
     cdef int *llen_lim
     cdef double[:,::1] lspoly_view
     cdef int nvert
+    cdef array kPIn  = clone(array('d'), num_los, False)
+    cdef array kPOut = clone(array('d'), num_los, False)
+    cdef array VperpOut  = clone(array('d'), num_los*3, False)
+    cdef array IOut  = clone(array('i'), num_los*3, False)
 
     if nLim==0:
         lim_is_none = 1
@@ -390,34 +388,22 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
     PyMem_Free(lbounds)
     PyMem_Free(langles)
 
-    arr_kpin  = pointer_to_numpy_array_double(kPIn, num_los)
-    arr_kpout = pointer_to_numpy_array_double(kPOut, num_los)
-    arr_vperp = pointer_to_numpy_array_double(VperpOut, 3*num_los)
-    arr_iout  = pointer_to_numpy_array_int(IOut, 3*num_los)
-    PyMem_Free(kPIn)
-    PyMem_Free(kPOut)
-    PyMem_Free(IOut)
-    PyMem_Free(VperpOut)
-    return arr_kpin, arr_kpout, arr_vperp, arr_iout
+    # arr_kpin  = pointer_to_numpy_array_double(kPIn, num_los)
+    # arr_kpout = pointer_to_numpy_array_double(kPOut, num_los)
+    # arr_vperp = pointer_to_numpy_array_double(VperpOut, 3*num_los)
+    # arr_iout  = pointer_to_numpy_array_int(IOut, 3*num_los)
+    # PyMem_Free(kPIn)
+    # PyMem_Free(kPOut)
+    # PyMem_Free(IOut)
+    # PyMem_Free(VperpOut)
+    # return arr_kpin, arr_kpout, arr_vperp, arr_iout
 
-cdef pointer_to_numpy_array_double(void * ptr, np.npy_intp size):
-    '''Convert c pointer to numpy array.
-    The memory will be freed as soon as the ndarray is deallocated.
-    '''
-    cdef np.ndarray[np.float64_t, ndim=1] arr = \
-            np.PyArray_SimpleNewFromData(1, &size, np.NPY_FLOAT64, ptr)
-    PyArray_ENABLEFLAGS(arr, np.NPY_OWNDATA)
-    return arr
-
-cdef pointer_to_numpy_array_int(void * ptr, np.npy_intp size):
-    '''Convert c pointer to numpy array.
-    The memory will be freed as soon as the ndarray is deallocated.
-    '''
-    cdef np.ndarray[np.int16_t, ndim=1] arr = \
-            np.PyArray_SimpleNewFromData(1, &size, np.NPY_INT16, ptr)
-    PyArray_ENABLEFLAGS(arr, np.NPY_OWNDATA)
-    return arr
-
+    # kpin_view = kPIn
+    # kpOut_view = kPOut
+    # vperp_view = VperpOut
+    # ind_view = IOut
+          
+    return np.asarray(kPIn), np.asarray(kPOut), np.asarray(VperpOut), np.asarray(IOut)
 
 cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                 double [:,::1] VPoly, double [:,::1] vIn,
@@ -505,11 +491,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                         kout = k
                                         Done = 1
                                         indout = jj
-                                        #print(1, k)
                                     elif sca>=0 and k<min(kin,kout):
                                         kin = k
                                         indin = jj
-                                        #print(2, k)
 
                         # Second solution
                         if -upscaDp + sqd >=0:
@@ -542,11 +526,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                         kout = k
                                         Done = 1
                                         indout = jj
-                                        #print(3, k)
                                     elif sca>=0 and k<min(kin,kout):
                                         kin = k
                                         indin = jj
-                                        #print(4, k)
 
     # More general non-horizontal semi-line case
     else:
@@ -566,7 +548,6 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                             sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
                             sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                             sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
-                            #print 1, k, kout, sca0, sca1, sca2
                             if sca0<0 and sca1<0 and sca2<0:
                                 continue
                         # Get the normalized perpendicular vector at intersection
@@ -578,11 +559,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                 kout = k
                                 Done = 1
                                 indout = jj
-                                #print(5, k)
                             elif sca>=0 and k<min(kin,kout):
                                 kin = k
                                 indin = jj
-                                #print(6, k)
 
             elif A*A>=EpsA*EpsA and B*B>A*C:
                 sqd = Csqrt(B*B-A*C)
@@ -596,7 +575,6 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                             sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
                             sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                             sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
-                            #print 2, k, kout, sca0, sca1, sca2
                         if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
                             # Get the normalized perpendicular vector at intersection
                             phi = Catan2(sol1,sol0)
@@ -607,11 +585,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                     kout = k
                                     Done = 1
                                     indout = jj
-                                    #print(7, k, q, A, B, C, sqd)
                                 elif sca>=0 and k<min(kin,kout):
                                     kin = k
                                     indin = jj
-                                    #print(8, k, jj)
 
                 # Second solution
                 q = (-B - sqd)/A
@@ -624,7 +600,6 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                             sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
                             sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                             sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
-                            #print 3, k, kout, sca0, sca1, sca2
                         if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
                             # Get the normalized perpendicular vector at intersection
                             phi = Catan2(sol1,sol0)
@@ -635,11 +610,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                     kout = k
                                     Done = 1
                                     indout = jj
-                                    #print(9, k, jj)
                                 elif sca>=0 and k<min(kin,kout):
                                     kin = k
                                     indin = jj
-                                    #print(10, k, q, A, B, C, sqd, v0, v1, jj)
 
     if not lim_is_none:
         ephiIn0 = -sinl0
@@ -683,7 +656,6 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                         kin = k
                         indin = -2
 
-    # print("  For Line ", ii, "  test = ", inter_bbox, " and kout = ", Done, kin, kout)
     if Done==1:
         if struct_is_ves :
             kpout_loc[0] = kout

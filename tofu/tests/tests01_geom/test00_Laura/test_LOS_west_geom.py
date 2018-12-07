@@ -2,10 +2,10 @@
 from tofu_LauraBenchmarck_load_config import *
 import tofu.geom._GG_LM as _GG
 import time
-# import line_profiler
+import line_profiler
 import pstats, cProfile
-# from pathlib import Path
-# from resource import getpagesize
+from pathlib import Path
+from resource import getpagesize
 import os
 import psutil
 
@@ -113,7 +113,7 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
 
 def test_LOS_compact(save=False, saveCam=[]):
     Cams = ["V1", "V10", "V100", "V1000", "V10000",
-            "V100000", "V1000000"]
+            "V100000"]#, "V1000000"]
     CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
              "VA100000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
@@ -253,12 +253,13 @@ if __name__ == "__main__":
     # touch_plot_all_configs()
     # touch_plot_config_cam("A2", "V10000")
     # touch_plot_config_cam("B2", "V10000")
-    # touch_plot_config_cam("B3", "V1000000")
+    # touch_plot_config_cam("B3", "V10000")
     # line profiling.....
     # test_line_profile(cam="V100000")
     # print(test_LOS_west_configs("B2", ["V10"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # are_results_the_same()
-    # mem()
-    # check_memory_usage2()
-    # mem()
+    check_memory_usage()
+    mem()
+    check_memory_usage2()
+    mem()

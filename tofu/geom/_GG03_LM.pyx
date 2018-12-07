@@ -3,18 +3,16 @@
 # cython: cdivision=True
 
 cimport cython
-cimport numpy as cnp
+cimport numpy as np
 from libc.math cimport sqrt as Csqrt, ceil as Cceil, fabs as Cabs
 from libc.math cimport floor as Cfloor, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.math cimport NAN as Cnan
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
+from cpython.array cimport array, clone
 
 import numpy as np
-
-
-
 cdef double _SMALL = 1.e-6
 cdef double _VERYSMALL = 1.e-9
 
@@ -34,16 +32,16 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
                               double EpsPlane=_VERYSMALL,
                               str VType='Tor',
                               bint Forbid=1, bint Test=1):
-    """ 
+    """
     Computes the entry and exit point of all provided LOS for the provided
     vessel polygon (toroidal or linear) with its associated structures.
     Return the normal vector at impact and the index of the impact segment
-    
+
     Params
     ======
-    Ds : (3, num_los) double array 
+    Ds : (3, num_los) double array
        LOS origin points coordinates
-    us : (3, num_los) double array 
+    us : (3, num_los) double array
        LOS normalized direction vector
     VPoly : (2, num_vertex) double array
        Coordinates of the vertices of the Polygon defining the 2D poloidal
@@ -78,7 +76,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
        Should we forbid values behind vissible radius ? (see Rmin)
     Test : bool
        Should we run tests ?
-   
+
     Return
     ======
     kPIn : (num_los) array
@@ -107,21 +105,22 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
     cdef int ind_tmp
     cdef int len_lim
     cdef int num_los = Ds.shape[1]
+    cdef int Ns=VIn.shape[1]
     cdef int size_lspoly
     cdef bint Forbidbis, Forbid0
     cdef double upscaDp, upar2, Dpar2, Crit2, invDpar2, rmin2
     cdef double L=0., S1X=0., S1Y=0., S2X=0., S2Y=0.
     cdef double Crit2_base = EpsUz*EpsUz/400.
-    cdef double [3] struct_vperpin_view
+    cdef double [3] loc_vp
     cdef double[3] last_pout
     cdef double[6] bounds
     cdef double[1] kpin_loc, kpout_loc
-    cdef double[3] los_orig_loc
-    cdef double[3] los_dirv_loc
+    cdef double[3] loc_ds
+    cdef double[3] loc_us
     cdef double[2] lim_ves
     cdef double[3] invr_ray
     cdef int[3] sign_ray
-    cdef int[1] indin_loc
+    cdef int[1] ind_loc
     cdef str error_message
 
     if Test:
@@ -140,22 +139,26 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
         error_message = "Arg VType must be a str in ['Tor','Lin']!"
         assert VType.lower() in ['tor','lin'], error_message
 
-    cdef double *VperpOut = <double *>PyMem_Malloc(3 * num_los * sizeof(double))
-    cdef double *kPIn  = <double *>PyMem_Malloc(num_los * sizeof(double))
-    cdef double *kPOut = <double *>PyMem_Malloc(num_los * sizeof(double))
-    cdef long *IOut = <long *>PyMem_Malloc(3 * num_los * sizeof(long))
+    # cdef double *VperpOut = <double *>PyMem_Malloc(3 * num_los * sizeof(double))
+    # # cdef double *kPIn  = <double *>PyMem_Malloc(num_los * sizeof(double))
+    # cdef double *kPOut = <double *>PyMem_Malloc(num_los * sizeof(double))
+    # cdef int *IOut = <int *>PyMem_Malloc(3 * num_los * sizeof(int))
 
-    cdef double[:] VperpOut_view = <double[:num_los*3]> VperpOut
-    cdef double[:] kPIn_view  = <double[:num_los]>kPIn
-    cdef double[:] kPOut_view = <double[:num_los]>kPOut
-    cdef long[:]   IOut_view  = <long[:3*num_los]>IOut
+    # cdef double[:] vperp_view = <double[:num_los*3]> VperpOut
+    # # cdef double[:] kpin_view  = <double[:num_los]>kPIn
+    # cdef double[:] kpout_view = <double[:num_los]>kPOut
+    # cdef int[:] ind_view = <int[:3*num_los]>IOut
 
     llim_ves = []
     cdef double *lbounds = <double *>PyMem_Malloc(ntotStruct * 6 * sizeof(double))
     cdef double *langles = <double *>PyMem_Malloc(ntotStruct * 2 * sizeof(double))
-    cdef long *llen_lim
+    cdef int *llen_lim
     cdef double[:,::1] lspoly_view
     cdef int nvert
+    cdef array kPIn  = clone(array('d'), num_los, False)
+    cdef array kPOut = clone(array('d'), num_los, False)
+    cdef array VperpOut  = clone(array('d'), num_los*3, False)
+    cdef array IOut  = clone(array('i'), num_los*3, False)
 
     if nLim==0:
         lim_is_none = 1
@@ -179,23 +182,86 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
                             np.min(np.hypot(Ds[0,...],Ds[1,...])))
         else:
             val_rmin = RMin
-
+        rmin2 = val_rmin*val_rmin
         # Main function to compute intersections with Vessel
-        Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, kPIn_view,
-                            kPOut_view, VperpOut_view, IOut_view,
-                            num_los, val_rmin,
-                            lim_is_none, L0, L1,
-                            Forbid=Forbid,
-                            EpsUz=EpsUz, EpsVz=EpsVz,
-                            EpsA=EpsA, EpsB=EpsB,
-                            EpsPlane=EpsPlane)
+        ################
+        # Compute
+        if Forbid:
+            Forbid0, Forbidbis = 1, 1
+        else:
+            Forbid0, Forbidbis = 0, 0
+        for ii in range(0,num_los):
+            loc_us[0] = dus[0,ii]
+            loc_us[1] = dus[1,ii]
+            loc_us[2] = dus[2,ii]
+            loc_ds[0] = Ds[0,ii]
+            loc_ds[1] = Ds[1,ii]
+            loc_ds[2] = Ds[2,ii]
+            loc_vp[0] = VperpOut[0+3*ii]
+            loc_vp[1] = VperpOut[1+3*ii]
+            loc_vp[2] = VperpOut[2+3*ii]
+            upscaDp = loc_us[0]*loc_ds[0] + loc_us[1]*loc_ds[1]
+            upar2 = loc_us[0]*loc_us[0] + loc_us[1]*loc_us[1]
+            Dpar2 = loc_ds[0]*loc_ds[0] + loc_ds[1]*loc_ds[1]
+            invDpar2 = 1./Dpar2
+            # Prepare in case Forbid is True
+            if Forbid0 and not Dpar2>0:
+                Forbidbis = 0
+            if Forbidbis:
+                # Compute coordinates of the 2 points where the tangents touch
+                # the inner circle
+                L = Csqrt(Dpar2-rmin2)
+                S1X = (rmin2*loc_ds[0]+val_rmin*loc_ds[1]*L)*invDpar2
+                S1Y = (rmin2*loc_ds[1]-val_rmin*loc_ds[0]*L)*invDpar2
+                S2X = (rmin2*loc_ds[0]-val_rmin*loc_ds[1]*L)*invDpar2
+                S2Y = (rmin2*loc_ds[1]+val_rmin*loc_ds[0]*L)*invDpar2
+          
+            # Compute all solutions
+            # Set tolerance value for us[2,ii]
+            # EpsUz is the tolerated DZ across 20m (max Tokamak size)
+            Crit2 = upar2*Crit2_base
+            kpin_loc[0]  = kPIn[ii]
+            kpout_loc[0] = kPOut[ii]
+            ind_loc[0] = IOut[2 + 3*ii]
+            found_new = comp_inter_los_vpoly(loc_ds, loc_us, VPoly, VIn, Ns, lim_is_none,
+                                             L0, L1, kpin_loc, kpout_loc, ind_loc, loc_vp,
+                                             Forbidbis, upscaDp, upar2, Dpar2, invDpar2,
+                                             S1X, S1Y, S2X, S2Y, Crit2, EpsUz, EpsVz, EpsA, EpsB,
+                                             EpsPlane, True)
+            if found_new:
+                kPIn[ii]         = kpin_loc[0]
+                kPOut[ii]        = kpout_loc[0]
+                IOut[2+3*ii]     = ind_loc[0]
+                IOut[0+3*ii]     = 0
+                IOut[1+3*ii]     = 0
+                VperpOut[0+3*ii] = loc_vp[0]
+                VperpOut[1+3*ii] = loc_vp[1]
+                VperpOut[2+3*ii] = loc_vp[2]
+          
+            else:
+                kPIn[ii]         = Cnan
+                kPOut[ii]        = Cnan
+                IOut[2+3*ii]     = -1000000
+                IOut[0+3*ii]     = 0
+                IOut[1+3*ii]     = 0
+                VperpOut[0+3*ii] = Cnan
+                VperpOut[1+3*ii] = Cnan
+                VperpOut[2+3*ii] = Cnan
+        # Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, kPIn_view,
+        #                     kPOut_view, VperpOut_view, IOut_view,
+        #                     num_los, val_rmin,
+        #                     lim_is_none, L0, L1,
+        #                     Forbid=Forbid,
+        #                     EpsUz=EpsUz, EpsVz=EpsVz,
+        #                     EpsA=EpsA, EpsB=EpsB,
+        #                     EpsPlane=EpsPlane)
         # If there are Struct, call the same function
         # Structural optimzation : do everything in one big for loop and only
         # keep the relevant points (to save memory)
         if LSPoly is not None:
             ind_lim_data = 0
             len_lspoly = len(LSPoly)
-            llen_lim  = <long *>PyMem_Malloc(len_lspoly * sizeof(long))
+            llen_lim  = <int *>PyMem_Malloc(len_lspoly * sizeof(int))
             for ii in range(len_lspoly):
                 if LSLim[ii] is None or not all([hasattr(ll,'__iter__') for ll in LSLim[ii]]):
                     lslim = [LSLim[ii]]
@@ -212,9 +278,8 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
                         lim_ves[0] = lslim[jj][0]
                         lim_ves[1] = lslim[jj][1]
                         llim_ves.append(0)
-                        L0 = Catan2(Csin(lim_ves[0]),Ccos(lim_ves[0]))
-                        L1 = Catan2(Csin(lim_ves[1]),Ccos(lim_ves[1]))
-                        # bounds = get_bbox_poly_limited(np.asarray(LSPoly[ii]), [L0, L1])
+                        L0 = Catan2(Csin(lim_ves[0]), Ccos(lim_ves[0]))
+                        L1 = Catan2(Csin(lim_ves[1]), Ccos(lim_ves[1]))
                         compute_bbox_lim(nvert, lspoly_view, bounds, L0, L1)
                     else:
                         llim_ves.append(1)
@@ -230,30 +295,30 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
             for ind_tmp in range(0, num_los):
                 ind_lim_data = 0
                 # We get the last kpout:
-                kpout_jj = kPOut_view[ind_tmp]
+                kpout_jj = kPOut[ind_tmp]
                 kpin_loc[0] = kpout_jj
-                indin_loc[0] = IOut_view[2+3*ind_tmp]
-                los_orig_loc[0] = Ds[0, ind_tmp]
-                los_orig_loc[1] = Ds[1, ind_tmp]
-                los_orig_loc[2] = Ds[2, ind_tmp]
-                los_dirv_loc[0] = dus[0, ind_tmp]
-                los_dirv_loc[1] = dus[1, ind_tmp]
-                los_dirv_loc[2] = dus[2, ind_tmp]
-                struct_vperpin_view[0] = 0.
-                struct_vperpin_view[1] = 0.
-                struct_vperpin_view[2] = 0.
-                last_pout[0] = kpout_jj * los_dirv_loc[0] + los_orig_loc[0]
-                last_pout[1] = kpout_jj * los_dirv_loc[1] + los_orig_loc[1]
-                last_pout[2] = kpout_jj * los_dirv_loc[2] + los_orig_loc[2]
-                compute_inv_and_sign(los_dirv_loc, sign_ray, invr_ray)
+                ind_loc[0] = IOut[2+3*ind_tmp]
+                loc_ds[0] = Ds[0, ind_tmp]
+                loc_ds[1] = Ds[1, ind_tmp]
+                loc_ds[2] = Ds[2, ind_tmp]
+                loc_us[0] = dus[0, ind_tmp]
+                loc_us[1] = dus[1, ind_tmp]
+                loc_us[2] = dus[2, ind_tmp]
+                loc_vp[0] = 0.
+                loc_vp[1] = 0.
+                loc_vp[2] = 0.
+                last_pout[0] = kpout_jj * loc_us[0] + loc_ds[0]
+                last_pout[1] = kpout_jj * loc_us[1] + loc_ds[1]
+                last_pout[2] = kpout_jj * loc_us[2] + loc_ds[2]
+                compute_inv_and_sign(loc_us, sign_ray, invr_ray)
                 # computing sclar prods for Ray and rmin values
                 if Forbid:
                     Forbid0, Forbidbis = 1, 1
                 else:
                     Forbid0, Forbidbis = 0, 0
-                upscaDp = los_dirv_loc[0]*los_orig_loc[0] + los_dirv_loc[1]*los_orig_loc[1]
-                upar2   = los_dirv_loc[0]*los_dirv_loc[0] + los_dirv_loc[1]*los_dirv_loc[1]
-                Dpar2   = los_orig_loc[0]*los_orig_loc[0] + los_orig_loc[1]*los_orig_loc[1]
+                upscaDp = loc_us[0]*loc_ds[0] + loc_us[1]*loc_ds[1]
+                upar2   = loc_us[0]*loc_us[0] + loc_us[1]*loc_us[1]
+                Dpar2   = loc_ds[0]*loc_ds[0] + loc_ds[1]*loc_ds[1]
                 invDpar2 = 1./Dpar2
                 Crit2 = upar2*Crit2_base
                 # Prepare in case Forbid is True
@@ -264,10 +329,10 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
                     # the inner circle
                     rmin2 = val_rmin*val_rmin
                     L = Csqrt(Dpar2-rmin2)
-                    S1X = (rmin2*los_orig_loc[0]+val_rmin*los_orig_loc[1]*L)*invDpar2
-                    S1Y = (rmin2*los_orig_loc[1]-val_rmin*los_orig_loc[0]*L)*invDpar2
-                    S2X = (rmin2*los_orig_loc[0]-val_rmin*los_orig_loc[1]*L)*invDpar2
-                    S2Y = (rmin2*los_orig_loc[1]+val_rmin*los_orig_loc[0]*L)*invDpar2
+                    S1X = (rmin2*loc_ds[0]+val_rmin*loc_ds[1]*L)*invDpar2
+                    S1Y = (rmin2*loc_ds[1]-val_rmin*loc_ds[0]*L)*invDpar2
+                    S2X = (rmin2*loc_ds[0]-val_rmin*loc_ds[1]*L)*invDpar2
+                    S2Y = (rmin2*loc_ds[1]+val_rmin*loc_ds[0]*L)*invDpar2
 
                 for ii in range(len_lspoly):
                     nvert = LSVIn[ii].shape[1]
@@ -285,7 +350,7 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
                         ind_lim_data += 1
                         # We test if it is really necessary to compute the inter:
                         # We check if the ray intersects the bounding box
-                        inter_bbox = ray_intersects_abba_bbox(sign_ray, invr_ray, bounds, los_orig_loc)
+                        inter_bbox = ray_intersects_abba_bbox(sign_ray, invr_ray, bounds, loc_ds)
                         if not inter_bbox:
                             continue
 
@@ -295,12 +360,12 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
                             continue
 
                         # We compute new values
-                        found_new_kout = comp_inter_los_vpoly(los_orig_loc, los_dirv_loc,
+                        found_new_kout = comp_inter_los_vpoly(loc_ds, loc_us,
                                                               LSPoly[ii],
                                                               LSVIn[ii], nvert,
                                                               lim_is_none, L0, L1,
-                                                              kpin_loc, kpout_loc, indin_loc,
-                                                              struct_vperpin_view,
+                                                              kpin_loc, kpout_loc, ind_loc,
+                                                              loc_vp,
                                                               Forbidbis,
                                                               upscaDp, upar2, Dpar2, invDpar2,
                                                               S1X, S1Y, S2X, S2Y,
@@ -308,29 +373,43 @@ def LOS_Calc_PInOut_VesStruct(double[:,::1] Ds,    double[:,::1] dus,
                                                               EpsA, EpsB,
                                                               EpsPlane, False)
                         if found_new_kout :
-                            kPOut_view[ind_tmp] = kpin_loc[0]
-                            VperpOut_view[0+3*ind_tmp] = struct_vperpin_view[0]
-                            VperpOut_view[1+3*ind_tmp] = struct_vperpin_view[1]
-                            VperpOut_view[2+3*ind_tmp] = struct_vperpin_view[2]
-                            IOut_view[2+3*ind_tmp] = indin_loc[0]
-                            IOut_view[0+3*ind_tmp] = 1+ii
-                            IOut_view[1+3*ind_tmp] = jj
-                            last_pout[0] = kPOut_view[ind_tmp] * los_dirv_loc[0] + los_orig_loc[0]
-                            last_pout[1] = kPOut_view[ind_tmp] * los_dirv_loc[1] + los_orig_loc[1]
-                            last_pout[2] = kPOut_view[ind_tmp] * los_dirv_loc[2] + los_orig_loc[2]
+                            kPOut[ind_tmp] = kpin_loc[0]
+                            VperpOut[0+3*ind_tmp] = loc_vp[0]
+                            VperpOut[1+3*ind_tmp] = loc_vp[1]
+                            VperpOut[2+3*ind_tmp] = loc_vp[2]
+                            IOut[2+3*ind_tmp] = ind_loc[0]
+                            IOut[0+3*ind_tmp] = 1+ii
+                            IOut[1+3*ind_tmp] = jj
+                            last_pout[0] = kPOut[ind_tmp] * loc_us[0] + loc_ds[0]
+                            last_pout[1] = kPOut[ind_tmp] * loc_us[1] + loc_ds[1]
+                            last_pout[2] = kPOut[ind_tmp] * loc_us[2] + loc_ds[2]
 
             PyMem_Free(llen_lim)
     PyMem_Free(lbounds)
     PyMem_Free(langles)
-    return np.asarray(kPIn_view), np.asarray(kPOut_view),\
-      np.asarray(VperpOut_view),\
-      np.asarray(IOut_view)
+
+    # arr_kpin  = pointer_to_numpy_array_double(kPIn, num_los)
+    # arr_kpout = pointer_to_numpy_array_double(kPOut, num_los)
+    # arr_vperp = pointer_to_numpy_array_double(VperpOut, 3*num_los)
+    # arr_iout  = pointer_to_numpy_array_int(IOut, 3*num_los)
+    # PyMem_Free(kPIn)
+    # PyMem_Free(kPOut)
+    # PyMem_Free(IOut)
+    # PyMem_Free(VperpOut)
+    # return arr_kpin, arr_kpout, arr_vperp, arr_iout
+
+    # kpin_view = kPIn
+    # kpOut_view = kPOut
+    # vperp_view = VperpOut
+    # ind_view = IOut
+          
+    return np.asarray(kPIn), np.asarray(kPOut), np.asarray(VperpOut), np.asarray(IOut)
 
 cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                 double [:,::1] VPoly, double [:,::1] vIn,
                                 int vin_shape,
                                 bint lim_is_none, double L0, double L1,
-                                double[1] kpin_loc, double[1] kpout_loc, int[1] indin_loc, double[3] vperpin,
+                                double[1] kpin_loc, double[1] kpout_loc, int[1] ind_loc, double[3] vperpin,
                                 bint Forbidbis, double upscaDp, double upar2, double Dpar2, double invDpar2,
                                 double S1X, double S1Y, double S2X, double S2Y,
                                 double Crit2, double EpsUz,
@@ -412,11 +491,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                         kout = k
                                         Done = 1
                                         indout = jj
-                                        #print(1, k)
                                     elif sca>=0 and k<min(kin,kout):
                                         kin = k
                                         indin = jj
-                                        #print(2, k)
 
                         # Second solution
                         if -upscaDp + sqd >=0:
@@ -449,11 +526,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                         kout = k
                                         Done = 1
                                         indout = jj
-                                        #print(3, k)
                                     elif sca>=0 and k<min(kin,kout):
                                         kin = k
                                         indin = jj
-                                        #print(4, k)
 
     # More general non-horizontal semi-line case
     else:
@@ -473,7 +548,6 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                             sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
                             sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                             sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
-                            #print 1, k, kout, sca0, sca1, sca2
                             if sca0<0 and sca1<0 and sca2<0:
                                 continue
                         # Get the normalized perpendicular vector at intersection
@@ -485,11 +559,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                 kout = k
                                 Done = 1
                                 indout = jj
-                                #print(5, k)
                             elif sca>=0 and k<min(kin,kout):
                                 kin = k
                                 indin = jj
-                                #print(6, k)
 
             elif A*A>=EpsA*EpsA and B*B>A*C:
                 sqd = Csqrt(B*B-A*C)
@@ -503,7 +575,6 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                             sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
                             sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                             sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
-                            #print 2, k, kout, sca0, sca1, sca2
                         if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
                             # Get the normalized perpendicular vector at intersection
                             phi = Catan2(sol1,sol0)
@@ -514,11 +585,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                     kout = k
                                     Done = 1
                                     indout = jj
-                                    #print(7, k, q, A, B, C, sqd)
                                 elif sca>=0 and k<min(kin,kout):
                                     kin = k
                                     indin = jj
-                                    #print(8, k, jj)
 
                 # Second solution
                 q = (-B - sqd)/A
@@ -531,7 +600,6 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                             sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
                             sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                             sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
-                            #print 3, k, kout, sca0, sca1, sca2
                         if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
                             # Get the normalized perpendicular vector at intersection
                             phi = Catan2(sol1,sol0)
@@ -542,11 +610,9 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                     kout = k
                                     Done = 1
                                     indout = jj
-                                    #print(9, k, jj)
                                 elif sca>=0 and k<min(kin,kout):
                                     kin = k
                                     indin = jj
-                                    #print(10, k, q, A, B, C, sqd, v0, v1, jj)
 
     if not lim_is_none:
         ephiIn0 = -sinl0
@@ -590,7 +656,6 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                         kin = k
                         indin = -2
 
-    # print("  For Line ", ii, "  test = ", inter_bbox, " and kout = ", Done, kin, kout)
     if Done==1:
         if struct_is_ves :
             kpout_loc[0] = kout
@@ -609,7 +674,7 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                 vperpin[0] = Ccos(phi)*vIn[0,indout]
                 vperpin[1] = Csin(phi)*vIn[0,indout]
                 vperpin[2] = vIn[1,indout]
-            indin_loc[0] = indout
+            ind_loc[0] = indout
             if kin<kout:
                 kpin_loc[0] = kin
 
@@ -630,9 +695,8 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                 vperpin[0] = -Ccos(phi)*vIn[0,indin]
                 vperpin[1] = -Csin(phi)*vIn[0,indin]
                 vperpin[2] = -vIn[1,indin]
-            indin_loc[0] = indin
+            ind_loc[0] = indin
 
-                
     return res_kin != kpin_loc[0]
 
 cdef inline void compute_inv_and_sign(const double[3] us,
@@ -702,98 +766,98 @@ cdef inline bint is_point_in_path(int nvert, double[:] vertx, double[:] verty, d
             c = not c
     return c
 
-cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
-                                     double [:,::1] VPoly, double [:,::1] vIn,
-                                     double[:] kPIn_view, double[:] kPOut_view,
-                                     double[:] VperpOut_view, long[:] IOut_view,
-                                     int Nl,
-                                     double Rmin, bint lim_is_none, double L0, double L1,
-                                     bint Forbid,  double EpsUz,
-                                     double EpsVz, double EpsA,
-                                     double EpsB,  double EpsPlane):
+# cdef inline void Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
+#                                      double [:,::1] VPoly, double [:,::1] vIn,
+#                                      double[:] kPIn_view, double[:] kPOut_view,
+#                                      double[:] VperpOut_view, int[:] IOut_view,
+#                                      int Nl,
+#                                      double Rmin, bint lim_is_none, double L0, double L1,
+#                                      bint Forbid,  double EpsUz,
+#                                      double EpsVz, double EpsA,
+#                                      double EpsB,  double EpsPlane):
 
-    cdef int ii, jj, Ns=vIn.shape[1]
-    cdef double upscaDp, upar2, Dpar2, Crit2, kout, kin, invDpar2
-    cdef int indout=0, Done=0
-    cdef double L=0., S1X=0., S1Y=0., S2X=0., S2Y=0., sca=0., sca0=0., sca1=0., sca2=0.
-    cdef double q, C, delta, sqd, k, sol0, sol1, phi=0., rmin2
-    cdef double v0, v1, A, B, ephiIn0, ephiIn1, Crit2_base = EpsUz*EpsUz/400.
-    cdef double[3] loc_ds
-    cdef double[3] loc_us
-    cdef double[3] loc_vp
-    cdef double[1] kpin_loc
-    cdef double[1] kpout_loc
-    cdef int[1] indout_loc
-    cdef double SOut1, SOut0
-    cdef int Forbidbis, Forbid0
-    cdef bint found_new
+#     cdef int ii, jj, Ns=vIn.shape[1]
+#     cdef double upscaDp, upar2, Dpar2, Crit2, kout, kin, invDpar2
+#     cdef int indout=0, Done=0
+#     cdef double L=0., S1X=0., S1Y=0., S2X=0., S2Y=0., sca=0., sca0=0., sca1=0., sca2=0.
+#     cdef double q, C, delta, sqd, k, sol0, sol1, phi=0., rmin2
+#     cdef double v0, v1, A, B, ephiIn0, ephiIn1, Crit2_base = EpsUz*EpsUz/400.
+#     cdef double[3] loc_ds
+#     cdef double[3] loc_us
+#     cdef double[3] loc_vp
+#     cdef double[1] kpin_loc
+#     cdef double[1] kpout_loc
+#     cdef int[1] ind_loc
+#     cdef double SOut1, SOut0
+#     cdef int Forbidbis, Forbid0
+#     cdef bint found_new
 
-    ################
-    # Compute
-    if Forbid:
-        Forbid0, Forbidbis = 1, 1
-    else:
-        Forbid0, Forbidbis = 0, 0
-    for ii in range(0,Nl):
-        loc_us[0] = us[0,ii]
-        loc_us[1] = us[1,ii]
-        loc_us[2] = us[2,ii]
-        loc_ds[0] = Ds[0,ii]
-        loc_ds[1] = Ds[1,ii]
-        loc_ds[2] = Ds[2,ii]
-        loc_vp[0] = VperpOut_view[0+3*ii]
-        loc_vp[1] = VperpOut_view[1+3*ii]
-        loc_vp[2] = VperpOut_view[2+3*ii]
-        upscaDp = loc_us[0]*loc_ds[0] + loc_us[1]*loc_ds[1]
-        upar2 = loc_us[0]*loc_us[0] + loc_us[1]*loc_us[1]
-        Dpar2 = loc_ds[0]*loc_ds[0] + loc_ds[1]*loc_ds[1]
-        invDpar2 = 1./Dpar2
-        # Prepare in case Forbid is True
-        if Forbid0 and not Dpar2>0:
-            Forbidbis = 0
-        if Forbidbis:
-            # Compute coordinates of the 2 points where the tangents touch
-            # the inner circle
-            rmin2 = Rmin*Rmin
-            L = Csqrt(Dpar2-rmin2)
-            S1X = (rmin2*loc_ds[0]+Rmin*loc_ds[1]*L)*invDpar2
-            S1Y = (rmin2*loc_ds[1]-Rmin*loc_ds[0]*L)*invDpar2
-            S2X = (rmin2*loc_ds[0]-Rmin*loc_ds[1]*L)*invDpar2
-            S2Y = (rmin2*loc_ds[1]+Rmin*loc_ds[0]*L)*invDpar2
+#     ################
+#     # Compute
+#     if Forbid:
+#         Forbid0, Forbidbis = 1, 1
+#     else:
+#         Forbid0, Forbidbis = 0, 0
+#     for ii in range(0,Nl):
+#         loc_us[0] = us[0,ii]
+#         loc_us[1] = us[1,ii]
+#         loc_us[2] = us[2,ii]
+#         loc_ds[0] = Ds[0,ii]
+#         loc_ds[1] = Ds[1,ii]
+#         loc_ds[2] = Ds[2,ii]
+#         loc_vp[0] = VperpOut_view[0+3*ii]
+#         loc_vp[1] = VperpOut_view[1+3*ii]
+#         loc_vp[2] = VperpOut_view[2+3*ii]
+#         upscaDp = loc_us[0]*loc_ds[0] + loc_us[1]*loc_ds[1]
+#         upar2 = loc_us[0]*loc_us[0] + loc_us[1]*loc_us[1]
+#         Dpar2 = loc_ds[0]*loc_ds[0] + loc_ds[1]*loc_ds[1]
+#         invDpar2 = 1./Dpar2
+#         # Prepare in case Forbid is True
+#         if Forbid0 and not Dpar2>0:
+#             Forbidbis = 0
+#         if Forbidbis:
+#             # Compute coordinates of the 2 points where the tangents touch
+#             # the inner circle
+#             rmin2 = Rmin*Rmin
+#             L = Csqrt(Dpar2-rmin2)
+#             S1X = (rmin2*loc_ds[0]+Rmin*loc_ds[1]*L)*invDpar2
+#             S1Y = (rmin2*loc_ds[1]-Rmin*loc_ds[0]*L)*invDpar2
+#             S2X = (rmin2*loc_ds[0]-Rmin*loc_ds[1]*L)*invDpar2
+#             S2Y = (rmin2*loc_ds[1]+Rmin*loc_ds[0]*L)*invDpar2
 
-        # Compute all solutions
-        # Set tolerance value for us[2,ii]
-        # EpsUz is the tolerated DZ across 20m (max Tokamak size)
-        Crit2 = upar2*Crit2_base
-        kpin_loc[0]  = kPIn_view[ii]
-        kpout_loc[0] = kPOut_view[ii]
-        indout_loc[0] = IOut_view[2 + 3*ii]
-        found_new = comp_inter_los_vpoly(loc_ds, loc_us, VPoly, vIn, Ns, lim_is_none,
-                                         L0, L1, kpin_loc, kpout_loc, indout_loc, loc_vp,
-                                         Forbidbis, upscaDp, upar2, Dpar2, invDpar2,
-                                         S1X, S1Y, S2X, S2Y, Crit2, EpsUz, EpsVz, EpsA, EpsB,
-                                         EpsPlane, True)
-        if found_new:
-            kPIn_view[ii]         = kpin_loc[0]
-            kPOut_view[ii]        = kpout_loc[0]
-            IOut_view[2+3*ii]     = indout_loc[0]
-            IOut_view[0+3*ii]     = 0
-            IOut_view[1+3*ii]     = 0
-            VperpOut_view[0+3*ii] = loc_vp[0]
-            VperpOut_view[1+3*ii] = loc_vp[1]
-            VperpOut_view[2+3*ii] = loc_vp[2]
+#         # Compute all solutions
+#         # Set tolerance value for us[2,ii]
+#         # EpsUz is the tolerated DZ across 20m (max Tokamak size)
+#         Crit2 = upar2*Crit2_base
+#         kpin_loc[0]  = kPIn_view[ii]
+#         kpout_loc[0] = kPOut_view[ii]
+#         ind_loc[0] = IOut_view[2 + 3*ii]
+#         found_new = comp_inter_los_vpoly(loc_ds, loc_us, VPoly, vIn, Ns, lim_is_none,
+#                                          L0, L1, kpin_loc, kpout_loc, ind_loc, loc_vp,
+#                                          Forbidbis, upscaDp, upar2, Dpar2, invDpar2,
+#                                          S1X, S1Y, S2X, S2Y, Crit2, EpsUz, EpsVz, EpsA, EpsB,
+#                                          EpsPlane, True)
+#         if found_new:
+#             kPIn_view[ii]         = kpin_loc[0]
+#             kPOut_view[ii]        = kpout_loc[0]
+#             IOut_view[2+3*ii]     = ind_loc[0]
+#             IOut_view[0+3*ii]     = 0
+#             IOut_view[1+3*ii]     = 0
+#             VperpOut_view[0+3*ii] = loc_vp[0]
+#             VperpOut_view[1+3*ii] = loc_vp[1]
+#             VperpOut_view[2+3*ii] = loc_vp[2]
 
-        else:
-            kPIn_view[ii]         = Cnan
-            kPOut_view[ii]        = Cnan
-            IOut_view[2+3*ii]     = -1000000
-            IOut_view[0+3*ii]     = 0
-            IOut_view[1+3*ii]     = 0
-            VperpOut_view[0+3*ii] = Cnan
-            VperpOut_view[1+3*ii] = Cnan
-            VperpOut_view[2+3*ii] = Cnan
+#         else:
+#             kPIn_view[ii]         = Cnan
+#             kPOut_view[ii]        = Cnan
+#             IOut_view[2+3*ii]     = -1000000
+#             IOut_view[0+3*ii]     = 0
+#             IOut_view[1+3*ii]     = 0
+#             VperpOut_view[0+3*ii] = Cnan
+#             VperpOut_view[1+3*ii] = Cnan
+#             VperpOut_view[2+3*ii] = Cnan
 
-    return
+#     return
 
 
 
