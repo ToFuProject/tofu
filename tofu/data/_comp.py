@@ -9,16 +9,29 @@ import scipy.signal as scpsig
 import scipy.interpolate as scpinterp
 
 
+_fmin_coef = 5.
 
+
+
+#############################################
+#############################################
 #############################################
 #       Spectrograms
 #############################################
+#############################################
 
 
-def spectrogram(data, t=None, method='',
+def spectrogram(data, t,
+                fmin=None, method='',
                 **kwdargs):
 
-    lm = ['scipy-fourier', 'scipy-welch']
+    # Format/check inputs
+    lm = ['scipy-fourier', 'scipy-fourier-stft', 'scipy-wavelet']
+    if not method in lm:
+        msg = "Alowed methods are:"
+        msg += "\n    - scipy-fourier: scipy.signal.spectrogram()"
+        msg += "\n    - scpipy-wavelet: scipy.signal.cwt()"
+        raise Exception(msg)
 
     nt, nch = data.shape
     if t is not None:
@@ -28,15 +41,24 @@ def spectrogram(data, t=None, method='',
     if not np.allclose(t,t[0]+np.mean(np.diff(t))*np.arange(0,nt)):
         msg = "Time vector does not seem to be regularly increasing !"
         raise Exception(msg)
+    dt = np.mean(np.diff(t))
+    fs = 1./dt
 
-    if method=='scipy-fourier':
-        out = _spectrogram_scipy_fourier(data, 1./dt, nt, nch, **kwdargs)
+    # Compute
+    if 'fourier' in method:
+        lkwds = ['window','nperseg','noverlap','detrend',
+                 'boundary','padded']
+        kwdargs = locals()
+        kwdargs = dict([(nn,kwdargs[nn]) for nn in lkwds])
+        stft = 'stft' in method
+        f, tf, lspect = _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=fmin,
+                                                   stft=stft, **kwdargs)
     elif method=='scipy-wavelet':
-        out = _spectrogram_scipy_wavelet(data, 1./dt, nt, nch, **kwdargs)
-    elif method=='irfm-ece':
-        out = _spectrogram_irfm_ece(data, 1./dt, nt, nch, **kwdargs)
+        f, lspect = _spectrogram_scipy_wavelet(data, fs, nt, nch,
+                                               fmin=fmin, wave=wave)
+        tf = t.copy()
 
-    return t, f, psd
+    return tf, f, lspect
 
 
 def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
@@ -59,7 +81,7 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
 
     # Check inputs
     if nperseg is None and fmin is None:
-        fmin = 10.*(fs/nt)
+        fmin = _fmin_coef*(fs/nt)
         msg = "nperseg and fmin were not provided, fmin set to 10.*fs/nt"
         raise Exception(msg)
 
@@ -98,26 +120,47 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
 
 def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):
 
+    if wave!='morlet':
+        msg = "Only the morlet wavelet implmented so far !"
+        raise Exception(msg)
+
+
     # Check inputs
     if fmin is None:
-        fmin = 10.*(fs/nt)
+        fmin = _fmin_coef*(fs/nt)
         msg = "fmin was not provided => set to 10.*fs/nt"
         raise Exception(msg)
 
-    widths = np.arange()
-
+    nw = int((1./fmin-2./fs)*fs)
+    widths = 2.*np.pi*np.linspace(fmin,fs/2.,nw)
     wave = eval('scpsig.%s'%wave)
 
     for ii in range(0,nch):
         cwt = scpsig.cwt(data[:,ii], wave, widths)
-        lcwt.append(cwt)
+        lcwt.append(np.abs(cwt)**2)
 
-    f = 1./(width*dt)
-    return widths, lcwt
-
-
+    f = widths/(2.*np.pi)
+    return f, lcwt
 
 
+
+#############################################
+#############################################
+#############################################
+#       SVD
+#############################################
+#############################################
+
+
+
+
+
+#############################################
+#############################################
+#############################################
+#       Filtering
+#############################################
+#############################################
 
 
 def FourierExtract(t, data, df=None, dfEx=None, Harm=True, HarmEx=True, Test=True):

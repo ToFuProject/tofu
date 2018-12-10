@@ -1156,6 +1156,87 @@ class Data(utils.ToFuObject):
 
 
 
+    def plot_spectrogram(self, fmin=None,
+                         method='scipy-fourier',
+                         window='hann', detrend='linear',
+                         nperseg=None, noverlap=None, stft=False,
+                         boundary='constant', padded=True, wave='morlet'):
+        """ Return the power spectrum density for each channel
+
+        The power spectrum density is computed with the chosen method
+
+        Parameters
+        ----------
+        fmin :  None / float
+            The minimum frequency of interest
+            If None, set to 5/T, where T is the whole time interval
+            Used to constrain the number of points per window
+        method : str
+            Flag indicating which method to use for computation:
+                - 'scipy-fourier':  uses scipy.signal.spectrogram()
+                    (windowed fast fourier transform)
+                - 'scipy-stft':     uses scipy.signal.stft()
+                    (short time fourier transform)
+                - 'scipy-wavelet':  uses scipy.signal.cwt()
+                    (continuous wavelet transform)
+            The following keyword args are fed to one of these scipy functions
+            See the corresponding online scipy documentation for details on the
+            function and its arguments
+        window : None / str / tuple
+            If method='scipy-fourier'
+            Flag indicating which type of window to use
+        detrend : None / str
+            If method='scipy-fourier'
+            Flag indicating whether and how to remove the trend of the signal
+        nperseg :   None / int
+            If method='scipy-fourier'
+            Number of points to the used for each window
+        noverlap:
+            If method='scipy-fourier'
+            Number of points on which successive windows should overlap
+        boundary:
+            If method='scipy-stft'
+
+        padded :
+            If method='scipy-stft'
+            d
+        wave: None / str
+            If method='scipy-wavelet'
+
+        Return
+        ------
+        tf :    np.ndarray
+            d
+        f:      np.ndarray
+            d
+        lspect: np.ndarray
+            d
+
+        """
+
+
+        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
+        return tf, f, lspect
+
+
+    def plot_spectrogram():
+        """   """
+        tf, f, lspect =
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
