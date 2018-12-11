@@ -8,7 +8,7 @@ from pathlib import Path
 from resource import getpagesize
 import os
 import psutil
-
+from memory_profiler import profile
 
 def get_resident_set_size():
     # Columns are: size resident shared text lib data dt
@@ -79,7 +79,6 @@ def prepare_inputs(vcam, config, method='ref'):
 
     return largs, dkwd
 
-
 def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, saveCam=[]):
     dconf = load_config(config, plot=plot)
     if plot:
@@ -99,6 +98,7 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
                 num = int(vcam[1:])
             np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[2].reshape(3,num))
             np.savez("out_iout_"    +config+"_"+vcam+".npz", out[3].reshape(3,num))
+            print(np.size(out), (3*num*2 + 2*num))
         if save and vcam in saveCam and not  _is_new_version:
             np.savez("out_kin_"     +config+"_"+vcam+".npz", out[2])
             np.savez("out_kout_"    +config+"_"+vcam+".npz", out[3])
@@ -149,9 +149,9 @@ def test_LOS_all(save=False, saveCam=[]):
 def test_line_profile(config="B2", cam="V1000"):
     dconf = load_config(config, plot=False)
     largs, dkwd = prepare_inputs(cam, dconf)
-    profile = line_profiler.LineProfiler(_GG.LOS_Calc_PInOut_VesStruct)
-    profile.runcall(_GG.LOS_Calc_PInOut_VesStruct, *largs, **dkwd)
-    profile.print_stats()
+    profiler = line_profiler.LineProfiler(_GG.LOS_Calc_PInOut_VesStruct)
+    profiler.runcall(_GG.LOS_Calc_PInOut_VesStruct, *largs, **dkwd)
+    profiler.print_stats()
 
 def test_LOS_profiling():
     Cams = ["V1000000"]
@@ -185,7 +185,7 @@ def touch_plot_all_configs():
     CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
             "VA100000", "VA1000000"]
     for indx, config in enumerate(ABconfigs):
-        indcam = -2
+        indcam = -3
         if config=="A2":
             cam = CamsA[indcam]
         else:
@@ -244,6 +244,7 @@ def check_memory_usage2(cam="V1000000", config="B2"):
     test_LOS_west_configs(config, [cam])
     print(process.memory_info()[0])
 
+
 if __name__ == "__main__":
     test_LOS_compact()
     # test_LOS_all()
@@ -256,10 +257,11 @@ if __name__ == "__main__":
     # touch_plot_config_cam("B3", "V10000")
     # line profiling.....
     # test_line_profile(cam="V100000")
-    # print(test_LOS_west_configs("B2", ["V10"]))
+    # print(test_LOS_west_configs("B2", ["V1000000"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # are_results_the_same()
     # check_memory_usage()
     # mem()
     # check_memory_usage2()
     # mem()
+
