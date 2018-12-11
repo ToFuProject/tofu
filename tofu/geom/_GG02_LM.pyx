@@ -36,8 +36,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,    double[:, ::1] dus,
                               double EpsUz=_VSMALL*1.,     double EpsA=_VSMALL*1.,
                               double EpsVz=_VSMALL*1., double EpsB=_VSMALL*1.,
                               double EpsPlane=_SMALL*1.,
-
-
                               str VType='Tor',
                               bint Forbid=1, bint Test=1):
     """
@@ -166,7 +164,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,    double[:, ::1] dus,
         for ii in range(len_lspoly):
             # we get the structure polynome and its number of vertex
             # lspoly_view = LSPoly[ii] # is this really faster 
-            # nvert = lspoly_view.shape[1]
             nvert = len(LSPoly[ii][0])
             #... and its limits:
             len_lim = lSnLim[ii]
@@ -389,22 +386,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,    double[:, ::1] dus,
 
     PyMem_Free(lbounds)
     PyMem_Free(langles)
-
-    # arr_kpin  = pointer_to_numpy_array_double(kPIn, num_los)
-    # arr_kpout = pointer_to_numpy_array_double(kPOut, num_los)
-    # arr_vperp = pointer_to_numpy_array_double(VperpOut, 3*num_los)
-    # arr_iout  = pointer_to_numpy_array_int(IOut, 3*num_los)
-    # PyMem_Free(kPIn)
-    # PyMem_Free(kPOut)
-    # PyMem_Free(IOut)
-    # PyMem_Free(VperpOut)
-    # return arr_kpin, arr_kpout, arr_vperp, arr_iout
-
-    # kpin_view = kPIn
-    # kpOut_view = kPOut
-    # vperp_view = VperpOut
-    # ind_view = IOut
-          
     return np.asarray(kPIn), np.asarray(kPOut), np.asarray(VperpOut), np.asarray(IOut)
 
 cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
