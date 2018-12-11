@@ -65,7 +65,7 @@ def prepare_inputs(vcam, config, method='ref'):
         loc_rmin = -1
         dkwd = dict(Lim=Lim, nLim=nLim, nstruct=num_tot_structs,
                     LSPoly=lSPoly, LSLim=lSLim,
-                    lSnLim=np.asarray(lSnLim), LSVIn=lSVIn, VType=VType,
+                    lSnLim=np.asarray(lSnLim, dtype=np.int64), LSVIn=lSVIn, VType=VType,
                     RMin=loc_rmin, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
                     EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
 
@@ -113,11 +113,11 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
 
 def test_LOS_compact(save=False, saveCam=[]):
     Cams = ["V1", "V10", "V100", "V1000", "V10000",
-            "V100000", "V1000000"]
-    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000"]#,
-    # "VA100000"]
+            "V100000"]#, "V1000000"]
+    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
+             "VA100000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
-    for icon in configs[3:] :
+    for icon in configs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
@@ -251,7 +251,7 @@ if __name__ == "__main__":
     # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
-    # touch_plot_config_cam("B1", "V10000")
+    # touch_plot_config_cam("A2", "V10000")
     # touch_plot_config_cam("B2", "V10000")
     # touch_plot_config_cam("B3", "V10000")
     # line profiling.....
