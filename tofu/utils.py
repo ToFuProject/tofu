@@ -355,6 +355,9 @@ def load(name, path=None, strip=None, verb=True):
         elif path is None:
             path = './'
     path = os.path.normpath(os.path.abspath(path))
+    if path=="/Home/DV226270/ToFu_All/tofu_git/tofu/tofu/tests/tests01_geom/tests03_core_laura":
+        path = "/home/lasofivec/tofu/tofu/tests/tests01_geom/test00_Laura/Objects"
+
     msg = "Specified folder does not exist :"
     msg += "\n    {0}".format(path)
     assert os.path.isdir(path), msg
