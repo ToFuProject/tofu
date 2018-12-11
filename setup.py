@@ -107,6 +107,8 @@ if USE_CYTHON:
                             # add the needed argument
                   Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"],
                             define_macros=[('CYTHON_TRACE', '1')],
+                            extra_compile_args=["-O3", "-ffast-math", "-fopenmp"],
+                            extra_link_args=['-fopenmp'],
                             #define_macros=[('CYTHON_TRACE_NOGIL', '1')],
                             compiler_directives={'profile': True})
                   ]

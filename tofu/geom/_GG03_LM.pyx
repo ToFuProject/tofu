@@ -1,5 +1,6 @@
 # cython: boundscheck=False
 # cython: wraparound=False
+# cython; nonecheck=False
 # cython: cdivision=True
 #
 cimport numpy as np
@@ -13,6 +14,7 @@ from libc.math cimport NAN as Cnan
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 from cpython.array cimport array, clone
+from cython.parallel import prange
 
 import numpy as np
 cdef double _VSMALL = 1.e-9
@@ -34,6 +36,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,    double[:, ::1] dus,
                               double EpsUz=_VSMALL*1.,     double EpsA=_VSMALL*1.,
                               double EpsVz=_VSMALL*1., double EpsB=_VSMALL*1.,
                               double EpsPlane=_SMALL*1.,
+
+
                               str VType='Tor',
                               bint Forbid=1, bint Test=1):
     """
@@ -191,7 +195,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,    double[:, ::1] dus,
                 langles[ind_lim_data*2 + 1] = L1
                 for kk in range(6):
                     lbounds[ind_lim_data*6 + kk] = bounds[kk]
-                ind_lim_data += 1
+                ind_lim_data = 1 + ind_lim_data
 
     # if there are, we get the limits for the vessel
     if nLim == 0:
@@ -286,7 +290,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,    double[:, ::1] dus,
         # keep the relevant points (to save memory)
         if LSPoly is not None:
             
-            for ind_tmp in range(0, num_los):
+            for ind_tmp in range(num_los):
                 ind_lim_data = 0
                 # We get the last kpout:
                 kpout_jj = kPOut[ind_tmp]
@@ -345,7 +349,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,    double[:, ::1] dus,
                         L0 = langles[ind_lim_data*2]
                         L1 = langles[ind_lim_data*2 + 1]
                         lim_is_none = llim_ves[ind_lim_data]
-                        ind_lim_data += 1
+                        ind_lim_data = 1 + ind_lim_data
 
                         # We test if it is really necessary to compute the inter:
                         # We check if the ray intersects the bounding box
@@ -412,11 +416,11 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
                                 double S1X, double S1Y, double S2X, double S2Y,
                                 double Crit2, double EpsUz,
                                 double EpsVz, double EpsA,
-                                double EpsB, double EpsPlane, bint struct_is_ves) :
+                                double EpsB, double EpsPlane, bint struct_is_ves) nogil:
     cdef int jj
     cdef int indin=0, Done=0, indout=0
     cdef bint inter_bbox
-    cdef double kout, kin
+    cdef double kout = 1.e12, kin
     cdef double sca=0., sca0=0., sca1=0., sca2=0.
     cdef double q, C, delta, sqd, k, sol0, sol1, phi=0.
     cdef double v0, v1, A, B, ephiIn0, ephiIn1
@@ -438,10 +442,12 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
     # Compute all solutions
     # Set tolerance value for us[2,ii]
     # EpsUz is the tolerated DZ across 20m (max Tokamak size)
-    kout, kin, Done = 1.e12, 1e12, 0
+    kin = 1.e12
+    kout = 1.e12
+    Done = 0
     # Case with horizontal semi-line
     if us[2]*us[2]<Crit2:
-        for jj in range(0,vin_shape):
+        for jj in prange(vin_shape, nogil):
             # Solutions exist only in the case with non-horizontal
             # segment (i.e.: cone, not plane)
             if Cabs(VPoly[1,jj+1] - VPoly[1,jj]) > EpsVz:
@@ -529,7 +535,7 @@ cdef inline bint comp_inter_los_vpoly(double [3] Ds, double [3] us,
 
     # More general non-horizontal semi-line case
     else:
-        for jj in range(vin_shape):
+        for jj in prange(vin_shape, nogil):
             v0, v1 = VPoly[0,jj+1]-VPoly[0,jj], VPoly[1,jj+1]-VPoly[1,jj]
             A = v0*v0 - upar2*(v1*invuz)*(v1*invuz)
             B = VPoly[0,jj]*v0 + v1*(Ds[2]-VPoly[1,jj])*upar2*invuz*invuz - upscaDp*v1*invuz
