@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 # Built-in
+import sys
 import os
 import itertools as itt
+import copy
 import warnings
 #from abc import ABCMeta, abstractmethod
 
@@ -215,9 +217,10 @@ class Data(utils.ToFuObject):
     ###########
 
 
+
     def _checkformat_inputs_ddataRef(self, data=None, t=None,
-                                  X=None, indtX=None,
-                                  lamb=None, indtlamb=None, indXlamb=None):
+                                     X=None, indtX=None,
+                                     lamb=None, indtlamb=None, indXlamb=None):
         assert data is not None
         data = np.asarray(data).sqeeze()
         if t is not None:
@@ -264,10 +267,7 @@ class Data(utils.ToFuObject):
             else:
                 assert 'spectral' not in self.Id.Type.lower()
                 assert X.ndim in [1,2]
-                if X.ndim==1:
-                    assert X.size==n1
-                elif X.ndim==2:
-                    assert X.shape[1]==n1
+                assert X.shape[-1]==n1
         else:
             assert 'spectral' in self.Id.Type.lower()
             n2 = data.shape[2]
@@ -276,10 +276,7 @@ class Data(utils.ToFuObject):
                 X = np.arange(0,n1)
             else:
                 assert X.ndim in [1,2]
-                if X.ndim==1:
-                    assert X.size==n1
-                else:
-                    assert X.shape[1]==n1
+                assert X.shape[-1]==n1
 
             if lC[1]:
                 lamb = np.arange(0,n2)
@@ -301,23 +298,81 @@ class Data(utils.ToFuObject):
         # Check indices
         if indtX is not None:
             assert indtX.shape==(nt,)
-            assert inp.argmin(indtX)>=0 and np.argmax(indtX)=<nnX
+            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnX
         lC = [indtlamb is None, indXlamb is None, indtXlamb is None]
         assert lC[2] or (~lC[2] and np.sum(lC[:2])==2)
         if lC[2]:
             if ~lC[0]:
                 assert indtlamb.shape==(nt,)
-                assert inp.argmin(indtlamb)>=0 and np.argmax(indtlamb)=<nnlamb
+                assert inp.argmin(indtlamb)>=0 and np.argmax(indtlamb)<=nnlamb
             if ~lC[1]:
                 assert indXlamb.shape==(nX,)
-                assert inp.argmin(indXlamb)>=0 and np.argmax(indXlamb)=<nnlamb
+                assert inp.argmin(indXlamb)>=0 and np.argmax(indXlamb)<=nnlamb
         else:
             assert indtXlamb.shape==(nt,nX)
-            assert inp.argmin(indtXlamb)>=0 and np.argmax(indtXlamb)=<nnlamb
+            assert inp.argmin(indtXlamb)>=0 and np.argmax(indtXlamb)<=nnlamb
 
         l = [data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb,
              indtX, indtlamb, indXlamb, indtXlamb]
         return l
+
+    def _checkformat_inputs_XRef(self, X=None, indtX=None, indXlamb=None):
+        if X is not None:
+            X = np.asarray(X).sqeeze()
+        if indtX is not None:
+            indtX = np.asarray(indtX).sqeeze()
+        if indXlamb is not None:
+            indXlamb = np.asarray(indXlamb).sqeeze()
+
+        ndim = self._ddataRef['data'].ndim
+        nt, n1 = self._ddataRef['data'].shape[:2]
+        if ndim==3:
+            n2 = self._ddataRef['data'].shape[2]
+
+        if ndim==2:
+            if X is None:
+                if 'spectral' in self.Id.Type.lower():
+                    X = np.array([0])
+                else:
+                    X = np.arange(0,n1)
+            else:
+                assert 'spectral' not in self.Id.Type.lower()
+                assert X.ndim in [1,2]
+                assert X.shape[-1]==n1
+        else:
+            if X is None:
+                X = np.arange(0,n1)
+            else:
+                assert X.ndim in [1,2]
+                assert X.shape[-1]==n1
+
+        # Get shapes
+        nX = X.shape[-1]
+        nnX = 1 if X.ndim==1 else X.shape[0]
+
+        # Check indices
+        if indtX is None:
+            indtX = self._ddataRef['indtX']
+        if indtX is not None:
+            assert indtX.shape==(nt,)
+            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnX
+        if indXlamb is None:
+            indXlamb = self._ddataRef['indXlamb']
+        if indtXlamb is None:
+            indtXlamb = self._ddataRef['indtXlamb']
+
+        if indtXlamb is not None:
+            assert intXlamb is None
+            assert indXlamb.shape==(nX,)
+            assert (np.argmin(indXlamb)>=0
+                    and np.argmax(indXlamb)<=self._ddataRef['nnlamb'])
+        else:
+            assert indXlamb is None
+            assert indtXlamb.shape==(nt,nX)
+            assert (np.argmin(indtXlamb)>=0
+                    and np.argmax(indtXlamb)<=self._ddataRef['nnlamb'])
+
+        return X, nnX, indtX, indXlamb, indtXlamb
 
 
     def _checkformat_inputs_dunits(self, dunits=None):
@@ -356,7 +411,7 @@ class Data(utils.ToFuObject):
             # Check type consistency
             for dd in ['1d','2d']:
                 if dd in self.Id.Type.lower():
-                    lc = [dd in cc.Id.Type.lower()i for cc in lCam]
+                    lc = [dd in cc.Id.Type.lower() for cc in lCam]
                     if not all(lc):
                         msg = "The following cameras have wrong class (%s)"%dd
                         lm = ['%s: %s'%s(cc.Id.Name,cc.Id.Cls) for cc in lCam]
@@ -479,12 +534,12 @@ class Data(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    def _set_dataRef(self, data=None, t=None,
+    def _set_ddataRef(self, data=None, t=None,
                      X=None, indtX=None,
                      lamb=None, indtlamb=None, indXlamb=None, indtXlamb=None):
         kwdargs = locals()
         del kwdargs['self']
-        lout = self._checkformat_inputs_ddataRef(**kwdargs)                                                 )
+        lout = self._checkformat_inputs_ddataRef(**kwdargs)
         data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb = lout[:9]
         indtX, indtlamb, indXlamb, indtXlamb = lout[9:]
 
@@ -538,7 +593,7 @@ class Data(utils.ToFuObject):
                 assert type(self._dgeom['lCam']) is list
                 assert all([type(ss) is str for ss in self._dgeom['lCam']])
                 lC = []
-                for ii in range(0,len(self._dgeom['lCam']))
+                for ii in range(0,len(self._dgeom['lCam'])):
                     lC.append(utils.load(self._dgeom['lCam'][ii]))
 
             elif self._dgeom['config'] is not None:
@@ -662,27 +717,21 @@ class Data(utils.ToFuObject):
     def dunits(self):
         return self._dunits
     @property
-    def dchans(self):
-        return self._dchans
-    @property
     def dgeom(self):
         return self._dgeom
     @property
     def dextra(self):
         return self._dextra
 
-
     @property
     def data(self):
         return self._get_data()
-
     @property
     def t(self):
-        if self._ddata['t'] is None:
-            t = self._ddataRef['t']
-        else:
-            t = self._ddata['t'][self.indt]
-        return t
+        return self._get_t()
+    @property
+    def X(self):
+        return self._get_X()
 
 
 
@@ -728,7 +777,358 @@ class Data(utils.ToFuObject):
 
 
     ###########
-    # public methods
+    # Hidden and public methods for ddata
+    ###########
+
+    def set_XRef(self, X=None, indtX=None, indtXlamb=None):
+        """ Reset the reference X
+
+        Useful if to replace channel indices by a time-vraying quantity
+        e.g.: distance to the magnetic axis
+
+        """
+        out = self._checkformat_inputs_XRef(X=X, indtX=indtX,
+                                            indXlamb=indtXlamb)
+        X, nnX, indtX, indXlamb, indtXlamb = out
+        self._ddataRef['X'] = X
+        self._ddataRef['nnX'] = nnX
+        self._ddataRef['indtX'] = indtX
+        self._ddataRef['indtXlamb'] = indtXlamb
+        self._ddata['uptodate'] = False
+
+    def set_dtreat_indt(self, t=None, indt=None):
+        """ Store the desired index array for the time vector
+
+        If an array of indices (refering to self.ddataRef['t'] is not provided,
+        uses self.select_t(t=t) to produce it
+
+        """
+        lC = [indt is None,t is None]
+        assert np.sum(lC)>=1
+        if all(lC):
+            ind = None
+        elif C[0]:
+            ind = self.select_t(t=t, out=bool)
+        elif C[1]:
+            ind = _format_ind(indt, n=self._Ref['nt'])
+        self._dtreat['indt'] = ind
+        self._ddata['uptodate'] = False
+
+    def set_dtreat_indch(self, indch=None):
+        """ Store the desired index array for the channels
+
+        If None => all channels
+        Must be a 1d array
+
+        """
+        if indch is not None:
+            indch = np.asarray(indch)
+            assert indch.ndim==1
+            indch = _format_ind(indch, n=self._ddataRef['nX'])
+        self._dtreat['indch'] = indch
+        self._ddata['uptodate'] = False
+
+    def set_dtreat_mask(self, ind=None, val=np.nan):
+        assert ind is None or hasattr(ind,'__iter__')
+        assert type(val) in [int,float,np.int64,np.float64]
+        if ind is not None:
+            ind = _format_ind(ind, n=self._ddataRef['nX'])
+        self._dtreat['mask-ind'] = ind
+        self._dtreat['mask-val'] = val
+        self._ddata['uptodate'] = False
+
+    def set_dtreat_data0(self, data0=None, Dt=None, indt=None):
+        assert self._ddataRef['nt']>1, "Useless if only one data slice !"
+        C = [data0 is None, Dt is None, indt is None]
+        assert np.sum(C)>=2
+        if data0 is not None:
+            data0 = np.asarray(data0).ravel()
+            assert data0.shape==(self._ddataRef['nX'],)
+            Dt, indt = None, None
+        else:
+            if indt is not None:
+                indt = _format_ind(indt, n=self._ddataRef['nt'])
+            else:
+                indt = self.select_t(t=Dt, out=bool)
+            if np.any(indt):
+                data0 = self._ddataRef['data'][indt,:]
+                if np.sum(indt)>1:
+                    data0 = np.nanmean(data,axis=0)
+        self._dtreat['data0-indt'] = indt
+        self._dtreat['data0-data'] = data0
+        self._dtreat['data0-Dt'] = Dt
+        self._ddata['uptodate'] = False
+
+    def set_dtreat_interp_indch(self, indch=None):
+        """ Set the indices of the channels for which to interpolate data
+
+        The index can be provided as:
+            - A 1d np.ndarray of boolean or int indices of channels
+                => interpolate data at these channels for all times
+            - A dict with:
+                * keys = int indices of times
+                * values = array of int indices of chan. for which to interpolate
+
+        Time indices refer to self.ddataRef['t']
+        Channel indices refer to self.ddataRef['X']
+        """
+        assert indch is None or type(indch) in [np.ndarray, list, dict]
+        if isinstance(indch,dict):
+            C = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
+            assert all(C)
+            for k in indch.keys():
+                assert hasattr(indch[k],'__iter__')
+                indch[k] = _format_ind(indch[k], n=self._ddataRef['nX'])
+        else:
+            indch = np.asarray(indch)
+            assert indch.ndim==1
+            indch = _format_ind(indch, n=self._ddataRef['nX'])
+        self._dtreat['interp-indch'] = indch
+        self._ddata['uptodate'] = False
+
+    def set_dtreat_interp_indt(self, indt=None):
+        """ Set the indices of the times for which to interpolate data
+
+        The index can be provided as:
+            - A 1d np.ndarray of boolean or int indices
+                => interpolate data at these times for all channels
+            - A dict with:
+                * keys = int indices of channels
+                * values = array of int indices of times at which to interpolate
+
+        Time indices refer to self.ddataRef['t']
+        Channel indices refer to self.ddataRef['X']
+        """
+        assert indt is None or type(indt) in [np.ndarray, list, dict]
+        if isinstance(indt,dict):
+            C = [type(k) is int and k<self._ddataRef['nX'] for k in indt.keys()]
+            assert all(C)
+            for k in indt.keys():
+                assert hasattr(indt[k],'__iter__')
+                indt[k] = _format_ind(indt[k], n=self._ddataRef['nt'])
+        else:
+            indt = np.asarray(indt)
+            assert indt.ndim==1
+            indt = _format_ind(indt, n=self._ddataRef['nt'])
+        self._dtreat['interp-indt'] = indt
+        self._ddata['uptodate'] = False
+
+    @staticmethod
+    def _mask(data, mask_ind, mask_val):
+        if mask_ind is not None:
+            if data.ndim==2:
+                data[:,mask_ind] = mask_val
+            elif data.ndim==3:
+                data[:,mask_ind,:] = mask_val
+        return data
+
+    @staticmethod
+    def _interp_indt(data, ind, t):
+        msg = "interp not coded yet for 3d data !"
+        assert data.ndim==2, msg
+        if type(ind) is dict:
+            for kk in ind.keys():
+                data[ind[kk],kk] = np.interp(t[ind[kk]],
+                                             t[~ind[kk]], data[~ind[kk],kk],
+                                             right=np.nan, left=np.nan)
+        elif isinstance(ind,np.ndarray):
+            for ii in range(0,data.shape[1]):
+                data[ind,ii] = np.interp(t[ind], t[~ind], data[~ind,ii])
+
+        return data
+
+    @staticmethod
+    def _interp_indch(data, ind, X):
+        msg = "interp not coded yet for 3d data !"
+        assert data.ndim==2, msg
+        if type(ind) is dict:
+            for kk in ind.keys():
+                data[kk,ind[kk]] = np.interp(X[ind[kk]],
+                                             X[~ind[kk]], data[kk,~ind[kk]],
+                                             right=np.nan, left=np.nan)
+        elif isinstance(ind,np.ndarray):
+            for ii in range(0,data.shape[0]):
+                data[ii,ind] = np.interp(X[ind], X[~ind], data[ii,~ind])
+
+        return data
+
+    @staticmethod
+    def _data0(data, data0):
+        if data0 is not None:
+            if data.shape==data0.shape:
+                data = data - data0
+            elif data.ndim==2:
+                data = data - data0[np.newaxis,:]
+            if data.ndim==3:
+                data = data - data0[np.newaxis,:,np.newaxis]
+        return data
+
+    #@staticmethod
+    #def _filter(data, ftype='svd', df=None, harm=None, dfEx=None, harmEx=None):
+
+
+
+    @staticmethod
+    def _indt(data, indt):
+        if indt is not None:
+            if data.ndim==2:
+                data = data[indt,:]
+            elif data.ndim==3:
+                data = data[indt,:,:]
+        return data
+
+    @staticmethod
+    def _indch(data, indch):
+        if indt is not None:
+            if data.ndim==2:
+                data = data[:,indch]
+            elif data.ndim==3:
+                data = data[:,indch,:]
+        return data
+
+    def _get_data(self):
+        if not self._ddata['uptodate']:
+            self._set_ddata()
+        return self._ddata['data']
+
+    def _get_t(self):
+        if not self._ddata['uptodate']:
+            self._set_ddata()
+        return self._ddata['t']
+
+    def _get_X(self):
+        if not self._ddata['uptodate']:
+            self._set_ddata()
+        return self._ddata['X']
+
+    def set_dtreat_order(self, order=None):
+        """ Set the order in which the data treatment should be performed
+
+        Provide an ordered list of keywords indicating the order in which
+         you wish the data treatment steps to be performed.
+        Each keyword corresponds to a step.
+        Available steps are (in default order):
+            - 'mask' :
+            - 'interp_indt' :
+            - 'interp_indch' :
+            - 'data0' :
+            - 'filter' :
+            - 'indt' :
+            - 'indch' :
+            - 'interp_t':
+
+        All steps are performed on the stored reference self.dataRef['data']
+        Thus, the time and channels restriction must be the last 2 steps before
+        interpolating on an external time vector
+        """
+        if order is None:
+            order = list(self._ddef['dtreat']['order'])
+        assert type(order) is list and all([type(ss) is str for ss in order])
+        C = [ss in ['indt','indch'] for ss in self._dtreat['order'][-2:]]
+        if not all(C):
+            msg = "indt and indch must be the last 2 treatment steps !"
+            raise Exception(msg)
+        self._dtreat['order'] = order
+        self._ddata['uptodate'] = False
+
+    def _get_treated_data(self):
+        """ Produce a working copy of the data based on the treated reference
+
+        The reference data is always stored and untouched in self.ddataRef
+        You always interact with self.data, which returns a working copy.
+        That working copy is the reference data, eventually treated along the
+            lines defined (by the user) in self.dtreat
+        By reseting the treatment (self.reset()) all data treatment is
+        cancelled and the working copy returns the reference data.
+
+        """
+        indt, indch = self._dtreat['interp_indt'], self._dtreat['interp_indch']
+        C0 = indch is None
+        C1 = indt is None
+        C2 = self._dtreat['fft-df'] is None
+        C3 = self._dtreat['svd-modes'] is None
+        if np.sum([C2,C3])==0:
+            msg = "You cannot do both a fft and svd filtering, choose one"
+            msg += "\n  => remove fft by self.set_fft()"
+            msg += "\n  => remove svd by self.set_svd()"
+            raise Exception(msg)
+        d = self._ddataRef['data'].copy()
+        for kk in self._dtreat['order']:
+            if kk=='mask' and self._dtreat['mask-ind'] is not None:
+                d = self._mask(d, self._dtreat['mask-ind'],
+                               self._dtreat['mask-val'])
+            if kk=='interp_indt':
+                d = self._interp_indt(d, self._dtreat['interp-indt'],
+                                      self._ddataRef['t'])
+            if kk=='interp_indch':
+                d = self._interp_indch(d, self._dtreat['interp-indch'],
+                                       self._ddataRef['X'])
+            if kk=='data0':
+                d = self._data0(d, self._dtreat['data0-data'],
+                                self._dtreat['data-val'])
+            if kk=='filter':
+                d = self._filter(d, **self._dtreat['filter'])
+            if kk=='indt':
+                d = self._indt(d, self._dtreat['indt'])
+            if kk=='indch':
+                d = self._indch(d, self._dtreat['indch'])
+            if kk=='interp_t':
+                d = self._interp_t(self._dtreat['interp-t'])
+        return d
+
+    def _set_ddata(self):
+        data, t, X = self._get_treated_data()
+        self._ddata['data'] = data
+        self._ddata['t'] = t
+        self._ddata['X'] = X
+        self._ddata['uptodate'] = True
+
+
+    def clear_ddata(self):
+        """ Clear the working copy of data (keep the reference data) """
+        self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self._ddata['uptodate'] = False
+
+    def clear_dtreat(self):
+        """ Clear all treatment parameters in self.dtreat
+
+        Subsequently also clear the working copy of data
+        The working copy of data is thus reset to the reference data
+        """
+        self.set_indch()
+        self.set_indt()
+        self.set_data0()
+        self.set_interp_t()
+        self.set_fft()
+        self.clear_data()
+
+    def dchans(self, key=None):
+        """ Return the dchans updated with indch
+
+        Return a dict with all keys if key=None
+
+        """
+        if self._dtreat['indch'] is None or np.all(self._dtreat['indch']):
+            dch = dict(self._dchans) if key is None else self._dchans[key]
+        else:
+            dch = {}
+            lk = self._dchans.keys() if key is None else [key]
+            for kk in lk:
+                if self._dchans[kk].ndim==1:
+                    dch[kk] = self._dchans[kk][self._dtreat['indch']]
+                elif self._dchans[kk].ndim==2:
+                    dch[kk] = self._dchans[kk][:,self._dtreat['indch']]
+                else:
+                    msg = "Don't know how to treat self._dchans[%s]:"%kk
+                    msg += "\n  shape = %s"%(kk,str(self._dchans[kk].shape))
+                    warnings.warn(msg)
+            if key is not None:
+                dch = dch[key]
+        return dch
+
+
+    ###########
+    # Other public methods
     ###########
 
     def select_t(self, t=None, out=bool):
@@ -763,22 +1163,6 @@ class Data(utils.ToFuObject):
             ind = ind.nonzero()[0]
         return ind
 
-    def set_indt(self, t=None, indt=None):
-        """ Store the desired index array for the time vector
-
-        If an array of indices (refering to self.ddataRef['t'] is not provided,
-        uses self.select_t(t=t) to produce it
-
-        """
-        lC = [indt is None,t is None]
-        assert np.sum(lC)>=1
-        if all(lC):
-            ind = None
-        elif C[0]:
-            ind = self.select_t(t=t, out=bool)
-        elif C[1]:
-            ind = _format_ind(indt, n=self._Ref['nt'])
-        self._dtreat['indt'] = ind
 
     def select_ch(self, val=None, key=None, log='any', touch=None, out=bool):
         """ Return a channels index array
@@ -862,7 +1246,7 @@ class Data(utils.ToFuObject):
                 ind = _select_ind(val, self._ddataRef['X'], self._ddataRef['nX'])
             else:
                 ind = np.zeros((self._ddataRef['nt'],self._ddataRef['nX']),dtype=bool)
-                for ii range(0,self._ddataRef['nnX']):
+                for ii in range(0,self._ddataRef['nnX']):
                     iind = self._ddataRef['indtX']==ii
                     ind[iind,:] =  _select_ind(val, self._ddataRef['X'],
                                                self._ddataRef['nX'])[np.newaxis,:]
@@ -888,474 +1272,7 @@ class Data(utils.ToFuObject):
             ind = ind.nonzero()[0]
         return ind
 
-    def set_indch(self, indch=None):
-        """ Store the desired index array for the channels
 
-        If None => all channels
-        Must be a 1d array
-
-        """
-        if indch is not None:
-            indch = np.asarray(indch)
-            assert indch.ndim==1
-            indch = _format_ind(indch, n=self._ddataRef['nX'])
-        self._dtreat['indch'] = indch
-
-    def set_mask(self, ind=None, val=np.nan):
-        assert ind is None or hasattr(ind,'__iter__')
-        assert type(val) in [int,float,np.int64,np.float64]
-        if ind is not None:
-            ind = _format_ind(ind, n=self._ddataRef['nX'])
-        self._dtreat['mask-ind'] = ind
-        self._dtreat['mask-val'] = val
-
-    def set_data0(self, data0=None, Dt=None, indt=None):
-        assert self._ddataRef['nt']>1, "Useless if only one data slice !"
-        C = [data0 is None, Dt is None, indt is None]
-        assert np.sum(C)>=2
-        if data0 is not None:
-            data0 = np.asarray(data0).ravel()
-            assert data0.shape==(self._ddataRef['nX'],)
-            Dt, indt = None, None
-        else:
-            if indt is not None:
-                indt = _format_ind(indt, n=self._ddataRef['nt'])
-            else:
-                indt = self.select_t(t=Dt, out=bool)
-            if np.any(indt):
-                data0 = self._ddataRef['data'][indt,:]
-                if np.sum(indt)>1:
-                    data0 = np.nanmean(data,axis=0)
-        self._dtreat['data0-indt'] = indt
-        self._dtreat['data0-data'] = data0
-        self._dtreat['data0-Dt'] = Dt
-
-    def set_interp_ch(self, indch=None):
-        """ Set the indices of the channels for which to interpolate data
-
-        The index can be provided as:
-            - A 1d np.ndarray of boolean or int indices of channels
-                => interpolate data at these channels for all times
-            - A dict with:
-                * keys = int indices of times
-                * values = array of int indices of chan. for which to interpolate
-
-        Time indices refer to self.ddataRef['t']
-        Channel indices refer to self.ddataRef['X']
-        """
-        assert indch is None or type(indch) in [np.ndarray, list, dict]
-        if isinstance(indch,dict):
-            C = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
-            assert all(C)
-            for k in indch.keys():
-                assert hasattr(indch[k],'__iter__')
-                indch[k] = _format_ind(indch[k], n=self._ddataRef['nX'])
-        else:
-            indch = np.asarray(indch)
-            assert indch.ndim==1:
-            indch = _format_ind(indch, n=self._ddataRef['nX'])
-        self._dtreat['interp-indch'] = indch
-        self._ddata['uptodate'] = False
-
-    def set_interp_t(self, indt=None):
-        """ Set the indices of the times for which to interpolate data
-
-        The index can be provided as:
-            - A 1d np.ndarray of boolean or int indices
-                => interpolate data at these times for all channels
-            - A dict with:
-                * keys = int indices of channels
-                * values = array of int indices of times at which to interpolate
-
-        Time indices refer to self.ddataRef['t']
-        Channel indices refer to self.ddataRef['X']
-        """
-        assert indt is None or type(indt) in [np.ndarray, list, dict]
-        if isinstance(indt,dict):
-            C = [type(k) is int and k<self._ddataRef['nX'] for k in indt.keys()]
-            assert all(C)
-            for k in indt.keys():
-                assert hasattr(indt[k],'__iter__')
-                indt[k] = _format_ind(indt[k], n=self._ddataRef['nt'])
-        else:
-            indt = np.asarray(indt)
-            assert indt.ndim==1:
-            indt = _format_ind(indt, n=self._ddataRef['nt'])
-        self._dtreat['interp-indt'] = indt
-        self._ddata['uptodate'] = False
-
-    @staticmethod
-    def _mask(data, mask_ind, mask_val):
-        if mask_ind is not None:
-            if data.ndim==2:
-                data[:,mask_ind] = mask_val
-            elif data.ndim==3:
-                data[:,mask_ind,:] = mask_val
-        return data
-
-    @staticmethod
-    def _interp_indt(data, ind, t):
-        msg = "interp not coded yet for 3d data !"
-        assert data.ndim==2, msg
-        if type(ind) is dict:
-            for kk in ind.keys():
-                data[ind[kk],kk] = np.interp(t[ind[kk]],
-                                             t[~ind[kk]], data[~ind[kk],kk],
-                                             right=np.nan, left=np.nan)
-        elif isinstance(ind,np.ndarray):
-            for ii in range(0,data.shape[1]):
-                data[ind,ii] = np.interp(t[ind], t[~ind], data[~ind,ii])
-
-        return data
-
-    @staticmethod
-    def _interp_indch(data, ind, X):
-        msg = "interp not coded yet for 3d data !"
-        assert data.ndim==2, msg
-        if type(ind) is dict:
-            for kk in ind.keys():
-                data[kk,ind[kk]] = np.interp(X[ind[kk]],
-                                             X[~ind[kk]], data[kk,~ind[kk]],
-                                             right=np.nan, left=np.nan)
-        elif isinstance(ind,np.ndarray):
-            for ii in range(0,data.shape[0]):
-                data[ii,ind] = np.interp(X[ind], X[~ind], data[ii,~ind])
-
-        return data
-
-    @staticmethod
-    def _data0(data, data0):
-        if data0 is not None:
-            if data.shape==data0.shape:
-                data = data - data0
-            elif data.ndim==2:
-                data = data - data0[np.newaxis,:]
-            if data.ndim==3:
-                data = data - data0[np.newaxis,:,np.newaxis]
-        return data
-
-    @staticmethod
-    def _fft(data, df=None, harm=None, dfEx=None, harmEx=None):
-
-
-
-    @staticmethod
-    def _indt(data, indt):
-        if indt is not None:
-            if data.ndim==2:
-                data = data[indt,:]
-            elif data.ndim==3:
-                data = data[indt,:,:]
-        return data
-
-    @staticmethod
-    def _indch(data, indch):
-        if indt is not None:
-            if data.ndim==2:
-                data = data[:,indch]
-            elif data.ndim==3:
-                data = data[:,indch,:]
-        return data
-
-    def _get_data(self):
-        if self._ddata['uptodate']:
-            data = self._ddata['data']
-        else:
-            data = self._get_treated_data()
-            self._ddata['data'] = data
-            self._ddata['uptodate'] = True
-        return data
-
-    def set_dtreat_order(self, order=None):
-        """ Set the order in which the data treatment should be performed
-
-        Provide an ordered list of keywords indicating the order in which
-         you wish the data treatment steps to be performed.
-        Each keyword corresponds to a step.
-            - 'mask' :
-            - 'interp_t' :
-            - 'interp_ch' :
-            - 'data0' :
-            - 'fft' :
-            - 'indt' :
-            - 'indch' :
-
-        All steps are performed on the stored reference self.dataRef['data']
-        Thus, the time and channels restriction must be the last 2 steps
-        """
-        if order is None:
-            order = list(self._ddef['dtreat']['order'])
-        assert type(order) is list and all([type(ss) is str for ss in order])
-        C = [ss in ['indt','indch'] for ss in self._dtreat['order'][-2:]]
-        if not all(C):
-            msg = "indt and indch must be the last 2 treatment steps !"
-            raise Exception(msg)
-        self._dtreat['order'] = order
-
-    def _get_treated_data(self):
-        """ Produce a working copy of the data based on the treated reference
-
-        The reference data is always stored and untouched in self.ddataRef
-        You always interact with self.data, which returns a working copy.
-        That working copy is the reference data, eventually treated along the
-            lines defined (by the user) in self.dtreat
-        By reseting the treatment (self.reset()) all data treatment is
-        cancelled and the working copy returns the reference data.
-
-        """
-        indt, indch = self._dtreat['interp_indt'], self._dtreat['interp_indch']
-        C0 = indch is None
-        C1 = indt is None
-        C2 = self._dtreat['fft-df'] is None
-        C3 = self._dtreat['svd-modes'] is None
-        if np.sum([C2,C3])==0:
-            msg = "You cannot do both a fft and svd filtering, choose one"
-            msg += "\n  => remove fft by self.set_fft()"
-            msg += "\n  => remove svd by self.set_svd()"
-            raise Exception(msg)
-        d = self._ddataRef['data'].copy()
-        for kk in self._dtreat['order']:
-            if kk=='mask' and self._dtreat['mask-ind'] is not None:
-                d = self._mask(d, self._dtreat['mask-ind'],
-                               self._dtreat['mask-val'])
-            if kk=='interp_t':
-                d = self._interp_indt(d, self._dtreat['interp-indt'],
-                                      self._ddataRef['t'])
-            if kk=='interp_ch':
-                d = self._interp_indt(d, self._dtreat['interp-indch'],
-                                      self._ddataRef['X'])
-            if kk=='data0':
-                d = self._data0(d, self._dtreat['data0-data'],
-                                self._dtreat['data-val'])
-            if kk=='fft':
-                d = self._fft(d, self._dtreat['fft-df'], self._dtreat['fft-'])
-            if kk=='indt':
-                d = self._indt(d, self._dtreat['indt'])
-            if kk=='indch':
-                d = self._indch(d, self._dtreat['indt'])
-        return d
-
-
-
-    def get_treatment(self):
-
-
-
-
-    def reset_treatment(self):
-        self.set_indch()
-        self.set_indt()
-        self.set_data0()
-        self.set_interp_t()
-        self.set_fft()
-        self._set_data()
-        self._ddata = dict.fromkeys(self._get_keys_ddata())
-        self.compute_data()
-
-
-
-
-
-    def plot_spectrogram(self, fmin=None,
-                         method='scipy-fourier',
-                         window='hann', detrend='linear',
-                         nperseg=None, noverlap=None, stft=False,
-                         boundary='constant', padded=True, wave='morlet'):
-        """ Return the power spectrum density for each channel
-
-        The power spectrum density is computed with the chosen method
-
-        Parameters
-        ----------
-        fmin :  None / float
-            The minimum frequency of interest
-            If None, set to 5/T, where T is the whole time interval
-            Used to constrain the number of points per window
-        method : str
-            Flag indicating which method to use for computation:
-                - 'scipy-fourier':  uses scipy.signal.spectrogram()
-                    (windowed fast fourier transform)
-                - 'scipy-stft':     uses scipy.signal.stft()
-                    (short time fourier transform)
-                - 'scipy-wavelet':  uses scipy.signal.cwt()
-                    (continuous wavelet transform)
-            The following keyword args are fed to one of these scipy functions
-            See the corresponding online scipy documentation for details on the
-            function and its arguments
-        window : None / str / tuple
-            If method='scipy-fourier'
-            Flag indicating which type of window to use
-        detrend : None / str
-            If method='scipy-fourier'
-            Flag indicating whether and how to remove the trend of the signal
-        nperseg :   None / int
-            If method='scipy-fourier'
-            Number of points to the used for each window
-        noverlap:
-            If method='scipy-fourier'
-            Number of points on which successive windows should overlap
-        boundary:
-            If method='scipy-stft'
-
-        padded :
-            If method='scipy-stft'
-            d
-        wave: None / str
-            If method='scipy-wavelet'
-
-        Return
-        ------
-        tf :    np.ndarray
-            d
-        f:      np.ndarray
-            d
-        lspect: np.ndarray
-            d
-
-        """
-
-
-        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
-        return tf, f, lspect
-
-
-    def plot_spectrogram():
-        """   """
-        tf, f, lspect =
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-############################################ To be finished
-
-
-    def dchans(self, key=None):
-        """ List the channels selected by self.indch
-
-        Return their indices (default) or the chosen criterion
-        """
-        if self.geom is None or self.geom['LCam'] is None:
-            dchans = None
-        elif self._Ref['dchans']=={}:
-            dchans = self._Ref['dchans']
-        else:
-            assert key in [None]+list(self._Ref['dchans'].keys())
-            ind = self.indch.nonzero()[0]
-            if key is None:
-                lK = self._Ref['dchans'].keys()
-                dchans = {}
-                for kk in lK:
-                    if self._Ref['dchans'][kk].ndim==1:
-                        dchans[kk] = self._Ref['dchans'][kk][ind]
-                    else:
-                        dchans[kk] = self._Ref['dchans'][kk][:,ind]
-            else:
-                if self._Ref['dchans'][key].ndim==1:
-                    dchans = self._Ref['dchans'][key][ind]
-                else:
-                    dchans = self._Ref['dchans'][key][:,ind]
-        return dchans
-
-    def _get_LCam(self):
-        if self.geom is None or self.geom['LCam'] is None:
-            lC = None
-        else:
-            if np.all(self.indch):
-                lC = self.geom['LCam']
-            else:
-                import tofu.geom as tfg
-                inds = [self.geom['LCam'][ii].nRays
-                        for ii in range(len(self.geom['LCam']-1))]
-                lind = self.indch.split(inds)
-                lC = [cc.get_subset(indch=iind) for iind in lind]
-        return lC
-
-
-
-
-
-
-    def _set_data(self):
-        if self._fft is None and self._interp_t is None:
-            d = None
-        else:
-            d = self._calc_data_core()
-            # Get fft
-            if self._fft is not None:
-                d = _comp.get_fft(d, **self._fft)
-            if self._interp_t is not None:
-                t = self._interp_t
-                d = np.vstack([np.interp(t, self.t, d[:,ii],
-                                         left=np.nan, right=np.nan)
-                               for ii in range(d.shape[1])]).T
-                self._t = t
-                self._nt = t.size
-            else:
-                self._t = None
-                self._nt = None
-        self._data = d
-
-
-    def __abs__(self):
-        opfunc = lambda x: np.abs(x)
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __sub__(self, other):
-        opfunc = lambda x, y: x-y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __rsub__(self, other):
-        opfunc = lambda x, y: x-y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __add__(self, other):
-        opfunc = lambda x, y: x+y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __radd__(self, other):
-        opfunc = lambda x, y: x+y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __mul__(self, other):
-        opfunc = lambda x, y: x*y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __rmul__(self, other):
-        opfunc = lambda x, y: x*y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __truediv__(self, other):
-        opfunc = lambda x, y: x/y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __pow__(self, other):
-        opfunc = lambda x, y: x**y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
 
     def plot(self, key=None, invert=None, plotmethod='imshow',
              cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
@@ -1421,6 +1338,199 @@ class Data(utils.ToFuObject):
                                      indref=indref, fontsize=fontsize,
                                      draw=draw, connect=connect)
         return KH
+
+
+    def calc_spectrogram(self, fmin=None,
+                         method='scipy-fourier',
+                         window='hann', detrend='linear',
+                         nperseg=None, noverlap=None,
+                         boundary='constant', padded=True, wave='morlet'):
+        """ Return the power spectrum density for each channel
+
+        The power spectrum density is computed with the chosen method
+
+        Parameters
+        ----------
+        fmin :  None / float
+            The minimum frequency of interest
+            If None, set to 5/T, where T is the whole time interval
+            Used to constrain the number of points per window
+        method : str
+            Flag indicating which method to use for computation:
+                - 'scipy-fourier':  uses scipy.signal.spectrogram()
+                    (windowed fast fourier transform)
+                - 'scipy-stft':     uses scipy.signal.stft()
+                    (short time fourier transform)
+                - 'scipy-wavelet':  uses scipy.signal.cwt()
+                    (continuous wavelet transform)
+            The following keyword args are fed to one of these scipy functions
+            See the corresponding online scipy documentation for details on
+            each function and its arguments
+        window : None / str / tuple
+            If method='scipy-fourier'
+            Flag indicating which type of window to use
+        detrend : None / str
+            If method='scipy-fourier'
+            Flag indicating whether and how to remove the trend of the signal
+        nperseg :   None / int
+            If method='scipy-fourier'
+            Number of points to the used for each window
+            If None, deduced from fmin
+        noverlap:
+            If method='scipy-fourier'
+            Number of points on which successive windows should overlap
+            If None, nperseg-1
+        boundary:
+            If method='scipy-stft'
+
+        padded :
+            If method='scipy-stft'
+            d
+        wave: None / str
+            If method='scipy-wavelet'
+
+        Return
+        ------
+        tf :    np.ndarray
+            Time vector of the spectrogram (1D)
+        f:      np.ndarray
+            frequency vector of the spectrogram (1D)
+        lspect: list of np.ndarrays
+            list of () spectrograms
+
+        """
+        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
+        return tf, f, lspect
+
+    def plot_spectrogram():
+        """ Plot the spectrogram of all channels with chosen method
+
+        All non-plotting arguments are fed to self.calc_spectrogram()
+        see self.calc_spectrogram? for details
+
+        Parameters
+        ----------
+
+        Return
+        ------
+        kh :    tofu.utils.HeyHandler
+            The tofu KeyHandler object handling figure interactivity
+        """
+        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
+        kh = _plot.spectrogram(self, tf, f, lspect)
+        return kh
+
+    def calc_mainfreq(self):
+        """ Return the spectrogram main frequency vs time for each channel """
+        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
+        lf = [f[np.nanargmax(ss,axis=1)] for ss in lspect]
+        return tf, np.tile(lf).T
+
+    def calc_svd(self, lapack_driver='gesdd'):
+        """ Return the SVD decomposition of data
+
+        Uses scipy.linalg.svd(), with:
+            full_matrices=True
+            compute_uv=True
+            overwrite_a=False
+            check_finite=True
+
+        See online doc for details
+
+        """
+        u, s, v = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+        return u, s, v
+
+    def plot_svd(self, modes=np.arange(0,10), lapack_driver='gesdd'):
+        """ Plot the chosen svd components (topos and chronos) """
+        u, s, v = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+        kh = _plot.plot_svd()
+        return kh
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+############################################ To be finished
+
+
+
+    def _get_LCam(self):
+        if self.geom is None or self.geom['LCam'] is None:
+            lC = None
+        else:
+            if np.all(self.indch):
+                lC = self.geom['LCam']
+            else:
+                import tofu.geom as tfg
+                inds = [self.geom['LCam'][ii].nRays
+                        for ii in range(len(self.geom['LCam']-1))]
+                lind = self.indch.split(inds)
+                lC = [cc.get_subset(indch=iind) for iind in lind]
+        return lC
+
+
+
+    def __abs__(self):
+        opfunc = lambda x: np.abs(x)
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __sub__(self, other):
+        opfunc = lambda x, y: x-y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __rsub__(self, other):
+        opfunc = lambda x, y: x-y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __add__(self, other):
+        opfunc = lambda x, y: x+y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __radd__(self, other):
+        opfunc = lambda x, y: x+y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __mul__(self, other):
+        opfunc = lambda x, y: x*y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __rmul__(self, other):
+        opfunc = lambda x, y: x*y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __truediv__(self, other):
+        opfunc = lambda x, y: x/y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __pow__(self, other):
+        opfunc = lambda x, y: x**y
+        data = _recreatefromoperator(self, other, opfunc)
+        return data
+
+
 
 
 

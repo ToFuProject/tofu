@@ -765,7 +765,7 @@ class ToFuObjectBase(object):
             lsimple = [str,bool,np.str_,np.bool_,
                        tuple, list]
             for k in lk0:
-                if any(ss in k for ss in lexcept]):
+                if any([ss in k for ss in lexcept]):
                     continue
                 eqk = type(d0[k]) == type(d1[k])
                 if not eqk:

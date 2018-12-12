@@ -1,0 +1,43 @@
+
+Salut Laura,
+
+Alors les prochaines étapers que je vois (ton avis est évidemment bienvenu):
+
+
+#########################
+* Function principale (kIn kOut, indout, vect):
+	- Terminer proprement l'optimisation CPU
+	- Comprendre et terminer optimisation / profilage mémoire (résidu?)
+	- Terminer parallélisation
+	- La connecter à la partie orientée objet, en sortant les calculs preliminaires (limites des boites...) qui ne changeront pas si la caméra bouge et qu'on refait le calcul (pour optimisation de la position)
+
+
+#########################
+* Autres fonctions nécessaire (inspirées de la principale):
+
+	1/ Calculer uniquement kIn / kOut pour N (~1-100) polygones (ex.: des surfaces de flux)
+
+	2/ Calculer, pour N polygones, et lorsque les lignes de visée ne les traversent pas, la distance la plus courte d entre une ligne et un polygone (et le paramètre k du point associé sur la ligne). Retourner d=0 si la ligne traverse (i.e. si il existe un kIn et/ou un kout)
+
+	3/ Calculer, pour N points de l'espace (~10-100) s'il sont visibles par M autres points (~10^4-10^6), dans une configuration donnée (ex.: des points le long d'une trajectoire dans la chambre à vide, on veut savoir quels sont les points du plasma - échantilloné - qui rayonnent dessus). Retourner un tableau 2D (N,M) de booleens. Je calculerai l'angle solide et le vecteur directeur vectoriellement ensuite en me basant sur ce booleen. Un fonction qui retourne ce tableau est donc suffisante.
+
+	4/ Idem, mais pour N polygons 3D plans (ou quasi-plans), attention, le polygone a un sens (i.e.: une face visible, l'autre ne compte pas), seuls les points du bon coté doivent être comptés comme le voyant
+
+	5/ Idem mais calculer aussi l'angle solide associé et le vecteur directeur vers le centre de masse du polygon
+
+	6/ Pour les fonction 3/ et 5/, dans le cas ou le champ par lequel on eut multiplier l'angle solide est axisymmétrique (toroidalement invariant), on peut le multiplier par l'intégrale toroidale de l'angle solideau lieu de faire un calcul détaillé dans tout le volume. Dans ce cas, le calcul doit aller plus vite et économiser pas mal de mémoire puisqu'on écrase sur une dimension). Il fut alors:
+		- Echantilloner le volume qui nous intéresse (fonction sample_V() existante, s'en inspirer), en faisant une boucle sur le grand rayon R (car c'est lui qui détermine le nombre d'échantillonages toroidaux), c'est cette boucle supérieure que l'on pourra ensuite parallliser..
+		- En déduire un échantillonage (phi,Z), pour chaque point de l'échantillonage voir si le point / polygone est visible, le cas échéant calculer l'angle solide (et le vecteur ? à discuter), puis l'intégrer sur phi.
+		- A la fin on obtient une carte 2D (R,Z) de l'angle solide intégré en phi
+
+	7/ Faire la même chose que 5/ mais en intercalant un nombre arbitraire d'ouvertires polygonles et de grilles polygonales, calculer l'angle solide correspondant à l'intersection de tous ces polygones vu du plasma (i.e. : les photons doivent passer à travers toutes les ouvertures / griles avant d'atteindre les détecteurs).
+
+	7/ On va commencer à gérer:
+		- Les réflexions (spéculaires et diffusives)
+		- Les réflexions sur un cristal à simple ou double courbure (pour les spectromètres)
+
+	8/ S'attaquer aux maillages (an 2)
+
+J'arrive ;-)
+A toute
+Didier
