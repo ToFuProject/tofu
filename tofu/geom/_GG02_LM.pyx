@@ -115,7 +115,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
     cdef int Ns = VIn.shape[1]
     cdef int size_lspoly
     cdef bint Forbidbis, Forbid0
-    cdef double upscaDp, upar2, Dpar2, Crit2, invDpar2, rmin2
+    cdef double upscaDp=0., upar2=0., Dpar2=0., Crit2=0., invDpar2=0., rmin2=0.
     cdef double L = 0., S1X = 0., S1Y = 0., S2X = 0., S2Y = 0.
     cdef double Crit2_base = EpsUz*EpsUz/400.
     cdef double[3] loc_vp
@@ -845,7 +845,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                                double* LSPoly0, double* LSPoly1,
                                double* LSVIn0,  double* LSVIn1,
                                double EpsUz, double EpsVz, double EpsA, double EpsB,
-                               double EpsPlane) nogil:
+                               double EpsPlane) nogil :
 
     cdef int ind_tmp, ii, jj, kk
     cdef int ind_lim_data, ind_bounds
@@ -864,7 +864,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef bint lim_is_none
     cdef bint found_new_kout
     cdef bint inter_bbox
-    cdef double upscaDp, upar2, Dpar2, Crit2, invDpar2
+    cdef double upscaDp=0., upar2=0., Dpar2=0., Crit2=0., invDpar2=0.
     cdef double L = 0., S1X = 0., S1Y = 0., S2X = 0., S2Y = 0.
     cdef double L0=0., L1=0.
     cdef double* LSPoly0ii = NULL
@@ -873,7 +873,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef double* LSVIn1ii  = NULL
 
 
-    for ind_tmp in range(num_los):
+    for ind_tmp in prange(num_los, nogil=True):
         ind_lim_data = 0
         # We get the last kpout:
         kpout_jj = kPOut[ind_tmp]
@@ -914,10 +914,11 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
             # lspoly_view = LSPoly[ii]
             # lsvin_view = LSVIn[ii]
             nvert = lnvert[ii]
-            LSPoly0ii = <double *>realloc(LSPoly0ii, (totnvert+nvert)* sizeof(double))
-            LSPoly1ii = <double *>realloc(LSPoly1ii, (totnvert+nvert)* sizeof(double))
-            LSVIn0ii  = <double *>realloc(LSVIn0ii,  (totnvert+nvert-1-ii)* sizeof(double))
-            LSVIn1ii  = <double *>realloc(LSVIn1ii,  (totnvert+nvert-1-ii)* sizeof(double))
+            #print("nvert = ", nvert, "alloced size1 = ", (totnvert+nvert), "size 2 = ", (totnvert+nvert-1-ii))
+            LSPoly0ii = <double *>malloc( (totnvert+nvert)* sizeof(double))
+            LSPoly1ii = <double *>malloc( (totnvert+nvert)* sizeof(double))
+            LSVIn0ii  = <double *>malloc( (totnvert+nvert-1-ii)* sizeof(double))
+            LSVIn1ii  = <double *>malloc( (totnvert+nvert-1-ii)* sizeof(double))
             for kk in range(nvert-1):
                 LSPoly0ii[kk] = LSPoly0[totnvert + kk]
                 LSPoly1ii[kk] = LSPoly1[totnvert + kk]
@@ -979,8 +980,8 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                     last_pout[1] = kPOut[ind_tmp] * loc_us[1] + loc_ds[1]
                     last_pout[2] = kPOut[ind_tmp] * loc_us[2] + loc_ds[2]
 
-    free(LSPoly0ii)
-    free(LSPoly1ii)
-    free(LSVIn0ii)
-    free(LSVIn1ii)
+            free(LSPoly0ii)
+            free(LSPoly1ii)
+            free(LSVIn0ii)
+            free(LSVIn1ii)
     return
