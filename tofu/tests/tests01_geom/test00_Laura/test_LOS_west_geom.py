@@ -3,12 +3,12 @@ from tofu_LauraBenchmarck_load_config import *
 import tofu.geom._GG_LM as _GG
 import time
 #import line_profiler
-import pstats, cProfile
-from pathlib import Path
-from resource import getpagesize
-import os
-import psutil
-from memory_profiler import profile
+# import pstats, cProfile
+# from pathlib import Path
+# from resource import getpagesize
+# import os
+# import psutil
+# from memory_profiler import profile
 
 def get_resident_set_size():
     # Columns are: size resident shared text lib data dt
@@ -113,7 +113,7 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
 
 def test_LOS_compact(save=False, saveCam=[]):
     Cams = ["V1", "V10", "V100", "V1000", "V10000",
-            "V100000"]#, "V1000000"]
+            "V100000", "V1000000"]
     CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
              "VA100000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
@@ -165,12 +165,12 @@ def test_LOS_profiling():
             print(ttt)
 
 def test_LOS_cprofiling():
-    import pyximport
-    pyximport.install()
-    cProfile.runctx("test_LOS_profiling()", globals(), locals(), "Profile.prof")
-    s = pstats.Stats("Profile.prof")
-    s.strip_dirs().sort_stats("cumtime").print_stats()
-
+    # import pyximport
+    # pyximport.install()
+    # cProfile.runctx("test_LOS_profiling()", globals(), locals(), "Profile.prof")
+    # s = pstats.Stats("Profile.prof")
+    # s.strip_dirs().sort_stats("cumtime").print_stats()
+    return
 
 def plot_all_configs():
     ABconfigs = ["A1", "A2", "A3", "B1", "B2", "B3"]
@@ -252,12 +252,12 @@ if __name__ == "__main__":
     # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
-    touch_plot_config_cam("A2", "VA10000")
-    touch_plot_config_cam("B2", "V10000")
-    touch_plot_config_cam("B3", "V1000")
+    # touch_plot_config_cam("A2", "VA10000")
+    # touch_plot_config_cam("B2", "V10000")
+    # touch_plot_config_cam("B3", "V1000")
     # line profiling.....
     # test_line_profile(cam="V100000")
-    # print(test_LOS_west_configs("B2", ["V10"]))
+    print(test_LOS_west_configs("B2", ["V1000000"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # are_results_the_same()
     # check_memory_usage()

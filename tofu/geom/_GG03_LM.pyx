@@ -1,11 +1,9 @@
 # cython: boundscheck=False
 # cython: wraparound=False
-# cython; nonecheck=False
 # cython: cdivision=True
 #
-cimport numpy as np
 cimport cython
-#
+cimport numpy as np
 from libc.math cimport sqrt as Csqrt, ceil as Cceil, fabs as Cabs
 from libc.math cimport floor as Cfloor, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
@@ -14,7 +12,13 @@ from libc.math cimport NAN as Cnan
 from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 from cpython.array cimport array, clone
 from cython.parallel import prange
-from libc.stdlib cimport malloc, free, realloc
+from cython.parallel cimport parallel, threadid
+from libc.stdlib cimport malloc, free
+cimport openmp
+from libc.stdio cimport printf
+
+cdef extern from "sched.h":
+    cdef int sched_getcpu() nogil
 
 import numpy as np
 cdef double _VSMALL = 1.e-9
@@ -35,9 +39,9 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                               list LSPoly=None, list LSLim=None,
                               long[::1] lSnLim=None, list LSVIn=None,
                               double RMin=-1,
-                              double EpsUz=_VSMALL*1., double EpsA=_VSMALL*1.,
-                              double EpsVz=_VSMALL*1., double EpsB=_VSMALL*1.,
-                              double EpsPlane=_SMALL*1.,
+                              double EpsUz=_SMALL, double EpsA=_VSMALL,
+                              double EpsVz=_VSMALL, double EpsB=_VSMALL,
+                              double EpsPlane=_VSMALL,
                               str VType='Tor',
                               bint Forbid=1, bint Test=1):
     """
@@ -130,12 +134,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
     cdef int[1] ind_loc
     cdef str error_message
     cdef int nvert, totnvert = 0
-    # cdef double[:, :, ::1] lspoly_view = LSPoly
-    # cdef double[:, :, ::1] lsvin_view = LSVIn
-    cdef array kPIn  = clone(array('d'), num_los, False)
-    cdef array kPOut = clone(array('d'), num_los, False)
-    cdef array VperpOut  = clone(array('d'), num_los*3, False)
-    cdef array IOut  = clone(array('i'), num_los*3, False)
+    cdef array kPIn  = clone(array('d'), num_los, True)
+    cdef array kPOut = clone(array('d'), num_los, True)
+    cdef array VperpOut = clone(array('d'), num_los*3, True)
+    cdef array IOut = clone(array('i'), num_los*3, True)
     cdef double *lbounds = <double *>PyMem_Malloc(nstruct * 6 * sizeof(double))
     cdef double *langles = <double *>PyMem_Malloc(nstruct * 2 * sizeof(double))
     cdef double *alspolyx=NULL
@@ -145,10 +147,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
     cdef int *llim_ves = <int *>PyMem_Malloc(nstruct * sizeof(int))
     cdef int *lnvert = <int *>PyMem_Malloc(nstruct * sizeof(int))
 
-    # cdef np.ndarray[double, ndim=1] npa_kpin
-    # cdef np.ndarray[double, ndim=1] npa_kpout
-    # cdef np.ndarray[double, ndim=1] npa_vperp
-    # cdef np.ndarray[int, ndim=1] npa_indio
     if Test:
         error_message = "Ds and dus must be of the same shape: (3,) or (3,NL)!"
         # assert Ds.shape[1] == dus.shape[1] and \
@@ -178,7 +176,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
         for ii in range(len_lspoly):
             # we get the structure polynome and its number of vertex
             nvert = len(LSPoly[ii][0])
-            lnvert[ii] = nvert
+            if ii == 0:
+                lnvert[0] = nvert
+            else:
+                lnvert[ii] = nvert + lnvert[ii-1]
             alspolyx = <double *>PyMem_Realloc(alspolyx, (totnvert+nvert)* sizeof(double))
             alspolyy = <double *>PyMem_Realloc(alspolyy, (totnvert+nvert)* sizeof(double))
             alsvinx = <double *>PyMem_Realloc(alsvinx,   (totnvert+nvert-1-ii)* sizeof(double))
@@ -231,6 +232,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
     # if there are, we get the limits for the vessel
     if nLim == 0:
         lim_is_none = 1
+        L0 = 0.
+        L1 = 0.
     elif nLim == 1:
         lim_is_none = 0
         lim_ves[0] = Lim[0]
@@ -378,6 +381,7 @@ cdef inline bint comp_inter_los_vpoly(double[3] Ds, double[3] us,
     cdef double invupar2
     cdef double invuz
     cdef double cosl0, cosl1, sinl0, sinl1
+  
     ################
     # Computing some useful values
     cosl0 = Ccos(L0)
@@ -385,20 +389,19 @@ cdef inline bint comp_inter_los_vpoly(double[3] Ds, double[3] us,
     sinl0 = Csin(L0)
     sinl1 = Csin(L1)
     invupar2 = 1./upar2
-    invuz = 1./us[2]
+    invuz = 1./us[2] #TODO : why am I computing this here ?????!!!!
     # Compute all solutions
     # Set tolerance value for us[2,ii]
     # EpsUz is the tolerated DZ across 20m (max Tokamak size)
-    kin = 1.e12
-    kout = 1.e12
-    Done = 0
+    kout, kin, Done = 1.e12, 1e12, 0
     # Case with horizontal semi-line
     if us[2]*us[2]<Crit2:
-        for jj in range(vin_shape):
+        for jj in range(0,vin_shape):
             # Solutions exist only in the case with non-horizontal
             # segment (i.e.: cone, not plane)
-            if Cabs(VPoly1[jj + 1] - VPoly1[jj]) > EpsVz:
-                q = (Ds[2]-VPoly1[jj]) / (VPoly1[jj + 1]-VPoly1[jj])
+            # TODO : @LM : is this faster than checking abs(diff)>eps ?
+            if (VPoly1[jj+1] - VPoly1[jj])**2 > EpsVz*EpsVz:
+                q = (Ds[2]-VPoly1[jj]) / (VPoly1[jj+1]-VPoly1[jj])
                 # The intersection must stand on the segment
                 if q>=0 and q<1:
                     C = q*q*(VPoly0[jj+1]-VPoly0[jj])**2 + \
@@ -483,7 +486,7 @@ cdef inline bint comp_inter_los_vpoly(double[3] Ds, double[3] us,
     # More general non-horizontal semi-line case
     else:
         for jj in range(vin_shape):
-            v0, v1 = VPoly0[jj+1]-VPoly0[jj], VPoly1[jj + 1]-VPoly1[jj]
+            v0, v1 = VPoly0[jj+1]-VPoly0[jj], VPoly1[jj+1]-VPoly1[jj]
             A = v0*v0 - upar2*(v1*invuz)*(v1*invuz)
             B = VPoly0[jj]*v0 + v1*(Ds[2]-VPoly1[jj])*upar2*invuz*invuz - upscaDp*v1*invuz
             C = -upar2*(Ds[2]-VPoly1[jj])**2*invuz*invuz + 2.*upscaDp*(Ds[2]-VPoly1[jj])*invuz - Dpar2 + VPoly0[jj]*VPoly0[jj]
@@ -836,16 +839,16 @@ cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian=True,
     return
 
 cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
-                               double[:] kPOut, int[:] IOut,
+                               double[::1] kPOut, int[::1] IOut,
                                double[::1] VperpOut, bint Forbid0, bint Forbidbis,
                                double val_rmin, double rmin2, double Crit2_base,
-                               int len_lspoly, long[:] lSnLim, double* lbounds,
+                               int len_lspoly, long[::1] lSnLim, double* lbounds,
                                double* langles, int* llim_ves,
                                int* lnvert,
                                double* LSPoly0, double* LSPoly1,
                                double* LSVIn0,  double* LSVIn1,
                                double EpsUz, double EpsVz, double EpsA, double EpsB,
-                               double EpsPlane) nogil :
+                               double EpsPlane) nogil:
 
     cdef int ind_tmp, ii, jj, kk
     cdef int ind_lim_data, ind_bounds
@@ -872,8 +875,8 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef double* LSVIn0ii  = NULL
     cdef double* LSVIn1ii  = NULL
 
-
-    for ind_tmp in prange(num_los, nogil=True):
+    for ind_tmp in prange(num_los, nogil=True, schedule='static', num_threads=8):
+        printf("tid: %d   cpuid: %d\n", openmp.omp_get_thread_num(), sched_getcpu())
         ind_lim_data = 0
         # We get the last kpout:
         kpout_jj = kPOut[ind_tmp]
@@ -909,16 +912,18 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
             S1Y = (rmin2*loc_ds[1]-val_rmin*loc_ds[0]*L)*invDpar2
             S2X = (rmin2*loc_ds[0]-val_rmin*loc_ds[1]*L)*invDpar2
             S2Y = (rmin2*loc_ds[1]+val_rmin*loc_ds[0]*L)*invDpar2
-        totnvert=0
         for ii in range(len_lspoly):
-            # lspoly_view = LSPoly[ii]
-            # lsvin_view = LSVIn[ii]
-            nvert = lnvert[ii]
+            if ii == 0:
+                nvert = lnvert[0]
+                totnvert = 0
+            else:
+                totnvert = lnvert[ii-1]
+                nvert = lnvert[ii] - totnvert
             #print("nvert = ", nvert, "alloced size1 = ", (totnvert+nvert), "size 2 = ", (totnvert+nvert-1-ii))
-            LSPoly0ii = <double *>malloc( (totnvert+nvert)* sizeof(double))
-            LSPoly1ii = <double *>malloc( (totnvert+nvert)* sizeof(double))
-            LSVIn0ii  = <double *>malloc( (totnvert+nvert-1-ii)* sizeof(double))
-            LSVIn1ii  = <double *>malloc( (totnvert+nvert-1-ii)* sizeof(double))
+            LSPoly0ii = <double *>malloc( (nvert)* sizeof(double))
+            LSPoly1ii = <double *>malloc( (nvert)* sizeof(double))
+            LSVIn0ii  = <double *>malloc( (nvert-1)* sizeof(double))
+            LSVIn1ii  = <double *>malloc( (nvert-1)* sizeof(double))
             for kk in range(nvert-1):
                 LSPoly0ii[kk] = LSPoly0[totnvert + kk]
                 LSPoly1ii[kk] = LSPoly1[totnvert + kk]
@@ -927,7 +932,6 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
 
             LSPoly0ii[nvert-1] = LSPoly0[totnvert + nvert-1]
             LSPoly1ii[nvert-1] = LSPoly1[totnvert + nvert-1]
-            totnvert = totnvert + nvert
             # nvert = len(LSPoly[ii][0])
             for jj in range(lSnLim[ii]):
                 bounds[0] = lbounds[ind_lim_data*6]

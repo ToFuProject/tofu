@@ -17,9 +17,6 @@ from Cython.Compiler import Options
 
 Options.annotate = True
 directive_defaults = get_directive_defaults()
-directive_defaults['profile'] = True
-directive_defaults['linetrace'] = True
-directive_defaults['binding'] = True
 
 
 # Always prefer setuptools over distutils
@@ -100,17 +97,10 @@ if USE_CYTHON:
     print("")
     print("Using Cython !!!!!!!!!")
     print("")
-    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"],
-                            define_macros=[('CYTHON_TRACE', '1')],
-                            #define_macros=[('CYTHON_TRACE_NOGIL', '1')],
-                            compiler_directives={'profile': True}),
-                            # add the needed argument
+    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"]),
                   Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"],
-                            define_macros=[('CYTHON_TRACE', '1')],
-                            extra_compile_args=["-O3", "-ffast-math", "-fopenmp"],
-                            extra_link_args=['-fopenmp'],
-                            #define_macros=[('CYTHON_TRACE_NOGIL', '1')],
-                            compiler_directives={'profile': True})
+                            extra_compile_args=["-O0", "-fopenmp"],
+                            extra_link_args=['-fopenmp'])
                   ]
     extensions = cythonize(extensions)
 else:
