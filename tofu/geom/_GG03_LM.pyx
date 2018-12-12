@@ -1,6 +1,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
+# cython; nonecheck=False
 #
 cimport cython
 cimport numpy as np
@@ -9,16 +10,16 @@ from libc.math cimport floor as Cfloor, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.math cimport NAN as Cnan
-from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
+#from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 from cpython.array cimport array, clone
 from cython.parallel import prange
+from libc.stdlib cimport malloc, free, realloc
 from cython.parallel cimport parallel, threadid
-from libc.stdlib cimport malloc, free
-cimport openmp
-from libc.stdio cimport printf
+# cimport openmp
+# from libc.stdio cimport printf
 
-cdef extern from "sched.h":
-    cdef int sched_getcpu() nogil
+# cdef extern from "sched.h":
+#     cdef int sched_getcpu() nogil
 
 import numpy as np
 cdef double _VSMALL = 1.e-9
@@ -138,15 +139,17 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
     cdef array kPOut = clone(array('d'), num_los, True)
     cdef array VperpOut = clone(array('d'), num_los*3, True)
     cdef array IOut = clone(array('i'), num_los*3, True)
-    cdef double *lbounds = <double *>PyMem_Malloc(nstruct * 6 * sizeof(double))
-    cdef double *langles = <double *>PyMem_Malloc(nstruct * 2 * sizeof(double))
+    cdef double *lbounds = <double *>malloc(nstruct * 6 * sizeof(double))
+    cdef double *langles = <double *>malloc(nstruct * 2 * sizeof(double))
     cdef double *alspolyx=NULL
     cdef double *alspolyy=NULL
     cdef double *alsvinx=NULL
     cdef double *alsviny=NULL
-    cdef int *llim_ves = <int *>PyMem_Malloc(nstruct * sizeof(int))
-    cdef int *lnvert = <int *>PyMem_Malloc(nstruct * sizeof(int))
-
+    cdef int *llim_ves = <int *>malloc(nstruct * sizeof(int))
+    cdef int *lnvert   = <int *>malloc(nstruct * sizeof(int))
+    cdef int *lsz_lim  = <int *>malloc(nstruct * sizeof(int))
+    cdef double[:,::1] lspoly_view
+    cdef double[:,::1] lsvin_view
     if Test:
         error_message = "Ds and dus must be of the same shape: (3,) or (3,NL)!"
         # assert Ds.shape[1] == dus.shape[1] and \
@@ -174,25 +177,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
         len_lspoly = len(lSnLim) # same as len(lspoly)
         # For each limited structure
         for ii in range(len_lspoly):
-            # we get the structure polynome and its number of vertex
-            nvert = len(LSPoly[ii][0])
-            if ii == 0:
-                lnvert[0] = nvert
-            else:
-                lnvert[ii] = nvert + lnvert[ii-1]
-            alspolyx = <double *>PyMem_Realloc(alspolyx, (totnvert+nvert)* sizeof(double))
-            alspolyy = <double *>PyMem_Realloc(alspolyy, (totnvert+nvert)* sizeof(double))
-            alsvinx = <double *>PyMem_Realloc(alsvinx,   (totnvert+nvert-1-ii)* sizeof(double))
-            alsviny = <double *>PyMem_Realloc(alsviny,   (totnvert+nvert-1-ii)* sizeof(double))
-            for jj in range(nvert-1):
-                alspolyx[totnvert + jj] = LSPoly[ii][0,jj]
-                alspolyy[totnvert + jj] = LSPoly[ii][1,jj]
-                alsvinx[totnvert + jj - ii] = LSVIn[ii][0,jj]
-                alsviny[totnvert + jj - ii] = LSVIn[ii][1,jj]
-            alspolyx[totnvert + nvert-1] = LSPoly[ii][0,nvert-1]
-            alspolyy[totnvert + nvert-1] = LSPoly[ii][1,nvert-1]
-
-            totnvert = totnvert + nvert
+            lspoly_view = LSPoly[ii]
+            lsvin_view = LSVIn[ii]
             #... and its limits:
             len_lim = lSnLim[ii]
             if len_lim == 0:
@@ -203,6 +189,28 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
             else:
                 lslim = LSLim[ii]
 
+            # we get the structure polynome and its number of vertex
+            nvert = len(lspoly_view[0])
+            if ii == 0:
+                lnvert[0] = nvert
+                lsz_lim[0] = 0
+            else:
+                lnvert[ii] = nvert + lnvert[ii-1]
+                lsz_lim[ii] = lSnLim[ii-1] + lsz_lim[ii-1]
+            alspolyx = <double *>realloc(alspolyx, (totnvert+nvert)* sizeof(double))
+            alspolyy = <double *>realloc(alspolyy, (totnvert+nvert)* sizeof(double))
+            alsvinx  = <double *>realloc(alsvinx,  (totnvert+nvert-1-ii)* sizeof(double))
+            alsviny  = <double *>realloc(alsviny,  (totnvert+nvert-1-ii)* sizeof(double))
+            for jj in range(nvert-1):
+                alspolyx[totnvert + jj] = lspoly_view[0,jj]
+                alspolyy[totnvert + jj] = lspoly_view[1,jj]
+                alsvinx[totnvert + jj - ii] = lsvin_view[0,jj]
+                alsviny[totnvert + jj - ii] = lsvin_view[1,jj]
+            alspolyx[totnvert + nvert-1] = lspoly_view[0,nvert-1]
+            alspolyy[totnvert + nvert-1] = lspoly_view[1,nvert-1]
+
+            totnvert = totnvert + nvert
+
             for jj in range(max(len_lim,1)):
                 # We compute the structure's bounding box:
                 if lslim[jj] is not None:
@@ -211,10 +219,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                     llim_ves[ind_lim_data] = 0 # False : struct is limited
                     L0 = Catan2(Csin(lim_ves[0]), Ccos(lim_ves[0]))
                     L1 = Catan2(Csin(lim_ves[1]), Ccos(lim_ves[1]))
-                    compute_bbox_lim(nvert, LSPoly[ii], bounds, L0, L1)
+                    compute_bbox_lim(nvert, lspoly_view, bounds, L0, L1)
                 else:
                     llim_ves[ind_lim_data] = 1 # True : is continous
-                    compute_bbox_extr(nvert, LSPoly[ii], bounds)
+                    compute_bbox_extr(nvert, lspoly_view, bounds)
                     L0 = 0.
                     L1 = 0.
                 langles[ind_lim_data*2] = L0
@@ -329,20 +337,23 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                          kPOut, IOut, VperpOut, Forbid0,
                           Forbidbis, val_rmin, rmin2, Crit2_base,
                           len_lspoly, lSnLim,
-                          lbounds, langles, llim_ves, lnvert,
+                          lbounds, langles, llim_ves, lnvert, lsz_lim,
                           alspolyx, alspolyy, alsvinx, alsviny,
                           EpsUz, EpsVz, EpsA, EpsB, EpsPlane)
                     # del lspoly_view
                     # del lsvin_view
-            PyMem_Free(alspolyx)
-            PyMem_Free(alspolyy)
-            PyMem_Free(alsvinx)
-            PyMem_Free(alsviny)
+            free(alspolyx)
+            free(alspolyy)
+            free(alsvinx)
+            free(alsviny)
 
-    PyMem_Free(llim_ves)
-    PyMem_Free(lbounds)
-    PyMem_Free(langles)
-    PyMem_Free(lnvert)
+    free(llim_ves)
+    free(lbounds)
+    free(langles)
+    free(lnvert)
+    free(lsz_lim)
+    del(lspoly_view)
+    del(lsvin_view)
     # npa_kpin  = np.asarray(kPIn)
     # npa_kpout = np.asarray(kPOut)
     # npa_vperp = np.asarray(VperpOut)
@@ -844,7 +855,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                                double val_rmin, double rmin2, double Crit2_base,
                                int len_lspoly, long[::1] lSnLim, double* lbounds,
                                double* langles, int* llim_ves,
-                               int* lnvert,
+                               int* lnvert, int* lsz_lim,
                                double* LSPoly0, double* LSPoly1,
                                double* LSVIn0,  double* LSVIn1,
                                double EpsUz, double EpsVz, double EpsA, double EpsB,
@@ -875,8 +886,9 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef double* LSVIn0ii  = NULL
     cdef double* LSVIn1ii  = NULL
 
-    for ind_tmp in prange(num_los, nogil=True, schedule='static', num_threads=8):
-        printf("tid: %d   cpuid: %d\n", openmp.omp_get_thread_num(), sched_getcpu())
+    # with nogil, parallel():
+    for ind_tmp in prange(num_los, nogil=True, schedule='static'):#, num_threads=8):
+        #printf("tid: %d   cpuid: %d\n", openmp.omp_get_thread_num(), sched_getcpu())
         ind_lim_data = 0
         # We get the last kpout:
         kpout_jj = kPOut[ind_tmp]
@@ -933,20 +945,18 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
             LSPoly0ii[nvert-1] = LSPoly0[totnvert + nvert-1]
             LSPoly1ii[nvert-1] = LSPoly1[totnvert + nvert-1]
             # nvert = len(LSPoly[ii][0])
+            ind_lim_data = lsz_lim[ii]
             for jj in range(lSnLim[ii]):
-                bounds[0] = lbounds[ind_lim_data*6]
-                bounds[1] = lbounds[ind_lim_data*6 + 1]
-                bounds[2] = lbounds[ind_lim_data*6 + 2]
-                bounds[3] = lbounds[ind_lim_data*6 + 3]
-                bounds[4] = lbounds[ind_lim_data*6 + 4]
-                bounds[5] = lbounds[ind_lim_data*6 + 5]
-                # for kk in range(6):
-                #     ind_bounds = ind_lim_data*6 + kk
-                #     bounds[kk] = lbounds[ind_bounds]
-                L0 = langles[ind_lim_data*2]
-                L1 = langles[ind_lim_data*2 + 1]
+                bounds[0] = lbounds[(ind_lim_data + jj)*6]
+                bounds[1] = lbounds[(ind_lim_data + jj)*6 + 1]
+                bounds[2] = lbounds[(ind_lim_data + jj)*6 + 2]
+                bounds[3] = lbounds[(ind_lim_data + jj)*6 + 3]
+                bounds[4] = lbounds[(ind_lim_data + jj)*6 + 4]
+                bounds[5] = lbounds[(ind_lim_data + jj)*6 + 5]
+                L0 = langles[(ind_lim_data+jj)*2]
+                L1 = langles[(ind_lim_data+jj)*2 + 1]
                 lim_is_none = llim_ves[ind_lim_data] == 1
-                ind_lim_data = 1 + ind_lim_data
+                #ind_lim_data = 1 + ind_lim_data #TODO come back
                 # We test if it is really necessary to compute the inter:
                 # We check if the ray intersects the bounding box
                 inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, loc_ds)
