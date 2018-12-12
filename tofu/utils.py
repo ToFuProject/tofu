@@ -738,7 +738,7 @@ class ToFuObjectBase(object):
         return total, dsize
 
 
-    def __eq__(self, obj, detail=True, verb=True):
+    def __eq__(self, obj, lexcept=[], detail=True, verb=True):
         msg = "The 2 objects have different "
         # Check class
         eq = self.__class__==obj.__class__
@@ -765,6 +765,8 @@ class ToFuObjectBase(object):
             lsimple = [str,bool,np.str_,np.bool_,
                        tuple, list]
             for k in lk0:
+                if any([ss in k for ss in lexcept]):
+                    continue
                 eqk = type(d0[k]) == type(d1[k])
                 if not eqk:
                     eq = False
