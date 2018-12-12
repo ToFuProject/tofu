@@ -123,7 +123,7 @@ class Data(utils.ToFuObject):
             self.__class__._strip_init()
 
         # Create a dplot at instance level
-        self._dplot = copy.deepcopy(self.__class__._dplot)
+        #self._dplot = copy.deepcopy(self.__class__._dplot)
 
         kwdargs = locals()
         del kwdargs['self']
@@ -134,8 +134,8 @@ class Data(utils.ToFuObject):
         # super()
         super(Data,self)._reset()
         self._ddataRef = dict.fromkeys(self._get_keys_ddataRef())
-        self._ddata = dict.fromkeys(self._get_keys_ddata())
         self._dtreat = dict.fromkeys(self._get_keys_dtreat())
+        self._ddata = dict.fromkeys(self._get_keys_ddata())
         self._dunits = dict.fromkeys(self._get_keys_dunits())
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dchans = dict.fromkeys(self._get_keys_dchans())
@@ -154,7 +154,7 @@ class Data(utils.ToFuObject):
         assert type(Diag) is str
         assert type(Exp) is str
         if Type is None:
-            Type = cls._def['Id']['Type']
+            Type = cls._ddef['Id']['Type']
         assert Type in ['1D','2D','1DSpectral','2DSpectral']
         if include is None:
             include = cls._ddef['Id']['include']
@@ -188,7 +188,7 @@ class Data(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dtreat():
-        largs = []
+        largs = ['dtreat']
         return largs
 
     @staticmethod
@@ -220,24 +220,31 @@ class Data(utils.ToFuObject):
 
     def _checkformat_inputs_ddataRef(self, data=None, t=None,
                                      X=None, indtX=None,
-                                     lamb=None, indtlamb=None, indXlamb=None):
+                                     lamb=None, indtlamb=None,
+                                     indXlamb=None, indtXlamb=None):
         assert data is not None
-        data = np.asarray(data).sqeeze()
+        data = np.asarray(data).squeeze()
+
         if t is not None:
-            t = np.asarray(t).sqeeze()
+            t = np.asarray(t).squeeze()
         if X is not None:
-            X = np.asarray(X).sqeeze()
+            X = np.asarray(X).squeeze()
         if indtX is not None:
-            indtX = np.asarray(indtX).sqeeze()
+            indtX = np.asarray(indtX).squeeze()
         if lamb is not None:
-            lamb = np.asarray(lamb).sqeeze()
+            lamb = np.asarray(lamb).squeeze()
         if indtlamb is not None:
-            indtlamb = np.asarray(indtlamb).sqeeze()
+            indtlamb = np.asarray(indtlamb).squeeze()
         if indXlamb is not None:
-            indXlamb = np.asarray(indXlamb).sqeeze()
+            indXlamb = np.asarray(indXlamb).squeeze()
 
         ndim = data.ndim
         assert ndim in [2,3]
+        if 'spectral' not in self.Id.Type.lower():
+            msg = "self is not of spectral type"
+            msg += "\n  => the data cannot be 3D ! (ndim)"
+            assert ndim==2, msg
+
         nt = data.shape[0]
         if t is None:
             t = np.arange(0,nt)
@@ -287,13 +294,17 @@ class Data(utils.ToFuObject):
                 else:
                     assert lamb.shape[1]==n2
 
+
         # Get shapes
         if data.ndim==2:
             (nt,nX), nlamb = data.shape, 0
         else:
             nt, nX, nlamb = data.shape
         nnX = 1 if X.ndim==1 else X.shape[0]
-        nnlamb = 1 if lamb.ndim==1 else lamb.shape[0]
+        if lamb is None:
+            nnlamb = 0
+        else:
+            nnlamb = 1 if lamb.ndim==1 else lamb.shape[0]
 
         # Check indices
         if indtX is not None:
@@ -302,10 +313,10 @@ class Data(utils.ToFuObject):
         lC = [indtlamb is None, indXlamb is None, indtXlamb is None]
         assert lC[2] or (~lC[2] and np.sum(lC[:2])==2)
         if lC[2]:
-            if ~lC[0]:
+            if not lC[0]:
                 assert indtlamb.shape==(nt,)
                 assert inp.argmin(indtlamb)>=0 and np.argmax(indtlamb)<=nnlamb
-            if ~lC[1]:
+            if not lC[1]:
                 assert indXlamb.shape==(nX,)
                 assert inp.argmin(indXlamb)>=0 and np.argmax(indXlamb)<=nnlamb
         else:
@@ -318,11 +329,11 @@ class Data(utils.ToFuObject):
 
     def _checkformat_inputs_XRef(self, X=None, indtX=None, indXlamb=None):
         if X is not None:
-            X = np.asarray(X).sqeeze()
+            X = np.asarray(X).squeeze()
         if indtX is not None:
-            indtX = np.asarray(indtX).sqeeze()
+            indtX = np.asarray(indtX).squeeze()
         if indXlamb is not None:
-            indXlamb = np.asarray(indXlamb).sqeeze()
+            indXlamb = np.asarray(indXlamb).squeeze()
 
         ndim = self._ddataRef['data'].ndim
         nt, n1 = self._ddataRef['data'].shape[:2]
@@ -477,19 +488,23 @@ class Data(utils.ToFuObject):
     def _get_keys_ddataRef():
         lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
               'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
+        return lk
 
     @staticmethod
     def _get_keys_ddata():
-        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
-              'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
+        lk = ['data', 't', 'X', 'lamb', 'uptodate']
+        return lk
 
     @staticmethod
     def _get_keys_dtreat():
-        lk = ['indt','indch']
+        lk = ['mask', 'interp_indt', 'interp_indch',
+              'data0', 'filter', 'indt',  'indch', 'interp_t']
+        return lk
 
     @staticmethod
     def _get_keys_dunits():
         lk = ['data','t','X','lamb']
+        return lk
 
     @staticmethod
     def _get_keys_dgeom():
@@ -514,6 +529,8 @@ class Data(utils.ToFuObject):
               dunits=None, dextra=None, lCam=None, config=None, **kwdargs):
         largs = self._get_largs_ddataRef()
         kwddataRef = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dtreat()
+        kwdtreat = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dunits()
         kwdunits = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dgeom()
@@ -523,7 +540,8 @@ class Data(utils.ToFuObject):
         largs = self._get_largs_dextra()
         kwdextra = self._extract_kwdargs(locals(), largs)
         self._set_ddataRef(**kwddataRef)
-        self.compute_data()
+        self.set_dtreat(**kwdtreat)
+        self._set_ddata()
         self._set_dunits(**kwdunits)
         self._set_dgeom(**kwdgeom)
         self.set_dchans(**kwdchans)
@@ -579,7 +597,7 @@ class Data(utils.ToFuObject):
             return
 
         if strip in [0,2]:
-            self.compute_data()
+            self._set_ddata()
         elif strip in [1,3]:
             self.clear_data()
 
@@ -1077,11 +1095,12 @@ class Data(utils.ToFuObject):
         return d
 
     def _set_ddata(self):
-        data, t, X = self._get_treated_data()
-        self._ddata['data'] = data
-        self._ddata['t'] = t
-        self._ddata['X'] = X
-        self._ddata['uptodate'] = True
+        if not self._ddata['uptodate']:
+            data, t, X = self._get_treated_data()
+            self._ddata['data'] = data
+            self._ddata['t'] = t
+            self._ddata['X'] = X
+            self._ddata['uptodate'] = True
 
 
     def clear_ddata(self):
