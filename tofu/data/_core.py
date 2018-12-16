@@ -931,6 +931,18 @@ class Data(utils.ToFuObject):
         self._dtreat['interp-indt'] = indt
         self._ddata['uptodate'] = False
 
+    def set_dtreat_dfilter(self, dfilter=None):
+        """  """
+        assert dfilter is None or isinstance(dfilter,dict)
+        if isinstance(dfilter,dict):
+            assert 'type' in dfilter.keys()
+            assert dfilter['type'] in ['svd','fft']
+
+        self._dtreat['dfilter'] = dfilter
+        self._ddata['uptodate'] = False
+
+
+
     @staticmethod
     def _mask(data, mask_ind, mask_val):
         if mask_ind is not None:
@@ -981,10 +993,14 @@ class Data(utils.ToFuObject):
                 data = data - data0[np.newaxis,:,np.newaxis]
         return data
 
-    #@staticmethod
-    #def _filter(data, ftype='svd', df=None, harm=None, dfEx=None, harmEx=None):
-
-
+    @staticmethod
+    def _filter(data, dfilter):
+        if dfilter is not None:
+            if dfilter['type']=='svd':
+                data = _comp.()
+            elif dfilter['type']=='svd':
+                data = _comp.()
+        return data
 
     @staticmethod
     def _indt(data, indt):
@@ -1060,16 +1076,10 @@ class Data(utils.ToFuObject):
         cancelled and the working copy returns the reference data.
 
         """
-        indt, indch = self._dtreat['interp_indt'], self._dtreat['interp_indch']
+        indt, indch = self._dtreat['interp-indt'], self._dtreat['interp-indch']
         C0 = indch is None
         C1 = indt is None
-        C2 = self._dtreat['fft-df'] is None
-        C3 = self._dtreat['svd-modes'] is None
-        if np.sum([C2,C3])==0:
-            msg = "You cannot do both a fft and svd filtering, choose one"
-            msg += "\n  => remove fft by self.set_fft()"
-            msg += "\n  => remove svd by self.set_svd()"
-            raise Exception(msg)
+        C2 = self._dtreat['filter'] is None
         d = self._ddataRef['data'].copy()
         for kk in self._dtreat['order']:
             if kk=='mask' and self._dtreat['mask-ind'] is not None:
