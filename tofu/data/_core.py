@@ -16,9 +16,11 @@ import matplotlib.pyplot as plt
 import tofu.pathfile as tfpf
 import tofu.utils as utils
 try:
+    import tofu.data._comp as _comp
     import tofu.data._plot as _plot
     import tofu.data._def as _def
 except Exception:
+    from . import _comp as _comp
     from . import _plot as _plot
     from . import _def as _def
 
@@ -71,14 +73,14 @@ def _select_ind(v, ref, nRef):
             ind[np.nanargmin(np.abs(ref-vv))] = True
     elif C2 or C3:
         c0 = len(v)==2 and all([type(vv) in ltypes for vv in v])
-        c1 = all([(type(vv) is type(v)
+        c1 = all([(type(vv) is type(v) and len(vv)==2
                    and all([type(vvv) in ltypes for vvv in vv]))
                   for vv in v])
         assert c0!=c1
         if c0:
             v = [v]
         for vv in v:
-            ind = ind | ((ref>=v[0]) & (ref<=v[1]))
+            ind = ind | ((ref>=vv[0]) & (ref<=vv[1]))
         if C3:
             ind = ~ind
     return ind
@@ -96,8 +98,8 @@ class Data(utils.ToFuObject):
     _ddef = {'Id':{'Type':'1D',
                    'include':['Mod','Cls','Exp','Diag',
                               'Name','shot','version']},
-             'dtreat':{'order':['mask','interp_t','interp_ch','data0','fft',
-                                'indt', 'indch']}}
+             'dtreat':{'order':['mask','interp-indt','interp_indch','data0','dfilter',
+                                'indt', 'indch','interp-t']}}
 
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
@@ -405,8 +407,16 @@ class Data(utils.ToFuObject):
         if dtreat is None:
             dtreat = {}
         assert type(dtreat) is dict
-        if 'order' not in dtreat.keys():
-            dtreat['order'] = list(self._ddef['dtreat']['order'])
+        lk0 = self._get_keys_dtreat()
+        lk = dtreat.keys()
+        for k in lk:
+            assert k in lk0
+        for k in lk0:
+            if k not in lk:
+                if k in self._ddef['dtreat'].keys():
+                    dtreat[k] = self._ddef['dtreat'][k]
+                else:
+                    dtreat[k] = None
         return dtreat
 
     def _checkformat_inputs_dgeom(self, lCam=None, config=None):
@@ -492,13 +502,14 @@ class Data(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_ddata():
-        lk = ['data', 't', 'X', 'lamb', 'uptodate']
+        lk = ['data', 'uptodate']
         return lk
 
     @staticmethod
     def _get_keys_dtreat():
-        lk = ['mask', 'interp_indt', 'interp_indch',
-              'data0', 'filter', 'indt',  'indch', 'interp_t']
+        lk = ['order','mask-ind', 'mask-val', 'interp-indt', 'interp-indch',
+              'data0-indt', 'data0-Dt', 'data0-data',
+              'dfilter', 'indt',  'indch', 'interp-t']
         return lk
 
     @staticmethod
@@ -525,7 +536,7 @@ class Data(utils.ToFuObject):
     # _init
     ###########
 
-    def _init(self, data=None, t=None, X=None, lamb=None, dchans=None,
+    def _init(self, data=None, t=None, X=None, lamb=None, dtreat=None, dchans=None,
               dunits=None, dextra=None, lCam=None, config=None, **kwdargs):
         largs = self._get_largs_ddataRef()
         kwddataRef = self._extract_kwdargs(locals(), largs)
@@ -561,11 +572,11 @@ class Data(utils.ToFuObject):
         data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb = lout[:9]
         indtX, indtlamb, indXlamb, indtXlamb = lout[9:]
 
-        self._dataRef = {'data':data, 't':t, 'X':X, 'lamb':lamb,
-                         'nt':nt, 'nX':nX, 'nlamb':nlamb,
-                         'nnX':nnX, 'nnlamb':nnlamb,
-                         'indtX':indtX, 'indtlamb':indtlamb,
-                         'indXlamb':indXlamb, 'indtXlamb':indtXlamb}
+        self._ddataRef = {'data':data, 't':t, 'X':X, 'lamb':lamb,
+                          'nt':nt, 'nX':nX, 'nlamb':nlamb,
+                          'nnX':nnX, 'nnlamb':nnlamb,
+                          'indtX':indtX, 'indtlamb':indtlamb,
+                          'indXlamb':indXlamb, 'indtXlamb':indtXlamb}
 
     def set_dtreat(self, dtreat=None):
         dtreat = self._checkformat_inputs_dtreat(dtreat=dtreat)
@@ -754,41 +765,10 @@ class Data(utils.ToFuObject):
 
 
 
-    @property
-    def indt(self):
-        if self._indt is None:
-            return np.ones((self._Ref['nt'],),dtype=bool)
-        else:
-            return self._indt
-    @property
-    def indch(self):
-        if self._indch is None:
-            return np.ones((self._Ref['nch'],),dtype=bool)
-        else:
-            return self._indch
-    @property
-    def mask(self):
-        return self._mask
-    @property
-    def nt(self):
-        if self._nt is None:
-            return int(np.sum(self.indt))
-        else:
-            return self._nt
-    @property
-    def nch(self):
-        return int(np.sum(self.indch))
-    @property
-    def data0(self):
-        return self._data0
+
     @property
     def LCam(self):
         return self._get_LCam()
-    @property
-    def treatment(self):
-        d = {'indt':self.indt, 'indch':self.indch,
-             'DtRef':self._DtRef, 'fft':self._fft}
-        return d
     @property
     def dextra(self):
         return self._dextra
@@ -873,8 +853,8 @@ class Data(utils.ToFuObject):
                 if np.sum(indt)>1:
                     data0 = np.nanmean(data,axis=0)
         self._dtreat['data0-indt'] = indt
-        self._dtreat['data0-data'] = data0
         self._dtreat['data0-Dt'] = Dt
+        self._dtreat['data0-data'] = data0
         self._ddata['uptodate'] = False
 
     def set_dtreat_interp_indch(self, indch=None):
@@ -941,7 +921,11 @@ class Data(utils.ToFuObject):
         self._dtreat['dfilter'] = dfilter
         self._ddata['uptodate'] = False
 
-
+    def set_dtreat_t(self, t=None):
+        """ Set the time vector on which to interpolate the data """
+        if t is not None:
+            t = np.unique(np.asarray(t, dtype=float).ravel())
+        self._dtreat['interp-t'] = t
 
     @staticmethod
     def _mask(data, mask_ind, mask_val):
@@ -994,12 +978,14 @@ class Data(utils.ToFuObject):
         return data
 
     @staticmethod
-    def _filter(data, dfilter):
+    def _dfilter(data, dfilter):
         if dfilter is not None:
             if dfilter['type']=='svd':
-                data = _comp.()
+                #data = _comp.()
+                pass
             elif dfilter['type']=='svd':
-                data = _comp.()
+                #data = _comp.()
+                pass
         return data
 
     @staticmethod
@@ -1013,7 +999,7 @@ class Data(utils.ToFuObject):
 
     @staticmethod
     def _indch(data, indch):
-        if indt is not None:
+        if indch is not None:
             if data.ndim==2:
                 data = data[:,indch]
             elif data.ndim==3:
@@ -1028,12 +1014,24 @@ class Data(utils.ToFuObject):
     def _get_t(self):
         if not self._ddata['uptodate']:
             self._set_ddata()
-        return self._ddata['t']
+        if self._dtreat['interp-t'] is None:
+            t = self._ddataRef['t']
+            if self._dtreat['indt'] is not None:
+                t = t[self._dtreat['indt']]
+        else:
+            t = self._dtreat['interp-t']
+        return t
 
     def _get_X(self):
         if not self._ddata['uptodate']:
             self._set_ddata()
-        return self._ddata['X']
+        X = self._ddataRef['X']
+        if self._dtreat['indch'] is not None:
+            if X.ndim==1:
+                X = X[self._dtreat['indch']]
+            else:
+                X = X[:,self._dtreat['indch']]
+        return X
 
     def set_dtreat_order(self, order=None):
         """ Set the order in which the data treatment should be performed
@@ -1046,7 +1044,7 @@ class Data(utils.ToFuObject):
             - 'interp_indt' :
             - 'interp_indch' :
             - 'data0' :
-            - 'filter' :
+            - 'dfilter' :
             - 'indt' :
             - 'indch' :
             - 'interp_t':
@@ -1076,10 +1074,6 @@ class Data(utils.ToFuObject):
         cancelled and the working copy returns the reference data.
 
         """
-        indt, indch = self._dtreat['interp-indt'], self._dtreat['interp-indch']
-        C0 = indch is None
-        C1 = indt is None
-        C2 = self._dtreat['filter'] is None
         d = self._ddataRef['data'].copy()
         for kk in self._dtreat['order']:
             if kk=='mask' and self._dtreat['mask-ind'] is not None:
@@ -1092,10 +1086,9 @@ class Data(utils.ToFuObject):
                 d = self._interp_indch(d, self._dtreat['interp-indch'],
                                        self._ddataRef['X'])
             if kk=='data0':
-                d = self._data0(d, self._dtreat['data0-data'],
-                                self._dtreat['data-val'])
-            if kk=='filter':
-                d = self._filter(d, **self._dtreat['filter'])
+                d = self._data0(d, self._dtreat['data0-data'])
+            if kk=='dfilter' and self._dtreat['dfilter'] is not None:
+                d = self._dfilter(d, **self._dtreat['dfilter'])
             if kk=='indt':
                 d = self._indt(d, self._dtreat['indt'])
             if kk=='indch':
@@ -1106,29 +1099,36 @@ class Data(utils.ToFuObject):
 
     def _set_ddata(self):
         if not self._ddata['uptodate']:
-            data, t, X = self._get_treated_data()
+            data = self._get_treated_data()
             self._ddata['data'] = data
-            self._ddata['t'] = t
-            self._ddata['X'] = X
             self._ddata['uptodate'] = True
 
 
     def clear_ddata(self):
-        """ Clear the working copy of data (keep the reference data) """
+        """ Clear the working copy of data
+
+        Harmless, as it preserves the reference copy and the treatment dict
+        Use only to free some memory
+
+        """
         self._ddata = dict.fromkeys(self._get_keys_ddata())
         self._ddata['uptodate'] = False
 
-    def clear_dtreat(self):
+    def clear_dtreat(self, force=False):
         """ Clear all treatment parameters in self.dtreat
 
         Subsequently also clear the working copy of data
         The working copy of data is thus reset to the reference data
         """
-        self.set_indch()
-        self.set_indt()
-        self.set_data0()
-        self.set_interp_t()
-        self.set_fft()
+        lC = [self._dtreat[k] is not None for k in self._dtreat.keys()
+              if k != 'order']
+        if any(C) and not force:
+            msg = """BEWARE : You are about to delete the data treatment
+                              i.e.: to clear self.dtreat (and also self.ddata)
+                              Are you sure ?
+                              If yes, use self.clear_dtreat(force=True)"""
+            raise Exception(msg)
+        self._dtreat = dict.fromkeys(self._get_keys_dtreat())
         self.clear_data()
 
     def dchans(self, key=None):
@@ -1187,7 +1187,7 @@ class Data(utils.ToFuObject):
 
         """
         assert out in [bool,int]
-        indt = _select_ind(t, self._ddataRef['t'], self._ddataRef['nt'])
+        ind = _select_ind(t, self._ddataRef['t'], self._ddataRef['nt'])
         if out is int:
             ind = ind.nonzero()[0]
         return ind
@@ -1244,8 +1244,8 @@ class Data(utils.ToFuObject):
         assert out in [int,bool]
         assert log in ['any','all','not']
         lc = [val is None, key is None, touch is None]
-        lC = [all(lc), all(lc[:2]) and ~lc[2],
-              ~lc[0] and all(lc[1:]), ~any(lc[:2]) and lc[2]]
+        lC = [all(lc), all(lc[:2]) and not lc[2],
+              not lc[0] and all(lc[1:]), not any(lc[:2]) and lc[2]]
         assert np.sum(lC)==1
 
         if lC[0]:
@@ -1428,10 +1428,18 @@ class Data(utils.ToFuObject):
             list of () spectrograms
 
         """
-        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
+        tf, f, lspect = _comp.spectrogram(self.data, self.t, fmin=fmin,
+                                          method=method, window=window,
+                                          detrend=detrend, nperseg=nperseg,
+                                          noverlap=noverlap, boundary=boundary,
+                                          padded=padded, wave=wave)
         return tf, f, lspect
 
-    def plot_spectrogram():
+    def plot_spectrogram(self, fmin=None,
+                         method='scipy-fourier',
+                         window='hann', detrend='linear',
+                         nperseg=None, noverlap=None,
+                         boundary='constant', padded=True, wave='morlet'):
         """ Plot the spectrogram of all channels with chosen method
 
         All non-plotting arguments are fed to self.calc_spectrogram()
@@ -1445,7 +1453,11 @@ class Data(utils.ToFuObject):
         kh :    tofu.utils.HeyHandler
             The tofu KeyHandler object handling figure interactivity
         """
-        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
+        tf, f, lspect = _comp.spectrogram(self.data, self.t, fmin=fmin,
+                                          method=method, window=window,
+                                          detrend=detrend, nperseg=nperseg,
+                                          noverlap=noverlap, boundary=boundary,
+                                          padded=padded, wave=wave)
         kh = _plot.spectrogram(self, tf, f, lspect)
         return kh
 

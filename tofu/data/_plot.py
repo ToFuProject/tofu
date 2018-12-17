@@ -25,7 +25,7 @@ except Exception:
 __all__ = ['Data_plot', 'Data_plot_combine']
 __author_email__ = 'didier.vezinet@cea.fr'
 _wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
-_nchMax, _ntMax = 4, 3
+_nchMax, _ntMax, nfMax = 4, 3, 3
 _fontsize = 8
 _labelpad = 0
 _lls = ['-','--','-.',':']
@@ -1451,4 +1451,51 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
         KH.connect()
     if draw:
         can.draw()
+    return KH
+
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+#               Plot spectrogram
+#######################################################################
+#######################################################################
+
+
+def plot_spectrogram(Data, tf, f, lspect,
+                     key=None, Bck=True, indref=0,
+                     cmap=plt.cm.gray, ms=4, vmin=None, vmax=None, normt=False,
+                     ntMax=None, nchMax=None, nfMax=3,
+                     lls=_lls, lct=_lct, lcch=_lcch,
+                     plotmethod='imshow', invert=False,
+                     fs=None, dmargin=None, wintit=_wintit, tit=None,
+                     fontsize=None, draw=True, connect=True):
+
+    if wintit is None:
+        wintit = _wintit
+    if fontsize is None:
+        fontsize = _fontsize
+
+    if '1d' in Data.Id.Cls:
+        ntMax = _ntMax if ntMax is None else ntMax
+        nchMax = _nchMax if nchMax is None else nchMax
+        nfMax = _nfMax if nfMax is None else nfMax
+        KH = _Data1D_plot_spectro(Data, key=key, indref=indref,
+                                  nchMax=nchMax, ntMax=ntMax,
+                                  Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+                                  fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                                  fontsize=fontsize, draw=draw, connect=connect)
+
+    else:
+        ntMax = 1 if ntMax is None else ntMax
+        nchMax = _nchMax if nchMax is None else nchMax
+        nfMax = _nfMax if nfMax is None else nfMax
+        KH = _Data2D_plot_spectro(Data, key=key, indref=indref,
+                                  nchMax=nchMax, ntMax=ntMax,
+                                  Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+                                  cmap=cmap, ms=ms, vmin=vmin, vmax=vmax, normt=normt,
+                                  fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                                  plotmethod=plotmethod, invert=invert,
+                                  fontsize=fontsize, draw=draw, connect=connect)
     return KH

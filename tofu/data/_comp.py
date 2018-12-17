@@ -22,8 +22,10 @@ _fmin_coef = 5.
 
 
 def spectrogram(data, t,
-                fmin=None, method='',
-                **kwdargs):
+                fmin=None, method='scipy-fourier',
+                window='hann', detrend='linear',
+                nperseg=None, noverlap=None,
+                boundary='constant', padded=True, wave='morlet'):
 
     # Format/check inputs
     lm = ['scipy-fourier', 'scipy-stft', 'scipy-wavelet']
@@ -47,13 +49,14 @@ def spectrogram(data, t,
 
     # Compute
     if method in ['scipy-fourier', 'scipy-stft']:
-        lkwds = ['window','nperseg','noverlap','detrend',
-                 'boundary','padded']
-        kwdargs = locals()
-        kwdargs = dict([(nn,kwdargs[nn]) for nn in lkwds])
         stft = 'stft' in method
         f, tf, lspect = _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=fmin,
-                                                   stft=stft, **kwdargs)
+                                                   stft=stft, window=window,
+                                                   nperseg=nperseg,
+                                                   noverlap=noverlap,
+                                                   detrend=detrend,
+                                                   boundary=boundary,
+                                                   padded=padded)
     elif method=='scipy-wavelet':
         f, lspect = _spectrogram_scipy_wavelet(data, fs, nt, nch,
                                                fmin=fmin, wave=wave)
@@ -84,7 +87,7 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
     if nperseg is None and fmin is None:
         fmin = _fmin_coef*(fs/nt)
         msg = "nperseg and fmin were not provided, fmin set to 10.*fs/nt"
-        raise Exception(msg)
+        warnings.warn(msg)
 
     # Format inputs
     if nperseg is None:
@@ -114,8 +117,8 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
                                         scaling='density', axis=0, mode='psd')
 
     # Split in list (per channel)
-    lssx = np.split(ssx, np.arange(0,nch), axis=1)
-    lssx = [ss.squeeze() for ss in lssx]
+    lssx = np.split(ssx, np.arange(1,nch), axis=1)
+    lssx = [ss.squeeze().T for ss in lssx]
 
     return f, tf, lssx
 
@@ -131,7 +134,7 @@ def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):
     if fmin is None:
         fmin = _fmin_coef*(fs/nt)
         msg = "fmin was not provided => set to 10.*fs/nt"
-        raise Exception(msg)
+        warnings.warn(msg)
 
     nw = int((1./fmin-2./fs)*fs)
     widths = 2.*np.pi*np.linspace(fmin,fs/2.,nw)
@@ -153,7 +156,7 @@ def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):
 #############################################
 #############################################
 
-def calc_svd(data, lapack_driver='gesdd')
+def calc_svd(data, lapack_driver='gesdd'):
     u, s, v = scplin.svd(data, full_matrices=True, compute_uv=True,
                          overwrite_a=False, check_finite=True,
                          lapack_driver=lapack_driver)
@@ -324,10 +327,10 @@ def filter_svd(data, lapack_driver='gesdd', modes=[]):
     Provide the indices of the modes desired
 
     """
-     # Check input
-     modes = np.asarray(modes,dtype=int)
-     assert modes.ndim==1
-     assert modes.size>=1, "No modes selected !"
+    # Check input
+    modes = np.asarray(modes,dtype=int)
+    assert modes.ndim==1
+    assert modes.size>=1, "No modes selected !"
 
     u, s, v = scplin.svd(data, full_matrices=False, compute_uv=True,
                          overwrite_a=False, check_finite=True,
