@@ -1439,7 +1439,12 @@ class Data(utils.ToFuObject):
                          method='scipy-fourier',
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
-                         boundary='constant', padded=True, wave='morlet'):
+                         boundary='constant', padded=True, wave='morlet',
+                         invert=None, plotmethod='imshow',
+                         cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None,
+                         Bck=True, fs=None, dmargin=None, wintit=None,
+                         tit=None, vmin=None, vmax=None, normt=False,
+                         draw=True, connect=True):
         """ Plot the spectrogram of all channels with chosen method
 
         All non-plotting arguments are fed to self.calc_spectrogram()
@@ -1458,7 +1463,14 @@ class Data(utils.ToFuObject):
                                           detrend=detrend, nperseg=nperseg,
                                           noverlap=noverlap, boundary=boundary,
                                           padded=padded, wave=wave)
-        kh = _plot.spectrogram(self, tf, f, lspect)
+        kh = _plot.Data_plot_spectrogram(self, tf, f, lspect,
+                                         invert=invert, plotmethod=plotmethod,
+                                         cmap=cmap, ms=ms, ntMax=ntMax,
+                                         nchMax=nchMax, Bck=Bck, fs=fs,
+                                         dmargin=dmargin, wintit=wintit,
+                                         tit=tit, vmin=vmin, vmax=vmax,
+                                         normt=normt, draw=draw,
+                                         connect=connect)
         return kh
 
     def calc_mainfreq(self):

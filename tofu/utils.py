@@ -5,6 +5,7 @@ import sys
 import collections
 from abc import ABCMeta, abstractmethod
 import getpass
+import subprocess
 
 # Common
 import numpy as np
@@ -64,6 +65,56 @@ def get_pathfileext(path=None, name=None,
     if name is None:
         name = name_def
     return path, name, mode
+
+
+#############################################
+#       figure size
+#############################################
+
+def get_figuresize(fs, fsdef=(12,6),
+                   orient='landscape', method='xrandr'):
+    """ Generic function to return figure size in inches
+
+        Useful for str-based flags such as:
+            - 'a4'  : use orient='portrait' or 'landscape'
+            - 'full': to get screen size
+                use method='xrandr' (recommended),
+                as 'xdpyinfo' tends to be wrong
+    """
+
+    assert fs is None or type(fs) in [str,tuple]
+    if fs is None:
+        fs = fsdef
+    elif type(fs) is str:
+        if fs=='a4':
+            fs = (8.27,11.69)
+            if orient=='landscape':
+                fs = (fs[1],fs[0])
+        elif fs=='full':
+            assert method in ['xrandr','xdpyinfo']
+            if method=='xrandr':
+                cmd0 = "xrandr"
+                #cmd1 = "grep '*'"
+                out = subprocess.check_output(cmd0.split())
+                s = [o for o in out.decode('utf-8').split('\n') if 'mm x ' in o]
+                assert len(s)==1
+                s = [ss for ss in s[0].split(' ') if 'mm' in ss]
+                assert len(s)==2
+                fsmm = [int(ss.replace('mm','')) for ss in s]
+            else:
+                cmd0 = 'xdpyinfo'
+                out = subprocess.check_output(cmd0.split())
+                s = [o for o in out.decode('utf-8').split('\n')
+                     if 'dimensions' in o]
+                assert len(s)==1
+                s = s[0][s[0].index('(')+1:s[0].index(' millimeters')]
+                fsmm = [int(ss) for ss in s.split('x')]
+            fs = (fsmm[0]/(10*2.54), fsmm[1]/(10*2.54))
+    assert type(fs) is tuple and len(fs)==2
+    return fs
+
+
+
 
 
 
