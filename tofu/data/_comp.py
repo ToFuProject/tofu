@@ -22,18 +22,18 @@ _fmin_coef = 5.
 
 
 def spectrogram(data, t,
-                fmin=None, method='scipy-fourier',
+                fmin=None, method='scipy-fourier', deg=False,
                 window='hann', detrend='linear',
                 nperseg=None, noverlap=None,
                 boundary='constant', padded=True, wave='morlet'):
 
     # Format/check inputs
-    lm = ['scipy-fourier', 'scipy-stft', 'scipy-wavelet']
+    lm = ['scipy-fourier', 'scipy-stft']#, 'scipy-wavelet']
     if not method in lm:
         msg = "Alowed methods are:"
         msg += "\n    - scipy-fourier: scipy.signal.spectrogram()"
         msg += "\n    - scipy-stft: scipy.signal.stft()"
-        msg += "\n    - scpipy-wavelet: scipy.signal.cwt()"
+        #msg += "\n    - scpipy-wavelet: scipy.signal.cwt()"
         raise Exception(msg)
 
     nt, nch = data.shape
@@ -50,23 +50,24 @@ def spectrogram(data, t,
     # Compute
     if method in ['scipy-fourier', 'scipy-stft']:
         stft = 'stft' in method
-        f, tf, lspect = _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=fmin,
-                                                   stft=stft, window=window,
-                                                   nperseg=nperseg,
-                                                   noverlap=noverlap,
-                                                   detrend=detrend,
-                                                   boundary=boundary,
-                                                   padded=padded)
+        f, tf, lpsd, lang = _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=fmin,
+                                                       stft=stft, deg=deg,
+                                                       window=window,
+                                                       nperseg=nperseg,
+                                                       noverlap=noverlap,
+                                                       detrend=detrend,
+                                                       boundary=boundary,
+                                                       padded=padded)
     elif method=='scipy-wavelet':
         f, lspect = _spectrogram_scipy_wavelet(data, fs, nt, nch,
                                                fmin=fmin, wave=wave)
         tf = t.copy()
 
-    return tf, f, lspect
+    return tf, f, lpsd, lang
 
 
 def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
-                               window=('tukey', 0.25),
+                               window=('tukey', 0.25), deg=False,
                                nperseg=None, noverlap=None,
                                detrend='linear', stft=False,
                                boundary='constant', padded=True):
@@ -108,19 +109,21 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
                                  noverlap=noverlap, nfft=nfft, detrend=detrend,
                                  return_onesided=True, boundary=boundary,
                                  padded=padded, axis=0)
-        ssx = np.abs(ssx)**2
     else:
         f, tf, ssx = scpsig.spectrogram(data, fs=fs,
                                         window=window, nperseg=nperseg,
                                         noverlap=noverlap, nfft=nfft,
                                         detrend=detrend, return_onesided=True,
-                                        scaling='density', axis=0, mode='psd')
+                                        scaling='density', axis=0,
+                                        mode='complex')
 
     # Split in list (per channel)
     lssx = np.split(ssx, np.arange(1,nch), axis=1)
     lssx = [ss.squeeze().T for ss in lssx]
+    lpsd = [np.abs(ss)**2 for ss in lssx]
+    lang = [np.angle(ss, deg=deg) for ss in lssx]
 
-    return f, tf, lssx
+    return f, tf, lpsd, lang
 
 
 def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):

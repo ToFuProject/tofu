@@ -1370,7 +1370,7 @@ class Data(utils.ToFuObject):
 
 
     def calc_spectrogram(self, fmin=None,
-                         method='scipy-fourier',
+                         method='scipy-fourier', deg=False,
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
                          boundary='constant', padded=True, wave='morlet'):
@@ -1384,6 +1384,8 @@ class Data(utils.ToFuObject):
             The minimum frequency of interest
             If None, set to 5/T, where T is the whole time interval
             Used to constrain the number of points per window
+        deg :   bool
+            Flag indicating whether to return the phase in deg (vs rad)
         method : str
             Flag indicating which method to use for computation:
                 - 'scipy-fourier':  uses scipy.signal.spectrogram()
@@ -1428,15 +1430,16 @@ class Data(utils.ToFuObject):
             list of () spectrograms
 
         """
-        tf, f, lspect = _comp.spectrogram(self.data, self.t, fmin=fmin,
-                                          method=method, window=window,
-                                          detrend=detrend, nperseg=nperseg,
-                                          noverlap=noverlap, boundary=boundary,
-                                          padded=padded, wave=wave)
-        return tf, f, lspect
+        tf, f, lpsd, lang = _comp.spectrogram(self.data, self.t,
+                                              fmin=fmin, deg=deg,
+                                              method=method, window=window,
+                                              detrend=detrend, nperseg=nperseg,
+                                              noverlap=noverlap, boundary=boundary,
+                                              padded=padded, wave=wave)
+        return tf, f, lpsd, lang
 
     def plot_spectrogram(self, fmin=None,
-                         method='scipy-fourier',
+                         method='scipy-fourier', deg=False,
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
                          boundary='constant', padded=True, wave='morlet',
@@ -1458,7 +1461,8 @@ class Data(utils.ToFuObject):
         kh :    tofu.utils.HeyHandler
             The tofu KeyHandler object handling figure interactivity
         """
-        tf, f, lspect = _comp.spectrogram(self.data, self.t, fmin=fmin,
+        tf, f, lspect = _comp.spectrogram(self.data, self.t,
+                                          fmin=fmin, deg=deg,
                                           method=method, window=window,
                                           detrend=detrend, nperseg=nperseg,
                                           noverlap=noverlap, boundary=boundary,
