@@ -1613,19 +1613,96 @@ def _Data1D_plot_spectrogram(Data, key=None, indch=None,
 
     # Plot vessel
     if Data.dgeom['config'] is not None:
-        out = Data.dgeom['config'].plot(Lax=[dax['cross'][0]['ax'],
+        out = Data.dgeom['config'].plot(lax=[dax['cross'][0]['ax'],
                                              dax['hor'][0]['ax']],
                                         Elt='P', dLeg=None, draw=False)
         dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
         if Data.dgeom['lCam'] is not None:
-            for cc in lData[0].dgeom['lCam']:
-                out = cc.plot(Lax=[dax['cross'][0]['ax'], dax['hor'][0]['ax']],
+            for cc in Data.dgeom['lCam']:
+                out = cc.plot(lax=[dax['cross'][0]['ax'], dax['hor'][0]['ax']],
                               Elt='L', Lplot='In',
                               dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
                               dLeg=None, draw=False)
                 dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
 
+    ##################
+    # To be finished
+    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
+    cbck = (0.8,0.8,0.8,0.8)
+    lEq = ['Ax','Sep','q1']
+    nt, nch = Data.nt, Data.nch
 
+    chansRef = np.arange(0,Data.Ref['nch'])
+    chans = chansRef[lData[ii].indch]
+    Dchans = [-1,lData[ii].Ref['nch']]
+    Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
+    if lData[ii].Ref['dchans'] in [None,{}]:
+        chlabRef = chansRef
+        chlab = chans
+    else:
+        chlabRef = chansRef if key is None else lData[ii].Ref['dchans'][key]
+        chlab = chans if key is None else lData[ii].dchans(key)
+
+    if lData[ii].t is None:
+        t = np.arange(0,lData[ii].nt)
+    elif nt==1:
+        t = np.array([lData[ii].t]).ravel()
+    else:
+        t = lData[ii].t
+    if nt==1:
+        Dti = [t[0]-0.001,t[0]+0.001]
+    else:
+        Dti = [np.nanmin(t), np.nanmax(t)]
+    Dt = [min(Dt[0],Dti[0]), max(Dt[1],Dti[1])]
+    data = lData[ii].data.reshape((nt,nch))
+
+    # Setting tref and plotting handles
+    if ii==0:
+        tref = t.copy()
+        chref = chans.copy()
+        for jj in range(0,len(dax['t'])):
+            dax['t'][jj]['xref'] = tref
+        for jj in range(0,len(dax['chan'])):
+            dax['chan'][jj]['xref'] = chref
+        if Bck:
+            env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
+            dax['chan'][0]['ax'].fill_between(chans, env[0], env[1], facecolor=cbck)
+            tbck = np.tile(np.r_[t, np.nan], nch)
+            dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
+            dax['t'][1]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+
+    # Adding vline t and trig
+    ltg, lt = [], []
+    for ll in range(0,len(dax['t'])):
+        dax['t'][ll]['dh']['vline'][ii]['xref'] = t
+        lv = []
+        for jj in range(0,ntMax):
+            l0 = dax['t'][ll]['ax'].axvline(np.nan, c=lct[jj], ls=lls[ii],
+                                           lw=1.)
+            lv.append(l0)
+            if ll==0:
+                l1, = dax['chan'][0]['ax'].plot(chans,
+                                                np.full((nch,),np.nan),
+                                                c=lct[jj], ls=lls[ii],
+                                                lw=1.)
+                ltg.append(l1)
+                if ii==0:
+                    l = dax['txtt'][0]['ax'].text((0.5+jj)/ntMax, 0., r'',
+                                                  color=lct[jj], fontweight='bold',
+                                                  fontsize=6., ha='center',
+                                                  va='bottom')
+                    lt.append(l)
+        if ll==0:
+            dtg = {'xref':t, 'h':ltg, 'y':data}
+        dax['t'][ll]['dh']['vline'][ii]['h'] = lv
+    dax['t'][1]['dh']['vline'][ii]['trig']['1dprof'][ii] = dtg
+    if ii==0:
+        dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
+        dax['t'][1]['dh']['vline'][0]['trig'].update(dttxt)
+        dax['txtt'][0]['dh'] = dttxt
+    dax['chan'][0]['dh']['1dprof'][ii] = dtg
+
+    # Adding vline ch
 
 
 

@@ -417,6 +417,10 @@ class Data(utils.ToFuObject):
                     dtreat[k] = self._ddef['dtreat'][k]
                 else:
                     dtreat[k] = None
+            if k=='order':
+                assert dtreat[k] is not None
+                assert dtreat[k][-1] = 'interp-t'
+                assert all([ss in dtreat[k][-3:-1] for ss in ['indch','indt']])
         return dtreat
 
     def _checkformat_inputs_dgeom(self, lCam=None, config=None):
@@ -502,7 +506,8 @@ class Data(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_ddata():
-        lk = ['data', 'uptodate']
+        lk = ['data', 't', 'X', 'lamb',
+              'nt', 'nX', 'nlamb', 'uptodate']
         return lk
 
     @staticmethod
@@ -754,24 +759,26 @@ class Data(utils.ToFuObject):
 
     @property
     def data(self):
-        return self._get_data()
+        return self._get_ddata('data')
     @property
     def t(self):
-        return self._get_t()
+        return self._get_ddata('t')
     @property
     def X(self):
-        return self._get_X()
-
-
-
-
+        return self._get_ddata('X')
+    @property
+    def nt(self):
+        return self._get_ddata('nt')
+    @property
+    def nX(self):
+        return self._get_ddata('nX')
 
     @property
-    def LCam(self):
-        return self._get_LCam()
+    def config(self):
+        return self._dgeom['config']
     @property
-    def dextra(self):
-        return self._dextra
+    def lCam(self):
+        return self._get_lCam()
 
 
     ###########
@@ -1006,32 +1013,10 @@ class Data(utils.ToFuObject):
                 data = data[:,indch,:]
         return data
 
-    def _get_data(self):
+    def _get_ddata(self, key):
         if not self._ddata['uptodate']:
             self._set_ddata()
-        return self._ddata['data']
-
-    def _get_t(self):
-        if not self._ddata['uptodate']:
-            self._set_ddata()
-        if self._dtreat['interp-t'] is None:
-            t = self._ddataRef['t']
-            if self._dtreat['indt'] is not None:
-                t = t[self._dtreat['indt']]
-        else:
-            t = self._dtreat['interp-t']
-        return t
-
-    def _get_X(self):
-        if not self._ddata['uptodate']:
-            self._set_ddata()
-        X = self._ddataRef['X']
-        if self._dtreat['indch'] is not None:
-            if X.ndim==1:
-                X = X[self._dtreat['indch']]
-            else:
-                X = X[:,self._dtreat['indch']]
-        return X
+        return self._ddata[key]
 
     def set_dtreat_order(self, order=None):
         """ Set the order in which the data treatment should be performed
@@ -1056,9 +1041,11 @@ class Data(utils.ToFuObject):
         if order is None:
             order = list(self._ddef['dtreat']['order'])
         assert type(order) is list and all([type(ss) is str for ss in order])
-        C = [ss in ['indt','indch'] for ss in self._dtreat['order'][-2:]]
-        if not all(C):
-            msg = "indt and indch must be the last 2 treatment steps !"
+        if not all([ss in ['indt','indch'] for ss in order][-3:-1]]):
+            msg = "indt and indch must be the treatment steps -2 and -3 !"
+            raise Exception(msg)
+        if not order[-1]=='interp-t':
+            msg = "interp-t must be the last treatment step !"
             raise Exception(msg)
         self._dtreat['order'] = order
         self._ddata['uptodate'] = False
@@ -1095,12 +1082,23 @@ class Data(utils.ToFuObject):
                 d = self._indch(d, self._dtreat['indch'])
             if kk=='interp_t':
                 d = self._interp_t(self._dtreat['interp-t'])
-        return d
+
+        if self._dtreat['interp-t'] is None:
+            t = self._ddataRef['t']
+        else;
+            t = self._dtreat['interp-t']
+        return d, t, X, lamb
 
     def _set_ddata(self):
         if not self._ddata['uptodate']:
-            data = self._get_treated_data()
+            data, t, X, lamb = self._get_treated_data()
             self._ddata['data'] = data
+            self._ddata['t'] = t
+            self._ddata['X'] = X
+            self._ddata['lamb'] = lamb
+            self._ddata['nt'] = t.size
+            self._ddata['nX'] = data.shape[1]
+            self._ddata['nlamb'] = data.shape[2] if data.ndim==3 else 0
             self._ddata['uptodate'] = True
 
 
