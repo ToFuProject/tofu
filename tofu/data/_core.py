@@ -1062,7 +1062,9 @@ class Data(utils.ToFuObject):
 
         """
         d = self._ddataRef['data'].copy()
+
         for kk in self._dtreat['order']:
+            # data only
             if kk=='mask' and self._dtreat['mask-ind'] is not None:
                 d = self._mask(d, self._dtreat['mask-ind'],
                                self._dtreat['mask-val'])
@@ -1076,29 +1078,68 @@ class Data(utils.ToFuObject):
                 d = self._data0(d, self._dtreat['data0-data'])
             if kk=='dfilter' and self._dtreat['dfilter'] is not None:
                 d = self._dfilter(d, **self._dtreat['dfilter'])
-            if kk=='indt':
-                d = self._indt(d, self._dtreat['indt'])
-            if kk=='indch':
-                d = self._indch(d, self._dtreat['indch'])
-            if kk=='interp_t':
-                d = self._interp_t(self._dtreat['interp-t'])
 
+            # data + others
+            if kk=='indt':
+                d, t, indtX, indtlamb, indtXlamb = self._indt(d, self._dtreat['indt'])
+            if kk=='indch':
+                d, X, indXlamb, indtxlamb = self._indch(d, self._dtreat['indch'])
+            if kk=='interp_t':
+                d, t, indtX, indtlamb, indtXlamb = self._interp_t(self._dtreat['interp-t'])
+        assert data.ndim in [2,3]
+        if data.ndim==2:
+            nt, nX, nlamb = data.shape, 0
+        else:
+            nt, nX, nlamb = data.shape
+
+        # Time vector
         if self._dtreat['interp-t'] is None:
-            t = self._ddataRef['t']
-        else;
+            if self._dtreat['indt'] is None:
+                t = self._ddataRef['t']
+            else:
+                t = self._ddataRef['t'][self._dtreat['indt']]
+        else:
             t = self._dtreat['interp-t']
-        return d, t, X, lamb
+        assert t.size==nt
+
+        # X
+        if self._dtreat['indch'] is None:
+            X = self._ddataRef['X']
+        else:
+            if self._ddataRef['X'].ndim==1:
+                X = self._ddataRef['X'][self._dtreat['indch']]
+            else:
+                X = self._ddataRef['X'][:,self._dtreat['indch']]
+        assert X.shape[-1]==nX
+
+        # lamb
+        if self._ddataRef['lamb'] is None:
+            lamb = None
+            assert nlamb==0
+        else:
+            if self._dtreat['indlamb'] is None:
+                lamb = self._ddataRef['lamb']
+            else:
+                if self._ddataRef['lamb'].ndim==1:
+                    lamb = self._ddataRef['lamb'][self._dtreat['indlamb']]
+                else:
+                    lamb = self._ddataRef['lamb'][:,self._dtreat['indlamb']]
+            assert nlamb==lamb.shape[-1]
+
+        lout = [d, t, X, lamb, nt, nX, nlamb,
+                indtX, indtlamb, indXlamb, indtXlamb]
+        return lout
 
     def _set_ddata(self):
         if not self._ddata['uptodate']:
-            data, t, X, lamb = self._get_treated_data()
+            data, t, X, lamb, nt, nX, nlamb = self._get_treated_data()
             self._ddata['data'] = data
             self._ddata['t'] = t
             self._ddata['X'] = X
             self._ddata['lamb'] = lamb
-            self._ddata['nt'] = t.size
-            self._ddata['nX'] = data.shape[1]
-            self._ddata['nlamb'] = data.shape[2] if data.ndim==3 else 0
+            self._ddata['nt'] = nt
+            self._ddata['nX'] = nX
+            self._ddata['nlamb'] = nlamb
             self._ddata['uptodate'] = True
 
 
