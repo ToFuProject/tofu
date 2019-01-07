@@ -16,8 +16,8 @@ import tofu as tf
 # Default parameters
 
 _path = os.path.abspath(os.path.dirname(__file__))
-_path_Inputs = os.path.join(_path, '../tests03_core_laura')
-_path_Objects = os.path.join(_path,'../tests03_core_laura')
+_path_Inputs = os.path.join(_path, './Objects')
+_path_Objects = os.path.join(_path,'./Objects')
 _path_laura_former = './Objects'
 
 
@@ -168,6 +168,8 @@ def _get_filenames(dconfig=_dconfig, path=_path_Objects):
     # Get all files avbailable in path
     lf = os.listdir(path)
 
+    print(path)
+    print(lf)
     # Keep only those that are tofu.geom objects
     lf = [ff for ff in lf if all([ss in ff for ss in ['TFG_','.npz']])]
 
