@@ -131,19 +131,21 @@ def test_LOS_compact(save=False, saveCam=[]):
 
 
 def test_LOS_all(save=False, saveCam=[]):
-    Cams = ["V1000"]#["V1", "V10", "V100", "V1000", "V10000",
-    #"V100000", "V1000000"]
-    CamsA = ["VA1000"]#["VA1", "VA10", "VA100", "VA1000", "VA10000",
-    #         "VA100000", "VA1000000"]
+    Cams  = ["V1", "V10", "V100", "V1000", "V10000",
+             "V100000", "V1000000"]
+    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
+             "VA100000", "VA1000000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
     for icon in configs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
         print("*..................................*")
         if icon == "A2":
-            times = test_LOS_west_configs(icon, CamsA, save=save, saveCam=saveCam)
+            times = test_LOS_west_configs(icon, CamsA,
+                                          save=save, saveCam=saveCam)
         else:
-            times = test_LOS_west_configs(icon, Cams, save=save, saveCam=saveCam)
+            times = test_LOS_west_configs(icon, Cams,
+                                          save=save, saveCam=saveCam)
         for ttt in times:
             print(ttt)
 
@@ -247,7 +249,7 @@ def check_memory_usage2(cam="V1000000", config="B2"):
 
 
 if __name__ == "__main__":
-    test_LOS_compact()
+    #test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
@@ -255,14 +257,13 @@ if __name__ == "__main__":
     # touch_plot_all_configs()
     # touch_plot_config_cam("A2", "VA10000")
     # touch_plot_config_cam("B2", "V10000")
-    # touch_plot_config_cam("B3", "V1000")
+    touch_plot_config_cam("B3", "V100000")
     # line profiling.....
     # test_line_profile(cam="V100000")
-    #print(test_LOS_west_configs("B2", ["V1000000"]))
+    # print(test_LOS_west_configs("B3", ["V1000000"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # are_results_the_same()
     # check_memory_usage()
     # mem()
     # check_memory_usage2()
     # mem()
-

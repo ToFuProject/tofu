@@ -10,6 +10,8 @@ from libc.math cimport floor as Cfloor, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.math cimport NAN as Cnan
+from libc.stdio cimport printf
+
 #from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 from cpython.array cimport array, clone
 from cython.parallel import prange
@@ -346,14 +348,13 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
             free(alspolyy)
             free(alsvinx)
             free(alsviny)
-
+            del(lspoly_view)
+            del(lsvin_view)
     free(llim_ves)
     free(lbounds)
     free(langles)
     free(lnvert)
     free(lsz_lim)
-    del(lspoly_view)
-    del(lsvin_view)
     # npa_kpin  = np.asarray(kPIn)
     # npa_kpout = np.asarray(kPOut)
     # npa_vperp = np.asarray(VperpOut)
@@ -849,6 +850,8 @@ cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian=True,
             pts[2] = z
     return
 
+@cython.wraparound(False)
+@cython.boundscheck(False)
 cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                                double[::1] kPOut, int[::1] IOut,
                                double[::1] VperpOut, bint Forbid0, bint Forbidbis,
@@ -865,16 +868,16 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef int ind_lim_data, ind_bounds
     cdef int nvert, totnvert=0
     cdef double kpout_jj
-    cdef double[3] loc_vp
-    cdef double[3] last_pout
-    cdef double[6] bounds
-    cdef double[1] kpin_loc, kpout_loc
-    cdef double[3] loc_ds
-    cdef double[3] loc_us
-    cdef double[2] lim_ves
-    cdef double[3] invr_ray
-    cdef int[3] sign_ray
-    cdef int[1] ind_loc
+    cdef double* loc_vp
+    cdef double* last_pout
+    cdef double* bounds
+    cdef double* kpin_loc, *kpout_loc
+    cdef double* loc_ds
+    cdef double* loc_us
+    cdef double* lim_ves
+    cdef double* invr_ray
+    cdef int* sign_ray
+    cdef int* ind_loc
     cdef bint lim_is_none
     cdef bint found_new_kout
     cdef bint inter_bbox
@@ -886,116 +889,140 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef double* LSVIn0ii  = NULL
     cdef double* LSVIn1ii  = NULL
 
-    # with nogil, parallel():
-    for ind_tmp in prange(num_los, nogil=True, schedule='static'):#, num_threads=8):
-        #printf("tid: %d   cpuid: %d\n", openmp.omp_get_thread_num(), sched_getcpu())
-        ind_lim_data = 0
-        # We get the last kpout:
-        kpout_jj = kPOut[ind_tmp]
-        kpin_loc[0] = kpout_jj
-        ind_loc[0] = IOut[2+3*ind_tmp]
-        loc_ds[0] = Ds[0, ind_tmp]
-        loc_ds[1] = Ds[1, ind_tmp]
-        loc_ds[2] = Ds[2, ind_tmp]
-        loc_us[0] = dus[0, ind_tmp]
-        loc_us[1] = dus[1, ind_tmp]
-        loc_us[2] = dus[2, ind_tmp]
-        loc_vp[0] = 0.
-        loc_vp[1] = 0.
-        loc_vp[2] = 0.
-        last_pout[0] = kpout_jj * loc_us[0] + loc_ds[0]
-        last_pout[1] = kpout_jj * loc_us[1] + loc_ds[1]
-        last_pout[2] = kpout_jj * loc_us[2] + loc_ds[2]
-        compute_inv_and_sign(loc_us, sign_ray, invr_ray)
-        # computing sclar prods for Ray and rmin values
-        upscaDp = loc_us[0]*loc_ds[0] + loc_us[1]*loc_ds[1]
-        upar2   = loc_us[0]*loc_us[0] + loc_us[1]*loc_us[1]
-        Dpar2   = loc_ds[0]*loc_ds[0] + loc_ds[1]*loc_ds[1]
-        invDpar2 = 1./Dpar2
-        Crit2 = upar2*Crit2_base
-        # Prepare in case Forbid is True
-        if Forbid0 and not Dpar2>0:
-            Forbidbis = 0
-        if Forbidbis:
-            # Compute coordinates of the 2 points where the tangents touch
-            # the inner circle
-            L = Csqrt(Dpar2-rmin2)
-            S1X = (rmin2*loc_ds[0]+val_rmin*loc_ds[1]*L)*invDpar2
-            S1Y = (rmin2*loc_ds[1]-val_rmin*loc_ds[0]*L)*invDpar2
-            S2X = (rmin2*loc_ds[0]-val_rmin*loc_ds[1]*L)*invDpar2
-            S2Y = (rmin2*loc_ds[1]+val_rmin*loc_ds[0]*L)*invDpar2
-        for ii in range(len_lspoly):
-            if ii == 0:
-                nvert = lnvert[0]
-                totnvert = 0
-            else:
-                totnvert = lnvert[ii-1]
-                nvert = lnvert[ii] - totnvert
-            #print("nvert = ", nvert, "alloced size1 = ", (totnvert+nvert), "size 2 = ", (totnvert+nvert-1-ii))
-            LSPoly0ii = <double *>malloc( (nvert)* sizeof(double))
-            LSPoly1ii = <double *>malloc( (nvert)* sizeof(double))
-            LSVIn0ii  = <double *>malloc( (nvert-1)* sizeof(double))
-            LSVIn1ii  = <double *>malloc( (nvert-1)* sizeof(double))
-            for kk in range(nvert-1):
-                LSPoly0ii[kk] = LSPoly0[totnvert + kk]
-                LSPoly1ii[kk] = LSPoly1[totnvert + kk]
-                LSVIn0ii[kk] = LSVIn0[totnvert + kk - ii]
-                LSVIn1ii[kk] = LSVIn1[totnvert + kk - ii]
+    with nogil, parallel():
+        loc_vp    = <double *> malloc(sizeof(double) * 3)
+        last_pout = <double *> malloc(sizeof(double) * 3)
+        bounds    = <double *> malloc(sizeof(double) * 6)
+        kpin_loc  = <double *> malloc(sizeof(double) * 1)
+        kpout_loc = <double *> malloc(sizeof(double) * 1)
+        loc_ds    = <double *> malloc(sizeof(double) * 3)
+        loc_us    = <double *> malloc(sizeof(double) * 3)
+        lim_ves   = <double *> malloc(sizeof(double) * 2)
+        invr_ray  = <double *> malloc(sizeof(double) * 3)
+        sign_ray  = <int *> malloc(sizeof(int) * 3)
+        ind_loc   = <int *> malloc(sizeof(int) * 1)
 
-            LSPoly0ii[nvert-1] = LSPoly0[totnvert + nvert-1]
-            LSPoly1ii[nvert-1] = LSPoly1[totnvert + nvert-1]
-            # nvert = len(LSPoly[ii][0])
-            ind_lim_data = lsz_lim[ii]
-            for jj in range(lSnLim[ii]):
-                bounds[0] = lbounds[(ind_lim_data + jj)*6]
-                bounds[1] = lbounds[(ind_lim_data + jj)*6 + 1]
-                bounds[2] = lbounds[(ind_lim_data + jj)*6 + 2]
-                bounds[3] = lbounds[(ind_lim_data + jj)*6 + 3]
-                bounds[4] = lbounds[(ind_lim_data + jj)*6 + 4]
-                bounds[5] = lbounds[(ind_lim_data + jj)*6 + 5]
-                L0 = langles[(ind_lim_data+jj)*2]
-                L1 = langles[(ind_lim_data+jj)*2 + 1]
-                lim_is_none = llim_ves[ind_lim_data] == 1
-                #ind_lim_data = 1 + ind_lim_data #TODO come back
-                # We test if it is really necessary to compute the inter:
-                # We check if the ray intersects the bounding box
-                inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, loc_ds)
-                if not inter_bbox:
-                    continue
-                # We check that the bounding box is not "behind" the last POut encountered
-                inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, last_pout)
-                if inter_bbox:
-                    continue
-                 # We compute new values
-                found_new_kout = comp_inter_los_vpoly(loc_ds, loc_us,
-                                                      LSPoly0ii,
-                                                      LSPoly1ii,
-                                                      LSVIn0ii,
-                                                      LSVIn1ii,
-                                                      nvert,
-                                                      lim_is_none, L0, L1,
-                                                      kpin_loc, kpout_loc, ind_loc,
-                                                      loc_vp,
-                                                      Forbidbis,
-                                                      upscaDp, upar2, Dpar2, invDpar2,
-                                                      S1X, S1Y, S2X, S2Y,
-                                                      Crit2, EpsUz, EpsVz,
-                                                      EpsA, EpsB,
-                                                      EpsPlane, False)
-                if found_new_kout :
-                    kPOut[ind_tmp] = kpin_loc[0]
-                    VperpOut[0+3*ind_tmp] = loc_vp[0]
-                    VperpOut[1+3*ind_tmp] = loc_vp[1]
-                    VperpOut[2+3*ind_tmp] = loc_vp[2]
-                    IOut[2+3*ind_tmp] = ind_loc[0]
-                    IOut[0+3*ind_tmp] = 1+ii
-                    IOut[1+3*ind_tmp] = jj
-                    last_pout[0] = kPOut[ind_tmp] * loc_us[0] + loc_ds[0]
-                    last_pout[1] = kPOut[ind_tmp] * loc_us[1] + loc_ds[1]
-                    last_pout[2] = kPOut[ind_tmp] * loc_us[2] + loc_ds[2]
+        for ind_tmp in prange(num_los, schedule='static'):#, num_threads=8):
+            #printf("tid: %d   cpuid: %d\n", openmp.omp_get_thread_num(), sched_getcpu())
+            ind_lim_data = 0
+            # We get the last kpout:
+            kpout_jj = kPOut[ind_tmp]
+            kpin_loc[0] = kpout_jj
+            ind_loc[0] = IOut[2+3*ind_tmp]
+            loc_ds[0] = Ds[0, ind_tmp]
+            loc_ds[1] = Ds[1, ind_tmp]
+            loc_ds[2] = Ds[2, ind_tmp]
+            loc_us[0] = dus[0, ind_tmp]
+            loc_us[1] = dus[1, ind_tmp]
+            loc_us[2] = dus[2, ind_tmp]
+            loc_vp[0] = 0.
+            loc_vp[1] = 0.
+            loc_vp[2] = 0.
+            last_pout[0] = kpout_jj * loc_us[0] + loc_ds[0]
+            last_pout[1] = kpout_jj * loc_us[1] + loc_ds[1]
+            last_pout[2] = kpout_jj * loc_us[2] + loc_ds[2]
+            compute_inv_and_sign(loc_us, sign_ray, invr_ray)
+            # computing sclar prods for Ray and rmin values
+            upscaDp = loc_us[0]*loc_ds[0] + loc_us[1]*loc_ds[1]
+            upar2   = loc_us[0]*loc_us[0] + loc_us[1]*loc_us[1]
+            Dpar2   = loc_ds[0]*loc_ds[0] + loc_ds[1]*loc_ds[1]
+            invDpar2 = 1./Dpar2
+            Crit2 = upar2*Crit2_base
+            # Prepare in case Forbid is True
+            if Forbid0 and not Dpar2>0:
+                Forbidbis = 0
+            if Forbidbis:
+                # Compute coordinates of the 2 points where the tangents touch
+                # the inner circle
+                L = Csqrt(Dpar2-rmin2)
+                S1X = (rmin2*loc_ds[0]+val_rmin*loc_ds[1]*L)*invDpar2
+                S1Y = (rmin2*loc_ds[1]-val_rmin*loc_ds[0]*L)*invDpar2
+                S2X = (rmin2*loc_ds[0]-val_rmin*loc_ds[1]*L)*invDpar2
+                S2Y = (rmin2*loc_ds[1]+val_rmin*loc_ds[0]*L)*invDpar2
+            for ii in range(len_lspoly):
+                if ii == 0:
+                    nvert = lnvert[0]
+                    totnvert = 0
+                else:
+                    totnvert = lnvert[ii-1]
+                    nvert = lnvert[ii] - totnvert
+                #print("nvert = ", nvert, "alloced size1 = ", (totnvert+nvert), "size 2 = ", (totnvert+nvert-1-ii))
+                LSPoly0ii = <double *>malloc( (nvert)* sizeof(double))
+                LSPoly1ii = <double *>malloc( (nvert)* sizeof(double))
+                LSVIn0ii  = <double *>malloc( (nvert-1)* sizeof(double))
+                LSVIn1ii  = <double *>malloc( (nvert-1)* sizeof(double))
+                for kk in range(nvert-1):
+                    LSPoly0ii[kk] = LSPoly0[totnvert + kk]
+                    LSPoly1ii[kk] = LSPoly1[totnvert + kk]
+                    LSVIn0ii[kk] = LSVIn0[totnvert + kk - ii]
+                    LSVIn1ii[kk] = LSVIn1[totnvert + kk - ii]
+            
+                LSPoly0ii[nvert-1] = LSPoly0[totnvert + nvert-1]
+                LSPoly1ii[nvert-1] = LSPoly1[totnvert + nvert-1]
+                # nvert = len(LSPoly[ii][0])
+                ind_lim_data = lsz_lim[ii]
+                for jj in range(lSnLim[ii]):
+                    bounds[0] = lbounds[(ind_lim_data + jj)*6]
+                    bounds[1] = lbounds[(ind_lim_data + jj)*6 + 1]
+                    bounds[2] = lbounds[(ind_lim_data + jj)*6 + 2]
+                    bounds[3] = lbounds[(ind_lim_data + jj)*6 + 3]
+                    bounds[4] = lbounds[(ind_lim_data + jj)*6 + 4]
+                    bounds[5] = lbounds[(ind_lim_data + jj)*6 + 5]
+                    L0 = langles[(ind_lim_data+jj)*2]
+                    L1 = langles[(ind_lim_data+jj)*2 + 1]
+                    lim_is_none = llim_ves[ind_lim_data] == 1
+                    #ind_lim_data = 1 + ind_lim_data #TODO come back
+                    # We test if it is really necessary to compute the inter:
+                    # We check if the ray intersects the bounding box
+                    inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, loc_ds)
+                    if not inter_bbox:
+                        continue
+                    # We check that the bounding box is not "behind" the last POut encountered
+                    inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, last_pout)
+                    if inter_bbox:
+                        continue
+                     # We compute new values
+                    found_new_kout = comp_inter_los_vpoly(loc_ds, loc_us,
+                                                          LSPoly0ii,
+                                                          LSPoly1ii,
+                                                          LSVIn0ii,
+                                                          LSVIn1ii,
+                                                          nvert,
+                                                          lim_is_none, L0, L1,
+                                                          kpin_loc, kpout_loc, ind_loc,
+                                                          loc_vp,
+                                                          Forbidbis,
+                                                          upscaDp, upar2, Dpar2, invDpar2,
+                                                          S1X, S1Y, S2X, S2Y,
+                                                          Crit2, EpsUz, EpsVz,
+                                                          EpsA, EpsB,
+                                                          EpsPlane, False)
+                    if found_new_kout :
+                        kPOut[ind_tmp] = kpin_loc[0]
+                        VperpOut[0+3*ind_tmp] = loc_vp[0]
+                        VperpOut[1+3*ind_tmp] = loc_vp[1]
+                        VperpOut[2+3*ind_tmp] = loc_vp[2]
+                        IOut[2+3*ind_tmp] = ind_loc[0]
+                        IOut[0+3*ind_tmp] = 1+ii
+                        IOut[1+3*ind_tmp] = jj
+                        last_pout[0] = kPOut[ind_tmp] * loc_us[0] + loc_ds[0]
+                        last_pout[1] = kPOut[ind_tmp] * loc_us[1] + loc_ds[1]
+                        last_pout[2] = kPOut[ind_tmp] * loc_us[2] + loc_ds[2]
+            
+                free(LSPoly0ii)
+                free(LSPoly1ii)
+                free(LSVIn0ii)
+                free(LSVIn1ii)
+        free(loc_vp)
+        free(last_pout)
+        free(bounds)
+        free(kpin_loc)
+        free(kpout_loc)
+        free(loc_ds)
+        free(loc_us)
+        free(lim_ves)
+        free(invr_ray)
+        free(sign_ray)
+        free(ind_loc)
 
-            free(LSPoly0ii)
-            free(LSPoly1ii)
-            free(LSVIn0ii)
-            free(LSVIn1ii)
     return
