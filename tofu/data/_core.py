@@ -63,14 +63,23 @@ def _select_ind(v, ref, nRef):
     C2 = type(v) is list
     C3 = type(v) is tuple
     assert v is None or np.sum([C0,C1,C2,C3])==1
-    ind = np.zeros((nRef,),dtype=bool)
+    nnRef = 1 if ref.ndim==1 else ref.shape[0]
+    ind = np.zeros((nnRef,nRef),dtype=bool)
     if v is None:
         ind = ~ind
     elif C0 or C1:
         if C0:
             v = np.r_[v]
-        for vv in v:
-            ind[np.nanargmin(np.abs(ref-vv))] = True
+        # Traditional :
+        #for vv in v:
+        #    ind[np.nanargmin(np.abs(ref-vv))] = True
+        # Faster with digitize :
+        if ref.ndim==1:
+            ind[0,np.digitize(v, (ref[1:]+ref[:-1])/2.)] = True
+        elif ref.ndim==2:
+            for ii in range(0,ref.shape[0]):
+                ind[ii,np.digitize(v, (ref[ii,1:]+ref[ii,:-1])/2.)] = True
+
     elif C2 or C3:
         c0 = len(v)==2 and all([type(vv) in ltypes for vv in v])
         c1 = all([(type(vv) is type(v) and len(vv)==2
@@ -83,6 +92,8 @@ def _select_ind(v, ref, nRef):
             ind = ind | ((ref>=vv[0]) & (ref<=vv[1]))
         if C3:
             ind = ~ind
+    if ref.ndim==1:
+        ind = ind.squeeze()
     return ind
 
 
@@ -98,8 +109,8 @@ class Data(utils.ToFuObject):
     _ddef = {'Id':{'Type':'1D',
                    'include':['Mod','Cls','Exp','Diag',
                               'Name','shot','version']},
-             'dtreat':{'order':['mask','interp-indt','interp_indch','data0','dfilter',
-                                'indt', 'indch','interp-t']}}
+             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfilter',
+                                'indt', 'indch', 'indlamb', 'interp-t']}}
 
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
@@ -239,6 +250,8 @@ class Data(utils.ToFuObject):
             indtlamb = np.asarray(indtlamb).squeeze()
         if indXlamb is not None:
             indXlamb = np.asarray(indXlamb).squeeze()
+        if indtXlamb is not None:
+            indtXlamb = np.asarray(indtXlamb).squeeze()
 
         ndim = data.ndim
         assert ndim in [2,3]
@@ -295,18 +308,19 @@ class Data(utils.ToFuObject):
                     assert lamb.size==n2
                 else:
                     assert lamb.shape[1]==n2
+        if X.ndim==1:
+            X = np.array([X])
+        if lamb.ndim==1:
+            lamb = np.array([lamb])
 
 
         # Get shapes
-        if data.ndim==2:
-            (nt,nX), nlamb = data.shape, 0
+        nt, nX = data.shape[:2]
+        nnX = X.shape[0]
+        if data.ndim==3:
+            nnlamb, nlamb = lamb.shape
         else:
-            nt, nX, nlamb = data.shape
-        nnX = 1 if X.ndim==1 else X.shape[0]
-        if lamb is None:
-            nnlamb = 0
-        else:
-            nnlamb = 1 if lamb.ndim==1 else lamb.shape[0]
+            nnlamb, nlamb = 0, 0
 
         # Check indices
         if indtX is not None:
@@ -339,8 +353,6 @@ class Data(utils.ToFuObject):
 
         ndim = self._ddataRef['data'].ndim
         nt, n1 = self._ddataRef['data'].shape[:2]
-        if ndim==3:
-            n2 = self._ddataRef['data'].shape[2]
 
         if ndim==2:
             if X is None:
@@ -358,10 +370,11 @@ class Data(utils.ToFuObject):
             else:
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
+        if X.ndim==1:
+            X = np.array([X])
 
         # Get shapes
-        nX = X.shape[-1]
-        nnX = 1 if X.ndim==1 else X.shape[0]
+        nnX, nX = X.shape
 
         # Check indices
         if indtX is None:
@@ -420,7 +433,8 @@ class Data(utils.ToFuObject):
             if k=='order':
                 assert dtreat[k] is not None
                 assert dtreat[k][-1] = 'interp-t'
-                assert all([ss in dtreat[k][-3:-1] for ss in ['indch','indt']])
+                assert all([ss in dtreat[k][-4:-1]
+                            for ss in ['indt','indch','indlamb']])
         return dtreat
 
     def _checkformat_inputs_dgeom(self, lCam=None, config=None):
@@ -506,15 +520,15 @@ class Data(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_ddata():
-        lk = ['data', 't', 'X', 'lamb',
-              'nt', 'nX', 'nlamb', 'uptodate']
+        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
+              'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
         return lk
 
     @staticmethod
     def _get_keys_dtreat():
         lk = ['order','mask-ind', 'mask-val', 'interp-indt', 'interp-indch',
               'data0-indt', 'data0-Dt', 'data0-data',
-              'dfilter', 'indt',  'indch', 'interp-t']
+              'dfilter', 'indt',  'indch', 'indlamb', 'interp-t']
         return lk
 
     @staticmethod
@@ -833,6 +847,23 @@ class Data(utils.ToFuObject):
         self._dtreat['indch'] = indch
         self._ddata['uptodate'] = False
 
+    def set_dtreat_indlamb(self, indlamb=None):
+        """ Store the desired index array for the wavelength
+
+        If None => all wavelengths
+        Must be a 1d array
+
+        """
+        if 'spectral' not in self.Id.Type.lower():
+            msg = "The wavelength can only be set with DataSpectral object !"
+            raise Exception(msg)
+        if indlamb is not None:
+            indlamb = np.asarray(indlamb)
+            assert indlamb.ndim==1
+            indlamb = _format_ind(indlamb, n=self._ddataRef['nlamb'])
+        self._dtreat['indlamb'] = indlamb
+        self._ddata['uptodate'] = False
+
     def set_dtreat_mask(self, ind=None, val=np.nan):
         assert ind is None or hasattr(ind,'__iter__')
         assert type(val) in [int,float,np.int64,np.float64]
@@ -864,33 +895,6 @@ class Data(utils.ToFuObject):
         self._dtreat['data0-data'] = data0
         self._ddata['uptodate'] = False
 
-    def set_dtreat_interp_indch(self, indch=None):
-        """ Set the indices of the channels for which to interpolate data
-
-        The index can be provided as:
-            - A 1d np.ndarray of boolean or int indices of channels
-                => interpolate data at these channels for all times
-            - A dict with:
-                * keys = int indices of times
-                * values = array of int indices of chan. for which to interpolate
-
-        Time indices refer to self.ddataRef['t']
-        Channel indices refer to self.ddataRef['X']
-        """
-        assert indch is None or type(indch) in [np.ndarray, list, dict]
-        if isinstance(indch,dict):
-            C = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
-            assert all(C)
-            for k in indch.keys():
-                assert hasattr(indch[k],'__iter__')
-                indch[k] = _format_ind(indch[k], n=self._ddataRef['nX'])
-        else:
-            indch = np.asarray(indch)
-            assert indch.ndim==1
-            indch = _format_ind(indch, n=self._ddataRef['nX'])
-        self._dtreat['interp-indch'] = indch
-        self._ddata['uptodate'] = False
-
     def set_dtreat_interp_indt(self, indt=None):
         """ Set the indices of the times for which to interpolate data
 
@@ -918,6 +922,33 @@ class Data(utils.ToFuObject):
         self._dtreat['interp-indt'] = indt
         self._ddata['uptodate'] = False
 
+    def set_dtreat_interp_indch(self, indch=None):
+        """ Set the indices of the channels for which to interpolate data
+
+        The index can be provided as:
+            - A 1d np.ndarray of boolean or int indices of channels
+                => interpolate data at these channels for all times
+            - A dict with:
+                * keys = int indices of times
+                * values = array of int indices of chan. for which to interpolate
+
+        Time indices refer to self.ddataRef['t']
+        Channel indices refer to self.ddataRef['X']
+        """
+        assert indch is None or type(indch) in [np.ndarray, list, dict]
+        if isinstance(indch,dict):
+            C = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
+            assert all(C)
+            for k in indch.keys():
+                assert hasattr(indch[k],'__iter__')
+                indch[k] = _format_ind(indch[k], n=self._ddataRef['nX'])
+        else:
+            indch = np.asarray(indch)
+            assert indch.ndim==1
+            indch = _format_ind(indch, n=self._ddataRef['nX'])
+        self._dtreat['interp-indch'] = indch
+        self._ddata['uptodate'] = False
+
     def set_dtreat_dfilter(self, dfilter=None):
         """  """
         assert dfilter is None or isinstance(dfilter,dict)
@@ -928,7 +959,7 @@ class Data(utils.ToFuObject):
         self._dtreat['dfilter'] = dfilter
         self._ddata['uptodate'] = False
 
-    def set_dtreat_t(self, t=None):
+    def set_dtreat_interpt(self, t=None):
         """ Set the time vector on which to interpolate the data """
         if t is not None:
             t = np.unique(np.asarray(t, dtype=float).ravel())
@@ -996,22 +1027,65 @@ class Data(utils.ToFuObject):
         return data
 
     @staticmethod
-    def _indt(data, indt):
-        if indt is not None:
-            if data.ndim==2:
-                data = data[indt,:]
-            elif data.ndim==3:
-                data = data[indt,:,:]
-        return data
+    def _indt(data, t=None,
+              indtX=None, indtlamb=None, indtXlamb=None, indt=None):
+        if data.ndim==2:
+            data = data[indt,:]
+        elif data.ndim==3:
+            data = data[indt,:,:]
+        if t is not None:
+            t = t[indt]
+        if indtX is not None:
+            indtX = indtX[indt]
+        if indtlamb is not None:
+            indtlamb = indtlamb[indt]
+        elif indtXlamb is not None:
+            indtXlamb = indtXlamb[indt,:]
+        return data, t, indtX, indtlamb, indtXlamb
 
     @staticmethod
-    def _indch(data, indch):
-        if indch is not None:
-            if data.ndim==2:
-                data = data[:,indch]
-            elif data.ndim==3:
-                data = data[:,indch,:]
-        return data
+    def _indch(data, X=None,
+               indXlamb=None, indtXlamb=None, indch=None):
+        if data.ndim==2:
+            data = data[:,indch]
+        elif data.ndim==3:
+            data = data[:,indch,:]
+        if X is not None:
+            X = X[indch] if X.ndim==1 else X[:,indch]
+        if indXlamb is not None:
+            indXlamb = indXlamb[indch]
+        elif indtXlamb is not None:
+            indtXlamb = indtXlamb[:,indch]
+        return data, X, indXlamb, indtXlamb
+
+    @staticmethod
+    def _indlamb(data, lamb=None,
+                 indlamb=None):
+        data = data[:,:,indlamb]
+        if lamb is not None:
+            lamb = lamb[indlamb] if lamb.ndim==1 else lamb[:,indlamb]
+        return data, lamb
+
+    @staticmethod
+    def _interp_t(data, t, indtX=None,
+                  indtlamb=None, indtXlamb=None, interpt=None, kind='linear'):
+        f = scp.interp1d(t, data, kind=kind, axis=0, copy=True,
+                         bounds_error=True, fill_value=np.nan, assume_sorted=False)
+        d = f(data)
+
+        lC = [indtX is not None, indtlamb is not None, indtXlamb is not None]
+        if any(lC):
+            indt = np.digitize(t, (interpt[1:]+interpt[:-1])/2.)
+            if lC[0]:
+                indtX = indtX[indt]
+            if lC[1]:
+                indtlamb = indtlamb[indt]
+            elif lC[2]:
+                indtXlamb = indtXlamb[indt]
+        return d, interpt, indtX, indtlamb, indtXlamb
+
+
+
 
     def _get_ddata(self, key):
         if not self._ddata['uptodate']:
@@ -1061,8 +1135,29 @@ class Data(utils.ToFuObject):
         cancelled and the working copy returns the reference data.
 
         """
+        # --------------------
+        # Copy reference data
         d = self._ddataRef['data'].copy()
+        t, X = self._ddataRef['t'].copy(), self._ddataRef['X'].copy()
+        lamb = self._ddataRef['lamb']
+        if lamb is not None:
+            lamb = lamb.copy()
 
+        indtX = self._ddataRef['indtX']
+        if indtX is not None
+            indtX = indtX.copy()
+        indtlamb = self._ddataRef['indtlamb']
+        if indtlamb is not None
+            indtlamb = indtlamb.copy()
+        indXlamb = self._ddataRef['indXlamb']
+        if indXlamb is not None
+            indXlamb = indXlamb.copy()
+        indtXlamb = self._ddataRef['indtXlamb']
+        if indtXlamb is not None
+            indtXlamb = indtXlamb.copy()
+
+        # --------------------
+        # Apply data treatment
         for kk in self._dtreat['order']:
             # data only
             if kk=='mask' and self._dtreat['mask-ind'] is not None:
@@ -1080,51 +1175,29 @@ class Data(utils.ToFuObject):
                 d = self._dfilter(d, **self._dtreat['dfilter'])
 
             # data + others
-            if kk=='indt':
-                d, t, indtX, indtlamb, indtXlamb = self._indt(d, self._dtreat['indt'])
-            if kk=='indch':
-                d, X, indXlamb, indtxlamb = self._indch(d, self._dtreat['indch'])
-            if kk=='interp_t':
+            if kk=='indt' and self._dtreat['indt'] is not None:
+                d,t, indtX,indtlamb,indtXlamb = self._indt(d, t, indtX,
+                                                           indtlamb, indtXlamb,
+                                                           self._dtreat['indt'])
+            if kk=='indch' and self._dtreat['indch'] is not None:
+                d,X, indXlamb,indtXlamb = self._indch(d, X, indXlamb, indtXlamb,
+                                                      self._dtreat['indch'])
+            if kk=='indlamb' and self._dtreat['indlamb'] is not None:
+                d, lamb = self._indch(d, lamb, self._dtreat['indlamb'])
+            if kk=='interp_t' and self._dtreat['interp-t'] is not None:
                 d, t, indtX, indtlamb, indtXlamb = self._interp_t(self._dtreat['interp-t'])
-        assert data.ndim in [2,3]
+
+        # --------------------
+        # Safety check
         if data.ndim==2:
             nt, nX, nlamb = data.shape, 0
         else:
             nt, nX, nlamb = data.shape
-
-        # Time vector
-        if self._dtreat['interp-t'] is None:
-            if self._dtreat['indt'] is None:
-                t = self._ddataRef['t']
-            else:
-                t = self._ddataRef['t'][self._dtreat['indt']]
-        else:
-            t = self._dtreat['interp-t']
-        assert t.size==nt
-
-        # X
-        if self._dtreat['indch'] is None:
-            X = self._ddataRef['X']
-        else:
-            if self._ddataRef['X'].ndim==1:
-                X = self._ddataRef['X'][self._dtreat['indch']]
-            else:
-                X = self._ddataRef['X'][:,self._dtreat['indch']]
-        assert X.shape[-1]==nX
-
-        # lamb
-        if self._ddataRef['lamb'] is None:
-            lamb = None
-            assert nlamb==0
-        else:
-            if self._dtreat['indlamb'] is None:
-                lamb = self._ddataRef['lamb']
-            else:
-                if self._ddataRef['lamb'].ndim==1:
-                    lamb = self._ddataRef['lamb'][self._dtreat['indlamb']]
-                else:
-                    lamb = self._ddataRef['lamb'][:,self._dtreat['indlamb']]
-            assert nlamb==lamb.shape[-1]
+        assert data.ndim in [2,3]
+        assert t.shape==(nt,)
+        assert X.shape==(self._ddataRef['nnX'], nX)
+        if lamb is not None:
+            assert lamb.shape==(self._ddataRef['nnlamb'], nlamb)
 
         lout = [d, t, X, lamb, nt, nX, nlamb,
                 indtX, indtlamb, indXlamb, indtXlamb]
@@ -1140,6 +1213,8 @@ class Data(utils.ToFuObject):
             self._ddata['nt'] = nt
             self._ddata['nX'] = nX
             self._ddata['nlamb'] = nlamb
+            self._ddata['nnX'] = self._ddataRef['nnX']
+            self._ddata['nnlamb'] = self._ddataRef['nnlamb']
             self._ddata['uptodate'] = True
 
 
@@ -1340,6 +1415,40 @@ class Data(utils.ToFuObject):
             ind = ind.nonzero()[0]
         return ind
 
+    def select_lamb(self, lamb=None, out=bool):
+        """ Return a wavelength index array
+
+        Return a boolean or integer index array, hereafter called 'ind'
+        The array refers to the reference time vector self.ddataRef['lamb']
+
+        Parameters
+        ----------
+        lamb :     None / float / np.ndarray / list / tuple
+            The time values to be selected:
+                - None : ind matches all wavelength values
+                - float : ind is True only for the wavelength closest to lamb
+                - np.ndarray : ind True only for the wavelength closest to lamb
+                - list (len()==2): ind True for wavelength in [lamb[0],lamb[1]]
+                - tuple (len()==2): ind True for wavelength outside ]t[0];t[1][
+        out :   type
+            Specifies the type of the output index array:
+                - bool : return a boolean array of shape (self.ddataRef['nlamb'],)
+                - int : return the array as integers indices
+
+        Return
+        ------
+        ind :   np.ndarray
+            The array of indices, of dtype specified by keywordarg out
+
+        """
+        if 'spectral' not in self.Id.Type.lower():
+            msg = ""
+            raise Exception(msg)
+        assert out in [bool,int]
+        ind = _select_ind(lamb, self._ddataRef['lamb'], self._ddataRef['nlamb'])
+        if out is int:
+            ind = ind.nonzero()[0]
+        return ind
 
 
     def plot(self, key=None, invert=None, plotmethod='imshow',
