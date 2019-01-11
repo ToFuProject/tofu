@@ -310,7 +310,7 @@ class Data(utils.ToFuObject):
                     assert lamb.shape[1]==n2
         if X.ndim==1:
             X = np.array([X])
-        if lamb.ndim==1:
+        if lamb is not None and lamb.ndim==1:
             lamb = np.array([lamb])
 
 
@@ -432,7 +432,7 @@ class Data(utils.ToFuObject):
                     dtreat[k] = None
             if k=='order':
                 assert dtreat[k] is not None
-                assert dtreat[k][-1] = 'interp-t'
+                assert dtreat[k][-1] == 'interp-t'
                 assert all([ss in dtreat[k][-4:-1]
                             for ss in ['indt','indch','indlamb']])
         return dtreat
@@ -521,7 +521,7 @@ class Data(utils.ToFuObject):
     @staticmethod
     def _get_keys_ddata():
         lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
-              'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
+              'indtX', 'indtlamb', 'indXlamb', 'indtXlamb', 'uptodate']
         return lk
 
     @staticmethod
@@ -1081,7 +1081,7 @@ class Data(utils.ToFuObject):
             if lC[1]:
                 indtlamb = indtlamb[indt]
             elif lC[2]:
-                indtXlamb = indtXlamb[indt]
+                indtXlamb = indtXlamb[indt,:]
         return d, interpt, indtX, indtlamb, indtXlamb
 
 
@@ -1115,7 +1115,7 @@ class Data(utils.ToFuObject):
         if order is None:
             order = list(self._ddef['dtreat']['order'])
         assert type(order) is list and all([type(ss) is str for ss in order])
-        if not all([ss in ['indt','indch'] for ss in order][-3:-1]]):
+        if not all([ss in ['indt','indch','indlamb'] for ss in order][-4:-1]):
             msg = "indt and indch must be the treatment steps -2 and -3 !"
             raise Exception(msg)
         if not order[-1]=='interp-t':
@@ -1144,16 +1144,16 @@ class Data(utils.ToFuObject):
             lamb = lamb.copy()
 
         indtX = self._ddataRef['indtX']
-        if indtX is not None
+        if indtX is not None:
             indtX = indtX.copy()
         indtlamb = self._ddataRef['indtlamb']
-        if indtlamb is not None
+        if indtlamb is not None:
             indtlamb = indtlamb.copy()
         indXlamb = self._ddataRef['indXlamb']
-        if indXlamb is not None
+        if indXlamb is not None:
             indXlamb = indXlamb.copy()
         indtXlamb = self._ddataRef['indtXlamb']
-        if indtXlamb is not None
+        if indtXlamb is not None:
             indtXlamb = indtXlamb.copy()
 
         # --------------------
@@ -1185,15 +1185,16 @@ class Data(utils.ToFuObject):
             if kk=='indlamb' and self._dtreat['indlamb'] is not None:
                 d, lamb = self._indch(d, lamb, self._dtreat['indlamb'])
             if kk=='interp_t' and self._dtreat['interp-t'] is not None:
-                d, t, indtX, indtlamb, indtXlamb = self._interp_t(self._dtreat['interp-t'])
-
+                d,t, indtX,indtlamb,indtXlamb\
+                        = self._interp_t(d, t, indtX, indtlamb, indtXlamb,
+                                         self._dtreat['interp-t'], kind='linear')
         # --------------------
         # Safety check
-        if data.ndim==2:
-            nt, nX, nlamb = data.shape, 0
+        if d.ndim==2:
+            (nt, nX), nlamb = d.shape, 0
         else:
-            nt, nX, nlamb = data.shape
-        assert data.ndim in [2,3]
+            nt, nX, nlamb = d.shape
+        assert d.ndim in [2,3]
         assert t.shape==(nt,)
         assert X.shape==(self._ddataRef['nnX'], nX)
         if lamb is not None:
@@ -1205,7 +1206,9 @@ class Data(utils.ToFuObject):
 
     def _set_ddata(self):
         if not self._ddata['uptodate']:
-            data, t, X, lamb, nt, nX, nlamb = self._get_treated_data()
+            data, t, X, lamb, nt, nX, nlamb,\
+                    indtX, indtlamb, indXlamb, indtXlamb\
+                    = self._get_treated_data()
             self._ddata['data'] = data
             self._ddata['t'] = t
             self._ddata['X'] = X
@@ -1215,6 +1218,10 @@ class Data(utils.ToFuObject):
             self._ddata['nlamb'] = nlamb
             self._ddata['nnX'] = self._ddataRef['nnX']
             self._ddata['nnlamb'] = self._ddataRef['nnlamb']
+            self._ddata['indtX'] = indtX
+            self._ddata['indtlamb'] = indtlamb
+            self._ddata['indXlamb'] = indXlamb
+            self._ddata['indtXlamb'] = indtXlamb
             self._ddata['uptodate'] = True
 
 
@@ -1595,7 +1602,7 @@ class Data(utils.ToFuObject):
                          cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None,
                          Bck=True, fs=None, dmargin=None, wintit=None,
                          tit=None, vmin=None, vmax=None, normt=False,
-                         draw=True, connect=True):
+                         draw=True, connect=True, returnspect=False):
         """ Plot the spectrogram of all channels with chosen method
 
         All non-plotting arguments are fed to self.calc_spectrogram()
@@ -1609,13 +1616,13 @@ class Data(utils.ToFuObject):
         kh :    tofu.utils.HeyHandler
             The tofu KeyHandler object handling figure interactivity
         """
-        tf, f, lspect = _comp.spectrogram(self.data, self.t,
-                                          fmin=fmin, deg=deg,
-                                          method=method, window=window,
-                                          detrend=detrend, nperseg=nperseg,
-                                          noverlap=noverlap, boundary=boundary,
-                                          padded=padded, wave=wave)
-        kh = _plot.Data_plot_spectrogram(self, tf, f, lspect,
+        tf, f, lpsd, lang = _comp.spectrogram(self.data, self.t,
+                                              fmin=fmin, deg=deg,
+                                              method=method, window=window,
+                                              detrend=detrend, nperseg=nperseg,
+                                              noverlap=noverlap, boundary=boundary,
+                                              padded=padded, wave=wave)
+        kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang,
                                          invert=invert, plotmethod=plotmethod,
                                          cmap=cmap, ms=ms, ntMax=ntMax,
                                          nchMax=nchMax, Bck=Bck, fs=fs,
@@ -1623,7 +1630,10 @@ class Data(utils.ToFuObject):
                                          tit=tit, vmin=vmin, vmax=vmax,
                                          normt=normt, draw=draw,
                                          connect=connect)
-        return kh
+        if returnspect:
+            return kh, tf, f, lpsd, lang
+        else:
+            return kh
 
     def calc_mainfreq(self):
         """ Return the spectrogram main frequency vs time for each channel """

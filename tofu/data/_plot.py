@@ -1455,7 +1455,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
 #######################################################################
 
 
-def Data_plot_spectrogram(Data, tf, f, lspect,
+def Data_plot_spectrogram(Data, tf, f, lpsd, lang,
                           key=None, Bck=True, indref=0,
                           cmap=plt.cm.gray, ms=4, vmin=None, vmax=None,
                           normt=False, ntMax=None, nchMax=None, nfMax=3,
@@ -1599,23 +1599,20 @@ def _Data1D_plot_spectrogram(Data, key=None, indch=None,
     dax['t'][0]['ax'].figure.suptitle(tit)
 
     for ii in range(0,len(dax['t'])):
-        dtrig = {'1dprof':[0 for jj in range(0,nDat)]} if ii==1 else None
-        dax['t'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}
-                                       for jj in range(0,nDat)]
-    dax['t'][1]['dh']['ttrace'] = [0 for jj in range(0,nDat)]
-
+        dtrig = {'1dprof':[0]} if ii==1 else None
+        dax['t'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+    dax['t'][1]['dh']['ttrace'] = [0]
     for ii in range(0,len(dax['chan'])):
-        dtrig = {'ttrace':[0 for jj in range(0,nDat)]} if ii==0 else None
-        dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}
-                                          for jj in range(0,nDat)]
-        dax['chan'][ii]['dh']['1dprof'] = [0 for jj in range(0,nDat)]
+        dtrig = {'ttrace':[0]} if ii==0 else None
+        dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+        dax['chan'][ii]['dh']['1dprof'] = [0]
 
 
     # Plot vessel
     if Data.dgeom['config'] is not None:
         out = Data.dgeom['config'].plot(lax=[dax['cross'][0]['ax'],
                                              dax['hor'][0]['ax']],
-                                        Elt='P', dLeg=None, draw=False)
+                                        element='P', dLeg=None, draw=False)
         dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
         if Data.dgeom['lCam'] is not None:
             for cc in Data.dgeom['lCam']:
@@ -1625,37 +1622,36 @@ def _Data1D_plot_spectrogram(Data, key=None, indch=None,
                               dLeg=None, draw=False)
                 dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
 
-    ##################
-    # To be finished
+    # Start extracting data
     Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
     cbck = (0.8,0.8,0.8,0.8)
     lEq = ['Ax','Sep','q1']
-    nt, nch = Data.nt, Data.nch
+    nt, nch = Data.nt, Data.nX
 
-    chansRef = np.arange(0,Data.Ref['nch'])
-    chans = chansRef[lData[ii].indch]
-    Dchans = [-1,lData[ii].Ref['nch']]
+    chansRef = np.arange(0,Data.ddataRef['nX'])
+    chans = chansRef[Data.dtreat['indch']]  # To be corrected
+    Dchans = [-1,Data.ddataRef['nX']]
     Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
-    if lData[ii].Ref['dchans'] in [None,{}]:
+    if Data.dchans() in [None,{}]:
         chlabRef = chansRef
         chlab = chans
     else:
-        chlabRef = chansRef if key is None else lData[ii].Ref['dchans'][key]
-        chlab = chans if key is None else lData[ii].dchans(key)
+        chlabRef = chansRef if key is None else Data.ddataRef['dchans'][key]
+        chlab = chans if key is None else Data.dchans(key)
 
-    if lData[ii].t is None:
-        t = np.arange(0,lData[ii].nt)
-    elif nt==1:
-        t = np.array([lData[ii].t]).ravel()
+    if nt==1:
+        t = np.array([Data.t]).ravel()
     else:
-        t = lData[ii].t
+        t = Data.t
     if nt==1:
         Dti = [t[0]-0.001,t[0]+0.001]
     else:
         Dti = [np.nanmin(t), np.nanmax(t)]
     Dt = [min(Dt[0],Dti[0]), max(Dt[1],Dti[1])]
-    data = lData[ii].data.reshape((nt,nch))
+    data = Data.data.reshape((nt,nch))
 
+    ##################
+    # To be finished
     # Setting tref and plotting handles
     if ii==0:
         tref = t.copy()
