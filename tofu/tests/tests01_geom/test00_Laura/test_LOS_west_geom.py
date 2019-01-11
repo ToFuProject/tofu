@@ -256,7 +256,7 @@ if __name__ == "__main__":
     # plot_all_configs()
     # touch_plot_all_configs()
     # touch_plot_config_cam("A2", "VA10000")
-    # touch_plot_config_cam("B2", "V10000")
+    #touch_plot_config_cam("B2", "V10000")
     touch_plot_config_cam("B3", "V100000")
     # line profiling.....
     # test_line_profile(cam="V100000")

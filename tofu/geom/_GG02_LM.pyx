@@ -147,9 +147,9 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
     cdef double *alspolyy=NULL
     cdef double *alsvinx=NULL
     cdef double *alsviny=NULL
-    cdef int *llim_ves = <int *>malloc(nstruct * sizeof(int))
-    cdef int *lnvert   = <int *>malloc(nstruct * sizeof(int))
-    cdef int *lsz_lim  = <int *>malloc(nstruct * sizeof(int))
+    cdef int *llim_ves = NULL
+    cdef int *lnvert   = NULL
+    cdef int *lsz_lim  = NULL
     cdef double[:,::1] lspoly_view
     cdef double[:,::1] lsvin_view
     if Test:
@@ -177,12 +177,15 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
         # and we compute the bounding boxs coordinates
         ind_lim_data = 0
         len_lspoly = len(lSnLim) # same as len(lspoly)
+        llim_ves = <int *>malloc(nstruct * sizeof(int))#TODO: len_lspoly ?
+        lnvert   = <int *>malloc(len_lspoly * sizeof(int))
+        lsz_lim  = <int *>malloc(len_lspoly * sizeof(int))
         # For each limited structure
         for ii in range(len_lspoly):
             lspoly_view = LSPoly[ii]
             lsvin_view = LSVIn[ii]
             #... and its limits:
-            len_lim = lSnLim[ii]
+            len_lim = lSnLim[ii] + 0
             if len_lim == 0:
                 lslim = [None]
                 lSnLim[ii] = lSnLim[ii] + 1
@@ -350,11 +353,11 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
             free(alsviny)
             del(lspoly_view)
             del(lsvin_view)
-    free(llim_ves)
+            free(lnvert)
+            free(lsz_lim)
+            free(llim_ves)
     free(lbounds)
     free(langles)
-    free(lnvert)
-    free(lsz_lim)
     # npa_kpin  = np.asarray(kPIn)
     # npa_kpout = np.asarray(kPOut)
     # npa_vperp = np.asarray(VperpOut)
@@ -368,17 +371,18 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
            np.asarray(VperpOut),\
            np.asarray(IOut)
 
-cdef inline bint comp_inter_los_vpoly(double[3] Ds, double[3] us,
-                                double* VPoly0, double* VPoly1,
-                                double* vIn0,   double* vIn1,
-                                int vin_shape,
-                                bint lim_is_none, double L0, double L1,
-                                double[1] kpin_loc, double[1] kpout_loc, int[1] ind_loc, double[3] vperpin,
-                                bint Forbidbis, double upscaDp, double upar2, double Dpar2, double invDpar2,
-                                double S1X, double S1Y, double S2X, double S2Y,
-                                double Crit2, double EpsUz,
-                                double EpsVz, double EpsA,
-                                double EpsB, double EpsPlane, bint struct_is_ves) nogil:
+cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
+                                const double* VPoly0, const double* VPoly1,
+                                const double* vIn0,   const double* vIn1,
+                                const int vin_shape,
+                                const bint lim_is_none, const double L0, const double L1,
+                                double[1] kpin_loc, double[1] kpout_loc,
+                                int[1] ind_loc, double[3] vperpin,
+                                const bint Forbidbis, const double upscaDp, const double upar2, const double Dpar2, const double invDpar2,
+                                const double S1X,   const double S1Y, const double S2X, const double S2Y,
+                                const double Crit2, const double EpsUz,
+                                const double EpsVz, const double EpsA,
+                                const double EpsB,  const double EpsPlane, const bint struct_is_ves) nogil:
     cdef int jj
     cdef int indin=0, Done=0, indout=0
     cdef bint inter_bbox
@@ -868,16 +872,17 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef int ind_lim_data, ind_bounds
     cdef int nvert, totnvert=0
     cdef double kpout_jj
-    cdef double* loc_vp
-    cdef double* last_pout
-    cdef double* bounds
-    cdef double* kpin_loc, *kpout_loc
-    cdef double* loc_ds
-    cdef double* loc_us
-    cdef double* lim_ves
-    cdef double* invr_ray
-    cdef int* sign_ray
-    cdef int* ind_loc
+    cdef double* loc_vp = NULL
+    cdef double* last_pout = NULL
+    cdef double* bounds = NULL
+    cdef double* kpin_loc = NULL
+    cdef double* kpout_loc = NULL
+    cdef double* loc_ds = NULL
+    cdef double* loc_us = NULL
+    cdef double* lim_ves = NULL
+    cdef double* invr_ray = NULL
+    cdef int* sign_ray = NULL
+    cdef int* ind_loc = NULL
     cdef bint lim_is_none
     cdef bint found_new_kout
     cdef bint inter_bbox
@@ -889,7 +894,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef double* LSVIn0ii  = NULL
     cdef double* LSVIn1ii  = NULL
 
-    with nogil, parallel():
+    with nogil, parallel(num_threads=32):
         loc_vp    = <double *> malloc(sizeof(double) * 3)
         last_pout = <double *> malloc(sizeof(double) * 3)
         bounds    = <double *> malloc(sizeof(double) * 6)
@@ -902,7 +907,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
         sign_ray  = <int *> malloc(sizeof(int) * 3)
         ind_loc   = <int *> malloc(sizeof(int) * 1)
 
-        for ind_tmp in prange(num_los, schedule='static'):#, num_threads=8):
+        for ind_tmp in prange(num_los, schedule='static'):
             #printf("tid: %d   cpuid: %d\n", openmp.omp_get_thread_num(), sched_getcpu())
             ind_lim_data = 0
             # We get the last kpout:
@@ -956,10 +961,9 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                     LSPoly1ii[kk] = LSPoly1[totnvert + kk]
                     LSVIn0ii[kk] = LSVIn0[totnvert + kk - ii]
                     LSVIn1ii[kk] = LSVIn1[totnvert + kk - ii]
-            
+
                 LSPoly0ii[nvert-1] = LSPoly0[totnvert + nvert-1]
                 LSPoly1ii[nvert-1] = LSPoly1[totnvert + nvert-1]
-                # nvert = len(LSPoly[ii][0])
                 ind_lim_data = lsz_lim[ii]
                 for jj in range(lSnLim[ii]):
                     bounds[0] = lbounds[(ind_lim_data + jj)*6]
@@ -970,23 +974,23 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                     bounds[5] = lbounds[(ind_lim_data + jj)*6 + 5]
                     L0 = langles[(ind_lim_data+jj)*2]
                     L1 = langles[(ind_lim_data+jj)*2 + 1]
-                    lim_is_none = llim_ves[ind_lim_data] == 1
-                    #ind_lim_data = 1 + ind_lim_data #TODO come back
+                    lim_is_none = llim_ves[ind_lim_data+jj] == 1
+
                     # We test if it is really necessary to compute the inter:
                     # We check if the ray intersects the bounding box
                     inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, loc_ds)
                     if not inter_bbox:
                         continue
-                    # We check that the bounding box is not "behind" the last POut encountered
+                    # # We check that the bounding box is not "behind" the last POut encountered
                     inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, last_pout)
                     if inter_bbox:
                         continue
                      # We compute new values
-                    found_new_kout = comp_inter_los_vpoly(loc_ds, loc_us,
-                                                          LSPoly0ii,
-                                                          LSPoly1ii,
-                                                          LSVIn0ii,
-                                                          LSVIn1ii,
+                    found_new_kout = comp_inter_los_vpoly(&loc_ds[0], &loc_us[0],
+                                                          &LSPoly0ii[0],
+                                                          &LSPoly1ii[0],
+                                                          &LSVIn0ii[0],
+                                                          &LSVIn1ii[0],
                                                           nvert,
                                                           lim_is_none, L0, L1,
                                                           kpin_loc, kpout_loc, ind_loc,
@@ -1008,7 +1012,6 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                         last_pout[0] = kPOut[ind_tmp] * loc_us[0] + loc_ds[0]
                         last_pout[1] = kPOut[ind_tmp] * loc_us[1] + loc_ds[1]
                         last_pout[2] = kPOut[ind_tmp] * loc_us[2] + loc_ds[2]
-            
                 free(LSPoly0ii)
                 free(LSPoly1ii)
                 free(LSVIn0ii)
@@ -1024,5 +1027,4 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
         free(invr_ray)
         free(sign_ray)
         free(ind_loc)
-
     return

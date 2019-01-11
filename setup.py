@@ -97,9 +97,10 @@ if USE_CYTHON:
     print("")
     print("Using Cython !!!!!!!!!")
     print("")
+    #TODO try O3 O2 flags
     extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"]),
                   Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"],
-                            extra_compile_args=["-O3",  "-fopenmp"],
+                            extra_compile_args=["-O0",  "-fopenmp"],
                             extra_link_args=['-fopenmp'])
                   ]
     extensions = cythonize(extensions)
