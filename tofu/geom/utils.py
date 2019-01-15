@@ -116,36 +116,36 @@ def create_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
     poly = np.array([np.cos(theta), np.sin(theta)])
 
     # Divertors
-    pdivR = np.r_[-0.1,0.,0.1],
+    pdivR = np.r_[-0.1,0.,0.1]
     pdivZ = np.r_[-0.1,0.,-0.1]
     if divlow:
         ind = (np.sin(theta)<-0.8).nonzero()[0]
-        pinsert = np.array([pdivR, pdivZ])
+        pinsert = np.array([pdivR, -1.+pdivZ])
         poly = np.concatenate((poly[:,:ind[0]], pinsert, poly[:,ind[-1]+1:]),
                               axis=1)
 
     if divup:
         theta = np.arctan2(poly[1,:], poly[0,:])
         ind = (np.sin(theta)>0.8).nonzero()[0]
-        pinsert = np.array([pdivR, -pdivZ])
+        pinsert = np.array([pdivR[::-1], 1.-pdivZ])
         poly = np.concatenate((poly[:,:ind[0]], pinsert, poly[:,ind[-1]+1:]),
                               axis=1)
 
     # Modified radius (by elongation and Dshape)
-    r = r*np.hypot(poly[0,:],poly[1,:])
+    rbis = r*np.hypot(poly[0,:],poly[1,:])
     theta = np.arctan2(poly[1,:],poly[0,:])
-    r = r*(1+elong*np.sin(theta))
+    rbis = rbis*(1+elong*0.15*np.sin(2.*theta-np.pi/2.))
     if Dshape>0.:
         ind = np.cos(theta)<0.
         coef = np.abs(np.sin(theta[ind]))
         coef = coef + Dshape*(1-coefs)
-        r[ind] = r[ind]*coefs
+        rbis[ind] = rbis[ind]*coefs
 
     er = np.array([np.cos(theta), np.sin(theta)])
-    poly = cent[:,np.newaxis] + r[np.newaxis,:]*er
+    poly = cent[:,np.newaxis] + rbis[np.newaxis,:]*er
 
     # Outer bumper
-    Dbeta = np.pi/4.
+    Dbeta = 2.*np.pi/6.
     beta = np.linspace(-Dbeta/2.,Dbeta/2., 20)
     pbRin = 0.85*np.array([np.cos(beta), np.sin(beta)])
     pbRout = 0.95*np.array([np.cos(beta), np.sin(beta)])[:,::-1]
@@ -155,24 +155,32 @@ def create_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
     ind = (np.abs(pbRout[1,:])<0.05).nonzero()[0]
     pbump = (pbRin, pbRout[:,:ind[0]], pinsert, pbRout[:,ind[-1]+1:])
     pbump = np.concatenate(pbump, axis=1)
+    theta = np.arctan2(pbump[1,:],pbump[0,:])
+    er = np.array([np.cos(theta), np.sin(theta)])
+    rbis = r*(np.hypot(pbump[0,:],pbump[1,:])
+              *(1.+elong*0.15*np.sin(2.*theta-np.pi/2.)))
+    pbump = cent[:,np.newaxis] + rbis[np.newaxis,:]*er
 
     # Baffle
-    offR, offZ = 0.1, -0.9
-    wR, wZ = 0.2, 0.1
+    offR, offZ = 0.1, -0.85
+    wR, wZ = 0.2, 0.05
     pbaffle = np.array([offR + wR*np.r_[-1,1,1,-1],
                         offZ + wZ*np.r_[1,1,-1,-1]])
+    theta = np.arctan2(pbaffle[1,:],pbaffle[0,:])
+    er = np.array([np.cos(theta), np.sin(theta)])
+    rbis = r*(np.hypot(pbaffle[0,:],pbaffle[1,:])
+              *(1.+elong*0.15*np.sin(2.*theta-np.pi/2.)))
+    pbaffle = cent[:,np.newaxis] + rbis[np.newaxis,:]*er
+
+    return poly, pbump, pbaffle
 
 
-    return poly, outbump, baffle
 
 
-def create_CamLOS1D_pinholeDu(R=, Z=, Phi=, nch=100)
-
-
-
-def create_CamLOS2D_pinholeDu(P, F, D12, N12,
+# Create basics for pinhole camera
+def _create_PinHoleCam_Basics(P, F, D12, N12,
                               nIn=None, e1=None, e2=None,
-                              VType='Tor'):
+                              VType='tor'):
 
     # Check/ format inputs
     P = np.asarray(P)
@@ -228,6 +236,36 @@ def create_CamLOS2D_pinholeDu(P, F, D12, N12,
     e2 = e2/np.linalg.norm(e2)
     assert np.abs(np.sum(nIn*e2))<1.e-12
     assert np.abs(np.sum(e1*e2))<1.e-12
+
+    return P, F, nIn, e1, e2
+
+
+
+
+#def create_CamLOS1D_pinholeDu(R=, Z=, Phi=, nch=100)
+
+
+
+
+
+
+def create_CamLOS2D_pinholeDu(P, F, D12, N12,
+                              nIn=None, e1=None, e2=None,
+                              VType='Tor'):
+
+    # Check/ format inputs
+    if type(D12) in [int, float, np.int64, np.float64]:
+        D12 = np.array([D12,D12],dtype=float)
+    else:
+        assert hasattr(D12,'__iter__') and len(D12)==2
+        D12 = np.asarray(D12).astype(float)
+    if type(N12) in [int, float, np.int64, np.float64]:
+        N12 = np.array([N12,N12],dtype=int)
+    else:
+        assert hasattr(N12,'__iter__') and len(N12)==2
+        N12 = np.asarray(N12).astype(int)
+
+    P, F, nIn, e1, e2 = _create_PinHoleCam_Basics(P, F, nIn=nIn, e1=e1, e2=e2)
 
     # Get starting points
     d1 = D12[0]*np.linspace(-0.5,0.5,N12[0],endpoint=True)
