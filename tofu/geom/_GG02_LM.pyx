@@ -1,7 +1,7 @@
 # cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
-# cython; nonecheck=False
+
 #
 cimport cython
 cimport numpy as np
@@ -31,7 +31,6 @@ cdef double _SMALL = 1.e-6
 # =============================================================================
 # = Set of functions for Ray-tracing
 # =============================================================================
-
 
 def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                               double[:, ::1] dus,
@@ -149,7 +148,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
     cdef double *alsviny=NULL
     cdef int *llim_ves = NULL
     cdef int *lnvert   = NULL
-    cdef int *lsz_lim  = NULL
+    cdef long *lsz_lim  = NULL
     cdef double[:,::1] lspoly_view
     cdef double[:,::1] lsvin_view
     if Test:
@@ -176,10 +175,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
         # if there are any, we get all the limits for the structures
         # and we compute the bounding boxs coordinates
         ind_lim_data = 0
-        len_lspoly = len(lSnLim) # same as len(lspoly)
+        len_lspoly = len(LSPoly) # same as len(lspoly)
         llim_ves = <int *>malloc(nstruct * sizeof(int))#TODO: len_lspoly ?
         lnvert   = <int *>malloc(len_lspoly * sizeof(int))
-        lsz_lim  = <int *>malloc(len_lspoly * sizeof(int))
+        lsz_lim  = <long *>malloc(len_lspoly * sizeof(long))
         # For each limited structure
         for ii in range(len_lspoly):
             lspoly_view = LSPoly[ii]
@@ -193,15 +192,18 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                 lslim = [[LSLim[ii][0, 0], LSLim[ii][0, 1]]]
             else:
                 lslim = LSLim[ii]
-
+            #print(lSnLim[ii])
             # we get the structure polynome and its number of vertex
             nvert = len(lspoly_view[0])
+            #print("nvert = ", nvert)
             if ii == 0:
                 lnvert[0] = nvert
                 lsz_lim[0] = 0
             else:
                 lnvert[ii] = nvert + lnvert[ii-1]
                 lsz_lim[ii] = lSnLim[ii-1] + lsz_lim[ii-1]
+            # print("lsz_lim = ", lsz_lim[ii])
+            # print("lnvert = ", lnvert[ii])
             alspolyx = <double *>realloc(alspolyx, (totnvert+nvert)* sizeof(double))
             alspolyy = <double *>realloc(alspolyy, (totnvert+nvert)* sizeof(double))
             alsvinx  = <double *>realloc(alsvinx,  (totnvert+nvert-1-ii)* sizeof(double))
@@ -213,8 +215,17 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                 alsviny[totnvert + jj - ii] = lsvin_view[1,jj]
             alspolyx[totnvert + nvert-1] = lspoly_view[0,nvert-1]
             alspolyy[totnvert + nvert-1] = lspoly_view[1,nvert-1]
-
+            # print "-------"
+            # print alspolyy[totnvert + nvert-1]
+            # if ii > 0:
+            #     print alspolyy[totnvert -1]
+            # print "----"
+            # print("polyx =", alspolyx)
+            # print("polyy =", alspolyy)
+            # print("vinx =", alsvinx)
+            # print("viny =", alsviny)
             totnvert = totnvert + nvert
+            # print("totnvert = ", totnvert)
 
             for jj in range(max(len_lim,1)):
                 # We compute the structure's bounding box:
@@ -234,12 +245,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                 langles[ind_lim_data*2 + 1] = L1
                 for kk in range(6):
                     lbounds[ind_lim_data*6 + kk] = bounds[kk]
-                # lbounds[ind_lim_data*6 + 0] = bounds[0]
-                # lbounds[ind_lim_data*6 + 1] = bounds[1]
-                # lbounds[ind_lim_data*6 + 2] = bounds[2]
-                # lbounds[ind_lim_data*6 + 3] = bounds[3]
-                # lbounds[ind_lim_data*6 + 4] = bounds[4]
-                # lbounds[ind_lim_data*6 + 5] = bounds[5]
                 ind_lim_data = 1 + ind_lim_data
 
     # if there are, we get the limits for the vessel
@@ -261,7 +266,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                                 np.min(np.hypot(Ds[0, ...],Ds[1, ...])))
         else:
             val_rmin = RMin
-        rmin2 = val_rmin*val_rmin
+        rmin2 = 0.0
 
         if Forbid:
             Forbid0, Forbidbis = 1, 1
@@ -275,19 +280,21 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
             loc_ds[0] = Ds[0, ind_los]
             loc_ds[1] = Ds[1, ind_los]
             loc_ds[2] = Ds[2, ind_los]
-            loc_vp[0] = VperpOut[0+3*ind_los]
-            loc_vp[1] = VperpOut[1+3*ind_los]
-            loc_vp[2] = VperpOut[2+3*ind_los]
+            loc_vp[0] = 0.
+            loc_vp[1] = 0.
+            loc_vp[2] = 0.
             upscaDp = loc_us[0]*loc_ds[0] + loc_us[1]*loc_ds[1]
             upar2 = loc_us[0]*loc_us[0] + loc_us[1]*loc_us[1]
             Dpar2 = loc_ds[0]*loc_ds[0] + loc_ds[1]*loc_ds[1]
             invDpar2 = 1./Dpar2
+            Crit2 = upar2*Crit2_base
             # Prepare in case Forbid is True
             if Forbid0 and not Dpar2 > 0:
                 Forbidbis = 0
             if Forbidbis:
                 # Compute coordinates of the 2 points where the tangents touch
                 # the inner circle
+                rmin2 = val_rmin*val_rmin
                 L = Csqrt(Dpar2-rmin2)
                 S1X = (rmin2*loc_ds[0]+val_rmin*loc_ds[1]*L)*invDpar2
                 S1Y = (rmin2*loc_ds[1]-val_rmin*loc_ds[0]*L)*invDpar2
@@ -297,10 +304,9 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
             # Compute all solutions
             # Set tolerance value for us[2,ind_los]
             # EpsUz is the tolerated DZ across 20m (max Tokamak size)
-            Crit2 = upar2*Crit2_base
-            kpin_loc[0] = kPIn[ind_los]
             kpout_loc[0] = kPOut[ind_los]
-            ind_loc[0] = IOut[2 + 3*ind_los]
+            kpin_loc[0] = kPIn[ind_los]
+            ind_loc[0] = 0
             found_new = comp_inter_los_vpoly(&loc_ds[0], &loc_us[0],
                                              &VPoly[0][0],
                                              &VPoly[1][0],
@@ -328,12 +334,12 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
             else:
                 kPIn[ind_los]         = Cnan
                 kPOut[ind_los]        = Cnan
-                IOut[2+3*ind_los]     = -1000000
+                IOut[2+3*ind_los]     = 0
                 IOut[0+3*ind_los]     = 0
                 IOut[1+3*ind_los]     = 0
-                VperpOut[0+3*ind_los] = Cnan
-                VperpOut[1+3*ind_los] = Cnan
-                VperpOut[2+3*ind_los] = Cnan
+                VperpOut[0+3*ind_los] = 0.
+                VperpOut[1+3*ind_los] = 0.
+                VperpOut[2+3*ind_los] = 0.
         # If there are Struct, call the same function
         # Structural optimzation : do everything in one big for loop and only
         # keep the relevant points (to save memory)
@@ -661,9 +667,9 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                 SIn0 = Ds[0] + kin*us[0]
                 SIn1 = Ds[1] + kin*us[1]
                 phi = Catan2(SIn1,SIn0)
-                vperpin[0] = -Ccos(phi)*vIn0[indin]
-                vperpin[1] = -Csin(phi)*vIn0[indin]
-                vperpin[2] = -vIn1[indin]
+                vperpin[0] = Ccos(phi)*vIn0[indin]
+                vperpin[1] = Csin(phi)*vIn0[indin]
+                vperpin[2] = vIn1[indin]
             ind_loc[0] = indin
 
     return res_kin != kpin_loc[0]
@@ -862,7 +868,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                                double val_rmin, double rmin2, double Crit2_base,
                                int len_lspoly, long[::1] lSnLim, double* lbounds,
                                double* langles, int* llim_ves,
-                               int* lnvert, int* lsz_lim,
+                               int* lnvert, long* lsz_lim,
                                double* LSPoly0, double* LSPoly1,
                                double* LSVIn0,  double* LSVIn1,
                                double EpsUz, double EpsVz, double EpsA, double EpsB,
@@ -894,7 +900,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef double* LSVIn0ii  = NULL
     cdef double* LSVIn1ii  = NULL
 
-    with nogil, parallel(num_threads=32):
+    with nogil, parallel(num_threads=8):
         loc_vp    = <double *> malloc(sizeof(double) * 3)
         last_pout = <double *> malloc(sizeof(double) * 3)
         bounds    = <double *> malloc(sizeof(double) * 6)
@@ -975,7 +981,6 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                     L0 = langles[(ind_lim_data+jj)*2]
                     L1 = langles[(ind_lim_data+jj)*2 + 1]
                     lim_is_none = llim_ves[ind_lim_data+jj] == 1
-
                     # We test if it is really necessary to compute the inter:
                     # We check if the ray intersects the bounding box
                     inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, loc_ds)
@@ -986,6 +991,9 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                     if inter_bbox:
                         continue
                      # We compute new values
+                    # with gil:
+                    #     if ind_tmp == 1 and ii == 6 :
+                    #         print("---", ind_tmp, ii, jj, loc_ds[0])
                     found_new_kout = comp_inter_los_vpoly(&loc_ds[0], &loc_us[0],
                                                           &LSPoly0ii[0],
                                                           &LSPoly1ii[0],
@@ -1012,6 +1020,9 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                         last_pout[0] = kPOut[ind_tmp] * loc_us[0] + loc_ds[0]
                         last_pout[1] = kPOut[ind_tmp] * loc_us[1] + loc_ds[1]
                         last_pout[2] = kPOut[ind_tmp] * loc_us[2] + loc_ds[2]
+                        # with gil:
+                        #     print("---", ind_tmp, ii, jj, kpin_loc[0])
+
                 free(LSPoly0ii)
                 free(LSPoly1ii)
                 free(LSVIn0ii)

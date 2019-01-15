@@ -2430,7 +2430,7 @@ class Rays(utils.ToFuObject):
             dkwd = dict(Lim=Lim, nLim=nLim, nstruct=num_tot_structs,
                         LSPoly=lSPoly, LSLim=lSLim,
                         lSnLim=np.asarray(lSnLim, dtype=np.int64), LSVIn=lSVIn, VType=VType,
-                        RMin=-1, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
+                        RMin=-1.0, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
                         EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
         else:
             # --------------------------------
