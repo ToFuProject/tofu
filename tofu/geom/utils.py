@@ -8,7 +8,83 @@ import numpy as np
 _sep = '_'
 _dict_lexcept_key = []
 
+_lok = np.arange(0,9)
+_lok = np.array([_lok, _lok+10])
 
+###########################################################
+#       COCOS
+###########################################################
+
+class CoordinateInputError(Exception):
+
+    _cocosref = "O. Sauter, S. Yu. Medvedev, "
+    _cocosref += "Computer Physics Communications 184 (2103) 293-302"
+
+    msg = "The provided coords flag should be a str\n"
+    msg += "It should match a known flag:\n"
+    msg += "    - 'cart' / 'xyz' : cartesian coordinates\n"
+    msg += "    - cocos flag indicating the cocos number (1-8, 11-18)\n"
+    msg += "        Valid cocos flags include:\n"
+    msg += "            '11', '02', '5', '14', ..."
+    msg += "\n"
+    msg += "The cocos (COordinates COnvetionS) are descibed in:\n"
+    msg += "    [1] %s"%_cocosref
+
+    def __init__(self, msg, errors):
+
+    # Call the base class constructor with the parameters it
+    # needs
+    super(CoordinateInputError, self).__init__(msg + '\n\n' + self.msg)
+
+    # Now for your custom code...
+    self.errors = errors
+
+
+
+def _coords_checkformatcoords(coords='11'):
+    if not type(coords) is str:
+        msg = "Arg coords must be a str !"
+        raise CoordinateInputError(msg)
+    coords = coords.lower()
+
+    iint = np.array([ss.isdigit() for ss in coords]).nonzero()[0]
+    if coords in ['cart','xyz']:
+        coords = 'xyz'
+    elif iint.size in [1,2]:
+        nc = int(''.join([coords[jj] for jj in iint]))
+        if not nc in _lok.ravel():
+            raise CoordinateInputError('')
+
+
+    else:
+        err = True
+
+    return coords
+
+
+
+
+def _coords_cocos2cart(pts, coords='cyl11'):
+
+
+    return pts_out
+
+
+def _coords_cart2cocos(pts, coords='cyl11'):
+
+
+
+def coords_transform(pts, coords_in='cyl11', coords_out='cyl11'):
+
+    coords_in = _coords_checkformatcoords(coords=coords_in)
+    coords_out = _coords_checkformatcoords(coords=coords_out)
+
+
+
+
+###########################################################
+#       Fast creation of basic objects
+###########################################################
 
 def get_nIne1e2(P, nIn=None, e1=None, e2=None):
     assert np.hypot(P[0],P[1])>1.e-12
@@ -240,6 +316,12 @@ def _create_PinHoleCam_Basics(P, F, D12, N12,
     return P, F, nIn, e1, e2
 
 
+def _create_PinHoleCam_Angles(P, F, D12, N12,
+                              )
+
+
+
+
 
 
 #def create_CamLOS1D_pinholeDu(R=, Z=, Phi=, nch=100)
@@ -247,13 +329,28 @@ def _create_PinHoleCam_Basics(P, F, D12, N12,
 
 
 
+def _create_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
+                                         angs=0, VType='Tor', defRY=None, Lim=None):
+    assert type(VType) is str
+    VType = VType.lower()
+    assert Vtype in ['tor','lin']
 
+    # Pinhole
+    if P is None:
+        if Vtype=='tor':
+            P = np.array([defRY,0.,0.])
+        else:
+            assert Lim is not None
+            Lim = np.array(Lim).ravel()
+            assert Lim.size==2 and Lim[0]<Lim[1]
+            P = np.array([np.sum(Lim)/2., defRY, 0.])
 
-def create_CamLOS2D_pinholeDu(P, F, D12, N12,
-                              nIn=None, e1=None, e2=None,
-                              VType='Tor'):
+    # Camera inner parameters
+    assert type(F) in [int, float, np.int64, np.float64]
+    F = float(F)
 
-    # Check/ format inputs
+    if D12 is None:
+        D12 = F
     if type(D12) in [int, float, np.int64, np.float64]:
         D12 = np.array([D12,D12],dtype=float)
     else:
@@ -265,6 +362,38 @@ def create_CamLOS2D_pinholeDu(P, F, D12, N12,
         assert hasattr(N12,'__iter__') and len(N12)==2
         N12 = np.asarray(N12).astype(int)
 
+    # Angles
+    if type(angs) in [int, float, np.int64, np.float64]:
+        angs = np.array([angs,angs,angs],dtype=float)
+    angs = np.asarray(angs).astype(float).ravel()
+    assert angs.size==3
+    angs = np.arctan2(np.sin(angs),np.cos(angs))
+
+    if VType=='tor':
+        R = np.hypot(P[0],P[1])
+        phi = np.arctan2(P[1],P[0])
+        eR = np.array([np.cos(phi), np.sin(phi), 0.])
+        ePhi = np.array([-np.sin(phi), np.cos(phi), 0.])
+        eZ = np.array([0.,0.,0.])
+
+        nInpol = eR*np.cos(angs[0]) + eZ*np.sin(angs[0])
+        nIn = nInpol*np.cos(angs[1]) + ePhi*np.sin(angs[1])
+
+
+    else:
+
+
+
+    return P, F, D12, N12, angs, nIn, e1, e2, VType
+
+
+
+
+def create_CamLOS2D_pinholeDu(P=None, F=0.1, D12=None, N12=100,
+                              nIn=None, e1=None, e2=None,
+                              VType='Tor'):
+
+    # Check/ format inputs
     P, F, nIn, e1, e2 = _create_PinHoleCam_Basics(P, F, nIn=nIn, e1=e1, e2=e2)
 
     # Get starting points
