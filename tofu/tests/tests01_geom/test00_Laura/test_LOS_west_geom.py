@@ -22,6 +22,8 @@ _all_cams = ["V1", "V10", "V100", "V1000", "V10000",
             "V100000", "V1000000"]
 def mem():
 	print(str(round(psutil.Process().memory_info().rss/1024./1024., 2)) + ' MB')
+
+
 def prepare_inputs(vcam, config, method='ref'):
 
     D, u, loscam = get_Du(vcam)
@@ -84,26 +86,33 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
     if plot:
         plt.show(block=True)
     times = []
+    if not _is_new_version :
+        if config=="A2":
+            cams = ["VA1000"]
+        else:
+            cams = ["V1000"]
+        print("WARNING : old version so only computing for V1000")
     for vcam in cams:
         largs, dkwd = prepare_inputs(vcam, dconf)
         start = time.time()
         out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
         elapsed = time.time() - start
+        if config == "A2":
+            num = int(vcam[2:])
+        else:
+            num = int(vcam[1:])
         if save and vcam in saveCam and _is_new_version:
-            np.savez("out_kin_"     +config+"_"+vcam+".npz", out[0])
-            np.savez("out_kout_"    +config+"_"+vcam+".npz", out[1])
-            if config == "A2":
-                num = int(vcam[2:])
-            else:
-                num = int(vcam[1:])
-            np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[2].reshape(3,num))
-            np.savez("out_iout_"    +config+"_"+vcam+".npz", out[3].reshape(3,num))
-            print(np.size(out), (3*num*2 + 2*num))
+            np.savez("out_kin_"     +config+"_V"+str(num)+".npz", out[0])
+            np.savez("out_kout_"    +config+"_V"+str(num)+".npz", out[1])
+            np.savez("out_vperpout_"+config+"_V"+str(num)+".npz",
+                     np.transpose(out[2].reshape(num,3)))
+            np.savez("out_indout_"    +config+"_V"+str(num)+".npz",
+                     np.transpose(out[3].reshape(num,3)))
         if save and vcam in saveCam and not  _is_new_version:
-            np.savez("out_kin_"     +config+"_"+vcam+".npz", out[2])
-            np.savez("out_kout_"    +config+"_"+vcam+".npz", out[3])
-            np.savez("out_vperpout_"+config+"_"+vcam+".npz", out[5])
-            np.savez("out_iout_"    +config+"_"+vcam+".npz", out[7])
+            np.savez("out_kin_"     +config+"_V"+str(num)+".npz", out[2])
+            np.savez("out_kout_"    +config+"_V"+str(num)+".npz", out[3])
+            np.savez("out_vperpout_"+config+"_V"+str(num)+".npz", out[5])
+            np.savez("out_indout_"    +config+"_V"+str(num)+".npz", out[7])
 
         times.append(elapsed)
     return times
@@ -116,6 +125,8 @@ def test_LOS_compact(save=False, saveCam=[]):
             "V100000", "V1000000"]
     CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
              "VA100000"]
+    # Cams = ["V1000"]
+    # CamsA = ["VA1000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
     configs = ["B1", "B2", "B3"]
     for icon in configs :
@@ -209,32 +220,54 @@ def touch_plot_config_cam(config, cam):
 
 
 def are_results_the_same():
-    from os import listdir 
+    from os import listdir
     from os.path import isfile, join
     mypath = "new_res/"
     os.system("mv out_*.npz "+mypath)
+    print(listdir(mypath))
     onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
-    for f in onlyfiles: 
-        res_old = np.load("old_res/"+f) 
-        res_new = np.load("new_res/"+f) 
-        arr_old = res_old['arr_0'] 
-        arr_new = res_new['arr_0'] 
+    for f in onlyfiles:
+        res_old = np.load("old_res/"+f)
+        res_new = np.load("new_res/"+f)
+        arr_old = res_old['arr_0']
+        arr_new = res_new['arr_0']
         arr_err = np.sum(np.abs(arr_old - arr_new))
         arr_eql = np.allclose(arr_old, arr_new, equal_nan=True)
         if arr_err > 0.0001 and not arr_eql:
-            print(f) 
-            wh_diff = np.where(arr_old != arr_new) 
-            print("where = ", wh_diff) 
-            print("old :\n",arr_old[wh_diff])
-            print("new :\n",arr_new[wh_diff])
-            print(arr_new[0][0], arr_old[0][0], arr_new[0][0]==arr_old[0][0],
-                  type(arr_new), type(arr_old), type(arr_new[0][0]),
-                  type(arr_old[0][0]), arr_err)
-        else : 
+            print(f)
+            wh_diff = np.where(arr_old != arr_new)
+            if np.size(arr_new.shape) == 2:
+                print(arr_old.shape, arr_new.shape)
+                print(wh_diff)
+                for ii in range(4):
+                    print("where = ", wh_diff[0][ii], wh_diff[1][ii],
+                          "old =",arr_old[wh_diff[0][ii]:, wh_diff[1][ii]],
+                          "new =",arr_new[wh_diff[0][ii]:, wh_diff[1][ii]])
+                print( "old : ", arr_old[0][0], type(arr_old),
+                       type(arr_old[0][0]), arr_old.shape)
+                print( "new : ", arr_new[0][0], type(arr_new),
+                      type(arr_new[0][0]), arr_new.shape)
+                print("is elem 0 equal and error :", arr_new[0][0]==arr_old[0][0],
+                      arr_err)
+
+            else:
+                print(arr_new[0], arr_old[0], arr_new[0]==arr_old[0],
+                      type(arr_new), type(arr_old), type(arr_new[0]),
+                      type(arr_old[0]), arr_err)
+        else :
             print(f, ": TRUE ", arr_err, arr_eql)
         if not arr_eql:
-            print(arr_old[:,:3])
-            print(arr_new[:,:3])
+            if np.size(arr_new.shape) == 2:
+                print("old")
+                print(arr_old[:,:3])
+                print("new")
+                print(arr_new[:,:3])
+            else:
+                print("old")
+                print(arr_old[:3])
+                print("new")
+                print(arr_new[:3])
+        print("--------------------------\n\n")
 
 
 def check_memory_usage(cam="V1000000", config="B2"):
@@ -249,18 +282,19 @@ def check_memory_usage2(cam="V1000000", config="B2"):
 
 
 if __name__ == "__main__":
-    #test_LOS_compact()
+    test_LOS_compact()
     # test_LOS_all()
-    # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
+    # test_LOS_all(save=True, saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
-    # touch_plot_config_cam("A2", "VA10000")
-    #touch_plot_config_cam("B2", "V10000")
-    touch_plot_config_cam("B3", "V1000000")
+    #touch_plot_config_cam("A2", "VA10000")
+    # touch_plot_config_cam("A1", "V10000")
+    # touch_plot_config_cam("B3", "V100000")
     # line profiling.....
     # test_line_profile(cam="V100000")
     # print(test_LOS_west_configs("B3", ["V1000000"]))
+    # print(test_LOS_west_configs("B2", "V1000", save=True, saveCam=["V1000"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # are_results_the_same()
     # check_memory_usage()

@@ -17,11 +17,6 @@ from cpython.array cimport array, clone
 from cython.parallel import prange
 from libc.stdlib cimport malloc, free, realloc
 from cython.parallel cimport parallel, threadid
-# cimport openmp
-# from libc.stdio cimport printf
-
-# cdef extern from "sched.h":
-#     cdef int sched_getcpu() nogil
 
 import numpy as np
 cdef double _VSMALL = 1.e-9
@@ -192,18 +187,14 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                 lslim = [[LSLim[ii][0, 0], LSLim[ii][0, 1]]]
             else:
                 lslim = LSLim[ii]
-            #print(lSnLim[ii])
             # we get the structure polynome and its number of vertex
             nvert = len(lspoly_view[0])
-            #print("nvert = ", nvert)
             if ii == 0:
                 lnvert[0] = nvert
                 lsz_lim[0] = 0
             else:
                 lnvert[ii] = nvert + lnvert[ii-1]
                 lsz_lim[ii] = lSnLim[ii-1] + lsz_lim[ii-1]
-            # print("lsz_lim = ", lsz_lim[ii])
-            # print("lnvert = ", lnvert[ii])
             alspolyx = <double *>realloc(alspolyx, (totnvert+nvert)* sizeof(double))
             alspolyy = <double *>realloc(alspolyy, (totnvert+nvert)* sizeof(double))
             alsvinx  = <double *>realloc(alsvinx,  (totnvert+nvert-1-ii)* sizeof(double))
@@ -215,17 +206,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                 alsviny[totnvert + jj - ii] = lsvin_view[1,jj]
             alspolyx[totnvert + nvert-1] = lspoly_view[0,nvert-1]
             alspolyy[totnvert + nvert-1] = lspoly_view[1,nvert-1]
-            # print "-------"
-            # print alspolyy[totnvert + nvert-1]
-            # if ii > 0:
-            #     print alspolyy[totnvert -1]
-            # print "----"
-            # print("polyx =", alspolyx)
-            # print("polyy =", alspolyy)
-            # print("vinx =", alsvinx)
-            # print("viny =", alsviny)
             totnvert = totnvert + nvert
-            # print("totnvert = ", totnvert)
 
             for jj in range(max(len_lim,1)):
                 # We compute the structure's bounding box:
@@ -304,8 +285,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
             # Compute all solutions
             # Set tolerance value for us[2,ind_los]
             # EpsUz is the tolerated DZ across 20m (max Tokamak size)
-            kpout_loc[0] = kPOut[ind_los]
-            kpin_loc[0] = kPIn[ind_los]
+            kpout_loc[0] = 0
+            kpin_loc[0] = 0
             ind_loc[0] = 0
             found_new = comp_inter_los_vpoly(&loc_ds[0], &loc_us[0],
                                              &VPoly[0][0],
@@ -340,12 +321,13 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                 VperpOut[0+3*ind_los] = 0.
                 VperpOut[1+3*ind_los] = 0.
                 VperpOut[2+3*ind_los] = 0.
+
         # If there are Struct, call the same function
         # Structural optimzation : do everything in one big for loop and only
         # keep the relevant points (to save memory)
         if nstruct > 0:
             make_big_loop(num_los, dus, Ds,
-                         kPOut, IOut, VperpOut, Forbid0,
+                          kPOut, IOut, VperpOut, Forbid0,
                           Forbidbis, val_rmin, rmin2, Crit2_base,
                           len_lspoly, lSnLim,
                           lbounds, langles, llim_ves, lnvert, lsz_lim,
@@ -375,7 +357,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
     return np.asarray(kPIn),\
            np.asarray(kPOut),\
            np.asarray(VperpOut),\
-           np.asarray(IOut)
+           np.asarray(IOut, dtype=int)
 
 cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                                 const double* VPoly0, const double* VPoly1,
@@ -390,7 +372,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                                 const double EpsVz, const double EpsA,
                                 const double EpsB,  const double EpsPlane, const bint struct_is_ves) nogil:
     cdef int jj
-    cdef int indin=0, Done=0, indout=0
+    cdef int indin=0, Done=0
+    cdef int indout=0
     cdef bint inter_bbox
     cdef double kout, kin
     cdef double sca=0., sca0=0., sca1=0., sca2=0.
@@ -403,7 +386,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
     cdef double invupar2
     cdef double invuz
     cdef double cosl0, cosl1, sinl0, sinl1
-  
+
     ################
     # Computing some useful values
     cosl0 = Ccos(L0)
@@ -415,7 +398,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
     # Compute all solutions
     # Set tolerance value for us[2,ii]
     # EpsUz is the tolerated DZ across 20m (max Tokamak size)
-    kout, kin, Done = 1.e12, 1e12, 0
+    kout, kin, Done = 1.e12, 1.e12, 0
     # Case with horizontal semi-line
     if us[2]*us[2]<Crit2:
         for jj in range(0,vin_shape):
@@ -667,9 +650,9 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                 SIn0 = Ds[0] + kin*us[0]
                 SIn1 = Ds[1] + kin*us[1]
                 phi = Catan2(SIn1,SIn0)
-                vperpin[0] = Ccos(phi)*vIn0[indin]
-                vperpin[1] = Csin(phi)*vIn0[indin]
-                vperpin[2] = vIn1[indin]
+                vperpin[0] = -Ccos(phi)*vIn0[indin]
+                vperpin[1] = -Csin(phi)*vIn0[indin]
+                vperpin[2] = -vIn1[indin]
             ind_loc[0] = indin
 
     return res_kin != kpin_loc[0]
@@ -900,7 +883,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef double* LSVIn0ii  = NULL
     cdef double* LSVIn1ii  = NULL
 
-    with nogil, parallel(num_threads=8):
+    with nogil, parallel(num_threads=32):
         loc_vp    = <double *> malloc(sizeof(double) * 3)
         last_pout = <double *> malloc(sizeof(double) * 3)
         bounds    = <double *> malloc(sizeof(double) * 6)
@@ -913,12 +896,11 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
         sign_ray  = <int *> malloc(sizeof(int) * 3)
         ind_loc   = <int *> malloc(sizeof(int) * 1)
 
-        for ind_tmp in prange(num_los, schedule='static'):
-            #printf("tid: %d   cpuid: %d\n", openmp.omp_get_thread_num(), sched_getcpu())
+        for ind_tmp in prange(num_los, schedule='dynamic'):
             ind_lim_data = 0
             # We get the last kpout:
             kpout_jj = kPOut[ind_tmp]
-            kpin_loc[0] = kpout_jj
+            kpin_loc[0] = kPOut[ind_tmp]
             ind_loc[0] = IOut[2+3*ind_tmp]
             loc_ds[0] = Ds[0, ind_tmp]
             loc_ds[1] = Ds[1, ind_tmp]
@@ -957,7 +939,6 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                 else:
                     totnvert = lnvert[ii-1]
                     nvert = lnvert[ii] - totnvert
-                #print("nvert = ", nvert, "alloced size1 = ", (totnvert+nvert), "size 2 = ", (totnvert+nvert-1-ii))
                 LSPoly0ii = <double *>malloc( (nvert)* sizeof(double))
                 LSPoly1ii = <double *>malloc( (nvert)* sizeof(double))
                 LSVIn0ii  = <double *>malloc( (nvert-1)* sizeof(double))
@@ -967,7 +948,6 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                     LSPoly1ii[kk] = LSPoly1[totnvert + kk]
                     LSVIn0ii[kk] = LSVIn0[totnvert + kk - ii]
                     LSVIn1ii[kk] = LSVIn1[totnvert + kk - ii]
-
                 LSPoly0ii[nvert-1] = LSPoly0[totnvert + nvert-1]
                 LSPoly1ii[nvert-1] = LSPoly1[totnvert + nvert-1]
                 ind_lim_data = lsz_lim[ii]
@@ -991,15 +971,12 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                     if inter_bbox:
                         continue
                      # We compute new values
-                    # with gil:
-                    #     if ind_tmp == 1 and ii == 6 :
-                    #         print("---", ind_tmp, ii, jj, loc_ds[0])
                     found_new_kout = comp_inter_los_vpoly(&loc_ds[0], &loc_us[0],
                                                           &LSPoly0ii[0],
                                                           &LSPoly1ii[0],
                                                           &LSVIn0ii[0],
                                                           &LSVIn1ii[0],
-                                                          nvert,
+                                                          nvert-1,
                                                           lim_is_none, L0, L1,
                                                           kpin_loc, kpout_loc, ind_loc,
                                                           loc_vp,
@@ -1020,8 +997,6 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                         last_pout[0] = kPOut[ind_tmp] * loc_us[0] + loc_ds[0]
                         last_pout[1] = kPOut[ind_tmp] * loc_us[1] + loc_ds[1]
                         last_pout[2] = kPOut[ind_tmp] * loc_us[2] + loc_ds[2]
-                        # with gil:
-                        #     print("---", ind_tmp, ii, jj, kpin_loc[0])
 
                 free(LSPoly0ii)
                 free(LSPoly1ii)

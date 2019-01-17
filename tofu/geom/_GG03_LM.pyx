@@ -304,8 +304,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
             # Compute all solutions
             # Set tolerance value for us[2,ind_los]
             # EpsUz is the tolerated DZ across 20m (max Tokamak size)
-            kpout_loc[0] = kPOut[ind_los]
-            kpin_loc[0] = kPIn[ind_los]
+            kpout_loc[0] = 0
+            kpin_loc[0] = 0
             ind_loc[0] = 0
             found_new = comp_inter_los_vpoly(&loc_ds[0], &loc_us[0],
                                              &VPoly[0][0],
@@ -340,12 +340,13 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
                 VperpOut[0+3*ind_los] = 0.
                 VperpOut[1+3*ind_los] = 0.
                 VperpOut[2+3*ind_los] = 0.
+
         # If there are Struct, call the same function
         # Structural optimzation : do everything in one big for loop and only
         # keep the relevant points (to save memory)
         if nstruct > 0:
             make_big_loop(num_los, dus, Ds,
-                         kPOut, IOut, VperpOut, Forbid0,
+                          kPOut, kPIn, IOut, VperpOut, Forbid0,
                           Forbidbis, val_rmin, rmin2, Crit2_base,
                           len_lspoly, lSnLim,
                           lbounds, langles, llim_ves, lnvert, lsz_lim,
@@ -375,7 +376,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] Ds,
     return np.asarray(kPIn),\
            np.asarray(kPOut),\
            np.asarray(VperpOut),\
-           np.asarray(IOut)
+           np.asarray(IOut, dtype=int)
 
 cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                                 const double* VPoly0, const double* VPoly1,
@@ -390,7 +391,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                                 const double EpsVz, const double EpsA,
                                 const double EpsB,  const double EpsPlane, const bint struct_is_ves) nogil:
     cdef int jj
-    cdef int indin=0, Done=0, indout=0
+    cdef int indin=0, Done=0
+    cdef int indout=0
     cdef bint inter_bbox
     cdef double kout, kin
     cdef double sca=0., sca0=0., sca1=0., sca2=0.
@@ -403,7 +405,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
     cdef double invupar2
     cdef double invuz
     cdef double cosl0, cosl1, sinl0, sinl1
-  
+
     ################
     # Computing some useful values
     cosl0 = Ccos(L0)
@@ -415,7 +417,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
     # Compute all solutions
     # Set tolerance value for us[2,ii]
     # EpsUz is the tolerated DZ across 20m (max Tokamak size)
-    kout, kin, Done = 1.e12, 1e12, 0
+    kout, kin, Done = 1.e12, 1.e12, 0
     # Case with horizontal semi-line
     if us[2]*us[2]<Crit2:
         for jj in range(0,vin_shape):
@@ -423,6 +425,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
             # segment (i.e.: cone, not plane)
             # TODO : @LM : is this faster than checking abs(diff)>eps ?
             if (VPoly1[jj+1] - VPoly1[jj])**2 > EpsVz*EpsVz:
+                # TODO : @LM this probably can done matrix wise (qmatrix)
                 q = (Ds[2]-VPoly1[jj]) / (VPoly1[jj+1]-VPoly1[jj])
                 # The intersection must stand on the segment
                 if q>=0 and q<1:
@@ -436,6 +439,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                         # (i.e.: k>=0)
                         # First solution
                         if -upscaDp - sqd >=0:
+                            # TODO : @LM - est-ce que c'est possible de le mat ?
+                            # ou le sortir d'ici
                             k = (-upscaDp - sqd)*invupar2
                             sol0, sol1 = Ds[0] + k*us[0], \
                                          Ds[1] + k*us[1]
@@ -466,9 +471,11 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                                         kout = k
                                         Done = 1
                                         indout = jj
+                                        #print(1, k)
                                     elif sca>=0 and k<min(kin,kout):
                                         kin = k
                                         indin = jj
+                                        #print(2, k)
 
                         # Second solution
                         if -upscaDp + sqd >=0:
@@ -501,9 +508,11 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                                         kout = k
                                         Done = 1
                                         indout = jj
+                                        #print(3, k)
                                     elif sca>=0 and k<min(kin,kout):
                                         kin = k
                                         indin = jj
+                                        #print(4, k)
 
     # More general non-horizontal semi-line case
     else:
@@ -523,6 +532,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                             sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
                             sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                             sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
+                            #print 1, k, kout, sca0, sca1, sca2
                             if sca0<0 and sca1<0 and sca2<0:
                                 continue
                         # Get the normalized perpendicular vector at intersection
@@ -534,9 +544,11 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                                 kout = k
                                 Done = 1
                                 indout = jj
+                                #print(5, k)
                             elif sca>=0 and k<min(kin,kout):
                                 kin = k
                                 indin = jj
+                                #print(6, k)
 
             elif A*A>=EpsA*EpsA and B*B>A*C:
                 sqd = Csqrt(B*B-A*C)
@@ -550,6 +562,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                             sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
                             sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                             sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
+                            #print 2, k, kout, sca0, sca1, sca2
                         if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
                             # Get the normalized perpendicular vector at intersection
                             phi = Catan2(sol1,sol0)
@@ -560,9 +573,11 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                                     kout = k
                                     Done = 1
                                     indout = jj
+                                    #print(7, k, q, A, B, C, sqd)
                                 elif sca>=0 and k<min(kin,kout):
                                     kin = k
                                     indin = jj
+                                    #print(8, k, jj)
 
                 # Second solution
                 q = (-B - sqd)/A
@@ -575,6 +590,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                             sca0 = (sol0-S1X)*Ds[0] + (sol1-S1Y)*Ds[1]
                             sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                             sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
+                            #print 3, k, kout, sca0, sca1, sca2
                         if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
                             # Get the normalized perpendicular vector at intersection
                             phi = Catan2(sol1,sol0)
@@ -585,19 +601,21 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                                     kout = k
                                     Done = 1
                                     indout = jj
+                                    #print(9, k, jj)
                                 elif sca>=0 and k<min(kin,kout):
                                     kin = k
                                     indin = jj
+                                    #print(10, k, q, A, B, C, sqd, v0, v1, jj)
 
     if not lim_is_none:
-        ephiIn0 = -sinl0
-        ephiIn1 =  cosl0
+        ephiIn0, ephiIn1 = -sinl0, cosl0
         if Cabs(us[0]*ephiIn0+us[1]*ephiIn1)>EpsPlane:
             k = -(Ds[0]*ephiIn0+Ds[1]*ephiIn1)/(us[0]*ephiIn0+us[1]*ephiIn1)
             if k>=0:
                 # Check if in VPoly
-                sol0 = (Ds[0] + k*us[0]) * cosl0 + (Ds[1] + k*us[1]) * sinl0
-                sol1 =  Ds[2] + k*us[2]
+                sol0, sol1 = (Ds[0]+k*us[0])*cosl0 + (Ds[1]+k*us[1])*sinl0, Ds[2]+k*us[2]
+                #if path_poly_t.contains_point([sol0,sol1], transform=None, radius=0.0):
+                #if ray_tracing(VPoly, sol0, sol1):
                 inter_bbox = is_point_in_path(vin_shape, VPoly0, VPoly1, sol0, sol1)
                 if inter_bbox:
                     # Check PIn (POut not possible for limited torus)
@@ -610,8 +628,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                         kin = k
                         indin = -1
 
-        ephiIn0 =  sinl1
-        ephiIn1 = -cosl1
+        ephiIn0, ephiIn1 = sinl1, -cosl1
         if Cabs(us[0]*ephiIn0+us[1]*ephiIn1)>EpsPlane:
             k = -(Ds[0]*ephiIn0+Ds[1]*ephiIn1)/(us[0]*ephiIn0+us[1]*ephiIn1)
             if k>=0:
@@ -631,6 +648,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                         kin = k
                         indin = -2
 
+    # print("  For Line ", ii, "  test = ", inter_bbox, " and kout = ", Done, kin, kout)
     if Done==1:
         if struct_is_ves :
             kpout_loc[0] = kout
@@ -667,9 +685,9 @@ cdef inline bint comp_inter_los_vpoly(const double[3] Ds, const double[3] us,
                 SIn0 = Ds[0] + kin*us[0]
                 SIn1 = Ds[1] + kin*us[1]
                 phi = Catan2(SIn1,SIn0)
-                vperpin[0] = Ccos(phi)*vIn0[indin]
-                vperpin[1] = Csin(phi)*vIn0[indin]
-                vperpin[2] = vIn1[indin]
+                vperpin[0] = -Ccos(phi)*vIn0[indin]
+                vperpin[1] = -Csin(phi)*vIn0[indin]
+                vperpin[2] = -vIn1[indin]
             ind_loc[0] = indin
 
     return res_kin != kpin_loc[0]
@@ -863,7 +881,7 @@ cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian=True,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
-                               double[::1] kPOut, int[::1] IOut,
+                               double[::1] kPOut, double[::1] kPIn, int[::1] IOut,
                                double[::1] VperpOut, bint Forbid0, bint Forbidbis,
                                double val_rmin, double rmin2, double Crit2_base,
                                int len_lspoly, long[::1] lSnLim, double* lbounds,
@@ -900,7 +918,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
     cdef double* LSVIn0ii  = NULL
     cdef double* LSVIn1ii  = NULL
 
-    with nogil, parallel(num_threads=8):
+    with nogil, parallel(num_threads=32):
         loc_vp    = <double *> malloc(sizeof(double) * 3)
         last_pout = <double *> malloc(sizeof(double) * 3)
         bounds    = <double *> malloc(sizeof(double) * 6)
@@ -913,12 +931,12 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
         sign_ray  = <int *> malloc(sizeof(int) * 3)
         ind_loc   = <int *> malloc(sizeof(int) * 1)
 
-        for ind_tmp in prange(num_los, schedule='static'):
+        for ind_tmp in prange(num_los, schedule='dynamic'):
             #printf("tid: %d   cpuid: %d\n", openmp.omp_get_thread_num(), sched_getcpu())
             ind_lim_data = 0
             # We get the last kpout:
             kpout_jj = kPOut[ind_tmp]
-            kpin_loc[0] = kpout_jj
+            kpin_loc[0] = kPOut[ind_tmp]
             ind_loc[0] = IOut[2+3*ind_tmp]
             loc_ds[0] = Ds[0, ind_tmp]
             loc_ds[1] = Ds[1, ind_tmp]
@@ -967,7 +985,6 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                     LSPoly1ii[kk] = LSPoly1[totnvert + kk]
                     LSVIn0ii[kk] = LSVIn0[totnvert + kk - ii]
                     LSVIn1ii[kk] = LSVIn1[totnvert + kk - ii]
-
                 LSPoly0ii[nvert-1] = LSPoly0[totnvert + nvert-1]
                 LSPoly1ii[nvert-1] = LSPoly1[totnvert + nvert-1]
                 ind_lim_data = lsz_lim[ii]
@@ -999,7 +1016,7 @@ cdef inline void make_big_loop(int num_los, double[:,::1] dus, double[:,::1] Ds,
                                                           &LSPoly1ii[0],
                                                           &LSVIn0ii[0],
                                                           &LSVIn1ii[0],
-                                                          nvert,
+                                                          nvert-1,
                                                           lim_is_none, L0, L1,
                                                           kpin_loc, kpout_loc, ind_loc,
                                                           loc_vp,
