@@ -2038,9 +2038,6 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
                             kin = k
                             indin = -2
 
-        else :
-            if ii==0:
-                print("lim is none")
         if Done==1:
             SOut[0,ii] = Ds[0,ii] + kout*us[0,ii]
             SOut[1,ii] = Ds[1,ii] + kout*us[1,ii]

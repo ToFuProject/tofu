@@ -2,6 +2,7 @@
 from tofu_LauraBenchmarck_load_config import *
 import tofu.geom._GG_LM as _GG
 import time
+import matplotlib.pyplot as plt
 #import line_profiler
 # import pstats, cProfile
 # from pathlib import Path
@@ -147,6 +148,7 @@ def test_LOS_all(save=False, saveCam=[]):
     CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
              "VA100000", "VA1000000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
+    fig, ax = plt.subplots()
     for icon in configs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
@@ -159,6 +161,9 @@ def test_LOS_all(save=False, saveCam=[]):
                                           save=save, saveCam=saveCam)
         for ttt in times:
             print(ttt)
+        ax.plot(times, label=icon)
+    ax.legend()
+    plt.show()
 
 def test_line_profile(config="B2", cam="V1000"):
     dconf = load_config(config, plot=False)
@@ -282,7 +287,7 @@ def check_memory_usage2(cam="V1000000", config="B2"):
 
 
 if __name__ == "__main__":
-    test_LOS_compact()
+    # test_LOS_compact()
     # test_LOS_all()
     # test_LOS_all(save=True, saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
@@ -293,7 +298,7 @@ if __name__ == "__main__":
     # touch_plot_config_cam("B3", "V100000")
     # line profiling.....
     # test_line_profile(cam="V100000")
-    # print(test_LOS_west_configs("B3", ["V1000000"]))
+    print(test_LOS_west_configs("A1", ["V1000000"]))
     # print(test_LOS_west_configs("B2", "V1000", save=True, saveCam=["V1000"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # are_results_the_same()
