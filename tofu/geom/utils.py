@@ -51,34 +51,58 @@ def _coords_checkformatcoords(coords='11'):
     if coords in ['cart','xyz']:
         coords = 'xyz'
     elif iint.size in [1,2]:
-        nc = int(''.join([coords[jj] for jj in iint]))
-        if not nc in _lok.ravel():
-            raise CoordinateInputError('')
-
-
+        coords = int(''.join([coords[jj] for jj in iint]))
+        if not coords in _lok.ravel():
+            msg = 'Not allowed number ({0) !'.format(coords)
+            raise CoordinateInputError(msg)
     else:
-        err = True
-
+        msg = "Not allowed coords ({0}) !".format(coords)
+        raise CoordinateInputError(msg)
     return coords
 
 
+def _coords_cocos2cart(pts, coords=11):
+    R = pts[0,:]
+    if (coords%0)%2==1:
+        indphi, indZi, sig = 1, 2, 1.
+    else:
+        indphi, indZ , sig= 2, 1, -1.
+    phi = sig*pts[indphi,:]
 
+    X = R*np.cos(phi)
+    Y = R*np.sin(phi)
+    Z = pts[indZ,:]
+    return np.array([X,Y,Z])
 
-def _coords_cocos2cart(pts, coords='cyl11'):
-
-
+def _coords_cart2cocos(pts, coords=11):
+    R = np.hypot(pts[0,:],pts[1,:])
+    phi = np.arctan2(pts[1,:],pts[0,:])
+    Z = pts[2,:]
+    if (coords%0)%2==1:
+        indphi, indZ, sig = 1, 2, 1.
+    else:
+        indphi, indZ , sig= 2, 1, -1.
+    pts_out = np.empty((3,pts.shape[1]),dtype=float)
+    pts_out[0,:] = R
+    pts_out[indphi,:] = sig*phi
+    pts_out[indZ,:] = Z
     return pts_out
 
-
-def _coords_cart2cocos(pts, coords='cyl11'):
-
-
-
-def coords_transform(pts, coords_in='cyl11', coords_out='cyl11'):
+def coords_transform(pts, coords_in='11', coords_out='11'):
 
     coords_in = _coords_checkformatcoords(coords=coords_in)
     coords_out = _coords_checkformatcoords(coords=coords_out)
 
+    if coords_in==coords_out:
+        pass
+    elif coords_in=='xyz':
+        pts = _coords_cart2cocos(pts, coords_out)
+    elif coords_out=='xyz':
+        pts = _coords_cocos2cart(pts, coords_out)
+    else:
+        pts = _coords_cocos2cart(pts, coords_in)
+        pts = _coords_cocos2cart(pts, coords_out)
+    return pts
 
 
 
@@ -374,15 +398,38 @@ def _create_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
         phi = np.arctan2(P[1],P[0])
         eR = np.array([np.cos(phi), np.sin(phi), 0.])
         ePhi = np.array([-np.sin(phi), np.cos(phi), 0.])
-        eZ = np.array([0.,0.,0.])
+        eZ = np.array([0.,0.,1.])
 
-        nInpol = eR*np.cos(angs[0]) + eZ*np.sin(angs[0])
-        nIn = nInpol*np.cos(angs[1]) + ePhi*np.sin(angs[1])
+        nIncross = eR*np.cos(angs[0]) + eZ*np.sin(angs[0])
+        nIn = nIncross*np.cos(angs[1]) + ePhi*np.sin(angs[1])
+        nIn = nIn/np.linalg.norm(nIn)
 
+        if np.abs(np.abs(nIn[2])-1.)<1.e-12:
+            e10 = ePhi
+        else:
+            e10 = np.cross(nIn,eZ)
+            e10 = e10/np.linalg.norm(e10)
 
     else:
+        X = P[0]
+        eX, eY, eZ = np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]
+        nIncross = eY*np.cos(angs[0]) + eY*np.sin(angs[0])
+        nIn = nIncross*np.cos(angs[1]) + eZ*np.sin(angs[1])
+        nIn = nIn/np.linalg.norm(nIn)
 
+        if np.abs(np.abs(nIn[2])-1.)<1.e-12:
+            e10 = eX
+        else:
+            e10 = np.cross(nIn,eZ)
+            e10 = e10/np.linalg.norm(e10)
 
+    e20 = np.cross(e10,nIn)
+    e20 = e20/np.linalg.norm(e20)
+    if e20[2]<0.:
+        e10, e20 = -e10, -e20
+
+    e1 = np.cos(angs[2])*e10 + np.sin(angs[2])*e20
+    e2 = -np.sin(angs[2])*e10 + np.cos(angs[2])*e20
 
     return P, F, D12, N12, angs, nIn, e1, e2, VType
 
