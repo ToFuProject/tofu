@@ -337,13 +337,13 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                              double eps_plane,
                                              bint is_out_struct) nogil:
 
-    cdef double upscaDp=0., upar2=0., dpar2=0., crit2=0., invdpar2=0.
+    cdef double upscaDp=0., upar2=0., dpar2=0., crit2=0., idpar2=0.
     cdef double dist = 0., s1x = 0., s1y = 0., s2x = 0., s2y = 0.
-    cdef double lim_min=0., lim_max=0.
+    cdef double lim_min=0., lim_max=0., invuz=0.
     cdef int totnvert=0
+    cdef int nvert
     cdef int ind_struct, ind_bounds
     cdef int ind_los, ii, jj, kk
-    cdef int nvert
     cdef bint lim_is_none
     cdef bint found_new_kout
     cdef bint inter_bbox
@@ -356,7 +356,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
     cdef double* kpin_loc = NULL
     cdef double* invr_ray = NULL
     cdef double* loc_org = NULL
-    cdef double* loc_nrm = NULL
+    cdef double* loc_dir = NULL
     cdef double* lim_ves = NULL
     cdef double* loc_vp = NULL
     cdef double* bounds = NULL
@@ -367,7 +367,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
     with nogil, parallel(num_threads=32):
         # We use local arrays for each thread so
         loc_org   = <double *> malloc(sizeof(double) * 3)
-        loc_nrm   = <double *> malloc(sizeof(double) * 3)
+        loc_dir   = <double *> malloc(sizeof(double) * 3)
         loc_vp    = <double *> malloc(sizeof(double) * 3)
         kpin_loc  = <double *> malloc(sizeof(double) * 1)
         kpout_loc = <double *> malloc(sizeof(double) * 1)
@@ -386,32 +386,32 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
             loc_org[0] = ray_orig[0, ind_los]
             loc_org[1] = ray_orig[1, ind_los]
             loc_org[2] = ray_orig[2, ind_los]
-            loc_nrm[0] = ray_vdir[0, ind_los]
-            loc_nrm[1] = ray_vdir[1, ind_los]
-            loc_nrm[2] = ray_vdir[2, ind_los]
+            loc_dir[0] = ray_vdir[0, ind_los]
+            loc_dir[1] = ray_vdir[1, ind_los]
+            loc_dir[2] = ray_vdir[2, ind_los]
             loc_vp[0] = 0.
             loc_vp[1] = 0.
             loc_vp[2] = 0.
             if is_out_struct:
                 # if struct is "Out" type, then we compute the last
-                # poit where it went out of a structure. Here
-                # kpin_loc = kpout
-                kpin_loc[0]  = coeff_inter_out[ind_los]
-                ind_loc[0]   = ind_inter_out[2+3*ind_los]
-                last_pout[0] = kpin_loc[0] * loc_nrm[0] + loc_org[0]
-                last_pout[1] = kpin_loc[0] * loc_nrm[1] + loc_org[1]
-                last_pout[2] = kpin_loc[0] * loc_nrm[2] + loc_org[2]
-                compute_inv_and_sign(loc_nrm, sign_ray, invr_ray)
+                # poit where it went out of a structure.
+                ind_loc[0] = ind_inter_out[2+3*ind_los]
+                kpin_loc[0] = coeff_inter_out[ind_los]
+                last_pout[0] = kpin_loc[0] * loc_dir[0] + loc_org[0]
+                last_pout[1] = kpin_loc[0] * loc_dir[1] + loc_org[1]
+                last_pout[2] = kpin_loc[0] * loc_dir[2] + loc_org[2]
+                compute_inv_and_sign(loc_dir, sign_ray, invr_ray)
             else:
-                kpin_loc[0]  = 0
                 kpout_loc[0] = 0
-                ind_loc[0]   = 0
+                kpin_loc[0] = 0
+                ind_loc[0] = 0
 
-            # computing sclar prods for Ray and rmin values
-            upscaDp = loc_nrm[0]*loc_org[0] + loc_nrm[1]*loc_org[1]
-            upar2   = loc_nrm[0]*loc_nrm[0] + loc_nrm[1]*loc_nrm[1]
+            # computing scalar prods for ray and rmin values
+            upscaDp = loc_dir[0]*loc_org[0] + loc_dir[1]*loc_org[1]
+            upar2   = loc_dir[0]*loc_dir[0] + loc_dir[1]*loc_dir[1]
             dpar2   = loc_org[0]*loc_org[0] + loc_org[1]*loc_org[1]
-            invdpar2 = 1./dpar2
+            idpar2 = 1./dpar2
+            invuz = 1./loc_dir[2]
             crit2 = upar2*crit2_base
             # Prepare in case forbid is True
             if forbid0 and not dpar2>0:
@@ -420,10 +420,10 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                 # Compute coordinates of the 2 points where the tangents touch
                 # the inner circle
                 dist = Csqrt(dpar2-rmin2)
-                s1x = (rmin2*loc_org[0]+val_rmin*loc_org[1]*dist)*invdpar2
-                s1y = (rmin2*loc_org[1]-val_rmin*loc_org[0]*dist)*invdpar2
-                s2x = (rmin2*loc_org[0]-val_rmin*loc_org[1]*dist)*invdpar2
-                s2y = (rmin2*loc_org[1]+val_rmin*loc_org[0]*dist)*invdpar2
+                s1x = (rmin2 * loc_org[0] + val_rmin * loc_org[1]*dist) * idpar2
+                s1y = (rmin2 * loc_org[1] - val_rmin * loc_org[0]*dist) * idpar2
+                s2x = (rmin2 * loc_org[0] - val_rmin * loc_org[1]*dist) * idpar2
+                s2y = (rmin2 * loc_org[1] + val_rmin * loc_org[0]*dist) * idpar2
             if is_out_struct:
                 for ii in range(nstruct_lim):
                     if ii == 0:
@@ -464,7 +464,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         if inter_bbox:
                             continue
                          # We compute new values
-                        found_new_kout = comp_inter_los_vpoly(&loc_org[0], &loc_nrm[0],
+                        found_new_kout = comp_inter_los_vpoly(&loc_org[0], &loc_dir[0],
                                                               &lstruct_polyxii[0],
                                                               &lstruct_polyyii[0],
                                                               &lstruct_normxii[0],
@@ -474,7 +474,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                               lim_min, lim_max,
                                                               forbidbis,
                                                               upscaDp, upar2,
-                                                              dpar2, invdpar2,
+                                                              dpar2, invuz,
                                                               s1x, s1y, s2x, s2y,
                                                               crit2, eps_uz, eps_vz,
                                                               eps_a, eps_b,
@@ -491,15 +491,15 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                             ind_inter_out[2+3*ind_los] = ind_loc[0]
                             ind_inter_out[0+3*ind_los] = 1+ii
                             ind_inter_out[1+3*ind_los] = jj
-                            last_pout[0] = coeff_inter_out[ind_los] * loc_nrm[0] + loc_org[0]
-                            last_pout[1] = coeff_inter_out[ind_los] * loc_nrm[1] + loc_org[1]
-                            last_pout[2] = coeff_inter_out[ind_los] * loc_nrm[2] + loc_org[2]
+                            last_pout[0] = coeff_inter_out[ind_los] * loc_dir[0] + loc_org[0]
+                            last_pout[1] = coeff_inter_out[ind_los] * loc_dir[1] + loc_org[1]
+                            last_pout[2] = coeff_inter_out[ind_los] * loc_dir[2] + loc_org[2]
                     free(lstruct_polyxii)
                     free(lstruct_polyyii)
                     free(lstruct_normxii)
                     free(lstruct_normyii)
             else: # if struct is IN
-                found_new_kout = comp_inter_los_vpoly(&loc_org[0], &loc_nrm[0],
+                found_new_kout = comp_inter_los_vpoly(&loc_org[0], &loc_dir[0],
                                                       &lstruct_polyx[0],
                                                       &lstruct_polyy[0],
                                                       &lstruct_normx[0],
@@ -508,7 +508,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                       langles[0], langles[1],
                                                       forbidbis,
                                                       upscaDp, upar2,
-                                                      dpar2, invdpar2,
+                                                      dpar2, invuz,
                                                       s1x, s1y, s2x, s2y,
                                                       crit2, eps_uz, eps_vz, eps_a,
                                                       eps_b, eps_plane, True,
@@ -534,7 +534,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                     vperp_out[2+3*ind_los] = 0.
 
         free(loc_org)
-        free(loc_nrm)
+        free(loc_dir)
         free(loc_vp)
         free(kpin_loc)
         free(kpout_loc)
@@ -555,15 +555,16 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                       const double* normy,
                                       const int nvert,
                                       const bint lim_is_none,
-                                      const double lim_min, const double lim_max,
+                                      const double lim_min,
+                                      const double lim_max,
                                       const bint forbidbis,
                                       const double upscaDp, const double upar2,
-                                      const double dpar2, const double invdpar2,
+                                      const double dpar2, const double invuz,
                                       const double s1x,   const double s1y,
                                       const double s2x, const double s2y,
                                       const double crit2, const double eps_uz,
                                       const double eps_vz, const double eps_a,
-                                      const double eps_b,  const double eps_plane,
+                                      const double eps_b, const double eps_plane,
                                       const bint struct_is_ves,
                                       double[1] kpin_loc, double[1] kpout_loc,
                                       int[1] ind_loc, double[3] vperpin) nogil:
@@ -580,7 +581,6 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     cdef double res_kin = kpin_loc[0]
     cdef double[3] opp_dir
     cdef double invupar2
-    cdef double invuz
     cdef double cosl0, cosl1, sinl0, sinl1
 
     ################
@@ -590,7 +590,6 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     sinl0 = Csin(lim_min)
     sinl1 = Csin(lim_max)
     invupar2 = 1./upar2
-    invuz = 1./ray_vdir[2] #TODO : why am I computing this here ?????!!!!
     # Compute all solutions
     # Set tolerance value for ray_vdir[2,ii]
     # eps_uz is the tolerated DZ across 20m (max Tokamak size)
