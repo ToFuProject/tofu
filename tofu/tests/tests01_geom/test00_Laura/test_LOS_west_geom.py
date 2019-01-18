@@ -288,7 +288,7 @@ def check_memory_usage2(cam="V1000000", config="B2"):
 
 if __name__ == "__main__":
     # test_LOS_compact()
-    # test_LOS_all()
+    test_LOS_all()
     # test_LOS_all(save=True, saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
     # plot_all_configs()
@@ -298,7 +298,7 @@ if __name__ == "__main__":
     # touch_plot_config_cam("B3", "V100000")
     # line profiling.....
     # test_line_profile(cam="V100000")
-    print(test_LOS_west_configs("A1", ["V1000000"]))
+    # print(test_LOS_west_configs("A1", ["V1000000"]))
     # print(test_LOS_west_configs("B2", "V1000", save=True, saveCam=["V1000"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     # are_results_the_same()
