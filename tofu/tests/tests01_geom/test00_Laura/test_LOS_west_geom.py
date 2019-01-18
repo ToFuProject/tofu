@@ -66,11 +66,12 @@ def prepare_inputs(vcam, config, method='ref'):
     largs = [D, u, VPoly, VVIn]
     if _is_new_version:
         loc_rmin = -1
-        dkwd = dict(Lim=Lim, nLim=nLim, nstruct=num_tot_structs,
-                    LSPoly=lSPoly, LSLim=lSLim,
-                    lSnLim=np.asarray(lSnLim, dtype=np.int64), LSVIn=lSVIn, VType=VType,
-                    RMin=loc_rmin, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
-                    EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+        dkwd = dict(ves_lims=Lim, ves_nlim=nLim, nstruct=num_tot_structs,
+                    lstruct_poly=lSPoly, lstruct_lims=lSLim,
+                    lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+                    lstruct_norm=lSVIn, ves_type=VType,
+                    rmin=loc_rmin, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
+                    eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
 
     else:
         loc_rmin = None
@@ -148,7 +149,7 @@ def test_LOS_all(save=False, saveCam=[]):
     CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
              "VA100000", "VA1000000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
-    fig, ax = plt.subplots()
+    #fig, ax = plt.subplots()
     for icon in configs :
         print("*..................................*")
         print("*      Testing the "+icon+" config       *")
@@ -161,9 +162,9 @@ def test_LOS_all(save=False, saveCam=[]):
                                           save=save, saveCam=saveCam)
         for ttt in times:
             print(ttt)
-        ax.plot(times, label=icon)
-    ax.legend()
-    plt.show()
+        #ax.plot(times, label=icon)
+    #ax.legend()
+    #plt.show()
 
 def test_line_profile(config="B2", cam="V1000"):
     dconf = load_config(config, plot=False)
@@ -295,7 +296,7 @@ if __name__ == "__main__":
     # touch_plot_all_configs()
     #touch_plot_config_cam("A2", "VA10000")
     # touch_plot_config_cam("A1", "V10000")
-    # touch_plot_config_cam("B3", "V100000")
+    touch_plot_config_cam("B3", "V10000")
     # line profiling.....
     # test_line_profile(cam="V100000")
     # print(test_LOS_west_configs("A1", ["V1000000"]))

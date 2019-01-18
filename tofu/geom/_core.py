@@ -2427,11 +2427,13 @@ class Rays(utils.ToFuObject):
                     num_tot_structs += len(ss.Lim)
 
             largs = [D, u, VPoly, VVIn]
-            dkwd = dict(Lim=Lim, nLim=nLim, nstruct=num_tot_structs,
-                        LSPoly=lSPoly, LSLim=lSLim,
-                        lSnLim=np.asarray(lSnLim, dtype=np.int64), LSVIn=lSVIn, VType=VType,
-                        RMin=-1.0, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
-                        EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+            dkwd = dict(ves_lims=Lim, ves_nlim=nLim, nstruct=num_tot_structs,
+                    lstruct_poly=lSPoly, lstruct_lims=lSLim,
+                    lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+                    lstruct_norm=lSVIn, ves_type=VType,
+                    rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
+                    eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
+
         else:
             # --------------------------------
             # Here I can prepare the inputs as requested by your routine
