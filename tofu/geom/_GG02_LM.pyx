@@ -325,9 +325,9 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                              double val_rmin, double rmin2,
                                              double crit2_base,
                                              int nstruct_lim,
-                                             double* lbounds,
-                                             double* langles, int* llim_ves,
-                                             int* lnvert, long* lsz_lim,
+                                             double* lbounds, double* langles,
+                                             int* llim_ves, int* lnvert,
+                                             long* lsz_lim,
                                              double* lstruct_polyx,
                                              double* lstruct_polyy,
                                              double* lstruct_normx,
@@ -432,10 +432,10 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                     else:
                         totnvert = lnvert[ii-1]
                         nvert = lnvert[ii] - totnvert
-                    lstruct_polyxii = <double *>malloc( (nvert)* sizeof(double))
-                    lstruct_polyyii = <double *>malloc( (nvert)* sizeof(double))
-                    lstruct_normxii  = <double *>malloc( (nvert-1)* sizeof(double))
-                    lstruct_normyii  = <double *>malloc( (nvert-1)* sizeof(double))
+                    lstruct_polyxii = <double *>malloc((nvert)* sizeof(double))
+                    lstruct_polyyii = <double *>malloc((nvert)* sizeof(double))
+                    lstruct_normxii = <double *>malloc((nvert-1)* sizeof(double))
+                    lstruct_normyii = <double *>malloc((nvert-1)* sizeof(double))
                     for kk in range(nvert-1):
                         lstruct_polyxii[kk] = lstruct_polyx[totnvert + kk]
                         lstruct_polyyii[kk] = lstruct_polyy[totnvert + kk]
@@ -454,21 +454,25 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         lim_min = langles[(ind_struct+jj)*2]
                         lim_max = langles[(ind_struct+jj)*2 + 1]
                         lim_is_none = llim_ves[ind_struct+jj] == 1
-                        # We test if it is really necessary to compute the inter:
-                        # We check if the ray intersects the bounding box
-                        inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, loc_org)
+                        # We test if it is really necessary to compute the inter
+                        # ie. we check if the ray intersects the bounding box
+                        inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
+                                                        bounds, loc_org)
                         if not inter_bbox:
                             continue
-                        # # We check that the bounding box is not "behind" the last POut encountered
-                        inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray, bounds, last_pout)
+                        # We check that the bounding box is not "behind"
+                        # the last POut encountered
+                        inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
+                                                        bounds, last_pout)
                         if inter_bbox:
                             continue
                          # We compute new values
-                        found_new_kout = comp_inter_los_vpoly(&loc_org[0], &loc_dir[0],
-                                                              &lstruct_polyxii[0],
-                                                              &lstruct_polyyii[0],
-                                                              &lstruct_normxii[0],
-                                                              &lstruct_normyii[0],
+                        found_new_kout = comp_inter_los_vpoly(loc_org,
+                                                              loc_dir,
+                                                              lstruct_polyxii,
+                                                              lstruct_polyyii,
+                                                              lstruct_normxii,
+                                                              lstruct_normyii,
                                                               nvert-1,
                                                               lim_is_none,
                                                               lim_min, lim_max,
@@ -499,19 +503,20 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                     free(lstruct_normxii)
                     free(lstruct_normyii)
             else: # if struct is IN
-                found_new_kout = comp_inter_los_vpoly(&loc_org[0], &loc_dir[0],
-                                                      &lstruct_polyx[0],
-                                                      &lstruct_polyy[0],
-                                                      &lstruct_normx[0],
-                                                      &lstruct_normy[0],
+                found_new_kout = comp_inter_los_vpoly(loc_org, loc_dir,
+                                                      lstruct_polyx,
+                                                      lstruct_polyy,
+                                                      lstruct_normx,
+                                                      lstruct_normy,
                                                       nstruct_lim, llim_ves[0],
                                                       langles[0], langles[1],
                                                       forbidbis,
                                                       upscaDp, upar2,
                                                       dpar2, invuz,
                                                       s1x, s1y, s2x, s2y,
-                                                      crit2, eps_uz, eps_vz, eps_a,
-                                                      eps_b, eps_plane, True,
+                                                      crit2, eps_uz, eps_vz,
+                                                      eps_a,eps_b, eps_plane,
+                                                      True,
                                                       kpin_loc, kpout_loc,
                                                       ind_loc, loc_vp,)
                 if found_new_kout:
