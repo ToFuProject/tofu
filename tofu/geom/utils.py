@@ -5,6 +5,12 @@ import os
 # Common
 import numpy as np
 
+
+__all__ = ['coords_transform',
+           'get_nIne1e2', 'get_X12fromflat', 'create_RaysCones',
+           'create_VesPoly',
+           'create_CamLOS1D_pinhole', 'create_CamLOS1D_pinhole']
+
 _sep = '_'
 _dict_lexcept_key = []
 
@@ -32,12 +38,12 @@ class CoordinateInputError(Exception):
 
     def __init__(self, msg, errors):
 
-    # Call the base class constructor with the parameters it
-    # needs
-    super(CoordinateInputError, self).__init__(msg + '\n\n' + self.msg)
+        # Call the base class constructor with the parameters it
+        # needs
+        super(CoordinateInputError, self).__init__(msg + '\n\n' + self.msg)
 
-    # Now for your custom code...
-    self.errors = errors
+        # Now for your custom code...
+        self.errors = errors
 
 
 
@@ -198,16 +204,43 @@ def create_RaysCones(Ds, us, angs=np.pi/90., nP=40):
 
 def create_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
                    divlow=False, divup=False, nP=200):
-    """ Utility to create a 2D (R,Z) polygon to be used a Ves
+    """ Utility to create three 2D (R,Z) polygons
 
-    The polygon is centered on (R,0.)
-    It has a minor radius of r
-    It can have a vertical (>0) or horizontal(<0) elongation
-    It can be D-shaped (Dshape in [0.,1.])
+    One represents a vacuum vessel, one an outer bumper, one a baffle
+
+    The vessel polygon is centered on (R,0.), with minor radius r
+    It can have a vertical (>0) or horizontal(<0) elongation in [-1;1]
+    It can be D-shaped (Dshape in [0.,1.], typically 0.2)
     It can be non-convex, with:
         * a lower divertor-like shape
         * a upper divertor-like shape
-        * an outer bumper-like shape
+    The elongation also affects the outer bumper and baffle
+
+    Parameters
+    ----------
+    R:          int / float
+        Major radius used as a center of the vessel
+    r :         int / float
+        Minor radius of the vessel
+    elong:      int / float
+        Dimensionless elongation parameter in [-1;1]
+    Dshape:     int / float
+        Dimensionless parameter for the D-shape (in-out asymmetry) in [0;1]
+    divlow:     bool
+        Flag indicating whether to incude a lower divertor-like shape
+    divup:      bool
+        Flag indicating whether to incude an upper divertor-like shape
+    nP :        int
+        Parameter specifying approximately the number of points of the vessel
+
+    Return
+    ------
+    poly:       np.ndarray
+        Closed (2,nP) polygon of the vacuum vessel, optionnally with divertors
+    pbump:      np.ndarray
+        Closed (2,N) polygon defining the outer bumper
+    pbaffle:    np.ndarray
+        Closed (2,N) polygon defining the lower baffle
     """
 
     # Basics (center, theta, unit vectors)
@@ -219,14 +252,14 @@ def create_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
     pdivR = np.r_[-0.1,0.,0.1]
     pdivZ = np.r_[-0.1,0.,-0.1]
     if divlow:
-        ind = (np.sin(theta)<-0.8).nonzero()[0]
+        ind = (np.sin(theta)<-0.85).nonzero()[0]
         pinsert = np.array([pdivR, -1.+pdivZ])
         poly = np.concatenate((poly[:,:ind[0]], pinsert, poly[:,ind[-1]+1:]),
                               axis=1)
 
     if divup:
         theta = np.arctan2(poly[1,:], poly[0,:])
-        ind = (np.sin(theta)>0.8).nonzero()[0]
+        ind = (np.sin(theta)>0.85).nonzero()[0]
         pinsert = np.array([pdivR[::-1], 1.-pdivZ])
         poly = np.concatenate((poly[:,:ind[0]], pinsert, poly[:,ind[-1]+1:]),
                               axis=1)
@@ -237,9 +270,8 @@ def create_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
     rbis = rbis*(1+elong*0.15*np.sin(2.*theta-np.pi/2.))
     if Dshape>0.:
         ind = np.cos(theta)<0.
-        coef = np.abs(np.sin(theta[ind]))
-        coef = coef + Dshape*(1-coefs)
-        rbis[ind] = rbis[ind]*coefs
+        coef = 1 + Dshape*(np.sin(theta[ind])**2-1.)
+        rbis[ind] = rbis[ind]*coef
 
     er = np.array([np.cos(theta), np.sin(theta)])
     poly = cent[:,np.newaxis] + rbis[np.newaxis,:]*er
@@ -253,7 +285,8 @@ def create_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
                         [0.05,0.05,-0.05,-0.05]])
 
     ind = (np.abs(pbRout[1,:])<0.05).nonzero()[0]
-    pbump = (pbRin, pbRout[:,:ind[0]], pinsert, pbRout[:,ind[-1]+1:])
+    pbump = (pbRin, pbRout[:,:ind[0]], pinsert,
+             pbRout[:,ind[-1]+1:], pbRin[:,0:1])
     pbump = np.concatenate(pbump, axis=1)
     theta = np.arctan2(pbump[1,:],pbump[0,:])
     er = np.array([np.cos(theta), np.sin(theta)])
@@ -264,8 +297,8 @@ def create_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
     # Baffle
     offR, offZ = 0.1, -0.85
     wR, wZ = 0.2, 0.05
-    pbaffle = np.array([offR + wR*np.r_[-1,1,1,-1],
-                        offZ + wZ*np.r_[1,1,-1,-1]])
+    pbaffle = np.array([offR + wR*np.r_[-1,1,1,-1,-1],
+                        offZ + wZ*np.r_[1,1,-1,-1,1]])
     theta = np.arctan2(pbaffle[1,:],pbaffle[0,:])
     er = np.array([np.cos(theta), np.sin(theta)])
     rbis = r*(np.hypot(pbaffle[0,:],pbaffle[1,:])
@@ -340,31 +373,23 @@ def _create_PinHoleCam_Basics(P, F, D12, N12,
     return P, F, nIn, e1, e2
 
 
-def _create_PinHoleCam_Angles(P, F, D12, N12,
-                              )
-
-
-
-
-
-
-#def create_CamLOS1D_pinholeDu(R=, Z=, Phi=, nch=100)
-
-
-
-
 def _create_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
                                          angs=0, VType='Tor', defRY=None, Lim=None):
     assert type(VType) is str
     VType = VType.lower()
-    assert Vtype in ['tor','lin']
+    assert VType in ['tor','lin']
 
     # Pinhole
     if P is None:
-        if Vtype=='tor':
+        if defRY is None:
+            msg = "If P is not provided, a value msut be set for defRY!"
+            raise Exception(msg)
+        if VType=='tor':
             P = np.array([defRY,0.,0.])
         else:
-            assert Lim is not None
+            if Lim is None:
+                msg = "If P is not provided, Lim must be set!"
+                raise Exception(msg)
             Lim = np.array(Lim).ravel()
             assert Lim.size==2 and Lim[0]<Lim[1]
             P = np.array([np.sum(Lim)/2., defRY, 0.])
@@ -431,26 +456,142 @@ def _create_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
     e1 = np.cos(angs[2])*e10 + np.sin(angs[2])*e20
     e2 = -np.sin(angs[2])*e10 + np.cos(angs[2])*e20
 
+    # Check consistency of vector base
+    assert all([np.abs(np.linalg.norm(ee)-1.)<1.e-12 for ee in [e1,nIn,e2]])
+    assert np.abs(np.sum(nIn*e1))<1.e-12
+    assert np.abs(np.sum(nIn*e2))<1.e-12
+    assert np.abs(np.sum(e1*e2))<1.e-12
+    assert np.linalg.norm(np.cross(e1,nIn)-e2)<1.e-12
+
     return P, F, D12, N12, angs, nIn, e1, e2, VType
 
 
 
+_comdoc = \
+        """ Generate LOS for a {0}D camera
 
-def create_CamLOS2D_pinholeDu(P=None, F=0.1, D12=None, N12=100,
-                              nIn=None, e1=None, e2=None,
-                              VType='Tor'):
+        Generate the tofu inputs to instanciate a {0}D LOS pinhole camera
+
+        Internally, the camera is defined with:
+            - P : (X,Y,Z) position of the pinhole
+            - F : focal length (distance pinhole-detector plane)
+            - (e1,nIn,e2): a right-handed normalized vector base
+                nIn: the vector pointing inwards, from the detector plane to
+                    the pinhole and plasma
+                (e1,e2):  the 2 vector defining the detector plane coordinates
+                    By default, e1 is horizontal and e2 points upwards
+            - D12: The size of the detector plane in each direction (e1 and e2)
+            - N12: The number of detectors (LOS) in each direction (e1 and e2)
+
+        To simplify parameterization, the vector base (e1,nIn,e2) is
+        automatically computed from a set of 3 angles contained in angs
+
+        Parameters
+        ----------
+        P:      np.ndarray
+            (3,) array containing the pinhole (X,Y,Z) cartesian coordinates
+        F:      float
+            The focal length
+        D12:    float {1}
+            The absolute size of the detector plane
+            {2}
+        N12:    int {3}
+            The number of detectors (LOS) on the detector plane
+            {4}
+        angs:   list
+            The three angles defining the orientation of the camera vector base
+                - angs[0] : 'vertical' angle, the angle between the projection of
+                    nIn in a cross-section and the equatorial plane
+                - angs[1] : 'longitudinal' angle, the angle between nIn and a
+                    cross-section plane
+                - angs[2] : 'twist' angle, the angle between e1 and the equatorial
+                    plane, this is the angle the camera is rotated around its own
+                    axis
+        VType:  str
+            Flag indicating whether the geometry type is:
+                - 'Lin': linear
+                - 'Tor': toroidal
+        defRY:  None / float
+            Only used if P not provided
+            The default R (if 'Tor') or 'Y' (of 'Lin') position at which to
+            place P, in the equatorial plane.
+        Lim:    None / list / np.ndarray
+            Only used if P is None and VTYpe is 'Lin'
+            The vessel limits, by default P will be place in the middle
+
+        Return
+        ------
+        Ds:     np.ndarray
+            (3,N) array of the LOS starting points cartesian (X,Y,Z) coordinates
+            Can be fed to tofu.geom.CamLOSCam{0}D
+        P:      np.ndarray
+            (3,) array of pinhole (X,Y,Z) coordinates
+            Can be fed to tofu.geom.CamLOS{0}D
+        {5}
+        d2:     np.ndarray
+            (N2,) array of coordinates of the LOS starting point along local
+            vector e2 (0 being the perpendicular to the pinhole on the detector plane)
+
+        """
+
+
+
+
+
+def create_CamLOS1D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
+                            angs=[-np.pi,0.,0.],
+                            VType='Tor', defRY=None, Lim=None):
 
     # Check/ format inputs
-    P, F, nIn, e1, e2 = _create_PinHoleCam_Basics(P, F, nIn=nIn, e1=e1, e2=e2)
+    P, F, D12, N12, angs, nIn, e1, e2, VType\
+            = _create_PinholeCam_checkformatinputs(P=P, F=F, D12=D12, N12=N12,
+                                                   angs=angs, VType=VType,
+                                                   defRY=defRY, Lim=Lim)
 
     # Get starting points
-    d1 = D12[0]*np.linspace(-0.5,0.5,N12[0],endpoint=True)
-    d2 = D12[1]*np.linspace(-0.5,0.5,N12[1],endpoint=True)
-    d1 = np.repeat(d1,N12[1])
-    d2 = np.tile(d2,N12[0])
-    d1 = d1[np.newaxis,:]*e1[:,np.newaxis]
-    d2 = d2[np.newaxis,:]*e2[:,np.newaxis]
+    d2 = 0.5*D12[1]*np.linspace(-1.,1.,N12[1],endpoint=True)
+    d2e = d2[np.newaxis,:]*e2[:,np.newaxis]
 
-    Ds = P[:,np.newaxis] - F*nIn[:,np.newaxis] + d1 + d2
-    us = P[:,np.newaxis] - Ds
-    return Ds, us
+    Ds = P[:,np.newaxis] - F*nIn[:,np.newaxis] + d2e
+    return Ds, P, d2
+
+
+_comdoc1 = _comdoc.format('1','',
+                          'Extension of the detector alignment along e2',
+                          '',
+                          'Number of detectors along e2',
+                          '')
+
+create_CamLOS1D_pinhole.__doc__ = _comdoc1
+
+
+def create_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
+                            angs=[-np.pi,0.,0.],
+                            VType='Tor', defRY=None, Lim=None):
+
+    # Check/ format inputs
+    P, F, D12, N12, angs, nIn, e1, e2, VType\
+            = _create_PinholeCam_checkformatinputs(P=P, F=F, D12=D12, N12=N12,
+                                                   angs=angs, VType=VType,
+                                                   defRY=defRY, Lim=Lim)
+
+    # Get starting points
+    d1 = 0.5*D12[0]*np.linspace(-1.,1.,N12[0],endpoint=True)
+    d2 = 0.5*D12[1]*np.linspace(-1.,1.,N12[1],endpoint=True)
+    d1f = np.repeat(d1,N12[1])
+    d2f = np.tile(d2,N12[0])
+    d1e = d1f[np.newaxis,:]*e1[:,np.newaxis]
+    d2e = d2f[np.newaxis,:]*e2[:,np.newaxis]
+
+
+    Ds = P[:,np.newaxis] - F*nIn[:,np.newaxis] + d1e + d2e
+    return Ds, P, d1, d2
+
+
+_comdoc2 = _comdoc.format('2','/ list',
+                          'Extended to [D12,D12] if a float is provided',
+                          '/ list',
+                          'Extended to [D12,D12] if a float is provided',
+                          'd1:    np.ndarray\n\t(N1,) array')
+
+create_CamLOS2D_pinhole.__doc__ = _comdoc2
