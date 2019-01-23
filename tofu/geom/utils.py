@@ -25,6 +25,9 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
+_path_testcases = './'
+
+
 ###########################################################
 #       COCOS
 ###########################################################
@@ -624,7 +627,8 @@ def create_config_testcase(config='A1',
                 npts, nunits = out[0,:]
                 poly = out[1:1+npts,:].T
                 if n>=1:
-                    lim = out[,:].T
+                    pass
+                    #lim = out[0,:].T
                 oo = _core.cc(Name=ss+vv, Poly=poly, Lim=lim, Limtype='pos',
                               Exp=dconfig[config]['Exp'])
                 lS.append(oo)

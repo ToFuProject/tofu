@@ -375,7 +375,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
             if V.Id.Type=='Tor':
                 Theta = np.linspace(0, 2*np.pi, num=Nstep,
                                     endpoint=True, retstep=False)
-                if V.nLim==0:
+                if V.noccur==0:
                     lx = np.concatenate((P1Min[0]*np.cos(Theta),
                                          P1Max[0]*np.cos(Theta[::-1])))
                     ly = np.concatenate((P1Min[0]*np.sin(Theta),
@@ -427,9 +427,9 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
         ly = V.dgeom['BaryV'][0]*np.sin(Theta)
         ax.plot(lx,ly,label=V.Id.NameLTX+" Bv", **Bvdict)
 
-    if indices and V.nLim>1:
+    if indices and V.noccur>1:
         if V.Id.Type=='Tor':
-            for ii in range(0,V.nLim):
+            for ii in range(0,V.noccur):
                 R, theta = V.dgeom['P1Max'][0], np.mean(V.Lim[ii])
                 X, Y = R*np.cos(theta), R*np.sin(theta)
                 ax.annotate(r"{0}".format(ii), size=10,
@@ -439,7 +439,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
                             horizontalalignment='center',
                             verticalalignment='center')
         elif V.Id.Type=='Lin':
-            for ii in range(0,V.nLim):
+            for ii in range(0,V.noccur):
                 X, Y = np.mean(V.Lim[ii]), V.dgeom['P1Max'][0]
                 ax.annotate(r"{0}".format(ii), size=10,
                             xy = (X,Y),
@@ -477,7 +477,7 @@ def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=None,
             for ii in range(lim.shape[0]):
                 lim[ii,:] = [max(Lim[0],lim[ii,0]),min(lim[1],Lim[1])]
     else:
-        lim = np.array([[0.,2.*np.pi]]) if V.nLim==0 else np.array(V.Lim)
+        lim = np.array([[0.,2.*np.pi]]) if V.noccur==0 else np.array(V.Lim)
         lim = lim.reshape((1,2)) if lim.ndim==1 else lim
         if Lim is not None and V.Id.Cls=='Ves':
             Lim[0] = np.arctan2(np.sin(Lim[0]),np.cos(Lim[0]))

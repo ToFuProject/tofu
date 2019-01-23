@@ -506,7 +506,7 @@ class Struct(utils.ToFuObject):
                 'dsino':{'dict':self.dsino, 'lexcept':None},
                 'dphys':{'dict':self.dphys, 'lexcept':None},
                 'dmisc':{'dict':self.dmisc, 'lexcept':None},
-                'dplot';{'dict':self._dplot, 'lexcept':None}}
+                'dplot':{'dict':self._dplot, 'lexcept':None}}
         return dout
 
     def _from_dict(self, fd):
@@ -974,7 +974,7 @@ class PFC(StructOut):
 class CoilPF(StructOut):
     _color = 'r'
 
-    def __init__(self, Poly=None, Type=None, Lim=None, occur=None,,
+    def __init__(self, Poly=None, Type=None, Lim=None, occur=None,
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
