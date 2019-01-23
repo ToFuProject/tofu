@@ -317,15 +317,16 @@ class Struct(utils.ToFuObject):
     # _init
     ###########
 
-    def _init(self, Poly=None, Type=_Type, Lim=None,
+    def _init(self, Poly=None, Type=_Type, Lim=None, mobile=False,
               Clock=_Clock, arrayorder=_arrayorder,
-              sino_RefPt=None, sino_nP=_def.TorNP, **kwdargs):
+              sino_RefPt=None, sino_nP=_def.TorNP, color=None, **kwdargs):
+        allkwds = dict(locals(), **kwdargs)
         largs = self._get_largs_dgeom(sino=True)
-        kwdgeom = self._extract_kwdargs(locals(), largs)
+        kwdgeom = self._extract_kwdargs(allkwds, largs)
         largs = self._get_largs_dphys()
-        kwdphys = self._extract_kwdargs(locals(), largs)
+        kwdphys = self._extract_kwdargs(allkwds, largs)
         largs = self._get_largs_dmisc()
-        kwdmisc = self._extract_kwdargs(locals(), largs)
+        kwdmisc = self._extract_kwdargs(allkwds, largs)
         self._set_dgeom(**kwdgeom)
         self.set_dphys(**kwdphys)
         self._set_dmisc(**kwdmisc)
@@ -464,7 +465,8 @@ class Struct(utils.ToFuObject):
         dout = {'dgeom':{'dict':self.dgeom, 'lexcept':None},
                 'dsino':{'dict':self.dsino, 'lexcept':None},
                 'dphys':{'dict':self.dphys, 'lexcept':None},
-                'dmisc':{'dict':self.dmisc, 'lexcept':None}}
+                'dmisc':{'dict':self.dmisc, 'lexcept':None},
+                'dplot':{'dict':self._dplot, 'lexcept':None}}
         return dout
 
     def _from_dict(self, fd):
@@ -472,7 +474,7 @@ class Struct(utils.ToFuObject):
         self._dsino.update(**fd['dsino'])
         self._dphys.update(**fd['dphys'])
         self._dmisc.update(**fd['dmisc'])
-
+        self._dplot.update(**fd['dplot'])
 
     ###########
     # Properties
