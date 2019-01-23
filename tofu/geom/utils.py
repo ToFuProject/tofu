@@ -5,11 +5,19 @@ import os
 # Common
 import numpy as np
 
+# tofu
+try:
+    import tofu.geom._core as _core
+except Exception:
+    from . import _core
+
+
+
 
 __all__ = ['coords_transform',
-           'get_nIne1e2', 'get_X12fromflat', 'create_RaysCones',
-           'create_VesPoly',
-           'create_CamLOS1D_pinhole', 'create_CamLOS1D_pinhole']
+           'get_nIne1e2', 'get_X12fromflat', 'compute_RaysCones',
+           'compute_VesPoly',
+           'compute_CamLOS1D_pinhole', 'compute_CamLOS1D_pinhole']
 
 _sep = '_'
 _dict_lexcept_key = []
@@ -113,7 +121,8 @@ def coords_transform(pts, coords_in='11', coords_out='11'):
 
 
 ###########################################################
-#       Fast creation of basic objects
+###########################################################
+#       Useful functions
 ###########################################################
 
 def get_nIne1e2(P, nIn=None, e1=None, e2=None):
@@ -165,7 +174,7 @@ def get_X12fromflat(X12):
     return x1u, x2u, ind, Dx12
 
 
-def create_RaysCones(Ds, us, angs=np.pi/90., nP=40):
+def compute_RaysCones(Ds, us, angs=np.pi/90., nP=40):
     # Check inputs
     Ddim, udim = Ds.ndim, us.ndim
     assert Ddim in [1,2]
@@ -198,13 +207,14 @@ def create_RaysCones(Ds, us, angs=np.pi/90., nP=40):
 
 
 ###########################################################
-#       Fast creation of basic objects
+###########################################################
+#       Fast computation of basic geometry (poly and LOS)
 ###########################################################
 
 
-def create_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
-                   divlow=False, divup=False, nP=200):
-    """ Utility to create three 2D (R,Z) polygons
+def compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
+                    divlow=True, divup=True, nP=200):
+    """ Utility to compute three 2D (R,Z) polygons
 
     One represents a vacuum vessel, one an outer bumper, one a baffle
 
@@ -309,72 +319,8 @@ def create_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
 
 
 
-
-# Create basics for pinhole camera
-def _create_PinHoleCam_Basics(P, F, D12, N12,
-                              nIn=None, e1=None, e2=None,
-                              VType='tor'):
-
-    # Check/ format inputs
-    P = np.asarray(P)
-    assert P.shape==(3,)
-    assert type(F) in [int, float, np.int64, np.float64]
-    F = float(F)
-    if type(D12) in [int, float, np.int64, np.float64]:
-        D12 = np.array([D12,D12],dtype=float)
-    else:
-        assert hasattr(D12,'__iter__') and len(D12)==2
-        D12 = np.asarray(D12).astype(float)
-    if type(N12) in [int, float, np.int64, np.float64]:
-        N12 = np.array([N12,N12],dtype=int)
-    else:
-        assert hasattr(N12,'__iter__') and len(N12)==2
-        N12 = np.asarray(N12).astype(int)
-    assert type(VType) is str and VType.lower() in ['tor','lin']
-    VType = VType.lower()
-
-    # Get vectors
-    for vv in [nIn,e1,e2]:
-        if not vv is None:
-            assert hasattr(vv,'__iter__') and len(vv)==3
-            vv = np.asarray(vv).astype(float)
-    if nIn is None:
-        if VType=='tor':
-            nIn = -P
-        else:
-            nIn = np.r_[0.,-P[1],-P[2]]
-    nIn = np.asarray(nIn)
-    nIn = nIn/np.linalg.norm(nIn)
-    if e1 is None:
-       if VType=='tor':
-            phi = np.arctan2(P[1],P[0])
-            ephi = np.r_[-np.sin(phi),np.cos(phi),0.]
-            if np.abs(np.abs(nIn[2])-1.)<1.e-12:
-                e1 = ephi
-            else:
-                e1 = np.cross(nIn,np.r_[0.,0.,1.])
-                e1 = e1 if np.sum(e1*ephi)>0. else -e1
-       else:
-            if np.abs(np.abs(nIn[0])-1.)<1.e-12:
-                e1 = np.r_[0.,1.,0.]
-            else:
-                e1 = np.cross(nIn,np.r_[0.,0.,1.])
-                e1 = e1 if e1[0]>0. else -e1
-    e1 = np.asarray(e1)
-    e1 = e1/np.linalg.norm(e1)
-    assert np.abs(np.sum(nIn*e1))<1.e-12
-    if e2 is None:
-        e2 = np.cross(e1,nIn)
-    e2 = np.asarray(e2)
-    e2 = e2/np.linalg.norm(e2)
-    assert np.abs(np.sum(nIn*e2))<1.e-12
-    assert np.abs(np.sum(e1*e2))<1.e-12
-
-    return P, F, nIn, e1, e2
-
-
-def _create_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
-                                         angs=0, VType='Tor', defRY=None, Lim=None):
+def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
+                                          angs=0, VType='Tor', defRY=None, Lim=None):
     assert type(VType) is str
     VType = VType.lower()
     assert VType in ['tor','lin']
@@ -529,7 +475,7 @@ _comdoc = \
             Can be fed to tofu.geom.CamLOS{0}D
         {5}
         d2:     np.ndarray
-            (N2,) array of coordinates of the LOS starting point along local
+            (N2,) coordinates array of the LOS starting point along local
             vector e2 (0 being the perpendicular to the pinhole on the detector plane)
 
         """
@@ -538,13 +484,13 @@ _comdoc = \
 
 
 
-def create_CamLOS1D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
-                            angs=[-np.pi,0.,0.],
-                            VType='Tor', defRY=None, Lim=None):
+def compute_CamLOS1D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
+                             angs=[-np.pi,0.,0.],
+                             VType='Tor', defRY=None, Lim=None):
 
     # Check/ format inputs
     P, F, D12, N12, angs, nIn, e1, e2, VType\
-            = _create_PinholeCam_checkformatinputs(P=P, F=F, D12=D12, N12=N12,
+            = _compute_PinholeCam_checkformatinputs(P=P, F=F, D12=D12, N12=N12,
                                                    angs=angs, VType=VType,
                                                    defRY=defRY, Lim=Lim)
 
@@ -562,16 +508,16 @@ _comdoc1 = _comdoc.format('1','',
                           'Number of detectors along e2',
                           '')
 
-create_CamLOS1D_pinhole.__doc__ = _comdoc1
+compute_CamLOS1D_pinhole.__doc__ = _comdoc1
 
 
-def create_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
-                            angs=[-np.pi,0.,0.],
-                            VType='Tor', defRY=None, Lim=None):
+def compute_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
+                             angs=[-np.pi,0.,0.],
+                             VType='Tor', defRY=None, Lim=None):
 
     # Check/ format inputs
     P, F, D12, N12, angs, nIn, e1, e2, VType\
-            = _create_PinholeCam_checkformatinputs(P=P, F=F, D12=D12, N12=N12,
+            = _compute_PinholeCam_checkformatinputs(P=P, F=F, D12=D12, N12=N12,
                                                    angs=angs, VType=VType,
                                                    defRY=defRY, Lim=Lim)
 
@@ -588,10 +534,37 @@ def create_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
     return Ds, P, d1, d2
 
 
+
+_extracom2 = '(N1,) coordinates array of the LOS starting point along local\n\
+\t    vector e1 (0 being the perpendicular to the pinhole on the detector plane)'
 _comdoc2 = _comdoc.format('2','/ list',
                           'Extended to [D12,D12] if a float is provided',
                           '/ list',
                           'Extended to [D12,D12] if a float is provided',
-                          'd1:    np.ndarray\n\t(N1,) array')
+                          'd1:    np.ndarray\n\t    '+_extracom2)
 
-create_CamLOS2D_pinhole.__doc__ = _comdoc2
+compute_CamLOS2D_pinhole.__doc__ = _comdoc2
+
+
+###########################################################
+#       Fast creation of basic objects
+###########################################################
+
+def create_config(Exp='Dummy', Type='Tor', Lim=None, Lim_Bump=[0.,np.pi/8.],
+                  R=2.4, r=1., elong=0., Dshape=0.,
+                  divlow=True, divup=True, nP=200):
+
+    poly, pbump, pbaffle = compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
+                                           divlow=divlow, divup=divup, nP=nP)
+
+    ves = _core.Ves(Poly=poly, Type=Type, Lim=Lim, Exp=Exp, Name='Ves')
+    baf = _core.PFC(Poly=pbaffle, Type=Type, Lim=Lim,
+                    Exp=Exp, Name='Baffle', color='b')
+    bump = _core.PFC(Poly=pbump, Type=Type, Lim=Lim_Bump,
+                     Exp=Exp, Name='Bumper', color='g')
+
+    conf = _core.Config(Name='Conf', lStruct=[ves,baf,bump])
+    return conf
+
+
+#def create_config_testcase():
