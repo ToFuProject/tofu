@@ -466,7 +466,7 @@ class Struct(utils.ToFuObject):
                 'dsino':{'dict':self.dsino, 'lexcept':None},
                 'dphys':{'dict':self.dphys, 'lexcept':None},
                 'dmisc':{'dict':self.dmisc, 'lexcept':None},
-                'dplot':{'dict':self._dplot, 'lexcept':None}}
+                'dplot';{'dict':self._dplot, 'lexcept':None}}
         return dout
 
     def _from_dict(self, fd):

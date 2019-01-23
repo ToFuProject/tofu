@@ -567,4 +567,73 @@ def create_config(Exp='Dummy', Type='Tor', Lim=None, Lim_Bump=[0.,np.pi/8.],
     return conf
 
 
-#def create_config_testcase():
+_dconfig = {'A1': {'Exp':'WEST',
+                   'Ves': ['V1']},
+            'A2': {'Exp':'ITER',
+                   'Ves': ['V0']},
+            'A3': {'Exp':'WEST',
+                   'PlasmaDomain': ['Sep']},
+            'B1': {'Exp':'WEST',
+                   'Ves': ['V2'],
+                   'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
+            'B2': {'Exp':'WEST',
+                   'Ves': ['V2'],
+                   'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
+                           'BumperInnerV1', 'BumperOuterV1',
+                           'IC1V1', 'IC2V1', 'IC3V1']},
+            'B3': {'Exp':'WEST',
+                   'Ves': ['V2'],
+                   'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
+                           'BumperInnerV3', 'BumperOuterV3',
+                           'IC1V1', 'IC2V1', 'IC3V1',
+                           'LH1V1', 'LH2V1',
+                           'RippleV1', 'VDEV0']}}
+
+def create_config_testcase(config='A1',
+                           path=_path_testcases, dconfig=_dconfig):
+    """ Load the desired test case configuration
+
+    Choose from one of the reference preset configurations:
+        {0}
+
+    """.format('['+', '.join(dconfig.keys())+']')
+    assert all([type(ss) is str for ss in [config,path]])
+    assert type(dconfig) is dict
+    if not config in dconfig.keys():
+        msg = "Please a valid config, from one of the following:\n"
+        msg += "["+", ".join(dconfig.keys())+"+]"
+        raise Exception(msg)
+    path = os.path.abspath(path)
+
+    # Get file names for config
+    lf = os.listdir(path)
+    lS = []
+    for cc in dconfig[config].keys():
+        if cc=='Exp':
+            continue
+        for ss in dconfig[config][cc].keys():
+            for vv in dconfig[config][cc][ss]:
+                ff = [f for f in lf
+                      if all([s in f for s in ['TFG_',cc,ss,vv,'.txt']])]
+                if not len(ff)==1:
+                    msg = "No / several matching files in %s:\n"%path
+                    msg += "Criteria: [%s, %s, %s]\n"%(cc,ss,vv)
+                    msg += "Matching: "+"\n          ".join(ff)
+                    raise Exception(msg)
+                out = np.loadtxt(os.path.join(path,ff[0]))
+                npts, nunits = out[0,:]
+                poly = out[1:1+npts,:].T
+                if n>=1:
+                    lim = out[,:].T
+                oo = _core.cc(Name=ss+vv, Poly=poly, Lim=lim, Limtype='pos',
+                              Exp=dconfig[config]['Exp'])
+                lS.append(oo)
+
+    conf = _core.Config(Name=config, lStruct=lS)
+
+    # ------------------
+    # Optionnal plotting
+    if plot:
+        lax = conf.plot(element='P')
+
+    return conf

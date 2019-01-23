@@ -221,7 +221,7 @@ def get_Du(cam, dcam=_dcam, make_cam=True, plot=False,
         conf = load_config(config, path=path, plot=False)
 
         # Create the LOSCam2D object
-        # Note : thsis is where the computation goes on...
+        # Note : this is where the computation goes on...
         cam = tf.geom.LOSCam2D(Exp=conf.Id.Exp, Name=cam, dgeom=(D,u),
                                config=conf, Diag='Test')
 
