@@ -42,7 +42,7 @@ except Exception:
 
 
 
-def _Struct_set_Poly(Poly, Lim=None, arrayorder='C',
+def _Struct_set_Poly(Poly, Lim=None, occur=None, arrayorder='C',
                      Type='Tor', Clock=False):
     """ Compute geometrical attributes of a Struct object """
 
@@ -65,8 +65,8 @@ def _Struct_set_Poly(Poly, Lim=None, arrayorder='C',
     BaryS = np.array(TorP.center()).flatten()
 
     # Get lim-related indicators
-    nLim = int(Lim.size/2)
-    Multi = nLim>1
+    noccur = int(occur.size/2)
+    Multi = noccur>1
 
     # Get Tor-related quantities
     if Type.lower()=='lin':
@@ -95,7 +95,8 @@ def _Struct_set_Poly(Poly, Lim=None, arrayorder='C',
     r = np.sqrt(np.sum((poly-circC[:,np.newaxis])**2,axis=0))
     circr = np.max(r)
 
-    dout = {'Poly':poly, 'Lim':Lim, 'nLim':nLim, 'Multi':Multi, 'nP':NP,
+    dout = {'Poly':poly, 'Lim':Lim, 'occur':occur,
+            'noccur':noccur, 'Multi':Multi, 'nP':NP,
             'P1Max':P1Max, 'P1Min':P1Min, 'P2Max':P2Max, 'P2Min':P2Min,
             'BaryP':BaryP, 'BaryL':BaryL, 'BaryS':BaryS, 'BaryV':BaryV,
             'Surf':Surf, 'VolAng':Vol, 'Vect':Vect, 'VIn':Vin,

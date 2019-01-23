@@ -144,7 +144,7 @@ class Struct(utils.ToFuObject):
     def _set_color_ddef(cls, color):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(self, Poly=None, Type=None, Lim=None, mobile=False,
+    def __init__(self, Poly=None, Type=None, Lim=None, occur=None, mobile=False,
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
@@ -201,7 +201,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dgeom(sino=True):
-        largs = ['Poly','Lim','mobile','Clock','arrayorder']
+        largs = ['Poly','Lim','occur','mobile','Clock','arrayorder']
         if sino:
             lsino = Struct._get_largs_dsino()
             largs += ['sino_{0}'.format(s) for s in lsino]
@@ -227,7 +227,21 @@ class Struct(utils.ToFuObject):
     ###########
 
     @staticmethod
-    def _checkformat_inputs_dgeom(Poly=None, Lim=None, mobile=False,
+    def _check_Limoccur(aa):
+        assert hasattr(aa,'__iter__')
+        aa = np.asarray(aa,dtype=float)
+        assert aa.ndim in [1,2]
+        if aa.ndim==1:
+            assert aa.size in [0,2]
+            if aa.size==2:
+                aa = aa.reshape((1,2))
+        else:
+            if aa.shape[1]!=2:
+                aa = aa.T
+        return aa
+
+    @staticmethod
+    def _checkformat_inputs_dgeom(Poly=None, Lim=None, occur=None, mobile=False,
                                   Type=None, Clock=False, arrayorder=None):
         assert type(Clock) is bool
         assert type(mobile) is bool
@@ -242,21 +256,46 @@ class Struct(utils.ToFuObject):
         if Type is None:
             Type = Struct._ddef['dgeom']['Type']
         assert Type in ['Tor','Lin']
-        if Lim is None:
-            Lim = Struct._ddef['dgeom']['Lim']
-        assert hasattr(Lim,'__iter__')
-        Lim = np.asarray(Lim).astype(float)
-        assert Lim.ndim in [1,2] and (2 in Lim.shape or 0 in Lim.shape)
-        if Lim.ndim==1:
-            assert Lim.size in [0,2]
-            if Lim.size==2:
-                Lim = Lim.reshape((1,2))
+
+        lC = [Lim is None, occur is None]
+        if not any(lC):
+            msg = "Please provide either Lim xor occur!\n"
+            msg += "Lim should be an array of limits\n"
+            msg += "occur should be an array of centers and widths"
+            raise Exception(msg)
+        if all(lC):
+            occur = np.asarray([],dtype=float)
+            Lim = np.asarray([],dtype=float)
+        elif lC[0]:
+            occur =  self._check_Limoccur(occur)
+            if Type=='Tor' and occur.size>0:
+                occur[0,:] = np.arctan2(np.sin(occur[0,:]),np.cos(occur[0,:]))
+                if not np.all(occur[1,:]>0.) and np.all(occur[1,:]<2.*np.pi):
+                    msg = "Widths in occur array must be in ]0;2pi[!"
+                    raise Exception(msg)
+            elif Type=='Lin' and occur.size>0:
+                if not np.all(occur[1,:]>0.):
+                    msg = "Widths in occur array must be positive!"
+                    raise Exception(msg)
+            if occur.size>0:
+                Lim = occur[0:1,:] + np.array([[-0.5],[0.5]])*occur[1,:]
+            else:
+                Lim = np.asarray([],dtype=float)
         else:
-            if Lim.shape[1]!=2:
-                Lim = Lim.T
-        if Type=='Lin':
-            assert Lim.size>0
-        return Poly, Lim, Type, arrayorder
+            Lim =  self._check_Limoccur(Lim)
+            if Type=='Tor' and Lim.size>0:
+                Lim = np.arctan2(np.sin(Lim),np.cos(Lim))
+                occur = np.array([np.mean(Lim,axis=0), np.diff(Lim,axis=0)])
+                ind = Lim[0,:]>Lim[1,:]
+                occur[0,ind] = occur[0,ind] + np.pi
+                occur[1,ind] = 2.*np.pi + occur[1,ind]
+                occur[0,:] = np.arctan2(np.sin(occur[0,:]),np.cos(occur[0,:]))
+                assert np.all(occur[1,:]>0.)
+            elif Type=='Lin' and Lim.size>0:
+                assert np.all(Lim[0,:]<Lim[1,:])
+                occur = np.array([np.mean(Lim,axis=0),np.diff(Lim,axis=0)])
+
+        return Poly, Lim, occur, Type, arrayorder
 
     def _checkformat_inputs_dsino(self, RefPt=None, nP=None):
         assert type(nP) is int and nP>0
@@ -291,7 +330,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dgeom():
-        lk = ['Poly','Lim','nLim','Multi','nP',
+        lk = ['Poly','Lim','occur','noccur','Multi','nP',
               'P1Max','P1Min','P2Max','P2Min',
               'BaryP','BaryL','BaryS','BaryV',
               'Surf','VolAng','Vect','VIn','mobile',
@@ -317,7 +356,7 @@ class Struct(utils.ToFuObject):
     # _init
     ###########
 
-    def _init(self, Poly=None, Type=_Type, Lim=None, mobile=False,
+    def _init(self, Poly=None, Type=_Type, Lim=None, occur=None, mobile=False,
               Clock=_Clock, arrayorder=_arrayorder,
               sino_RefPt=None, sino_nP=_def.TorNP, color=None, **kwdargs):
         allkwds = dict(locals(), **kwdargs)
@@ -336,13 +375,14 @@ class Struct(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    def _set_dgeom(self, Poly=None, Lim=None, mobile=False,
+    def _set_dgeom(self, Poly=None, Lim=None, occur=None, mobile=False,
                    Clock=False, arrayorder='C',
                    sino_RefPt=None, sino_nP=_def.TorNP, sino=True):
-        out = self._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim, mobile=mobile,
-                                             Type=self.Id.Type, Clock=Clock)
-        Poly, Lim, Type, arrayorder = out
-        dgeom = _comp._Struct_set_Poly(Poly, Lim=Lim,
+        out = self._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim, occur=occur,
+                                             mobile=mobile, Type=self.Id.Type,
+                                             Clock=Clock)
+        Poly, Lim, occur, Type, arrayorder = out
+        dgeom = _comp._Struct_set_Poly(Poly, Lim=Lim, occur=occur,
                                        arrayorder=arrayorder,
                                        Type=self.Id.Type, Clock=Clock)
         dgeom['arrayorder'] = arrayorder
@@ -376,7 +416,7 @@ class Struct(utils.ToFuObject):
     # strip dictionaries
     ###########
 
-    def _strip_dgeom(self, lkeep=['Poly','Lim','mobile','Clock','arrayorder']):
+    def _strip_dgeom(self, lkeep=['Poly','occur','mobile','Clock','arrayorder']):
         utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
     def _strip_dsino(self, lkeep=['RefPt','nP']):
@@ -392,12 +432,12 @@ class Struct(utils.ToFuObject):
     # rebuild dictionaries
     ###########
 
-    def _rebuild_dgeom(self, lkeep=['Poly','Lim','mobile','Clock','arrayorder']):
+    def _rebuild_dgeom(self, lkeep=['Poly','occur','mobile','Clock','arrayorder']):
         reset = utils.ToFuObject._test_Rebuild(self._dgeom, lkeep=lkeep)
         if reset:
             utils.ToFuObject._check_Fields4Rebuild(self._dgeom,
                                                    lkeep=lkeep, dname='dgeom')
-            self._set_dgeom(self.Poly, Lim=self.Lim,
+            self._set_dgeom(self.Poly, occur=self.occur,
                             Clock=self.dgeom['Clock'],
                             arrayorder=self.dgeom['arrayorder'],
                             sino=False)
@@ -496,11 +536,14 @@ class Struct(utils.ToFuObject):
         """ Returned the closed polygon """
         return np.hstack((self._dgeom['Poly'],self._dgeom['Poly'][:,0:1]))
     @property
+    def occur(self):
+        return self._dgeom['occur']
+    @property
+    def noccur(self):
+        return self._dgeom['noccur']
+    @property
     def Lim(self):
         return self._dgeom['Lim']
-    @property
-    def nLim(self):
-        return self._dgeom['nLim']
     @property
     def dsino(self):
         return self._dsino
@@ -567,7 +610,7 @@ class Struct(utils.ToFuObject):
 
         """
         ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.Lim,
-                                nLim=self._dgeom['nLim'],
+                                nLim=self._dgeom['noccur'],
                                 VType=self.Id.Type,
                                 In=In, Test=True)
         return ind
@@ -701,7 +744,7 @@ class Struct(utils.ToFuObject):
             assert self.dgeom['Multi']
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, DIn=offsetIn,
                        VIn=self.dgeom['VIn'], VType=self.Id.Type,
-                       VLim=np.ascontiguousarray(self.Lim), nVLim=self.nLim,
+                       VLim=np.ascontiguousarray(self.Lim), nVLim=self.noccur,
                        Out=Out, margin=1.e-9,
                        Multi=self.dgeom['Multi'], Ind=Ind)
         args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
@@ -883,15 +926,15 @@ class StructIn(Struct):
         cls._dplot['3d']['dP']['color'] = cls._ddef['dmisc']['color']
 
     @staticmethod
-    def _checkformat_inputs_dgeom(Poly=None, Lim=None, mobile=False,
+    def _checkformat_inputs_dgeom(Poly=None, Lim=None, occur=None, mobile=False,
                                   Type=None, Clock=False, arrayorder=None):
         kwdargs = locals()
         # super
         out = Struct._checkformat_inputs_dgeom(**kwdargs)
-        Poly, Lim, Type, arrayorder = out
+        Poly, Lim, occur, Type, arrayorder = out
         if Type=='Tor':
-            msg = "StructIn subclasses cannot have nLim>0 if Type='Tor'!"
-            assert Lim.size==0, msg
+            msg = "StructIn subclasses cannot have noccur>0 if Type='Tor'!"
+            assert occur.size==0, msg
         return out
 
 
@@ -931,7 +974,7 @@ class PFC(StructOut):
 class CoilPF(StructOut):
     _color = 'r'
 
-    def __init__(self, Poly=None, Type=None, Lim=None,
+    def __init__(self, Poly=None, Type=None, Lim=None, occur=None,,
                  Id=None, Name=None, Exp=None, shot=None,
                  sino_RefPt=None, sino_nP=_def.TorNP,
                  Clock=False, arrayorder='C', fromdict=None,
@@ -1938,10 +1981,10 @@ class Config(utils.ToFuObject):
             indi = _GG._Ves_isInside(pts,
                                      lStruct[ii].Poly,
                                      Lim=lStruct[ii].Lim,
-                                     nLim=lStruct[ii].nLim,
+                                     nLim=lStruct[ii].noccur,
                                      VType=lStruct[ii].Id.Type,
                                      In=In, Test=True)
-            if lStruct[ii].nLim>1:
+            if lStruct[ii].noccur>1:
                 if log=='any':
                     indi = np.any(indi,axis=0)
                 else:
@@ -2370,7 +2413,7 @@ class Rays(utils.ToFuObject):
             VPoly = S.Poly_closed
             VVIn =  S.dgeom['VIn']
             Lim = S.Lim
-            nLim = S.nLim
+            nLim = S.noccur
             VType = self.config.Id.Type
 
             lS = [ss for ss in lS if ss._InOut=='out']
@@ -2379,7 +2422,7 @@ class Rays(utils.ToFuObject):
                 lSPoly.append(ss.Poly_closed)
                 lSVIn.append(ss.dgeom['VIn'])
                 lSLim.append(ss.Lim)
-                lSnLim.append(ss.nLim)
+                lSnLim.append(ss.noccur)
 
             largs = [D, u, VPoly, VVIn]
             dkwd = dict(Lim=Lim, nLim=nLim,
@@ -2881,7 +2924,7 @@ class Rays(utils.ToFuObject):
                     (i.e.: of the cross-section polygon of the above element)
                 - touch[2] : int / list of int
                     Indices, if relevant, of the toroidal / linear unit
-                    Only relevant when the element has nLim>1
+                    Only relevant when the element has noccur>1
             In this case only log='not' has an effect
         out :   str
             Flag indicating whether to return:
