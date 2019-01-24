@@ -9,6 +9,7 @@ import sys
 import warnings
 #from abc import ABCMeta, abstractmethod
 import copy
+import inspect
 if sys.version[0]=='2':
     import re, tokenize, keyword
 
@@ -227,7 +228,7 @@ class Struct(utils.ToFuObject):
     # Get check and format inputs
     ###########
 
-    @classmethod
+    @staticmethod
     def _checkformat_Lim(Lim, Type='Tor'):
         if Lim is None:
             Lim = np.array([],dtype=float)
@@ -251,7 +252,7 @@ class Struct(utils.ToFuObject):
             assert np.all(~np.isnan(Lim))
         return Lim
 
-    @sclassmethod
+    @staticmethod
     def _checkformat_posextent(pos, extent, Type='Tor'):
         lC = [pos is None, extent is None]
         if any(lC):
@@ -310,7 +311,7 @@ class Struct(utils.ToFuObject):
         else:
             pos = np.array([],dtype=float)
             extent = np.array([],dtype=float)
-    return pos, extent
+        return pos, extent
 
     @classmethod
     def _checkformat_inputs_dgeom(cls, Poly=None,
@@ -339,15 +340,15 @@ class Struct(utils.ToFuObject):
         if all(lC):
             pos = np.asarray([],dtype=float)
             extent = np.asarray([],dtype=float)
-            Lim = np.asarray([],dtype=float)
+            #Lim = np.asarray([],dtype=float)
         elif lC[0]:
             pos, extent =  cls._checkformat_posextent(pos, extent, Type)
-            Lim = cls._get_LimFromPosExtent(pos, extent, Type)
+            #Lim = cls._get_LimFromPosExtent(pos, extent, Type)
         else:
             Lim =  cls._checkformat_Lim(Lim, Type)
-            pos, extent = cls._get_OccurFromLim(Lim, Type)
+            pos, extent = cls._get_PosExtentFromLim(Lim, Type)
 
-        return Poly, Lim, pos, extent, Type, arrayorder
+        return Poly, pos, extent, Type, arrayorder
 
     def _checkformat_inputs_dsino(self, RefPt=None, nP=None):
         assert type(nP) is int and nP>0
@@ -382,7 +383,7 @@ class Struct(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dgeom():
-        lk = ['Poly','Lim','pos','extent','noccur','Multi','nP',
+        lk = ['Poly','pos','extent','noccur','Multi','nP',
               'P1Max','P1Min','P2Max','P2Min',
               'BaryP','BaryL','BaryS','BaryV',
               'Surf','VolAng','Vect','VIn','mobile',
@@ -435,8 +436,8 @@ class Struct(utils.ToFuObject):
         out = self._checkformat_inputs_dgeom(Poly=Poly, Lim=Lim, pos=pos,
                                              extent=extent, mobile=mobile,
                                              Type=self.Id.Type, Clock=Clock)
-        Poly, Lim, pos, extent, Type, arrayorder = out
-        dgeom = _comp._Struct_set_Poly(Poly, Lim=Lim, pos=pos, extent=extent,
+        Poly, pos, extent, Type, arrayorder = out
+        dgeom = _comp._Struct_set_Poly(Poly, pos=pos, extent=extent,
                                        arrayorder=arrayorder,
                                        Type=self.Id.Type, Clock=Clock)
         dgeom['arrayorder'] = arrayorder
@@ -594,10 +595,10 @@ class Struct(utils.ToFuObject):
         return self._dgeom['pos']
     @property
     def extent(self):
-        if self._dgeom['noccur']>0 and type(self._dgeom['extent']) is float:
-            extent = np.full(self._dgeom['pos'].shape,self._dgeom['extent'])
-        else:
+        if hasattr(self._dgeom['extent'],'__iter__'):
             extent = self._dgeom['extent']
+        else:
+            extent = np.full(self._dgeom['pos'].shape,self._dgeom['extent'])
         return extent
     @property
     def noccur(self):
@@ -967,6 +968,100 @@ class Struct(utils.ToFuObject):
             ax.figure.canvas.draw()
         return ax
 
+    def save_to_txt(self, path='./', name=None,
+                   fmt='%.18e', delimiter=' ', newline='\n', header='',
+                   footer='', comments='# ', encoding=None):
+        """ Save the basic geometrical attributes only (polygon and pos/extent)
+
+        The attributes are saved to a txt file with chosen encoding
+        Usefu for easily sharing input with non-python users
+
+        BEWARE: doesn't save all attributes !!!
+        Only saves the basic geometrical inputs !!!
+        Not equivalent to full tofu save (using self.save()) !!!
+
+        The saving convention is:
+            * data is saved on 2 columns
+            * The first line gives 2 numbers: nP, no
+                - nP = Number of points in the polygon
+                    (i.e.: the number of following lines describing the polygon)
+                - no = Number of occurences (toroidal if in toroidal geometry)
+                    (i.e.: the nb. of pos/extent lines after the first nP lines)
+            * Hence, the data is a 2D array of shape (1 + nP + no, 2)
+            * The two columns of the nP lines describing the polygon represent:
+                - 1st: R (resp. Y) coordinate of polygon points
+                - 2nd: Z (resp. Z) coordinate of polygon points
+            * The two columns of the no lines representing the occurences are:
+                - 1st: pos, the tor. angle (resp. X) center of occurences
+                - 2nd: extent, the tor. angle (resp. X) extension of occurences
+
+        Hence, the polygon and pos/extent of the object can be retrieved with:
+        >>> import numpy as np
+        >>> out = np.loadtxt(filename)
+        >>> nP, no = out[0,:]
+        >>> poly = out[1:1+nP,:]
+        >>> pos, extent = out[1+nP:,0], out[1+nP:,1]
+
+        All parameters apart from path and name are fed to numpy.savetxt()
+
+        Parameters
+        ----------
+        path:   None / str
+            The path where to save the file
+            If None uses self.Id.SavePath
+        name:   None / str
+            The name to use for the saved file
+            If None uses self.Id.SaveName (default)
+        """
+        if name is None:
+            name = self.Id.SaveName
+        if path is None:
+            path = self.Id.SavePath
+        path = os.path.abspath(path)
+        pfe = os.path.join(path,name+'.txt')
+
+        nPno = np.r_[self.Poly.shape[1], self.noccur]
+        poly = self.Poly.T
+        posext = np.vstack((self.pos, self.extent)).T
+        out = np.vstack((nPno,poly,posext))
+
+        kwds = dict(fmt=fmt, delimiter=delimiter, newline=newline,
+                   header=header, footer=footer, comments=comments)
+        if 'encoding' in inspect.signature(np.savetxt).parameters:
+            kwds['encoding'] = encoding
+        np.savetxt(pfe, out, **kwds)
+        print("save_to_txt in:\n", pfe)
+
+    @staticmethod
+    def from_txt(pfe):
+        """ Return the polygon and pos/extent stored in a .txt file
+
+        The file must have been generated by the method save_to_txt()
+
+        Parameters
+        ----------
+        pfe:    str
+            Unique string containing the path and file name to be read
+
+        Return
+        ------
+        poly:   np.ndarray
+            The (2,nP) polygon
+        pos:    np.ndarray
+            The (no,) array of the center positions of all occurences
+        extent:
+            The (no,) array of the extension of all occurences
+        """
+        out = np.loadtxt(pfe)
+        assert out.ndim==2 and out.shape[1]==2
+        nP, no = int(out[0,0]), int(out[0,1])
+        assert out.shape[0]==1+nP+no
+        poly = out[1:1+nP,:]
+        pos, extent = out[1+nP:,0], out[1+nP:,1]
+        assert pos.shape==extent.shape==(no,)
+        return poly, pos, extent
+
+
 
 
 """
@@ -996,7 +1091,7 @@ class StructIn(Struct):
         kwdargs = locals()
         # super
         out = Struct._checkformat_inputs_dgeom(**kwdargs)
-        Poly, Lim, pos, extent, Type, arrayorder = out
+        Poly, pos, extent, Type, arrayorder = out
         if Type=='Tor':
             msg = "StructIn subclasses cannot have noccur>0 if Type='Tor'!"
             assert pos.size==0, msg
