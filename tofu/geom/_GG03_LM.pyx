@@ -11,7 +11,7 @@ from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.math cimport NAN as Cnan
 from cpython.array cimport array, clone
 from cython.parallel import prange
-from cython.parallel cimport parallel, threadid
+from cython.parallel cimport parallel
 from libc.stdlib cimport malloc, free, realloc
 
 cdef double _VSMALL = 1.e-9
@@ -36,7 +36,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                               double eps_uz=_SMALL, double eps_a=_VSMALL,
                               double eps_vz=_VSMALL, double eps_b=_VSMALL,
                               double eps_plane=_VSMALL, str ves_type='Tor',
-                              bint forbid=1, bint test=1):
+                              bint forbid=1, bint test=1, int num_threads=0):
     """
     Computes the entry and exit point of all provided LOS for the provided
     vessel polygon (toroidal or linear) with its associated structures.
@@ -81,7 +81,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
        Should we forbid values behind vissible radius ? (see rmin)
     test : bool
        Should we run tests ?
-
+    num_threads : int
+       The num_threads argument indicates how many threads the team should
+       consist of. If not given, OpenMP will decide how many threads to use.
+       Typically this is the number of cores available on the machine.
     Return
     ======
     coeff_inter_in : (num_los) array
@@ -198,7 +201,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                     llim_ves, NULL, NULL,
                                     lpolyx, lpolyy, lnormx, lnormy,
                                     eps_uz, eps_vz, eps_a, eps_b, eps_plane,
-                                    False) # structure is in
+                                    num_threads, False) # structure is in
 
         # We can free local arrays and set them as NULL for structures
         free(lpolyx)
@@ -290,6 +293,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                         lnvert, lsz_lim,
                                         lpolyx, lpolyy, lnormx, lnormy,
                                         eps_uz, eps_vz, eps_a, eps_b, eps_plane,
+                                        num_threads,
                                         True) # the structure is "OUT"
             free(lpolyx)
             free(lpolyy)
@@ -323,7 +327,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                              double crit2_base,
                                              int nstruct_lim,
                                              double* lbounds, double* langles,
-                                             int* llim_ves, int* lnvert,
+                                             int* lis_limited, int* lnvert,
                                              long* lsz_lim,
                                              double* lstruct_polyx,
                                              double* lstruct_polyy,
@@ -332,16 +336,17 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                              double eps_uz, double eps_vz,
                                              double eps_a, double eps_b,
                                              double eps_plane,
+                                             int num_threads,
                                              bint is_out_struct) nogil:
     """
-    Computes the entry and exit point of all provided LOS/rays for the a single
-    structure that can be of type "OUT" (is_out_struct=True) or "IN"
-    (is_out_struct=False). An "OUT" structure cannot be penetrated whereas an
-    "IN" structure can. The latter is typically a vessel and are toroidally
-    continous. If a structure is limited we can determine the number of limits
-    and the limits itself. For optimization reasons we will also pass the
-    bounding box limits. And the information of the last intersected point, if
-    any.
+    Computes the entry and exit point of all provided LOS/rays for a set of
+    structures that can be of type "OUT" (is_out_struct=True) or "IN"
+    (is_out_struct=False) in a TORE. An "OUT" structure cannot be penetrated
+    whereas an "IN" structure can. The latter is typically a vessel and are
+    toroidally continous. If a structure is limited we can determine the number
+    of limits and the limits itself. For optimization reasons we will also pass
+    the bounding box limits. And the information of the last intersected point,
+    if any.
     This functions is parallelized.
 
     Params
@@ -373,60 +378,55 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
        Should we forbid values behind vissible radius ? (see Rmin). If false,
        will test "hidden" part always, else, it will depend on the LOS and
        on forbidbis.
-    forbidbis:
+    forbidbis: bint
        Should we forbid values behind vissible radius for each LOS ?
     rmin : double
        Minimal radius of vessel to take into consideration
     rmin2 : double
        Squared valued of the minimal radius
-
-
-                                             double rmin, double rmin2,
-                                             double crit2_base,
-                                             int nstruct_lim,
-                                             double* lbounds, double* langles,
-                                             int* llim_ves, int* lnvert,
-                                             long* lsz_lim,
-                                             double* lstruct_polyx,
-                                             double* lstruct_polyy,
-                                             double* lstruct_normx,
-                                             double* lstruct_normy,
-                                             double eps_uz, double eps_vz,
-                                             double eps_a, double eps_b,
-                                             double eps_plane,
-                                             bint is_out_struct)
-    ves_poly : (2, num_vertex) double array
-       Coordinates of the vertices of the Polygon defining the 2D poloidal
-       cut of the Vessel
-    ves_norm : (2, num_vertex-1) double array
-       Normal vectors going "inwards" of the edges of the Polygon defined
-       by ves_poly
-    nstruct : int
-       Total number of structures (counting each limited structure as one)
-    ves_nlim : int
-       Number of limits of the vessel
-           -1 : no limits, vessel continuous all around
-            1 : vessel is limited
-    ves_lims : array
-       If ves_nlim==1 contains the limits min and max of vessel
-    lstruct_poly : list
-       List of coordinates of the vertices of all structures on poloidal plane
-    lstruct_lims : list
-       List of limits of all structures
-    lstruct_norm : list
-       List of coordinates of "inwards" normal vectors of the polygon of all
-       the structures
+    crit2_base : double
+       Critical value to evaluate for each LOS if horizontal or not
+    nstruct_lim : int
+       Number of OUT structures (not counting the limited versions).
+       If not is_out_struct then lenght of vpoly.
+    lbounds : (6 * ntotstruct) double array
+       Coordinates of lower and upper edges of the bounding box for each
+       structures (ntotstruct = sum_i(nstruct_lim * lsz_lim[i])
+       If not is_out_struct then NULL
+    langles : (2 * ntotstruct) double array
+       Minimum and maximum angles where the structure lives. If the structure
+       number 'i' is toroidally continous then langles[i:i+2] = [0, 0].
+    lis_limited : (ntotstruct) int array
+       List of bool to know if the structures (or the vessel) is limited or not.
+    lnvert : (nstruct_lim) int array
+       List of vertices of each polygon for each structure
+       If not is_out_struct then NULL
+    lsz_lim : (ntotstruct) int array
+       List of the total number of structures before the ith structure. First
+       element is always 0, else lsz_lim[i] = sum_j(lstruct_nlim[j], j=0..i-1)
+       If not is_out_struct then NULL
+    lstruct_polyx : (ntotnvert)
+       List of "x" coordinates of the polygon's vertices of all structures on
+       the poloidal plane
+    lstruct_polyy : (ntotnvert)
+       List of "y" coordinates of the polygon's vertices of all structures on
+       the poloidal plane
+    lstruct_normx : (2, num_vertex-1) double array
+       List of "x" coordinates of the normal vectors going "inwards" of the
+        edges of the Polygon defined by lstruct_poly
+    lstruct_normy : (2, num_vertex-1) double array
+       List of "y" coordinates of the normal vectors going "inwards" of the
+        edges of the Polygon defined by lstruct_poly
     eps<val> : double
        Small value, acceptance of error
-    vtype : string
-       Type of vessel ("Tor" or "Lin")
-    test : bool
-       Should we run tests ?
-
-    Return
-    ======
-    vperp_out : (3, num_los) array
-       Coordinates of the normal vector of impact of the LOS (NaN if none)
+    num_threads : int
+       The num_threads argument indicates how many threads the team should
+       consist of. If not given, OpenMP will decide how many threads to use.
+       Typically this is the number of cores available on the machine.
+    is_out_struct : bint
+       Bool to determine if the structure is "OUT" or "IN". An "OUT" structure
+       cannot be penetrated whereas an "IN" structure can. The latter is
+       typically a vessel and are toroidally continous.
     """
     cdef double upscaDp=0., upar2=0., dpar2=0., crit2=0., idpar2=0.
     cdef double dist = 0., s1x = 0., s1y = 0., s2x = 0., s2y = 0.
@@ -453,9 +453,8 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
     cdef double* bounds = NULL
     cdef int* sign_ray = NULL
     cdef int* ind_loc = NULL
-
     # == Defining parallel part ================================================
-    with nogil, parallel(num_threads=32):
+    with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so
         loc_org   = <double *> malloc(sizeof(double) * 3)
         loc_dir   = <double *> malloc(sizeof(double) * 3)
@@ -550,7 +549,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         bounds[5] = lbounds[(ind_struct + jj)*6 + 5]
                         lim_min = langles[(ind_struct+jj)*2]
                         lim_max = langles[(ind_struct+jj)*2 + 1]
-                        lim_is_none = llim_ves[ind_struct+jj] == 1
+                        lim_is_none = lis_limited[ind_struct+jj] == 1
                         # We test if it is really necessary to compute the inter
                         # ie. we check if the ray intersects the bounding box
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
@@ -612,7 +611,8 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                       lstruct_polyy,
                                                       lstruct_normx,
                                                       lstruct_normy,
-                                                      nstruct_lim, llim_ves[0],
+                                                      nstruct_lim,
+                                                      lis_limited[0],
                                                       langles[0], langles[1],
                                                       forbidbis,
                                                       upscaDp, upar2,
@@ -674,10 +674,83 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                       const double s2x, const double s2y,
                                       const double crit2, const double eps_uz,
                                       const double eps_vz, const double eps_a,
-                                      const double eps_b, const double eps_plane,
-                                      const bint struct_is_ves,
+                                      const double eps_b, const double eps_pln,
+                                      const bint is_in_struct,
                                       double[1] kpin_loc, double[1] kpout_loc,
                                       int[1] ind_loc, double[3] vperpin) nogil:
+    """
+    Computes the entry and exit point of ONE provided LOS/rays for a single
+    structure that can be of type "OUT" (is_out_struct=True) or "IN"
+    (is_out_struct=False). An "OUT" structure cannot be penetrated whereas an
+    "IN" structure can. The latter is typically a vessel and are toroidally
+    continous. If a structure is limited we can determine the number of limits
+    and the limits itself. For optimization reasons we will also pass the
+    bounding box limits. And the information of the last intersected point, if
+    any.
+
+    Params
+    ======
+    ray_vdir : (3) double array
+       LOS normalized direction vector
+    ray_orig : (3) double array
+       LOS origin points coordinates
+    lpolyx : (ntotnvert)
+       List of "x" coordinates of the polygon's vertices of the structures on
+       the poloidal plane
+    lpolyy : (ntotnvert)
+       List of "y" coordinates of the polygon's vertices of the structures on
+       the poloidal plane
+    normx : (2, num_vertex-1) double array
+       List of "x" coordinates of the normal vectors going "inwards" of the
+        edges of the Polygon defined by lpolyx/y
+    normy : (2, num_vertex-1) double array
+       List of "y" coordinates of the normal vectors going "inwards" of the
+        edges of the Polygon defined by lpolyxy
+    nvert : int
+       Number of vertices on the polygon
+    lim_is_none : bint
+       Bool to know if the structures (or the vessel) is limited or not.
+    lim_min : double
+       Minimum angle where the structure lives. If the structure
+       is toroidally continous then lim_min = 0
+    lim_max : double
+       Maximum angle where the structure lives. If the structure
+       is toroidally continous then lim_min = 0
+    forbidbis: bint
+       Should we forbid values behind vissible radius for each LOS ?
+    upscaDp: double
+       Scalar product between LOS' origin and direction
+    upar2 : double
+       Norm direction LOS
+    dpar2 : double
+       Norm origin LOS
+    invuz : double
+       Inverse of 3rd component of direction. ie. if direction is (ux, uy, uz)
+       then invuz = 1/uz
+    s1x, s1y, s2x, s2y : double
+       Compute coordinates of the 2 points where the tangents touch the inner
+       circle of the Tore, only needed if forbidbis = 0
+    crit2 : double
+       Critical value to evaluate for each LOS if horizontal or not
+    eps<val> : double
+       Small value, acceptance of error
+    is_in_struct : bint
+       Bool to determine if the structure is "OUT" or "IN". An "OUT" structure
+       cannot be penetrated whereas an "IN" structure can. The latter is
+       typically a vessel and are toroidally continous.
+    kpout_loc : double array <INOUT>
+       Coefficient of exit (kout) of the last point of intersection for the LOS
+       with the structure or vessel
+    kpin_loc : double array <INOUT>
+       Coefficient of exit (kin) of the last point of intersection for the LOS
+       with the structure or vessel
+    vperpin : (3) double array <INOUT>
+       Coordinates of the normal vector of impact of the LOS (0 if none)
+    Return
+    ======
+    bool : If true, there was in impact
+           If false, no intersection between LOS and structure
+    """
     cdef int jj
     cdef int done=0
     cdef int indin=0
@@ -893,7 +966,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                             sca1 = (sol0-s1x) * s1x + (sol1-s1y) * s1y
                             sca2 = (sol0-s2x) * s2x + (sol1-s2y) * s2y
                         if not forbidbis or (forbidbis and
-                                             not (sca0<0 and sca1<0 and sca2<0)):
+                                             not (sca0<0 and sca1<0 and
+                                                  sca2<0)):
                             # Get the normalized perpendicular vector at inter
                             phi = Catan2(sol1,sol0)
                             if lim_is_none or (not lim_is_none and
@@ -918,7 +992,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     if not lim_is_none:
         ephi_in0 = -sinl0
         ephi_in1 =  cosl0
-        if Cabs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_plane:
+        if Cabs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_pln:
             k = -(ray_orig[0] * ephi_in0 + ray_orig[1] * ephi_in1) \
                 /(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1)
             if k >= 0:
@@ -940,7 +1014,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
 
         ephi_in0 =  sinl1
         ephi_in1 = -cosl1
-        if Cabs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_plane:
+        if Cabs(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1) > eps_pln:
             k = -(ray_orig[0] * ephi_in0 + ray_orig[1] * ephi_in1)\
                 /(ray_vdir[0] * ephi_in0 + ray_vdir[1] * ephi_in1)
             if k >= 0:
@@ -959,8 +1033,9 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                     elif sca>=0 and k<min(kin,kout):
                         kin = k
                         indin = -2
+    # == Analyzing if there was impact =========================================
     if done==1:
-        if struct_is_ves :
+        if is_in_struct :
             kpout_loc[0] = kout
             if indout==-1:
                 vperpin[0] = -sinl0
@@ -980,7 +1055,6 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
             ind_loc[0] = indout
             if kin<kout:
                 kpin_loc[0] = kin
-
         elif kin < kout and kin < res_kin:
             kpin_loc[0] = kin
             if indin==-1:
@@ -1004,6 +1078,18 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
 cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
                                       int[3] sign,
                                       double[3] inv_direction) nogil:
+    """
+    Computes the inverse direction and sign of each coordinate of a LOS.
+    Params
+    ======
+    ray_vdir : (3) double array
+       direction of the LOS
+    sign : (3) int array <INOUT>
+       for each coordinate of the direction, indicates if negative or not
+       If sign[i] = 1, ray_vdir[i] < 0, else sign[i] = 0
+    inv_direction : (3) double array
+       Inverse on each axis of direction of LOS
+    """
     cdef int t0 = 1000000
     # computing sign and direction
     for  ii in range(3):
@@ -1022,10 +1108,23 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
                                     const double[6] bounds,
                                     const double[3] ds) nogil:
     """
-    bounds = [3d coords of lowerleftback point of bounding box,
-              3d coords of upperrightfront point of bounding box]
-    ds = [3d coords of origin of ray]
-    returns True if ray intersects bounding box, else False
+    Computes intersection between a ray (LOS) and a axis aligned bounding
+    box. It returns True if ray intersects box, else False.
+    Params
+    =====
+    sign : (3) int array
+       Sign of the direction of the ray.
+       If sign[i] = 1, ray_vdir[i] < 0, else sign[i] = 0
+    inv_direction : (3) double array
+       Inverse on each axis of direction of LOS
+    bounds : (6) double array
+       [3d coords of lowerleftback point of bounding box,
+        3d coords of upperrightfront point of bounding box]
+    ds : (3) doubel array
+       [3d coords of origin of ray]
+    Returns
+    =======
+       True if ray intersects bounding box, else False
     """
     cdef double tmin, tmax, tymin, tymax
     cdef double tzmin, tzmax
@@ -1063,6 +1162,25 @@ cdef inline bint is_point_in_path(int nvert,
                                   double* verty,
                                   double testx,
                                   double testy) nogil:
+    """
+    Computes if a point of coordiates (testx, testy) is in the polygon defined
+    by nvert vertices of coordinates (vertx, verty)
+    Params
+    ======
+    nvert : int
+       number of vertices in polygon
+    vertx : double array
+       x-coordinates of polygon
+    verty : double array
+       y-coordinate of polygon
+    testx : double
+       x-coordinate of point to be tested if in or out of polygon
+    testy : double
+       y-coordinate of point to be tested if in or out of polygon
+    Returns
+    =======
+    bool : True if point is in the polygon, else False
+    """
     cdef int i
     cdef bint c = 0
     for i in range(nvert):
@@ -1076,6 +1194,20 @@ cdef inline bint is_point_in_path(int nvert,
 cdef inline void compute_bbox_extr(int nvert,
                                    double[:,::1] vert,
                                    double[6] bounds) nogil:
+    """
+    Computes bounding box of a toroidally continous structure defined by
+    the vertices vert.
+    Params
+    =====
+    nvert : inter
+       Number of vertices in the poygon
+    vert : double array
+       Coordinates of the polygon defining the structure in the poloidal plane
+       such that vert[0:3, ii] = (x_i, y_i) the coordinates of the i-th vertex
+    bounds : (6) double array <INOUT>
+       coordinates of the lowerleftback point and of the upperrightfront point
+       of the bounding box of the structure toroidally continous on the tore.
+    """
     cdef int ii
     cdef double rmax=vert[0,0], zmin=vert[1,0], zmax=vert[1,0]
     cdef double tmp_val
@@ -1101,6 +1233,24 @@ cdef inline void compute_bbox_lim(int nvert,
                                   double[:,::1] vert,
                                   double[6] bounds,
                                   double lmin, double lmax) nogil:
+    """
+    Computes bounding box of a toroidally limited structure defined by
+    the vertices vert, and limited to the angles (lmin, lmax)
+    Params
+    =====
+    nvert : inter
+       Number of vertices in the poygon
+    vert : double array
+       Coordinates of the polygon defining the structure in the poloidal plane
+       such that vert[0:3, ii] = (x_i, y_i) the coordinates of the i-th vertex
+    bounds : (6) double array <INOUT>
+       coordinates of the lowerleftback point and of the upperrightfront point
+       of the bounding box of the structure toroidally limited on the tore.
+    lmin : double
+       minimum toroidal angle where the structure lays.
+    lmax : double
+       maximum toroidal angle where the structure lays.
+    """
     cdef int ii
     cdef double toto=100000.
     cdef double xmin=toto, xmax=-toto
@@ -1159,6 +1309,10 @@ cdef inline void compute_bbox_lim(int nvert,
 cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian=True,
                                      double CrossRef=0., double cos_phi=0.,
                                      double sin_phi=0.) nogil:
+    """
+    Similar to coordshift but only pas from 3D cartesian to 3D toroidal
+    coordinates or vice-versa.
+    """
     cdef double x, y, z
     cdef double r, p
     if in_is_cartesian:
