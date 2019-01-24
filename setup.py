@@ -34,8 +34,6 @@ os.environ['CC'] = 'gcc'
 os.environ['CXX'] = 'gcc'
 
 
-
-
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6','3.7']:
     gg = '_GG0%s' % sys.version[0]
@@ -76,8 +74,10 @@ print("")
 # Getting relevant compilable files
 if sys.version[0]=='3':
     #if not '_GG03.pyx' in os.listdir(os.path.join(here,'tofu/geom/')):
-    shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'), os.path.join(here,'tofu/geom/_GG03.pyx'))
-    shutil.copy2(os.path.join(here,'tofu/geom/_GG02_LM.pyx'), os.path.join(here,'tofu/geom/_GG03_LM.pyx'))
+    shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'),
+                 os.path.join(here,'tofu/geom/_GG03.pyx'))
+    shutil.copy2(os.path.join(here,'tofu/geom/_GG02_LM.pyx'),
+                 os.path.join(here,'tofu/geom/_GG03_LM.pyx'))
 
 
 # Get the long description from the README file
@@ -98,29 +98,33 @@ if USE_CYTHON:
     print("Using Cython !!!!!!!!!")
     print("")
     #TODO try O3 O2 flags
-    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"]),
-                  Extension(name="tofu.geom."+gg_lm, sources=["tofu/geom/"+gg_lm+".pyx"],
-                            extra_compile_args=["-O0",  "-fopenmp"],
-                            extra_link_args=['-fopenmp'])
-                  ]
+    extensions = [ Extension(name="tofu.geom."+gg,
+                             sources=["tofu/geom/"+gg+".pyx"]),
+                   Extension(name="tofu.geom."+gg_lm,
+                             sources=["tofu/geom/"+gg_lm+".pyx"],
+                             extra_compile_args=["-O0",  "-fopenmp"],
+                             extra_link_args=['-fopenmp'])]
     extensions = cythonize(extensions)
 else:
     print("")
     print("NOT Using Cython !!!!!!!!!")
     print("")
-    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".cpp"],
-                            language='c++', include_dirs=['tofu/cpp/'])]
+    extensions = [Extension(name="tofu.geom."+gg,
+                            sources=["tofu/geom/"+gg+".cpp"],
+                            language='c++',
+                            include_dirs=['tofu/cpp/'])]
 
 setup(
     name='tofu',
     #version="1.2.27",
     version="{ver}".format(ver=version_git),
     # Use scm to get code version from git tags
-    # cf. https://pypi.python.org/pypi/setuptools_scm 
+    # cf. https://pypi.python.org/pypi/setuptools_scm
     # Versions should comply with PEP440. For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    # The version is stored only in the setup.py file and read from it (option 1 in https://packaging.python.org/en/latest/single_source_version.html)
+    # The version is stored only in the setup.py file and read from it (option 1
+    # in https://packaging.python.org/en/latest/single_source_version.html)
     use_scm_version=False,
     #setup_requires=['setuptools_scm'],
 
@@ -167,7 +171,10 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages = find_packages(exclude=['doc', '_Old', '_Old_doc','plugins','plugins.*','*.plugins.*','*.plugins','*.tests10_plugins','*.tests10_plugins.*','tests10_plugins.*','tests10_plugins',]),
+    packages = find_packages(exclude=['doc', '_Old', '_Old_doc','plugins',
+                                      'plugins.*','*.plugins.*','*.plugins',
+                                      '*.tests10_plugins','*.tests10_plugins.*',
+                                      'tests10_plugins.*','tests10_plugins',]),
     #packages = ['tofu','tofu.geom'],
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
@@ -215,7 +222,8 @@ setup(
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
-    # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
+    # http://docs.python.org/3.4/distutils/setupscript.html
+    #installing-additional-files # noqa
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     #data_files=[('my_data', ['data/data_file'])],
 

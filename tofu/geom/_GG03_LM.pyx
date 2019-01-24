@@ -312,8 +312,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
            np.asarray(vperp_out), np.asarray(ind_inter_out, dtype=int)
 
 
-@cython.wraparound(False)
-@cython.boundscheck(False)
 cdef inline void raytracing_inout_struct_tor(int num_los,
                                              double[:,::1] ray_vdir,
                                              double[:,::1] ray_orig,
@@ -453,6 +451,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
     cdef double* bounds = NULL
     cdef int* sign_ray = NULL
     cdef int* ind_loc = NULL
+
     # == Defining parallel part ================================================
     with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so
