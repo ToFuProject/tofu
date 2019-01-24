@@ -1008,13 +1008,13 @@ class Struct(utils.ToFuObject):
         ----------
         path:   None / str
             The path where to save the file
-            If None uses self.Id.SavePath
+            If None -> self.Id.SavePath
         name:   None / str
             The name to use for the saved file
-            If None uses self.Id.SaveName (default)
+            If None -> self.Id.SaveName with only ['Mod','Cls','Exp','Name']
         """
         if name is None:
-            name = self.Id.SaveName
+            name = self.Id.generate_SaveName(['Mod','Cls','Exp','Name'])
         if path is None:
             path = self.Id.SavePath
         path = os.path.abspath(path)

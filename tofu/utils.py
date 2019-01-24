@@ -1331,6 +1331,15 @@ class ID(ToFuObjectBase):
                 self._dall['SaveName'] = SN
                 self._dall['SaveName-usr'] = False
 
+    def generate_SaveName(self, include=None):
+        SN = self.SaveName_Conv(Mod=self.Mod, Cls=self.Cls,
+                              Type=self.Type, Name=self.Name,
+                              Deg=self.Deg, Exp=self.Exp,
+                              Diag=self.Diag, shot=self.shot,
+                              version=self.version, usr=self.usr,
+                              include=include)
+        return SN
+
     def set_lObj(self, lObj=None):
         """ Set the lObj attribute, storing objects the instance depends on
 
