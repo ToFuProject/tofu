@@ -90,6 +90,7 @@ def recreate_compatible_objects(path=_path_laura_former, save=True):
 
     lf = os.listdir(path)
     lf = [f for f in lf if all([s in f for s in ['TFG_','.npz']])]
+    lS = []
     for f in lf:
         cls, Exp, nn = f.split('_')[1:4]
         cls = cls[:cls.index('Tor')]
@@ -132,6 +133,8 @@ def recreate_compatible_objects(path=_path_laura_former, save=True):
             ss.save()
         else:
             print("    Would be ",ss)
+        lS.append(ss)
+    return lS
 
 def recreate_config(dconfig=_dconfig,
                     path=_path_Objects, save=True):
@@ -239,7 +242,7 @@ def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
         conf = load_config(config, path=path, plot=False)
 
         # Create the LOSCam2D object
-        # Note : thsis is where the computation goes on...
+        # Note : this is where the computation goes on...
         cam = tf.geom.LOSCam2D(Exp=conf.Id.Exp, Name=cam, dgeom=(D,u),
                                config=conf, Diag='Test', method="optimized")
 

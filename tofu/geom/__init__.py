@@ -10,5 +10,6 @@ Provides classes to model the 3D geometry of:
 """
 
 from tofu.geom._core import PlasmaDomain, Ves, PFC, CoilPF, CoilCS, Config, Rays, LOSCam1D, LOSCam2D
+from . import utils
 
-__all__ = ['_GG', '_comp', '_plot', '_def']
+__all__ = ['_GG', '_comp', '_plot', '_def', 'utils']
