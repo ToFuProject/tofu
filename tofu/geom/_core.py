@@ -1802,6 +1802,8 @@ class Config(utils.ToFuObject):
                             self._dstruct['dStruct'][k][kk] = utils.load(pfe)
                         except Exception as err:
                             msg = str(err)
+                            msg += "\n    k = {0}".format(str(k))
+                            msg += "\n    kk = {0}".format(str(kk))
                             msg += "\n    type(pfe) = {0}".format(str(type(pfe)))
                             msg += "\n    self._dstrip['strip'] = {0}".format(self._dstrip['strip'])
                             msg += "\n    strip = {0}".format(strip)

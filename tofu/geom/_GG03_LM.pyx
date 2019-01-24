@@ -36,7 +36,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                               double eps_uz=_SMALL, double eps_a=_VSMALL,
                               double eps_vz=_VSMALL, double eps_b=_VSMALL,
                               double eps_plane=_VSMALL, str ves_type='Tor',
-                              bint forbid=1, bint test=1, int num_threads=0):
+                              bint forbid=1, bint test=1, int num_threads=16):
     """
     Computes the entry and exit point of all provided LOS for the provided
     vessel polygon (toroidal or linear) with its associated structures.
