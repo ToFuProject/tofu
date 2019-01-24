@@ -74,6 +74,7 @@ def _recreate_compatible_objects(path=_path_laura_former, save=True):
 
     lf = os.listdir(path)
     lf = [f for f in lf if all([s in f for s in ['TFG_','.npz']])]
+    lS = []
     for f in lf:
         cls, Exp, nn = f.split('_')[1:4]
         cls = cls[:cls.index('Tor')]
@@ -116,6 +117,8 @@ def _recreate_compatible_objects(path=_path_laura_former, save=True):
             ss.save()
         else:
             print("    Would be ",ss)
+        lS.append(ss)
+    return lS
 
 def recreate_config(dconfig=_dconfig,
                     path=_path_Objects, save=True):
