@@ -1,7 +1,7 @@
 """ A tomography library for fusion devices
 
 See:
-https://github.com/ToFuProject/tofu 
+https://github.com/ToFuProject/tofu
 """
 
 import sys
@@ -31,7 +31,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 version_git = up.updateversion(os.path.join(here,'tofu'))
 
 # To compile the relevant version
-if sys.version[:3] in ['2.7','3.6']:
+if sys.version[:3] in ['2.7','3.6','3.7']:
     gg = '_GG0%s' % sys.version[0]
     poly = 'polygon%s' % sys.version[0]
 else:
@@ -118,6 +118,7 @@ setup(
         # that you indicate whether you support Python 2, Python 3 or both.
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
 
         # In which language most of the code is written ?
         'Natural Language :: English',
