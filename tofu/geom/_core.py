@@ -569,7 +569,8 @@ class Struct(utils.ToFuObject):
         self._dsino.update(**fd['dsino'])
         self._dphys.update(**fd['dphys'])
         self._dmisc.update(**fd['dmisc'])
-        self._dplot.update(**fd['dplot'])
+        if 'dplot' in fd.keys():
+            self._dplot.update(**fd['dplot'])
 
     ###########
     # Properties
