@@ -238,33 +238,39 @@ class Test01_Data1D:
         o1 = 100.*(o0-0.1*o0)
 
     def test08_plot(self):
-        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
+        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                   and getattr(plt.get_current_fig_manager(),'toolbar') is
+                   not None)
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             KH = oo.plot(key=None, ntMax=4, nchMax=2, fs=None,
                          dmargin=dict(left=0.06, right=0.9),
-                         connect=toolbar, wintit='test', tit='AHAH')
-            KH = oo.plot(key='Name', draw=False, dmargin=None, connect=toolbar)
+                         connect=connect, wintit='test', tit='AHAH')
+            KH = oo.plot(key='Name', draw=False, dmargin=None, connect=connect)
         plt.close('all')
 
     def test09_compare(self):
         if self.__class__ is Test02_Data2D:
             return
-        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
+        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                   and getattr(plt.get_current_fig_manager(),'toolbar') is
+                   not None)
         o0 = self.LObj[0]
         for ii in range(1,len(self.LObj)):
             oo = self.LObj[ii]
-            KH = oo.plot_compare(o0, connect=toolbar)
+            KH = oo.plot_compare(o0, connect=connect)
         plt.close('all')
 
     def test10_combine(self):
         if self.__class__ is Test02_Data2D:
             return
-        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
+        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                   and getattr(plt.get_current_fig_manager(),'toolbar') is
+                   not None)
         o0 = self.LObj[0]
         for ii in range(1,len(self.LObj)):
             oo = self.LObj[ii]
-            KH = oo.plot_combine(o0, connect=toolbar)
+            KH = oo.plot_combine(o0, connect=connect)
         plt.close('all')
 
     def test11_tofromdict(self):
