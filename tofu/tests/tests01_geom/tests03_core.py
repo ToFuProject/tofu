@@ -380,7 +380,9 @@ class Test03_Rays:
                 t = None
                 Ani = False
             plot = self.LObj[ii].Id.Cls in ['LOSCam1D','LOSCam2D']
-            connect = hasattr(plt.get_current_fig_manager(),'toolbar')
+            connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                       and getattr(plt.get_current_fig_manager(),'toolbar') is
+                       not None)
             #print(ii, plot, self.LObj[ii].Id.Name, t, ind)  # DB
             sig = self.LObj[ii].calc_signal(ff, t=t, Ani=Ani, fkwdargs={},
                                       dl=0.01, DL=None, dlMode='abs', method='simps',
