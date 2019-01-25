@@ -4,7 +4,7 @@ python:
 - '3.6'
 - '3.7-dev'
 git:
-  depth: 100
+  depth: 200
 sudo: required
 dist: trusty
 before_install:
