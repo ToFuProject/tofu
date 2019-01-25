@@ -849,9 +849,9 @@ class Test03_Rays(object):
                 obj = self.dobj[typ][c]
                 ff = ffT if obj.config.Id.Type=='Tor' else ffL
                 t = np.arange(0,10,10)
-                connect = hasattr(plt.get_current_fig_manager(),'toolbar')
-                if connect:
-                    connect = plt.get_current_fig_manager().toolbar is not None
+                connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                           and getattr(plt.get_current_fig_manager(),'toolbar')
+                           is not None)
                 out = obj.calc_signal(ff, t=t, ani=True, fkwdargs={},
                                       res=0.01, DL=None, resMode='abs',
                                       method='simps', ind=ind,
@@ -890,9 +890,9 @@ class Test03_Rays(object):
             plt.close('all')
 
     def test12_plot_touch(self):
-        connect = hasattr(plt.get_current_fig_manager(),'toolbar')
-        if connect:
-            connect = plt.get_current_fig_manager().toolbar is not None
+        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                   and getattr(plt.get_current_fig_manager(),'toolbar')
+                   is not None)
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
