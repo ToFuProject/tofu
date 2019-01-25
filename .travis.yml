@@ -2,7 +2,7 @@ language: python
 python:
 - '2.7'
 - '3.6'
-- '3.7'
+- '3.7-dev'
 git:
   depth: 100
 sudo: required
@@ -17,7 +17,7 @@ install:
   -O miniconda.sh; export VADD="py27"; export PCK="polygon2"; fi
 - if [[ "$TRAVIS_PYTHON_VERSION" == "3.6" ]]; then wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   -O miniconda.sh; export VADD="py36"; export PCK="polygon3"; fi
-- if [[ "$TRAVIS_PYTHON_VERSION" == "3.7" ]]; then wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+- if [[ "$TRAVIS_PYTHON_VERSION" == "3.7-dev" ]]; then wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
   -O miniconda.sh; export VADD="py37"; export PCK="polygon3"; fi
 - bash miniconda.sh -b -p $HOME/miniconda
 - export PATH="$HOME/miniconda/bin:$PATH"
