@@ -2596,7 +2596,7 @@ class Rays(utils.ToFuObject):
 
     def set_dconfig(self, config=None, calcdgeom=True):
         config = self._checkformat_inputs_dconfig(config)
-        self._dconfig['config'] = config.copy()
+        self._dconfig['Config'] = config.copy()
         if calcdgeom:
             self.compute_dgeom()
 
@@ -2667,7 +2667,7 @@ class Rays(utils.ToFuObject):
 
     def compute_dgeom(self, extra=True, plotdebug=True):
         # Can only be computed if config if provided
-        if self._dconfig['config'] is None:
+        if self._dconfig['Config'] is None:
             msg = "The dgeom cannot be computed without a config !"
             warnings.warn(msg)
             return
@@ -2805,7 +2805,7 @@ class Rays(utils.ToFuObject):
         self._dsino.update({'RefPt':RefPt})
         VType = self.config.Id.Type
         if RefPt is not None:
-            self._dconfig['config'].set_dsino(RefPt=RefPt)
+            self._dconfig['Config'].set_dsino(RefPt=RefPt)
             kOut = np.copy(self._dgeom['kOut'])
             kOut[np.isnan(kOut)] = np.inf
             try:
@@ -2872,9 +2872,9 @@ class Rays(utils.ToFuObject):
 
         if strip<self._dstrip['strip']:
             if self._dstrip['strip']==4:
-                pfe = self._dconfig['config']
+                pfe = self._dconfig['Config']
                 try:
-                    self._dconfig['config'] = utils.load(pfe)
+                    self._dconfig['Config'] = utils.load(pfe)
                 except Exception as err:
                     msg = str(err)
                     msg += "\n    type(pfe) = {0}".format(str(type(pfe)))
@@ -2882,7 +2882,7 @@ class Rays(utils.ToFuObject):
                     msg += "\n    strip = {0}".format(strip)
                     raise Exception(msg)
 
-            self._dconfig['config'].strip(strip)
+            self._dconfig['Config'].strip(strip)
         else:
             if strip==4:
                 path, name = self.config.Id.SavePath, self.config.Id.SaveName
@@ -2907,10 +2907,10 @@ class Rays(utils.ToFuObject):
                         warning.warn(msg)
                     else:
                         raise Exception(msg)
-                self._dconfig['config'] = pathfile
+                self._dconfig['Config'] = pathfile
 
             else:
-                self._dconfig['config'].strip(strip)
+                self._dconfig['Config'].strip(strip)
 
 
     def _strip_dsino(self, strip=0):
@@ -2964,7 +2964,19 @@ class Rays(utils.ToFuObject):
                 'dsino':{'dict':self.dsino, 'lexcept':None}}
         return dout
 
+    @classmethod
+    def _checkformat_fromdict_dconfig(cls, dconfig):
+        if dconfig['Config'] is None:
+            return Nonei
+        if type(dconfig['Config']) is dict:
+            dconfig['Config'] = Config(fromdict=dconfig['Config'])
+        lC = [isinstance(dconfig['Config'],Config),
+              type(dconfig['Config']) is str]
+        assert any(lC)
+
     def _from_dict(self, fd):
+        self._checkformat_fromdict_dconfig(fd['dconfig'])
+
         self._dconfig.update(**fd['dconfig'])
         self._dgeom.update(**fd['dgeom'])
         self._dsino.update(**fd['dsino'])
@@ -3023,14 +3035,14 @@ class Rays(utils.ToFuObject):
 
     @property
     def config(self):
-        return self._dconfig['config']
+        return self._dconfig['Config']
 
     @property
     def lStruct_computeInOut(self):
         compute = self.config.get_compute()
         lS = self.config.lStruct
         lSI, lSO = [], []
-        for ii in range(0,self._dconfig['config']._dstruct['nStruct']):
+        for ii in range(0,self._dconfig['Config']._dstruct['nStruct']):
             if compute[ii]:
                 if lS[ii]._InOut=='in':
                     lSI.append(lS[ii])
