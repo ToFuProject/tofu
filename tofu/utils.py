@@ -260,7 +260,7 @@ def _set_arrayorder(obj, arrayorder='C'):
 #############################################
 
 def save(obj, path=None, name=None, mode='npz',
-         strip=None, compressed=False, verb=True):
+         strip=None, compressed=False, verb=True, return_pfe=False):
     """ Save the ToFu object
 
     ToFu provides built-in saving and loading functions for ToFu objects.
@@ -329,6 +329,8 @@ def save(obj, path=None, name=None, mode='npz',
         msg = "Saved in :\n"
         msg += "    "+pathfileext
         print(msg)
+    if return_pfe:
+        return pathfileext
 
 def _save_npz(dd, pathfileext, compressed=False):
 
@@ -925,9 +927,9 @@ class ToFuObject(ToFuObjectBase):
 
     def save(self, path=None, name=None,
              strip=None, sep=_sep, mode='npz',
-             compressed=False, verb=True):
+             compressed=False, verb=True, return_pfe=False):
         save(self, path=path, name=name,
-             strip=strip, compressed=compressed)
+             strip=strip, compressed=compressed, return_pfe=return_pfe)
 
 if sys.version[0]=='2':
     ToFuObject.save.__func__.__doc__ = save.__doc__

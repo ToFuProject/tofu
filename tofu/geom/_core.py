@@ -971,7 +971,7 @@ class Struct(utils.ToFuObject):
 
     def save_to_txt(self, path='./', name=None,
                    fmt='%.18e', delimiter=' ', newline='\n', header='',
-                   footer='', comments='# ', encoding=None):
+                   footer='', comments='# ', encoding=None, verb=True, return_pfe=False):
         """ Save the basic geometrical attributes only (polygon and pos/extent)
 
         The attributes are saved to a txt file with chosen encoding
@@ -1031,7 +1031,10 @@ class Struct(utils.ToFuObject):
         if 'encoding' in inspect.signature(np.savetxt).parameters:
             kwds['encoding'] = encoding
         np.savetxt(pfe, out, **kwds)
-        print("save_to_txt in:\n", pfe)
+        if verb:
+            print("save_to_txt in:\n", pfe)
+        if return_pfe:
+            return pfe
 
     @staticmethod
     def from_txt(pfe):
