@@ -284,14 +284,12 @@ class Test01_Data1D:
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             dd = oo._todict()
-            oo.save(Print=False)
-            PathFileExt = os.path.join(oo.Id.SavePath,
-                                       oo.Id.SaveName+'.npz')
-            obj = tfpf.Open(PathFileExt, Print=False)
+            pfe = oo.save(verb=False, return_pfe=True)
+            obj = tfpf.Open(pfe, Print=False)
             # Just to check the loaded version works fine
             do = obj._todict()
             assert tfu.dict_cmp(dd,do)
-            os.remove(PathFileExt)
+            os.remove(pfe)
 
 
 

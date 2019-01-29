@@ -609,7 +609,7 @@ class Struct(utils.ToFuObject):
         Lim = self._get_LimFromPosExtent(self._dgeom['pos'],
                                          self._dgeom['extent'],
                                          Type=self.Id.Type)
-        return Lim
+        return Lim.T
     @property
     def dsino(self):
         return self._dsino
