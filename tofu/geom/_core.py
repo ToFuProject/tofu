@@ -1331,8 +1331,10 @@ class Config(utils.ToFuObject):
     _ddef = {'Id':{'shot':0, 'Type':'Tor', 'Exp':'Dummy',
                    'include':['Mod','Cls','Exp',
                               'Name','shot','version']},
-             'dstruct':{'order':['Ves','PFC','CoilPF','CoilCS'],
+             'dstruct':{'order':['PlasmaDomain','Ves','PFC','CoilPF','CoilCS'],
                         'dextraprop':{'visible':True}}}
+    _lclsstr = ['PlasmaDomain','Ves','PFC','CoilPF','CoilCS']
+
 
     def __init__(self, lStruct=None, Lim=None, dextraprop=None,
                  Id=None, Name=None, Exp=None, shot=None, Type=None,
@@ -1901,7 +1903,22 @@ class Config(utils.ToFuObject):
                 'dsino':{'dict':self.dsino, 'lexcept':None}}
         return dout
 
+    @classmethod
+    def _checkformat_fromdict_dstruct(cls, dstruct):
+        if dstruct['lorder'] is None:
+            return None
+        for clsn in dstruct['lorder']:
+            c, n = clsn.split('_')
+            if type(dstruct['dStruct'][c][n]) is dict:
+                dstruct['dStruct'][c][n]\
+                        = eval(c).__call__(fromdict=dstruct['dStruct'][c][n])
+            lC = [issubclass(dstruct['dStruct'][c][n].__class__,Struct),
+                  type(dstruct['dStruct'][c][n]) is str]
+            assert any(lC)
+
     def _from_dict(self, fd):
+        self._checkformat_fromdict_dstruct(fd['dstruct'])
+
         self._dstruct.update(**fd['dstruct'])
         self._dextraprop.update(**fd['dextraprop'])
         self._dsino.update(**fd['dsino'])
