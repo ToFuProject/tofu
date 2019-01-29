@@ -345,6 +345,9 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
             Lim = np.array(Lim).ravel()
             assert Lim.size==2 and Lim[0]<Lim[1]
             P = np.array([np.sum(Lim)/2., defRY, 0.])
+    else:
+        P = np.asarray(P, dtype=float).ravel()
+        assert P.size==3
 
     # Camera inner parameters
     assert type(F) in [int, float, np.int64, np.float64]
@@ -413,7 +416,7 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
     if e20[2]<0.:
         e10, e20 = -e10, -e20
 
-    if ansg is None:
+    if angs is None:
         e1 = e10
         e2 = e20
     else:
@@ -585,6 +588,38 @@ def create_config(Exp='Dummy', Type='Tor', Lim=None, Lim_Bump=[0.,np.pi/8.],
 
     conf = _core.Config(Name='Conf', lStruct=[ves,baf,bump])
     return conf
+
+
+def create_CamLOS1D_pinhole(Name=None, Etendues=None, Surfaces=None,
+                            dchans=None, Diag=None, color=None,
+                            P=None, F=0.1, D12=0.1, N12=100,
+                            angs=[-np.pi,0.,0.], nIn=None,
+                            VType='Tor', defRY=None, Lim=None, config=None):
+
+    if config is not None:
+        Lim = config.Lim
+        VType = config.Id.Type
+        lS = config.lStructIn
+        if len(lS)>0:
+            defRY = np.max([ss.dgeom['P1Max'][0] for ss in lS])
+        else:
+            defRY = np.max([ss.dgeom['P1Max'][0] for ss in config.lStruct])
+
+    Ds, P, d2 = compute_CamLOS1D_pinhole(P=P, F=F, D12=D12, N12=N12, angs=angs,
+                                         nIn=nIn, VType=VType, defRY=defRY,
+                                         Lim=Lim)
+
+    cam = _core.CamLOS1D(Name=Name, Diag=Diag,
+                         dgeom={'pinhole':P, 'D':Ds},
+                         Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
+                         color=color, config=config)
+
+    return cam
+
+
+
+
+
 
 
 _dconfig = {'A1': {'Exp':'WEST',
