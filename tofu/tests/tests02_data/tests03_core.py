@@ -102,7 +102,7 @@ class Test01_Data1D:
     def setup_class(cls):
         thet = np.linspace(0,2.*np.pi,100)
         P = np.array([2.4 + 0.8*np.cos(thet),0.8*np.sin(thet)])
-        V = tfg.Ves('Test', P, Exp='Test', SavePath=here)
+        V = tfg.Ves(Name='Test', Poly=P, Exp='Test', SavePath=here)
         N = 10
         Ds = np.array([3.*np.ones(N,), np.zeros((N,)), np.linspace(-0.5,0.5,N)])
         A = np.r_[2.5,0,0]
@@ -302,7 +302,7 @@ class Test02_Data2D(Test01_Data1D):
     def setup_class(cls):
         thet = np.linspace(0,2.*np.pi,100)
         P = np.array([2.4 + 0.8*np.cos(thet),0.8*np.sin(thet)])
-        V = tfg.Ves('Test', P, Exp='Test', SavePath=here)
+        V = tfg.Ves(Name='Test', Poly=P, Exp='Test', SavePath=here)
         N = 5
         Ds, us = tfu.create_CamLOS2D([3.5,0.,0.], 0.1, (0.05,0.05), (N,N),
                                      nIn=[-1,0.,0.], e1=None, e2=None,
