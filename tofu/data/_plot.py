@@ -1693,6 +1693,34 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
 
 
 
+    # Adding mobile profiles
+    ll0, ltg1, ltg2 = [], [], []
+    for jj in range(0,ntMax):
+        l0, = dax['chan'][0]['ax'].plot(X[0,:],
+                                        np.full((nX,),np.nan),
+                                        c=lct[jj], ls=lls[0],
+                                        lw=1.)
+        ll0.append(l1)
+        for ii in range(0,nfMax):
+            l1, = dax['chan'][1]['ax'].plot(X[0,:],
+                                            np.full((nX,),np.nan),
+                                            c=lct[jj], ls=lls[ii],
+                                            lw=1.)
+            l2, = dax['chan'][2]['ax'].plot(X[0,:],
+                                            np.full((nX,),np.nan),
+                                            c=lct[jj], ls=lls[ii],
+                                            lw=1.)
+            ltg1.append(l1)
+            ltg2.append(l2)
+
+            l1.update = utils.get_update(Type='y_const', par=y)
+
+    dtg1 = {'xref':t, 'h':ltg1, 'y':psd}
+    dtg2 = {'xref':t, 'h':ltg2, 'y':ang}
+    dax['t'][0]['dh']['vline'][0]['trig']['1dprof'][ii] = dtg1
+    dax['chan'][0]['dh']['1dprof'][ii] = dtg
+
+
 
 
     # ---------------
