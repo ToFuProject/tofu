@@ -389,7 +389,8 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
         if nIn is None:
             nIncross = eR*np.cos(angs[0]) + eZ*np.sin(angs[0])
             nIn = nIncross*np.cos(angs[1]) + ePhi*np.sin(angs[1])
-            nIn = nIn/np.linalg.norm(nIn)
+        nIn = nIn/np.linalg.norm(nIn)
+
 
         if np.abs(np.abs(nIn[2])-1.)<1.e-12:
             e10 = ePhi
@@ -403,7 +404,7 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
         if nIn is None:
             nIncross = eY*np.cos(angs[0]) + eY*np.sin(angs[0])
             nIn = nIncross*np.cos(angs[1]) + eZ*np.sin(angs[1])
-            nIn = nIn/np.linalg.norm(nIn)
+        nIn = nIn/np.linalg.norm(nIn)
 
         if np.abs(np.abs(nIn[2])-1.)<1.e-12:
             e10 = eX
@@ -507,7 +508,8 @@ _comdoc = \
 
 def compute_CamLOS1D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
                              angs=[-np.pi,0.,0.], nIn=None,
-                             VType='Tor', defRY=None, Lim=None):
+                             VType='Tor', defRY=None, Lim=None,
+                             return_Du=False):
 
     # Check/ format inputs
     P, F, D12, N12, angs, nIn, e1, e2, VType\
@@ -521,7 +523,12 @@ def compute_CamLOS1D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
     d2e = d2[np.newaxis,:]*e2[:,np.newaxis]
 
     Ds = P[:,np.newaxis] - F*nIn[:,np.newaxis] + d2e
-    return Ds, P, d2
+    if return_Du:
+        us = P[:,np.newaxis]-Ds
+        us = us / np.sqrt(np.sum(us**2,axis=0))[np.newaxis,:]
+        return Ds, us
+    else:
+        return Ds, P, d2
 
 
 _comdoc1 = _comdoc.format('1','',
@@ -535,7 +542,8 @@ compute_CamLOS1D_pinhole.__doc__ = _comdoc1
 
 def compute_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
                              angs=[-np.pi,0.,0.], nIn=None,
-                             VType='Tor', defRY=None, Lim=None):
+                             VType='Tor', defRY=None, Lim=None,
+                             return_Du=False):
 
     # Check/ format inputs
     P, F, D12, N12, angs, nIn, e1, e2, VType\
@@ -552,9 +560,13 @@ def compute_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
     d1e = d1f[np.newaxis,:]*e1[:,np.newaxis]
     d2e = d2f[np.newaxis,:]*e2[:,np.newaxis]
 
-
     Ds = P[:,np.newaxis] - F*nIn[:,np.newaxis] + d1e + d2e
-    return Ds, P, d1, d2
+    if return_Du:
+        us = P[:,np.newaxis]-Ds
+        us = us / np.sqrt(np.sum(us**2,axis=0))[np.newaxis,:]
+        return Ds, us
+    else:
+        return Ds, P, d1, d2
 
 
 
