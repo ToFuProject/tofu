@@ -628,6 +628,33 @@ def create_CamLOS1D_pinhole(Name=None, Etendues=None, Surfaces=None,
 
     return cam
 
+def create_CamLOS2D_pinhole(Name=None, Etendues=None, Surfaces=None,
+                            dchans=None, Diag=None, color=None,
+                            P=None, F=0.1, D12=0.1, N12=100,
+                            angs=[-np.pi,0.,0.], nIn=None,
+                            VType='Tor', defRY=None, Lim=None, config=None):
+
+    if config is not None:
+        Lim = config.Lim
+        VType = config.Id.Type
+        lS = config.lStructIn
+        if len(lS)>0:
+            defRY = np.max([ss.dgeom['P1Max'][0] for ss in lS])
+        else:
+            defRY = np.max([ss.dgeom['P1Max'][0] for ss in config.lStruct])
+
+    Ds, P, d1, d2 = compute_CamLOS2D_pinhole(P=P, F=F, D12=D12, N12=N12,
+                                             angs=angs, nIn=nIn, VType=VType,
+                                             defRY=defRY, Lim=Lim)
+
+    cam = _core.CamLOS2D(Name=Name, Diag=Diag,
+                         dgeom={'pinhole':P, 'D':Ds},
+                         Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
+                         color=color, config=config)
+
+    # Set X12 ?
+
+    return cam
 
 
 

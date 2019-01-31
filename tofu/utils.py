@@ -1966,22 +1966,99 @@ def get_updatefunc(obj, Type=None, data=None, fmt=None):
 
 
 
-class KeyHandler2(object):
+class KeyHandler_mpl(object):
 
-    def __init__(self):
+    _ddef = {'dgroup_base':{'nMax':4, 'n':1, 'ind':0, 'val':0, 'ref':None, 'dref':{}, 'lax':[]}
+
+    _msgdobj = """ Arg dobj must be a dict
+    The keys are handles to matplotlib Artist objects (e.g.: lines, imshow...)
+
+    For each object oo, dobj[oo] is itself a dict with (key,values) pairs:
+        - 'ref'   : a 1D flat np.ndarray, used as reference
+        - 'group' : a int, indicating to which group of indices oo belongs
+        - 'n'     : a int, indicating the number of oo in that group (unique)
+        - 'update': a callable (function), to be called when updating
+        - 'ind'   : the main index to be updated (seta start value, eg: 0)
+        - 'depend': None or a dict of {group:n}
+    """
 
 
-        self.dgroup = {0: {'nMax':4, 'n':1, 'ind':0, 'val':0, 'ref':None, 'dref':{}, 'lax':[]},
-                       1: {'nMax':4, 'n':1, 'ind':0, 'val':0, 'ref':None, 'dref':{}, 'lax':[]},
-                       2: {'nMax':4, 'n':1, 'ind':0, 'val':0, 'ref':None, 'dref':{}, 'lax':[]}}
+    def __init__(self, dgroup=None, dobj=None):
+        self.init(dgroup=dgroup, dobj=dobj)
+
+
+    @classmethod
+    def _checkformat_dobjgroup(cls, dobj, dgroup):
+        C0 = type(dobj) is dict
+        C1 = all([issubclass(k.__class__,mpl.artist.Artist)
+                  for k in dobj.keys()])
+        C2 = all([type(v) is dict for v in dobj.values()])
+        if not all([C0,C1,C2]):
+            raise Exception(cls._msgdobj)
+
+        # dobj and extract info
+        ls = ['group','n']
+        dg = {}
+        for oo in dobj.keys():
+            lk = dobj[oo].keys()
+            C0 = all([ss in lk for ss in ls])
+            if not C0:
+                raise Exception(cls._msgdobj)
+            if not dobj[oo]['group'] in dg.keys()
+                dg[dobj[oo]['group']] = [dobj[oo]['n']]
+            else:
+                if dobj[oo]['n'] in dg[dobj[oo]['group']]:
+                    raise Exception(cls._msgdobj)
+                dg[dobj[oo]['group']].append(dobj[oo]['n'])
+        lgu = np.unique(dg.keys()).astype(int)
+        for gg in lgu:
+             dg[gg] = np.unique(dg[gg]).astype(int)
+
+        ls = ['ref','update','ind','depend']
+        for oo in dobj.keys():
+            lk = dobj[oo].keys()
+            C0 = all([ss in lk for ss in ls])
+            if not C0:
+                raise Exception(cls._msgdobj)
+            dobj[oo]['ax'] = oo.axes
+            dobj[oo]['vis'] = False
+
+        # dgroup
+        C0 = type(dgroup) is dict
+        C1 = np.all(np.unique(dgroup.keys()).astype(int)==lgu)
+        if not (C0 and C1):
+            raise Exception(cls._msgdobj)
+        C0 = all(['nMax' in vv for vv in dgroup.values()])
+        C1 = all([dgroup[gg]['nMax']>=min(1,dg[gg].max()) for gg in lgu])
+        if not (C0 and C1):
+            raise Exception(cls._msgdobj)
+
+        for gg in lgu:
+            lobj, lax = [], []
+            for oo in dobj.keys():
+                if dobj[oo]['group']==gg:
+                    lobj.append(oo)
+                    if dobj[oo]['ax'] not in lax:
+                        lax.append(dobj[oo]['ax'])
+            dgroup[gg]['lobj'] = lobj
+            dgroup[gg]['lax'] = lax
+            dgroup[gg]['n'] = 1
+            dgroup[gg]['inds'] = None
+            dgroup[gg]['vals'] = None
+
+        return dobj, dgroup
+
+
+
+    def init(self, dgroup=None, ngroup=None, dobj=None):
+        dobj, dgroup = self._checkformat_dobjgroup(dobj, dgroup)
+        self.dobj = dobj
+        self.dgroup = dgroup
         self.dcur = {'group':0, 'ax':None}
         self.dkeys = {'shift': False}
-        #self.dobj = {oo: {'ref':, 'ax':, 'group':, 'n':0, 'ind':, 'vis':, 'update':}
-        #self.dobj =
 
     def update(self):
-        if self.lib=='mpl':
-            self._update_mpl()
+        self._update_mpl()
 
 
     def _update_mpl(self):
