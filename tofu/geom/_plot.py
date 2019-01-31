@@ -800,7 +800,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
               draw=True, fs=None, wintit=None, Test=True, ind=None):
 
     if Test:
-        C = GLos.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']
+        C = GLos.Id.Cls in ['Rays','CamLOS1D','CamLOS2D']
         assert C, "Arg GLos must be an object child of tfg.Rays !"
         Proj = Proj.lower()
         C = Proj in ['cross','hor','all','3d']

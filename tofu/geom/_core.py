@@ -45,7 +45,7 @@ except Exception:
     from . import _plot as _plot
 
 __all__ = ['PlasmaDomain', 'Ves', 'PFC', 'CoilPF', 'CoilCS', 'Config',
-           'Rays','LOSCam1D','LOSCam2D']
+           'Rays','CamLOS1D','CamLOS2D']
 
 
 _arrayorder = 'C'
@@ -291,7 +291,7 @@ class Struct(utils.ToFuObject):
     @staticmethod
     def _get_LimFromPosExtent(pos, extent, Type='Tor'):
         if pos.size>0:
-            Lim = pos[np.newaxis,:] + np.array([[0.5],[0.5]])*extent
+            Lim = pos[np.newaxis,:] + np.array([[-0.5],[0.5]])*extent
             if Type=='Tor':
                 Lim = np.arctan2(np.sin(Lim),np.cos(Lim))
         else:
@@ -611,7 +611,7 @@ class Struct(utils.ToFuObject):
         Lim = self._get_LimFromPosExtent(self._dgeom['pos'],
                                          self._dgeom['extent'],
                                          Type=self.Id.Type)
-        return Lim
+        return Lim.T
     @property
     def dsino(self):
         return self._dsino
@@ -973,7 +973,7 @@ class Struct(utils.ToFuObject):
 
     def save_to_txt(self, path='./', name=None,
                    fmt='%.18e', delimiter=' ', newline='\n', header='',
-                   footer='', comments='# ', encoding=None):
+                   footer='', comments='# ', encoding=None, verb=True, return_pfe=False):
         """ Save the basic geometrical attributes only (polygon and pos/extent)
 
         The attributes are saved to a txt file with chosen encoding
@@ -1033,7 +1033,10 @@ class Struct(utils.ToFuObject):
         if 'encoding' in inspect.signature(np.savetxt).parameters:
             kwds['encoding'] = encoding
         np.savetxt(pfe, out, **kwds)
-        print("save_to_txt in:\n", pfe)
+        if verb:
+            print("save_to_txt in:\n", pfe)
+        if return_pfe:
+            return pfe
 
     @staticmethod
     def from_txt(pfe):
@@ -1330,8 +1333,10 @@ class Config(utils.ToFuObject):
     _ddef = {'Id':{'shot':0, 'Type':'Tor', 'Exp':'Dummy',
                    'include':['Mod','Cls','Exp',
                               'Name','shot','version']},
-             'dstruct':{'order':['Ves','PFC','CoilPF','CoilCS'],
+             'dstruct':{'order':['PlasmaDomain','Ves','PFC','CoilPF','CoilCS'],
                         'dextraprop':{'visible':True}}}
+    _lclsstr = ['PlasmaDomain','Ves','PFC','CoilPF','CoilCS']
+
 
     def __init__(self, lStruct=None, Lim=None, dextraprop=None,
                  Id=None, Name=None, Exp=None, shot=None, Type=None,
@@ -1902,7 +1907,22 @@ class Config(utils.ToFuObject):
                 'dsino':{'dict':self.dsino, 'lexcept':None}}
         return dout
 
+    @classmethod
+    def _checkformat_fromdict_dstruct(cls, dstruct):
+        if dstruct['lorder'] is None:
+            return None
+        for clsn in dstruct['lorder']:
+            c, n = clsn.split('_')
+            if type(dstruct['dStruct'][c][n]) is dict:
+                dstruct['dStruct'][c][n]\
+                        = eval(c).__call__(fromdict=dstruct['dStruct'][c][n])
+            lC = [issubclass(dstruct['dStruct'][c][n].__class__,Struct),
+                  type(dstruct['dStruct'][c][n]) is str]
+            assert any(lC)
+
     def _from_dict(self, fd):
+        self._checkformat_fromdict_dstruct(fd['dstruct'])
+
         self._dstruct.update(**fd['dstruct'])
         self._dextraprop.update(**fd['dextraprop'])
         self._dsino.update(**fd['dsino'])
@@ -1923,12 +1943,29 @@ class Config(utils.ToFuObject):
     def lStruct(self):
         """ Return the list of Struct that was used for creation
 
-        As tofu objects of SavePath+SaveNames (according to strip status)
+        As tofu objects or SavePath+SaveNames (according to strip status)
         """
         lStruct = []
         for k in self._dstruct['lorder']:
             k0, k1 = k.split('_')
             lStruct.append(self._dstruct['dStruct'][k0][k1])
+        return lStruct
+
+    @property
+    def lStructIn(self):
+        """ Return the list of StructIn contained in self.lStruct
+
+        As tofu objects or SavePath+SaveNames (according to strip status)
+        """
+        lStruct = []
+        for k in self._dstruct['lorder']:
+            k0, k1 = k.split('_')
+            if type(self._dstruct['dStruct'][k0][k1]) is str:
+                if any([ss in self._dstruct['dStruct'][k0][k1]
+                        for ss in ['Ves','PlasmaDomain']]):
+                    lStruct.append(self._dstruct['dStruct'][k0][k1])
+            elif issubclass(self._dstruct['dStruct'][k0][k1].__class__, StructIn):
+                lStruct.append(self._dstruct['dStruct'][k0][k1])
         return lStruct
 
     @property
@@ -2099,7 +2136,7 @@ class Config(utils.ToFuObject):
                       self._dstruct['dStruct'][k][kk]._Id._dall['Name'],
                       self._dstruct['dStruct'][k][kk]._Id._dall['SaveName'],
                       self._dstruct['dStruct'][k][kk]._dgeom['nP'],
-                      self._dstruct['dStruct'][k][kk]._dgeom['nLim'],
+                      self._dstruct['dStruct'][k][kk]._dgeom['noccur'],
                       self._dstruct['dStruct'][k][kk]._dgeom['mobile'],
                       self._dstruct['dStruct'][k][kk]._dmisc['color']]
                 for pp in self._dextraprop['lprop']:
@@ -2107,7 +2144,7 @@ class Config(utils.ToFuObject):
                 data.append(lu)
 
         # Build the pandas DataFrame
-        col = ['class', 'Name', 'SaveName', 'nP', 'nLim',
+        col = ['class', 'Name', 'SaveName', 'nP', 'noccur',
                'mobile', 'color'] + self._dextraprop['lprop']
         df = pd.DataFrame(data, columns=col)
         pd.set_option('display.max_columns',max_columns)
@@ -2217,7 +2254,7 @@ class Config(utils.ToFuObject):
 
 
 class Rays(utils.ToFuObject):
-    """ Parent class of rays (ray-tracing), LOS, LOSCam1D and LOSCam2D
+    """ Parent class of rays (ray-tracing), LOS, CamLOS1D and CamLOS2D
 
     Focused on optimizing the computation time for many rays.
 
@@ -2315,7 +2352,10 @@ class Rays(utils.ToFuObject):
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
 
-        self._method=method
+        # Extra-early fix for Exp
+        # Workflow to be cleaned up later ?
+        if Exp is None and config is not None:
+            Exp = config.Id.Exp
 
         kwdargs = locals()
         del kwdargs['self']
@@ -2409,8 +2449,13 @@ class Rays(utils.ToFuObject):
         C1 = (isinstance(dgeom,dict)
               and all([k in dgeom.keys() for k in ['D','pinhole']]))
         C2 = isinstance(dgeom,tuple) and len(dgeom)==2
-        msg = "Arg dgeom must be a dict or a tuple of len=2"
-        assert C0 or C1 or C2, msg
+        if not (C0 or C1 or C2):
+            msg = "Arg dgeom must be either:\n"
+            msg += "    - dict with keys:\n"
+            msg += "        ['D','u']: start points and vectors definition\n"
+            msg += "        ['D','pinhole']: start points and pinhole def.\n"
+            msg += "    - tuple of len()==2 containing (D,u)"
+            raise Exception(msg)
 
         def _checkformat_Du(arr, name):
             arr = np.asarray(arr,dtype=float)
@@ -2505,7 +2550,7 @@ class Rays(utils.ToFuObject):
     @staticmethod
     def _get_keys_dgeom():
         lk = ['D','u','pinhole',
-              'kMin', 'kMax', 'PkMin', 'PkMax', 'vperp', 'indout',
+              'kIn', 'kOut', 'PkIn', 'PkOut', 'vperp', 'indout',
               'kRMin', 'PRMin', 'RMin',
               'Etendues', 'Surfaces']
         return lk
@@ -2557,13 +2602,12 @@ class Rays(utils.ToFuObject):
 
     def set_dconfig(self, config=None, calcdgeom=True, method='ref'):
         config = self._checkformat_inputs_dconfig(config)
-        self._dconfig['config'] = config.copy()
+        self._dconfig['Config'] = config.copy()
         if calcdgeom:
             self.compute_dgeom(method=method)
 
-    def _prepare_inputs_kMinMax(self):
-        num_tot_structs = 0
-        if self._method=='ref':
+    def _prepare_inputs_kInOut(self, method='ref'):
+        if method=='ref':
             # Prepare input
             D = np.ascontiguousarray(self.D)
             u = np.ascontiguousarray(self.u)
@@ -2650,63 +2694,63 @@ class Rays(utils.ToFuObject):
 
         return largs, dkwd
 
-    def _compute_kMinMax(self):
+    def _compute_kInOut(self, method='ref'):
 
         # Prepare inputs
-        largs, dkwd = self._prepare_inputs_kMinMax()
+        largs, dkwd = self._prepare_inputs_kInOut(method)
 
         if self._method=='ref':
             # call the dedicated function
             out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
             # Currently computes and returns too many things
-            PIn, POut, kMin, kMax, VperpIn, vperp, IIn, indout = out
+            PIn, POut, kIn, kOut, VperpIn, vperp, IIn, indout = out
         elif self._method=="optimized":
             # call the dedicated function
             out = _GG_LM.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
             # Currently computes and returns too many things
-            kMin, kMax, vperp, indout = out
+            kIn, kOut, vperp, indout = out
             vperp  = np.transpose(vperp.reshape(self._dgeom['nRays'], 3))
             indout = np.transpose(indout.reshape(self._dgeom['nRays'], 3))
         else:
             pass
-        return kMin, kMax, vperp, indout
+        return kIn, kOut, vperp, indout
 
 
     def compute_dgeom(self, extra=True, plotdebug=True, method='ref'):
         # Can only be computed if config if provided
-        if self._dconfig['config'] is None:
+        if self._dconfig['Config'] is None:
             msg = "The dgeom cannot be computed without a config !"
             warnings.warn(msg)
             return
 
-        # Perform computation of kMin and kMax
-        kMin, kMax, vperp, indout = self._compute_kMinMax()
+        # Perform computation of kIn and kOut
+        kIn, kOut, vperp, indout = self._compute_kInOut(method='ref')
 
         # Clean up (in case of nans)
-        ind = np.isnan(kMin)
-        kMin[ind] = 0.
-        ind = np.isnan(kMax) | np.isinf(kMax)
+        ind = np.isnan(kIn)
+        kIn[ind] = 0.
+        ind = np.isnan(kOut) | np.isinf(kOut)
         if np.any(ind):
-            kMax[ind] = np.nan
+            kOut[ind] = np.nan
             msg = "Some LOS have no visibility inside the plasma domain !"
             warnings.warn(msg)
             if plotdebug:
-                PIn = self.D[:,ind] + kMin[np.newaxis,ind]*self.u[:,ind]
-                POut = self.D[:,ind] + kMax[np.newaxis,ind]*self.u[:,ind]
+                PIn = self.D[:,ind] + kIn[np.newaxis,ind]*self.u[:,ind]
+                POut = self.D[:,ind] + kOut[np.newaxis,ind]*self.u[:,ind]
                 # To be updated
                 _plot._LOS_calc_InOutPolProj_Debug(self.config,
                                                    self.D[:,ind],
                                                    self.u[:,ind],
                                                    PIn, POut)
 
-        # Handle particular cases with kMin > kMax
-        ind = np.zeros(kMin.shape,dtype=bool)
-        ind[~np.isnan(kMax)] = True
-        ind[ind] = kMin[ind] > kMax[ind]
-        kMin[ind] = 0.
+        # Handle particular cases with kIn > kOut
+        ind = np.zeros(kIn.shape,dtype=bool)
+        ind[~np.isnan(kOut)] = True
+        ind[ind] = kIn[ind] > kOut[ind]
+        kIn[ind] = 0.
 
         # Update dgeom
-        dd = {'kMin':kMin, 'kMax':kMax, 'vperp':vperp, 'indout':indout}
+        dd = {'kIn':kIn, 'kOut':kOut, 'vperp':vperp, 'indout':indout}
         self._dgeom.update(dd)
 
         # Run extra computations
@@ -2718,7 +2762,7 @@ class Rays(utils.ToFuObject):
     def _compute_dgeom_kRMin(self):
         # Get RMin if Type is Tor
         if self.config.Id.Type=='Tor':
-            kRMin = _comp.LOS_PRMin(self.D, self.u, kPOut=self.kMax, Eps=1.e-12)
+            kRMin = _comp.LOS_PRMin(self.D, self.u, kPOut=self.kOut, Eps=1.e-12)
         else:
             kRMin = None
         self._dgeom.update({'kRMin':kRMin})
@@ -2729,9 +2773,9 @@ class Rays(utils.ToFuObject):
             RMin = np.hypot(PRMin[0,:],PRMin[1,:])
         else:
             PRMin, RMin = None, None
-        PkMin = self.D + self._dgeom['kMin'][np.newaxis,:]*self.u
-        PkMax = self.D + self._dgeom['kMax'][np.newaxis,:]*self.u
-        dd = {'PkMin':PkMin, 'PkMax':PkMax, 'PRMin':PRMin, 'RMin':RMin}
+        PkIn = self.D + self._dgeom['kIn'][np.newaxis,:]*self.u
+        PkOut = self.D + self._dgeom['kOut'][np.newaxis,:]*self.u
+        dd = {'PkIn':PkIn, 'PkOut':PkOut, 'PRMin':PRMin, 'RMin':RMin}
         self._dgeom.update(dd)
 
     def _compute_dgeom_extra2D(self):
@@ -2812,11 +2856,11 @@ class Rays(utils.ToFuObject):
         self._dsino.update({'RefPt':RefPt})
         VType = self.config.Id.Type
         if RefPt is not None:
-            self._dconfig['config'].set_dsino(RefPt=RefPt)
-            kMax = np.copy(self._dgeom['kMax'])
-            kMax[np.isnan(kMax)] = np.inf
+            self._dconfig['Config'].set_dsino(RefPt=RefPt)
+            kOut = np.copy(self._dgeom['kOut'])
+            kOut[np.isnan(kOut)] = np.inf
             try:
-                out = _GG.LOS_sino(self.D, self.u, RefPt, kMax,
+                out = _GG.LOS_sino(self.D, self.u, RefPt, kOut,
                                    Mode='LOS', VType=VType)
                 Pt, k, r, Theta, p, theta, Phi = out
                 self._dsino.update({'k':k})
@@ -2864,12 +2908,12 @@ class Rays(utils.ToFuObject):
             # strip
             if strip==1:
                 lkeep = ['D','u','pinhole','nRays',
-                         'kMin','kMax','vperp','indout', 'kRMin',
+                         'kIn','kOut','vperp','indout', 'kRMin',
                          'Etendues','Surfaces']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
             elif self._dstrip['strip']<=1 and strip>=2:
                 lkeep = ['D','u','pinhole','nRays',
-                         'kMin','kMax','vperp','indout',
+                         'kIn','kOut','vperp','indout',
                          'Etendues','Surfaces']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
@@ -2879,9 +2923,9 @@ class Rays(utils.ToFuObject):
 
         if strip<self._dstrip['strip']:
             if self._dstrip['strip']==4:
-                pfe = self._dconfig['config']
+                pfe = self._dconfig['Config']
                 try:
-                    self._dconfig['config'] = utils.load(pfe)
+                    self._dconfig['Config'] = utils.load(pfe)
                 except Exception as err:
                     msg = str(err)
                     msg += "\n    type(pfe) = {0}".format(str(type(pfe)))
@@ -2889,7 +2933,7 @@ class Rays(utils.ToFuObject):
                     msg += "\n    strip = {0}".format(strip)
                     raise Exception(msg)
 
-            self._dconfig['config'].strip(strip)
+            self._dconfig['Config'].strip(strip)
         else:
             if strip==4:
                 path, name = self.config.Id.SavePath, self.config.Id.SaveName
@@ -2914,10 +2958,10 @@ class Rays(utils.ToFuObject):
                         warning.warn(msg)
                     else:
                         raise Exception(msg)
-                self._dconfig['config'] = pathfile
+                self._dconfig['Config'] = pathfile
 
             else:
-                self._dconfig['config'].strip(strip)
+                self._dconfig['Config'].strip(strip)
 
 
     def _strip_dsino(self, strip=0):
@@ -2971,7 +3015,19 @@ class Rays(utils.ToFuObject):
                 'dsino':{'dict':self.dsino, 'lexcept':None}}
         return dout
 
+    @classmethod
+    def _checkformat_fromdict_dconfig(cls, dconfig):
+        if dconfig['Config'] is None:
+            return Nonei
+        if type(dconfig['Config']) is dict:
+            dconfig['Config'] = Config(fromdict=dconfig['Config'])
+        lC = [isinstance(dconfig['Config'],Config),
+              type(dconfig['Config']) is str]
+        assert any(lC)
+
     def _from_dict(self, fd):
+        self._checkformat_fromdict_dconfig(fd['dconfig'])
+
         self._dconfig.update(**fd['dconfig'])
         self._dgeom.update(**fd['dgeom'])
         self._dsino.update(**fd['dsino'])
@@ -3030,14 +3086,14 @@ class Rays(utils.ToFuObject):
 
     @property
     def config(self):
-        return self._dconfig['config']
+        return self._dconfig['Config']
 
     @property
     def lStruct_computeInOut(self):
         compute = self.config.get_compute()
         lS = self.config.lStruct
         lSI, lSO = [], []
-        for ii in range(0,self._dconfig['config']._dstruct['nStruct']):
+        for ii in range(0,self._dconfig['Config']._dstruct['nStruct']):
             if compute[ii]:
                 if lS[ii]._InOut=='in':
                     lSI.append(lS[ii])
@@ -3071,11 +3127,20 @@ class Rays(utils.ToFuObject):
         return S
 
     @property
-    def kMin(self):
-        return self._dgeom['kMin']
+    def kIn(self):
+        return self._dgeom['kIn']
     @property
-    def kMax(self):
-        return self._dgeom['kMax']
+    def kOut(self):
+        return self._dgeom['kOut']
+    @property
+    def kMin(self):
+        if self.isPinhole:
+            kMin = (self._dgeom['pinhole'][:,np.newaxis]-self._dgeom['D'])
+            kMin = np.sqrt(np.sum(kMin**2,axis=0))
+        else:
+            kMin = None
+        return kMin
+
 
 
     ###########
@@ -3268,7 +3333,7 @@ class Rays(utils.ToFuObject):
             Ds, us = self.D[:,ind], self.u[:,ind]
             if ind.size==1:
                 Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
-            kPIn, kPOut = self.kMin[ind], self.kMax[ind]
+            kPIn, kPOut = self.kIn[ind], self.kOut[ind]
             if self.config.Id.Type=='Tor':
                 kRMin = self._dgeom['kRMin'][ind]
             else:
@@ -3328,12 +3393,12 @@ class Rays(utils.ToFuObject):
         """
         ind = self._check_indch(ind)
         # preload k
-        kMin = self.kMin
-        kMax = self.kMax
+        kIn = self.kIn
+        kOut = self.kOut
 
         # Preformat DL
         if DL is None:
-            DL = np.array([kMin[ind], kMax[ind]])
+            DL = np.array([kIn[ind], kOut[ind]])
         elif np.asarray(DL).size==2:
             DL = np.tile(np.asarray(DL).ravel(),(len(ind),1)).T
         DL = np.ascontiguousarray(DL).astype(float)
@@ -3341,14 +3406,14 @@ class Rays(utils.ToFuObject):
         assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
 
         # Check consistency of limits
-        ii = DL[0,:] < kMin[ind]
-        DL[0,ii] = kMin[ind][ii]
-        ii[:] = DL[0,:] >= kMax[ind]
-        DL[0,ii] = kMax[ind][ii]
-        ii[:] = DL[1,:] > kMax[ind]
-        DL[1,ii] = kMax[ind][ii]
-        ii[:] = DL[1,:] <= kMin[ind]
-        DL[1,ii] = kMin[ind][ii]
+        ii = DL[0,:] < kIn[ind]
+        DL[0,ii] = kIn[ind][ii]
+        ii[:] = DL[0,:] >= kOut[ind]
+        DL[0,ii] = kOut[ind][ii]
+        ii[:] = DL[1,:] > kOut[ind]
+        DL[1,ii] = kOut[ind][ii]
+        ii[:] = DL[1,:] <= kIn[ind]
+        DL[1,ii] = kIn[ind][ii]
 
         # Preformat Ds, us
         Ds, us = self.D[:,ind], self.u[:,ind]
@@ -3422,7 +3487,7 @@ class Rays(utils.ToFuObject):
         return nPoly, lPoly, lVIn
 
     def calc_kInkOut_IsoFlux(self, lPoly, lVIn=None, Lim=None,
-                             kMinMax=True, method='ref'):
+                             kInOut=True, method='ref'):
         """ Calculate the intersection points of each ray with each isoflux
 
         The isofluxes are provided as a list of 2D closed polygons
@@ -3454,23 +3519,23 @@ class Rays(utils.ToFuObject):
                                                           lVIn=[lVIn[ii]],
                                                           method='ref')
                 out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
-                PIn, POut, kMin, kMax, VperpIn, vperp, IIn, indout = out
-                kIn[:,ii], kOut[:,ii] = kMin, kMax
+                PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out
+                kIn[:,ii], kOut[:,ii] = kin, kout
         else:
             # To be implemented according to Laura's needs
             pass
 
-        if kMinMax:
+        if kInOut:
             indok = ~np.isnan(kIn)
             ind = np.zeros((self.nRays,nPoly), dtype=bool)
-            kMin = np.tile(self.kMin[:,np.newaxis],nPoly)
-            kMax = np.tile(self.kMax[:,np.newaxis],nPoly)
-            ind[indok] = (kIn[indok]<kMin[indok]) | (kIn[indok]>kMax[indok])
+            kInref = np.tile(self.kIn[:,np.newaxis],nPoly)
+            kOutref = np.tile(self.kOut[:,np.newaxis],nPoly)
+            ind[indok] = (kIn[indok]<kInref[indok]) | (kIn[indok]>kOutref[indok])
             kIn[ind] = np.nan
 
             ind[:] = False
             indok[:] = ~np.isnan(kOut)
-            ind[indok] = (kOut[indok]<kMin[indok]) | (kOut[indok]>kMax[indok])
+            ind[indok] = (kOut[indok]<kInref[indok]) | (kOut[indok]>kOutref[indok])
             kOut[ind] = np.nan
 
         return kIn, kOut
@@ -3524,9 +3589,9 @@ class Rays(utils.ToFuObject):
         # Preformat ind
         ind = self._check_indch(ind)
         # Preformat DL
-        kMin, kMax = self.kMin, self.kMax
+        kIn, kOut = self.kIn, self.kOut
         if DL is None:
-            DL = np.array([kMin[ind], kMax[ind]])
+            DL = np.array([kIn[ind], kOut[ind]])
         elif np.asarray(DL).size==2:
             DL = np.tile(np.asarray(DL).ravel()[:,np.newaxis],len(ind))
         DL = np.ascontiguousarray(DL).astype(float)
@@ -3534,14 +3599,14 @@ class Rays(utils.ToFuObject):
         assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
 
         # check limits
-        ii = DL[0,:] < kMin[ind]
-        DL[0,ii] = kMin[ind][ii]
-        ii[:] = DL[0,:] >= kMax[ind]
-        DL[0,ii] = kMax[ind][ii]
-        ii[:] = DL[1,:] > kMax[ind]
-        DL[1,ii] = kMax[ind][ii]
-        ii[:] = DL[1,:] <= kMin[ind]
-        DL[1,ii] = kMin[ind][ii]
+        ii = DL[0,:] < kIn[ind]
+        DL[0,ii] = kIn[ind][ii]
+        ii[:] = DL[0,:] >= kOut[ind]
+        DL[0,ii] = kOut[ind][ii]
+        ii[:] = DL[1,:] > kOut[ind]
+        DL[1,ii] = kOut[ind][ii]
+        ii[:] = DL[1,:] <= kIn[ind]
+        DL[1,ii] = kIn[ind][ii]
 
         # Preformat Ds, us and Etendue
         Ds, us = self.D[:,ind], self.u[:,ind]
@@ -3780,9 +3845,9 @@ class Rays(utils.ToFuObject):
 
 
 
-class LOSCam1D(Rays): pass
+class CamLOS1D(Rays): pass
 
-class LOSCam2D(Rays):
+class CamLOS2D(Rays):
     def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None, X12=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
@@ -3793,7 +3858,7 @@ class LOSCam2D(Rays):
         # Python 2 vs 3
         if '__class__' in kwdargs.keys():
             del kwdargs['__class__']
-        super(LOSCam2D,self).__init__(**kwdargs)
+        super(CamLOS2D,self).__init__(**kwdargs)
         self.set_X12(X12)
 
     def set_e12(self, e1=None, e2=None):

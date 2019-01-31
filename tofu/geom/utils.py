@@ -323,10 +323,13 @@ def compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
 
 
 def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
-                                          angs=0, VType='Tor', defRY=None, Lim=None):
+                                          angs=0, nIn=None, VType='Tor', defRY=None, Lim=None):
     assert type(VType) is str
     VType = VType.lower()
     assert VType in ['tor','lin']
+    if np.sum([angs is None, nIn is None])!=1:
+        msg = "Either angs xor nIn should be provided !"
+        raise Exception(msg)
 
     # Pinhole
     if P is None:
@@ -342,6 +345,9 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
             Lim = np.array(Lim).ravel()
             assert Lim.size==2 and Lim[0]<Lim[1]
             P = np.array([np.sum(Lim)/2., defRY, 0.])
+    else:
+        P = np.asarray(P, dtype=float).ravel()
+        assert P.size==3
 
     # Camera inner parameters
     assert type(F) in [int, float, np.int64, np.float64]
@@ -361,11 +367,17 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
         N12 = np.asarray(N12).astype(int)
 
     # Angles
-    if type(angs) in [int, float, np.int64, np.float64]:
-        angs = np.array([angs,angs,angs],dtype=float)
-    angs = np.asarray(angs).astype(float).ravel()
-    assert angs.size==3
-    angs = np.arctan2(np.sin(angs),np.cos(angs))
+    if angs is None:
+        assert hasattr(nIn,'__iter__')
+        nIn = np.asarray(nIn, dtype=float).ravel()
+        assert nIn.size==3
+
+    else:
+        if type(angs) in [int, float, np.int64, np.float64]:
+            angs = np.array([angs,angs,angs],dtype=float)
+        angs = np.asarray(angs).astype(float).ravel()
+        assert angs.size==3
+        angs = np.arctan2(np.sin(angs),np.cos(angs))
 
     if VType=='tor':
         R = np.hypot(P[0],P[1])
@@ -374,9 +386,10 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
         ePhi = np.array([-np.sin(phi), np.cos(phi), 0.])
         eZ = np.array([0.,0.,1.])
 
-        nIncross = eR*np.cos(angs[0]) + eZ*np.sin(angs[0])
-        nIn = nIncross*np.cos(angs[1]) + ePhi*np.sin(angs[1])
-        nIn = nIn/np.linalg.norm(nIn)
+        if nIn is None:
+            nIncross = eR*np.cos(angs[0]) + eZ*np.sin(angs[0])
+            nIn = nIncross*np.cos(angs[1]) + ePhi*np.sin(angs[1])
+            nIn = nIn/np.linalg.norm(nIn)
 
         if np.abs(np.abs(nIn[2])-1.)<1.e-12:
             e10 = ePhi
@@ -387,9 +400,10 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
     else:
         X = P[0]
         eX, eY, eZ = np.r_[1.,0.,0.], np.r_[0.,1.,0.], np.r_[0.,0.,1.]
-        nIncross = eY*np.cos(angs[0]) + eY*np.sin(angs[0])
-        nIn = nIncross*np.cos(angs[1]) + eZ*np.sin(angs[1])
-        nIn = nIn/np.linalg.norm(nIn)
+        if nIn is None:
+            nIncross = eY*np.cos(angs[0]) + eY*np.sin(angs[0])
+            nIn = nIncross*np.cos(angs[1]) + eZ*np.sin(angs[1])
+            nIn = nIn/np.linalg.norm(nIn)
 
         if np.abs(np.abs(nIn[2])-1.)<1.e-12:
             e10 = eX
@@ -402,8 +416,12 @@ def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
     if e20[2]<0.:
         e10, e20 = -e10, -e20
 
-    e1 = np.cos(angs[2])*e10 + np.sin(angs[2])*e20
-    e2 = -np.sin(angs[2])*e10 + np.cos(angs[2])*e20
+    if angs is None:
+        e1 = e10
+        e2 = e20
+    else:
+        e1 = np.cos(angs[2])*e10 + np.sin(angs[2])*e20
+        e2 = -np.sin(angs[2])*e10 + np.cos(angs[2])*e20
 
     # Check consistency of vector base
     assert all([np.abs(np.linalg.norm(ee)-1.)<1.e-12 for ee in [e1,nIn,e2]])
@@ -488,14 +506,15 @@ _comdoc = \
 
 
 def compute_CamLOS1D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
-                             angs=[-np.pi,0.,0.],
+                             angs=[-np.pi,0.,0.], nIn=None,
                              VType='Tor', defRY=None, Lim=None):
 
     # Check/ format inputs
     P, F, D12, N12, angs, nIn, e1, e2, VType\
             = _compute_PinholeCam_checkformatinputs(P=P, F=F, D12=D12, N12=N12,
-                                                   angs=angs, VType=VType,
-                                                   defRY=defRY, Lim=Lim)
+                                                    angs=angs, nIn=nIn,
+                                                    VType=VType, defRY=defRY,
+                                                    Lim=Lim)
 
     # Get starting points
     d2 = 0.5*D12[1]*np.linspace(-1.,1.,N12[1],endpoint=True)
@@ -515,14 +534,15 @@ compute_CamLOS1D_pinhole.__doc__ = _comdoc1
 
 
 def compute_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
-                             angs=[-np.pi,0.,0.],
+                             angs=[-np.pi,0.,0.], nIn=None,
                              VType='Tor', defRY=None, Lim=None):
 
     # Check/ format inputs
     P, F, D12, N12, angs, nIn, e1, e2, VType\
             = _compute_PinholeCam_checkformatinputs(P=P, F=F, D12=D12, N12=N12,
-                                                   angs=angs, VType=VType,
-                                                   defRY=defRY, Lim=Lim)
+                                                    angs=angs, nIn=nIn,
+                                                    VType=VType, defRY=defRY,
+                                                    Lim=Lim)
 
     # Get starting points
     d1 = 0.5*D12[0]*np.linspace(-1.,1.,N12[0],endpoint=True)
@@ -568,6 +588,38 @@ def create_config(Exp='Dummy', Type='Tor', Lim=None, Lim_Bump=[0.,np.pi/8.],
 
     conf = _core.Config(Name='Conf', lStruct=[ves,baf,bump])
     return conf
+
+
+def create_CamLOS1D_pinhole(Name=None, Etendues=None, Surfaces=None,
+                            dchans=None, Diag=None, color=None,
+                            P=None, F=0.1, D12=0.1, N12=100,
+                            angs=[-np.pi,0.,0.], nIn=None,
+                            VType='Tor', defRY=None, Lim=None, config=None):
+
+    if config is not None:
+        Lim = config.Lim
+        VType = config.Id.Type
+        lS = config.lStructIn
+        if len(lS)>0:
+            defRY = np.max([ss.dgeom['P1Max'][0] for ss in lS])
+        else:
+            defRY = np.max([ss.dgeom['P1Max'][0] for ss in config.lStruct])
+
+    Ds, P, d2 = compute_CamLOS1D_pinhole(P=P, F=F, D12=D12, N12=N12, angs=angs,
+                                         nIn=nIn, VType=VType, defRY=defRY,
+                                         Lim=Lim)
+
+    cam = _core.CamLOS1D(Name=Name, Diag=Diag,
+                         dgeom={'pinhole':P, 'D':Ds},
+                         Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
+                         color=color, config=config)
+
+    return cam
+
+
+
+
+
 
 
 _dconfig = {'A1': {'Exp':'WEST',

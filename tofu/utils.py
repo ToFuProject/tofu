@@ -123,50 +123,24 @@ def get_figuresize(fs, fsdef=(12,6),
 #############################################
 
 
-def flatten_dict(d, parent_key='', sep=_sep, rec=False,
+def flatten_dict(d, parent_key='', sep=_sep, deep='ref',
                  lexcept_key=_dict_lexcept_key):
 
     items = []
-    if rec:
-        if lexcept_key is None:
-            for k, v in d.items():
-                new_key = parent_key + sep + k if parent_key else k
-                if issubclass(v.__class__, ToFuObjectBase):
-                    v = v.to_dict()
-                if isinstance(v, collections.MutableMapping):
-                    items.extend(flatten_dict(v, new_key,
-                                              rec=rec, sep=sep).items())
-                else:
-                    items.append((new_key, v))
-        else:
-            for k, v in d.items():
-                if k not in lexcept_key:
-                    if issubclass(v.__class__, ToFuObjectBase):
-                        v = v.to_dict()
-                    new_key = parent_key + sep + k if parent_key else k
-                    if isinstance(v, collections.MutableMapping):
-                        items.extend(flatten_dict(v, new_key,
-                                                  rec=rec, sep=sep).items())
-                    else:
-                        items.append((new_key, v))
-    else:
-        if lexcept_key is None:
-            for k, v in d.items():
-                new_key = parent_key + sep + k if parent_key else k
-                if isinstance(v, collections.MutableMapping):
-                    items.extend(flatten_dict(v, new_key,
-                                              rec=rec, sep=sep).items())
-                else:
-                    items.append((new_key, v))
-        else:
-            for k, v in d.items():
-                if k not in lexcept_key:
-                    new_key = parent_key + sep + k if parent_key else k
-                    if isinstance(v, collections.MutableMapping):
-                        items.extend(flatten_dict(v, new_key,
-                                                  rec=rec, sep=sep).items())
-                    else:
-                        items.append((new_key, v))
+    lexcept_key = [] if lexcept_key is None else lexcept_key
+    for k, v in d.items():
+        if k not in lexcept_key:
+            if issubclass(v.__class__, ToFuObjectBase):
+                if deep=='dict':
+                    v = v.to_dict(deep='dict')
+                elif deep=='copy':
+                    v = v.copy(deep='copy')
+            new_key = parent_key + sep + k if parent_key else k
+            if isinstance(v, collections.MutableMapping):
+                items.extend(flatten_dict(v, new_key,
+                                          deep=deep, sep=sep).items())
+            else:
+                items.append((new_key, v))
     return dict(items)
 
 def _reshape_dict(ss, vv, dinit={}, sep=_sep):
@@ -186,7 +160,7 @@ def _reshape_dict(ss, vv, dinit={}, sep=_sep):
         assert k not in dinit.keys()
         dinit[k] = vv
 
-def reshape_dict(d, sep=_sep):
+def reshape_dict(d, sep=_sep, lcls=[]):
     # Get all individual keys
     out = {}
     for ss, vv in d.items():
@@ -259,8 +233,8 @@ def _set_arrayorder(obj, arrayorder='C'):
 #       save / load
 #############################################
 
-def save(obj, path=None, name=None, mode='npz',
-         strip=None, compressed=False, verb=True):
+def save(obj, path=None, name=None, sep=_sep, deep=True, mode='npz',
+         strip=None, compressed=False, verb=True, return_pfe=False):
     """ Save the ToFu object
 
     ToFu provides built-in saving and loading functions for ToFu objects.
@@ -315,7 +289,8 @@ def save(obj, path=None, name=None, mode='npz',
         obj._Id.set_SaveName(name)
 
     # Get stripped dictionnary
-    dd = obj.to_dict(strip=strip)
+    deep = 'dict' if deep else 'ref'
+    dd = obj.to_dict(strip=strip, sep=sep, deep=deep)
 
     pathfileext = os.path.join(path,name+'.'+mode)
 
@@ -329,6 +304,8 @@ def save(obj, path=None, name=None, mode='npz',
         msg = "Saved in :\n"
         msg += "    "+pathfileext
         print(msg)
+    if return_pfe:
+        return pathfileext
 
 def _save_npz(dd, pathfileext, compressed=False):
 
@@ -650,7 +627,7 @@ class ToFuObjectBase(object):
         self._dstrip['strip'] = strip
 
 
-    def to_dict(self, strip=None, sep=_sep, rec=False, deepcopy=False):
+    def to_dict(self, strip=None, sep=_sep, deep='ref'):
         """ Return a flat dict view of the object's attributes
 
         Useful for:
@@ -667,15 +644,13 @@ class ToFuObjectBase(object):
             Separator char used for flattening the dict
             The output dict is flat (i.e.: no nested dict)
             Keys are created from the keys of nested dict, separated by sep
-        rec :       bool
-            Flag indicating how to deal with attributes which are themselves
-            tofu objects:
-                - True : recursively turn them to flat dict
-                - False : keep them as tofu objects
-        deepcopy:   bool
-            Flag indicating whether to populate the dict with:
-                - True : copies the object attributes
-                - False: references to the object attributes
+        deep:       str
+            Flag indicating how to behave when an attribute is itself a tofu
+            object. The associated field in the exported dict can be:
+                - 'ref' : a simple reference to the object
+                - 'copy': a tofu object itself (i.e.: a copy of the original)
+                - 'dict': the tofu object is itself exported as a dict
+                    (using also self.to_dict())
 
         Return
         ------
@@ -683,6 +658,9 @@ class ToFuObjectBase(object):
             Flat dict containing all the objects attributes
 
         """
+        if deep not in ['ref','copy','dict']:
+            msg = "Arg deep must be a flag in ['ref','copy','dict'] !"
+            raise Exception(msg)
         if strip is None:
             strip = self._dstrip['strip']
         if self._dstrip['strip'] != strip:
@@ -700,7 +678,7 @@ class ToFuObjectBase(object):
             lexcept_key = v.get('lexcept_key', None)
             try:
                 d = flatten_dict(v['dict'],
-                                 parent_key='', sep=sep, rec=rec,
+                                 parent_key='', sep=sep, deep=deep,
                                  lexcept_key=lexcept_key)
             except Exception as err:
                 msg = str(err)
@@ -708,14 +686,7 @@ class ToFuObjectBase(object):
                 msg += "\n\n\n" + str(v['dict'])
                 raise Exception(msg)
             dout[k] = d
-        dout = flatten_dict(dout, parent_key='', sep=sep, rec=rec)
-        if deepcopy:
-            lkobj = [k for k in dout.keys()
-                     if issubclass(dout[k].__class__,ToFuObjectBase)]
-            lk = [k for k in dout.keys() if k not in lkobj]
-            dout.update(**dict([(k,dout[k]) for k in lk]))
-            dout.update(**dict([(k,dout[k].copy(deepcopy=True))
-                                for k in lkobj]))
+        dout = flatten_dict(dout, parent_key='', sep=sep, deep=deep)
         return dout
 
     def _get_dId(self):
@@ -755,12 +726,12 @@ class ToFuObjectBase(object):
         if self._dstrip['strip'] != strip:
             self.strip(strip, verb=verb)
 
-    def copy(self, strip=None, deepcopy=True):
+    def copy(self, strip=None, deep='ref'):
         """ Return another instance of the object, with the same attributes
 
         If deep=True, all attributes themselves are also copies
         """
-        dd = self.to_dict(strip=strip, deepcopy=deepcopy)
+        dd = self.to_dict(strip=strip, deep=deep)
         obj = self.__class__(fromdict=dd)
         return obj
 
@@ -927,10 +898,12 @@ class ToFuObject(ToFuObjectBase):
             self._Id._reset()
 
     def save(self, path=None, name=None,
-             strip=None, sep=_sep, mode='npz',
-             compressed=False, verb=True):
+             strip=None, sep=_sep, deep=True, mode='npz',
+             compressed=False, verb=True, return_pfe=False):
         save(self, path=path, name=name,
-             strip=strip, compressed=compressed)
+             sep=sep, deep=deep, mode=mode,
+             strip=strip, compressed=compressed,
+             return_pfe=return_pfe, verb=verb)
 
 if sys.version[0]=='2':
     ToFuObject.save.__func__.__doc__ = save.__doc__
@@ -1923,3 +1896,74 @@ class KeyHandler(object):
         """ Choose which axes need redrawing and call self._set_dBck() """
     def update(self):
         """ Implement basic behaviour, and call self._restore_Bck() """
+
+
+
+###############################################
+#           Plot KeyHandler 2
+###############################################
+
+
+
+
+
+def get_updatefunc(obj, Type=None, ref=None, fmt=None):
+    lok = ['xdata_1d', 'xdata_2d_axis0', 'xdata_2d_axis1',
+           'xdata_3d_axis01', 'xdata_3d_axis02', 'xdata_3d_axis12',
+           'ydata_1d', 'ydata_2d_axis0', 'ydata_2d_axis1',
+           'ydata_3d_axis01', 'ydata_3d_axis02', 'ydata_3d_axis12',
+           'data_1d', 'data_2d', 'data_3d',
+           'txt', 'txt_fmt']
+    assert Type in lok
+    if Type=='xdata_1d':
+        def func(ind, obj=obj, ref=ref):
+            obj.set_xdata(ref[ind])
+    elif Type=='xdata_2d_axis0':
+        def func(ind, obj=obj, ref=ref):
+            obj.set_xdata(ref[ind,:])
+    elif Type=='xdata_2d_axis1':
+        def update_xdata_2d_axis1(ind, obj=None, ref=None):
+            obj.set_xdata(ref[:,ind])
+    elif Type=='xdata_3d_axis01':
+        def update_xdata_x_3d_axis01(inda, indb, obj=None, ref=None):
+            obj.set_xdata(ref[inda,indb,:])
+    elif Type=='xdata_3d_axis02':
+        def update_xdata_3d_axis02(inda, indb, obj=None, ref=None):
+            obj.set_xdata(ref[inda,:,indb])
+    elif Type=='xdata_3d_axis12':
+        def update_xdata_3d_axis12(inda, indb, obj=None, ref=None):
+            obj.set_xdata(ref[:,inda,indb])
+    elif Type=='ydata_1d':
+        def update_ydata_1d(ind, obj=None, ref=None):
+            obj.set_ydata(ref[ind])
+    elif Type=='ydata_2d_axis0':
+        def update_ydata_2d_axis0(ind, obj=None, ref=None):
+            obj.set_ydata(ref[ind,:])
+    elif Type=='ydata_2d_axis1':
+        def update_ydata_2d_axis1(ind, obj=None, ref=None):
+            obj.set_ydata(ref[:,ind])
+    elif Type=='ydata_3d_axis01':
+        def update_ydata_3d_axis01(inda, indb, obj=None, ref=None):
+            obj.set_ydata(ref[inda,indb,:])
+    elif Type=='ydata_3d_axis02':
+        def update_ydata_3d_axis02(inda, indb, obj=None, ref=None):
+            obj.set_ydata(ref[inda,:,indb])
+    elif Type=='ydata_3d_axis12':
+        def update_ydata_3d_axis12(inda, indb, obj=None, ref=None):
+            obj.set_ydata(ref[:,inda,indb])
+    elif Type=='data_1d':
+        def update_data_1d(ind, obj=None, ref=None):
+            obj.set_data(ref[ind])
+    elif Type=='data_2d':
+        def update_data_2d(ind0, ind1, obj=None, ref=None):
+            obj.set_data(ref[ind0][ind1])
+    elif Type=='data_3d':
+        def update_data_3d(ind0, ind1, ind2, obj=None, ref=None):
+            obj.set_data(ref[ind0][ind1][ind2])
+    elif Type=='txt':
+        def update_txt(ind, obj=None, ref=None):
+            obj.set_text(ref[ind])
+    elif Type=='txt_fmt':
+        def update_txt_fmt(ind, obj=None, ref=None, fmt=None):
+            obj.set_text(('{0:%s}'%fmt).format(ref[ind]))
+    return func

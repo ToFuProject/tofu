@@ -124,7 +124,7 @@ class Data(utils.ToFuObject):
 
 
     def __init__(self, data=None, t=None, X=None, lamb=None,
-                 dchans=None, dunits=None,
+                 dchans=None, dlabels=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  dextra=None, lCam=None, config=None, Type=None,
                  fromdict=None, SavePath=os.path.abspath('./'),
@@ -149,7 +149,7 @@ class Data(utils.ToFuObject):
         self._ddataRef = dict.fromkeys(self._get_keys_ddataRef())
         self._dtreat = dict.fromkeys(self._get_keys_dtreat())
         self._ddata = dict.fromkeys(self._get_keys_ddata())
-        self._dunits = dict.fromkeys(self._get_keys_dunits())
+        self._dlabels = dict.fromkeys(self._get_keys_dlabels())
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dchans = dict.fromkeys(self._get_keys_dchans())
         self._dextra = dict.fromkeys(self._get_keys_dextra())
@@ -205,8 +205,8 @@ class Data(utils.ToFuObject):
         return largs
 
     @staticmethod
-    def _get_largs_dunits():
-        largs = ['dunits']
+    def _get_largs_dlabels():
+        largs = ['dlabels']
         return largs
 
     @staticmethod
@@ -401,20 +401,21 @@ class Data(utils.ToFuObject):
         return X, nnX, indtX, indXlamb, indtXlamb
 
 
-    def _checkformat_inputs_dunits(self, dunits=None):
-        if dunits is None:
-            dunits = {}
-        assert type(dunits) is dict
+    def _checkformat_inputs_dlabels(self, dlabels=None):
+        if dlabels is None:
+            dlabels = {}
+        assert type(dlabels) is dict
         lk = ['data','t','X']
-        for k in lk:
-            if not k in dunits.keys():
-                dunits[k] = 'a.u.'
-            assert type(dunits[k]) is str
         if 'spectral' in self.Id.Type.lower():
-            if 'lamb' not in dunits.keys():
-                dunits['lamb'] = 'a.u.'
-            assert type(dunits['lamb']) is str
-        return dunits
+            lk.append('lamb')
+        for k in lk:
+            if not k in dlabels.keys():
+                dlabels[k] = {'name': k, 'units':'a.u.'}
+            assert type(dlabels[k]) is dict
+            assert all([s in dlabels[k].keys() for s in ['name','units']])
+            assert type(dlabels[k]['name']) is str
+            assert type(dlabels[k]['units']) is str
+        return dlabels
 
     def _checkformat_inputs_dtreat(self, dtreat=None):
         if dtreat is None:
@@ -450,7 +451,7 @@ class Data(utils.ToFuObject):
             # Check type consistency
             for dd in ['1d','2d']:
                 if dd in self.Id.Type.lower():
-                    lc = [dd in cc.Id.Type.lower() for cc in lCam]
+                    lc = [dd in cc.Id.Cls.lower() for cc in lCam]
                     if not all(lc):
                         msg = "The following cameras have wrong class (%s)"%dd
                         lm = ['%s: %s'%s(cc.Id.Name,cc.Id.Cls) for cc in lCam]
@@ -532,7 +533,7 @@ class Data(utils.ToFuObject):
         return lk
 
     @staticmethod
-    def _get_keys_dunits():
+    def _get_keys_dlabels():
         lk = ['data','t','X','lamb']
         return lk
 
@@ -556,13 +557,13 @@ class Data(utils.ToFuObject):
     ###########
 
     def _init(self, data=None, t=None, X=None, lamb=None, dtreat=None, dchans=None,
-              dunits=None, dextra=None, lCam=None, config=None, **kwdargs):
+              dlabels=None, dextra=None, lCam=None, config=None, **kwdargs):
         largs = self._get_largs_ddataRef()
         kwddataRef = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dtreat()
         kwdtreat = self._extract_kwdargs(locals(), largs)
-        largs = self._get_largs_dunits()
-        kwdunits = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dlabels()
+        kwdlabels = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dgeom()
         kwdgeom = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dchans()
@@ -572,7 +573,7 @@ class Data(utils.ToFuObject):
         self._set_ddataRef(**kwddataRef)
         self.set_dtreat(**kwdtreat)
         self._set_ddata()
-        self._set_dunits(**kwdunits)
+        self._set_dlabels(**kwdlabels)
         self._set_dgeom(**kwdgeom)
         self.set_dchans(**kwdchans)
         self.set_dextra(**kwdextra)
@@ -601,9 +602,9 @@ class Data(utils.ToFuObject):
         dtreat = self._checkformat_inputs_dtreat(dtreat=dtreat)
         self._dtreat = dtreat
 
-    def _set_dunits(self, dunits=None):
-        dunits = self._checkformat_inputs_dunits(dunits=dunits)
-        self._dunits = dunits
+    def _set_dlabels(self, dlabels=None):
+        dlabels = self._checkformat_inputs_dlabels(dlabels=dlabels)
+        self._dlabels = dlabels
 
     def _set_dgeom(self, lCam=None, config=None):
         config, lCam, nC = self._checkformat_inputs_dgeom(lCam=lCam,
@@ -732,7 +733,7 @@ class Data(utils.ToFuObject):
         dout = {'ddataRef':{'dict':self._ddataRef, 'lexcept':None},
                 'ddata':{'dict':self._ddata, 'lexcept':None},
                 'dtreat':{'dict':self._dtreat, 'lexcept':None},
-                'dunits':{'dict':self._dunits, 'lexcept':None},
+                'dlabels':{'dict':self._dlabels, 'lexcept':None},
                 'dgeom':{'dict':self._dgeom, 'lexcept':None},
                 'dchans':{'dict':self._dchans, 'lexcept':None},
                 'dextra':{'dict':self._dextra, 'lexcept':None}}
@@ -742,7 +743,7 @@ class Data(utils.ToFuObject):
         self._ddataRef.update(**fd['ddataRef'])
         self._ddata.update(**fd['ddata'])
         self._dtreat.update(**fd['dtreat'])
-        self._dunits.update(**fd['dunits'])
+        self._dlabels.update(**fd['dlabels'])
         self._dgeom.update(**fd['dgeom'])
         self._dchans.update(**fd['dchans'])
         self._dextra.update(**fd['dextra'])
@@ -762,8 +763,8 @@ class Data(utils.ToFuObject):
     def dtreat(self):
         return self._dtreat
     @property
-    def dunits(self):
-        return self._dunits
+    def dlabels(self):
+        return self._dlabels
     @property
     def dgeom(self):
         return self._dgeom

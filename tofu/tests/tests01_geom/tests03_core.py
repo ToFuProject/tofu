@@ -414,10 +414,17 @@ class Test01_Struct(object):
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
                     obj = self.dobj[typ][c][n]
-                    obj.save()
-                    pfe = os.path.join(obj.Id.SavePath,obj.Id.SaveName)+'.npz'
+                    pfe = obj.save(return_pfe=True)
                     obj2 = tf.load(pfe)
                     assert obj==obj2
+                    os.remove(pfe)
+
+    def test17_save_to_txt(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    pfe = obj.save_to_txt(return_pfe=True)
                     os.remove(pfe)
 
 
@@ -579,9 +586,7 @@ class Test02_Config(object):
     def test14_saveload(self):
         for typ in self.dobj.keys():
             self.dobj[typ].strip(-1)
-            self.dobj[typ].save(verb=False)
-            pfe = os.path.join(self.dobj[typ].Id.SavePath,
-                               self.dobj[typ].Id.SaveName+'.npz')
+            self.dobj[typ].save(verb=False, rturn_pfe=True)
             obj = tf.load(pfe, verb=False)
             msg = "Unequal saved / loaded objects !"
             assert obj==self.dobj[typ], msg
@@ -610,7 +615,7 @@ for typ in dconf.keys():
     else:
         ph = np.r_[3.,4.,0.]
     ez = np.r_[0.,0.,1.]
-    for c in ['LOSCam1D','LOSCam2D']:
+    for c in ['CamLOS1D','CamLOS2D']:
         if '1D' in c:
             nP = 100
             X = np.linspace(-DX,DX,nP)
@@ -905,9 +910,7 @@ class Test03_Rays(object):
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
                 obj.strip(-1)
-                obj.save(verb=False)
-                pfe = os.path.join(obj.Id.SavePath,
-                                   obj.Id.SaveName+'.npz')
+                pfe = obj.save(verb=False, return_pfe=True)
                 obj2 = tf.load(pfe, verb=False)
                 msg = "Unequal saved / loaded objects !"
                 assert obj2==obj, msg
