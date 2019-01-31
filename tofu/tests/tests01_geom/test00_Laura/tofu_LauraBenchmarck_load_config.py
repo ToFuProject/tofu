@@ -92,8 +92,13 @@ def recreate_compatible_objects(path=_path_laura_former, save=True):
     lf = [f for f in lf if all([s in f for s in ['TFG_','.npz']])]
     lS = []
     for f in lf:
+        if 'Config' in f:
+            continue
+        print("File: ", f)
+
         cls, Exp, nn = f.split('_')[1:4]
-        cls = cls[:cls.index('Tor')]
+        if 'Tor' in cls:
+            cls = cls[:cls.index('Tor')]
         Exp = Exp[3:]
         if 'Sep' in Exp:
             Exp = Exp[:Exp.index('Sep')]
@@ -103,7 +108,13 @@ def recreate_compatible_objects(path=_path_laura_former, save=True):
             nn, v = nn, ''
         else:
             nn = nn.split('-')
-            if len(nn)==2:
+            if len(nn) == 1:
+                nn = nn[0]
+                if "V" in nn :
+                    nn, v = nn[:nn.index("V")], nn[nn.index("V"):]
+                else:
+                    v = ""
+            elif len(nn)==2:
                 nn, v = nn
             elif len(nn)==3:
                 nn, v = nn[0]+nn[1], nn[2]
@@ -122,8 +133,13 @@ def recreate_compatible_objects(path=_path_laura_former, save=True):
         if cls=='Struct':
             cls = 'PFC'
         out = np.load(os.path.join(path,f))
-        Poly = out['Poly']
-        Lim = out['Lim']
+        print("keys: ", list(out.keys()))
+        if 'Poly' in out.keys():
+            Poly = out['Poly']
+            Lim = out['Lim']
+        else :
+            Poly = out['dgeom_Poly']
+            Lim = out['dgeom_Lim']
         print(Exp, cls, nn+v, Poly.shape, Lim.shape)
         if Lim.shape==():
             Lim = Lim.tolist()
@@ -233,7 +249,7 @@ def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
     D12, N12, nIn = dcam[cam]['D12'], dcam[cam]['N12'], dcam[cam]['nIn']
 
     # Compute the LOS starting points and unit vectors
-    (D,u) = tf.utils.create_CamLOS2D(P, F, D12, N12, nIn=nIn)
+    (D,u) = tf.geom.utils.compute_CamLOS2D_pinhole(P, F, D12, N12, nIn=nIn)
 
     if make_cam or plot:
         assert config is not None, "You must specify a config !"
