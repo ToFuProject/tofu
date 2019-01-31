@@ -1899,67 +1899,124 @@ class KeyHandler(object):
 #           Plot KeyHandler 2
 ###############################################
 
-
-
-
-
-def get_updatefunc(obj, Type=None, ref=None, fmt=None):
+def get_updatefunc(obj, Type=None, data=None, fmt=None):
     lok = ['xdata_1d', 'xdata_2d_axis0', 'xdata_2d_axis1',
            'xdata_3d_axis01', 'xdata_3d_axis02', 'xdata_3d_axis12',
            'ydata_1d', 'ydata_2d_axis0', 'ydata_2d_axis1',
            'ydata_3d_axis01', 'ydata_3d_axis02', 'ydata_3d_axis12',
-           'data_1d', 'data_2d', 'data_3d',
+           'data_1d', 'data_2d', 'data_3d', 'data_tuple2_1d',
            'txt', 'txt_fmt']
     assert Type in lok
     if Type=='xdata_1d':
-        def func(ind, obj=obj, ref=ref):
-            obj.set_xdata(ref[ind])
+        def func(ind, obj=obj, data=data):
+            obj.set_xdata(data[ind])
     elif Type=='xdata_2d_axis0':
-        def func(ind, obj=obj, ref=ref):
-            obj.set_xdata(ref[ind,:])
+        def func(ind, obj=obj, data=data):
+            obj.set_xdata(data[ind,:])
     elif Type=='xdata_2d_axis1':
-        def update_xdata_2d_axis1(ind, obj=None, ref=None):
-            obj.set_xdata(ref[:,ind])
+        def func(ind, obj=None, data=None):
+            obj.set_xdata(data[:,ind])
     elif Type=='xdata_3d_axis01':
-        def update_xdata_x_3d_axis01(inda, indb, obj=None, ref=None):
-            obj.set_xdata(ref[inda,indb,:])
+        def func(inda, indb, obj=None, data=None):
+            obj.set_xdata(data[inda,indb,:])
     elif Type=='xdata_3d_axis02':
-        def update_xdata_3d_axis02(inda, indb, obj=None, ref=None):
-            obj.set_xdata(ref[inda,:,indb])
+        def func(inda, indb, obj=None, data=None):
+            obj.set_xdata(data[inda,:,indb])
     elif Type=='xdata_3d_axis12':
-        def update_xdata_3d_axis12(inda, indb, obj=None, ref=None):
-            obj.set_xdata(ref[:,inda,indb])
+        def func(inda, indb, obj=None, data=None):
+            obj.set_xdata(data[:,inda,indb])
     elif Type=='ydata_1d':
-        def update_ydata_1d(ind, obj=None, ref=None):
-            obj.set_ydata(ref[ind])
+        def func(ind, obj=None, data=None):
+            obj.set_ydata(data[ind])
     elif Type=='ydata_2d_axis0':
-        def update_ydata_2d_axis0(ind, obj=None, ref=None):
-            obj.set_ydata(ref[ind,:])
+        def func(ind, obj=None, data=None):
+            obj.set_ydata(data[ind,:])
     elif Type=='ydata_2d_axis1':
-        def update_ydata_2d_axis1(ind, obj=None, ref=None):
-            obj.set_ydata(ref[:,ind])
+        def func(ind, obj=None, data=None):
+            obj.set_ydata(data[:,ind])
     elif Type=='ydata_3d_axis01':
-        def update_ydata_3d_axis01(inda, indb, obj=None, ref=None):
-            obj.set_ydata(ref[inda,indb,:])
+        def func(inda, indb, obj=None, data=None):
+            obj.set_ydata(data[inda,indb,:])
     elif Type=='ydata_3d_axis02':
-        def update_ydata_3d_axis02(inda, indb, obj=None, ref=None):
-            obj.set_ydata(ref[inda,:,indb])
+        def func(inda, indb, obj=None, data=None):
+            obj.set_ydata(data[inda,:,indb])
     elif Type=='ydata_3d_axis12':
-        def update_ydata_3d_axis12(inda, indb, obj=None, ref=None):
-            obj.set_ydata(ref[:,inda,indb])
+        def func(inda, indb, obj=None, data=None):
+            obj.set_ydata(data[:,inda,indb])
     elif Type=='data_1d':
-        def update_data_1d(ind, obj=None, ref=None):
-            obj.set_data(ref[ind])
+        def func(ind, obj=None, data=None):
+            obj.set_data(data[ind])
     elif Type=='data_2d':
-        def update_data_2d(ind0, ind1, obj=None, ref=None):
-            obj.set_data(ref[ind0][ind1])
+        def func(ind0, ind1, obj=None, data=None):
+            obj.set_data(data[ind0][ind1])
     elif Type=='data_3d':
-        def update_data_3d(ind0, ind1, ind2, obj=None, ref=None):
-            obj.set_data(ref[ind0][ind1][ind2])
+        def func(ind0, ind1, ind2, obj=None, data=None):
+            obj.set_data(data[ind0][ind1][ind2])
+    elif Type=='data_tuple2_1d':
+        def func(ind0, ind1, obj=None, data=None):
+            obj.set_data(data[0][ind0],data[1][ind1])
     elif Type=='txt':
-        def update_txt(ind, obj=None, ref=None):
-            obj.set_text(ref[ind])
+        def func(ind, obj=None, data=None):
+            obj.set_text(data[ind])
     elif Type=='txt_fmt':
-        def update_txt_fmt(ind, obj=None, ref=None, fmt=None):
-            obj.set_text(('{0:%s}'%fmt).format(ref[ind]))
+        def func(ind, obj=None, data=None, fmt=None):
+            obj.set_text(('{0:%s}'%fmt).format(data[ind]))
     return func
+
+
+
+
+class KeyHandler2(object):
+
+    def __init__(self):
+
+
+        self.dgroup = {0: {'nMax':4, 'n':1, 'ind':0, 'val':0, 'ref':None, 'dref':{}, 'lax':[]},
+                       1: {'nMax':4, 'n':1, 'ind':0, 'val':0, 'ref':None, 'dref':{}, 'lax':[]},
+                       2: {'nMax':4, 'n':1, 'ind':0, 'val':0, 'ref':None, 'dref':{}, 'lax':[]}}
+        self.dcur = {'group':0, 'ax':None}
+        self.dkeys = {'shift': False}
+        #self.dobj = {oo: {'ref':, 'ax':, 'group':, 'n':0, 'ind':, 'vis':, 'update':}
+        #self.dobj =
+
+    def update(self):
+        if self.lib=='mpl':
+            self._update_mpl()
+
+
+    def _update_mpl(self):
+
+        group = self.dcur['group']
+        ref = self.dcur['ref']
+        n = self.dgroup[group]['n']
+        lax = self.dgroup[group]['lax']
+
+        # ---- Restore backgrounds ------
+        for aa in lax:
+            self.can.restore_region(self.daxr[ax]['Bck'])
+
+        # ---- update data and draw objects ------
+        for obj in self.dgroup[group]['dref'][ref]:
+            self.dobj[obj]['update'](self.dcur['ind'])
+            self.dobj[obj]['vis'] = self.dobj[obj]['n'] <= n
+
+            # mpl-specific
+            obj.set_visible(self.dobj[obj]['vis'])
+            self.dobj[obj]['ax'].draw_artist(obj)
+
+        lref = list(self.dgroup[group]['dref'].keys())
+        lref.remove(ref)
+        for r in lref:
+            #ind =   # TBF
+            for obj in self.dgroup[group]['dref'][r]:
+                self.dobj[obj]['update'](self.dcur['ind'])
+                self.dobj[obj]['vis'] = self.dobj[obj]['n'] <= n
+
+                # mpl-specific
+                obj.set_visible(self.dobj[obj]['vis'])
+                self.dobj[obj]['ax'].draw_artist(obj)
+
+        # ---- blit axes ------
+        # mpl_specific
+        for aa in lax:
+            self.can.blit(aa.bbox)
