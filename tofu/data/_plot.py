@@ -1473,8 +1473,8 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang,
         ntMax = _ntMax if ntMax is None else ntMax
         nchMax = _nchMax if nchMax is None else nchMax
         nfMax = _nfMax if nfMax is None else nfMax
-        KH = _Data1D_plot_spectrogram(Data, key=key,
-                                      nchMax=nchMax, ntMax=ntMax,
+        KH = _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=key,
+                                      ntMax=ntMax, nfMax=nfMax,
                                       Bck=Bck, lls=lls, lct=lct, lcch=lcch,
                                       fs=fs, dmargin=dmargin, wintit=wintit,
                                       tit=tit, fontsize=fontsize,
@@ -1484,7 +1484,7 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang,
         ntMax = 1 if ntMax is None else ntMax
         nchMax = _nchMax if nchMax is None else nchMax
         nfMax = _nfMax if nfMax is None else nfMax
-        KH = _Data2D_plot_spectrogram(Data, key=key,
+        KH = _Data2D_plot_spectrogram(Data, tf, f, lpsd, lang, key=key,
                                       nchMax=nchMax, ntMax=ntMax,
                                       Bck=Bck, lls=lls, lct=lct, lcch=lcch,
                                       cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
@@ -1498,8 +1498,7 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang,
 
 
 def _init_Data1D_spectrogram(fs=None, dmargin=None,
-                             fontsize=8,  wintit=_wintit,
-                             nchMax=_nchMax):
+                             fontsize=8,  wintit=_wintit):
     axCol = "w"
     fs = utils.get_figuresize(fs)
     if dmargin is None:
@@ -1508,25 +1507,17 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
     if wintit is not None:
         fig.canvas.set_window_title(wintit)
 
-    assert nchMax in [1,2,3,4]
     gs1 = gridspec.GridSpec(6, 5, **dmargin)
     laxt = [fig.add_subplot(gs1[:2,:2], fc='w')]
-    axp = fig.add_subplot(gs1[:2,2:4], fc='w')
+    laxt += [fig.add_subplot(gs1[2:4,:2], fc='w', sharex=laxt[0])]
+    laxt += [fig.add_subplot(gs1[4:,:2], fc='w', sharex=laxt[0],sharey=laxt[1])]
+    laxp = [fig.add_subplot(gs1[:2,2:4], fc='w', sharey=laxt[0])]
+    laxp += [fig.add_subplot(gs1[2:4,2:4], fc='w', sharex=laxp[0]),
+             fig.add_subplot(gs1[4:,2:4], fc='w', sharex=laxp[0])]
     axH = fig.add_subplot(gs1[0:2,4], fc='w')
     axC = fig.add_subplot(gs1[2:,4], fc='w')
     axC.set_aspect('equal', adjustable='datalim')
     axH.set_aspect('equal', adjustable='datalim')
-    if nchMax==1:
-        laxt.append(fig.add_subplot(gs1[2:,:4], fc='w', sharex=laxt[0]))
-    elif nchMax==2:
-        laxt.append(fig.add_subplot(gs1[2:4,:4], fc='w', sharex=laxt[0]))
-        laxt.append(fig.add_subplot(gs1[4:,:4], fc='w', sharex=laxt[0]))
-    else:
-        laxt.append(fig.add_subplot(gs1[2:4,:2], fc='w', sharex=laxt[0]))
-        laxt.append(fig.add_subplot(gs1[4:,:2], fc='w', sharex=laxt[0]))
-        laxt.append(fig.add_subplot(gs1[2:4,2:4], fc='w', sharex=laxt[0]))
-        if nchMax==4:
-            laxt.append(fig.add_subplot(gs1[4:,2:4], fc='w', sharex=laxt[0]))
 
     Ytxt = laxt[0].get_position().bounds[1]+laxt[0].get_position().bounds[3]
     DY = (laxt[0].get_position().bounds[1]
@@ -1535,16 +1526,17 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
     DX = laxt[0].get_position().bounds[2]
     xtxt = Xtxt + 0.15*(DX-Xtxt)
     dx = DX - 0.15*(DX-Xtxt)
-    axtxtch = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+    axtxtx = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
 
-    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
-    Xtxt = axp.get_position().bounds[0]
-    DX = axp.get_position().bounds[2]
+    Ytxt = laxp[0].get_position().bounds[1]+laxp[0].get_position().bounds[3]
+    Xtxt = laxp[0].get_position().bounds[0]
+    DX = laxp[0].get_position().bounds[2]
     xtxt = Xtxt + 0.15*(DX-Xtxt)
     dx = DX - 0.15*(DX-Xtxt)
     axtxtt = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
-    axtxtf = fig.add_axes([xtxt, Ytxt+DY, dx, DY], fc='None')
-    for ax in [axtxtch, axtxtt, axtxtf]:
+    Ytxt = laxp[1].get_position().bounds[1]+laxp[1].get_position().bounds[3]
+    axtxtf = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+    for ax in [axtxtx, axtxtt, axtxtf]:
         ax.patch.set_alpha(0.)
         for ss in ['left','right','bottom','top']:
             ax.spines[ss].set_visible(False)
@@ -1552,10 +1544,10 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
         ax.set_xlim(0,1),  ax.set_ylim(0,1)
 
     dax = {'t':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxt],
-           'chan':[{'ax':axp, 'dh':{'vline':[]}}],
+           'chan':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp],
            'cross':[{'ax':axC, 'dh':{}}],
            'hor':[{'ax':axH, 'dh':{}}],
-           'txtch':[{'ax':axtxtch, 'dh':{}}],
+           'txtx':[{'ax':axtxtx, 'dh':{}}],
            'txtt':[{'ax':axtxtt, 'dh':{}}],
            'txtf':[{'ax':axtxtf, 'dh':{}}]}
     for kk in dax.keys():
@@ -1566,27 +1558,53 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
 
 
 
-def _Data1D_plot_spectrogram(Data, key=None, indch=None,
-                             nchMax=_nchMax, ntMax=_ntMax, nfMax=_nfMax,
+def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
+                             ntMax=_ntMax, nfMax=_nfMax,
                              Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
                              fs=None, dmargin=None, wintit=_wintit, tit=None,
-                             fontsize=_fontsize, draw=True, connect=True):
+                             fontsize=_fontsize, labelpad=_labelpad,
+                             draw=True, connect=True):
     #########
     # Prepare
     #########
 
-    if indch is None:
-        indch = np.arange(0,nchMax)
+    # Start extracting data
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
+    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
+    cbck = (0.8,0.8,0.8,0.8)
+    lEq = ['Ax','Sep','q1']
+    nt, nX = Data.nt, Data.nX
 
-    # Get data and time limits
-    Dunits = Data.dunits['data']
-    Dlim = np.r_[min(0.,np.nanmin(Data.data)),
-                 max(0.,np.nanmax(Data.data))]
+    t = Data.t
+    if nt==1:
+        Dt = [t[0]-0.001,t[0]+0.001]
+    else:
+        Dt = [np.nanmin(t), np.nanmax(t)]
+    tlab = r"{0} ({1})".format(Data.dlabels['t']['name'],
+                               Data.dlabels['t']['units'])
+
+    X = Data.X
+    if X.size==1:
+        DX = [X[0]-0.1*X[0], X[0]+0.1*X[0]]
+    else:
+        DX = [np.nanmin(X), np.nanmax(X)]
+    Xlab = r"{0} ({1})".format(Data.dlabels['X']['name'],
+                               Data.dlabels['X']['units'])
+
+    data = Data.data
+    Dlim = [min(0.,np.nanmin(data)), max(0.,np.nanmax(data))]
     Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
+    Dlab = r"{0} ({1})".format(Data.dlabels['data']['name'],
+                               Data.dlabels['data']['units'])
+
+    Df = [0., np.nanmax(f)]
+    flab = r'f ($Hz$)'
+    psdlab = r'$\|F\|^2$ (a.u.)'
+    anglab = r'$ang(F)$ ($rad$)'
 
     # Format axes
     dax = _init_Data1D_spectrogram(fs=fs, dmargin=dmargin,
-                                   wintit=wintit, nchMax=nchMax)
+                                   wintit=wintit)
     if tit is None:
         tit = []
         if Data.Id.Exp is not None:
@@ -1617,69 +1635,42 @@ def _Data1D_plot_spectrogram(Data, key=None, indch=None,
         if Data.dgeom['lCam'] is not None:
             for cc in Data.dgeom['lCam']:
                 out = cc.plot(lax=[dax['cross'][0]['ax'], dax['hor'][0]['ax']],
-                              Elt='L', Lplot='In',
+                              element='L', Lplot='In',
                               dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
                               dLeg=None, draw=False)
                 dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
 
-    # Start extracting data
-    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
-    cbck = (0.8,0.8,0.8,0.8)
-    lEq = ['Ax','Sep','q1']
-    nt, nch = Data.nt, Data.nX
-
-    chansRef = np.arange(0,Data.ddataRef['nX'])
-    chans = chansRef[Data.dtreat['indch']]  # To be corrected
-    Dchans = [-1,Data.ddataRef['nX']]
-    Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
-    if Data.dchans() in [None,{}]:
-        chlabRef = chansRef
-        chlab = chans
-    else:
-        chlabRef = chansRef if key is None else Data.ddataRef['dchans'][key]
-        chlab = chans if key is None else Data.dchans(key)
-
-    if nt==1:
-        t = np.array([Data.t]).ravel()
-    else:
-        t = Data.t
-    if nt==1:
-        Dti = [t[0]-0.001,t[0]+0.001]
-    else:
-        Dti = [np.nanmin(t), np.nanmax(t)]
-    Dt = [min(Dt[0],Dti[0]), max(Dt[1],Dti[1])]
-    data = Data.data.reshape((nt,nch))
 
     ##################
     # To be finished
     # Setting tref and plotting handles
+    ii = 0
     if ii==0:
-        tref = t.copy()
-        chref = chans.copy()
         for jj in range(0,len(dax['t'])):
-            dax['t'][jj]['xref'] = tref
+            dax['t'][jj]['xref'] = t
         for jj in range(0,len(dax['chan'])):
-            dax['chan'][jj]['xref'] = chref
+            dax['chan'][jj]['xref'] = X
         if Bck:
-            env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
-            dax['chan'][0]['ax'].fill_between(chans, env[0], env[1], facecolor=cbck)
-            tbck = np.tile(np.r_[t, np.nan], nch)
-            dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
-            dax['t'][1]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+            if Data.ddata['nnX']==1:
+                env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
+                dax['chan'][0]['ax'].fill_between(X[0,:], env[0], env[1], facecolor=cbck)
+            tbck = np.tile(np.r_[t, np.nan], nX)
+            dbck = np.vstack((data, np.full((1,nX),np.nan))).T.ravel()
+            dax['t'][0]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
 
     # Adding vline t and trig
     ltg, lt = [], []
     for ll in range(0,len(dax['t'])):
-        dax['t'][ll]['dh']['vline'][ii]['xref'] = t
+        dax['t'][ll]['dh']['vline'][0]['xref'] = t
         lv = []
         for jj in range(0,ntMax):
-            l0 = dax['t'][ll]['ax'].axvline(np.nan, c=lct[jj], ls=lls[ii],
+            l0 = dax['t'][ll]['ax'].axvline(np.nan, c=lct[jj], ls=lls[0],
                                            lw=1.)
             lv.append(l0)
             if ll==0:
-                l1, = dax['chan'][0]['ax'].plot(chans,
-                                                np.full((nch,),np.nan),
-                                                c=lct[jj], ls=lls[ii],
+                l1, = dax['chan'][0]['ax'].plot(X[0,:],
+                                                np.full((nX,),np.nan),
+                                                c=lct[jj], ls=lls[0],
                                                 lw=1.)
                 ltg.append(l1)
                 if ii==0:
@@ -1702,9 +1693,50 @@ def _Data1D_plot_spectrogram(Data, key=None, indch=None,
 
 
 
+    # Adding mobile profiles
+    ll0, ltg1, ltg2 = [], [], []
+    for jj in range(0,ntMax):
+        l0, = dax['chan'][0]['ax'].plot(X[0,:],
+                                        np.full((nX,),np.nan),
+                                        c=lct[jj], ls=lls[0],
+                                        lw=1.)
+        ll0.append(l1)
+        for ii in range(0,nfMax):
+            l1, = dax['chan'][1]['ax'].plot(X[0,:],
+                                            np.full((nX,),np.nan),
+                                            c=lct[jj], ls=lls[ii],
+                                            lw=1.)
+            l2, = dax['chan'][2]['ax'].plot(X[0,:],
+                                            np.full((nX,),np.nan),
+                                            c=lct[jj], ls=lls[ii],
+                                            lw=1.)
+            ltg1.append(l1)
+            ltg2.append(l2)
+
+            l1.update = utils.get_update(Type='y_const', par=y)
+
+    dtg1 = {'xref':t, 'h':ltg1, 'y':psd}
+    dtg2 = {'xref':t, 'h':ltg2, 'y':ang}
+    dax['t'][0]['dh']['vline'][0]['trig']['1dprof'][ii] = dtg1
+    dax['chan'][0]['dh']['1dprof'][ii] = dtg
 
 
 
+
+    # ---------------
+    # Lims and labels
+    dax['t'][0]['ax'].set_xlim(Dt)
+    dax['t'][0]['ax'].set_ylim(Dd)
+    dax['chan'][0]['ax'].set_xlim(DX)
+    dax['chan'][0]['ax'].set_ylim(Dd)
+    dax['t'][-1]['ax'].set_xlabel(tlab, **fldict)
+    dax['chan'][-1]['ax'].set_xlabel(Xlab, **fldict)
+    dax['t'][0]['ax'].set_ylabel(Dlab, **fldict)
+    dax['t'][1]['ax'].set_ylabel(flab, **fldict)
+    dax['t'][2]['ax'].set_ylabel(flab, **fldict)
+    dax['chan'][0]['ax'].set_ylabel(Dlab, **fldict)
+    dax['chan'][1]['ax'].set_ylabel(psdlab, **fldict)
+    dax['chan'][2]['ax'].set_ylabel(anglab, **fldict)
 
     # Plot mobile parts
     can = dax['t'][0]['ax'].figure.canvas

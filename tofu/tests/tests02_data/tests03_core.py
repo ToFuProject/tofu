@@ -102,7 +102,7 @@ class Test01_Data1D:
     def setup_class(cls):
         thet = np.linspace(0,2.*np.pi,100)
         P = np.array([2.4 + 0.8*np.cos(thet),0.8*np.sin(thet)])
-        V = tfg.Ves('Test', P, Exp='Test', SavePath=here)
+        V = tfg.Ves(Name='Test', Poly=P, Exp='Test', SavePath=here)
         N = 10
         Ds = np.array([3.*np.ones(N,), np.zeros((N,)), np.linspace(-0.5,0.5,N)])
         A = np.r_[2.5,0,0]
@@ -238,33 +238,36 @@ class Test01_Data1D:
         o1 = 100.*(o0-0.1*o0)
 
     def test08_plot(self):
-        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
+        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                   and plt.get_current_fig_manager().toolbar is not None)
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             KH = oo.plot(key=None, ntMax=4, nchMax=2, fs=None,
                          dmargin=dict(left=0.06, right=0.9),
-                         connect=toolbar, wintit='test', tit='AHAH')
-            KH = oo.plot(key='Name', draw=False, dmargin=None, connect=toolbar)
+                         connect=connect, wintit='test', tit='AHAH')
+            KH = oo.plot(key='Name', draw=False, dmargin=None, connect=connect)
         plt.close('all')
 
     def test09_compare(self):
         if self.__class__ is Test02_Data2D:
             return
-        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
+        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                   and plt.get_current_fig_manager().toolbar is not None)
         o0 = self.LObj[0]
         for ii in range(1,len(self.LObj)):
             oo = self.LObj[ii]
-            KH = oo.plot_compare(o0, connect=toolbar)
+            KH = oo.plot_compare(o0, connect=connect)
         plt.close('all')
 
     def test10_combine(self):
         if self.__class__ is Test02_Data2D:
             return
-        toolbar = hasattr(plt.get_current_fig_manager(),'toolbar')
+        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                   and plt.get_current_fig_manager().toolbar is not None)
         o0 = self.LObj[0]
         for ii in range(1,len(self.LObj)):
             oo = self.LObj[ii]
-            KH = oo.plot_combine(o0, connect=toolbar)
+            KH = oo.plot_combine(o0, connect=connect)
         plt.close('all')
 
     def test11_tofromdict(self):
@@ -281,14 +284,12 @@ class Test01_Data1D:
         for ii in range(0,len(self.LObj)):
             oo = self.LObj[ii]
             dd = oo._todict()
-            oo.save(Print=False)
-            PathFileExt = os.path.join(oo.Id.SavePath,
-                                       oo.Id.SaveName+'.npz')
-            obj = tfpf.Open(PathFileExt, Print=False)
+            pfe = oo.save(verb=False, return_pfe=True)
+            obj = tfpf.Open(pfe, Print=False)
             # Just to check the loaded version works fine
             do = obj._todict()
             assert tfu.dict_cmp(dd,do)
-            os.remove(PathFileExt)
+            os.remove(pfe)
 
 
 
@@ -299,7 +300,7 @@ class Test02_Data2D(Test01_Data1D):
     def setup_class(cls):
         thet = np.linspace(0,2.*np.pi,100)
         P = np.array([2.4 + 0.8*np.cos(thet),0.8*np.sin(thet)])
-        V = tfg.Ves('Test', P, Exp='Test', SavePath=here)
+        V = tfg.Ves(Name='Test', Poly=P, Exp='Test', SavePath=here)
         N = 5
         Ds, us = tfu.create_CamLOS2D([3.5,0.,0.], 0.1, (0.05,0.05), (N,N),
                                      nIn=[-1,0.,0.], e1=None, e2=None,
