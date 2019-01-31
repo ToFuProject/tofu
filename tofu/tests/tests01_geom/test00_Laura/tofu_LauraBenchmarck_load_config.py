@@ -247,9 +247,11 @@ def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
     # Extract pinhole, focal length, width, nb. of pix., unit vector
     P, F = dcam[cam]['P'], dcam[cam]['F']
     D12, N12, nIn = dcam[cam]['D12'], dcam[cam]['N12'], dcam[cam]['nIn']
+    nIn = nIn / np.linalg.norm(nIn)
 
     # Compute the LOS starting points and unit vectors
-    (D,u) = tf.geom.utils.compute_CamLOS2D_pinhole(P, F, D12, N12, nIn=nIn)
+    (D,u) = tf.geom.utils.compute_CamLOS2D_pinhole(P, F, D12, N12,
+                                                   nIn=nIn, angs=None)
 
     if make_cam or plot:
         assert config is not None, "You must specify a config !"
