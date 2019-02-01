@@ -1964,22 +1964,73 @@ def get_updatefunc(obj, Type=None, data=None, fmt=None):
     return func
 
 
+def get_ind_fromval(Type='x_1d', ref=None):
+    assert Type in ['x_1d', 'y_1d', 'x_2d1','2d']
+
+    if Type=='x_1d':
+        def func(x=0, y=0, ind0=None, ref=ref):
+            return np.digitize([x], 0.5*(ref[1:]+ref[:-1]))[0]
+    elif Type=='y_1d':
+        def func(x=0, y=0, ind0=None, ref=ref):
+            return np.digitize([y], 0.5*(ref[1:]+ref[:-1]))[0]
+    elif Type=='x_2d0':
+        def func(x=0, y=0, ind0=None, ref=ref):
+            return np.digitize([x], 0.5*(ref[1:,ind0]+ref[:-1,ind0]))[0]
+    elif Type=='x_2d1':
+        def func(x=0, y=0, ind0=None, ref=ref):
+            return np.digitize([x], 0.5*(ref[ind0,1:]+ref[ind0,:-1]))[0]
+    elif Type=='2d':
+        def func(x=0, y=0, ind0=None, ref=ref, nx=1, ny=1):
+            indx = np.digitize([x], 0.5*(ref[0][1:]+ref[0][:-1]))[0]
+            indy = np.digitize([y], 0.5*(ref[1][1:]+ref[1][:-1]))[0]
+            ind =  indx*ny + indy
+            return ind
+    return func
+
+def get_ind_fromkey(Type='1d', dkey=None, ref=None):
+    assert Type in ['x_1d', 'y_1d', 'x_2d1','2d']
+    assert type(dkey) is dict
+
+    if Typ in ['x_1d']:
+        def func(eventkey, ind, ref=ref,
+                 dkey={1:'right', -1:'left', 'inc':10, 'kinc':'alt'}):
+            if dkey[1] in eventkey:
+                inc = 1
+            else:
+                inc = -1
+            if dkey['kinc'] in eventkey:
+                inc = inc*dkey['inc']
+            ind += inc
+            return ind
+    if Type=='2d':
+        def func(eventkey, ind, ref=ref,
+                 dkey={'right':'right', 'left':'left', 'up':'up', 'down':'down',
+                       'inch':10, 'incv':10, 'kinc':'alt'},
+                 nx=None, ny=None):
+            h = dkey['right'] in eventkey or dkey['left'] in eventkey
+            big = dkey['kinc'] in eventkey
+            pos = dkey['right'] in eventkey or dkey['up'] in eventkey
+
+            inc = 1 if pos else -1
+            if big:
+                inc = inc*dkey['inch'] if h else inc*dkey['incv']
+            ind = ind + inc if h else ind + inc*nx
+            return ind
+    return func
+
+
 
 
 class KeyHandler_mpl(object):
 
-    _ddef = {'dgroup_base':{'nMax':4, 'n':1, 'ind':0, 'val':0, 'ref':None, 'dref':{}, 'lax':[]}
-
     _msgdobj = """ Arg dobj must be a dict
     The keys are handles to matplotlib Artist objects (e.g.: lines, imshow...)
 
-    For each object oo, dobj[oo] is itself a dict with (key,values) pairs:
+    For each object oo, dobj[oo] is itself a dict with (key,value) pairs:
         - 'ref'   : a 1D flat np.ndarray, used as reference
-        - 'group' : a int, indicating to which group of indices oo belongs
-        - 'n'     : a int, indicating the number of oo in that group (unique)
+        - 'lgroup': list of int, indicating to which groups of indices oo belongs
+        - 'ln'    : list of int, indicating the index of oo in each group (unique)
         - 'update': a callable (function), to be called when updating
-        - 'ind'   : the main index to be updated (seta start value, eg: 0)
-        - 'depend': None or a dict of {group:n}
     """
 
 
@@ -1988,7 +2039,110 @@ class KeyHandler_mpl(object):
 
 
     @classmethod
-    def _checkformat_dobjgroup(cls, dobj, dgroup):
+    def _checkformat_dgrouprefobj(cls, dgroup, dref, dobj, dax):
+        assert all([type(dd) is dict for dd in [dgroup, dref, dobj, dax]])
+
+        #---------------
+        # Preliminary checks
+
+        ls = ['nMax','key']
+        for k,v in dgroup.items():
+            c0 = type(k) is str
+            c1 = type(v) is dict
+            c2 = all([s in v.keys() for s in ls])
+            if not (c0 and c1 and c2):
+                raise Exception(cls._msgdobj)
+            assert type(v['nMax']) in [int,np.int64]
+            assert type(v['key']) is str
+        lg = sorted(list(dgroup.keys()))
+        assert len(set(lg))==len(lg)
+
+        ls = ['group']
+        for k,v in dref.items():
+            c0 = type(k) in (np.ndarray,tuple)
+            c1 = type(v) is dict
+            c2 = all([s in v.keys() for s in ls])
+            if not (c0 and c1 and c2):
+                raise Exception(cls._msgdobj)
+            assert v['group'] in lg
+            if type(k) is np.ndarray:
+                dref[k]['type'] = '{0}d'.format(k.ndim)
+            else:
+                dref[k]['type'] = 'tuple'
+        lr = sorted(list(dref.keys()))
+        assert len(set(lr))==len(lr)
+
+        ls = ['refx','refy']
+        for k,v in dax.items():
+            c0 = issubclass(k.__class__, mpl.axes.Axes)
+            c1 = type(v) is dict
+            c2 = any([s in v.keys() for s in ls])
+            if not (c0 and c1 and c2):
+                raise Exception(cls._msgdobj)
+            assert all([vv in lr for vv in v.values()])
+            for kk,vv in v.items():
+                if 'type_xy' not in dref[vv].keys():
+                    dref[vv]['type_xy'] = kk
+                elif kk != dref[vv]['type_xy']:
+                    raise Exception(cls._msgdobj)
+        la = sorted(list(dax.keys()))
+        assert len(set(la))==len(la)
+
+        ls = ['data','type','lref','ln']
+        for k,v in dobj.items():
+            c0 = issubclass(k.__class__, mpl.artist.Artist)
+            c1 = type(v) is dict
+            c2 = any([s in v.keys() for s in ls])
+            if not (c0 and c1 and c2):
+                raise Exception(cls._msgdobj)
+            assert all([vv in lr for vv in v.values()])
+            dobj[k]['ax'] = v.axes
+        lo = sorted(list(dobj.keys()))
+        assert len(set(lo))==len(lo)
+
+        #---------------
+        # Complement
+
+        for g in lg:
+            dgroup[g]['lref'] = [r for r in lref if dref[r]['group']==g]
+            # To catch cross-dependencies:
+            # All axes of all objects with a group dependency
+            lla = []
+            for o in lo:
+                if any([dref[r]['group']==g for r in dobj[o]['tref']]):
+                    if dobj[o]['ax'] not in lla:
+                        lla.append(dobj[o]['ax'])
+            dgroup[g]['lax'] = lla
+
+        for r in lr:
+            dref[r]['ind'] = None
+            dref[r]['val'] = None
+            if type(r) is np.ndarray:
+                if r.ndim==1:
+                    typ = 'x_1d' if dref[r]['type_xy']=='refx' else 'y_1d'
+                elif r.ndim==2:
+
+            dref[r]['type'] = typ
+            dref[r]['f_ind_val'] = get_ind_fromval(typ, ref=r)
+            dref[r]['f_ind_key'] = get_ind_fromkey(typ, ref=r)
+
+
+
+
+
+
+
+
+
+
+
+
+        # TBF !!!!!!!!!!!!!!!!!
+
+
+
+
+
         C0 = type(dobj) is dict
         C1 = all([issubclass(k.__class__,mpl.artist.Artist)
                   for k in dobj.keys()])
@@ -1996,25 +2150,38 @@ class KeyHandler_mpl(object):
         if not all([C0,C1,C2]):
             raise Exception(cls._msgdobj)
 
+        # -----------
         # dobj and extract info
-        ls = ['group','n']
-        dg = {}
+        ls = ['lgroup','ln','lref']
+        dg, dr = {}, {}
         for oo in dobj.keys():
             lk = dobj[oo].keys()
             C0 = all([ss in lk for ss in ls])
             if not C0:
                 raise Exception(cls._msgdobj)
-            if not dobj[oo]['group'] in dg.keys()
-                dg[dobj[oo]['group']] = [dobj[oo]['n']]
-            else:
-                if dobj[oo]['n'] in dg[dobj[oo]['group']]:
-                    raise Exception(cls._msgdobj)
-                dg[dobj[oo]['group']].append(dobj[oo]['n'])
+            C0 = type(dobj[oo]['lgroup']) is list
+            C1 = (type(dobj[oo]['ln']) is list
+                  and len(dobj[oo]['ln'])==len(dobj[oo]['lgroup']))
+            C2 = type(dobj[oo]['lref']) is list
+            if not (C0 and C1 and C2):
+                raise Exception(cls._msgdobj)
+            for ii in range(0,len(dobj[oo]['lgroup'])):
+                if not dobj[oo]['lgroup'][ii] in dg.keys()
+                    dg[dobj[oo]['lgroup'][ii]] = [dobj[oo]['ln'][ii]]
+                else:
+                    if dobj[oo]['ln'][ii] in dg[dobj[oo]['lgroup'][ii]]:
+                        raise Exception(cls._msgdobj)
+                    dg[dobj[oo]['lgroup'][ii]] += [dobj[oo]['ln'][ii]]
+            for ii in range(0,len(dobj[oo]['lref'])):
+                if not dobj[oo]['lref'][ii] in dr.keys():
+                    dr[dobj[oo]['lref'][ii]] = [oo]
+                else:
+                    dr[dobj[oo]['lref'][ii]] += [oo]
         lgu = np.unique(dg.keys()).astype(int)
         for gg in lgu:
              dg[gg] = np.unique(dg[gg]).astype(int)
 
-        ls = ['ref','update','ind','depend']
+        ls = ['lref','update']
         for oo in dobj.keys():
             lk = dobj[oo].keys()
             C0 = all([ss in lk for ss in ls])
@@ -2023,45 +2190,89 @@ class KeyHandler_mpl(object):
             dobj[oo]['ax'] = oo.axes
             dobj[oo]['vis'] = False
 
+        # -----------
         # dgroup
         C0 = type(dgroup) is dict
         C1 = np.all(np.unique(dgroup.keys()).astype(int)==lgu)
         if not (C0 and C1):
             raise Exception(cls._msgdobj)
-        C0 = all(['nMax' in vv for vv in dgroup.values()])
+        ls = ['nMax','key']
+        C0 = all([ss in vv.keys() for vv in lgu])
         C1 = all([dgroup[gg]['nMax']>=min(1,dg[gg].max()) for gg in lgu])
         if not (C0 and C1):
             raise Exception(cls._msgdobj)
 
         for gg in lgu:
-            lobj, lax = [], []
+            lobj, lax, lref = [], [], []
             for oo in dobj.keys():
                 if dobj[oo]['group']==gg:
                     lobj.append(oo)
                     if dobj[oo]['ax'] not in lax:
                         lax.append(dobj[oo]['ax'])
+                lref += dobj[oo]['lref']
             dgroup[gg]['lobj'] = lobj
             dgroup[gg]['lax'] = lax
+            dgroup[gg]['lref'] = list(set(lref))
             dgroup[gg]['n'] = 1
-            dgroup[gg]['inds'] = None
-            dgroup[gg]['vals'] = None
+        lallref = [dgroup[gg]['lref'] for gg in dgroup.keys()])
+        lallref2 = itt.chain.from_iterable(lallref)
+        assert len(set(lallref2))==np.sum([len(ll) for ll in lallref])
 
-        return dobj, dgroup
+        # -----------
+        # dref
+        assert all([r in dr.keys() for r in dref.keys()])
+        assert all([r in dref.keys() for r in dr.keys()])
+        ls = ['lax','ind_from_val','ref2']
+        for r in dref.keys():
+            lk = dref[r].keys()
+            C0 = all([ss in lk for ss in ls])
+            if not C0:
+                raise Exception(cls._msgdobj)
+            dref[r]['lobj'] = dr[r]['lobj']
+            dref[r]['group'] = [g for g in dgroup.keys()
+                                if r in dgroup[g]['lref']][0]
+            dref[r]['ind'] = 0
+            dref[r]['val'] = 0.
 
+        # -----------
+        # dax
+        ls = ['lref']
+        for aa in dax.keys():
+            #dax[aa]['lref'] = r
+            dax[aa]['lobj'] = [oo for oo in dobj.keys()
+                               if aa in dobj[oo]['lax']]
+            dax[aa]['lgroup'] = [g for g in dgroup.keys()
+                                 if aa in dgroup[g]['lax']]
+        return dgroup, dref, dobj
 
 
     def init(self, dgroup=None, ngroup=None, dobj=None):
-        dobj, dgroup = self._checkformat_dobjgroup(dobj, dgroup)
-        self.dobj = dobj
+        dgroup, dref, dax, dobj, dkeys = self._checkformat_dobjgroup(dobj, dgroup)
         self.dgroup = dgroup
-        self.dcur = {'group':0, 'ax':None}
+        self.dref = dref
+        self.dax = dax
+        self.dobj = dobj
+        self.dcur = {'group':None, 'ref':None}
         self.dkeys = {'shift': False}
 
+
     def update(self):
-        self._update_mpl()
+        self._update_dref()
+        self._update_dobj()
+
+    def _update_dref(self):
+        group = self.dcur['group']
+        lr = self.dgroup[group]['lref']
+        if len(lr)>1:
+            lr.remove(self.dcur['ref'])
+            val = self.dref[self.dcur['ref']]['val']
+            for r in lr:
+                indother = self.dref[self.dref[r]['ref2']]['ind']
+                ind = self.dref[r]['ind_from_val'](val, indother)
+                self.dref[r]['ind'] = ind
 
 
-    def _update_mpl(self):
+    def _update_dobj(self):
 
         group = self.dcur['group']
         ref = self.dcur['ref']
@@ -2070,30 +2281,20 @@ class KeyHandler_mpl(object):
 
         # ---- Restore backgrounds ------
         for aa in lax:
-            self.can.restore_region(self.daxr[ax]['Bck'])
+            # TBF
+            self.can.restore_region(self.dax[aa]['Bck'])
 
         # ---- update data and draw objects ------
-        for obj in self.dgroup[group]['dref'][ref]:
-            self.dobj[obj]['update'](self.dcur['ind'])
-            self.dobj[obj]['vis'] = self.dobj[obj]['n'] <= n
-
-            # mpl-specific
-            obj.set_visible(self.dobj[obj]['vis'])
-            self.dobj[obj]['ax'].draw_artist(obj)
-
-        lref = list(self.dgroup[group]['dref'].keys())
-        lref.remove(ref)
+        lref = list(self.dgroup[group]['lref'])
         for r in lref:
-            #ind =   # TBF
-            for obj in self.dgroup[group]['dref'][r]:
-                self.dobj[obj]['update'](self.dcur['ind'])
+            for obj in self.dref['lobj']:
+                lind = [self.dref[rr]['ind'] for rr in self.dobj[oo]['lref']]
+                self.dobj[obj]['update'](*lind)
                 self.dobj[obj]['vis'] = self.dobj[obj]['n'] <= n
 
-                # mpl-specific
                 obj.set_visible(self.dobj[obj]['vis'])
                 self.dobj[obj]['ax'].draw_artist(obj)
 
         # ---- blit axes ------
-        # mpl_specific
         for aa in lax:
             self.can.blit(aa.bbox)
