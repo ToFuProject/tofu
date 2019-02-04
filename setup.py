@@ -8,16 +8,50 @@ import sys
 import os
 import subprocess
 import shutil
+import platform
 from codecs import open
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
 from Cython.Compiler.Options import get_directive_defaults
 from Cython.Compiler import Options
+import tempfile
 
 Options.annotate = True
 directive_defaults = get_directive_defaults()
 
+
+# ==============================================================================
+# Check if openmp available
+# see http://openmp.org/wp/openmp-compilers/
+omp_test = \
+r"""
+#include <omp.h>
+#include <stdio.h>
+int main() {
+#pragma omp parallel
+printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(),
+       omp_get_num_threads());
+}
+"""
+
+def check_for_openmp(cc_var):
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    filename = r'test.c'
+    with open(filename, 'w') as file:
+        file.write(omp_test)
+    with open(os.devnull, 'w') as fnull:
+        result = subprocess.call([cc_var, '-fopenmp', filename],
+                                 stdout=fnull, stderr=fnull)
+
+    os.chdir(curdir)
+    #clean up
+    shutil.rmtree(tmpdir)
+    return result
+# ==============================================================================
 
 # Always prefer setuptools over distutils
 try:
@@ -30,9 +64,15 @@ except:
     stp = False
 import _updateversion as up
 
-os.environ['CC'] = 'gcc'
-os.environ['CXX'] = 'gcc'
+if not platform.system() == "Darwin" :
+    # make sure you are using Homebrew's compiler
+    os.environ['CC'] = 'gcc-8'
+    os.environ['CXX'] = 'gcc-8'
+else:
+    os.environ['CC'] = 'gcc'
+    os.environ['CXX'] = 'gcc'
 
+not_openmp_installed = check_for_openmp(os.environ['CC'])
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6','3.7']:
@@ -84,7 +124,6 @@ if sys.version[0]=='3':
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-
 # Prepare extensions
 # Useful if install from setup.py
 #if '--use-cython' in sys.argv:
@@ -98,12 +137,20 @@ if USE_CYTHON:
     print("Using Cython !!!!!!!!!")
     print("")
     #TODO try O3 O2 flags
-    extensions = [ Extension(name="tofu.geom."+gg,
-                             sources=["tofu/geom/"+gg+".pyx"]),
-                   Extension(name="tofu.geom."+gg_lm,
-                             sources=["tofu/geom/"+gg_lm+".pyx"],
-                             extra_compile_args=["-O0",  "-fopenmp"],
-                             extra_link_args=['-fopenmp'])]
+    if not not_openmp_installed :
+        print("   Using OPENMP !!!")
+        extensions = [ Extension(name="tofu.geom."+gg,
+                                sources=["tofu/geom/"+gg+".pyx"]),
+                    Extension(name="tofu.geom."+gg_lm,
+                              sources=["tofu/geom/"+gg_lm+".pyx"],
+                              extra_compile_args=["-O0",  "-fopenmp"],
+                              extra_link_args=['-fopenmp'])]
+    else:
+        extensions = [ Extension(name="tofu.geom."+gg,
+                                sources=["tofu/geom/"+gg+".pyx"]),
+                    Extension(name="tofu.geom."+gg_lm,
+                              sources=["tofu/geom/"+gg_lm+".pyx"],
+                              extra_compile_args=["-O0"]) ]
     extensions = cythonize(extensions)
 else:
     print("")
