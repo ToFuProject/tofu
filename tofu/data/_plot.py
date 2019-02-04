@@ -1747,20 +1747,20 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
               'channel':   {'nMax':1, 'key':'F2'},
               'frequency': {'nMax':nfMax, 'key':'F3'}}
 
-    dref = {t:  {'group':'time', 'type':'1d'},
-            tf: {'group':'time', 'type':'1d'},
-            X:  {'group':'channel'},
-            f:  {'group':'frequency'}}
+    dref = {t:  {'group':'time'},
+            tf: {'group':'time', 'def':True},
+            X:  {'group':'channel', 'other':t, 'def':True},
+            f:  {'group':'frequency', 'def':True}}
 
-    dax = {dax['t'][0]: {'refx':t},
-           dax['t'][1]: {'refx':tf, 'refy':f},
-           dax['t'][2]: {'refx':tf, 'refy':f},
-           dax['X'][0]: {'refx':X},
-           dax['X'][1]: {'refx':X},
-           dax['X'][2]: {'refx':X}}
+    dax = {dax['t'][0]: {'x':t},
+           dax['t'][1]: {'x':tf, 'y':f},
+           dax['t'][2]: {'x':tf, 'y':f},
+           dax['X'][0]: {'x1':X},
+           dax['X'][1]: {'x1':X},
+           dax['X'][2]: {'x1':X}}
 
     dobj = {l: {'data':, 'type':'xdata_1d'},
-                'lref':[], 'ln':[1]}
+                'lref':[], 'ln':[0]}
 
     # Plot mobile parts
     can = dax['t'][0]['ax'].figure.canvas
