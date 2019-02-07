@@ -1388,6 +1388,7 @@ def LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
     TODO: ........... @LM
     """
 
+    print("roots are = ", KK)
     if Mode=='LOS':                     # Take solution on physical LOS
         if any([kk>=0 and kk<=kOut for kk in KK]):
             KK = [kk for kk in KK if kk>=0 and kk<=kOut]
