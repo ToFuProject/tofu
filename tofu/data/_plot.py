@@ -1759,7 +1759,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
            dax['X'][1]: {'x1':X},
            dax['X'][2]: {'x1':X}}
 
-    dobj = {l: {'data':, 'type':'xdata_1d'},
+    dobj = {l: {'data':None, 'type':'xdata_1d'},
                 'lref':[], 'ln':[0]}
 
     # Plot mobile parts
