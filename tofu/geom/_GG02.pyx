@@ -2885,15 +2885,43 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
 ######################################################################
 
 
-cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0, double RZ1, double ScaP, double DParN, double kOut, double D0, double D1, double D2, double u0, double u1, double u2, str Mode='LOS'):
-    cdef double a4 = (uParN*uN*uN)**2, a3 = 2*( (Sca-RZ1*u2)*(uParN*uN)**2 + ScaP*uN**4 )
-    cdef double a2 = (uParN*(Sca-RZ1*u2))**2 + 4.*ScaP*(Sca-RZ1*u2)*uN**2 + (DParN*uN*uN)**2 - (RZ0*uParN*uParN)**2
-    cdef double a1 = 2*( ScaP*(Sca-RZ1*u2)**2 + (Sca-RZ1*u2)*(DParN*uN)**2 - ScaP*(RZ0*uParN)**2 )
+cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
+                                double RZ1, double ScaP, double DParN,
+                                double kOut, double D0, double D1, double D2,
+                                double u0, double u1, double u2,
+                                str Mode='LOS'):
+    cdef double a4 = (uParN*uN*uN)**2, a3 = 2*( (Sca-RZ1*u2)*(uParN*uN)**2 +
+                                                ScaP*uN**4 )
+    cdef double a2 = (uParN*(Sca-RZ1*u2))**2 + 4.*ScaP*(Sca-RZ1*u2)*uN**2 + \
+                     (DParN*uN*uN)**2 - (RZ0*uParN*uParN)**2
+    cdef double a1 = 2*( ScaP*(Sca-RZ1*u2)**2 + (Sca-RZ1*u2)*(DParN*uN)**2 -
+                         ScaP*(RZ0*uParN)**2 )
     cdef double a0 = ((Sca-RZ1*u2)*DParN)**2 - (RZ0*ScaP)**2
     cdef cnp.ndarray roo = np.roots(np.array([a4,a3,a2,a1,a0]))
-    cdef list KK = list(np.real(roo[np.isreal(roo)]))   # There might be several solutions
+    # There might be several solutions
+    cdef list KK = list(np.real(roo[np.isreal(roo)]))
     cdef list Pk, Pk2D, rk
     cdef double kk, kPMin
+    """
+    Rendre "vectoriel" sur LOS et sur les cercles (deux boucles "for")
+    Intersection ligne et cercle
+    double uParN : composante de u parallel au plan (x,y)
+        double uN : uz
+        double Sca : ??? produit scalaire ... ?
+        double RZ0 : Grand rayon du cercle
+        double RZ1 : Z
+        => cercle est centré au point (0, 0, RZ1) et rayon RZ0
+        double ScaP : .... ?
+        double DParN : D origine de LOS.... ? N => norme de la composante du vecteur OD
+        double kOut : kmax où on peut trouver un résultat
+        double D0, double D1, double D2 : composantes de D (origine LOS)
+        double u0, double u1, double u2 : composantes de U (direction LOS)
+        str Mode='LOS' : si LOS pas de sol après kmax)
+    ::: Faire une fonction double mais qui renvoit QUE un tableau de bool avec true si
+    la distance est plus petite qu'un certain eps, false sinon.
+    TODO: ........... @LM
+    """
+
     if Mode=='LOS':                     # Take solution on physical LOS
         if any([kk>=0 and kk<=kOut for kk in KK]):
             KK = [kk for kk in KK if kk>=0 and kk<=kOut]
@@ -2912,7 +2940,9 @@ cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
 
 
 
-cdef LOS_sino_Tor(double D0, double D1, double D2, double u0, double u1, double u2, double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
+cdef LOS_sino_Tor(double D0, double D1, double D2,
+                  double u0, double u1, double u2,
+                  double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
     cdef double    uN = Csqrt(u0**2+u1**2+u2**2), uParN = Csqrt(u0**2+u1**2), DParN = Csqrt(D0**2+D1**2)
     cdef double    Sca = u0*D0+u1*D1+u2*D2, ScaP = u0*D0+u1*D1
     cdef double    kPMin
