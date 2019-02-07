@@ -47,7 +47,7 @@ def prepare_inputs(vcam, config, method='ref'):
     VPoly = S.Poly_closed
     VVIn =  S.dgeom['VIn']
     Lim = S.Lim
-    nLim = S.nLim
+    nLim = S.noccur
     VType = config.Id.Type
 
     lS = [ss for ss in lS if ss._InOut=='out']
@@ -57,7 +57,7 @@ def prepare_inputs(vcam, config, method='ref'):
         lSPoly.append(ss.Poly_closed)
         lSVIn.append(ss.dgeom['VIn'])
         lSLim.append(ss.Lim)
-        lSnLim.append(ss.nLim)
+        lSnLim.append(ss.noccur)
         if ss.Lim is None or len(ss.Lim) == 0:
             num_tot_structs += 1
         else:
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     # touch_plot_all_configs()
     #touch_plot_config_cam("A2", "VA10000")
     # touch_plot_config_cam("A1", "V10000")
-    touch_plot_config_cam("B3", "V10000")
+    touch_plot_config_cam("B1", "V100000")
     # line profiling.....
     # test_line_profile(cam="V100000")
     # print(test_LOS_west_configs("A1", ["V1000000"]))

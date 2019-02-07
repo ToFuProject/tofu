@@ -134,13 +134,21 @@ def recreate_compatible_objects(path=_path_laura_former, save=True):
             cls = 'PFC'
         out = np.load(os.path.join(path,f))
         print("keys: ", list(out.keys()))
-        if 'Poly' in out.keys():
+        if 'Poly' in out.keys() and "Lim" in out.keys():
             Poly = out['Poly']
             Lim = out['Lim']
-        else :
+        elif "dgeom_Lim" in out.keys() :
             Poly = out['dgeom_Poly']
             Lim = out['dgeom_Lim']
-        print(Exp, cls, nn+v, Poly.shape, Lim.shape)
+        else :
+            Poly = out['dgeom_Poly']
+            pos = out['dgeom_pos']
+            extent = out["dgeom_extent"]
+            if pos.size > 0 :
+                Lim = pos[np.newaxis, :] + np.array([[-0.5], [0.5]]) * extent
+            else:
+                Lim = pos
+            print(Exp, cls, nn+v, Poly.shape, Lim.shape)
         if Lim.shape==():
             Lim = Lim.tolist()
         ss = eval("tf.geom.%s"%cls
@@ -251,7 +259,8 @@ def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
 
     # Compute the LOS starting points and unit vectors
     (D,u) = tf.geom.utils.compute_CamLOS2D_pinhole(P, F, D12, N12,
-                                                   nIn=nIn, angs=None)
+                                                   nIn=nIn, angs=None,
+                                                   return_Du=True)
 
     if make_cam or plot:
         assert config is not None, "You must specify a config !"
@@ -261,7 +270,7 @@ def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
 
         # Create the LOSCam2D object
         # Note : this is where the computation goes on...
-        cam = tf.geom.LOSCam2D(Exp=conf.Id.Exp, Name=cam, dgeom=(D,u),
+        cam = tf.geom.CamLOS2D(Exp=conf.Id.Exp, Name=cam, dgeom=(D,u),
                                config=conf, Diag='Test', method="optimized")
 
     else:
