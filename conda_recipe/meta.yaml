@@ -29,6 +29,7 @@ requirements:
     - cython
     - nose
     - pygments
+    - pandas
     - polygon2 # [py27]
     - polygon3 # [not py27]
 
