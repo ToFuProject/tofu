@@ -288,6 +288,7 @@ def Poly_VolAngTor(cnp.ndarray[double,ndim=2,mode='c'] Poly):
 ###############################################################################
 """
 
+<<<<<<< HEAD
 # TODO : @LM > what are the next 2 functions ?
 def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ,
                    cnp.ndarray[double,ndim=2] Poly, int NP=50, Test=True):
@@ -302,21 +303,48 @@ def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ,
         NP          An integer (default = 50) indicating the number of points
                     used for discretising theta between 0 and pi
     Outputs :
+=======
+
+def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ,
+                   cnp.ndarray[double,ndim=2] Poly, int NP=50, Test=True):
+    """ Computes impact parameters of a Tor enveloppe (Tor is a closed 2D polygon)
+
+    D. VEZINET, Aug. 2014
+    Parameters
+    ----------
+    RZ :    np.ndarray
+        (2,) array indicating the reference impact point
+    Poly :  np.ndarray
+        (2,N) array containing the coordinatesof a closed polygon
+    NP :    int
+        Number of indicating the number of points used for discretising theta between 0 and pi
+
+    Returns
+    -------
+>>>>>>> LOS_testing
         theta
     """
     if Test:
         assert RZ.size==2, 'Arg RZ should be a (2,) np.ndarray!'
         assert Poly.shape[0]==2, 'Arg Poly should be a (2,N) np.ndarray!'
     cdef int NPoly = Poly.shape[1]
-    EnvTheta = np.linspace(0.,np.pi,NP,endpoint=True).reshape((NP,1))
-    Vect = np.concatenate((np.cos(EnvTheta),np.sin(EnvTheta)),axis=1)
-    Vectbis = np.swapaxes(np.resize(Vect,(NPoly,NP,2)),0,1)
+    # Theta sampling and unit vector
+    theta = np.linspace(0.,np.pi,NP,endpoint=True)
+    vect = np.array([np.cos(theta), np.sin(theta)])
 
+<<<<<<< HEAD
     RZPoly = Poly - np.tile(RZ,(NPoly,1)).T
     RZPoly = np.resize(RZPoly.T,(NP,NPoly,2))
     Sca = np.sum(Vectbis*RZPoly,axis=2)
     return EnvTheta.flatten(), np.array([np.max(Sca,axis=1).T,
                                         np.min(Sca,axis=1).T])
+=======
+    # Scalar product
+    sca = np.sum(vect[:,:,np.newaxis]*(Poly-RZ[:,np.newaxis])[:,np.newaxis,:],axis=0)
+    scamin = np.min(sca,axis=1)
+    scamax = np.max(sca,axis=1)
+    return theta, np.array([scamax, scamin])
+>>>>>>> LOS_testing
 
 
 # For sinograms
@@ -358,6 +386,7 @@ def ConvertImpact_Theta2Xi(theta, pP, pN, sort=True):
 ########################################################
 #       isInside
 ########################################################
+<<<<<<< HEAD
 def _Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(X,Y,Z)', Test=True):
     #
     # TODO : @LM > what's Lim in this function ?
@@ -379,12 +408,28 @@ def _Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(X,Y,Z)', Test=True):
     if VType.lower()=='tor':
         if Lim is None:
             # TODO : @LM > add "if not In == '(R,Z)' "
+=======
+
+def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
+                  VType='Tor', In='(X,Y,Z)', Test=True):
+    if Test:
+        assert type(Pts) is np.ndarray and Pts.ndim in [1,2], "Arg Pts must be a 1D or 2D np.ndarray !"
+        assert type(VPoly) is np.ndarray and VPoly.ndim==2 and VPoly.shape[0]==2, "Arg VPoly must be a (2,N) np.ndarray !"
+        assert Lim is None or (hasattr(Lim,'__iter__') and len(Lim)==2) or (hasattr(Lim,'__iter__') and all([hasattr(ll,'__iter__') and len(ll)==2 for ll in Lim])), "Arg Lim must be a len()==2 iterable or a list of such !"
+        assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin'] !"
+        assert type(nLim) in [int,np.int64] and nLim>=0
+
+    path = Path(VPoly.T)
+    if VType.lower()=='tor':
+        if Lim is None or nLim==0:
+>>>>>>> LOS_testing
             pts = CoordShift(Pts, In=In, Out='(R,Z)')
             # TODO : @LM > voir avec la fct matplotlib et est-ce que c'est possible de
             # recoder pour faire plus rapide
             ind = Path(VPoly.T).contains_points(pts.T, transform=None,
                                                 radius=0.0)
         else:
+<<<<<<< HEAD
             # TODO : @LM > add "if not In == '(R,Z,Phi)' "
             pts = CoordShift(Pts, In=In, Out='(R,Z,Phi)')
             ind0 = Path(VPoly.T).contains_points(pts[:2,:].T, transform=None,
@@ -404,11 +449,43 @@ def _Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(X,Y,Z)', Test=True):
                 Lim = [Catan2(Csin(Lim[0]), Ccos(Lim[0])),
                        Catan2(Csin(Lim[1]), Ccos(Lim[1]))]
                 if Lim[0]<Lim[1] :
+=======
+            try:
+                pts = CoordShift(Pts, In=In, Out='(R,Z,Phi)')
+            except Exception as err:
+                msg = str(err)
+                msg += "\n    You may have specified points in (R,Z)"
+                msg += "\n    But there are toroidally limited elements !"
+                msg += "\n      (i.e.: element with self.nLim>0)"
+                msg += "\n    These require to know the phi of points !"
+                raise Exception(msg)
+
+            ind0 = Path(VPoly.T).contains_points(pts[:2,:].T,
+                                                 transform=None, radius=0.0)
+            if nLim>1:
+                ind = np.zeros((nLim,Pts.shape[1]),dtype=bool)
+                for ii in range(0,len(Lim)):
+                    lim = [Catan2(Csin(Lim[ii][0]),Ccos(Lim[ii][0])),
+                           Catan2(Csin(Lim[ii][1]),Ccos(Lim[ii][1]))]
+                    if lim[0]<lim[1]:
+                        ind[ii,:] = (ind0
+                                     & (pts[2,:]>=lim[0])
+                                     & (pts[2,:]<=lim[1]))
+                    else:
+                        ind[ii,:] = (ind0
+                                     & ((pts[2,:]>=lim[0])
+                                        | (pts[2,:]<=lim[1])))
+            else:
+                Lim = [Catan2(Csin(Lim[0,0]),Ccos(Lim[0,0])),
+                       Catan2(Csin(Lim[0,1]),Ccos(Lim[0,1]))]
+                if Lim[0]<Lim[1]:
+>>>>>>> LOS_testing
                     ind = ind0 & (pts[2,:]>=Lim[0]) & (pts[2,:]<=Lim[1])
                 else :
                     ind = ind0 & ((pts[2,:]>=Lim[0]) | (pts[2,:]<=Lim[1]))
     else:
         pts = CoordShift(Pts, In=In, Out='(X,Y,Z)')
+<<<<<<< HEAD
         ind0 = Path(VPoly.T).contains_points(pts[1:,:].T, transform=None,
                                              radius=0.0)
         if hasattr(Lim[0],'__iter__'):
@@ -416,8 +493,18 @@ def _Ves_isInside(Pts, VPoly, Lim=None, VType='Tor', In='(X,Y,Z)', Test=True):
             for ii in range(0,len(Lim)):
                 ind[ii,:] = ind0 & (pts[0,:]>=Lim[ii][0])\
                   & (pts[0,:]<=Lim[ii][1])
+=======
+        ind0 = Path(VPoly.T).contains_points(pts[1:,:].T,
+                                             transform=None, radius=0.0)
+        if nLim>1:
+            ind = np.zeros((nLim,Pts.shape[1]),dtype=bool)
+            for ii in range(0,nLim):
+                ind[ii,:] = (ind0
+                             & (pts[0,:]>=Lim[ii][0])
+                             & (pts[0,:]<=Lim[ii][1]))
+>>>>>>> LOS_testing
         else:
-            ind = ind0 & (pts[0,:]>=Lim[0]) & (pts[0,:]<=Lim[1])
+            ind = ind0 & (pts[0,:]>=Lim[0,0]) & (pts[0,:]<=Lim[0,1])
     return ind
 
 
@@ -1777,9 +1864,13 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 
 # TODO : @LM > recall
 def LOS_Calc_PInOut_VesStruct(Ds, dus,
-                              cnp.ndarray[double, ndim=2,mode='c'] VPoly, cnp.ndarray[double, ndim=2,mode='c'] VIn, Lim=None,
-                              LSPoly=None, LSLim=None, LSVIn=None,
-                              RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9,
+                              cnp.ndarray[double, ndim=2,mode='c'] VPoly,
+                              cnp.ndarray[double, ndim=2,mode='c'] VIn,
+                              Lim=None, nLim=None,
+                              LSPoly=None, LSLim=None, lSnLim=None, LSVIn=None,
+                              RMin=None, Forbid=True,
+                              EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9,
+                              EpsB=1.e-9, EpsPlane=1.e-9,
                               VType='Tor', Test=True):
     """ Compute the entry and exit point of all provided LOS for the provided vessel polygon (toroidal or linear), also return the normal vector at impact point and the index of the impact segment
 
@@ -1817,6 +1908,18 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin']!"
 
     cdef int ii, jj
+
+    print("\n ---- > Using the WRONG one !!!!!!!\n")
+    if nLim==0:
+        Lim = None
+    elif nLim==1:
+        Lim = [Lim[0,0],Lim[0,1]]
+    if lSnLim is not None:
+        for ii in range(0,len(lSnLim)):
+            if lSnLim[ii]==0:
+                LSLim[ii] = None
+            elif lSnLim[ii]==1:
+                LSLim[ii] = [LSLim[ii][0,0],LSLim[ii][0,1]]
 
     v = Ds.ndim==2
     if not v:
@@ -3087,7 +3190,29 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
 ######################################################################
 
 
-cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0, double RZ1, double ScaP, double DParN, double kOut, double D0, double D1, double D2, double u0, double u1, double u2, str Mode='LOS'):
+cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
+                                double RZ1, double ScaP, double DParN,
+                                double kOut, double D0, double D1, double D2,
+                                double u0, double u1, double u2, str Mode='LOS'):
+    """
+    Rendre "vectoriel" sur LOS et sur les cercles (deux boucles "for")
+    Intersection ligne et cercle
+    double uParN : composante de u parallel au plan (x,y)
+        double uN : uz
+        double Sca : ??? produit scalaire ... ?
+        double RZ0 : Grand rayon du cercle
+        double RZ1 : Z
+        => cercle est centré au point (0, 0, RZ1) et rayon RZ0
+        double ScaP : .... ?
+        double DParN : D origine de LOS.... ? N => norme de la composante du vecteur OD
+        double kOut : kmax où on peut trouver un résultat
+        double D0, double D1, double D2 : composantes de D (origine LOS)
+        double u0, double u1, double u2 : composantes de U (direction LOS)
+        str Mode='LOS' : si LOS pas de sol après kmax)
+    ::: Faire une fonction double mais qui renvoit QUE un tableau de bool avec true si
+    la distance est plus petite qu'un certain eps, false sinon.
+    TODO: ........... @LM
+    """
     cdef double a4 = (uParN*uN*uN)**2, a3 = 2*( (Sca-RZ1*u2)*(uParN*uN)**2 + ScaP*uN**4 )
     cdef double a2 = (uParN*(Sca-RZ1*u2))**2 + 4.*ScaP*(Sca-RZ1*u2)*uN**2 + (DParN*uN*uN)**2 - (RZ0*uParN*uParN)**2
     cdef double a1 = 2*( ScaP*(Sca-RZ1*u2)**2 + (Sca-RZ1*u2)*(DParN*uN)**2 - ScaP*(RZ0*uParN)**2 )
@@ -3110,7 +3235,7 @@ cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
         Pk2D = [(Csqrt(pp[0]**2+pp[1]**2), pp[2]) for pp in Pk]
         rk = [(pp[0]-RZ0)**2+(pp[1]-RZ1)**2 for pp in Pk2D]
         kPMin = KK[rk.index(min(rk))]
-    return kPMin
+    return kPMin # + distance au cercle
 
 
 

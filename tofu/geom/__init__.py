@@ -9,6 +9,8 @@ Provides classes to model the 3D geometry of:
 * apertures and detectors
 """
 
-from tofu.geom._core import Ves, PFC, CoilPF, CoilCS, Rays, LOSCam1D, LOSCam2D
+from tofu.geom._core import PlasmaDomain, Ves, PFC, CoilPF, CoilCS, Config,\
+        Rays, CamLOS1D, CamLOS2D
+from . import utils
 
-__all__ = ['_GG', '_comp', '_plot', '_def']
+__all__ = ['_GG', '_comp', '_plot', '_def', 'utils']

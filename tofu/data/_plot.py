@@ -22,10 +22,11 @@ except Exception:
 
 
 
-__all__ = ['Data_plot', 'Data_plot_combine']
+__all__ = ['Data_plot', 'Data_plot_combine',
+           'Data_plot_spectrogram']
 __author_email__ = 'didier.vezinet@cea.fr'
 _wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
-_nchMax, _ntMax = 4, 3
+_nchMax, _ntMax, _nfMax = 4, 3, 3
 _fontsize = 8
 _labelpad = 0
 _lls = ['-','--','-.',':']
@@ -131,10 +132,7 @@ def _init_Data1D(fs=None, dmargin=None,
                  fontsize=8,  wintit=_wintit,
                  nchMax=4, ntMax=4):
     axCol = "w"
-    if fs is None:
-        fs = _def.fs1D
-    elif type(fs) is str and fs.lower()=='a4':
-        fs = (8.27,11.69)
+    fs = utils.get_figuresize(fs, fsdef=_def.fs1D)
     if dmargin is None:
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
@@ -153,13 +151,13 @@ def _init_Data1D(fs=None, dmargin=None,
     DY = Laxt[0].get_position().bounds[1] - Ytxt
     Xtxt = Laxt[1].get_position().bounds[0]
     DX = Laxt[1].get_position().bounds[2]
-    axtxtch = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtch = fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None')
     Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
     Xtxt = axp.get_position().bounds[0]
     DX = axp.get_position().bounds[2]
-    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
     for ax in [axtxtch, axtxtt]:
-        axtxtch.patch.set_alpha(0.)
+        ax.patch.set_alpha(0.)
         for ss in ['left','right','bottom','top']:
             ax.spines[ss].set_visible(False)
         ax.set_xticks([]), ax.set_yticks([])
@@ -191,7 +189,7 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     nDat = len(lData)
 
     # Get data and time limits
-    Dunits = lData[0].units['data']
+    Dunits = lData[0].dunits['data']
     lDlim = np.array([(np.nanmin(dd.data),
                        np.nanmax(dd.data)) for dd in lData])
     Dd = [min(0.,np.min(lDlim[:,0])),
@@ -442,14 +440,16 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     dax['chan'][0]['ax'].set_xticklabels(chlabRef, rotation=45)
 
 
-    # Plot mobile parts
+
+
     can = dax['t'][0]['ax'].figure.canvas
     can.draw()
-    KH = KH1D(can, dax, ntMax=ntMax, nchMax=nchMax)
+
+    kh = utils.KeyHandler_mpl(can, dgroup, dobj, dref, dax)
 
     if connect:
-        KH.disconnect_old()
-        KH.connect()
+        kh.disconnect_old()
+        kh.connect()
     if draw:
         can.draw()
     return KH
@@ -501,10 +501,7 @@ def _init_Data2D(fs=None, dmargin=None,
                  nchMax=4, ntMax=1, nDat=1):
     assert nDat<=3, "Cannot display more than 3 Data objects !"
     axCol = "w"
-    if fs is None:
-        fs = _def.fs2D
-    elif type(fs) is str and fs.lower()=='a4':
-        fs = (8.27,11.69)
+    fs = utils.get_figuresize(fs, fsdef=_def.fs2D)
     if dmargin is None:
         dmargin = _def.dmargin2D
     fig = plt.figure(facecolor=axCol,figsize=fs)
@@ -533,12 +530,12 @@ def _init_Data2D(fs=None, dmargin=None,
     DY = Laxt[0].get_position().bounds[1] - Ytxt
     Xtxt = Laxt[1].get_position().bounds[0]
     DX = Laxt[1].get_position().bounds[2]
-    axtxtch = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtch = fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None')
 
     Ytxt = laxp[0].get_position().bounds[1] + laxp[0].get_position().bounds[3]
     Xtxt = laxp[0].get_position().bounds[0]
     DX = laxp[0].get_position().bounds[2]
-    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
 
     for ax in [axtxtch, axtxtt]:
         axtxtch.patch.set_alpha(0.)
@@ -580,7 +577,7 @@ def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
     nDat = len(lData)
 
     # Get data and time limits
-    Dunits = lData[0].units['data']
+    Dunits = lData[0].dunits['data']
     lDlim = np.array([(np.nanmin(dd.data),
                        np.nanmax(dd.data)) for dd in lData])
     Dd = [min(0.,np.min(lDlim[:,0])),
@@ -935,10 +932,7 @@ def _init_Data_combine(fs=None, dmargin=None,
     assert nDat<=5, "Cannot display more than 5 Data objects !"
 
     axCol = "w"
-    if fs is None:
-        fs = _def.fs2D
-    elif type(fs) is str and fs.lower()=='a4':
-        fs = (8.27,11.69)
+    fs = utils.get_figuresize(fs, fsdef=_def.fs2D)
     if dmargin is None:
         dmargin = _def.dmargin_combine
     fig = plt.figure(facecolor=axCol,figsize=fs)
@@ -981,12 +975,12 @@ def _init_Data_combine(fs=None, dmargin=None,
             DY = Laxt[-2].get_position().bounds[1] - Ytxt
             Xtxt = Laxt[-1].get_position().bounds[0]
             DX = Laxt[-1].get_position().bounds[2]
-        laxtxtch.append( fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w') )
+        laxtxtch.append( fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None') )
 
     Ytxt = laxT[0].get_position().bounds[1] + laxT[0].get_position().bounds[3]
     Xtxt = laxT[0].get_position().bounds[0]
     DX = laxT[0].get_position().bounds[2]
-    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
+    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
 
     for ax in laxtxtch + [axtxtt]:
         ax.patch.set_alpha(0.)
@@ -1146,7 +1140,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
         print("")   # DB
         print(ii, lData[ii].Id.Name, lData[ii].Id.Diag, lData[ii].Id.Cls, kax)    # DB
 
-        ylab = r"{0} ({1})".format(lData[ii].Id.Diag, lData[ii].units['data'])
+        ylab = r"{0} ({1})".format(lData[ii].Id.Diag, lData[ii].dunits['data'])
         dax['t'][ii+1]['ax'].set_ylabel(ylab, **fldict)
 
         # Plot cross-section
@@ -1199,7 +1193,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
             data = data.reshape((nt,nch))
 
         # Get data and time limits
-        Dunits = lData[ii].units['data']
+        Dunits = lData[ii].dunits['data']
         Dd0 = [min(0.,np.nanmin(data)), max(0.,np.nanmax(data))]
         Dd = [Dd0[0]-0.05*np.diff(Dd0), Dd0[1]+0.05*np.diff(Dd0)]
 
@@ -1452,3 +1446,332 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
     if draw:
         can.draw()
     return KH
+
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+#               Plot spectrogram
+#######################################################################
+#######################################################################
+
+
+def Data_plot_spectrogram(Data, tf, f, lpsd, lang,
+                          key=None, Bck=True, indref=0,
+                          cmap=plt.cm.gray, ms=4, vmin=None, vmax=None,
+                          normt=False, ntMax=None, nchMax=None, nfMax=3,
+                          lls=_lls, lct=_lct, lcch=_lcch,
+                          plotmethod='imshow', invert=False,
+                          fs=None, dmargin=None, wintit=_wintit, tit=None,
+                          fontsize=None, draw=True, connect=True):
+
+    if wintit is None:
+        wintit = _wintit
+    if fontsize is None:
+        fontsize = _fontsize
+
+    if '1d' in Data.Id.Cls.lower() or '1d' in Data.Id.Type.lower():
+        ntMax = _ntMax if ntMax is None else ntMax
+        nchMax = _nchMax if nchMax is None else nchMax
+        nfMax = _nfMax if nfMax is None else nfMax
+        KH = _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=key,
+                                      ntMax=ntMax, nfMax=nfMax,
+                                      Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+                                      fs=fs, dmargin=dmargin, wintit=wintit,
+                                      tit=tit, fontsize=fontsize,
+                                      draw=draw, connect=connect)
+
+    else:
+        ntMax = 1 if ntMax is None else ntMax
+        nchMax = _nchMax if nchMax is None else nchMax
+        nfMax = _nfMax if nfMax is None else nfMax
+        KH = _Data2D_plot_spectrogram(Data, tf, f, lpsd, lang, key=key,
+                                      nchMax=nchMax, ntMax=ntMax,
+                                      Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+                                      cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                                      normt=normt, fs=fs, dmargin=dmargin,
+                                      wintit=wintit, tit=tit,
+                                      plotmethod=plotmethod, invert=invert,
+                                      fontsize=fontsize,
+                                      draw=draw, connect=connect)
+    return KH
+
+
+
+def _init_Data1D_spectrogram(fs=None, dmargin=None,
+                             fontsize=8,  wintit=_wintit):
+    axCol = "w"
+    fs = utils.get_figuresize(fs)
+    if dmargin is None:
+        dmargin = _def.dmargin1D
+    fig = plt.figure(facecolor=axCol,figsize=fs)
+    if wintit is not None:
+        fig.canvas.set_window_title(wintit)
+
+    gs1 = gridspec.GridSpec(6, 5, **dmargin)
+    laxt = [fig.add_subplot(gs1[:2,:2], fc='w')]
+    laxt += [fig.add_subplot(gs1[2:4,:2], fc='w', sharex=laxt[0])]
+    laxt += [fig.add_subplot(gs1[4:,:2], fc='w', sharex=laxt[0],sharey=laxt[1])]
+    laxp = [fig.add_subplot(gs1[:2,2:4], fc='w', sharey=laxt[0])]
+    laxp += [fig.add_subplot(gs1[2:4,2:4], fc='w', sharex=laxp[0]),
+             fig.add_subplot(gs1[4:,2:4], fc='w', sharex=laxp[0])]
+    axH = fig.add_subplot(gs1[0:2,4], fc='w')
+    axC = fig.add_subplot(gs1[2:,4], fc='w')
+    axC.set_aspect('equal', adjustable='datalim')
+    axH.set_aspect('equal', adjustable='datalim')
+
+    Ytxt = laxt[0].get_position().bounds[1]+laxt[0].get_position().bounds[3]
+    DY = (laxt[0].get_position().bounds[1]
+          - (laxt[1].get_position().bounds[1]+laxt[1].get_position().bounds[3]))
+    Xtxt = laxt[0].get_position().bounds[0]
+    DX = laxt[0].get_position().bounds[2]
+    xtxt = Xtxt + 0.15*(DX-Xtxt)
+    dx = DX - 0.15*(DX-Xtxt)
+    axtxtx = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+
+    Ytxt = laxp[0].get_position().bounds[1]+laxp[0].get_position().bounds[3]
+    Xtxt = laxp[0].get_position().bounds[0]
+    DX = laxp[0].get_position().bounds[2]
+    xtxt = Xtxt + 0.15*(DX-Xtxt)
+    dx = DX - 0.15*(DX-Xtxt)
+    axtxtt = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+    Ytxt = laxp[1].get_position().bounds[1]+laxp[1].get_position().bounds[3]
+    axtxtf = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+    for ax in [axtxtx, axtxtt, axtxtf]:
+        ax.patch.set_alpha(0.)
+        for ss in ['left','right','bottom','top']:
+            ax.spines[ss].set_visible(False)
+        ax.set_xticks([]), ax.set_yticks([])
+        ax.set_xlim(0,1),  ax.set_ylim(0,1)
+
+    dax = {'t':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxt],
+           'chan':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp],
+           'cross':[{'ax':axC, 'dh':{}}],
+           'hor':[{'ax':axH, 'dh':{}}],
+           'txtx':[{'ax':axtxtx, 'dh':{}}],
+           'txtt':[{'ax':axtxtt, 'dh':{}}],
+           'txtf':[{'ax':axtxtf, 'dh':{}}]}
+    for kk in dax.keys():
+        for ii in range(0,len(dax[kk])):
+            dax[kk][ii]['ax'].tick_params(labelsize=fontsize)
+    return dax
+
+
+
+
+def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
+                             ntMax=_ntMax, nfMax=_nfMax,
+                             Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
+                             fs=None, dmargin=None, wintit=_wintit, tit=None,
+                             fontsize=_fontsize, labelpad=_labelpad,
+                             draw=True, connect=True):
+    #########
+    # Prepare
+    #########
+
+    # Start extracting data
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
+    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
+    cbck = (0.8,0.8,0.8,0.8)
+    lEq = ['Ax','Sep','q1']
+    nt, nX = Data.nt, Data.nX
+
+    t = Data.t
+    if nt==1:
+        Dt = [t[0]-0.001,t[0]+0.001]
+    else:
+        Dt = [np.nanmin(t), np.nanmax(t)]
+    tlab = r"{0} ({1})".format(Data.dlabels['t']['name'],
+                               Data.dlabels['t']['units'])
+
+    X = Data.X
+    if X.size==1:
+        DX = [X[0]-0.1*X[0], X[0]+0.1*X[0]]
+    else:
+        DX = [np.nanmin(X), np.nanmax(X)]
+    Xlab = r"{0} ({1})".format(Data.dlabels['X']['name'],
+                               Data.dlabels['X']['units'])
+
+    data = Data.data
+    Dlim = [min(0.,np.nanmin(data)), max(0.,np.nanmax(data))]
+    Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
+    Dlab = r"{0} ({1})".format(Data.dlabels['data']['name'],
+                               Data.dlabels['data']['units'])
+
+    Df = [0., np.nanmax(f)]
+    flab = r'f ($Hz$)'
+    psdlab = r'$\|F\|^2$ (a.u.)'
+    anglab = r'$ang(F)$ ($rad$)'
+
+    # Format axes
+    dax = _init_Data1D_spectrogram(fs=fs, dmargin=dmargin,
+                                   wintit=wintit)
+    if tit is None:
+        tit = []
+        if Data.Id.Exp is not None:
+            tit.append(Data.Id.Exp)
+        if Data.Id.Diag is not None:
+            tit.append(Data.Id.Diag)
+        if Data.Id.shot is not None:
+            tit.append(r"{0:05.0f}".format(Data.Id.shot))
+        tit = ' - '.join(tit)
+    dax['t'][0]['ax'].figure.suptitle(tit)
+
+    for ii in range(0,len(dax['t'])):
+        dtrig = {'1dprof':[0]} if ii==1 else None
+        dax['t'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+    dax['t'][1]['dh']['ttrace'] = [0]
+    for ii in range(0,len(dax['chan'])):
+        dtrig = {'ttrace':[0]} if ii==0 else None
+        dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+        dax['chan'][ii]['dh']['1dprof'] = [0]
+
+
+    # Plot vessel
+    if Data.dgeom['config'] is not None:
+        out = Data.dgeom['config'].plot(lax=[dax['cross'][0]['ax'],
+                                             dax['hor'][0]['ax']],
+                                        element='P', dLeg=None, draw=False)
+        dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
+        if Data.dgeom['lCam'] is not None:
+            for cc in Data.dgeom['lCam']:
+                out = cc.plot(lax=[dax['cross'][0]['ax'], dax['hor'][0]['ax']],
+                              element='L', Lplot='In',
+                              dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
+                              dLeg=None, draw=False)
+                dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
+
+
+    ##################
+    # To be finished
+    # Setting tref and plotting handles
+    ii = 0
+    if ii==0:
+        for jj in range(0,len(dax['t'])):
+            dax['t'][jj]['xref'] = t
+        for jj in range(0,len(dax['chan'])):
+            dax['chan'][jj]['xref'] = X
+        if Bck:
+            if Data.ddata['nnX']==1:
+                env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
+                dax['chan'][0]['ax'].fill_between(X[0,:], env[0], env[1], facecolor=cbck)
+            tbck = np.tile(np.r_[t, np.nan], nX)
+            dbck = np.vstack((data, np.full((1,nX),np.nan))).T.ravel()
+            dax['t'][0]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+
+    # Adding vline t and trig
+    ltg, lt = [], []
+    for ll in range(0,len(dax['t'])):
+        dax['t'][ll]['dh']['vline'][0]['xref'] = t
+        lv = []
+        for jj in range(0,ntMax):
+            l0 = dax['t'][ll]['ax'].axvline(np.nan, c=lct[jj], ls=lls[0],
+                                           lw=1.)
+            lv.append(l0)
+            if ll==0:
+                l1, = dax['chan'][0]['ax'].plot(X[0,:],
+                                                np.full((nX,),np.nan),
+                                                c=lct[jj], ls=lls[0],
+                                                lw=1.)
+                ltg.append(l1)
+                if ii==0:
+                    l = dax['txtt'][0]['ax'].text((0.5+jj)/ntMax, 0., r'',
+                                                  color=lct[jj], fontweight='bold',
+                                                  fontsize=6., ha='center',
+                                                  va='bottom')
+                    lt.append(l)
+        if ll==0:
+            dtg = {'xref':t, 'h':ltg, 'y':data}
+        dax['t'][ll]['dh']['vline'][ii]['h'] = lv
+    dax['t'][1]['dh']['vline'][ii]['trig']['1dprof'][ii] = dtg
+    if ii==0:
+        dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
+        dax['t'][1]['dh']['vline'][0]['trig'].update(dttxt)
+        dax['txtt'][0]['dh'] = dttxt
+    dax['chan'][0]['dh']['1dprof'][ii] = dtg
+
+    # Adding vline ch
+
+
+
+    # Adding mobile profiles
+    ll0, ltg1, ltg2 = [], [], []
+    for jj in range(0,ntMax):
+        l0, = dax['chan'][0]['ax'].plot(X[0,:],
+                                        np.full((nX,),np.nan),
+                                        c=lct[jj], ls=lls[0],
+                                        lw=1.)
+        ll0.append(l1)
+        for ii in range(0,nfMax):
+            l1, = dax['chan'][1]['ax'].plot(X[0,:],
+                                            np.full((nX,),np.nan),
+                                            c=lct[jj], ls=lls[ii],
+                                            lw=1.)
+            l2, = dax['chan'][2]['ax'].plot(X[0,:],
+                                            np.full((nX,),np.nan),
+                                            c=lct[jj], ls=lls[ii],
+                                            lw=1.)
+            ltg1.append(l1)
+            ltg2.append(l2)
+
+            l1.update = utils.get_update(Type='y_const', par=y)
+
+    dtg1 = {'xref':t, 'h':ltg1, 'y':psd}
+    dtg2 = {'xref':t, 'h':ltg2, 'y':ang}
+    dax['t'][0]['dh']['vline'][0]['trig']['1dprof'][ii] = dtg1
+    dax['chan'][0]['dh']['1dprof'][ii] = dtg
+
+
+
+    # ---------------
+    # Lims and labels
+    dax['t'][0]['ax'].set_xlim(Dt)
+    dax['t'][0]['ax'].set_ylim(Dd)
+    dax['chan'][0]['ax'].set_xlim(DX)
+    dax['chan'][0]['ax'].set_ylim(Dd)
+    dax['t'][-1]['ax'].set_xlabel(tlab, **fldict)
+    dax['chan'][-1]['ax'].set_xlabel(Xlab, **fldict)
+    dax['t'][0]['ax'].set_ylabel(Dlab, **fldict)
+    dax['t'][1]['ax'].set_ylabel(flab, **fldict)
+    dax['t'][2]['ax'].set_ylabel(flab, **fldict)
+    dax['chan'][0]['ax'].set_ylabel(Dlab, **fldict)
+    dax['chan'][1]['ax'].set_ylabel(psdlab, **fldict)
+    dax['chan'][2]['ax'].set_ylabel(anglab, **fldict)
+
+
+    # ---------------
+    # Interactivity dict
+
+    dgroup = {'time':      {'nMax':ntMax, 'key':'F1'},
+              'channel':   {'nMax':1, 'key':'F2'},
+              'frequency': {'nMax':nfMax, 'key':'F3'}}
+
+    dref = {t:  {'group':'time'},
+            tf: {'group':'time', 'def':True},
+            X:  {'group':'channel', 'other':t, 'def':True},
+            f:  {'group':'frequency', 'def':True}}
+
+    dax = {dax['t'][0]: {'x':t},
+           dax['t'][1]: {'x':tf, 'y':f},
+           dax['t'][2]: {'x':tf, 'y':f},
+           dax['X'][0]: {'x1':X},
+           dax['X'][1]: {'x1':X},
+           dax['X'][2]: {'x1':X}}
+
+    dobj = {l: {'data':None, 'type':'xdata_1d'},
+                'lref':[], 'ln':[0]}
+
+    # Plot mobile parts
+    can = dax['t'][0]['ax'].figure.canvas
+    can.draw()
+    kh = utils.KeyHandler_mpl(can=can,
+                              dgroup=dgroup, dref=dref,
+                              dobj=dobj, dax=dax)
+
+    if connect and False:
+        kh.disconnect_old()
+        kh.connect()
+    if draw:
+        can.draw()
+    return kh
