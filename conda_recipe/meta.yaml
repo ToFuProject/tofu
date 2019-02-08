@@ -1,4 +1,3 @@
-# package et recettes en depots differents
 package:
   name: 'tofu'
   version: {{ environ['VERSION'] }}
@@ -13,13 +12,13 @@ build:
   script_env:
     #   - REV
     - VERSION
-    #   - TRAVIS_BRANCH
-    #   - CONDA_BLD_PATH
+    - TRAVIS_BRANCH
+    - CONDA_BLD_PATH
 
 requirements:
-  # build: necessaire pour build.sh
+
+  # build: necessary for build.sh
   # here same as run, as we are using cython
-  # checker "host:"
   build:
     - python
     - setuptools
@@ -36,7 +35,7 @@ requirements:
   # for running the library
   run:
     - python
-    - setuptools # ? is it necessary
+    - setuptools
     - setuptools_scm
     - numpy
     - scipy
