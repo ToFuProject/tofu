@@ -67,6 +67,7 @@ def get_pathfileext(path=None, name=None,
     return path, name, mode
 
 
+
 #############################################
 #       figure size
 #############################################

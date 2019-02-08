@@ -56,6 +56,7 @@ _Type = 'Tor'
 
 
 
+
 """
 ###############################################################################
 ###############################################################################
@@ -75,32 +76,45 @@ class Struct(utils.ToFuObject):
     Parameters
     ----------
     Id :            str / tfpf.ID
-        A name string or a pre-built tfpf.ID class to be used to identify this particular instance, if a string is provided, it is fed to tfpf.ID()
+        A name string or a pre-built tfpf.ID class to be used to identify this
+        particular instance, if a string is provided, it is fed to tfpf.ID()
     Poly :          np.ndarray
-        An array (2,N) or (N,2) defining the contour of the vacuum vessel in a cross-section, if not closed, will be closed automatically
+        An array (2,N) or (N,2) defining the contour of the vacuum vessel in a
+        cross-section, if not closed, will be closed automatically
     Type :          str
-        Flag indicating whether the vessel will be a torus ('Tor') or a linear device ('Lin')
+        Flag indicating whether the vessel will be a torus ('Tor') or a linear
+        device ('Lin')
     Lim :         list / np.ndarray
-        Array or list of len=2 indicating the limits of the linear device volume on the x axis
+        Array or list of len=2 indicating the limits of the linear device volume
+        on the x axis
     Sino_RefPt :    None / np.ndarray
-        Array specifying a reference point for computing the sinogram (i.e. impact parameter), if None automatically set to the (surfacic) center of mass of the cross-section
+        Array specifying a reference point for computing the sinogram (i.e.
+        impact parameter), if None automatically set to the (surfacic) center of
+        mass of the cross-section
     Sino_NP :       int
-        Number of points in [0,2*pi] to be used to plot the vessel sinogram envelop
+        Number of points in [0,2*pi] to be used to plot the vessel sinogram
+        envelop
     Clock :         bool
-        Flag indicating whether the input polygon should be made clockwise (True) or counter-clockwise (False)
+        Flag indicating whether the input polygon should be made clockwise
+        (True) or counter-clockwise (False)
     arrayorder:     str
-        Flag indicating whether the attributes of type=np.ndarray (e.g.: Poly) should be made C-contiguous ('C') or Fortran-contiguous ('F')
+        Flag indicating whether the attributes of type=np.ndarray (e.g.: Poly)
+        should be made C-contiguous ('C') or Fortran-contiguous ('F')
     Exp :           None / str
-        Flag indicating which experiment the object corresponds to, allowed values are in [None,'AUG','MISTRAL','JET','ITER','TCV','TS','Misc']
+        Flag indicating which experiment the object corresponds to, allowed
+        values are in [None,'AUG','MISTRAL','JET','ITER','TCV','TS','Misc']
     shot :          None / int
-        Shot number from which this Ves is usable (in case of change of geometry)
+        Shot number from which this Ves is usable (in case of change of
+        geometry)
     SavePath :      None / str
-        If provided, forces the default saving path of the object to the provided value
+        If provided, forces the default saving path of the object to the
+        provided value
 
     Returns
     -------
     Ves :        Ves object
-        The created Ves object, with all necessary computed attributes and methods
+        The created Ves object, with all necessary computed attributes and
+        methods
 
     """
 
@@ -3135,6 +3149,7 @@ class Rays(utils.ToFuObject):
     def kOut(self):
         return self._dgeom['kOut']
     @property
+
     def kMin(self):
         if self.isPinhole:
             kMin = (self._dgeom['pinhole'][:,np.newaxis]-self._dgeom['D'])
@@ -3643,6 +3658,15 @@ class Rays(utils.ToFuObject):
                 sig[indok] = s
             else:
                 sig[:,indok] = s
+        if Brightness is False:
+            if t is None or len(t)==1 or E.size==1:
+                sig = sig*E
+            else:
+                sig = sig*E[np.newaxis,:]
+            if units is None:
+                units = r"origin x $m^3.sr$"
+        elif units is None:
+            units = r"origin x m"
 
         # Format output
         if Brightness is False:

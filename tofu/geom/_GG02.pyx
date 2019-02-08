@@ -1,4 +1,3 @@
-
 # cimport
 cimport cython
 cimport numpy as cnp
@@ -30,15 +29,14 @@ __all__ = ['CoordShift',
            '_Ves_Vmesh_Tor_SubFromD_cython', '_Ves_Vmesh_Tor_SubFromInd_cython',
            '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
            '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
-           '_Ves_Smesh_TorStruct_SubFromD_cython', '_Ves_Smesh_TorStruct_SubFromInd_cython',
-           '_Ves_Smesh_Lin_SubFromD_cython', '_Ves_Smesh_Lin_SubFromInd_cython',
-           'LOS_Calc_PInOut_VesStruct', 'LOS_isVis_PtFromPts_VesStruct',
+           '_Ves_Smesh_TorStruct_SubFromD_cython',
+           '_Ves_Smesh_TorStruct_SubFromInd_cython',
+           '_Ves_Smesh_Lin_SubFromD_cython',
+           '_Ves_Smesh_Lin_SubFromInd_cython',
+           'LOS_Calc_PInOut_VesStruct',
+           'LOS_isVis_PtFromPts_VesStruct',
            'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
            'LOS_sino','integrate1d']
-
-
-
-
 
 
 ########################################################
@@ -47,10 +45,18 @@ __all__ = ['CoordShift',
 ########################################################
 
 def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
-    """ Check the shape of an array of points coordinates and/or converts from 2D to 3D, 3D to 2D, cylindrical to cartesian... (CrossRef is an angle (Tor) or a distance (X for Lin))"""
-    assert all([type(ff) is str and ',' in ff for ff in [In,Out]]), "Arg In and Out (coordinate format) must be comma-separated  !"
-    assert type(Pts) is np.ndarray and Pts.ndim in [1,2] and Pts.shape[0] in (2,3), "Points must be a 1D or 2D np.ndarray of 2 or 3 coordinates !"
-    assert CrossRef is None or type(CrossRef) in [int,float,np.int64,np.float64], "Arg CrossRef must be a float !"
+    """ Check the shape of an array of points coordinates and/or converts from
+    2D to 3D, 3D to 2D, cylindrical to cartesian...
+    (CrossRef is an angle (Tor) or a distance (X for Lin))
+    """
+    assert all([type(ff) is str and ',' in ff for ff in [In,Out]]), (
+        "Arg In and Out (coordinate format) must be comma-separated  !")
+    assert type(Pts) is np.ndarray and Pts.ndim in [1,2] and \
+        Pts.shape[0] in (2,3), ("Points must be a 1D or 2D np.ndarray "
+                                "of 2 or 3 coordinates !")
+    okTypes = [int,float,np.int64,np.float64]
+    assert CrossRef is None or type(CrossRef) in okTypes, (
+        "Arg CrossRef must be a float !")
 
     # Pre-format inputs
     In, Out = In.lower(), Out.lower()
@@ -58,8 +64,10 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
     # Get order
     Ins = In.replace('(','').replace(')','').split(',')
     Outs = Out.replace('(','').replace(')','').split(',')
-    assert all([ss in ['x','y','z','r','phi'] for ss in Ins]), "Non-valid In !"
-    assert all([ss in ['x','y','z','r','phi'] for ss in Outs]), "Non-valid Out !"
+    # TODO: @DV > it looks to me that (x, r, phi) could be a valid in/out-put
+    # >>>>> ajouter assert pour le moment
+    assert all([ss in ['x','y','z','r','phi'] for ss in Ins]), "Non-valid In!"
+    assert all([ss in ['x','y','z','r','phi'] for ss in Outs]), "Non-valid Out!"
     InT = 'cyl' if any([ss in Ins for ss in ['r','phi']]) else 'cart'
     OutT = 'cyl' if any([ss in Outs for ss in ['r','phi']]) else 'cart'
 
@@ -73,7 +81,10 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
         pts = []
         for ii in Outs:
             if ii=='phi':
-                pts.append(np.arctan2(np.sin(Pts[Ins.index(ii),:]),np.cos(Pts[Ins.index(ii),:])))
+                # TODO : @DV > why ? no need of transform
+                # >>> ts les angles entre [-pi, pi] -> ajouter un if ?
+                pts.append(np.arctan2(np.sin(Pts[Ins.index(ii),:]),
+                                      np.cos(Pts[Ins.index(ii),:])))
             else:
                 pts.append(Pts[Ins.index(ii),:])
     elif InT=='cart':
@@ -81,44 +92,47 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
         for ii in Outs:
             if ii=='r':
                 assert all([ss in Ins for ss in ['x','y']])
-                pts.append(np.hypot(Pts[Ins.index('x'),:],Pts[Ins.index('y'),:]))
+                pts.append(np.hypot(Pts[Ins.index('x'),:],
+                                    Pts[Ins.index('y'),:]))
             elif ii=='z':
                 assert 'z' in Ins
                 pts.append(Pts[Ins.index('z'),:])
             elif ii=='phi':
                 if all([ss in Ins for ss in ['x','y']]):
-                    pts.append(np.arctan2(Pts[Ins.index('y'),:],Pts[Ins.index('x'),:]))
+                    pts.append(np.arctan2(Pts[Ins.index('y'),:],
+                                          Pts[Ins.index('x'),:]))
                 elif CrossRef is not None:
                     pts.append( CrossRef*np.ones((Pts.shape[1],)) )
                 else:
                     raise Exception("There is no phi value available !")
+                # TODO: @VZ > else... ? if Outs = (x, r, phi) ?
     else:
         pts = []
         for ii in Outs:
             if ii=='x':
-                if all([ss in Ins for ss in ['r','phi']]):
-                    pts.append(Pts[Ins.index('r'),:]*np.cos(Pts[Ins.index('phi'),:]))
+                if all([ss in Ins for ss in ['r','phi']]) :
+                    # TODO : @VZ : and CrossRef is None ?
+                    # >>> ajouter un warning si crossref a ete defini
+                    pts.append(Pts[Ins.index('r'),:] *
+                               np.cos(Pts[Ins.index('phi'),:]))
                 elif CrossRef is not None:
                     pts.append( CrossRef*np.ones((Pts.shape[1],)) )
                 else:
                     raise Exception("There is no x value available !")
             elif ii=='y':
                 assert all([ss in Ins for ss in ['r','phi']])
-                pts.append(Pts[Ins.index('r'),:]*np.sin(Pts[Ins.index('phi'),:]))
+                pts.append(Pts[Ins.index('r'),:] *
+                           np.sin(Pts[Ins.index('phi'),:]))
             elif ii=='z':
                 assert 'z' in Ins
                 pts.append(Pts[Ins.index('z'),:])
+                # TODO : else....?
 
     # Format output
     pts = np.vstack(pts)
     if ndim==1:
         pts = pts.flatten()
     return pts
-
-
-
-
-
 
 
 """
@@ -141,45 +155,99 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def Poly_isClockwise(cnp.ndarray[double,ndim=2] Poly):
-    """ Assuming 2D closed Poly ! """
+    """ Assuming 2D closed Poly !
+    TODO @LM :
+    http://www.faqs.org/faqs/graphics/algorithms-faq/
+    A slightly faster method is based on the observation that it isn't
+    necessary to compute the area.  Find the lowest vertex (or, if
+    there is more than one vertex with the same lowest coordinate,
+    the rightmost of those vertices) and then take the cross product
+    of the edges fore and aft of it.  Both methods are O(n) for n vertices,
+    but it does seem a waste to add up the total area when a single cross
+    product (of just the right edges) suffices.  Code for this is
+    available at ftp://cs.smith.edu/pub/code/polyorient.C (2K).
+    """
     cdef int ii, NP=Poly.shape[1]
     cdef double Sum=0.
     for ii in range(0,NP-1):
+        # Slightly faster solution: (to check)  and try above solution ?
+        # TODO : @LM > Test on of this sols:
+        # Sol 1 (unit test time = 2.7)
+        # Sum += (Poly[0,ii+1]-Poly[0,ii])*(Poly[1,ii+1]+Poly[1,ii])
+        # Sol 2 (unit test time = 1.9)
+        #     p1 = [0, 0]
+        # p2 = [1, 0]
+        # p3 = [.5, .5]
+        # p4 = [1, 1]
+        # p5 = [0,1]
+        # p6 = [0,0]
+        # points = [p1, p2, p3, p4, p5, p6]
+        # idmin = points.index(min(points)) #0.99
+        # idm1 = idmin - 1
+        # idp1 = idmin + 1 % 7
+        # res = points[idm1][0] * (points[idmin][1] - points[idp1][1]) + \
+        #   points[idmin][0] * (points[idp1][1] - points[idm1][1]) + \
+        #   points[idp1][0] * (points[idm1][1] - points[idmin][1])
+        # Sol DV (unit test time = 2.9)
         Sum += Poly[0,ii]*Poly[1,ii+1]-Poly[0,ii+1]*Poly[1,ii]
     return Sum < 0.
 
 
-def Poly_Order(cnp.ndarray[double,ndim=2] Poly, str order='C', Clock=False, close=True, str layout='(cc,N)', str layout_in=None, Test=True):
+def Poly_Order(cnp.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
+               close=True, str layout='(cc,N)', str layout_in=None, Test=True):
     """
     Return a polygon Poly as a np.ndarray formatted according to parameters
 
     Parameters
     ----------
-        Poly    np.ndarray or list or tuple     Input polygon under from of (cc,N) or (N,cc) np.ndarray (where cc = 2 or 3, the number of coordinates and N points), or list or tuple of vertices
-        order   str                             Flag indicating whether the output np.ndarray shall be C-contiguous ('C') or Fortran-contiguous ('F')
-        Clock   bool                            For 2-dimensional arrays only, flag indicating whether the output array shall represent a clockwise polygon (True) or anti-clockwise (False), or should be left unchanged (None)
-        close   bool                            For 2-dimensional arrays only, flag indicating whether the output array shall be closed (True, i.e.: last point==first point), or not closed (False)
-        layout  str                             Flag indicating whether the output np.ndarray shall be of shape '(cc,N)' or '(N,cc)'
-        Test    bool                            Flag indicating whether the inputs should be tested for conformity, default: True
+        Poly    np.ndarray or list    Input polygon under from of (cc,N) or
+                or tuple              (N,cc) np.ndarray (where cc = 2 or 3, the
+                                      number of coordinates and N points), or
+                                      list or tuple of vertices
+        order   str                   Flag indicating whether the output
+                                      np.ndarray shall be C-contiguous ('C') or
+                                      Fortran-contiguous ('F')
+        Clock   bool                  For 2-dimensional arrays only, flag indi-
+                                      cating whether the output array shall
+                                      represent a clockwise polygon (True) or
+                                      anti-clockwise (False), or should be left
+                                      unchanged (None)
+        close   bool                  For 2-dimensional arrays only, flag indi-
+                                      cating whether the output array shall be
+                                      closed (True, ie: last point==first point)
+                                      or not closed (False)
+        layout  str                   Flag indicating whether the output
+                                      np.ndarray shall be of shape '(cc,N)'
+                                      or '(N,cc)'
+        Test    bool                  Flag indicating whether the inputs should
+                                      be tested for conformity, default: True
 
     Returns
     -------
-        poly    np.ndarray                      Output formatted polygon
-
+        poly    np.ndarray            Output formatted polygon
     """
     if Test:
-        assert (2 in np.shape(Poly) or 3 in np.shape(Poly)) and max(np.shape(Poly))>=3, "Arg Poly must contain the 2D or 3D coordinates of at least 3 points (polygon) !"
-        assert order.lower() in ['c','f'], "Arg order must be in ['c','f'] !"
-        assert type(Clock) is bool, "Arg Clock must be a bool !"
-        assert type(close) is bool, "Arg close must be a bool !"
-        assert layout.lower() in ['(cc,n)','(n,cc)'], "Arg layout must be in ['(cc,n)','(n,cc)'] !"
-        assert layout_in is None or layout_in.lower() in ['(cc,n)','(n,cc)'], "Arg layout_in must be in ['(cc,n)','(n,cc)'] !"
+        assert (2 in np.shape(Poly) or 3 in np.shape(Poly)), \
+          "Arg Poly must contain the 2D or 3D coordinates of at least 3 points!"
+        assert max(np.shape(Poly))>=3, ("Arg Poly must contain the 2D or 3D",
+                                        " coordinates of at least 3 points!")
+        assert order.lower() in ['c','f'], "Arg order must be in ['c','f']!"
+        assert type(Clock) is bool, "Arg Clock must be a bool!"
+        assert type(close) is bool, "Arg close must be a bool!"
+        assert layout.lower() in ['(cc,n)','(n,cc)'], \
+          "Arg layout must be in ['(cc,n)','(n,cc)']!"
+        assert layout_in is None or layout_in.lower() in ['(cc,n)','(n,cc)'],\
+          "Arg layout_in must be None or in ['(cc,n)','(n,cc)']!"
 
     if np.shape(Poly)==(3,3):
-        assert not layout_in is None, "Could not resolve the input layout of Poly because shape==(3,3), specify !"
-        poly = np.array(Poly).T if layout_in.lower()=='(n,cc)' else np.array(Poly)
+        assert not layout_in is None, \
+          ("Could not resolve the input layout of Poly because shape==(3,3)",
+           " Please specify if input is in '(cc,n)' or '(n,cc)' format!")
+        poly = np.array(Poly).T if layout_in.lower()=='(n,cc)' \
+           else np.array(Poly)
     else:
-        poly = np.array(Poly).T if min(np.shape(Poly))==Poly.shape[1] else np.array(Poly)
+        poly = np.array(Poly).T if min(np.shape(Poly))==Poly.shape[1]\
+           else np.array(Poly)
     if not np.allclose(poly[:,0],poly[:,-1], atol=1.e-9):
         poly = np.concatenate((poly,poly[:,0:1]),axis=1)
     if poly.shape[0]==2 and not Clock is None:
@@ -189,21 +257,26 @@ def Poly_Order(cnp.ndarray[double,ndim=2] Poly, str order='C', Clock=False, clos
         poly = poly[:,:-1]
     if layout.lower()=='(n,cc)':
         poly = poly.T
-    poly = np.ascontiguousarray(poly) if order.lower()=='c' else np.asfortranarray(poly)
+        # TODO : @LM @DV > seems strange to me that we order all polys
+        # in order "(cc,n)" and just last minute we look at what's actually
+        # asked
+        # >> ok
+    poly = np.ascontiguousarray(poly) if order.lower()=='c' \
+           else np.asfortranarray(poly)
     return poly
 
 
-
-
 def Poly_VolAngTor(cnp.ndarray[double,ndim=2,mode='c'] Poly):
-    cdef cnp.ndarray[double,ndim=1] Ri0=Poly[0,:-1], Ri1=Poly[0,1:], Zi0=Poly[1,:-1], Zi1=Poly[1,1:]
-    cdef double V = np.sum((Ri0*Zi1 - Zi0*Ri1)*(Ri0+Ri1))/6.
-    cdef double BV0 = np.sum((Ri0*Zi1 - Zi0*Ri1) * 0.5 * (Ri1**2 + Ri1*Ri0 + Ri0**2)) / (6.*V)
-    cdef double BV1 = -np.sum((Ri1**2*Zi0*(2.*Zi1+Zi0) + 2.*Ri0*Ri1*(Zi0**2-Zi1**2) - Ri0**2*Zi1*(Zi1+2.*Zi0))/4.)/(6.*V)
+    # TODO : @LM > to check the formulas can they be optimized ?
+    cdef cnp.ndarray[double,ndim=1] Ri0 = Poly[0,:-1], Ri1 = Poly[0,1:]
+    cdef cnp.ndarray[double,ndim=1] Zi0 = Poly[1,:-1], Zi1 = Poly[1,1:]
+    cdef double V   =  np.sum((Ri0*Zi1 - Zi0*Ri1) * (Ri0+Ri1)) / 6.
+    cdef double BV0 =  np.sum(0.5 * (Ri0*Zi1 - Zi0*Ri1) *
+                              (Ri1**2 + Ri1*Ri0 + Ri0**2)) / (6.*V)
+    cdef double BV1 = -np.sum((Ri1**2*Zi0*(2.*Zi1+Zi0) +
+                               2.*Ri0*Ri1*(Zi0**2-Zi1**2) -
+                               Ri0**2*Zi1*(Zi1+2.*Zi0))/4.) / (6.*V)
     return V, np.array([BV0,BV1])
-
-
-
 
 
 
@@ -214,10 +287,10 @@ def Poly_VolAngTor(cnp.ndarray[double,ndim=2,mode='c'] Poly):
 ###############################################################################
 """
 
-
 def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ,
                    cnp.ndarray[double,ndim=2] Poly, int NP=50, Test=True):
-    """ Computes impact parameters of a Tor enveloppe (Tor is a closed 2D polygon)
+    """ Computes impact parameters of a Tor enveloppe
+    (a `Tor` is a closed 2D polygon)
 
     D. VEZINET, Aug. 2014
     Parameters
@@ -234,8 +307,8 @@ def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ,
         theta
     """
     if Test:
-        assert RZ.size==2, 'Arg RZ should be a (2,) np.ndarray !'
-        assert Poly.shape[0]==2, 'Arg Poly should be a (2,N) np.ndarray !'
+        assert RZ.size==2, 'Arg RZ should be a (2,) np.ndarray!'
+        assert Poly.shape[0]==2, 'Arg Poly should be a (2,N) np.ndarray!'
     cdef int NPoly = Poly.shape[1]
     # Theta sampling and unit vector
     theta = np.linspace(0.,np.pi,NP,endpoint=True)
@@ -252,7 +325,8 @@ def Sino_ImpactEnv(cnp.ndarray[double,ndim=1] RZ,
 def ConvertImpact_Theta2Xi(theta, pP, pN, sort=True):
     if hasattr(theta,'__getitem__'):
         pP, pN, theta = np.asarray(pP), np.asarray(pN), np.asarray(theta)
-        assert pP.shape==pN.shape==theta.shape, "Args pP, pN and theta must have same shape !"
+        assert pP.shape==pN.shape==theta.shape, (
+            "Args pP, pN and theta must have same shape!")
         pPbis, pNbis = np.copy(pP), np.copy(pN)
         xi = theta - np.pi/2.
         ind = xi < 0
@@ -262,13 +336,13 @@ def ConvertImpact_Theta2Xi(theta, pP, pN, sort=True):
             xi, pP, pN = xi[ind], pPbis[ind], pNbis[ind]
         return xi, pP, pN
     else:
-        assert not (hasattr(pP,'__getitem__') or hasattr(pN,'__getitem__')), "Args pP, pN and theta must have same shape !"
+        assert not (hasattr(pP,'__getitem__') or hasattr(pN,'__getitem__')), (
+            "Args pP, pN and theta must have same shape!")
         xi = theta - np.pi/2.
         if xi < 0.:
             return xi+np.pi, -pN, -pP
         else:
             return xi, pP, pN
-
 
 
 """
@@ -280,8 +354,6 @@ def ConvertImpact_Theta2Xi(theta, pP, pN, sort=True):
 ########################################################
 ########################################################
 """
-
-
 
 
 ########################################################
@@ -302,7 +374,10 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
     if VType.lower()=='tor':
         if Lim is None or nLim==0:
             pts = CoordShift(Pts, In=In, Out='(R,Z)')
-            ind = Path(VPoly.T).contains_points(pts.T, transform=None, radius=0.0)
+            # TODO : @LM > voir avec la fct matplotlib et est-ce que c'est possible de
+            # recoder pour faire plus rapide
+            ind = Path(VPoly.T).contains_points(pts.T, transform=None,
+                                                radius=0.0)
         else:
             try:
                 pts = CoordShift(Pts, In=In, Out='(R,Z,Phi)')
@@ -334,7 +409,7 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
                        Catan2(Csin(Lim[0,1]),Ccos(Lim[0,1]))]
                 if Lim[0]<Lim[1]:
                     ind = ind0 & (pts[2,:]>=Lim[0]) & (pts[2,:]<=Lim[1])
-                else:
+                else :
                     ind = ind0 & ((pts[2,:]>=Lim[0]) | (pts[2,:]<=Lim[1]))
     else:
         pts = CoordShift(Pts, In=In, Out='(X,Y,Z)')
@@ -351,9 +426,6 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
     return ind
 
 
-
-
-
 ########################################################
 ########################################################
 #       Meshing - Common - Linear
@@ -364,16 +436,19 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True, dLMode='abs', double margin=1.e-9):
-    """ Get the actual reolution from the desired resolution and MinMax and limits """
+def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True,
+                             dLMode='abs', double margin=1.e-9):
+    """ Get the actual reolution from the desired resolution and MinMax
+    and limits
+    """
     # Get the number of mesh elements in LMinMax
     cdef double N
     if dLMode.lower()=='abs':
-        N = Cceil((LMinMax[1]-LMinMax[0])/dL)
+        N = Cceil((LMinMax[1] - LMinMax[0])/dL)
     else:
         N = Cceil(1./dL)
     # Derive the real (effective) resolution
-    cdef double dLr = (LMinMax[1]-LMinMax[0])/N
+    cdef double dLr = (LMinMax[1] - LMinMax[0])/N
     # Get desired limits if any
     cdef double[::1] DLc, L
     cdef long [::1] indL
@@ -395,23 +470,24 @@ def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True, 
             dl[1] = LMinMax[1]
         DLc = np.array(dl)
 
-    # Get the extreme indices of the mesh elements that really need to be created within those limits
+    # Get the extreme indices of the mesh elements that really need to be
+    # created within those limits
     abs0 = Cabs(DLc[0]-LMinMax[0])
-    if abs0-dLr*Cfloor(abs0/dLr)<margin*dLr:
-        nL0 = int(Cround((DLc[0]-LMinMax[0])/dLr))
+    if abs0-dLr*Cfloor(abs0/dLr) < margin*dLr:
+        nL0 = int(Cround((DLc[0] - LMinMax[0])/dLr))
     else:
-        nL0 = int(Cfloor((DLc[0]-LMinMax[0])/dLr))
+        nL0 = int(Cfloor((DLc[0] - LMinMax[0])/dLr))
     abs1 = Cabs(DLc[1]-LMinMax[0])
-    if abs1-dLr*Cfloor(abs1/dLr)<margin*dLr:
-        nL1 = int(Cround((DLc[1]-LMinMax[0])/dLr)-1)
+    if abs1-dLr*Cfloor(abs1/dLr) < margin*dLr:
+        nL1 = int(Cround((DLc[1] - LMinMax[0])/dLr)-1)
     else:
-        nL1 = int(Cfloor((DLc[1]-LMinMax[0])/dLr))
+        nL1 = int(Cfloor((DLc[1] - LMinMax[0])/dLr))
     # Get the corresponding indices
-    Nind = nL1+1-nL0
+    Nind = nL1 + 1 - nL0
     indL = np.empty((Nind,),dtype=int)#np.linspace(nL0,nL1,Nind,endpoint=True)
     L = np.empty((Nind,))
-    for ii in range(0,Nind):
-        jj = nL0+ii
+    for ii in range(0, Nind):
+        jj = nL0 + ii
         indL[ii] = jj
         L[ii] = LMinMax[0] + (0.5 + (<double>jj))*dLr
     return np.asarray(L), dLr, np.asarray(indL), <long>N
@@ -425,7 +501,9 @@ def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True, 
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _Ves_meshCross_FromD(double[::1] MinMax1, double[::1] MinMax2, double d1, double d2, D1=None, D2=None,str dSMode='abs', VPoly=None, double margin=1.e-9):
+def _Ves_meshCross_FromD(double[::1] MinMax1, double[::1] MinMax2, double d1,
+                         double d2, D1=None, D2=None,str dSMode='abs',
+                         VPoly=None, double margin=1.e-9):
     cdef double[::1] X1, X2
     cdef double dX1, dX2
     cdef long[::1] ind1, ind2
@@ -434,8 +512,10 @@ def _Ves_meshCross_FromD(double[::1] MinMax1, double[::1] MinMax2, double d1, do
     cdef cnp.ndarray[double,ndim=1] dS
     cdef cnp.ndarray[long,ndim=1] ind
 
-    X1, d1r, ind1, N1 = _Ves_mesh_dlfromL_cython(MinMax1, d1, D1, Lim=True, dLMode=dSMode, margin=margin)
-    X2, d2r, ind2, N2 = _Ves_mesh_dlfromL_cython(MinMax2, d2, D2, Lim=True, dLMode=dSMode, margin=margin)
+    X1, d1r, ind1, N1 = _Ves_mesh_dlfromL_cython(MinMax1, d1, D1, Lim=True,
+                                                 dLMode=dSMode, margin=margin)
+    X2, d2r, ind2, N2 = _Ves_mesh_dlfromL_cython(MinMax2, d2, D2, Lim=True,
+                                                 dLMode=dSMode, margin=margin)
     n1, n2 = len(X1), len(X2)
 
     Pts = np.empty((2,n1*n2))
@@ -459,7 +539,9 @@ def _Ves_meshCross_FromD(double[::1] MinMax1, double[::1] MinMax2, double d1, do
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1, double d2, long[::1] ind, str dSMode='abs', double margin=1.e-9):
+def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
+                           double d2, long[::1] ind, str dSMode='abs',
+                           double margin=1.e-9):
     cdef double[::1] X1, X2
     cdef double dX1, dX2
     cdef long[::1] bla
@@ -467,8 +549,10 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1, 
     cdef cnp.ndarray[double,ndim=2] Pts
     cdef cnp.ndarray[double,ndim=1] dS
 
-    X1, d1r, bla, N1 = _Ves_mesh_dlfromL_cython(MinMax1, d1, None, Lim=True, dLMode=dSMode, margin=margin)
-    X2, d2r, bla, N2 = _Ves_mesh_dlfromL_cython(MinMax2, d2, None, Lim=True, dLMode=dSMode, margin=margin)
+    X1, d1r, bla, N1 = _Ves_mesh_dlfromL_cython(MinMax1, d1, None, Lim=True,
+                                                dLMode=dSMode, margin=margin)
+    X2, d2r, bla, N2 = _Ves_mesh_dlfromL_cython(MinMax2, d2, None, Lim=True,
+                                                dLMode=dSMode, margin=margin)
 
     Pts = np.empty((2,NP))
     dS = d1r*d2r*np.ones((NP,))
@@ -481,12 +565,11 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1, 
 
 
 
-
-
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None, D2=None, double margin=1.e-9, double DIn=0., VIn=None):
+def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None,
+                     D2=None, double margin=1.e-9, double DIn=0., VIn=None):
     cdef int ii, jj, nn=0, NP=VPoly.shape[1]
     cdef double[::1] LMinMax, L
     cdef double v0, v1, dlr
@@ -502,34 +585,45 @@ def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None, 
         for ii in range(0,NP-1):
             v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
             LMinMax[1] = Csqrt(v0**2 + v1**2)
-            L, dlr, indL, N[ii] = _Ves_mesh_dlfromL_cython(LMinMax, dL, dLMode=dLMode, DL=None, Lim=True, margin=margin)
+            L, dlr, indL, N[ii] = _Ves_mesh_dlfromL_cython(LMinMax, dL,
+                                                           dLMode=dLMode,
+                                                           DL=None, Lim=True,
+                                                           margin=margin)
             VPolybis.append((VPoly[0,ii],VPoly[1,ii]))
             v0, v1 = v0/LMinMax[1], v1/LMinMax[1]
             for jj in range(0,N[ii]):
                 LdLr.append(dlr)
                 LRref.append(VPoly[0,ii] + L[jj]*v0)
-                LPtsCross.append((VPoly[0,ii] + L[jj]*v0, VPoly[1,ii] + L[jj]*v1))
+                LPtsCross.append((VPoly[0,ii] + L[jj]*v0,
+                                  VPoly[1,ii] + L[jj]*v1))
                 Lind.append(nn)
                 nn += 1
-                VPolybis.append((VPoly[0,ii] + jj*dlr*v0, VPoly[1,ii] + jj*dlr*v1))
+                VPolybis.append((VPoly[0,ii] + jj*dlr*v0,
+                                 VPoly[1,ii] + jj*dlr*v1))
         VPolybis.append((VPoly[0,0],VPoly[1,0]))
     else:
         for ii in range(0,NP-1):
             v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
             LMinMax[1] = Csqrt(v0**2 + v1**2)
-            L, dlr, indL, N[ii] = _Ves_mesh_dlfromL_cython(LMinMax, dL, dLMode=dLMode, DL=None, Lim=True, margin=margin)
+            L, dlr, indL, N[ii] = _Ves_mesh_dlfromL_cython(LMinMax, dL,
+                                                           dLMode=dLMode,
+                                                           DL=None, Lim=True,
+                                                           margin=margin)
             VPolybis.append((VPoly[0,ii],VPoly[1,ii]))
             v0, v1 = v0/LMinMax[1], v1/LMinMax[1]
             for jj in range(0,N[ii]):
                 LdLr.append(dlr)
                 LRref.append(VPoly[0,ii] + L[jj]*v0)
-                LPtsCross.append((VPoly[0,ii] + L[jj]*v0 + DIn*VIn[0,ii], VPoly[1,ii] + L[jj]*v1 + DIn*VIn[1,ii]))
+                LPtsCross.append((VPoly[0,ii] + L[jj]*v0 + DIn*VIn[0,ii],
+                                  VPoly[1,ii] + L[jj]*v1 + DIn*VIn[1,ii]))
                 Lind.append(nn)
                 nn += 1
-                VPolybis.append((VPoly[0,ii] + jj*dlr*v0, VPoly[1,ii] + jj*dlr*v1))
+                VPolybis.append((VPoly[0,ii] + jj*dlr*v0,
+                                 VPoly[1,ii] + jj*dlr*v1))
         VPolybis.append((VPoly[0,0],VPoly[1,0]))
 
-    PtsCross, dLr, ind, Rref = np.array(LPtsCross).T, np.array(LdLr), np.array(Lind,dtype=int), np.array(LRref)
+    PtsCross, dLr, ind, Rref = np.array(LPtsCross).T, np.array(LdLr), \
+      np.array(Lind,dtype=int), np.array(LRref)
     if D1 is not None:
         indin = (PtsCross[0,:]>=D1[0]) & (PtsCross[0,:]<=D1[1])
         PtsCross = PtsCross[:,indin]
@@ -540,28 +634,6 @@ def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None, 
         dLr, ind = dLr[indin], ind[indin]
 
     return PtsCross, dLr, ind, N, Rref, np.array(VPolybis).T
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ########################################################
@@ -577,28 +649,36 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
                                    double[::1] RMinMax, double[::1] ZMinMax,
                                    DR=None, DZ=None, DPhi=None, VPoly=None,
                                    str Out='(X,Y,Z)', double margin=1.e-9):
-    " Return the desired submesh indicated by the limits (DR,DZ,DPhi), for the desired resolution (dR,dZ,dRphi) "
-
-    cdef double[::1] R0, R, Z, dRPhir, dPhir, NRPhi#, dPhi, NRZPhi_cum0, indPhi, phi
+    """Return the desired submesh indicated by the limits (DR,DZ,DPhi),
+    for the desired resolution (dR,dZ,dRphi)
+    """
+    cdef double[::1] R0, R, Z, dRPhir, dPhir, NRPhi
+    #cdef double[::1] dPhi, NRZPhi_cum0, indPhi, phi
     cdef double dRr0, dRr, dZr, DPhi0, DPhi1
     cdef double abs0, abs1, phi, indiijj
     cdef long[::1] indR0, indR, indZ, Phin, NRPhi0
-    cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj, nPhi0, nPhi1, zz, NP, NRPhi_int, Rratio
+    cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj, nPhi0, nPhi1, zz
+    cdef int NP, NRPhi_int, Rratio
     cdef cnp.ndarray[double,ndim=2] Pts, indI
     cdef cnp.ndarray[double,ndim=1] iii, dV, ind
 
     # Get the actual R and Z resolutions and mesh elements
-    R0, dRr0, indR0, NR0 = _Ves_mesh_dlfromL_cython(RMinMax, dR, None, Lim=True, margin=margin)
-    R, dRr, indR, NR = _Ves_mesh_dlfromL_cython(RMinMax, dR, DR, Lim=True, margin=margin)
-    Z, dZr, indZ, NZ = _Ves_mesh_dlfromL_cython(ZMinMax, dZ, DZ, Lim=True, margin=margin)
+    R0, dRr0, indR0, NR0 = _Ves_mesh_dlfromL_cython(RMinMax, dR, None,
+                                                    Lim=True, margin=margin)
+    R, dRr, indR, NR = _Ves_mesh_dlfromL_cython(RMinMax, dR, DR, Lim=True,
+                                                margin=margin)
+    Z, dZr, indZ, NZ = _Ves_mesh_dlfromL_cython(ZMinMax, dZ, DZ, Lim=True,
+                                                margin=margin)
     Rn = len(R)
     Zn = len(Z)
 
-    # Get the limits if any (and make sure to replace them in the proper quadrants)
+    # Get the limits if any (and make sure to replace them in the proper
+    # quadrants)
     if DPhi is None:
         DPhi0, DPhi1 = -Cpi, Cpi
     else:
-        DPhi0, DPhi1 = Catan2(Csin(DPhi[0]),Ccos(DPhi[0])), Catan2(Csin(DPhi[1]),Ccos(DPhi[1]))
+        DPhi0 = Catan2(Csin(DPhi[0]), Ccos(DPhi[0]))
+        DPhi1 = Catan2(Csin(DPhi[1]), Ccos(DPhi[1]))
 
     dRPhir, dPhir = np.empty((Rn,)), np.empty((Rn,))
     Phin = np.empty((Rn,),dtype=int)
@@ -607,8 +687,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     nRPhi0, indR0ii = 0, 0
     NP, NPhimax = 0, 0
     Rratio = int(Cceil(R[Rn-1]/R[0]))
+
     for ii in range(0,Rn):
-        # Get the actual RPhi resolution and Phi mesh elements (! depends on R !)
+        # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
         NRPhi[ii] = Cceil(2.*Cpi*R[ii]/dRPhi)
         NRPhi_int = int(NRPhi[ii])
         dPhir[ii] = 2.*Cpi/NRPhi[ii]
@@ -622,14 +703,15 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
                 nRPhi0 += <long>Cceil(2.*Cpi*R0[jj]/dRPhi)
                 NRPhi0[ii] = nRPhi0*NZ
         # Get indices of phi
-        # Get the extreme indices of the mesh elements that really need to be created within those limits
+        # Get the extreme indices of the mesh elements that really need to
+        # be created within those limits
         abs0 = Cabs(DPhi0+Cpi)
-        if abs0-dPhir[ii]*Cfloor(abs0/dPhir[ii])<margin*dPhir[ii]:
+        if abs0-dPhir[ii]*Cfloor(abs0/dPhir[ii]) < margin*dPhir[ii]:
             nPhi0 = int(Cround((DPhi0+Cpi)/dPhir[ii]))
         else:
             nPhi0 = int(Cfloor((DPhi0+Cpi)/dPhir[ii]))
         abs1 = Cabs(DPhi1+Cpi)
-        if abs1-dPhir[ii]*Cfloor(abs1/dPhir[ii])<margin*dPhir[ii]:
+        if abs1-dPhir[ii]*Cfloor(abs1/dPhir[ii]) < margin*dPhir[ii]:
             nPhi1 = int(Cround((DPhi1+Cpi)/dPhir[ii])-1)
         else:
             nPhi1 = int(Cfloor((DPhi1+Cpi)/dPhir[ii]))
@@ -660,7 +742,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     NP = 0
     if Out.lower()=='(x,y,z)':
         for ii in range(0,Rn):
-            iii = np.sort(indI[ii,~np.isnan(indI[ii,:])]) # To make sure the indices are in increasing order
+            # To make sure the indices are in increasing order
+            iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
             for zz in range(0,Zn):
                 for jj in range(0,Phin[ii]):
                     indiijj = iii[jj]
@@ -688,15 +771,18 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     if VPoly is not None:
         if Out.lower()=='(x,y,z)':
             R = np.hypot(Pts[0,:],Pts[1,:])
-            indin = Path(VPoly.T).contains_points(np.array([R,Pts[2,:]]).T, transform=None, radius=0.0)
+            indin = Path(VPoly.T).contains_points(np.array([R,Pts[2,:]]).T,
+                                                  transform=None, radius=0.0)
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
             Ru = np.unique(R)
         else:
-            indin = Path(VPoly.T).contains_points(Pts[:-1,:].T, transform=None, radius=0.0)
+            indin = Path(VPoly.T).contains_points(Pts[:-1,:].T, transform=None,
+                                                  radius=0.0)
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
             Ru = np.unique(Pts[0,:])
         if not np.all(Ru==R):
-            dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) if R[ii] in Ru])
+            dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
+                               if R[ii] in Ru])
     return Pts, dV, ind.astype(int), dRr, dZr, np.asarray(dRPhir)
 
 
@@ -706,9 +792,12 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
-                                     double[::1] RMinMax, double[::1] ZMinMax, long[::1] ind,
-                                     str Out='(X,Y,Z)', double margin=1.e-9):
-    """ Return the desired submesh indicated by the (numerical) indices, for the desired resolution (dR,dZ,dRphi) """
+                                     double[::1] RMinMax, double[::1] ZMinMax,
+                                     long[::1] ind, str Out='(X,Y,Z)',
+                                     double margin=1.e-9):
+    """ Return the desired submesh indicated by the (numerical) indices,
+    for the desired resolution (dR,dZ,dRphi)
+    """
     cdef double[::1] R, Z, dRPhirRef, dPhir, Ru, dRPhir
     cdef double dRr, dZr, phi
     cdef long[::1] indR, indZ, NRPhi0, NRPhi
@@ -719,8 +808,10 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
     cdef cnp.ndarray[double,ndim=1] dV=np.empty((NP,))
 
     # Get the actual R and Z resolutions and mesh elements
-    R, dRr, indR, NR = _Ves_mesh_dlfromL_cython(RMinMax, dR, None, Lim=True, margin=margin)
-    Z, dZr, indZ, NZ = _Ves_mesh_dlfromL_cython(ZMinMax, dZ, None, Lim=True, margin=margin)
+    R, dRr, indR, NR = _Ves_mesh_dlfromL_cython(RMinMax, dR, None, Lim=True,
+                                                margin=margin)
+    Z, dZr, indZ, NZ = _Ves_mesh_dlfromL_cython(ZMinMax, dZ, None, Lim=True,
+                                                margin=margin)
     Rn, Zn = len(R), len(Z)
 
     # Number of Phi per R
@@ -783,11 +874,13 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
 
 
 def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
-                                   double[::1] XMinMax, double[::1] YMinMax, double[::1] ZMinMax,
+                                   double[::1] XMinMax, double[::1] YMinMax,
+                                   double[::1] ZMinMax,
                                    DX=None, DY=None, DZ=None, VPoly=None,
                                    double margin=1.e-9):
-    " Return the desired submesh indicated by the limits (DX,DY,DZ), for the desired resolution (dX,dY,dZ) "
-
+    """ Return the desired submesh indicated by the limits (DX,DY,DZ),
+    for the desired resolution (dX,dY,dZ)
+    """
     cdef double[::1] X, Y, Z
     cdef double dXr, dYr, dZr, dV
     cdef cnp.ndarray[long,ndim=1] indX, indY, indZ
@@ -796,26 +889,38 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
     cdef cnp.ndarray[long,ndim=1] ind
 
     # Get the actual X, Y and Z resolutions and mesh elements
-    X, dXr, indX, NX = _Ves_mesh_dlfromL_cython(XMinMax, dX, DX, Lim=True, margin=margin)
-    Y, dYr, indY, NY = _Ves_mesh_dlfromL_cython(YMinMax, dY, DY, Lim=True, margin=margin)
-    Z, dZr, indZ, NZ = _Ves_mesh_dlfromL_cython(ZMinMax, dZ, DZ, Lim=True, margin=margin)
+    X, dXr, indX, NX = _Ves_mesh_dlfromL_cython(XMinMax, dX, DX, Lim=True,
+                                                margin=margin)
+    Y, dYr, indY, NY = _Ves_mesh_dlfromL_cython(YMinMax, dY, DY, Lim=True,
+                                                margin=margin)
+    Z, dZr, indZ, NZ = _Ves_mesh_dlfromL_cython(ZMinMax, dZ, DZ, Lim=True,
+                                                margin=margin)
     Xn, Yn, Zn = len(X), len(Y), len(Z)
 
-    Pts = np.array([np.tile(X,(Yn*Zn,1)).flatten(), np.tile(np.repeat(Y,Xn),(Zn,1)).flatten(), np.repeat(Z,Xn*Yn)])
-    ind = np.repeat(NX*NY*indZ,Xn*Yn) + np.tile(np.repeat(NX*indY,Xn),(Zn,1)).flatten() + np.tile(indX,(Yn*Zn,1)).flatten()
+    Pts = np.array([np.tile(X,(Yn*Zn,1)).flatten(),
+                    np.tile(np.repeat(Y,Xn),(Zn,1)).flatten(),
+                    np.repeat(Z,Xn*Yn)])
+    ind = np.repeat(NX*NY*indZ,Xn*Yn) + \
+      np.tile(np.repeat(NX*indY,Xn),(Zn,1)).flatten() + \
+      np.tile(indX,(Yn*Zn,1)).flatten()
     dV = dXr*dYr*dZr
 
     if VPoly is not None:
-        indin = Path(VPoly.T).contains_points(Pts[1:,:].T, transform=None, radius=0.0)
+        indin = Path(VPoly.T).contains_points(Pts[1:,:].T, transform=None,
+                                              radius=0.0)
         Pts, ind = Pts[:,indin], ind[indin]
 
     return Pts, dV, ind.astype(int), dXr, dYr, dZr
 
 
 def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
-                                     double[::1] XMinMax, double[::1] YMinMax, double[::1] ZMinMax,
-                                     cnp.ndarray[long,ndim=1] ind, double margin=1.e-9):
-    " Return the desired submesh indicated by the limits (DX,DY,DZ), for the desired resolution (dX,dY,dZ) "
+                                     double[::1] XMinMax, double[::1] YMinMax,
+                                     double[::1] ZMinMax,
+                                     cnp.ndarray[long,ndim=1] ind,
+                                     double margin=1.e-9):
+    """ Return the desired submesh indicated by the limits (DX,DY,DZ),
+    for the desired resolution (dX,dY,dZ)
+    """
 
     cdef cnp.ndarray[double,ndim=1] X, Y, Z
     cdef double dXr, dYr, dZr, dV
@@ -825,21 +930,22 @@ def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
     cdef cnp.ndarray[double,ndim=2] Pts
 
     # Get the actual X, Y and Z resolutions and mesh elements
-    X, dXr, bla, NX = _Ves_mesh_dlfromL_cython(XMinMax, dX, None, Lim=True, margin=margin)
-    Y, dYr, bla, NY = _Ves_mesh_dlfromL_cython(YMinMax, dY, None, Lim=True, margin=margin)
-    Z, dZr, bla, NZ = _Ves_mesh_dlfromL_cython(ZMinMax, dZ, None, Lim=True, margin=margin)
+    X, dXr, bla, NX = _Ves_mesh_dlfromL_cython(XMinMax, dX, None, Lim=True,
+                                               margin=margin)
+    Y, dYr, bla, NY = _Ves_mesh_dlfromL_cython(YMinMax, dY, None, Lim=True,
+                                               margin=margin)
+    Z, dZr, bla, NZ = _Ves_mesh_dlfromL_cython(ZMinMax, dZ, None, Lim=True,
+                                               margin=margin)
 
     indZ = ind // (NX*NY)
     indY = (ind - NX*NY*indZ) // NX
     indX = ind - NX*NY*indZ - NX*indY
-    Pts = np.array([X[indX.astype(int)], Y[indY.astype(int)], Z[indZ.astype(int)]])
+    Pts = np.array([X[indX.astype(int)],
+                    Y[indY.astype(int)],
+                    Z[indZ.astype(int)]])
     dV = dXr*dYr*dZr
 
     return Pts, dV, dXr, dYr, dZr
-
-
-
-
 
 
 
@@ -848,11 +954,15 @@ def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
 #       Meshing - Surface - Tor
 ########################################################
 
-def _getBoundsInter2AngSeg(bool Full, double Phi0, double Phi1, double DPhi0, double DPhi1):
-    """ Return Inter=True if an intersection exist (all angles in radians in [-pi;pi])
+def _getBoundsInter2AngSeg(bool Full, double Phi0, double Phi1,
+                           double DPhi0, double DPhi1):
+    """ Return Inter=True if an intersection exist (all angles in radians
+    in [-pi;pi])
 
-    If Inter, return Bounds, a list of tuples indicating the segments defining the intersection, with
-    The intervals are ordered from lowest index to highest index (with respect to [Phi0,Phi1])
+    If Inter, return Bounds, a list of tuples indicating the segments defining
+    the intersection, with
+    The intervals are ordered from lowest index to highest index (with respect
+    to [Phi0,Phi1])
     """
     if Full:
         Bounds = [[DPhi0,DPhi1]] if DPhi0<=DPhi1 else [[-Cpi,DPhi1],[DPhi0,Cpi]]
@@ -932,12 +1042,15 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                                    DR=None, DZ=None, DPhi=None,
                                    double DIn=0., VIn=None, PhiMinMax=None,
                                    str Out='(X,Y,Z)', double margin=1.e-9):
-    " Return the desired surfacic submesh indicated by the limits (DR,DZ,DPhi), for the desired resolution (dR,dZ,dRphi) "
+    """ Return the desired surfacic submesh indicated by the limits (DR,DZ,DPhi)
+    for the desired resolution (dR,dZ,dRphi)
+    """
     cdef double[::1] R, Z, dPhir, NRPhi#, dPhi, NRZPhi_cum0, indPhi, phi
     cdef double dRr0, dRr, dZr, DPhi0, DPhi1, DDPhi, DPhiMinMax
     cdef double abs0, abs1, phi, indiijj
     cdef long[::1] indR0, indR, indZ, Phin, NRPhi0, Indin
-    cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj0=0, jj, nPhi0, nPhi1, zz, NP, NRPhi_int, Rratio, Ln
+    cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj0=0, jj, nPhi0, nPhi1
+    cdef int zz, NP, NRPhi_int, Rratio, Ln
     cdef cnp.ndarray[double,ndim=2] Pts, indI, PtsCross, VPbis
     cdef cnp.ndarray[double,ndim=1] R0, dS, ind, dLr, Rref, dRPhir, iii
     cdef cnp.ndarray[long,ndim=1] indL, NL, indok
@@ -948,19 +1061,25 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         DPhiMinMax = 2.*Cpi
         Full = True
     else:
-        PhiMinMax = [Catan2(Csin(PhiMinMax[0]),Ccos(PhiMinMax[0])), Catan2(Csin(PhiMinMax[1]),Ccos(PhiMinMax[1]))]
-        DPhiMinMax = PhiMinMax[1]-PhiMinMax[0] if PhiMinMax[1]>=PhiMinMax[0] else 2.*Cpi + PhiMinMax[1] - PhiMinMax[0]
+        PhiMinMax = [Catan2(Csin(PhiMinMax[0]),Ccos(PhiMinMax[0])),
+                     Catan2(Csin(PhiMinMax[1]),Ccos(PhiMinMax[1]))]
+        DPhiMinMax = PhiMinMax[1]-PhiMinMax[0] if PhiMinMax[1]>=PhiMinMax[0] \
+          else 2.*Cpi + PhiMinMax[1] - PhiMinMax[0]
         Full = False
 
-    # Get the limits if any (and make sure to replace them in the proper quadrants)
+    # Get the limits if any (and make sure to replace them in the proper
+    # quadrants)
     if DPhi is None:
         DPhi0, DPhi1 = PhiMinMax[0], PhiMinMax[1]
     else:
-        DPhi0 = PhiMinMax[0] if DPhi[0] is None else Catan2(Csin(DPhi[0]),Ccos(DPhi[0]))
-        DPhi1 = PhiMinMax[1] if DPhi[1] is None else Catan2(Csin(DPhi[1]),Ccos(DPhi[1]))
+        DPhi0 = PhiMinMax[0] if DPhi[0] is None else Catan2(Csin(DPhi[0]),
+                                                            Ccos(DPhi[0]))
+        DPhi1 = PhiMinMax[1] if DPhi[1] is None else Catan2(Csin(DPhi[1]),
+                                                            Ccos(DPhi[1]))
     DDPhi = DPhi1-DPhi0 if DPhi1>DPhi0 else 2.*Cpi+DPhi1-DPhi0
 
-    Inter, Bounds, Faces = _getBoundsInter2AngSeg(Full, PhiMinMax[0], PhiMinMax[1], DPhi0, DPhi1)
+    Inter, Bounds, Faces = _getBoundsInter2AngSeg(Full, PhiMinMax[0],
+                                                  PhiMinMax[1], DPhi0, DPhi1)
 
     if Inter:
 
@@ -973,7 +1092,9 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                 BC[ii][1] += 2.*Cpi
 
         # Get the actual R and Z resolutions and mesh elements
-        PtsCross, dLr, indL, NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
+        PtsCross, dLr, indL, \
+          NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None,
+                                             margin=margin, DIn=DIn, VIn=VIn)
         R0 = np.copy(Rref)
         NR0 = R0.size
         indin = np.ones((PtsCross.shape[1],),dtype=bool)
@@ -981,7 +1102,8 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
             indin = indin & (R0>=DR[0]) & (R0<=DR[1])
         if DZ is not None:
             indin = indin & (PtsCross[1,:]>=DZ[0]) & (PtsCross[1,:]<=DZ[1])
-        PtsCross, dLr, indL, Rref = PtsCross[:,indin], dLr[indin], indL[indin], Rref[indin]
+        PtsCross, dLr, indL, Rref = PtsCross[:,indin], dLr[indin], \
+          indL[indin], Rref[indin]
         Ln = indin.sum()
         Indin = indin.nonzero()[0]
 
@@ -994,7 +1116,8 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         Rratio = int(Cceil(np.max(Rref)/np.min(Rref)))
         indBounds = np.empty((2,nBounds),dtype=int)
         for ii in range(0,Ln):
-            # Get the actual RPhi resolution and Phi mesh elements (! depends on R !)
+            # Get the actual RPhi resolution and Phi mesh elements
+            # (! depends on R!)
             NRPhi[ii] = Cceil(DPhiMinMax*Rref[ii]/dRPhi)
             NRPhi_int = int(NRPhi[ii])
             dPhir[ii] = DPhiMinMax/NRPhi[ii]
@@ -1008,7 +1131,8 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                     nRPhi0 += <long>Cceil(DPhiMinMax*R0[jj0]/dRPhi)
                     NRPhi0[ii] = nRPhi0
             # Get indices of phi
-            # Get the extreme indices of the mesh elements that really need to be created within those limits
+            # Get the extreme indices of the mesh elements that really need to
+            # be created within those limits
             for kk in range(0,nBounds):
                 abs0 = BC[kk][0]-PhiMinMax[0]
                 if abs0-dPhir[ii]*Cfloor(abs0/dPhir[ii])<margin*dPhir[ii]:
@@ -1046,7 +1170,8 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         NP = 0
         if Out.lower()=='(x,y,z)':
             for ii in range(0,Ln):
-                iii = np.unique(indI[ii,~np.isnan(indI[ii,:])]) # Some rare cases with doubles have to be eliminated
+                # Some rare cases with doubles have to be eliminated:
+                iii = np.unique(indI[ii,~np.isnan(indI[ii,:])])
                 for jj in range(0,len(iii)):
                     indiijj = iii[jj]
                     phi = PhiMinMax[0] + (0.5+indiijj)*dPhir[ii]
@@ -1075,7 +1200,9 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         else:
             Pts = Pts[:,indok]
     else:
-        Pts, dS, ind, NL, Rref, dRPhir, nRPhi0 = np.ones((3,0)), np.ones((0,)), np.ones((0,)), np.nan*np.ones((VPoly.shape[1]-1,)), np.ones((0,)), np.ones((0,)), 0
+        Pts, dS, ind, NL, Rref, dRPhir, nRPhi0 = np.ones((3,0)), np.ones((0,)),\
+          np.ones((0,)), np.nan*np.ones((VPoly.shape[1]-1,)),\
+          np.ones((0,)), np.ones((0,)), 0
     return Pts, dS, ind.astype(int), NL, dLr, Rref, dRPhir, nRPhi0, VPbis
 
 
@@ -1087,7 +1214,9 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
                                      double[:,::1] VPoly, long[::1] ind,
                                      double DIn=0., VIn=None, PhiMinMax=None,
                                      str Out='(X,Y,Z)', double margin=1.e-9):
-    """ Return the desired submesh indicated by the (numerical) indices, for the desired resolution (dR,dZ,dRphi) """
+    """ Return the desired submesh indicated by the (numerical) indices,
+    for the desired resolution (dR,dZ,dRphi)
+    """
     cdef double[::1] dRPhirRef, dPhir
     cdef long[::1] indL, NRPhi0, NRPhi
     cdef long NR, NZ, Rn, Zn, NP=len(ind), Rratio
@@ -1102,7 +1231,8 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
         PhiMinMax = [-Cpi,Cpi]
         DPhiMinMax = 2.*Cpi
     else:
-        PhiMinMax = [Catan2(Csin(PhiMinMax[0]),Ccos(PhiMinMax[0])), Catan2(Csin(PhiMinMax[1]),Ccos(PhiMinMax[1]))]
+        PhiMinMax = [Catan2(Csin(PhiMinMax[0]), Ccos(PhiMinMax[0])),
+                     Catan2(Csin(PhiMinMax[1]), Ccos(PhiMinMax[1]))]
         if PhiMinMax[1]>=PhiMinMax[0]:
             DPhiMinMax = PhiMinMax[1]-PhiMinMax[0]
         else:
@@ -1110,7 +1240,9 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
 
 
     # Get the actual R and Z resolutions and mesh elements
-    PtsCross, dLrRef, indL, NL, RrefRef, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
+    PtsCross, dLrRef, indL,\
+      NL, RrefRef, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None,
+                                            margin=margin, DIn=DIn, VIn=VIn)
     Ln = dLrRef.size
     # Number of Phi per R
     dRPhirRef, dPhir, dRPhir = np.empty((Ln,)), np.empty((Ln,)), -np.ones((Ln,))
@@ -1161,8 +1293,8 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
                 dRPhir[iiL] = dRPhirRef[iiL]
                 dLr[iiL] = dLrRef[iiL]
                 Rref[iiL] = RrefRef[iiL]
-    return Pts, dS, NL, dLr[dLr>-0.5], Rref[Rref>-0.5], dRPhir[dRPhir>-0.5], <long>nRPhi0, VPbis
-
+    return Pts, dS, NL, dLr[dLr>-0.5], Rref[Rref>-0.5], \
+      dRPhir[dRPhir>-0.5], <long>nRPhi0, VPbis
 
 
 
@@ -1175,15 +1307,22 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL, double dRPhi,
+def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
+                                         double dRPhi,
                                          double[:,::1] VPoly,
                                          DR=None, DZ=None, DPhi=None,
                                          double DIn=0., VIn=None,
-                                         str Out='(X,Y,Z)', double margin=1.e-9):
-    " Return the desired surfacic submesh indicated by the limits (DR,DZ,DPhi), for the desired resolution (dR,dZ,dRphi) "
+                                         str Out='(X,Y,Z)',
+                                         double margin=1.e-9):
+    """Return the desired surfacic submesh indicated by the limits (DR,DZ,DPhi),
+    for the desired resolution (dR,dZ,dRphi)
+    """
     cdef double Dphi, dR0r=0., dZ0r=0.
     cdef int NR0=0, NZ0=0, R0n, Z0n, NRPhi0
-    cdef double[::1] phiMinMax = np.array([Catan2(Csin(PhiMinMax[0]),Ccos(PhiMinMax[0])), Catan2(Csin(PhiMinMax[1]),Ccos(PhiMinMax[1]))])
+    cdef double[::1] phiMinMax = np.array([Catan2(Csin(PhiMinMax[0]),
+                                                  Ccos(PhiMinMax[0])),
+                                           Catan2(Csin(PhiMinMax[1]),
+                                                  Ccos(PhiMinMax[1]))])
     cdef cnp.ndarray[double, ndim=1] R0, Z0, dsF, dSM, dLr, Rref, dRPhir, dS
     cdef cnp.ndarray[long,ndim=1] indR0, indZ0, iind, iindF, indM, NL, ind
     cdef cnp.ndarray[double,ndim=2] ptsrz, pts, PtsM, VPbis, Pts
@@ -1195,19 +1334,24 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL, doubl
         DPhiMinMax = 2.*Cpi
         Full = True
     else:
-        PhiMinMax = np.array([Catan2(Csin(PhiMinMax[0]),Ccos(PhiMinMax[0])), Catan2(Csin(PhiMinMax[1]),Ccos(PhiMinMax[1]))])
-        DPhiMinMax = PhiMinMax[1]-PhiMinMax[0] if PhiMinMax[1]>=PhiMinMax[0] else 2.*Cpi + PhiMinMax[1] - PhiMinMax[0]
+        PhiMinMax = np.array([Catan2(Csin(PhiMinMax[0]),Ccos(PhiMinMax[0])),
+                              Catan2(Csin(PhiMinMax[1]),Ccos(PhiMinMax[1]))])
+        DPhiMinMax = PhiMinMax[1]-PhiMinMax[0] if PhiMinMax[1]>=PhiMinMax[0]\
+          else 2.*Cpi + PhiMinMax[1] - PhiMinMax[0]
         Full = False
 
-    # Get the limits if any (and make sure to replace them in the proper quadrants)
+    # Get the limits if any and make sure to replace them in the proper quadrant
     if DPhi is None:
         DPhi0, DPhi1 = PhiMinMax[0], PhiMinMax[1]
     else:
-        DPhi0 = PhiMinMax[0] if DPhi[0] is None else Catan2(Csin(DPhi[0]),Ccos(DPhi[0]))
-        DPhi1 = PhiMinMax[1] if DPhi[1] is None else Catan2(Csin(DPhi[1]),Ccos(DPhi[1]))
+        DPhi0 = PhiMinMax[0] if DPhi[0] is None \
+          else Catan2(Csin(DPhi[0]),Ccos(DPhi[0]))
+        DPhi1 = PhiMinMax[1] if DPhi[1] is None \
+          else Catan2(Csin(DPhi[1]),Ccos(DPhi[1]))
     DDPhi = DPhi1-DPhi0 if DPhi1>DPhi0 else 2.*Cpi+DPhi1-DPhi0
 
-    Inter, Bounds, Faces = _getBoundsInter2AngSeg(Full, PhiMinMax[0], PhiMinMax[1], DPhi0, DPhi1)
+    Inter, Bounds, Faces = _getBoundsInter2AngSeg(Full, PhiMinMax[0],
+                                                  PhiMinMax[1], DPhi0, DPhi1)
 
     if Inter:
         BC = list(Bounds)
@@ -1218,36 +1362,55 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL, doubl
             if BC[ii][1]<=PhiMinMax[0]:
                 BC[ii][1] += 2.*Cpi
 
-        Dphi = DIn/np.max(VPoly[0,:]) if DIn!=0. else 0. # Required distance effective at max R
+        # Required distance effective at max R
+        Dphi = DIn/np.max(VPoly[0,:]) if DIn!=0. else 0.
 
         # Get the mesh for the faces
         if any(Faces) :
-            R0, dR0r, indR0, NR0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[0,:]),np.max(VPoly[0,:])]), dL, DL=DR, Lim=True, margin=margin)
-            Z0, dZ0r, indZ0, NZ0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[1,:]),np.max(VPoly[1,:])]), dL, DL=DZ, Lim=True, margin=margin)
+            R0, dR0r, indR0,\
+              NR0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[0,:]),
+                                                       np.max(VPoly[0,:])]),
+                                             dL, DL=DR, Lim=True, margin=margin)
+            Z0, dZ0r, indZ0,\
+              NZ0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[1,:]),
+                                                       np.max(VPoly[1,:])]),
+                                             dL, DL=DZ, Lim=True, margin=margin)
             R0n, Z0n = len(R0), len(Z0)
             ptsrz = np.array([np.tile(R0,Z0n),np.repeat(Z0,R0n)])
             iind = NR0*np.repeat(indZ0,R0n) + np.tile(indR0,Z0n)
-            indin = Path(VPoly.T).contains_points(ptsrz.T, transform=None, radius=0.0)
+            indin = Path(VPoly.T).contains_points(ptsrz.T, transform=None,
+                                                  radius=0.0)
             if np.any(indin):
-                ptsrz = ptsrz[:,indin] if indin.sum()>1 else ptsrz[:,indin].reshape((2,1))
+                ptsrz = ptsrz[:,indin] if indin.sum()>1 \
+                  else ptsrz[:,indin].reshape((2,1))
                 iindF = iind[indin]
                 dsF = dR0r*dZ0r*np.ones((indin.sum(),))
 
         # First face
         if Faces[0]:
             if Out.lower()=='(x,y,z)':
-                pts = np.array([ptsrz[0,:]*Ccos(phiMinMax[0]+Dphi), ptsrz[0,:]*Csin(phiMinMax[0]+Dphi), ptsrz[1,:]])
+                pts = np.array([ptsrz[0,:]*Ccos(phiMinMax[0]+Dphi),
+                                ptsrz[0,:]*Csin(phiMinMax[0]+Dphi),
+                                ptsrz[1,:]])
             else:
-                pts = np.array([ptsrz[0,:],ptsrz[1,:],(phiMinMax[0]+Dphi)*np.ones((indin.sum(),))])
+                pts = np.array([ptsrz[0,:],
+                                ptsrz[1,:],
+                                (phiMinMax[0]+Dphi)*np.ones((indin.sum(),))])
             LPts.append( pts )
             Lind.append( iindF )
             LdS.append( dsF )
 
         # Main body
-        PtsM, dSM, indM, NL, dLr, Rref, dRPhir, nRPhi0, VPbis = _Ves_Smesh_Tor_SubFromD_cython(dL, dRPhi, VPoly,
-                                                                                               DR=DR, DZ=DZ, DPhi=[DPhi0,DPhi1],
-                                                                                               DIn=DIn, VIn=VIn, PhiMinMax=phiMinMax,
-                                                                                               Out=Out, margin=margin)
+        PtsM, dSM,\
+          indM, NL,\
+          dLr, Rref,\
+          dRPhir, nRPhi0,\
+          VPbis = _Ves_Smesh_Tor_SubFromD_cython(dL, dRPhi, VPoly,
+                                                 DR=DR, DZ=DZ,
+                                                 DPhi=[DPhi0,DPhi1],
+                                                 DIn=DIn, VIn=VIn,
+                                                 PhiMinMax=phiMinMax,
+                                                 Out=Out, margin=margin)
 
         if PtsM.shape[1]>=1:
             if PtsM.shape[1]==1:
@@ -1260,9 +1423,13 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL, doubl
         # Second face
         if Faces[1]:
             if Out.lower()=='(x,y,z)':
-                pts = np.array([ptsrz[0,:]*Ccos(phiMinMax[1]-Dphi), ptsrz[0,:]*Csin(phiMinMax[1]-Dphi), ptsrz[1,:]])
+                pts = np.array([ptsrz[0,:]*Ccos(phiMinMax[1]-Dphi),
+                                ptsrz[0,:]*Csin(phiMinMax[1]-Dphi),
+                                ptsrz[1,:]])
             else:
-                pts = np.array([ptsrz[0,:],ptsrz[1,:],(phiMinMax[1]-Dphi)*np.ones((indin.sum(),))])
+                pts = np.array([ptsrz[0,:],
+                                ptsrz[1,:],
+                                (phiMinMax[1]-Dphi)*np.ones((indin.sum(),))])
             LPts.append( pts )
             Lind.append( iindF + NR0*NZ0 + nRPhi0 )
             LdS.append( dsF )
@@ -1278,8 +1445,11 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL, doubl
             dS = np.concatenate(tuple(LdS))
 
     else:
-        Pts, dS, ind, NL, Rref = np.ones((3,0)), np.ones((0,)), np.ones((0,),dtype=int), np.ones((0,),dtype=int), np.nan*np.ones((VPoly.shape[1]-1,))
-        dLr, dR0r, dZ0r, dRPhir, VPbis = np.ones((0,)), 0., 0., np.ones((0,)), np.asarray(VPoly)
+        Pts, dS, ind, NL, Rref = np.ones((3,0)), np.ones((0,)),\
+          np.ones((0,),dtype=int), np.ones((0,),dtype=int),\
+          np.nan*np.ones((VPoly.shape[1]-1,))
+        dLr, dR0r, dZ0r, dRPhir, VPbis = np.ones((0,)), 0., 0.,\
+          np.ones((0,)), np.asarray(VPoly)
 
     return Pts, dS, ind, NL, dLr, Rref, dR0r, dZ0r, dRPhir, VPbis
 
@@ -1288,30 +1458,47 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL, doubl
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL, double dRPhi,
-                                           double[:,::1] VPoly, cnp.ndarray[long,ndim=1] ind,
+def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
+                                           double dRPhi, double[:,::1] VPoly,
+                                           cnp.ndarray[long,ndim=1] ind,
                                            double DIn=0., VIn=None,
-                                           str Out='(X,Y,Z)', double margin=1.e-9):
-    " Return the desired surfacic submesh indicated by the limits (DR,DZ,DPhi), for the desired resolution (dR,dZ,dRphi) "
+                                           str Out='(X,Y,Z)',
+                                           double margin=1.e-9):
+    """ Return the desired surfacic submesh indicated by the limits (DR,DZ,DPhi)
+    for the desired resolution (dR,dZ,dRphi) """
     cdef double Dphi, dR0r, dZ0r
     cdef int NR0, NZ0, R0n, Z0n, NRPhi0
-    cdef double[::1] phiMinMax = np.array([Catan2(Csin(PhiMinMax[0]),Ccos(PhiMinMax[0])), Catan2(Csin(PhiMinMax[1]),Ccos(PhiMinMax[1]))])
+    cdef double[::1] phiMinMax = np.array([Catan2(Csin(PhiMinMax[0]),
+                                                  Ccos(PhiMinMax[0])),
+                                           Catan2(Csin(PhiMinMax[1]),
+                                                  Ccos(PhiMinMax[1]))])
     cdef cnp.ndarray[double, ndim=1] R0, Z0, dsF, dSM, dLr, Rref, dRPhir, dS
     cdef cnp.ndarray[long,ndim=1] bla, indR0, indZ0, iind, iindF, indM, NL
     cdef cnp.ndarray[double,ndim=2] ptsrz, pts, PtsM, VPbis, Pts
     cdef list LPts=[], LdS=[], Lind=[]
 
     # Pre-format input
-    Dphi = DIn/np.max(VPoly[0,:]) if DIn!=0. else 0. # Required distance effective at max R
+    # Required distance effective at max R
+    Dphi = DIn/np.max(VPoly[0,:]) if DIn!=0. else 0.
 
     # Get the basic meshes for the faces
-    R0, dR0r, bla, NR0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[0,:]),np.max(VPoly[0,:])]), dL, DL=None, Lim=True, margin=margin)
-    Z0, dZ0r, bla, NZ0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[1,:]),np.max(VPoly[1,:])]), dL, DL=None, Lim=True, margin=margin)
+    R0, dR0r, bla, NR0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[0,:]),
+                                                            np.max(VPoly[0,:])]),
+                                                  dL, DL=None, Lim=True,
+                                                  margin=margin)
+    Z0, dZ0r, bla, NZ0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[1,:]),
+                                                            np.max(VPoly[1,:])]),
+                                                  dL, DL=None, Lim=True,
+                                                  margin=margin)
 
-    PtsM, dSM, indM, NL, dLr, Rref, dRPhir, nRPhi0, VPbis = _Ves_Smesh_Tor_SubFromD_cython(dL, dRPhi, VPoly,
-                                                                                           DR=None, DZ=None, DPhi=None,
-                                                                                           DIn=DIn, VIn=VIn, PhiMinMax=phiMinMax,
-                                                                                           Out=Out, margin=margin)
+    PtsM, dSM, indM,\
+      NL, dLr, Rref,\
+      dRPhir, nRPhi0, VPbis = _Ves_Smesh_Tor_SubFromD_cython(dL, dRPhi, VPoly,
+                                                             DR=None, DZ=None,
+                                                             DPhi=None,
+                                                             DIn=DIn, VIn=VIn,
+                                                             PhiMinMax=phiMinMax,
+                                                             Out=Out, margin=margin)
     # First face
     ii = (ind<NR0*NZ0).nonzero()[0]
     nii = len(ii)
@@ -1319,9 +1506,11 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL, dou
         indZ0 = ind[ii] // NR0
         indR0 = (ind[ii]-indZ0*NR0)
         if Out.lower()=='(x,y,z)':
-            pts = np.array([R0[indR0]*Ccos(phiMinMax[0]+Dphi), R0[indR0]*Csin(phiMinMax[0]+Dphi), Z0[indZ0]])
+            pts = np.array([R0[indR0]*Ccos(phiMinMax[0]+Dphi),
+                            R0[indR0]*Csin(phiMinMax[0]+Dphi), Z0[indZ0]])
         else:
-            pts = np.array([R0[indR0], Z0[indZ0], (phiMinMax[0]+Dphi)*np.ones((nii,))])
+            pts = np.array([R0[indR0], Z0[indZ0],
+                            (phiMinMax[0]+Dphi)*np.ones((nii,))])
         pts = pts if nii>1 else pts.reshape((3,1))
         LPts.append( pts )
         LdS.append( dR0r*dZ0r*np.ones((nii,)) )
@@ -1330,7 +1519,8 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL, dou
     ii = (ind>=NR0*NZ0) & (ind<NR0*NZ0+PtsM.shape[1])
     nii = len(ii)
     if nii>0:
-        pts = PtsM[:,ind[ii]-NR0*NZ0] if nii>1 else PtsM[:,ind[ii]-NR0*NZ0].reshape((3,1))
+        pts = PtsM[:,ind[ii]-NR0*NZ0] if nii>1\
+          else PtsM[:,ind[ii]-NR0*NZ0].reshape((3,1))
         LPts.append( PtsM[:,ind[ii]-NR0*NZ0] )
         LdS.append( dSM[ind[ii]-NR0*NZ0] )
 
@@ -1341,9 +1531,11 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL, dou
         indZ0 = (ind[ii]-(NR0*NZ0+PtsM.shape[1])) // NR0
         indR0 = ind[ii]-(NR0*NZ0+PtsM.shape[1]) - indZ0*NR0
         if Out.lower()=='(x,y,z)':
-            pts = np.array([R0[indR0]*Ccos(phiMinMax[1]-Dphi), R0[indR0]*Csin(phiMinMax[1]-Dphi), Z0[indZ0]])
+            pts = np.array([R0[indR0]*Ccos(phiMinMax[1]-Dphi),
+                            R0[indR0]*Csin(phiMinMax[1]-Dphi), Z0[indZ0]])
         else:
-            pts = np.array([R0[indR0], Z0[indZ0], (phiMinMax[1]-Dphi)*np.ones((nii,))])
+            pts = np.array([R0[indR0], Z0[indZ0],
+                            (phiMinMax[1]-Dphi)*np.ones((nii,))])
         pts = pts if nii>1 else pts.reshape((3,1))
         LPts.append( pts )
         LdS.append( dR0r*dZ0r*np.ones((nii,)) )
@@ -1395,8 +1587,10 @@ cdef _check_DLvsLMinMax(double[::1] LMinMax, DL=None):
 def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                    double[:,::1] VPoly,
                                    DX=None, DY=None, DZ=None,
-                                   double DIn=0., VIn=None, double margin=1.e-9):
-    " Return the desired surfacic submesh indicated by the limits (DX,DY,DZ), for the desired resolution (dX,dL) "
+                                   double DIn=0., VIn=None,
+                                   double margin=1.e-9):
+    """Return the desired surfacic submesh indicated by the limits (DX,DY,DZ),
+    for the desired resolution (dX,dL) """
     cdef cnp.ndarray[double,ndim=1] X, Y0, Z0
     cdef double dXr, dY0r, dZ0r
     cdef int NY0, NZ0, Y0n, Z0n, NX, Xn, Ln, NR0, Inter=1
@@ -1407,20 +1601,33 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
     # Preformat
     # Adjust limits
     InterX, DX = _check_DLvsLMinMax(XMinMax,DX)
-    InterY, DY = _check_DLvsLMinMax(np.array([np.min(VPoly[0,:]),np.max(VPoly[0,:])]),DY)
-    InterZ, DZ = _check_DLvsLMinMax(np.array([np.min(VPoly[1,:]),np.max(VPoly[1,:])]),DZ)
+    InterY, DY = _check_DLvsLMinMax(np.array([np.min(VPoly[0,:]),
+                                              np.max(VPoly[0,:])]), DY)
+    InterZ, DZ = _check_DLvsLMinMax(np.array([np.min(VPoly[1,:]),
+                                              np.max(VPoly[1,:])]), DZ)
 
     if InterX==1 and InterY==1 and InterZ==1:
 
         # Get the mesh for the faces
-        Y0, dY0r, indY0, NY0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[0,:]),np.max(VPoly[0,:])]), dL, DL=DY, Lim=True, margin=margin)
-        Z0, dZ0r, indZ0, NZ0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[1,:]),np.max(VPoly[1,:])]), dL, DL=DZ, Lim=True, margin=margin)
+        Y0, dY0r,\
+          indY0, NY0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[0,:]),
+                                                          np.max(VPoly[0,:])]),
+                                                dL, DL=DY, Lim=True,
+                                                margin=margin)
+        Z0, dZ0r,\
+          indZ0, NZ0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[1,:]),
+                                                          np.max(VPoly[1,:])]),
+                                                dL, DL=DZ, Lim=True,
+                                                margin=margin)
         Y0n, Z0n = len(Y0), len(Z0)
 
         # Get the actual R and Z resolutions and mesh elements
-        X, dXr, indX, NX = _Ves_mesh_dlfromL_cython(XMinMax, dX, DL=DX, Lim=True, margin=margin)
+        X, dXr, indX, NX = _Ves_mesh_dlfromL_cython(XMinMax, dX, DL=DX,
+                                                    Lim=True, margin=margin)
         Xn = len(X)
-        PtsCross, dLr, indL, NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
+        PtsCross, dLr, indL,\
+          NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None,
+                                             margin=margin, DIn=DIn, VIn=VIn)
         NR0 = Rref.size
         indin = np.ones((PtsCross.shape[1],),dtype=bool)
         if DY is not None:
@@ -1433,33 +1640,49 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                 indin = indin & (PtsCross[1,:]>=DZ[0])
             if DZ[1] is not None:
                 indin = indin & (PtsCross[1,:]<=DZ[1])
-        PtsCross, dLr, indL, Rref = PtsCross[:,indin], dLr[indin], indL[indin], Rref[indin]
+        PtsCross, dLr,\
+          indL, Rref = PtsCross[:,indin], dLr[indin], indL[indin], Rref[indin]
         Ln = indin.sum()
         # Agregating
-        Pts = np.array([np.repeat(X,Ln), np.tile(PtsCross[0,:],Xn), np.tile(PtsCross[1,:],Xn)])
+        Pts = np.array([np.repeat(X,Ln),
+                        np.tile(PtsCross[0,:],Xn),
+                        np.tile(PtsCross[1,:],Xn)])
         ind = NY0*NZ0 + np.repeat(indX*NR0,Ln) + np.tile(indL,Xn)
         dS = np.tile(dLr*dXr,Xn)
         if DX is None or DX[0] is None:
-            pts = np.array([(XMinMax[0]+DIn)*np.ones((Y0n*Z0n,)), np.tile(Y0,Z0n), np.repeat(Z0,Y0n)])
+            pts = np.array([(XMinMax[0]+DIn)*np.ones((Y0n*Z0n,)),
+                            np.tile(Y0,Z0n),
+                            np.repeat(Z0,Y0n)])
             iind = NY0*np.repeat(indZ0,Y0n) + np.tile(indY0,Z0n)
-            indin = Path(VPoly.T).contains_points(pts[1:,:].T, transform=None, radius=0.0)
+            indin = Path(VPoly.T).contains_points(pts[1:,:].T, transform=None,
+                                                  radius=0.0)
             if np.any(indin):
-                pts = pts[:,indin].reshape((3,1)) if indin.sum()==1 else pts[:,indin]
+                pts = pts[:,indin].reshape((3,1)) if indin.sum()==1\
+                  else pts[:,indin]
                 Pts = np.concatenate((pts,Pts),axis=1)
                 ind = np.concatenate((iind[indin], ind))
                 dS = np.concatenate((dY0r*dZ0r*np.ones((indin.sum(),)),dS))
         if DX is None or DX[1] is None:
-            pts = np.array([(XMinMax[1]-DIn)*np.ones((Y0n*Z0n,)), np.tile(Y0,Z0n), np.repeat(Z0,Y0n)])
-            iind = NY0*NZ0 + NX*NR0 + NY0*np.repeat(indZ0,Y0n) + np.tile(indY0,Z0n)
-            indin = Path(VPoly.T).contains_points(pts[1:,:].T, transform=None, radius=0.0)
+            pts = np.array([(XMinMax[1]-DIn)*np.ones((Y0n*Z0n,)),
+                            np.tile(Y0,Z0n),
+                            np.repeat(Z0,Y0n)])
+            iind = NY0*NZ0 + NX*NR0 + NY0*np.repeat(indZ0,Y0n) +\
+              np.tile(indY0,Z0n)
+            indin = Path(VPoly.T).contains_points(pts[1:,:].T,
+                                                  transform=None,
+                                                  radius=0.0)
             if np.any(indin):
-                pts = pts[:,indin].reshape((3,1)) if indin.sum()==1 else pts[:,indin]
+                pts = pts[:,indin].reshape((3,1)) if indin.sum()==1\
+                  else pts[:,indin]
                 Pts = np.concatenate((Pts,pts),axis=1)
                 ind = np.concatenate((ind,iind[indin]))
                 dS = np.concatenate((dS,dY0r*dZ0r*np.ones((indin.sum(),))))
 
     else:
-        Pts, dS, ind, NL, dLr, Rref = np.ones((3,0)), np.ones((0,)), np.ones((0,),dtype=int), np.ones((0,),dtype=int), np.ones((0,)), np.ones((0,))
+        Pts, dS, ind,\
+          NL, dLr, Rref = np.ones((3,0)), np.ones((0,)),\
+          np.ones((0,),dtype=int), np.ones((0,),dtype=int),\
+          np.ones((0,)), np.ones((0,))
         dXr, dY0r, dZ0r, VPbis = 0., 0., 0., np.ones((3,0))
 
     return Pts, dS, ind, NL, dLr, Rref, dXr, dY0r, dZ0r, VPbis
@@ -1557,7 +1780,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 #       PIn POut
 ########################################################
 
-
+# TODO : @LM > recall
 def LOS_Calc_PInOut_VesStruct(Ds, dus,
                               cnp.ndarray[double, ndim=2,mode='c'] VPoly,
                               cnp.ndarray[double, ndim=2,mode='c'] VIn,
@@ -1567,7 +1790,9 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                               EpsUz=1.e-6, EpsVz=1.e-9, EpsA=1.e-9,
                               EpsB=1.e-9, EpsPlane=1.e-9,
                               VType='Tor', Test=True):
-    """ Compute the entry and exit point of all provided LOS for the provided vessel polygon (toroidal or linear), also return the normal vector at impact point and the index of the impact segment
+    """ Compute the entry and exit point of all provided LOS for the provided
+    vessel polygon (toroidal or linear), also return the normal vector at
+    impact point and the index of the impact segment
 
     For each LOS,
 
@@ -1579,11 +1804,13 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
     Return
     ------
     PIn :       np.ndarray
-        Point of entry (if any) of the LOS into the vessel, returned in (X,Y,Z) cartesian coordinates as:
+        Point of entry (if any) of the LOS into the vessel, returned in (X,Y,Z)
+        cartesian coordinates as:
             1 LOS => (3,) array or None if there is no entry point
             NL LOS => (3,NL), with NaNs when there is no entry point
     POut :      np.ndarray
-        Point of exit of the LOS from the vessel, returned in (X,Y,Z) cartesian coordinates as:
+        Point of exit of the LOS from the vessel, returned in (X,Y,Z) cartesian
+        coordinates as:
             1 LOS => (3,) array or None if there is no entry point
             NL LOS => (3,NL), with NaNs when there is no entry point
     VOut :      np.ndarray
@@ -1592,15 +1819,25 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
 
     """
     if Test:
-        assert type(Ds) is np.ndarray and type(dus) is np.ndarray and Ds.ndim in [1,2] and Ds.shape==dus.shape and Ds.shape[0]==3, "Args Ds and dus must be of the same shape (3,) or (3,NL) !"
-        assert VPoly.shape[0]==2 and VIn.shape[0]==2 and VIn.shape[1]==VPoly.shape[1]-1, "Args VPoly and VIn must be of the same shape (2,NS) !"
+        assert type(Ds) is np.ndarray and type(dus) is np.ndarray and \
+            Ds.ndim in [1,2] and Ds.shape==dus.shape and \
+            Ds.shape[0]==3, (
+                "Args Ds and dus must be of the same shape (3,) or (3,NL)!")
+        assert VPoly.shape[0]==2 and VIn.shape[0]==2 and \
+            VIn.shape[1]==VPoly.shape[1]-1, (
+                "Args VPoly and VIn must be of the same shape (2,NS)!")
         C1 = all([pp is None for pp in [LSPoly,LSLim,LSVIn]])
-        C2 = all([hasattr(pp,'__iter__') and len(pp)==len(LSPoly) for pp in [LSPoly,LSLim,LSVIn]])
-        assert C1 or C2, "Args LSPoly,LSLim,LSVIn must be None or lists of same len() !"
-        assert RMin is None or type(RMin) in [float,int,np.float64,np.int64], "Arg RMin must be None or a float !"
-        assert type(Forbid) is bool, "Arg Forbid must be a bool !"
-        assert all([type(ee) in [int,float,np.int64,np.float64] and ee<1.e-4 for ee in [EpsUz,EpsVz,EpsA,EpsB,EpsPlane]]), "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-4 !"
-        assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin'] !"
+        C2 = all([hasattr(pp,'__iter__') and len(pp)==len(LSPoly) for pp
+                  in [LSPoly,LSLim,LSVIn]])
+        assert C1 or C2, "Args LSPoly,LSLim,LSVIn must be None or lists of same len()!"
+        assert RMin is None or type(RMin) in [float,int,np.float64,np.int64], (
+            "Arg RMin must be None or a float!")
+        assert type(Forbid) is bool, "Arg Forbid must be a bool!"
+        assert all([type(ee) in [int,float,np.int64,np.float64] and ee<1.e-4
+                    for ee in [EpsUz,EpsVz,EpsA,EpsB,EpsPlane]]), \
+                        "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-4!"
+        assert type(VType) is str and VType.lower() in ['tor','lin'], (
+            "Arg VType must be a str in ['Tor','Lin']!")
 
     cdef int ii, jj
 
@@ -1628,8 +1865,13 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                             np.min(np.hypot(Ds[0,:],Ds[1,:])))
 
         # Main function to compute intersections with Vessel
-        PIn, POut, VperpIn, VperpOut, IIn, IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid, RMin=RMin,
-                                                                           EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
+        PIn, POut, \
+            VperpIn, VperpOut, \
+            IIn, IOut[2,:] = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim,
+                                                 Forbid=Forbid, RMin=RMin,
+                                                 EpsUz=EpsUz, EpsVz=EpsVz,
+                                                 EpsA=EpsA, EpsB=EpsB,
+                                                 EpsPlane=EpsPlane)
 
         # k = coordinate (in m) along the line from D
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
@@ -1648,8 +1890,14 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                 else:
                     lslim = LSLim[ii]
                 for jj in range(0,len(lslim)):
-                    pIn, pOut, vperpIn, vperpOut, iIn, iOut = Calc_LOS_PInOut_Tor(Ds, dus, LSPoly[ii], LSVIn[ii], Lim=lslim[jj], Forbid=Forbid, RMin=RMin,
-                                                                                  EpsUz=EpsUz, EpsVz=EpsVz, EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)
+                    pIn, pOut,\
+                        vperpIn, vperpOut,\
+                        iIn, iOut = Calc_LOS_PInOut_Tor(Ds, dus, LSPoly[ii],
+                                                        LSVIn[ii], Lim=lslim[jj],
+                                                        Forbid=Forbid, RMin=RMin,
+                                                        EpsUz=EpsUz, EpsVz=EpsVz,
+                                                        EpsA=EpsA, EpsB=EpsB,
+                                                        EpsPlane=EpsPlane)
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
                     indout = np.zeros((NL,),dtype=bool)
@@ -1663,7 +1911,10 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                         IOut[0,indout] = 1+ii
                         IOut[1,indout] = jj
     else:
-        PIn, POut, VperpIn, VperpOut, IIn, IOut[2,:] = Calc_LOS_PInOut_Lin(Ds, dus, VPoly, VIn, Lim, EpsPlane=EpsPlane)
+        PIn, POut, \
+            VperpIn, VperpOut, \
+            IIn, IOut[2,:] = Calc_LOS_PInOut_Lin(Ds, dus, VPoly, VIn,
+                                                 Lim, EpsPlane=EpsPlane)
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
         kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
         assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
@@ -1671,9 +1922,15 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
         if LSPoly is not None:
             Ind = np.zeros((2,NL))
             for ii in range(0,len(LSPoly)):
-                lslim = [LSLim[ii]] if not all([hasattr(ll,'__iter__') for ll in LSLim[ii]]) else LSLim[ii]
+                lslim = [LSLim[ii]] if not all([hasattr(ll,'__iter__')
+                                                for ll in LSLim[ii]]) \
+                                                    else LSLim[ii]
                 for jj in range(0,len(lslim)):
-                    pIn, pOut, vperpIn, vperpOut, iIn, iOut = Calc_LOS_PInOut_Lin(Ds, dus, LSPoly[ii], LSVIn[ii], lslim[jj], EpsPlane=EpsPlane)
+                    pIn, pOut, \
+                        vperpIn, vperpOut, \
+                        iIn, iOut = Calc_LOS_PInOut_Lin(Ds, dus, LSPoly[ii],
+                                                        LSVIn[ii], lslim[jj],
+                                                        EpsPlane=EpsPlane)
                     kpin = np.sqrt(np.sum((Ds-pIn)**2,axis=0))
                     indNoNan = (~np.isnan(kpin)) & (~np.isnan(kPOut))
                     indout = np.zeros((NL,),dtype=bool)
@@ -1688,7 +1945,12 @@ def LOS_Calc_PInOut_VesStruct(Ds, dus,
                         IOut[1,indout] = jj
 
     if not v:
-        PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut = PIn.flatten(), POut.flatten(), kPIn[0], kPOut[0], VperpIn.flatten(), VperpOut.flatten(), IIn[0], IOut.flatten()
+        PIn, POut, \
+            kPIn, kPOut, \
+            VperpIn, VperpOut, \
+            IIn, IOut = PIn.flatten(), POut.flatten(), kPIn[0], kPOut[0], \
+                        VperpIn.flatten(), VperpOut.flatten(), IIn[0], \
+                        IOut.flatten()
     return PIn, POut, kPIn, kPOut, VperpIn, VperpOut, IIn, IOut
 
 
@@ -1708,21 +1970,21 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     if Test:
         C0 = (VPoly.shape[0]==2 and VIn.shape[0]==2
               and VIn.shape[1]==VPoly.shape[1]-1)
-        msg = "Args VPoly and VIn must be of the same shape (2,NS) !"
+        msg = "Args VPoly and VIn must be of the same shape (2,NS)!"
         assert C0, msg
         C0 = all([pp is None for pp in [LSPoly,LSLim,LSVIn]])
         C1 = all([hasattr(pp,'__iter__') and len(pp)==len(LSPoly)
                   for pp in [LSPoly,LSLim,LSVIn]])
-        msg = "Args LSPoly,LSLim,LSVIn must be None or lists of same len() !"
+        msg = "Args LSPoly,LSLim,LSVIn must be None or lists of same len()!"
         assert C0 or C1, msg
         C0 = RMin is None or type(RMin) in [float,int,np.float64,np.int64]
-        assert msg, "Arg RMin must be None or a float !"
-        assert type(Forbid) is bool, "Arg Forbid must be a bool !"
+        assert msg, "Arg RMin must be None or a float!"
+        assert type(Forbid) is bool, "Arg Forbid must be a bool!"
         C0 = all([type(ee) in [int,float,np.int64,np.float64] and ee<1.e-4
                   for ee in [EpsUz,EpsVz,EpsA,EpsB,EpsPlane]])
-        assert C0, "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-4 !"
+        assert C0, "Args [EpsUz,EpsVz,EpsA,EpsB] must be floats < 1.e-4!"
         C0 = type(VType) is str and VType.lower() in ['tor','lin']
-        assert C0, "Arg VType must be a str in ['Tor','Lin'] !"
+        assert C0, "Arg VType must be a str in ['Tor','Lin']!"
 
     cdef int ii, jj, npts=pts.shape[1]
     cdef cnp.ndarray[double, ndim=2, mode='c'] Ds, dus
@@ -1795,8 +2057,11 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VPoly, double [:,::1] vIn, Lim=None,
-                         bool Forbid=True, RMin=None, double EpsUz=1.e-6, double EpsVz=1.e-9, double EpsA=1.e-9, double EpsB=1.e-9, double EpsPlane=1.e-9):
+cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us,
+                         double [:,::1] VPoly, double [:,::1] vIn, Lim=None,
+                         bool Forbid=True, RMin=None, double EpsUz=1.e-6,
+                         double EpsVz=1.e-9, double EpsA=1.e-9,
+                         double EpsB=1.e-9, double EpsPlane=1.e-9):
 
     cdef int ii, jj, Nl=Ds.shape[1], Ns=vIn.shape[1]
     cdef double Rmin, upscaDp, upar2, Dpar2, Crit2, kout, kin
@@ -1805,11 +2070,15 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
     cdef double q, C, delta, sqd, k, sol0, sol1, phi=0., L0=0., L1=0.
     cdef double v0, v1, A, B, ephiIn0, ephiIn1
     cdef int Forbidbis, Forbid0
-    cdef cnp.ndarray[double,ndim=2] SIn_=np.nan*np.ones((3,Nl)), SOut_=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=2] VPerp_In=np.nan*np.ones((3,Nl)), VPerp_Out=np.nan*np.ones((3,Nl))
-    cdef cnp.ndarray[double,ndim=1] indIn_=np.nan*np.ones((Nl,)), indOut_=np.nan*np.ones((Nl,))
+    cdef cnp.ndarray[double,ndim=2] SIn_=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=2] SOut_=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=2] VPerp_In=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=2] VPerp_Out=np.nan*np.ones((3,Nl))
+    cdef cnp.ndarray[double,ndim=1] indIn_=np.nan*np.ones((Nl,))
+    cdef cnp.ndarray[double,ndim=1] indOut_=np.nan*np.ones((Nl,))
 
-    cdef double[:,::1] SIn=SIn_, SOut=SOut_, VPerpIn=VPerp_In, VPerpOut=VPerp_Out
+    cdef double[:,::1] SIn=SIn_, SOut=SOut_
+    cdef double[:,::1] VPerpIn=VPerp_In, VPerpOut=VPerp_Out
     cdef double[::1] indIn=indIn_, indOut=indOut_
     if Lim is not None:
         L0 = Catan2(Csin(Lim[0]),Ccos(Lim[0]))
@@ -1818,7 +2087,7 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
     ################
     # Prepare input
     if RMin is None:
-        Rmin = 0.95*min(np.min(VPoly[0,:]),np.min(np.hypot(Ds[0,:],Ds[1,:])))
+        Rmin = 0.95*min(np.min(VPoly[0,:]), np.min(np.hypot(Ds[0,:],Ds[1,:])))
     else:
         Rmin = RMin
 
@@ -1836,7 +2105,8 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
         if Forbid0 and not Dpar2>0:
             Forbidbis = 0
         if Forbidbis:
-            # Compute coordinates of the 2 points where the tangents touch the inner circle
+            # Compute coordinates of the 2 points where the tangents touch
+            # the inner circle
             L = Csqrt(Dpar2-Rmin**2)
             S1X = (Rmin**2*Ds[0,ii]+Rmin*Ds[1,ii]*L)/Dpar2
             S1Y = (Rmin**2*Ds[1,ii]-Rmin*Ds[0,ii]*L)/Dpar2
@@ -1851,31 +2121,53 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
         # Case with horizontal semi-line
         if us[2,ii]**2<Crit2:
             for jj in range(0,Ns):
-                # Solutions exist only in the case with non-horizontal segment (i.e.: cone, not plane)
-                if (VPoly[1,jj+1]-VPoly[1,jj])**2>EpsVz**2:
-                    q = (Ds[2,ii]-VPoly[1,jj])/(VPoly[1,jj+1]-VPoly[1,jj])
+                # Solutions exist only in the case with non-horizontal
+                # segment (i.e.: cone, not plane)
+                # TODO : @LM : is this faster than checking abs(diff)>eps ?
+                if (VPoly[1,jj+1] - VPoly[1,jj])**2 > EpsVz**2:
+                    # TODO : @LM this probably can done matrix wise (qmatrix)
+                    q = (Ds[2,ii]-VPoly[1,jj]) / (VPoly[1,jj+1]-VPoly[1,jj])
                     # The intersection must stand on the segment
+                    # TODO : @LM why is q==1 rejected ?
                     if q>=0 and q<1:
-                        C = q**2*(VPoly[0,jj+1]-VPoly[0,jj])**2 + 2.*q*VPoly[0,jj]*(VPoly[0,jj+1]-VPoly[0,jj]) + VPoly[0,jj]**2
+                        C = q**2*(VPoly[0,jj+1]-VPoly[0,jj])**2 + \
+                            2.*q*VPoly[0,jj]*(VPoly[0,jj+1]-VPoly[0,jj]) + \
+                            VPoly[0,jj]**2
                         delta = upscaDp**2 - upar2*(Dpar2-C)
                         if delta>0.:
                             sqd = Csqrt(delta)
-                            # The intersection must be on the semi-line (i.e.: k>=0)
+                            # The intersection must be on the semi-line
+                            # (i.e.: k>=0)
                             # First solution
                             if -upscaDp - sqd >=0:
+                                # TODO : @LM - est-ce que c'est possible de le mat ?
+                                # ou le sortir d'ici
                                 k = (-upscaDp - sqd)/upar2
-                                sol0, sol1 = Ds[0,ii] + k*us[0,ii], Ds[1,ii] + k*us[1,ii]
+                                sol0, sol1 = Ds[0,ii] + k*us[0,ii], \
+                                             Ds[1,ii] + k*us[1,ii]
                                 if Forbidbis:
-                                    sca0 = (sol0-S1X)*Ds[0,ii] + (sol1-S1Y)*Ds[1,ii]
+                                    sca0 = (sol0-S1X)*Ds[0,ii] + \
+                                           (sol1-S1Y)*Ds[1,ii]
                                     sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                                     sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
-                                if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
-                                    # Get the normalized perpendicular vector at intersection
+                                if not Forbidbis or (Forbidbis and not
+                                                     (sca0<0 and sca1<0 and
+                                                      sca2<0)):
+                                    # Get the normalized perpendicular vector
+                                    # at intersection
                                     phi = Catan2(sol1,sol0)
                                     # Check sol inside the Lim
-                                    if Lim is None or (Lim is not None and ((L0<L1 and L0<=phi and phi<=L1) or (L0>L1 and (phi>=L0 or phi<=L1)))):
-                                        # Get the scalar product to determine entry or exit point
-                                        sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + Csin(phi)*vIn[0,jj]*us[1,ii] + vIn[1,jj]*us[2,ii]
+                                    if Lim is None or (Lim is not None and
+                                                       ((L0<L1 and L0<=phi and
+                                                         phi<=L1)
+                                                        or (L0>L1 and
+                                                            (phi>=L0 or
+                                                             phi<=L1)))):
+                                        # Get the scalar product to determine
+                                        # entry or exit point
+                                        sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + \
+                                              Csin(phi)*vIn[0,jj]*us[1,ii] + \
+                                              vIn[1,jj]*us[2,ii]
                                         if sca<=0 and k<kout:
                                             kout = k
                                             indout = jj
@@ -1889,17 +2181,30 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
                             # Second solution
                             if -upscaDp + sqd >=0:
                                 k = (-upscaDp + sqd)/upar2
-                                sol0, sol1 = Ds[0,ii] + k*us[0,ii], Ds[1,ii] + k*us[1,ii]
+                                sol0, sol1 = Ds[0,ii] + k*us[0,ii], Ds[1,ii] \
+                                             + k*us[1,ii]
                                 if Forbidbis:
-                                    sca0 = (sol0-S1X)*Ds[0,ii] + (sol1-S1Y)*Ds[1,ii]
+                                    sca0 = (sol0-S1X)*Ds[0,ii] + \
+                                           (sol1-S1Y)*Ds[1,ii]
                                     sca1 = (sol0-S1X)*S1X + (sol1-S1Y)*S1Y
                                     sca2 = (sol0-S2X)*S2X + (sol1-S2Y)*S2Y
-                                if not Forbidbis or (Forbidbis and not (sca0<0 and sca1<0 and sca2<0)):
-                                    # Get the normalized perpendicular vector at intersection
+                                if not Forbidbis or (Forbidbis and not
+                                                     (sca0<0 and sca1<0 and
+                                                      sca2<0)):
+                                    # Get the normalized perpendicular vector
+                                    # at intersection
                                     phi = Catan2(sol1,sol0)
-                                    if Lim is None or (Lim is not None and ((L0<L1 and L0<=phi and phi<=L1) or (L0>L1 and (phi>=L0 or phi<=L1)))):
-                                        # Get the scalar product to determine entry or exit point
-                                        sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + Csin(phi)*vIn[0,jj]*us[1,ii] + vIn[1,jj]*us[2,ii]
+                                    if Lim is None or (Lim is not None and
+                                                       ((L0<L1 and L0<=phi and
+                                                         phi<=L1) or
+                                                        (L0>L1 and
+                                                         (phi>=L0 or phi<=L1))
+                                                       )):
+                                        # Get the scalar product to determine
+                                        # entry or exit point
+                                        sca = Ccos(phi)*vIn[0,jj]*us[0,ii] + \
+                                              Csin(phi)*vIn[0,jj]*us[1,ii] + \
+                                              vIn[1,jj]*us[2,ii]
                                         if sca<=0 and k<kout:
                                             kout = k
                                             indout = jj
@@ -2221,7 +2526,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
         assert Ds.shape[1]==us.shape[1]==DLs.shape[1], "Args Ds, us, DLs 1"
         C0 = not hasattr(dL,'__iter__') and dL>0.
         C1 = hasattr(dL,'__iter__') and len(dL)==Ds.shape[1] and np.all(dL>0.)
-        assert C0 or C1, "Arg dL must be >0. !"
+        assert C0 or C1, "Arg dL must be >0.!"
         assert dLMode.lower() in ['abs','rel'], "Arg dLMode in ['abs','rel']"
         assert method.lower() in ['sum','simps','romb'], "Arg method"
 
@@ -2511,12 +2816,12 @@ cdef get_insp(ff):
 def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
     cdef bool ani
     stre = "Input emissivity function (ff)"
-    assert hasattr(ff,'__call__'), stre+" must be a callable (function) !"
+    assert hasattr(ff,'__call__'), stre+" must be a callable (function)!"
     na, kw = get_insp(ff)
-    assert na==1, stre+" must take only one positional argument: ff(Pts) !"
-    assert 't' in kw, stre+" must have kwarg 't=None' for time vector !"
+    assert na==1, stre+" must take only one positional argument: ff(Pts)!"
+    assert 't' in kw, stre+" must have kwarg 't=None' for time vector!"
     C = type(t) in [int,float,np.int64,np.float64] or hasattr(t,'__iter__')
-    assert t is None or C, "Arg t must be None, a scalar or an iterable !"
+    assert t is None or C, "Arg t must be None, a scalar or an iterable!"
     Pts = np.array([[1,2],[3,4],[5,6]])
     NP = Pts.shape[1]
     try:
@@ -2527,16 +2832,16 @@ def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
     if hasattr(t,'__iter__'):
         nt = len(t)
         Str = ("ff(Pts,t=t), where Pts is a (3,N) np.array and "
-               +"t a len()=nt iterable, must return a (nt,N) np.ndarray !")
+               +"t a len()=nt iterable, must return a (nt,N) np.ndarray!")
         assert type(out) is np.ndarray and out.shape==(nt,NP), Str
     else:
         Str = ("When fed a (3,N) np.array only, or if t is a scalar,"
-               +" ff must return a (N,) np.ndarray !")
+               +" ff must return a (N,) np.ndarray!")
         assert type(out) is np.ndarray and out.shape==(NP,), Str
 
     ani = ('Vect' in kw) if Ani is None else Ani
     if ani:
-        Str = "If Ani=True, ff must take a keyword argument 'Vect=None' !"
+        Str = "If Ani=True, ff must take a keyword argument 'Vect=None'!"
         assert 'Vect' in kw, Str
         Vect = np.array([1,2,3]) if Vuniq else np.ones(Pts.shape)
         try:
@@ -2618,7 +2923,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
         assert Ds.shape[1]==us.shape[1]==DLs.shape[1], "Args Ds, us, DLs 1"
         C0 = not hasattr(dL,'__iter__') and dL>0.
         C1 = hasattr(dL,'__iter__') and len(dL)==Ds.shape[1] and np.all(dL>0.)
-        assert C0 or C1, "Arg dL must be >0. !"
+        assert C0 or C1, "Arg dL must be >0.!"
         assert dLMode.lower() in ['abs','rel'], "Arg dLMode in ['abs','rel']"
         assert method.lower() in ['sum','simps','romb'], "Arg method"
     # Testing function
