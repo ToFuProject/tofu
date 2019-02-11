@@ -70,8 +70,6 @@ if sys.version[0]=='3':
     #if not '_GG03.pyx' in os.listdir(os.path.join(here,'tofu/geom/')):
     shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'),
                  os.path.join(here,'tofu/geom/_GG03.pyx'))
-    shutil.copy2(os.path.join(here,'tofu/geom/_GG02_LM.pyx'),
-                 os.path.join(here,'tofu/geom/_GG03_LM.pyx'))
 
 
 # Get the long description from the README file
