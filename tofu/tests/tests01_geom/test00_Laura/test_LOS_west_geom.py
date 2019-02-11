@@ -1,6 +1,6 @@
 # coding: utf-8
 from tofu_LauraBenchmarck_load_config import *
-import tofu.geom._GG_LM as _GG
+import tofu.geom._GG as _GG
 import time
 import matplotlib.pyplot as plt
 #import line_profiler
@@ -289,14 +289,14 @@ def check_memory_usage2(cam="V1000000", config="B2"):
 
 if __name__ == "__main__":
     # test_LOS_compact()
-    test_LOS_all()
+    #test_LOS_all()
     # test_LOS_all(save=True, saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
     # plot_all_configs()
     # touch_plot_all_configs()
     #touch_plot_config_cam("A2", "VA10000")
     # touch_plot_config_cam("A1", "V10000")
-    touch_plot_config_cam("B1", "V100000")
+    touch_plot_config_cam("B1", "V10")
     # line profiling.....
     # test_line_profile(cam="V100000")
     # print(test_LOS_west_configs("A1", ["V1000000"]))

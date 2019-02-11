@@ -12,11 +12,6 @@ from codecs import open
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
-from Cython.Compiler.Options import get_directive_defaults
-from Cython.Compiler import Options
-
-Options.annotate = True
-directive_defaults = get_directive_defaults()
 
 
 # Always prefer setuptools over distutils
@@ -37,7 +32,6 @@ os.environ['CXX'] = 'gcc'
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6','3.7']:
     gg = '_GG0%s' % sys.version[0]
-    gg_lm = '_GG0%s_LM' % sys.version[0]
     poly = 'polygon%s' % sys.version[0]
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
@@ -99,11 +93,9 @@ if USE_CYTHON:
     print("")
     #TODO try O3 O2 flags
     extensions = [ Extension(name="tofu.geom."+gg,
-                             sources=["tofu/geom/"+gg+".pyx"]),
-                   Extension(name="tofu.geom."+gg_lm,
-                             sources=["tofu/geom/"+gg_lm+".pyx"],
+                             sources=["tofu/geom/"+gg+".pyx"],
                              extra_compile_args=["-O0",  "-fopenmp"],
-                             extra_link_args=['-fopenmp'])]
+                             extra_link_args=['-fopenmp']) ]
     extensions = cythonize(extensions)
 else:
     print("")
