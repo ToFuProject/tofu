@@ -812,7 +812,7 @@ def test13_LOS_PInOut():
                      -2,-2,-2,-2,-1,-1,-1,-1],dtype=int)
     PIn, POut, kPIn, kPOut,\
         VperpIn, VperpOut, IIn, \
-        IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL,
+        IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL,
                                             VType='Lin', Test=True)
     assert np.allclose(PIn,Sols_In, equal_nan=True)
     assert np.allclose(POut,Sols_Out, equal_nan=True)
@@ -857,7 +857,7 @@ def test13_LOS_PInOut():
                       0,0,0,0,0,0,1,0]], dtype=int)
     PIn, POut, kPIn, kPOut, \
         VperpIn, VperpOut, \
-        IIn, IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL,
+        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL,
                                                  LSPoly=[SP0,SP1,SP2],
                                                  LSLim=[SL0,SL1,SL2],
                                                  LSVIn=[VIn,VIn,VIn],
@@ -922,7 +922,7 @@ def test13_LOS_PInOut():
                      1,1,1,1,1,1,1,1])
     PIn, POut, kPIn, kPOut,\
         VperpIn, VperpOut, \
-        IIn, IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
+        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
                                                  VType='Tor', Test=True)
     ThetaIn  = np.arctan2(PIn[1,32:],  PIn[0,32:])
     ThetaOut = np.arctan2(POut[1,32:], POut[0,32:])
@@ -993,7 +993,7 @@ def test13_LOS_PInOut():
                     dtype=int)
     PIn, POut, kPIn, kPOut,\
         VperpIn, VperpOut, \
-        IIn, IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
+        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
                                                  LSPoly=[SP0,SP1,SP2],
                                                  LSLim=[SL0,SL1,SL2],
                                                  LSVIn=[VIn,VIn,VIn],
