@@ -1245,7 +1245,7 @@ def _Cam1D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
     if 'LOS' in Cam[0].Id.Cls:
         Dname = 'LOS length'
         Dunits = r"$m$"
-        data = [cc._dgeom['kMax']-cc._dgeom['kMin'] for cc in Cam]
+        data = [cc._dgeom['kOut']-cc._dgeom['kIn'] for cc in Cam]
         data = np.concatenate(tuple(data))
     else:
         Dname = 'VOS volume'
