@@ -2160,8 +2160,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                 lpolyy = NULL
                 lnormx = NULL
                 lnormy = NULL
-            del(lspoly_view)
-            del(lsvin_view)
+                del(lspoly_view)
+                del(lsvin_view)
 
     free(lbounds)
     free(langles)
@@ -2245,19 +2245,19 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
     nstruct_lim : int
        Number of OUT structures (not counting the limited versions).
        If not is_out_struct then lenght of vpoly.
-    lbounds : (6 * ntotstruct) double array
+    lbounds : (6 * nstruct) double array
        Coordinates of lower and upper edges of the bounding box for each
-       structures (ntotstruct = sum_i(nstruct_lim * lsz_lim[i])
+       structures (nstruct = sum_i(nstruct_lim * lsz_lim[i])
        If not is_out_struct then NULL
-    langles : (2 * ntotstruct) double array
+    langles : (2 * nstruct) double array
        Minimum and maximum angles where the structure lives. If the structure
        number 'i' is toroidally continous then langles[i:i+2] = [0, 0].
-    lis_limited : (ntotstruct) int array
+    lis_limited : (nstruct) int array
        List of bool to know if the structures (or the vessel) is limited or not.
     lnvert : (nstruct_lim) int array
        List of vertices of each polygon for each structure
        If not is_out_struct then NULL
-    lsz_lim : (ntotstruct) int array
+    lsz_lim : (nstruct) int array
        List of the total number of structures before the ith structure. First
        element is always 0, else lsz_lim[i] = sum_j(lstruct_nlim[j], j=0..i-1)
        If not is_out_struct then NULL
@@ -3014,11 +3014,11 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
     return  res
 
 
-cdef inline bint is_point_in_path(int nvert,
-                                  double* vertx,
-                                  double* verty,
-                                  double testx,
-                                  double testy) nogil:
+cdef inline bint is_point_in_path(const int nvert,
+                                  const double* vertx,
+                                  const double* verty,
+                                  const double testx,
+                                  const double testy) nogil:
     """
     Computes if a point of coordiates (testx, testy) is in the polygon defined
     by nvert vertices of coordinates (vertx, verty)

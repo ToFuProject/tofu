@@ -2678,7 +2678,10 @@ class Rays(utils.ToFuObject):
 
             VPoly = S.Poly_closed
             VVIn =  S.dgeom['VIn']
-            Lim = S.Lim
+            if np.size(np.shape(S.Lim)) > 1 :
+                Lim = np.asarray([S.Lim[0][0], S.Lim[0][1]])
+            else:
+                Lim = S.Lim
             nLim = S.noccur
             VType = self.config.Id.Type
 
@@ -3454,15 +3457,20 @@ class Rays(utils.ToFuObject):
 
             largs = [D, u, lPoly[0], lVIn[0]]
             dkwd = dict(Lim=Lim, nLim=nLim, VType=Type)
-        elif self._method=='optmized':
+        elif self._method=="optimized":
             D = np.ascontiguousarray(self.D)
             u = np.ascontiguousarray(self.u)
-
-            Lim = self.config.Lim
+            if np.size(self.config.Lim) == 0 or self.config.Lim is None:
+                Lim = np.array([])
+            else:
+                Lim = np.asarray(self.config.Lim)
+                if np.size(np.shape(Lim)) > 1 :
+                    # in case self.config.Lim = [[L0, L1]]
+                    Lim = np.asarray([Lim[0][0], Lim[0][1]])
             nLim = self.config.nLim
             Type = self.config.Id.Type
             largs = [D, u, lPoly[0], lVIn[0]]
-            dkwd = dict(ves_lim=Lim, ves_nLim=nLim, ves_type=Type)
+            dkwd = dict(ves_lims=Lim, ves_nlim=nLim, ves_type=Type)
         else:
             # To be adjusted later
             pass
@@ -3540,15 +3548,15 @@ class Rays(utils.ToFuObject):
         kOut = np.full((self.nRays,nPoly), np.nan)
 
         # Compute intersections
-        assert(method in ['ref', 'optmized'])
-        if method=='ref':
+        assert(self._method in ['ref', 'optimized'])
+        if self._method=='ref':
             for ii in range(0,nPoly):
                 largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
                 out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
                 PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out
                 kIn[:,ii], kOut[:,ii] = kin, kout
-        elif method=="optimized":
+        elif self._method=="optimized":
             for ii in range(0,nPoly):
                 largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
@@ -3689,11 +3697,11 @@ class Rays(utils.ToFuObject):
             import tofu.data as tfd
             if '1D' in self.Id.Cls:
                 osig = tfd.Data1D(data=sig, t=t, LCam=self,
-                                  Id=self.Id.Name, dunits={'data':units},
+                                  Id=self.Id.Name, dlabels={'data':units},
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             else:
                 osig = tfd.Data2D(data=sig, t=t, LCam=self,
-                                  Id=self.Id.Name, dunits={'data':units},
+                                  Id=self.Id, dlabels={'data':units},
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             if plot:
                 KH = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
@@ -3882,7 +3890,7 @@ class CamLOS2D(Rays):
     def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None, X12=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 sino_RefPt=None, fromdict=None, method='ref',
+                 sino_RefPt=None, fromdict=None, method='optimized',
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
         kwdargs = locals()
         del kwdargs['self'], kwdargs['X12']
