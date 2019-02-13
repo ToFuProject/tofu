@@ -17,7 +17,7 @@ import tofu as tf
 
 _path = os.path.abspath(os.path.dirname(__file__))
 _path_Inputs = os.path.join(_path, './Objects')
-_path_Objects = os.path.join(_path,'./Objects')
+_path_Objects = os.path.join(_path,'./')
 _path_laura_former = './Objects'
 
 
