@@ -13,12 +13,6 @@ from codecs import open
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
-from Cython.Compiler.Options import get_directive_defaults
-from Cython.Compiler import Options
-import tempfile
-
-Options.annotate = True
-directive_defaults = get_directive_defaults()
 
 
 # ==============================================================================
@@ -77,7 +71,6 @@ not_openmp_installed = check_for_openmp(os.environ['CC'])
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6','3.7']:
     gg = '_GG0%s' % sys.version[0]
-    gg_lm = '_GG0%s_LM' % sys.version[0]
     poly = 'polygon%s' % sys.version[0]
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
@@ -116,8 +109,6 @@ if sys.version[0]=='3':
     #if not '_GG03.pyx' in os.listdir(os.path.join(here,'tofu/geom/')):
     shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'),
                  os.path.join(here,'tofu/geom/_GG03.pyx'))
-    shutil.copy2(os.path.join(here,'tofu/geom/_GG02_LM.pyx'),
-                 os.path.join(here,'tofu/geom/_GG03_LM.pyx'))
 
 
 # Get the long description from the README file
@@ -138,19 +129,14 @@ if USE_CYTHON:
     print("")
     #TODO try O3 O2 flags
     if not not_openmp_installed :
-        print("   Using OPENMP !!!")
         extensions = [ Extension(name="tofu.geom."+gg,
-                                sources=["tofu/geom/"+gg+".pyx"]),
-                    Extension(name="tofu.geom."+gg_lm,
-                              sources=["tofu/geom/"+gg_lm+".pyx"],
-                              extra_compile_args=["-O0",  "-fopenmp"],
-                              extra_link_args=['-fopenmp'])]
+                                sources=["tofu/geom/"+gg+".pyx"],
+                                extra_compile_args=["-O0",  "-fopenmp"],
+                                extra_link_args=['-fopenmp']) ]
     else:
         extensions = [ Extension(name="tofu.geom."+gg,
-                                sources=["tofu/geom/"+gg+".pyx"]),
-                    Extension(name="tofu.geom."+gg_lm,
-                              sources=["tofu/geom/"+gg_lm+".pyx"],
-                              extra_compile_args=["-O0"]) ]
+                                sources=["tofu/geom/"+gg+".pyx"],
+                                extra_compile_args=["-O0"]) ]
     extensions = cythonize(extensions)
 else:
     print("")

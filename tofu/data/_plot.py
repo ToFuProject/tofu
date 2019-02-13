@@ -440,14 +440,16 @@ def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     dax['chan'][0]['ax'].set_xticklabels(chlabRef, rotation=45)
 
 
-    # Plot mobile parts
+
+
     can = dax['t'][0]['ax'].figure.canvas
     can.draw()
-    KH = KH1D(can, dax, ntMax=ntMax, nchMax=nchMax)
+
+    kh = utils.KeyHandler_mpl(can, dgroup, dobj, dref, dax)
 
     if connect:
-        KH.disconnect_old()
-        KH.connect()
+        kh.disconnect_old()
+        kh.connect()
     if draw:
         can.draw()
     return KH
@@ -1722,7 +1724,6 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
 
 
 
-
     # ---------------
     # Lims and labels
     dax['t'][0]['ax'].set_xlim(Dt)
@@ -1738,15 +1739,39 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     dax['chan'][1]['ax'].set_ylabel(psdlab, **fldict)
     dax['chan'][2]['ax'].set_ylabel(anglab, **fldict)
 
+
+    # ---------------
+    # Interactivity dict
+
+    dgroup = {'time':      {'nMax':ntMax, 'key':'F1'},
+              'channel':   {'nMax':1, 'key':'F2'},
+              'frequency': {'nMax':nfMax, 'key':'F3'}}
+
+    dref = {t:  {'group':'time'},
+            tf: {'group':'time', 'def':True},
+            X:  {'group':'channel', 'other':t, 'def':True},
+            f:  {'group':'frequency', 'def':True}}
+
+    dax = {dax['t'][0]: {'x':t},
+           dax['t'][1]: {'x':tf, 'y':f},
+           dax['t'][2]: {'x':tf, 'y':f},
+           dax['X'][0]: {'x1':X},
+           dax['X'][1]: {'x1':X},
+           dax['X'][2]: {'x1':X}}
+
+    dobj = {l: {'data':None, 'type':'xdata_1d'},
+                'lref':[], 'ln':[0]}
+
     # Plot mobile parts
     can = dax['t'][0]['ax'].figure.canvas
     can.draw()
-    KH = dax
-    #KH = KH1D(can, dax, ntMax=ntMax, nchMax=nchMax)
+    kh = utils.KeyHandler_mpl(can=can,
+                              dgroup=dgroup, dref=dref,
+                              dobj=dobj, dax=dax)
 
     if connect and False:
-        KH.disconnect_old()
-        KH.connect()
+        kh.disconnect_old()
+        kh.connect()
     if draw:
         can.draw()
-    return KH
+    return kh
