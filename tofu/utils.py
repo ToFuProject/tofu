@@ -901,7 +901,7 @@ class ToFuObject(ToFuObjectBase):
     def save(self, path=None, name=None,
              strip=None, sep=_sep, deep=True, mode='npz',
              compressed=False, verb=True, return_pfe=False):
-        save(self, path=path, name=name,
+        return save(self, path=path, name=name,
              sep=sep, deep=deep, mode=mode,
              strip=strip, compressed=compressed,
              return_pfe=return_pfe, verb=verb)
