@@ -639,7 +639,7 @@ for typ in dconf.keys():
                               np.tile(0.01+X,nP)])
         cls = eval("tfg.%s"%c)
         dCams[typ][c] = cls(Name='V1000', config=dconf[typ],
-                            dgeom={'pinhole':ph, 'D':D},
+                            dgeom={'pinhole':ph, 'D':D}, method="optimized",
                             Exp=_Exp, Diag='Test', SavePath=_here)
 
 

@@ -722,8 +722,13 @@ def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3,
     ax.plot(PIns[0,:],PIns[1,:],PIns[2,:], c='b', ls='None', marker='o', label=r"PIn")
     ax.plot(POuts[0,:],POuts[1,:],POuts[2,:], c='r', ls='None', marker='x', label=r"POut")
     #ax.legend(**_def.TorLegd)
-    if draw:
-        ax.figure.canvas.draw()
+    #if draw:
+    ax.figure.canvas.draw()
+    plt.save()
+    # # rotate the axes and update
+    # for angle in range(0, 360):
+    #     ax.view_init(30, angle)
+    #     ax.save("fig"+str(angle))
     print("")
     print("Debugging...")
     print("    D, u = ", Ds, us)

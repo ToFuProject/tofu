@@ -30,6 +30,7 @@ printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(),
 """
 
 def check_for_openmp(cc_var):
+    import tempfile
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
     os.chdir(tmpdir)

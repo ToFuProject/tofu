@@ -17,7 +17,7 @@ import tofu as tf
 
 _path = os.path.abspath(os.path.dirname(__file__))
 _path_Inputs = os.path.join(_path, './Objects')
-_path_Objects = os.path.join(_path,'./')
+_path_Objects = os.path.join(_path,'./Objects/')
 _path_laura_former = './Objects'
 
 
@@ -56,6 +56,8 @@ _testF = 0.4
 _D12 = [0.3,0.1]
 _nIn = [-0.5,-1.,0.]
 
+_PA3 = [1.2, 3,0.]
+
 _P1 = [1.5,-3.2,0.]
 _nIn1 = [-0.5,1.,0.]
 
@@ -69,13 +71,20 @@ _dcam = {'V1':       {'P':_P1, 'F':_F, 'D12':_D12, 'nIn':_nIn1, 'N12':[1,1]},
          'V10000':   {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[125,80]},
          'V100000':  {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[500,200]},
          'V1000000': {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1600,625]},
-         'VA1':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[1,1]},
-         'VA10':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[5,2]},
-         'VA100':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[20,5]},
-         'VA1000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[50,20]},
+         'VA1':       {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[1,1]},
+         'VA10':      {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[5,2]},
+         'VA100':     {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[20,5]},
+         'VA1000':    {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[50,20]},
          'VA10000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[125,80]},
-         'VA100000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[500,200]},
-         'VA1000000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[1600,625]},
+         'VA100000':  {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[500,200]},
+         'VA1000000': {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[1600,625]},
+         'V31':       {'P':_PA3, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1,1]},
+         'V310':      {'P':_PA3, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[5,2]},
+         'V3100':     {'P':_PA3, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[20,5]},
+         'V31000':    {'P':_PA3, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[50,20]},
+         'V310000':   {'P':_PA3, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[125,80]},
+         'V3100000':  {'P':_PA3, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[500,200]},
+         'V31000000': {'P':_PA3, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1600,625]},
          'testV': {'P':_P, 'F':_testF, 'D12':_D12, 'nIn':_nIn, 'N12':[1600,625]}
 }
 
@@ -244,7 +253,7 @@ def load_config(config, path=_path_Objects, dconfig=_dconfig, plot=True,
 
 
 def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
-           config=None, path=_path_Objects):
+           config=None, path=_path_Objects, is_new_ver=True):
     """ Get the (D,u) tuple for the desired camera
 
     Optionally create the camera with the chosen config
@@ -269,8 +278,12 @@ def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
 
         # Create the LOSCam2D object
         # Note : this is where the computation goes on...
+        if is_new_ver :
+            method = "optimized"
+        else:
+            method ="ref"
         cam = tf.geom.CamLOS2D(Exp=conf.Id.Exp, Name=cam, dgeom=(D,u),
-                               config=conf, Diag='Test', method="optimized")
+                               config=conf, Diag='Test', method=method)
 
     else:
         cam = None

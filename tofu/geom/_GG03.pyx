@@ -3014,11 +3014,11 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
     return  res
 
 
-cdef inline bint is_point_in_path(int nvert,
-                                  double* vertx,
-                                  double* verty,
-                                  double testx,
-                                  double testy) nogil:
+cdef inline bint is_point_in_path(const int nvert,
+                                  const double* vertx,
+                                  const double* verty,
+                                  const double testx,
+                                  const double testy) nogil:
     """
     Computes if a point of coordiates (testx, testy) is in the polygon defined
     by nvert vertices of coordinates (vertx, verty)

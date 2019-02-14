@@ -11,6 +11,13 @@ import matplotlib.pyplot as plt
 # import psutil
 # from memory_profiler import profile
 
+Cams = ["V1", "V10", "V100", "V1000", "V10000",
+        "V100000", "V1000000"]
+CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
+         "VA100000"]
+CamsA3 = ["V31", "V310", "V3100", "V31000", "V310000",
+         "V3100000"]
+
 def get_resident_set_size():
     # Columns are: size resident shared text lib data dt
     statm = Path('/proc/self/statm').read_text()
@@ -18,9 +25,7 @@ def get_resident_set_size():
     return int(fields[1]) * getpagesize()
 
 
-_is_new_version = True
-_all_cams = ["V1", "V10", "V100", "V1000", "V10000",
-            "V100000", "V1000000"]
+_is_new_version = False
 def mem():
 	print(str(round(psutil.Process().memory_info().rss/1024./1024., 2)) + ' MB')
 
@@ -91,15 +96,25 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
     if not _is_new_version :
         if config=="A2":
             cams = ["VA1000"]
+        elif config=="A3":
+            cams = ["V31000"]
         else:
             cams = ["V1000"]
         print("WARNING : old version so only computing for V1000")
     for vcam in cams:
-        largs, dkwd = prepare_inputs(vcam, dconf)
-        start = time.time()
-        out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+        if _is_new_version :
+            largs, dkwd = prepare_inputs(vcam, dconf)
+            start = time.time()
+            out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+        else:
+            largs, dkwd = prepare_inputs(vcam, dconf)
+            start = time.time()
+            out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+
         elapsed = time.time() - start
         if config == "A2":
+            num = int(vcam[2:])
+        elif config == "A3":
             num = int(vcam[2:])
         else:
             num = int(vcam[1:])
@@ -123,12 +138,6 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
 
 
 def test_LOS_compact(save=False, saveCam=[]):
-    Cams = ["V1", "V10", "V100", "V1000", "V10000",
-            "V100000", "V1000000"]
-    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
-             "VA100000"]
-    # Cams = ["V1000"]
-    # CamsA = ["VA1000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
     configs = ["B1", "B2", "B3"]
     for icon in configs :
@@ -137,6 +146,8 @@ def test_LOS_compact(save=False, saveCam=[]):
         print("*..................................*")
         if icon == "A2":
             times = test_LOS_west_configs(icon, CamsA, save=save, saveCam=saveCam)
+        elif icon == "A3":
+            times = test_LOS_west_configs(icon, CamsA3, save=save, saveCam=saveCam)
         else:
             times = test_LOS_west_configs(icon, Cams, save=save, saveCam=saveCam)
         for indt,ttt in enumerate(times):
@@ -144,10 +155,6 @@ def test_LOS_compact(save=False, saveCam=[]):
 
 
 def test_LOS_all(save=False, saveCam=[]):
-    Cams  = ["V1", "V10", "V100", "V1000", "V10000",
-             "V100000", "V1000000"]
-    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
-             "VA100000", "VA1000000"]
     configs = ["A1", "A2", "A3", "B1", "B2", "B3"]
     #fig, ax = plt.subplots()
     for icon in configs :
@@ -156,6 +163,9 @@ def test_LOS_all(save=False, saveCam=[]):
         print("*..................................*")
         if icon == "A2":
             times = test_LOS_west_configs(icon, CamsA,
+                                          save=save, saveCam=saveCam)
+        elif icon == "A3":
+            times = test_LOS_west_configs(icon, CamsA3,
                                           save=save, saveCam=saveCam)
         else:
             times = test_LOS_west_configs(icon, Cams,
@@ -200,17 +210,16 @@ def plot_all_configs():
 
 def touch_plot_all_configs():
     ABconfigs = ["A1", "A2", "A3", "B1", "B2", "B3"]
-    Cams = ["V1", "V10", "V100", "V1000", "V10000",
-            "V100000", "V1000000"]
-    CamsA = ["VA1", "VA10", "VA100", "VA1000", "VA10000",
-            "VA100000", "VA1000000"]
     for indx, config in enumerate(ABconfigs):
-        indcam = -3
+        indcam = -2
         if config=="A2":
             cam = CamsA[indcam]
+        elif config=="A3":
+            cam = CamsA3[indcam]
         else:
             cam = Cams[indcam]
-        D, u, loscam = get_Du(cam, config=config, make_cam=True)
+        D, u, loscam = get_Du(cam, config=config, make_cam=True,
+                              is_new_ver = _is_new_version)
         loscam.plot_touch()
         plt.savefig("plottouch_dconfig"+config+"_"+cam)
 
@@ -289,14 +298,14 @@ def check_memory_usage2(cam="V1000000", config="B2"):
 
 if __name__ == "__main__":
     # test_LOS_compact()
-    #test_LOS_all()
+    # test_LOS_all()
     # test_LOS_all(save=True, saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
     # plot_all_configs()
-    # touch_plot_all_configs()
+    touch_plot_all_configs()
     #touch_plot_config_cam("A2", "VA10000")
     # touch_plot_config_cam("A1", "V10000")
-    touch_plot_config_cam("B1", "V10")
+    # touch_plot_config_cam("B1", "V10")
     # line profiling.....
     # test_line_profile(cam="V100000")
     # print(test_LOS_west_configs("A1", ["V1000000"]))
