@@ -2112,10 +2112,12 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
         lnormy = NULL
 
         if nstruct > 0:
+            nstruct_lim = len(lstruct_poly) # num of structures (no limits)
             for ii in range(nstruct_lim):
                 # -- Analyzing the limits --------------------------------------
                 # For fast accessing
                 lspoly_view = lstruct_poly[ii]
+                len_lim = lstruct_nlim[ii]
                 # We get the limits if any
                 if len_lim == 0:
                     lslim = [None]
@@ -2126,7 +2128,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                     lslim = lstruct_lims[ii]
                 # -- Getting polynom and normals -------------------------------
                 lsvin_view = lstruct_norm[ii]
-                len_lim = lstruct_nlim[ii]
                 nvert = len(lspoly_view[0])
                 lpolyx = <double *>malloc(nvert * sizeof(double))
                 lpolyy = <double *>malloc(nvert * sizeof(double))
@@ -2150,7 +2151,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                                 lbounds_ves[0], lbounds_ves[1],
                                                 coeff_inter_in, coeff_inter_out,
                                                 vperp_out, ind_inter_out,
-                                                eps_plane, ii, jj)
+                                                eps_plane, ii+1, jj+1)
 
                 free(lpolyx)
                 free(lpolyy)
@@ -3397,7 +3398,6 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                     elif us[0,ii]<=0 and k<min(kin,kout):
                         kin = k
                         indin = -2
-
         if Done==1:
             kout_tab[ii] = kout
             # To be finished
@@ -3430,7 +3430,6 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
             vperpout_tab[0+3*ii] = 0.
             vperpout_tab[1+3*ii] = 0.
             vperpout_tab[2+3*ii] = 0.
-
     return
 
 

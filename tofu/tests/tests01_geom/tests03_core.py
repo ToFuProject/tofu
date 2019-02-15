@@ -615,7 +615,7 @@ for typ in dconf.keys():
     else:
         ph = np.r_[3.,4.,0.]
     ez = np.r_[0.,0.,1.]
-    for c in ['CamLOS1D','CamLOS2D']:
+    for c in ['CamLOS2D','CamLOS1D']:
         if '1D' in c:
             nP = 100
             X = np.linspace(-DX,DX,nP)
