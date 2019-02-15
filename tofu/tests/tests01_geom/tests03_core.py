@@ -615,7 +615,7 @@ for typ in dconf.keys():
     else:
         ph = np.r_[3.,4.,0.]
     ez = np.r_[0.,0.,1.]
-    for c in ['CamLOS2D']:#,'CamLOS1D']:
+    for c in ['CamLOS2D','CamLOS1D']:
         if '1D' in c:
             nP = 100
             X = np.linspace(-DX,DX,nP)
@@ -638,11 +638,9 @@ for typ in dconf.keys():
                               np.full((nP*nP,),4.+foc),
                               np.tile(0.01+X,nP)])
         cls = eval("tfg.%s"%c)
-        print("~~~~~~~~~~~~ begin")
         dCams[typ][c] = cls(Name='V1000', config=dconf[typ],
                             dgeom={'pinhole':ph, 'D':D}, method="optimized",
                             Exp=_Exp, Diag='Test', SavePath=_here)
-        print("~~~~~~~~~~~~ end")
 
 class Test03_Rays(object):
 

@@ -2167,10 +2167,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     free(lbounds)
     free(langles)
 
-    print('=================', coeff_inter_in[2061])
-    print('=================', coeff_inter_out[2061])
-    print('=================', ind_inter_out[2061*3:2061*3+3])
-    print('=================', vperp_out[2061*3:2061*3+3])
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out),\
            np.asarray(vperp_out), np.asarray(ind_inter_out, dtype=int)
 
@@ -3189,9 +3185,13 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
     cdef double kin, kout, scauVin, q, X, sca
     cdef int indin=0, indout=0, Done=0
 
+    if ind_struct == 0 and ind_lim_struct == 0 :
+            # If it is the first struct,
+            # we have to initialize values even if no impact
+            kin_tab[ii]  = Cnan
+            kout_tab[ii] = Cnan
 
     for ii in range(0,Nl):
-
         kout, kin, Done = 1.e12, 1e12, 0
         # For cylinder
         for jj in range(0,Ns):
@@ -3211,6 +3211,7 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                     # Only of on the fraction of plane
                     if q>=0. and q<1.:
                         X = Ds[0,ii] + k*us[0,ii]
+
                         # Only if within limits
                         if X>=L0 and X<=L1:
                             sca = us[1,ii] * normx_tab[jj] \
@@ -3259,7 +3260,7 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                     elif us[0,ii]<=0 and k<min(kin,kout):
                         kin = k
                         indin = -2
-        # == Analyzing if there was impact =========================================
+        # == Analyzing if there was impact ====================================
         if Done==1:
             kout_tab[ii] = kout
             # To be finished
@@ -3293,17 +3294,6 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                     vperpout_tab[1 + 3 * ii] = -normx_tab[indout]
                     vperpout_tab[2 + 3 * ii] = -normy_tab[indout]
                 kin_tab[ii] = kin
-            if ii == 2061 :
-                print("!!!!!!!!!!! putting something elseeeeeeeeeee")
-        elif ind_struct == 0 and ind_lim_struct == 0 :
-            if ii == 2061 :
-                print("!!!!!!!!!!! putting nan at 2061")
-            # If it is the first struct,
-            # we have to initialize values even if no impact
-            kin_tab[ii]  = Cnan
-            kout_tab[ii] = Cnan
-        elif ii == 2061:
-            print("nope => ", kout, kin)
     return
 
 cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian=True,
@@ -4649,8 +4639,6 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
                         indin = -2
 
         if Done==1:
-            if ii==2061:
-                print("+++", ii)
             SOut[0,ii] = Ds[0,ii] + kout*us[0,ii]
             SOut[1,ii] = Ds[1,ii] + kout*us[1,ii]
             SOut[2,ii] = Ds[2,ii] + kout*us[2,ii]
