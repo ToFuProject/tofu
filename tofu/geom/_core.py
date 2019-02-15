@@ -2750,6 +2750,8 @@ class Rays(utils.ToFuObject):
         ind = np.isnan(kIn)
         kIn[ind] = 0.
         ind = np.isnan(kOut) | np.isinf(kOut)
+        print("... ind =", np.where(ind))
+        print(" =+=+=+ ", kOut[2061])
         if np.any(ind):
             kOut[ind] = np.nan
             msg = "Some LOS have no visibility inside the plasma domain !"

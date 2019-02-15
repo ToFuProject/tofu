@@ -1969,7 +1969,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
 
         # -- Computing intersection between LOS and Vessel ---------------------
         raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
-                                    coeff_inter_out, coeff_inter_in,
+                                   coeff_inter_out, coeff_inter_in,
                                     vperp_out, lstruct_nlim, ind_inter_out,
                                     forbid0, forbidbis,
                                     rmin, rmin2, Crit2_base,
@@ -2117,6 +2117,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                 # -- Analyzing the limits --------------------------------------
                 # For fast accessing
                 lspoly_view = lstruct_poly[ii]
+                lsvin_view = lstruct_norm[ii]
                 len_lim = lstruct_nlim[ii]
                 # We get the limits if any
                 if len_lim == 0:
@@ -2127,7 +2128,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                 else:
                     lslim = lstruct_lims[ii]
                 # -- Getting polynom and normals -------------------------------
-                lsvin_view = lstruct_norm[ii]
                 nvert = len(lspoly_view[0])
                 lpolyx = <double *>malloc(nvert * sizeof(double))
                 lpolyy = <double *>malloc(nvert * sizeof(double))
@@ -2167,6 +2167,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     free(lbounds)
     free(langles)
 
+    print('=================', coeff_inter_in[2061])
+    print('=================', coeff_inter_out[2061])
+    print('=================', ind_inter_out[2061*3:2061*3+3])
+    print('=================', vperp_out[2061*3:2061*3+3])
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out),\
            np.asarray(vperp_out), np.asarray(ind_inter_out, dtype=int)
 
@@ -3163,6 +3167,144 @@ cdef inline void compute_bbox_lim(int nvert,
     return
 
 
+cdef inline void raytracing_inout_struct_lin(int Nl,
+                                             double[:,::1] Ds,
+                                             double [:,::1] us,
+                                             int Ns, # VIn.shape[1]
+                                             double* polyx_tab,
+                                             double* polyy_tab,
+                                             double* normx_tab,
+                                             double* normy_tab,
+                                             double L0, double L1,
+                                             double[::1] kin_tab,
+                                             double[::1] kout_tab,
+                                             double[::1] vperpout_tab,
+                                             int[::1] indout_tab,
+                                             double EpsPlane,
+                                             int ind_struct,
+                                             int ind_lim_struct):
+
+    cdef bint is_in_path
+    cdef int ii=0, jj=0
+    cdef double kin, kout, scauVin, q, X, sca
+    cdef int indin=0, indout=0, Done=0
+
+
+    for ii in range(0,Nl):
+
+        kout, kin, Done = 1.e12, 1e12, 0
+        # For cylinder
+        for jj in range(0,Ns):
+            scauVin = us[1,ii] * normx_tab[jj] + us[2,ii] * normy_tab[jj]
+            # Only if plane not parallel to line
+            if Cabs(scauVin)>EpsPlane:
+                k = -( (Ds[1,ii] - polyx_tab[jj]) * normx_tab[jj] +
+                       (Ds[2,ii] - polyy_tab[jj]) * normy_tab[jj]) \
+                       / scauVin
+                # Only if on good side of semi-line
+                if k>=0.:
+                    V1 = polyx_tab[jj+1]-polyx_tab[jj]
+                    V2 = polyy_tab[jj+1]-polyy_tab[jj]
+                    q = (  (Ds[1,ii] + k * us[1,ii] - polyx_tab[jj]) * V1
+                         + (Ds[2,ii] + k * us[2,ii] - polyy_tab[jj]) * V2) \
+                         / (V1*V1 + V2*V2)
+                    # Only of on the fraction of plane
+                    if q>=0. and q<1.:
+                        X = Ds[0,ii] + k*us[0,ii]
+                        # Only if within limits
+                        if X>=L0 and X<=L1:
+                            sca = us[1,ii] * normx_tab[jj] \
+                                  + us[2,ii] * normy_tab[jj]
+                            # Only if new
+                            if sca<=0 and k<kout:
+                                kout = k
+                                indout = jj
+                                Done = 1
+                            elif sca>=0 and k<min(kin,kout):
+                                kin = k
+                                indin = jj
+
+        # For two faces
+        # Only if plane not parallel to line
+        if Cabs(us[0,ii])>EpsPlane:
+            # First face
+            k = -(Ds[0,ii]-L0)/us[0,ii]
+            # Only if on good side of semi-line
+            if k>=0.:
+                # Only if inside VPoly
+                is_in_path = is_point_in_path(Ns, polyx_tab, polyy_tab,
+                                              Ds[1,ii]+k*us[1,ii],
+                                              Ds[2,ii]+k*us[2,ii])
+                if is_in_path:
+                    if us[0,ii]<=0 and k<kout:
+                        kout = k
+                        indout = -1
+                        Done = 1
+                    elif us[0,ii]>=0 and k<min(kin,kout):
+                        kin = k
+                        indin = -1
+            # Second face
+            k = -(Ds[0,ii]-L1)/us[0,ii]
+            # Only if on good side of semi-line
+            if k>=0.:
+                # Only if inside VPoly
+                is_in_path = is_point_in_path(Ns, polyx_tab, polyy_tab,
+                                              Ds[1,ii]+k*us[1,ii],
+                                              Ds[2,ii]+k*us[2,ii])
+                if is_in_path:
+                    if us[0,ii]>=0 and k<kout:
+                        kout = k
+                        indout = -2
+                        Done = 1
+                    elif us[0,ii]<=0 and k<min(kin,kout):
+                        kin = k
+                        indin = -2
+        # == Analyzing if there was impact =========================================
+        if Done==1:
+            kout_tab[ii] = kout
+            # To be finished
+            if indout==-1:
+                vperpout_tab[0 + 3 * ii] = 1.
+                vperpout_tab[1 + 3 * ii] = 0.
+                vperpout_tab[2 + 3 * ii] = 0.
+            elif indout==-2:
+                vperpout_tab[0 + 3 * ii] = -1.
+                vperpout_tab[1 + 3 * ii] = 0.
+                vperpout_tab[2 + 3 * ii] = 0.
+            else:
+                vperpout_tab[0 + 3 * ii] = 0.
+                vperpout_tab[1 + 3 * ii] = normx_tab[indout]
+                vperpout_tab[2 + 3 * ii] = normy_tab[indout]
+            indout_tab[0 + 3 * ii] = ind_struct
+            indout_tab[1 + 3 * ii] = ind_lim_struct
+            indout_tab[2 + 3 * ii] = indout
+            if kin<kin_tab[ii]:
+                # To be finished
+                if indout==-1:
+                    vperpout_tab[0 + 3 * ii] = -1.
+                    vperpout_tab[1 + 3 * ii] = 0.
+                    vperpout_tab[2 + 3 * ii] = 0.
+                elif indout==-2:
+                    vperpout_tab[0 + 3 * ii] = 1.
+                    vperpout_tab[1 + 3 * ii] = 0.
+                    vperpout_tab[2 + 3 * ii] = 0.
+                else:
+                    vperpout_tab[0 + 3 * ii] = 0.
+                    vperpout_tab[1 + 3 * ii] = -normx_tab[indout]
+                    vperpout_tab[2 + 3 * ii] = -normy_tab[indout]
+                kin_tab[ii] = kin
+            if ii == 2061 :
+                print("!!!!!!!!!!! putting something elseeeeeeeeeee")
+        elif ind_struct == 0 and ind_lim_struct == 0 :
+            if ii == 2061 :
+                print("!!!!!!!!!!! putting nan at 2061")
+            # If it is the first struct,
+            # we have to initialize values even if no impact
+            kin_tab[ii]  = Cnan
+            kout_tab[ii] = Cnan
+        # elif ii == 2061:
+        #     print("nope => ", kout, kin)
+    return
 
 cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian=True,
                                      double CrossRef=0., double cos_phi=0.,
@@ -3303,134 +3445,6 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     return ind
 
 
-
-
-
-cdef inline void raytracing_inout_struct_lin(int Nl,
-                                             double[:,::1] Ds,
-                                             double [:,::1] us,
-                                             int Ns, # VIn.shape[1]
-                                             double* polyx_tab,
-                                             double* polyy_tab,
-                                             double* normx_tab,
-                                             double* normy_tab,
-                                             double L0, double L1,
-                                             double[::1] kin_tab,
-                                             double[::1] kout_tab,
-                                             double[::1] vperpout_tab,
-                                             int[::1] indout_tab,
-                                             double EpsPlane,
-                                             int ind_struct,
-                                             int ind_lim_struct):
-
-    cdef bint is_in_path
-    cdef int ii=0, jj=0
-    cdef double kin, kout, scauVin, q, X, sca
-    cdef int indin=0, indout=0, Done=0
-
-
-    for ii in range(0,Nl):
-
-        kout, kin, Done = 1.e12, 1e12, 0
-        # For cylinder
-        for jj in range(0,Ns):
-            scauVin = us[1,ii] * normx_tab[jj] + us[2,ii] * normy_tab[jj]
-            # Only if plane not parallel to line
-            if Cabs(scauVin)>EpsPlane:
-                k = -( (Ds[1,ii] - polyx_tab[jj]) * normx_tab[jj] +
-                       (Ds[2,ii] - polyy_tab[jj]) * normy_tab[jj]) \
-                       / scauVin
-                # Only if on good side of semi-line
-                if k>=0.:
-                    V1 = polyx_tab[jj+1]-polyx_tab[jj]
-                    V2 = polyy_tab[jj+1]-polyy_tab[jj]
-                    q = (  (Ds[1,ii] + k * us[1,ii] - polyx_tab[jj]) * V1
-                         + (Ds[2,ii] + k * us[2,ii] - polyy_tab[jj]) * V2) \
-                         / (V1*V1 + V2*V2)
-                    # Only of on the fraction of plane
-                    if q>=0. and q<1.:
-                        X = Ds[0,ii] + k*us[0,ii]
-                        # Only if within limits
-                        if X>=L0 and X<=L1:
-                            sca = us[1,ii] * normx_tab[jj] \
-                                  + us[2,ii] * normy_tab[jj]
-                            # Only if new
-                            if sca<=0 and k<kout:
-                                kout = k
-                                indout = jj
-                                Done = 1
-                            elif sca>=0 and k<min(kin,kout):
-                                kin = k
-                                indin = jj
-
-        # For two faces
-        # Only if plane not parallel to line
-        if Cabs(us[0,ii])>EpsPlane:
-            # First face
-            k = -(Ds[0,ii]-L0)/us[0,ii]
-            # Only if on good side of semi-line
-            if k>=0.:
-                # Only if inside VPoly
-                is_in_path = is_point_in_path(Ns, polyx_tab, polyy_tab,
-                                              Ds[1,ii]+k*us[1,ii],
-                                              Ds[2,ii]+k*us[2,ii])
-                if is_in_path:
-                    if us[0,ii]<=0 and k<kout:
-                        kout = k
-                        indout = -1
-                        Done = 1
-                    elif us[0,ii]>=0 and k<min(kin,kout):
-                        kin = k
-                        indin = -1
-            # Second face
-            k = -(Ds[0,ii]-L1)/us[0,ii]
-            # Only if on good side of semi-line
-            if k>=0.:
-                # Only if inside VPoly
-                is_in_path = is_point_in_path(Ns, polyx_tab, polyy_tab,
-                                              Ds[1,ii]+k*us[1,ii],
-                                              Ds[2,ii]+k*us[2,ii])
-                if is_in_path:
-                    if us[0,ii]>=0 and k<kout:
-                        kout = k
-                        indout = -2
-                        Done = 1
-                    elif us[0,ii]<=0 and k<min(kin,kout):
-                        kin = k
-                        indin = -2
-        if Done==1:
-            kout_tab[ii] = kout
-            # To be finished
-            # phi = Catan2(SOut[1,ii],SOut[0,ii])
-            if indout==-1:
-                vperpout_tab[0 + 3 * ii] = 1.
-                vperpout_tab[1 + 3 * ii] = 0.
-                vperpout_tab[2 + 3 * ii] = 0.
-            elif indout==-2:
-                vperpout_tab[0 + 3 * ii] = -1.
-                vperpout_tab[1 + 3 * ii] = 0.
-                vperpout_tab[2 + 3 * ii] = 0.
-            else:
-                vperpout_tab[0 + 3 * ii] = 0.
-                vperpout_tab[1 + 3 * ii] = normx_tab[indout]
-                vperpout_tab[2 + 3 * ii] = normy_tab[indout]
-            indout_tab[0 + 3 * ii] = ind_struct
-            indout_tab[1 + 3 * ii] = ind_lim_struct
-            indout_tab[2 + 3 * ii] = indout
-            if kin<kout:
-                kin_tab[ii] = kin
-        elif ind_struct == 0 and ind_lim_struct == 0 :
-            # If it is the first struct,
-            # we have to initialize values even if no impact
-            kin_tab[ii]  = Cnan
-            kout_tab[ii] = Cnan
-            indout_tab[2+3*ii] = 0
-            indout_tab[0+3*ii] = 0
-            indout_tab[1+3*ii] = 0
-            vperpout_tab[0+3*ii] = 0.
-            vperpout_tab[1+3*ii] = 0.
-            vperpout_tab[2+3*ii] = 0.
-    return
 
 
 
@@ -4635,6 +4649,8 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
                         indin = -2
 
         if Done==1:
+            if ii==2061:
+                print("+++", ii)
             SOut[0,ii] = Ds[0,ii] + kout*us[0,ii]
             SOut[1,ii] = Ds[1,ii] + kout*us[1,ii]
             SOut[2,ii] = Ds[2,ii] + kout*us[2,ii]
