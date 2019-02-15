@@ -251,7 +251,6 @@ setup(
     #    'ITER': ['*.csv'],
     #},
     package_data={'tofu.tests.tests01_geom.tests03core_data':['*.py','*.txt']},
-    #package_data={'tofu.tests.tests01_geom':['test_Ves.txt']},
 
     include_package_data=True,
 
