@@ -17,7 +17,6 @@ build:
 
 requirements:
   build:
-    - conda-verify
     - python
     - setuptools
     - setuptools_scm
