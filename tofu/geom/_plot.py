@@ -1,5 +1,3 @@
-
-
 # Built-in
 import os
 import itertools as itt
@@ -19,7 +17,6 @@ from mpl_toolkits.mplot3d import Axes3D
 try:
     from tofu.version import __version__
     import tofu.utils as utils
-    import tofu.geom.utils as geom_utils
     import tofu.geom._def as _def
     import tofu.geom._GG as _GG
 except Exception:
@@ -27,7 +24,6 @@ except Exception:
     from .. import utils as utils
     from . import _def as _def
     from . import _GG as _GG
-    from . import utils as geom_utils
 
 
 __author_email__ = 'didier.vezinet@cea.fr'
@@ -1387,6 +1383,10 @@ class KH2D(utils.KeyHandler):
 
 def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
     assert out.lower() in ['pcolormesh','imshow']
+    try:
+        import tofu.geom.utils as geom_utils
+    except Exception:
+        from geom import utils as geom_utils
     x1, x2, ind, dX12 = geom_utils.get_X12fromflat(X12_1d)
     if out=='pcolormesh':
         x1 = np.r_[x1-dX12[0]/2., x1[-1]+dX12[0]/2.]
@@ -1508,6 +1508,10 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
 
     # Prepare colors
     if plotmethod=='imshow':
+        try:
+            import tofu.geom.utils as geom_utils
+        except Exception:
+            from geom import utils as geom_utils
         x1u, x2u, ind, DX12 = geom_utils.get_X12fromflat(X12)
         nx1, nx2 = x1u.size, x2u.size
         extent = (x1u.min(),x1u.max(),x2u.min(),x2u.max())

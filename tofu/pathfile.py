@@ -14,13 +14,12 @@ import warnings
 # Common
 import numpy as np
 import datetime as dtm
-import scipy.io as scpio
 
 # ToFu specific
 from tofu import __version__
 
 __author__ = "Didier Vezinet"
-__all__ = ["ID", "ID2",
+__all__ = ["ID",
            "SaveName_Conv","CheckSameObj","SelectFromListId",
            "get_InfoFromFileName","get_FileFromInfos",
            "convert_units","get_PolyFromPolyFileObj",
@@ -1166,31 +1165,6 @@ def save_np_IdObj(Id):
         LObjUSR.append( np.concatenate(tuple(LarrUSR),axis=0) )
     return LObj, LObjUSR
 
-
-def _save_np2(dd, pathfileext, compressed=False):
-    func = np.savez_compressed if compressed else np.savez
-    for k in dd.keys():
-        if dd[k] is None:
-            dd[k] = np.asarray([None])
-        elif type(dd[k]) in [int,float,np.int64,np.float64]:
-            dd[k] = np.asarray([dd[k]])
-        elif isinstance(dd[k],str):
-            dd[k] = np.asarray(dd[k])
-    func(pathfileext, **dd)
-
-def _save_mat(dd, pathfileext, compressed=False):
-    # Create intermediate dict to make sure to get rid of None values
-    dmat = {}
-    for k in dd.keys():
-        if type(dd[k]) in [int,float,np.int64,np.float64]:
-            dmat[k] = np.asarray([dd[k]])
-        elif type(dd[k]) in [tuple,list]:
-            dmat[k] = np.asarray(dd[k])
-        elif isinstance(dd[k],str):
-            dmat[k] = np.asarray([dd[k]])
-        elif type(dd[k]) is np.ndarray:
-            dmat[k] = dd[k]
-    scpio.savemat(pathfileext, dmat, do_compression=compressed, format='5')
 
 
 

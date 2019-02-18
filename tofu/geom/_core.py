@@ -36,13 +36,11 @@ try:
     import tofu.geom._GG as _GG
     import tofu.geom._comp as _comp
     import tofu.geom._plot as _plot
-    import tofu.geom.utils as geom_utils
 except Exception:
     from . import _def as _def
     from . import _GG as _GG
     from . import _comp as _comp
     from . import _plot as _plot
-    from . import utils as geom_utils
 
 __all__ = ['PlasmaDomain', 'Ves', 'PFC', 'CoilPF', 'CoilCS', 'Config',
            'Rays','CamLOS1D','CamLOS2D']
@@ -2826,6 +2824,11 @@ class Rays(utils.ToFuObject):
         D0D = D0D[:,cross<dd/3.]
         sca = np.sum(D0D*e1[:,np.newaxis],axis=0)
         e1 = D0D[:,np.argmax(np.abs(sca))]
+        try:
+            import tofu.geom.utils as geom_utils
+        except Exception:
+            from . import utils as geom_utils
+
         nIn, e1, e2 = geom_utils.get_nIne1e2(C, nIn=nIn, e1=e1)
         if np.abs(np.abs(nIn[2])-1.)>1.e-12:
             if np.abs(e1[2])>np.abs(e2[2]):
