@@ -8,45 +8,10 @@ import sys
 import os
 import subprocess
 import shutil
-import platform
 from codecs import open
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
-
-
-# ==============================================================================
-# Check if openmp available
-# see http://openmp.org/wp/openmp-compilers/
-omp_test = \
-r"""
-#include <omp.h>
-#include <stdio.h>
-int main() {
-#pragma omp parallel
-printf("Hello from thread %d, nthreads %d\n", omp_get_thread_num(),
-       omp_get_num_threads());
-}
-"""
-
-def check_for_openmp(cc_var):
-    import tempfile
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
-
-    filename = r'test.c'
-    with open(filename, 'w') as file:
-        file.write(omp_test)
-    with open(os.devnull, 'w') as fnull:
-        result = subprocess.call([cc_var, '-fopenmp', filename],
-                                 stdout=fnull, stderr=fnull)
-
-    os.chdir(curdir)
-    #clean up
-    shutil.rmtree(tmpdir)
-    return result
-# ==============================================================================
 
 # Always prefer setuptools over distutils
 try:
@@ -59,15 +24,11 @@ except:
     stp = False
 import _updateversion as up
 
-if platform.system() == "Darwin" :
-    # make sure you are using Homebrew's compiler
-    os.environ['CC'] = 'gcc-8'
-    os.environ['CXX'] = 'gcc-8'
-else:
-    os.environ['CC'] = 'gcc'
-    os.environ['CXX'] = 'gcc'
+os.environ['CC'] = 'gcc'
+os.environ['CXX'] = 'gcc'
 
-not_openmp_installed = check_for_openmp(os.environ['CC'])
+here = os.path.abspath(os.path.dirname(__file__))
+version_git = up.updateversion(os.path.join(here,'tofu'))
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6','3.7']:
@@ -75,30 +36,6 @@ if sys.version[:3] in ['2.7','3.6','3.7']:
     poly = 'polygon%s' % sys.version[0]
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
-
-if sys.version[0]=='2':
-    git_branch = subprocess.check_output(["git",
-                                          "rev-parse",
-                                          "--symbolic-full-name",
-                                          "--abbrev-ref",
-                                          "HEAD"]).rstrip()
-elif sys.version[0]=='3':
-    git_branch = subprocess.check_output(["git",
-                                          "rev-parse",
-                                          "--symbolic-full-name",
-                                          "--abbrev-ref",
-                                          "HEAD"]).rstrip().decode()
-
-here = os.path.abspath(os.path.dirname(__file__))
-
-if git_branch == "master" :
-    version_git = up.updateversion(os.path.join(here,'tofu'))
-else:
-    version_py = os.path.join(here,'tofu')
-    version_py = os.path.join(version_py,"version.py")
-    with open(version_py,'r') as fh:
-        version_git = fh.read().strip().split("=")[-1].replace("'",'')
-    version_git = version_git[1:] if version_git[0].lower()=='v' else version_git
 
 print("")
 print("Version for setup.py : ", version_git)
@@ -108,13 +45,12 @@ print("")
 # Getting relevant compilable files
 if sys.version[0]=='3':
     #if not '_GG03.pyx' in os.listdir(os.path.join(here,'tofu/geom/')):
-    shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'),
-                 os.path.join(here,'tofu/geom/_GG03.pyx'))
-
+    shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'), os.path.join(here,'tofu/geom/_GG03.pyx'))
 
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
+
 
 # Prepare extensions
 # Useful if install from setup.py
@@ -128,37 +64,25 @@ if USE_CYTHON:
     print("")
     print("Using Cython !!!!!!!!!")
     print("")
-    #TODO try O3 O2 flags
-    if not not_openmp_installed :
-        extensions = [ Extension(name="tofu.geom."+gg,
-                                sources=["tofu/geom/"+gg+".pyx"],
-                                extra_compile_args=["-O0",  "-fopenmp"],
-                                extra_link_args=['-fopenmp']) ]
-    else:
-        extensions = [ Extension(name="tofu.geom."+gg,
-                                sources=["tofu/geom/"+gg+".pyx"],
-                                extra_compile_args=["-O0"]) ]
+    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".pyx"])]
     extensions = cythonize(extensions)
 else:
     print("")
     print("NOT Using Cython !!!!!!!!!")
     print("")
-    extensions = [Extension(name="tofu.geom."+gg,
-                            sources=["tofu/geom/"+gg+".cpp"],
-                            language='c++',
-                            include_dirs=['tofu/cpp/'])]
+    extensions = [Extension(name="tofu.geom."+gg, sources=["tofu/geom/"+gg+".cpp"],
+                            language='c++', include_dirs=['tofu/cpp/'])]
 
 setup(
     name='tofu',
     #version="1.2.27",
     version="{ver}".format(ver=version_git),
     # Use scm to get code version from git tags
-    # cf. https://pypi.python.org/pypi/setuptools_scm
+    # cf. https://pypi.python.org/pypi/setuptools_scm 
     # Versions should comply with PEP440. For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    # The version is stored only in the setup.py file and read from it (option 1
-    # in https://packaging.python.org/en/latest/single_source_version.html)
+    # The version is stored only in the setup.py file and read from it (option 1 in https://packaging.python.org/en/latest/single_source_version.html)
     use_scm_version=False,
     #setup_requires=['setuptools_scm'],
 
@@ -171,7 +95,6 @@ setup(
     # Author details
     author='Didier VEZINET',
     author_email='didier.vezinet@gmail.com',
-
 
     # Choose your license
     license='MIT',
@@ -206,10 +129,7 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages = find_packages(exclude=['doc', '_Old', '_Old_doc','plugins',
-                                      'plugins.*','*.plugins.*','*.plugins',
-                                      '*.tests10_plugins','*.tests10_plugins.*',
-                                      'tests10_plugins.*','tests10_plugins',]),
+    packages = find_packages(exclude=['doc', '_Old', '_Old_doc','plugins','plugins.*','*.plugins.*','*.plugins','*.tests10_plugins','*.tests10_plugins.*','tests10_plugins.*','tests10_plugins',]),
     #packages = ['tofu','tofu.geom'],
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
@@ -251,13 +171,11 @@ setup(
     #    'ITER': ['*.csv'],
     #},
     package_data={'tofu.tests.tests01_geom.tests03core_data':['*.py','*.txt']},
-
     include_package_data=True,
 
     # Although 'package_data' is the preferred approach, in some case you may
     # need to place data files outside of your packages. See:
-    # http://docs.python.org/3.4/distutils/setupscript.html
-    #installing-additional-files # noqa
+    # http://docs.python.org/3.4/distutils/setupscript.html#installing-additional-files # noqa
     # In this case, 'data_file' will be installed into '<sys.prefix>/my_data'
     #data_files=[('my_data', ['data/data_file'])],
 
@@ -274,3 +192,5 @@ setup(
     #cmdclass={'build_ext':build_ext},
     include_dirs=[np.get_include()],
 )
+
+
