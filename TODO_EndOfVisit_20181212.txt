@@ -17,9 +17,13 @@ Alors les prochaines Ã©tapers que je vois (ton avis est Ã©videmment bienvenu
 
   	0/ Calculer, pour N points (R,Z) (donc cercle plat en 3D), le point le long de la LOS le plus proche du cercle: (projection de la ligne (hyperbole) ou en 3D pbm 4d), retourner k et distance
 
+	0.1/	Same as 0/ but give back bool when dist < eps => True (eps as parameter).
+
 	1/ Calculer uniquement kIn / kOut pour N (~1-100) polygones (ex.: des surfaces de flux)
 
 	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les traversent pas, la distance la plus courte d entre une ligne et un polygone (et le paramÃ¨tre k du point associÃ© sur la ligne). Retourner d=0 si la ligne traverse (i.e. si il existe un kIn et/ou un kout)
+
+	2.1/ Ask Didier (vignetting algo ?)
 
 	3/ Calculer, pour N points de l'espace (~10-100) s'il sont visibles par M autres points (~10^4-10^6), dans une configuration donnÃ©e (ex.: des points le long d'une trajectoire dans la chambre Ã  vide, on veut savoir quels sont les points du plasma - Ã©chantillonÃ© - qui rayonnent dessus). Retourner un tableau 2D (N,M) de booleens. Je calculerai l'angle solide et le vecteur directeur vectoriellement ensuite en me basant sur ce booleen. Un fonction qui retourne ce tableau est donc suffisante.
 

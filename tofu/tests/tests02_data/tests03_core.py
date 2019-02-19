@@ -102,29 +102,33 @@ class Test01_Data1D:
     def setup_class(cls):
         thet = np.linspace(0,2.*np.pi,100)
         P = np.array([2.4 + 0.8*np.cos(thet),0.8*np.sin(thet)])
-        V = tfg.Ves(Name='Test', Poly=P, Exp='Test', SavePath=here)
+        V = tfg.Ves(Name='Test', Poly=P, Exp='Dummy', SavePath=here)
         N = 10
         Ds = np.array([3.*np.ones(N,), np.zeros((N,)), np.linspace(-0.5,0.5,N)])
         A = np.r_[2.5,0,0]
         us = A[:,np.newaxis]-Ds
         d0 = dict(Name=['C0-{0}'.format(ii) for ii in range(0,N)])
         d1 = dict(Name=['C1-{0}'.format(ii) for ii in range(0,N)])
-        C0 = tfg.LOSCam1D('C0',( Ds,us), Ves=V,
-                          Exp='Test', Diag='Test', dchans=d0, SavePath=here)
-        C1 = tfg.LOSCam1D('C1', (Ds,us), Ves=V,
-                          Exp='Test', Diag='Test', dchans=d1, SavePath=here)
+        config0 = tfg.Config(Name="Conf0", lStruct=[V])
+        C0 = tfg.CamLOS1D('C0',( Ds,us), #Ves=V,
+                          config = config0,
+                          Exp='Dummy', Diag='Test', dchans=d0, SavePath=here)
+        config1 = tfg.Config(Name="Conf1", lStruct=[V])
+        C1 = tfg.CamLOS1D('C1', (Ds,us), #Ves=V,
+                          config = config1,
+                          Exp='Dummy', Diag='Test', dchans=d1, SavePath=here)
         V.save()
         C0.save()
         C1.save()
         t = np.linspace(0,10,20)
-        sig00 = C0.calc_signal(emiss, t=None, dl=0.01, method='sum',
-                               plot=False,out='')
-        sig01 = C0.calc_signal(emiss, t=t, dl=0.01, method='sum',
-                               plot=False,out='')
-        sig10 = C1.calc_signal(emiss, t=None, dl=0.01, method='sum',
-                               plot=False,out='')
-        sig11 = C1.calc_signal(emiss, t=t, dl=0.01, method='sum',
-                               plot=False,out='')
+        sig00 = C0.calc_signal(emiss, t=None, res=0.01, method='sum',
+                               plot=False)
+        sig01 = C0.calc_signal(emiss, t=t, res=0.01, method='sum',
+                               plot=False)
+        sig10 = C1.calc_signal(emiss, t=None, res=0.01, method='sum',
+                               plot=False)
+        sig11 = C1.calc_signal(emiss, t=t, res=0.01, method='sum',
+                               plot=False)
         sig20 = np.concatenate((sig00,sig10))
         sig21 = np.concatenate((sig01,sig11),axis=1)
         cls.LObj = [tfd.Data1D(sig00, Id='0', SavePath=here),
@@ -300,22 +304,26 @@ class Test02_Data2D(Test01_Data1D):
     def setup_class(cls):
         thet = np.linspace(0,2.*np.pi,100)
         P = np.array([2.4 + 0.8*np.cos(thet),0.8*np.sin(thet)])
-        V = tfg.Ves(Name='Test', Poly=P, Exp='Test', SavePath=here)
+        V = tfg.Ves(Name='Test', Poly=P, Exp='Dummy', SavePath=here)
         N = 5
-        Ds, us = tfu.create_CamLOS2D([3.5,0.,0.], 0.1, (0.05,0.05), (N,N),
-                                     nIn=[-1,0.,0.], e1=None, e2=None,
-                                     VType='Tor')
+        Ds, us = tfg.utils.compute_CamLOS2D_pinhole([3.5,0.,0.], 0.1,
+                                                    (0.05,0.05), (N,N),
+                                                    angs=None,
+                                                    nIn=[-1,0.,0.],
+                                                    VType='Tor',
+                                                    return_Du=True)
         d0 = dict(Name=['C0-{0}'.format(ii) for ii in range(0,N**2)])
         d1 = dict(Name=['C1-{0}'.format(ii) for ii in range(0,N**2)])
-        C0 = tfg.LOSCam2D('C0', (Ds,us), Ves=V,
-                          Exp='Test', Diag='Test', dchans=d0, SavePath=here)
+        config = tfg.Config(Name="Conf", lStruct=[V])
+        C0 = tfg.CamLOS2D(Name="Dummy", dgeom=(Ds,us), config=config,
+                          Exp=config.Id.Exp, Diag='Test', dchans=d0, SavePath=here)
         V.save()
         C0.save()
         t = np.linspace(0,10,20)
-        sig00 = C0.calc_signal(emiss, t=None, dl=0.01, method='sum',
-                               plot=False, out='')
-        sig01 = C0.calc_signal(emiss, t=t, dl=0.01, method='sum',
-                               plot=False, out='')
+        sig00 = C0.calc_signal(emiss, t=None, res=0.01, method='sum',
+                               plot=False)
+        sig01 = C0.calc_signal(emiss, t=t, res=0.01, method='sum',
+                               plot=False)
         cls.LObj = [tfd.Data2D(sig00, Id='0', SavePath=here),
                     tfd.Data2D(sig01, t=t, Id='1', SavePath=here),
                     tfd.Data2D(sig01, t=t, Ves=V, LStruct=C0.LStruct,

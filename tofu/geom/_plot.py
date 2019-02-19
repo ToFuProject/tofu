@@ -1,5 +1,3 @@
-
-
 # Built-in
 import os
 import itertools as itt
@@ -722,6 +720,7 @@ def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3,
     #ax.legend(**_def.TorLegd)
     if draw:
         ax.figure.canvas.draw()
+
     print("")
     print("Debugging...")
     print("    D, u = ", Ds, us)
@@ -1243,7 +1242,7 @@ def _Cam1D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
     if 'LOS' in Cam[0].Id.Cls:
         Dname = 'LOS length'
         Dunits = r"$m$"
-        data = [cc._dgeom['kMax']-cc._dgeom['kMin'] for cc in Cam]
+        data = [cc._dgeom['kOut']-cc._dgeom['kIn'] for cc in Cam]
         data = np.concatenate(tuple(data))
     else:
         Dname = 'VOS volume'
@@ -1378,7 +1377,11 @@ class KH2D(utils.KeyHandler):
 
 def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
     assert out.lower() in ['pcolormesh','imshow']
-    x1, x2, ind, dX12 = utils.get_X12fromflat(X12_1d)
+    try:
+        import tofu.geom.utils as geom_utils
+    except Exception:
+        from geom import utils as geom_utils
+    x1, x2, ind, dX12 = geom_utils.get_X12fromflat(X12_1d)
     if out=='pcolormesh':
         x1 = np.r_[x1-dX12[0]/2., x1[-1]+dX12[0]/2.]
         x2 = np.r_[x2-dX12[1]/2., x2[-1]+dX12[1]/2.]
@@ -1443,7 +1446,7 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
     if 'LOS' in Cam.Id.Cls:
         Dname = 'LOS length'
         Dunits = r"$m$"
-        data = Cam.kMax-Cam.kMin
+        data = Cam.kOut-Cam.kIn
         data[np.isinf(data)] = np.nan
     else:
         Dname = 'VOS volume'
@@ -1499,7 +1502,11 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
 
     # Prepare colors
     if plotmethod=='imshow':
-        x1u, x2u, ind, DX12 = utils.get_X12fromflat(X12)
+        try:
+            import tofu.geom.utils as geom_utils
+        except Exception:
+            from geom import utils as geom_utils
+        x1u, x2u, ind, DX12 = geom_utils.get_X12fromflat(X12)
         nx1, nx2 = x1u.size, x2u.size
         extent = (x1u.min(),x1u.max(),x2u.min(),x2u.max())
 

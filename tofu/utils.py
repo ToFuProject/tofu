@@ -67,6 +67,7 @@ def get_pathfileext(path=None, name=None,
     return path, name, mode
 
 
+
 #############################################
 #       figure size
 #############################################
@@ -897,10 +898,10 @@ class ToFuObject(ToFuObjectBase):
     def save(self, path=None, name=None,
              strip=None, sep=_sep, deep=True, mode='npz',
              compressed=False, verb=True, return_pfe=False):
-        save(self, path=path, name=name,
-             sep=sep, deep=deep, mode=mode,
-             strip=strip, compressed=compressed,
-             return_pfe=return_pfe, verb=verb)
+        return save(self, path=path, name=name,
+                    sep=sep, deep=deep, mode=mode,
+                    strip=strip, compressed=compressed,
+                    return_pfe=return_pfe, verb=verb)
 
 if sys.version[0]=='2':
     ToFuObject.save.__func__.__doc__ = save.__doc__
@@ -1599,7 +1600,8 @@ class KeyHandler(object):
         butp = self.can.mpl_connect('button_press_event', self.mouseclic)
         res = self.can.mpl_connect('resize_event', self.resize)
         #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
-        self.can.manager.toolbar.release = self.mouserelease
+        if not plt.get_backend() == "agg":
+            self.can.manager.toolbar.release = self.mouserelease
 
         self._cid = {'keyp':keyp, 'keyr':keyr,
                      'butp':butp, 'res':res}#, 'butr':butr}
