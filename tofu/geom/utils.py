@@ -25,7 +25,7 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_path_testcases = './'
+_path_testcases = '/Home/DV226270/ToFu_All/tofu_WEST/tofu_west/VesStruct/Inputs'
 
 
 ###########################################################
@@ -585,28 +585,206 @@ compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 #       Fast creation of basic objects
 ###########################################################
 
-def create_config(Exp='Dummy', Type='Tor', Lim=None, Lim_Bump=[0.,np.pi/8.],
-                  R=2.4, r=1., elong=0., Dshape=0.,
-                  divlow=True, divup=True, nP=200):
+_dconfig = {'A1': {'Exp':'WEST',
+                   'Ves': ['V1']},
+            'A2': {'Exp':'ITER',
+                   'Ves': ['V0']},
+            'A3': {'Exp':'WEST',
+                   'PlasmaDomain': ['Sep']},
+            'B1': {'Exp':'WEST',
+                   'Ves': ['V2'],
+                   'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
+            'B2': {'Exp':'WEST',
+                   'Ves': ['V2'],
+                   'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
+                           'BumperInnerV1', 'BumperOuterV1',
+                           'IC1V1', 'IC2V1', 'IC3V1']},
+            'B3': {'Exp':'WEST',
+                   'Ves': ['V2'],
+                   'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
+                           'BumperInnerV3', 'BumperOuterV3',
+                           'IC1V1', 'IC2V1', 'IC3V1',
+                           'LH1V1', 'LH2V1',
+                           'RippleV1', 'VDEV0']}}
 
-    poly, pbump, pbaffle = compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
-                                           divlow=divlow, divup=divup, nP=nP)
+def create_config_testcase(config='A1', out='object',
+                           path=_path_testcases, dconfig=_dconfig):
+    """ Load the desired test case configuration
 
-    ves = _core.Ves(Poly=poly, Type=Type, Lim=Lim, Exp=Exp, Name='Ves')
-    baf = _core.PFC(Poly=pbaffle, Type=Type, Lim=Lim,
-                    Exp=Exp, Name='Baffle', color='b')
-    bump = _core.PFC(Poly=pbump, Type=Type, Lim=Lim_Bump,
-                     Exp=Exp, Name='Bumper', color='g')
+    Choose from one of the reference preset configurations:
+        {0}
 
-    conf = _core.Config(Name='Conf', lStruct=[ves,baf,bump])
+    """.format('['+', '.join(dconfig.keys())+']')
+    assert all([type(ss) is str for ss in [config,path]])
+    assert type(dconfig) is dict
+    if not config in dconfig.keys():
+        msg = "Please a valid config, from one of the following:\n"
+        msg += "["+", ".join(dconfig.keys())+"+]"
+        raise Exception(msg)
+    path = os.path.abspath(path)
+
+    # Get file names for config
+    lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
+    lS = []
+    for cc in dconfig[config].keys():
+        if cc=='Exp':
+            continue
+        for ss in dconfig[config][cc]:
+            ff = [f for f in lf
+                  if all([s in f for s in [cc,ss]])]
+            if not len(ff)==1:
+                msg = "No / several matching files\n"
+                msg += "  Folder: %s\n"%path
+                msg += "    Criteria: [%s, %s]\n"%(cc,ss)
+                msg += "    Matching: "+"\n              ".join(ff)
+                raise Exception(msg)
+            pfe = os.path.join(path,ff[0])
+            obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
+                                             Exp=dconfig[config]['Exp'],
+                                             out=out)
+            if out not in ['object',object]:
+                obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
+            lS.append(obj)
+    if out=='dict':
+        conf = dict([tt for tt in lS])
+    else:
+        conf = _core.Config(Name=config, lStruct=lS)
     return conf
 
+def create_config(case=None, Exp='Dummy', Type='Tor',
+                  Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
+                  R=2.4, r=1., elong=0., Dshape=0.,
+                  divlow=True, divup=True, nP=200, out='object'):
+    """ Create easily a tofu.geom.Config object
+
+    In tofu, a Config (short for geometrical configuration) refers to the 3D
+    geometry of a fusion device.
+    It includes, at least, a simple 2D polygon describing the first wall of the
+    fusion chamber, and can also include other structural elements (tiles,
+    limiters...) that can be non-axisymmetric.
+
+    To create a simple Config, provide either the name of a reference test
+    case, of a set of geometrical parameters (major radius, elongation...).
+
+    This is just a tool for fast testing, if you want to create a custom
+    config, use directly tofu.geom.Config and provide the parameters you want.
+
+    Parameters
+    ----------
+    case :      str
+        The name of a reference test case, if provided, this arguments is
+        sufficient, the others are ignored
+    Exp  :      str
+        The name of the experiment
+    Type :      str
+        The type of configuration (toroidal 'Tor' or linear 'Lin')
+    Lim_Bump:   list
+        The angular (poloidal) limits, in the cross-section of the extension of
+        the outer bumper
+    R   :       float
+        The major radius of the center of the cross-section
+    r   :       float
+        The minor radius of the cross-section
+    elong:      float
+        An elongation parameter (in [-1;1])
+    Dshape:     float
+        A parameter specifying the D-shape of the cross-section (in [-1;1])
+    divlow:     bool
+        A flag specifying whether to include a lower divertor-like shape
+    divup:     bool
+        A flag specifying whether to include an upper divertor-like shape
+    nP:         int
+        Number of points used to describe the cross-section polygon
+    out:        str
+        FLag indicating whether to return:
+            - 'dict'  : the polygons as a dictionary of np.ndarrays
+            - 'object': the configuration as a tofu.geom.Config instance
+
+    Return
+    ------
+    conf:   tofu.geom.Config / dict
+        Depending on the value of parameter out, either:
+            - the tofu.geom.Config object created
+            - a dictionary of the polygons and their pos/extent (if any)
+    """
+
+    if case is not None:
+        conf = create_config_testcase(config=case, out=out)
+    else:
+        poly, pbump, pbaffle = compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
+                                               divlow=divlow, divup=divup, nP=nP)
+
+        if out=='dict':
+            conf = {'Ves':{'Poly':poly},
+                    'Baffle':{'Poly':pbaffle},
+                    'Bumper':{'Poly':pbump,
+                              'pos':Bump_posextent[0],
+                              'extent':Bump_posextent[1]}}
+        else:
+            ves = _core.Ves(Poly=poly, Type=Type, Lim=Lim, Exp=Exp, Name='Ves')
+            baf = _core.PFC(Poly=pbaffle, Type=Type, Lim=Lim,
+                            Exp=Exp, Name='Baffle', color='b')
+            bump = _core.PFC(Poly=pbump, Type=Type,
+                             pos=Bump_posextent[0], extent=Bump_posextent[1],
+                             Exp=Exp, Name='Bumper', color='g')
+
+            conf = _core.Config(Name='Conf', lStruct=[ves,baf,bump])
+    return conf
+
+
+_createCamstr = """ Create a pinhole CamLOS{0}D
+
+    In tofu, a CamLOS is a camera described as a set of Lines of Sight (LOS),
+    as opposed to a Cam, where the Volume of Sight (VOS) of all pixels are
+    computed in 3D. The CamLOS is then a simplified approximation of the Cam.
+    It can be:
+        - 1D : like when all LOS are included in a common plane
+        - 2D : like a regular everyday camera, producing a 2D image
+    For a pinhole camera, all LOS pass through a common point (pinhole)
+
+    This function provides an easy way to create a pinhole CamLOS{0}D
+    In tofu, LOS are described as semi-lines using:
+        - a starting point (D)
+        - a unit vector (u)
+    All coordinates are 3D cartesian (X,Y,Z)
+
+    Here, you simply need to provide, either:
+        - the name of a standard test case
+        - a set of geometrical parameters:
+            - P: pinhole, throught the camera axis passes
+            - F: focal length
+            - D12 : dimensiosn perpendicular to the camera axis
+            - N12 : number of pixels (LOS)
+            - angs: 3 angles defining the orientation of the camera
+
+    The computed set of LOS, optionnaly associated to a Config, can then be
+    returned as:
+        - a tofu object (i.e.: a CamLOS{0}D)
+        - a set of starting points (D) and unit vectors (u)
+        - a set of starting points (D), a pinhole, and and the coordinates of D
+        in the camera frame
+
+    Parameters
+    ----------
+
+    Return
+    ------
+                """
+
+_createCamerr = """ Arg out, specifying the output, must be either:
+        - object   : return a tofu object
+        - 'Du'     : return the LOS starting points (D) and unit vectors (u)
+        - 'pinhole': return the starting points (D), pinhole (P) and the coordinates of D in the camera frame
+        """
 
 def create_CamLOS1D_pinhole(Name=None, Etendues=None, Surfaces=None,
                             dchans=None, Diag=None, color=None,
                             P=None, F=0.1, D12=0.1, N12=100,
-                            angs=[-np.pi,0.,0.], nIn=None,
-                            VType='Tor', defRY=None, Lim=None, config=None):
+                            angs=[-np.pi,0.,0.], nIn=None, VType='Tor',
+                            defRY=None, Lim=None, config=None, out=object):
+    if not out in [object,'object','Du','pinhole']:
+        msg = _createCamerr.format('1')
+        raise Exception(msg)
 
     if config is not None:
         Lim = config.Lim
@@ -621,12 +799,20 @@ def create_CamLOS1D_pinhole(Name=None, Etendues=None, Surfaces=None,
                                          nIn=nIn, VType=VType, defRY=defRY,
                                          Lim=Lim)
 
-    cam = _core.CamLOS1D(Name=Name, Diag=Diag,
-                         dgeom={'pinhole':P, 'D':Ds},
-                         Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
-                         color=color, config=config)
+    if out=='pinhole':
+        return Ds, P, d2
+    elif out=='Du':
+        us = P[:,np.newaxis]-Ds
+        us = us / np.sqrt(np.sum(us**2,axis=0))[np.newaxis,:]
+        return Ds, us
+    else:
+        cam = _core.CamLOS1D(Name=Name, Diag=Diag,
+                             dgeom={'pinhole':P, 'D':Ds},
+                             Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
+                             color=color, config=config)
+        return cam
 
-    return cam
+create_CamLOS1D_pinhole.__doc__ = _createCamstr.format('1')
 
 def create_CamLOS2D_pinhole(Name=None, Etendues=None, Surfaces=None,
                             dchans=None, Diag=None, color=None,
@@ -655,80 +841,3 @@ def create_CamLOS2D_pinhole(Name=None, Etendues=None, Surfaces=None,
     # Set X12 ?
 
     return cam
-
-
-
-
-
-
-_dconfig = {'A1': {'Exp':'WEST',
-                   'Ves': ['V1']},
-            'A2': {'Exp':'ITER',
-                   'Ves': ['V0']},
-            'A3': {'Exp':'WEST',
-                   'PlasmaDomain': ['Sep']},
-            'B1': {'Exp':'WEST',
-                   'Ves': ['V2'],
-                   'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
-            'B2': {'Exp':'WEST',
-                   'Ves': ['V2'],
-                   'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
-                           'BumperInnerV1', 'BumperOuterV1',
-                           'IC1V1', 'IC2V1', 'IC3V1']},
-            'B3': {'Exp':'WEST',
-                   'Ves': ['V2'],
-                   'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
-                           'BumperInnerV3', 'BumperOuterV3',
-                           'IC1V1', 'IC2V1', 'IC3V1',
-                           'LH1V1', 'LH2V1',
-                           'RippleV1', 'VDEV0']}}
-
-def create_config_testcase(config='A1',
-                           path=_path_testcases, dconfig=_dconfig):
-    """ Load the desired test case configuration
-
-    Choose from one of the reference preset configurations:
-        {0}
-
-    """.format('['+', '.join(dconfig.keys())+']')
-    assert all([type(ss) is str for ss in [config,path]])
-    assert type(dconfig) is dict
-    if not config in dconfig.keys():
-        msg = "Please a valid config, from one of the following:\n"
-        msg += "["+", ".join(dconfig.keys())+"+]"
-        raise Exception(msg)
-    path = os.path.abspath(path)
-
-    # Get file names for config
-    lf = os.listdir(path)
-    lS = []
-    for cc in dconfig[config].keys():
-        if cc=='Exp':
-            continue
-        for ss in dconfig[config][cc].keys():
-            for vv in dconfig[config][cc][ss]:
-                ff = [f for f in lf
-                      if all([s in f for s in ['TFG_',cc,ss,vv,'.txt']])]
-                if not len(ff)==1:
-                    msg = "No / several matching files in %s:\n"%path
-                    msg += "Criteria: [%s, %s, %s]\n"%(cc,ss,vv)
-                    msg += "Matching: "+"\n          ".join(ff)
-                    raise Exception(msg)
-                out = np.loadtxt(os.path.join(path,ff[0]))
-                npts, nunits = out[0,:]
-                poly = out[1:1+npts,:].T
-                if n>=1:
-                    pass
-                    #lim = out[0,:].T
-                oo = _core.cc(Name=ss+vv, Poly=poly, Lim=lim, Limtype='pos',
-                              Exp=dconfig[config]['Exp'])
-                lS.append(oo)
-
-    conf = _core.Config(Name=config, lStruct=lS)
-
-    # ------------------
-    # Optionnal plotting
-    if plot:
-        lax = conf.plot(element='P')
-
-    return conf
