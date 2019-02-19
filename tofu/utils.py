@@ -490,6 +490,103 @@ def _check_notNone(dd, lk):
         if k in lk:
             assert v is not None, "{0} should not be None !".format(k)
 
+def _check_InputsGeneric(ld, tab=0):
+
+    # Prepare
+    bstr0 = "\n"+"    "*tab + "Error on arg %s:"
+    bstr1 = "\n"+"    "*(tab+1) + "Expected: "
+    bstr2 = "\n"+"    "*(tab+1) + "Provided: "
+
+    ltypes_f2i = [int,float,np.integer,np.floating]
+    ltypes_i2f = [int,float,np.integer,np.floating]
+
+    # Check
+    err, msg = False, ''
+    for k in ld.keys():
+        errk, msgk = False, bstr0%k
+        if 'cls' in ld[k].keys():
+            if not isinstance(ld[k]['var'],ld[k]['cls']):
+                errk = True
+                msgk += bstr1 + "class {0}".format(ld[k]['cls'].__name__)
+                msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
+        if 'NoneOrCls' in ld[k].keys():
+            c = ld[k]['var'] is None or isinstance(ld[k]['var'],ld[k]['cls'])
+            if not c:
+                errk = True
+                msgk += bstr1 + "None or class {0}".format(ld[k]['cls'].__name__)
+                msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
+        if 'in' in ld[k].keys():
+            if not ld[k]['var'] in ld[k]['in']:
+                errk = True
+                msgk += bstr1 + "in {0}".format(ld[k]['in'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+        if 'lisfof' in ld[k].keys():
+            c0 = isinstance(ld[k]['var'], list)
+            c1 = c0 and all([isinstance(s,ld[k]['listof']) for s in ld[k]])
+            if not c1:
+                errk = True
+                msgk += bstr1 + "list of {0}".format(ld[k]['listof'].__name__)
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+        if 'iter2array' in ld[k].keys():
+            c0 = ld[k]['var'] is not None and hasattr(ld[k]['var'],'__iter__')
+            if not c0:
+                errk = True
+                msgk += bstr1 + "iterable of %s"%ld[k]['iter2array'].__name__
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = np.asarray(ld[k]['var'], dtype=ld[k]['iter2array'])
+        if 'ndim' in ld[k].keys():
+            c0 = isinstance(ld[k]['var'], np.ndarray)
+            c1 = c0 and ld[k]['var'].ndim == ld[k]['ndim']
+            if not c1:
+                errk = True
+                msgk += bstr1 + "array of {0} dimensions".format(ld[k]['ndim'])
+                msgk += bstr2 + "shape {0}".format(ld[k]['ndim'].shape)
+        if 'inshape' in ld[k].keys():
+            c0 = isinstance(ld[k]['var'], np.ndarray)
+            c1 = c0 and ld[k]['inshape'] in ld[k]['var'].shape
+            if not c1:
+                errk = True
+                msgk += bstr1 + "shape including {0}".format(ld[k]['inshape'])
+                msgk += bstr2 + "shape {0}".format(ld[k]['var'].shape)
+        if 'float2int' in ld[k].keys():
+            lc = [(issubclass(ld[k]['var'].__class__, cc)
+                   and int(ld[k]['var'])==ld[k]['var'])
+                  for cc in ltypes_f2i]
+            if not any(lc):
+                errk = True
+                msgk += bstr1 + "convertible to int from %s"%str(ltypes_f2i)
+                msgk += bstr2+"{0} ({1})".format(ld[k]['var'],
+                                                 ld[k]['var'].__class__.__name__)
+            ld[k]['var'] = int(ld[k]['var'])
+        if 'int2float' in ld[k].keys():
+            lc = [issubclass(ld[k]['var'].__class__, cc)
+                  for cc in ltypes_i2f]
+            if not any(lc):
+                errk = True
+                msgk += bstr1 + "convertible to float from %s"%str(ltypes_i2f)
+                msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
+            ld[k]['var'] = float(ld[k]['var'])
+        if 'NoneOrIntPos' in ld[k].keys():
+            c0 = ld[k]['var'] is None
+            lc = [(issubclass(ld[k]['var'].__class__, cc)
+                   and int(ld[k]['var'])==ld[k]['var']
+                   and ld[k]['var']>0)
+                  for cc in ltypes_f2i]
+            if not c0 or any(lc):
+                errk = True
+                msgk += bstr1 + "convertible to >0 int from %s"%str(ltypes_f2i)
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = int(ld[k]['var'])
+        if '>' in ld[k].keys():
+            if not np.all(np.greater(ld[k]['var'], ld[k]['>'])):
+                errk = True
+                msgk += bstr1 + "> {0}".format(ld[k]['>'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+
+        if errk:
+            err = True
+            msg += msgk
+    return ld, err, msg
 
 def _get_attrdictfromobj(obj, dd):
     for k in dd.keys():
@@ -590,6 +687,10 @@ class ToFuObjectBase(object):
                 msg = "Rebuilding {0}:\n".format(dname)
                 msg += "Field '{0}' is missing !".format(kk)
                 raise Exception(msg)
+
+    @staticmethod
+    def _check_InputsGeneric(ld, tab=0):
+        return _check_InputsGeneric(ld, tab=tab)
 
     def strip(self, strip=0, **kwdargs):
         """ Remove non-essential attributes to save memory / disk usage
