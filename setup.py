@@ -59,7 +59,7 @@ except:
     stp = False
 import _updateversion as up
 
-if platform.system() == "Darwin" :
+if platform.system() == "Darwin":
     # make sure you are using Homebrew's compiler
     os.environ['CC'] = 'gcc-8'
     os.environ['CXX'] = 'gcc-8'

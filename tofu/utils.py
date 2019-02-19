@@ -54,7 +54,7 @@ def get_pathfileext(path=None, name=None,
     modeokstr = "["+", ".join(modeok)+"]"
 
     if name is not None:
-        C = type(name) is str and not (name[-4]=='.')
+        C = type(name) is str and not '.' in name
         assert C, "name should not include the extension !"
     assert path is None or type(path) is str, "Arg path must be None or a str !"
     assert mode in modeok, "Arg mode must be in {0}".format(modeokstr)
@@ -234,7 +234,7 @@ def _set_arrayorder(obj, arrayorder='C'):
 #       save / load
 #############################################
 
-def save(obj, path=None, name=None, sep=_sep, deep=True, mode='npz',
+def save(obj, path=None, name=None, sep=_sep, deep=False, mode='npz',
          strip=None, compressed=False, verb=True, return_pfe=False):
     """ Save the ToFu object
 
@@ -260,6 +260,21 @@ def save(obj, path=None, name=None, sep=_sep, deep=True, mode='npz',
     strip:      int
         Flag indicating how stripped the saved object should be
         See docstring of self.strip()
+    deep:       bool
+        Flag, used when the object has other tofu objects as attributes
+        Indicated whether these attribute object should be:
+            - True: converted to dict themselves in order to be saved inside
+                the same file as attributes
+                (-> uses self.to_dict(deep='dict'))
+            - False: not converted, in that the strategy would be to save them
+                separately and store only the reference to the saved files
+                instead of the objects themselves.
+                To do this, you must:
+                    1/ Save all object attributes independently
+                    2/ Store only the reference by doing self.strip(-1)
+                       The strip() method will check they have been saved
+                       before removing them, and throw an Exception otherwise
+                    3/ self.save(deep=False)
     compressed :    bool
         Flag indicating whether to compress the file (slower, not recommended)
     verb :          bool
