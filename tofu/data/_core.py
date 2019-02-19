@@ -1853,15 +1853,15 @@ def _extractCommonParams(ld):
     else:
         dchans = None
 
-    # dunits, Id, Exp, shot, Diag, SavePath
-    dunits = _compare_([dd._dunits for dd in ld], null={})
+    # dlabels, Id, Exp, shot, Diag, SavePath
+    dlabels = _compare_([dd._dlabels for dd in ld], null={})
     Id = ' '.join([dd.Id.Name for dd in ld])
     Exp = _compare_([dd.Id.Exp for dd in ld])
     shot = _compare_([dd.Id.shot for dd in ld])
     Diag = _compare_([dd.Id.Diag for dd in ld])
     SavePath = _compare_([dd.Id.SavePath for dd in ld])
 
-    return t, LCam, dchans, dunits, Id, Exp, shot, Diag, SavePath
+    return t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath
 
 
 
@@ -1873,9 +1873,9 @@ def _recreatefromoperator(d0, other, opfunc):
         #  Fix LCam and dchans
         #t, LCam, dchans = d0.t, d0._get_LCam(), d0.dchans(d0.indch)
         out = _extractCommonParams([d0, d0])
-        t, LCam, dchans, dunits, Id, Exp, shot, Diag, SavePath = out
+        t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath = out
 
-        #dunits = d0._dunits
+        #dlabels = d0._dlabels
         #Id, Exp, shot = d0.Id.Name, d0.Id.Exp, d0.Id.shot
         #Diag, SavePath = d0.Id.Diag, d0.Id.SavePath
     elif issubclass(other.__class__, Data):
@@ -1886,11 +1886,11 @@ def _recreatefromoperator(d0, other, opfunc):
             print("\n data shapes not matching !")
             raise err
         out = _extractCommonParams([d0, other])
-        t, LCam, dchans, dunits, Id, Exp, shot, Diag, SavePath = out
+        t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath = out
     else:
         raise NotImplementedError
 
-    kwdargs = dict(t=t, dchans=dchans, LCam=LCam, dunits=dunits,
+    kwdargs = dict(t=t, dchans=dchans, LCam=LCam, dlabels=dlabels,
                    Id=Id, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath)
 
     if '1D' in d0.Id.Cls:
@@ -1914,25 +1914,25 @@ def _recreatefromoperator(d0, other, opfunc):
 
 class Data1D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data=None, t=None, dchans=None, dunits=None,
+    def __init__(self, data=None, t=None, dchans=None, dlabels=None,
                  Id=None, Exp=None, shot=None, Diag=None, dextra=None,
                  LCam=None, Ves=None, LStruct=None, fromdict=None,
                  SavePath=os.path.abspath('./')):
-        Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
+        Data.__init__(self, data, t=t, dchans=dchans, dlabels=dlabels,
                  Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra, CamCls='1D',
-                 LCam=LCam, Ves=Ves, LStruct=LStruct, fromdict=fromdict, SavePath=SavePath)
+                 lCam=LCam, Ves=Ves, LStruct=LStruct, fromdict=fromdict, SavePath=SavePath)
 
 
 
 class Data2D(Data):
     """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data=None, t=None, dchans=None, dunits=None,
+    def __init__(self, data=None, t=None, dchans=None, dlabels=None,
                  Id=None, Exp=None, shot=None, Diag=None, dextra=None,
                  LCam=None, Ves=None, LStruct=None, X12=None, fromdict=None,
                  SavePath=os.path.abspath('./')):
-        Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
+        Data.__init__(self, data, t=t, dchans=dchans, dlabels=dlabels,
                       Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra,
-                      LCam=LCam, Ves=Ves, LStruct=LStruct, CamCls='2D',
+                      lCam=LCam,
                       fromdict=fromdict, SavePath=SavePath)
         self.set_X12(X12)
 
@@ -1981,7 +1981,7 @@ class Data2D(Data):
 class DataSpectro(Data):
     """ data should be provided in (nt,nlamb,chan) format  """
 
-    def __init__(self, data=None, lamb=None, t=None, dchans=None, dunits=None,
+    def __init__(self, data=None, lamb=None, t=None, dchans=None, dlabels=None,
                  Id=None, Exp=None, shot=None, Diag=None, dMag=None,
                  LCam=None, CamCls='1D', fromdict=None,
                  SavePath=os.path.abspath('./')):
@@ -1990,7 +1990,7 @@ class DataSpectro(Data):
         if fromdict is None:
             msg = "Provide either dchans or LCam !"
             assert np.sum([dchans is None, LCam is None])>=1, msg
-            self._set_dataRef(data, lamb=lamb, t=t, dchans=dchans, dunits=dunits)
+            self._set_dataRef(data, lamb=lamb, t=t, dchans=dchans, dlabels=dlabels)
             self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
             self._set_LCam(LCam=LCam, CamCls=CamCls)
             self._dMag = dMag
@@ -2017,16 +2017,16 @@ class DataSpectro(Data):
         return int(np.sum(self.indlamb))
 
     def _check_inputs(self, Id=None, data=None, lamb=None, t=None, dchans=None,
-                      dunits=None, Exp=None, shot=None, Diag=None, LCam=None,
+                      dlabels=None, Exp=None, shot=None, Diag=None, LCam=None,
                       CamCls=None, SavePath=None):
         _DataSpectro_check_inputs(data=data, lamb=lamb, t=t,
                                   dchans=dchans, LCam=LCam)
-        _Data_check_inputs(Id=Id, dunits=dunits,
+        _Data_check_inputs(Id=Id, dlabels=dlabels,
                            Exp=Exp, shot=shot, Diag=Diag,
                            CamCls=CamCls, SavePath=SavePath)
 
-    def _set_dataRef(self, data, lamb=None, t=None, dchans=None, dunits=None):
-        self._check_inputs(data=data, lamb=lamb, t=t, dchans=dchans, dunits=dunits)
+    def _set_dataRef(self, data, lamb=None, t=None, dchans=None, dlabels=None):
+        self._check_inputs(data=data, lamb=lamb, t=t, dchans=dchans, dlabels=dlabels)
         if data.ndim==1:
             nt, nlamb, nch = 1, data.size, 1
             data = data.reshape((nt,nlamb,nch))
@@ -2045,7 +2045,7 @@ class DataSpectro(Data):
         dchans = dict([(kk,np.asarray(dchans[kk])) for kk in lK])
         self._Ref['dchans'] = dchans
 
-        self._dunits = {} if dunits is None else dunits
+        self._dlabels = {} if dlabels is None else dlabels
         self._data, self._t, self._lamb = None, None, None
         self._indt, self._indlamb, self._indch = None, None, None
         self._data0 = {'data':None,'t':None,'Dt':None}

@@ -27,7 +27,10 @@ install:
 - conda config --append channels conda-forge
 - conda config --append channels tofuproject
 - conda info -a
-- conda install -q python=$TRAVIS_PYTHON_VERSION conda-build anaconda-client nose
+- if [[ "$TRAVIS_PYTHON_VERSION" == "3.7-dev" ]]; then export THIS_PY_VERSION="3.7";
+  else THIS_PY_VERSION=$TRAVIS_PYTHON_VERSION;
+  fi
+- conda install -q python=$THIS_PY_VERSION conda-build anaconda-client nose
   nose-timer coverage codecov
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
 - export VERSION=$(echo $REV | tr - .)

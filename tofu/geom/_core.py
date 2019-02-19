@@ -52,6 +52,7 @@ _Type = 'Tor'
 
 
 
+
 """
 ###############################################################################
 ###############################################################################
@@ -71,32 +72,45 @@ class Struct(utils.ToFuObject):
     Parameters
     ----------
     Id :            str / tfpf.ID
-        A name string or a pre-built tfpf.ID class to be used to identify this particular instance, if a string is provided, it is fed to tfpf.ID()
+        A name string or a pre-built tfpf.ID class to be used to identify this
+        particular instance, if a string is provided, it is fed to tfpf.ID()
     Poly :          np.ndarray
-        An array (2,N) or (N,2) defining the contour of the vacuum vessel in a cross-section, if not closed, will be closed automatically
+        An array (2,N) or (N,2) defining the contour of the vacuum vessel in a
+        cross-section, if not closed, will be closed automatically
     Type :          str
-        Flag indicating whether the vessel will be a torus ('Tor') or a linear device ('Lin')
+        Flag indicating whether the vessel will be a torus ('Tor') or a linear
+        device ('Lin')
     Lim :         list / np.ndarray
-        Array or list of len=2 indicating the limits of the linear device volume on the x axis
+        Array or list of len=2 indicating the limits of the linear device volume
+        on the x axis
     Sino_RefPt :    None / np.ndarray
-        Array specifying a reference point for computing the sinogram (i.e. impact parameter), if None automatically set to the (surfacic) center of mass of the cross-section
+        Array specifying a reference point for computing the sinogram (i.e.
+        impact parameter), if None automatically set to the (surfacic) center of
+        mass of the cross-section
     Sino_NP :       int
-        Number of points in [0,2*pi] to be used to plot the vessel sinogram envelop
+        Number of points in [0,2*pi] to be used to plot the vessel sinogram
+        envelop
     Clock :         bool
-        Flag indicating whether the input polygon should be made clockwise (True) or counter-clockwise (False)
+        Flag indicating whether the input polygon should be made clockwise
+        (True) or counter-clockwise (False)
     arrayorder:     str
-        Flag indicating whether the attributes of type=np.ndarray (e.g.: Poly) should be made C-contiguous ('C') or Fortran-contiguous ('F')
+        Flag indicating whether the attributes of type=np.ndarray (e.g.: Poly)
+        should be made C-contiguous ('C') or Fortran-contiguous ('F')
     Exp :           None / str
-        Flag indicating which experiment the object corresponds to, allowed values are in [None,'AUG','MISTRAL','JET','ITER','TCV','TS','Misc']
+        Flag indicating which experiment the object corresponds to, allowed
+        values are in [None,'AUG','MISTRAL','JET','ITER','TCV','TS','Misc']
     shot :          None / int
-        Shot number from which this Ves is usable (in case of change of geometry)
+        Shot number from which this Ves is usable (in case of change of
+        geometry)
     SavePath :      None / str
-        If provided, forces the default saving path of the object to the provided value
+        If provided, forces the default saving path of the object to the
+        provided value
 
     Returns
     -------
     Ves :        Ves object
-        The created Ves object, with all necessary computed attributes and methods
+        The created Ves object, with all necessary computed attributes and
+        methods
 
     """
 
@@ -1874,6 +1888,8 @@ class Config(utils.ToFuObject):
                             self._dstruct['dStruct'][k][kk] = utils.load(pfe)
                         except Exception as err:
                             msg = str(err)
+                            msg += "\n    k = {0}".format(str(k))
+                            msg += "\n    kk = {0}".format(str(kk))
                             msg += "\n    type(pfe) = {0}".format(str(type(pfe)))
                             msg += "\n    self._dstrip['strip'] = {0}".format(self._dstrip['strip'])
                             msg += "\n    strip = {0}".format(strip)
@@ -2385,6 +2401,7 @@ class Rays(utils.ToFuObject):
                           'linewidth':0., 'antialiased':False},
                     'Lim':None,
                     'Nstep':50}}
+    _method = "optimized"
 
     # Does not exist beofre Python 3.6 !!!
     def __init_subclass__(cls, color='k', **kwdargs):
@@ -2395,6 +2412,7 @@ class Rays(utils.ToFuObject):
         cls._ddef = copy.deepcopy(Rays._ddef)
         cls._dplot = copy.deepcopy(Rays._dplot)
         cls._set_color_ddef(color)
+        cls._method = Rays._method
 
     @classmethod
     def _set_color_ddef(cls, color):
@@ -2403,7 +2421,7 @@ class Rays(utils.ToFuObject):
     def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 sino_RefPt=None, fromdict=None,
+                 sino_RefPt=None, fromdict=None, method='optimized',
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
 
         # To replace __init_subclass__ for Python 2
@@ -2413,6 +2431,8 @@ class Rays(utils.ToFuObject):
 
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
+
+        self._method = method
 
         # Extra-early fix for Exp
         # Workflow to be cleaned up later ?
@@ -2648,7 +2668,7 @@ class Rays(utils.ToFuObject):
     ###########
 
     def _init(self, dgeom=None, config=None, Etendues=None, Surfaces=None,
-              sino_RefPt=None, dchans=None, **kwdargs):
+              sino_RefPt=None, dchans=None, method='optimized', **kwdargs):
         largs = self._get_largs_dgeom(sino=True)
         kwdgeom = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dconfig()
@@ -2657,6 +2677,7 @@ class Rays(utils.ToFuObject):
         kwdchans = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dmisc()
         kwdmisc = self._extract_kwdargs(locals(), largs)
+        self._method = method
         self.set_dconfig(calcdgeom=False, **kwdconfig)
         self._set_dgeom(sino=True, **kwdgeom)
         self.set_dchans(**kwdchans)
@@ -2673,8 +2694,8 @@ class Rays(utils.ToFuObject):
         if calcdgeom:
             self.compute_dgeom()
 
-    def _prepare_inputs_kInOut(self, method='ref'):
-        if method=='ref':
+    def _prepare_inputs_kInOut(self):
+        if self._method=='ref':
             # Prepare input
             D = np.ascontiguousarray(self.D)
             u = np.ascontiguousarray(self.u)
@@ -2704,13 +2725,58 @@ class Rays(utils.ToFuObject):
                 lSVIn.append(ss.dgeom['VIn'])
                 lSLim.append(ss.Lim)
                 lSnLim.append(ss.noccur)
-
             largs = [D, u, VPoly, VVIn]
             dkwd = dict(Lim=Lim, nLim=nLim,
                         LSPoly=lSPoly, LSLim=lSLim,
                         lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
                         RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
                         EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+        elif self._method=='optimized':
+            # Prepare input
+            D = np.ascontiguousarray(self.D)
+            u = np.ascontiguousarray(self.u)
+            # Get reference
+            lS = self.lStruct_computeInOut
+
+            lSIn = [ss for ss in lS if ss._InOut=='in']
+            if len(lSIn)==0:
+                msg = "self.config must have at least a StructIn subclass !"
+                assert len(lSIn)>0, msg
+            elif len(lSIn)>1:
+                S = lSIn[np.argmin([ss.dgeom['Surf'] for ss in lSIn])]
+            else:
+                S = lSIn[0]
+
+            VPoly = S.Poly_closed
+            VVIn =  S.dgeom['VIn']
+            if np.size(np.shape(S.Lim)) > 1 :
+                Lim = np.asarray([S.Lim[0][0], S.Lim[0][1]])
+            else:
+                Lim = S.Lim
+            nLim = S.noccur
+            VType = self.config.Id.Type
+
+            lS = [ss for ss in lS if ss._InOut=='out']
+            lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
+            num_tot_structs = 0
+            for ss in lS:
+                lSPoly.append(ss.Poly_closed)
+                lSVIn.append(ss.dgeom['VIn'])
+                lSLim.append(ss.Lim)
+                lSnLim.append(ss.noccur)
+                if ss.Lim is None or len(ss.Lim) == 0:
+                    num_tot_structs += 1
+                else:
+                    num_tot_structs += len(ss.Lim)
+
+            largs = [D, u, VPoly, VVIn]
+            dkwd = dict(ves_lims=Lim, ves_nlim=nLim, nstruct=num_tot_structs,
+                    lstruct_poly=lSPoly, lstruct_lims=lSLim,
+                    lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+                    lstruct_norm=lSVIn, ves_type=VType,
+                    rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
+                    eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
+
         else:
             # --------------------------------
             # Here I can prepare the inputs as requested by your routine
@@ -2719,22 +2785,25 @@ class Rays(utils.ToFuObject):
 
         return largs, dkwd
 
-    def _compute_kInOut(self, method='ref'):
+    def _compute_kInOut(self):
 
         # Prepare inputs
-        largs, dkwd = self._prepare_inputs_kInOut(method)
+        largs, dkwd = self._prepare_inputs_kInOut()
 
-        if method=='ref':
+        if self._method=='ref':
+            # call the dedicated function
+            out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+            # Currently computes and returns too many things
+            PIn, POut, kIn, kOut, VperpIn, vperp, IIn, indout = out
+        elif self._method=="optimized":
             # call the dedicated function
             out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
             # Currently computes and returns too many things
-            PIn, POut, kIn, kOut, VperpIn, vperp, IIn, indout = out
+            kIn, kOut, vperp, indout = out
+            vperp  = np.transpose(vperp.reshape(self._dgeom['nRays'], 3))
+            indout = np.transpose(indout.reshape(self._dgeom['nRays'], 3))
         else:
-            # --------------------------------
-            # Here you can put another version
             pass
-            # --------------------------------
-
         return kIn, kOut, vperp, indout
 
 
@@ -2746,7 +2815,7 @@ class Rays(utils.ToFuObject):
             return
 
         # Perform computation of kIn and kOut
-        kIn, kOut, vperp, indout = self._compute_kInOut(method='ref')
+        kIn, kOut, vperp, indout = self._compute_kInOut()
 
         # Clean up (in case of nans)
         ind = np.isnan(kIn)
@@ -2828,7 +2897,12 @@ class Rays(utils.ToFuObject):
         D0D = D0D[:,cross<dd/3.]
         sca = np.sum(D0D*e1[:,np.newaxis],axis=0)
         e1 = D0D[:,np.argmax(np.abs(sca))]
-        nIn, e1, e2 = utils.get_nIne1e2(C, nIn=nIn, e1=e1)
+        try:
+            import tofu.geom.utils as geom_utils
+        except Exception:
+            from . import utils as geom_utils
+
+        nIn, e1, e2 = geom_utils.get_nIne1e2(C, nIn=nIn, e1=e1)
         if np.abs(np.abs(nIn[2])-1.)>1.e-12:
             if np.abs(e1[2])>np.abs(e2[2]):
                 e1, e2 = e2, e1
@@ -3155,6 +3229,7 @@ class Rays(utils.ToFuObject):
     def kOut(self):
         return self._dgeom['kOut']
     @property
+
     def kMin(self):
         if self.isPinhole:
             kMin = (self._dgeom['pinhole'][:,np.newaxis]-self._dgeom['D'])
@@ -3448,9 +3523,9 @@ class Rays(utils.ToFuObject):
                                                dLMode=resMode, method=method)
         return pts, k, reseff
 
-    def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None, method='ref'):
+    def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None):
 
-        if method=='ref':
+        if self._method=='ref':
             D, u = np.ascontiguousarray(self.D), np.ascontiguousarray(self.u)
             Lim = self.config.Lim
             nLim = self.config.nLim
@@ -3458,6 +3533,20 @@ class Rays(utils.ToFuObject):
 
             largs = [D, u, lPoly[0], lVIn[0]]
             dkwd = dict(Lim=Lim, nLim=nLim, VType=Type)
+        elif self._method=="optimized":
+            D = np.ascontiguousarray(self.D)
+            u = np.ascontiguousarray(self.u)
+            if np.size(self.config.Lim) == 0 or self.config.Lim is None:
+                Lim = np.array([])
+            else:
+                Lim = np.asarray(self.config.Lim)
+                if np.size(np.shape(Lim)) > 1 :
+                    # in case self.config.Lim = [[L0, L1]]
+                    Lim = np.asarray([Lim[0][0], Lim[0][1]])
+            nLim = self.config.nLim
+            Type = self.config.Id.Type
+            largs = [D, u, lPoly[0], lVIn[0]]
+            dkwd = dict(ves_lims=Lim, ves_nlim=nLim, ves_type=Type)
         else:
             # To be adjusted later
             pass
@@ -3509,7 +3598,7 @@ class Rays(utils.ToFuObject):
         return nPoly, lPoly, lVIn
 
     def calc_kInkOut_IsoFlux(self, lPoly, lVIn=None, Lim=None,
-                             kInOut=True, method='ref'):
+                             kInOut=True):
         """ Calculate the intersection points of each ray with each isoflux
 
         The isofluxes are provided as a list of 2D closed polygons
@@ -3535,18 +3624,22 @@ class Rays(utils.ToFuObject):
         kOut = np.full((self.nRays,nPoly), np.nan)
 
         # Compute intersections
-        if method=='ref':
+        assert(self._method in ['ref', 'optimized'])
+        if self._method=='ref':
             for ii in range(0,nPoly):
                 largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
-                                                          lVIn=[lVIn[ii]],
-                                                          method='ref')
-                out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+                                                          lVIn=[lVIn[ii]])
+                out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
                 PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out
                 kIn[:,ii], kOut[:,ii] = kin, kout
-        else:
-            # To be implemented according to Laura's needs
-            pass
+        elif self._method=="optimized":
+            for ii in range(0,nPoly):
+                largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
+                                                          lVIn=[lVIn[ii]])
 
+                out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
+                kin, kout, _, _ = out
+                kIn[:,ii], kOut[:,ii] = kin, kout
         if kInOut:
             indok = ~np.isnan(kIn)
             ind = np.zeros((self.nRays,nPoly), dtype=bool)
@@ -3680,11 +3773,11 @@ class Rays(utils.ToFuObject):
             import tofu.data as tfd
             if '1D' in self.Id.Cls:
                 osig = tfd.Data1D(data=sig, t=t, LCam=self,
-                                  Id=self.Id.Name, dunits={'data':units},
+                                  Id=self.Id.Name, dlabels={'data':units},
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             else:
                 osig = tfd.Data2D(data=sig, t=t, LCam=self,
-                                  Id=self.Id.Name, dunits={'data':units},
+                                  Id=self.Id, dlabels={'data':units},
                                   Exp=self.Id.Exp, Diag=self.Id.Diag)
             if plot:
                 KH = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
@@ -3873,7 +3966,7 @@ class CamLOS2D(Rays):
     def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None, X12=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 sino_RefPt=None, fromdict=None,
+                 sino_RefPt=None, fromdict=None, method='optimized',
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
         kwdargs = locals()
         del kwdargs['self'], kwdargs['X12']
