@@ -14,13 +14,12 @@ import warnings
 # Common
 import numpy as np
 import datetime as dtm
-import scipy.io as scpio
 
 # ToFu specific
 from tofu import __version__
 
 __author__ = "Didier Vezinet"
-__all__ = ["ID", "ID2",
+__all__ = ["ID",
            "SaveName_Conv","CheckSameObj","SelectFromListId",
            "get_InfoFromFileName","get_FileFromInfos",
            "convert_units","get_PolyFromPolyFileObj",

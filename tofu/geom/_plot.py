@@ -1,5 +1,3 @@
-
-
 # Built-in
 import os
 import itertools as itt
@@ -375,7 +373,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
             if V.Id.Type=='Tor':
                 Theta = np.linspace(0, 2*np.pi, num=Nstep,
                                     endpoint=True, retstep=False)
-                if V.nLim==0:
+                if V.noccur==0:
                     lx = np.concatenate((P1Min[0]*np.cos(Theta),
                                          P1Max[0]*np.cos(Theta[::-1])))
                     ly = np.concatenate((P1Min[0]*np.sin(Theta),
@@ -427,9 +425,9 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
         ly = V.dgeom['BaryV'][0]*np.sin(Theta)
         ax.plot(lx,ly,label=V.Id.NameLTX+" Bv", **Bvdict)
 
-    if indices and V.nLim>1:
+    if indices and V.noccur>1:
         if V.Id.Type=='Tor':
-            for ii in range(0,V.nLim):
+            for ii in range(0,V.noccur):
                 R, theta = V.dgeom['P1Max'][0], np.mean(V.Lim[ii])
                 X, Y = R*np.cos(theta), R*np.sin(theta)
                 ax.annotate(r"{0}".format(ii), size=10,
@@ -439,7 +437,7 @@ def _Plot_HorProj_Ves(V, ax=None, Elt='PI', Nstep=_def.TorNTheta,
                             horizontalalignment='center',
                             verticalalignment='center')
         elif V.Id.Type=='Lin':
-            for ii in range(0,V.nLim):
+            for ii in range(0,V.noccur):
                 X, Y = np.mean(V.Lim[ii]), V.dgeom['P1Max'][0]
                 ax.annotate(r"{0}".format(ii), size=10,
                             xy = (X,Y),
@@ -477,7 +475,7 @@ def _Plot_3D_plt_Ves(V, ax=None, Elt='P', Lim=None,
             for ii in range(lim.shape[0]):
                 lim[ii,:] = [max(Lim[0],lim[ii,0]),min(lim[1],Lim[1])]
     else:
-        lim = np.array([[0.,2.*np.pi]]) if V.nLim==0 else np.array(V.Lim)
+        lim = np.array([[0.,2.*np.pi]]) if V.noccur==0 else np.array(V.Lim)
         lim = lim.reshape((1,2)) if lim.ndim==1 else lim
         if Lim is not None and V.Id.Cls=='Ves':
             Lim[0] = np.arctan2(np.sin(Lim[0]),np.cos(Lim[0]))
@@ -722,6 +720,7 @@ def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3,
     #ax.legend(**_def.TorLegd)
     if draw:
         ax.figure.canvas.draw()
+
     print("")
     print("Debugging...")
     print("    D, u = ", Ds, us)
@@ -800,7 +799,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
               draw=True, fs=None, wintit=None, Test=True, ind=None):
 
     if Test:
-        C = GLos.Id.Cls in ['Rays','LOS','LOSCam1D','LOSCam2D']
+        C = GLos.Id.Cls in ['Rays','CamLOS1D','CamLOS2D']
         assert C, "Arg GLos must be an object child of tfg.Rays !"
         Proj = Proj.lower()
         C = Proj in ['cross','hor','all','3d']
@@ -1243,7 +1242,7 @@ def _Cam1D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
     if 'LOS' in Cam[0].Id.Cls:
         Dname = 'LOS length'
         Dunits = r"$m$"
-        data = [cc._dgeom['kMax']-cc._dgeom['kMin'] for cc in Cam]
+        data = [cc._dgeom['kOut']-cc._dgeom['kIn'] for cc in Cam]
         data = np.concatenate(tuple(data))
     else:
         Dname = 'VOS volume'
@@ -1378,7 +1377,11 @@ class KH2D(utils.KeyHandler):
 
 def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
     assert out.lower() in ['pcolormesh','imshow']
-    x1, x2, ind, dX12 = utils.get_X12fromflat(X12_1d)
+    try:
+        import tofu.geom.utils as geom_utils
+    except Exception:
+        from geom import utils as geom_utils
+    x1, x2, ind, dX12 = geom_utils.get_X12fromflat(X12_1d)
     if out=='pcolormesh':
         x1 = np.r_[x1-dX12[0]/2., x1[-1]+dX12[0]/2.]
         x2 = np.r_[x2-dX12[1]/2., x2[-1]+dX12[1]/2.]
@@ -1443,7 +1446,7 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
     if 'LOS' in Cam.Id.Cls:
         Dname = 'LOS length'
         Dunits = r"$m$"
-        data = Cam.kMax-Cam.kMin
+        data = Cam.kOut-Cam.kIn
         data[np.isinf(data)] = np.nan
     else:
         Dname = 'VOS volume'
@@ -1499,7 +1502,11 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
 
     # Prepare colors
     if plotmethod=='imshow':
-        x1u, x2u, ind, DX12 = utils.get_X12fromflat(X12)
+        try:
+            import tofu.geom.utils as geom_utils
+        except Exception:
+            from geom import utils as geom_utils
+        x1u, x2u, ind, DX12 = geom_utils.get_X12fromflat(X12)
         nx1, nx2 = x1u.size, x2u.size
         extent = (x1u.min(),x1u.max(),x2u.min(),x2u.max())
 

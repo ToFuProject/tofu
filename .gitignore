@@ -52,3 +52,5 @@ Details
 # installation dir
 usr/
 
+# tests of LOS on west and ITER
+tofu/tests/tests01_geom/laura_tmp/
