@@ -91,7 +91,7 @@ elif sys.version[0]=='3':
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-if git_branch == "master" :
+if git_branch == "master" or git_branch == "devel" :
     version_git = up.updateversion(os.path.join(here,'tofu'))
 else:
     version_py = os.path.join(here,'tofu')
