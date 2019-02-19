@@ -718,17 +718,11 @@ def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3,
     ax.plot(PIns[0,:],PIns[1,:],PIns[2,:], c='b', ls='None', marker='o', label=r"PIn")
     ax.plot(POuts[0,:],POuts[1,:],POuts[2,:], c='r', ls='None', marker='x', label=r"POut")
     #ax.legend(**_def.TorLegd)
-    #if draw:
-    ax.figure.canvas.draw()
+    if draw:
+        ax.figure.canvas.draw()
 
-    # # rotate the axes and update
-    # for angle in range(0, 360, 30):
-    #     ax.view_init(120, angle)
-    #     #ax.save("fig"+str(angle))
-    #     fig = ax.get_figure()
-    #     fig.savefig("output"+str(angle)+".png")
     print("")
-    print("Debugging... % of nans =", np.sum(np.isnan(POuts))/np.size(Ds))
+    print("Debugging...")
     print("    D, u = ", Ds, us)
     print("    PIn, POut = ", PIns, POuts)
 
