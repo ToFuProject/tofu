@@ -2401,7 +2401,18 @@ class Rays(utils.ToFuObject):
                           'linewidth':0., 'antialiased':False},
                     'Lim':None,
                     'Nstep':50}}
+
+    _dcases = {'A':{'type':tuple},
+               'B':{'type':dict, 'lk':['D','u']},
+               'C':{'type':dict, 'lk':['D','pinhole']},
+               'D':{'type':dict, 'lk':['pinhole','F','nIn','e1','x1']},
+               'E':{'type':dict, 'lk':['pinhole','F','nIn','e1','l1','n1']},
+               'F':{'type':dict, 'lk':['pinhole','F','angles','x1']},
+               'G':{'type':dict, 'lk':['pinhole','F','angles','l1','n1']}}
+
     _method = "optimized"
+
+
 
     # Does not exist beofre Python 3.6 !!!
     def __init_subclass__(cls, color='k', **kwdargs):
@@ -2413,6 +2424,11 @@ class Rays(utils.ToFuObject):
         cls._dplot = copy.deepcopy(Rays._dplot)
         cls._set_color_ddef(color)
         cls._method = Rays._method
+        if '2d' in cls.__name__.lower():
+            cls._dcases['D']['lk'] += ['e2','x2']
+            cls._dcases['E']['lk'] += ['e2','l2','n2']
+            cls._dcases['F']['lk'] += ['x2']
+            cls._dcases['G']['lk'] += ['l2','n2']
 
     @classmethod
     def _set_color_ddef(cls, color):
@@ -2528,21 +2544,21 @@ class Rays(utils.ToFuObject):
                 assert val.size==self._dgeom['nRays']
         return val
 
-    @staticmethod
-    def _checkformat_inputs_dgeom(dgeom=None):
+    @classmethod
+    def _checkformat_inputs_dgeom(cls, dgeom=None):
         assert dgeom is not None
-        C0 = (isinstance(dgeom,dict)
-              and all([k in dgeom.keys() for k in ['D','u']]))
-        C1 = (isinstance(dgeom,dict)
-              and all([k in dgeom.keys() for k in ['D','pinhole']]))
-        C2 = isinstance(dgeom,tuple) and len(dgeom)==2
-        if not (C0 or C1 or C2):
+        assert isinstance(dgeom,tuple) or isinstance(dgeom,dict)
+        lC = [k for k in self._dcases.keys()
+              if (isinstance(dgeom,self._dcases[k]['type'])
+                  and all([kk in dgeom.keys() for kk in self._dcases[k]['lk']]))]
+        if not len(lC)==1:
+            lstr = [v['lk'] for v in self._dcases.values()]
             msg = "Arg dgeom must be either:\n"
-            msg += "    - dict with keys:\n"
-            msg += "        ['D','u']: start points and vectors definition\n"
-            msg += "        ['D','pinhole']: start points and pinhole def.\n"
-            msg += "    - tuple of len()==2 containing (D,u)"
+            msg += "  - dict with keys:\n"
+            msg += "\n    - " + "\n    - ".join(lstr)
+            msg += "  - tuple of len()==2 containing (D,u)"
             raise Exception(msg)
+        case = lC[0]
 
         def _checkformat_Du(arr, name):
             arr = np.asarray(arr,dtype=float)
@@ -2560,18 +2576,10 @@ class Rays(utils.ToFuObject):
             arr = np.ascontiguousarray(arr)
             return arr
 
-        D = dgeom[0] if C2 else dgeom['D']
-        D = _checkformat_Du(D, 'D')
-        if C1:
-            pinhole = _checkformat_Du(dgeom['pinhole'], 'pinhole')
-            nD, npinhole = D.shape[1], pinhole.shape[1]
-            assert npinhole==1
-            pinhole = pinhole.ravel()
-            nRays = nD
-            dgeom = {'D':D, 'pinhole':pinhole, 'nRays':nRays}
-
-        else:
-            u = dgeom[1] if C2 else dgeom['u']
+        if case in ['A','B']:
+            D = dgeom[0] if case == 'A' else dgeom['D']
+            u = dgeom[1] if case == 'B' else dgeom['u']
+            D = _checkformat_Du(D, 'D')
             u = _checkformat_Du(u, 'u')
             # Normalize u
             u = u/np.sqrt(np.sum(u**2,axis=0))[np.newaxis,:]
@@ -2582,7 +2590,59 @@ class Rays(utils.ToFuObject):
             msg = "The number of rays is ambiguous from D and u shapes !"
             assert C0 or C1 or C2, msg
             nRays = max(nD,nu)
-            dgeom = {'D':D, 'u':u, 'nRays':nRays}
+            dgeom = {'D':D, 'u':u}
+
+        elif case == 'C':
+            D = _checkformat_Du(dgeom['D'], 'D')
+            dins = {'pinhole':{'var':dgeom['pinhole'], 'vectnd':3}}
+            dins = self._check_InputsGeneric(dins)
+            pinhole = dins['pinhole']['var']
+            dgeom = {'D':D, 'pinhole':pinhole}
+            nRays = D.shape[1]
+
+        else:
+            dins = {'pinhole':{'var':dgeom['pinhole'], 'vectnd':3},
+                    'F':{'var':dgeom['F'], 'int2float':None}}
+            if case in ['D','E']:
+                dins['nIn'] = {'var':dgeom['nIn'], 'unitvectnd':3}
+                dins['e1'] = {'var':dgeom['e1'], 'unitvectnd':3}
+                if 'e2' in dgeom.keys():
+                    dins['e2'] = {'var':dgeom['e2'], 'unitvectnd':3}
+            else:
+                dins['angles'] = {'var':dgeom['angles'], 'vectnd':3}
+
+            if case in ['D','F']:
+                dins['x1'] = {'var':dgeom['x1'], 'vectnd':None}
+                if 'x2':
+                    dins['x2'] = {'var':dgeom['x2'], 'vectnd':None}
+            else:
+                dins['l1'] = {'var':dgeom['l1'], 'int2float':None}
+                dins['n1'] = {'var':dgeom['n1'], 'float2int':None}
+                if 'l2' in dgeom.keys():
+                    dins['l2'] = {'var':dgeom['l2'], 'int2float':None}
+                    dins['n2'] = {'var':dgeom['n2'], 'float2int':None}
+
+            dins = self._check_InputsGeneric(dins)
+            dgeom = {'ddetails':{}}
+            for k in dins.keys():
+                if k == 'pinhole':
+                    dgeom[k] = dins[k]['var']
+                else:
+                    dgeom['ddetails'][k] = dins[k]['var']
+            if case in ['E','G']:
+                x1 = dgeom['ddetails']['l1']*np.linspace(-0.5, 0.5,
+                                 dgeom['ddetails']['n1'], end_point=True)
+                dgeom['ddetails']['x1'] = x1
+                if '2d' in cls.__name__.lower():
+                    x2 = dgeom['ddetails']['l2']*np.linspace(-0.5, 0.5,
+                                     dgeom['ddetails']['n2'], end_point=True)
+                    dgeom['ddetails']['x2'] = x2
+            if '2d' in cls.__name__.lower():
+                nRays = dgeom['ddetails']['n1']*dgeom['ddetails']['n2']
+            else:
+                nRays = dgeom['ddetails']['n1']
+            dgeom.update({'case':case, 'nRays':nRays})
+
         return dgeom
 
     @staticmethod
@@ -2639,7 +2699,7 @@ class Rays(utils.ToFuObject):
         lk = ['D','u','pinhole',
               'kIn', 'kOut', 'PkIn', 'PkOut', 'vperp', 'indout',
               'kRMin', 'PRMin', 'RMin',
-              'Etendues', 'Surfaces']
+              'Etendues', 'Surfaces', 'ddetails']
         return lk
 
     @staticmethod
@@ -2693,6 +2753,132 @@ class Rays(utils.ToFuObject):
         self._dconfig['Config'] = config.copy()
         if calcdgeom:
             self.compute_dgeom()
+
+    def _calc_Dfromdgeom(self):
+        D = self._dgeom['pinhole'] - self._dgeom['F']*self._dgeom['ddetails']['nIn']
+
+    def _update_dgeom_from_TransRotFoc(self, val, key='x'):
+        if key in ['x','y','z']:
+            if key == 'x':
+                trans = np.r_[val,0.,0.]
+            elif key == 'y':
+                trans = np.r_[0.,val,0.]
+            else
+                trans = np.r_[0.,0.,val]
+            if self._dgeom['pinhole'] is not None:
+                self._dgeom['pinhole'] += trans
+                self._dgeom['D'] += trans[:,np.newaxis]
+        if key in ['nIn','e1','e2']:
+            if key == 'nIn':
+                e1 = (np.cos(val)*self._dgeom['ddetails']['e1']
+                      + np.sin(val)*self._dgeom['ddetails']['e2'])
+                e2 = (np.cos(val)*self._dgeom['ddetails']['e2']
+                      - np.sin(val)*self._dgeom['ddetails']['e1'])
+                self._dgeom['ddetails']['e1'] = e1
+                self._dgeom['ddetails']['e2'] = e2
+            elif key == 'e1':
+                nIn = (np.cos(val)*self._dgeom['ddetails']['nIn']
+                      + np.sin(val)*self._dgeom['ddetails']['e2'])
+                e2 = (np.cos(val)*self._dgeom['ddetails']['e2']
+                      - np.sin(val)*self._dgeom['ddetails']['nIn'])
+                self._dgeom['ddetails']['nIn'] = nIn
+                self._dgeom['ddetails']['e2'] = e2
+            else:
+                nIn = (np.cos(val)*self._dgeom['ddetails']['nIn']
+                      + np.sin(val)*self._dgeom['ddetails']['e1'])
+                e1 = (np.cos(val)*self._dgeom['ddetails']['e1']
+                     - np.sin(val)*self._dgeom['ddetails']['nIn'])
+                self._dgeom['ddetails']['nIn'] = nIn
+                self._dgeom['ddetails']['e1'] = e1
+        if key == 'F':
+            self._dgeom['F'] += val
+
+    def _complete_ddetails(self, dgeom):
+        if dgeom['case'] in ['A','B','C']:
+            # Test if pinhole
+            if dgeom['case'] in ['A','B']:
+                u = dgeom['u'][:,0:1]
+                sca2 = np.sum(dgeom['u'][:,1:]*u,axis=0)**2
+                if np.all(sca2<1.-1.e-9):
+                    DDb = dgeom['D'][:,1:]-dgeom['D'][:,0:1]
+                    k = np.sum(DDb*(u + np.sqrt(sca)*dgeom['u'][:,1:]),axis=0)
+                    k = k / (1.-sca**2)
+                    if np.all(k[1:]-k[0]<1.e-9):
+                        pinhole = dgeom['D'][:,0] + k[0]*u
+                        dgeom['ddetails'] = {'pinhole':pinhole}
+
+            # Test if all D are on a common plane or line
+            v0 = dgeom['D'][:,1]-dgeom['D'][:,0]
+            va = dgeom['D']-dgeom['D'][:,0:1]
+            v0 = v0/np.linalg.norm(v0)
+            van = va / np.sqrt(np.sum(va**2,axis=0))[np.newaxis,:]
+            vect2 = ((van[1,:]*v0[2]-van[2,:]*v0[1])**2
+                     + (van[2,:]*v0[0]-van[0,:]*v0[2])**2
+                     + (van[0,:]*v0[1]-van[1,:]*v0[0])**2)
+            if np.all(vect2<1.e-9):
+                # All D are aligned
+                e1 = van[:,1]
+                x1 = np.sum(va*e1[:,np.newaxis],axis=0)
+                if dgeom['ddetails'] is not None:
+                    kref = -np.sum((dgeom['D'][:,0]-pinhole)*e1)
+                    x1 = x1-kref
+                l1 = np.nanmax(x1)-np.nanmin(x1)
+                dgeom['ddetails'].update({'e1':e1, 'x1':x1})
+            else:
+                ind = np.argmax(vect2)
+                v1 = va[:,ind]
+                n = np.cross(v0,v1)
+                n = n/np.linalg.norm(n)
+                scaabs = np.abs(np.sum(n[:,np.newaxis]*va,axis=0))
+                if np.all(sca<1.e-9):
+                    assert not '1d' in self.__class__.__name__.lower()
+                    # All D are in a common plane perpendicular to n, check
+                    # check nIn orientation
+                    sca = np.sum(self.u*n[:,np.newaxis],axis=0)
+                    lc = [np.all(sca>=0.), np.all(sca<=0.)]
+                    assert any(lc)
+                    nIn = n if lc[0] else -n
+                    e1 = v0
+                    e2 = v1
+                    if np.sum(np.cross(e1,nIn)*e2)<0.:
+                        e2 = -e2
+
+                    dgeom['ddetails'].update({'nIn':nIn, 'e1':e1, 'e2':e2})
+
+                    # Test binning
+                    if dgeom['ddetails'] is not None:
+                        k1ref = -np.sum((dgeom['D'][:,0]-pinhole)*e1)
+                        k2ref = -np.sum((dgeom['D'][:,0]-pinhole)*e2)
+                    else:
+                        k1ref, k2ref = 0., 0.
+                    x12 = np.array([np.sum(va*e1,axis=0)-k1ref,
+                                    np.sum(va*e2,axis=0)-k2ref])
+                    x1 = np.unique(x12[0,:])
+                    x2 = np.unique(x12[1,:])
+                    nx1, nx2 = x1.size, x2.size
+                    if nx1*nx2 == dgeom['nRays']:
+                        dgeom['ddetails'].update({'x12':x12, 'consistent':True,
+                                                  'x1':x1, 'x2':x2})
+        else:
+            if dgeom['case'] in ['F','G']:
+                # Get unit vectors from angles
+
+
+            # Get D and x12 from x1, x2
+            nx1 = dgeom['ddetails']['x1'].size
+            nx2 = dgeom['ddetails']['x2'].size
+            x12 = np.array([np.tile(dgeom['ddetails']['x1'], nx2),
+                            np.repeat(dgeom['ddetails']['x2'], nx1)])
+            D = dgeom['pinhole'] - dgeom['F']*dgeom['ddetails']['nIn']
+            D = (D[:,np.newaxis]
+                 + x12[0,:]*dgeom['ddetails']['e1']
+                 + x12[1,:]*dgeom['ddetails']['e2'])
+            dgeom['D'] = D
+            dgeom['ddetails'].update({'x12':x12, 'consistent':True})
+
+        return dgeom
+
+
 
     def _prepare_inputs_kInOut(self):
         if self._method=='ref':
@@ -2810,9 +2996,12 @@ class Rays(utils.ToFuObject):
     def compute_dgeom(self, extra=True, plotdebug=True):
         # Can only be computed if config if provided
         if self._dconfig['Config'] is None:
-            msg = "The dgeom cannot be computed without a config !"
+            msg = "Attribute dgeom cannot be computed without a config !"
             warnings.warn(msg)
             return
+
+        # ddetails
+        self._dgeom = self._complete_ddetails(self._dgeom)
 
         # Perform computation of kIn and kOut
         kIn, kOut, vperp, indout = self._compute_kInOut()
@@ -3148,7 +3337,8 @@ class Rays(utils.ToFuObject):
 
     @property
     def isPinhole(self):
-        return self._dgeom['u'] is None
+        c0 = 'pinhole' in self._dgeom.keys()
+        return c0 and self._dgeom['pinhole'] is not None
 
     @property
     def nRays(self):
@@ -4000,6 +4190,27 @@ class CamLOS2D(Rays):
             X12 = np.asarray(X12)
             assert X12.shape==(2,self._dgeom['nRays'])
         self._X12 = X12
+
+    def get_ind_flatimg(self, direction='flat2img'):
+        assert direction in ['flat2img','img2flat']
+        assert self._dgeom['ddetails'] is not None
+        assert all([ss in self._dgeom['ddetails'].keys()
+                    for ss in ['x12','x1','x2']])
+        x1b = 0.5*(self._dgeom['ddetails']['x1'][1:]
+                   + self._dgeom['ddetails']['x1'][1:][:-1])
+        x2b = 0.5*(self._dgeom['ddetails']['x2'][1:]
+                   + self._dgeom['ddetails']['x2'][1:][:-1])
+        ind = np.array([np.digitize(self._dgeom['ddetails']['x12'][0,:], x1b),
+                        np.digitize(self._dgeom['ddetails']['x12'][0,:], x2b)])
+        if direction == 'flat2img':
+            indr = np.zeros((nx1,nx2),dtype=int)
+            indr[ind[0,:],ind[1,:]] = np.arange(0,self._dgeom['nRays'])
+            ind = indr
+        return ind
+
+
+
+
 
     def get_X12(self, out='1d'):
         if self._X12 is None:

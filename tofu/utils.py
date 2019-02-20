@@ -598,6 +598,26 @@ def _check_InputsGeneric(ld, tab=0):
                 errk = True
                 msgk += bstr1 + "> {0}".format(ld[k]['>'])
                 msgk += bstr2 + "{0}".format(ld[k]['var'])
+        if 'vectnd' in ld[k].keys():
+            c0 = any([isinstance(ld[k]['var'],tt)
+                      for tt in [list,tuple,np.ndarray]])
+            if ld[k]['vectnd'] is not None:
+                c0 &= np.asarray(ld[k]['var']).size==ld[k]['vectnd']
+            if not c0:
+                errk = True
+                msgk += bstr1 + "array of size {0}".format(ld[k]['vectnd'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = np.asarray(ld[k]['var'],dtype=float).ravel()
+        if 'unitvectnd' in ld[k].keys():
+            c0 = any([isinstance(ld[k]['var'],tt)
+                      for tt in [list,tuple,np.ndarray]])
+            c1 = c0 and np.asarray(ld[k]['var']).size==ld[k]['unitvectnd']
+            if not c1:
+                errk = True
+                msgk += bstr1 + "array of size {0}".format(ld[k]['unitvectnd'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            temp = np.asarray(ld[k]['var'],dtype=float).ravel()
+            ld[k]['var'] = temp/np.linalg.norm(temp)
 
         if errk:
             err = True
