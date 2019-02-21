@@ -278,7 +278,6 @@ def comp_dist_los_circle(line, circle):
                 roots[numRoots] = s
                 numRoots += 1
 
-        #std::array<ClosestInfo, 4> candidates;
         candidates = [ClosestInfo(), ClosestInfo(), ClosestInfo(), ClosestInfo()]
         for i in range(numRoots):
             t = roots[i] + lambd

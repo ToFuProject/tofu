@@ -32,6 +32,8 @@ elif sys.version[0]=='2':
 
 
 __all__ = ['CoordShift',
+           "comp_dist_los_circle2",
+           "LOS_sino_findRootkPMin_Tor",
            'Poly_isClockwise', 'Poly_Order', 'Poly_VolAngTor',
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
            '_Ves_isInside',
@@ -2990,10 +2992,10 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
     cdef bint res
 
     # computing intersection
-    tmin = (bounds[sign[0]*3] - ds[0]) * inv_direction[0];
-    tmax = (bounds[(1-sign[0])*3] - ds[0]) * inv_direction[0];
-    tymin = (bounds[(sign[1])*3 + 1] - ds[1]) * inv_direction[1];
-    tymax = (bounds[(1-sign[1])*3+1] - ds[1]) * inv_direction[1];
+    tmin = (bounds[sign[0]*3] - ds[0]) * inv_direction[0]
+    tmax = (bounds[(1-sign[0])*3] - ds[0]) * inv_direction[0]
+    tymin = (bounds[(sign[1])*3 + 1] - ds[1]) * inv_direction[1]
+    tymax = (bounds[(1-sign[1])*3+1] - ds[1]) * inv_direction[1]
     if ( (tmin > tymax) or (tymin > tmax) ):
         return 0
     if (tymin > tmin):
@@ -4131,7 +4133,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
 ######################################################################
 
 
-cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
+def LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
                                 double RZ1, double ScaP, double DParN,
                                 double kOut, double D0, double D1, double D2,
                                 double u0, double u1, double u2, str Mode='LOS'):
@@ -4180,7 +4182,9 @@ cdef LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
 
 
 
-cdef LOS_sino_Tor(double D0, double D1, double D2, double u0, double u1, double u2, double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
+cdef LOS_sino_Tor(double D0, double D1, double D2, double u0, double u1,
+                  double u2, double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
+
     cdef double    uN = Csqrt(u0**2+u1**2+u2**2), uParN = Csqrt(u0**2+u1**2), DParN = Csqrt(D0**2+D1**2)
     cdef double    Sca = u0*D0+u1*D1+u2*D2, ScaP = u0*D0+u1*D1
     cdef double    kPMin
@@ -4204,6 +4208,71 @@ cdef LOS_sino_Tor(double D0, double D1, double D2, double u0, double u1, double 
 
 
 
+cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
+                                  double dirv0, double dirv1, double dirv2,
+                                  double circ_radius, double circ_normz,
+                                  double[9] results,
+                                  bint is_LOS_Mode=False, double kOut=np.inf):
+    cdef double[3] dirv, orig
+    cdef double normu, normu_sqr
+    cdef double kPMin
+
+    from warnings import warn
+    warn("LOS SINO : THIS IS THE OLD VERSION OF THIS FUNCTION, PLEASE USE THE NEW ONE",
+         DeprecationWarning, stacklevel=2)
+    warn("LOS SINO : THIS IS THE OLD VERSION OF THIS FUNCTION, PLEASE USE THE NEW ONE",
+         Warning)
+
+    normu_sqr = dirv0 * dirv0 + dirv1 * dirv1 + dirv2 * dirv2
+    normu = Csqrt(normu_sqr)
+    dirv[0] = dirv0
+    dirv[2] = dirv2
+    dirv[1] = dirv1
+    orig[0] = orig0
+    orig[1] = orig1
+    orig[2] = orig2
+
+    if dirv0 == 0. and dirv1 == 0.:
+        kPMin = (circ_normz-orig2)/dirv2
+    else:
+        kPMin = comp_dist_los_circle_core(dirv, orig,
+                                         circ_radius, circ_normz,
+                                         normu_sqr)
+        if is_LOS_Mode and kPMin > kOut:
+            kPMin = kOut
+    # Computing the point's coordinates.........................................
+    cdef double PMin0 = orig0 + kPMin * dirv0
+    cdef double PMin1 = orig1 + kPMin * dirv1
+    cdef double PMin2 = orig2 + kPMin * dirv2
+    cdef double PMin2norm = Csqrt(PMin0**2+PMin1**2)
+    cdef double RMin = Csqrt((PMin2norm - circ_radius)**2
+                             + (PMin2   - circ_normz)**2)
+    cdef double vP0 = PMin2norm - circ_radius
+    cdef double vP1 = PMin2     - circ_normz
+    cdef double Theta = Catan2(vP1, vP0)
+    cdef double ImpTheta = Theta if Theta>=0 else Theta + np.pi
+    cdef double er2D0 = Ccos(ImpTheta)
+    cdef double er2D1 = Csin(ImpTheta)
+    cdef double p0 = vP0*er2D0 + vP1*er2D1
+    cdef double eTheta0 = -PMin1 / PMin2norm
+    cdef double eTheta1 =  PMin0 / PMin2norm
+    cdef double normu0 = dirv0/normu
+    cdef double normu1 = dirv1/normu
+    cdef double phi = Casin(-normu0 * eTheta0 - normu1 * eTheta1)
+    # Filling the results ......................................................
+    results[0] = PMin0
+    results[1] = PMin1
+    results[2] = PMin2
+    results[3] = kPMin
+    results[4] = RMin
+    results[5] = Theta
+    results[6] = p0
+    results[7] = ImpTheta
+    results[8] = phi
+    return
+
+
+
 cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double u2, double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
     cdef double    kPMin
     if u0**2==1.:
@@ -4217,26 +4286,50 @@ cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double 
     cdef double    Theta = Catan2(vP1,vP0)
     cdef double    ImpTheta = Theta if Theta>=0 else Theta + np.pi
     cdef double    er2D0 = Ccos(ImpTheta), er2D1 = Csin(ImpTheta)
-    cdef double    p = vP0*er2D0 + vP1*er2D1
+    cdef double    p0 = vP0*er2D0 + vP1*er2D1
     cdef double    uN = Csqrt(u0**2+u1**2+u2**2)
     cdef double    uN0 = u0/uN, uN1 = u1/uN, uN2 = u2/uN
     cdef double    phi = Catan2(uN0, Csqrt(uN1**2+uN2**2))
-    return (PMin0,PMin1,PMin2), kPMin, RMin, Theta, p, ImpTheta, phi
+    return (PMin0,PMin1,PMin2), kPMin, RMin, Theta, p0, ImpTheta, phi
 
 
-def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut, str Mode='LOS', str VType='Tor'):
+def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut,
+             str Mode='LOS', str VType='Tor', bint try_new_algo=True):
     cdef unsigned int nL = D.shape[1], ii
     cdef tuple out
     cdef np.ndarray[double,ndim=2] PMin = np.empty((3,nL))
     cdef np.ndarray[double,ndim=1] kPMin=np.empty((nL,)), RMin=np.empty((nL,))
     cdef np.ndarray[double,ndim=1] Theta=np.empty((nL,)), p=np.empty((nL,))
     cdef np.ndarray[double,ndim=1] ImpTheta=np.empty((nL,)), phi=np.empty((nL,))
+    cdef double[9] results
+    cdef bint is_LOS_Mode
     if VType.lower()=='tor':
         for ii in range(0,nL):
-            out = LOS_sino_Tor(D[0,ii],D[1,ii],D[2,ii],u[0,ii],u[1,ii],u[2,ii],
-                               RZ[0],RZ[1], Mode=Mode, kOut=kOut[ii])
-            ((PMin[0,ii],PMin[1,ii],PMin[2,ii]),
-             kPMin[ii], RMin[ii], Theta[ii], p[ii], ImpTheta[ii], phi[ii]) = out
+            if not try_new_algo:
+                out = LOS_sino_Tor(D[0,ii],D[1,ii],D[2,ii],
+                                   u[0,ii],u[1,ii],u[2,ii],
+                                   RZ[0],RZ[1], Mode=Mode, kOut=kOut[ii])
+                ((PMin[0,ii],PMin[1,ii],PMin[2,ii]),
+                 kPMin[ii], RMin[ii], Theta[ii],
+                 p[ii], ImpTheta[ii], phi[ii]) = out
+            else:
+                is_LOS_Mode = Mode.lower()=='LOS'
+                NEW_LOS_sino_Tor(D[0,ii], D[1,ii], D[2,ii],
+                                 u[0,ii], u[1,ii], u[2,ii],
+                                 RZ[0], RZ[1],
+                                 results,
+                                 is_LOS_Mode=is_LOS_Mode,
+                                 kOut=kOut[ii])
+                # Extracting the results .......................................
+                PMin[0, ii] = results[0]
+                PMin[1, ii] = results[1]
+                PMin[2, ii] = results[2]
+                kPMin[ii] = results[3]
+                RMin[ii]  = results[4]
+                Theta[ii] = results[5]
+                p[ii] = results[6]
+                ImpTheta[ii] = results[7]
+                phi[ii] = results[8]
     else:
         for ii in range(0,nL):
             out = LOS_sino_Lin(D[0,ii],D[1,ii],D[2,ii],u[0,ii],u[1,ii],u[2,ii],
@@ -4964,3 +5057,223 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
                 indIn[ii] = indin
 
     return np.asarray(SIn), np.asarray(SOut), np.asarray(VPerpIn), np.asarray(VPerpOut), np.asarray(indIn), np.asarray(indOut)
+
+cdef inline void compute_cross_prod(const double[3] vec_a,
+                                    const double[3] vec_b,
+                                    double[3] res) nogil:
+    res[0] = vec_a[1]*vec_b[2] - vec_a[2]*vec_b[1]
+    res[1] = vec_a[2]*vec_b[0] - vec_a[0]*vec_b[2]
+    res[2] = vec_a[0]*vec_b[1] - vec_a[1]*vec_b[0]
+    return
+
+cdef inline double compute_dot_prod(const double[3] vec_a,
+                                    const double[3] vec_b) nogil:
+    return vec_a[0] * vec_b[0] + vec_a[1] * vec_b[1] + vec_a[2] * vec_b[2]
+
+
+cdef inline double compute_g(double s, double m2b2, double rm0sqr,
+                             double m0sqr, double b1sqr) nogil:
+    return s + m2b2 - rm0sqr*s / Csqrt(m0sqr*s*s + b1sqr)
+
+cdef inline double compute_bisect(double m2b2, double rm0sqr,
+                                  double m0sqr, double b1sqr,
+                                  double smin, double smax) nogil:
+    cdef int maxIterations = 10000
+    cdef double root = 0.
+    root = compute_find(m2b2, rm0sqr, m0sqr, b1sqr,
+                smin, smax, -1.0, 1.0, maxIterations, root)
+    gmin = compute_g(root, m2b2, rm0sqr, m0sqr, b1sqr)
+    return root
+
+cdef inline double compute_find(double m2b2, double rm0sqr,
+                                double m0sqr, double b1sqr,
+                                double t0, double t1, double f0, double f1,
+                                int maxIterations, double root) nogil:
+    cdef double fm, product
+    if (t0 < t1):
+        # Test the endpoints to see whether F(t) is zero.
+        if f0 == 0.:
+            root = t0
+            return root
+        if f1 == 0.:
+            root = t1
+            return root
+        if f0*f1 > 0.:
+            # It is not known whether the interval bounds a root.
+            return root
+        for i in range(2, maxIterations+1):
+            root = (0.5) * (t0 + t1)
+            if (root == t0 or root == t1):
+                # The numbers t0 and t1 are consecutive floating-point
+                # numbers.
+                break
+            fm = compute_g(root, m2b2, rm0sqr, m0sqr, b1sqr)
+            product = fm * f0
+            if (product < 0.):
+                t1 = root
+                f1 = fm
+            elif (product > 0.):
+                t0 = root
+                f0 = fm
+            else:
+                break
+        return root
+    else:
+        return root
+
+def comp_dist_los_circle2(double dir1, double dir2, double dir3,
+                          double ori1, double ori2, double ori3,
+                          double radius, double circ_z, double norm_dir=-1.0):
+    # This function computes the intersection of a Ray (or Line Of Sight)
+    # and a circle in 3D. It returns `kmin`, the coefficient such that the
+    # ray of origin O = [ori1, ori2, ori3] and of directional vector
+    # D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
+    # and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
+    # The variable `norm_dir` is the squared norm of the direction of the ray.
+    # ---
+    # This is the PYTHON function, use only if you need this computation from
+    # Python, if you need it from Cython, use `comp_dist_los_circle_core`
+    cdef double[3] dirv
+    cdef double[3] orig
+    dirv[0] = dir1
+    orig[0] = ori1
+    dirv[1] = dir2
+    orig[1] = ori2
+    dirv[2] = dir3
+    orig[2] = ori3
+    if norm_dir < 0.:
+        norm_dir = dir3 * dir3 + dir1 * dir1 + dir2 * dir2
+    return comp_dist_los_circle_core(dirv, orig, radius, circ_z, norm_dir)
+
+cdef inline double comp_dist_los_circle_core(const double[3] direction,
+                                             const double[3] origin,
+                                             double radius, double circ_z,
+                                             double norm_dir):
+
+    # The line is P(t) = B+t*M.  The circle is |X-C| = r with Dot(N,X-C)=0.
+    cdef int numRoots, i
+    cdef double zero = 0., m0sqr, m0, rm0
+    cdef double lambd, m2b2, b1sqr, b1, r0sqr, twoThirds, sHat, gHat, cutoff, s
+    cdef double[3] vzero = [0, 0, 0]
+    cdef double[3] D
+    cdef double[3] MxN
+    cdef double[3] DxN
+    cdef double[3] circle_normal = [0, 0, 1]
+    cdef double[3] roots = [0, 0, 0]
+    cdef double tmin
+
+    D[0] = origin[0]
+    D[1] = origin[1]
+    D[2] = origin[2] - circ_z
+    compute_cross_prod(direction, circle_normal, MxN)
+    compute_cross_prod(D, circle_normal, DxN)
+    m0sqr = compute_dot_prod(MxN, MxN)
+
+    if (m0sqr > zero):
+        # Compute the critical points s for F'(s) = 0.
+        numRoots = 0
+
+        # The line direction M and the plane normal N are not parallel.  Move
+        # the line origin B = (b0,b1,b2) to B' = B + lambd*direction =
+        # (0,b1',b2').
+        m0 = Csqrt(m0sqr)
+        rm0 = radius * m0
+        lambd = -compute_dot_prod(MxN, DxN) / m0sqr
+        for i in range(3):
+            D[i] += lambd * direction[i]
+            DxN[i] += lambd * MxN[i]
+        m2b2 = compute_dot_prod(direction, D)
+        b1sqr = compute_dot_prod(DxN, DxN)
+        if (b1sqr > zero) :
+            # B' = (0,b1',b2') where b1' != 0.  See Sections 1.1.2 and 1.2.2
+            # of the PDF documentation.
+            b1 = Csqrt(b1sqr)
+            rm0sqr = radius * m0sqr
+            if (rm0sqr > b1):
+                twoThirds = 2.0 / 3.0
+                sHat = Csqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
+                gHat = rm0sqr * sHat / Csqrt(m0sqr * sHat * sHat + b1sqr)
+                cutoff = gHat - sHat
+                if (m2b2 <= -cutoff):
+                    s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2, -m2b2 + rm0)
+                    roots[numRoots] = s
+                    numRoots += 1
+                    if (m2b2 == -cutoff):
+                        roots[numRoots] = -sHat
+                        numRoots += 1
+                elif (m2b2 >= cutoff):
+                    s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2 - rm0,
+                        -m2b2)
+                    roots[numRoots] = s
+                    numRoots += 1
+                    if (m2b2 == cutoff):
+                        roots[numRoots] = sHat
+                        numRoots += 1
+                else:
+                    if (m2b2 <= zero):
+                        s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2,
+                            -m2b2 + rm0)
+                        roots[numRoots] = s
+                        numRoots += 1
+                        s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2 - rm0,
+                            -sHat)
+                        roots[numRoots] = s
+                        numRoots += 1
+                    else:
+                        s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2 - rm0,
+                            -m2b2)
+                        roots[numRoots] = s
+                        numRoots += 1
+                        s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, sHat,
+                            -m2b2 + rm0)
+                        roots[numRoots] = s
+                        numRoots += 1
+            else:
+                if (m2b2 < zero):
+                    s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2,
+                        -m2b2 + rm0)
+                elif (m2b2 > zero):
+                    s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2 - rm0,
+                        -m2b2)
+                else:
+                    s = zero
+                roots[numRoots] = s
+                numRoots += 1
+        else:
+            # The new line origin is B' = (0,0,b2').
+            if (m2b2 < zero):
+                s = -m2b2 + rm0
+                roots[numRoots] = s
+                numRoots += 1
+            elif (m2b2 > zero):
+                s = -m2b2 - rm0
+                roots[numRoots] = s
+                numRoots += 1
+            else:
+                s = -m2b2 + rm0
+                roots[numRoots] = s
+                numRoots += 1
+                s = -m2b2 - rm0
+                roots[numRoots] = s
+                numRoots += 1
+        tmin = roots[0] + lambd
+        for i in range(1,numRoots):
+            t = roots[i] + lambd
+            if (t>0 and t<tmin):
+                tmin = t
+        if tmin > 0:
+            return tmin / norm_dir
+        else:
+            return zero
+    else:
+        # The line direction and the plane normal are parallel.
+        if (DxN != vzero) :
+            t = -compute_dot_prod(direction, D)
+            if t > 0:
+                return t / norm_dir
+            else:
+                return zero
+        else:
+            # The line is C+t*N, so C is the closest point for the line and
+            # all circle points are equidistant from it.
+            return zero
