@@ -1978,7 +1978,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                     lpolyx, lpolyy, lnormx, lnormy,
                                     eps_uz, eps_vz, eps_a, eps_b, eps_plane,
                                     num_threads, False) # structure is in
-
         # We can free local arrays and set them as NULL for structures
         free(lpolyx)
         free(lpolyy)
@@ -2490,6 +2489,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                     vperp_out[0+3*ind_los] = loc_vp[0]
                     vperp_out[1+3*ind_los] = loc_vp[1]
                     vperp_out[2+3*ind_los] = loc_vp[2]
+
                 else:
                     coeff_inter_in[ind_los]  = Cnan
                     coeff_inter_out[ind_los] = Cnan
@@ -2616,6 +2616,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     cdef bint inter_bbox
     cdef double kout, kin
     cdef double res_kin = kpin_loc[0]
+    cdef double res_kout = kpout_loc[0]
     cdef double sca=0., sca0=0., sca1=0., sca2=0.
     cdef double q, coeff, delta, sqd, k, sol0, sol1, phi=0.
     cdef double v0, v1, val_a, val_b, ephi_in0, ephi_in1
@@ -2931,7 +2932,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                 vperpin[1] = -Csin(phi) * normx[indin]
                 vperpin[2] = -normy[indin]
             ind_loc[0] = indin
-    return res_kin != kpin_loc[0]
+    return (res_kin != kpin_loc[0]) or (res_kout != kpout_loc[0]
+                                        and is_in_struct)
 
 cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
                                       int[3] sign,
