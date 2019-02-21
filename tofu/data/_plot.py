@@ -1546,7 +1546,7 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
         ax.set_xlim(0,1),  ax.set_ylim(0,1)
 
     dax = {'t':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxt],
-           'chan':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp],
+           'X':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp],
            'cross':[{'ax':axC, 'dh':{}}],
            'hor':[{'ax':axH, 'dh':{}}],
            'txtx':[{'ax':axtxtx, 'dh':{}}],
@@ -1587,7 +1587,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
 
     X = Data.X
     if X.size==1:
-        DX = [X[0]-0.1*X[0], X[0]+0.1*X[0]]
+        DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
     else:
         DX = [np.nanmin(X), np.nanmax(X)]
     Xlab = r"{0} ({1})".format(Data.dlabels['X']['name'],
@@ -1607,6 +1607,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     # Format axes
     dax = _init_Data1D_spectrogram(fs=fs, dmargin=dmargin,
                                    wintit=wintit)
+    fig = dax['t'][0]['ax'].figure
+
     if tit is None:
         tit = []
         if Data.Id.Exp is not None:
@@ -1622,10 +1624,10 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
         dtrig = {'1dprof':[0]} if ii==1 else None
         dax['t'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
     dax['t'][1]['dh']['ttrace'] = [0]
-    for ii in range(0,len(dax['chan'])):
+    for ii in range(0,len(dax['X'])):
         dtrig = {'ttrace':[0]} if ii==0 else None
-        dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
-        dax['chan'][ii]['dh']['1dprof'] = [0]
+        dax['X'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
+        dax['X'][ii]['dh']['1dprof'] = [0]
 
 
     # Plot vessel
@@ -1650,12 +1652,12 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     if ii==0:
         for jj in range(0,len(dax['t'])):
             dax['t'][jj]['xref'] = t
-        for jj in range(0,len(dax['chan'])):
-            dax['chan'][jj]['xref'] = X
+        for jj in range(0,len(dax['X'])):
+            dax['X'][jj]['xref'] = X
         if Bck:
             if Data.ddata['nnX']==1:
                 env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
-                dax['chan'][0]['ax'].fill_between(X[0,:], env[0], env[1], facecolor=cbck)
+                dax['X'][0]['ax'].fill_between(X[0,:], env[0], env[1], facecolor=cbck)
             tbck = np.tile(np.r_[t, np.nan], nX)
             dbck = np.vstack((data, np.full((1,nX),np.nan))).T.ravel()
             dax['t'][0]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
@@ -1670,7 +1672,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
                                            lw=1.)
             lv.append(l0)
             if ll==0:
-                l1, = dax['chan'][0]['ax'].plot(X[0,:],
+                l1, = dax['X'][0]['ax'].plot(X[0,:],
                                                 np.full((nX,),np.nan),
                                                 c=lct[jj], ls=lls[0],
                                                 lw=1.)
@@ -1689,7 +1691,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
         dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
         dax['t'][1]['dh']['vline'][0]['trig'].update(dttxt)
         dax['txtt'][0]['dh'] = dttxt
-    dax['chan'][0]['dh']['1dprof'][ii] = dtg
+    dax['X'][0]['dh']['1dprof'][ii] = dtg
 
     # Adding vline ch
 
@@ -1698,17 +1700,17 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     # Adding mobile profiles
     ll0, ltg1, ltg2 = [], [], []
     for jj in range(0,ntMax):
-        l0, = dax['chan'][0]['ax'].plot(X[0,:],
+        l0, = dax['X'][0]['ax'].plot(X[0,:],
                                         np.full((nX,),np.nan),
                                         c=lct[jj], ls=lls[0],
                                         lw=1.)
         ll0.append(l1)
         for ii in range(0,nfMax):
-            l1, = dax['chan'][1]['ax'].plot(X[0,:],
+            l1, = dax['X'][1]['ax'].plot(X[0,:],
                                             np.full((nX,),np.nan),
                                             c=lct[jj], ls=lls[ii],
                                             lw=1.)
-            l2, = dax['chan'][2]['ax'].plot(X[0,:],
+            l2, = dax['X'][2]['ax'].plot(X[0,:],
                                             np.full((nX,),np.nan),
                                             c=lct[jj], ls=lls[ii],
                                             lw=1.)
@@ -1720,7 +1722,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     # dtg1 = {'xref':t, 'h':ltg1, 'y':psd}
     # dtg2 = {'xref':t, 'h':ltg2, 'y':ang}
     # dax['t'][0]['dh']['vline'][0]['trig']['1dprof'][ii] = dtg1
-    # dax['chan'][0]['dh']['1dprof'][ii] = dtg
+    # dax['X'][0]['dh']['1dprof'][ii] = dtg
 
 
 
@@ -1728,42 +1730,42 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     # Lims and labels
     dax['t'][0]['ax'].set_xlim(Dt)
     dax['t'][0]['ax'].set_ylim(Dd)
-    dax['chan'][0]['ax'].set_xlim(DX)
-    dax['chan'][0]['ax'].set_ylim(Dd)
+    dax['X'][0]['ax'].set_xlim(DX)
+    dax['X'][0]['ax'].set_ylim(Dd)
     dax['t'][-1]['ax'].set_xlabel(tlab, **fldict)
-    dax['chan'][-1]['ax'].set_xlabel(Xlab, **fldict)
+    dax['X'][-1]['ax'].set_xlabel(Xlab, **fldict)
     dax['t'][0]['ax'].set_ylabel(Dlab, **fldict)
     dax['t'][1]['ax'].set_ylabel(flab, **fldict)
     dax['t'][2]['ax'].set_ylabel(flab, **fldict)
-    dax['chan'][0]['ax'].set_ylabel(Dlab, **fldict)
-    dax['chan'][1]['ax'].set_ylabel(psdlab, **fldict)
-    dax['chan'][2]['ax'].set_ylabel(anglab, **fldict)
+    dax['X'][0]['ax'].set_ylabel(Dlab, **fldict)
+    dax['X'][1]['ax'].set_ylabel(psdlab, **fldict)
+    dax['X'][2]['ax'].set_ylabel(anglab, **fldict)
 
 
     # ---------------
     # Interactivity dict
 
-    dgroup = {'time':      {'nMax':ntMax, 'key':'F1'},
-              'channel':   {'nMax':1, 'key':'F2'},
-              'frequency': {'nMax':nfMax, 'key':'F3'}}
+    dgroup = {'time':      {'nMax':ntMax, 'key':'F1', 'def':id(tf)},
+              'channel':   {'nMax':1, 'key':'F2', 'def':id(X)},
+              'frequency': {'nMax':nfMax, 'key':'F3', 'def':id(f)}}
 
-    dref = {id(t):  {'group':'time', 'val':t},
-            id(tf): {'group':'time', 'val':tf, 'def':True},
-            id(X):  {'group':'channel', 'val':X, 'other':t, 'def':True},
-            id(f):  {'group':'frequency', 'val':f, 'def':True}}
+    dref = {id(t):  {'group':'time', 'val':t, 'inc':[1,10]},
+            id(tf): {'group':'time', 'val':tf, 'inc':[1,10]},
+            id(X):  {'group':'channel', 'val':X, 'other':t, 'inc':[1,10]},
+            id(f):  {'group':'frequency', 'val':f, 'inc':[1,10]}}
 
-    dax = {dax['t'][0]: {'x':t},
-           dax['t'][1]: {'x':tf, 'y':f},
-           dax['t'][2]: {'x':tf, 'y':f},
-           dax['X'][0]: {'x1':X},
-           dax['X'][1]: {'x1':X},
-           dax['X'][2]: {'x1':X}}
+    dax = {dax['t'][0]['ax']: {'x':t},
+           dax['t'][1]['ax']: {'x':tf, 'y':f},
+           dax['t'][2]['ax']: {'x':tf, 'y':f},
+           dax['X'][0]['ax']: {'x1':X},
+           dax['X'][1]['ax']: {'x1':X},
+           dax['X'][2]['ax']: {'x1':X}}
 
-    dobj = {l: {'data':None, 'type':'xdata_1d'},
-                'lref':[], 'ln':[0]}
+    dobj = {l: {'data':None, 'type':'xdata_1d',
+                'lref':[], 'ln':[]}}
 
     # Plot mobile parts
-    can = dax['t'][0]['ax'].figure.canvas
+    can = fig.canvas
     can.draw()
     kh = utils.KeyHandler_mpl(can=can,
                               dgroup=dgroup, dref=dref,

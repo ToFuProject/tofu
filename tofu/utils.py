@@ -2103,48 +2103,45 @@ def get_updatefunc(obj, Type=None, data=None, fmt=None):
 
 
 def get_ind_fromval(Type='x', ref=None):
-    assert Type in ['x', 'y', 'x1','2d']
+    assert Type in ['x', 'y', 'x0', 'x1','2d']
 
-    if Type=='x':
-        def func(x=0, y=0, ind0=None, ref=ref):
-            return np.digitize([x], 0.5*(ref[1:]+ref[:-1]))[0]
-    elif Type=='y':
-        def func(x=0, y=0, ind0=None, ref=ref):
-            return np.digitize([y], 0.5*(ref[1:]+ref[:-1]))[0]
+    if Type in ['x','y']:
+        refb = 0.5*(ref[1:]+ref[:-1])
+        def func(val, ind0=None, refb=refb):
+            return np.digitize([val], refb)[0]
     elif Type=='x0':
-        def func(x=0, y=0, ind0=None, ref=ref):
-            return np.digitize([x], 0.5*(ref[1:,ind0]+ref[:-1,ind0]))[0]
+        def func(val, ind0=None, refb=refb):
+            return np.digitize([val], 0.5*(ref[1:,ind0]+ref[:-1,ind0]))[0]
     elif Type=='x1':
-        def func(x=0, y=0, ind0=None, ref=ref):
-            return np.digitize([x], 0.5*(ref[ind0,1:]+ref[ind0,:-1]))[0]
+        def func(val, ind0=None, refb=refb):
+            return np.digitize([val], 0.5*(ref[ind0,1:]+ref[ind0,:-1]))[0]
     elif Type=='2d':
-        def func(x=0, y=0, ind0=None, ref=ref, nx=1, ny=1):
-            indx = np.digitize([x], 0.5*(ref[0][1:]+ref[0][:-1]))[0]
-            indy = np.digitize([y], 0.5*(ref[1][1:]+ref[1][:-1]))[0]
+        def func(val, ind0=None, refb=refb, nx=1, ny=1):
+            indx = np.digitize(val[0], 0.5*(ref[0][1:]+ref[0][:-1]))[0]
+            indy = np.digitize(val[1], 0.5*(ref[1][1:]+ref[1][:-1]))[0]
             ind =  indx*ny + indy
             return ind
     return func
 
-def get_ind_fromkey(Type='1d', dkey=None, ref=None):
-    assert Type in ['x_1d', 'y_1d', 'x_2d1','2d']
-    assert type(dkey) is dict
+def get_ind_fromkey(Type='x', inc=[1,10]):
+    assert Type in ['x', 'y', 'x0', 'x1', '2d']
 
-    if Typ in ['x_1d']:
-        def func(eventkey, ind, ref=ref,
-                 dkey={1:'right', -1:'left', 'inc':10, 'kinc':'alt'}):
-            if dkey[1] in eventkey:
-                inc = 1
-            else:
-                inc = -1
+    if Type in ['x','y','x0','x1']:
+        movkeys = ['left','right'] if 'x' in Type else ['down','up']
+        dkey = {1:movkeys[1], -1:movkeys[0], 'kinc':'alt'}
+        def func(eventkey, ind, inc=inc, dkey=dkey):
+            if not (dkeys[1] in eventkey or dkeys[-1] in eventkeys):
+                return None
             if dkey['kinc'] in eventkey:
-                inc = inc*dkey['inc']
-            ind += inc
+                ii = inc[1] if dkey[1] in eventkey else -inc[1]
+            else:
+                ii = inc[0] if dkey[1] in eventkey else -inc[0]
+            ind += ii
             return ind
     if Type=='2d':
-        def func(eventkey, ind, ref=ref,
-                 dkey={'right':'right', 'left':'left', 'up':'up', 'down':'down',
-                       'inch':10, 'incv':10, 'kinc':'alt'},
-                 nx=None, ny=None):
+        dkey = {'right':'right', 'left':'left', 'up':'up', 'down':'down',
+                'inch':10, 'incv':10, 'kinc':'alt'}
+        def func(eventkey, ind, dkey=dkey, nx=None, ny=None):
             h = dkey['right'] in eventkey or dkey['left'] in eventkey
             big = dkey['kinc'] in eventkey
             pos = dkey['right'] in eventkey or dkey['up'] in eventkey
@@ -2172,18 +2169,29 @@ class KeyHandler_mpl(object):
     """
 
 
-    def __init__(self, dgroup=None, dobj=None):
+    def __init__(self, can=None, dgroup=None, dref=None, dobj=None, dax=None):
+        assert issubclass(can.__class__, mpl.backend_bases.FigureCanvasBase)
+        self.can = can
+        dgroup, dref, dax, dobj = self._checkformat_dgrouprefaxobj(dgroup,
+                                                                   dref, dobj,
+                                                                   dax)
+        self.dgroup = dgroup
+        self.dref = dref
+        self.dax = dax
+        self.dobj = dobj
+        self.dcur = {'refid':None, 'group':None}
+        self.dkeys = self._get_dkeys()
         self.init(dgroup=dgroup, dobj=dobj)
 
 
     @classmethod
-    def _checkformat_dgrouprefobj(cls, dgroup, dref, dobj, dax):
+    def _checkformat_dgrouprefaxobj(cls, dgroup, dref, dobj, dax):
         assert all([type(dd) is dict for dd in [dgroup, dref, dobj, dax]])
 
         #---------------
         # Preliminary checks
 
-        ls = ['nMax','key']
+        ls = ['nMax','key','def']
         for k,v in dgroup.items():
             c0 = type(k) is str
             c1 = type(v) is dict
@@ -2192,6 +2200,7 @@ class KeyHandler_mpl(object):
                 raise Exception(cls._msgdobj)
             assert type(v['nMax']) in [int,np.int64]
             assert type(v['key']) is str
+            assert type(v['def']) is int and v['def'] in dref.keys()
         lg = sorted(list(dgroup.keys()))
         assert len(set(lg))==len(lg)
 
@@ -2206,7 +2215,7 @@ class KeyHandler_mpl(object):
             assert type(v['val']) in [np.ndarray,tuple]
         lrid = sorted(list(dref.keys()))
         lr = [dref[rid]['val'] for rid in lrid]
-        assert len(set(lr))==len(lr)
+        assert len(set(lrid))==len(lrid)
 
         ls = ['x','y','x0','x1','y0','y1','2d']
         for k,v in dax.items():
@@ -2217,11 +2226,11 @@ class KeyHandler_mpl(object):
                 raise Exception(cls._msgdobj)
             assert all([vv in lr for vv in v.values()])
             for kk,vv in v.items():
-                if 'type' not in dref[vv].keys():
-                    dref[vv]['type'] = kk
-                elif kk != dref[vv]['type']:
+                if 'type' not in dref[id(vv)].keys():
+                    dref[id(vv)]['type'] = kk
+                elif kk != dref[id(vv)]['type']:
                     raise Exception(cls._msgdobj)
-        la = sorted(list(dax.keys()))
+        la = list(dax.keys())
         assert len(set(la))==len(la)
 
         ls = ['data','type','lref','ln']
@@ -2231,11 +2240,11 @@ class KeyHandler_mpl(object):
             c2 = any([s in v.keys() for s in ls])
             if not (c0 and c1 and c2):
                 raise Exception(cls._msgdobj)
-            assert all([vv in lr for vv in v.values()])
-            dobj[k]['ax'] = v.axes
+            assert all([vv in lr for vv in v['lref']])
+            dobj[k]['ax'] = k.axes
             assert len(dobj[k]['lref'])==len(dobj[k]['ln'])
             dobj[k]['ln'] = np.asarray(dobj[k]['ln'], dtype=int)
-            assert np.all(dobj[k]['ln']>=0)
+            assert np.all(np.array(dobj[k]['ln'])>=0)
         lo = sorted(list(dobj.keys()))
         assert len(set(lo))==len(lo)
 
@@ -2255,20 +2264,21 @@ class KeyHandler_mpl(object):
                         lla.append(dobj[o]['ax'])
             dgroup[g]['lax'] = lla
             # Check unicity of def ref
-            lC = ['def' in dref[rid].keys() for rid in lridg]
-            if not np.sum(lC)==1:
-                msg = "One ref must be the default for each group !"
-                raise Exception(msg)
-            dgroup[g]['defrefid'] = lridg[lC.index(True)]
+            assert dref[dgroup[g]['def']]['group'] == g
 
         # dref
         for rid in lrid:
             dref[rid]['ind'] = None
-            dref[rid]['val'] = None
+            # Check type of ref
+            if dref[rid]['type'] in ['x0','x1']:
+                if 1 in dref[rid]['val'].shape:
+                    dref[rid]['val'] = dref[rid]['val'].ravel()
+                    dref[rid]['type'] = 'x'
+
             dref[rid]['f_ind_val'] = get_ind_fromval(dref[rid]['type'],
                                                      ref=dref[rid]['val'])
             dref[rid]['f_ind_key'] = get_ind_fromkey(dref[rid]['type'],
-                                                     ref=dref[rid]['val'])
+                                                     inc=dref[rid]['inc'])
             if 'other' in dref[rid].keys():
                 assert dref[rid]['type'] in ['x0','x1','y0','y1']
                 assert dref[rid]['other'] in lrid
@@ -2307,13 +2317,8 @@ class KeyHandler_mpl(object):
 
 
     def init(self, dgroup=None, ngroup=None, dobj=None):
-        dgroup, dref, dax, dobj, dkeys = self._checkformat_dobjgroup(dobj, dgroup)
-        self.dgroup = dgroup
-        self.dref = dref
-        self.dax = dax
-        self.dobj = dobj
-        self.dcur = {'refid':None, 'group':None}
-        self.dkeys = self._get_dkeys()
+        pass
+
 
     def update(self):
         self._update_dcur()
