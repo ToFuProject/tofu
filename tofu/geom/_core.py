@@ -2275,7 +2275,8 @@ class Config(utils.ToFuObject):
         return ind
 
     def plot(self, lax=None, proj='all', element='P', dLeg=_def.TorLegd,
-             indices=False, draw=True, fs=None, wintit=None, tit=None, Test=True):
+             indices=False, Lim=None, Nstep=None,
+             draw=True, fs=None, wintit=None, tit=None, Test=True):
         assert tit is None or isinstance(tit,str)
         vis = self.get_visible()
         lStruct, lS = self.lStruct, []
@@ -2286,6 +2287,7 @@ class Config(utils.ToFuObject):
         if tit is None:
             tit = self.Id.Name
         lax = _plot.Struct_plot(lS, lax=lax, proj=proj, element=element,
+                                Lim=Lim, Nstep=Nstep,
                                 dLeg=dLeg, draw=draw, fs=fs, indices=indices,
                                 wintit=wintit, tit=tit, Test=Test)
         return lax
@@ -2814,7 +2816,8 @@ class Rays(utils.ToFuObject):
             v0 = dgeom['D'][:,1]-dgeom['D'][:,0]
             va = dgeom['D']-dgeom['D'][:,0:1]
             v0 = v0/np.linalg.norm(v0)
-            van = va / np.sqrt(np.sum(va**2,axis=0))[np.newaxis,:]
+            van = np.full(va.shape, np.nan)
+            van[:,1:] = va[:,1:] / np.sqrt(np.sum(va[:,1:]**2,axis=0))[np.newaxis,:]
             vect2 = ((van[1,:]*v0[2]-van[2,:]*v0[1])**2
                      + (van[2,:]*v0[0]-van[0,:]*v0[2])**2
                      + (van[0,:]*v0[1]-van[1,:]*v0[0])**2)
@@ -2928,6 +2931,7 @@ class Rays(utils.ToFuObject):
                         lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
                         RMin=None, Forbid=True, EpsUz=1.e-6, EpsVz=1.e-9,
                         EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
+
         elif self._method=='optimized':
             # Prepare input
             D = np.ascontiguousarray(self.D)
@@ -3032,7 +3036,9 @@ class Rays(utils.ToFuObject):
                 _plot._LOS_calc_InOutPolProj_Debug(self.config,
                                                    self.D[:,ind],
                                                    self.u[:,ind],
-                                                   PIn, POut)
+                                                   PIn, POut,
+                                                   Lim=[np.pi/4.,7.*np.pi/4],
+                                                   Nstep=50)
 
         # Handle particular cases with kIn > kOut
         ind = np.zeros(kIn.shape,dtype=bool)

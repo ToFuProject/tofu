@@ -697,7 +697,8 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
 #       Utility functions
 ############################################
 
-def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3,
+def _LOS_calc_InOutPolProj_Debug(config, Ds, us ,PIns, POuts,
+                                 L=3, Lim=None, Nstep=100,
                                  fs=None, wintit=_wintit, draw=True):
     # Preformat
     assert Ds.shape==us.shape==PIns.shape==POuts.shape
@@ -711,8 +712,8 @@ def _LOS_calc_InOutPolProj_Debug(Ves, Ds, us ,PIns, POuts, L=3,
     l2 = np.array([Ds[2,:], Ps[2,:], np.full((nP,),np.nan)]).T.ravel()
 
     # Plot
-    ax = Ves.plot(element='P', proj='3d', dLeg=None,
-                  fs=fs, wintit=wintit, draw=False)
+    ax = config.plot(element='P', proj='3d', Lim=Lim, Nstep=Nstep, dLeg=None,
+                     fs=fs, wintit=wintit, draw=False)
     ax.set_title('_LOS_calc_InOutPolProj / Debugging')
     ax.plot(l0,l1,l2, c='k', lw=1, ls='-')
     ax.plot(PIns[0,:],PIns[1,:],PIns[2,:], c='b', ls='None', marker='o', label=r"PIn")

@@ -786,11 +786,11 @@ _createCamerr = """ Arg out, specifying the output, must be either:
         - 'pinhole': return the starting points (D), pinhole (P) and the coordinates of D in the camera frame
         """
 
-def _create_CamLOS(nD=1, Name=None, Etendues=None, Surfaces=None,
-                  dchans=None, Exp=None, Diag=None, color=None,
-                  P=None, F=0.1, D12=0.1, N12=100, method=None,
-                  angs=[-np.pi,0.,0.], nIn=None, VType='Tor',
-                  defRY=None, Lim=None, config=None, out=object):
+def _create_CamLOS(case='V10000', nD=1, Name=None, Etendues=None, Surfaces=None,
+                   dchans=None, Exp=None, Diag=None, color=None,
+                   P=None, F=0.1, D12=0.1, N12=100, method=None,
+                   angs=[-np.pi,0.,0.], nIn=None, VType='Tor',
+                   defRY=None, Lim=None, config=None, out=object):
     assert nD in [1,2]
     if not out in [object,'object','Du','dict',dict]:
         msg = _createCamerr.format('1')
