@@ -1715,12 +1715,12 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
             ltg1.append(l1)
             ltg2.append(l2)
 
-            l1.update = utils.get_update(Type='y_const', par=y)
+            #l1.update = utils.get_update(Type='y_const', par=y)
 
-    dtg1 = {'xref':t, 'h':ltg1, 'y':psd}
-    dtg2 = {'xref':t, 'h':ltg2, 'y':ang}
-    dax['t'][0]['dh']['vline'][0]['trig']['1dprof'][ii] = dtg1
-    dax['chan'][0]['dh']['1dprof'][ii] = dtg
+    # dtg1 = {'xref':t, 'h':ltg1, 'y':psd}
+    # dtg2 = {'xref':t, 'h':ltg2, 'y':ang}
+    # dax['t'][0]['dh']['vline'][0]['trig']['1dprof'][ii] = dtg1
+    # dax['chan'][0]['dh']['1dprof'][ii] = dtg
 
 
 
@@ -1747,10 +1747,10 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
               'channel':   {'nMax':1, 'key':'F2'},
               'frequency': {'nMax':nfMax, 'key':'F3'}}
 
-    dref = {t:  {'group':'time'},
-            tf: {'group':'time', 'def':True},
-            X:  {'group':'channel', 'other':t, 'def':True},
-            f:  {'group':'frequency', 'def':True}}
+    dref = {id(t):  {'group':'time', 'val':t},
+            id(tf): {'group':'time', 'val':tf, 'def':True},
+            id(X):  {'group':'channel', 'val':X, 'other':t, 'def':True},
+            id(f):  {'group':'frequency', 'val':f, 'def':True}}
 
     dax = {dax['t'][0]: {'x':t},
            dax['t'][1]: {'x':tf, 'y':f},

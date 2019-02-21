@@ -2195,15 +2195,17 @@ class KeyHandler_mpl(object):
         lg = sorted(list(dgroup.keys()))
         assert len(set(lg))==len(lg)
 
-        ls = ['group']
+        ls = ['group','val']
         for k,v in dref.items():
-            c0 = type(k) in (np.ndarray,tuple)
+            c0 = type(k) is int
             c1 = type(v) is dict
             c2 = all([s in v.keys() for s in ls])
             if not (c0 and c1 and c2):
                 raise Exception(cls._msgdobj)
             assert v['group'] in lg
-        lr = sorted(list(dref.keys()))
+            assert type(v['val']) in [np.ndarray,tuple]
+        lrid = sorted(list(dref.keys()))
+        lr = [dref[rid]['val'] for rid in lrid]
         assert len(set(lr))==len(lr)
 
         ls = ['x','y','x0','x1','y0','y1','2d']
@@ -2241,47 +2243,66 @@ class KeyHandler_mpl(object):
         # Complement
 
         for g in lg:
-            lrg = [r for r in lref if dref[r]['group']==g]
-            dgroup[g]['lref'] = lrg
+            dgroup[g]['ncur'] = 0
+            lridg = [rid for rid in lrid if dref[rid]['group']==g]
+            dgroup[g]['lrefid'] = lridg
             # To catch cross-dependencies:
             # All axes of all objects with a group dependency
             lla = []
             for o in lo:
-                if any([dref[r]['group']==g for r in dobj[o]['lref']]):
+                if any([dref[id(r)]['group']==g for r in dobj[o]['lref']]):
                     if dobj[o]['ax'] not in lla:
                         lla.append(dobj[o]['ax'])
             dgroup[g]['lax'] = lla
             # Check unicity of def ref
-            lC = ['def' in dref[r].keys() for r in lrg]
+            lC = ['def' in dref[rid].keys() for rid in lridg]
             if not np.sum(lC)==1:
                 msg = "One ref must be the default for each group !"
                 raise Exception(msg)
-            dgroup[g]['def'] = lrg[lC.index(True)]
+            dgroup[g]['defrefid'] = lridg[lC.index(True)]
 
-        for r in lr:
-            dref[r]['ind'] = None
-            dref[r]['val'] = None
-            dref[r]['f_ind_val'] = get_ind_fromval(dref[r]['type'], ref=r)
-            dref[r]['f_ind_key'] = get_ind_fromkey(dref[r]['type'], ref=r)
-            if 'other' in dref[r].keys():
-                assert dref[r]['type'] in ['x0','x1','y0','y1']
-                assert dref[r]['other'] in lr # and 1d ?
+        # dref
+        for rid in lrid:
+            dref[rid]['ind'] = None
+            dref[rid]['val'] = None
+            dref[rid]['f_ind_val'] = get_ind_fromval(dref[rid]['type'],
+                                                     ref=dref[rid]['val'])
+            dref[rid]['f_ind_key'] = get_ind_fromkey(dref[rid]['type'],
+                                                     ref=dref[rid]['val'])
+            if 'other' in dref[rid].keys():
+                assert dref[rid]['type'] in ['x0','x1','y0','y1']
+                assert dref[rid]['other'] in lrid
+                # Re-check relevance later:
+                assert dref[rid]['other'].ndim == 1
             else:
-                assert dref[r]['type'] in ['x','y','2d']
-                dref[r]['other'] = None
+                assert dref[rid]['type'] in ['x','y','2d']
+                dref[rid]['other'] = None
+            # lobj
+            lobj = [oo for oo in dobj.keys()
+                    if rid in list(map(id,dobj[oo]['lref']))]
+            dref[rid]['lobj'] = lobj
 
+        # dobj
         for oo in dobj.keys():
-            if all([dobj[oo]['ln']]==0):
-                dobj[oo]['vis'] = True
-            else:
-                dobj[oo]['vis'] = False
+            dobj[oo]['vis'] = False
+            an = np.zeros((2,len(dobj[oo]['lref'])),dtype=int)
+            an[0,:] = dobj[oo]['ln']
+            an[1,:] = 1
+            dobj[oo]['an'] = an
+            lnMax = [dgroup[dref[id(r)]['group']]['nMax'] for r in dobj['lref']]
+            if np.any(an[0,:]>lnMax):
+                msg = "Issue with dobj[{0}]\n".format(oo)
+                msg += "Some values in lref exceed their nMax:\n"
+                msg += "    ln  : %s\n"%str(dobj[oo]['ln'])
+                msg += "    nMax: %s\n"%str(lnMax)
+                raise Exception(msg)
 
         return dgroup, dref, dax, dobj
 
 
     def _get_dkeys(self):
         dkeys = {'generic': {'shift': False, 'ctrl':False, 'alt':False},
-                 'group':dict([(v,k) for k,v in self.dgroup.items()])}
+                 'group':dict([(v['key'],k) for k,v in self.dgroup.items()])}
         return dkeys
 
 
@@ -2291,7 +2312,7 @@ class KeyHandler_mpl(object):
         self.dref = dref
         self.dax = dax
         self.dobj = dobj
-        self.dcur = {'ref':None, 'group':None}
+        self.dcur = {'refid':None, 'group':None}
         self.dkeys = self._get_dkeys()
 
     def update(self):
@@ -2300,44 +2321,49 @@ class KeyHandler_mpl(object):
         self._update_dobj()
 
     def _update_dcur(self):
-        assert self.dref[self.dcur['ref']] == self.dcur['group']
+        assert self.dref[self.dcur['refid']]['group'] == self.dcur['group']
+        for obj in self.dobj.keys():
+            an = [self.dgroup[self.dref[r]['group']]['ncur']
+                  for r in self.dobj[obj]['lref']]
+            self.dobj[obj]['an'][1,:] = an
 
     def _update_dref(self):
         group = self.dcur['group']
-        lr = self.dgroup[group]['lref']
+        lrid = self.dgroup[group]['lrefid']
         if len(lr)>1:
-            lr.remove(self.dcur['ref'])
-            val = self.dref[self.dcur['ref']]['val']
-            for r in lr:
-                if self.dref[r]['other'] is None:
+            lrid.remove(self.dcur['refid'])
+            val = self.dgroup[group]['val']
+            for rid in lrid:
+                if self.dref[rid]['other'] is None:
                     indother = None
                 else:
-                    indother = self.dref[self.dref[r]['other']]['ind']
-                ind = self.dref[r]['ind_from_val'](val, indother)
-                self.dref[r]['ind'] = ind
+                    indother = self.dref[id(self.dref[rid]['other'])]['ind']
+                ind = self.dref[rid]['ind_from_val'](val, indother)
+                self.dref[rid]['ind'] = ind
 
 
     def _update_dobj(self):
 
         group = self.dcur['group']
-        ref = self.dcur['ref']
-        n = self.dgroup[group]['n']
+        refid = self.dcur['refid']
+        ncur = self.dgroup[group]['ncur']
         lax = self.dgroup[group]['lax']
 
         # ---- Restore backgrounds ------
         for aa in lax:
-            # TBF
+            # TBF : implement Bck
             self.can.restore_region(self.dax[aa]['Bck'])
 
         # ---- update data and draw objects ------
-        lref = list(self.dgroup[group]['lref'])
-        for r in lref:
-            for obj in self.dref['lobj']:
-                lind = [self.dref[rr]['ind'] for rr in self.dobj[oo]['lref']]
+        lrefid = list(self.dgroup[group]['lrefid'])
+        for rid in lrefid:
+            for obj in self.dref[rid]['lobj']:  # To do (lobj)
+                lind = [self.dref[id(rr)]['ind'] for rr in self.dobj[obj]['lref']]
                 self.dobj[obj]['update'](*lind)
-                self.dobj[obj]['vis'] = self.dobj[obj]['n'] <= n
+                vis = np.all(np.diff(self.dobj[obj]['an'][1,:],axis=0) >= 0)
+                self.dobj[obj]['vis'] = vis
 
-                obj.set_visible(self.dobj[obj]['vis'])
+                obj.set_visible(vis)
                 self.dobj[obj]['ax'].draw_artist(obj)
 
         # ---- blit axes ------
