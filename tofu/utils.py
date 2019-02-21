@@ -6,6 +6,7 @@ import collections
 from abc import ABCMeta, abstractmethod
 import getpass
 import subprocess
+import itertools as itt
 
 # Common
 import numpy as np
@@ -2110,13 +2111,13 @@ def get_ind_fromval(Type='x', ref=None):
         def func(val, ind0=None, refb=refb):
             return np.digitize([val], refb)[0]
     elif Type=='x0':
-        def func(val, ind0=None, refb=refb):
+        def func(val, ind0=None, ref=ref):
             return np.digitize([val], 0.5*(ref[1:,ind0]+ref[:-1,ind0]))[0]
     elif Type=='x1':
-        def func(val, ind0=None, refb=refb):
+        def func(val, ind0=None, ref=ref):
             return np.digitize([val], 0.5*(ref[ind0,1:]+ref[ind0,:-1]))[0]
     elif Type=='2d':
-        def func(val, ind0=None, refb=refb, nx=1, ny=1):
+        def func(val, ind0=None, ref=ref, nx=1, ny=1):
             indx = np.digitize(val[0], 0.5*(ref[0][1:]+ref[0][:-1]))[0]
             indy = np.digitize(val[1], 0.5*(ref[1][1:]+ref[1][:-1]))[0]
             ind =  indx*ny + indy
@@ -2178,11 +2179,26 @@ class KeyHandler_mpl(object):
         self.dgroup = dgroup
         self.dref = dref
         self.dax = dax
+        self.lax = itt.chain.from_iterable([gg['lax'] for gg in dgroup.values()])
         self.dobj = dobj
         self.dcur = {'refid':None, 'group':None}
         self.dkeys = self._get_dkeys()
+        self.lkeys = itt.chain.from_iterable([list(v.keys())
+                                              for v in dkeys.values()])
         self.init(dgroup=dgroup, dobj=dobj)
+        self.isinteractive = hasattr(can,'toolbar') and can.toolbar is not None
+        self._errinter = self._errinter.format(plt.get_backend(),
+                                               can.__class__.__name__)
 
+    def _warn_ifnotInteractive(self):
+        warn = False
+        if not self.isinteractive:
+            msg = "Not interactive:\n"
+            msg += "    - backend : %s   (prefer Qt5Agg)"%plt.get_backend()
+            msg += "    - canvas  : %s"%self.can.__class__.__name__
+            warnings.warn(msg)
+            warn = True
+        return warn
 
     @classmethod
     def _checkformat_dgrouprefaxobj(cls, dgroup, dref, dobj, dax):
@@ -2269,19 +2285,14 @@ class KeyHandler_mpl(object):
         # dref
         for rid in lrid:
             dref[rid]['ind'] = None
-            # Check type of ref
-            if dref[rid]['type'] in ['x0','x1']:
-                if 1 in dref[rid]['val'].shape:
-                    dref[rid]['val'] = dref[rid]['val'].ravel()
-                    dref[rid]['type'] = 'x'
-
             dref[rid]['f_ind_val'] = get_ind_fromval(dref[rid]['type'],
                                                      ref=dref[rid]['val'])
             dref[rid]['f_ind_key'] = get_ind_fromkey(dref[rid]['type'],
                                                      inc=dref[rid]['inc'])
-            if 'other' in dref[rid].keys():
+
+            if 'other' in dref[rid].keys() and dref[rid]['other'] is not None:
                 assert dref[rid]['type'] in ['x0','x1','y0','y1']
-                assert dref[rid]['other'] in lrid
+                assert id(dref[rid]['other']) in lrid
                 # Re-check relevance later:
                 assert dref[rid]['other'].ndim == 1
             else:
@@ -2299,7 +2310,7 @@ class KeyHandler_mpl(object):
             an[0,:] = dobj[oo]['ln']
             an[1,:] = 1
             dobj[oo]['an'] = an
-            lnMax = [dgroup[dref[id(r)]['group']]['nMax'] for r in dobj['lref']]
+            lnMax = [dgroup[dref[id(r)]['group']]['nMax'] for r in dobj[oo]['lref']]
             if np.any(an[0,:]>lnMax):
                 msg = "Issue with dobj[{0}]\n".format(oo)
                 msg += "Some values in lref exceed their nMax:\n"
@@ -2312,8 +2323,83 @@ class KeyHandler_mpl(object):
 
     def _get_dkeys(self):
         dkeys = {'generic': {'shift': False, 'ctrl':False, 'alt':False},
-                 'group':dict([(v['key'],k) for k,v in self.dgroup.items()])}
+                 'group':dict([(v['key'],k) for k,v in self.dgroup.items()]),
+                 'move':{'left':None, 'right':None, 'up':None,
+                         'bottom':None, 'pageup':None, 'pagedown':None}} # TBF
         return dkeys
+
+    def disconnect_old(self, force=False):
+        if self._warn_ifnotInteractive():
+            return
+        if force:
+            self.can.mpl_disconnect(self.can.manager.key_press_handler_id)
+        else:
+            lk = [kk for kk in list(plt.rcParams.keys()) if 'keymap' in kk]
+            self.store_rcParams = {}
+            for kd in self.lkeys:
+                self.store_rcParams[kd] = []
+                for kk in lk:
+                    if kd in plt.rcParams[kk]:
+                        self.store_rcParams[kd].append(kk)
+                        plt.rcParams[kk].remove(kd)
+        self.can.mpl_disconnect(self.can.button_pick_id)
+
+    def reconnect_old(self):
+        if self._warn_ifnotInteractive():
+            return
+        if self.store_rcParams is not None:
+            for kd in self.store_rcParams.keys():
+                for kk in self.store_rcParams[kk]:
+                    if kd not in plt.rcParams[kk]:
+                        plt.rcParams[kk].append(kd)
+
+    def connect(self):
+        if self._warn_ifnotInteractive():
+            return
+        keyp = self.can.mpl_connect('key_press_event', self.onkeypress)
+        keyr = self.can.mpl_connect('key_release_event', self.onkeypress)
+        butp = self.can.mpl_connect('button_press_event', self.mouseclic)
+        res = self.can.mpl_connect('resize_event', self.resize)
+        #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
+        #if not plt.get_backend() == "agg":
+        self.can.manager.toolbar.release = self.mouserelease
+
+        self._cid = {'keyp':keyp, 'keyr':keyr,
+                     'butp':butp, 'res':res}#, 'butr':butr}
+
+    def disconnect(self):
+        if self._warn_ifnotInteractive():
+            return
+        for kk in self._cid.keys():
+            self.can.mpl_disconnect(self._cid[kk])
+        self.can.manager.toolbar.release = lambda event: None
+
+
+    def resize(self, event):
+        self._set_dBck(self.lax)
+
+    def _set_dBck(self, lax):
+        # Make all invisible
+        for ax in lax:
+            for oo in self.dax[aa]['lobj']:
+                oo.set_visible(False)
+
+        # Draw and reset Bck
+        self.can.draw()
+        for ax in lax:
+            #ax.draw(self.can.renderer)
+            self.dax[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
+
+        # Redraw - -TBF
+        for ax in lax:
+            if self.daxr[ax]['dh'] is not None:
+                for typ in self.daxr[ax]['dh']:
+                    for ii in range(0,len(self.daxr[ax]['dh'][typ])):
+                        for hh in self.daxr[ax]['dh'][typ][ii]['h']:
+                            hh.set_visible(self.dh[hh]['vis'])
+                #ax.draw(self.can.renderer)
+        self.can.draw()
+
 
 
     def init(self, dgroup=None, ngroup=None, dobj=None):

@@ -1745,21 +1745,29 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     # ---------------
     # Interactivity dict
 
+    if Data.ddata['nnX'] == 1:
+        X = X.ravel()
+        Xtype = 'x'
+        Xother = None
+    else:
+        xtype = 'x1'
+        Xother = t
+
     dgroup = {'time':      {'nMax':ntMax, 'key':'F1', 'def':id(tf)},
               'channel':   {'nMax':1, 'key':'F2', 'def':id(X)},
               'frequency': {'nMax':nfMax, 'key':'F3', 'def':id(f)}}
 
     dref = {id(t):  {'group':'time', 'val':t, 'inc':[1,10]},
             id(tf): {'group':'time', 'val':tf, 'inc':[1,10]},
-            id(X):  {'group':'channel', 'val':X, 'other':t, 'inc':[1,10]},
+            id(X):  {'group':'channel', 'val':X, 'other':Xother, 'inc':[1,10]},
             id(f):  {'group':'frequency', 'val':f, 'inc':[1,10]}}
 
     dax = {dax['t'][0]['ax']: {'x':t},
            dax['t'][1]['ax']: {'x':tf, 'y':f},
            dax['t'][2]['ax']: {'x':tf, 'y':f},
-           dax['X'][0]['ax']: {'x1':X},
-           dax['X'][1]['ax']: {'x1':X},
-           dax['X'][2]['ax']: {'x1':X}}
+           dax['X'][0]['ax']: {xtype:X},
+           dax['X'][1]['ax']: {xtype:X},
+           dax['X'][2]['ax']: {xtype:X}}
 
     dobj = {l: {'data':None, 'type':'xdata_1d',
                 'lref':[], 'ln':[]}}
