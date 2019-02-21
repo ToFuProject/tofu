@@ -787,8 +787,8 @@ _createCamerr = """ Arg out, specifying the output, must be either:
         """
 
 def _create_CamLOS(nD=1, Name=None, Etendues=None, Surfaces=None,
-                  dchans=None, Diag=None, color=None,
-                  P=None, F=0.1, D12=0.1, N12=100,
+                  dchans=None, Exp=None, Diag=None, color=None,
+                  P=None, F=0.1, D12=0.1, N12=100, method=None,
                   angs=[-np.pi,0.,0.], nIn=None, VType='Tor',
                   defRY=None, Lim=None, config=None, out=object):
     assert nD in [1,2]
@@ -825,11 +825,10 @@ def _create_CamLOS(nD=1, Name=None, Etendues=None, Surfaces=None,
 
     else:
         cls = eval('_core.CamLOS{0:01.0f}D'.format(nD))
-        cam = cls(Name=Name, Diag=Diag,
-                  dgeom={'pinhole':P, 'D':Ds},
+        cam = cls(Name=Name, Exp=Exp, Diag=Diag,
+                  dgeom={'pinhole':P, 'D':Ds}, method=method,
                   Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
                   color=color, config=config)
-    # Set X12 ?
         return cam
 
 
