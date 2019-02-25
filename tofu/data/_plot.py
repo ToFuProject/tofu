@@ -1747,11 +1747,11 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
 
     if Data.ddata['nnX'] == 1:
         X = X.ravel()
-        Xtype = 'x'
-        Xother = None
+        xtype = 'x'
+        xother = None
     else:
         xtype = 'x1'
-        Xother = t
+        xother = t
 
     dgroup = {'time':      {'nMax':ntMax, 'key':'F1', 'def':id(tf)},
               'channel':   {'nMax':1, 'key':'F2', 'def':id(X)},
@@ -1759,7 +1759,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
 
     dref = {id(t):  {'group':'time', 'val':t, 'inc':[1,10]},
             id(tf): {'group':'time', 'val':tf, 'inc':[1,10]},
-            id(X):  {'group':'channel', 'val':X, 'other':Xother, 'inc':[1,10]},
+            id(X):  {'group':'channel', 'val':X, 'other':xother, 'inc':[1,10]},
             id(f):  {'group':'frequency', 'val':f, 'inc':[1,10]}}
 
     dax = {dax['t'][0]['ax']: {'x':t},
@@ -1768,16 +1768,18 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
            dax['X'][0]['ax']: {xtype:X},
            dax['X'][1]['ax']: {xtype:X},
            dax['X'][2]['ax']: {xtype:X}}
+    lax_fix = []
+
 
     dobj = {l: {'data':None, 'type':'xdata_1d',
-                'lref':[], 'ln':[]}}
+                'lref':[], 'lind':[]}}
 
     # Plot mobile parts
     can = fig.canvas
     can.draw()
     kh = utils.KeyHandler_mpl(can=can,
                               dgroup=dgroup, dref=dref,
-                              dobj=dobj, dax=dax)
+                              dobj=dobj, dax=dax, lax_fix=lax_fix)
 
     if connect and False:
         kh.disconnect_old()

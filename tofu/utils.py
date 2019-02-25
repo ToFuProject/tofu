@@ -2108,14 +2108,18 @@ def get_ind_fromval(Type='x', ref=None):
 
     if Type in ['x','y']:
         refb = 0.5*(ref[1:]+ref[:-1])
-        def func(val, ind0=None, refb=refb):
-            return np.digitize([val], refb)[0]
+        if Type == 'x':
+            def func(val, ind0=None, refb=refb):
+                return np.digitize([val[0]], refb)[0]
+        else:
+            def func(val, ind0=None, refb=refb):
+                return np.digitize([val[1]], refb)[0]
     elif Type=='x0':
         def func(val, ind0=None, ref=ref):
-            return np.digitize([val], 0.5*(ref[1:,ind0]+ref[:-1,ind0]))[0]
+            return np.digitize([val[0]], 0.5*(ref[1:,ind0]+ref[:-1,ind0]))[0]
     elif Type=='x1':
         def func(val, ind0=None, ref=ref):
-            return np.digitize([val], 0.5*(ref[ind0,1:]+ref[ind0,:-1]))[0]
+            return np.digitize([val[0]], 0.5*(ref[ind0,1:]+ref[ind0,:-1]))[0]
     elif Type=='2d':
         def func(val, ind0=None, ref=ref, nx=1, ny=1):
             indx = np.digitize(val[0], 0.5*(ref[0][1:]+ref[0][:-1]))[0]
@@ -2165,12 +2169,13 @@ class KeyHandler_mpl(object):
     For each object oo, dobj[oo] is itself a dict with (key,value) pairs:
         - 'ref'   : a 1D flat np.ndarray, used as reference
         - 'lgroup': list of int, indicating to which groups of indices oo belongs
-        - 'ln'    : list of int, indicating the index of oo in each group (unique)
+        - 'lind'  : list of int, indicating the index of oo in each group
         - 'update': a callable (function), to be called when updating
     """
 
 
-    def __init__(self, can=None, dgroup=None, dref=None, dobj=None, dax=None):
+    def __init__(self, can=None, dgroup=None, dref=None, dobj=None, dax=None,
+                 lax_fix=[]):
         assert issubclass(can.__class__, mpl.backend_bases.FigureCanvasBase)
         self.can = can
         dgroup, dref, dax, dobj = self._checkformat_dgrouprefaxobj(dgroup,
@@ -2179,16 +2184,16 @@ class KeyHandler_mpl(object):
         self.dgroup = dgroup
         self.dref = dref
         self.dax = dax
-        self.lax = itt.chain.from_iterable([gg['lax'] for gg in dgroup.values()])
+        self.dax.update(dict([(ax,{'fix':None}) for ax in lax_fix]))
         self.dobj = dobj
-        self.dcur = {'refid':None, 'group':None}
+        self.dcur = {'refid':None, 'group':None, 'ax':None}
         self.dkeys = self._get_dkeys()
-        self.lkeys = itt.chain.from_iterable([list(v.keys())
-                                              for v in dkeys.values()])
+        self.lkeys = [k for k in self.dkeys()
+                      if not k in ['lmove','lgeneric','lgroup']]
         self.init(dgroup=dgroup, dobj=dobj)
         self.isinteractive = hasattr(can,'toolbar') and can.toolbar is not None
-        self._errinter = self._errinter.format(plt.get_backend(),
-                                               can.__class__.__name__)
+
+        self._set_dBck(self.dax.keys())
 
     def _warn_ifnotInteractive(self):
         warn = False
@@ -2233,23 +2238,25 @@ class KeyHandler_mpl(object):
         lr = [dref[rid]['val'] for rid in lrid]
         assert len(set(lrid))==len(lrid)
 
-        ls = ['x','y','x0','x1','y0','y1','2d']
+        ls = ['x','y','x0','x1','y0','y1','2d', 'fix']
         for k,v in dax.items():
             c0 = issubclass(k.__class__, mpl.axes.Axes)
             c1 = type(v) is dict
             c2 = any([s in v.keys() for s in ls])
             if not (c0 and c1 and c2):
                 raise Exception(cls._msgdobj)
-            assert all([vv in lr for vv in v.values()])
+            if 'fix' not in v.keys():
+                assert all([vv in lr for vv in v.values()])
             for kk,vv in v.items():
-                if 'type' not in dref[id(vv)].keys():
-                    dref[id(vv)]['type'] = kk
-                elif kk != dref[id(vv)]['type']:
-                    raise Exception(cls._msgdobj)
+                if kk != 'fix':
+                    if 'type' not in dref[id(vv)].keys():
+                        dref[id(vv)]['type'] = kk
+                    elif kk != dref[id(vv)]['type']:
+                        raise Exception(cls._msgdobj)
         la = list(dax.keys())
         assert len(set(la))==len(la)
 
-        ls = ['data','type','lref','ln']
+        ls = ['data','type','lref','lind']
         for k,v in dobj.items():
             c0 = issubclass(k.__class__, mpl.artist.Artist)
             c1 = type(v) is dict
@@ -2258,17 +2265,18 @@ class KeyHandler_mpl(object):
                 raise Exception(cls._msgdobj)
             assert all([vv in lr for vv in v['lref']])
             dobj[k]['ax'] = k.axes
-            assert len(dobj[k]['lref'])==len(dobj[k]['ln'])
-            dobj[k]['ln'] = np.asarray(dobj[k]['ln'], dtype=int)
-            assert np.all(np.array(dobj[k]['ln'])>=0)
+            assert len(dobj[k]['lref'])==len(dobj[k]['lind'])
+            dobj[k]['lind'] = np.asarray(dobj[k]['lind'], dtype=int)
+            assert np.all(np.array(dobj[k]['lind'])>=0)
         lo = sorted(list(dobj.keys()))
         assert len(set(lo))==len(lo)
 
         #---------------
         # Complement
 
+        # dgroup
         for g in lg:
-            dgroup[g]['ncur'] = 0
+            dgroup[g]['indcur'] = 0
             lridg = [rid for rid in lrid if dref[rid]['group']==g]
             dgroup[g]['lrefid'] = lridg
             # To catch cross-dependencies:
@@ -2303,29 +2311,45 @@ class KeyHandler_mpl(object):
                     if rid in list(map(id,dobj[oo]['lref']))]
             dref[rid]['lobj'] = lobj
 
+        # dax
+        for ax in dax.keys():
+            lobj = [obj for obj in dobj.keys() if dobj[obj]['ax'] is ax]
+            dax[ax]['lobj'] = lobj
+
         # dobj
         for oo in dobj.keys():
             dobj[oo]['vis'] = False
             an = np.zeros((2,len(dobj[oo]['lref'])),dtype=int)
-            an[0,:] = dobj[oo]['ln']
-            an[1,:] = 1
+            an[0,:] = dobj[oo]['lind']
+            an[1,:] = 0
             dobj[oo]['an'] = an
             lnMax = [dgroup[dref[id(r)]['group']]['nMax'] for r in dobj[oo]['lref']]
-            if np.any(an[0,:]>lnMax):
+            if np.any(an[0,:] >= lnMax):
                 msg = "Issue with dobj[{0}]\n".format(oo)
-                msg += "Some values in lref exceed their nMax:\n"
-                msg += "    ln  : %s\n"%str(dobj[oo]['ln'])
-                msg += "    nMax: %s\n"%str(lnMax)
+                msg += "All indices in lind should be < nMax:\n"
+                msg += "    lind : %s\n"%str(dobj[oo]['lind'])
+                msg += "    nMax : %s\n"%str(lnMax)
                 raise Exception(msg)
 
         return dgroup, dref, dax, dobj
 
 
     def _get_dkeys(self):
-        dkeys = {'generic': {'shift': False, 'ctrl':False, 'alt':False},
-                 'group':dict([(v['key'],k) for k,v in self.dgroup.items()]),
-                 'move':{'left':None, 'right':None, 'up':None,
-                         'bottom':None, 'pageup':None, 'pagedown':None}} # TBF
+        # dkeys = {'generic': {'shift': False, 'ctrl':False, 'alt':False},
+                 # 'group':dict([(v['key'],k) for k,v in self.dgroup.items()]),
+                 # 'move':{'left':None, 'right':None, 'up':None,
+                         # 'bottom':None, 'pageup':None, 'pagedown':None}} # TBF
+        dkeys = {'shift':{'val':False, 'action':'generic'},
+                 'ctrl':{'val':False, 'action':'generic'},
+                 'alt':{'val':False, 'action':'generic'},
+                 'left':{'val':False, 'action':'move'},
+                 'right':{'val':False, 'action':'move'},
+                 'up':{'val':False, 'action':'move'},
+                 'down':{'val':False, 'action':'move'},
+                 'pageup':{'val':False, 'action':'move'},
+                 'pagedown':{'val':False, 'action':'move'}}
+        dkeys.update(dict([(v['key'],{'group':k, 'val':False, 'action':'group'})
+                           for k,v in self.dgroup.items()]))
         return dkeys
 
     def disconnect_old(self, force=False):
@@ -2381,8 +2405,8 @@ class KeyHandler_mpl(object):
     def _set_dBck(self, lax):
         # Make all invisible
         for ax in lax:
-            for oo in self.dax[aa]['lobj']:
-                oo.set_visible(False)
+            for obj in self.dax[ax]['lobj']:
+                obj.set_visible(False)
 
         # Draw and reset Bck
         self.can.draw()
@@ -2390,41 +2414,45 @@ class KeyHandler_mpl(object):
             #ax.draw(self.can.renderer)
             self.dax[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
 
-        # Redraw - -TBF
+        # Redraw
         for ax in lax:
-            if self.daxr[ax]['dh'] is not None:
-                for typ in self.daxr[ax]['dh']:
-                    for ii in range(0,len(self.daxr[ax]['dh'][typ])):
-                        for hh in self.daxr[ax]['dh'][typ][ii]['h']:
-                            hh.set_visible(self.dh[hh]['vis'])
+            for obj in self.dax[ax]['lobj']:
+                obj.set_visible(self.dobj[obj]['vis'])
                 #ax.draw(self.can.renderer)
         self.can.draw()
-
 
 
     def init(self, dgroup=None, ngroup=None, dobj=None):
         pass
 
 
-    def update(self):
+    def update(self, excluderef=True):
         self._update_dcur()
-        self._update_dref()
+        self._update_dref(excluderef=excluderef)
         self._update_dobj()
 
     def _update_dcur(self):
         assert self.dref[self.dcur['refid']]['group'] == self.dcur['group']
         for obj in self.dobj.keys():
-            an = [self.dgroup[self.dref[r]['group']]['ncur']
+            an = [self.dgroup[self.dref[r]['group']]['indcur']
                   for r in self.dobj[obj]['lref']]
             self.dobj[obj]['an'][1,:] = an
 
-    def _update_dref(self):
+    def _update_dref(self, excluderef=True):
         group = self.dcur['group']
-        lrid = self.dgroup[group]['lrefid']
-        if len(lr)>1:
-            lrid.remove(self.dcur['refid'])
-            val = self.dgroup[group]['val']
-            for rid in lrid:
+        val = self.dgroup[group]['val']
+        if excluderef and len(self.dgroup[group]['lrefid'])>1:
+            for rid in self.dgroup[group]['lrefid']:
+                if rid == self.dcur['refid']:
+                    continue
+                if self.dref[rid]['other'] is None:
+                    indother = None
+                else:
+                    indother = self.dref[id(self.dref[rid]['other'])]['ind']
+                ind = self.dref[rid]['f_ind_val'](val, indother)
+                self.dref[rid]['ind'] = ind
+        else:
+            for rid in self.dgroup[group]['lrefid']:
                 if self.dref[rid]['other'] is None:
                     indother = None
                 else:
@@ -2437,12 +2465,11 @@ class KeyHandler_mpl(object):
 
         group = self.dcur['group']
         refid = self.dcur['refid']
-        ncur = self.dgroup[group]['ncur']
+        indcur = self.dgroup[group]['indcur']
         lax = self.dgroup[group]['lax']
 
         # ---- Restore backgrounds ------
         for aa in lax:
-            # TBF : implement Bck
             self.can.restore_region(self.dax[aa]['Bck'])
 
         # ---- update data and draw objects ------
@@ -2460,3 +2487,58 @@ class KeyHandler_mpl(object):
         # ---- blit axes ------
         for aa in lax:
             self.can.blit(aa.bbox)
+
+
+    def mouseclic(self,event):
+
+        # Check click is relevant
+        C0 = event.inaxes is not None and event.button == 1
+        if not C0:
+            return
+
+        self.curax_panzoom = event.inaxes
+
+        # Check axes is relevant and toolbar not active
+        c_activeax = 'fix' not in self.dax[event.inaxes].keys()
+        c_toolbar = self.can.manager.toolbar._active in [None,False]
+        if not all([c_activeax,c_toolbar]):
+            return
+
+        # Set self.dcur
+        self.dcur['ax'] = event.inaxes
+        if len(self.dax[event.inaxes]['lrefid'])>1:
+            lrefid = [refid for refid in self.dax[event.inaxes]['lrefid']
+                      if self.dref[refid]['group']==self.dcur['group']]
+            assert len(lrefid)==1
+            self.dcur['refid'] = lrefid[0]
+        else:
+            self.dcur['refid'] = id(self.dax[event.inaxes]['lref'][0])
+            self.dcur['group'] = self.dref[self.dcur['refid']]['group']
+
+        group = self.dcur['group']
+        ax = self.dcur['ax']
+        refid = self.dcur['refid']
+
+        # Check max number of occurences not reached if shift
+        c0 = (self.dkey['shift']['val']
+              and self.dgroup[group]['indcur'] == self.dgroup[group]['nMax']-1)
+        if c0:
+            msg = "Max nb. of plots reached ({1}) for group {2}"
+            msg  = msg.format(self.dgroup[group]['nMax'], group)
+            print(msg)
+            return
+
+        # Update group val
+        self.dgroup[group]['val'] = (event.xdata, event.ydata)
+
+        # Update indcur
+        if self.dkeys['ctrl']['val']:
+            ii = 0
+        elif self.dkeys['shift']['val']:
+            ii = int(self.dgroup[group]['indcur'])+1
+        else:
+            ii = int(self.dgroup[group]['indcur'])
+
+        # Update dcur
+        self.dgroup[group]['indcur'] = ii
+        self.update(excluderef=False)
