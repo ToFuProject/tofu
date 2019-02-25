@@ -4212,16 +4212,11 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
                                   double dirv0, double dirv1, double dirv2,
                                   double circ_radius, double circ_normz,
                                   double[9] results,
-                                  bint is_LOS_Mode=False, double kOut=np.inf):
+                                  bint is_LOS_Mode=False,
+                                  double kOut=np.inf) :
     cdef double[3] dirv, orig
     cdef double normu, normu_sqr
     cdef double kPMin
-
-    from warnings import warn
-    warn("LOS SINO : THIS IS THE OLD VERSION OF THIS FUNCTION, PLEASE USE THE NEW ONE",
-         DeprecationWarning, stacklevel=2)
-    warn("LOS SINO : THIS IS THE OLD VERSION OF THIS FUNCTION, PLEASE USE THE NEW ONE",
-         Warning)
 
     normu_sqr = dirv0 * dirv0 + dirv1 * dirv1 + dirv2 * dirv2
     normu = Csqrt(normu_sqr)
@@ -4235,11 +4230,12 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
     if dirv0 == 0. and dirv1 == 0.:
         kPMin = (circ_normz-orig2)/dirv2
     else:
-        kPMin = comp_dist_los_circle_core(dirv, orig,
-                                         circ_radius, circ_normz,
-                                         normu_sqr)
+        kPMin = dist_los_circle_core(dirv, orig,
+                                     circ_radius, circ_normz,
+                                     normu_sqr)
         if is_LOS_Mode and kPMin > kOut:
             kPMin = kOut
+ 
     # Computing the point's coordinates.........................................
     cdef double PMin0 = orig0 + kPMin * dirv0
     cdef double PMin1 = orig1 + kPMin * dirv1
@@ -4269,6 +4265,79 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
     results[6] = p0
     results[7] = ImpTheta
     results[8] = phi
+    return
+
+cdef inline void NEW_los_sino_tor_vec(int num_los,
+                                      double[:,::1] origins,
+                                      double[:,::1] directions,
+                                      double circ_radius,
+                                      double circ_normz,
+                                      double[:,::1] los_closest_coords,
+                                      double[::1] los_closest_coeffs,
+                                      double[::1] circle_closest_rmin,
+                                      double[::1] circle_closest_theta,
+                                      double[::1] circle_closest_p,
+                                      double[::1] circle_closest_imptheta,
+                                      double[::1] circle_closest_phi,
+                                      bint is_LOS_Mode=False,
+                                      double[::1] kOut=None) nogil:
+    cdef int ind_los
+    cdef double[3] dirv
+    cdef double[3] orig
+    cdef double normu, normu_sq
+    cdef double kPMin, PMin2norm, vP0, vP1, Theta
+    cdef double eTheta0
+    cdef double eTheta1
+    cdef double normu0
+    cdef double normu1
+    cdef double PMin0, PMin1, PMin2
+
+    with nogil, parallel():
+        for ind_los in prange(num_los):
+            dirv[0] = directions[0, ind_los]
+            dirv[1] = directions[1, ind_los]
+            dirv[2] = directions[2, ind_los]
+            orig[0] = origins[0, ind_los]
+            orig[1] = origins[1, ind_los]
+            orig[2] = origins[2, ind_los]
+            normu_sq = dirv[0] * dirv[0] + dirv[1] * dirv[1] + dirv[2] * dirv[2]
+            normu = Csqrt(normu_sq)
+            # Computing coeff of closest on line................................
+            if dirv[0] == 0. and dirv[1] == 0.:
+                kPMin = (circ_normz-orig[2])/dirv[2]
+            else:
+                kPMin = dist_los_circle_core(dirv, orig, circ_radius,
+                                             circ_normz, normu_sq)
+            if is_LOS_Mode and kOut is not None and kPMin > kOut[ind_los]:
+                kPMin = kOut[ind_los]
+            los_closest_coeffs[ind_los] = kPMin
+
+            # Computing the info of the closest point on LOS & Circle...........
+            PMin0 = orig[0] + kPMin * dirv[0]
+            PMin1 = orig[1] + kPMin * dirv[1]
+            PMin2 = orig[2] + kPMin * dirv[2]
+            los_closest_coords[0, ind_los] = PMin0
+            los_closest_coords[1, ind_los] = PMin1
+            los_closest_coords[2, ind_los] = PMin2
+            # Computing RMin:
+            PMin2norm = Csqrt(PMin0**2+PMin1**2)
+            circle_closest_rmin[ind_los] = Csqrt((PMin2norm - circ_radius)**2
+                                        + (PMin2   - circ_normz)**2)
+            # Theta and ImpTheta:
+            vP0 = PMin2norm - circ_radius
+            vP1 = PMin2     - circ_normz
+            Theta = Catan2(vP1, vP0)
+            circle_closest_theta[ind_los] = Theta
+            if Theta < 0:
+                Theta = Theta + Cpi
+            circle_closest_imptheta[ind_los] = Theta
+            circle_closest_p[ind_los] = vP0 * Ccos(Theta) + vP1 * Csin(Theta)
+            # Phi:
+            eTheta0 = - PMin1 / PMin2norm
+            eTheta1 =   PMin0 / PMin2norm
+            normu0 = dirv[0]/normu
+            normu1 = dirv[1]/normu
+            circle_closest_phi[ind_los] = Casin(-normu0 * eTheta0 - normu1 * eTheta1)
     return
 
 
@@ -4304,32 +4373,20 @@ def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut,
     cdef double[9] results
     cdef bint is_LOS_Mode
     if VType.lower()=='tor':
-        for ii in range(0,nL):
-            if not try_new_algo:
+        if not try_new_algo:
+            for ii in range(0,nL):
                 out = LOS_sino_Tor(D[0,ii],D[1,ii],D[2,ii],
                                    u[0,ii],u[1,ii],u[2,ii],
                                    RZ[0],RZ[1], Mode=Mode, kOut=kOut[ii])
                 ((PMin[0,ii],PMin[1,ii],PMin[2,ii]),
                  kPMin[ii], RMin[ii], Theta[ii],
                  p[ii], ImpTheta[ii], phi[ii]) = out
-            else:
-                is_LOS_Mode = Mode.lower()=='LOS'
-                NEW_LOS_sino_Tor(D[0,ii], D[1,ii], D[2,ii],
-                                 u[0,ii], u[1,ii], u[2,ii],
-                                 RZ[0], RZ[1],
-                                 results,
+        else:
+            NEW_los_sino_tor_vec(nL, D, u, RZ[0], RZ[1],
+                                 PMin, kPMin, RMin, Theta, p,
+                                 ImpTheta, phi,
                                  is_LOS_Mode=is_LOS_Mode,
-                                 kOut=kOut[ii])
-                # Extracting the results .......................................
-                PMin[0, ii] = results[0]
-                PMin[1, ii] = results[1]
-                PMin[2, ii] = results[2]
-                kPMin[ii] = results[3]
-                RMin[ii]  = results[4]
-                Theta[ii] = results[5]
-                p[ii] = results[6]
-                ImpTheta[ii] = results[7]
-                phi[ii] = results[8]
+                                 kOut=kOut)
     else:
         for ii in range(0,nL):
             out = LOS_sino_Lin(D[0,ii],D[1,ii],D[2,ii],u[0,ii],u[1,ii],u[2,ii],
@@ -5132,7 +5189,7 @@ def comp_dist_los_circle2(double dir1, double dir2, double dir3,
     # The variable `norm_dir` is the squared norm of the direction of the ray.
     # ---
     # This is the PYTHON function, use only if you need this computation from
-    # Python, if you need it from Cython, use `comp_dist_los_circle_core`
+    # Python, if you need it from Cython, use `dist_los_circle_core`
     cdef double[3] dirv
     cdef double[3] orig
     dirv[0] = dir1
@@ -5143,24 +5200,31 @@ def comp_dist_los_circle2(double dir1, double dir2, double dir3,
     orig[2] = ori3
     if norm_dir < 0.:
         norm_dir = dir3 * dir3 + dir1 * dir1 + dir2 * dir2
-    return comp_dist_los_circle_core(dirv, orig, radius, circ_z, norm_dir)
+    return dist_los_circle_core(dirv, orig, radius, circ_z, norm_dir)
 
-cdef inline double comp_dist_los_circle_core(const double[3] direction,
-                                             const double[3] origin,
-                                             double radius, double circ_z,
-                                             double norm_dir):
+cdef inline double dist_los_circle_core(const double[3] direction,
+                                        const double[3] origin,
+                                        double radius, double circ_z,
+                                        double norm_dir) nogil:
 
     # The line is P(t) = B+t*M.  The circle is |X-C| = r with Dot(N,X-C)=0.
     cdef int numRoots, i
     cdef double zero = 0., m0sqr, m0, rm0
     cdef double lambd, m2b2, b1sqr, b1, r0sqr, twoThirds, sHat, gHat, cutoff, s
-    cdef double[3] vzero = [0, 0, 0]
+    cdef double[3] vzero# = [0, 0, 0]
     cdef double[3] D
     cdef double[3] MxN
     cdef double[3] DxN
-    cdef double[3] circle_normal = [0, 0, 1]
-    cdef double[3] roots = [0, 0, 0]
+    cdef double[3] circle_normal# = [0, 0, 1]
+    cdef double[3] roots# = [0, 0, 0]
     cdef double tmin
+
+    # .. initialization .....
+    for i in range(3):
+        vzero[i] = 0.
+        circle_normal[i] = 0.
+        roots[i] = 0.
+    circle_normal[2] = 1
 
     D[0] = origin[0]
     D[1] = origin[1]
