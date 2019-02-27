@@ -1674,23 +1674,28 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     # ---------------
     # Interactivity dict
 
-    dgroup = {'time':      {'nMax':ntMax, 'key':'F1', 'def':id(tf)},
-              'channel':   {'nMax':1, 'key':'F2', 'def':id(X)},
-              'frequency': {'nMax':nfMax, 'key':'F3', 'def':id(f)}}
+    idt, idtf, idX, idf = id(t), id(tf), id(X), id(f)
 
-    dref = {id(t):  {'group':'time', 'val':t, 'inc':[1,10]},
-            id(tf): {'group':'time', 'val':tf, 'inc':[1,10]},
-            id(X):  {'group':'channel', 'val':X, 'other':t, 'inc':[1,10]},
-            id(f):  {'group':'frequency', 'val':f, 'inc':[1,10]}}
+    dgroup = {'time':      {'nMax':ntMax, 'key':'f1',
+                            'defid':idtf, 'defax':dax['t'][0]},
+              'channel':   {'nMax':1, 'key':'f2',
+                            'defid':idX, 'defax':dax['X'][0]},
+              'frequency': {'nMax':nfMax, 'key':'f3',
+                            'defid':idf, 'defax':dax['t'][1]}}
+
+    dref = {idt:  {'group':'time', 'val':t, 'inc':[1,10]},
+            idtf: {'group':'time', 'val':tf, 'inc':[1,10]},
+            idX:  {'group':'channel', 'val':X, 'other':idt, 'inc':[1,10]},
+            idf:  {'group':'frequency', 'val':f, 'inc':[1,10]}}
 
     lax_fix = [dax['cross'][0], dax['hor'][0],
                dax['txtx'][0], dax['txtf'][0]]
-    dax2 = {dax['t'][0]: {'x':t},
-            dax['t'][1]: {'x':tf, 'y':f},
-            dax['t'][2]: {'x':tf, 'y':f},
-            dax['X'][0]: {'x1':X},
-            dax['X'][1]: {'x1':X},
-            dax['X'][2]: {'x1':X}}
+    dax2 = {dax['t'][0]: {'x':idt},
+            dax['t'][1]: {'x':idtf, 'y':idf},
+            dax['t'][2]: {'x':idtf, 'y':idf},
+            dax['X'][0]: {'x1':idX},
+            dax['X'][1]: {'x1':idX},
+            dax['X'][2]: {'x1':idX}}
 
     dobj = {}
 
@@ -1705,18 +1710,18 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
                                  color=lct[jj], fontweight='bold',
                                  fontsize=6., ha='center', va='bottom')
         dobj[l0] = {'data':t, 'type':'txt_bstr_1d', 'bstr':'{0:%s} s'%fmt_t,
-                    'lrefid':[id(t)], 'lind':[jj], 'lab':'txtt{0}'.format(jj)}
+                    'lrefid':[idt], 'lind':[jj], 'lab':'txtt{0}'.format(jj)}
 
         l0, = dax['X'][0].plot(X[0,:], np.full((nX,),np.nan),
                                c=lct[jj], ls=lls[0], lw=1.)
         dobj[l0] = {'data':data, 'type':'ydata_2d0',
-                    'lrefid':[id(t)], 'lind':[jj], 'lab':'datat{0}'.format(jj)}
+                    'lrefid':[idt], 'lind':[jj], 'lab':'datat{0}'.format(jj)}
 
     for ll in range(0,len(dax['t'])):
         for jj in range(0,ntMax):
             l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls=lls[0], lw=1.)
             dobj[l0] = {'data':t, 'type':'xdata_1d',
-                        'lrefid':[id(t)], 'lind':[jj],
+                        'lrefid':[idt], 'lind':[jj],
                         'lab':'vlinet{0}-ax{1}'.format(jj,ll)}
 
     # Channel
