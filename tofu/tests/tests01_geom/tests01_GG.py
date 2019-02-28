@@ -1057,6 +1057,7 @@ def test11_LOS_sino():
     Ds = np.ascontiguousarray(Ms - k[np.newaxis,:]*us)
     PMin0, kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = GG.LOS_sino(Ds, us, RZ, kOut=np.full((N,),np.inf),
                                                                     Mode='LOS', VType='Tor')
+    print(PMin0[0,0], Ms[0,0])
     assert np.allclose(PMin0,Ms)
     assert np.allclose(kPMin0,k)
     assert RMin0.shape==(N,)

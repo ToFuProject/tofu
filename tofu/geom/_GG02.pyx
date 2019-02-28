@@ -5076,9 +5076,9 @@ cdef inline void NEW_los_sino_tor_vec(int num_los,
                                       bint is_LOS_Mode=False,
                                       double[::1] kOut=None) nogil:
     cdef int ind_los
-    cdef double[3] dirv
-    cdef double[3] orig
-    cdef double[2] res
+    cdef double* dirv
+    cdef double* orig
+    cdef double* res
     cdef double normu, normu_sq
     cdef double kPMin, PMin2norm, vP0, vP1, Theta
     cdef double eTheta0
@@ -5089,6 +5089,9 @@ cdef inline void NEW_los_sino_tor_vec(int num_los,
     cdef double PMin0, PMin1, PMin2
 
     with nogil, parallel():
+        dirv = <double*>malloc(3*sizeof(double))
+        orig = <double*>malloc(3*sizeof(double))
+        res = <double*>malloc(2*sizeof(double))
         for ind_los in prange(num_los):
             dirv[0] = directions[0, ind_los]
             dirv[1] = directions[1, ind_los]
