@@ -2113,33 +2113,46 @@ def get_updatefunc(obj, Type=None, data=None, bstr=None):
     return func
 
 
-def get_ind_fromval(Type='x', ref=None):
-    assert Type in ['x', 'y', 'x0', 'x1','2d']
+def get_ind_fromval(Type='x', ref=None, otherid=None, indother=None):
+    assert Type in ['x','y','2d']
 
     if Type in ['x','y']:
-        refb = 0.5*(ref[1:]+ref[:-1])
-        if Type == 'x':
-            def func(val, ind0=None, refb=refb):
-                return np.digitize([val[0]], refb)[0]
+        if otherid is None:
+            assert ref.size == np.max(ref.shape)
+            ref = ref.ravel()
+            refb = 0.5*(ref[1:]+ref[:-1])
+            if Type == 'x':
+                def func(val, ind0=None, refb=refb):
+                    return np.digitize([val[0]], refb)[0]
+            else:
+                def func(val, ind0=None, refb=refb):
+                    return np.digitize([val[1]], refb)[0]
+        elif indother is None:
+            assert ref.ndim == 2
+            if Type == 'x':
+                def func(val, ind0=None, ref=ref):
+                    refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                    return np.digitize([val[0]], refb)[0]
+            else:
+                def func(val, ind0=None, ref=ref):
+                    refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                    return np.digitize([val[1]], refb)[0]
         else:
-            def func(val, ind0=None, refb=refb):
-                return np.digitize([val[1]], refb)[0]
-    elif Type=='x0':
-        def func(val, ind0=None, ref=ref):
-            return np.digitize([val[0]], 0.5*(ref[1:,ind0]+ref[:-1,ind0]))[0]
-    elif Type=='x1':
-        def func(val, ind0=None, ref=ref):
-            return np.digitize([val[0]], 0.5*(ref[ind0,1:]+ref[ind0,:-1]))[0]
-    elif Type=='2d':
-        def func(val, ind0=None, ref=ref, nx=1, ny=1):
-            indx = np.digitize(val[0], 0.5*(ref[0][1:]+ref[0][:-1]))[0]
-            indy = np.digitize(val[1], 0.5*(ref[1][1:]+ref[1][:-1]))[0]
-            ind =  indx*ny + indy
-            return ind
+            assert ref.ndim == 2
+            if Type == 'x':
+                def func(val, ind0=None, ref=ref, indother=indother):
+                    refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                    return np.digitize([val[0]], refb)[0]
+            else:
+                def func(val, ind0=None, ref=ref, indother=indother):
+                    refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                    return np.digitize([val[1]], refb)[0]
+    else:
+        raise Exception('not coded yet !')
     return func
 
-def get_val_fromind(Type='x', ref=None):
-    assert Type in ['x', 'y', 'x0', 'x1','2d']
+def get_val_fromind(Type='x', ref=None, otherid=None, indother=None):
+    assert Type in ['x','y','2d']
 
     if Type == 'x':
         def func(ind, ind0=None, ref=ref):

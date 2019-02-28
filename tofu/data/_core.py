@@ -340,13 +340,11 @@ class Data(utils.ToFuObject):
             assert inp.min(indtXlamb)>=0 and np.max(indtXlamb)<=nnlamb
 
         # Check consistency X/lamb shapes vs indices
-        if indtX is None:
+        if X is not None and indtX is None:
             assert nnX in [1,nt]
-        if indtlamb is None and indXlamb is None and indtXlamb is None:
-            assert nnlamb in [1,nt]
-
-
-
+            if lamb is not None:
+                if all([ii is None for ii in [indtlamb,indXlamb,indtXlamb]]):
+                    assert nnlamb in [1,nt]
 
         l = [data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb,
              indtX, indtlamb, indXlamb, indtXlamb]

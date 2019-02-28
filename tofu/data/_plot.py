@@ -1703,7 +1703,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     dref = {idt:  {'group':'time', 'val':t, 'inc':inct},
             idtf: {'group':'time', 'val':tf, 'inc':inct},
             idX:  {'group':'channel', 'val':X, 'inc':incX,
-                   'other':Xother, 'indinter':indtX},
+                   'other':Xother, 'indother':indtX},
             idf:  {'group':'frequency', 'val':f, 'inc':incf}}
 
     lax_fix = [dax['cross'][0], dax['hor'][0],
