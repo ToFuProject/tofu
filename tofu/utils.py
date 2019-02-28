@@ -2039,7 +2039,8 @@ class KeyHandler(object):
 ###############################################
 
 def get_updatefunc(obj, Type=None, data=None, bstr=None):
-    lok = ['xdata_1d', 'xdata_2d0', 'xdata_2d1',
+    lok = ['xdata_1d', 'xdata_2d0_val', 'xdata_2d1_val', 'xdata_2d0',
+           'xdata_2d1',
            'xdata_3d01', 'xdata_3d02', 'xdata_3d12',
            'ydata_1d', 'ydata_2d0', 'ydata_2d1',
            'ydata_3d01', 'ydata_3d02', 'ydata_3d12',
@@ -2049,6 +2050,12 @@ def get_updatefunc(obj, Type=None, data=None, bstr=None):
     if Type=='xdata_1d':
         def func(ind, obj=obj, data=data):
             obj.set_xdata(data[ind])
+    elif Type=='xdata_2d0_val':
+        def func(ind, ind0, obj=obj, data=data):
+            obj.set_xdata(data[ind,ind0])
+    elif Type=='xdata_2d1_val':
+        def func(ind, ind0, obj=obj, data=data):
+            obj.set_xdata(data[ind0,ind])
     elif Type=='xdata_2d0':
         def func(ind, obj=obj, data=data):
             obj.set_xdata(data[ind,:])
@@ -2278,7 +2285,7 @@ class KeyHandler_mpl(object):
         lg = sorted(list(dgroup.keys()))
         assert len(set(lg))==len(lg)
 
-        ls = ['group','val']
+        ls = ['group','val','inc']
         for k,v in dref.items():
             c0 = type(k) is int
             c1 = type(v) is dict
@@ -2287,6 +2294,8 @@ class KeyHandler_mpl(object):
                 raise Exception(cls._msgdobj)
             assert v['group'] in lg
             assert type(v['val']) in [np.ndarray,tuple]
+            assert len(v['inc']) == 2
+            v['inc'] = np.asarray(v['inc'],dtype=int).ravel()
         lrid = sorted(list(dref.keys()))
         lr = [dref[rid]['val'] for rid in lrid]
         assert len(set(lrid))==len(lrid)
@@ -2392,6 +2401,12 @@ class KeyHandler_mpl(object):
                     dref[rid]['other'] = None
             if 'other' not in dref[rid].keys():
                 dref[rid]['other'] = None
+
+            if 'indinter' in dref[refid].keys():
+                if dref[refid]['indinter'] is not None:
+                    assert dref[rid]['other'] is not None
+            else:
+                pass # to be checked later
 
             dref[rid]['f_ind_val'] = get_ind_fromval(dref[rid]['type'],
                                                      ref=dref[rid]['val'])

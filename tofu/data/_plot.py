@@ -1566,10 +1566,15 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
 def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
                              ntMax=_ntMax, nfMax=_nfMax,
                              Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
+                             inct=[1,10], incX=[1,5], incf=[1,10],
                              fmt_t='06.3f', fmt_X='01.0f', fmt_f='05.2f',
+                             dchanskey=None,
                              fs=None, dmargin=None, wintit=_wintit, tit=None,
                              fontsize=_fontsize, labelpad=_labelpad,
                              draw=True, connect=True):
+
+    assert Data.Id.Cls in ['Data','Data1D','Data2D']
+
     #########
     # Prepare
     #########
@@ -1579,35 +1584,60 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
     cbck = (0.8,0.8,0.8,0.8)
     lEq = ['Ax','Sep','q1']
-    nt, nX = Data.nt, Data.nX
 
-    t = Data.t
-    if nt==1:
+    # Force update for safety
+    ddata = Data.get_ddata()
+
+    # t
+    t, nt = ddata['t'], ddata['nt']
+    if nt == 1:
         Dt = [t[0]-0.001,t[0]+0.001]
     else:
         Dt = [np.nanmin(t), np.nanmax(t)]
     tlab = r"{0} ({1})".format(Data.dlabels['t']['name'],
                                Data.dlabels['t']['units'])
+    ttype = 'x'
+    idt = id(t)
 
-    X = Data.X
-    if X.size==1:
+    # X
+    X, nnX, indtX = ddata['X'], ddata['nX'], ddata['nnX'], ddata['indtX']
+    if X.size == 1:
         DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
     else:
         DX = [np.nanmin(X), np.nanmax(X)]
     Xlab = r"{0} ({1})".format(Data.dlabels['X']['name'],
                                Data.dlabels['X']['units'])
+    if nnX == 1:
+        Xtype = 'x'
+        Xother = None
+    elif indtX is None:
+        Xtype = 'x1'
+        Xother = idt
+    idX = id(X)
+    if dchanskey is None:
+        dchans = np.arange(0,nX)
+    else:
+        dchans = Data.dchans(dchanskey)
 
+    # data
     data = Data.data
     Dlim = [min(0.,np.nanmin(data)), max(0.,np.nanmax(data))]
     Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
     Dlab = r"{0} ({1})".format(Data.dlabels['data']['name'],
                                Data.dlabels['data']['units'])
 
+    # tf
+    idtf = id(tf)
+
+    # f
     Df = [0., np.nanmax(f)]
     flab = r'f ($Hz$)'
     psdlab = r'$\|F\|^2$ (a.u.)'
     anglab = r'$ang(F)$ ($rad$)'
+    ftype = 'y'
+    idf = id(f)
 
+    ############
     # Format axes
     dax = _init_Data1D_spectrogram(fs=fs, dmargin=dmargin,
                                    wintit=wintit)
@@ -1624,16 +1654,6 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
         tit = ' - '.join(tit)
     fig.suptitle(tit)
 
-    # for ii in range(0,len(dax['t'])):
-        # dtrig = {'1dprof':[0]} if ii==1 else None
-        # dax['t'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
-    # dax['t'][1]['dh']['ttrace'] = [0]
-    # for ii in range(0,len(dax['X'])):
-        # dtrig = {'ttrace':[0]} if ii==0 else None
-        # dax['X'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
-        # dax['X'][ii]['dh']['1dprof'] = [0]
-
-
     # Plot vessel
     if Data.dgeom['config'] is not None:
         out = Data.dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
@@ -1648,9 +1668,9 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
                 dax['cross'][0], dax['hor'][0] = out
 
     if Bck:
-        if Data.ddata['nnX']==1:
+        if nnX == 1:
             env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
-            dax['X'][0].fill_between(X[0,:], env[0], env[1], facecolor=cbck)
+            dax['X'][0].fill_between(X, env[0], env[1], facecolor=cbck)
         tbck = np.tile(np.r_[t, np.nan], nX)
         dbck = np.vstack((data, np.full((1,nX),np.nan))).T.ravel()
         dax['t'][0].plot(tbck, dbck, lw=1., ls='-', c=cbck)
@@ -1671,10 +1691,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     dax['X'][2].set_ylabel(anglab, **fldict)
 
     ##################
-    # ---------------
     # Interactivity dict
-
-    idt, idtf, idX, idf = id(t), id(tf), id(X), id(f)
 
     dgroup = {'time':      {'nMax':ntMax, 'key':'f1',
                             'defid':idtf, 'defax':dax['t'][0]},
@@ -1683,19 +1700,20 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
               'frequency': {'nMax':nfMax, 'key':'f3',
                             'defid':idf, 'defax':dax['t'][1]}}
 
-    dref = {idt:  {'group':'time', 'val':t, 'inc':[1,10]},
-            idtf: {'group':'time', 'val':tf, 'inc':[1,10]},
-            idX:  {'group':'channel', 'val':X, 'other':idt, 'inc':[1,10]},
-            idf:  {'group':'frequency', 'val':f, 'inc':[1,10]}}
+    dref = {idt:  {'group':'time', 'val':t, 'inc':inct},
+            idtf: {'group':'time', 'val':tf, 'inc':inct},
+            idX:  {'group':'channel', 'val':X, 'inc':incX,
+                   'other':Xother, 'indinter':indtX},
+            idf:  {'group':'frequency', 'val':f, 'inc':incf}}
 
     lax_fix = [dax['cross'][0], dax['hor'][0],
                dax['txtx'][0], dax['txtf'][0]]
     dax2 = {dax['t'][0]: {'x':idt},
             dax['t'][1]: {'x':idtf, 'y':idf},
             dax['t'][2]: {'x':idtf, 'y':idf},
-            dax['X'][0]: {'x1':idX},
-            dax['X'][1]: {'x1':idX},
-            dax['X'][2]: {'x1':idX}}
+            dax['X'][0]: {'x':idX},
+            dax['X'][1]: {'x':idX},
+            dax['X'][2]: {'x':idX}}
 
     dobj = {}
 
@@ -1709,39 +1727,39 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
         l0 = dax['txtt'][0].text((0.5+jj)/ntMax, 0., r'',
                                  color=lct[jj], fontweight='bold',
                                  fontsize=6., ha='center', va='bottom')
-        dobj[l0] = {'data':t, 'type':'txt_bstr_1d', 'bstr':'{0:%s} s'%fmt_t,
-                    'lrefid':[idt], 'lind':[jj], 'lab':'txtt{0}'.format(jj)}
+        dobj[l0] = {'data':t, 'type':'txt', 'bstr':'{0:%s} s'%fmt_t,
+                    'lrefid':[idt], 'lind':[jj]}
 
         l0, = dax['X'][0].plot(X[0,:], np.full((nX,),np.nan),
                                c=lct[jj], ls=lls[0], lw=1.)
-        dobj[l0] = {'data':data, 'type':'ydata_2d0',
-                    'lrefid':[idt], 'lind':[jj], 'lab':'datat{0}'.format(jj)}
+        dobj[l0] = {'data':data, 'type':'y0',
+                    'lrefid':[idt], 'lind':[jj]}
 
     for ll in range(0,len(dax['t'])):
         for jj in range(0,ntMax):
             l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls=lls[0], lw=1.)
-            dobj[l0] = {'data':t, 'type':'xdata_1d',
-                        'lrefid':[idt], 'lind':[jj],
-                        'lab':'vlinet{0}-ax{1}'.format(jj,ll)}
+            dobj[l0] = {'data':t, 'type':'0x',
+                        'lrefid':[idt], 'lind':[jj]}
 
     # Channel
     # l0 = dax['txtx'][0].text(0.5, 0., r'',
                              # color=lcch[jj], fontweight='bold',
                              # fontsize=6., ha='center', va='bottom')
-    # dobj[l0] = {'data':X, 'type':'txt_bstr_2d1', 'bstr':'{0:%s} s'%fmt_X,
+    # dobj[l0] = {'data':dchans, 'type':'txt', 'bstr':'{0:%s} s'%fmt_X,
                 # 'lrefid':[id(t),id(X)], 'lind':[0,0], 'lab':'txtX{0}'.format(0)}
 
-    # l0, = dax['t'][0].plot(t, np.full((nt,),np.nan),
-                           # c=lcch[0], ls=lls[0], lw=1.)
-    # dobj[l0] = {'data':data, 'type':'ydata_2d1',
-                # 'lrefid':[id(t),id(X)], 'lind':[0,0], 'lab':'dataX{0}'.format(jj)}
+    for jj in range(0,1):
+        l0, = dax['t'][0].plot(t, np.full((nt,),np.nan),
+                               c=lcch[jj], ls=lls[0], lw=1.)
+        dobj[l0] = {'data':data, 'type':'y1',
+                    'lrefid':[idX], 'lind':[jj]}
 
-    # for ll in range(0,len(dax['X'])):
-        # for jj in range(0,1):
-            # l0 = dax['X'][jj].axvline(np.nan, c=lcch[jj], ls=lls[0], lw=1.)
-            # dobj[l0] = {'data':X, 'type':'xdata_2d1',
-                        # 'lrefid':[id(X)], 'lind':[jj],
-                        # 'lab':'vlineX{0}-ax{1}'.format(jj,ll)}
+    for ll in range(0,len(dax['X'])):
+        for jj in range(0,1):
+            for ii in range(0,ntMax):
+                l0 = dax['X'][ll].axvline(np.nan, c=lcch[jj], ls=lls[0], lw=1.)
+                dobj[l0] = {'data':X, 'type':'0x1',
+                            'lrefid':[idt,idX], 'lind':[ii,jj]}
 
     # Adding vline ch
 
