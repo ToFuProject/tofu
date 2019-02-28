@@ -1776,7 +1776,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang, key=None,
     can.draw()
     kh = utils.KeyHandler_mpl(can=can,
                               dgroup=dgroup, dref=dref,
-                              dobj=dobj, dax=dax2, lax_fix=lax_fix)
+                              dobj=dobj, dax=dax2, lax_fix=lax_fix,
+                              groupinit='time', follow=True)
 
     if connect:
         kh.disconnect_old()

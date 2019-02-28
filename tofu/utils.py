@@ -2194,7 +2194,7 @@ class KeyHandler_mpl(object):
 
 
     def __init__(self, can=None, dgroup=None, dref=None, dobj=None, dax=None,
-                 lax_fix=[], groupinit='time'):
+                 lax_fix=[], groupinit='time', follow=True):
         assert issubclass(can.__class__, mpl.backend_bases.FigureCanvasBase)
         self.can = can
         dgroup, dref, dax, dobj = self._checkformat_dgrouprefaxobj(dgroup,
@@ -2213,8 +2213,9 @@ class KeyHandler_mpl(object):
                              for aa in lact])
         self.dkeys = dkeys
         self.dkeys_r = dkeys_r
-        self.init(dgroup=dgroup, dobj=dobj)
+        #self.init(dgroup=dgroup, dobj=dobj)
         self.isinteractive = hasattr(can,'toolbar') and can.toolbar is not None
+        self._follow = follow
 
         self._set_dBck(self.dax.keys())
 
@@ -2556,9 +2557,11 @@ class KeyHandler_mpl(object):
                     group2 = self.dref[self.dref[rid]['other']]['group']
                     ind2 = self.dgroup[group2]['indcur']
                     indother = self.dref[self.dref[rid]['other']]['ind'][ind2]
-                print('deep', val, indother)
                 ii = self.dref[rid]['f_ind_val'](val, indother)
-                self.dref[rid]['ind'][ind] = ii
+                if self._follow:
+                    self.dref[rid]['ind'][ind:] = ii
+                else:
+                    self.dref[rid]['ind'][ind] = ii
         else:
             for rid in self.dgroup[group]['lrefid']:
                 if self.dref[rid]['other'] is None:
@@ -2567,9 +2570,11 @@ class KeyHandler_mpl(object):
                     group2 = self.dref[self.dref[rid]['other']]['group']
                     ind2 = self.dgroup[group2]['indcur']
                     indother = self.dref[self.dref[rid]['other']]['ind'][ind2]
-                print('deep', val, indother)
                 ii = self.dref[rid]['f_ind_val'](val, indother)
-                self.dref[rid]['ind'][ind] = ii
+                if self._follow:
+                    self.dref[rid]['ind'][ind:] = ii
+                else:
+                    self.dref[rid]['ind'][ind] = ii
 
 
     def _update_dobj(self):
@@ -2639,7 +2644,8 @@ class KeyHandler_mpl(object):
             return
 
         # Update indcur
-        if self.dkeys['control']['val'] or self.dkeys['ctrl']['val']:
+        ctrl = self.dkeys['control']['val'] or self.dkeys['ctrl']['val']
+        if ctrl:
             nn = 0
             ii = 0
         elif self.dkeys['shift']['val']:
@@ -2654,7 +2660,11 @@ class KeyHandler_mpl(object):
         self.dgroup[group]['indcur'] = ii
 
         # Update group val
-        self.dgroup[group]['valind'][ii,:] = (event.xdata, event.ydata)
+        val = (event.xdata, event.ydata)
+        if self._follow:
+            self.dgroup[group]['valind'][ii:,:] = val
+        else:
+            self.dgroup[group]['valind'][ii,:] = val
 
         self.update(excluderef=False)
 
@@ -2675,8 +2685,6 @@ class KeyHandler_mpl(object):
 
 
     def onkeypress(self, event):
-
-        print(event.key)    # DB
 
         lkey = event.key.split('+')
 
@@ -2703,14 +2711,13 @@ class KeyHandler_mpl(object):
         grpk = None if ngrp == 0 else lgrp[0]
         indk = None if nind == 0 else lind[0]
 
-        print(event.key, genk, movk, grpk, indk)
-
-        if genk is not None:
-            self.dkeys[genk]['val'] = event.name == 'key_press_event'
+        if event.name == 'key_release_event':
             if event.key == genk:
-                return
+                self.dkeys[genk]['val'] = False
+            return
 
-        elif event.name == 'key_release_event':
+        if genk is not None and event.key == genk:
+            self.dkeys[genk]['val'] = True
             return
 
         if grpk is not None:
@@ -2740,7 +2747,17 @@ class KeyHandler_mpl(object):
             if movk not in self.dax[ax]['dmovkeys'][refid].keys():
                 return
 
-            if self.dkeys['control']['val'] or self.dkeys['ctrl']['val']:
+            # Check max number of occurences not reached if shift
+            c0 = (self.dkeys['shift']['val']
+                  and self.dgroup[group]['indcur'] == self.dgroup[group]['nMax']-1)
+            if c0:
+                msg = "Max nb. of plots reached ({0}) for group {1}"
+                msg  = msg.format(self.dgroup[group]['nMax'], group)
+                print(msg)
+                return
+
+            ctrl = self.dkeys['control']['val'] or self.dkeys['ctrl']['val']
+            if ctrl:
                 nn = 0
                 ii = 0
             elif self.dkeys['shift']['val']:
@@ -2758,7 +2775,10 @@ class KeyHandler_mpl(object):
             ind = self.dref[refid]['df_ind_key'][ax](movk,
                                                      self.dref[refid]['ind'][ii],
                                                      self.dkeys['alt']['val'])
-            self.dref[refid]['ind'][ii] = ind
+            if self._follow:
+                self.dref[refid]['ind'][ii:] = ind
+            else:
+                self.dref[refid]['ind'][ii] = ind
 
             # Update group val
             if self.dref[refid]['other'] is None:
@@ -2768,9 +2788,10 @@ class KeyHandler_mpl(object):
                 ind2 = self.dgroup[group2]['indcur']
                 indother = self.dref[self.dref[refid]['other']]['ind'][ind2]
             val = self.dref[refid]['f_val_ind']( ind, indother )
-            self.dgroup[group]['valind'][ii,:] = val
-
-            print(group, refid, ind, indother, val) # DB
+            if self._follow:
+                self.dgroup[group]['valind'][ii:,:] = val
+            else:
+                self.dgroup[group]['valind'][ii,:] = val
 
             # Upadte all
             self.update(excluderef=True)
