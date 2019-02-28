@@ -41,9 +41,9 @@ def test_Dist_Cricle_LOS_LM2(los_dir, los_ori, cir_rad, cir_z,
     if uParN == 0.:
         kPMin = (cir_z-D2)/u2
     else:
-        kPMin = _GG.comp_dist_los_circle2(u0, u1, u2,
-                                          D0, D1, D2,
-                                          cir_rad, cir_z)
+        kPMin = _GG.comp_dist_los_circle(u0, u1, u2,
+                                         D0, D1, D2,
+                                         cir_rad, cir_z)
     for i in range(3):
         if not los_dir[i] == 0:
             kmin_ex = (exact[i] - los_ori[i]) / los_dir[i]

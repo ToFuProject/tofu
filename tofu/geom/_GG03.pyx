@@ -32,7 +32,7 @@ elif sys.version[0]=='2':
 
 
 __all__ = ['CoordShift',
-           "comp_dist_los_circle2",
+           "comp_dist_los_circle",
            "LOS_sino_findRootkPMin_Tor",
            'Poly_isClockwise', 'Poly_Order', 'Poly_VolAngTor',
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
@@ -4382,6 +4382,7 @@ def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut,
                  kPMin[ii], RMin[ii], Theta[ii],
                  p[ii], ImpTheta[ii], phi[ii]) = out
         else:
+            is_LOS_Mode = Mode.lower() == 'los'
             NEW_los_sino_tor_vec(nL, D, u, RZ[0], RZ[1],
                                  PMin, kPMin, RMin, Theta, p,
                                  ImpTheta, phi,
@@ -5178,7 +5179,8 @@ cdef inline double compute_find(double m2b2, double rm0sqr,
     else:
         return root
 
-def comp_dist_los_circle2(double dir1, double dir2, double dir3,
+
+def comp_dist_los_circle(double dir1, double dir2, double dir3,
                           double ori1, double ori2, double ori3,
                           double radius, double circ_z, double norm_dir=-1.0):
     # This function computes the intersection of a Ray (or Line Of Sight)
@@ -5199,14 +5201,14 @@ def comp_dist_los_circle2(double dir1, double dir2, double dir3,
     dirv[2] = dir3
     orig[2] = ori3
     if norm_dir < 0.:
-        norm_dir = dir3 * dir3 + dir1 * dir1 + dir2 * dir2
+        norm_dir = compute_dot_prod(dirv, dirv)
     return dist_los_circle_core(dirv, orig, radius, circ_z, norm_dir)
 
 cdef inline double dist_los_circle_core(const double[3] direction,
                                         const double[3] origin,
                                         double radius, double circ_z,
                                         double norm_dir) nogil:
-
+    # Source: https://www.geometrictools.com/Documentation/DistanceToCircle3.pdf
     # The line is P(t) = B+t*M.  The circle is |X-C| = r with Dot(N,X-C)=0.
     cdef int numRoots, i
     cdef double zero = 0., m0sqr, m0, rm0
@@ -5341,3 +5343,287 @@ cdef inline double dist_los_circle_core(const double[3] direction,
             # The line is C+t*N, so C is the closest point for the line and
             # all circle points are equidistant from it.
             return zero
+
+def comp_dist_los_circle_vec(int nlos, int ncircles,
+                             np.ndarray[double,ndim=2,mode='c'] dirs,
+                             np.ndarray[double,ndim=2,mode='c'] oris,
+                             np.ndarray[double,ndim=1,mode='c'] circle_radius,
+                             np.ndarray[double,ndim=1,mode='c'] circle_z,
+                             np.ndarray[double,ndim=1,mode='c'] norm_dir = None):
+    # This function computes the intersection of a Ray (or Line Of Sight)
+    # and a circle in 3D. It returns `kmin`, the coefficient such that the
+    # ray of origin O = [ori1, ori2, ori3] and of directional vector
+    # D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
+    # and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
+    # The variable `norm_dir` is the squared norm of the direction of the ray.
+    # This is the vectorial version, we expect the directions and origins to be:
+    # dirs = [dir1_los1, dir2_los1, dir3_los1, dir1_los2,...]
+    # oris = [ori1_los1, ori2_los1, ori3_los1, ori1_los2,...]
+    # The result is given in the format:
+    # res = [kmin(los1, cir1), kmin(los1, cir2),...]
+    # ---
+    # This is the PYTHON function, use only if you need this computation from
+    # Python, if you need it from Cython, use `dist_los_circle_core`
+    cdef double* kmin_tab = <double*> malloc (sizeof(double)*nlos)
+    if norm_dir is None:
+        norm_dir = -np.ones(nlos)
+    return comp_dist_los_circle_vec_core(nlos, ncircles,
+                                         <double*>dirs.data,
+                                         <double*>oris.data,
+                                         <double*>circle_radius.data,
+                                         <double*>circle_z.data,
+                                         <double*>norm_dir.data,
+                                         kmin_tab)
+
+cdef void comp_dist_los_circle_vec_core(int num_los, int num_cir,
+                                        double* los_directions,
+                                        double* los_origins,
+                                        double* circle_radius,
+                                        double* circle_z,
+                                        double* norm_dir_tab,
+                                        double* res) nogil:
+    # This function computes the intersection of a Ray (or Line Of Sight)
+    # and a circle in 3D. It returns `kmin`, the coefficient such that the
+    # ray of origin O = [ori1, ori2, ori3] and of directional vector
+    # D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
+    # and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
+    # The variable `norm_dir` is the squared norm of the direction of the ray.
+    # This is the vectorial version, we expect the directions and origins to be:
+    # dirs = [dir1_los1, dir2_los1, dir3_los1, dir1_los2,...]
+    # oris = [ori1_los1, ori2_los1, ori3_los1, ori1_los2,...]
+    # res = [kmin(los1, cir1), kmin(los1, cir2),...]
+    # ---
+    # This is the PYTHON function, use only if you need this computation from
+    # Python, if you need it from Cython, use `dist_los_circle_core`
+    cdef int i, ind_los, ind_cir
+    cdef double* dirv
+    cdef double* orig
+    cdef double radius, circ_z, norm_dir
+    with nogil, parallel():
+        dirv = <double*>malloc(3*sizeof(double))
+        orig = <double*>malloc(3*sizeof(double))
+        for ind_los in prange(num_los):
+            for i in range(3):
+                dirv[i] = los_directions[ind_los * 3 + i]
+                orig[i] = los_origins[ind_los * 3 + i]
+            norm_dir = norm_dir_tab[ind_los]
+            if norm_dir < 0.:
+                norm_dir = dirv[2] * dirv[2] + dirv[1] * dirv[1] \
+                  + dirv[0] * dirv[0]
+            for ind_cir in range(num_cir):
+                radius = circle_radius[ind_cir]
+                circ_z = circle_z[ind_cir]
+                res[ind_los * num_cir
+                    + ind_cir] = dist_los_circle_core(dirv, orig,
+                                                      radius, circ_z, norm_dir)
+        free(dirv)
+        free(orig)
+    return
+
+def are_los_circle_close(double dir1, double dir2, double dir3,
+                         double ori1, double ori2, double ori3,
+                         double radius, double circ_z, double eps,
+                         double norm_dir=-1.0):
+    cdef double[3] dirv
+    cdef double[3] orig
+    dirv[0] = dir1
+    orig[0] = ori1
+    dirv[1] = dir2
+    orig[1] = ori2
+    dirv[2] = dir3
+    orig[2] = ori3
+    if norm_dir < 0.:
+        norm_dir = compute_dot_prod(dirv, dirv)
+    return are_los_circle_close_core(dirv, orig, radius, circ_z, norm_dir, eps)
+
+
+cdef inline bint are_los_circle_close_core(const double[3] direction,
+                                           const double[3] origin,
+                                           double radius, double circ_z,
+                                           double norm_dir, double eps) nogil:
+    # Source: https://www.geometrictools.com/Documentation/DistanceToCircle3.pdf
+    # The line is P(t) = B+t*M.  The circle is |X-C| = r with Dot(N,X-C)=0.
+    cdef int numRoots, i
+    cdef double zero = 0., m0sqr, m0, rm0
+    cdef double lambd, m2b2, b1sqr, b1, r0sqr, twoThirds, sHat, gHat, cutoff, s
+    cdef double[3] vzero# = [0, 0, 0]
+    cdef double[3] D, oldD
+    cdef double[3] MxN
+    cdef double[3] DxN
+    cdef double[3] NxDelta, line_closeset
+    cdef double[3] circle_normal# = [0, 0, 1]
+    cdef double[3] roots# = [0, 0, 0]
+    cdef double[3] diff
+    cdef double[3] circle_center
+    cdef double[3] circle_closest
+    cdef double[3] line_closest
+    cdef double tmin
+    cdef double distance
+    cdef bint are_close
+
+    # .. initialization .....
+    for i in range(3):
+        circle_center[i] = 0.
+        circle_normal[i] = 0.
+        vzero[i] = 0.
+        roots[i] = 0.
+    circle_normal[2] = 1
+    circle_center[2] = circ_z
+
+    D[0] = origin[0]
+    D[1] = origin[1]
+    D[2] = origin[2] - circ_z
+    compute_cross_prod(direction, circle_normal, MxN)
+    compute_cross_prod(D, circle_normal, DxN)
+    m0sqr = compute_dot_prod(MxN, MxN)
+
+    if (m0sqr > zero):
+        oldD[0] = origin[0]
+        oldD[1] = origin[1]
+        oldD[2] = origin[2] - circ_z
+
+        # Compute the critical points s for F'(s) = 0.
+        numRoots = 0
+
+        # The line direction M and the plane normal N are not parallel.  Move
+        # the line origin B = (b0,b1,b2) to B' = B + lambd*direction =
+        # (0,b1',b2').
+        m0 = Csqrt(m0sqr)
+        rm0 = radius * m0
+        lambd = -compute_dot_prod(MxN, DxN) / m0sqr
+        for i in range(3):
+            D[i] += lambd * direction[i]
+            DxN[i] += lambd * MxN[i]
+        m2b2 = compute_dot_prod(direction, D)
+        b1sqr = compute_dot_prod(DxN, DxN)
+        if (b1sqr > zero) :
+            # B' = (0,b1',b2') where b1' != 0.  See Sections 1.1.2 and 1.2.2
+            # of the PDF documentation.
+            b1 = Csqrt(b1sqr)
+            rm0sqr = radius * m0sqr
+            if (rm0sqr > b1):
+                twoThirds = 2.0 / 3.0
+                sHat = Csqrt((rm0sqr * b1sqr)**twoThirds - b1sqr) / m0
+                gHat = rm0sqr * sHat / Csqrt(m0sqr * sHat * sHat + b1sqr)
+                cutoff = gHat - sHat
+                if (m2b2 <= -cutoff):
+                    s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2, -m2b2 + rm0)
+                    roots[numRoots] = s
+                    numRoots += 1
+                    if (m2b2 == -cutoff):
+                        roots[numRoots] = -sHat
+                        numRoots += 1
+                elif (m2b2 >= cutoff):
+                    s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2 - rm0,
+                        -m2b2)
+                    roots[numRoots] = s
+                    numRoots += 1
+                    if (m2b2 == cutoff):
+                        roots[numRoots] = sHat
+                        numRoots += 1
+                else:
+                    if (m2b2 <= zero):
+                        s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2,
+                            -m2b2 + rm0)
+                        roots[numRoots] = s
+                        numRoots += 1
+                        s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2 - rm0,
+                            -sHat)
+                        roots[numRoots] = s
+                        numRoots += 1
+                    else:
+                        s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2 - rm0,
+                            -m2b2)
+                        roots[numRoots] = s
+                        numRoots += 1
+                        s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, sHat,
+                            -m2b2 + rm0)
+                        roots[numRoots] = s
+                        numRoots += 1
+            else:
+                if (m2b2 < zero):
+                    s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2,
+                        -m2b2 + rm0)
+                elif (m2b2 > zero):
+                    s = compute_bisect(m2b2, rm0sqr, m0sqr, b1sqr, -m2b2 - rm0,
+                        -m2b2)
+                else:
+                    s = zero
+                roots[numRoots] = s
+                numRoots += 1
+        else:
+            # The new line origin is B' = (0,0,b2').
+            if (m2b2 < zero):
+                s = -m2b2 + rm0
+                roots[numRoots] = s
+                numRoots += 1
+            elif (m2b2 > zero):
+                s = -m2b2 - rm0
+                roots[numRoots] = s
+                numRoots += 1
+            else:
+                s = -m2b2 + rm0
+                roots[numRoots] = s
+                numRoots += 1
+                s = -m2b2 - rm0
+                roots[numRoots] = s
+                numRoots += 1
+        # Checking which one is the closest solution............................
+        tmin = roots[0] + lambd
+        for i in range(1,numRoots):
+            t = roots[i] + lambd
+            if (t>0 and t<tmin):
+                tmin = t
+        if tmin < 0:
+            tmin = 0.
+        # Now that we know the closest point on the line we can compute the
+        # closest point on the circle and compute the distance
+        tmin = tmin / norm_dir
+        line_closest[0] = origin[0] + tmin * direction[0]
+        line_closest[1] = origin[1] + tmin * direction[1]
+        line_closest[2] = origin[2] + tmin * direction[2]
+        compute_cross_prod(circle_normal, line_closest, NxDelta)
+        if not (NxDelta[0] == 0. or NxDelta[1] == 0. or NxDelta[2] == 0.):
+            NdotDelta = compute_dot_prod(circle_normal, line_closest)
+            for i in range(3):
+                line_closest[i] = line_closest[i] - NdotDelta * circle_normal[i]
+            norm_delta = Csqrt(compute_dot_prod(line_closest, line_closest))
+            for i in range(3):
+                line_closest[i] = line_closest[i] / norm_delta
+                circle_closest[i] = circle_center[i] + radius * line_closest[i]
+                diff[i] = line_closest[i] - circle_closest[i]
+            distance = Csqrt(compute_dot_prod(diff, diff))
+            are_close = distance < eps
+            return are_close
+    else:
+        # The line direction and the plane normal are parallel.
+        # There is only one solution the intersection between line and plane
+        if (DxN != vzero) :
+            # The line is A+t*N but with A != C.
+            t = -compute_dot_prod(direction, D)
+            if t > 0:
+                t = t / norm_dir
+            else:
+                t = 0.
+            # We compute line closest
+            line_closest[0] = origin[0] + t * direction[0]
+            line_closest[1] = origin[1] + t * direction[1]
+            line_closest[2] = origin[2] + t * direction[2]
+            # We compute cirlce closest
+            for i in range(3):
+                diff[i] = line_closest[i] - circle_center[i]
+            distance = radius / Csqrt(compute_dot_prod(diff, diff))
+            circle_closest[0] = line_closest[0] * distance
+            circle_closest[1] = line_closest[1] * distance
+            circle_closest[2] = circ_z + (line_closest[2] - circ_z) * distance
+            for i in range(3):
+                diff[i] = line_closest[i] - circle_closest[i]
+            distance = Csqrt(compute_dot_prod(diff, diff))
+            are_close = distance < eps
+            return are_close
+        else:
+            # The line is C+t*N, so C is the closest point for the line and
+            # all circle points are equidistant from it.
+            t = 0.
+            are_close = distance < eps
+            return are_close
