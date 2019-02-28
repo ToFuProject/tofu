@@ -1067,7 +1067,7 @@ def test11_LOS_sino():
 
 
 def test11_LOS_sino_vec():
-    N = 10**7
+    N = 10**2
     RZ = np.array([2.,0.])
     Ds = np.array([np.linspace(-0.5,0.5,N),
                    np.ones((N,)),
