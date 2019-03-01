@@ -2113,7 +2113,62 @@ def get_updatefunc(obj, Type=None, data=None, bstr=None):
     return func
 
 
-def get_ind_fromval(Type='x', ref=None, otherid=None, indother=None):
+#########################
+
+
+def get_indncurind(dind, drefid):
+    ind = [dind['lrefid'].index(rid) for rid in drefid.keys()]
+    return np.asarray(ind,dtype=int)
+
+
+def get_indrefind(dind, linds, drefid):
+    ninds = len(linds)
+    ind = np.zeros((ninds,),dtype=int)
+    for ii in range(0,ninds):
+        i0 = dind['lrefid'].index(linds[ii])
+        ind[ii] = np.cumsum(dind['cumsum0'])[i0] + drefid[linds[ii]]
+    return ind
+
+
+def get_valf(val, lrids, linds):
+    ndim = val.ndim
+    assert ndim == len(lrids)
+    ninds = len(linds)
+    if type(val) is list:
+        assert ninds == 1 and lrids == linds
+        func = lambda *li, val=val: val[li[0]]
+
+    else:
+        assert type(val) is np.ndarray
+        assert ndim >= ninds
+        if ndim == ninds:
+            if ndim == 1:
+                func = lambda *li, val=val: val[li[0]]
+            elif ndim == 2:
+                func = lambda *li, val=val: val[li[0],li[1]]
+            elif ndim == 3:
+                func = lambda *li, val=val: val[li[0],li[1],li[2]]
+        else:
+            lord = [lrids.index(ii) for ii in linds]
+            if ninds == 1:
+                func = lambda *li, val=val, lord=lord: np.take(val, li[0], lord[0])
+            elif ninds >= 2:
+                raise Exception('Not coded yet !')
+    return func
+
+def get_fupdate(obj, typ, bstr=None):
+    if typ == 'xdata':
+        f = lambda val, obj=obj: obj.set_xdata(val)
+    if typ == 'ydata':
+        f = lambda val, obj=obj: obj.set_ydata(val)
+    if typ == 'data':
+        f = lambda val, obj=obj: obj.set_data(val)
+    if typ == 'txt':    # TBF
+        f = lambda val, obj=obj: obj.set_text(val)
+    return f
+
+
+def get_ind_frompos(Type='x', ref=None, otherid=None, indother=None):
     assert Type in ['x','y','2d']
 
     if Type in ['x','y']:
@@ -2151,47 +2206,36 @@ def get_ind_fromval(Type='x', ref=None, otherid=None, indother=None):
         raise Exception('not coded yet !')
     return func
 
-def get_val_fromind(Type='x', ref=None, otherid=None, indother=None):
-    assert Type in ['x','y','2d']
-
-    if Type == 'x':
-        def func(ind, ind0=None, ref=ref):
-            return (ref[ind], None)
-    elif Type == 'y':
-        def func(ind, ind0=None, ref=ref):
-            return (None, ref[ind])
-    elif Type =='x0':
-        def func(ind, ind0=None, ref=ref):
-            return (ref[ind,ind0], None)
-    elif Type == 'x1':
-        def func(ind, ind0=None, ref=ref):
-            return (ref[ind0,ind], None)
-    elif Type == '2d': # TBCorrected !
-        def func(ind, ind0=None, ref=ref):
-            return (ref[ind0,ind], None)
+def get_pos_fromind(ref=None, otherid=None, indother=None, is2d=False):
+    if is2d:
+        raise Exception('not coded yet !')
+    else:
+        if otherid is None:
+            assert ref.size == np.max(ref.shape)
+            ref = ref.ravel()
+            def func(ind, ind0=None, ref=ref):
+                val = ref[ind]
+                return (val, val)
+        elif indother is None:
+            assert ref.ndim == 2
+            def func(ind, ind0, ref=ref):
+                val = ref[ind0,ind]
+                return (val, val)
+        else:
+            assert ref.ndim == 2
+            def func(ind, ind0, ref=ref, indother=indother):
+                val = ref[indother[ind0],ind]
+                return (val, val)
     return func
 
-def get_ind_fromkey(Type='x', dmovkeys={}, shape=[]):
-    assert Type in ['x', 'y', 'x0', 'x1', '2d']
-
-    if Type in ['x','y','x0','x1']:
-        nx = shape[0] if Type in ['x','y','x0'] else shape[1]
+def get_ind_fromkey(dmovkeys={}, shape=[], is2d=False):
+    if is2d:
+        raise Exception('not coded yet !')
+    else:
+        nx = shape[0] if len(shape)==1 else shape[1]
         def func(movk, ind, doinc=False, dmovkeys=dmovkeys, nx=nx):
             ind += dmovkeys[movk][doinc]
             ind = ind % nx
-            return ind
-    if Type=='2d':
-        dkey = {'right':'right', 'left':'left', 'up':'up', 'down':'down',
-                'inch':10, 'incv':10, 'kinc':'alt'}
-        def func(eventkey, ind, doinc=False, dkey=dkey, nx=None, ny=None):
-            h = dkey['right'] in eventkey or dkey['left'] in eventkey
-            big = dkey['kinc'] in eventkey
-            pos = dkey['right'] in eventkey or dkey['up'] in eventkey
-
-            inc = 1 if pos else -1
-            if big:
-                inc = inc*dkey['inch'] if h else inc*dkey['incv']
-            ind = ind + inc if h else ind + inc*nx
             return ind
     return func
 
@@ -2210,19 +2254,21 @@ class KeyHandler_mpl(object):
         - 'update': a callable (function), to be called when updating
     """
 
-    _ltypesref = ['x','y','x0','x1','y0','y1','2d']
+    _ltypesref = ['x','y','2d']
 
 
-    def __init__(self, can=None, dgroup=None, dref=None, dobj=None, dax=None,
-                 lax_fix=[], groupinit='time', follow=True):
+    def __init__(self, can=None, dgroup=None, dref=None, ddata=None,
+                 dobj=None, dax=None, lax_fix=[],
+                 groupinit='time', follow=True):
         assert issubclass(can.__class__, mpl.backend_bases.FigureCanvasBase)
         self.can = can
-        dgroup, dref, dax, dobj = self._checkformat_dgrouprefaxobj(dgroup,
-                                                                   dref, dobj,
-                                                                   dax)
+        out = self._checkformat_dgrouprefaxobj(dgroup, dref, dobj, dax, ddata)
+        dgroup, dref, dax, dobj, dind, ddata = out
         self.dgroup = dgroup
         self.dref = dref
+        self.ddata = ddata
         self.dax = dax
+        self.dind = dind
         self.dax.update(dict([(ax,{'fix':None, 'lobj':[]}) for ax in lax_fix
                               if ax not in dax.keys()]))
         self.dobj = dobj
@@ -2278,7 +2324,7 @@ class KeyHandler_mpl(object):
         return dmovkeys
 
     @classmethod
-    def _checkformat_dgrouprefaxobj(cls, dgroup, dref, dobj, dax):
+    def _checkformat_dgrouprefaxobj(cls, dgroup, dref, dobj, dax, ddata):
         assert all([type(dd) is dict for dd in [dgroup, dref, dobj, dax]])
 
         #---------------
@@ -2298,6 +2344,17 @@ class KeyHandler_mpl(object):
         lg = sorted(list(dgroup.keys()))
         assert len(set(lg))==len(lg)
 
+        ls = ['val','refids']
+        for k,v in ddata.items():
+            c0 = type(k) is int
+            c1 = type(v) is dict
+            c2 = all([s in v.keys() for s in ls])
+            if not (c0 and c1 and c2):
+                raise Exception(cls._msgdobj)
+            assert all([vv in dref.keys() for vv in v['refids']])
+        ldid = sorted(list(ddata.keys()))
+        assert len(set(ldid))==len(ldid)
+
         ls = ['group','val','inc']
         for k,v in dref.items():
             c0 = type(k) is int
@@ -2313,38 +2370,28 @@ class KeyHandler_mpl(object):
         lr = [dref[rid]['val'] for rid in lrid]
         assert len(set(lrid))==len(lrid)
 
-        ls = cls._ltypesref + ['fix']
+        ls = cls._ltypesref
         for k,v in dax.items():
             c0 = issubclass(k.__class__, mpl.axes.Axes)
             c1 = type(v) is dict
-            c2 = any([s in v.keys() for s in ls])
-            if not (c0 and c1 and c2):
-                raise Exception(cls._msgdobj)
-            if 'fix' not in v.keys():
-                assert all([vv in lrid for vv in v.values()])
-            for kk,vv in v.items():
-                if kk != 'fix':
-                    if 'type' not in dref[vv].keys():
-                        dref[vv]['type'] = kk
-                    elif kk != dref[vv]['type']:
-                        raise Exception(cls._msgdobj)
+            c2 = list(v.keys()) == ['ref'] and type(v['ref']) is dict
+            c3 = all([vv in ls for vv in v['ref'].values()])
+            c4 = all([kk in lrid for kk in v['ref'].keys()])
+            lc = [c0,c1,c2,c3,c4]
+            assert all(lc), str(lc)
         la = list(dax.keys())
         assert len(set(la))==len(la)
 
-        ls = ['data','type','lrefid','lind']
+        ls = ['dupdate','drefid']
         for k,v in dobj.items():
             c0 = issubclass(k.__class__, mpl.artist.Artist)
             c1 = type(v) is dict
             c2 = any([s in v.keys() for s in ls])
-            if not (c0 and c1 and c2):
-                raise Exception(cls._msgdobj)
-            assert all([vv in lrid for vv in v['lrefid']])
-            assert len(dobj[k]['lrefid'])==len(dobj[k]['lind'])
+            assert (c0 and c1 and c2)
+            assert all([vv in lrid for vv in v['drefid'].keys()])
             dobj[k]['ax'] = k.axes
             if dobj[k]['ax'] not in dax.keys():
-                dax[dobj[k]['ax']] = {'fix':None}
-            dobj[k]['lind'] = np.asarray(dobj[k]['lind'], dtype=int)
-            assert np.all(np.array(dobj[k]['lind'])>=0)
+                dax[dobj[k]['ax']] = {'fix':None, 'ref':{}}
         lo = list(dobj.keys())
         assert len(set(lo))==len(lo)
 
@@ -2362,7 +2409,8 @@ class KeyHandler_mpl(object):
             # All axes of all objects with a group dependency
             lla = []
             for o in lo:
-                if any([dref[rid]['group']==g for rid in dobj[o]['lrefid']]):
+                if any([dref[rid]['group']==g
+                        for rid in dobj[o]['drefid'].keys()]):
                     if dobj[o]['ax'] not in lla:
                         lla.append(dobj[o]['ax'])
             dgroup[g]['lax'] = lla
@@ -2372,16 +2420,18 @@ class KeyHandler_mpl(object):
             # Get list of obj with their indices, for fast updates
             lobj = [obj for obj in dobj.keys()
                     if any([dref[rid]['group'] == g
-                            for rid in dobj[obj]['lrefid']])]
+                            for rid in dobj[obj]['drefid'].keys()])]
             nobj = len(lobj)
             lind = []
             for obj in lobj:
-                ii = [ii for ii in range(0,len(dobj[obj]['lind']))
-                     if dref[dobj[obj]['lrefid'][ii]]['group'] == g]
+                ii = [ii for rid, ii in dobj[obj]['drefid'].items()
+                      if dref[rid]['group'] == g]
                 assert len(ii) == 1
-                lind.append( dobj[obj]['lind'][ii] )
+                lind += ii
+            lindu = np.unique(lind)
+            assert np.all(lindu >= 0) and np.all(lindu < dgroup[g]['nMax'])
             d2obj = dict([(ind, [lobj[ii] for ii in range(0,nobj)
-                                if lind[ii] == ind]) for ind in np.unique(lind)])
+                                if lind[ii] == ind]) for ind in lindu])
             dgroup[g]['d2obj'] = d2obj
             dgroup[g]['lobj'] = lobj
 
@@ -2389,11 +2439,9 @@ class KeyHandler_mpl(object):
         for ax in dax.keys():
             lobj = [obj for obj in dobj.keys() if dobj[obj]['ax'] is ax]
             dax[ax]['lobj'] = lobj
-            lrefid = [v for k,v in dax[ax].items() if k in cls._ltypesref]
-            dax[ax]['lrefid'] = lrefid
             dmovkeys = {}
-            for rid in lrefid:
-                dmovkeys[rid] = cls._get_dmovkeys(dref[rid]['type'],
+            for rid in dax[ax]['ref'].keys():
+                dmovkeys[rid] = cls._get_dmovkeys(dax[ax]['ref'][rid],
                                                   dref[rid]['inc'])
             dax[ax]['dmovkeys'] = dmovkeys
 
@@ -2402,70 +2450,106 @@ class KeyHandler_mpl(object):
             dref[rid]['ind'] = np.zeros((dgroup[dref[rid]['group']]['nMax'],),
                                         dtype=int)
 
-            # Check if type can be simplified
-            c0 = (dref[rid]['type'] in ['x0','x1','y0','y1']
-                  and 1 in dref[rid]['val'].shape)
-            c1 = ('other' in dref[rid].keys()
-                  and dref[rid]['other'] is not None)
-            if c0:
-                dref[rid]['val'] = dref[rid]['val'].ravel()
-                dref[rid]['type'] = dref[rid]['type'][0]
-                if c1:
-                    dref[rid]['other'] = None
-            if 'other' not in dref[rid].keys():
-                dref[rid]['other'] = None
-
-            if 'indinter' in dref[refid].keys():
-                if dref[refid]['indinter'] is not None:
-                    assert dref[rid]['other'] is not None
+            # Check consistency of otherid and indother
+            c0 = 'indother' not in dref[rid].keys()
+            c1 = not c0 and dref[rid]['indother'] is None
+            if 'otherid' not in dref[rid].keys():
+                assert dref[rid]['val'].size == max(dref[rid]['val'].shape)
+                assert c0 or c1
+                dref[rid]['otherid'] = None
+                if c0:
+                    dref[rid]['indother'] = None
             else:
-                pass # to be checked later
+                otherid = dref[rid]['otherid']
+                assert otherid in dref.keys()
+                assert dref[rid]['val'].ndim == 2
+                if c0 or c1:
+                    assert dref[rid]['val'].shape[0]==dref[otherid]['val'].size
+                    if c0:
+                        dref[rid]['indother'] = None
+                else:
+                    assert dref[rid]['indother'].ndim == 1
 
-            dref[rid]['f_ind_val'] = get_ind_fromval(dref[rid]['type'],
-                                                     ref=dref[rid]['val'])
-            dref[rid]['f_val_ind'] = get_val_fromind(dref[rid]['type'],
-                                                     ref=dref[rid]['val'])
-            df_ind_key = {}
+             # Check if is2d
+            ltypes = []
             for ax in dax.keys():
-                if rid in dax[ax]['lrefid']:
-                    df_ind_key[ax] = get_ind_fromkey(dref[rid]['type'],
-                                                     dmovkeys=dax[ax]['dmovkeys'][rid],
-                                                     shape=dref[rid]['val'].shape)
+                if rid in dax[ax]['ref'].keys():
+                    ltypes.append(dax[ax]['ref'][rid])
+            ltypes = sorted(set(ltypes))
+            assert ltypes == ['2d'] or not '2d' in ltypes
+            is2d = '2d' in ltypes
+            dref[rid]['is2d'] = is2d
+
+            # Get functions
+            val = dref[rid]['val']
+            otherid = dref[rid]['otherid']
+            indother = dref[rid]['indother']
+            dref[rid]['f_pos_ind'] = get_pos_fromind(ref = val,
+                                                     otherid = otherid,
+                                                     indother = indother,
+                                                     is2d = is2d)
+
+            df_ind_pos, df_ind_key = {}, {}
+            for ax in dax.keys():
+                if rid in dax[ax]['ref'].keys():
+                    typ = dax[ax]['ref'][rid]
+                    df_ind_pos[ax] = get_ind_frompos(typ, val,
+                                                     otherid = otherid,
+                                                     indother = indother)
+                    dmovkeys = dax[ax]['dmovkeys'][rid]
+                    df_ind_key[ax] = get_ind_fromkey(dmovkeys,
+                                                     is2d = is2d,
+                                                     shape = val.shape)
+            dref[rid]['df_ind_pos'] = df_ind_pos
             dref[rid]['df_ind_key'] = df_ind_key
 
-            if dref[rid]['other'] is not None:
-                assert dref[rid]['type'] in ['x0','x1','y0','y1']
-                assert dref[rid]['other'] in lrid
-                # Re-check relevance later:
-                assert dref[rid]['other'].ndim == 1
-            else:
-                assert dref[rid]['type'] in ['x','y','2d']
             # lobj
-            lobj = [oo for oo in dobj.keys() if rid in dobj[oo]['lrefid']]
+            lobj = [oo for oo in dobj.keys()
+                    if rid in dobj[oo]['drefid'].keys()]
             dref[rid]['lobj'] = lobj
+
+        # dind
+        lref = list(dref.keys())
+        nref = len(lref)
+        ancur = np.zeros((2,nref),dtype=int)
+        ancur[1,:] = [dgroup[dref[rid]['group']]['nMax'] for rid in lref]
+        cumsum0 = np.r_[0, np.cumsum(ancur[1,:])]
+        arefind = np.zeros((np.sum(ancur[1,:])),dtype=int)
+        dind = {'lrefid':lref, 'anMaxcur':ancur, 'arefind':arefind,
+                'cumsum0':cumsum0}
 
         # dobj
         for oo in dobj.keys():
             dobj[oo]['vis'] = False
-            an = np.zeros((2,len(dobj[oo]['lrefid'])),dtype=int)
-            an[0,:] = dobj[oo]['lind']
-            an[1,:] = 0
-            dobj[oo]['an'] = an
             lnMax = [dgroup[dref[rid]['group']]['nMax']
-                     for rid in dobj[oo]['lrefid']]
-            if np.any(an[0,:] >= lnMax):
-                msg = "Issue with dobj[{0}]\n".format(oo)
-                msg += "All indices in lind should be < nMax:\n"
-                msg += "    lind : %s\n"%str(dobj[oo]['lind'])
-                msg += "    nMax : %s\n"%str(lnMax)
-                raise Exception(msg)
+                     for rid in dobj[oo]['drefid'].keys()]
 
-            bstr = None if 'bstr' not in dobj[oo].keys() else dobj[oo]['bstr']
-            dobj[oo]['update'] = get_updatefunc(oo, Type=dobj[oo]['type'],
-                                                data=dobj[oo]['data'],
-                                                bstr=bstr)
+            # get functions to update
+            for k, v in dobj[oo]['dupdate'].items():
+                # Check consistency with ddata
+                if v['id'] not in ddata.keys():
+                    assert v['id'] in dref.keys()
+                    ddata[v['id']] = {'val':dref[v['id']]['val']}
+                    if dref[v['id']]['otherid'] is None:
+                        ddata[v['id']]['refids'] = [v['id']]
+                    else:
+                        ddata[v['id']]['refids'] = [dref[v['id']]['otherid'],v['id']]
 
-        return dgroup, dref, dax, dobj
+                # get update tools
+                val = ddata[v['id']]['val']
+                lrefs = ddata[v['id']]['refids']
+                linds = v['lrid']
+                fgetval = get_valf(val, lrefs, linds)
+                fupdate = get_fupdate(oo, k)
+                dobj[oo]['dupdate'][k]['fgetval'] = fgetval
+                dobj[oo]['dupdate'][k]['fupdate'] = fupdate
+            # linds necessarily identical
+            indncurind = get_indncurind(dind, dobj[oo]['drefid'])
+            dobj[oo]['indncurind'] = indncurind
+            indrefind = get_indrefind(dind, linds, dobj[oo]['drefid'])
+            dobj[oo]['indrefind'] = indrefind
+
+        return dgroup, dref, dax, dobj, dind, ddata
 
 
     def _get_dkeys(self):
@@ -2563,12 +2647,20 @@ class KeyHandler_mpl(object):
         self._update_dobj()
 
     def _update_dcur(self):
-        assert self.dref[self.dcur['refid']]['group'] == self.dcur['group']
-        assert self.dcur['refid'] in self.dax[self.dcur['ax']]['lrefid']
-        for obj in self.dobj.keys():
-            an = [self.dgroup[self.dref[rid]['group']]['ncur']
-                  for rid in self.dobj[obj]['lrefid']]
-            self.dobj[obj]['an'][1,:] = an
+        group = self.dcur['group']
+        refid = self.dcur['refid']
+        assert self.dref[refid]['group'] == group
+        assert refid in self.dax[self.dcur['ax']]['ref'].keys()
+
+        # Update also dind !
+        an = [self.dgroup[self.dref[rid]['group']]['ncur']
+              for rid in self.dind['lrefid']]
+        self.dind['anMaxcur'][0,:] = an
+
+        # Update array ncur
+        for obj in self.dgroup[group]['lobj']:
+            aa = self.dind['anMaxcur'][:,self.dobj[obj]['indncurind']]
+            self.dobj[obj]['vis'] = np.all(np.diff(aa,axis=0)>=0)
 
     def _update_dref(self, excluderef=True):
         group = self.dcur['group']
@@ -2579,30 +2671,36 @@ class KeyHandler_mpl(object):
             for rid in self.dgroup[group]['lrefid']:
                 if rid == self.dcur['refid']:
                     continue
-                if self.dref[rid]['other'] is None:
+                if self.dref[rid]['otherid'] is None:
                     indother = None
                 else:
-                    group2 = self.dref[self.dref[rid]['other']]['group']
+                    group2 = self.dref[self.dref[rid]['otherid']]['group']
                     ind2 = self.dgroup[group2]['indcur']
-                    indother = self.dref[self.dref[rid]['other']]['ind'][ind2]
-                ii = self.dref[rid]['f_ind_val'](val, indother)
+                    indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
+                ii = self.dref[rid]['df_ind_pos'][ax](val, indother)
                 if self._follow:
                     self.dref[rid]['ind'][ind:] = ii
                 else:
                     self.dref[rid]['ind'][ind] = ii
         else:
+            # TBF : strange thing with axes !!!
             for rid in self.dgroup[group]['lrefid']:
-                if self.dref[rid]['other'] is None:
+                if self.dref[rid]['otherid'] is None:
                     indother = None
                 else:
-                    group2 = self.dref[self.dref[rid]['other']]['group']
+                    group2 = self.dref[self.dref[rid]['otherid']]['group']
                     ind2 = self.dgroup[group2]['indcur']
-                    indother = self.dref[self.dref[rid]['other']]['ind'][ind2]
-                ii = self.dref[rid]['f_ind_val'](val, indother)
+                    indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
+                ii = self.dref[rid]['df_ind_pos'][ax](val, indother)
                 if self._follow:
                     self.dref[rid]['ind'][ind:] = ii
                 else:
                     self.dref[rid]['ind'][ind] = ii
+
+        # Update also dind ! TBFFFFFF !!!!!!!!!!
+        an = [self.dgroup[self.dref[rid]['group']]['ncur']
+              for rid in self.dind['lrefid']]
+        self.dind['anMaxcur'][0,:] = an
 
 
     def _update_dobj(self):
@@ -2618,12 +2716,12 @@ class KeyHandler_mpl(object):
 
         # ---- update data and draw objects ------
         for obj in self.dgroup[group]['d2obj'][indcur]:
-            lind = [self.dref[rid]['ind'][indcur] for rid in self.dobj[obj]['lrefid']]
-            self.dobj[obj]['update']( *lind )
+            li = self.dind['arefind'][self.dobj[obj]['indrefind']]
+            for k in self.dobj[obj]['dupdate'].keys():
+                val = self.dobj[obj]['dupdate'][k]['fgetval']( *li )
+                self.dobj[obj]['dupdate'][k]['fupdate']( val )
 
         for obj in self.dgroup[group]['lobj']:
-            vis = np.all(np.diff(self.dobj[obj]['an'],axis=0) >= 0)
-            self.dobj[obj]['vis'] = vis
             obj.set_visible(self.dobj[obj]['vis'])
             self.dobj[obj]['ax'].draw_artist(obj)
 
@@ -2649,14 +2747,13 @@ class KeyHandler_mpl(object):
 
         # Set self.dcur
         self.dcur['ax'] = event.inaxes
-        if len(self.dax[event.inaxes]['lrefid'])>1:
-            lrefid = [refid for refid in self.dax[event.inaxes]['lrefid']
-                      if self.dref[refid]['group']==self.dcur['group']]
-            assert len(lrefid)==1
-            self.dcur['refid'] = lrefid[0]
-        else:
-            self.dcur['refid'] = self.dax[event.inaxes]['lrefid'][0]
-            self.dcur['group'] = self.dref[self.dcur['refid']]['group']
+        lrid = list(self.dax[event.inaxes]['ref'].keys())
+        if len(lrid)>1:
+            lrid = [rid for rid in lrid
+                    if self.dref[rid]['group']==self.dcur['group']]
+            assert len(lrid)==1
+        self.dcur['refid'] = lrid[0]
+        self.dcur['group'] = self.dref[self.dcur['refid']]['group']
 
         group = self.dcur['group']
         ax = self.dcur['ax']
@@ -2809,13 +2906,13 @@ class KeyHandler_mpl(object):
                 self.dref[refid]['ind'][ii] = ind
 
             # Update group val
-            if self.dref[refid]['other'] is None:
+            if self.dref[refid]['otherid'] is None:
                 indother = None
             else:
-                group2 = self.dref[self.dref[refid]['other']]['group']
+                group2 = self.dref[self.dref[refid]['otherid']]['group']
                 ind2 = self.dgroup[group2]['indcur']
-                indother = self.dref[self.dref[refid]['other']]['ind'][ind2]
-            val = self.dref[refid]['f_val_ind']( ind, indother )
+                indother = self.dref[self.dref[refid]['otherid']]['ind'][ind2]
+            val = self.dref[refid]['f_pos_ind']( ind, indother )
             if self._follow:
                 self.dgroup[group]['valind'][ii:,:] = val
             else:
@@ -2823,3 +2920,17 @@ class KeyHandler_mpl(object):
 
             # Upadte all
             self.update(excluderef=True)
+
+
+
+
+
+###################################################################
+###################################################################
+#       Start new abstract Data2DBase with indices for next version
+###################################################################
+
+class Data2DBase(ToFuObjectBase):
+    """ Provide a a dict of sequences depending on 2 indices
+    """
+    pass
