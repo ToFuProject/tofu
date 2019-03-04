@@ -87,7 +87,9 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
     # Check inputs
     if nperseg is None and fmin is None:
         fmin = _fmin_coef*(fs/nt)
-        msg = "nperseg and fmin were not provided, fmin set to 10.*fs/nt"
+        msg = "nperseg and fmin were not provided\n"
+        msg += "    => fmin automatically set to 10.*fs/nt:\n"
+        msg += "       fmin = 10.*{0} / {1} = {2} Hz".format(fs,nt,fmin)
         warnings.warn(msg)
 
     # Format inputs
