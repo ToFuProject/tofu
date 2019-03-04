@@ -2168,10 +2168,10 @@ def get_fupdate(obj, typ, bstr=None):
         f = lambda val, obj=obj: obj.set_xdata(val)
     elif typ == 'ydata':
         f = lambda val, obj=obj: obj.set_ydata(val)
-    elif typ == 'data' or 'imshow':
+    elif typ in ['data','imshow']:
         f = lambda val, obj=obj: obj.set_data(val)
-    elif typ == 'txt':    # TBF
-        f = lambda val, obj=obj: obj.set_text(val)
+    elif typ == 'txt':
+        f = lambda val, obj=obj, bstr=bstr: obj.set_text(bstr.format(val))
     return f
 
 
@@ -2553,7 +2553,11 @@ class KeyHandler_mpl(object):
                 lrefs = ddata[v['id']]['refids']
                 linds = v['lrid']
                 fgetval = get_valf(val, lrefs, linds)
-                fupdate = get_fupdate(oo, k)
+                if 'bstr' in dobj[oo]['dupdate'][k].keys():
+                    kwdargs = {'bstr':dobj[oo]['dupdate'][k]['bstr']}
+                else:
+                    args = {}
+                fupdate = get_fupdate(oo, k, **kwdargs)
                 dobj[oo]['dupdate'][k]['fgetval'] = fgetval
                 dobj[oo]['dupdate'][k]['fupdate'] = fupdate
             # linds necessarily identical
@@ -2775,7 +2779,9 @@ class KeyHandler_mpl(object):
                 rid = lrid[lg.index(self.dcur['group'])]
             else:
                 rid = self.dax[event.inaxes]['defrefid']
-        self.dcur['refid'] = lrid[0]
+        else:
+            rid= lrid[0]
+        self.dcur['refid'] = rid
         self.dcur['group'] = self.dref[self.dcur['refid']]['group']
 
         group = self.dcur['group']

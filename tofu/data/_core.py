@@ -1607,7 +1607,7 @@ class Data(utils.ToFuObject):
                                               padded=padded, wave=wave)
         return tf, f, lpsd, lang
 
-    def plot_spectrogram(self, fmin=None,
+    def plot_spectrogram(self, fmin=None, fmax=None,
                          method='scipy-fourier', deg=False,
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
@@ -1636,7 +1636,7 @@ class Data(utils.ToFuObject):
                                               detrend=detrend, nperseg=nperseg,
                                               noverlap=noverlap, boundary=boundary,
                                               padded=padded, wave=wave)
-        kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang,
+        kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang, fmax=fmax,
                                          invert=invert, plotmethod=plotmethod,
                                          cmap=cmap, ms=ms, ntMax=ntMax,
                                          nchMax=nchMax, Bck=Bck, fs=fs,
