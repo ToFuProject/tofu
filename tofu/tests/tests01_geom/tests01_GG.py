@@ -1064,3 +1064,29 @@ def test11_LOS_sino():
     assert np.allclose(np.abs(p0),r)
     assert np.allclose(np.abs(ImpTheta0),theta)
     assert np.allclose(np.abs(phi0),phi)
+
+
+def test11_LOS_sino_vec():
+    N = 10**2
+    RZ = np.array([2.,0.])
+    Ds = np.array([np.linspace(-0.5,0.5,N),
+                   np.ones((N,)),
+                   np.zeros((N,))])
+    us = np.array([np.linspace(-0.5,0.5,N),
+                   -np.ones((N,)),
+                   np.linspace(-0.5,0.5,N)])
+
+    for iloops in range(100):
+        PMin0, kPMin0, RMin0 = np.nan*np.ones((3,N)), np.nan*np.ones((N,)), np.nan*np.ones((N,))
+        Theta0, p0, ImpTheta0, phi0 = np.nan*np.ones((N,)), np.nan*np.ones((N,)), np.nan*np.ones((N,)), np.nan*np.ones((N,))
+        PMin0, kPMin0, RMin0, Theta0, p0, ImpTheta0, phi0 = GG.LOS_sino(Ds, us, RZ, kOut=np.full((N,),np.inf),
+                                                                        Mode='LOS', VType='Lin',
+                                                                        try_new_algo=True)
+        # verifying there is no Nan:
+        assert not np.isnan(np.sum(PMin0))
+        assert not np.isnan(np.sum(kPMin0))
+        assert not np.isnan(np.sum(RMin0))
+        assert not np.isnan(np.sum(Theta0))
+        assert not np.isnan(np.sum(p0))
+        assert not np.isnan(np.sum(ImpTheta0))
+        assert not np.isnan(np.sum(phi0))
