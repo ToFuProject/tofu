@@ -1478,7 +1478,7 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
         KH = _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                       fmax=fmax, key=key,
                                       ntMax=ntMax, nfMax=nfMax,
-                                      Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+                                      Bck=Bck, llsf=lls, lct=lct,
                                       cmap=cmap, normt=normt,
                                       vmin=vmin, vmax=vmax,
                                       fs=fs, dmargin=dmargin, wintit=wintit,
@@ -1559,8 +1559,9 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
         for ii in range(0,len(dax[kk])):
             dax[kk][ii].tick_params(labelsize=fontsize)
             # For faster plotting :
-            #dax[kk][ii].autoscale(False)
-            #dax[kk][ii].use_sticky_edges = False
+            if kk not in ['cross','hor']:
+                dax[kk][ii].autoscale(False)
+                dax[kk][ii].use_sticky_edges = False
     return dax
 
 
@@ -1569,7 +1570,7 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
 def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                              fmax=None, key=None,
                              ntMax=_ntMax, nfMax=_nfMax,
-                             Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
+                             Bck=True, llsf=_lls, lct=_lct,
                              inct=[1,10], incX=[1,5], incf=[1,10],
                              fmt_t='06.3f', fmt_X='01.0f', fmt_f='05.2f',
                              dchanskey=None, cmap=None, normt=False,
@@ -1635,7 +1636,6 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                Data.dlabels['data']['units'])
     iddata = id(data)
 
-
     # tf
     Dtf = [np.nanmin(tf), np.nanmax(tf)]
     idtf = id(tf)
@@ -1697,7 +1697,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     if Bck:
         if nnX == 1:
             env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
-            dax['X'][0].fill_between(X, env[0], env[1], facecolor=cbck)
+            dax['X'][0].fill_between(X.ravel(), env[0], env[1], facecolor=cbck)
         tbck = np.tile(np.r_[t, np.nan], nX)
         dbck = np.vstack((data, np.full((1,nX),np.nan))).T.ravel()
         dax['t'][0].plot(tbck, dbck, lw=1., ls='-', c=cbck)
@@ -1767,26 +1767,26 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     extent = (Dtf[0]-dtf,Dtf[1]+dtf, Df[0]-df, Df[1]+df)
     for jj in range(0,1):
         l0 = dax['txtx'][0].text(0.5, 0., r'',
-                                 color=lcch[jj], fontweight='bold',
+                                 color='k', fontweight='bold',
                                  fontsize=6., ha='center', va='bottom')
         dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[idX],
                                       'bstr':'{0:%s}'%fmt_X}},
                     'drefid':{idX:jj}}
 
         l0, = dax['t'][0].plot(t, np.full((nt,),np.nan),
-                               c=lcch[jj], ls=lls[0], lw=1.)
+                               c='k', ls='-', lw=1.)
         dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
 
         if Xother is None:
             for ll in range(0,len(dax['X'])):
-                l0 = dax['X'][ll].axvline(np.nan, c=lcch[jj], ls=lls[0], lw=1.)
+                l0 = dax['X'][ll].axvline(np.nan, c='k', ls='-', lw=1.)
                 dobj[l0] = {'dupdate':{'xdata':{'id':idX, 'lrid':[idX]}},
                             'drefid':{idX:jj}}
         else:
             for ll in range(0,len(dax['X'])):
                 for ii in range(0,ntMax):
-                    l0 = dax['X'][ll].axvline(np.nan, c=lcch[jj], ls=lls[0], lw=1.)
+                    l0 = dax['X'][ll].axvline(np.nan, c='k', ls='-', lw=1.)
                     dobj[l0] = {'dupdate':{'xdata':{'id':idX,
                                                     'lrid':[idt,idX]}},
                                 'drefid':{idX:jj, idt:ii}}
@@ -1810,15 +1810,15 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     # Time
     for jj in range(0,ntMax):
-        # l0 = dax['txtt'][0].text((0.5+jj)/ntMax, 0., r'',
-                                 # color=lct[jj], fontweight='bold',
-                                 # fontsize=6., ha='center', va='bottom')
-        # dobj[l0] = {'dupdate':{'txt':{'id':idt, 'lrid':[idt],
-                                      # 'bstr':'%s} s'%fmt_t}},
-                    # 'drefid':{idt:jj}}
+        l0 = dax['txtt'][0].text((0.5+jj)/ntMax, 0., r'',
+                                 color=lct[jj], fontweight='bold',
+                                 fontsize=6., ha='center', va='bottom')
+        dobj[l0] = {'dupdate':{'txt':{'id':idt, 'lrid':[idt],
+                                      'bstr':'{0:%s} s'%fmt_t}},
+                    'drefid':{idt:jj}}
 
         l0, = dax['X'][0].plot(X[0,:], np.full((nX,),np.nan),
-                               c=lct[jj], ls=lls[0], lw=1.)
+                               c=lct[jj], ls='-', lw=1.)
         dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idt]}},
                     'drefid':{idt:jj}}
         if Xother is not None:
@@ -1826,40 +1826,42 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
 
         for ll in range(0,len(dax['t'])):
-            l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls=lls[0], lw=1.)
+            l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls='-', lw=1.)
             dobj[l0] = {'dupdate':{'xdata':{'id':idt, 'lrid':[idt]}},
                         'drefid':{idt:jj}}
 
         # lpsd and ang
         for ii in range(0,nfMax):
             l0, = dax['X'][1].plot(X[0,:], np.full((nX,),np.nan),
-                                   c=lct[jj], ls=lls[0], lw=1.)
+                                   c=lct[jj], ls=llsf[ii], lw=1.)
             dobj[l0] = {'dupdate':{'ydata':{'id':idlpsd, 'lrid':[idtf,idf]}},
                         'drefid':{idtf:jj, idf:ii}}
             l1, = dax['X'][2].plot(X[0,:], np.full((nX,),np.nan),
-                                   c=lct[jj], ls=lls[0], lw=1.)
+                                   c=lct[jj], ls=llsf[ii], lw=1.)
             dobj[l1] = {'dupdate':{'ydata':{'id':idlang, 'lrid':[idtf,idf]}},
                         'drefid':{idtf:jj, idf:ii}}
 
             # To be finished !!!!! check ids handling in tf.utils !!!
-            # if Xother is not None:
-                # dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
-                # dobj[l1]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
+            if Xother is not None:
+                dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
+                dobj[l0]['drefid'][Xother] = jj
+                dobj[l1]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
+                dobj[l1]['drefid'][Xother] = jj
 
     # Frequency
     for jj in range(0,nfMax):
-        # l0 = dax['txtt'][0].text((0.5+jj)/ntMax, 0., r'',
-                                 # color=lct[jj], fontweight='bold',
-                                 # fontsize=6., ha='center', va='bottom')
-        # dobj[l0] = {'dupdate':{'txt':{'id':idt, 'lrid':[idt],
-                                      # 'bstr':'%s} s'%fmt_t}},
-                    # 'drefid':{idt:jj}}
+        l0 = dax['txtf'][0].text((0.5+jj)/ntMax, 0., r'',
+                                 color='k', fontweight='bold',
+                                 fontsize=6., ha='center', va='bottom')
+        dobj[l0] = {'dupdate':{'txt':{'id':idf, 'lrid':[idf],
+                                      'bstr':'{0:%s} Hz'%fmt_t}},
+                    'drefid':{idf:jj}}
 
-        l0 = dax['t'][1].axhline(np.nan, c=lct[jj], ls=lls[0], lw=1.)
+        l0 = dax['t'][1].axhline(np.nan, c='k', ls=llsf[jj], lw=1.)
         dobj[l0] = {'dupdate':{'ydata':{'id':idf, 'lrid':[idf]}},
                     'drefid':{idf:jj}}
 
-        l0 = dax['t'][2].axhline(np.nan, c=lct[jj], ls=lls[0], lw=1.)
+        l0 = dax['t'][2].axhline(np.nan, c='k', ls=llsf[jj], lw=1.)
         dobj[l0] = {'dupdate':{'ydata':{'id':idf, 'lrid':[idf]}},
                     'drefid':{idf:jj}}
 

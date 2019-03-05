@@ -13,6 +13,8 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+import datetime as dtm # DB
+
 # tofu-specific
 from tofu import __version__
 import tofu.pathfile as tfpf
@@ -2131,16 +2133,19 @@ def get_indrefind(dind, linds, drefid):
 
 
 def get_valf(val, lrids, linds):
-    ndim = val.ndim
-    assert ndim == len(lrids)
     ninds = len(linds)
     if type(val) is list:
+        assert len(val) == len(lrids)
         assert ninds == 1 and lrids == linds
         func = lambda *li, val=val: val[li[0]]
 
     else:
         assert type(val) is np.ndarray
+        val = val.squeeze()
+        ndim = val.ndim
+        assert ndim == len(lrids)
         assert ndim >= ninds
+
         if ndim == ninds:
             if ndim == 1:
                 func = lambda *li, val=val: val[li[0]]
@@ -2151,7 +2156,18 @@ def get_valf(val, lrids, linds):
         else:
             lord = np.r_[[lrids.index(ii) for ii in linds]].astype(int)
             if ninds == 1:
-                func = lambda *li, val=val, lord=lord: np.take(val, li[0], lord[0])
+                if ndim == 2:
+                    if lord[0] == 0:
+                        func = lambda *li, val=val: val[li[0],:]
+                    elif lord[0] == 1:
+                        func = lambda *li, val=val: val[:,li[0]]
+                elif ndim == 3:
+                    if lord[0] == 0:
+                        func = lambda *li, val=val: val[li[0],:,:]
+                    elif lord[0] == 1:
+                        func = lambda *li, val=val: val[:,li[0],:]
+                    elif lord[0] == 2:
+                        func = lambda *li, val=val: val[:,:,li[0]]
             elif ninds == 2:
                 assert ndim == 3
                 args = np.argsort(lord)
@@ -2435,7 +2451,12 @@ class KeyHandler_mpl(object):
             for obj in lobj:
                 ii = [ii for rid, ii in dobj[obj]['drefid'].items()
                       if dref[rid]['group'] == g]
-                assert len(ii) == 1
+                assert len(ii) >= 1
+                if len(ii)>1:
+                    # Case when same group refered to via several refs
+                    # Only works if consistent indices !
+                    assert all([iii==ii[0] for iii in ii])
+                    ii = [ii[0]]
                 lind += ii
             lindu = np.unique(lind)
             assert np.all(lindu >= 0) and np.all(lindu < dgroup[g]['nMax'])
@@ -2476,14 +2497,19 @@ class KeyHandler_mpl(object):
                     dref[rid]['indother'] = None
             else:
                 otherid = dref[rid]['otherid']
-                assert otherid in dref.keys()
-                assert dref[rid]['val'].ndim == 2
-                if c0 or c1:
-                    assert dref[rid]['val'].shape[0]==dref[otherid]['val'].size
+                assert otherid is None or otherid in dref.keys()
+                if otherid is None:
+                    assert c0 or c1
                     if c0:
                         dref[rid]['indother'] = None
                 else:
-                    assert dref[rid]['indother'].ndim == 1
+                    assert dref[rid]['val'].ndim == 2
+                    if c0 or c1:
+                        assert dref[rid]['val'].shape[0]==dref[otherid]['val'].size
+                        if c0:
+                            dref[rid]['indother'] = None
+                    else:
+                        assert dref[rid]['indother'].ndim == 1
 
              # Check if is2d
             ltypes = []
@@ -2538,6 +2564,7 @@ class KeyHandler_mpl(object):
             dobj[oo]['vis'] = False
 
             # get functions to update
+            lrefid = list(dobj[oo]['drefid'].keys())
             for k, v in dobj[oo]['dupdate'].items():
                 # Check consistency with ddata
                 if v['id'] not in ddata.keys():
@@ -2560,13 +2587,14 @@ class KeyHandler_mpl(object):
                 fupdate = get_fupdate(oo, k, **kwdargs)
                 dobj[oo]['dupdate'][k]['fgetval'] = fgetval
                 dobj[oo]['dupdate'][k]['fupdate'] = fupdate
-            # linds necessarily identical
+                indrefind = get_indrefind(dind, linds, dobj[oo]['drefid'])
+                dobj[oo]['dupdate'][k]['indrefind'] = indrefind
+
+            # linds not necessarily identical !
             dobj[oo]['aindvis'] = np.array([dobj[oo]['drefid'][rid]
-                                            for rid in linds], dtype=int)
-            indncurind = get_indncurind(dind, linds)
+                                            for rid in lrefid], dtype=int)
+            indncurind = get_indncurind(dind, lrefid)
             dobj[oo]['indncurind'] = indncurind
-            indrefind = get_indrefind(dind, linds, dobj[oo]['drefid'])
-            dobj[oo]['indrefind'] = indrefind
 
         return dgroup, dref, dax, dobj, dind, ddata
 
@@ -2661,9 +2689,9 @@ class KeyHandler_mpl(object):
         pass
 
     def update(self, excluderef=True):
-        self._update_dcur()
-        self._update_dref(excluderef=excluderef)
-        self._update_dobj()
+        self._update_dcur() # 0.4 ms
+        self._update_dref(excluderef=excluderef)    # 0.1 ms
+        self._update_dobj() # 0.2 s
 
     def _update_dcur(self):
         group = self.dcur['group']
@@ -2729,31 +2757,32 @@ class KeyHandler_mpl(object):
 
     def _update_dobj(self):
 
+        # --- Prepare ----- 2 us
         group = self.dcur['group']
         refid = self.dcur['refid']
         indcur = self.dgroup[group]['indcur']
         lax = self.dgroup[group]['lax']
 
-        # ---- Restore backgrounds ------
+        # ---- Restore backgrounds ---- 1 ms
         for aa in lax:
             self.can.restore_region(self.dax[aa]['Bck'])
 
-        # ---- update data of group objects ------
+        # ---- update data of group objects ----  0.15 s
         for obj in self.dgroup[group]['d2obj'][indcur]:
-            li = self.dind['arefind'][self.dobj[obj]['indrefind']]
             for k in self.dobj[obj]['dupdate'].keys():
-                val = self.dobj[obj]['dupdate'][k]['fgetval']( *li )
-                self.dobj[obj]['dupdate'][k]['fupdate']( val )
+                ii = self.dobj[obj]['dupdate'][k]['indrefind']  # 20 us
+                li = self.dind['arefind'][ii]   # 50 us
+                val = self.dobj[obj]['dupdate'][k]['fgetval']( *li )    # 0.0001 s
+                self.dobj[obj]['dupdate'][k]['fupdate']( val )  # 2 ms
 
-        # ---- Update / redraw all objects (due to background restore) ----
+        # --- Redraw all objects (due to background restore) --- 25 ms
         for obj in self.dobj.keys():
             obj.set_visible(self.dobj[obj]['vis'])
             self.dobj[obj]['ax'].draw_artist(obj)
 
-        # ---- blit axes ------
+        # ---- blit axes ------ 5 ms
         for aa in lax:
             self.can.blit(aa.bbox)
-
 
     def mouseclic(self,event):
 
