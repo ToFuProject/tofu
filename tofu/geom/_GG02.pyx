@@ -5392,10 +5392,13 @@ def comp_dist_los_circle(double dir1, double dir2, double dir3,
                           double ori1, double ori2, double ori3,
                           double radius, double circ_z, double norm_dir=-1.0):
     # This function computes the intersection of a Ray (or Line Of Sight)
-    # and a circle in 3D. It returns `kmin`, the coefficient such that the
-    # ray of origin O = [ori1, ori2, ori3] and of directional vector
-    # D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
-    # and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
+    # and a circle in 3D. It returns `kmin` and `dist`. Where `kmin` is the
+    # coefficient such that the ray of origin O = [ori1, ori2, ori3]
+    # and of directional vector D = [dir1, dir2, dir3] is closest to the circle
+    #  of radius `radius` and centered `(0, 0, circ_z)` at the point
+    # P = O + kmin * D.
+    # And `distance` the distance between the two closest points (line closest
+    # and circle closest)
     # The variable `norm_dir` is the squared norm of the direction of the ray.
     # ---
     # This is the PYTHON function, use only if you need this computation from
