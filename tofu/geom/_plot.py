@@ -1535,7 +1535,12 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
     elif plotmethod=='imshow':
         dax['chan2D'][0]['ax'].set_xlim(extent[0:2])
         dax['chan2D'][0]['ax'].set_ylim(extent[2:])
-        cols = cols.reshape((nx1,nx2,4)).swapaxes(0,1)
+        try:
+            cols = cols.reshape((nx1,nx2,4)).swapaxes(0,1)
+        except Exception as err:
+            import ipdb
+            ipdb.set_trace()
+            raise err
         dax['chan2D'][0]['ax'].imshow(cols, extent=extent, aspect='equal',
                                       interpolation='nearest', origin='lower',
                                       zorder=-1)

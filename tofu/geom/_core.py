@@ -2449,9 +2449,6 @@ class Rays(utils.ToFuObject):
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
 
-        if method is not None:
-            self._method = method
-
         # Extra-early fix for Exp
         # Workflow to be cleaned up later ?
         if Exp is None and config is not None:
@@ -2735,6 +2732,8 @@ class Rays(utils.ToFuObject):
 
     def _init(self, dgeom=None, config=None, Etendues=None, Surfaces=None,
               sino_RefPt=None, dchans=None, method='optimized', **kwdargs):
+        if method is not None:
+            self._method = method
         largs = self._get_largs_dgeom(sino=True)
         kwdgeom = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dconfig()
@@ -2743,7 +2742,6 @@ class Rays(utils.ToFuObject):
         kwdchans = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dmisc()
         kwdmisc = self._extract_kwdargs(locals(), largs)
-        self._method = method
         self.set_dconfig(calcdgeom=False, **kwdconfig)
         self._set_dgeom(sino=True, **kwdgeom)
         self.set_dchans(**kwdchans)
@@ -2989,7 +2987,13 @@ class Rays(utils.ToFuObject):
     def _compute_kInOut(self):
 
         # Prepare inputs
-        largs, dkwd = self._prepare_inputs_kInOut()
+        try:
+            largs, dkwd = self._prepare_inputs_kInOut()
+        except Exception as err:
+            import ipdb
+            ipdb.set_trace()
+            raise err
+
 
         if self._method=='ref':
             # call the dedicated function
