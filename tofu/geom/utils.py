@@ -804,12 +804,15 @@ def _create_CamLOS(case='V10000', nD=1, Name=None, Etendues=None, Surfaces=None,
             lS = config.lStruct
         defRY = np.max([ss.dgeom['P1Max'][0] for ss in lS])
 
-    kwdargs = dict(P=P, F=F, D12=D12, N12=N12, angs=angs, nIn=nIn,
-                   VType=VType, defRY=defRY, Lim=Lim)
-    if nD==1:
-        Ds, P, d2 = _compute_CamLOS1D_pinhole(**kwdargs)
+    if case is not None:
+        assert case in [str(ii) for ii in [10,100,1000,10000,100000,1000000]]
     else:
-        Ds, P, d1, d2, indflat2img, indimg2flat = _compute_CamLOS2D_pinhole(**kwdargs)
+        kwdargs = dict(P=P, F=F, D12=D12, N12=N12, angs=angs, nIn=nIn,
+                       VType=VType, defRY=defRY, Lim=Lim)
+        if nD==1:
+            Ds, P, d2 = _compute_CamLOS1D_pinhole(**kwdargs)
+        else:
+            Ds, P, d1, d2, indflat2img, indimg2flat = _compute_CamLOS2D_pinhole(**kwdargs)
 
     if out in ['dict',dict]:
         dout = {'D':Ds, 'pinhole':P}
