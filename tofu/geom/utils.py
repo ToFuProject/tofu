@@ -1,6 +1,8 @@
 
 # Built-in
 import os
+import warnings
+import inspect
 
 # Common
 import numpy as np
@@ -15,9 +17,11 @@ except Exception:
 
 
 __all__ = ['coords_transform',
-           'get_nIne1e2', 'get_X12fromflat', 'compute_RaysCones',
-           'compute_VesPoly',
-           'compute_CamLOS1D_pinhole', 'compute_CamLOS1D_pinhole']
+           'get_nIne1e2', 'get_X12fromflat',
+           'compute_RaysCones',
+           'create_config',
+           'create_CamLOS1D', 'create_CamLOS2D']
+
 
 _sep = '_'
 _dict_lexcept_key = []
@@ -25,7 +29,7 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_path_testcases = './'
+_path_testcases = '/Home/DV226270/ToFu_All/tofu_WEST/tofu_west/config/inputs'
 
 
 ###########################################################
@@ -154,27 +158,38 @@ def get_nIne1e2(P, nIn=None, e1=None, e2=None):
     return nIn, e1, e2
 
 
-def get_X12fromflat(X12):
-    X1u, X2u = np.unique(X12[0,:]), np.unique(X12[1,:])
-    dx1 = np.nanmax(X1u)-np.nanmin(X1u)
-    dx2 = np.nanmax(X2u)-np.nanmin(X2u)
-    ds = dx1*dx2 / X12.shape[1]
-    tol = np.sqrt(ds)/100.
-    x1u, x2u = [X1u[0]], [X2u[0]]
-    for ii in X1u[1:]:
-        if np.abs(ii-x1u[-1])>tol:
-            x1u.append(ii)
-    for ii in X2u[1:]:
-        if np.abs(ii-x2u[-1])>tol:
-            x2u.append(ii)
-    Dx12 = (np.nanmean(np.diff(x1u)), np.nanmean(np.diff(x2u)))
-    x1u, x2u = np.unique(x1u), np.unique(x2u)
-    ind = np.full((x1u.size,x2u.size),np.nan)
-    for ii in range(0,X12.shape[1]):
-        i1 = (np.abs(x1u-X12[0,ii])<tol).nonzero()[0]
-        i2 = (np.abs(x2u-X12[1,ii])<tol).nonzero()[0]
-        ind[i1,i2] = ii
+def get_X12fromflat(X12, x12u=None, nx12=None):
+    if x12u is None:
+        x1u, x2u = np.unique(X12[0,:]), np.unique(X12[1,:])
+        if x1u.size*x2u.size != X12.shape[1]:
+            tol = np.linalg.norm(np.diff(X12[:,:2],axis=1))/100.
+            tolmag = int(np.log10(tol))-1
+            x1u = np.unique(np.round(X12[0,:], -tolmag))
+            x2u = np.unique(np.round(X12[1,:], -tolmag))
+            indx1 = np.digitize(X12[0,:], 0.5*(x1u[1:]+x1u[:-1]))
+            indx2 = np.digitize(X12[1,:], 0.5*(x2u[1:]+x2u[:-1]))
+            indx1u, indx2u = np.unique(indx1), np.unique(indx2)
+            x1u = np.unique([np.mean(X12[0,indx1==ii]) for ii in indx1u])
+            x2u = np.unique([np.mean(X12[1,indx2==ii]) for ii in indx2u])
+    else:
+        x1u, x2u = x12u
+    if nx12 is None:
+        nx1, nx2 = x1u.size, x2u.size
+    else:
+        nx1, nx2 = nx12
+
+    Dx12 = (x1u[1]-x1u[0], x2u[1]-x2u[0])
+    ind = np.zeros((nx1,nx2),dtype=int)
+
+    indr = np.array([np.digitize(X12[0,:], 0.5*(x1u[1:]+x1u[:-1])),
+                     np.digitize(X12[1,:], 0.5*(x2u[1:]+x2u[:-1]))])
+    ind[indr[0,:],indr[1,:]] = np.arange(0,X12.shape[1])
     return x1u, x2u, ind, Dx12
+
+###########################################################
+###########################################################
+#       Fast computation of cones with rays
+###########################################################
 
 
 def compute_RaysCones(Ds, us, angs=np.pi/90., nP=40):
@@ -211,11 +226,11 @@ def compute_RaysCones(Ds, us, angs=np.pi/90., nP=40):
 
 ###########################################################
 ###########################################################
-#       Fast computation of basic geometry (poly and LOS)
+#       Fast computation of poly
 ###########################################################
 
 
-def compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
+def _compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
                     divlow=True, divup=True, nP=200):
     """ Utility to compute three 2D (R,Z) polygons
 
@@ -320,6 +335,11 @@ def compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
 
     return poly, pbump, pbaffle
 
+
+###########################################################
+###########################################################
+#       Fast computation of camera parameters
+###########################################################
 
 
 def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
@@ -506,10 +526,10 @@ _comdoc = \
 
 
 
-def compute_CamLOS1D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
-                             angs=[-np.pi,0.,0.], nIn=None,
-                             VType='Tor', defRY=None, Lim=None,
-                             return_Du=False):
+def _compute_CamLOS1D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
+                              angs=[-np.pi,0.,0.], nIn=None,
+                              VType='Tor', defRY=None, Lim=None,
+                              return_Du=False):
 
     # Check/ format inputs
     P, F, D12, N12, angs, nIn, e1, e2, VType\
@@ -537,13 +557,13 @@ _comdoc1 = _comdoc.format('1','',
                           'Number of detectors along e2',
                           '')
 
-compute_CamLOS1D_pinhole.__doc__ = _comdoc1
+_compute_CamLOS1D_pinhole.__doc__ = _comdoc1
 
 
-def compute_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
-                             angs=[-np.pi,0.,0.], nIn=None,
-                             VType='Tor', defRY=None, Lim=None,
-                             return_Du=False):
+def _compute_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
+                              angs=[-np.pi,0.,0.], nIn=None,
+                              VType='Tor', defRY=None, Lim=None,
+                              return_Du=False):
 
     # Check/ format inputs
     P, F, D12, N12, angs, nIn, e1, e2, VType\
@@ -560,13 +580,17 @@ def compute_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
     d1e = d1f[np.newaxis,:]*e1[:,np.newaxis]
     d2e = d2f[np.newaxis,:]*e2[:,np.newaxis]
 
+    # Here compute ind12
+    indflat2img = None
+    indimg2flat = None
+
     Ds = P[:,np.newaxis] - F*nIn[:,np.newaxis] + d1e + d2e
     if return_Du:
         us = P[:,np.newaxis]-Ds
         us = us / np.sqrt(np.sum(us**2,axis=0))[np.newaxis,:]
         return Ds, us
     else:
-        return Ds, P, d1, d2
+        return Ds, P, d1, d2, indflat2img, indimg2flat
 
 
 
@@ -578,88 +602,13 @@ _comdoc2 = _comdoc.format('2','/ list',
                           'Extended to [D12,D12] if a float is provided',
                           'd1:    np.ndarray\n\t    '+_extracom2)
 
-compute_CamLOS2D_pinhole.__doc__ = _comdoc2
+_compute_CamLOS2D_pinhole.__doc__ = _comdoc2
+
 
 
 ###########################################################
-#       Fast creation of basic objects
+#       Fast creation of config
 ###########################################################
-
-def create_config(Exp='Dummy', Type='Tor', Lim=None, Lim_Bump=[0.,np.pi/8.],
-                  R=2.4, r=1., elong=0., Dshape=0.,
-                  divlow=True, divup=True, nP=200):
-
-    poly, pbump, pbaffle = compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
-                                           divlow=divlow, divup=divup, nP=nP)
-
-    ves = _core.Ves(Poly=poly, Type=Type, Lim=Lim, Exp=Exp, Name='Ves')
-    baf = _core.PFC(Poly=pbaffle, Type=Type, Lim=Lim,
-                    Exp=Exp, Name='Baffle', color='b')
-    bump = _core.PFC(Poly=pbump, Type=Type, Lim=Lim_Bump,
-                     Exp=Exp, Name='Bumper', color='g')
-
-    conf = _core.Config(Name='Conf', lStruct=[ves,baf,bump])
-    return conf
-
-
-def create_CamLOS1D_pinhole(Name=None, Etendues=None, Surfaces=None,
-                            dchans=None, Diag=None, color=None,
-                            P=None, F=0.1, D12=0.1, N12=100,
-                            angs=[-np.pi,0.,0.], nIn=None,
-                            VType='Tor', defRY=None, Lim=None, config=None):
-
-    if config is not None:
-        Lim = config.Lim
-        VType = config.Id.Type
-        lS = config.lStructIn
-        if len(lS)>0:
-            defRY = np.max([ss.dgeom['P1Max'][0] for ss in lS])
-        else:
-            defRY = np.max([ss.dgeom['P1Max'][0] for ss in config.lStruct])
-
-    Ds, P, d2 = compute_CamLOS1D_pinhole(P=P, F=F, D12=D12, N12=N12, angs=angs,
-                                         nIn=nIn, VType=VType, defRY=defRY,
-                                         Lim=Lim)
-
-    cam = _core.CamLOS1D(Name=Name, Diag=Diag,
-                         dgeom={'pinhole':P, 'D':Ds},
-                         Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
-                         color=color, config=config)
-
-    return cam
-
-def create_CamLOS2D_pinhole(Name=None, Etendues=None, Surfaces=None,
-                            dchans=None, Diag=None, color=None,
-                            P=None, F=0.1, D12=0.1, N12=100,
-                            angs=[-np.pi,0.,0.], nIn=None,
-                            VType='Tor', defRY=None, Lim=None, config=None):
-
-    if config is not None:
-        Lim = config.Lim
-        VType = config.Id.Type
-        lS = config.lStructIn
-        if len(lS)>0:
-            defRY = np.max([ss.dgeom['P1Max'][0] for ss in lS])
-        else:
-            defRY = np.max([ss.dgeom['P1Max'][0] for ss in config.lStruct])
-
-    Ds, P, d1, d2 = compute_CamLOS2D_pinhole(P=P, F=F, D12=D12, N12=N12,
-                                             angs=angs, nIn=nIn, VType=VType,
-                                             defRY=defRY, Lim=Lim)
-
-    cam = _core.CamLOS2D(Name=Name, Diag=Diag,
-                         dgeom={'pinhole':P, 'D':Ds},
-                         Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
-                         color=color, config=config)
-
-    # Set X12 ?
-
-    return cam
-
-
-
-
-
 
 _dconfig = {'A1': {'Exp':'WEST',
                    'Ves': ['V1']},
@@ -683,8 +632,8 @@ _dconfig = {'A1': {'Exp':'WEST',
                            'LH1V1', 'LH2V1',
                            'RippleV1', 'VDEV0']}}
 
-def create_config_testcase(config='A1',
-                           path=_path_testcases, dconfig=_dconfig):
+def _create_config_testcase(config='A1', out='object',
+                            path=_path_testcases, dconfig=_dconfig):
     """ Load the desired test case configuration
 
     Choose from one of the reference preset configurations:
@@ -700,35 +649,263 @@ def create_config_testcase(config='A1',
     path = os.path.abspath(path)
 
     # Get file names for config
-    lf = os.listdir(path)
+    lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
     lS = []
     for cc in dconfig[config].keys():
         if cc=='Exp':
             continue
-        for ss in dconfig[config][cc].keys():
-            for vv in dconfig[config][cc][ss]:
-                ff = [f for f in lf
-                      if all([s in f for s in ['TFG_',cc,ss,vv,'.txt']])]
-                if not len(ff)==1:
-                    msg = "No / several matching files in %s:\n"%path
-                    msg += "Criteria: [%s, %s, %s]\n"%(cc,ss,vv)
-                    msg += "Matching: "+"\n          ".join(ff)
-                    raise Exception(msg)
-                out = np.loadtxt(os.path.join(path,ff[0]))
-                npts, nunits = out[0,:]
-                poly = out[1:1+npts,:].T
-                if n>=1:
-                    pass
-                    #lim = out[0,:].T
-                oo = _core.cc(Name=ss+vv, Poly=poly, Lim=lim, Limtype='pos',
-                              Exp=dconfig[config]['Exp'])
-                lS.append(oo)
-
-    conf = _core.Config(Name=config, lStruct=lS)
-
-    # ------------------
-    # Optionnal plotting
-    if plot:
-        lax = conf.plot(element='P')
-
+        for ss in dconfig[config][cc]:
+            ff = [f for f in lf
+                  if all([s in f for s in [cc,ss]])]
+            if not len(ff)==1:
+                msg = "No / several matching files\n"
+                msg += "  Folder: %s\n"%path
+                msg += "    Criteria: [%s, %s]\n"%(cc,ss)
+                msg += "    Matching: "+"\n              ".join(ff)
+                raise Exception(msg)
+            pfe = os.path.join(path,ff[0])
+            obj = eval('_core.'+cc).from_txt(pfe, Name=ss, Type='Tor',
+                                             Exp=dconfig[config]['Exp'],
+                                             out=out)
+            if out not in ['object',object]:
+                obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
+            lS.append(obj)
+    if out=='dict':
+        conf = dict([tt for tt in lS])
+    else:
+        conf = _core.Config(Name=config, Exp=dconfig[config]['Exp'], lStruct=lS)
     return conf
+
+def create_config(case=None, Exp='Dummy', Type='Tor',
+                  Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
+                  R=2.4, r=1., elong=0., Dshape=0.,
+                  divlow=True, divup=True, nP=200, out='object'):
+    """ Create easily a tofu.geom.Config object
+
+    In tofu, a Config (short for geometrical configuration) refers to the 3D
+    geometry of a fusion device.
+    It includes, at least, a simple 2D polygon describing the first wall of the
+    fusion chamber, and can also include other structural elements (tiles,
+    limiters...) that can be non-axisymmetric.
+
+    To create a simple Config, provide either the name of a reference test
+    case, of a set of geometrical parameters (major radius, elongation...).
+
+    This is just a tool for fast testing, if you want to create a custom
+    config, use directly tofu.geom.Config and provide the parameters you want.
+
+    Parameters
+    ----------
+    case :      str
+        The name of a reference test case, if provided, this arguments is
+        sufficient, the others are ignored
+    Exp  :      str
+        The name of the experiment
+    Type :      str
+        The type of configuration (toroidal 'Tor' or linear 'Lin')
+    Lim_Bump:   list
+        The angular (poloidal) limits, in the cross-section of the extension of
+        the outer bumper
+    R   :       float
+        The major radius of the center of the cross-section
+    r   :       float
+        The minor radius of the cross-section
+    elong:      float
+        An elongation parameter (in [-1;1])
+    Dshape:     float
+        A parameter specifying the D-shape of the cross-section (in [-1;1])
+    divlow:     bool
+        A flag specifying whether to include a lower divertor-like shape
+    divup:     bool
+        A flag specifying whether to include an upper divertor-like shape
+    nP:         int
+        Number of points used to describe the cross-section polygon
+    out:        str
+        FLag indicating whether to return:
+            - 'dict'  : the polygons as a dictionary of np.ndarrays
+            - 'object': the configuration as a tofu.geom.Config instance
+
+    Return
+    ------
+    conf:   tofu.geom.Config / dict
+        Depending on the value of parameter out, either:
+            - the tofu.geom.Config object created
+            - a dictionary of the polygons and their pos/extent (if any)
+    """
+
+    if case is not None:
+        conf = _create_config_testcase(config=case, out=out)
+    else:
+        poly, pbump, pbaffle = _compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
+                                                divlow=divlow, divup=divup, nP=nP)
+
+        if out=='dict':
+            conf = {'Ves':{'Poly':poly},
+                    'Baffle':{'Poly':pbaffle},
+                    'Bumper':{'Poly':pbump,
+                              'pos':Bump_posextent[0],
+                              'extent':Bump_posextent[1]}}
+        else:
+            ves = _core.Ves(Poly=poly, Type=Type, Lim=Lim, Exp=Exp, Name='Ves')
+            baf = _core.PFC(Poly=pbaffle, Type=Type, Lim=Lim,
+                            Exp=Exp, Name='Baffle', color='b')
+            bump = _core.PFC(Poly=pbump, Type=Type,
+                             pos=Bump_posextent[0], extent=Bump_posextent[1],
+                             Exp=Exp, Name='Bumper', color='g')
+
+            conf = _core.Config(Name='Dummy', Exp=Exp, lStruct=[ves,baf,bump])
+    return conf
+
+###########################################################
+#       Fast creation of cam
+###########################################################
+
+_P = [1.5,3.2,0.]
+_F = 0.1
+_testF = 0.4
+_D12 = [0.3,0.1]
+_nIn = [-0.5,-1.,0.]
+
+_P1 = [1.5,-3.2,0.]
+_nIn1 = [-0.5,1.,0.]
+
+_PA = [4.9,-6.9,0.]
+_nInA = [-0.75, 1.,0.]
+_D12A = [0.4,0.3]
+_dcam = {'V1':       {'P':_P1, 'F':_F, 'D12':_D12, 'nIn':_nIn1, 'N12':[1,1]},
+         'V10':      {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[5,2]},
+         'V100':     {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[20,5]},
+         'V1000':    {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[50,20]},
+         'V10000':   {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[125,80]},
+         'V100000':  {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[500,200]},
+         'V1000000': {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1600,625]},
+         'VA1':      {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[1,1]},
+         'VA10':     {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[5,2]},
+         'VA100':    {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[20,5]},
+         'VA1000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[50,20]},
+         'VA10000':  {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA,'N12':[125,80]},
+         'VA100000': {'P':_PA, 'F':_F, 'D12':_D12A,'nIn':_nInA,'N12':[500,200]},
+         'VA1000000':{'P':_PA, 'F':_F,'D12':_D12A,'nIn':_nInA,'N12':[1600,625]},
+         'testV': {'P':_P, 'F':_testF, 'D12':_D12, 'nIn':_nIn,'N12':[1600,625]}}
+
+
+
+_createCamstr = """ Create a pinhole CamLOS{0}D
+
+    In tofu, a CamLOS is a camera described as a set of Lines of Sight (LOS),
+    as opposed to a Cam, where the Volume of Sight (VOS) of all pixels are
+    computed in 3D. The CamLOS is then a simplified approximation of the Cam.
+    It can be:
+        - 1D : like when all LOS are included in a common plane
+        - 2D : like a regular everyday camera, producing a 2D image
+    For a pinhole camera, all LOS pass through a common point (pinhole)
+
+    This function provides an easy way to create a pinhole CamLOS{0}D
+    In tofu, LOS are described as semi-lines using:
+        - a starting point (D)
+        - a unit vector (u)
+    All coordinates are 3D cartesian (X,Y,Z)
+
+    Here, you simply need to provide, either:
+        - the name of a standard test case
+        - a set of geometrical parameters:
+            - P: pinhole, throught the camera axis passes
+            - F: focal length
+            - D12 : dimensiosn perpendicular to the camera axis
+            - N12 : number of pixels (LOS)
+            - angs: 3 angles defining the orientation of the camera
+
+    The computed set of LOS, optionnaly associated to a Config, can then be
+    returned as:
+        - a tofu object (i.e.: a CamLOS{0}D)
+        - a set of starting points (D) and unit vectors (u)
+        - a set of starting points (D), a pinhole, and and the coordinates of D
+        in the camera frame
+
+    Parameters
+    ----------
+
+    Return
+    ------
+                """
+
+_createCamerr = """ Arg out, specifying the output, must be either:
+        - object   : return a tofu object
+        - 'Du'     : return the LOS starting points (D) and unit vectors (u)
+        - 'pinhole': return the starting points (D), pinhole (P) and the coordinates of D in the camera frame
+        """
+
+def _create_CamLOS(case=None, nD=1, Etendues=None, Surfaces=None,
+                   dchans=None, Exp=None, Diag=None, Name=None, color=None,
+                   P=None, F=0.1, D12=0.1, N12=100, method=None,
+                   angs=[-np.pi,0.,0.], nIn=None, VType='Tor', dcam=_dcam,
+                   defRY=None, Lim=None, config=None, out=object):
+    assert nD in [1,2]
+    if not out in [object,'object','Du','dict',dict]:
+        msg = _createCamerr.format('1')
+        raise Exception(msg)
+
+    if config is not None:
+        Lim = config.Lim
+        VType = config.Id.Type
+        lS = config.lStructIn
+        if len(lS)==0:
+            lS = config.lStruct
+        defRY = np.max([ss.dgeom['P1Max'][0] for ss in lS])
+
+    # Get parameters for test case if any
+    if case is not None and nD == 2:
+        if case not in dcam.keys():
+            msg = "%s is not a known test case !\n"
+            msg += "Available test cases include:\n"
+            msg += "    " + str(list(dcam.keys()))
+            raise Exception(msg)
+
+        # Extract pinhole, focal length, width, nb. of pix., unit vector
+        P, F = dcam[case]['P'], dcam[case]['F']
+        D12, N12, nIn = dcam[case]['D12'], dcam[case]['N12'], dcam[case]['nIn']
+        nIn = nIn / np.linalg.norm(nIn)
+
+        # Compute the LOS starting points and unit vectors
+        nD, VType, Lim, angs = 2, 'Tor', None, None
+        Name = case
+
+    kwdargs = dict(P=P, F=F, D12=D12, N12=N12, angs=angs, nIn=nIn,
+                   VType=VType, defRY=defRY, Lim=Lim)
+    if nD == 1:
+        Ds, P, d2 = _compute_CamLOS1D_pinhole(**kwdargs)
+    else:
+        Ds, P, d1, d2, indflat2img, indimg2flat = _compute_CamLOS2D_pinhole(**kwdargs)
+
+    if out in ['dict',dict]:
+        dout = {'D':Ds, 'pinhole':P}
+        if nD==2:
+            dout.update({'x1':d1,'x2':d2,
+                         'indflat2img':indflat2img, 'indimg2flat':indimg2flat})
+        return dout
+
+    elif out=='Du':
+        us = P[:,np.newaxis]-Ds
+        us = us / np.sqrt(np.sum(us**2,axis=0))[np.newaxis,:]
+        return Ds, us
+
+    else:
+        cls = eval('_core.CamLOS{0:01.0f}D'.format(nD))
+        cam = cls(Name=Name, Exp=Exp, Diag=Diag,
+                  dgeom={'pinhole':P, 'D':Ds}, method=method,
+                  Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
+                  color=color, config=config)
+        return cam
+
+
+def create_CamLOS1D(**kwdargs):
+    return _create_CamLOS(nD=1, **kwdargs)
+
+create_CamLOS1D.__signature__ = inspect.signature(_create_CamLOS)
+create_CamLOS1D.__doc__ = _createCamstr.format('1')
+
+def create_CamLOS2D(**kwdargs):
+    return _create_CamLOS(nD=2, **kwdargs)
+
+create_CamLOS2D.__signature__ = inspect.signature(_create_CamLOS)
+create_CamLOS2D.__doc__ = _createCamstr.format('2')

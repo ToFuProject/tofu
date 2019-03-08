@@ -243,15 +243,15 @@ class Data(utils.ToFuObject):
         if X is not None:
             X = np.asarray(X).squeeze()
         if indtX is not None:
-            indtX = np.asarray(indtX).squeeze()
+            indtX = np.asarray(indtX, dtype=int).squeeze()
         if lamb is not None:
             lamb = np.asarray(lamb).squeeze()
         if indtlamb is not None:
-            indtlamb = np.asarray(indtlamb).squeeze()
+            indtlamb = np.asarray(indtlamb, dtype=int).squeeze()
         if indXlamb is not None:
-            indXlamb = np.asarray(indXlamb).squeeze()
+            indXlamb = np.asarray(indXlamb, dtype=int).squeeze()
         if indtXlamb is not None:
-            indtXlamb = np.asarray(indtXlamb).squeeze()
+            indtXlamb = np.asarray(indtXlamb, dtype=int).squeeze()
 
         ndim = data.ndim
         assert ndim in [2,3]
@@ -325,19 +325,26 @@ class Data(utils.ToFuObject):
         # Check indices
         if indtX is not None:
             assert indtX.shape==(nt,)
-            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnX
+            assert np.min(indtX)>=0 and np.max(indtX)<=nnX
         lC = [indtlamb is None, indXlamb is None, indtXlamb is None]
         assert lC[2] or (~lC[2] and np.sum(lC[:2])==2)
         if lC[2]:
             if not lC[0]:
                 assert indtlamb.shape==(nt,)
-                assert inp.argmin(indtlamb)>=0 and np.argmax(indtlamb)<=nnlamb
+                assert inp.min(indtlamb)>=0 and np.max(indtlamb)<=nnlamb
             if not lC[1]:
                 assert indXlamb.shape==(nX,)
-                assert inp.argmin(indXlamb)>=0 and np.argmax(indXlamb)<=nnlamb
+                assert inp.min(indXlamb)>=0 and np.max(indXlamb)<=nnlamb
         else:
             assert indtXlamb.shape==(nt,nX)
-            assert inp.argmin(indtXlamb)>=0 and np.argmax(indtXlamb)<=nnlamb
+            assert inp.min(indtXlamb)>=0 and np.max(indtXlamb)<=nnlamb
+
+        # Check consistency X/lamb shapes vs indices
+        if X is not None and indtX is None:
+            assert nnX in [1,nt]
+            if lamb is not None:
+                if all([ii is None for ii in [indtlamb,indXlamb,indtXlamb]]):
+                    assert nnlamb in [1,nt]
 
         l = [data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb,
              indtX, indtlamb, indXlamb, indtXlamb]
@@ -388,7 +395,7 @@ class Data(utils.ToFuObject):
             indtXlamb = self._ddataRef['indtXlamb']
 
         if indtXlamb is not None:
-            assert intXlamb is None
+            assert indXlamb is None
             assert indXlamb.shape==(nX,)
             assert (np.argmin(indXlamb)>=0
                     and np.argmax(indXlamb)<=self._ddataRef['nnlamb'])
@@ -758,6 +765,8 @@ class Data(utils.ToFuObject):
         return self._ddataRef
     @property
     def ddata(self):
+        if not self._ddata['uptodate']:
+            self._set_ddata()
         return self._ddata
     @property
     def dtreat(self):
@@ -772,21 +781,25 @@ class Data(utils.ToFuObject):
     def dextra(self):
         return self._dextra
 
+    def get_ddata(self, key):
+        if not self._ddata['uptodate']:
+            self._set_ddata()
+        return self._ddata[key]
     @property
     def data(self):
-        return self._get_ddata('data')
+        return self.get_ddata('data')
     @property
     def t(self):
-        return self._get_ddata('t')
+        return self.get_ddata('t')
     @property
     def X(self):
-        return self._get_ddata('X')
+        return self.get_ddata('X')
     @property
     def nt(self):
-        return self._get_ddata('nt')
+        return self.get_ddata('nt')
     @property
     def nX(self):
-        return self._get_ddata('nX')
+        return self.get_ddata('nX')
 
     @property
     def config(self):
@@ -1594,7 +1607,7 @@ class Data(utils.ToFuObject):
                                               padded=padded, wave=wave)
         return tf, f, lpsd, lang
 
-    def plot_spectrogram(self, fmin=None,
+    def plot_spectrogram(self, fmin=None, fmax=None,
                          method='scipy-fourier', deg=False,
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
@@ -1623,7 +1636,7 @@ class Data(utils.ToFuObject):
                                               detrend=detrend, nperseg=nperseg,
                                               noverlap=noverlap, boundary=boundary,
                                               padded=padded, wave=wave)
-        kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang,
+        kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang, fmax=fmax,
                                          invert=invert, plotmethod=plotmethod,
                                          cmap=cmap, ms=ms, ntMax=ntMax,
                                          nchMax=nchMax, Bck=Bck, fs=fs,

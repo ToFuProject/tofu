@@ -6,11 +6,14 @@ import collections
 from abc import ABCMeta, abstractmethod
 import getpass
 import subprocess
+import itertools as itt
 
 # Common
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+
+import datetime as dtm # DB
 
 # tofu-specific
 from tofu import __version__
@@ -54,7 +57,7 @@ def get_pathfileext(path=None, name=None,
     modeokstr = "["+", ".join(modeok)+"]"
 
     if name is not None:
-        C = type(name) is str and not (name[-4]=='.')
+        C = type(name) is str and not '.' in name
         assert C, "name should not include the extension !"
     assert path is None or type(path) is str, "Arg path must be None or a str !"
     assert mode in modeok, "Arg mode must be in {0}".format(modeokstr)
@@ -234,7 +237,7 @@ def _set_arrayorder(obj, arrayorder='C'):
 #       save / load
 #############################################
 
-def save(obj, path=None, name=None, sep=_sep, deep=True, mode='npz',
+def save(obj, path=None, name=None, sep=_sep, deep=False, mode='npz',
          strip=None, compressed=False, verb=True, return_pfe=False):
     """ Save the ToFu object
 
@@ -260,6 +263,21 @@ def save(obj, path=None, name=None, sep=_sep, deep=True, mode='npz',
     strip:      int
         Flag indicating how stripped the saved object should be
         See docstring of self.strip()
+    deep:       bool
+        Flag, used when the object has other tofu objects as attributes
+        Indicated whether these attribute object should be:
+            - True: converted to dict themselves in order to be saved inside
+                the same file as attributes
+                (-> uses self.to_dict(deep='dict'))
+            - False: not converted, in that the strategy would be to save them
+                separately and store only the reference to the saved files
+                instead of the objects themselves.
+                To do this, you must:
+                    1/ Save all object attributes independently
+                    2/ Store only the reference by doing self.strip(-1)
+                       The strip() method will check they have been saved
+                       before removing them, and throw an Exception otherwise
+                    3/ self.save(deep=False)
     compressed :    bool
         Flag indicating whether to compress the file (slower, not recommended)
     verb :          bool
@@ -491,6 +509,123 @@ def _check_notNone(dd, lk):
         if k in lk:
             assert v is not None, "{0} should not be None !".format(k)
 
+def _check_InputsGeneric(ld, tab=0):
+
+    # Prepare
+    bstr0 = "\n"+"    "*tab + "Error on arg %s:"
+    bstr1 = "\n"+"    "*(tab+1) + "Expected: "
+    bstr2 = "\n"+"    "*(tab+1) + "Provided: "
+
+    ltypes_f2i = [int,float,np.integer,np.floating]
+    ltypes_i2f = [int,float,np.integer,np.floating]
+
+    # Check
+    err, msg = False, ''
+    for k in ld.keys():
+        errk, msgk = False, bstr0%k
+        if 'cls' in ld[k].keys():
+            if not isinstance(ld[k]['var'],ld[k]['cls']):
+                errk = True
+                msgk += bstr1 + "class {0}".format(ld[k]['cls'].__name__)
+                msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
+        if 'NoneOrCls' in ld[k].keys():
+            c = ld[k]['var'] is None or isinstance(ld[k]['var'],ld[k]['cls'])
+            if not c:
+                errk = True
+                msgk += bstr1 + "None or class {0}".format(ld[k]['cls'].__name__)
+                msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
+        if 'in' in ld[k].keys():
+            if not ld[k]['var'] in ld[k]['in']:
+                errk = True
+                msgk += bstr1 + "in {0}".format(ld[k]['in'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+        if 'lisfof' in ld[k].keys():
+            c0 = isinstance(ld[k]['var'], list)
+            c1 = c0 and all([isinstance(s,ld[k]['listof']) for s in ld[k]])
+            if not c1:
+                errk = True
+                msgk += bstr1 + "list of {0}".format(ld[k]['listof'].__name__)
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+        if 'iter2array' in ld[k].keys():
+            c0 = ld[k]['var'] is not None and hasattr(ld[k]['var'],'__iter__')
+            if not c0:
+                errk = True
+                msgk += bstr1 + "iterable of %s"%ld[k]['iter2array'].__name__
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = np.asarray(ld[k]['var'], dtype=ld[k]['iter2array'])
+        if 'ndim' in ld[k].keys():
+            c0 = isinstance(ld[k]['var'], np.ndarray)
+            c1 = c0 and ld[k]['var'].ndim == ld[k]['ndim']
+            if not c1:
+                errk = True
+                msgk += bstr1 + "array of {0} dimensions".format(ld[k]['ndim'])
+                msgk += bstr2 + "shape {0}".format(ld[k]['ndim'].shape)
+        if 'inshape' in ld[k].keys():
+            c0 = isinstance(ld[k]['var'], np.ndarray)
+            c1 = c0 and ld[k]['inshape'] in ld[k]['var'].shape
+            if not c1:
+                errk = True
+                msgk += bstr1 + "shape including {0}".format(ld[k]['inshape'])
+                msgk += bstr2 + "shape {0}".format(ld[k]['var'].shape)
+        if 'float2int' in ld[k].keys():
+            lc = [(issubclass(ld[k]['var'].__class__, cc)
+                   and int(ld[k]['var'])==ld[k]['var'])
+                  for cc in ltypes_f2i]
+            if not any(lc):
+                errk = True
+                msgk += bstr1 + "convertible to int from %s"%str(ltypes_f2i)
+                msgk += bstr2+"{0} ({1})".format(ld[k]['var'],
+                                                 ld[k]['var'].__class__.__name__)
+            ld[k]['var'] = int(ld[k]['var'])
+        if 'int2float' in ld[k].keys():
+            lc = [issubclass(ld[k]['var'].__class__, cc)
+                  for cc in ltypes_i2f]
+            if not any(lc):
+                errk = True
+                msgk += bstr1 + "convertible to float from %s"%str(ltypes_i2f)
+                msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
+            ld[k]['var'] = float(ld[k]['var'])
+        if 'NoneOrIntPos' in ld[k].keys():
+            c0 = ld[k]['var'] is None
+            lc = [(issubclass(ld[k]['var'].__class__, cc)
+                   and int(ld[k]['var'])==ld[k]['var']
+                   and ld[k]['var']>0)
+                  for cc in ltypes_f2i]
+            if not c0 or any(lc):
+                errk = True
+                msgk += bstr1 + "convertible to >0 int from %s"%str(ltypes_f2i)
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = int(ld[k]['var'])
+        if '>' in ld[k].keys():
+            if not np.all(np.greater(ld[k]['var'], ld[k]['>'])):
+                errk = True
+                msgk += bstr1 + "> {0}".format(ld[k]['>'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+        if 'vectnd' in ld[k].keys():
+            c0 = any([isinstance(ld[k]['var'],tt)
+                      for tt in [list,tuple,np.ndarray]])
+            if ld[k]['vectnd'] is not None:
+                c0 &= np.asarray(ld[k]['var']).size==ld[k]['vectnd']
+            if not c0:
+                errk = True
+                msgk += bstr1 + "array of size {0}".format(ld[k]['vectnd'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = np.asarray(ld[k]['var'],dtype=float).ravel()
+        if 'unitvectnd' in ld[k].keys():
+            c0 = any([isinstance(ld[k]['var'],tt)
+                      for tt in [list,tuple,np.ndarray]])
+            c1 = c0 and np.asarray(ld[k]['var']).size==ld[k]['unitvectnd']
+            if not c1:
+                errk = True
+                msgk += bstr1 + "array of size {0}".format(ld[k]['unitvectnd'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            temp = np.asarray(ld[k]['var'],dtype=float).ravel()
+            ld[k]['var'] = temp/np.linalg.norm(temp)
+
+        if errk:
+            err = True
+            msg += msgk
+    return ld, err, msg
 
 def _get_attrdictfromobj(obj, dd):
     for k in dd.keys():
@@ -591,6 +726,10 @@ class ToFuObjectBase(object):
                 msg = "Rebuilding {0}:\n".format(dname)
                 msg += "Field '{0}' is missing !".format(kk)
                 raise Exception(msg)
+
+    @staticmethod
+    def _check_InputsGeneric(ld, tab=0):
+        return _check_InputsGeneric(ld, tab=tab)
 
     def strip(self, strip=0, **kwdargs):
         """ Remove non-essential attributes to save memory / disk usage
@@ -1901,122 +2040,225 @@ class KeyHandler(object):
 #           Plot KeyHandler 2
 ###############################################
 
-def get_updatefunc(obj, Type=None, data=None, fmt=None):
-    lok = ['xdata_1d', 'xdata_2d_axis0', 'xdata_2d_axis1',
-           'xdata_3d_axis01', 'xdata_3d_axis02', 'xdata_3d_axis12',
-           'ydata_1d', 'ydata_2d_axis0', 'ydata_2d_axis1',
-           'ydata_3d_axis01', 'ydata_3d_axis02', 'ydata_3d_axis12',
+def get_updatefunc(obj, Type=None, data=None, bstr=None):
+    lok = ['xdata_1d', 'xdata_2d0_val', 'xdata_2d1_val', 'xdata_2d0',
+           'xdata_2d1',
+           'xdata_3d01', 'xdata_3d02', 'xdata_3d12',
+           'ydata_1d', 'ydata_2d0', 'ydata_2d1',
+           'ydata_3d01', 'ydata_3d02', 'ydata_3d12',
            'data_1d', 'data_2d', 'data_3d', 'data_tuple2_1d',
-           'txt', 'txt_fmt']
+           'txt', 'txt_bstr_1d', 'txt_bstr_2d1']
     assert Type in lok
     if Type=='xdata_1d':
         def func(ind, obj=obj, data=data):
             obj.set_xdata(data[ind])
-    elif Type=='xdata_2d_axis0':
+    elif Type=='xdata_2d0_val':
+        def func(ind, ind0, obj=obj, data=data):
+            obj.set_xdata(data[ind,ind0])
+    elif Type=='xdata_2d1_val':
+        def func(ind, ind0, obj=obj, data=data):
+            obj.set_xdata(data[ind0,ind])
+    elif Type=='xdata_2d0':
         def func(ind, obj=obj, data=data):
             obj.set_xdata(data[ind,:])
-    elif Type=='xdata_2d_axis1':
-        def func(ind, obj=None, data=None):
+    elif Type=='xdata_2d1':
+        def func(ind, obj=obj, data=data):
             obj.set_xdata(data[:,ind])
-    elif Type=='xdata_3d_axis01':
-        def func(inda, indb, obj=None, data=None):
+    elif Type=='xdata_3d01':
+        def func(inda, indb, obj=obj, data=data):
             obj.set_xdata(data[inda,indb,:])
-    elif Type=='xdata_3d_axis02':
-        def func(inda, indb, obj=None, data=None):
+    elif Type=='xdata_3d02':
+        def func(inda, indb, obj=obj, data=data):
             obj.set_xdata(data[inda,:,indb])
-    elif Type=='xdata_3d_axis12':
-        def func(inda, indb, obj=None, data=None):
+    elif Type=='xdata_3d12':
+        def func(inda, indb, obj=obj, data=data):
             obj.set_xdata(data[:,inda,indb])
     elif Type=='ydata_1d':
-        def func(ind, obj=None, data=None):
+        def func(ind, obj=obj, data=data):
             obj.set_ydata(data[ind])
-    elif Type=='ydata_2d_axis0':
-        def func(ind, obj=None, data=None):
+    elif Type=='ydata_2d0':
+        def func(ind, obj=obj, data=data):
             obj.set_ydata(data[ind,:])
-    elif Type=='ydata_2d_axis1':
-        def func(ind, obj=None, data=None):
+    elif Type=='ydata_2d1':
+        def func(ind, obj=obj, data=data):
             obj.set_ydata(data[:,ind])
-    elif Type=='ydata_3d_axis01':
-        def func(inda, indb, obj=None, data=None):
+    elif Type=='ydata_3d01':
+        def func(inda, indb, obj=obj, data=data):
             obj.set_ydata(data[inda,indb,:])
-    elif Type=='ydata_3d_axis02':
-        def func(inda, indb, obj=None, data=None):
+    elif Type=='ydata_3d02':
+        def func(inda, indb, obj=obj, data=data):
             obj.set_ydata(data[inda,:,indb])
-    elif Type=='ydata_3d_axis12':
-        def func(inda, indb, obj=None, data=None):
+    elif Type=='ydata_3d12':
+        def func(inda, indb, obj=obj, data=data):
             obj.set_ydata(data[:,inda,indb])
     elif Type=='data_1d':
-        def func(ind, obj=None, data=None):
+        def func(ind, obj=obj, data=data):
             obj.set_data(data[ind])
     elif Type=='data_2d':
-        def func(ind0, ind1, obj=None, data=None):
+        def func(ind0, ind1, obj=obj, data=data):
             obj.set_data(data[ind0][ind1])
     elif Type=='data_3d':
-        def func(ind0, ind1, ind2, obj=None, data=None):
+        def func(ind0, ind1, ind2, obj=obj, data=data):
             obj.set_data(data[ind0][ind1][ind2])
     elif Type=='data_tuple2_1d':
-        def func(ind0, ind1, obj=None, data=None):
+        def func(ind0, ind1, obj=obj, data=data):
             obj.set_data(data[0][ind0],data[1][ind1])
     elif Type=='txt':
-        def func(ind, obj=None, data=None):
+        def func(ind, obj=obj, data=data):
             obj.set_text(data[ind])
-    elif Type=='txt_fmt':
-        def func(ind, obj=None, data=None, fmt=None):
-            obj.set_text(('{0:%s}'%fmt).format(data[ind]))
+    elif Type=='txt_bstr_1d':
+        def func(ind, obj=obj, data=data, bstr=bstr):
+            obj.set_text(bstr.format(data[ind]))
+    elif Type=='txt_bstr_2d1':
+        def func(ind, ind0, obj=obj, data=data, bstr=bstr):
+            obj.set_text(bstr.format(data[ind0,ind]))
     return func
 
 
-def get_ind_fromval(Type='x', ref=None):
-    assert Type in ['x', 'y', 'x1','2d']
+#########################
 
-    if Type=='x':
-        def func(x=0, y=0, ind0=None, ref=ref):
-            return np.digitize([x], 0.5*(ref[1:]+ref[:-1]))[0]
-    elif Type=='y':
-        def func(x=0, y=0, ind0=None, ref=ref):
-            return np.digitize([y], 0.5*(ref[1:]+ref[:-1]))[0]
-    elif Type=='x0':
-        def func(x=0, y=0, ind0=None, ref=ref):
-            return np.digitize([x], 0.5*(ref[1:,ind0]+ref[:-1,ind0]))[0]
-    elif Type=='x1':
-        def func(x=0, y=0, ind0=None, ref=ref):
-            return np.digitize([x], 0.5*(ref[ind0,1:]+ref[ind0,:-1]))[0]
-    elif Type=='2d':
-        def func(x=0, y=0, ind0=None, ref=ref, nx=1, ny=1):
-            indx = np.digitize([x], 0.5*(ref[0][1:]+ref[0][:-1]))[0]
-            indy = np.digitize([y], 0.5*(ref[1][1:]+ref[1][:-1]))[0]
-            ind =  indx*ny + indy
-            return ind
+
+def get_indncurind(dind, linds):
+    ind = [dind['lrefid'].index(rid) for rid in linds]
+    return np.asarray(ind,dtype=int)
+
+
+def get_indrefind(dind, linds, drefid):
+    ninds = len(linds)
+    ind = np.zeros((ninds,),dtype=int)
+    for ii in range(0,ninds):
+        i0 = dind['lrefid'].index(linds[ii])
+        ind[ii] = dind['cumsum0'][i0] + drefid[linds[ii]]
+    return ind
+
+
+def get_valf(val, lrids, linds):
+    ninds = len(linds)
+    if type(val) is list:
+        assert len(val) == len(lrids)
+        assert ninds == 1 and lrids == linds
+        func = lambda *li, val=val: val[li[0]]
+
+    else:
+        assert type(val) is np.ndarray
+        val = val.squeeze()
+        ndim = val.ndim
+        assert ndim == len(lrids)
+        assert ndim >= ninds
+
+        if ndim == ninds:
+            if ndim == 1:
+                func = lambda *li, val=val: val[li[0]]
+            elif ndim == 2:
+                func = lambda *li, val=val: val[li[0],li[1]]
+            elif ndim == 3:
+                func = lambda *li, val=val: val[li[0],li[1],li[2]]
+        else:
+            lord = np.r_[[lrids.index(ii) for ii in linds]].astype(int)
+            if ninds == 1:
+                if ndim == 2:
+                    if lord[0] == 0:
+                        func = lambda *li, val=val: val[li[0],:]
+                    elif lord[0] == 1:
+                        func = lambda *li, val=val: val[:,li[0]]
+                elif ndim == 3:
+                    if lord[0] == 0:
+                        func = lambda *li, val=val: val[li[0],:,:]
+                    elif lord[0] == 1:
+                        func = lambda *li, val=val: val[:,li[0],:]
+                    elif lord[0] == 2:
+                        func = lambda *li, val=val: val[:,:,li[0]]
+            elif ninds == 2:
+                assert ndim == 3
+                args = np.argsort(lord)
+                if np.all(lord[args] == [0,1]):
+                    func = lambda *li, val=val: val[li[args[0]], li[args[1]],:]
+                elif np.all(lord[args] == [0,2]):
+                    func = lambda *li, val=val: val[li[args[0]], :, li[args[1]]]
+                if np.all(lord[args] == [1,2]):
+                    func = lambda *li, val=val: val[:, li[args[0]], li[args[1]]]
     return func
 
-def get_ind_fromkey(Type='1d', dkey=None, ref=None):
-    assert Type in ['x_1d', 'y_1d', 'x_2d1','2d']
-    assert type(dkey) is dict
+def get_fupdate(obj, typ, bstr=None):
+    if typ == 'xdata':
+        f = lambda val, obj=obj: obj.set_xdata(val)
+    elif typ == 'ydata':
+        f = lambda val, obj=obj: obj.set_ydata(val)
+    elif typ in ['data','imshow']:
+        f = lambda val, obj=obj: obj.set_data(val)
+    elif typ == 'txt':
+        f = lambda val, obj=obj, bstr=bstr: obj.set_text(bstr.format(val))
+    return f
 
-    if Typ in ['x_1d']:
-        def func(eventkey, ind, ref=ref,
-                 dkey={1:'right', -1:'left', 'inc':10, 'kinc':'alt'}):
-            if dkey[1] in eventkey:
-                inc = 1
+
+def get_ind_frompos(Type='x', ref=None, otherid=None, indother=None):
+    assert Type in ['x','y','2d']
+
+    if Type in ['x','y']:
+        if otherid is None:
+            assert ref.size == np.max(ref.shape)
+            ref = ref.ravel()
+            refb = 0.5*(ref[1:]+ref[:-1])
+            if Type == 'x':
+                def func(val, ind0=None, refb=refb):
+                    return np.digitize([val[0]], refb)[0]
             else:
-                inc = -1
-            if dkey['kinc'] in eventkey:
-                inc = inc*dkey['inc']
-            ind += inc
-            return ind
-    if Type=='2d':
-        def func(eventkey, ind, ref=ref,
-                 dkey={'right':'right', 'left':'left', 'up':'up', 'down':'down',
-                       'inch':10, 'incv':10, 'kinc':'alt'},
-                 nx=None, ny=None):
-            h = dkey['right'] in eventkey or dkey['left'] in eventkey
-            big = dkey['kinc'] in eventkey
-            pos = dkey['right'] in eventkey or dkey['up'] in eventkey
+                def func(val, ind0=None, refb=refb):
+                    return np.digitize([val[1]], refb)[0]
+        elif indother is None:
+            assert ref.ndim == 2
+            if Type == 'x':
+                def func(val, ind0=None, ref=ref):
+                    refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                    return np.digitize([val[0]], refb)[0]
+            else:
+                def func(val, ind0=None, ref=ref):
+                    refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                    return np.digitize([val[1]], refb)[0]
+        else:
+            assert ref.ndim == 2
+            if Type == 'x':
+                def func(val, ind0=None, ref=ref, indother=indother):
+                    refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                    return np.digitize([val[0]], refb)[0]
+            else:
+                def func(val, ind0=None, ref=ref, indother=indother):
+                    refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                    return np.digitize([val[1]], refb)[0]
+    else:
+        raise Exception('not coded yet !')
+    return func
 
-            inc = 1 if pos else -1
-            if big:
-                inc = inc*dkey['inch'] if h else inc*dkey['incv']
-            ind = ind + inc if h else ind + inc*nx
+def get_pos_fromind(ref=None, otherid=None, indother=None, is2d=False):
+    if is2d:
+        raise Exception('not coded yet !')
+    else:
+        if otherid is None:
+            assert ref.size == np.max(ref.shape)
+            ref = ref.ravel()
+            def func(ind, ind0=None, ref=ref):
+                val = ref[ind]
+                return (val, val)
+        elif indother is None:
+            assert ref.ndim == 2
+            def func(ind, ind0, ref=ref):
+                val = ref[ind0,ind]
+                return (val, val)
+        else:
+            assert ref.ndim == 2
+            def func(ind, ind0, ref=ref, indother=indother):
+                val = ref[indother[ind0],ind]
+                return (val, val)
+    return func
+
+def get_ind_fromkey(dmovkeys={}, shape=[], is2d=False):
+    if is2d:
+        raise Exception('not coded yet !')
+    else:
+        nx = shape[0] if len(shape)==1 else shape[1]
+        def func(movk, ind, doinc=False, dmovkeys=dmovkeys, nx=nx):
+            ind += dmovkeys[movk][doinc]
+            ind = ind % nx
             return ind
     return func
 
@@ -2031,23 +2273,87 @@ class KeyHandler_mpl(object):
     For each object oo, dobj[oo] is itself a dict with (key,value) pairs:
         - 'ref'   : a 1D flat np.ndarray, used as reference
         - 'lgroup': list of int, indicating to which groups of indices oo belongs
-        - 'ln'    : list of int, indicating the index of oo in each group (unique)
+        - 'lind'  : list of int, indicating the index of oo in each group
         - 'update': a callable (function), to be called when updating
     """
 
+    _ltypesref = ['x','y','2d']
 
-    def __init__(self, dgroup=None, dobj=None):
-        self.init(dgroup=dgroup, dobj=dobj)
 
+    def __init__(self, can=None, dgroup=None, dref=None, ddata=None,
+                 dobj=None, dax=None, lax_fix=[],
+                 groupinit='time', follow=True):
+        assert issubclass(can.__class__, mpl.backend_bases.FigureCanvasBase)
+        self.can = can
+        out = self._checkformat_dgrouprefaxobj(dgroup, dref, dobj, dax, ddata)
+        dgroup, dref, dax, dobj, dind, ddata = out
+        self.dgroup = dgroup
+        self.dref = dref
+        self.ddata = ddata
+        self.dax = dax
+        self.dind = dind
+        self.dax.update(dict([(ax,{'fix':None, 'lobj':[]}) for ax in lax_fix
+                              if ax not in dax.keys()]))
+        self.dobj = dobj
+        self.dcur = self._get_dcur_init(dgroup, dax, groupinit)
+        dkeys = self._get_dkeys()
+        lact = set([v['action'] for v in dkeys.values()])
+        dkeys_r = dict([(aa, [k for k in dkeys.keys() if dkeys[k]['action']==aa])
+                             for aa in lact])
+        self.dkeys = dkeys
+        self.dkeys_r = dkeys_r
+        #self.init(dgroup=dgroup, dobj=dobj)
+        self.isinteractive = hasattr(can,'toolbar') and can.toolbar is not None
+        self._follow = follow
+
+        self._set_dBck(self.dax.keys())
+
+    @staticmethod
+    def _get_dcur_init(dgroup, dax, groupinit='time'):
+        if not groupinit in dgroup.keys():
+            msg = "Arg groupinit must be a valid key of dgroup !\n"
+            msg += "    - Valid keys: %s\n"%str(dgroup.keys())
+            msg += "    - Provided  : %s"%groupinit
+            raise Exception(msg)
+        refid = dgroup[groupinit]['defid']
+        ax = dgroup[groupinit]['defax']
+        dcur = {'refid':refid, 'group':groupinit, 'ax':ax}
+        return dcur
+
+    def _warn_ifnotInteractive(self):
+        warn = False
+        if not self.isinteractive:
+            msg = "Not interactive:\n"
+            msg += "    - backend : %s   (prefer Qt5Agg)"%plt.get_backend()
+            msg += "    - canvas  : %s"%self.can.__class__.__name__
+            warnings.warn(msg)
+            warn = True
+        return warn
 
     @classmethod
-    def _checkformat_dgrouprefobj(cls, dgroup, dref, dobj, dax):
+    def _get_dmovkeys(cls, Type, inc):
+        assert Type in cls._ltypesref
+        if Type[0] == 'x':
+            dmovkeys = {'left':{False:-inc[0], True:-inc[1]},
+                        'right':{False:inc[0], True:inc[1]}}
+        elif Type[0] == 'y':
+            dmovkeys = {'down':{False:-inc[0], True:-inc[1]},
+                        'up':{False:inc[0], True:inc[1]}}
+        elif Type == '2d':
+            dmovkeys = {'left':{False:-inc[0], True:-inc[1]},
+                        'right':{False:inc[0], True:inc[1]},
+                        'down':{False:-inc[0], True:-inc[1]},
+                        'up':{False:inc[0], True:inc[1]}}
+        return dmovkeys
+
+    @classmethod
+    def _checkformat_dgrouprefaxobj(cls, dgroup, dref, dobj, dax, ddata):
         assert all([type(dd) is dict for dd in [dgroup, dref, dobj, dax]])
 
         #---------------
         # Preliminary checks
 
-        ls = ['nMax','key']
+        ls = ['nMax','key','defid','defax']
         for k,v in dgroup.items():
             c0 = type(k) is str
             c1 = type(v) is dict
@@ -2056,154 +2362,634 @@ class KeyHandler_mpl(object):
                 raise Exception(cls._msgdobj)
             assert type(v['nMax']) in [int,np.int64]
             assert type(v['key']) is str
+            assert v['defid'] in dref.keys()
+            assert v['defax'] in dax.keys()
         lg = sorted(list(dgroup.keys()))
         assert len(set(lg))==len(lg)
 
-        ls = ['group']
+        ls = ['val','refids']
+        for k,v in ddata.items():
+            c0 = type(k) is int
+            c1 = type(v) is dict
+            c2 = all([s in v.keys() for s in ls])
+            if not (c0 and c1 and c2):
+                raise Exception(cls._msgdobj)
+            assert all([vv in dref.keys() for vv in v['refids']])
+        ldid = sorted(list(ddata.keys()))
+        assert len(set(ldid))==len(ldid)
+
+        ls = ['group','val','inc']
         for k,v in dref.items():
-            c0 = type(k) in (np.ndarray,tuple)
+            c0 = type(k) is int
             c1 = type(v) is dict
             c2 = all([s in v.keys() for s in ls])
             if not (c0 and c1 and c2):
                 raise Exception(cls._msgdobj)
             assert v['group'] in lg
-        lr = sorted(list(dref.keys()))
-        assert len(set(lr))==len(lr)
+            assert type(v['val']) in [np.ndarray,tuple]
+            assert len(v['inc']) == 2
+            v['inc'] = np.asarray(v['inc'],dtype=int).ravel()
+        lrid = sorted(list(dref.keys()))
+        lr = [dref[rid]['val'] for rid in lrid]
+        assert len(set(lrid))==len(lrid)
 
-        ls = ['x','y','x0','x1','y0','y1','2d']
+        ls = cls._ltypesref
         for k,v in dax.items():
             c0 = issubclass(k.__class__, mpl.axes.Axes)
             c1 = type(v) is dict
-            c2 = any([s in v.keys() for s in ls])
-            if not (c0 and c1 and c2):
-                raise Exception(cls._msgdobj)
-            assert all([vv in lr for vv in v.values()])
-            for kk,vv in v.items():
-                if 'type' not in dref[vv].keys():
-                    dref[vv]['type'] = kk
-                elif kk != dref[vv]['type']:
-                    raise Exception(cls._msgdobj)
-        la = sorted(list(dax.keys()))
+            c2 = 'ref' in v.keys() and type(v['ref']) is dict
+            c3 = all([vv in ls for vv in v['ref'].values()])
+            c4 = all([kk in lrid for kk in v['ref'].keys()])
+            lc = [c0,c1,c2,c3,c4]
+            assert all(lc), str(lc)
+            if 'defrefid' in v.keys():
+                assert v['defrefid'] in lrid
+        la = list(dax.keys())
         assert len(set(la))==len(la)
 
-        ls = ['data','type','lref','ln']
+        ls = ['dupdate','drefid']
         for k,v in dobj.items():
             c0 = issubclass(k.__class__, mpl.artist.Artist)
             c1 = type(v) is dict
             c2 = any([s in v.keys() for s in ls])
-            if not (c0 and c1 and c2):
-                raise Exception(cls._msgdobj)
-            assert all([vv in lr for vv in v.values()])
-            dobj[k]['ax'] = v.axes
-            assert len(dobj[k]['lref'])==len(dobj[k]['ln'])
-            dobj[k]['ln'] = np.asarray(dobj[k]['ln'], dtype=int)
-            assert np.all(dobj[k]['ln']>=0)
-        lo = sorted(list(dobj.keys()))
+            assert (c0 and c1 and c2)
+            assert all([vv in lrid for vv in v['drefid'].keys()])
+            dobj[k]['ax'] = k.axes
+            if dobj[k]['ax'] not in dax.keys():
+                dax[dobj[k]['ax']] = {'fix':None, 'ref':{}}
+        lo = list(dobj.keys())
         assert len(set(lo))==len(lo)
 
         #---------------
         # Complement
 
+        # dgroup
         for g in lg:
-            lrg = [r for r in lref if dref[r]['group']==g]
-            dgroup[g]['lref'] = lrg
+            dgroup[g]['indcur'] = 0
+            dgroup[g]['ncur'] = 0
+            dgroup[g]['valind'] = np.full((dgroup[g]['nMax'],2), np.nan)
+            lridg = [rid for rid in lrid if dref[rid]['group']==g]
+            dgroup[g]['lrefid'] = lridg
             # To catch cross-dependencies:
             # All axes of all objects with a group dependency
             lla = []
             for o in lo:
-                if any([dref[r]['group']==g for r in dobj[o]['lref']]):
+                if any([dref[rid]['group']==g
+                        for rid in dobj[o]['drefid'].keys()]):
                     if dobj[o]['ax'] not in lla:
                         lla.append(dobj[o]['ax'])
             dgroup[g]['lax'] = lla
             # Check unicity of def ref
-            lC = ['def' in dref[r].keys() for r in lrg]
-            if not np.sum(lC)==1:
-                msg = "One ref must be the default for each group !"
-                raise Exception(msg)
-            dgroup[g]['def'] = lrg[lC.index(True)]
+            assert dref[dgroup[g]['defid']]['group'] == g
 
-        for r in lr:
-            dref[r]['ind'] = None
-            dref[r]['val'] = None
-            dref[r]['f_ind_val'] = get_ind_fromval(dref[r]['type'], ref=r)
-            dref[r]['f_ind_key'] = get_ind_fromkey(dref[r]['type'], ref=r)
-            if 'other' in dref[r].keys():
-                assert dref[r]['type'] in ['x0','x1','y0','y1']
-                assert dref[r]['other'] in lr # and 1d ?
+            # Get list of obj with their indices, for fast updates
+            lobj = [obj for obj in dobj.keys()
+                    if any([dref[rid]['group'] == g
+                            for rid in dobj[obj]['drefid'].keys()])]
+            nobj = len(lobj)
+            lind = []
+            for obj in lobj:
+                ii = [ii for rid, ii in dobj[obj]['drefid'].items()
+                      if dref[rid]['group'] == g]
+                assert len(ii) >= 1
+                if len(ii)>1:
+                    # Case when same group refered to via several refs
+                    # Only works if consistent indices !
+                    assert all([iii==ii[0] for iii in ii])
+                    ii = [ii[0]]
+                lind += ii
+            lindu = np.unique(lind)
+            assert np.all(lindu >= 0) and np.all(lindu < dgroup[g]['nMax'])
+            d2obj = dict([(ind, [lobj[ii] for ii in range(0,nobj)
+                                if lind[ii] == ind]) for ind in lindu])
+            dgroup[g]['d2obj'] = d2obj
+            dgroup[g]['lobj'] = lobj
+
+        # dax
+        for ax in dax.keys():
+            lobj = [obj for obj in dobj.keys() if dobj[obj]['ax'] is ax]
+            dax[ax]['lobj'] = lobj
+            lrefid = list(dax[ax]['ref'].keys())
+            dmovkeys = {}
+            for rid in lrefid:
+                dmovkeys[rid] = cls._get_dmovkeys(dax[ax]['ref'][rid],
+                                                  dref[rid]['inc'])
+            dax[ax]['dmovkeys'] = dmovkeys
+
+            # Find default refid for ax from dgroup defax
+            if len(lrefid) > 1:
+                assert 'defrefid' in dax[ax].keys()
+                assert dax[ax]['defrefid'] in lrefid
+
+        # dref
+        for rid in lrid:
+            dref[rid]['ind'] = np.zeros((dgroup[dref[rid]['group']]['nMax'],),
+                                        dtype=int)
+
+            # Check consistency of otherid and indother
+            c0 = 'indother' not in dref[rid].keys()
+            c1 = not c0 and dref[rid]['indother'] is None
+            if 'otherid' not in dref[rid].keys():
+                assert dref[rid]['val'].size == max(dref[rid]['val'].shape)
+                assert c0 or c1
+                dref[rid]['otherid'] = None
+                if c0:
+                    dref[rid]['indother'] = None
             else:
-                assert dref[r]['type'] in ['x','y','2d']
-                dref[r]['other'] = None
+                otherid = dref[rid]['otherid']
+                assert otherid is None or otherid in dref.keys()
+                if otherid is None:
+                    assert c0 or c1
+                    if c0:
+                        dref[rid]['indother'] = None
+                else:
+                    assert dref[rid]['val'].ndim == 2
+                    if c0 or c1:
+                        assert dref[rid]['val'].shape[0]==dref[otherid]['val'].size
+                        if c0:
+                            dref[rid]['indother'] = None
+                    else:
+                        assert dref[rid]['indother'].ndim == 1
 
+             # Check if is2d
+            ltypes = []
+            for ax in dax.keys():
+                if rid in dax[ax]['ref'].keys():
+                    ltypes.append(dax[ax]['ref'][rid])
+            ltypes = sorted(set(ltypes))
+            assert ltypes == ['2d'] or not '2d' in ltypes
+            is2d = '2d' in ltypes
+            dref[rid]['is2d'] = is2d
+
+            # Get functions
+            val = dref[rid]['val']
+            otherid = dref[rid]['otherid']
+            indother = dref[rid]['indother']
+            dref[rid]['f_pos_ind'] = get_pos_fromind(ref = val,
+                                                     otherid = otherid,
+                                                     indother = indother,
+                                                     is2d = is2d)
+
+            df_ind_pos, df_ind_key = {}, {}
+            for ax in dax.keys():
+                if rid in dax[ax]['ref'].keys():
+                    typ = dax[ax]['ref'][rid]
+                    df_ind_pos[ax] = get_ind_frompos(typ, val,
+                                                     otherid = otherid,
+                                                     indother = indother)
+                    dmovkeys = dax[ax]['dmovkeys'][rid]
+                    df_ind_key[ax] = get_ind_fromkey(dmovkeys,
+                                                     is2d = is2d,
+                                                     shape = val.shape)
+            dref[rid]['df_ind_pos'] = df_ind_pos
+            dref[rid]['df_ind_key'] = df_ind_key
+
+            # lobj
+            lobj = [oo for oo in dobj.keys()
+                    if rid in dobj[oo]['drefid'].keys()]
+            dref[rid]['lobj'] = lobj
+
+        # dind
+        lref = list(dref.keys())
+        nref = len(lref)
+        ancur = np.zeros((2,nref),dtype=int)
+        ancur[1,:] = [dgroup[dref[rid]['group']]['nMax'] for rid in lref]
+        cumsum0 = np.r_[0, np.cumsum(ancur[1,:])]
+        arefind = np.zeros((np.sum(ancur[1,:])),dtype=int)
+        dind = {'lrefid':lref, 'anMaxcur':ancur, 'arefind':arefind,
+                'cumsum0':cumsum0}
+
+        # dobj
         for oo in dobj.keys():
-            if all([dobj[oo]['ln']]==0):
-                dobj[oo]['vis'] = True
-            else:
-                dobj[oo]['vis'] = False
+            dobj[oo]['vis'] = False
 
-        return dgroup, dref, dax, dobj
+            # get functions to update
+            lrefid = list(dobj[oo]['drefid'].keys())
+            for k, v in dobj[oo]['dupdate'].items():
+                # Check consistency with ddata
+                if v['id'] not in ddata.keys():
+                    assert v['id'] in dref.keys()
+                    ddata[v['id']] = {'val':dref[v['id']]['val']}
+                    if dref[v['id']]['otherid'] is None:
+                        ddata[v['id']]['refids'] = [v['id']]
+                    else:
+                        ddata[v['id']]['refids'] = [dref[v['id']]['otherid'],v['id']]
+
+                # get update tools
+                val = ddata[v['id']]['val']
+                lrefs = ddata[v['id']]['refids']
+                linds = v['lrid']
+                fgetval = get_valf(val, lrefs, linds)
+                if 'bstr' in dobj[oo]['dupdate'][k].keys():
+                    kwdargs = {'bstr':dobj[oo]['dupdate'][k]['bstr']}
+                else:
+                    args = {}
+                fupdate = get_fupdate(oo, k, **kwdargs)
+                dobj[oo]['dupdate'][k]['fgetval'] = fgetval
+                dobj[oo]['dupdate'][k]['fupdate'] = fupdate
+                indrefind = get_indrefind(dind, linds, dobj[oo]['drefid'])
+                dobj[oo]['dupdate'][k]['indrefind'] = indrefind
+
+            # linds not necessarily identical !
+            dobj[oo]['aindvis'] = np.array([dobj[oo]['drefid'][rid]
+                                            for rid in lrefid], dtype=int)
+            indncurind = get_indncurind(dind, lrefid)
+            dobj[oo]['indncurind'] = indncurind
+
+        return dgroup, dref, dax, dobj, dind, ddata
 
 
     def _get_dkeys(self):
-        dkeys = {'generic': {'shift': False, 'ctrl':False, 'alt':False},
-                 'group':dict([(v,k) for k,v in self.dgroup.items()])}
+        dkeys = {'shift':{'val':False, 'action':'generic'},
+                 'control':{'val':False, 'action':'generic'},
+                 'ctrl':{'val':False, 'action':'generic'},
+                 'alt':{'val':False, 'action':'generic'},
+                 'left':{'val':False, 'action':'move'},
+                 'right':{'val':False, 'action':'move'},
+                 'up':{'val':False, 'action':'move'},
+                 'down':{'val':False, 'action':'move'}}
+                 # 'pageup':{'val':False, 'action':'move'},
+                 # 'pagedown':{'val':False, 'action':'move'}}
+        dkeys.update(dict([(v['key'],{'group':k, 'val':False, 'action':'group'})
+                           for k,v in self.dgroup.items()]))
+        nMax = np.max([v['nMax'] for v in self.dgroup.values()])
+        dkeys.update(dict([(str(ii),{'ind':ii, 'val':False, 'action':'indices'})
+                          for ii in range(0,nMax)]))
         return dkeys
 
+    def disconnect_old(self, force=False):
+        if self._warn_ifnotInteractive():
+            return
+        if force:
+            self.can.mpl_disconnect(self.can.manager.key_press_handler_id)
+        else:
+            lk = [kk for kk in list(plt.rcParams.keys()) if 'keymap' in kk]
+            self.store_rcParams = {}
+            for kd in self.dkeys.keys():
+                self.store_rcParams[kd] = []
+                for kk in lk:
+                    if kd in plt.rcParams[kk]:
+                        self.store_rcParams[kd].append(kk)
+                        plt.rcParams[kk].remove(kd)
+        self.can.mpl_disconnect(self.can.button_pick_id)
+
+    def reconnect_old(self):
+        if self._warn_ifnotInteractive():
+            return
+        if self.store_rcParams is not None:
+            for kd in self.store_rcParams.keys():
+                for kk in self.store_rcParams[kk]:
+                    if kd not in plt.rcParams[kk]:
+                        plt.rcParams[kk].append(kd)
+
+    def connect(self):
+        if self._warn_ifnotInteractive():
+            return
+        keyp = self.can.mpl_connect('key_press_event', self.onkeypress)
+        keyr = self.can.mpl_connect('key_release_event', self.onkeypress)
+        butp = self.can.mpl_connect('button_press_event', self.mouseclic)
+        res = self.can.mpl_connect('resize_event', self.resize)
+        #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
+        #if not plt.get_backend() == "agg":
+        self.can.manager.toolbar.release = self.mouserelease
+
+        self._cid = {'keyp':keyp, 'keyr':keyr, 'butp':butp, 'res':res}#, 'butr':butr}
+
+    def disconnect(self):
+        if self._warn_ifnotInteractive():
+            return
+        for kk in self._cid.keys():
+            self.can.mpl_disconnect(self._cid[kk])
+        self.can.manager.toolbar.release = lambda event: None
+
+
+    def resize(self, event):
+        self._set_dBck(self.dax.keys())
+
+    def _set_dBck(self, lax):
+        # Make all invisible
+        for ax in lax:
+            for obj in self.dax[ax]['lobj']:
+                obj.set_visible(False)
+
+        # Draw and reset Bck
+        self.can.draw()
+        for ax in lax:
+            #ax.draw(self.can.renderer)
+            self.dax[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
+
+        # Redraw
+        for ax in lax:
+            for obj in self.dax[ax]['lobj']:
+                obj.set_visible(self.dobj[obj]['vis'])
+                #ax.draw(self.can.renderer)
+        self.can.draw()
 
     def init(self, dgroup=None, ngroup=None, dobj=None):
-        dgroup, dref, dax, dobj, dkeys = self._checkformat_dobjgroup(dobj, dgroup)
-        self.dgroup = dgroup
-        self.dref = dref
-        self.dax = dax
-        self.dobj = dobj
-        self.dcur = {'ref':None, 'group':None}
-        self.dkeys = self._get_dkeys()
+        pass
 
-    def update(self):
-        self._update_dcur()
-        self._update_dref()
-        self._update_dobj()
+    def update(self, excluderef=True):
+        self._update_dcur() # 0.4 ms
+        self._update_dref(excluderef=excluderef)    # 0.1 ms
+        self._update_dobj() # 0.2 s
 
     def _update_dcur(self):
-        assert self.dref[self.dcur['ref']] == self.dcur['group']
-
-    def _update_dref(self):
         group = self.dcur['group']
-        lr = self.dgroup[group]['lref']
-        if len(lr)>1:
-            lr.remove(self.dcur['ref'])
-            val = self.dref[self.dcur['ref']]['val']
-            for r in lr:
-                if self.dref[r]['other'] is None:
+        refid = self.dcur['refid']
+        assert self.dref[refid]['group'] == group
+        assert refid in self.dax[self.dcur['ax']]['ref'].keys()
+
+        # Update also dind !
+        an = [self.dgroup[self.dref[rid]['group']]['ncur']
+              for rid in self.dind['lrefid']]
+        self.dind['anMaxcur'][0,:] = an
+
+        # Update array ncur
+        for obj in self.dgroup[group]['lobj']:
+            a0 = self.dind['anMaxcur'][0,self.dobj[obj]['indncurind']]
+            a1 = self.dobj[obj]['aindvis']
+            self.dobj[obj]['vis'] = np.all( a0 >= a1 )
+
+
+    def _update_dref(self, excluderef=True):
+        group = self.dcur['group']
+        ind = self.dgroup[group]['indcur']
+        val = self.dgroup[group]['valind'][ind,:]
+
+        if excluderef and len(self.dgroup[group]['lrefid'])>1:
+            for rid in self.dgroup[group]['lrefid']:
+                if rid == self.dcur['refid']:
+                    continue
+                if self.dref[rid]['otherid'] is None:
                     indother = None
                 else:
-                    indother = self.dref[self.dref[r]['other']]['ind']
-                ind = self.dref[r]['ind_from_val'](val, indother)
-                self.dref[r]['ind'] = ind
+                    group2 = self.dref[self.dref[rid]['otherid']]['group']
+                    ind2 = self.dgroup[group2]['indcur']
+                    indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
+                lax = list(self.dref[rid]['df_ind_pos'].keys())
+                ii = self.dref[rid]['df_ind_pos'][lax[0]](val, indother)
+                if self._follow:
+                    self.dref[rid]['ind'][ind:] = ii
+                else:
+                    self.dref[rid]['ind'][ind] = ii
+        else:
+            for rid in self.dgroup[group]['lrefid']:
+                if self.dref[rid]['otherid'] is None:
+                    indother = None
+                else:
+                    group2 = self.dref[self.dref[rid]['otherid']]['group']
+                    ind2 = self.dgroup[group2]['indcur']
+                    indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
+                lax = list(self.dref[rid]['df_ind_pos'].keys())
+                ii = self.dref[rid]['df_ind_pos'][lax[0]](val, indother)
+                if self._follow:
+                    self.dref[rid]['ind'][ind:] = ii
+                else:
+                    self.dref[rid]['ind'][ind] = ii
+
+        # Update dind['arefind']
+        for ii in range(0,len(self.dind['lrefid'])):
+            rid = self.dind['lrefid'][ii]
+            i0 = self.dind['cumsum0'][ii]
+            i1 = i0 + self.dgroup[self.dref[rid]['group']]['nMax']
+            self.dind['arefind'][i0:i1] = self.dref[rid]['ind']
 
 
     def _update_dobj(self):
 
+        # --- Prepare ----- 2 us
         group = self.dcur['group']
-        ref = self.dcur['ref']
-        n = self.dgroup[group]['n']
+        refid = self.dcur['refid']
+        indcur = self.dgroup[group]['indcur']
         lax = self.dgroup[group]['lax']
 
-        # ---- Restore backgrounds ------
+        # ---- Restore backgrounds ---- 1 ms
         for aa in lax:
-            # TBF
             self.can.restore_region(self.dax[aa]['Bck'])
 
-        # ---- update data and draw objects ------
-        lref = list(self.dgroup[group]['lref'])
-        for r in lref:
-            for obj in self.dref['lobj']:
-                lind = [self.dref[rr]['ind'] for rr in self.dobj[oo]['lref']]
-                self.dobj[obj]['update'](*lind)
-                self.dobj[obj]['vis'] = self.dobj[obj]['n'] <= n
+        # ---- update data of group objects ----  0.15 s
+        for obj in self.dgroup[group]['d2obj'][indcur]:
+            for k in self.dobj[obj]['dupdate'].keys():
+                ii = self.dobj[obj]['dupdate'][k]['indrefind']  # 20 us
+                li = self.dind['arefind'][ii]   # 50 us
+                val = self.dobj[obj]['dupdate'][k]['fgetval']( *li )    # 0.0001 s
+                self.dobj[obj]['dupdate'][k]['fupdate']( val )  # 2 ms
 
-                obj.set_visible(self.dobj[obj]['vis'])
-                self.dobj[obj]['ax'].draw_artist(obj)
+        # --- Redraw all objects (due to background restore) --- 25 ms
+        for obj in self.dobj.keys():
+            obj.set_visible(self.dobj[obj]['vis'])
+            self.dobj[obj]['ax'].draw_artist(obj)
 
-        # ---- blit axes ------
+        # ---- blit axes ------ 5 ms
         for aa in lax:
             self.can.blit(aa.bbox)
+
+    def mouseclic(self,event):
+
+        # Check click is relevant
+        C0 = event.inaxes is not None and event.button == 1
+        if not C0:
+            return
+
+        self.curax_panzoom = event.inaxes   # DB ?
+
+        # Check axes is relevant and toolbar not active
+        c_activeax = 'fix' not in self.dax[event.inaxes].keys()
+        c_toolbar = self.can.manager.toolbar._active in [None,False]
+        if not all([c_activeax,c_toolbar]):
+            return
+
+        # Set self.dcur
+        self.dcur['ax'] = event.inaxes
+        lrid = list(self.dax[event.inaxes]['ref'].keys())
+        if len(lrid)>1:
+            lg = [self.dref[rid]['group'] for rid in lrid]
+            if self.dcur['group'] in lg:
+                rid = lrid[lg.index(self.dcur['group'])]
+            else:
+                rid = self.dax[event.inaxes]['defrefid']
+        else:
+            rid= lrid[0]
+        self.dcur['refid'] = rid
+        self.dcur['group'] = self.dref[self.dcur['refid']]['group']
+
+        group = self.dcur['group']
+        ax = self.dcur['ax']
+        refid = self.dcur['refid']
+
+        # Check max number of occurences not reached if shift
+        c0 = (self.dkeys['shift']['val']
+              and self.dgroup[group]['indcur'] == self.dgroup[group]['nMax']-1)
+        if c0:
+            msg = "Max nb. of plots reached ({0}) for group {1}"
+            msg  = msg.format(self.dgroup[group]['nMax'], group)
+            print(msg)
+            return
+
+        # Update indcur
+        ctrl = self.dkeys['control']['val'] or self.dkeys['ctrl']['val']
+        if ctrl:
+            nn = 0
+            ii = 0
+        elif self.dkeys['shift']['val']:
+            nn = int(self.dgroup[group]['ncur'])+1
+            ii = nn
+        else:
+            nn = int(self.dgroup[group]['ncur'])
+            ii = int(self.dgroup[group]['indcur'])
+
+        # Update dcur
+        self.dgroup[group]['ncur'] = nn
+        self.dgroup[group]['indcur'] = ii
+
+        # Update group val
+        val = (event.xdata, event.ydata)
+        if self._follow:
+            self.dgroup[group]['valind'][ii:,:] = val
+        else:
+            self.dgroup[group]['valind'][ii,:] = val
+
+        self.update(excluderef=False)
+
+
+    def mouserelease(self, event):
+        msg = "Make sure you release the mouse button on an axes !"
+        msg += "\n Otherwise the background plot cannot be properly updated !"
+        c0 = self.can.manager.toolbar._active == 'PAN'
+        c1 = self.can.manager.toolbar._active == 'ZOOM'
+
+        if c0 or c1:
+            ax = self.curax_panzoom
+            assert ax is not None, msg
+            lax = ax.get_shared_x_axes().get_siblings(ax)
+            lax += ax.get_shared_y_axes().get_siblings(ax)
+            lax = list(set(lax))
+            self._set_dBck(lax)
+
+
+    def onkeypress(self, event):
+
+        lkey = event.key.split('+')
+
+        c0 = self.can.manager.toolbar._active is not None
+        c1 = len(lkey) not in [1,2]
+        c2 = [ss not in self.dkeys.keys() for ss in lkey]
+        if c0 or c1 or any(c2):
+            return
+
+        lgen = [k for k in self.dkeys_r['generic'] if k in lkey]
+        lmov = [k for k in self.dkeys_r['move'] if k in lkey]
+        lgrp = [k for k in self.dkeys_r['group'] if k in lkey]
+        lind = [k for k in self.dkeys_r['indices'] if k in lkey]
+
+        ngen, nmov, ngrp, nind = len(lgen), len(lmov), len(lgrp), len(lind)
+        ln = np.r_[ngen, nmov, ngrp, nind]
+        if np.any(ln>1) or np.sum(ln)>2:
+            return
+        if np.sum(ln)==2 and (ngrp==1 or nind==1):
+            return
+
+        genk = None if ngen == 0 else lgen[0]
+        movk = None if nmov == 0 else lmov[0]
+        grpk = None if ngrp == 0 else lgrp[0]
+        indk = None if nind == 0 else lind[0]
+
+
+        if event.name == 'key_release_event':
+            if event.key == genk:
+                self.dkeys[genk]['val'] = False
+            return
+
+        if genk is not None and event.key == genk:
+            self.dkeys[genk]['val'] = True
+            return
+
+        if grpk is not None:
+            group = self.dkeys[event.key]['group']
+            self.dcur['group'] = group
+            self.dcur['refid'] = self.dgroup[group]['defid']
+            self.dcur['ax'] = self.dgroup[group]['defax']
+            return
+
+        if indk is not None:
+            group = self.dcur['group']
+            indmax = self.dgroup[group]['ncur']
+            ii = int(event.key)
+            if ii > indmax:
+                msg = "Maximum allowed index for group {0} is {1}, set to it"
+                msg = msg.format(group, indmax)
+                print(msg)
+            ii = min(ii,indmax)
+            self.dgroup[group]['indcur'] = ii
+            return
+
+        if movk is not None:
+            group = self.dcur['group']
+            refid = self.dcur['refid']
+            ax = self.dcur['ax']
+
+            if movk not in self.dax[ax]['dmovkeys'][refid].keys():
+                return
+
+            # Check max number of occurences not reached if shift
+            c0 = (self.dkeys['shift']['val']
+                  and self.dgroup[group]['indcur'] == self.dgroup[group]['nMax']-1)
+            if c0:
+                msg = "Max nb. of plots reached ({0}) for group {1}"
+                msg  = msg.format(self.dgroup[group]['nMax'], group)
+                print(msg)
+                return
+
+            ctrl = self.dkeys['control']['val'] or self.dkeys['ctrl']['val']
+            if ctrl:
+                nn = 0
+                ii = 0
+            elif self.dkeys['shift']['val']:
+                nn = int(self.dgroup[group]['ncur'])+1
+                ii = nn
+            else:
+                nn = int(self.dgroup[group]['ncur'])
+                ii = int(self.dgroup[group]['indcur'])
+
+            # Update dcur
+            self.dgroup[group]['ncur'] = nn
+            self.dgroup[group]['indcur'] = ii
+
+            # Update refid ind
+            ind = self.dref[refid]['df_ind_key'][ax](movk,
+                                                     self.dref[refid]['ind'][ii],
+                                                     self.dkeys['alt']['val'])
+            if self._follow:
+                self.dref[refid]['ind'][ii:] = ind
+            else:
+                self.dref[refid]['ind'][ii] = ind
+
+            # Update group val
+            if self.dref[refid]['otherid'] is None:
+                indother = None
+            else:
+                group2 = self.dref[self.dref[refid]['otherid']]['group']
+                ind2 = self.dgroup[group2]['indcur']
+                indother = self.dref[self.dref[refid]['otherid']]['ind'][ind2]
+            val = self.dref[refid]['f_pos_ind']( ind, indother )
+            if self._follow:
+                self.dgroup[group]['valind'][ii:,:] = val
+            else:
+                self.dgroup[group]['valind'][ii,:] = val
+
+            # Upadte all
+            self.update(excluderef=True)
+
+
+
+
+
+###################################################################
+###################################################################
+#       Start new abstract Data2DBase with indices for next version
+###################################################################
+
+class Data2DBase(ToFuObjectBase):
+    """ Provide a a dict of sequences depending on 2 indices
+    """
+    pass
