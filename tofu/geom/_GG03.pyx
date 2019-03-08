@@ -1801,12 +1801,16 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                               double[:, ::1] ray_vdir,
                               double[:, ::1] ves_poly,
                               double[:, ::1] ves_norm,
-                              double[::1] ves_lims=None,
                               long[::1] lstruct_nlim=None,
-                              list lstruct_poly=None,
+                              double[::1] ves_lims=None,
+                              double[::1] lstruct_polyx=None,
+                              double[::1] lstruct_polyy=None,
                               list lstruct_lims=None,
-                              list lstruct_norm=None,
-                              int nstruct=0,
+                              double[::1] lstruct_normx=None,
+                              double[::1] lstruct_normy=None,
+                              long[::1] lnvert=None,
+                              int nstruct_tot=0,
+                              int nstruct_lim=0,
                               int ves_nlim=-1,
                               double rmin=-1,
                               double eps_uz=_SMALL, double eps_a=_VSMALL,
@@ -1876,38 +1880,29 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     """
     cdef int npts_poly = ves_norm.shape[1]
     cdef int num_los = ray_orig.shape[1]
-    cdef int nstruct_lim = 0
     cdef int ind_struct = 0
-    cdef int totnvert = 0
     cdef int ii, jj, kk
     cdef int len_lim
+    cdef int ind_min
     cdef int nvert
     cdef double Crit2_base = eps_uz * eps_uz /400.
-    cdef double rmin2 = 0.
     cdef double lim_min = 0.
     cdef double lim_max = 0.
+    cdef double rmin2 = 0.
     cdef str error_message
     cdef bint forbidbis, forbid0
     cdef bint bool1, bool2
-    cdef double *lbounds = <double *>malloc(nstruct * 6 * sizeof(double))
-    cdef double *langles = <double *>malloc(nstruct * 2 * sizeof(double))
+    cdef double *lbounds = <double *>malloc(nstruct_tot * 6 * sizeof(double))
+    cdef double *langles = <double *>malloc(nstruct_tot * 2 * sizeof(double))
     cdef array vperp_out = clone(array('d'), num_los * 3, True)
     cdef array coeff_inter_in  = clone(array('d'), num_los, True)
     cdef array coeff_inter_out = clone(array('d'), num_los, True)
     cdef array ind_inter_out = clone(array('i'), num_los * 3, True)
     cdef int *llimits = NULL
-    cdef int *lnvert  = NULL
     cdef long *lsz_lim = NULL
-    cdef double *lpolyx = NULL
-    cdef double *lpolyy = NULL
-    cdef double *lnormx = NULL
-    cdef double *lnormy = NULL
-    cdef double[:,::1] lspoly_view # memory view
-    cdef double[:,::1] lsvin_view # memory view
     cdef int[1] llim_ves
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
-    cdef double[6] bounds
 
     # == Testing inputs ========================================================
     if test:
@@ -1918,8 +1913,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
         error_message = "ves_poly and ves_norm must have the same shape (2,NS)!"
         assert ves_poly.shape[0] == 2 and ves_norm.shape[0] == 2 and \
             npts_poly == ves_poly.shape[1]-1, error_message
-        bool1 = lstruct_lims is None or len(lstruct_lims) == len(lstruct_poly)
-        bool2 = lstruct_norm is None or len(lstruct_norm) == len(lstruct_poly)
+        bool1 = lstruct_lims is None or len(lstruct_normy) == len(lstruct_normy)
+        bool2 = lstruct_normx is None or len(lstruct_polyx) == len(lstruct_polyy)
         error_message = "lstruct_poly, lstruct_lims, lstruct_norm must be None"\
                         + " or lists of same len!"
         assert bool1 and bool2, error_message
@@ -1943,6 +1938,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
 
     # ==========================================================================
     if ves_type.lower() == 'tor':
+        # -- Toroidal case -----------------------------------------------------
         # rmin is necessary to avoid looking on the other side of the tokamak
         if rmin < 0.:
             rmin = 0.95*min(np.min(ves_poly[0, ...]),
@@ -1956,50 +1952,28 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
         else:
             forbid0, forbidbis = 0, 0
 
-        # Arrays to get X,Y coordinates of the Vessel's poly
-        lpolyx = <double *>malloc((npts_poly + 1) * sizeof(double))
-        lpolyy = <double *>malloc((npts_poly + 1) * sizeof(double))
-        lnormx = <double *>malloc((npts_poly + 1) * sizeof(double))
-        lnormy = <double *>malloc((npts_poly + 1) * sizeof(double))
-        for ind_vert in range(npts_poly+1):
-            lpolyx[ind_vert] = ves_poly[0][ind_vert]
-            lpolyy[ind_vert] = ves_poly[1][ind_vert]
-            lnormx[ind_vert] = ves_norm[0][ind_vert]
-            lnormy[ind_vert] = ves_norm[1][ind_vert]
-
         # -- Computing intersection between LOS and Vessel ---------------------
         raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
-                                   coeff_inter_out, coeff_inter_in,
+                                    coeff_inter_out, coeff_inter_in,
                                     vperp_out, lstruct_nlim, ind_inter_out,
                                     forbid0, forbidbis,
                                     rmin, rmin2, Crit2_base,
                                     npts_poly,  NULL, lbounds_ves,
                                     llim_ves, NULL, NULL,
-                                    lpolyx, lpolyy, lnormx, lnormy,
+                                    &ves_poly[0][0],
+                                    &ves_poly[1][0],
+                                    &ves_norm[0][0],
+                                    &ves_norm[1][0],
                                     eps_uz, eps_vz, eps_a, eps_b, eps_plane,
                                     num_threads, False) # structure is in
 
-        # We can free local arrays and set them as NULL for structures
-        free(lpolyx)
-        free(lpolyy)
-        free(lnormx)
-        free(lnormy)
-        lpolyx = NULL
-        lpolyy = NULL
-        lnormx = NULL
-        lnormy = NULL
-
         # -- Treating the structures (if any) ----------------------------------
-        if nstruct > 0:
+        if nstruct_tot > 0:
             ind_struct = 0
-            nstruct_lim = len(lstruct_poly) # num of structures (no limits)
-            lnvert = <int *>malloc(nstruct_lim * sizeof(int))
-            llimits = <int *>malloc(nstruct * sizeof(int))
+            llimits = <int *>malloc(nstruct_tot * sizeof(int))
             lsz_lim = <long *>malloc(nstruct_lim * sizeof(long))
             for ii in range(nstruct_lim):
                 # For fast accessing
-                lspoly_view = lstruct_poly[ii]
-                lsvin_view = lstruct_norm[ii]
                 len_lim = lstruct_nlim[ii]
                 # We get the limits if any
                 if len_lim == 0:
@@ -2010,31 +1984,14 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                 else:
                     lslim = lstruct_lims[ii]
                 # We get the number of vertices and limits of the struct's poly
-                nvert = len(lspoly_view[0])
                 if ii == 0:
-                    lnvert[0] = nvert
                     lsz_lim[0] = 0
+                    nvert = lnvert[0]
+                    ind_min = 0
                 else:
-                    lnvert[ii] = nvert + lnvert[ii-1]
+                    nvert = lnvert[ii] - lnvert[ii - 1]
                     lsz_lim[ii] = lstruct_nlim[ii-1] + lsz_lim[ii-1]
-                # ...and the poly itself (and normal vector)
-                lpolyx = <double *>realloc(lpolyx,
-                                           (totnvert+nvert) * sizeof(double))
-                lpolyy = <double *>realloc(lpolyy,
-                                           (totnvert+nvert) * sizeof(double))
-                lnormx = <double *>realloc(lnormx,
-                                           (totnvert+nvert-1-ii) * sizeof(double))
-                lnormy = <double *>realloc(lnormy,
-                                           (totnvert+nvert-1-ii) * sizeof(double))
-                for jj in range(nvert-1):
-                    lpolyx[totnvert + jj] = lspoly_view[0,jj]
-                    lpolyy[totnvert + jj] = lspoly_view[1,jj]
-                    lnormx[totnvert + jj - ii] = lsvin_view[0,jj]
-                    lnormy[totnvert + jj - ii] = lsvin_view[1,jj]
-                lpolyx[totnvert + nvert-1] = lspoly_view[0,nvert-1]
-                lpolyy[totnvert + nvert-1] = lspoly_view[1,nvert-1]
-                totnvert = totnvert + nvert
-
+                    ind_min = lnvert[ii-1]
                 # and loop over the limits (one continous structure)
                 for jj in range(max(len_lim,1)):
                     # We compute the structure's bounding box:
@@ -2044,17 +2001,21 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                         llimits[ind_struct] = 0 # False : struct is limited
                         lim_min = Catan2(Csin(lim_ves[0]), Ccos(lim_ves[0]))
                         lim_max = Catan2(Csin(lim_ves[1]), Ccos(lim_ves[1]))
-                        compute_bbox_lim(nvert, lspoly_view, bounds,
+                        compute_bbox_lim(nvert,
+                                         &lstruct_polyx[ind_min],
+                                         &lstruct_polyy[ind_min],
+                                         &lbounds[ind_struct*6],
                                          lim_min, lim_max)
                     else:
                         llimits[ind_struct] = 1 # True : is continous
-                        compute_bbox_extr(nvert, lspoly_view, bounds)
+                        compute_bbox_extr(nvert,
+                                          &lstruct_polyx[ind_min],
+                                          &lstruct_polyy[ind_min],
+                                          &lbounds[ind_struct*6])
                         lim_min = 0.
                         lim_max = 0.
                     langles[ind_struct*2] = lim_min
                     langles[ind_struct*2 + 1] = lim_max
-                    for kk in range(6):
-                        lbounds[ind_struct*6 + kk] = bounds[kk]
                     ind_struct = 1 + ind_struct
             # end loops over structures
 
@@ -2066,58 +2027,29 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                         rmin, rmin2, Crit2_base,
                                         nstruct_lim,
                                         lbounds, langles, llimits,
-                                        lnvert, lsz_lim,
-                                        lpolyx, lpolyy, lnormx, lnormy,
+                                        &lnvert[0], lsz_lim,
+                                        &lstruct_polyx[0], &lstruct_polyy[0],
+                                        &lstruct_normx[0], &lstruct_normy[0],
                                         eps_uz, eps_vz, eps_a, eps_b, eps_plane,
                                         num_threads,
                                         True) # the structure is "OUT"
-            free(lpolyx)
-            free(lpolyy)
-            free(lnormx)
-            free(lnormy)
-            free(lnvert)
             free(lsz_lim)
             free(llimits)
-            del(lspoly_view)
-            del(lsvin_view)
-            # end if nstruct > 0
     else:
-        # -- Structure is cylinder ---------------------------------------------
-        # Arrays to get X,Y coordinates of the Vessel's poly
-        lpolyx = <double *>malloc((npts_poly + 1) * sizeof(double))
-        lpolyy = <double *>malloc((npts_poly + 1) * sizeof(double))
-        lnormx = <double *>malloc((npts_poly + 1) * sizeof(double))
-        lnormy = <double *>malloc((npts_poly + 1) * sizeof(double))
-        for ind_vert in range(npts_poly+1):
-            lpolyx[ind_vert] = ves_poly[0][ind_vert]
-            lpolyy[ind_vert] = ves_poly[1][ind_vert]
-            lnormx[ind_vert] = ves_norm[0][ind_vert]
-            lnormy[ind_vert] = ves_norm[1][ind_vert]
-
+        # -- Cylindrical case --------------------------------------------------
         raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
-                                    lpolyx, lpolyy, lnormx, lnormy,
+                                    &ves_poly[0][0], &ves_poly[1][0],
+                                    &ves_norm[0][0], &ves_norm[1][0],
                                     lbounds_ves[0], lbounds_ves[1],
                                     coeff_inter_in, coeff_inter_out,
                                     vperp_out, ind_inter_out, eps_plane,
                                     0, 0) # The vessel is strcuture 0,0
 
-        # We can free local arrays and set them as NULL for structures
-        free(lpolyx)
-        free(lpolyy)
-        free(lnormx)
-        free(lnormy)
-        lpolyx = NULL
-        lpolyy = NULL
-        lnormx = NULL
-        lnormy = NULL
-
-        if nstruct > 0:
-            nstruct_lim = len(lstruct_poly) # num of structures (no limits)
+        # -- Treating the structures (if any) ----------------------------------
+        if nstruct_tot > 0:
+            ind_struct = 0
             for ii in range(nstruct_lim):
                 # -- Analyzing the limits --------------------------------------
-                # For fast accessing
-                lspoly_view = lstruct_poly[ii]
-                lsvin_view = lstruct_norm[ii]
                 len_lim = lstruct_nlim[ii]
                 # We get the limits if any
                 if len_lim == 0:
@@ -2127,42 +2059,29 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                     lslim = [[lstruct_lims[ii][0, 0], lstruct_lims[ii][0, 1]]]
                 else:
                     lslim = lstruct_lims[ii]
-                # -- Getting polynom and normals -------------------------------
-                nvert = len(lspoly_view[0])
-                lpolyx = <double *>malloc(nvert * sizeof(double))
-                lpolyy = <double *>malloc(nvert * sizeof(double))
-                lnormx = <double *>malloc((nvert-1) * sizeof(double))
-                lnormy = <double *>malloc((nvert-1) * sizeof(double))
-                for jj in range(nvert-1):
-                    lpolyx[jj] = lspoly_view[0,jj]
-                    lpolyy[jj] = lspoly_view[1,jj]
-                    lnormx[jj] = lsvin_view[0,jj]
-                    lnormy[jj] = lsvin_view[1,jj]
-                lpolyx[nvert-1] = lspoly_view[0,nvert-1]
-                lpolyy[nvert-1] = lspoly_view[1,nvert-1]
-
+                if ii == 0:
+                    lsz_lim[0] = 0
+                    nvert = lnvert[0]
+                    ind_min = 0
+                else:
+                    nvert = lnvert[ii] - lnvert[ii - 1]
+                    lsz_lim[ii] = lstruct_nlim[ii-1] + lsz_lim[ii-1]
+                    ind_min = lnvert[ii-1]
+                # and loop over the limits (one continous structure)
                 for jj in range(max(len_lim,1)):
                     if lslim[jj] is not None:
                         lbounds_ves[0] = lslim[jj][0]
                         lbounds_ves[1] = lslim[jj][1]
                     raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir,
                                                 nvert,
-                                                lpolyx, lpolyy, lnormx, lnormy,
+                                                &lstruct_polyx[ind_min],
+                                                &lstruct_polyy[ind_min],
+                                                &lstruct_normx[ind_min-ii],
+                                                &lstruct_normy[ind_min-ii],
                                                 lbounds_ves[0], lbounds_ves[1],
                                                 coeff_inter_in, coeff_inter_out,
                                                 vperp_out, ind_inter_out,
                                                 eps_plane, ii+1, jj+1)
-
-                free(lpolyx)
-                free(lpolyy)
-                free(lnormx)
-                free(lnormy)
-                lpolyx = NULL
-                lpolyy = NULL
-                lnormx = NULL
-                lnormy = NULL
-                del(lspoly_view)
-                del(lsvin_view)
 
     free(lbounds)
     free(langles)
@@ -2184,7 +2103,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                              double crit2_base,
                                              int nstruct_lim,
                                              double* lbounds, double* langles,
-                                             int* lis_limited, int* lnvert,
+                                             int* lis_limited, long* lnvert,
                                              long* lsz_lim,
                                              double* lstruct_polyx,
                                              double* lstruct_polyy,
@@ -2295,10 +2214,6 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
     cdef bint lim_is_none
     cdef bint found_new_kout
     cdef bint inter_bbox
-    cdef double* lstruct_polyxii = NULL
-    cdef double* lstruct_polyyii = NULL
-    cdef double* lstruct_normxii = NULL
-    cdef double* lstruct_normyii = NULL
     cdef double* last_pout = NULL
     cdef double* kpout_loc = NULL
     cdef double* kpin_loc = NULL
@@ -2385,17 +2300,6 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                     else:
                         totnvert = lnvert[ii-1]
                         nvert = lnvert[ii] - totnvert
-                    lstruct_polyxii = <double *>malloc((nvert) * sizeof(double))
-                    lstruct_polyyii = <double *>malloc((nvert) * sizeof(double))
-                    lstruct_normxii = <double *>malloc((nvert-1)*sizeof(double))
-                    lstruct_normyii = <double *>malloc((nvert-1)*sizeof(double))
-                    for kk in range(nvert-1):
-                        lstruct_polyxii[kk] = lstruct_polyx[totnvert + kk]
-                        lstruct_polyyii[kk] = lstruct_polyy[totnvert + kk]
-                        lstruct_normxii[kk] = lstruct_normx[totnvert + kk - ii]
-                        lstruct_normyii[kk] = lstruct_normy[totnvert + kk - ii]
-                    lstruct_polyxii[nvert-1] = lstruct_polyx[totnvert + nvert-1]
-                    lstruct_polyyii[nvert-1] = lstruct_polyy[totnvert + nvert-1]
                     ind_struct = lsz_lim[ii]
                     # -- Working on the structure limited ----------------------
                     for jj in range(lstruct_nlim[ii]):
@@ -2423,10 +2327,10 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                          # Else, we compute the new values
                         found_new_kout = comp_inter_los_vpoly(loc_org,
                                                               loc_dir,
-                                                              lstruct_polyxii,
-                                                              lstruct_polyyii,
-                                                              lstruct_normxii,
-                                                              lstruct_normyii,
+                                                              &lstruct_polyx[totnvert],
+                                                              &lstruct_polyy[totnvert],
+                                                              &lstruct_normx[totnvert - ii],
+                                                              &lstruct_normy[totnvert - ii],
                                                               nvert-1,
                                                               lim_is_none,
                                                               lim_min, lim_max,
@@ -2457,10 +2361,6 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                             loc_dir[1]) + loc_org[1]
                             last_pout[2] = (coeff_inter_out[ind_los] *
                                             loc_dir[2]) + loc_org[2]
-                    free(lstruct_polyxii)
-                    free(lstruct_polyyii)
-                    free(lstruct_normxii)
-                    free(lstruct_normyii)
             else:
                 # == Case "IN" structure =======================================
                 # Nothing to do but compute intersection between vessel and LOS
@@ -3050,7 +2950,8 @@ cdef inline bint is_point_in_path(const int nvert,
 
 
 cdef inline void compute_bbox_extr(int nvert,
-                                   double[:,::1] vert,
+                                   double* vertr,
+                                   double* vertz,
                                    double[6] bounds) nogil:
     """
     Computes bounding box of a toroidally continous structure defined by
@@ -3067,13 +2968,13 @@ cdef inline void compute_bbox_extr(int nvert,
        of the bounding box of the structure toroidally continous on the tore.
     """
     cdef int ii
-    cdef double rmax=vert[0,0], zmin=vert[1,0], zmax=vert[1,0]
+    cdef double rmax=vertr[0], zmin=vertz[0], zmax=vertz[0]
     cdef double tmp_val
     for ii in range(1, nvert):
-        tmp_val = vert[0,ii]
+        tmp_val = vertr[ii]
         if tmp_val > rmax:
             rmax = tmp_val
-        tmp_val = vert[1,ii]
+        tmp_val = vertz[ii]
         if tmp_val > zmax:
             zmax = tmp_val
         elif tmp_val < zmin:
@@ -3088,7 +2989,8 @@ cdef inline void compute_bbox_extr(int nvert,
 
 
 cdef inline void compute_bbox_lim(int nvert,
-                                  double[:,::1] vert,
+                                  double* vertr,
+                                  double* vertz,
                                   double[6] bounds,
                                   double lmin, double lmax) nogil:
     """
@@ -3121,8 +3023,8 @@ cdef inline void compute_bbox_lim(int nvert,
     cdef double[3] temp
 
     for ii in range(nvert):
-        temp[0] = vert[0, ii]
-        temp[1] = vert[1, ii]
+        temp[0] = vertr[ii]
+        temp[1] = vertz[ii]
         coordshift_simple1d(temp, in_is_cartesian=False, CrossRef=1.,
                           cos_phi=cos_min, sin_phi=sin_min)
         if xmin > temp[0]:
@@ -3137,8 +3039,8 @@ cdef inline void compute_bbox_lim(int nvert,
             zmin = temp[2]
         if zmax < temp[2]:
             zmax = temp[2]
-        temp[0] = vert[0, ii]
-        temp[1] = vert[1, ii]
+        temp[0] = vertr[ii]
+        temp[1] = vertz[ii]
         coordshift_simple1d(temp, in_is_cartesian=False, CrossRef=1.,
                           cos_phi=cos_max, sin_phi=sin_max)
         if xmin > temp[0]:
