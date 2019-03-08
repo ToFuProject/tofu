@@ -2222,7 +2222,6 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
     cdef double* loc_dir = NULL
     cdef double* lim_ves = NULL
     cdef double* loc_vp = NULL
-    cdef double* bounds = NULL
     cdef int* sign_ray = NULL
     cdef int* ind_loc = NULL
 
@@ -2240,7 +2239,6 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
             last_pout = <double *> malloc(sizeof(double) * 3)
             invr_ray  = <double *> malloc(sizeof(double) * 3)
             lim_ves   = <double *> malloc(sizeof(double) * 2)
-            bounds    = <double *> malloc(sizeof(double) * 6)
             sign_ray  = <int *> malloc(sizeof(int) * 3)
 
         # == The parallelization over the LOS ==================================
@@ -2303,25 +2301,21 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                     ind_struct = lsz_lim[ii]
                     # -- Working on the structure limited ----------------------
                     for jj in range(lstruct_nlim[ii]):
-                        bounds[0] = lbounds[(ind_struct + jj)*6]
-                        bounds[1] = lbounds[(ind_struct + jj)*6 + 1]
-                        bounds[2] = lbounds[(ind_struct + jj)*6 + 2]
-                        bounds[3] = lbounds[(ind_struct + jj)*6 + 3]
-                        bounds[4] = lbounds[(ind_struct + jj)*6 + 4]
-                        bounds[5] = lbounds[(ind_struct + jj)*6 + 5]
                         lim_min = langles[(ind_struct+jj)*2]
                         lim_max = langles[(ind_struct+jj)*2 + 1]
                         lim_is_none = lis_limited[ind_struct+jj] == 1
                         # We test if it is really necessary to compute the inter
                         # ie. we check if the ray intersects the bounding box
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
-                                                        bounds, loc_org)
+                                                        &lbounds[(ind_struct + jj)*6],
+                                                        loc_org)
                         if not inter_bbox:
                             continue
                         # We check that the bounding box is not "behind"
                         # the last POut encountered
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
-                                                        bounds, last_pout)
+                                                        &lbounds[(ind_struct + jj)*6],
+                                                        last_pout)
                         if inter_bbox:
                             continue
                          # Else, we compute the new values
@@ -2406,10 +2400,8 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
         free(kpin_loc)
         free(kpout_loc)
         free(ind_loc)
-        # end loop over LOS
         if is_out_struct:
             free(last_pout)
-            free(bounds)
             free(lim_ves)
             free(invr_ray)
             free(sign_ray)
