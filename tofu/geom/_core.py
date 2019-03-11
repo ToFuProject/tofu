@@ -4230,11 +4230,15 @@ class CamLOS2D(Rays):
             ind = indr
         return ind
 
+    def get_X12(self, out='imshow'):
 
+        if out == 'imshow':
+            x1, x2 = self._dgeom['x1'], self._dgeom['x2']
+            dx1, dx2 = 0.5*(x1[1]-x1[0]), 0.5*(x2[1]-x2[0])
+            extent = (x1[0]-dx1, x1[-1]+dx1, x2[0]-dx2, x2[-1]+dx2)
+            return x1, x2, extent
 
-
-
-    def get_X12(self, out='1d'):
+        # TBF
         if self._X12 is None:
             Ds = self.D
             C = np.mean(Ds,axis=1)

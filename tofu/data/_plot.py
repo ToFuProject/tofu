@@ -1459,7 +1459,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
 
 def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
                           key=None, Bck=True, indref=0,
-                          cmap=plt.cm.gray, ms=4, vmin=None, vmax=None,
+                          cmap=None, ms=4, vmin=None, vmax=None,
                           normt=False, ntMax=None, nchMax=None, nfMax=3,
                           lls=_lls, lct=_lct, lcch=_lcch,
                           plotmethod='imshow', invert=False,
@@ -1502,7 +1502,7 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
 
 
 
-def _init_Data1D_spectrogram(fs=None, dmargin=None,
+def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
                              fontsize=8,  wintit=_wintit):
     axCol = "w"
     fs = utils.get_figuresize(fs)
@@ -1516,9 +1516,16 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
     laxt = [fig.add_subplot(gs1[:2,:2], fc='w')]
     laxt += [fig.add_subplot(gs1[2:4,:2], fc='w', sharex=laxt[0])]
     laxt += [fig.add_subplot(gs1[4:,:2], fc='w', sharex=laxt[0],sharey=laxt[1])]
-    laxp = [fig.add_subplot(gs1[:2,2:4], fc='w', sharey=laxt[0])]
-    laxp += [fig.add_subplot(gs1[2:4,2:4], fc='w', sharex=laxp[0]),
-             fig.add_subplot(gs1[4:,2:4], fc='w', sharex=laxp[0])]
+    if nD == 1:
+        laxp = [fig.add_subplot(gs1[:2,2:4], fc='w', sharey=laxt[0])]
+        laxp += [fig.add_subplot(gs1[2:4,2:4], fc='w', sharex=laxp[0]),
+                 fig.add_subplot(gs1[4:,2:4], fc='w', sharex=laxp[0])]
+    else:
+        laxp = [fig.add_subplot(gs1[:2,2:4], fc='w')]
+        laxp += [fig.add_subplot(gs1[2:4,2:4], fc='w',
+                                 sharex=laxp[0], sharey=laxp[0]),
+                 fig.add_subplot(gs1[4:,2:4], fc='w',
+                                 sharex=laxp[0], sharey=laxp[0])]
     axH = fig.add_subplot(gs1[0:2,4], fc='w')
     axC = fig.add_subplot(gs1[2:,4], fc='w')
     axC.set_aspect('equal', adjustable='datalim')
@@ -1568,7 +1575,7 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None,
 
 
 def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
-                             fmax=None, key=None,
+                             fmax=None, key=None, nD=1,
                              ntMax=_ntMax, nfMax=_nfMax,
                              Bck=True, llsf=_lls, lct=_lct,
                              inct=[1,10], incX=[1,5], incf=[1,10],
@@ -1580,6 +1587,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                              draw=True, connect=True):
 
     assert Data.Id.Cls in ['Data','Data1D','Data2D']
+    assert nD in [1,2]
     if cmap is None:
         cmap = plt.cm.gray_r
 
@@ -1608,25 +1616,29 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     idt = id(t)
 
     # X
-    X, nX, nnX, indtX = ddata['X'], ddata['nX'], ddata['nnX'], ddata['indtX']
-    if nX == 1:
-        DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
+    if nD == 1:
+        X, nX, nnX, indtX = ddata['X'], ddata['nX'], ddata['nnX'], ddata['indtX']
+        if nX == 1:
+            DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
+        else:
+            DX = [np.nanmin(X), np.nanmax(X)]
+        Xlab = r"{0} ({1})".format(Data.dlabels['X']['name'],
+                                   Data.dlabels['X']['units'])
+        if nnX == 1:
+            Xtype = 'x'
+            Xother = None
+        elif indtX is None:
+            Xtype = 'x1'
+            Xother = idt
+        idX = id(X)
+        if dchanskey is None:
+            dchans = np.arange(0,nX)
+        else:
+            dchans = Data.dchans(dchanskey)
+        idchans = id(dchans)
     else:
-        DX = [np.nanmin(X), np.nanmax(X)]
-    Xlab = r"{0} ({1})".format(Data.dlabels['X']['name'],
-                               Data.dlabels['X']['units'])
-    if nnX == 1:
-        Xtype = 'x'
-        Xother = None
-    elif indtX is None:
-        Xtype = 'x1'
-        Xother = idt
-    idX = id(X)
-    if dchanskey is None:
-        dchans = np.arange(0,nX)
-    else:
-        dchans = Data.dchans(dchanskey)
-    idchans = id(dchans)
+        x1, x2, extent = Data.get_X12('imshow')
+        idx1, idx2 = id(x1), id(x2)
 
     # data
     data = Data.data
@@ -1678,24 +1690,33 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     fig.suptitle(tit)
 
     # Plot vessel
-    if Data.dgeom['config'] is not None:
-        out = Data.dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
-                                        element='P', dLeg=None, draw=False)
+    c0 = Data._dgeom['config'] is not None
+    c1 = c0 and Data._dgeom['lCam'] is not None
+    if c0:
+        out = Data._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
+                                         element='P', dLeg=None, draw=False)
         dax['cross'][0], dax['hor'][0] = out
-        if Data.dgeom['lCam'] is not None:
-            for cc in Data.dgeom['lCam']:
+        if c1 and 'LOS' in Data._dgeom['lCam'][0].Id.Cls:
+            lCross, lHor, llab = [], [], []
+            for cc in Data._dgeom['lCam']:
                 out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                               element='L', Lplot='In',
                               dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
                               dLeg=None, draw=False)
                 dax['cross'][0], dax['hor'][0] = out
-            # TBC !
-            llos = Data.get_lLOS()
+
+                lCross += cc._get_plotL(Lplot='In', proj='cross', multi=True)
+                lHor += cc._get_plotL(Lplot='In', proj='hor', multi=True)
+                lHor = np.stack(lHor)
+                idlCross = id(lCross)
+                idlHor = id(lHor)
+        elif c1:
+            lCross, lHor = None, None
         else:
-            llos = None
+            lCross, lHor = None, None
 
     if Bck:
-        if nnX == 1:
+        if nnX == 1 and nD == 1:
             env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
             dax['X'][0].fill_between(X.ravel(), env[0], env[1], facecolor=cbck)
         tbck = np.tile(np.r_[t, np.nan], nX)
@@ -1707,19 +1728,23 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     fmax = Df[1] if fmax is None else fmax
     dax['t'][0].set_xlim(Dt)
     dax['t'][0].set_ylim(Dd)
-    dax['X'][0].set_xlim(DX)
     dax['t'][1].set_ylim(Df[0]-df, fmax+df)
-    dax['X'][0].set_ylim(Dd)
-    dax['X'][1].set_ylim(Dpsd)
-    dax['X'][2].set_ylim(Dang)
     dax['t'][-1].set_xlabel(tlab, **fldict)
-    dax['X'][-1].set_xlabel(Xlab, **fldict)
     dax['t'][0].set_ylabel(Dlab, **fldict)
     dax['t'][1].set_ylabel(flab, **fldict)
     dax['t'][2].set_ylabel(flab, **fldict)
-    dax['X'][0].set_ylabel(Dlab, **fldict)
-    dax['X'][1].set_ylabel(psdlab, **fldict)
-    dax['X'][2].set_ylabel(anglab, **fldict)
+    if nD == 1:
+        dax['X'][0].set_xlim(DX)
+        dax['X'][0].set_ylim(Dd)
+        dax['X'][1].set_ylim(Dpsd)
+        dax['X'][2].set_ylim(Dang)
+        dax['X'][-1].set_xlabel(Xlab, **fldict)
+        dax['X'][0].set_ylabel(Dlab, **fldict)
+        dax['X'][1].set_ylabel(psdlab, **fldict)
+        dax['X'][2].set_ylabel(anglab, **fldict)
+
+    else:
+        dax['X'][0].set_xlim(extent[:2])
 
     ##################
     # Interactivity dict
@@ -1736,25 +1761,35 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
             idX:  {'group':'channel', 'val':X, 'inc':incX,
                    'otherid':Xother, 'indother':indtX},
             idf:  {'group':'frequency', 'val':f, 'inc':incf}}
+    if nD == 1:
+        dref[idX] = {'group':'channel', 'val':X, 'inc':incX,
+                     'otherid':Xother, 'indother':indtX}
+    else:
+        dref[idX] = {'group':'channel', 'val':(x1,x2), 'inc':incx12}
+
 
     ddat = {iddata: {'val':data, 'refids':[idt,idX]},
             idlpsd: {'val':lpsd, 'refids':[idX,idf,idtf]},
             idlang: {'val':lang, 'refids':[idX,idf,idtf]},
             idchans:{'val':dchans, 'refids':[idX]}}
-
-    if llos is not None:
-        idlos = id(llos)
-        ddat[idllos] = {'val':llos, 'refids':[idX]}
+    if lCross is not None:
+        ddat[idlCross] = {'val':lCross, 'refids':[idX]}
+        ddat[idlHor] = {'val':lHor, 'refids':[idX]}
 
     lax_fix = [dax['cross'][0], dax['hor'][0],
                dax['txtx'][0], dax['txtf'][0]]
     dax2 = {dax['t'][0]: {'ref':{idt:'x'}},
             dax['t'][1]: {'ref':{idtf:'x', idf:'y'}, 'defrefid':idf},
-            dax['t'][2]: {'ref':{idtf:'x', idf:'y'}, 'defrefid':idf},
-            dax['X'][0]: {'ref':{idX:'x'}},
-            dax['X'][1]: {'ref':{idX:'x'}},
-            dax['X'][2]: {'ref':{idX:'x'}}}
+            dax['t'][2]: {'ref':{idtf:'x', idf:'y'}, 'defrefid':idf}}
 
+    if nD == 1:
+        dax2.update({dax['X'][0]: {'ref':{idX:'x'}},
+                     dax['X'][1]: {'ref':{idX:'x'}},
+                     dax['X'][2]: {'ref':{idX:'x'}}})
+    else:
+        dax2.update({dax['X'][0]: {'ref':{idX:'2d'}},
+                     dax['X'][1]: {'ref':{idX:'2d'}},
+                     dax['X'][2]: {'ref':{idX:'2d'}}})
     dobj = {}
 
 
@@ -1778,18 +1813,27 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
 
-        if Xother is None:
-            for ll in range(0,len(dax['X'])):
-                l0 = dax['X'][ll].axvline(np.nan, c='k', ls='-', lw=1.)
-                dobj[l0] = {'dupdate':{'xdata':{'id':idX, 'lrid':[idX]}},
-                            'drefid':{idX:jj}}
+        if nD == 1:
+            if Xother is None:
+                for ll in range(0,len(dax['X'])):
+                    l0 = dax['X'][ll].axvline(np.nan, c='k', ls='-', lw=1.)
+                    dobj[l0] = {'dupdate':{'xdata':{'id':idX, 'lrid':[idX]}},
+                                'drefid':{idX:jj}}
+            else:
+                for ll in range(0,len(dax['X'])):
+                    for ii in range(0,ntMax):
+                        l0 = dax['X'][ll].axvline(np.nan, c='k', ls='-', lw=1.)
+                        dobj[l0] = {'dupdate':{'xdata':{'id':idX,
+                                                        'lrid':[idt,idX]}},
+                                    'drefid':{idX:jj, idt:ii}}
         else:
             for ll in range(0,len(dax['X'])):
-                for ii in range(0,ntMax):
-                    l0 = dax['X'][ll].axvline(np.nan, c='k', ls='-', lw=1.)
-                    dobj[l0] = {'dupdate':{'xdata':{'id':idX,
-                                                    'lrid':[idt,idX]}},
-                                'drefid':{idX:jj, idt:ii}}
+                l0, = dax['X'][ll].plot([np.nan],[np.nan],
+                                        mec='k', ls='None', marker='s', mew=2.,
+                                        ms=ms, mfc='None', zorder=10)
+                dobj[l0] = {'dupdate':{'data':{'id':idX, 'lrid':[idX]}},
+                            'drefid':{idX:jj}}
+
 
         # psd imshow
         l0 = dax['t'][1].imshow(np.full(lpsd.shape[1:],np.nan), cmap=cmap,
@@ -1807,6 +1851,17 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                 vmin=Dang[0], vmax=Dang[1], interpolation='nearest')
         dobj[l0] = {'dupdate':{'imshow':{'id':idlang, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
+
+        # los
+        if c1:
+            l, = dax['cross'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                      c='k', ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlCross, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
+            l, = dax['hor'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                    c='k', ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlHor, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
 
     # Time
     for jj in range(0,ntMax):
@@ -1864,36 +1919,6 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         l0 = dax['t'][2].axhline(np.nan, c='k', ls=llsf[jj], lw=1.)
         dobj[l0] = {'dupdate':{'ydata':{'id':idf, 'lrid':[idf]}},
                     'drefid':{idf:jj}}
-
-
-
-
-    # Adding vline ch
-
-
-
-    # Adding mobile profiles
-    # ll0, ltg1, ltg2 = [], [], []
-    # for jj in range(0,ntMax):
-        # l0, = dax['X'][0]['ax'].plot(X[0,:],
-                                        # np.full((nX,),np.nan),
-                                        # c=lct[jj], ls=lls[0],
-                                        # lw=1.)
-        # ll0.append(l1)
-        # for ii in range(0,nfMax):
-            # l1, = dax['X'][1]['ax'].plot(X[0,:],
-                                            # np.full((nX,),np.nan),
-                                            # c=lct[jj], ls=lls[ii],
-                                            # lw=1.)
-            # l2, = dax['X'][2]['ax'].plot(X[0,:],
-                                            # np.full((nX,),np.nan),
-                                            # c=lct[jj], ls=lls[ii],
-                                            # lw=1.)
-            # ltg1.append(l1)
-            # ltg2.append(l2)
-
-
-
 
 
     # Plot mobile parts

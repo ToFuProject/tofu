@@ -2135,15 +2135,19 @@ def get_indrefind(dind, linds, drefid):
 def get_valf(val, lrids, linds):
     ninds = len(linds)
     if type(val) is list:
-        assert len(val) == len(lrids)
         assert ninds == 1 and lrids == linds
         func = lambda *li, val=val: val[li[0]]
+
+    elif type(val) is tuple:
+        assert ninds == 1 and lrids == linds
+        func = lambda *li, val=val: (val[0][li[0]], val[1][li[1]])
 
     else:
         assert type(val) is np.ndarray
         val = val.squeeze()
         ndim = val.ndim
-        assert ndim == len(lrids)
+        assert ndim >= len(lrids)
+        assert len(lrids) >= ninds
         assert ndim >= ninds
 
         if ndim == ninds:
@@ -2226,12 +2230,25 @@ def get_ind_frompos(Type='x', ref=None, otherid=None, indother=None):
                     refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
                     return np.digitize([val[1]], refb)[0]
     else:
-        raise Exception('not coded yet !')
+        assert otherid is None
+        assert type(ref) is tuple and len(ref) == 2
+        refb1 = 0.5*(ref[0][1:]+ref[0][:-1])
+        refb2 = 0.5*(ref[1][1:]+ref[1][:-1])
+        def func(val, refb1=refb1, refb2=refb2):
+            return (np.digitize([val[0]], refb1)[0],
+                    np.digitize([val[1]], refb2)[0])
     return func
 
 def get_pos_fromind(ref=None, otherid=None, indother=None, is2d=False):
     if is2d:
-        raise Exception('not coded yet !')
+        assert otherid is None
+        assert type(ref) is tuple and len(ref) == 2
+        n1, n2 = ref[0].size, ref[1].size
+        def func(ind, ind0=None, ref=ref, n1=n1, n2=n2):
+            i1 = ind // n2
+            i2 = ind % n2
+            return (ref[0][i1], ref[1][i2])
+
     else:
         if otherid is None:
             assert ref.size == np.max(ref.shape)
@@ -2251,11 +2268,21 @@ def get_pos_fromind(ref=None, otherid=None, indother=None, is2d=False):
                 return (val, val)
     return func
 
-def get_ind_fromkey(dmovkeys={}, shape=[], is2d=False):
+def get_ind_fromkey(dmovkeys={}, nn=[], is2d=False):
     if is2d:
-        raise Exception('not coded yet !')
+        n1, n2 = nn
+        def func(movk, ind, doinc=False, dmovkeys=dmovkeys, n1=n1, n2=n2):
+            i1 = ind // n2
+            i2 = ind % n2
+            if movk in ['left','right']:
+                i1 += dmovkeys[movk][doinc]
+                i1 = i1 % n1
+            else:
+                i2 += dmovkeys[movk][doinc]
+                i2 = i2 % n2
+            return i1 * n2 + i2
     else:
-        nx = shape[0] if len(shape)==1 else shape[1]
+        nx = nn[0] if len(nn)==1 else nn[1]
         def func(movk, ind, doinc=False, dmovkeys=dmovkeys, nx=nx):
             ind += dmovkeys[movk][doinc]
             ind = ind % nx
@@ -2511,7 +2538,16 @@ class KeyHandler_mpl(object):
                     else:
                         assert dref[rid]['indother'].ndim == 1
 
-             # Check if is2d
+            # Get nn
+            val = dref[rid]['val']
+            if type(val) is np.ndarray:
+                nn = val.shape
+            elif type(val) is list:
+                nn = (len(val),)
+            elif type(val) is tuple:
+                nn = (len(val[0]), len(val[1]))
+
+            # Check if is2d
             ltypes = []
             for ax in dax.keys():
                 if rid in dax[ax]['ref'].keys():
@@ -2522,7 +2558,6 @@ class KeyHandler_mpl(object):
             dref[rid]['is2d'] = is2d
 
             # Get functions
-            val = dref[rid]['val']
             otherid = dref[rid]['otherid']
             indother = dref[rid]['indother']
             dref[rid]['f_pos_ind'] = get_pos_fromind(ref = val,
@@ -2540,7 +2575,7 @@ class KeyHandler_mpl(object):
                     dmovkeys = dax[ax]['dmovkeys'][rid]
                     df_ind_key[ax] = get_ind_fromkey(dmovkeys,
                                                      is2d = is2d,
-                                                     shape = val.shape)
+                                                     nn = nn)
             dref[rid]['df_ind_pos'] = df_ind_pos
             dref[rid]['df_ind_key'] = df_ind_key
 
