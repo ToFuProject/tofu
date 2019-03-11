@@ -2547,23 +2547,433 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
 
 # =============================================================================
 # = Ray tracing when we only want kMin / kMax
+# -   (useful when working with flux surfaces)
 # =============================================================================
-# =============================================================================
-# = Ray tracing when we only want kMin / kMax
-# =============================================================================
-# =============================================================================
-# = Ray tracing when we only want kMin / kMax
-# =============================================================================
-# =============================================================================
-# = Ray tracing when we only want kMin / kMax
-# =============================================================================
-# =============================================================================
-# = Ray tracing when we only want kMin / kMax
-# =============================================================================
+def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
+                                double[:, ::1] ray_vdir,
+                                double[:, :, ::1] ves_poly,
+                                double[:, :, ::1] ves_norm,
+                                int num_surf,
+                                double[::1] ves_lims=None,
+                                long[::1] lnvert=None,
+                                int ves_nlim=-1,
+                                double rmin=-1,
+                                double eps_uz=_SMALL, double eps_a=_VSMALL,
+                                double eps_vz=_VSMALL, double eps_b=_VSMALL,
+                                double eps_plane=_VSMALL, str ves_type='Tor',
+                                bint forbid=1, bint test=1, int num_threads=16):
+    """
+    Computes the entry and exit point of all provided LOS for the provided
+    polygons (toroidal or linear)  of IN structures (non-solid, or `empty`
+    inside for the LOS).
+    Attention: the surfaces can be limited, but they all have to have the
+    same limits defined by (ves_lims, ves_nlim)
+    Return the set of kmin / kmax for each In struct and for each LOS
+
+    Params
+    ======
+    ray_orig : (3, num_los) double array
+       LOS origin points coordinates
+    ray_vdir : (3, num_los) double array
+       LOS normalized direction vector
+    num_surf : int
+       number of surfaxes, aka 'in' structures or 'vessels'
+    ves_poly : (num_surf, 2, num_vertex) double array
+       Coordinates of the vertices of the Polygon defining the 2D poloidal
+       cut of the `in` structures
+    ves_norm : (num_surf, 2, num_vertex-1) double array
+       Normal vectors going "inwards" of the edges of the Polygon defined
+       by ves_poly
+    ves_nlim : int
+       Number of limits of the vessel
+           -1 : no limits, vessel continuous all around
+            1 : vessel is limited
+    ves_lims : array
+       If ves_nlim==1 contains the limits min and max of vessel
+    rmin : double
+       Minimal radius of vessel to take into consideration
+    eps<val> : double
+       Small value, acceptance of error
+    vtype : string
+       Type of vessel ("Tor" or "Lin")
+    forbid : bool
+       Should we forbid values behind vissible radius ? (see rmin)
+    test : bool
+       Should we run tests ?
+    num_threads : int
+       The num_threads argument indicates how many threads the team should
+       consist of. If not given, OpenMP will decide how many threads to use.
+       Typically this is the number of cores available on the machine.
+    Return
+    ======
+    coeff_inter_in : (num_surf, num_los) array
+       scalars level of "in" intersection of the LOS (if k=0 at origin) for
+       each surface
+       [kmin(surf0, los0), kmin(surf0, los1), ..., kmin(surf1, los0),....]
+    coeff_inter_out : (num_surf, num_los) array
+       scalars level of "out" intersection of the LOS (if k=0 at origin) for
+       each surface
+       [kmax(surf0, los0), kmax(surf0, los1), ..., kmax(surf1, los0),....]
+    """
+    cdef int npts_poly
+    cdef int num_los = ray_orig.shape[1]
+    cdef int ind_struct = 0
+    cdef int ind_surf
+    cdef int len_lim
+    cdef int ind_min
+    cdef double Crit2_base = eps_uz * eps_uz /400.
+    cdef double lim_min = 0.
+    cdef double lim_max = 0.
+    cdef double rmin2 = 0.
+    cdef str error_message
+    cdef bint forbidbis, forbid0
+    cdef bint bool1, bool2
+    cdef array coeff_inter_in  = clone(array('d'), num_los * num_surf, True)
+    cdef array coeff_inter_out = clone(array('d'), num_los * num_surf, True)
+    cdef int *llimits = NULL
+    cdef long *lsz_lim = NULL
+    cdef bint are_limited
+    cdef double[2] lbounds_ves
+    cdef double[2] lim_ves
+
+    # == Testing inputs ========================================================
+    if test:
+        error_message = "ray_orig and ray_vdir must have the same shape: "\
+                        + "(3,) or (3,NL)!"
+        assert tuple(ray_orig.shape) == tuple(ray_vdir.shape) and \
+          ray_orig.shape[0] == 3, error_message
+        error_message = "[eps_uz,eps_vz,eps_a,eps_b] must be floats < 1.e-4!"
+        assert all([ee < 1.e-4 for ee in [eps_uz, eps_a,
+                                          eps_vz, eps_b,
+                                          eps_plane]]), error_message
+        error_message = "ves_type must be a str in ['Tor','Lin']!"
+        assert ves_type.lower() in ['tor', 'lin'], error_message
+
+    # == Treating input ========================================================
+    # if there are, we get the limits for the vessel
+    if ves_nlim == 0:
+        are_limited = False
+        lbounds_ves[0] = 0
+        lbounds_ves[1] = 0
+    elif ves_nlim == 1:
+        are_limited = True
+        lbounds_ves[0] = Catan2(Csin(ves_lims[0]), Ccos(ves_lims[0]))
+        lbounds_ves[1] = Catan2(Csin(ves_lims[1]), Ccos(ves_lims[1]))
+
+    # ==========================================================================
+    if ves_type.lower() == 'tor':
+        # -- Toroidal case -----------------------------------------------------
+        for ind_surf in range(num_surf):
+            # rmin is necessary to avoid looking on the other side of the tok
+            if rmin < 0.:
+                rmin = 0.95*min(np.min(ves_poly[ind_surf, 0, ...]),
+                                    np.min(np.hypot(ray_orig[0, ...],
+                                                    ray_orig[1, ...])))
+            rmin2 = rmin*rmin
+            # Variable to avoid looking "behind" blind spot of tore
+            if forbid:
+                forbid0, forbidbis = 1, 1
+            else:
+                forbid0, forbidbis = 0, 0
+            # Getting size of poly
+            npts_poly = lnvert[ind_surf]
+            # -- Computing intersection between LOS and Vessel -----------------
+            raytracing_minmax_struct_tor(num_los, ray_vdir, ray_orig,
+                                        &coeff_inter_out.data.as_doubles[ind_surf*num_los],
+                                        &coeff_inter_in.data.as_doubles[ind_surf*num_los],
+                                        forbid0, forbidbis,
+                                        rmin, rmin2, Crit2_base,
+                                        npts_poly, lbounds_ves,
+                                        are_limited,
+                                        &ves_poly[ind_surf][0][0],
+                                        &ves_poly[ind_surf][1][0],
+                                        &ves_norm[ind_surf][0][0],
+                                        &ves_norm[ind_surf][1][0],
+                                        eps_uz, eps_vz, eps_a, eps_b, eps_plane,
+                                        num_threads)
+    else:
+        # -- Cylindrical case --------------------------------------------------
+        for ind_surf in range(num_surf):
+            # Getting size of poly
+            npts_poly = lnvert[ind_surf]
+            raytracing_minmax_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
+                                         &ves_poly[ind_surf][0][0],
+                                         &ves_poly[ind_surf][1][0],
+                                         &ves_norm[ind_surf][0][0],
+                                         &ves_norm[ind_surf][1][0],
+                                         lbounds_ves[0], lbounds_ves[1],
+                                         &coeff_inter_out.data.as_doubles[ind_surf*num_los],
+                                         &coeff_inter_in.data.as_doubles[ind_surf*num_los],
+                                         eps_plane)
+
+    return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out)
 
 
 
+cdef inline void raytracing_minmax_struct_tor(int num_los,
+                                             double[:,::1] ray_vdir,
+                                             double[:,::1] ray_orig,
+                                             double* coeff_inter_out,
+                                             double* coeff_inter_in,
+                                             bint forbid0, bint forbidbis,
+                                             double rmin, double rmin2,
+                                             double crit2_base,
+                                             int npts_poly,
+                                             double* langles,
+                                             bint is_limited,
+                                             double* surf_polyx,
+                                             double* surf_polyy,
+                                             double* surf_normx,
+                                             double* surf_normy,
+                                             double eps_uz, double eps_vz,
+                                             double eps_a, double eps_b,
+                                             double eps_plane,
+                                             int num_threads) nogil:
+    """
+    Computes the entry and exit point of all provided LOS/rays for a set of
+    "IN" structures in a TORE. A "in" structure is typically a vessel, or
+    surface flux and are (noramally) toroidally continous but you can specify
+    if it is otherwise with lis_limited and langles.
+    This functions is parallelized.
 
+    Params
+    ======
+    num_los : int
+       Total number of lines of sight (LOS) (aka. rays)
+    ray_vdir : (3, num_los) double array
+       LOS normalized direction vector
+    ray_orig : (3, num_los) double array
+       LOS origin points coordinates
+    coeff_inter_out : (num_los) double array <INOUT>
+       Coefficient of exit (kout) of the last point of intersection for each LOS
+       with the global geometry (with ALL structures)
+    coeff_inter_in : (num_los) double array <INOUT>
+       Coefficient of entry (kin) of the last point of intersection for each LOS
+       with the global geometry (with ALL structures). If intersection at origin
+       k = 0, if no intersection k = NAN
+    forbid0 : bool
+       Should we forbid values behind vissible radius ? (see Rmin). If false,
+       will test "hidden" part always, else, it will depend on the LOS and
+       on forbidbis.
+    forbidbis: bint
+       Should we forbid values behind vissible radius for each LOS ?
+    rmin : double
+       Minimal radius of vessel to take into consideration
+    rmin2 : double
+       Squared valued of the minimal radius
+    crit2_base : double
+       Critical value to evaluate for each LOS if horizontal or not
+    npts_poly : int
+       Number of OUT structures (not counting the limited versions).
+       If not is_out_struct then lenght of vpoly.
+    langles : (2 * nstruct) double array
+       Minimum and maximum angles where the structure lives. If the structure
+       number 'i' is toroidally continous then langles[i:i+2] = [0, 0].
+    is_limited : bint
+       bool to know if the flux surface is limited or not
+    surf_polyx : (ntotnvert)
+       List of "x" coordinates of the polygon's vertices on
+       the poloidal plane
+    surf_polyy : (ntotnvert)
+       List of "y" coordinates of the polygon's vertices on
+       the poloidal plane
+    surf_normx : (2, num_vertex-1) double array
+       List of "x" coordinates of the normal vectors going "inwards" of the
+        edges of the Polygon defined by surf_poly
+    surf_normy : (2, num_vertex-1) double array
+       List of "y" coordinates of the normal vectors going "inwards" of the
+        edges of the Polygon defined by surf_poly
+    eps<val> : double
+       Small value, acceptance of error
+    num_threads : int
+       The num_threads argument indicates how many threads the team should
+       consist of. If not given, OpenMP will decide how many threads to use.
+       Typically this is the number of cores available on the machine.
+    """
+    cdef double upscaDp=0., upar2=0., dpar2=0., crit2=0., idpar2=0.
+    cdef double dist = 0., s1x = 0., s1y = 0., s2x = 0., s2y = 0.
+    cdef double lim_min=0., lim_max=0., invuz=0.
+    cdef int totnvert=0
+    cdef int nvert
+    cdef int ind_struct, ind_bounds
+    cdef int ind_los, ii, jj, kk
+    cdef bint lim_is_none
+    cdef bint found_new_kout
+    cdef bint inter_bbox
+    cdef double[3] dummy
+    cdef int[1] silly
+    cdef double* kpout_loc = NULL
+    cdef double* kpin_loc = NULL
+    cdef double* loc_org = NULL
+    cdef double* loc_dir = NULL
+
+    # == Defining parallel part ================================================
+    with nogil, parallel(num_threads=num_threads):
+        # We use local arrays for each thread so
+        loc_org   = <double *> malloc(sizeof(double) * 3)
+        loc_dir   = <double *> malloc(sizeof(double) * 3)
+        kpin_loc  = <double *> malloc(sizeof(double) * 1)
+        kpout_loc = <double *> malloc(sizeof(double) * 1)
+        # == The parallelization over the LOS ==================================
+        for ind_los in prange(num_los, schedule='dynamic'):
+            ind_struct = 0
+            loc_org[0] = ray_orig[0, ind_los]
+            loc_org[1] = ray_orig[1, ind_los]
+            loc_org[2] = ray_orig[2, ind_los]
+            loc_dir[0] = ray_vdir[0, ind_los]
+            loc_dir[1] = ray_vdir[1, ind_los]
+            loc_dir[2] = ray_vdir[2, ind_los]
+            kpout_loc[0] = 0
+            kpin_loc[0] = 0
+            # -- Computing values that depend on the LOS/ray -------------------
+            upscaDp = loc_dir[0]*loc_org[0] + loc_dir[1]*loc_org[1]
+            upar2   = loc_dir[0]*loc_dir[0] + loc_dir[1]*loc_dir[1]
+            dpar2   = loc_org[0]*loc_org[0] + loc_org[1]*loc_org[1]
+            idpar2 = 1./dpar2
+            invuz = 1./loc_dir[2]
+            crit2 = upar2*crit2_base
+
+            # -- Prepare in case forbid is True --------------------------------
+            if forbid0 and not dpar2>0:
+                forbidbis = 0
+            if forbidbis:
+                # Compute coordinates of the 2 points where the tangents touch
+                # the inner circle
+                dist = Csqrt(dpar2-rmin2)
+                s1x = (rmin2 * loc_org[0] + rmin * loc_org[1] * dist) * idpar2
+                s1y = (rmin2 * loc_org[1] - rmin * loc_org[0] * dist) * idpar2
+                s2x = (rmin2 * loc_org[0] - rmin * loc_org[1] * dist) * idpar2
+                s2y = (rmin2 * loc_org[1] + rmin * loc_org[0] * dist) * idpar2
+
+            # == Case "IN" structure =======================================
+            # Nothing to do but compute intersection between vessel and LOS
+            found_new_kout = comp_inter_los_vpoly(loc_org, loc_dir,
+                                                  surf_polyx,
+                                                  surf_polyy,
+                                                  surf_normx,
+                                                  surf_normy,
+                                                  npts_poly,
+                                                  is_limited,
+                                                  langles[0], langles[1],
+                                                  forbidbis,
+                                                  upscaDp, upar2,
+                                                  dpar2, invuz,
+                                                  s1x, s1y, s2x, s2y,
+                                                  crit2, eps_uz, eps_vz,
+                                                  eps_a,eps_b, eps_plane,
+                                                  True,
+                                                  kpin_loc, kpout_loc,
+                                                  silly, dummy)
+            if found_new_kout:
+                coeff_inter_in[ind_los]  = kpin_loc[0]
+                coeff_inter_out[ind_los] = kpout_loc[0]
+            else:
+                coeff_inter_in[ind_los]  = Cnan
+                coeff_inter_out[ind_los] = Cnan
+        free(loc_org)
+        free(loc_dir)
+        free(kpin_loc)
+        free(kpout_loc)
+    return
+
+
+cdef inline void raytracing_minmax_struct_lin(int Nl,
+                                             double[:,::1] Ds,
+                                             double [:,::1] us,
+                                             int Ns,
+                                             double* polyx_tab,
+                                             double* polyy_tab,
+                                             double* normx_tab,
+                                             double* normy_tab,
+                                             double L0, double L1,
+                                             double* kin_tab,
+                                             double* kout_tab,
+                                             double EpsPlane):
+    cdef bint is_in_path
+    cdef int ii=0, jj=0
+    cdef double kin, kout, scauVin, q, X, sca
+    cdef int indin=0, indout=0, Done=0
+
+    kin_tab[ii]  = Cnan
+    kout_tab[ii] = Cnan
+
+    for ii in range(0,Nl):
+        kout, kin, Done = 1.e12, 1e12, 0
+        # For cylinder
+        for jj in range(0,Ns):
+            scauVin = us[1,ii] * normx_tab[jj] + us[2,ii] * normy_tab[jj]
+            # Only if plane not parallel to line
+            if Cabs(scauVin)>EpsPlane:
+                k = -( (Ds[1,ii] - polyx_tab[jj]) * normx_tab[jj] +
+                       (Ds[2,ii] - polyy_tab[jj]) * normy_tab[jj]) \
+                       / scauVin
+                # Only if on good side of semi-line
+                if k>=0.:
+                    V1 = polyx_tab[jj+1]-polyx_tab[jj]
+                    V2 = polyy_tab[jj+1]-polyy_tab[jj]
+                    q = (  (Ds[1,ii] + k * us[1,ii] - polyx_tab[jj]) * V1
+                         + (Ds[2,ii] + k * us[2,ii] - polyy_tab[jj]) * V2) \
+                         / (V1*V1 + V2*V2)
+                    # Only of on the fraction of plane
+                    if q>=0. and q<1.:
+                        X = Ds[0,ii] + k*us[0,ii]
+
+                        # Only if within limits
+                        if X>=L0 and X<=L1:
+                            sca = us[1,ii] * normx_tab[jj] \
+                                  + us[2,ii] * normy_tab[jj]
+                            # Only if new
+                            if sca<=0 and k<kout:
+                                kout = k
+                                indout = jj
+                                Done = 1
+                            elif sca>=0 and k<min(kin,kout):
+                                kin = k
+                                indin = jj
+
+        # For two faces
+        # Only if plane not parallel to line
+        if Cabs(us[0,ii])>EpsPlane:
+            # First face
+            k = -(Ds[0,ii]-L0)/us[0,ii]
+            # Only if on good side of semi-line
+            if k>=0.:
+                # Only if inside VPoly
+                is_in_path = is_point_in_path(Ns, polyx_tab, polyy_tab,
+                                              Ds[1,ii]+k*us[1,ii],
+                                              Ds[2,ii]+k*us[2,ii])
+                if is_in_path:
+                    if us[0,ii]<=0 and k<kout:
+                        kout = k
+                        indout = -1
+                        Done = 1
+                    elif us[0,ii]>=0 and k<min(kin,kout):
+                        kin = k
+                        indin = -1
+            # Second face
+            k = -(Ds[0,ii]-L1)/us[0,ii]
+            # Only if on good side of semi-line
+            if k>=0.:
+                # Only if inside VPoly
+                is_in_path = is_point_in_path(Ns, polyx_tab, polyy_tab,
+                                              Ds[1,ii]+k*us[1,ii],
+                                              Ds[2,ii]+k*us[2,ii])
+                if is_in_path:
+                    if us[0,ii]>=0 and k<kout:
+                        kout = k
+                        indout = -2
+                        Done = 1
+                    elif us[0,ii]<=0 and k<min(kin,kout):
+                        kin = k
+                        indin = -2
+        # == Analyzing if there was impact ====================================
+        if Done==1:
+            kout_tab[ii] = kout
+            if kin<kin_tab[ii]:
+                kin_tab[ii] = kin
+    return
+
+# ------------------------------------------------------------------
 
 cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                       const double[3] ray_vdir,
