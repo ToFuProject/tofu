@@ -1407,7 +1407,7 @@ class Config(utils.ToFuObject):
     _ddef = {'Id':{'shot':0, 'Type':'Tor', 'Exp':'Dummy',
                    'include':['Mod','Cls','Exp',
                               'Name','shot','version']},
-             'dstruct':{'order':['PlasmaDomain','Ves','PFC','CoilPF','CoilCS'],
+             'dStruct':{'order':['PlasmaDomain','Ves','PFC','CoilPF','CoilCS'],
                         'dextraprop':{'visible':True}}}
     _lclsstr = ['PlasmaDomain','Ves','PFC','CoilPF','CoilCS']
 
@@ -1429,7 +1429,7 @@ class Config(utils.ToFuObject):
 
     def _reset(self):
         super(Config,self)._reset()
-        self._dstruct = dict.fromkeys(self._get_keys_dstruct())
+        self._dStruct = dict.fromkeys(self._get_keys_dStruct())
         self._dextraprop = dict.fromkeys(self._get_keys_dextraprop())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
 
@@ -1466,7 +1466,7 @@ class Config(utils.ToFuObject):
     ###########
 
     @staticmethod
-    def _get_largs_dstruct():
+    def _get_largs_dStruct():
         largs = ['lStruct', 'Lim']
         return largs
     @staticmethod
@@ -1507,7 +1507,7 @@ class Config(utils.ToFuObject):
         return msgi
 
 
-    def _checkformat_inputs_dstruct(self, lStruct=None, Lim=None):
+    def _checkformat_inputs_dStruct(self, lStruct=None, Lim=None):
         if lStruct is None:
             msg = "Arg lStruct must be"
             msg += " a tofu.geom.Struct subclass or a list of such !"
@@ -1574,18 +1574,18 @@ class Config(utils.ToFuObject):
         else:
             assert C0, str(type(extraval))
         if multi and C1:
-            size = self._dstruct['nStruct'] if size is None else size
-            C = extraval.shape==((self._dstruct['nStruct'],))
+            size = self._dStruct['nStruct'] if size is None else size
+            C = extraval.shape==((self._dStruct['nObj'],))
             if not C:
                 msg = "The value for %s has wrong shape!"%key
-                msg += "\n    Expected: ({0},)".format(self._dstruct['nStruct'])
+                msg += "\n    Expected: ({0},)".format(self._dStruct['nObj'])
                 msg += "\n    Got:      {0}".format(str(extraval.shape))
                 raise Exception(msg)
             C = np.ndarray
         elif multi and C2:
             msg0 = "If an extra attribute is provided as a dict,"
             msg0 += " it should have the same structure as self.dStruct !"
-            lk = sorted(self._dstruct['lCls'])
+            lk = sorted(self._dStruct['lCls'])
             c = lk==sorted(extraval.keys())
             if not c:
                 msg = "\nThe value for %s has wrong keys !"%key
@@ -1599,7 +1599,7 @@ class Config(utils.ToFuObject):
                 msg += "\n    ".join(['{0} : {1}'.format(lk[ii],c[ii])
                                      for ii in range(0,len(lk))])
                 raise Exception(msg0+msg)
-            c = [(k, sorted(v.keys()), sorted(self.dstruct['dStruct'][k].keys()))
+            c = [(k, sorted(v.keys()), sorted(self.dStruct['dObj'][k].keys()))
                  for k, v in extraval.items()]
             if not all([cc[1]==cc[2] for cc in c]):
                 lc = [(cc[0], str(cc[1]), str(cc[2])) for cc in c if cc[1]!=cc[2]]
@@ -1621,7 +1621,7 @@ class Config(utils.ToFuObject):
 
     def _checkformat_inputs_dextraprop(self, dextraprop=None):
         if dextraprop is None:
-            dextraprop = self._ddef['dstruct']['dextraprop']
+            dextraprop = self._ddef['dStruct']['dextraprop']
         if dextraprop is None:
             dextraprop = {}
         assert isinstance(dextraprop,dict)
@@ -1642,9 +1642,9 @@ class Config(utils.ToFuObject):
     ###########
 
     @staticmethod
-    def _get_keys_dstruct():
-        lk = ['dStruct', 'Lim', 'nLim',
-              'nStruct','lorder','lCls']
+    def _get_keys_dStruct():
+        lk = ['dObj', 'Lim', 'nLim',
+              'nObj','lorder','lCls']
         return lk
 
     @staticmethod
@@ -1662,11 +1662,11 @@ class Config(utils.ToFuObject):
     ###########
 
     def _init(self, lStruct=None, Lim=None, dextraprop=None, **kwdargs):
-        largs = self._get_largs_dstruct()
-        kwdstruct = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dStruct()
+        kwdStruct = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dextraprop()
         kwdextraprop = self._extract_kwdargs(locals(), largs)
-        self._set_dstruct(**kwdstruct)
+        self._set_dStruct(**kwdStruct)
         self._set_dextraprop(**kwdextraprop)
         self._dynamicattr()
         self._dstrip['strip'] = 0
@@ -1676,44 +1676,11 @@ class Config(utils.ToFuObject):
     ###########
 
 
-    def _set_dstruct(self, lStruct=None, Lim=None):
-        lStruct, Lim, nLim = self._checkformat_inputs_dstruct(lStruct=lStruct,
+    def _set_dStruct(self, lStruct=None, Lim=None):
+        lStruct, Lim, nLim = self._checkformat_inputs_dStruct(lStruct=lStruct,
                                                               Lim=Lim)
-        # Make sure to kill the link to the mutable being provided
-        nStruct = len(lStruct)
-        # Get extra info
-        lCls = list(set([ss.Id.Cls for ss in lStruct]))
-        lorder = [ss.Id.SaveName_Conv(Cls=ss.Id.Cls,
-                                      Name=ss.Id.Name,
-                                      include=['Cls','Name']) for ss in lStruct]
-
-        if not len(list(set(lorder)))==nStruct:
-            msg = "There is an ambiguity in the names :"
-            msg += "\n    - " + "\n    - ".join(lorder)
-            msg += "\n => Please clarify (choose unique Cls/Names)"
-            raise Exception(msg)
-
-        # Initisalize (not necessary in case of update)
-        C = (hasattr(self,'_dstruct')
-             and 'dStruct' in self._dstruct.keys()
-             and isinstance(self._dstruct['dStruct'],dict))
-        if not C:
-            self._dstruct = {'dStruct':dict([(k,{}) for k in lCls])}
-
-        for k in lCls:
-            if not k in self._dstruct['dStruct'].keys():
-                self._dstruct['dStruct'][k] = {}
-            lk = self._dstruct['dStruct'][k].keys()
-            ls = [ss for ss in lStruct if ss.Id.Cls==k]
-            for ss in ls:
-                name = ss.Id.Name
-                if not name in lk:
-                    self._dstruct['dStruct'][k][name] = ss.copy()
-                if self._dstruct['dStruct'][k][name]._dstrip['strip'] != 0:
-                    self._dstruct['dStruct'][k][name].strip(0)
-
-        self._dstruct.update({'nStruct':nStruct, 'Lim':Lim, 'nLim':nLim,
-                              'lorder':lorder, 'lCls':lCls})
+        self._dStruct.update({'Lim':Lim, 'nLim':nLim})
+        self._set_dlObj(self._dStruct)
 
 
     def _set_dextraprop(self, dextraprop=None):
@@ -1721,12 +1688,12 @@ class Config(utils.ToFuObject):
         self._dextraprop['lprop'] = sorted(list(dextraprop.keys()))
 
         # Init dict
-        lCls = self._dstruct['lCls']
+        lCls = self._dStruct['lCls']
         for pp in dextraprop.keys():
             dp = 'd'+pp
             dd = dict.fromkeys(lCls,{})
             for k in lCls:
-                dd[k] = dict.fromkeys(self._dstruct['dStruct'][k].keys())
+                dd[k] = dict.fromkeys(self._dStruct['dObj'][k].keys())
             self._dextraprop.update({dp:dd})
 
         # Populate
@@ -1740,11 +1707,11 @@ class Config(utils.ToFuObject):
         self._dextraprop['lprop'] = sorted(set(self.dextraprop['lprop']+[key]))
 
         # Init dict
-        lCls = self._dstruct['lCls']
+        lCls = self._dStruct['lCls']
         dp = 'd'+key
         dd = dict.fromkeys(lCls,{})
         for k in lCls:
-            dd[k] = dict.fromkeys(self._dstruct['dStruct'][k].keys())
+            dd[k] = dict.fromkeys(self._dStruct['dObj'][k].keys())
         self._dextraprop.update({dp:dd})
 
         # Populate
@@ -1757,17 +1724,17 @@ class Config(utils.ToFuObject):
         if k0 is None and k1 is None:
             C = self._checkformat_inputs_extraval(val, pp)
             if C is int:
-                for k0 in self._dstruct['dStruct'].keys():
+                for k0 in self._dStruct['dObj'].keys():
                     for k1 in self._dextraprop[dp][k0].keys():
                         self._dextraprop[dp][k0][k1] = val
             elif C is np.ndarray:
                 ii = 0
-                for k in self._dstruct['lorder']:
+                for k in self._dStruct['lorder']:
                     k0, k1 = k.split('_')
                     self._dextraprop[dp][k0][k1] = val[ii]
                     ii += 1
             else:
-                for k0 in self._dstruct['dStruct'].keys():
+                for k0 in self._dStruct['dObj'].keys():
                     for k1 in self._dextraprop[dp][k0].keys():
                         self._dextraprop[dp][k0][k1] = val[k0][k1]
         elif k1 is None:
@@ -1779,7 +1746,7 @@ class Config(utils.ToFuObject):
                     self._dextraprop[dp][k0][k1] = val
             elif C is np.ndarray:
                 ii = 0
-                for k in self._dstruct['lorder']:
+                for k in self._dStruct['lorder']:
                     kk, k1 = k.split('_')
                     if k0==kk:
                         self._dextraprop[dp][k0][k1] = val[ii]
@@ -1793,16 +1760,16 @@ class Config(utils.ToFuObject):
         assert not (k0 is None and k1 is not None)
         dp = 'd'+pp
         if k0 is None and k1 is None:
-            val = np.zeros((self._dstruct['nStruct'],),dtype=bool)
+            val = np.zeros((self._dStruct['nObj'],),dtype=bool)
             ii = 0
-            for k in self._dstruct['lorder']:
+            for k in self._dStruct['lorder']:
                 k0, k1 = k.split('_')
                 val[ii] = self._dextraprop[dp][k0][k1]
                 ii += 1
         elif k1 is None:
-            val = np.zeros((len(self._dstruct['dStruct'][k0].keys()),),dtype=bool)
+            val = np.zeros((len(self._dStruct['dObj'][k0].keys()),),dtype=bool)
             ii = 0
-            for k in self._dstruct['lorder']:
+            for k in self._dStruct['lorder']:
                 k, k1 = k.split('_')
                 if k0==k:
                     val[ii] = self._dextraprop[dp][k0][k1]
@@ -1812,14 +1779,14 @@ class Config(utils.ToFuObject):
         return val
 
     def _set_color(self, k0, val):
-        for k1 in self._dstruct['dStruct'][k0].keys():
-            self._dstruct['dStruct'][k0][k1].set_color(val)
+        for k1 in self._dStruct['dObj'][k0].keys():
+            self._dStruct['dObj'][k0][k1].set_color(val)
 
     def _dynamicattr(self):
         # get (key, val) pairs
 
         # Purge
-        for k in self._ddef['dstruct']['order']:
+        for k in self._ddef['dStruct']['order']:
             if hasattr(self,k):
                 delattr(self,k)
                 # if sys.version[0]=='2':
@@ -1828,23 +1795,23 @@ class Config(utils.ToFuObject):
                     # exec("del self.{0}".format(k))
 
         # Set
-        for k in self._dstruct['dStruct'].keys():
+        for k in self._dStruct['dObj'].keys():
             # Find a way to programmatically add dynamic properties to the
             # instances , like visible
             # In the meantime use a simple functions
             lset = ['set_%s'%pp for pp in self._dextraprop['lprop']]
             lget = ['get_%s'%pp for pp in self._dextraprop['lprop']]
-            if not type(list(self._dstruct['dStruct'][k].values())[0]) is str:
-                for kk in self._dstruct['dStruct'][k].keys():
+            if not type(list(self._dStruct['dObj'][k].values())[0]) is str:
+                for kk in self._dStruct['dObj'][k].keys():
                     for pp in self._dextraprop['lprop']:
-                        setattr(self._dstruct['dStruct'][k][kk],
+                        setattr(self._dStruct['dObj'][k][kk],
                                 'set_%s'%pp,
                                 lambda val, pk=pp, k0=k, k1=kk: self._set_extraprop(pk, val, k0, k1))
-                        setattr(self._dstruct['dStruct'][k][kk],
+                        setattr(self._dStruct['dObj'][k][kk],
                                 'get_%s'%pp,
                                 lambda pk=pp, k0=k, k1=kk: self._get_extraprop(pk, k0, k1))
                 dd = utils.Dictattr(['set_color']+lset+lget,
-                                    self._dstruct['dStruct'][k])
+                                    self._dStruct['dObj'][k])
                 for pp in self._dextraprop['lprop']:
                     setattr(dd,
                             'set_%s'%pp,
@@ -1864,9 +1831,9 @@ class Config(utils.ToFuObject):
 
     def set_dsino(self, RefPt, nP=_def.TorNP):
         RefPt = self._checkformat_inputs_dsino(RefPt=RefPt, nP=nP)
-        for k in self._dstruct['dStruct'].keys():
-            for kk in self._dstruct['dStruct'][k].keys():
-                self._dstruct['dStruct'][k][kk].set_dsino(RefPt=RefPt, nP=nP)
+        for k in self._dStruct['dObj'].keys():
+            for kk in self._dStruct['dObj'][k].keys():
+                self._dStruct['dObj'][k][kk].set_dsino(RefPt=RefPt, nP=nP)
         self._dsino = {'RefPt':RefPt, 'nP':nP}
 
 
@@ -1874,7 +1841,7 @@ class Config(utils.ToFuObject):
     # strip dictionaries
     ###########
 
-    def _strip_dstruct(self, strip=0, force=False):
+    def _strip_dStruct(self, strip=0, force=False):
         if self._dstrip['strip']==strip:
             return
 
@@ -1882,11 +1849,11 @@ class Config(utils.ToFuObject):
 
             # Reload if necessary
             if self._dstrip['strip']==3:
-                for k in self._dstruct['dStruct'].keys():
-                    for kk in self._dstruct['dStruct'][k].keys():
-                        pfe = self._dstruct['dStruct'][k][kk]
+                for k in self._dStruct['dObj'].keys():
+                    for kk in self._dStruct['dObj'][k].keys():
+                        pfe = self._dStruct['dObj'][k][kk]
                         try:
-                            self._dstruct['dStruct'][k][kk] = utils.load(pfe)
+                            self._dStruct['dObj'][k][kk] = utils.load(pfe)
                         except Exception as err:
                             msg = str(err)
                             msg += "\n    k = {0}".format(str(k))
@@ -1896,29 +1863,29 @@ class Config(utils.ToFuObject):
                             msg += "\n    strip = {0}".format(strip)
                             raise Exception(msg)
 
-            for k in self._dstruct['dStruct'].keys():
-                for kk in self._dstruct['dStruct'][k].keys():
-                    self._dstruct['dStruct'][k][kk].strip(strip=strip)
+            for k in self._dStruct['dObj'].keys():
+                for kk in self._dStruct['dObj'][k].keys():
+                    self._dStruct['dObj'][k][kk].strip(strip=strip)
 
-            lkeep = self._get_keys_dstruct()
-            reset = utils.ToFuObject._test_Rebuild(self._dstruct, lkeep=lkeep)
+            lkeep = self._get_keys_dStruct()
+            reset = utils.ToFuObject._test_Rebuild(self._dStruct, lkeep=lkeep)
             if reset:
-                utils.ToFuObject._check_Fields4Rebuild(self._dstruct,
+                utils.ToFuObject._check_Fields4Rebuild(self._dStruct,
                                                        lkeep=lkeep,
-                                                       dname='dstruct')
-            self._set_dstruct(lStruct=self.lStruct, Lim=self._dstruct['Lim'])
+                                                       dname='dStruct')
+            self._set_dStruct(lStruct=self.lStruct, Lim=self._dStruct['Lim'])
             self._dynamicattr()
 
         else:
             if strip in [1,2]:
-                for k in self._dstruct['lCls']:
-                    for kk, v  in self._dstruct['dStruct'][k].items():
-                        self._dstruct['dStruct'][k][kk].strip(strip=strip)
-                lkeep = self._get_keys_dstruct()
+                for k in self._dStruct['lCls']:
+                    for kk, v  in self._dStruct['dObj'][k].items():
+                        self._dStruct['dObj'][k][kk].strip(strip=strip)
+                lkeep = self._get_keys_dStruct()
 
             elif strip==3:
-                for k in self._dstruct['lCls']:
-                    for kk, v  in self._dstruct['dStruct'][k].items():
+                for k in self._dStruct['lCls']:
+                    for kk, v  in self._dStruct['dObj'][k].items():
                         path, name = v.Id.SavePath, v.Id.SaveName
                         # --- Check !
                         lf = os.listdir(path)
@@ -1941,19 +1908,19 @@ class Config(utils.ToFuObject):
                                 warning.warn(msg)
                             else:
                                 raise Exception(msg)
-                        self._dstruct['dStruct'][k][kk] = pathfile
+                        self._dStruct['dObj'][k][kk] = pathfile
                 self._dynamicattr()
-                lkeep = self._get_keys_dstruct()
-            utils.ToFuObject._strip_dict(self._dstruct, lkeep=lkeep)
+                lkeep = self._get_keys_dStruct()
+            utils.ToFuObject._strip_dict(self._dStruct, lkeep=lkeep)
 
     def _strip_dextraprop(self, strip=0):
         lkeep = list(self._dextraprop.keys())
         utils.ToFuObject._strip_dict(self._dextraprop, lkeep=lkeep)
 
     def _strip_dsino(self, lkeep=['RefPt','nP']):
-        for k in self._dstruct['dStruct'].keys():
-            for kk in self._dstruct['dStruct'][k].keys():
-                self._dstruct['dStruct'][k][kk]._strip_dsino(lkeep=lkeep)
+        for k in self._dStruct['dObj'].keys():
+            for kk in self._dStruct['dObj'][k].keys():
+                self._dStruct['dObj'][k][kk]._strip_dsino(lkeep=lkeep)
 
     ###########
     # _strip and get/from dict
@@ -1978,33 +1945,33 @@ class Config(utils.ToFuObject):
         super(Config,self).strip(strip=strip, force=force)
 
     def _strip(self, strip=0, force=False):
-        self._strip_dstruct(strip=strip, force=force)
+        self._strip_dStruct(strip=strip, force=force)
         #self._strip_dextraprop()
         #self._strip_dsino()
 
     def _to_dict(self):
-        dout = {'dstruct':{'dict':self.dstruct, 'lexcept':None},
+        dout = {'dStruct':{'dict':self.dStruct, 'lexcept':None},
                 'dextraprop':{'dict':self._dextraprop, 'lexcept':None},
                 'dsino':{'dict':self.dsino, 'lexcept':None}}
         return dout
 
     @classmethod
-    def _checkformat_fromdict_dstruct(cls, dstruct):
-        if dstruct['lorder'] is None:
+    def _checkformat_fromdict_dStruct(cls, dStruct):
+        if dStruct['lorder'] is None:
             return None
-        for clsn in dstruct['lorder']:
+        for clsn in dStruct['lorder']:
             c, n = clsn.split('_')
-            if type(dstruct['dStruct'][c][n]) is dict:
-                dstruct['dStruct'][c][n]\
-                        = eval(c).__call__(fromdict=dstruct['dStruct'][c][n])
-            lC = [issubclass(dstruct['dStruct'][c][n].__class__,Struct),
-                  type(dstruct['dStruct'][c][n]) is str]
+            if type(dStruct['dObj'][c][n]) is dict:
+                dStruct['dObj'][c][n]\
+                        = eval(c).__call__(fromdict=dStruct['dObj'][c][n])
+            lC = [issubclass(dStruct['dObj'][c][n].__class__,Struct),
+                  type(dStruct['dObj'][c][n]) is str]
             assert any(lC)
 
     def _from_dict(self, fd):
-        self._checkformat_fromdict_dstruct(fd['dstruct'])
+        self._checkformat_fromdict_dStruct(fd['dStruct'])
 
-        self._dstruct.update(**fd['dstruct'])
+        self._dStruct.update(**fd['dStruct'])
         self._dextraprop.update(**fd['dextraprop'])
         self._dsino.update(**fd['dsino'])
         self._dynamicattr()
@@ -2015,11 +1982,11 @@ class Config(utils.ToFuObject):
     ###########
 
     @property
-    def dstruct(self):
-       return self._dstruct
+    def dStruct(self):
+       return self._dStruct
     @property
     def nStruct(self):
-       return self._dstruct['nStruct']
+       return self._dStruct['nObj']
     @property
     def lStruct(self):
         """ Return the list of Struct that was used for creation
@@ -2027,9 +1994,9 @@ class Config(utils.ToFuObject):
         As tofu objects or SavePath+SaveNames (according to strip status)
         """
         lStruct = []
-        for k in self._dstruct['lorder']:
+        for k in self._dStruct['lorder']:
             k0, k1 = k.split('_')
-            lStruct.append(self._dstruct['dStruct'][k0][k1])
+            lStruct.append(self._dStruct['dObj'][k0][k1])
         return lStruct
 
     @property
@@ -2039,22 +2006,22 @@ class Config(utils.ToFuObject):
         As tofu objects or SavePath+SaveNames (according to strip status)
         """
         lStruct = []
-        for k in self._dstruct['lorder']:
+        for k in self._dStruct['lorder']:
             k0, k1 = k.split('_')
-            if type(self._dstruct['dStruct'][k0][k1]) is str:
-                if any([ss in self._dstruct['dStruct'][k0][k1]
+            if type(self._dStruct['dObj'][k0][k1]) is str:
+                if any([ss in self._dStruct['dObj'][k0][k1]
                         for ss in ['Ves','PlasmaDomain']]):
-                    lStruct.append(self._dstruct['dStruct'][k0][k1])
-            elif issubclass(self._dstruct['dStruct'][k0][k1].__class__, StructIn):
-                lStruct.append(self._dstruct['dStruct'][k0][k1])
+                    lStruct.append(self._dStruct['dObj'][k0][k1])
+            elif issubclass(self._dStruct['dObj'][k0][k1].__class__, StructIn):
+                lStruct.append(self._dStruct['dObj'][k0][k1])
         return lStruct
 
     @property
     def Lim(self):
-        return self._dstruct['Lim']
+        return self._dStruct['Lim']
     @property
     def nLim(self):
-        return self._dstruct['nLim']
+        return self._dStruct['nLim']
 
     @property
     def dextraprop(self):
@@ -2149,32 +2116,32 @@ class Config(utils.ToFuObject):
         # Check inputs
         assert type(Cls) is str
         assert type(Name) is str
-        C0 = Cls in self._dstruct['lCls']
+        C0 = Cls in self._dStruct['lCls']
         if not C0:
-            msg = "The Cls must be a class existing in self.dstruct['lCls']:"
-            msg += "\n    [{0}]".format(', '.join(self._dstruct['lCls']))
+            msg = "The Cls must be a class existing in self.dStruct['lCls']:"
+            msg += "\n    [{0}]".format(', '.join(self._dStruct['lCls']))
             raise Exception(msg)
-        C0 = Name in self._dstruct['dStruct'][Cls].keys()
+        C0 = Name in self._dStruct['dObj'][Cls].keys()
         if not C0:
-            ln = self.dstruct['dStruct'][Cls].keys()
+            ln = self.dStruct['dObj'][Cls].keys()
             msg = "The Name must match an instance in"
-            msg += " self.dstruct['dStruct'][{0}].keys():".format(Cls)
+            msg += " self.dStruct['dObj'][{0}].keys():".format(Cls)
             msg += "\n    [{0}]".format(', '.join(ln))
             raise Exception(msg)
 
         # Create list
         lS = self.lStruct
-        if not Cls+"_"+Name in self._dstruct['lorder']:
-            msg = "The desired instance is not in self.dstruct['lorder'] !"
-            lord = ', '.join(self.dstruct['lorder'])
+        if not Cls+"_"+Name in self._dStruct['lorder']:
+            msg = "The desired instance is not in self.dStruct['lorder'] !"
+            lord = ', '.join(self.dStruct['lorder'])
             msg += "\n    lorder = [{0}]".format(lord)
             msg += "\n    Cls_Name = {0}".format(Cls+'_'+Name)
             raise Exception(msg)
 
-        ind = self._dstruct['lorder'].index(Cls+"_"+Name)
+        ind = self._dStruct['lorder'].index(Cls+"_"+Name)
         del lS[ind]
         # Important : also remove from dict ! (no reset() !)
-        del self._dstruct['dStruct'][Cls][Name]
+        del self._dStruct['dObj'][Cls][Name]
 
         # Prepare dextraprop
         dextra = self.dextraprop
@@ -2192,11 +2159,11 @@ class Config(utils.ToFuObject):
 
     def get_color(self):
         """ Return the array of rgba colors (same order as lStruct) """
-        col = np.full((self._dstruct['nStruct'],4), np.nan)
+        col = np.full((self._dStruct['nObj'],4), np.nan)
         ii = 0
-        for k in self._dstruct['lorder']:
+        for k in self._dStruct['lorder']:
             k0, k1 = k.split('_')
-            col[ii,:] = self._dstruct['dStruct'][k0][k1].get_color()
+            col[ii,:] = self._dStruct['dObj'][k0][k1].get_color()
             ii += 1
         return col
 
@@ -2207,19 +2174,19 @@ class Config(utils.ToFuObject):
         assert self._dstrip['strip']<2, msg
 
         # Build the list
-        d = self._dstruct['dStruct']
+        d = self._dStruct['dObj']
         data = []
-        for k in self._ddef['dstruct']['order']:
+        for k in self._ddef['dStruct']['order']:
             if k not in d.keys():
                 continue
             for kk in d[k].keys():
                 lu = [k,
-                      self._dstruct['dStruct'][k][kk]._Id._dall['Name'],
-                      self._dstruct['dStruct'][k][kk]._Id._dall['SaveName'],
-                      self._dstruct['dStruct'][k][kk]._dgeom['nP'],
-                      self._dstruct['dStruct'][k][kk]._dgeom['noccur'],
-                      self._dstruct['dStruct'][k][kk]._dgeom['mobile'],
-                      self._dstruct['dStruct'][k][kk]._dmisc['color']]
+                      self._dStruct['dObj'][k][kk]._Id._dall['Name'],
+                      self._dStruct['dObj'][k][kk]._Id._dall['SaveName'],
+                      self._dStruct['dObj'][k][kk]._dgeom['nP'],
+                      self._dStruct['dObj'][k][kk]._dgeom['noccur'],
+                      self._dStruct['dObj'][k][kk]._dgeom['mobile'],
+                      self._dStruct['dObj'][k][kk]._dmisc['color']]
                 for pp in self._dextraprop['lprop']:
                     lu.append(self._dextraprop['d'+pp][k][kk])
                 data.append(lu)
@@ -2258,9 +2225,9 @@ class Config(utils.ToFuObject):
             assert pts.shape[0] in [2,3], pts
         nP = pts.shape[1]
 
-        ind = np.zeros((self._dstruct['nStruct'],nP), dtype=bool)
+        ind = np.zeros((self._dStruct['nObj'],nP), dtype=bool)
         lStruct = self.lStruct
-        for ii in range(0,self._dstruct['nStruct']):
+        for ii in range(0,self._dStruct['nObj']):
             indi = _GG._Ves_isInside(pts,
                                      lStruct[ii].Poly,
                                      Lim=lStruct[ii].Lim,
@@ -2281,7 +2248,7 @@ class Config(utils.ToFuObject):
         assert tit is None or isinstance(tit,str)
         vis = self.get_visible()
         lStruct, lS = self.lStruct, []
-        for ii in range(0,self._dstruct['nStruct']):
+        for ii in range(0,self._dStruct['nObj']):
             if vis[ii]:
                 lS.append(lStruct[ii])
 
@@ -2317,7 +2284,7 @@ class Config(utils.ToFuObject):
 
         vis = self.get_visible()
         lS = self.lStruct
-        lS = [lS[ii] for ii in range(0,self._dstruct['nStruct']) if vis[ii]]
+        lS = [lS[ii] for ii in range(0,self._dStruct['nObj']) if vis[ii]]
 
         ax = _plot.Plot_Impact_PolProjPoly(lS,
                                            ax=ax, Ang=Ang,
@@ -2726,8 +2693,7 @@ class Rays(utils.ToFuObject):
         nOptics = len(lOptics)
         for ii in range(0,nOptics):
             assert lOptics[ii].__class__.__name__ in lcls
-        return lOptics, nOptics
-
+        return lOptics
 
     @staticmethod
     def _checkformat_inputs_dconfig(config=None):
@@ -3259,23 +3225,8 @@ class Rays(utils.ToFuObject):
             self._compute_dsino_extra()
 
     def _set_dOptics(self, lOptics=None):
-        lOptics, nOptics = self._checkformat_dOptics(lOptics=lOptics)
-        dOptics = {'nOptics':nOptics, 'dobj':{}}
-        lCls, order = [], []
-        for ii in range(0,nOptics):
-            cls = lOptics[ii].__class__.__name__
-            name = lOptics[ii].Id.Name
-            if cls not in lCls:
-                lCls.append(cls)
-                dOptics['dobj'][cls] = {}
-            clsname = cls+'_'+name
-            assert clsname not in lorder
-            lorder.append(clsname)
-            dOptics['dobj'][cls].update({name: lOptics[ii].copy()})
-            if dOptics['dobj'][cls][name]._dstrip['strip'] != 0:
-
-        dOptics.update({'lorder':lorder, 'lCls':lCls})
-        self.dOptics = dOptics
+        lOptics = self._checkformat_dOptics(lOptics=lOptics)
+        self._set_dObj(lOptics, self._dOptics)
 
     def set_dchans(self, dchans=None):
         dchans = self._checkformat_inputs_dchans(dchans)
@@ -3498,7 +3449,7 @@ class Rays(utils.ToFuObject):
         compute = self.config.get_compute()
         lS = self.config.lStruct
         lSI, lSO = [], []
-        for ii in range(0,self._dconfig['Config']._dstruct['nStruct']):
+        for ii in range(0,self._dconfig['Config']._dStruct['nObj']):
             if compute[ii]:
                 if lS[ii]._InOut=='in':
                     lSI.append(lS[ii])

@@ -1036,8 +1036,7 @@ class ToFuObject(ToFuObjectBase):
 
 
     # TBF
-    def _set_dlObj(self, lObj, dname='dOptics'):
-        dname = '_'+dname
+    def _set_dlObj(self, lObj, din={}):
 
         # Make sure to kill the link to the mutable being provided
         nObj = len(lObj)
@@ -1059,27 +1058,24 @@ class ToFuObject(ToFuObjectBase):
             msg += "\n => Please clarify (choose unique Cls/Names)"
             raise Exception(msg)
 
-        # Initisalize (not necessary in case of update)
-        c0 = (hasattr(self,dname)
-              and 'dObj' in getattr(self,dname).keys()
-              and isinstance(getattr(self,dname)['dObj'],dict))
-        if not c0:
-            setattr(self, dname, {'dObj':dict([(k,{}) for k in lCls])})
+        # Initialize dObj is not existing
+        if 'dObj' not in din.keys():
+            din['dObj'] = dict([(k,{}) for k in lCls])
 
+        # Initisalize
         for k in lCls:
-            if not k in self._dstruct['dStruct'].keys():
-                self._dstruct['dStruct'][k] = {}
-            lk = self._dstruct['dStruct'][k].keys()
-            ls = [ss for ss in lStruct if ss.Id.Cls==k]
+            if not k in din['dObj'].keys():
+                din['dObj'][k] = {}
+            lk = din['dObj'][k].keys()
+            ls = [ss for ss in lObj if ss.Id.Cls == k]
             for ss in ls:
                 name = ss.Id.Name
                 if not name in lk:
-                    self._dstruct['dStruct'][k][name] = ss.copy()
-                if self._dstruct['dStruct'][k][name]._dstrip['strip'] != 0:
-                    self._dstruct['dStruct'][k][name].strip(0)
+                    din['dObj'][k][name] = ss.copy()
+                if din['dObj'][k][name]._dstrip['strip'] != 0:
+                    din['dObj'][k][name].strip(0)
+        din.update({'nObj':nStruct, 'lorder':lorder, 'lCls':lCls})
 
-        self._dstruct.update({'nStruct':nStruct, 'Lim':Lim, 'nLim':nLim,
-                              'lorder':lorder, 'lCls':lCls})
 
     def save(self, path=None, name=None,
              strip=None, sep=_sep, deep=True, mode='npz',
