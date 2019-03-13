@@ -4271,6 +4271,18 @@ class CamLOS2D(Rays):
             dX12 = self._dX12
         return dX12
 
+    def get_X12plot(self, plot='imshow'):
+        if plot == 'imshow':
+            x1, x2 = self.dX12['x1'], self.dX12['x2']
+            x1min, Dx1min = x1[0], 0.5*(x1[1]-x1[0])
+            x1max, Dx1max = x1[-1], 0.5*(x1[-1]-x1[-2])
+            x2min, Dx2min = x2[0], 0.5*(x2[1]-x2[0])
+            x2max, Dx2max = x2[-1], 0.5*(x2[-1]-x2[-2])
+            extent = (x1min-Dx1min, x1max+Dx1max,
+                      x2min+Dx2min, x2max+Dx2max)
+            indr = self.dX12['indr']
+            return indr, extent
+
 
     """
     def set_e12(self, e1=None, e2=None):

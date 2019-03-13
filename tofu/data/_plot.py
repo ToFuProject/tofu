@@ -487,6 +487,7 @@ class KH2D(utils.KeyHandler):
         self._update_blit(lax)
 
 
+# Deprecated ?
 def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
     assert out.lower() in ['pcolormesh','imshow']
     x1, x2, ind, dX12 = utils.get_X12fromflat(X12_1d)
