@@ -2363,8 +2363,6 @@ class Rays(utils.ToFuObject):
         Iterable of len=2 with the coordinates of the sinogram reference point
             - (R,Z) coordinates if the vessel is of Type 'Tor'
             - (Y,Z) coordinates if the vessel is of Type 'Lin'
-    Type :          None
-        (not used in the current version)
     Exp        :    None / str
         Experiment to which the LOS belongs:
             - if both Exp and Ves are provided: Exp==Ves.Id.Exp
@@ -2425,7 +2423,7 @@ class Rays(utils.ToFuObject):
         cls._ddef = copy.deepcopy(Rays._ddef)
         cls._dplot = copy.deepcopy(Rays._dplot)
         cls._set_color_ddef(color)
-        if '2d' in cls.__name__.lower():
+        if cls._is2D():
             cls._dcases['D']['lk'] += ['e2','x2']
             cls._dcases['E']['lk'] += ['e2','l2','n2']
             cls._dcases['F']['lk'] += ['x2']
@@ -2435,8 +2433,8 @@ class Rays(utils.ToFuObject):
     def _set_color_ddef(cls, color):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
-                 config=None, dchans=None,
+    def __init__(self, dgeom=None, dOptics=None, Etendues=None, Surfaces=None,
+                 config=None, dchans=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  sino_RefPt=None, fromdict=None, method='optimized',
                  SavePath=os.path.abspath('./'), color=None, plotdebug=True):
@@ -2463,6 +2461,9 @@ class Rays(utils.ToFuObject):
         # super()
         super(Rays,self)._reset()
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
+        if self._is2D():
+            self._dX12 = dict.fromkeys(self._get_keys_dX12())
+        self._dOptics = dict.fromkeys(self._get_keys_dOptics())
         self._dconfig = dict.fromkeys(self._get_keys_dconfig())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
         self._dchans = dict.fromkeys(self._get_keys_dchans())
@@ -2507,6 +2508,16 @@ class Rays(utils.ToFuObject):
         return largs
 
     @staticmethod
+    def _get_largs_dX12():
+        largs = ['dX12']
+        return largs
+
+    @staticmethod
+    def _get_largs_dOptics():
+        largs = ['dOptics']
+        return largs
+
+    @staticmethod
     def _get_largs_dconfig():
         largs = ['config']
         return largs
@@ -2542,6 +2553,25 @@ class Rays(utils.ToFuObject):
                 val = np.asarray(val,dtype=float).ravel()
                 assert val.size==self._dgeom['nRays']
         return val
+
+    @staticmethod
+    def _get_ind12r_n12(ind1=None, ind2=None, n1=None, n2=None):
+        c0 = ind1 is None and ind2 is None
+        c1 = n1 is not None and n2 is not None
+        assert c1, "Provide n1 and n2 !"
+        if c0:
+            ind1 = np.arange(0,n1)
+            ind2 = np.arange(0,n2)
+        else:
+            ind1 = np.asarray(ind1).ravel().astype(int)
+            ind2 = np.asarray(ind2).ravel().astype(int)
+            assert ind1.size == ind2.size
+            assert np.all(ind1>=0) and np.all(ind1<n1)
+            assert np.all(ind2>=0) and np.all(ind2<n2)
+        indr = np.zeros((n1,n2),dtype=int)
+        for ii in range(0,ind1.size):
+            indr[ind1[ii],ind2[ii]] = ii
+        return ind1, ind2, indr
 
     @classmethod
     def _checkformat_inputs_dgeom(cls, dgeom=None):
@@ -2589,7 +2619,7 @@ class Rays(utils.ToFuObject):
             msg = "The number of rays is ambiguous from D and u shapes !"
             assert C0 or C1 or C2, msg
             nRays = max(nD,nu)
-            dgeom = {'D':D, 'u':u}
+            dgeom = {'D':D, 'u':u, 'isImage':False}
 
         elif case == 'C':
             D = _checkformat_Du(dgeom['D'], 'D')
@@ -2598,7 +2628,7 @@ class Rays(utils.ToFuObject):
             if err:
                 raise Exception(msg)
             pinhole = dins['pinhole']['var']
-            dgeom = {'D':D, 'pinhole':pinhole}
+            dgeom = {'D':D, 'pinhole':pinhole, 'isImage':False}
             nRays = D.shape[1]
 
         else:
@@ -2626,27 +2656,65 @@ class Rays(utils.ToFuObject):
             dins, err, msg = cls._check_InputsGeneric(dins)
             if err:
                 raise Exception(msg)
-            dgeom = {'ddetails':{}}
+            dgeom = {'dX12':{}}
             for k in dins.keys():
                 if k == 'pinhole':
                     dgeom[k] = dins[k]['var']
                 else:
-                    dgeom['ddetails'][k] = dins[k]['var']
+                    dgeom['dX12'][k] = dins[k]['var']
             if case in ['E','G']:
-                x1 = dgeom['ddetails']['l1']*np.linspace(-0.5, 0.5,
-                                 dgeom['ddetails']['n1'], end_point=True)
-                dgeom['ddetails']['x1'] = x1
-                if '2d' in cls.__name__.lower():
-                    x2 = dgeom['ddetails']['l2']*np.linspace(-0.5, 0.5,
-                                     dgeom['ddetails']['n2'], end_point=True)
-                    dgeom['ddetails']['x2'] = x2
-            if '2d' in cls.__name__.lower():
-                nRays = dgeom['ddetails']['n1']*dgeom['ddetails']['n2']
+                x1 = dgeom['dX12']['l1']*np.linspace(-0.5, 0.5,
+                                                     dgeom['dX12']['n1'],
+                                                     end_point=True)
+                dgeom['dX12']['x1'] = x1
+                if self._is2D():
+                    x2 = dgeom['dX12']['l2']*np.linspace(-0.5, 0.5,
+                                                         dgeom['dX12']['n2'],
+                                                         end_point=True)
+                    dgeom['dX12']['x2'] = x2
+            if self._is2D():
+                nRays = dgeom['dX12']['n1']*dgeom['dX12']['n2']
+                ind1, ind2, indr = self._get_ind12r_n12(n1=dgeom['dX12']['n1'],
+                                                        n2=dgeom['dX12']['n2'])
+                dgeom['dX12']['ind1'] = ind1
+                dgeom['dX12']['ind2'] = ind2
+                dgeom['dX12']['indr'] = indr
+                dgeom['isImage'] = True
             else:
-                nRays = dgeom['ddetails']['n1']
+                nRays = dgeom['dX12']['n1']
+                dgeom['isImage'] = False
         dgeom.update({'case':case, 'nRays':nRays})
-
         return dgeom
+
+    def _checkformat_dX12(self, dX12=None):
+        lc = [dX12 is None, dX12 == 'geom', isinstance(dX12, dict)]
+        if not np.sum(lc) == 1:
+            msg = "dX12 must be either:\n"
+            msg += "    - None\n"
+            msg += "    - 'geom' : will be derived from the 3D geometry\n"
+            msg += "    - dict : containing {'x1'  : array of coords.,\n"
+            msg += "                         'x2'  : array of coords.,\n"
+            msg += "                         'ind1': array of int indices,\n"
+            msg += "                         'ind2': array of int indices}"
+            raise Exception(msg)
+
+        if lc[1]:
+            if not self._dgeom['case'] in ['D','E','F','G']:
+                msg = "dX12 cannot be derived from dgeom (info not known) !"
+                raise Exception(msg)
+
+        if lc[2]:
+            ls = ['x1','x2','ind1','ind2']
+            assert all([ss in dX12.keys() for ss in ls])
+            x1 = np.asarray(dX12['x1']).ravel()
+            x2 = np.asarray(dX12['x2']).ravel()
+            n1, n2 = x1.size, x2.size
+            ind1, ind2, indr = self._get_ind12r_n12(ind1=dX12['ind1'],
+                                                    ind2=dX12['ind2'],
+                                                    n1=n1, n2=n2)
+            dX12 = {'x1':x1, 'x2':x2, 'n1':n1, 'n2':n2,
+                    'ind1':ind1, 'ind2':ind2, 'indr':indr}
+        return dX12
 
     @staticmethod
     def _checkformat_inputs_dconfig(config=None):
@@ -2699,10 +2767,16 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dgeom():
-        lk = ['D','u','pinhole',
+        lk = ['D','u','pinhole', 'nRays',
               'kIn', 'kOut', 'PkIn', 'PkOut', 'vperp', 'indout',
-              'kRMin', 'PRMin', 'RMin',
-              'Etendues', 'Surfaces', 'ddetails']
+              'kRMin', 'PRMin', 'RMin', 'isImage',
+              'Etendues', 'Surfaces', 'dX12']
+        return lk
+
+    @staticmethod
+    def _get_keys_dX12():
+        lk = ['x1','x2','n1', 'n2',
+              'ind1', 'ind2', 'indr']
         return lk
 
     @staticmethod
@@ -2744,6 +2818,9 @@ class Rays(utils.ToFuObject):
         kwdmisc = self._extract_kwdargs(locals(), largs)
         self.set_dconfig(calcdgeom=False, **kwdconfig)
         self._set_dgeom(sino=True, **kwdgeom)
+        if self._is2D():
+            kwdX12 = self._extract_kwdargs(locals(), self._get_largs_dX12())
+            self.set_dX12(**kwdX12)
         self.set_dchans(**kwdchans)
         self._set_dmisc(**kwdmisc)
         self._dstrip['strip'] = 0
@@ -2760,43 +2837,72 @@ class Rays(utils.ToFuObject):
 
     def _update_dgeom_from_TransRotFoc(self, val, key='x'):
         # To be finished for 1.4.1
-        assert False, "Not implemented yet, for future versions"
-        if key in ['x','y','z']:
-            if key == 'x':
-                trans = np.r_[val,0.,0.]
-            elif key == 'y':
-                trans = np.r_[0.,val,0.]
-            else:
-                trans = np.r_[0.,0.,val]
-            if self._dgeom['pinhole'] is not None:
-                self._dgeom['pinhole'] += trans
-                self._dgeom['D'] += trans[:,np.newaxis]
-        if key in ['nIn','e1','e2']:
-            if key == 'nIn':
-                e1 = (np.cos(val)*self._dgeom['ddetails']['e1']
-                      + np.sin(val)*self._dgeom['ddetails']['e2'])
-                e2 = (np.cos(val)*self._dgeom['ddetails']['e2']
-                      - np.sin(val)*self._dgeom['ddetails']['e1'])
-                self._dgeom['ddetails']['e1'] = e1
-                self._dgeom['ddetails']['e2'] = e2
-            elif key == 'e1':
-                nIn = (np.cos(val)*self._dgeom['ddetails']['nIn']
-                      + np.sin(val)*self._dgeom['ddetails']['e2'])
-                e2 = (np.cos(val)*self._dgeom['ddetails']['e2']
-                      - np.sin(val)*self._dgeom['ddetails']['nIn'])
-                self._dgeom['ddetails']['nIn'] = nIn
-                self._dgeom['ddetails']['e2'] = e2
-            else:
-                nIn = (np.cos(val)*self._dgeom['ddetails']['nIn']
-                      + np.sin(val)*self._dgeom['ddetails']['e1'])
-                e1 = (np.cos(val)*self._dgeom['ddetails']['e1']
-                     - np.sin(val)*self._dgeom['ddetails']['nIn'])
-                self._dgeom['ddetails']['nIn'] = nIn
-                self._dgeom['ddetails']['e1'] = e1
-        if key == 'F':
-            self._dgeom['F'] += val
+        raise Exception("Not coded yet !")
+        # assert False, "Not implemented yet, for future versions"
+        # if key in ['x','y','z']:
+            # if key == 'x':
+                # trans = np.r_[val,0.,0.]
+            # elif key == 'y':
+                # trans = np.r_[0.,val,0.]
+            # else:
+                # trans = np.r_[0.,0.,val]
+            # if self._dgeom['pinhole'] is not None:
+                # self._dgeom['pinhole'] += trans
+                # self._dgeom['D'] += trans[:,np.newaxis]
+        # if key in ['nIn','e1','e2']:
+            # if key == 'nIn':
+                # e1 = (np.cos(val)*self._dgeom['dX12']['e1']
+                      # + np.sin(val)*self._dgeom['dX12']['e2'])
+                # e2 = (np.cos(val)*self._dgeom['dX12']['e2']
+                      # - np.sin(val)*self._dgeom['dX12']['e1'])
+                # self._dgeom['dX12']['e1'] = e1
+                # self._dgeom['dX12']['e2'] = e2
+            # elif key == 'e1':
+                # nIn = (np.cos(val)*self._dgeom['dX12']['nIn']
+                      # + np.sin(val)*self._dgeom['dX12']['e2'])
+                # e2 = (np.cos(val)*self._dgeom['dX12']['e2']
+                      # - np.sin(val)*self._dgeom['dX12']['nIn'])
+                # self._dgeom['dX12']['nIn'] = nIn
+                # self._dgeom['dX12']['e2'] = e2
+            # else:
+                # nIn = (np.cos(val)*self._dgeom['dX12']['nIn']
+                      # + np.sin(val)*self._dgeom['dX12']['e1'])
+                # e1 = (np.cos(val)*self._dgeom['dX12']['e1']
+                     # - np.sin(val)*self._dgeom['dX12']['nIn'])
+                # self._dgeom['dX12']['nIn'] = nIn
+                # self._dgeom['dX12']['e1'] = e1
+        # if key == 'F':
+            # self._dgeom['F'] += val
 
-    def _complete_ddetails(self, dgeom):
+    @classmethod
+    def _get_x12_fromflat(cls, X12):
+        x1, x2 = np.unique(X12[0,:]), np.unique(X12[1,:])
+        n1, n2 = x1.size, x2.size
+        if n1*n2 != X12.shape[1]:
+            tol = np.linalg.norm(np.diff(X12[:,:2],axis=1))/100.
+            tolmag = int(np.log10(tol))-1
+            x1 = np.unique(np.round(X12[0,:], -tolmag))
+            x2 = np.unique(np.round(X12[1,:], -tolmag))
+            ind1 = np.digitize(X12[0,:], 0.5*(x1[1:]+x1[:-1]))
+            ind2 = np.digitize(X12[1,:], 0.5*(x2[1:]+x2[:-1]))
+            ind1u, ind2u = np.unique(ind1), np.unique(ind2)
+            x1 = np.unique([np.mean(X12[0,ind1==ii]) for ii in ind1u])
+            x2 = np.unique([np.mean(X12[1,ind2==ii]) for ii in ind2u])
+        n1, n2 = x1.size, x2.size
+
+        if n1*n2 != X12.shape[1]:
+            msg = "The provided X12 array does not seem to correspond to"
+            msg += "a n1 x n2 2D matrix, even within tolerance"
+            raise Exception(msg)
+
+        ind1 = np.digitize(X12[0,:], 0.5*(x1[1:]+x1[:-1]))
+        ind2 = np.digitize(X12[1,:], 0.5*(x2[1:]+x2[:-1]))
+        ind1, ind2, indr = cls._get_ind12r_n12(ind1=ind1, ind2=ind2,
+                                               n1=n1, n2=n2)
+        return x1, x2, n1, n2, ind1, ind2, indr
+
+
+    def _complete_dX12(self, dgeom):
         if dgeom['case'] in ['A','B','C']:
             # Test if pinhole
             if dgeom['case'] in ['A','B']:
@@ -2828,9 +2934,9 @@ class Rays(utils.ToFuObject):
                     kref = -np.sum((dgeom['D'][:,0]-dgeom['pinhole'])*e1)
                     x1 = x1-kref
                 l1 = np.nanmax(x1)-np.nanmin(x1)
-                if dgeom['ddetails'] is None:
-                    dgeom['ddetails'] = {}
-                dgeom['ddetails'].update({'e1':e1, 'x1':x1})
+                if dgeom['dX12'] is None:
+                    dgeom['dX12'] = {}
+                dgeom['dX12'].update({'e1':e1, 'x1':x1, 'n1':x1.size})
             else:
                 ind = np.nanargmax(vect2)
                 v1 = van[:,ind]
@@ -2853,9 +2959,9 @@ class Rays(utils.ToFuObject):
                         # Try to set e2 closer to ez if possible
                         e1, e2 = -e2, e1
 
-                    if dgeom['ddetails'] is None:
-                        dgeom['ddetails'] = {}
-                    dgeom['ddetails'].update({'nIn':nIn, 'e1':e1, 'e2':e2})
+                    if dgeom['dX12'] is None:
+                        dgeom['dX12'] = {}
+                    dgeom['dX12'].update({'nIn':nIn, 'e1':e1, 'e2':e2})
 
                     # Test binning
                     if dgeom['pinhole'] is not None:
@@ -2865,12 +2971,17 @@ class Rays(utils.ToFuObject):
                         k1ref, k2ref = 0., 0.
                     x12 = np.array([np.sum(va*e1[:,np.newaxis],axis=0)-k1ref,
                                     np.sum(va*e2[:,np.newaxis],axis=0)-k2ref])
-                    x1 = np.unique(x12[0,:])
-                    x2 = np.unique(x12[1,:])
-                    nx1, nx2 = x1.size, x2.size
-                    if nx1*nx2 == dgeom['nRays']:
-                        dgeom['ddetails'].update({'x12':x12, 'consistent':True,
-                                                  'x1':x1, 'x2':x2})
+                    try:
+                        x1, x2, n1, n2, ind1, ind2, indr=self._get_x12_fromflat(x12)
+                        dgeom['dX12'].update({'x1':x1, 'x2':x2,
+                                              'n1':n1, 'n2':n2,
+                                              'ind1':ind1, 'ind2':ind2,
+                                              'indr':indr})
+                        dgeom['isImage'] = True
+
+                    except Exception as err:
+                        warnings.warn(str(err))
+
         else:
             if dgeom['case'] in ['F','G']:
                 # Get unit vectors from angles
@@ -2878,16 +2989,13 @@ class Rays(utils.ToFuObject):
                 raise Exception(msg)
 
             # Get D and x12 from x1, x2
-            nx1 = dgeom['ddetails']['x1'].size
-            nx2 = dgeom['ddetails']['x2'].size
-            x12 = np.array([np.tile(dgeom['ddetails']['x1'], nx2),
-                            np.repeat(dgeom['ddetails']['x2'], nx1)])
-            D = dgeom['pinhole'] - dgeom['F']*dgeom['ddetails']['nIn']
+            x12 = np.array([dgeom['dX12']['x1'][dgeom['dX12']['ind1']],
+                            dgeom['dX12']['x2'][dgeom['dX12']['ind2']]])
+            D = dgeom['pinhole'] - dgeom['F']*dgeom['dX12']['nIn']
             D = (D[:,np.newaxis]
-                 + x12[0,:]*dgeom['ddetails']['e1']
-                 + x12[1,:]*dgeom['ddetails']['e2'])
+                 + x12[0,:]*dgeom['dX12']['e1']
+                 + x12[1,:]*dgeom['dX12']['e2'])
             dgeom['D'] = D
-            dgeom['ddetails'].update({'x12':x12, 'consistent':True})
         return dgeom
 
 
@@ -2987,13 +3095,7 @@ class Rays(utils.ToFuObject):
     def _compute_kInOut(self):
 
         # Prepare inputs
-        try:
-            largs, dkwd = self._prepare_inputs_kInOut()
-        except Exception as err:
-            import ipdb
-            ipdb.set_trace()
-            raise err
-
+        largs, dkwd = self._prepare_inputs_kInOut()
 
         if self._method=='ref':
             # call the dedicated function
@@ -3019,8 +3121,8 @@ class Rays(utils.ToFuObject):
             warnings.warn(msg)
             return
 
-        # ddetails
-        self._dgeom = self._complete_ddetails(self._dgeom)
+        # dX12
+        self._dgeom = self._complete_dX12(self._dgeom)
 
         # Perform computation of kIn and kOut
         kIn, kOut, vperp, indout = self._compute_kInOut()
@@ -3058,7 +3160,6 @@ class Rays(utils.ToFuObject):
         if extra:
             self._compute_dgeom_kRMin()
             self._compute_dgeom_extra1()
-            self._compute_dgeom_extra2D()
 
     def _compute_dgeom_kRMin(self):
         # Get RMin if Type is Tor
@@ -3079,46 +3180,6 @@ class Rays(utils.ToFuObject):
         dd = {'PkIn':PkIn, 'PkOut':PkOut, 'PRMin':PRMin, 'RMin':RMin}
         self._dgeom.update(dd)
 
-    def _compute_dgeom_extra2D(self):
-        if not '2d' in self.Id.Cls.lower():
-            return
-        D, u = self.D, self.u
-        C = np.nanmean(D,axis=1)
-        CD0 = D[:,:-1] - C[:,np.newaxis]
-        CD1 = D[:,1:] - C[:,np.newaxis]
-        cross = np.array([CD1[1,1:]*CD0[2,:-1]-CD1[2,1:]*CD0[1,:-1],
-                          CD1[2,1:]*CD0[0,:-1]-CD1[0,1:]*CD0[2,:-1],
-                          CD1[0,1:]*CD0[1,:-1]-CD1[1,1:]*CD0[0,:-1]])
-        crossn2 = np.sum(cross**2,axis=0)
-        if np.all(np.abs(crossn2)<1.e-12):
-            msg = "Is %s really a 2D camera ? (LOS aligned?)"%self.Id.Name
-            warnings.warn(msg)
-        cross = cross[:,np.nanargmax(crossn2)]
-        cross = cross / np.linalg.norm(cross)
-        nIn = cross if np.sum(cross*np.nanmean(u,axis=1))>0. else -cross
-        # Find most relevant e1 (for pixels alignment), without a priori info
-        D0D = D-D[:,0][:,np.newaxis]
-        dist = np.sqrt(np.sum(D0D**2,axis=0))
-        dd = np.min(dist[1:])
-        e1 = (D[:,1]-D[:,0])/np.linalg.norm(D[:,1]-D[:,0])
-        cross = np.sqrt((D0D[1,:]*e1[2]-D0D[2,:]*e1[1])**2
-                        + (D0D[2,:]*e1[0]-D0D[0,:]*e1[2])**2
-                        + (D0D[0,:]*e1[1]-D0D[1,:]*e1[0])**2)
-        D0D = D0D[:,cross<dd/3.]
-        sca = np.sum(D0D*e1[:,np.newaxis],axis=0)
-        e1 = D0D[:,np.argmax(np.abs(sca))]
-        try:
-            import tofu.geom.utils as geom_utils
-        except Exception:
-            from . import utils as geom_utils
-
-        nIn, e1, e2 = geom_utils.get_nIne1e2(C, nIn=nIn, e1=e1)
-        if np.abs(np.abs(nIn[2])-1.)>1.e-12:
-            if np.abs(e1[2])>np.abs(e2[2]):
-                e1, e2 = e2, e1
-        e2 = e2 if e2[2]>0. else -e2
-        self._dgeom.update({'C':C, 'nIn':nIn, 'e1':e1, 'e2':e2})
-
     def set_Etendues(self, val):
         val = self._checkformat_inputs_dES(val)
         self._dgeom['Etendues'] = val
@@ -3137,6 +3198,10 @@ class Rays(utils.ToFuObject):
         self.set_Surfaces(Surfaces)
         if sino:
             self.set_dsino(sino_RefPt)
+
+    def set_dX12(self, dX12=None):
+        dX12 = self._checkformat_dX12(dX12)
+        self._dX12 = dX12
 
     def _compute_dsino_extra(self):
         if self._dsino['k'] is not None:
@@ -3203,24 +3268,22 @@ class Rays(utils.ToFuObject):
             # Reload
             if self._dstrip['strip']==1:
                 self._compute_dgeom_extra1()
-                self._compute_dgeom_extra2D()
             elif self._dstrip['strip']>=2 and strip==1:
                 self._compute_dgeom_kRMin()
             elif self._dstrip['strip']>=2 and strip==0:
                 self._compute_dgeom_kRMin()
                 self._compute_dgeom_extra1()
-                self._compute_dgeom_extra2D()
         else:
             # strip
             if strip==1:
                 lkeep = ['D','u','pinhole','nRays',
                          'kIn','kOut','vperp','indout', 'kRMin',
-                         'Etendues','Surfaces']
+                         'Etendues','Surfaces','isImage','dX12']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
             elif self._dstrip['strip']<=1 and strip>=2:
                 lkeep = ['D','u','pinhole','nRays',
                          'kIn','kOut','vperp','indout',
-                         'Etendues','Surfaces']
+                         'Etendues','Surfaces','isImage','dX12']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
     def _strip_dconfig(self, strip=0):
@@ -3440,15 +3503,18 @@ class Rays(utils.ToFuObject):
     def kOut(self):
         return self._dgeom['kOut']
     @property
-
     def kMin(self):
         if self.isPinhole:
             kMin = (self._dgeom['pinhole'][:,np.newaxis]-self._dgeom['D'])
             kMin = np.sqrt(np.sum(kMin**2,axis=0))
         else:
-            kMin = None
+            kMin = 0.
         return kMin
 
+    @classmethod
+    def _is2D(cls):
+        c0 = '2d' in cls.__name__.lower()
+        return c0
 
 
     ###########
@@ -3472,7 +3538,7 @@ class Rays(utils.ToFuObject):
                     indch = np.zeros((self.nRays,),dtype=bool)
                     indch[ind] = True
                 else:
-                    indch = ind
+                    Dindch = ind
         else:
             if out is int:
                 indch = np.arange(0,self.nRays)
@@ -3620,6 +3686,17 @@ class Rays(utils.ToFuObject):
                     elif v.ndim==2 and v.shape[1]==self.nRays:
                         d['dgeom_%s'%k] = v[:,indch]
 
+            # X12
+            if self._is2D():
+                for k in self.dX12.keys():
+                    v = d['dX12_%s'%k]
+                    C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
+                    if C0:
+                        if v.ndim==1:
+                            d['dX12_%s'%k] = v[indch]
+                        elif v.ndim==2 and v.shape[1]==self.nRays:
+                            d['dX12_%s'%k] = v[:,indch]
+
             # Sino
             for k in self.dsino.keys():
                 v = d['dsino_%s'%k]
@@ -3653,7 +3730,8 @@ class Rays(utils.ToFuObject):
             pts = None
         return pts
 
-    def get_sample(self, res, resMode='abs', DL=None, method='sum', ind=None):
+    def get_sample(self, res, resMode='abs', DL=None, method='sum', ind=None,
+                  compact=False):
         """ Return a linear sampling of the LOS
 
         The LOS is sampled into a series a points and segments lengths
@@ -3730,9 +3808,16 @@ class Rays(utils.ToFuObject):
         Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
 
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
-        pts, k, reseff = _GG.LOS_get_sample(Ds, us, res, DL,
-                                               dLMode=resMode, method=method)
-        return pts, k, reseff
+        # Todo : reverse in _GG : make compact default for faster computation !
+        lpts, k, reseff = _GG.LOS_get_sample(Ds, us, res, DL,
+                                             dLMode=resMode, method=method)
+        if compact:
+            pts = np.concatenate(lpts, axis=1)
+            ind = np.array([pt.shape[1] for pt in lpts], dtype=int)
+            ind = np.cumsum(ind)[:-1]
+            return pts, k, reseff, ind
+        else:
+            return lpts, k, reseff
 
     def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None):
 
@@ -3980,16 +4065,14 @@ class Rays(utils.ToFuObject):
             units = r"origin x m"
 
         if plot or out is object:
-            assert '1D' in self.Id.Cls or '2D' in self.Id.Cls, "Set Cam type!!"
+            dkwdargs = dict(data=sig, t=t, lCam=self, Name=self.Id.Name,
+                            dlabels={'data':units}, Exp=self.Id.Exp,
+                            Diag=self.Id.Diag)
             import tofu.data as tfd
-            if '1D' in self.Id.Cls:
-                osig = tfd.Data1D(data=sig, t=t, LCam=self,
-                                  Id=self.Id.Name, dlabels={'data':units},
-                                  Exp=self.Id.Exp, Diag=self.Id.Diag)
+            if self._is2D():
+                osig = tfd.DataCam2D(**kwdargs)
             else:
-                osig = tfd.Data2D(data=sig, t=t, LCam=self,
-                                  Id=self.Id, dlabels={'data':units},
-                                  Exp=self.Id.Exp, Diag=self.Id.Diag)
+                osig = tfd.DataCam1D(**kwdargs)
             if plot:
                 KH = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
                                plotmethod=plotmethod, invert=invert,
@@ -4157,10 +4240,6 @@ class Rays(utils.ToFuObject):
                    ind=None, plotmethod='imshow',
                    fs=None, wintit=None, tit=None,
                    connect=True, draw=True):
-        lC = [ss in self.Id.Cls for ss in ['1D','2D']]
-        if not np.sum(lC)==1:
-            msg = "The camera type (1D or 2D) must be specified!"
-            raise Exception(msg)
 
         out = _plot.Rays_plot_touch(self, key=key, ind=ind, invert=invert,
                                     plotmethod=plotmethod, connect=connect,
@@ -4170,23 +4249,39 @@ class Rays(utils.ToFuObject):
 
 
 
+########################################
+#       CamLOS subclasses
+########################################
+
+sig = inspect.signature(Rays)
+params = sig.parameters
+
+
+
+
 
 class CamLOS1D(Rays): pass
 
-class CamLOS2D(Rays):
-    def __init__(self, dgeom=None, Etendues=None, Surfaces=None,
-                 config=None, dchans=None, X12=None,
-                 Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 sino_RefPt=None, fromdict=None, method='optimized',
-                 SavePath=os.path.abspath('./'), color=None, plotdebug=True):
-        kwdargs = locals()
-        del kwdargs['self'], kwdargs['X12']
-        # Python 2 vs 3
-        if '__class__' in kwdargs.keys():
-            del kwdargs['__class__']
-        super(CamLOS2D,self).__init__(**kwdargs)
-        self.set_X12(X12)
+lp = [p for p in params.values() if p.name != 'dX12']
+CamLOS1D.__signature__ = sig.replace(parameters=lp)
 
+
+
+class CamLOS2D(Rays):
+
+    def _isImage(self):
+        return self._dgeom['isImage']
+
+    @property
+    def dX12(self):
+        if self._dX12 == 'geom':
+            dX12 = self._dgeom['dX12']
+        else:
+            dX12 = self._dX12
+        return dX12
+
+
+    """
     def set_e12(self, e1=None, e2=None):
         assert e1 is None or (hasattr(e1,'__iter__') and len(e1)==3)
         assert e2 is None or (hasattr(e2,'__iter__') and len(e2)==3)
@@ -4205,12 +4300,6 @@ class CamLOS2D(Rays):
         assert np.abs(np.sum(e1*e2))<1.e-12
         self._dgeom['e1'] = e1
         self._dgeom['e2'] = e2
-
-    def set_X12(self, X12=None):
-        if X12 is not None:
-            X12 = np.asarray(X12)
-            assert X12.shape==(2,self._dgeom['nRays'])
-        self._X12 = X12
 
     def get_ind_flatimg(self, direction='flat2img'):
         assert direction in ['flat2img','img2flat']
@@ -4254,83 +4343,87 @@ class CamLOS2D(Rays):
             if out.lower()=='2d':
                 X12 = [x1u, x2u, ind]
         return X12, DX12
-
-
-
-
-
-
-
-    """ Return the indices or instances of all LOS matching criteria
-
-    The selection can be done according to 2 different mechanisms
-
-    Mechanism (1): provide the value (Val) a criterion (Crit) should match
-    The criteria are typically attributes of :class:`~tofu.pathfile.ID`
-    (i.e.: name, or user-defined attributes like the camera head...)
-
-    Mechanism (2): (used if Val=None)
-    Provide a str expression (or a list of such) to be fed to eval()
-    Used to check on quantitative criteria.
-        - PreExp: placed before the criterion value (e.g.: 'not ' or '<=')
-        - PostExp: placed after the criterion value
-        - you can use both
-
-    Other parameters are used to specify logical operators for the selection
-    (match any or all the criterion...) and the type of output.
-
-    Parameters
-    ----------
-    Crit :      str
-        Flag indicating which criterion to use for discrimination
-        Can be set to:
-            - any attribute of :class:`~tofu.pathfile.ID`
-        A str (or list of such) expression to be fed to eval()
-        Placed after the criterion value
-        Used for selection mechanism (2)
-    Log :       str
-        Flag indicating whether the criterion shall match:
-            - 'all': all provided values
-            - 'any': at least one of them
-    InOut :     str
-        Flag indicating whether the returned indices are:
-            - 'In': the ones matching the criterion
-            - 'Out': the ones not matching it
-    Out :       type / str
-        Flag indicating in which form to return the result:
-            - int: as an array of integer indices
-            - bool: as an array of boolean indices
-            - 'Name': as a list of names
-            - 'LOS': as a list of :class:`~tofu.geom.LOS` instances
-
-    Returns
-    -------
-    ind :       list / np.ndarray
-        The computed output, of nature defined by parameter Out
-
-    Examples
-    --------
-    >>> import tofu.geom as tfg
-    >>> VPoly, VLim = [[0.,1.,1.,0.],[0.,0.,1.,1.]], [-1.,1.]
-    >>> V = tfg.Ves('ves', VPoly, Lim=VLim, Type='Lin', Exp='Misc', shot=0)
-    >>> Du1 = ([0.,-0.1,-0.1],[0.,1.,1.])
-    >>> Du2 = ([0.,-0.1,-0.1],[0.,0.5,1.])
-    >>> Du3 = ([0.,-0.1,-0.1],[0.,1.,0.5])
-    >>> l1 = tfg.LOS('l1', Du1, Ves=V, Exp='Misc', Diag='A', shot=0)
-    >>> l2 = tfg.LOS('l2', Du2, Ves=V, Exp='Misc', Diag='A', shot=1)
-    >>> l3 = tfg.LOS('l3', Du3, Ves=V, Exp='Misc', Diag='B', shot=1)
-    >>> gl = tfg.GLOS('gl', [l1,l2,l3])
-    >>> Arg1 = dict(Val=['l1','l3'],Log='any',Out='LOS')
-    >>> Arg2 = dict(Val=['l1','l3'],Log='any',InOut='Out',Out=int)
-    >>> Arg3 = dict(Crit='Diag', Val='A', Out='Name')
-    >>> Arg4 = dict(Crit='shot', PostExp='>=1')
-    >>> gl.select(**Arg1)
-    [l1,l3]
-    >>> gl.select(**Arg2)
-    array([1])
-    >>> gl.select(**Arg3)
-    ['l1','l2']
-    >>> gl.select(**Arg4)
-    array([False, True, True], dtype=bool)
-
     """
+
+lp = [p for p in params.values()]
+CamLOS2D.__signature__ = sig.replace(parameters=lp)
+
+
+
+
+
+
+
+""" Return the indices or instances of all LOS matching criteria
+
+The selection can be done according to 2 different mechanisms
+
+Mechanism (1): provide the value (Val) a criterion (Crit) should match
+The criteria are typically attributes of :class:`~tofu.pathfile.ID`
+(i.e.: name, or user-defined attributes like the camera head...)
+
+Mechanism (2): (used if Val=None)
+Provide a str expression (or a list of such) to be fed to eval()
+Used to check on quantitative criteria.
+    - PreExp: placed before the criterion value (e.g.: 'not ' or '<=')
+    - PostExp: placed after the criterion value
+    - you can use both
+
+Other parameters are used to specify logical operators for the selection
+(match any or all the criterion...) and the type of output.
+
+Parameters
+----------
+Crit :      str
+    Flag indicating which criterion to use for discrimination
+    Can be set to:
+        - any attribute of :class:`~tofu.pathfile.ID`
+    A str (or list of such) expression to be fed to eval()
+    Placed after the criterion value
+    Used for selection mechanism (2)
+Log :       str
+    Flag indicating whether the criterion shall match:
+        - 'all': all provided values
+        - 'any': at least one of them
+InOut :     str
+    Flag indicating whether the returned indices are:
+        - 'In': the ones matching the criterion
+        - 'Out': the ones not matching it
+Out :       type / str
+    Flag indicating in which form to return the result:
+        - int: as an array of integer indices
+        - bool: as an array of boolean indices
+        - 'Name': as a list of names
+        - 'LOS': as a list of :class:`~tofu.geom.LOS` instances
+
+Returns
+-------
+ind :       list / np.ndarray
+    The computed output, of nature defined by parameter Out
+
+Examples
+--------
+>>> import tofu.geom as tfg
+>>> VPoly, VLim = [[0.,1.,1.,0.],[0.,0.,1.,1.]], [-1.,1.]
+>>> V = tfg.Ves('ves', VPoly, Lim=VLim, Type='Lin', Exp='Misc', shot=0)
+>>> Du1 = ([0.,-0.1,-0.1],[0.,1.,1.])
+>>> Du2 = ([0.,-0.1,-0.1],[0.,0.5,1.])
+>>> Du3 = ([0.,-0.1,-0.1],[0.,1.,0.5])
+>>> l1 = tfg.LOS('l1', Du1, Ves=V, Exp='Misc', Diag='A', shot=0)
+>>> l2 = tfg.LOS('l2', Du2, Ves=V, Exp='Misc', Diag='A', shot=1)
+>>> l3 = tfg.LOS('l3', Du3, Ves=V, Exp='Misc', Diag='B', shot=1)
+>>> gl = tfg.GLOS('gl', [l1,l2,l3])
+>>> Arg1 = dict(Val=['l1','l3'],Log='any',Out='LOS')
+>>> Arg2 = dict(Val=['l1','l3'],Log='any',InOut='Out',Out=int)
+>>> Arg3 = dict(Crit='Diag', Val='A', Out='Name')
+>>> Arg4 = dict(Crit='shot', PostExp='>=1')
+>>> gl.select(**Arg1)
+[l1,l3]
+>>> gl.select(**Arg2)
+array([1])
+>>> gl.select(**Arg3)
+['l1','l2']
+>>> gl.select(**Arg4)
+array([False, True, True], dtype=bool)
+
+"""

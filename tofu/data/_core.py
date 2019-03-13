@@ -5,8 +5,9 @@ import sys
 import os
 import itertools as itt
 import copy
+import inspect
 import warnings
-#from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 # Common
 import numpy as np
@@ -24,7 +25,7 @@ except Exception:
     from . import _plot as _plot
     from . import _def as _def
 
-__all__ = ['Data1D','Data2D','DataSpectro']
+__all__ = ['DataCam1D','DataCam2D']
 
 
 #############################################
@@ -103,7 +104,9 @@ def _select_ind(v, ref, nRef):
 #       class
 #############################################
 
-class Data(utils.ToFuObject):
+class DataAbstract(utils.ToFuObject):
+
+    __metaclass__ = ABCMeta
 
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'Type':'1D',
@@ -115,18 +118,18 @@ class Data(utils.ToFuObject):
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
         # Python 2
-        super(Data,cls).__init_subclass__(**kwdargs)
+        super(DataAbstract,cls).__init_subclass__(**kwdargs)
         # Python 3
         #super().__init_subclass__(**kwdargs)
-        cls._ddef = copy.deepcopy(Data._ddef)
+        cls._ddef = copy.deepcopy(DataAbstract._ddef)
         #cls._dplot = copy.deepcopy(Struct._dplot)
         #cls._set_color_ddef(cls._color)
 
 
     def __init__(self, data=None, t=None, X=None, lamb=None,
-                 dchans=None, dlabels=None,
+                 dchans=None, dlabels=None, dX12=None,
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 dextra=None, lCam=None, config=None, Type=None,
+                 dextra=None, lCam=None, config=None,
                  fromdict=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
 
@@ -141,11 +144,11 @@ class Data(utils.ToFuObject):
         kwdargs = locals()
         del kwdargs['self']
         # super()
-        super(Data,self).__init__(**kwdargs)
+        super(DataAbstract,self).__init__(**kwdargs)
 
     def _reset(self):
         # super()
-        super(Data,self)._reset()
+        super(DataAbstract,self)._reset()
         self._ddataRef = dict.fromkeys(self._get_keys_ddataRef())
         self._dtreat = dict.fromkeys(self._get_keys_dtreat())
         self._ddata = dict.fromkeys(self._get_keys_ddata())
@@ -730,7 +733,7 @@ class Data(utils.ToFuObject):
 
     def strip(self, strip=0):
         # super()
-        super(Data,self).strip(strip=strip)
+        super(DataAbstract,self).strip(strip=strip)
 
     def _strip(self, strip=0):
         self._strip_ddata(strip=strip)
@@ -808,9 +811,10 @@ class Data(utils.ToFuObject):
     def lCam(self):
         return self._get_lCam()
 
-    @property
-    def _isSpectral(self):
-        return 'spectral' in self.__class__.__name__.lower()
+    @abstractmethod
+    def _isSpectral(self):  pass
+    @abstractmethod
+    def _is1D(self):        pass
 
 
     ###########
@@ -1503,9 +1507,9 @@ class Data(utils.ToFuObject):
 
         """
         C0 = isinstance(lD,list)
-        C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
-        C1 = issubclass(lD.__class__,Data)
-        assert C0 or C1, 'Provided first arg. must be a tf.data.Data or list !'
+        C0 = C0 and all([issubclass(dd.__class__,DataAbstract) for dd in lD])
+        C1 = issubclass(lD.__class__,DataAbstract)
+        assert C0 or C1, 'Provided first arg. must be a tf.data.DataAbstract or list !'
         lD = [lD] if C1 else lD
         KH = _plot.Data_plot([self]+lD, key=key, invert=invert, Bck=Bck,
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
@@ -1528,9 +1532,9 @@ class Data(utils.ToFuObject):
 
         """
         C0 = isinstance(lD,list)
-        C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
-        C1 = issubclass(lD.__class__,Data)
-        assert C0 or C1, 'Provided first arg. must be a tf.data.Data or list !'
+        C0 = C0 and all([issubclass(dd.__class__,DataAbstract) for dd in lD])
+        C1 = issubclass(lD.__class__,DataAbstract)
+        assert C0 or C1, 'Provided first arg. must be a tf.data.DataAbstract or list !'
         lD = [lD] if C1 else lD
         KH = _plot.Data_plot_combine([self]+lD, key=key, invert=invert, Bck=Bck,
                                      ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
@@ -1701,7 +1705,7 @@ class Data(utils.ToFuObject):
 ############################################ To be finished
 
 
-
+"""
     def _get_LCam(self):
         if self.geom is None or self.geom['LCam'] is None:
             lC = None
@@ -1918,7 +1922,7 @@ def _recreatefromoperator(d0, other, opfunc):
         data = Data(d, **kwdargs)
     return data
 
-
+"""
 
 
 
@@ -1928,30 +1932,24 @@ def _recreatefromoperator(d0, other, opfunc):
 #               Data1D and Data2D
 #####################################################################
 
+sig = inspect.signature(DataAbstract)
+params = sig.parameters
 
-class Data1D(Data):
+
+class DataCam1D(DataAbstract):
     """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data=None, t=None, dchans=None, dlabels=None,
-                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, Ves=None, LStruct=None, fromdict=None,
-                 SavePath=os.path.abspath('./')):
-        Data.__init__(self, data, t=t, dchans=dchans, dlabels=dlabels,
-                 Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra, CamCls='1D',
-                 lCam=LCam, Ves=Ves, LStruct=LStruct, fromdict=fromdict, SavePath=SavePath)
+    def _isSpectral(self):  return False
+    def _is1D(self):        return True
+lp = [p for p in params.values() if p.name not in ['lamb','dX12']]
+DataCam1D.__signature__ = sig.replace(parameters=lp)
 
 
 
-class Data2D(Data):
-    """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data=None, t=None, dchans=None, dlabels=None,
-                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, Ves=None, LStruct=None, X12=None, fromdict=None,
-                 SavePath=os.path.abspath('./')):
-        Data.__init__(self, data, t=t, dchans=dchans, dlabels=dlabels,
-                      Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra,
-                      lCam=LCam,
-                      fromdict=fromdict, SavePath=SavePath)
-        self.set_X12(X12)
+class DataCam2D(DataAbstract):
+    """ Data object used for 2D cameras or list of 2D cameras  """
+
+    def _isSpectral(self):  return False
+    def _is1D(self):        return False
 
     def set_X12(self, X12=None):
         X12 = X12 if (self.geom is None or self.geom['LCam'] is None) else None
@@ -1976,6 +1974,8 @@ class Data2D(Data):
                 DX12 = None
         return X12, DX12
 
+lp = [p for p in params.values() if p.name not in ['lamb']]
+DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 
@@ -1995,7 +1995,7 @@ class Data2D(Data):
 
 
 
-class DataSpectro(Data):
+class DataSpectro(DataAbstract):
     """ data should be provided in (nt,nlamb,chan) format  """
 
     def __init__(self, data=None, lamb=None, t=None, dchans=None, dlabels=None,
