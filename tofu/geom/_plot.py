@@ -1179,7 +1179,7 @@ def _make_cmap(c):
 
 
 def Rays_plot_touch(Cam, key=None, ind=None, quant='length', cdef=_cdef,
-                    invert=None, plotmethod='imshow',
+                    invert=None, plotmethod='imshow', Bck=True,
                     nchMax=_nchMax, lcch=_lcch, fs=None, wintit=None, tit=None,
                     fontsize=_fontsize, draw=True, connect=True):
 
@@ -1205,7 +1205,7 @@ def Rays_plot_touch(Cam, key=None, ind=None, quant='length', cdef=_cdef,
     else:
         invert = True if invert is None else invert
         out = _Cam2D_plot_touch2(Cam, ind=ind, quant=quant, cdef=cdef, nchMax=nchMax,
-                                 invert=invert, plotmethod=plotmethod,
+                                 invert=invert, plotmethod=plotmethod, Bck=Bck,
                                  lcch=lcch, fs=fs, wintit=wintit, tit=tit,
                                  fontsize=fontsize, draw=draw, connect=connect)
     return out
@@ -1633,13 +1633,16 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
 
 
 def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
-                       ms=4, lcch=_lcch, cdef=_cdef,
+                       ms=4, lcch=_lcch, cdef=_cdef, Bck=True,
                        plotmethod=None, invert=False, nchMax=_nchMax,
                        dmargin=None, fs=None, wintit=_wintit, tit=None,
                        fontsize=_fontsize, draw=True, connect=True):
     assert plotmethod == 'imshow', 'Not coded yet !'
 
+    # -------
     # Prepare
+
+    # data
     if quant == 'length':
         if 'LOS' in Cam.Id.Cls:
             Dname = 'LOS length'
@@ -1655,8 +1658,9 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
         Dname = 'index'
         Dunits = r"$a.u.$"
         data = np.arange(0,Cam.nRays)
-
+    iddata = id(data)
     nch = data.size
+
     chans = np.arange(0,nch)
     Dchans = [-1,nch]
     if key is None:
@@ -1669,6 +1673,9 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
         lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
     else:
         raise Exception("Not coded yet !")
+
+    # -------
+    # cmap
 
     # Get colors
     datamin, datamax = np.nanmin(data), np.nanmax(data)
@@ -1694,11 +1701,14 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
             cols[indout,:] = scamapdef.to_rgba(data[indout])
 
 
+    # -------
+    # Plot fixed parts
+
     # Format axes
     dax = _Cam2D_plot_touch_init(fs=fs, wintit=wintit, nchMax=nchMax,
                                  dmargin=dmargin, fontsize=fontsize)
 
-    # Plot fixed parts
+    # config and title
     out = Cam.config.plot(lax=[dax['cross'][0]['ax'],
                                dax['hor'][0]['ax']],
                           element='P', dLeg=None, draw=False)
@@ -1708,16 +1718,9 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
         tit = r"%s - %s - %s"%(Cam.Id.Exp, Cam.Id.Diag, Cam.Id.Name)
     dax['chan2D'][0]['ax'].figure.suptitle(tit)
 
-    X12T = np.array([Cam.dX12['x1'][Cam.dX12['ind1']],
-                     Cam.dX12['x2'][Cam.dX12['ind2']]]).T
-
-    incx = {'left': np.r_[-(X12T[1,0]-X12T[0,0]),0.],
-            'right':np.r_[X12T[1,0]-X12T[0,0],0.],
-            'down': np.r_[0.,-(X12T[1,1]-X12T[0,1])],
-            'up':   np.r_[0.,X12T[1,1]-X12T[0,1]]}
-
-    dax['chan2D'][0]['xref'] = X12T
+    # image
     if plotmethod=='scatter':
+        # TBF
         dax['chan2D'][0]['ax'].set_xlim(DX1)
         dax['chan2D'][0]['ax'].set_ylim(DX2)
         dax['chan2D'][0]['ax'].scatter(X12[0,:],X12[1,:], c=cols,
@@ -1732,7 +1735,7 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
                                       interpolation='nearest', origin='lower',
                                       zorder=-1)
 
-    # Plot colorbar
+    # colorbar
     cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0]['ax'],
                                    cmap=cmapdef, norm=norm,
                                    orientation='horizontal')
@@ -1743,7 +1746,13 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
     else:
         datanorm = data[:,np.newaxis]
 
-    # Plot LOS
+    # Background channels
+    if Bck:
+
+
+
+    # -----------------
+    # Plot mobile parts
     if 'LOS' in Cam.Id.Cls:
         lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
         lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
@@ -1805,7 +1814,7 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
         dax['chan2D'][0]['ax'].invert_yaxis()
     dax['chan2D'][0]['invert'] = invert
 
-    # Plot mobile parts
+    # Instanciate KeyHandler
     can = dax['chan2D'][0]['ax'].figure.canvas
     can.draw()
     KH = KH2D(can, dax, nchMax=nchMax)
