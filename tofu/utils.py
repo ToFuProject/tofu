@@ -1034,6 +1034,53 @@ class ToFuObject(ToFuObjectBase):
         if hasattr(self,'_Id'):
             self._Id._reset()
 
+
+    # TBF
+    def _set_dlObj(self, lObj, dname='dOptics'):
+        dname = '_'+dname
+
+        # Make sure to kill the link to the mutable being provided
+        nObj = len(lObj)
+        lCls, lorder, lerr = [], [], []
+        for obj in lObj:
+            cls = obj.__class__.__name__
+            name = obj.Id.Name
+            clsname = obj.Id.SaveName_Conv(Cls=cls, Name=name,
+                                           include=['Cls','Name'])
+            if cls not in lCls:
+                lCls.append(lCls)
+                if clsname in lorder:
+                    lerr.append(clsname)
+            lorder.append(clsname)
+
+        if len(lerr)>0:
+            msg = "There is an ambiguity in the names :"
+            msg += "\n    - " + "\n    - ".join(lerr)
+            msg += "\n => Please clarify (choose unique Cls/Names)"
+            raise Exception(msg)
+
+        # Initisalize (not necessary in case of update)
+        c0 = (hasattr(self,dname)
+              and 'dObj' in getattr(self,dname).keys()
+              and isinstance(getattr(self,dname)['dObj'],dict))
+        if not c0:
+            setattr(self, dname, {'dObj':dict([(k,{}) for k in lCls])})
+
+        for k in lCls:
+            if not k in self._dstruct['dStruct'].keys():
+                self._dstruct['dStruct'][k] = {}
+            lk = self._dstruct['dStruct'][k].keys()
+            ls = [ss for ss in lStruct if ss.Id.Cls==k]
+            for ss in ls:
+                name = ss.Id.Name
+                if not name in lk:
+                    self._dstruct['dStruct'][k][name] = ss.copy()
+                if self._dstruct['dStruct'][k][name]._dstrip['strip'] != 0:
+                    self._dstruct['dStruct'][k][name].strip(0)
+
+        self._dstruct.update({'nStruct':nStruct, 'Lim':Lim, 'nLim':nLim,
+                              'lorder':lorder, 'lCls':lCls})
+
     def save(self, path=None, name=None,
              strip=None, sep=_sep, deep=True, mode='npz',
              compressed=False, verb=True, return_pfe=False):

@@ -1706,10 +1706,11 @@ class Config(utils.ToFuObject):
             lk = self._dstruct['dStruct'][k].keys()
             ls = [ss for ss in lStruct if ss.Id.Cls==k]
             for ss in ls:
-                if not ss.Id.Name in lk:
-                    self._dstruct['dStruct'][k][ss.Id.Name] = ss.copy()
-                if self._dstruct['dStruct'][k][ss.Id.Name]._dstrip['strip']!=0:
-                    self._dstruct['dStruct'][k][ss.Id.Name].strip(0)
+                name = ss.Id.Name
+                if not name in lk:
+                    self._dstruct['dStruct'][k][name] = ss.copy()
+                if self._dstruct['dStruct'][k][name]._dstrip['strip'] != 0:
+                    self._dstruct['dStruct'][k][name].strip(0)
 
         self._dstruct.update({'nStruct':nStruct, 'Lim':Lim, 'nLim':nLim,
                               'lorder':lorder, 'lCls':lCls})
@@ -2433,7 +2434,7 @@ class Rays(utils.ToFuObject):
     def _set_color_ddef(cls, color):
         cls._ddef['dmisc']['color'] = mpl.colors.to_rgba(color)
 
-    def __init__(self, dgeom=None, dOptics=None, Etendues=None, Surfaces=None,
+    def __init__(self, dgeom=None, lOptics=None, Etendues=None, Surfaces=None,
                  config=None, dchans=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  sino_RefPt=None, fromdict=None, method='optimized',
@@ -2514,7 +2515,7 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dOptics():
-        largs = ['dOptics']
+        largs = ['lOptics']
         return largs
 
     @staticmethod
@@ -2717,6 +2718,18 @@ class Rays(utils.ToFuObject):
         return dX12
 
     @staticmethod
+    def _checkformat_dOptics(lOptics=None):
+        if lOptics is None:
+            lOptics = []
+        assert type(lOptics) is list
+        lcls = ['Apert3D','Cryst2D']
+        nOptics = len(lOptics)
+        for ii in range(0,nOptics):
+            assert lOptics[ii].__class__.__name__ in lcls
+        return lOptics, nOptics
+
+
+    @staticmethod
     def _checkformat_inputs_dconfig(config=None):
         C0 = isinstance(config,Config)
         msg = "Arg config must be a Config instance !"
@@ -2814,6 +2827,8 @@ class Rays(utils.ToFuObject):
         kwdconfig = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dchans()
         kwdchans = self._extract_kwdargs(locals(), largs)
+        largs = self._get_largs_dOptics()
+        kwdOptics = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dmisc()
         kwdmisc = self._extract_kwdargs(locals(), largs)
         self.set_dconfig(calcdgeom=False, **kwdconfig)
@@ -2821,6 +2836,7 @@ class Rays(utils.ToFuObject):
         if self._is2D():
             kwdX12 = self._extract_kwdargs(locals(), self._get_largs_dX12())
             self.set_dX12(**kwdX12)
+        self._set_dOptics(**kwdOptics)
         self.set_dchans(**kwdchans)
         self._set_dmisc(**kwdmisc)
         self._dstrip['strip'] = 0
@@ -3241,6 +3257,25 @@ class Rays(utils.ToFuObject):
                 raise Exception(msg)
         if extra:
             self._compute_dsino_extra()
+
+    def _set_dOptics(self, lOptics=None):
+        lOptics, nOptics = self._checkformat_dOptics(lOptics=lOptics)
+        dOptics = {'nOptics':nOptics, 'dobj':{}}
+        lCls, order = [], []
+        for ii in range(0,nOptics):
+            cls = lOptics[ii].__class__.__name__
+            name = lOptics[ii].Id.Name
+            if cls not in lCls:
+                lCls.append(cls)
+                dOptics['dobj'][cls] = {}
+            clsname = cls+'_'+name
+            assert clsname not in lorder
+            lorder.append(clsname)
+            dOptics['dobj'][cls].update({name: lOptics[ii].copy()})
+            if dOptics['dobj'][cls][name]._dstrip['strip'] != 0:
+
+        dOptics.update({'lorder':lorder, 'lCls':lCls})
+        self.dOptics = dOptics
 
     def set_dchans(self, dchans=None):
         dchans = self._checkformat_inputs_dchans(dchans)
