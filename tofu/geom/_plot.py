@@ -1178,7 +1178,7 @@ def _make_cmap(c):
 
 
 
-def Rays_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
+def Rays_plot_touch(Cam, key=None, ind=None, quant='length', cdef=_cdef,
                     invert=None, plotmethod='imshow',
                     nchMax=_nchMax, lcch=_lcch, fs=None, wintit=None, tit=None,
                     fontsize=_fontsize, draw=True, connect=True):
@@ -1204,10 +1204,10 @@ def Rays_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
                                 fs=fs, wintit=wintit, tit=tit, draw=draw)
     else:
         invert = True if invert is None else invert
-        out = _Cam2D_plot_touch(Cam, ind=ind, cdef=cdef, nchMax=nchMax,
-                                invert=invert, plotmethod=plotmethod,
-                                lcch=lcch, fs=fs, wintit=wintit, tit=tit,
-                                fontsize=fontsize, draw=draw, connect=connect)
+        out = _Cam2D_plot_touch2(Cam, ind=ind, quant=quant, cdef=cdef, nchMax=nchMax,
+                                 invert=invert, plotmethod=plotmethod,
+                                 lcch=lcch, fs=fs, wintit=wintit, tit=tit,
+                                 fontsize=fontsize, draw=draw, connect=connect)
     return out
 
 
@@ -1462,6 +1462,7 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
         chlab = chans
     else:
         chlab = Cam.dchans[kk]
+
     X12, DX12 = Cam.get_X12(out='1d')
     X12T = X12.T
 
@@ -1541,6 +1542,192 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
             import ipdb
             ipdb.set_trace()
             raise err
+        dax['chan2D'][0]['ax'].imshow(cols, extent=extent, aspect='equal',
+                                      interpolation='nearest', origin='lower',
+                                      zorder=-1)
+
+    # Plot colorbar
+    cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0]['ax'],
+                                   cmap=cmapdef, norm=norm,
+                                   orientation='horizontal')
+    cb.set_label(r"LOS length (m)")
+    # Define datanorm because colorbar => xlim in (0,1)
+    if dax['colorbar'][0]['ax'].get_xlim()==(0.,1.):
+        datanorm = ((data-datamin)/(datamax-datamin))[:,np.newaxis]
+    else:
+        datanorm = data[:,np.newaxis]
+
+    # Plot LOS
+    if 'LOS' in Cam.Id.Cls:
+        lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
+        lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
+        if 'Name' in Cam.dchans.keys():
+            llab = [Cam.Id.Name + s for s in Cam.dchans['Name']]
+        else:
+            llab = [Cam.Id.Name + '-{0}'.format(ii)
+                    for ii in range(0,Cam.nRays)]
+
+        lv = []
+        dlosc = {'losc':[{'h':[],'xy':lCross, 'xref':X12T}]}
+        lHor= np.stack(tuple(lHor),axis=0)
+        dlosh = {'losh':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':X12T}]}
+        dcolb = {'vline':[{'h':[],'x':datanorm, 'xref':X12T}]}
+        dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':X12T}]}
+        for jj in range(0,nchMax):
+            lab = r"ch{0}".format(jj)
+            l, = dax['chan2D'][0]['ax'].plot([np.nan],[np.nan],
+                                              mec=lcch[jj], ls='None',
+                                              marker='s', mew=2.,
+                                              ms=ms, mfc='None',
+                                              label=lab, zorder=10)
+            lv.append(l)
+            l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
+                                           [np.nan,np.nan],
+                                           c=lcch[jj], ls='-', lw=2.)
+            dlosc['losc'][0]['h'].append(l)
+            l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
+                                          [np.nan,np.nan],
+                                          c=lcch[jj], ls='-', lw=2.)
+            dlosh['losh'][0]['h'].append(l)
+            l = dax['colorbar'][0]['ax'].axvline(np.nan, ls='-', lw=1,
+                                                 c=lcch[jj], zorder=10)
+            dcolb['vline'][0]['h'].append(l)
+            l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
+                                       color=lcch[jj],
+                                       fontweight='bold', fontsize=6.,
+                                       ha='center', va='bottom')
+            dchtxt['txt'][0]['h'].append(l)
+        dax['chan2D'][0]['dh']['vline'] = [{'h':lv, 'xref':X12T,
+                                            'trig':{}}]
+        dax['hor'][0]['dh'].update(dlosh)
+        dax['cross'][0]['dh'].update(dlosc)
+        dax['colorbar'][0]['dh'].update(dcolb)
+        dax['txtch'][0]['dh'].update(dchtxt)
+        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dlosh)
+        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dlosc)
+        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dcolb)
+        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dchtxt)
+    else:
+        raise Exception("Not coded yet !")
+    dax['chan2D'][0]['incx'] = incx
+    dax['chan2D'][0]['ax'].set_ylabel(r"pix.", fontsize=fontsize)
+
+    dax['chan2D'][0]['ax'].set_xlabel(r"$X_1$", fontsize=8)
+    dax['chan2D'][0]['ax'].set_ylabel(r"$X_2$", fontsize=8)
+    if invert:
+        dax['chan2D'][0]['ax'].invert_xaxis()
+        dax['chan2D'][0]['ax'].invert_yaxis()
+    dax['chan2D'][0]['invert'] = invert
+
+    # Plot mobile parts
+    can = dax['chan2D'][0]['ax'].figure.canvas
+    can.draw()
+    KH = KH2D(can, dax, nchMax=nchMax)
+
+    if connect:
+        KH.disconnect_old()
+        KH.connect()
+    if draw:
+        can.draw()
+    return KH
+
+
+def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
+                       ms=4, lcch=_lcch, cdef=_cdef,
+                       plotmethod=None, invert=False, nchMax=_nchMax,
+                       dmargin=None, fs=None, wintit=_wintit, tit=None,
+                       fontsize=_fontsize, draw=True, connect=True):
+    assert plotmethod == 'imshow', 'Not coded yet !'
+
+    # Prepare
+    if quant == 'length':
+        if 'LOS' in Cam.Id.Cls:
+            Dname = 'LOS length'
+            Dunits = r"$m$"
+            data = Cam.kOut-Cam.kIn
+            data[np.isinf(data)] = np.nan
+        else:
+            Dname = 'VOS volume'
+            Dunits = r"$m^3$"
+            data = None
+            raise Exception("Not coded yet !")
+    elif quant == 'ind':
+        Dname = 'index'
+        Dunits = r"$a.u.$"
+        data = np.arange(0,Cam.nRays)
+
+    nch = data.size
+    chans = np.arange(0,nch)
+    Dchans = [-1,nch]
+    if key is None:
+        chlab = chans
+    else:
+        chlab = Cam.dchans[kk]
+
+    if 'LOS' in Cam.Id.Cls:
+        lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
+        lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
+    else:
+        raise Exception("Not coded yet !")
+
+    # Get colors
+    datamin, datamax = np.nanmin(data), np.nanmax(data)
+    norm = mpl.colors.Normalize(vmin=datamin, vmax=datamax)
+    cmapdef = _make_cmap(cdef)
+    scamapdef = mpl.cm.ScalarMappable(norm=norm, cmap=cmapdef)
+    lS = Cam.lStruct_computeInOut
+    cols = np.full((data.size,4),np.nan)
+    dElt = {}
+    for ss in lS:
+        kn = ss.Id.Cls+'_'+ss.Id.Name
+        inde = Cam.select(touch=kn,out=bool)
+        if ind is not None:
+            indin = inde & ind
+            indout = inde & (~ind)
+        c = ss.get_color()[:-1]
+        cmap = _make_cmap(c)
+        scamap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+        if ind is None:
+            cols[inde,:] = scamap.to_rgba(data[inde])
+        else:
+            cols[indin,:] = scamap.to_rgba(data[indin])
+            cols[indout,:] = scamapdef.to_rgba(data[indout])
+
+
+    # Format axes
+    dax = _Cam2D_plot_touch_init(fs=fs, wintit=wintit, nchMax=nchMax,
+                                 dmargin=dmargin, fontsize=fontsize)
+
+    # Plot fixed parts
+    out = Cam.config.plot(lax=[dax['cross'][0]['ax'],
+                               dax['hor'][0]['ax']],
+                          element='P', dLeg=None, draw=False)
+    dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
+
+    if tit is None:
+        tit = r"%s - %s - %s"%(Cam.Id.Exp, Cam.Id.Diag, Cam.Id.Name)
+    dax['chan2D'][0]['ax'].figure.suptitle(tit)
+
+    X12T = np.array([Cam.dX12['x1'][Cam.dX12['ind1']],
+                     Cam.dX12['x2'][Cam.dX12['ind2']]]).T
+
+    incx = {'left': np.r_[-(X12T[1,0]-X12T[0,0]),0.],
+            'right':np.r_[X12T[1,0]-X12T[0,0],0.],
+            'down': np.r_[0.,-(X12T[1,1]-X12T[0,1])],
+            'up':   np.r_[0.,X12T[1,1]-X12T[0,1]]}
+
+    dax['chan2D'][0]['xref'] = X12T
+    if plotmethod=='scatter':
+        dax['chan2D'][0]['ax'].set_xlim(DX1)
+        dax['chan2D'][0]['ax'].set_ylim(DX2)
+        dax['chan2D'][0]['ax'].scatter(X12[0,:],X12[1,:], c=cols,
+                                       s=8, marker='s', edgecolors='None',
+                                       zorder=-1)
+    elif plotmethod=='imshow':
+        indr, extent = Cam.get_X12plot(plotmethod)
+        dax['chan2D'][0]['ax'].set_xlim(extent[0:2])
+        dax['chan2D'][0]['ax'].set_ylim(extent[2:])
+        cols = cols[indr,:]
         dax['chan2D'][0]['ax'].imshow(cols, extent=extent, aspect='equal',
                                       interpolation='nearest', origin='lower',
                                       zorder=-1)

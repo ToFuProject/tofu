@@ -575,8 +575,8 @@ def _compute_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
     # Get starting points
     d1 = 0.5*D12[0]*np.linspace(-1.,1.,N12[0],endpoint=True)
     d2 = 0.5*D12[1]*np.linspace(-1.,1.,N12[1],endpoint=True)
-    d1f = np.repeat(d1,N12[1])
-    d2f = np.tile(d2,N12[0])
+    d1f = np.tile(d1,N12[1])
+    d2f = np.repeat(d2,N12[0])
     d1e = d1f[np.newaxis,:]*e1[:,np.newaxis]
     d2e = d2f[np.newaxis,:]*e2[:,np.newaxis]
 

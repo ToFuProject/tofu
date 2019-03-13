@@ -2528,8 +2528,8 @@ class Rays(utils.ToFuObject):
         c1 = n1 is not None and n2 is not None
         assert c1, "Provide n1 and n2 !"
         if c0:
-            ind1 = np.arange(0,n1)
-            ind2 = np.arange(0,n2)
+            ind1 = np.tile(np.arange(0,n1), n2)
+            ind2 = np.repeat(np.arange(0,n2), n1)
         else:
             ind1 = np.asarray(ind1).ravel().astype(int)
             ind2 = np.asarray(ind2).ravel().astype(int)
@@ -2667,7 +2667,11 @@ class Rays(utils.ToFuObject):
             raise Exception(msg)
 
         if lc[1]:
-            if not self._dgeom['case'] in ['D','E','F','G']:
+            ls = self._get_keys_dX12()
+            c0 = isinstance(self._dgeom['dX12'],dict)
+            c1 = c0 and all([ss in self._dgeom['dX12'].keys() for ss in ls])
+            c2 = c1 and all([self._dgeom['dX12'][ss] is not None for ss in ls])
+            if not c2:
                 msg = "dX12 cannot be derived from dgeom (info not known) !"
                 raise Exception(msg)
 
@@ -2789,23 +2793,25 @@ class Rays(utils.ToFuObject):
     ###########
 
     def _init(self, dgeom=None, config=None, Etendues=None, Surfaces=None,
-              sino_RefPt=None, dchans=None, method='optimized', **kwdargs):
+              sino_RefPt=None, dchans=None, method='optimized', **kwargs):
         if method is not None:
             self._method = method
+        kwdargs = locals()
+        kwdargs.update(**kwargs)
         largs = self._get_largs_dgeom(sino=True)
-        kwdgeom = self._extract_kwdargs(locals(), largs)
+        kwdgeom = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dconfig()
-        kwdconfig = self._extract_kwdargs(locals(), largs)
+        kwdconfig = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dchans()
-        kwdchans = self._extract_kwdargs(locals(), largs)
+        kwdchans = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dOptics()
-        kwdOptics = self._extract_kwdargs(locals(), largs)
+        kwdOptics = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dmisc()
-        kwdmisc = self._extract_kwdargs(locals(), largs)
+        kwdmisc = self._extract_kwdargs(kwdargs, largs)
         self.set_dconfig(calcdgeom=False, **kwdconfig)
         self._set_dgeom(sino=True, **kwdgeom)
         if self._is2D():
-            kwdX12 = self._extract_kwdargs(locals(), self._get_largs_dX12())
+            kwdX12 = self._extract_kwdargs(kwdargs, self._get_largs_dX12())
             self.set_dX12(**kwdX12)
         self._set_dOptics(**kwdOptics)
         self.set_dchans(**kwdchans)
@@ -4227,12 +4233,13 @@ class Rays(utils.ToFuObject):
                                     ind=ind, fs=fs, wintit=wintit,
                                     draw=draw, Test=Test)
 
-    def plot_touch(self, key=None, invert=None,
+    def plot_touch(self, key=None, quant='length', invert=None,
                    ind=None, plotmethod='imshow',
                    fs=None, wintit=None, tit=None,
                    connect=True, draw=True):
 
-        out = _plot.Rays_plot_touch(self, key=key, ind=ind, invert=invert,
+        out = _plot.Rays_plot_touch(self, key=key,
+                                    quant=quant, ind=ind, invert=invert,
                                     plotmethod=plotmethod, connect=connect,
                                     fs=fs, wintit=wintit, tit=tit, draw=draw)
         return out
