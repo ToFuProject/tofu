@@ -1680,7 +1680,7 @@ class Config(utils.ToFuObject):
         lStruct, Lim, nLim = self._checkformat_inputs_dStruct(lStruct=lStruct,
                                                               Lim=Lim)
         self._dStruct.update({'Lim':Lim, 'nLim':nLim})
-        self._set_dlObj(self._dStruct)
+        self._set_dlObj(lStruct, din=self._dStruct)
 
 
     def _set_dextraprop(self, dextraprop=None):
@@ -2759,6 +2759,11 @@ class Rays(utils.ToFuObject):
         return lk
 
     @staticmethod
+    def _get_keys_dOptics():
+        lk = ['lorder','lCls','nObj', 'dObj']
+        return lk
+
+    @staticmethod
     def _get_keys_dsino():
         lk = ['RefPt', 'k', 'pts',
               'theta','p','phi']
@@ -3226,7 +3231,7 @@ class Rays(utils.ToFuObject):
 
     def _set_dOptics(self, lOptics=None):
         lOptics = self._checkformat_dOptics(lOptics=lOptics)
-        self._set_dObj(lOptics, self._dOptics)
+        self._set_dlObj(lOptics, din=self._dOptics)
 
     def set_dchans(self, dchans=None):
         dchans = self._checkformat_inputs_dchans(dchans)

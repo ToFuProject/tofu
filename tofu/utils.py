@@ -1042,12 +1042,16 @@ class ToFuObject(ToFuObjectBase):
         nObj = len(lObj)
         lCls, lorder, lerr = [], [], []
         for obj in lObj:
+            if not issubclass(obj.__class__, ToFuObject):
+                msg = "The following obj is not a ToFuObject subclass:\n"
+                msg += str(obj)
+                raise Exception(msg)
             cls = obj.__class__.__name__
             name = obj.Id.Name
             clsname = obj.Id.SaveName_Conv(Cls=cls, Name=name,
                                            include=['Cls','Name'])
             if cls not in lCls:
-                lCls.append(lCls)
+                lCls.append(cls)
                 if clsname in lorder:
                     lerr.append(clsname)
             lorder.append(clsname)
@@ -1059,7 +1063,7 @@ class ToFuObject(ToFuObjectBase):
             raise Exception(msg)
 
         # Initialize dObj is not existing
-        if 'dObj' not in din.keys():
+        if 'dObj' not in din.keys() or din['dObj'] is None:
             din['dObj'] = dict([(k,{}) for k in lCls])
 
         # Initisalize
@@ -1074,7 +1078,7 @@ class ToFuObject(ToFuObjectBase):
                     din['dObj'][k][name] = ss.copy()
                 if din['dObj'][k][name]._dstrip['strip'] != 0:
                     din['dObj'][k][name].strip(0)
-        din.update({'nObj':nStruct, 'lorder':lorder, 'lCls':lCls})
+        din.update({'nObj':nObj, 'lorder':lorder, 'lCls':lCls})
 
 
     def save(self, path=None, name=None,
