@@ -2536,9 +2536,9 @@ class Rays(utils.ToFuObject):
             assert ind1.size == ind2.size
             assert np.all(ind1>=0) and np.all(ind1<n1)
             assert np.all(ind2>=0) and np.all(ind2<n2)
-        indr = np.zeros((n1,n2),dtype=int)
+        indr = np.zeros((n2,n1),dtype=int)
         for ii in range(0,ind1.size):
-            indr[ind1[ii],ind2[ii]] = ii
+            indr[ind2[ii],ind1[ii]] = ii
         return ind1, ind2, indr
 
     @classmethod
