@@ -181,7 +181,6 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
         dLeg = None
 
     for ii in  range(0,nS):
-
         dplot = _Struct_plot_format(lS[ii], proj=proj, Elt=element,
                                     dP=dP, dI=dI, dBs=dBs,
                                     dBv=dBv, dVect=dVect, dIHor=dIHor,
@@ -1641,7 +1640,6 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
 
 
 def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
-                       colmethod='original',
                        ms=4, lcch=_lcch, cdef=_cdef, Bck=True, cmap='touch',
                        plotmethod=None, invert=False, nchMax=_nchMax,
                        dmargin=None, fs=None, wintit=_wintit, tit=None,
@@ -1691,10 +1689,8 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
     if cmap == 'touch':
         cols, cmapdef, norm = Cam._get_touchcols(data=data,
                                                  vmin=datamin, vmax=datamax,
-                                                 cdef=cdef, ind=ind,
-                                                 method=colmethod)
-        if colmethod != 'original':
-            cols[:,-1] = 1.-norm(data)
+                                                 cdef=cdef, ind=ind)
+        cols[:,-1] = 1.-norm(data)
 
 
     # -------
@@ -1736,9 +1732,10 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
     cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0]['ax'],
                                    cmap=cmapdef, norm=norm,
                                    orientation='horizontal')
-    cb.set_label(r"LOS length (m)")
+    cb.set_label(Dname + Dunits)
+
     # Define datanorm because colorbar => xlim in (0,1)
-    if dax['colorbar'][0]['ax'].get_xlim()==(0.,1.):
+    if dax['colorbar'][0]['ax'].get_xlim() == (0.,1.):
         datanorm = ((data-datamin)/(datamax-datamin))[:,np.newaxis]
     else:
         datanorm = data[:,np.newaxis]
@@ -1755,6 +1752,18 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
             'down':np.r_[0.,-dx2], 'up':np.r_[0.,dx2]}
 
     # -----------------
+    # Prepare dictionnaries
+
+    dgroup = {'channel':{'nMax':nchMax, 'key':'f1',
+                         'defid':idX, 'defax':dax['chan2D'][0]['ax']}}
+
+    dref = {idX: {'group':'channel', 'val':(x1,x2), 'inc':incx12}}
+
+    ddata = {}
+
+
+
+    # -----------------
     # Plot mobile parts
     if 'LOS' in Cam.Id.Cls:
         lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
@@ -1764,6 +1773,36 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
         else:
             llab = [Cam.Id.Name + '-{0}'.format(ii)
                     for ii in range(0,Cam.nRays)]
+
+        for jj in range(0,nchMax):
+            lab = r"ch{0}".format(jj)
+            l, = dax['chan2D'][0]['ax'].plot([np.nan],[np.nan],
+                                              mec=lcch[jj], ls='None',
+                                              marker='s', mew=2.,
+                                              ms=ms, mfc='None',
+                                              label=lab, zorder=10)
+            dobj[l]
+
+            lv.append(l)
+            l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
+                                           [np.nan,np.nan],
+                                           c=lcch[jj], ls='-', lw=2.)
+            dlosc['losc'][0]['h'].append(l)
+            l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
+                                          [np.nan,np.nan],
+                                          c=lcch[jj], ls='-', lw=2.)
+            dlosh['losh'][0]['h'].append(l)
+            l = dax['colorbar'][0]['ax'].axvline(np.nan, ls='-', lw=1,
+                                                 c=lcch[jj], zorder=10)
+            dcolb['vline'][0]['h'].append(l)
+            l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
+                                       color=lcch[jj],
+                                       fontweight='bold', fontsize=6.,
+                                       ha='center', va='bottom')
+            dchtxt['txt'][0]['h'].append(l)
+
+
+
 
         lv = []
         dlosc = {'losc':[{'h':[],'xy':lCross, 'xref':X12T}]}

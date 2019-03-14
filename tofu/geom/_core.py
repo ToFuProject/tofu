@@ -4245,24 +4245,13 @@ class Rays(utils.ToFuObject):
         norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
         cmapdef = _make_cmap(cdef)
         lS = self.lStruct_computeInOut
-        if method == 'original':
-            scamapdef = mpl.cm.ScalarMappable(norm=norm, cmap=cmapdef)
-            cols = scamapdef.to_rgba(data) # shape (nRays, 4)
-            for ss in lS:
-                inde = self.select(touch=ss.Id.Cls+'_'+ss.Id.Name, out=bool)
-                if ind is not None:
-                    inde = inde & ind
-                cmap = _make_cmap(ss.get_color()[:-1])
-                scamap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-                cols[inde,:] = scamap.to_rgba(data[inde])
-        else:
-            cols = np.zeros((self.nRays, 4))
-            cols[:,:-1] = mpl.colors.to_rgb(cdef)
-            for ss in lS:
-                inde = self.select(touch=ss.Id.Cls+'_'+ss.Id.Name, out=bool)
-                if ind is not None:
-                    inde = inde & ind
-                cols[inde,:-1] = ss.get_color()[:-1]
+        cols = np.zeros((self.nRays, 4))
+        cols[:,:-1] = mpl.colors.to_rgb(cdef)
+        for ss in lS:
+            inde = self.select(touch=ss.Id.Cls+'_'+ss.Id.Name, out=bool)
+            if ind is not None:
+                inde = inde & ind
+            cols[inde,:-1] = ss.get_color()[:-1]
         return cols, cmapdef, norm
 
 
