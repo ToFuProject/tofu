@@ -30,7 +30,7 @@ __author_email__ = 'didier.vezinet@cea.fr'
 _fontsize = 8
 _wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
 _nchMax = 4
-_cdef = (0.8,0.8,0.8)
+_cdef = 'k'
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 
 
@@ -1168,7 +1168,6 @@ def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad',
 ########################################################
 
 def _make_cmap(c):
-
     c0 = mpl.colors.to_rgb(c)
     dc = {'red':((0.,c0[0],c0[0]),(1.,1.,1.)),
           'green':((0,c0[1],c0[1]),(1.,1.,1.)),
@@ -1180,6 +1179,7 @@ def _make_cmap(c):
 
 def Rays_plot_touch(Cam, key=None, ind=None, quant='length', cdef=_cdef,
                     invert=None, plotmethod='imshow', Bck=True,
+                    colmethod='original',
                     nchMax=_nchMax, lcch=_lcch, fs=None, wintit=None, tit=None,
                     fontsize=_fontsize, draw=True, connect=True):
 
@@ -1207,7 +1207,12 @@ def Rays_plot_touch(Cam, key=None, ind=None, quant='length', cdef=_cdef,
         out = _Cam2D_plot_touch2(Cam, ind=ind, quant=quant, cdef=cdef, nchMax=nchMax,
                                  invert=invert, plotmethod=plotmethod, Bck=Bck,
                                  lcch=lcch, fs=fs, wintit=wintit, tit=tit,
+                                 colmethod=colmethod,
                                  fontsize=fontsize, draw=draw, connect=connect)
+        # out = _Cam2D_plot_touch(Cam, ind=ind, cdef=cdef, nchMax=nchMax,
+                                 # invert=invert, plotmethod=plotmethod,
+                                 # lcch=lcch, fs=fs, wintit=wintit, tit=tit,
+                                 # fontsize=fontsize, draw=draw, connect=connect)
     return out
 
 
@@ -1463,7 +1468,10 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
     else:
         chlab = Cam.dchans[kk]
 
-    X12, DX12 = Cam.get_X12(out='1d')
+    x1, x2 = Cam.dX12['x1'], Cam.dX12['x2']
+    X12 = np.array([x1[Cam.dX12['ind1']], x2[Cam.dX12['ind2']]])
+    # DX12 = []
+    # X12, DX12 = Cam.get_X12(out='1d')
     X12T = X12.T
 
     X1p, X2p, indp, dX12 = _prepare_pcolormeshimshow(X12, out=plotmethod)
@@ -1633,7 +1641,8 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
 
 
 def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
-                       ms=4, lcch=_lcch, cdef=_cdef, Bck=True,
+                       colmethod='original',
+                       ms=4, lcch=_lcch, cdef=_cdef, Bck=True, cmap='touch',
                        plotmethod=None, invert=False, nchMax=_nchMax,
                        dmargin=None, fs=None, wintit=_wintit, tit=None,
                        fontsize=_fontsize, draw=True, connect=True):
@@ -1679,26 +1688,13 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
 
     # Get colors
     datamin, datamax = np.nanmin(data), np.nanmax(data)
-    norm = mpl.colors.Normalize(vmin=datamin, vmax=datamax)
-    cmapdef = _make_cmap(cdef)
-    scamapdef = mpl.cm.ScalarMappable(norm=norm, cmap=cmapdef)
-    lS = Cam.lStruct_computeInOut
-    cols = np.full((data.size,4),np.nan)
-    dElt = {}
-    for ss in lS:
-        kn = ss.Id.Cls+'_'+ss.Id.Name
-        inde = Cam.select(touch=kn,out=bool)
-        if ind is not None:
-            indin = inde & ind
-            indout = inde & (~ind)
-        c = ss.get_color()[:-1]
-        cmap = _make_cmap(c)
-        scamap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-        if ind is None:
-            cols[inde,:] = scamap.to_rgba(data[inde])
-        else:
-            cols[indin,:] = scamap.to_rgba(data[indin])
-            cols[indout,:] = scamapdef.to_rgba(data[indout])
+    if cmap == 'touch':
+        cols, cmapdef, norm = Cam._get_touchcols(data=data,
+                                                 vmin=datamin, vmax=datamax,
+                                                 cdef=cdef, ind=ind,
+                                                 method=colmethod)
+        if colmethod != 'original':
+            cols[:,-1] = 1.-norm(data)
 
 
     # -------
@@ -1708,6 +1704,7 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
     dax = _Cam2D_plot_touch_init(fs=fs, wintit=wintit, nchMax=nchMax,
                                  dmargin=dmargin, fontsize=fontsize)
 
+    fig = dax['chan2D'][0]['ax'].figure
     # config and title
     out = Cam.config.plot(lax=[dax['cross'][0]['ax'],
                                dax['hor'][0]['ax']],
@@ -1747,9 +1744,15 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
         datanorm = data[:,np.newaxis]
 
     # Background channels
-    if Bck:
+    #if Bck:
 
 
+    x1, x2 = Cam.dX12['x1'], Cam.dX12['x2']
+    X12T = np.array([x1[Cam.dX12['ind1']],
+                     x2[Cam.dX12['ind2']]])
+    dx1, dx2 = x1[1]-x1[0], x2[1]-x2[0]
+    incx = {'left':np.r_[-dx1,0.], 'right':np.r_[dx1,0.],
+            'down':np.r_[0.,-dx2], 'up':np.r_[0.,dx2]}
 
     # -----------------
     # Plot mobile parts

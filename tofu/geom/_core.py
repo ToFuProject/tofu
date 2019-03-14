@@ -4233,12 +4233,45 @@ class Rays(utils.ToFuObject):
                                     ind=ind, fs=fs, wintit=wintit,
                                     draw=draw, Test=Test)
 
+    def _get_touchcols(self, data=None, method='original', cdef=(0.8,0.8,0.8),
+                       vmin=None, vmax=None, ind=None):
+        def _make_cmap(c):
+            c0 = mpl.colors.to_rgb(c)
+            dc = {'red':((0.,c0[0],c0[0]),(1.,1.,1.)),
+                  'green':((0,c0[1],c0[1]),(1.,1.,1.)),
+                  'blue':((0.,c0[2],c0[2]),(1.,1.,1.))}
+            cm = mpl.colors.LinearSegmentedColormap(c, dc)
+            return cm
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        cmapdef = _make_cmap(cdef)
+        lS = self.lStruct_computeInOut
+        if method == 'original':
+            scamapdef = mpl.cm.ScalarMappable(norm=norm, cmap=cmapdef)
+            cols = scamapdef.to_rgba(data) # shape (nRays, 4)
+            for ss in lS:
+                inde = self.select(touch=ss.Id.Cls+'_'+ss.Id.Name, out=bool)
+                if ind is not None:
+                    inde = inde & ind
+                cmap = _make_cmap(ss.get_color()[:-1])
+                scamap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+                cols[inde,:] = scamap.to_rgba(data[inde])
+        else:
+            cols = np.zeros((self.nRays, 4))
+            cols[:,:-1] = mpl.colors.to_rgb(cdef)
+            for ss in lS:
+                inde = self.select(touch=ss.Id.Cls+'_'+ss.Id.Name, out=bool)
+                if ind is not None:
+                    inde = inde & ind
+                cols[inde,:-1] = ss.get_color()[:-1]
+        return cols, cmapdef, norm
+
+
     def plot_touch(self, key=None, quant='length', invert=None,
-                   ind=None, plotmethod='imshow',
+                   ind=None, plotmethod='imshow', Bck=True, colmethod='original',
                    fs=None, wintit=None, tit=None,
                    connect=True, draw=True):
 
-        out = _plot.Rays_plot_touch(self, key=key,
+        out = _plot.Rays_plot_touch(self, key=key, Bck=Bck, colmethod=colmethod,
                                     quant=quant, ind=ind, invert=invert,
                                     plotmethod=plotmethod, connect=connect,
                                     fs=fs, wintit=wintit, tit=tit, draw=draw)
