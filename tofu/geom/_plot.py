@@ -31,6 +31,7 @@ _fontsize = 8
 _wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
 _nchMax = 4
 _cdef = 'k'
+_cbck = (0.8,0.8,0.8)
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 
 
@@ -1639,8 +1640,9 @@ def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
     return KH
 
 
-def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
-                       ms=4, lcch=_lcch, cdef=_cdef, Bck=True, cmap='touch',
+def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length', incch=[1,10],
+                       ms=4, lcch=_lcch, cdef=_cdef, cbck=_cbck,
+                       Bck=True, cmap='touch', Lplot='In',
                        plotmethod=None, invert=False, nchMax=_nchMax,
                        dmargin=None, fs=None, wintit=_wintit, tit=None,
                        fontsize=_fontsize, draw=True, connect=True):
@@ -1676,10 +1678,11 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
         chlab = Cam.dchans[kk]
 
     if 'LOS' in Cam.Id.Cls:
-        lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
-        lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
+        lCross = Cam._get_plotL(Lplot=Lplot, proj='cross', multi=True)
+        lHor = Cam._get_plotL(Lplot=Lplot, proj='hor', multi=True)
     else:
         raise Exception("Not coded yet !")
+
 
     # -------
     # cmap
@@ -1720,7 +1723,7 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
                                        s=8, marker='s', edgecolors='None',
                                        zorder=-1)
     elif plotmethod=='imshow':
-        indr, extent = Cam.get_X12plot(plotmethod)
+        x1, x2, indr, extent = Cam.get_X12plot(plotmethod)
         dax['chan2D'][0]['ax'].set_xlim(extent[0:2])
         dax['chan2D'][0]['ax'].set_ylim(extent[2:])
         cols = cols[indr,:]
@@ -1741,15 +1744,19 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
         datanorm = data[:,np.newaxis]
 
     # Background channels
-    #if Bck:
-
-
-    x1, x2 = Cam.dX12['x1'], Cam.dX12['x2']
-    X12T = np.array([x1[Cam.dX12['ind1']],
-                     x2[Cam.dX12['ind2']]])
-    dx1, dx2 = x1[1]-x1[0], x2[1]-x2[0]
-    incx = {'left':np.r_[-dx1,0.], 'right':np.r_[dx1,0.],
-            'down':np.r_[0.,-dx2], 'up':np.r_[0.,dx2]}
+    if Bck:
+        indbck = np.array([indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]])
+        if 'LOS' in Cam.Id.Cls:
+            nan2 = np.full((2,1),np.nan)
+            crossbck = [lCross[0],nan2,lCross[1],nan2,lCross[2],nan2,lCross[3]]
+            crossbck = np.concatenate(crossbck, axis=1)
+            horck = [lHor[0],nan2,lHor[1],nan2,lHor[2],nan2,lHor[3]]
+            horbck = np.concatenate(horbck, axis=1)
+            for ii in indBck:
+                dax['cross'][0]['ax'].plot(crossbck[0,:], crossbck[1,:],
+                                           c=cbck, ls='-', lw=2.)
+                dax['hor'][0]['ax'].plot(horbck[0,:], horbck[1,:],
+                                         c=cbck, ls='-', lw=2.)
 
     # -----------------
     # Prepare dictionnaries
@@ -1757,17 +1764,17 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
     dgroup = {'channel':{'nMax':nchMax, 'key':'f1',
                          'defid':idX, 'defax':dax['chan2D'][0]['ax']}}
 
-    dref = {idX: {'group':'channel', 'val':(x1,x2), 'inc':incx12}}
+    dref = {idX: {'group':'channel', 'val':(x1,x2), 'inc':incch}}
 
-    ddata = {}
+    ddat = {}
 
+    dax2 = {}
 
+    dobj = {}
 
     # -----------------
     # Plot mobile parts
     if 'LOS' in Cam.Id.Cls:
-        lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
-        lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
         if 'Name' in Cam.dchans.keys():
             llab = [Cam.Id.Name + s for s in Cam.dchans['Name']]
         else:
@@ -1775,95 +1782,65 @@ def _Cam2D_plot_touch2(Cam, key=None, ind=None, quant='length',
                     for ii in range(0,Cam.nRays)]
 
         for jj in range(0,nchMax):
+            # pixels
             lab = r"ch{0}".format(jj)
             l, = dax['chan2D'][0]['ax'].plot([np.nan],[np.nan],
                                               mec=lcch[jj], ls='None',
                                               marker='s', mew=2.,
                                               ms=ms, mfc='None',
                                               label=lab, zorder=10)
-            dobj[l]
+            dobj[l] = {'dupdate':{'data':{'id':idX, 'lrid':[idX]}},
+                       'drefid':{idX:jj}}
 
-            lv.append(l)
+            # los cross
             l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
                                            [np.nan,np.nan],
                                            c=lcch[jj], ls='-', lw=2.)
-            dlosc['losc'][0]['h'].append(l)
+            dobj[l] = {'dupdate':{'data':{'id':idlCross, 'lrid':[idX]}},
+                       'drefid':{idX:jj}}
+
+            # los hor
             l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
                                           [np.nan,np.nan],
                                           c=lcch[jj], ls='-', lw=2.)
-            dlosh['losh'][0]['h'].append(l)
+            dobj[l] = {'dupdate':{'data':{'id':idlHor, 'lrid':[idX]}},
+                       'drefid':{idX:jj}}
+
+            # colorbar vlines
             l = dax['colorbar'][0]['ax'].axvline(np.nan, ls='-', lw=1,
                                                  c=lcch[jj], zorder=10)
-            dcolb['vline'][0]['h'].append(l)
+            dobj[l] = {'dupdate':{'xdata':{'id':idX, 'lrid':[idX]}},
+                       'drefid':{idX:jj}}
+
+            # text channel
             l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
                                        color=lcch[jj],
                                        fontweight='bold', fontsize=6.,
                                        ha='center', va='bottom')
-            dchtxt['txt'][0]['h'].append(l)
 
-
-
-
-        lv = []
-        dlosc = {'losc':[{'h':[],'xy':lCross, 'xref':X12T}]}
-        lHor= np.stack(tuple(lHor),axis=0)
-        dlosh = {'losh':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':X12T}]}
-        dcolb = {'vline':[{'h':[],'x':datanorm, 'xref':X12T}]}
-        dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':X12T}]}
-        for jj in range(0,nchMax):
-            lab = r"ch{0}".format(jj)
-            l, = dax['chan2D'][0]['ax'].plot([np.nan],[np.nan],
-                                              mec=lcch[jj], ls='None',
-                                              marker='s', mew=2.,
-                                              ms=ms, mfc='None',
-                                              label=lab, zorder=10)
-            lv.append(l)
-            l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
-                                           [np.nan,np.nan],
-                                           c=lcch[jj], ls='-', lw=2.)
-            dlosc['losc'][0]['h'].append(l)
-            l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
-                                          [np.nan,np.nan],
-                                          c=lcch[jj], ls='-', lw=2.)
-            dlosh['losh'][0]['h'].append(l)
-            l = dax['colorbar'][0]['ax'].axvline(np.nan, ls='-', lw=1,
-                                                 c=lcch[jj], zorder=10)
-            dcolb['vline'][0]['h'].append(l)
-            l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
-                                       color=lcch[jj],
-                                       fontweight='bold', fontsize=6.,
-                                       ha='center', va='bottom')
-            dchtxt['txt'][0]['h'].append(l)
-        dax['chan2D'][0]['dh']['vline'] = [{'h':lv, 'xref':X12T,
-                                            'trig':{}}]
-        dax['hor'][0]['dh'].update(dlosh)
-        dax['cross'][0]['dh'].update(dlosc)
-        dax['colorbar'][0]['dh'].update(dcolb)
-        dax['txtch'][0]['dh'].update(dchtxt)
-        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dlosh)
-        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dlosc)
-        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dcolb)
-        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dchtxt)
     else:
         raise Exception("Not coded yet !")
+
     dax['chan2D'][0]['incx'] = incx
     dax['chan2D'][0]['ax'].set_ylabel(r"pix.", fontsize=fontsize)
 
-    dax['chan2D'][0]['ax'].set_xlabel(r"$X_1$", fontsize=8)
-    dax['chan2D'][0]['ax'].set_ylabel(r"$X_2$", fontsize=8)
+    dax['chan2D'][0]['ax'].set_xlabel(r"$x_1$", fontsize=8)
+    dax['chan2D'][0]['ax'].set_ylabel(r"$x_2$", fontsize=8)
     if invert:
         dax['chan2D'][0]['ax'].invert_xaxis()
         dax['chan2D'][0]['ax'].invert_yaxis()
-    dax['chan2D'][0]['invert'] = invert
 
     # Instanciate KeyHandler
     can = dax['chan2D'][0]['ax'].figure.canvas
     can.draw()
-    KH = KH2D(can, dax, nchMax=nchMax)
+    kh = utils.KeyHandler_mpl(can=can,
+                              dgroup=dgroup, dref=dref, ddata=ddat,
+                              dobj=dobj, dax=dax2, lax_fix=lax_fix,
+                              groupinit='time', follow=True)
 
     if connect:
-        KH.disconnect_old()
-        KH.connect()
+        kh.disconnect_old()
+        kh.connect()
     if draw:
         can.draw()
-    return KH
+    return kh

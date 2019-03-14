@@ -2522,24 +2522,6 @@ class Rays(utils.ToFuObject):
                 assert val.size==self._dgeom['nRays']
         return val
 
-    @staticmethod
-    def _get_ind12r_n12(ind1=None, ind2=None, n1=None, n2=None):
-        c0 = ind1 is None and ind2 is None
-        c1 = n1 is not None and n2 is not None
-        assert c1, "Provide n1 and n2 !"
-        if c0:
-            ind1 = np.tile(np.arange(0,n1), n2)
-            ind2 = np.repeat(np.arange(0,n2), n1)
-        else:
-            ind1 = np.asarray(ind1).ravel().astype(int)
-            ind2 = np.asarray(ind2).ravel().astype(int)
-            assert ind1.size == ind2.size
-            assert np.all(ind1>=0) and np.all(ind1<n1)
-            assert np.all(ind2>=0) and np.all(ind2<n2)
-        indr = np.zeros((n2,n1),dtype=int)
-        for ii in range(0,ind1.size):
-            indr[ind2[ii],ind1[ii]] = ii
-        return ind1, ind2, indr
 
     @classmethod
     def _checkformat_inputs_dgeom(cls, dgeom=None):
@@ -3377,6 +3359,7 @@ class Rays(utils.ToFuObject):
     def _to_dict(self):
         dout = {'dconfig':{'dict':self._dconfig, 'lexcept':None},
                 'dgeom':{'dict':self.dgeom, 'lexcept':None},
+                'dX12':{'dict':self.dX12, 'lexcept':None},
                 'dchans':{'dict':self.dchans, 'lexcept':None},
                 'dsino':{'dict':self.dsino, 'lexcept':None}}
         return dout
@@ -3396,6 +3379,7 @@ class Rays(utils.ToFuObject):
 
         self._dconfig.update(**fd['dconfig'])
         self._dgeom.update(**fd['dgeom'])
+        self._dX12.update(**fd['dX12'])
         self._dsino.update(**fd['dsino'])
         if 'dchans' in fd.keys():
             self._dchans.update(**fd['dchans'])
@@ -3535,7 +3519,7 @@ class Rays(utils.ToFuObject):
                     indch = np.zeros((self.nRays,),dtype=bool)
                     indch[ind] = True
                 else:
-                    Dindch = ind
+                    indch = ind
         else:
             if out is int:
                 indch = np.arange(0,self.nRays)
@@ -4310,7 +4294,7 @@ class CamLOS2D(Rays):
             extent = (x1min-Dx1min, x1max+Dx1max,
                       x2min+Dx2min, x2max+Dx2max)
             indr = self.dX12['indr']
-            return indr, extent
+            return x1, x2, indr, extent
 
 
     """

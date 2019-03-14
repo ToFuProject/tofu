@@ -109,8 +109,7 @@ class DataAbstract(utils.ToFuObject):
     __metaclass__ = ABCMeta
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'Type':'1D',
-                   'include':['Mod','Cls','Exp','Diag',
+    _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
                               'Name','shot','version']},
              'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfilter',
                                 'indt', 'indch', 'indlamb', 'interp-t']}}
@@ -127,7 +126,7 @@ class DataAbstract(utils.ToFuObject):
 
 
     def __init__(self, data=None, t=None, X=None, lamb=None,
-                 dchans=None, dlabels=None, dX12=None,
+                 dchans=None, dlabels=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
                  dextra=None, lCam=None, config=None,
                  fromdict=None, SavePath=os.path.abspath('./'),
@@ -159,19 +158,15 @@ class DataAbstract(utils.ToFuObject):
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
-                               Exp=None, shot=None, Type=None,
+                               Exp=None, shot=None,
                                Diag=None, include=None,
                                **kwdargs):
         if Id is not None:
             assert isinstance(Id,utils.ID)
-            Name, Exp, shot = Id.Name, Id.Exp, Id.shot
-            Type, Diag = Id.Type, Id.Diag
+            Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
         assert type(Name) is str
         assert type(Diag) is str
         assert type(Exp) is str
-        if Type is None:
-            Type = cls._ddef['Id']['Type']
-        assert Type in ['1D','2D','1DSpectral','2DSpectral']
         if include is None:
             include = cls._ddef['Id']['include']
         assert shot is None or type(shot) in [int,np.int64]
@@ -182,7 +177,7 @@ class DataAbstract(utils.ToFuObject):
             shot = int(shot)
             if 'shot' not in include:
                 include.append('shot')
-        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot, 'Type':Type,
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot,
                         'include':include})
         return kwdargs
 
@@ -215,6 +210,11 @@ class DataAbstract(utils.ToFuObject):
     @staticmethod
     def _get_largs_dgeom():
         largs = ['lCam','config']
+        return largs
+
+    @staticmethod
+    def _get_largs_dX12():
+        largs = ['dX12']
         return largs
 
     @staticmethod
@@ -459,14 +459,12 @@ class DataAbstract(utils.ToFuObject):
                 lCam = [lCam]
             nC = len(lCam)
             # Check type consistency
-            for dd in ['1d','2d']:
-                if dd in self.Id.Type.lower():
-                    lc = [dd in cc.Id.Cls.lower() for cc in lCam]
-                    if not all(lc):
-                        msg = "The following cameras have wrong class (%s)"%dd
-                        lm = ['%s: %s'%(cc.Id.Name,cc.Id.Cls) for cc in lCam]
-                        msg += "\n    " + "\n    ".join(lm)
-                        raise Exception(msg)
+            lc = [cc._is2D() == self._is2D() for cc in lCam]
+            if not all(lc):
+                ls = ['%s : %s'%(cc.Id.Name,cc.Id.Cls) for cc in lCam]
+                msg = "%s (%s) fed wrong lCam:\n"%(self.Id.Name,self.Id.Cls)
+                msg += "    - " + "\n    - ".join(ls)
+                raise Exception(msg)
             # Check config consistency
             lconf = [cc.config for cc in lCam]
             if not all([cc is not None for cc in lconf]):
@@ -553,6 +551,12 @@ class DataAbstract(utils.ToFuObject):
         return lk
 
     @staticmethod
+    def _get_keys_dX12():
+        lk = ['x1','x2','n1', 'n2',
+              'ind1', 'ind2', 'indr']
+        return lk
+
+    @staticmethod
     def _get_keys_dchans():
         lk = []
         return lk
@@ -567,24 +571,29 @@ class DataAbstract(utils.ToFuObject):
     ###########
 
     def _init(self, data=None, t=None, X=None, lamb=None, dtreat=None, dchans=None,
-              dlabels=None, dextra=None, lCam=None, config=None, **kwdargs):
+              dlabels=None, dextra=None, lCam=None, config=None, **kwargs):
+        kwdargs = locals()
+        kwdargs.update(**kwargs)
         largs = self._get_largs_ddataRef()
-        kwddataRef = self._extract_kwdargs(locals(), largs)
+        kwddataRef = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dtreat()
-        kwdtreat = self._extract_kwdargs(locals(), largs)
+        kwdtreat = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dlabels()
-        kwdlabels = self._extract_kwdargs(locals(), largs)
+        kwdlabels = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dgeom()
-        kwdgeom = self._extract_kwdargs(locals(), largs)
+        kwdgeom = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dchans()
-        kwdchans = self._extract_kwdargs(locals(), largs)
+        kwdchans = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dextra()
-        kwdextra = self._extract_kwdargs(locals(), largs)
+        kwdextra = self._extract_kwdargs(kwdargs, largs)
         self._set_ddataRef(**kwddataRef)
         self.set_dtreat(**kwdtreat)
         self._set_ddata()
         self._set_dlabels(**kwdlabels)
         self._set_dgeom(**kwdgeom)
+        if self._is2D():
+            kwdX12 = self._extract_kwdargs(kwdargs, self._get_largs_dX12())
+            self.set_dX12(**kwdX12)
         self.set_dchans(**kwdchans)
         self.set_dextra(**kwdextra)
         self._dstrip['strip'] = 0
@@ -745,6 +754,7 @@ class DataAbstract(utils.ToFuObject):
                 'dtreat':{'dict':self._dtreat, 'lexcept':None},
                 'dlabels':{'dict':self._dlabels, 'lexcept':None},
                 'dgeom':{'dict':self._dgeom, 'lexcept':None},
+                'dX12':{'dict':self._dX12, 'lexcept':None},
                 'dchans':{'dict':self._dchans, 'lexcept':None},
                 'dextra':{'dict':self._dextra, 'lexcept':None}}
         return dout
@@ -755,6 +765,7 @@ class DataAbstract(utils.ToFuObject):
         self._dtreat.update(**fd['dtreat'])
         self._dlabels.update(**fd['dlabels'])
         self._dgeom.update(**fd['dgeom'])
+        self._dX12.update(**fd['dX12'])
         self._dchans.update(**fd['dchans'])
         self._dextra.update(**fd['dextra'])
 
@@ -812,9 +823,11 @@ class DataAbstract(utils.ToFuObject):
         return self._get_lCam()
 
     @abstractmethod
-    def _isSpectral(self):  pass
+    def _isSpectral(self):
+        return 'spectral' in self.__class__.name.lower()
     @abstractmethod
-    def _is1D(self):        pass
+    def _is2D(self):
+        return '2d' in self.__class__.__name__.lower()
 
 
     ###########
@@ -1621,7 +1634,7 @@ class DataAbstract(utils.ToFuObject):
                          nperseg=None, noverlap=None,
                          boundary='constant', padded=True, wave='morlet',
                          invert=None, plotmethod='imshow',
-                         cmap=None, ms=4, ntMax=None, nchMax=None,
+                         cmap=None, ms=4, ntMax=None, nfMax=None,
                          Bck=True, fs=None, dmargin=None, wintit=None,
                          tit=None, vmin=None, vmax=None, normt=False,
                          draw=True, connect=True, returnspect=False):
@@ -1647,7 +1660,7 @@ class DataAbstract(utils.ToFuObject):
         kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang, fmax=fmax,
                                          invert=invert, plotmethod=plotmethod,
                                          cmap=cmap, ms=ms, ntMax=ntMax,
-                                         nchMax=nchMax, Bck=Bck, fs=fs,
+                                         nfMax=nfMax, Bck=Bck, fs=fs,
                                          dmargin=dmargin, wintit=wintit,
                                          tit=tit, vmin=vmin, vmax=vmax,
                                          normt=normt, draw=draw,
@@ -1939,7 +1952,7 @@ params = sig.parameters
 class DataCam1D(DataAbstract):
     """ Data object used for 1D cameras or list of 1D cameras  """
     def _isSpectral(self):  return False
-    def _is1D(self):        return True
+    def _is2D(self):        return False
 lp = [p for p in params.values() if p.name not in ['lamb','dX12']]
 DataCam1D.__signature__ = sig.replace(parameters=lp)
 
@@ -1949,30 +1962,67 @@ class DataCam2D(DataAbstract):
     """ Data object used for 2D cameras or list of 2D cameras  """
 
     def _isSpectral(self):  return False
-    def _is1D(self):        return False
+    def _is2D(self):        return True
 
-    def set_X12(self, X12=None):
-        X12 = X12 if (self.geom is None or self.geom['LCam'] is None) else None
-        if X12 is not None:
-            X12 = np.asarray(X12)
-            assert X12.shape==(2,self.Ref['nch'])
-        self._X12 = X12
+    def _checkformat_dX12(self, dX12=None):
+        lc = [dX12 is None, dX12 == 'geom', isinstance(dX12, dict)]
+        if not np.sum(lc) == 1:
+            msg = "dX12 must be either:\n"
+            msg += "    - None\n"
+            msg += "    - 'geom' : will be derived from the cam geometry\n"
+            msg += "    - dict : containing {'x1'  : array of coords.,\n"
+            msg += "                         'x2'  : array of coords.,\n"
+            msg += "                         'ind1': array of int indices,\n"
+            msg += "                         'ind2': array of int indices}"
+            raise Exception(msg)
 
-    def get_X12(self, out='1d'):
-        if self._X12 is None:
-            C0 = self.geom is not None
-            C0 = C0 and self.geom['LCam'] is not None
-            msg = "X12 must be set for plotting if LCam not provided !"
-            assert C0, msg
-            X12, DX12 = self.geom['LCam'][0].get_X12(out=out)
+        if lc[1]:
+            ls = self._get_keys_dX12()
+            c0 = self._dgeom['lCam'] is not None
+            c1 = c0 and len(self._dgeom['lCam']) == 1
+            c2 = c1 and self._dgeom['lCam'][0].dX12 is not None
+            if not c2:
+                msg = "dX12 cannot be derived from dgeom['lCam'][0].dX12 !"
+                raise Exception(msg)
+
+        if lc[2]:
+            ls = ['x1','x2','ind1','ind2']
+            assert all([ss in dX12.keys() for ss in ls])
+            x1 = np.asarray(dX12['x1']).ravel()
+            x2 = np.asarray(dX12['x2']).ravel()
+            n1, n2 = x1.size, x2.size
+            ind1, ind2, indr = self._get_ind12r_n12(ind1=dX12['ind1'],
+                                                    ind2=dX12['ind2'],
+                                                    n1=n1, n2=n2)
+            dX12 = {'x1':x1, 'x2':x2, 'n1':n1, 'n2':n2,
+                    'ind1':ind1, 'ind2':ind2, 'indr':indr}
+        return dX12
+
+    def set_dX12(self, dX12=None):
+        dX12 = self._checkformat_dX12(dX12)
+        self._dX12 = dX12
+
+    @property
+    def dX12(self):
+        if self._dX12 == 'geom':
+            dX12 = self._dgeom['lCam'][0].dX12
         else:
-            X12 = self._X12
-            if out.lower()=='2d':
-                x1u, x2u, ind, DX12 = utils.get_X12fromflat(X12)
-                X12 = [x1u,x2u,ind]
-            else:
-                DX12 = None
-        return X12, DX12
+            dX12 = self._dX12
+        return dX12
+
+    def get_X12plot(self, plot='imshow'):
+        if plot == 'imshow':
+            x1, x2 = self.dX12['x1'], self.dX12['x2']
+            x1min, Dx1min = x1[0], 0.5*(x1[1]-x1[0])
+            x1max, Dx1max = x1[-1], 0.5*(x1[-1]-x1[-2])
+            x2min, Dx2min = x2[0], 0.5*(x2[1]-x2[0])
+            x2max, Dx2max = x2[-1], 0.5*(x2[-1]-x2[-2])
+            extent = (x1min-Dx1min, x1max+Dx1max,
+                      x2min+Dx2min, x2max+Dx2max)
+            indr = self.dX12['indr']
+            return x1, x2, indr, extent
+
+
 
 lp = [p for p in params.values() if p.name not in ['lamb']]
 DataCam2D.__signature__ = sig.replace(parameters=lp)
