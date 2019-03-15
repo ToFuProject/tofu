@@ -1634,7 +1634,8 @@ class DataAbstract(utils.ToFuObject):
                          nperseg=None, noverlap=None,
                          boundary='constant', padded=True, wave='morlet',
                          invert=None, plotmethod='imshow',
-                         cmap=None, ms=4, ntMax=None, nfMax=None,
+                         cmap_f=None, cmap_img=None,
+                         ms=4, ntMax=None, nfMax=None,
                          Bck=True, fs=None, dmargin=None, wintit=None,
                          tit=None, vmin=None, vmax=None, normt=False,
                          draw=True, connect=True, returnspect=False):
@@ -1659,7 +1660,8 @@ class DataAbstract(utils.ToFuObject):
                                               padded=padded, wave=wave)
         kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang, fmax=fmax,
                                          invert=invert, plotmethod=plotmethod,
-                                         cmap=cmap, ms=ms, ntMax=ntMax,
+                                         cmap_f=cmap_f, cmap_img=cmap_img,
+                                         ms=ms, ntMax=ntMax,
                                          nfMax=nfMax, Bck=Bck, fs=fs,
                                          dmargin=dmargin, wintit=wintit,
                                          tit=tit, vmin=vmin, vmax=vmax,

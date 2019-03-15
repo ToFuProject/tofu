@@ -2104,83 +2104,6 @@ class KeyHandler(object):
 #           Plot KeyHandler 2
 ###############################################
 
-def get_updatefunc(obj, Type=None, data=None, bstr=None):
-    lok = ['xdata_1d', 'xdata_2d0_val', 'xdata_2d1_val', 'xdata_2d0',
-           'xdata_2d1',
-           'xdata_3d01', 'xdata_3d02', 'xdata_3d12',
-           'ydata_1d', 'ydata_2d0', 'ydata_2d1',
-           'ydata_3d01', 'ydata_3d02', 'ydata_3d12',
-           'data_1d', 'data_2d', 'data_3d', 'data_tuple2_1d',
-           'txt', 'txt_bstr_1d', 'txt_bstr_2d1']
-    assert Type in lok
-    if Type=='xdata_1d':
-        def func(ind, obj=obj, data=data):
-            obj.set_xdata(data[ind])
-    elif Type=='xdata_2d0_val':
-        def func(ind, ind0, obj=obj, data=data):
-            obj.set_xdata(data[ind,ind0])
-    elif Type=='xdata_2d1_val':
-        def func(ind, ind0, obj=obj, data=data):
-            obj.set_xdata(data[ind0,ind])
-    elif Type=='xdata_2d0':
-        def func(ind, obj=obj, data=data):
-            obj.set_xdata(data[ind,:])
-    elif Type=='xdata_2d1':
-        def func(ind, obj=obj, data=data):
-            obj.set_xdata(data[:,ind])
-    elif Type=='xdata_3d01':
-        def func(inda, indb, obj=obj, data=data):
-            obj.set_xdata(data[inda,indb,:])
-    elif Type=='xdata_3d02':
-        def func(inda, indb, obj=obj, data=data):
-            obj.set_xdata(data[inda,:,indb])
-    elif Type=='xdata_3d12':
-        def func(inda, indb, obj=obj, data=data):
-            obj.set_xdata(data[:,inda,indb])
-    elif Type=='ydata_1d':
-        def func(ind, obj=obj, data=data):
-            obj.set_ydata(data[ind])
-    elif Type=='ydata_2d0':
-        def func(ind, obj=obj, data=data):
-            obj.set_ydata(data[ind,:])
-    elif Type=='ydata_2d1':
-        def func(ind, obj=obj, data=data):
-            obj.set_ydata(data[:,ind])
-    elif Type=='ydata_3d01':
-        def func(inda, indb, obj=obj, data=data):
-            obj.set_ydata(data[inda,indb,:])
-    elif Type=='ydata_3d02':
-        def func(inda, indb, obj=obj, data=data):
-            obj.set_ydata(data[inda,:,indb])
-    elif Type=='ydata_3d12':
-        def func(inda, indb, obj=obj, data=data):
-            obj.set_ydata(data[:,inda,indb])
-    elif Type=='data_1d':
-        def func(ind, obj=obj, data=data):
-            obj.set_data(data[ind])
-    elif Type=='data_2d':
-        def func(ind0, ind1, obj=obj, data=data):
-            obj.set_data(data[ind0][ind1])
-    elif Type=='data_3d':
-        def func(ind0, ind1, ind2, obj=obj, data=data):
-            obj.set_data(data[ind0][ind1][ind2])
-    elif Type=='data_tuple2_1d':
-        def func(ind0, ind1, obj=obj, data=data):
-            obj.set_data(data[0][ind0],data[1][ind1])
-    elif Type=='txt':
-        def func(ind, obj=obj, data=data):
-            obj.set_text(data[ind])
-    elif Type=='txt_bstr_1d':
-        def func(ind, obj=obj, data=data, bstr=bstr):
-            obj.set_text(bstr.format(data[ind]))
-    elif Type=='txt_bstr_2d1':
-        def func(ind, ind0, obj=obj, data=data, bstr=bstr):
-            obj.set_text(bstr.format(data[ind0,ind]))
-    return func
-
-
-#########################
-
 
 def get_indncurind(dind, linds):
     ind = [dind['lrefid'].index(rid) for rid in linds]
@@ -2204,7 +2127,11 @@ def get_valf(val, lrids, linds):
 
     elif type(val) is tuple:
         assert ninds == 1 and lrids == linds
-        func = lambda *li, val=val: (val[0][li[0]], val[1][li[1]])
+        n1, n2 = val[0].size, val[1].size
+        def func(*li, val=val, n1=n1, n2=n2):
+            i1 = li[0] % n1
+            i2 = li[0] // n1
+            return (val[0][i1], val[1][i2])
 
     else:
         assert type(val) is np.ndarray
@@ -2247,19 +2174,23 @@ def get_valf(val, lrids, linds):
                     func = lambda *li, val=val: val[:, li[args[0]], li[args[1]]]
     return func
 
-def get_fupdate(obj, typ, bstr=None):
+def get_fupdate(obj, typ, n12=None, norm=None, bstr=None):
     if typ == 'xdata':
         f = lambda val, obj=obj: obj.set_xdata(val)
     elif typ == 'ydata':
         f = lambda val, obj=obj: obj.set_ydata(val)
-    elif typ in ['data','imshow']:
+    elif typ in ['data']:   # Also works for imshow
         f = lambda val, obj=obj: obj.set_data(val)
+    elif typ in ['data-reshape']:   # Also works for imshow
+        f = lambda val, obj=obj, n12=n12: obj.set_data(val.reshape(n12[1],n12[0]))
+    elif typ in ['alpha']:   # Also works for imshow
+        f = lambda val, obj=obj, norm=norm: obj.set_alpha(norm(val))
     elif typ == 'txt':
         f = lambda val, obj=obj, bstr=bstr: obj.set_text(bstr.format(val))
     return f
 
 
-def get_ind_frompos(Type='x', ref=None, otherid=None, indother=None):
+def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
     assert Type in ['x','y','2d']
 
     if Type in ['x','y']:
@@ -2294,24 +2225,24 @@ def get_ind_frompos(Type='x', ref=None, otherid=None, indother=None):
                     refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
                     return np.digitize([val[1]], refb)[0]
     else:
-        assert otherid is None
-        assert type(ref) is tuple and len(ref) == 2
-        refb1 = 0.5*(ref[0][1:]+ref[0][:-1])
-        refb2 = 0.5*(ref[1][1:]+ref[1][:-1])
-        def func(val, refb1=refb1, refb2=refb2):
-            return (np.digitize([val[0]], refb1)[0],
-                    np.digitize([val[1]], refb2)[0])
+        assert type(ref2) is tuple and len(ref2) == 2
+        n1, n2 = ref2[0].size, ref2[1].size
+        refb1 = 0.5*(ref2[0][1:]+ref2[0][:-1])
+        refb2 = 0.5*(ref2[1][1:]+ref2[1][:-1])
+        def func(val, ind0=None, refb1=refb1, refb2=refb2, n1=n1, n2=n2):
+            i1 = np.digitize([val[0]], refb1)[0]
+            i2 = np.digitize([val[1]], refb2)[0]
+            return i2*n1 + i1
     return func
 
-def get_pos_fromind(ref=None, otherid=None, indother=None, is2d=False):
-    if is2d:
-        assert otherid is None
-        assert type(ref) is tuple and len(ref) == 2
-        n1, n2 = ref[0].size, ref[1].size
-        def func(ind, ind0=None, ref=ref, n1=n1, n2=n2):
-            i1 = ind // n2
-            i2 = ind % n2
-            return (ref[0][i1], ref[1][i2])
+def get_pos_fromind(ref=None, ref2=None, otherid=None, indother=None):
+    if ref2 is not None:
+        assert type(ref2) is tuple and len(ref2) == 2
+        n1, n2 = ref2[0].size, ref2[1].size
+        def func(ind, ind0=None, ref2=ref2, n1=n1, n2=n2):
+            i1 = ind % n1
+            i2 = ind // n1
+            return (ref2[0][i1], ref2[1][i2])
 
     else:
         if otherid is None:
@@ -2336,15 +2267,15 @@ def get_ind_fromkey(dmovkeys={}, nn=[], is2d=False):
     if is2d:
         n1, n2 = nn
         def func(movk, ind, doinc=False, dmovkeys=dmovkeys, n1=n1, n2=n2):
-            i1 = ind // n2
-            i2 = ind % n2
+            i1 = ind % n1
+            i2 = ind // n1
             if movk in ['left','right']:
                 i1 += dmovkeys[movk][doinc]
                 i1 = i1 % n1
             else:
                 i2 += dmovkeys[movk][doinc]
                 i2 = i2 % n2
-            return i1 * n2 + i2
+            return i1 * n1 + i2
     else:
         nx = nn[0] if len(nn)==1 else nn[1]
         def func(movk, ind, doinc=False, dmovkeys=dmovkeys, nx=nx):
@@ -2585,7 +2516,10 @@ class KeyHandler_mpl(object):
             c0 = 'indother' not in dref[rid].keys()
             c1 = not c0 and dref[rid]['indother'] is None
             if 'otherid' not in dref[rid].keys():
-                assert dref[rid]['val'].size == max(dref[rid]['val'].shape)
+                if isinstance(dref[rid]['val'], np.ndarray):
+                    assert dref[rid]['val'].size == max(dref[rid]['val'].shape)
+                elif isinstance(dref[rid]['val'], tuple):
+                    assert len(dref[rid]['val'])==2
                 assert c0 or c1
                 dref[rid]['otherid'] = None
                 if c0:
@@ -2628,24 +2562,31 @@ class KeyHandler_mpl(object):
             # Get functions
             otherid = dref[rid]['otherid']
             indother = dref[rid]['indother']
-            dref[rid]['f_pos_ind'] = get_pos_fromind(ref = val,
-                                                     otherid = otherid,
-                                                     indother = indother,
-                                                     is2d = is2d)
-
-            df_ind_pos, df_ind_key = {}, {}
+            df_ind_pos, df_ind_key, df_pos_ind = {}, {}, {}
             for ax in dax.keys():
                 if rid in dax[ax]['ref'].keys():
                     typ = dax[ax]['ref'][rid]
-                    df_ind_pos[ax] = get_ind_frompos(typ, val,
+                    if typ == '2d':
+                        assert '2d' in dref[rid].keys()
+                        val2 = dref[rid]['2d']
+                        is2d = True
+                    else:
+                        val2 = None
+                        is2d = False
+                    df_ind_pos[ax] = get_ind_frompos(typ, val, val2,
                                                      otherid = otherid,
                                                      indother = indother)
                     dmovkeys = dax[ax]['dmovkeys'][rid]
                     df_ind_key[ax] = get_ind_fromkey(dmovkeys,
                                                      is2d = is2d,
                                                      nn = nn)
+                    df_pos_ind[ax] = get_pos_fromind(val, val2,
+                                                     otherid = otherid,
+                                                     indother = indother)
+
             dref[rid]['df_ind_pos'] = df_ind_pos
             dref[rid]['df_ind_key'] = df_ind_key
+            dref[rid]['df_pos_ind'] = df_pos_ind
 
             # lobj
             lobj = [oo for oo in dobj.keys()
@@ -2683,11 +2624,10 @@ class KeyHandler_mpl(object):
                 lrefs = ddata[v['id']]['refids']
                 linds = v['lrid']
                 fgetval = get_valf(val, lrefs, linds)
-                if 'bstr' in dobj[oo]['dupdate'][k].keys():
-                    kwdargs = {'bstr':dobj[oo]['dupdate'][k]['bstr']}
-                else:
-                    args = {}
-                fupdate = get_fupdate(oo, k, **kwdargs)
+
+                lkv = [(kk,vv) for kk,vv in dobj[oo]['dupdate'][k].items()
+                       if kk not in ['id','lrid']]
+                fupdate = get_fupdate(oo, k, **dict(lkv))
                 dobj[oo]['dupdate'][k]['fgetval'] = fgetval
                 dobj[oo]['dupdate'][k]['fupdate'] = fupdate
                 indrefind = get_indrefind(dind, linds, dobj[oo]['drefid'])
@@ -3079,7 +3019,7 @@ class KeyHandler_mpl(object):
                 group2 = self.dref[self.dref[refid]['otherid']]['group']
                 ind2 = self.dgroup[group2]['indcur']
                 indother = self.dref[self.dref[refid]['otherid']]['ind'][ind2]
-            val = self.dref[refid]['f_pos_ind']( ind, indother )
+            val = self.dref[refid]['df_pos_ind'][ax]( ind, indother )
             if self._follow:
                 self.dgroup[group]['valind'][ii:,:] = val
             else:

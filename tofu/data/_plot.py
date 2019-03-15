@@ -1457,7 +1457,8 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
 
 def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
                           key=None, Bck=True, indref=0,
-                          cmap=None, ms=4, vmin=None, vmax=None,
+                          cmap_f=None, cmap_img=None, ms=4,
+                          vmin=None, vmax=None,
                           normt=False, ntMax=None, nfMax=3,
                           lls=_lls, lct=_lct, lcch=_lcch,
                           plotmethod='imshow', invert=False,
@@ -1475,12 +1476,14 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
     if Data._is2D():
         nD = 2
         ntMax = 1
+        nfMax = 1
 
     kh = _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                   fmax=fmax, key=key, nD=nD,
                                   ntMax=ntMax, nfMax=nfMax,
                                   Bck=Bck, llsf=lls, lct=lct,
-                                  cmap=cmap, normt=normt,
+                                  cmap_f=cmap_f, cmap_img=cmap_img,
+                                  normt=normt,
                                   vmin=vmin, vmax=vmax, ms=ms,
                                   fs=fs, dmargin=dmargin, wintit=wintit,
                                   tit=tit, fontsize=fontsize,
@@ -1567,7 +1570,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                              Bck=True, llsf=_lls, lct=_lct,
                              inct=[1,10], incX=[1,5], incf=[1,10],
                              fmt_t='06.3f', fmt_X='01.0f', fmt_f='05.2f',
-                             dchanskey=None, cmap=None, normt=False, ms=4,
+                             dchanskey=None, cmap_f=None, cmap_img=None,
+                             normt=False, ms=4,
                              vmin=None, vmax=None, cbck=_cbck, Lplot='In',
                              fs=None, dmargin=None, wintit=_wintit, tit=None,
                              fontsize=_fontsize, labelpad=_labelpad,
@@ -1575,8 +1579,10 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     assert Data.Id.Cls in ['DataCam1D','DataCam2D']
     assert nD in [1,2]
-    if cmap is None:
-        cmap = plt.cm.gray_r
+    if cmap_f is None:
+        cmap_f = plt.cm.gray_r
+    if cmap_img is None:
+        cmap_img = plt.cm.viridis
 
     #########
     # Prepare
@@ -1618,6 +1624,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
             nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
+        n12 = [x1.size, x2.size]
+
     if nnX == 1:
         Xtype = 'x'
         Xother = None
@@ -1635,7 +1643,9 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     # data
     data = Data.data
-    Dlim = [min(0.,np.nanmin(data)), max(0.,np.nanmax(data))]
+    vmin = np.nanmin(data)
+    vmax = np.nanmax(data)
+    Dlim = [min(0.,vmin), max(0.,vmax)]
     Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
     Dlab = r"{0} ({1})".format(Data.dlabels['data']['name'],
                                Data.dlabels['data']['units'])
@@ -1643,6 +1653,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     # tf
     Dtf = [np.nanmin(tf), np.nanmax(tf)]
+    dtf = 0.5*(tf[1]-tf[0])
     idtf = id(tf)
 
     # f
@@ -1652,7 +1663,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     anglab = r'$ang(F)$ ($rad$)'
     ftype = 'y'
     idf = id(f)
-    dtf, df = 0.5*(tf[1]-tf[0]), 0.5*(f[1]-f[0])
+    df = 0.5*(f[1]-f[0])
+    extentf = (Dtf[0]-dtf,Dtf[1]+dtf, Df[0]-df, Df[1]+df)
 
     # lpsd and lang
     lpsd = np.swapaxes(np.stack(lpsd,axis=0),1,2)
@@ -1668,7 +1680,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     ############
     # Format axes
     dax = _init_Data1D_spectrogram(fs=fs, dmargin=dmargin,
-                                   wintit=wintit)
+                                   wintit=wintit, nD=nD)
     fig = dax['t'][0].figure
 
     if tit is None:
@@ -1735,10 +1747,10 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     # ---------------
     # Lims and labels
-    fmax = Df[1] if fmax is None else fmax
+    fmax = extentf[3] if fmax is None else fmax
     dax['t'][0].set_xlim(Dt)
     dax['t'][0].set_ylim(Dd)
-    dax['t'][1].set_ylim(Df[0]-df, fmax+df)
+    dax['t'][1].set_ylim(extentf[2], fmax)
     dax['t'][-1].set_xlabel(tlab, **fldict)
     dax['t'][0].set_ylabel(Dlab, **fldict)
     dax['t'][1].set_ylabel(flab, **fldict)
@@ -1755,6 +1767,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     else:
         dax['X'][0].set_xlim(extent[:2])
+        dax['X'][0].set_ylim(extent[2:])
 
     ##################
     # Interactivity dict
@@ -1771,12 +1784,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
             idX:  {'group':'channel', 'val':X, 'inc':incX,
                    'otherid':Xother, 'indother':indtX},
             idf:  {'group':'frequency', 'val':f, 'inc':incf}}
-    if nD == 1:
-        dref[idX] = {'group':'channel', 'val':X, 'inc':incX,
-                     'otherid':Xother, 'indother':indtX}
-    else:
-        dref[idX] = {'group':'channel', 'val':(x1,x2), 'inc':incX}
-
+    if nD == 2:
+        dref[idX]['2d'] = (x1,x2)
 
     ddat = {iddata: {'val':data, 'refids':[idt,idX]},
             idlpsd: {'val':lpsd, 'refids':[idX,idf,idtf]},
@@ -1785,7 +1794,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     if lCross is not None:
         ddat[idlCross] = {'val':lCross, 'refids':[idX]}
         ddat[idlHor] = {'val':lHor, 'refids':[idX]}
-    if Data._is2D():
+    if nD == 2:
         ddat[idx12] = {'val':(x1,x2), 'refids':[idX]}
 
     lax_fix = [dax['cross'][0], dax['hor'][0],
@@ -1811,7 +1820,6 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
 
     # Channel
-    extent = (Dtf[0]-dtf,Dtf[1]+dtf, Df[0]-df, Df[1]+df)
     for jj in range(0,1):
 
         # Channel text
@@ -1842,30 +1850,24 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                         dobj[l0] = {'dupdate':{'xdata':{'id':idX,
                                                         'lrid':[idt,idX]}},
                                     'drefid':{idX:jj, idt:ii}}
-        else:
-            for ll in range(0,len(dax['X'])):
-                l0, = dax['X'][ll].plot([np.nan],[np.nan],
-                                        mec='k', ls='None', marker='s', mew=2.,
-                                        ms=ms, mfc='None', zorder=10)
-                dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
-                            'drefid':{idX:jj}}
 
 
         # psd imshow
-        l0 = dax['t'][1].imshow(np.full(lpsd.shape[1:],np.nan), cmap=cmap,
+        l0 = dax['t'][1].imshow(np.full(lpsd.shape[1:],np.nan), cmap=cmap_f,
                                 origin='lower', aspect='auto',
-                                extent=extent,
+                                extent=extentf,
                                 vmin=Dpsd[0], vmax=Dpsd[1],
                                 interpolation='nearest')
-        dobj[l0] = {'dupdate':{'imshow':{'id':idlpsd, 'lrid':[idX]}},
+        dobj[l0] = {'dupdate':{'data':{'id':idlpsd, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
 
         # ang imshow
-        l0 = dax['t'][2].imshow(np.full(lang.shape[1:],np.nan), cmap=cmap,
-                                origin='lower', aspect='auto', extent=extent,
+        l0 = dax['t'][2].imshow(np.full(lang.shape[1:],np.nan),
+                                cmap=plt.cm.seismic,
+                                origin='lower', aspect='auto', extent=extentf,
                                 vmin=Dang[0], vmax=Dang[1],
                                 interpolation='nearest')
-        dobj[l0] = {'dupdate':{'imshow':{'id':idlang, 'lrid':[idX]}},
+        dobj[l0] = {'dupdate':{'data':{'id':idlang, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
 
         # los
@@ -1896,30 +1898,65 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                         'drefid':{idt:jj}}
 
         # Time data profiles
-        l0, = dax['X'][0].plot(X[0,:], np.full((nX,),np.nan),
-                               c=lct[jj], ls='-', lw=1.)
-        dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idt]}},
-                    'drefid':{idt:jj}}
-        if Xother is not None:
-            dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
-
-        # lpsd and ang profiles
-        for ii in range(0,nfMax):
-            l0, = dax['X'][1].plot(X[0,:], np.full((nX,),np.nan),
-                                   c=lct[jj], ls=llsf[ii], lw=1.)
-            dobj[l0] = {'dupdate':{'ydata':{'id':idlpsd, 'lrid':[idtf,idf]}},
-                        'drefid':{idtf:jj, idf:ii}}
-            l1, = dax['X'][2].plot(X[0,:], np.full((nX,),np.nan),
-                                   c=lct[jj], ls=llsf[ii], lw=1.)
-            dobj[l1] = {'dupdate':{'ydata':{'id':idlang, 'lrid':[idtf,idf]}},
-                        'drefid':{idtf:jj, idf:ii}}
-
-            # To be finished !!!!! check ids handling in tf.utils !!!
+        if nD == 1:
+            l0, = dax['X'][0].plot(X[0,:], np.full((nX,),np.nan),
+                                   c=lct[jj], ls='-', lw=1.)
+            dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idt]}},
+                        'drefid':{idt:jj}}
             if Xother is not None:
                 dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
-                dobj[l0]['drefid'][Xother] = jj
-                dobj[l1]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
-                dobj[l1]['drefid'][Xother] = jj
+
+            # lpsd and ang profiles
+            for ii in range(0,nfMax):
+                l0, = dax['X'][1].plot(X[0,:], np.full((nX,),np.nan),
+                                       c=lct[jj], ls=llsf[ii], lw=1.)
+                dobj[l0] = {'dupdate':{'ydata':{'id':idlpsd, 'lrid':[idtf,idf]}},
+                            'drefid':{idtf:jj, idf:ii}}
+                l1, = dax['X'][2].plot(X[0,:], np.full((nX,),np.nan),
+                                       c=lct[jj], ls=llsf[ii], lw=1.)
+                dobj[l1] = {'dupdate':{'ydata':{'id':idlang, 'lrid':[idtf,idf]}},
+                            'drefid':{idtf:jj, idf:ii}}
+
+                if Xother is not None:
+                    dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
+                    dobj[l0]['drefid'][Xother] = jj
+                    dobj[l1]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
+                    dobj[l1]['drefid'][Xother] = jj
+        else:
+            nan2 = np.full((x2.size,x1.size),np.nan)
+            im = dax['X'][0].imshow(nan2, extent=extent, aspect='equal',
+                                    interpolation='nearest', origin='lower',
+                                    zorder=-1, vmin=vmin, vmax=vmax,
+                                    cmap=cmap_img)
+            dobj[im] = {'dupdate':{'data-reshape':{'id':iddata, 'n12':n12,
+                                                   'lrid':[idt]}},
+                        'drefid':{idt:jj}}
+
+            im = dax['X'][1].imshow(nan2, extent=extent, aspect='equal',
+                                    interpolation='nearest', origin='lower',
+                                    zorder=-1, vmin=Dpsd[0], vmax=Dpsd[1],
+                                    cmap=cmap_img)
+            dobj[im] = {'dupdate':{'data-reshape':{'id':idlpsd, 'n12':n12,
+                                                   'lrid':[idtf,idf]}},
+                        'drefid':{idtf:jj, idf:0}}
+
+            im = dax['X'][2].imshow(nan2, extent=extent, aspect='equal',
+                                    interpolation='nearest', origin='lower',
+                                    zorder=-1, vmin=Dang[0], vmax=Dang[1],
+                                    cmap=plt.cm.seismic)
+            dobj[im] = {'dupdate':{'data-reshape':{'id':idlang, 'n12':n12,
+                                                   'lrid':[idtf,idf]}},
+                        'drefid':{idtf:jj, idf:0}}
+
+    # pixel on top of imshows
+    if nD == 2:
+        jj = 0
+        for ll in range(0,len(dax['X'])):
+            l0, = dax['X'][ll].plot([np.nan],[np.nan],
+                                    mec='k', ls='None', marker='s', mew=2.,
+                                    ms=ms, mfc='None', zorder=10)
+            dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
 
     # Frequency
     for jj in range(0,nfMax):
