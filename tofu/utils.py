@@ -2444,7 +2444,7 @@ class KeyHandler_mpl(object):
         #---------------
         # Preliminary checks
 
-        ls = ['nMax','key','defid','defax']
+        ls = ['nMax','key','defax']
         for k,v in dgroup.items():
             c0 = type(k) is str
             c1 = type(v) is dict
@@ -2453,7 +2453,6 @@ class KeyHandler_mpl(object):
                 raise Exception(cls._msgdobj)
             assert type(v['nMax']) in [int,np.int64]
             assert type(v['key']) is str
-            assert v['defid'] in dref.keys()
             assert v['defax'] in dax.keys()
         lg = sorted(list(dgroup.keys()))
         assert len(set(lg))==len(lg)
@@ -2530,8 +2529,12 @@ class KeyHandler_mpl(object):
                     if dobj[o]['ax'] not in lla:
                         lla.append(dobj[o]['ax'])
             dgroup[g]['lax'] = lla
-            # Check unicity of def ref
-            assert dref[dgroup[g]['defid']]['group'] == g
+
+            # Set defid
+            ldefid = dax[dgroup[g]['defax']]['ref'].keys()
+            ldefid = [defid for defid in ldefid if dref[defid]['group'] == g]
+            assert len(ldefid) == 1
+            dgroup[g]['defid'] = ldefid[0]
 
             # Get list of obj with their indices, for fast updates
             lobj = [obj for obj in dobj.keys()
@@ -2571,14 +2574,6 @@ class KeyHandler_mpl(object):
             if len(lrefid) > 1:
                 assert 'defrefid' in dax[ax].keys()
                 assert dax[ax]['defrefid'] in lrefid
-
-
-        ##########  DB
-        #   Detect inconsistencies in defax vs defid for the ax in question
-        #   (ex.: tf vs t for dax['t'][0], favorite of group time !!!
-        # Force clear definition to avoid further mistakes !!!!
-        #################
-
 
 
         # dref
