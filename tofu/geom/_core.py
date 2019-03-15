@@ -2956,25 +2956,53 @@ class Rays(utils.ToFuObject):
             VType = self.config.Id.Type
 
             lS = [ss for ss in lS if ss._InOut=='out']
-            lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
+            lSPolyx, lSVInx = [], []
+            lSPolyy, lSVIny = [], []
+            lSLim, lSnLim = [], []
+            lsnvert = []
             num_tot_structs = 0
+            num_lim_structs = 0
             for ss in lS:
-                lSPoly.append(ss.Poly_closed)
-                lSVIn.append(ss.dgeom['VIn'])
+                l = ss.Poly_closed[0]
+                [lSPolyx.append(item) for item in l]
+                l = ss.Poly_closed[1]
+                [lSPolyy.append(item) for item in l]
+                l = ss.dgeom['VIn'][0]
+                [lSVInx.append(item) for item in l]
+                l = ss.dgeom['VIn'][1]
+                [lSVIny.append(item) for item in l]
                 lSLim.append(ss.Lim)
                 lSnLim.append(ss.noccur)
+                if len(lsnvert)==0:
+                    lsnvert.append(len(ss.Poly_closed[0]))
+                else:
+                    lsnvert.append(len(ss.Poly_closed[0]) + lsnvert[num_lim_structs-1])
+                num_lim_structs += 1
                 if ss.Lim is None or len(ss.Lim) == 0:
                     num_tot_structs += 1
                 else:
                     num_tot_structs += len(ss.Lim)
 
+            lsnvert = np.asarray(lsnvert, dtype=np.int64)
+            lSPolyx = np.asarray(lSPolyx)
+            lSPolyy = np.asarray(lSPolyy)
+            lSVInx = np.asarray(lSVInx)
+            lSVIny = np.asarray(lSVIny)
+
             largs = [D, u, VPoly, VVIn]
-            dkwd = dict(ves_lims=Lim, ves_nlim=nLim, nstruct=num_tot_structs,
-                    lstruct_poly=lSPoly, lstruct_lims=lSLim,
-                    lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
-                    lstruct_norm=lSVIn, ves_type=VType,
-                    rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
-                    eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
+            dkwd = dict(ves_lims=Lim, ves_nlim=nLim,
+                        nstruct_tot=num_tot_structs,
+                        nstruct_lim=num_lim_structs,
+                        lstruct_polyx=lSPolyx,
+                        lstruct_polyy=lSPolyy,
+                        lstruct_lims=lSLim,
+                        lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+                        lstruct_normx=lSVInx,
+                        lstruct_normy=lSVIny,
+                        lnvert=lsnvert,
+                        ves_type=VType,
+                        rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
+                        eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
 
         else:
             # --------------------------------
