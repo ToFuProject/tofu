@@ -1511,11 +1511,18 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
         laxp += [fig.add_subplot(gs1[2:4,2:4], fc='w', sharex=laxp[0]),
                  fig.add_subplot(gs1[4:,2:4], fc='w', sharex=laxp[0])]
     else:
+        from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         laxp = [fig.add_subplot(gs1[:2,2:4], fc='w')]
         laxp += [fig.add_subplot(gs1[2:4,2:4], fc='w',
                                  sharex=laxp[0], sharey=laxp[0]),
                  fig.add_subplot(gs1[4:,2:4], fc='w',
                                  sharex=laxp[0], sharey=laxp[0])]
+        laxcb = [None for ii in [0,1,2]]
+        for ii in range(0,len(laxp)):
+            ax_divider = make_axes_locatable(laxp[ii])
+            laxcb[ii] = ax_divider.append_axes("right",
+                                               size="5%", pad="5%")
+
     axH = fig.add_subplot(gs1[0:2,4], fc='w')
     axC = fig.add_subplot(gs1[2:,4], fc='w')
     axC.set_aspect('equal', adjustable='datalim')
@@ -1552,6 +1559,8 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
            'txtx':[axtxtx],
            'txtt':[axtxtt],
            'txtf':[axtxtf]}
+    if nD == 2:
+        dax['colorbar'] = laxcb
     for kk in dax.keys():
         for ii in range(0,len(dax[kk])):
             dax[kk][ii].tick_params(labelsize=fontsize)
@@ -1672,8 +1681,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         lpsd = lpsd / np.nanmax(lpsd,axis=2)[:,:,np.newaxis]
     lang = np.swapaxes(np.stack(lang,axis=0),1,2)
     Dpsd = [np.nanmin(lpsd), np.nanmax(lpsd)]
-    angmax = max(np.abs(np.nanmin(lang)), np.abs(np.nanmax(lang)))
-    Dang = [-angmax, angmax]
+    angmax = np.pi
     idlpsd = id(lpsd)
     idlang = id(lang)
 
@@ -1746,6 +1754,29 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                      np.nanmax(data,axis=1),
                                      facecolor=cbck)
 
+    # Colorbars if 2D
+    if nD == 2:
+        norm_data = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0], cmap=cmap_img,
+                                       orientation='vertical',
+                                       norm=norm_data)
+        dax['colorbar'][0].set_ylabel(Dlab, **fldict)
+
+        norm_psd = mpl.colors.Normalize(vmin=Dpsd[0], vmax=Dpsd[1])
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][1], cmap=cmap_img,
+                                       orientation='vertical',
+                                       norm=norm_psd)
+        dax['colorbar'][1].set_ylabel(psdlab, **fldict)
+
+        norm_ang = mpl.colors.Normalize(vmin=-angmax, vmax=angmax)
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][2],
+                                       cmap=plt.cm.seismic,
+                                       orientation='vertical',
+                                       norm=norm_ang,
+                                       ticks=[-angmax, 0, angmax])
+        dax['colorbar'][2].set_ylabel(anglab, **fldict)
+
+
     # ---------------
     # Lims and labels
     fmax = extentf[3] if fmax is None else fmax
@@ -1760,7 +1791,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         dax['X'][0].set_xlim(DX)
         dax['X'][0].set_ylim(Dd)
         dax['X'][1].set_ylim(Dpsd)
-        dax['X'][2].set_ylim(Dang)
+        dax['X'][2].set_ylim([-np.pi,np.pi])
         dax['X'][-1].set_xlabel(Xlab, **fldict)
         dax['X'][0].set_ylabel(Dlab, **fldict)
         dax['X'][1].set_ylabel(psdlab, **fldict)
@@ -1873,7 +1904,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         l0 = dax['t'][2].imshow(np.full(lang.shape[1:],np.nan),
                                 cmap=plt.cm.seismic,
                                 origin='lower', aspect='auto', extent=extentf,
-                                vmin=Dang[0], vmax=Dang[1],
+                                vmin=-np.pi, vmax=np.pi,
                                 interpolation='nearest')
         dobj[l0] = {'dupdate':{'data':{'id':idlang, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
@@ -1934,7 +1965,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
             nan2 = np.full((x2.size,x1.size),np.nan)
             im = dax['X'][0].imshow(nan2, extent=extent, aspect='equal',
                                     interpolation='nearest', origin='lower',
-                                    zorder=-1, vmin=vmin, vmax=vmax,
+                                    zorder=-1, norm=norm_data,
                                     cmap=cmap_img)
             dobj[im] = {'dupdate':{'data-reshape':{'id':iddata, 'n12':n12,
                                                    'lrid':[idt]}},
@@ -1942,7 +1973,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
             im = dax['X'][1].imshow(nan2, extent=extent, aspect='equal',
                                     interpolation='nearest', origin='lower',
-                                    zorder=-1, vmin=Dpsd[0], vmax=Dpsd[1],
+                                    zorder=-1, norm=norm_psd,
                                     cmap=cmap_img)
             dobj[im] = {'dupdate':{'data-reshape':{'id':idlpsd, 'n12':n12,
                                                    'lrid':[idtf,idf]}},
@@ -1950,7 +1981,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
             im = dax['X'][2].imshow(nan2, extent=extent, aspect='equal',
                                     interpolation='nearest', origin='lower',
-                                    zorder=-1, vmin=Dang[0], vmax=Dang[1],
+                                    zorder=-1, norm=norm_ang,
                                     cmap=plt.cm.seismic)
             dobj[im] = {'dupdate':{'data-reshape':{'id':idlang, 'n12':n12,
                                                    'lrid':[idtf,idf]}},
