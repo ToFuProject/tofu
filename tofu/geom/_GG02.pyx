@@ -2045,11 +2045,11 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                         llimits[ind_struct] = 0 # False : struct is limited
                         lim_min = Catan2(Csin(lim_ves[0]), Ccos(lim_ves[0]))
                         lim_max = Catan2(Csin(lim_ves[1]), Ccos(lim_ves[1]))
-                        compute_bbox_lim(nvert, lspoly_view, bounds,
+                        comp_bbox_poly_tor_lim(nvert, lspoly_view, bounds,
                                          lim_min, lim_max)
                     else:
                         llimits[ind_struct] = 1 # True : is continous
-                        compute_bbox_extr(nvert, lspoly_view, bounds)
+                        comp_bbox_poly_tor(nvert, lspoly_view, bounds)
                         lim_min = 0.
                         lim_max = 0.
                     langles[ind_struct*2] = lim_min
@@ -2895,11 +2895,11 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                         llimits[ind_struct] = 0 # False : struct is limited
                         lim_min = Catan2(Csin(lim_ves[0]), Ccos(lim_ves[0]))
                         lim_max = Catan2(Csin(lim_ves[1]), Ccos(lim_ves[1]))
-                        compute_bbox_lim(nvert, lspoly_view, bounds,
+                        comp_bbox_poly_tor_lim(nvert, lspoly_view, bounds,
                                          lim_min, lim_max)
                     else:
                         llimits[ind_struct] = 1 # True : is continous
-                        compute_bbox_extr(nvert, lspoly_view, bounds)
+                        comp_bbox_poly_tor(nvert, lspoly_view, bounds)
                         lim_min = 0.
                         lim_max = 0.
                     langles[ind_struct*2] = lim_min
@@ -3862,6 +3862,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
     return (res_kin != kpin_loc[0]) or (res_kout != kpout_loc[0]
                                         and is_in_struct)
 
+
+
 cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
                                       int[3] sign,
                                       double[3] inv_direction) nogil:
@@ -3978,7 +3980,7 @@ cdef inline bint is_point_in_path(const int nvert,
     return c
 
 
-cdef inline void compute_bbox_extr(int nvert,
+cdef inline void comp_bbox_poly_tor(int nvert,
                                    double[:,::1] vert,
                                    double[6] bounds) nogil:
     """
@@ -4016,7 +4018,7 @@ cdef inline void compute_bbox_extr(int nvert,
     return
 
 
-cdef inline void compute_bbox_lim(int nvert,
+cdef inline void comp_bbox_poly_tor_lim(int nvert,
                                   double[:,::1] vert,
                                   double[6] bounds,
                                   double lmin, double lmax) nogil:
@@ -4083,6 +4085,58 @@ cdef inline void compute_bbox_lim(int nvert,
         if zmax < temp[2]:
             zmax = temp[2]
 
+    bounds[0] = xmin
+    bounds[1] = ymin
+    bounds[2] = zmin
+    bounds[3] = xmax
+    bounds[4] = ymax
+    bounds[5] = zmax
+    return
+
+
+cdef inline void comp_bbox_poly3d(int nvert,
+                                  double* vertx,
+                                  double* verty,
+                                  double* vertz,
+                                  double[6] bounds) nogil:
+    """
+    Computes bounding box of a 3d polygon
+    Params
+    =====
+    nvert : inter
+       Number of vertices in the poygon
+    vert : double array
+       Coordinates of the polygon defining the structure in the poloidal plane
+       such that vert[0:3, ii] = (x_i, y_i, z_i) the coordinates of the i-th
+       vertex
+    bounds : (6) double array <INOUT>
+       coordinates of the lowerleftback point and of the upperrightfront point
+       of the bounding box of the polygon
+    """
+    cdef int ii
+    cdef double xmax=vertx[0], xmin=vertx[0]
+    cdef double ymax=verty[0], ymin=verty[0]
+    cdef double zmax=vertz[0], zmin=vertz[0]
+    cdef double tmp_val
+    for ii in range(1, nvert):
+        # x....
+        tmp_val = vertx[0]
+        if tmp_val > xmax:
+            xmax = tmp_val
+        elif tmp_val < xmin :
+            xmin = tmp_val
+        # y....
+        tmp_val = verty[0]
+        if tmp_val > ymax:
+            ymax = tmp_val
+        elif tmp_val < ymin :
+            ymin = tmp_val
+        # z....
+        tmp_val = vertz[0]
+        if tmp_val > zmax:
+            zmax = tmp_val
+        elif tmp_val < zmin :
+            zmin = tmp_val
     bounds[0] = xmin
     bounds[1] = ymin
     bounds[2] = zmin
@@ -6001,6 +6055,182 @@ cdef void is_los_circle_close_vec_core(int num_los, int num_cir,
         free(dirv)
         free(orig)
     return
+
+
+
+
+cdef inline double* comp_dist_los_vpoly(const double[3] ray_orig,
+                                        const double[3] ray_vdir,
+                                        const double* lpolyx,
+                                        const double* lpolyy,
+                                        const int nvert,
+                                        const double upscaDp, const double upar2,
+                                        const double dpar2, const double invuz,
+                                        const double crit2, const double eps_uz,
+                                        const double eps_vz, const double eps_a,
+                                        const double eps_b) nogil:
+    cdef int jj
+    cdef int indin=0
+    cdef int indout=0
+    cdef double norm_dir2
+    cdef double radius_z
+    cdef double q, coeff, sqd, k
+    cdef double v0, v1, val_a, val_b
+    cdef double[3] res_a
+    cdef double[3] res_b
+
+    # == Compute all solutions =================================================
+    # Set tolerance value for ray_vdir[2,ii]
+    # eps_uz is the tolerated DZ across 20m (max Tokamak size)
+    norm_dir2 = compute_dot_prod(ray_vdir, ray_vdir)
+    if ray_vdir[2] * ray_vdir[2] < crit2:
+        # -- Case with horizontal semi-line ------------------------------------
+        for jj in range(nvert):
+            if (lpolyy[jj+1] - lpolyy[jj])**2 > eps_vz * eps_vz:
+                # If segment AB is NOT horizontal, then we can compute distance
+                # between LOS and cone.
+                # First we compute the "circle" on the cone that lives on the
+                # same plane as the line
+                q = (ray_orig[2] - lpolyy[jj]) / (lpolyy[jj+1] - lpolyy[jj])
+                if q < 0. :
+                    # Then we only need to compute distance to circle C_A
+                    dist_los_circle_core(ray_vdir, ray_orig,
+                                        lpolyx[jj], lpolyy[jj],
+                                        norm_dir2, res_a)
+                    return res_a
+                elif q > 1:
+                    # Then we only need to compute distance to circle C_B
+                    dist_los_circle_core(ray_vdir, ray_orig,
+                                        lpolyx[jj+1], lpolyy[jj+1],
+                                        norm_dir2, res_b)
+                    return res_b
+                else:
+                    # The we need to compute the radius (the height is Z_D)
+                    # of the circle in the same plane as the LOS and compute the
+                    # distance between the LOS and circle.
+                    radius_z = q * (lpolyx[jj+1] - lpolyx[jj]) + lpolyx[jj]
+                    dist_los_circle_core(ray_vdir, ray_orig,
+                                         radius_z, ray_orig[2],
+                                         norm_dir2, res_a)
+                    return res_a
+            else:
+                # -- case with horizontal cone (aka cone is a plane annulus) ---
+                # Then the shortest distance is the distance to the
+                # outline circles
+                # computing distance to cricle C_A of radius R_A and height Z_A
+                dist_los_circle_core(ray_vdir, ray_orig,
+                                     lpolyx[jj], lpolyy[jj],
+                                     norm_dir2, res_a)
+                dist_los_circle_core(ray_vdir, ray_orig,
+                                     lpolyx[jj+1], lpolyy[jj+1],
+                                     norm_dir2, res_b)
+                # The result is the one associated to the shortest distance
+                if res_a[1] < res_b[1]:
+                    return res_a
+                else:
+                    return res_b
+    # == More general non-horizontal semi-line case ============================
+    else:
+        for jj in range(nvert):
+            v0 = lpolyx[jj+1]-lpolyx[jj]
+            v1 = lpolyy[jj+1]-lpolyy[jj]
+            val_a = v0 * v0 - upar2 * v1 * invuz * v1 * invuz
+            val_b = lpolyx[jj] * v0 + v1 * (ray_orig[2] - lpolyy[jj]) * upar2 *\
+                    invuz * invuz - upscaDp * v1 * invuz
+            coeff = - upar2 * (ray_orig[2] - lpolyy[jj])**2 * invuz * invuz +\
+                    2. * upscaDp * (ray_orig[2]-lpolyy[jj]) * invuz -\
+                    dpar2 + lpolyx[jj] * lpolyx[jj]
+            if (val_a * val_a < eps_a * eps_a):
+                if (val_b * val_b < eps_b * eps_b):
+                    # let's see if C is 0 or not
+                    if coeff * coeff < eps_a * eps_a :
+                        # then LOS included in cone and then we can choose point
+                        # such that q = 0,  k = (z_A - z_D) / uz
+                        res_a[0] = (lpolyy[jj] - ray_orig[2]) * invuz
+                        res_a[1] = 0 # distance = 0 since LOS in cone
+                        return res_a
+                else: # (val_b * val_b > eps_b * eps_b):
+                    q = -coeff / (2. * val_b)
+                    if q < 0. :
+                        # Then we only need to compute distance to circle C_A
+                        dist_los_circle_core(ray_vdir, ray_orig,
+                                            lpolyx[jj], lpolyy[jj],
+                                            norm_dir2, res_a)
+                        return res_a
+                    elif q > 1:
+                        # Then we only need to compute distance to circle C_B
+                        dist_los_circle_core(ray_vdir, ray_orig,
+                                            lpolyx[jj+1], lpolyy[jj+1],
+                                            norm_dir2, res_b)
+                        return res_b
+                    else :
+                        k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
+                        if k >= 0.:
+                            # Then there is an intersection
+                            res_a[0] = k
+                            res_a[1] = 0
+                            return res_a
+                        else:
+                            # The closest point on the line is the LOS origin
+                            res_a[0] = 0
+                            res_a[1] = -k * Csqrt(norm_dir2)
+            elif (val_b * val_b > val_a * coeff):
+                sqd = Csqrt(val_b * val_b - val_a * coeff)
+                # First solution
+                q = (-val_b + sqd) / val_a
+                if q < 0:
+                    # Then we only need to compute distance to circle C_A
+                    dist_los_circle_core(ray_vdir, ray_orig,
+                                         lpolyx[jj], lpolyy[jj],
+                                         norm_dir2, res_a)
+                    return res_a
+                elif q > 1:
+                    # Then we only need to compute distance to circle C_B
+                    dist_los_circle_core(ray_vdir, ray_orig,
+                                         lpolyx[jj+1], lpolyy[jj+1],
+                                         norm_dir2, res_a)
+                    return res_a
+                else :
+                    k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
+                    if k >= 0.:
+                        # There is an intersection
+                        res_a[0] = k
+                        res_a[1] = 0
+                    else:
+                        # The closest point on the LOS is its origin
+                        res_a[0] = 0
+                        res_a[1] = -k * Csqrt(norm_dir2)
+                # Second solution
+                q = (-val_b - sqd) / val_a
+                if q < 0:
+                    # Then we only need to compute distance to circle C_A
+                    dist_los_circle_core(ray_vdir, ray_orig,
+                                         lpolyx[jj], lpolyy[jj],
+                                         norm_dir2, res_b)
+                    return res_b
+                elif q > 1:
+                    # Then we only need to compute distance to circle C_B
+                    dist_los_circle_core(ray_vdir, ray_orig,
+                                         lpolyx[jj+1], lpolyy[jj+1],
+                                         norm_dir2, res_b)
+                    return res_b
+                else:
+                    k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
+                    if k>=0.:
+                        res_b[0] = k
+                        res_b[1] = 0
+                    else:
+                        # The closest point on the LOS is its origin
+                        res_b[0] = 0
+                        res_b[1] = -k * Csqrt(norm_dir2)
+                if res_a[1] < res_b[1]:
+                    return res_a
+                else:
+                    return res_b
+    with gil:
+        print("There was a case that was not tested... error!!!!!!!!!!")
+    return res_a
+
 
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

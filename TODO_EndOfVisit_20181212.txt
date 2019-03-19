@@ -5,10 +5,10 @@ Alors les prochaines Ã©tapers que je vois (ton avis est Ã©videmment bienvenu
 
 #########################
 * Function principale (kIn kOut, indout, vect):
-	- Terminer proprement l'optimisation CPU
-	- Comprendre et terminer optimisation / profilage mÃ©moire (rÃ©sidu?)
-	- Terminer parallÃ©lisation
-	- La connecter Ã  la partie orientÃ©e objet, en sortant les calculs
+x	- Terminer proprement l'optimisation CPU
+x	- Comprendre et terminer optimisation / profilage mÃ©moire (rÃ©sidu?)
+x	- Terminer parallÃ©lisation
+x	- La connecter Ã  la partie orientÃ©e objet, en sortant les calculs
 	preliminaires (limites des boites...) qui ne changeront pas si la
 	camÃ©ra bouge et qu'on refait le calcul (pour optimisation de la
 	position)
@@ -17,23 +17,31 @@ Alors les prochaines Ã©tapers que je vois (ton avis est Ã©videmment bienvenu
 #########################
 * Autres fonctions nÃ©cessaire (inspirÃ©es de la principale):
 
-  	0/ Calculer, pour N points (R,Z) (donc cercle plat en 3D), le point le
+x 	0/ Calculer, pour N points (R,Z) (donc cercle plat en 3D), le point le
 	long de la LOS le plus proche du cercle: (projection de la ligne
 	(hyperbole) ou en 3D pbm 4d), retourner k et distance
 
-	0.1/	Same as 0/ but give back bool when dist < eps => True
+x	0.1/	Same as 0/ but give back bool when dist < eps => True
 	(eps as parameter).
 
-	1/ Calculer uniquement kIn / kOut pour N (~1-100) polygones
+x	1/ Calculer uniquement kIn / kOut pour N (~1-100) polygones
 	(ex.: des surfaces de flux)
+	TODO: pas de structs !!
 
-	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
+>	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
 	traversent pas, la distance la plus courte d entre une ligne et un
 	polygone (et le paramÃ¨tre k du point associÃ© sur la ligne).
 	Retourner d=0 si la ligne traverse (i.e. si il existe un kIn et/ou
 	un kout)
+	> parametres entrées: (nvert, poly, vin, lims si lin, los_origin,
+	                       los_direction)
 
-	2.1/ Ask Didier (vignetting algo ?)
+>	2.1/ Ask Didier (vignetting algo ?)
+	> In : (list los_orig, list los_dirc, list contour3d, ncontour, list nvert...)
+	> Out : (list bool[ncontour * nlos])
+	> contour 'simple' 3d = sans recoupe.
+	>  1. bbox - los
+	   triangulation du polygon
 
 	3/ Calculer, pour N points de l'espace (~10-100) s'il sont visibles par
 	M autres points (~10^4-10^6), dans une configuration donnÃ©e (ex.: des
