@@ -1483,7 +1483,7 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
                                   ntMax=ntMax, nfMax=nfMax,
                                   Bck=Bck, llsf=lls, lct=lct,
                                   cmap_f=cmap_f, cmap_img=cmap_img,
-                                  normt=normt,
+                                  normt=normt, invert=invert,
                                   vmin=vmin, vmax=vmax, ms=ms,
                                   fs=fs, dmargin=dmargin, wintit=wintit,
                                   tit=tit, fontsize=fontsize,
@@ -1571,7 +1571,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                              inct=[1,10], incX=[1,5], incf=[1,10],
                              fmt_t='06.3f', fmt_X='01.0f', fmt_f='05.2f',
                              dchanskey=None, cmap_f=None, cmap_img=None,
-                             normt=False, ms=4,
+                             normt=False, ms=4, invert=True,
                              vmin=None, vmax=None, cbck=_cbck, Lplot='In',
                              fs=None, dmargin=None, wintit=_wintit, tit=None,
                              fontsize=_fontsize, labelpad=_labelpad,
@@ -1672,7 +1672,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         lpsd = lpsd / np.nanmax(lpsd,axis=2)[:,:,np.newaxis]
     lang = np.swapaxes(np.stack(lang,axis=0),1,2)
     Dpsd = [np.nanmin(lpsd), np.nanmax(lpsd)]
-    Dang = [np.nanmin(lang), np.nanmax(lang)]
+    angmax = max(np.abs(np.nanmin(lang)), np.abs(np.nanmax(lang)))
+    Dang = [-angmax, angmax]
     idlpsd = id(lpsd)
     idlang = id(lang)
 
@@ -1769,6 +1770,13 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         dax['X'][0].set_xlim(extent[:2])
         dax['X'][0].set_ylim(extent[2:])
 
+    # invert
+    if invert and nD == 2:
+        for ii in range(0,3):
+            dax['X'][ii].invert_xaxis()
+            dax['X'][ii].invert_yaxis()
+
+
     ##################
     # Interactivity dict
 
@@ -1808,9 +1816,9 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                      dax['X'][1]: {'ref':{idX:'x'}},
                      dax['X'][2]: {'ref':{idX:'x'}}})
     else:
-        dax2.update({dax['X'][0]: {'ref':{idX:'2d'}},
-                     dax['X'][1]: {'ref':{idX:'2d'}},
-                     dax['X'][2]: {'ref':{idX:'2d'}}})
+        dax2.update({dax['X'][0]: {'ref':{idX:'2d'}, 'invert':invert},
+                     dax['X'][1]: {'ref':{idX:'2d'}, 'invert':invert},
+                     dax['X'][2]: {'ref':{idX:'2d'}, 'invert':invert}})
     dobj = {}
 
 
@@ -1976,6 +1984,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         l0 = dax['t'][2].axhline(np.nan, c='k', ls=llsf[jj], lw=1.)
         dobj[l0] = {'dupdate':{'ydata':{'id':idf, 'lrid':[idf]}},
                     'drefid':{idf:jj}}
+
+
 
 
     # Instanciate KeyHandler

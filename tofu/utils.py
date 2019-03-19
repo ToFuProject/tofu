@@ -2275,7 +2275,7 @@ def get_ind_fromkey(dmovkeys={}, nn=[], is2d=False):
             else:
                 i2 += dmovkeys[movk][doinc]
                 i2 = i2 % n2
-            return i1 * n1 + i2
+            return i2 * n1 + i1
     else:
         nx = nn[0] if len(nn)==1 else nn[1]
         def func(movk, ind, doinc=False, dmovkeys=dmovkeys, nx=nx):
@@ -2353,7 +2353,7 @@ class KeyHandler_mpl(object):
         return warn
 
     @classmethod
-    def _get_dmovkeys(cls, Type, inc):
+    def _get_dmovkeys(cls, Type, inc, invert=False):
         assert Type in cls._ltypesref
         if Type[0] == 'x':
             dmovkeys = {'left':{False:-inc[0], True:-inc[1]},
@@ -2362,10 +2362,11 @@ class KeyHandler_mpl(object):
             dmovkeys = {'down':{False:-inc[0], True:-inc[1]},
                         'up':{False:inc[0], True:inc[1]}}
         elif Type == '2d':
-            dmovkeys = {'left':{False:-inc[0], True:-inc[1]},
-                        'right':{False:inc[0], True:inc[1]},
-                        'down':{False:-inc[0], True:-inc[1]},
-                        'up':{False:inc[0], True:inc[1]}}
+            sig = -1 if invert else 1
+            dmovkeys = {'left':{False:-sig*inc[0], True:-sig*inc[1]},
+                        'right':{False:sig*inc[0], True:sig*inc[1]},
+                        'down':{False:-sig*inc[0], True:-sig*inc[1]},
+                        'up':{False:sig*inc[0], True:sig*inc[1]}}
         return dmovkeys
 
     @classmethod
@@ -2494,11 +2495,17 @@ class KeyHandler_mpl(object):
         for ax in dax.keys():
             lobj = [obj for obj in dobj.keys() if dobj[obj]['ax'] is ax]
             dax[ax]['lobj'] = lobj
+            if 'invert' in dax[ax].keys():
+                assert type(dax[ax]['invert']) is bool
+                assert '2d' in dax[ax]['ref'].values()
+            else:
+                dax[ax]['invert'] = False
             lrefid = list(dax[ax]['ref'].keys())
             dmovkeys = {}
             for rid in lrefid:
                 dmovkeys[rid] = cls._get_dmovkeys(dax[ax]['ref'][rid],
-                                                  dref[rid]['inc'])
+                                                  dref[rid]['inc'],
+                                                  invert=dax[ax]['invert'])
             dax[ax]['dmovkeys'] = dmovkeys
 
             # Find default refid for ax from dgroup defax
@@ -2542,12 +2549,6 @@ class KeyHandler_mpl(object):
 
             # Get nn
             val = dref[rid]['val']
-            if type(val) is np.ndarray:
-                nn = val.shape
-            elif type(val) is list:
-                nn = (len(val),)
-            elif type(val) is tuple:
-                nn = (len(val[0]), len(val[1]))
 
             # Check if is2d
             ltypes = []
@@ -2570,9 +2571,16 @@ class KeyHandler_mpl(object):
                         assert '2d' in dref[rid].keys()
                         val2 = dref[rid]['2d']
                         is2d = True
+                        nn = (val2[0].size, val2[1].size)
                     else:
                         val2 = None
                         is2d = False
+                        if isinstance(val, np.ndarray):
+                            nn = val.shape
+                        elif isinstance(val, list):
+                            nn = (len(val),)
+                        else:
+                            raise Exception("Unknown val type !")
                     df_ind_pos[ax] = get_ind_frompos(typ, val, val2,
                                                      otherid = otherid,
                                                      indother = indother)
