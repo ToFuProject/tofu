@@ -416,7 +416,7 @@ class DataAbstract(utils.ToFuObject):
             dlabels = {}
         assert type(dlabels) is dict
         lk = ['data','t','X']
-        if self._isSpectral:
+        if self._isSpectral():
             lk.append('lamb')
         for k in lk:
             if not k in dlabels.keys():
