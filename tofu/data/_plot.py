@@ -1553,6 +1553,7 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                      indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
                      fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
                      inct=[1,10], incX=[1,5],
+                     fmt_t='06.3f', fmt_X='01.0f',
                      fontsize=_fontsize, labelpad=_labelpad,
                      invert=True, draw=True, connect=True, nD=1):
 
@@ -1674,6 +1675,7 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # Format axes
     dax = _init_Data1D_new(fs=fs, dmargin=dmargin, wintit=wintit,
                            nchMax=nchMax, ntMax=ntMax, nD=nD)
+    fig  = dax['t'][0].figure
     if tit is None:
         tit = []
         if lData[0].Id.Exp is not None:
@@ -1683,7 +1685,7 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         if lData[0].Id.shot is not None:
             tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
         tit = ' - '.join(tit)
-    dax['t'][0].figure.suptitle(tit)
+    fig.suptitle(tit)
 
 
     # -----------------
@@ -1732,9 +1734,9 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 dax['X'][0].fill_between(lX[0].ravel(), env[0], env[1], facecolor=cbck)
             tbck = np.tile(np.r_[lt[0], np.nan], nX)
             dbck = np.vstack((ldata[0], np.full((1,nX),np.nan))).T.ravel()
-            dax['t'][0].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+            dax['t'][1].plot(tbck, dbck, lw=1., ls='-', c=cbck)
         else:
-            dax['t'][0].fill_between(lt[0], np.nanmin(ldata[0],axis=1),
+            dax['t'][1].fill_between(lt[0], np.nanmin(ldata[0],axis=1),
                                      np.nanmax(ldata[0],axis=1),
                                      facecolor=cbck)
 
@@ -1797,17 +1799,14 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # dax
     lax_fix = [dax['cross'][0], dax['hor'][0],
                dax['txtg'][0], dax['txtt'][0], dax['txtx'][0]]
-    dax2 = {dax['t'][0]: {'ref':{idteq:'x'}},
-            dax['t'][1]: {'ref':{lidt[0]:'x'}}}
+
+    dax2 = {dax['t'][1]: {'ref':{lidt[0]:'x'}}}
+            # dax['t'][0]: {'ref':{idteq:'x'}}}
 
     if nD == 1:
-        dax2.update({dax['X'][0]: {'ref':{idX:'x'}},
-                     dax['X'][1]: {'ref':{idX:'x'}},
-                     dax['X'][2]: {'ref':{idX:'x'}}})
+        dax2.update({dax['X'][0]: {'ref':{lidX[0]:'x'}}})
     else:
-        dax2.update({dax['X'][0]: {'ref':{idX:'2d'}, 'invert':invert},
-                     dax['X'][1]: {'ref':{idX:'2d'}, 'invert':invert},
-                     dax['X'][2]: {'ref':{idX:'2d'}, 'invert':invert}})
+        dax2.update({dax['X'][0]: {'ref':{lidX[0]:'2d'}, 'invert':invert}})
     dobj = {}
 
 
@@ -1815,251 +1814,132 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     ##################
     # Populating dobj
 
-
-    # Channel
-    for jj in range(0,1):
+    # One-shot channels
+    for jj in range(0,nchMax):
 
         # Channel text
         l0 = dax['txtx'][0].text(0.5, 0., r'',
                                  color='k', fontweight='bold',
                                  fontsize=6., ha='center', va='bottom')
-        dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[idX],
+        dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[lidX[0]],
                                       'bstr':'{0:%s}'%fmt_X}},
-                    'drefid':{idX:jj}}
+                    'drefid':{lidX[0]:jj}}
+        # los
+        if c1:
+            l, = dax['cross'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                      c='k', ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlCross, 'lrid':[lidX[0]]}},
+                        'drefid':{lidX[0]:jj}}
+            l, = dax['hor'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                    c='k', ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlHor, 'lrid':[lidX[0]]}},
+                        'drefid':{lidX[0]:jj}}
 
+    # One-shot time
+    for jj in range(0,ntMax):
+        # Time txt
+        l0 = dax['txtt'][0].text((0.5+jj)/ntMax, 0., r'',
+                                 color=lct[jj], fontweight='bold',
+                                 fontsize=6., ha='center', va='bottom')
+        dobj[l0] = {'dupdate':{'txt':{'id':lidt[0], 'lrid':[lidt[0]],
+                                      'bstr':'{0:%s} s'%fmt_t}},
+                    'drefid':{lidt[0]:jj}}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
-    lEq = ['Ax','Sep','q1']
     for ii in range(0,nDat):
-        nt, nch = lData[ii].nt, lData[ii].nch
 
-        chansRef = np.arange(0,lData[ii].Ref['nch'])
-        chans = chansRef[lData[ii].indch]
-        Dchans = [-1,lData[ii].Ref['nch']]
-        Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
-        if lData[ii].Ref['dchans'] in [None,{}]:
-            chlabRef = chansRef
-            chlab = chans
-        else:
-            chlabRef = chansRef if key is None else lData[ii].Ref['dchans'][key]
-            chlab = chans if key is None else lData[ii].dchans(key)
+        # Channel
+        for jj in range(0,nchMax):
 
-        if lData[ii].t is None:
-            t = np.arange(0,lData[ii].nt)
-        elif nt==1:
-            t = np.array([lData[ii].t]).ravel()
-        else:
-            t = lData[ii].t
-        if nt==1:
-            Dti = [t[0]-0.001,t[0]+0.001]
-        else:
-            Dti = [np.nanmin(t), np.nanmax(t)]
-        Dt = [min(Dt[0],Dti[0]), max(Dt[1],Dti[1])]
-        data = lData[ii].data.reshape((nt,nch))
+            # Channel time trace
+            l0, = dax['t'][1].plot(lt[ii], np.full((lt[ii].size,),np.nan),
+                                   c='k', ls='-', lw=1.)
+            dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii], 'lrid':[lidX[ii]]}},
+                        'drefid':{lidX[ii]:jj}}
 
-        # Setting tref and plotting handles
-        if ii==0:
-            tref = t.copy()
-            chref = chans.copy()
-            for jj in range(0,len(dax['t'])):
-                dax['t'][jj]['xref'] = tref
-            for jj in range(0,len(dax['chan'])):
-                dax['chan'][jj]['xref'] = chref
-            if Bck:
-                env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
-                dax['chan'][0]['ax'].fill_between(chans, env[0], env[1], facecolor=cbck)
-                tbck = np.tile(np.r_[t, np.nan], nch)
-                dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
-                dax['t'][1]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
-
-        # Adding vline t and trig
-        ltg, lt = [], []
-        for ll in range(0,len(dax['t'])):
-            dax['t'][ll]['dh']['vline'][ii]['xref'] = t
-            lv = []
-            for jj in range(0,ntMax):
-                l0 = dax['t'][ll]['ax'].axvline(np.nan, c=lct[jj], ls=lls[ii],
-                                               lw=1.)
-                lv.append(l0)
-                if ll==0:
-                    l1, = dax['chan'][0]['ax'].plot(chans,
-                                                    np.full((nch,),np.nan),
-                                                    c=lct[jj], ls=lls[ii],
-                                                    lw=1.)
-                    ltg.append(l1)
-                    if ii==0:
-                        l = dax['txtt'][0]['ax'].text((0.5+jj)/ntMax, 0., r'',
-                                                      color=lct[jj], fontweight='bold',
-                                                      fontsize=6., ha='center',
-                                                      va='bottom')
-                        lt.append(l)
-            if ll==0:
-                dtg = {'xref':t, 'h':ltg, 'y':data}
-            dax['t'][ll]['dh']['vline'][ii]['h'] = lv
-        dax['t'][1]['dh']['vline'][ii]['trig']['1dprof'][ii] = dtg
-        if ii==0:
-            dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
-            dax['t'][1]['dh']['vline'][0]['trig'].update(dttxt)
-            dax['txtt'][0]['dh'] = dttxt
-        dax['chan'][0]['dh']['1dprof'][ii] = dtg
-
-        # Adding vline ch
-        ltg = []
-        for ll in range(0,len(dax['chan'])):
-            dax['chan'][ll]['dh']['vline'][ii]['xref'] = chans
-            lv = []
-            for jj in range(0,nchMax):
-                lab = r"Data{0} ch{1}".format(ii,jj)
-                l0 = dax['chan'][ll]['ax'].axvline(np.nan, c=lcch[jj], ls=lls[ii],
-                                                   lw=1., label=lab)
-                lv.append(l0)
-                if ll==0:
-                    l1, = dax['t'][1]['ax'].plot(t,np.full((nt,),np.nan),
-                                                 c=lcch[jj], ls=lls[ii], lw=1.,
-                                                 label=lab)
-                    ltg.append(l1)
-            if ll==0:
-                dtg = {'xref':chans, 'h':ltg, 'y':data.T}
-            dax['chan'][ll]['dh']['vline'][ii]['h'] = lv
-        dax['chan'][0]['dh']['vline'][ii]['trig']['ttrace'][ii] = dtg
-        dax['t'][1]['dh']['ttrace'][ii] = dtg
-
-        # Adding Equilibrium and extra
-        if hasattr(lData[ii],'dextra') and lData[ii].dextra is not None:
-            lk = list(lData[ii].dextra.keys())
-            lkEq = [lk.pop(lk.index(lEq[jj]))
-                    for jj in range(len(lEq)) if lEq[jj] in lk]
-            if ii == 0:
-                dhcross = None if len(lkEq)==0 else {}
-            axcross = dax['cross'][0]['ax']
-            for kk in lData[ii].dextra.keys():
-                dd = lData[ii].dextra[kk]
-                if kk == 'Ax':
-                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
-                    dax['t'][0]['ax'].plot(dd['t'], x,
-                                           ls=lls[ii], lw=1.,
-                                           label=r'$R_{Ax}$ (m)')
-                    dax['t'][0]['ax'].plot(dd['t'], y,
-                                           ls=lls[ii], lw=1.,
-                                           label=r'$Z_{Ax}$ (m)')
-                # Plot 2d equilibrium
-                if kk in lkEq and ii == 0:
-                    tref = lData[ii].dextra[lkEq[0]]['t']
-                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
-                    dhcross[kk] = [{'h':[], 'x':x, 'y':y, 'xref':tref}]
-
-                    for jj in range(0,ntMax):
-                        ll, = axcross.plot(np.full((dd['nP'],),np.nan),
-                                           np.full((dd['nP'],),np.nan),
-                                           ls=lls[ii], c=lct[jj], lw=1.,
-                                           label=dd['label'])
-                        dhcross[kk][0]['h'].append(ll)
-
-                elif 'data2D' not in dd.keys() and 't' in dd.keys():
-                    c = dd['c'] if 'c' in dd.keys() else 'k'
-                    lab = dd['label'] + ' (%s)'%dd['units']
-                    dax['t'][0]['ax'].plot(dd['t'], dd['data'],
-                                           ls=lls[ii], lw=1., c=c, label=lab)
-
-            if ii == 0 and dhcross is not None:
-                dax['cross'][0]['dh'].update(dhcross)
-                dax['t'][1]['dh']['vline'][ii]['trig'].update(dhcross)
-
-            if ii == 0:
-                dax['t'][0]['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
-                                         ncol=4, mode='expand', borderaxespad=0.,
-                                         prop={'size':fontsize})
-
-        # Adding mobile LOS and text
-        C0 =  lData[ii].geom is not None and lData[ii].geom['LCam'] is not None
-        if ii == 0 and C0:
-            if 'LOS' in lData[ii]._CamCls:
-                lCross, lHor, llab = [], [], []
-                for ll in range(0,len(lData[ii].geom['LCam'])):
-                    lCross += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Cross',
-                                                                   multi=True)
-                    lHor += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Hor',
-                                                                 multi=True)
-                    llab += [lData[ii].geom['LCam'][ll].Id.Name + s
-                             for s in lData[ii].geom['LCam'][ll].dchans['Name']]
-
-                lHor = np.stack(lHor)
-                dlosc = {'los':[{'h':[],'xy':lCross, 'xref':chans}]}
-                dlosh = {'los':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':chans}]}
-                dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':chans}]}
-                for jj in range(0,nchMax):
-                    l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
-                                                   [np.nan,np.nan],
-                                                   c=lcch[jj], ls=lls[ii], lw=2.)
-                    dlosc['los'][0]['h'].append(l)
-                    l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
-                                                  [np.nan,np.nan],
-                                                  c=lcch[jj], ls=lls[ii], lw=2.)
-                    dlosh['los'][0]['h'].append(l)
-                    l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
-                                               color=lcch[jj],
-                                               fontweight='bold', fontsize=6.,
-                                               ha='center', va='bottom')
-                    dchtxt['txt'][0]['h'].append(l)
-                dax['hor'][0]['dh'].update(dlosh)
-                dax['cross'][0]['dh'].update(dlosc)
-                dax['txtch'][0]['dh'].update(dchtxt)
-                dax['chan'][0]['dh']['vline'][ii]['trig'].update(dlosh)
-                dax['chan'][0]['dh']['vline'][ii]['trig'].update(dlosc)
-                dax['chan'][0]['dh']['vline'][ii]['trig'].update(dchtxt)
+            # Channel vlines or pixels
+            if nD == 1:
+                if lXother[ii] is None:
+                    l0 = dax['X'][0].axvline(np.nan, c='k', ls='-', lw=1.)
+                    dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
+                                                    'lrid':[lidX[ii]]}},
+                                'drefid':{lidX[ii]:jj}}
+                else:
+                    for ll in range(0,ntMax):
+                        l0 = dax['X'][0].axvline(np.nan, c='k', ls='-', lw=1.)
+                        dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
+                                                        'lrid':[lidt[ll],lidX[ii]]}},
+                                    'drefid':{lidX[ii]:jj, lidt[ii]:ii}}
             else:
-                raise Exception("Not coded yet !")
+                pass
 
-    dax['t'][0]['ax'].set_xlim(Dt)
-    dax['t'][1]['ax'].set_ylabel(r"data (%s)"%Dunits, fontsize=fontsize)
-    dax['t'][1]['ax'].set_xlabel(r"t ($s$)", fontsize=fontsize)
-    dax['chan'][0]['ax'].set_xlim(Dch)
-    dax['chan'][0]['ax'].set_ylim(Dd)
-    dax['chan'][0]['ax'].set_xlabel(r"", fontsize=fontsize)
-    dax['chan'][0]['ax'].set_ylabel(r"data (%s)"%Dunits, fontsize=fontsize)
-    dax['chan'][0]['ax'].set_xticks(chansRef)
-    dax['chan'][0]['ax'].set_xticklabels(chlabRef, rotation=45)
 
-    can = dax['t'][0]['ax'].figure.canvas
+        # Time
+        for jj in range(0,ntMax):
+
+            # Time vlines
+            for ll in range(0,len(dax['t'])):
+                l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls='-', lw=1.)
+                dobj[l0] = {'dupdate':{'xdata':{'id':lidt[ii], 'lrid':[lidt[ii]]}},
+                            'drefid':{lidt[ii]:jj}}
+
+            # Time data profiles
+            if nD == 1:
+                l0, = dax['X'][0].plot(lX[ii][0,:], np.full((nX,),np.nan),
+                                       c=lct[jj], ls='-', lw=1.)
+                dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
+                                                'lrid':[lidt[ii]]}},
+                            'drefid':{lidt[ii]:jj}}
+                if lXother[ii] is not None:
+                    dobj[l0]['dupdate']['xdata'] = {'id':lidX[ii],
+                                                    'lrid':[lXother[ii]]}
+            # else:
+                # nan2 = np.full((x2.size,x1.size),np.nan)
+                # im = dax['X'][0].imshow(nan2, extent=extent, aspect='equal',
+                                        # interpolation='nearest', origin='lower',
+                                        # zorder=-1, norm=norm_data,
+                                        # cmap=cmap_img)
+                # dobj[im] = {'dupdate':{'data-reshape':{'id':iddata, 'n12':n12,
+                                                       # 'lrid':[idt]}},
+                            # 'drefid':{idt:jj}}
+
+
+        # # pixel on top of imshows
+        # if nD == 2:
+            # jj = 0
+            # for ll in range(0,len(dax['X'])):
+                # l0, = dax['X'][ll].plot([np.nan],[np.nan],
+                                        # mec='k', ls='None', marker='s', mew=2.,
+                                        # ms=ms, mfc='None', zorder=10)
+                # dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
+                            # 'drefid':{idX:jj}}
+
+
+
+
+
+    # Instanciate KeyHandler
+    can = fig.canvas
     can.draw()
-
-    kh = utils.KeyHandler_mpl(can, dgroup, dobj, dref, dax)
+    kh = utils.KeyHandler_mpl(can=can,
+                              dgroup=dgroup, dref=dref, ddata=ddat,
+                              dobj=dobj, dax=dax2, lax_fix=lax_fix,
+                              groupinit='time', follow=True)
 
     if connect:
         kh.disconnect_old()
         kh.connect()
     if draw:
         can.draw()
-    return KH
+    return kh
+
+
+
+
+
+
+
+
+
 
 
 
