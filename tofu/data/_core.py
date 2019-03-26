@@ -516,6 +516,7 @@ class DataAbstract(utils.ToFuObject):
             for k in dextra.keys():
                 assert isinstance(dextra[k],dict)
                 assert 't' in dextra[k].keys()
+        return dextra
 
     ###########
     # Get keys of dictionnaries
