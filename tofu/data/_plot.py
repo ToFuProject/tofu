@@ -98,7 +98,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
                           # Bck=Bck, lls=lls, lct=lct, lcch=lcch,
                           # fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
                           # fontsize=fontsize, draw=draw, connect=connect)
-        KH = _Data1D_plot_new(lData, key=key, indref=indref,
+        KH = _DataCam12D_plot(lData, key=key, indref=indref,
                               nchMax=nchMax, ntMax=ntMax,
                               Bck=Bck, lls=lls, lct=lct, lcch=lcch,
                               Lplot=Lplot,
@@ -1490,7 +1490,7 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
 #######################################################################
 
 
-def _init_Data1D_new(fs=None, dmargin=None,
+def _init_DataCam12D(fs=None, dmargin=None,
                      fontsize=8,  wintit=_wintit,
                      nchMax=4, ntMax=4, nD=1):
     # Figure
@@ -1549,7 +1549,7 @@ def _init_Data1D_new(fs=None, dmargin=None,
     return dax
 
 
-def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
+def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                      indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
                      fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
                      inct=[1,10], incX=[1,5],
@@ -1655,6 +1655,30 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         dchans = lData[0].dchans(key)
     idchans = id(dchans)
 
+    # teq from dextra
+    lEq = ['Ax','Sep','q1']
+    lmap = ['map']
+    teq = None
+    for ii in range(0,nDat):
+        if lData[ii].dextra is not None:
+            lkteq = [k for k in list(lData[ii].dextra.keys())
+                     if k in lEq+lmap]
+            if teq is None and len(lkteq) > 0:
+                teq = lData[ii].dextra[lkteq[0]]['t']
+                break
+    ii = 0
+    while teq is None and ii<nDat:
+        if lData[ii].dextra is not None:
+            for k in lData[ii].dextra.keys():
+                if 't' in lData[ii].dextra[k].keys():
+                    teq = lData[ii].dextra[k]['t']
+                    break
+        ii += 1
+    if teq is None:
+        teq, idteq = lt[0], lidt[0]
+    else:
+        idteq = id(teq)
+
 
     # ---------
     # Check data
@@ -1673,8 +1697,8 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     #########
 
     # Format axes
-    dax = _init_Data1D_new(fs=fs, dmargin=dmargin, wintit=wintit,
-                           nchMax=nchMax, ntMax=ntMax, nD=nD)
+    dax = _init_DataCam12D(fs=fs, dmargin=dmargin, wintit=wintit,
+                        nchMax=nchMax, ntMax=ntMax, nD=nD)
     fig  = dax['t'][0].figure
     if tit is None:
         tit = []
@@ -1727,6 +1751,7 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         else:
             lCross, lHor = None, None
 
+    # Background (optional)
     if Bck:
         if nD == 1:
             if lData[0].ddata['nnX'] == 1:
@@ -1739,6 +1764,22 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             dax['t'][1].fill_between(lt[0], np.nanmin(ldata[0],axis=1),
                                      np.nanmax(ldata[0],axis=1),
                                      facecolor=cbck)
+
+    # Static extra
+    for ii in range(0,nDat):
+        if lData[ii].dextra is not None:
+            lk = [k for k in lData[ii].dextra.keys() if k not in lEq+lmap]
+            for kk in lk:
+                dd = lData[ii].dextra[kk]
+                if 'data2D' not in dd.keys() and 't' in dd.keys():
+                    c = dd['c'] if 'c' in dd.keys() else 'k'
+                    lab = dd['label'] + ' (%s)'%dd['units'] if ii==0 else None
+                    dax['t'][0].plot(dd['t'], dd['data'],
+                                     ls=lls[ii], lw=1., c=c, label=lab)
+
+    dax['t'][0].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
+                       ncol=4, mode='expand', borderaxespad=0., prop={'size':fontsize})
+
 
     # ---------------
     # Lims and labels
@@ -1781,6 +1822,7 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                         'otherid':lXother[ii], 'indother':lindtX[ii]})
             for ii in range(0,nDat)]
     dref = dict(lref)
+    dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
 
     if nD == 2:
         for ii in range(0,nDat):
@@ -1800,13 +1842,16 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     lax_fix = [dax['cross'][0], dax['hor'][0],
                dax['txtg'][0], dax['txtt'][0], dax['txtx'][0]]
 
-    dax2 = {dax['t'][1]: {'ref':{lidt[0]:'x'}}}
-            # dax['t'][0]: {'ref':{idteq:'x'}}}
+    dax2 = {dax['t'][1]: {'ref':dict([(idt,'x') for idt in lidt]),
+                          'graph':{lidt[0]:'x'}},
+            dax['t'][0]: {'ref':{idteq:'x'}}}
 
     if nD == 1:
-        dax2.update({dax['X'][0]: {'ref':{lidX[0]:'x'}}})
+        dax2.update({dax['X'][0]: {'ref':dict([(idX,'x') for idX in lidX]),
+                                   'graph':{lidX[0]:'x'}}})
     else:
-        dax2.update({dax['X'][0]: {'ref':{lidX[0]:'2d'}, 'invert':invert}})
+        dax2.update(dict([(dax['X'][ii],{'ref':{lidX[ii]:'2d'},'invert':invert})
+                          for ii in range(0,nDat)]))
     dobj = {}
 
 
@@ -1814,6 +1859,7 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     ##################
     # Populating dobj
 
+    # -------------
     # One-shot channels
     for jj in range(0,nchMax):
 
@@ -1827,14 +1873,15 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         # los
         if c1:
             l, = dax['cross'][0].plot([np.nan,np.nan], [np.nan,np.nan],
-                                      c='k', ls='-', lw=2.)
+                                      c=lcch[jj], ls='-', lw=2.)
             dobj[l] = {'dupdate':{'data':{'id':idlCross, 'lrid':[lidX[0]]}},
                         'drefid':{lidX[0]:jj}}
             l, = dax['hor'][0].plot([np.nan,np.nan], [np.nan,np.nan],
-                                    c='k', ls='-', lw=2.)
+                                    c=lcch[jj], ls='-', lw=2.)
             dobj[l] = {'dupdate':{'data':{'id':idlHor, 'lrid':[lidX[0]]}},
                         'drefid':{lidX[0]:jj}}
 
+    # -------------
     # One-shot time
     for jj in range(0,ntMax):
         # Time txt
@@ -1845,78 +1892,70 @@ def _Data1D_plot_new(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                       'bstr':'{0:%s} s'%fmt_t}},
                     'drefid':{lidt[0]:jj}}
 
+    # -------------
+    # Data-specific
     for ii in range(0,nDat):
-
-        # Channel
-        for jj in range(0,nchMax):
-
-            # Channel time trace
-            l0, = dax['t'][1].plot(lt[ii], np.full((lt[ii].size,),np.nan),
-                                   c='k', ls='-', lw=1.)
-            dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii], 'lrid':[lidX[ii]]}},
-                        'drefid':{lidX[ii]:jj}}
-
-            # Channel vlines or pixels
-            if nD == 1:
-                if lXother[ii] is None:
-                    l0 = dax['X'][0].axvline(np.nan, c='k', ls='-', lw=1.)
-                    dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
-                                                    'lrid':[lidX[ii]]}},
-                                'drefid':{lidX[ii]:jj}}
-                else:
-                    for ll in range(0,ntMax):
-                        l0 = dax['X'][0].axvline(np.nan, c='k', ls='-', lw=1.)
-                        dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
-                                                        'lrid':[lidt[ll],lidX[ii]]}},
-                                    'drefid':{lidX[ii]:jj, lidt[ii]:ii}}
-            else:
-                pass
-
 
         # Time
         for jj in range(0,ntMax):
 
             # Time vlines
             for ll in range(0,len(dax['t'])):
-                l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls='-', lw=1.)
+                l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls=lls[ii], lw=1.)
                 dobj[l0] = {'dupdate':{'xdata':{'id':lidt[ii], 'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
 
             # Time data profiles
             if nD == 1:
                 l0, = dax['X'][0].plot(lX[ii][0,:], np.full((nX,),np.nan),
-                                       c=lct[jj], ls='-', lw=1.)
+                                       c=lct[jj], ls=lls[ii], lw=1.)
                 dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
                                                 'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
                 if lXother[ii] is not None:
                     dobj[l0]['dupdate']['xdata'] = {'id':lidX[ii],
                                                     'lrid':[lXother[ii]]}
-            # else:
-                # nan2 = np.full((x2.size,x1.size),np.nan)
-                # im = dax['X'][0].imshow(nan2, extent=extent, aspect='equal',
-                                        # interpolation='nearest', origin='lower',
-                                        # zorder=-1, norm=norm_data,
-                                        # cmap=cmap_img)
-                # dobj[im] = {'dupdate':{'data-reshape':{'id':iddata, 'n12':n12,
-                                                       # 'lrid':[idt]}},
-                            # 'drefid':{idt:jj}}
+            else:
+                nan2 = np.full((x2.size,x1.size),np.nan)
+                im = dax['X'][ii].imshow(nan2, extent=extent, aspect='equal',
+                                         interpolation='nearest', origin='lower',
+                                         zorder=-1, norm=norm_data,
+                                         cmap=cmap_img)
+                dobj[im] = {'dupdate':{'data-reshape':{'id':liddata[ii], 'n12':n12,
+                                                       'lrid':[lidt[ii]]}},
+                            'drefid':{lidt[ii]:jj}}
+
+        # Channel
+        for jj in range(0,nchMax):
+
+            # Channel time trace
+            l0, = dax['t'][1].plot(lt[ii], np.full((lt[ii].size,),np.nan),
+                                   c=lcch[jj], ls=lls[ii], lw=1.)
+            dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii], 'lrid':[lidX[ii]]}},
+                        'drefid':{lidX[ii]:jj}}
+
+            # Channel vlines or pixels
+            if nD == 1:
+                if lXother[ii] is None:
+                    l0 = dax['X'][0].axvline(np.nan, c=lcch[jj], ls=lls[ii], lw=1.)
+                    dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
+                                                    'lrid':[lidX[ii]]}},
+                                'drefid':{lidX[ii]:jj}}
+                else:
+                    for ll in range(0,ntMax):
+                        l0 = dax['X'][0].axvline(np.nan, c=lcch[jj], ls=lls[ii], lw=1.)
+                        dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
+                                                        'lrid':[lidt[ii],lidX[ii]]}},
+                                    'drefid':{lidX[ii]:jj, lidt[ii]:ll}}
+            else:
+                l0, = dax['X'][ii].plot([np.nan],[np.nan],
+                                        mec=lcch[jj], ls='None', marker='s', mew=2.,
+                                        ms=ms, mfc='None', zorder=10)
+                dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[lidX[ii]]}},
+                            'drefid':{lidX[ii]:jj}}
 
 
-        # # pixel on top of imshows
-        # if nD == 2:
-            # jj = 0
-            # for ll in range(0,len(dax['X'])):
-                # l0, = dax['X'][ll].plot([np.nan],[np.nan],
-                                        # mec='k', ls='None', marker='s', mew=2.,
-                                        # ms=ms, mfc='None', zorder=10)
-                # dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
-                            # 'drefid':{idX:jj}}
-
-
-
-
-
+    ##################
     # Instanciate KeyHandler
     can = fig.canvas
     can.draw()

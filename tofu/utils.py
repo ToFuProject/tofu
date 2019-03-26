@@ -2445,6 +2445,49 @@ class KeyHandler_mpl(object):
         #---------------
         # Complement
 
+        # dax
+        for ax in dax.keys():
+            lobj = [obj for obj in dobj.keys() if dobj[obj]['ax'] is ax]
+            dax[ax]['lobj'] = lobj
+            if 'invert' in dax[ax].keys():
+                assert type(dax[ax]['invert']) is bool
+                assert '2d' in dax[ax]['ref'].values()
+            else:
+                dax[ax]['invert'] = False
+
+            # Handle cases were several ref are associated to the same typ
+            lrefid = list(dax[ax]['ref'].keys())
+            ltypu = sorted(set(dax[ax]['ref'].values()))
+            dtypu = dict([(typ,[rid for rid in lrefid
+                                if dax[ax]['ref'][rid] == typ])
+                         for typ in ltypu])
+            # Check unicity of graphical ref
+            if 'graph' not in dax[ax].keys():
+                assert all([len(vv) == 1 for vv in dtypu.values()])
+                dax[ax]['graph'] = dax[ax]['ref']
+            else:
+                for typ in dtypu.keys():
+                    if len(dtypu[typ]) > 1:
+                        assert np.sum([rid in dax[ax]['graph'].keys()
+                                       for rid in dtypu[typ]]) == 1
+                    else:
+                        dax[ax]['graph'][dtypu[typ][0]] = typ
+
+            # func dict
+            dmovkeys = {}
+            for rid in lrefid:
+                dmovkeys[rid] = cls._get_dmovkeys(dax[ax]['ref'][rid],
+                                                  dref[rid]['inc'],
+                                                  invert=dax[ax]['invert'])
+            dax[ax]['dmovkeys'] = dmovkeys
+
+            # Find default refid for ax (in case of ref from several groups)
+            lrefid = list(dax[ax]['graph'].keys())
+            if len(lrefid) > 1:
+                assert 'defrefid' in dax[ax].keys()
+                assert dax[ax]['defrefid'] in lrefid
+
+
         # dgroup
         for g in lg:
             dgroup[g]['indcur'] = 0
@@ -2463,7 +2506,7 @@ class KeyHandler_mpl(object):
             dgroup[g]['lax'] = lla
 
             # Set defid
-            ldefid = dax[dgroup[g]['defax']]['ref'].keys()
+            ldefid = dax[dgroup[g]['defax']]['graph'].keys()
             ldefid = [defid for defid in ldefid if dref[defid]['group'] == g]
             assert len(ldefid) == 1
             dgroup[g]['defid'] = ldefid[0]
@@ -2490,28 +2533,6 @@ class KeyHandler_mpl(object):
                                 if lind[ii] == ind]) for ind in lindu])
             dgroup[g]['d2obj'] = d2obj
             dgroup[g]['lobj'] = lobj
-
-        # dax
-        for ax in dax.keys():
-            lobj = [obj for obj in dobj.keys() if dobj[obj]['ax'] is ax]
-            dax[ax]['lobj'] = lobj
-            if 'invert' in dax[ax].keys():
-                assert type(dax[ax]['invert']) is bool
-                assert '2d' in dax[ax]['ref'].values()
-            else:
-                dax[ax]['invert'] = False
-            lrefid = list(dax[ax]['ref'].keys())
-            dmovkeys = {}
-            for rid in lrefid:
-                dmovkeys[rid] = cls._get_dmovkeys(dax[ax]['ref'][rid],
-                                                  dref[rid]['inc'],
-                                                  invert=dax[ax]['invert'])
-            dax[ax]['dmovkeys'] = dmovkeys
-
-            # Find default refid for ax from dgroup defax
-            if len(lrefid) > 1:
-                assert 'defrefid' in dax[ax].keys()
-                assert dax[ax]['defrefid'] in lrefid
 
 
         # dref
@@ -2748,7 +2769,7 @@ class KeyHandler_mpl(object):
         group = self.dcur['group']
         refid = self.dcur['refid']
         assert self.dref[refid]['group'] == group
-        assert refid in self.dax[self.dcur['ax']]['ref'].keys()
+        assert refid in self.dax[self.dcur['ax']]['graph'].keys()
 
         # Update also dind !
         an = [self.dgroup[self.dref[rid]['group']]['ncur']
@@ -2852,7 +2873,7 @@ class KeyHandler_mpl(object):
 
         # Set self.dcur
         self.dcur['ax'] = event.inaxes
-        lrid = list(self.dax[event.inaxes]['ref'].keys())
+        lrid = list(self.dax[event.inaxes]['graph'].keys())
         if len(lrid)>1:
             lg = [self.dref[rid]['group'] for rid in lrid]
             if self.dcur['group'] in lg:

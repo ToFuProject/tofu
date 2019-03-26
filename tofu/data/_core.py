@@ -258,7 +258,7 @@ class DataAbstract(utils.ToFuObject):
 
         ndim = data.ndim
         assert ndim in [2,3]
-        if not self._isSpectral:
+        if not self._isSpectral():
             msg = "self is not of spectral type"
             msg += "\n  => the data cannot be 3D ! (ndim)"
             assert ndim==2, msg
@@ -274,14 +274,14 @@ class DataAbstract(utils.ToFuObject):
             lC = [X is None, lamb is None]
             assert any(lC)
             if all(lC):
-                if not self._isSpectral:
+                if not self._isSpectral():
                     X = np.array([0])
                     lamb = np.arange(0,n1)
                     data = data.reshape((nt,1,n1))
                 else:
                     X = np.arange(0,n1)
             elif lC[0]:
-                assert self._isSpectral
+                assert self._isSpectral()
                 X = np.array([0])
                 data = data.reshape((nt,1,n1))
                 assert lamb.ndim in [1,2]
@@ -290,11 +290,11 @@ class DataAbstract(utils.ToFuObject):
                 elif lamb.ndim==2:
                     assert lamb.shape[1]==n1
             else:
-                assert not self._isSpectral
+                assert not self._isSpectral()
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
         else:
-            assert self._isSpectral
+            assert self._isSpectral()
             n2 = data.shape[2]
             lC = [X is None, lamb is None]
             if lC[0]:
@@ -366,12 +366,12 @@ class DataAbstract(utils.ToFuObject):
 
         if ndim==2:
             if X is None:
-                if self._isSpectral:
+                if self._isSpectral():
                     X = np.array([0])
                 else:
                     X = np.arange(0,n1)
             else:
-                assert not self._isSpectral
+                assert not self._isSpectral()
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
         else:
@@ -889,7 +889,7 @@ class DataAbstract(utils.ToFuObject):
         Must be a 1d array
 
         """
-        if not self._isSpectral:
+        if not self._isSpectral():
             msg = "The wavelength can only be set with DataSpectral object !"
             raise Exception(msg)
         if indlamb is not None:
@@ -1483,7 +1483,7 @@ class DataAbstract(utils.ToFuObject):
             The array of indices, of dtype specified by keywordarg out
 
         """
-        if not self._isSpectral:
+        if not self._isSpectral():
             msg = ""
             raise Exception(msg)
         assert out in [bool,int]
