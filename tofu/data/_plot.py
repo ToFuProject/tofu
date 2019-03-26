@@ -34,6 +34,7 @@ _lct = [plt.cm.tab20.colors[ii] for ii in [0,2,4,1,3,5]]
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
 _cbck = (0.8,0.8,0.8)
+_dmarker = {'Ax':'o', 'X':'x'}
 
 def Data_plot(lData, key=None, Bck=True, indref=0,
               cmap=plt.cm.gray, ms=4, vmin=None, vmax=None, normt=False,
@@ -1552,8 +1553,8 @@ def _init_DataCam12D(fs=None, dmargin=None,
 def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                      indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
                      fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
-                     inct=[1,10], incX=[1,5],
-                     fmt_t='06.3f', fmt_X='01.0f',
+                     inct=[1,10], incX=[1,5], ms=4,
+                     fmt_t='06.3f', fmt_X='01.0f', dmarker=_dmarker,
                      fontsize=_fontsize, labelpad=_labelpad,
                      invert=True, draw=True, connect=True, nD=1):
 
@@ -1655,31 +1656,6 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         dchans = lData[0].dchans(key)
     idchans = id(dchans)
 
-    # teq from dextra
-    lEq = ['Ax','Sep','q1']
-    lmap = ['map']
-    teq = None
-    for ii in range(0,nDat):
-        if lData[ii].dextra is not None:
-            lkteq = [k for k in list(lData[ii].dextra.keys())
-                     if k in lEq+lmap]
-            if teq is None and len(lkteq) > 0:
-                teq = lData[ii].dextra[lkteq[0]]['t']
-                break
-    ii = 0
-    while teq is None and ii<nDat:
-        if lData[ii].dextra is not None:
-            for k in lData[ii].dextra.keys():
-                if 't' in lData[ii].dextra[k].keys():
-                    teq = lData[ii].dextra[k]['t']
-                    break
-        ii += 1
-    if teq is None:
-        teq, idteq = lt[0], lidt[0]
-    else:
-        idteq = id(teq)
-
-
     # ---------
     # Check data
     ldata = [dd.data for dd in lData]
@@ -1690,6 +1666,26 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     Dlab = r"{0} ({1})".format(lData[0].dlabels['data']['name'],
                                lData[0].dlabels['data']['units'])
     liddata = [id(dat) for dat in ldata]
+
+    # ---------
+    # Extra
+    lkEqmap = ['Sep','Ax','X','map']
+    dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
+    dteq = dict([(ii,None) for ii in range(0,nDat)])
+    for ii in range(0,nDat):
+        if lData[ii].dextra is not None:
+            for k in lk:
+                if k in lData[ii].dextra.keys():
+                    idteq = id(lData[ii].dextra[k]['t'])
+                    if dteq[ii] is None or idteq not in dteq[ii].keys():
+                        dteq[idteq] = lData[ii].dextra[k]['t']
+                    dlextra[k][ii] = dict([((k,v)
+                                            for k,v in lData[ii].dextra.items()
+                                            if not k == 't')])
+                    dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
+                    dlextra[k][ii]['idt'] = idteq
+                    if k in ['Ax','X'] and 'marker' not in dlextra.keys():
+                        dlextra['marker'] = dmarker[k]
 
 
     #########
@@ -1768,10 +1764,10 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # Static extra
     for ii in range(0,nDat):
         if lData[ii].dextra is not None:
-            lk = [k for k in lData[ii].dextra.keys() if k not in lEq+lmap]
+            lk = [k for k in lData[ii].dextra.keys() if k not in lkEqmap]
             for kk in lk:
                 dd = lData[ii].dextra[kk]
-                if 'data2D' not in dd.keys() and 't' in dd.keys():
+                if 't' in dd.keys():
                     c = dd['c'] if 'c' in dd.keys() else 'k'
                     lab = dd['label'] + ' (%s)'%dd['units'] if ii==0 else None
                     dax['t'][0].plot(dd['t'], dd['data'],
@@ -1821,8 +1817,8 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     lref += [(lidX[ii],{'group':'channel', 'val':lX[ii], 'inc':incX,
                         'otherid':lXother[ii], 'indother':lindtX[ii]})
             for ii in range(0,nDat)]
+    lref += [(k, {'group':'time', 'val':v, 'inc':inct}) for k,v in dteq.items()]
     dref = dict(lref)
-    dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
 
     if nD == 2:
         for ii in range(0,nDat):
@@ -1838,13 +1834,26 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     if nD == 2:
         ddat[idx12] = {'val':(x1,x2), 'refids':[lidX[0]]}
 
+    if dlextra['map'][0] is not None:
+        ddat[dlextra['map'][0]['id']] = {'val':dlextra['map'][0]['val'],
+                                         'refids':[dlextra['map'][0]['idt']]}
+    for ii in range(0,nDat):
+        for k in ['Sep','Ax','X']:
+            if dlextra[k][ii] is not None:
+                ddat[dlextra[k][ii]['id']] = {'val':dlextra[k][ii]['data2D'],
+                                              'refids':[dlextra[k][ii]['idt']]}
+
     # dax
     lax_fix = [dax['cross'][0], dax['hor'][0],
                dax['txtg'][0], dax['txtt'][0], dax['txtx'][0]]
 
     dax2 = {dax['t'][1]: {'ref':dict([(idt,'x') for idt in lidt]),
-                          'graph':{lidt[0]:'x'}},
-            dax['t'][0]: {'ref':{idteq:'x'}}}
+                          'graph':{lidt[0]:'x'}}}
+    for ii in range(0,nDat):
+        if dlextra['idt'][ii] is None:
+
+        else:
+            dax2[dax['t'][0]] = {'ref':{idteq:'x'}}}
 
     if nD == 1:
         dax2.update({dax['X'][0]: {'ref':dict([(idX,'x') for idX in lidX]),
@@ -1892,6 +1901,20 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                       'bstr':'{0:%s} s'%fmt_t}},
                     'drefid':{lidt[0]:jj}}
 
+    # One-shot and one-time 2D map
+    if dlextra['map'][0] is not None:
+        map_ = dlextra['map'][0]['map']
+        nan2 = np.full(map_.shape[1:],np.nan)
+        im = dax['cross'][0].imshow(nan2, extent=extent, aspect='equal',
+                                    interpolation='nearest', origin='lower',
+                                    zorder=-1, norm=norm_map,
+                                    cmap=cmap_map)
+        dobj[im] = {'dupdate':{'data-reshape':{'id':dlextra['map'][0]['id'],
+                                               'lrid':[idteq]}},
+                    'drefid':{idteq:0}}
+
+
+
     # -------------
     # Data-specific
     for ii in range(0,nDat):
@@ -1924,6 +1947,26 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 dobj[im] = {'dupdate':{'data-reshape':{'id':liddata[ii], 'n12':n12,
                                                        'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
+
+            # Time equilibrium and map
+            if lData[ii].dextra is not None:
+                for kk in lEq:
+                    if kk in lData[ii].dextra.keys():
+                        if kk == 'Sep':
+                            l0, = dax['cross'][0].plot([np.nan],[np.nan],
+                                                       c=lct[jj], ls=lls[ii], lw=1.)
+                            dobj[l0] = {'dupdate':{'data':{'id':lData[ii].dextra[kk]['data'],
+                                                           'lrid':[lidt[ii]]}},
+                                        'drefid':{lidt[ii]:jj}}
+                        else:
+                            l0, = dax['cross'][0].plot([np.nan],[np.nan],
+                                                       mec=lct[jj], ls=lls[ii],
+                                                       ms=ms,
+                                                       marker=lData[ii].dextra[kk]['marker'])
+                            dobj[l0] = {'dupdate':{'data':{'id':lData[ii].dextra[kk]['data'],
+                                                           'lrid':[lidt[ii]]}},
+                                        'drefid':{lidt[ii]:jj}}
+
 
         # Channel
         for jj in range(0,nchMax):
