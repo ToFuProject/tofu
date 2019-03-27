@@ -5669,13 +5669,17 @@ cdef inline void dist_los_circle_core(const double[3] direction,
     else:
         # The line direction and the plane normal are parallel.
         # There is only one solution the intersection between line and plane
-        if (DxN != vzero) :
+        with gil:
+            print("DxN = ", DxN[0], DxN[1], DxN[2], DxN != vzero)
+        if not (Cabs(DxN[0]) <= _VSMALL
+                and Cabs(DxN[1]) <= _VSMALL
+                and Cabs(DxN[2]) <= _VSMALL):
             # The line is A+t*N but with A != C.
             t = -compute_dot_prod(direction, D)
-            if t > 0:
-                t = t / norm_dir
-            else:
-                t = 0.
+            with gil:
+                print("direction = ", direction[0], direction[1], direction[2])
+                print("D = ", D[0], D[1], D[2])
+                print("t = ", t)
             # We compute line closest
             line_closest[0] = origin[0] + t * direction[0]
             line_closest[1] = origin[1] + t * direction[1]
@@ -5687,17 +5691,31 @@ cdef inline void dist_los_circle_core(const double[3] direction,
             circle_closest[0] = line_closest[0] * distance
             circle_closest[1] = line_closest[1] * distance
             circle_closest[2] = circ_z + (line_closest[2] - circ_z) * distance
+            if t < 0:
+                # fi t is negative, we take origin as closest point
+                line_closest[0] = origin[0]
+                line_closest[1] = origin[1]
+                line_closest[2] = origin[2]
+
             for i in range(3):
                 diff[i] = line_closest[i] - circle_closest[i]
             distance = Csqrt(compute_dot_prod(diff, diff))
             result[0] = t
             result[1] = distance
+            with gil:
+                print("t, dist =", t, distance)
         else:
-            # The line is C+t*N, so C is the closest point for the line and
-            # all circle points are equidistant from it.
-            t = 0.
-            result[0] = t
-            result[1] = radius
+            # The line direction and the normal vector are on the same line
+            # so C is the closest point for the circle and the distance is
+            # the radius unless the ray's origin is after the circle center
+            if (origin[2] * direction[2] <= circle_center[2] * direction[2]) :
+                t = Cabs(circle_center[2] - origin[2])
+                result[0] = t
+                result[1] = radius
+            else:
+                t = Cabs(circle_center[2] - origin[2])
+                result[0] = 0
+                result[1] = Csqrt(radius*radius + t*t)
     return
 
 
@@ -6322,7 +6340,7 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     or (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
                     res_final[0] = res_a[0]
                     res_final[1] = res_a[1]
-            elif (val_b * val_b > val_a * coeff):
+            elif (val_b * val_b >= val_a * coeff):
                 sqd = Csqrt(val_b * val_b - val_a * coeff)
                 # First solution
                 q = (-val_b + sqd) / val_a
@@ -6368,6 +6386,7 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     with gil:
                         print(".... computing second solution q =", q)
                         print(" intersection with cirlcle A", lpolyx[jj], lpolyy[jj])
+                        print(" ray ori, ray_vdir =", ray_orig[0], ray_orig[1], ray_orig[2], ray_vdir[0], ray_vdir[1], ray_vdir[2])
                         print(" norm dir = ", norm_dir2)
                         print("res =", res_b[0], res_b[1])
                 elif q > 1:
