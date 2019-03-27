@@ -4291,8 +4291,8 @@ class CamLOS2D(Rays):
             x1max, Dx1max = x1[-1], 0.5*(x1[-1]-x1[-2])
             x2min, Dx2min = x2[0], 0.5*(x2[1]-x2[0])
             x2max, Dx2max = x2[-1], 0.5*(x2[-1]-x2[-2])
-            extent = (x1min-Dx1min, x1max+Dx1max,
-                      x2min+Dx2min, x2max+Dx2max)
+            extent = (x1min - Dx1min, x1max + Dx1max,
+                      x2min - Dx2min, x2max + Dx2max)
             indr = self.dX12['indr']
             return x1, x2, indr, extent
 
