@@ -67,7 +67,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
         raise Exception(msg)
 
     nD = 2 if lData[0]._is2D() else 1
-    c0 = nD > 1 and len(lData) == 1
+    c0 = nD > 1 and len(lData) > 1
     if c0:
         msg = "Compare not implemented for CamLOS2D yet!"
         raise Exception(msg)
@@ -80,7 +80,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
 
     # ------------------
     # Plot
-    if lData[0]._is2D():
+    if False:
         ntMax = 1 if ntMax is None else ntMax
         nchMax = _nchMax if nchMax is None else nchMax
         KH = _Data2D_plot(lData, key=key, indref=indref,
@@ -95,17 +95,12 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
     else:
         ntMax = _ntMax if ntMax is None else ntMax
         nchMax = _nchMax if nchMax is None else nchMax
-        # KH = _Data1D_plot(lData, key=key, indref=indref,
-                          # nchMax=nchMax, ntMax=ntMax,
-                          # Bck=Bck, lls=lls, lct=lct, lcch=lcch,
-                          # fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                          # fontsize=fontsize, draw=draw, connect=connect)
-        KH = _DataCam12D_plot(lData, key=key, indref=indref,
-                              nchMax=nchMax, ntMax=ntMax,
-                              Bck=Bck, lls=lls, lct=lct, lcch=lcch,
-                              Lplot=Lplot,
-                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                              fontsize=fontsize, draw=draw, connect=connect)
+    KH = _DataCam12D_plot(lData, nD=nD, key=key, indref=indref,
+                          nchMax=nchMax, ntMax=ntMax,
+                          Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+                          Lplot=Lplot,
+                          fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                          fontsize=fontsize, draw=draw, connect=connect)
 
     return KH
 
@@ -1377,7 +1372,10 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             for cc in lData[0]._dgeom['lCam']:
                 lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
                 lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-                if Bck and cc._is2D():
+
+                import ipdb
+                ipdb.set_trace()
+                if Bck and nD == 2:
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
                     crossbck = np.concatenate(crossbck,axis=1)

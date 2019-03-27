@@ -274,7 +274,7 @@ class DataAbstract(utils.ToFuObject):
             lC = [X is None, lamb is None]
             assert any(lC)
             if all(lC):
-                if not self._isSpectral():
+                if self._isSpectral():
                     X = np.array([0])
                     lamb = np.arange(0,n1)
                     data = data.reshape((nt,1,n1))
@@ -485,7 +485,7 @@ class DataAbstract(utils.ToFuObject):
 
             # Check number of channels wrt data
             nR = np.sum([cc._dgeom['nRays'] for cc in lCam])
-            if not nR==self._ddata['nX']:
+            if not nR == self._ddataRef['nX']:
                 msg = "Total nb. of rays from lCam != data.shape[1] !"
                 raise Exception(msg)
         return config, lCam, nC
