@@ -2641,7 +2641,14 @@ class KeyHandler_mpl(object):
             for k, v in dobj[oo]['dupdate'].items():
                 # Check consistency with ddata
                 if v['id'] not in ddata.keys():
-                    assert v['id'] in dref.keys()
+                    if not v['id'] in dref.keys():
+                        msg = "Missing id in ddata or dref "
+                        msg += "(vs dobj[idobj]['dupdate'][k]['id']) !\n"
+                        msg += "    idobj: %s\n"%oo
+                        msg += "    k    : %s\n"%k
+                        msg += "    id   : %s"%v['id']
+                        raise Exception(msg)
+
                     ddata[v['id']] = {'val':dref[v['id']]['val']}
                     if dref[v['id']]['otherid'] is None:
                         ddata[v['id']]['refids'] = [v['id']]
@@ -2799,6 +2806,12 @@ class KeyHandler_mpl(object):
                     ind2 = self.dgroup[group2]['indcur']
                     indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
                 lax = list(self.dref[rid]['df_ind_pos'].keys())
+                if len(lax) == 0:
+                    msg = "A ref has no associated ax !\n"
+                    msg += "    - group: %s\n"%group
+                    msg += "    - rid  : %s"%rid
+                    raise Exception(msg)
+
                 ii = self.dref[rid]['df_ind_pos'][lax[0]](val, indother)
                 if self._follow:
                     self.dref[rid]['ind'][ind:] = ii
@@ -2813,6 +2826,12 @@ class KeyHandler_mpl(object):
                     ind2 = self.dgroup[group2]['indcur']
                     indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
                 lax = list(self.dref[rid]['df_ind_pos'].keys())
+                if len(lax) == 0:
+                    msg = "A ref has no associated ax !\n"
+                    msg += "    - group: %s\n"%group
+                    msg += "    - rid  : %s"%rid
+                    raise Exception(msg)
+
                 ii = self.dref[rid]['df_ind_pos'][lax[0]](val, indother)
                 if self._follow:
                     self.dref[rid]['ind'][ind:] = ii
