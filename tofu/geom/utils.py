@@ -161,6 +161,16 @@ def get_nIne1e2(P, nIn=None, e1=None, e2=None):
 def get_X12fromflat(X12, x12u=None, nx12=None):
     if x12u is None:
         x1u, x2u = np.unique(X12[0,:]), np.unique(X12[1,:])
+        if x1u.size*x2u.size != X12.shape[1]:
+            tol = np.linalg.norm(np.diff(X12[:,:2],axis=1))/100.
+            tolmag = int(np.log10(tol))-1
+            x1u = np.unique(np.round(X12[0,:], -tolmag))
+            x2u = np.unique(np.round(X12[1,:], -tolmag))
+            indx1 = np.digitize(X12[0,:], 0.5*(x1u[1:]+x1u[:-1]))
+            indx2 = np.digitize(X12[1,:], 0.5*(x2u[1:]+x2u[:-1]))
+            indx1u, indx2u = np.unique(indx1), np.unique(indx2)
+            x1u = np.unique([np.mean(X12[0,indx1==ii]) for ii in indx1u])
+            x2u = np.unique([np.mean(X12[1,indx2==ii]) for ii in indx2u])
     else:
         x1u, x2u = x12u
     if nx12 is None:
@@ -216,7 +226,7 @@ def compute_RaysCones(Ds, us, angs=np.pi/90., nP=40):
 
 ###########################################################
 ###########################################################
-#       Fast computation of basic geometry (poly and LOS)
+#       Fast computation of poly
 ###########################################################
 
 
@@ -325,6 +335,11 @@ def _compute_VesPoly(R=2.4, r=1., elong=0., Dshape=0.,
 
     return poly, pbump, pbaffle
 
+
+###########################################################
+###########################################################
+#       Fast computation of camera parameters
+###########################################################
 
 
 def _compute_PinholeCam_checkformatinputs(P=None, F=0.1, D12=None, N12=100,
@@ -590,8 +605,9 @@ _comdoc2 = _comdoc.format('2','/ list',
 _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 
 
+
 ###########################################################
-#       Fast creation of basic objects
+#       Fast creation of config
 ###########################################################
 
 _dconfig = {'A1': {'Exp':'WEST',
@@ -740,6 +756,39 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
             conf = _core.Config(Name='Dummy', Exp=Exp, lStruct=[ves,baf,bump])
     return conf
 
+###########################################################
+#       Fast creation of cam
+###########################################################
+
+_P = [1.5,3.2,0.]
+_F = 0.1
+_testF = 0.4
+_D12 = [0.3,0.1]
+_nIn = [-0.5,-1.,0.]
+
+_P1 = [1.5,-3.2,0.]
+_nIn1 = [-0.5,1.,0.]
+
+_PA = [4.9,-6.9,0.]
+_nInA = [-0.75, 1.,0.]
+_D12A = [0.4,0.3]
+_dcam = {'V1':       {'P':_P1, 'F':_F, 'D12':_D12, 'nIn':_nIn1, 'N12':[1,1]},
+         'V10':      {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[5,2]},
+         'V100':     {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[20,5]},
+         'V1000':    {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[50,20]},
+         'V10000':   {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[125,80]},
+         'V100000':  {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[500,200]},
+         'V1000000': {'P':_P, 'F':_F, 'D12':_D12, 'nIn':_nIn, 'N12':[1600,625]},
+         'VA1':      {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[1,1]},
+         'VA10':     {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[5,2]},
+         'VA100':    {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[20,5]},
+         'VA1000':   {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA, 'N12':[50,20]},
+         'VA10000':  {'P':_PA, 'F':_F, 'D12':_D12A, 'nIn':_nInA,'N12':[125,80]},
+         'VA100000': {'P':_PA, 'F':_F, 'D12':_D12A,'nIn':_nInA,'N12':[500,200]},
+         'VA1000000':{'P':_PA, 'F':_F,'D12':_D12A,'nIn':_nInA,'N12':[1600,625]},
+         'testV': {'P':_P, 'F':_testF, 'D12':_D12, 'nIn':_nIn,'N12':[1600,625]}}
+
+
 
 _createCamstr = """ Create a pinhole CamLOS{0}D
 
@@ -786,10 +835,10 @@ _createCamerr = """ Arg out, specifying the output, must be either:
         - 'pinhole': return the starting points (D), pinhole (P) and the coordinates of D in the camera frame
         """
 
-def _create_CamLOS(case='V10000', nD=1, Name=None, Etendues=None, Surfaces=None,
-                   dchans=None, Exp=None, Diag=None, color=None,
+def _create_CamLOS(case=None, nD=1, Etendues=None, Surfaces=None,
+                   dchans=None, Exp=None, Diag=None, Name=None, color=None,
                    P=None, F=0.1, D12=0.1, N12=100, method=None,
-                   angs=[-np.pi,0.,0.], nIn=None, VType='Tor',
+                   angs=[-np.pi,0.,0.], nIn=None, VType='Tor', dcam=_dcam,
                    defRY=None, Lim=None, config=None, out=object):
     assert nD in [1,2]
     if not out in [object,'object','Du','dict',dict]:
@@ -804,9 +853,26 @@ def _create_CamLOS(case='V10000', nD=1, Name=None, Etendues=None, Surfaces=None,
             lS = config.lStruct
         defRY = np.max([ss.dgeom['P1Max'][0] for ss in lS])
 
+    # Get parameters for test case if any
+    if case is not None and nD == 2:
+        if case not in dcam.keys():
+            msg = "%s is not a known test case !\n"
+            msg += "Available test cases include:\n"
+            msg += "    " + str(list(dcam.keys()))
+            raise Exception(msg)
+
+        # Extract pinhole, focal length, width, nb. of pix., unit vector
+        P, F = dcam[case]['P'], dcam[case]['F']
+        D12, N12, nIn = dcam[case]['D12'], dcam[case]['N12'], dcam[case]['nIn']
+        nIn = nIn / np.linalg.norm(nIn)
+
+        # Compute the LOS starting points and unit vectors
+        nD, VType, Lim, angs = 2, 'Tor', None, None
+        Name = case
+
     kwdargs = dict(P=P, F=F, D12=D12, N12=N12, angs=angs, nIn=nIn,
                    VType=VType, defRY=defRY, Lim=Lim)
-    if nD==1:
+    if nD == 1:
         Ds, P, d2 = _compute_CamLOS1D_pinhole(**kwdargs)
     else:
         Ds, P, d1, d2, indflat2img, indimg2flat = _compute_CamLOS2D_pinhole(**kwdargs)

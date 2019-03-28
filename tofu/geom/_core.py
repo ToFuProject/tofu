@@ -2449,9 +2449,6 @@ class Rays(utils.ToFuObject):
         # Create a dplot at instance level
         self._dplot = copy.deepcopy(self.__class__._dplot)
 
-        if method is not None:
-            self._method = method
-
         # Extra-early fix for Exp
         # Workflow to be cleaned up later ?
         if Exp is None and config is not None:
@@ -2735,6 +2732,8 @@ class Rays(utils.ToFuObject):
 
     def _init(self, dgeom=None, config=None, Etendues=None, Surfaces=None,
               sino_RefPt=None, dchans=None, method='optimized', **kwdargs):
+        if method is not None:
+            self._method = method
         largs = self._get_largs_dgeom(sino=True)
         kwdgeom = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dconfig()
@@ -2743,7 +2742,6 @@ class Rays(utils.ToFuObject):
         kwdchans = self._extract_kwdargs(locals(), largs)
         largs = self._get_largs_dmisc()
         kwdmisc = self._extract_kwdargs(locals(), largs)
-        self._method = method
         self.set_dconfig(calcdgeom=False, **kwdconfig)
         self._set_dgeom(sino=True, **kwdgeom)
         self.set_dchans(**kwdchans)
@@ -2958,25 +2956,53 @@ class Rays(utils.ToFuObject):
             VType = self.config.Id.Type
 
             lS = [ss for ss in lS if ss._InOut=='out']
-            lSPoly, lSVIn, lSLim, lSnLim = [], [], [], []
+            lSPolyx, lSVInx = [], []
+            lSPolyy, lSVIny = [], []
+            lSLim, lSnLim = [], []
+            lsnvert = []
             num_tot_structs = 0
+            num_lim_structs = 0
             for ss in lS:
-                lSPoly.append(ss.Poly_closed)
-                lSVIn.append(ss.dgeom['VIn'])
+                l = ss.Poly_closed[0]
+                [lSPolyx.append(item) for item in l]
+                l = ss.Poly_closed[1]
+                [lSPolyy.append(item) for item in l]
+                l = ss.dgeom['VIn'][0]
+                [lSVInx.append(item) for item in l]
+                l = ss.dgeom['VIn'][1]
+                [lSVIny.append(item) for item in l]
                 lSLim.append(ss.Lim)
                 lSnLim.append(ss.noccur)
+                if len(lsnvert)==0:
+                    lsnvert.append(len(ss.Poly_closed[0]))
+                else:
+                    lsnvert.append(len(ss.Poly_closed[0]) + lsnvert[num_lim_structs-1])
+                num_lim_structs += 1
                 if ss.Lim is None or len(ss.Lim) == 0:
                     num_tot_structs += 1
                 else:
                     num_tot_structs += len(ss.Lim)
 
+            lsnvert = np.asarray(lsnvert, dtype=np.int64)
+            lSPolyx = np.asarray(lSPolyx)
+            lSPolyy = np.asarray(lSPolyy)
+            lSVInx = np.asarray(lSVInx)
+            lSVIny = np.asarray(lSVIny)
+
             largs = [D, u, VPoly, VVIn]
-            dkwd = dict(ves_lims=Lim, ves_nlim=nLim, nstruct=num_tot_structs,
-                    lstruct_poly=lSPoly, lstruct_lims=lSLim,
-                    lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
-                    lstruct_norm=lSVIn, ves_type=VType,
-                    rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
-                    eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
+            dkwd = dict(ves_lims=Lim, ves_nlim=nLim,
+                        nstruct_tot=num_tot_structs,
+                        nstruct_lim=num_lim_structs,
+                        lstruct_polyx=lSPolyx,
+                        lstruct_polyy=lSPolyy,
+                        lstruct_lims=lSLim,
+                        lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+                        lstruct_normx=lSVInx,
+                        lstruct_normy=lSVIny,
+                        lnvert=lsnvert,
+                        ves_type=VType,
+                        rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
+                        eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
 
         else:
             # --------------------------------
@@ -2989,7 +3015,13 @@ class Rays(utils.ToFuObject):
     def _compute_kInOut(self):
 
         # Prepare inputs
-        largs, dkwd = self._prepare_inputs_kInOut()
+        try:
+            largs, dkwd = self._prepare_inputs_kInOut()
+        except Exception as err:
+            import ipdb
+            ipdb.set_trace()
+            raise err
+
 
         if self._method=='ref':
             # call the dedicated function
@@ -4226,11 +4258,15 @@ class CamLOS2D(Rays):
             ind = indr
         return ind
 
+    def get_X12(self, out='imshow'):
 
+        if out == 'imshow':
+            x1, x2 = self._dgeom['x1'], self._dgeom['x2']
+            dx1, dx2 = 0.5*(x1[1]-x1[0]), 0.5*(x2[1]-x2[0])
+            extent = (x1[0]-dx1, x1[-1]+dx1, x2[0]-dx2, x2[-1]+dx2)
+            return x1, x2, extent
 
-
-
-    def get_X12(self, out='1d'):
+        # TBF
         if self._X12 is None:
             Ds = self.D
             C = np.mean(Ds,axis=1)

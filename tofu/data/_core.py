@@ -255,7 +255,7 @@ class Data(utils.ToFuObject):
 
         ndim = data.ndim
         assert ndim in [2,3]
-        if 'spectral' not in self.Id.Type.lower():
+        if not self._isSpectral:
             msg = "self is not of spectral type"
             msg += "\n  => the data cannot be 3D ! (ndim)"
             assert ndim==2, msg
@@ -271,14 +271,14 @@ class Data(utils.ToFuObject):
             lC = [X is None, lamb is None]
             assert any(lC)
             if all(lC):
-                if 'spectral' in self.Id.Type.lower():
+                if not self._isSpectral:
                     X = np.array([0])
                     lamb = np.arange(0,n1)
                     data = data.reshape((nt,1,n1))
                 else:
                     X = np.arange(0,n1)
             elif lC[0]:
-                assert 'spectral' in self.Id.Type.lower()
+                assert self._isSpectral
                 X = np.array([0])
                 data = data.reshape((nt,1,n1))
                 assert lamb.ndim in [1,2]
@@ -287,11 +287,11 @@ class Data(utils.ToFuObject):
                 elif lamb.ndim==2:
                     assert lamb.shape[1]==n1
             else:
-                assert 'spectral' not in self.Id.Type.lower()
+                assert not self._isSpectral
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
         else:
-            assert 'spectral' in self.Id.Type.lower()
+            assert self._isSpectral
             n2 = data.shape[2]
             lC = [X is None, lamb is None]
             if lC[0]:
@@ -363,12 +363,12 @@ class Data(utils.ToFuObject):
 
         if ndim==2:
             if X is None:
-                if 'spectral' in self.Id.Type.lower():
+                if self._isSpectral:
                     X = np.array([0])
                 else:
                     X = np.arange(0,n1)
             else:
-                assert 'spectral' not in self.Id.Type.lower()
+                assert not self._isSpectral
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
         else:
@@ -413,7 +413,7 @@ class Data(utils.ToFuObject):
             dlabels = {}
         assert type(dlabels) is dict
         lk = ['data','t','X']
-        if 'spectral' in self.Id.Type.lower():
+        if self._isSpectral:
             lk.append('lamb')
         for k in lk:
             if not k in dlabels.keys():
@@ -461,7 +461,7 @@ class Data(utils.ToFuObject):
                     lc = [dd in cc.Id.Cls.lower() for cc in lCam]
                     if not all(lc):
                         msg = "The following cameras have wrong class (%s)"%dd
-                        lm = ['%s: %s'%s(cc.Id.Name,cc.Id.Cls) for cc in lCam]
+                        lm = ['%s: %s'%(cc.Id.Name,cc.Id.Cls) for cc in lCam]
                         msg += "\n    " + "\n    ".join(lm)
                         raise Exception(msg)
             # Check config consistency
@@ -808,6 +808,10 @@ class Data(utils.ToFuObject):
     def lCam(self):
         return self._get_lCam()
 
+    @property
+    def _isSpectral(self):
+        return 'spectral' in self.__class__.__name__.lower()
+
 
     ###########
     # Hidden and public methods for ddata
@@ -868,7 +872,7 @@ class Data(utils.ToFuObject):
         Must be a 1d array
 
         """
-        if 'spectral' not in self.Id.Type.lower():
+        if not self._isSpectral:
             msg = "The wavelength can only be set with DataSpectral object !"
             raise Exception(msg)
         if indlamb is not None:
@@ -1462,7 +1466,7 @@ class Data(utils.ToFuObject):
             The array of indices, of dtype specified by keywordarg out
 
         """
-        if 'spectral' not in self.Id.Type.lower():
+        if not self._isSpectral:
             msg = ""
             raise Exception(msg)
         assert out in [bool,int]
@@ -1613,7 +1617,7 @@ class Data(utils.ToFuObject):
                          nperseg=None, noverlap=None,
                          boundary='constant', padded=True, wave='morlet',
                          invert=None, plotmethod='imshow',
-                         cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None,
+                         cmap=None, ms=4, ntMax=None, nchMax=None,
                          Bck=True, fs=None, dmargin=None, wintit=None,
                          tit=None, vmin=None, vmax=None, normt=False,
                          draw=True, connect=True, returnspect=False):
