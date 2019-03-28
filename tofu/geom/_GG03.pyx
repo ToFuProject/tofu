@@ -5536,12 +5536,6 @@ cdef inline void dist_los_circle_core(const double[3] direction,
             DxN[i] += lambd * MxN[i]
         m2b2 = compute_dot_prod(direction, D)
         b1sqr = compute_dot_prod(DxN, DxN)
-        with gil:
-            print
-            print("DxN = ", DxN[0], DxN[1], DxN[2])
-            print("lambd =", lambd)
-            print("b1sqr =", b1sqr)
-            print("rm0sqr", radius*m0sqr)
         if (b1sqr > zero) :
             # B' = (0,b1',b2') where b1' != 0.  See Sections 1.1.2 and 1.2.2
             # of the PDF documentation.
@@ -5617,8 +5611,6 @@ cdef inline void dist_los_circle_core(const double[3] direction,
                 numRoots += 1
         # Checking which one is the closest solution............................
         tmin = roots[0] + lambd
-        with gil:
-            print(" and here tmin =", tmin, tmin - lambd, lambd)
         for i in range(1,numRoots):
             t = roots[i] + lambd
             if (t>0 and t<tmin):
@@ -5633,11 +5625,6 @@ cdef inline void dist_los_circle_core(const double[3] direction,
         line_closest[1] = origin[1] + tmin * direction[1]
         line_closest[2] = origin[2] + tmin * direction[2]
         compute_cross_prod(circle_normal, line_closest, NxDelta)
-        with gil:
-            print("ori =", origin[0], origin[11], origin[2])
-            print(" dir :", direction[0], direction[1], direction[2])
-            print("line closest = ", line_closest[0], line_closest[1], line_closest[2])
-            print("NxDelta = ", NxDelta[0], NxDelta[1], NxDelta[2])
         if not (Cabs(NxDelta[0]) <= _VSMALL
                 and Cabs(NxDelta[1]) <= _VSMALL
                 and Cabs(NxDelta[2]) <= _VSMALL):
@@ -5646,17 +5633,11 @@ cdef inline void dist_los_circle_core(const double[3] direction,
             circle_closest[0] = radius * line_closest[0] / norm_ppar
             circle_closest[1] = radius * line_closest[1] / norm_ppar
             circle_closest[2] = circle_center[2]
-            with gil:
-                print("ccccc", circle_closest[0], circle_closest[1], circle_closest[2])
             for i in range(3):
                 diff[i] = line_closest[i] - circle_closest[i]
-                with gil:
-                    print(" diff[i]", diff[i])
             distance = Csqrt(compute_dot_prod(diff, diff))
             result[0] = tmin
             result[1] = distance
-            with gil:
-                print(" 1. .... tmin = ", tmin, "... distnace :", distance)
         else:
             diff[0] = line_closest[0] - radius
             diff[1] = line_closest[1]
@@ -5664,22 +5645,14 @@ cdef inline void dist_los_circle_core(const double[3] direction,
             distance = Csqrt(compute_dot_prod(diff, diff))
             result[0] = tmin
             result[1] = distance
-            with gil:
-                print(" 2. .... tmin = ", tmin, "... distnace :", distance)
     else:
         # The line direction and the plane normal are parallel.
         # There is only one solution the intersection between line and plane
-        with gil:
-            print("DxN = ", DxN[0], DxN[1], DxN[2], DxN != vzero)
         if not (Cabs(DxN[0]) <= _VSMALL
                 and Cabs(DxN[1]) <= _VSMALL
                 and Cabs(DxN[2]) <= _VSMALL):
             # The line is A+t*N but with A != C.
             t = -compute_dot_prod(direction, D)
-            with gil:
-                print("direction = ", direction[0], direction[1], direction[2])
-                print("D = ", D[0], D[1], D[2])
-                print("t = ", t)
             # We compute line closest
             line_closest[0] = origin[0] + t * direction[0]
             line_closest[1] = origin[1] + t * direction[1]
@@ -5702,8 +5675,6 @@ cdef inline void dist_los_circle_core(const double[3] direction,
             distance = Csqrt(compute_dot_prod(diff, diff))
             result[0] = t
             result[1] = distance
-            with gil:
-                print("t, dist =", t, distance)
         else:
             # The line direction and the normal vector are on the same line
             # so C is the closest point for the circle and the distance is
@@ -6182,8 +6153,6 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
     # == Compute all solutions =================================================
     # Set tolerance value for ray_vdir[2,ii]
     # eps_uz is the tolerated DZ across 20m (max Tokamak size)
-    # with gil:
-    #     print("ray vdir 2 =", ray_vdir[0],ray_vdir[1],ray_vdir[2], crit2)
     norm_dir2 = Csqrt(compute_dot_prod(ray_vdir, ray_vdir))
     norm_dir2_ori = norm_dir2
     for jj in range(3):
@@ -6192,40 +6161,23 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
     if ray_vdir[2] * ray_vdir[2] < crit2:
         # -- Case with horizontal semi-line ------------------------------------
         for jj in range(nvert-1):
-            # with gil:
-            #     print("================= ", jj, "/", nvert)
             if (lpolyy[jj+1] - lpolyy[jj])**2 > eps_vz * eps_vz:
-                # with gil:
-                #     print(" - poly jj is NOT horizontal", jj)
                 # If segment AB is NOT horizontal, then we can compute distance
                 # between LOS and cone.
                 # First we compute the "circle" on the cone that lives on the
                 # same plane as the line
                 q = (ray_orig[2] - lpolyy[jj]) / (lpolyy[jj+1] - lpolyy[jj])
                 if q < 0. :
-                    # with gil:
-                    #     print("   + q < 0 ")
                     # Then we only need to compute distance to circle C_A
                     dist_los_circle_core(ray_vdir, ray_orig,
                                         lpolyx[jj], lpolyy[jj],
                                         norm_dir2, res_a)
                 elif q > 1:
-                    # with gil:
-                    #     print("   + q > 1 ")
-                    #     print("      vdir = ", ray_vdir[0], ray_vdir[1], ray_vdir[2])
-                    #     print("      orig = ", ray_orig[0], ray_orig[1], ray_orig[2])
-                    #     print("      radius, z = ", lpolyx[jj+1], lpolyy[jj+1])
-                    #     print("      norm dir =", norm_dir2)
-                    #     print("      res_a = ", res_a[0], res_a[1], res_a[2])
                     # Then we only need to compute distance to circle C_B
                     dist_los_circle_core(ray_vdir, ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
                                          norm_dir2, res_a)
-                    # with gil:
-                    #     print("      res_a = ", res_a[0], res_a[1], res_a[2])
                 else:
-                    # with gil:
-                    #     print("   + 0 >= q <= 1 ")
                     # The we need to compute the radius (the height is Z_D)
                     # of the circle in the same plane as the LOS and compute the
                     # distance between the LOS and circle.
@@ -6238,34 +6190,16 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[0] = res_a[0] # distance
                     res_final[1] = res_a[1] # k
             else:
-                # with gil:
-                #     print(" - poly jj is horizontal", jj)
                 # -- case with horizontal cone (aka cone is a plane annulus) ---
                 # Then the shortest distance is the distance to the
                 # outline circles
                 # computing distance to cricle C_A of radius R_A and height Z_A
-                # with gil:
-                #     print("      vdir = ", ray_vdir[0], ray_vdir[1], ray_vdir[2])
-                #     print("      orig = ", ray_orig[0], ray_orig[1], ray_orig[2])
-                #     print("      radius, z = ", lpolyx[jj], lpolyy[jj])
-                #     print("      norm dir =", norm_dir2)
-                #     print("      res_a = ", res_a[0], res_a[1])
                 dist_los_circle_core(ray_vdir, ray_orig,
                                      lpolyx[jj], lpolyy[jj],
                                      norm_dir2, res_a)
-                # with gil:
-                #     print("      => res_a = ", res_a[0], res_a[1])
-                #     print("      vdir = ", ray_vdir[0], ray_vdir[1], ray_vdir[2])
-                #     print("      orig = ", ray_orig[0], ray_orig[1], ray_orig[2])
-                #     print("      radius, z = ", lpolyx[jj+1], lpolyy[jj+1])
-                #     print("      norm dir =", norm_dir2)
                 dist_los_circle_core(ray_vdir, ray_orig,
                                      lpolyx[jj+1], lpolyy[jj+1],
                                      norm_dir2, res_b)
-                # with gil:
-                #     print("      res_b = ", res_b[0], res_b[1])
-                # with gil:
-                #     print("      => res_b = ", res_b[0], res_b[1], res_b[2])
                 # The result is the one associated to the shortest distance
                 if (res_final[1] > res_a[1] or
                     (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
@@ -6275,17 +6209,9 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     (res_final[1] == res_b[1] and res_final[0] > res_b[0])):
                     res_final[0] = res_b[0]
                     res_final[1] = res_b[1]
-            # with gil:
-            #     print(res_final[0], res_final[1])
     # == More general non-horizontal semi-line case ============================
     else:
-        with gil:
-            print("not horizintal......")
-            print("   ===> res = ", res_final[0], res_final[1])
-
         for jj in range(nvert-1):
-            with gil:
-                print("================= ", jj, "/", nvert)
             v0 = lpolyx[jj+1]-lpolyx[jj]
             v1 = lpolyy[jj+1]-lpolyy[jj]
             val_a = v0 * v0 - upar2 * v1 * invuz * v1 * invuz
@@ -6294,12 +6220,6 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
             coeff = - upar2 * (ray_orig[2] - lpolyy[jj])**2 * invuz * invuz +\
                     2. * upscaDp * (ray_orig[2]-lpolyy[jj]) * invuz -\
                     dpar2 + lpolyx[jj] * lpolyx[jj]
-            with gil:
-                print("v0 =  ", v0)
-                print("v1 : ", v1)
-                print("val a = ", val_a)
-                print("val b = ", val_b)
-                print("coeff = ", coeff)
             if (val_a * val_a < eps_a * eps_a):
                 if (val_b * val_b < eps_b * eps_b):
                     # let's see if C is 0 or not
@@ -6320,12 +6240,6 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                         dist_los_circle_core(ray_vdir, ray_orig,
                                             lpolyx[jj+1], lpolyy[jj+1],
                                              norm_dir2, res_a)
-                        with gil:
-                            print("      radius, z = ", lpolyx[jj+1], lpolyy[jj+1])
-                            print("      norm dir =", norm_dir2)
-                            print("      q =", q)
-                            print("      => res_a = ", res_a[0], res_a[1])
-
                     else :
                         k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                         if k >= 0.:
@@ -6357,11 +6271,6 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     dist_los_circle_core(ray_vdir, ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
                                          norm_dir2, res_a)
-                    with gil:
-                        print(".... computing first solution q =", q)
-                        print(" intersection with cirlcle B", lpolyx[jj+1], lpolyy[jj+1])
-                        print(" norm dir = ", norm_dir2)
-                        print("res (k, dist) =", res_a[0], res_a[1])
                 else :
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                     if k >= 0.:
@@ -6383,12 +6292,6 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     dist_los_circle_core(ray_vdir, ray_orig,
                                          lpolyx[jj], lpolyy[jj],
                                          norm_dir2, res_b)
-                    with gil:
-                        print(".... computing second solution q =", q)
-                        print(" intersection with cirlcle A", lpolyx[jj], lpolyy[jj])
-                        print(" ray ori, ray_vdir =", ray_orig[0], ray_orig[1], ray_orig[2], ray_vdir[0], ray_vdir[1], ray_vdir[2])
-                        print(" norm dir = ", norm_dir2)
-                        print("res =", res_b[0], res_b[1])
                 elif q > 1:
                     # Then we only need to compute distance to circle C_B
                     dist_los_circle_core(ray_vdir, ray_orig,
@@ -6407,8 +6310,6 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     or (res_final[1] == res_b[1] and res_final[0] > res_b[0])):
                     res_final[0] = res_b[0]
                     res_final[1] = res_b[1]
-            with gil:
-                print("   ===> res = ", res_final[0], res_final[1])
     res_final[0] = res_final[0] / norm_dir2_ori
 
 """
