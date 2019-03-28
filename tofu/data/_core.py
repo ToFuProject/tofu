@@ -1495,25 +1495,30 @@ class DataAbstract(utils.ToFuObject):
 
 
 
-    def plot(self, key=None, indref=0, invert=True,
-             cmap=plt.cm.gray, ms=4, vmin=None, vmax=None,
+    def plot(self, key=None,
+             cmap=None, ms=4, vmin=None, vmax=None,
              vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
              ntMax=None, nchMax=None, nlbdMax=3,
-             lls=None, lct=None, lcch=None, cbck=None,
+             lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
              inct=[1,10], incX=[1,5], inclbd=[1,10],
              fmt_t='06.3f', fmt_X='01.0f',
              invert=True, Lplot='In', dmarker=None,
              Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
-             fontsize=None, labelpad=_labelpad, draw=True, connect=True):
-
-        """ Plot the data content in a predefined figure  """
-        KH = _plot.Data_plot(self, key=key, invert=invert, Bck=Bck,
+             fontsize=None, labelpad=None, draw=True, connect=True):
+        """ Plot the data content in a generic interactive figure  """
+        kh = _plot.Data_plot(self, key=key, indref=0,
+                             cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                             vmin_map=vmin_map, vmax_map=vmax_map,
+                             cmap_map=cmap_map, normt_map=normt_map,
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
-                             plotmethod=plotmethod, cmap=cmap, ms=ms,
+                             lls=lls, lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
+                             inct=inct, incX=incX, inclbd=inclbd,
+                             fmt_t=fmt_t, fmt_X=fmt_X, Lplot=Lplot,
+                             invert=invert, dmarker=dmarker, Bck=Bck,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                             vmin=vmin, vmax=vmax, normt=normt,
+                             fontsize=fontsize, labelpad=labelpad,
                              draw=draw, connect=connect)
-        return KH
+        return kh
 
     def plot_compare(self, lD, key=None, invert=None, plotmethod='imshow',
                      cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,

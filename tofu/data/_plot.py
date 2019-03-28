@@ -39,24 +39,22 @@ _dmarker = {'Ax':'o', 'X':'x'}
 
 
 def Data_plot(lData, key=None, Bck=True, indref=0,
-              cmap=plt.cm.gray, ms=4, vmin=None, vmax=None,
+              cmap=None, ms=4, vmin=None, vmax=None,
               vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
-              ntMax=None, nchMax=None, nlbdMax=3, inct=[1,10], incX=[1,5]
-              lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
+              ntMax=None, nchMax=None, nlbdMax=3,
+              inct=[1,10], incX=[1,5], inclbd=[1,10],
+              lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
               fmt_t='06.3f', fmt_X='01.0f',
-              invert=True, Lplot='In', dmarker=_dmarker,
-              fs=None, dmargin=None, wintit=_wintit, tit=None,
-              fontsize=None, labelpad=_labelpad, draw=True, connect=True):
+              invert=True, Lplot='In', dmarker=None,
+              fs=None, dmargin=None, wintit=None, tit=None,
+              fontsize=None, labelpad=None, draw=True, connect=True):
 
-    if wintit is None:
-        wintit = _wintit
-    if not isinstance(lData,list):
-        lData = [lData]
-    if fontsize is None:
-        fontsize = _fontsize
 
     # ------------------
     # Preliminary checks
+    if not isinstance(lData,list):
+        lData = [lData]
+
     c0 = [dd._is2D() == lData[0]._is2D() for dd in lData[1:]]
     if not all(c0):
         msg = "All Data objects must be either 1D or 2D, not mixed !\n"
@@ -80,20 +78,46 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
         msg = "Cases with indtX != None not properly handled yet !"
         raise Exception(msg)
 
+    # ------------------
+    # Input formatting
+    if fontsize is None:
+        fontsize = _fontsize
+    if ntMax is None:
+        ntMax = _ntMax if nD == 1 else 1
+    if nD == 2:
+        ntMax = min(ntMax,2)
+    if nchMax is None:
+        nchMax = _nchMax
+    if cmap_map is None:
+        cmap_map = plt.cm.gray_r
+    if cmap is None:
+        cmap = plt.cm.gray_r
+    if wintit is None:
+        wintit = _wintit
+    if labelpad is None:
+        labelpad = _labelpad
+    if lct is None:
+        lct = _lct
+    if lcch is None:
+        lcch = _lcch
+    if lclbd is None:
+        lctlbd = _lclbd
+    if lls is None:
+        lls = _lls
+    if cbck is None:
+        cbck = _cbck
+    if dmarker is None:
+        dmarker = _dmarker
+
 
     # ------------------
     # Plot
-    ntMax = _ntMax if ntMax is None else ntMax
-    if nD == 2:
-        ntMax = min(ntMax,2)
-    nchMax = _nchMax if nchMax is None else nchMax
-
     KH = _DataCam12D_plot(lData, nD=nD, key=key, indref=indref,
                           nchMax=nchMax, ntMax=ntMax, inct=inct, incX=incX,
                           Bck=Bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
                           cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
                           cmap_map=cmap_map, vmin_map=vmin_map,
-                          vmax_map=vmax_mp, normt_map_normt_map,
+                          vmax_map=vmax_map, normt_map=normt_map,
                           fmt_t=fmt_t, fmt_X=fmt_X, labelpad=labelpad,
                           Lplot=Lplot, invert=invert, dmarker=dmarker,
                           fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
@@ -797,10 +821,6 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # Prepare
     #########
     fldict = dict(fontsize=fontsize, labelpad=labelpad)
-    if cmap_map is None:
-        cmap_map = plt.cm.gray_r
-    if cmap is None:
-        cmap = plt.cm.gray_r
 
     # Use tuple unpacking to make sure indref is 0
     if not indref==0:
