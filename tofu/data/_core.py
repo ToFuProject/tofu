@@ -1494,10 +1494,18 @@ class DataAbstract(utils.ToFuObject):
         return ind
 
 
-    def plot(self, key=None, invert=True, plotmethod='imshow',
-             cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
+
+    def plot(self, key=None, indref=0, invert=True,
+             cmap=plt.cm.gray, ms=4, vmin=None, vmax=None,
+             vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
+             ntMax=None, nchMax=None, nlbdMax=3,
+             lls=None, lct=None, lcch=None, cbck=None,
+             inct=[1,10], incX=[1,5], inclbd=[1,10],
+             fmt_t='06.3f', fmt_X='01.0f',
+             invert=True, Lplot='In', dmarker=None,
              Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
-             vmin=None, vmax=None, normt=False, draw=True, connect=True):
+             fontsize=None, labelpad=_labelpad, draw=True, connect=True):
+
         """ Plot the data content in a predefined figure  """
         KH = _plot.Data_plot(self, key=key, invert=invert, Bck=Bck,
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,

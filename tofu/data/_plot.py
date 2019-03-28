@@ -37,13 +37,16 @@ _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
 _cbck = (0.8,0.8,0.8)
 _dmarker = {'Ax':'o', 'X':'x'}
 
+
 def Data_plot(lData, key=None, Bck=True, indref=0,
-              cmap=plt.cm.gray, ms=4, vmin=None, vmax=None, normt=False,
-              ntMax=None, nchMax=None, nlbdMax=3,
-              lls=_lls, lct=_lct, lcch=_lcch,
-              plotmethod='imshow', invert=True, Lplot='In',
+              cmap=plt.cm.gray, ms=4, vmin=None, vmax=None,
+              vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
+              ntMax=None, nchMax=None, nlbdMax=3, inct=[1,10], incX=[1,5]
+              lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
+              fmt_t='06.3f', fmt_X='01.0f',
+              invert=True, Lplot='In', dmarker=_dmarker,
               fs=None, dmargin=None, wintit=_wintit, tit=None,
-              fontsize=None, draw=True, connect=True):
+              fontsize=None, labelpad=_labelpad, draw=True, connect=True):
 
     if wintit is None:
         wintit = _wintit
@@ -80,24 +83,19 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
 
     # ------------------
     # Plot
-    if False:
-        KH = _Data2D_plot(lData, key=key, indref=indref,
-                          nchMax=nchMax, ntMax=ntMax,
-                          Bck=Bck, lls=lls, lct=lct, lcch=lcch,
-                          cmap=cmap, ms=ms, vmin=vmin, vmax=vmax, normt=normt,
-                          fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                          plotmethod=plotmethod, invert=invert,
-                          fontsize=fontsize, draw=draw, connect=connect)
-
     ntMax = _ntMax if ntMax is None else ntMax
     if nD == 2:
         ntMax = min(ntMax,2)
     nchMax = _nchMax if nchMax is None else nchMax
 
     KH = _DataCam12D_plot(lData, nD=nD, key=key, indref=indref,
-                          nchMax=nchMax, ntMax=ntMax,
-                          Bck=Bck, lls=lls, lct=lct, lcch=lcch,
-                          Lplot=Lplot, invert=invert,
+                          nchMax=nchMax, ntMax=ntMax, inct=inct, incX=incX,
+                          Bck=Bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
+                          cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                          cmap_map=cmap_map, vmin_map=vmin_map,
+                          vmax_map=vmax_mp, normt_map_normt_map,
+                          fmt_t=fmt_t, fmt_X=fmt_X, labelpad=labelpad,
+                          Lplot=Lplot, invert=invert, dmarker=dmarker,
                           fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
                           fontsize=fontsize, draw=draw, connect=connect)
 
@@ -133,29 +131,6 @@ def Data_plot_combine(lData, key=None, Bck=True, indref=0,
                             plotmethod=plotmethod, invert=invert,
                             fontsize=fontsize, draw=draw, connect=connect)
     return KH
-
-
-
-
-###################################################
-###################################################
-#           Data2D
-###################################################
-###################################################
-
-
-
-
-
-def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
-                 indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
-                 cmap=plt.cm.gray, ms=4, NaN0=np.nan, cbck=_cbck,
-                 vmin=None, vmax=None, normt=False, dMag=None,
-                 fs=None, dmargin=None, wintit=_wintit, tit=None,
-                 plotmethod='imshow', invert=True, fontsize=_fontsize,
-                 draw=True, connect=True):
-    pass
-
 
 
 
@@ -804,12 +779,14 @@ def _init_DataCam12D(fs=None, dmargin=None,
     return dax
 
 
+
 def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                      indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
                      fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
                      inct=[1,10], incX=[1,5], ms=4,
-                     vmin_map=None, vmax_map=None, cmap_map=None,
-                     cmap_data=None, vmin_data=None, vmax_data=None,
+                     cmap=None, vmin=None, vmax=None,
+                     vmin_map=None, vmax_map=None,
+                     cmap_map=None, normt_map=False,
                      fmt_t='06.3f', fmt_X='01.0f', dmarker=_dmarker,
                      fontsize=_fontsize, labelpad=_labelpad,
                      invert=True, draw=True, connect=True, nD=1):
@@ -822,8 +799,8 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     fldict = dict(fontsize=fontsize, labelpad=labelpad)
     if cmap_map is None:
         cmap_map = plt.cm.gray_r
-    if cmap_data is None:
-        cmap_data = plt.cm.gray_r
+    if cmap is None:
+        cmap = plt.cm.gray_r
 
     # Use tuple unpacking to make sure indref is 0
     if not indref==0:
@@ -927,11 +904,11 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                lData[0].dlabels['data']['units'])
     liddata = [id(dat) for dat in ldata]
     if nD == 2:
-        if vmin_data is None:
-            vmin_data = np.min([np.nanmin(dd) for dd in ldata])
-        if vmax_data is None:
-            vmax_data = np.max([np.nanmax(dd) for dd in ldata])
-        norm_data = mpl.colors.Normalize(vmin=vmin_data, vmax=vmax_data)
+        if vmin is None:
+            vmin = np.min([np.nanmin(dd) for dd in ldata])
+        if vmax is None:
+            vmax = np.max([np.nanmax(dd) for dd in ldata])
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
         nan2_data = np.full((x2.size,x1.size),np.nan)
 
     # ---------
@@ -1151,6 +1128,8 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # One-shot and one-time 2D map
     if dlextra['map'][0] is not None:
         map_ = dlextra['map'][0]['data2D']
+        if normt_map:
+            map_ = map_ / np.nanmax(map_,axis=0)[np.newaxis,:,:]
         vmin_map = np.nanmin(map_) if vmin_map is None else vmin_map
         vmax_map = np.nanmax(map_) if vmax_map is None else vmax_map
         norm_map = mpl.colors.Normalize(vmin=vmin_map, vmax=vmax_map)
@@ -1224,8 +1203,8 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             else:
                 im = dax['X'][ii*ntMax+jj].imshow(nan2_data, extent=extent, aspect='equal',
                                          interpolation='nearest', origin='lower',
-                                         zorder=-1, norm=norm_data,
-                                         cmap=cmap_data)
+                                         zorder=-1, norm=norm,
+                                         cmap=cmap)
                 dobj[im] = {'dupdate':{'data-reshape':{'id':liddata[ii], 'n12':n12,
                                                        'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
