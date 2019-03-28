@@ -1856,7 +1856,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
        the structures
     rmin : double
        Minimal radius of vessel to take into consideration
-    eps<val> : double
+    eps_<val> : double
        Small value, acceptance of error
     vtype : string
        Type of vessel ("Tor" or "Lin")
@@ -3436,16 +3436,16 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
     box. It returns True if ray intersects box, else False.
     Params
     =====
-    sign : (3) int array
-       Sign of the direction of the ray.
-       If sign[i] = 1, ray_vdir[i] < 0, else sign[i] = 0
-    inv_direction : (3) double array
-       Inverse on each axis of direction of LOS
-    bounds : (6) double array
-       [3d coords of lowerleftback point of bounding box,
-        3d coords of upperrightfront point of bounding box]
-    ds : (3) doubel array
-       [3d coords of origin of ray]
+       sign : (3) int array
+          Sign of the direction of the ray.
+          If sign[i] = 1, ray_vdir[i] < 0, else sign[i] = 0
+       inv_direction : (3) double array
+          Inverse on each axis of direction of LOS
+       bounds : (6) double array
+          [3d coords of lowerleftback point of bounding box,
+           3d coords of upperrightfront point of bounding box]
+       ds : (3) double array
+          [3d coords of origin of ray]
     Returns
     =======
        True if ray intersects bounding box, else False
@@ -3491,19 +3491,19 @@ cdef inline bint is_point_in_path(const int nvert,
     by nvert vertices of coordinates (vertx, verty)
     Params
     ======
-    nvert : int
-       number of vertices in polygon
-    vertx : double array
-       x-coordinates of polygon
-    verty : double array
-       y-coordinate of polygon
-    testx : double
-       x-coordinate of point to be tested if in or out of polygon
-    testy : double
-       y-coordinate of point to be tested if in or out of polygon
+        nvert : int
+           number of vertices in polygon
+        vertx : double array
+           x-coordinates of polygon
+        verty : double array
+           y-coordinate of polygon
+        testx : double
+           x-coordinate of point to be tested if in or out of polygon
+        testy : double
+           y-coordinate of point to be tested if in or out of polygon
     Returns
     =======
-    bool : True if point is in the polygon, else False
+        bool : True if point is in the polygon, else False
     """
     cdef int i
     cdef bint c = 0
@@ -3524,14 +3524,16 @@ cdef inline void comp_bbox_poly_tor(int nvert,
     the vertices vert.
     Params
     =====
-    nvert : inter
-       Number of vertices in the poygon
-    vert : double array
-       Coordinates of the polygon defining the structure in the poloidal plane
-       such that vert[0:3, ii] = (x_i, y_i) the coordinates of the i-th vertex
-    bounds : (6) double array <INOUT>
-       coordinates of the lowerleftback point and of the upperrightfront point
-       of the bounding box of the structure toroidally continous on the tore.
+        nvert : inter
+           Number of vertices in the poygon
+        vert : double array
+           Coordinates of the polygon defining the structure in the poloidal
+           plane such that vert[0:3, ii] = (x_i, y_i) the coordinates of the
+           i-th vertex
+        bounds : (6) double array <INOUT>
+           coordinates of the lowerleftback point and of the upperrightfront
+           point of the bounding box of the structure toroidally continous on
+           the tore.
     """
     cdef int ii
     cdef double rmax=vertr[0], zmin=vertz[0], zmax=vertz[0]
@@ -5155,8 +5157,6 @@ cdef inline void dist_los_circle_core(const double[3] direction,
             tmin = 0.
         # Now that we know the closest point on the line we can compute the
         # closest point on the circle and compute the distance
-        # tmin = tmin / norm_dir
-
         line_closest[0] = origin[0] + tmin * direction[0]
         line_closest[1] = origin[1] + tmin * direction[1]
         line_closest[2] = origin[2] + tmin * direction[2]
@@ -5205,7 +5205,6 @@ cdef inline void dist_los_circle_core(const double[3] direction,
                 line_closest[0] = origin[0]
                 line_closest[1] = origin[1]
                 line_closest[2] = origin[2]
-
             for i in range(3):
                 diff[i] = line_closest[i] - circle_closest[i]
             distance = Csqrt(compute_dot_prod(diff, diff))
@@ -5465,26 +5464,26 @@ cdef inline bint is_los_circle_close_core(const double[3] direction,
             tmin = 0.
         # Now that we know the closest point on the line we can compute the
         # closest point on the circle and compute the distance
-        tmin = tmin / norm_dir
         line_closest[0] = origin[0] + tmin * direction[0]
         line_closest[1] = origin[1] + tmin * direction[1]
         line_closest[2] = origin[2] + tmin * direction[2]
         compute_cross_prod(circle_normal, line_closest, NxDelta)
-        if not (NxDelta[0] == 0. or NxDelta[1] == 0. or NxDelta[2] == 0.):
-            NdotDelta = compute_dot_prod(circle_normal, line_closest)
+        if not (Cabs(NxDelta[0]) <= _VSMALL
+                and Cabs(NxDelta[1]) <= _VSMALL
+                and Cabs(NxDelta[2]) <= _VSMALL):
+            norm_ppar = Csqrt(line_closest[0]*line_closest[0]
+                              + line_closest[1]*line_closest[1])
+            circle_closest[0] = radius * line_closest[0] / norm_ppar
+            circle_closest[1] = radius * line_closest[1] / norm_ppar
+            circle_closest[2] = circle_center[2]
             for i in range(3):
-                line_closest[i] = line_closest[i] - NdotDelta * circle_normal[i]
-            norm_delta = Csqrt(compute_dot_prod(line_closest, line_closest))
-            for i in range(3):
-                line_closest[i] = line_closest[i] / norm_delta
-                circle_closest[i] = circle_center[i] + radius * line_closest[i]
                 diff[i] = line_closest[i] - circle_closest[i]
             distance = Csqrt(compute_dot_prod(diff, diff))
             are_close = distance < eps
             return are_close
         else:
-            diff[0] = line_closest[0] - circle_center[0] + radius
-            diff[1] = line_closest[1] - circle_center[1]
+            diff[0] = line_closest[0] + radius
+            diff[1] = line_closest[1]
             diff[2] = line_closest[2] - circle_center[2]
             distance = Csqrt(compute_dot_prod(diff, diff))
             are_close = distance < eps
@@ -5492,13 +5491,11 @@ cdef inline bint is_los_circle_close_core(const double[3] direction,
     else:
         # The line direction and the plane normal are parallel.
         # There is only one solution the intersection between line and plane
-        if (DxN != vzero) :
+        if not (Cabs(DxN[0]) <= _VSMALL
+                and Cabs(DxN[1]) <= _VSMALL
+                and Cabs(DxN[2]) <= _VSMALL):
             # The line is A+t*N but with A != C.
             t = -compute_dot_prod(direction, D)
-            if t > 0:
-                t = t / norm_dir
-            else:
-                t = 0.
             # We compute line closest
             line_closest[0] = origin[0] + t * direction[0]
             line_closest[1] = origin[1] + t * direction[1]
@@ -5510,17 +5507,27 @@ cdef inline bint is_los_circle_close_core(const double[3] direction,
             circle_closest[0] = line_closest[0] * distance
             circle_closest[1] = line_closest[1] * distance
             circle_closest[2] = circ_z + (line_closest[2] - circ_z) * distance
+            if t < 0:
+                # fi t is negative, we take origin as closest point
+                line_closest[0] = origin[0]
+                line_closest[1] = origin[1]
+                line_closest[2] = origin[2]
             for i in range(3):
                 diff[i] = line_closest[i] - circle_closest[i]
             distance = Csqrt(compute_dot_prod(diff, diff))
             are_close = distance < eps
             return are_close
         else:
-            # The line is C+t*N, so C is the closest point for the line and
-            # all circle points are equidistant from it.
-            t = 0.
-            are_close = radius < eps
-            return are_close
+            # The line direction and the normal vector are on the same line
+            # so C is the closest point for the circle and the distance is
+            # the radius unless the ray's origin is after the circle center
+            if (origin[2] * direction[2] <= circle_center[2] * direction[2]) :
+                are_close = radius < eps
+                return are_close
+            else:
+                t = Cabs(circle_center[2] - origin[2])
+                are_close = Csqrt(radius*radius + t*t) < eps
+                return are_close
 
 
 def is_los_circle_close_vec(int nlos, int ncircles, double epsilon,
@@ -5528,21 +5535,23 @@ def is_los_circle_close_vec(int nlos, int ncircles, double epsilon,
                              np.ndarray[double,ndim=2,mode='c'] oris,
                              np.ndarray[double,ndim=1,mode='c'] circle_radius,
                              np.ndarray[double,ndim=1,mode='c'] circle_z,
-                             np.ndarray[double,ndim=1,mode='c'] norm_dir = None):
-    # This function computes the intersection of a Ray (or Line Of Sight)
-    # and a circle in 3D. It returns `kmin`, the coefficient such that the
-    # ray of origin O = [ori1, ori2, ori3] and of directional vector
-    # D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
-    # and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
-    # The variable `norm_dir` is the squared norm of the direction of the ray.
-    # This is the vectorial version, we expect the directions and origins to be:
-    # dirs = [dir1_los1, dir2_los1, dir3_los1, dir1_los2,...]
-    # oris = [ori1_los1, ori2_los1, ori3_los1, ori1_los2,...]
-    # The result is given in the format:
-    # res = [kmin(los1, cir1), kmin(los1, cir2),...]
-    # ---
-    # This is the PYTHON function, use only if you need this computation from
-    # Python, if you need it from Cython, use `dist_los_circle_core`
+                             np.ndarray[double,ndim=1,mode='c'] norm_dir=None):
+    """
+    This function computes the intersection of a Ray (or Line Of Sight)
+    and a circle in 3D. It returns `kmin`, the coefficient such that the
+    ray of origin O = [ori1, ori2, ori3] and of directional vector
+    D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
+    and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
+    The variable `norm_dir` is the squared norm of the direction of the ray.
+    This is the vectorial version, we expect the directions and origins to be:
+    dirs = [dir1_los1, dir2_los1, dir3_los1, dir1_los2,...]
+    oris = [ori1_los1, ori2_los1, ori3_los1, ori1_los2,...]
+    The result is given in the format:
+    res = [kmin(los1, cir1), kmin(los1, cir2),...]
+    ---
+    This is the PYTHON function, use only if you need this computation from
+    Python, if you need it from Cython, use `dist_los_circle_core`
+    """
     cdef array res = clone(array('i'), nlos, True)
 
     if norm_dir is None:
@@ -5565,19 +5574,21 @@ cdef void is_los_circle_close_vec_core(int num_los, int num_cir,
                                        double* circle_z,
                                        double* norm_dir_tab,
                                        double[::1] res) nogil:
-    # This function computes the intersection of a Ray (or Line Of Sight)
-    # and a circle in 3D. It returns `kmin`, the coefficient such that the
-    # ray of origin O = [ori1, ori2, ori3] and of directional vector
-    # D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
-    # and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
-    # The variable `norm_dir` is the squared norm of the direction of the ray.
-    # This is the vectorial version, we expect the directions and origins to be:
-    # dirs = [dir1_los1, dir2_los1, dir3_los1, dir1_los2,...]
-    # oris = [ori1_los1, ori2_los1, ori3_los1, ori1_los2,...]
-    # res = [kmin(los1, cir1), kmin(los1, cir2),...]
-    # ---
-    # This is the PYTHON function, use only if you need this computation from
-    # Python, if you need it from Cython, use `dist_los_circle_core`
+    """
+    This function computes the intersection of a Ray (or Line Of Sight)
+    and a circle in 3D. It returns `kmin`, the coefficient such that the
+    ray of origin O = [ori1, ori2, ori3] and of directional vector
+    D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
+    and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
+    The variable `norm_dir` is the squared norm of the direction of the ray.
+    This is the vectorial version, we expect the directions and origins to be:
+    dirs = [dir1_los1, dir2_los1, dir3_los1, dir1_los2,...]
+    oris = [ori1_los1, ori2_los1, ori3_los1, ori1_los2,...]
+    res = [kmin(los1, cir1), kmin(los1, cir2),...]
+    ---
+    This is the PYTHON function, use only if you need this computation from
+    Python, if you need it from Cython, use `dist_los_circle_core`
+    """
     cdef int i, ind_los, ind_cir
     cdef double* dirv
     cdef double* orig
@@ -5612,6 +5623,35 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                         double eps_vz=_VSMALL, double eps_b=_VSMALL,
                         double eps_plane=_VSMALL, str ves_type='Tor',
                         bint forbid=1, bint test=1, int num_threads=16):
+    """
+    This function computes the distance (and the associated k) between num_los
+    Rays (or LOS) and an `IN` structure (a polygon extruded around the axis
+    (0,0,1), eg. a surface flux).
+    For more details on the algorithm please see PDF: <name_of_pdf>.pdf #TODO
+
+    Params
+    ======
+        ray_orig : (3, num_los) double array
+           LOS origin points coordinates
+        ray_vdir : (3, num_los) double array
+           LOS normalized direction vector
+        ves_poly : (2, num_vertex) double array
+           Coordinates of the vertices of the Polygon defining the 2D poloidal
+           cut of the Vessel
+        eps_<val> : double
+           Small value, acceptance of error
+    Returns
+    =======
+        kmin_vpoly : (num_los) double array
+            Of the form [k_0, k_1, ..., k_n], where k_i is the coefficient
+            such that the i-th ray (LOS) is closest to the extruded polygon
+            at the point P_i = orig[i] + kmin[i] * vdir[i]
+        dist_vpoly : (num_los) double array
+            `distance[i]` is the distance from P_i to the extruded polygon.
+    ---
+    This is the PYTHON function, use only if you need this computation from
+    Python, if you need it from Cython, use `dist_los_circle_core`
+    """
     cdef int npts_poly = ves_poly.shape[1]
     cdef int num_los = ray_orig.shape[1]
     cdef int ii, ind_vert, ind_los
@@ -5674,6 +5714,50 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                                           const double eps_a,
                                           const double eps_b,
                                           double* res_final) nogil:
+    """
+    This function computes the distance (and the associated k) between a Ray
+    (or Line Of Sight) and an `IN` structure (a polygon extruded around the axis
+    (0,0,1), eg. a surface flux).
+    For more details on the algorithm please see PDF: <name_of_pdf>.pdf #TODO
+
+    Params
+    ======
+        ray_orig : (3) double array
+           LOS origin point coordinates, noted often : `u`
+        ray_vdir : (3) double array
+           LOS normalized direction vector, noted often : `D`
+        lpolyx : (num_vertex) double array
+           1st coordinates of the vertices of the Polygon defining the poloidal
+           cut of the Vessel
+        lpolyy : (num_vertex) double array
+           2nd coordinates of the vertices of the Polygon defining the poloidal
+           cut of the Vessel
+        nvert : integer
+           number of vertices describing the polygon
+        upscaDp : double
+           if u = [ux, uy, uz] is the direction of the ray, and D=[dx, dy, dz]
+           its origin, then upscaDp = ux*dx + uy*dy
+        upar2 : double
+           if u = [ux, uy, uz] is the direction of the ray, and D=[dx, dy, dz]
+           its origin, then upar2 = ux*ux + uy*uy
+        dpar2 : double
+           if u = [ux, uy, uz] is the direction of the ray, and D=[dx, dy, dz]
+           its origin, then dpar2 = dx*dx + dy*dy
+        invuz : double 
+        eps_<val> : double
+           Small value, acceptance of error
+    Returns
+    =======
+        kmin_vpoly : (num_los) double array
+            Of the form [k_0, k_1, ..., k_n], where k_i is the coefficient
+            such that the i-th ray (LOS) is closest to the extruded polygon
+            at the point P_i = orig[i] + kmin[i] * vdir[i]
+        dist_vpoly : (num_los) double array
+            `distance[i]` is the distance from P_i to the extruded polygon.
+    ---
+    This is the PYTHON function, use only if you need this computation from
+    Python, if you need it from Cython, use `dist_los_circle_core`
+    """
     cdef int jj
     cdef int indin=0
     cdef int indout=0
