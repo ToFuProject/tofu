@@ -318,8 +318,8 @@ class DataAbstract(utils.ToFuObject):
 
 
         # Get shapes
-        nt, nX = data.shape[:2]
-        nnX = X.shape[0]
+        nt, nch = data.shape[:2]
+        nnch = X.shape[0]
         if data.ndim==3:
             nnlamb, nlamb = lamb.shape
         else:
@@ -328,7 +328,7 @@ class DataAbstract(utils.ToFuObject):
         # Check indices
         if indtX is not None:
             assert indtX.shape==(nt,)
-            assert np.min(indtX)>=0 and np.max(indtX)<=nnX
+            assert np.min(indtX)>=0 and np.max(indtX)<=nnch
         lC = [indtlamb is None, indXlamb is None, indtXlamb is None]
         assert lC[2] or (~lC[2] and np.sum(lC[:2])==2)
         if lC[2]:
@@ -336,20 +336,20 @@ class DataAbstract(utils.ToFuObject):
                 assert indtlamb.shape==(nt,)
                 assert inp.min(indtlamb)>=0 and np.max(indtlamb)<=nnlamb
             if not lC[1]:
-                assert indXlamb.shape==(nX,)
+                assert indXlamb.shape==(nch,)
                 assert inp.min(indXlamb)>=0 and np.max(indXlamb)<=nnlamb
         else:
-            assert indtXlamb.shape==(nt,nX)
+            assert indtXlamb.shape==(nt,nch)
             assert inp.min(indtXlamb)>=0 and np.max(indtXlamb)<=nnlamb
 
         # Check consistency X/lamb shapes vs indices
         if X is not None and indtX is None:
-            assert nnX in [1,nt]
+            assert nnch in [1,nt]
             if lamb is not None:
                 if all([ii is None for ii in [indtlamb,indXlamb,indtXlamb]]):
                     assert nnlamb in [1,nt]
 
-        l = [data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb,
+        l = [data, t, X, lamb, nt, nch, nlamb, nnch, nnlamb,
              indtX, indtlamb, indXlamb, indtXlamb]
         return l
 
@@ -384,14 +384,14 @@ class DataAbstract(utils.ToFuObject):
             X = np.array([X])
 
         # Get shapes
-        nnX, nX = X.shape
+        nnch, nch = X.shape
 
         # Check indices
         if indtX is None:
             indtX = self._ddataRef['indtX']
         if indtX is not None:
             assert indtX.shape==(nt,)
-            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnX
+            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnch
         if indXlamb is None:
             indXlamb = self._ddataRef['indXlamb']
         if indtXlamb is None:
@@ -399,16 +399,16 @@ class DataAbstract(utils.ToFuObject):
 
         if indtXlamb is not None:
             assert indXlamb is None
-            assert indXlamb.shape==(nX,)
+            assert indXlamb.shape==(nch,)
             assert (np.argmin(indXlamb)>=0
                     and np.argmax(indXlamb)<=self._ddataRef['nnlamb'])
         else:
             assert indXlamb is None
-            assert indtXlamb.shape==(nt,nX)
+            assert indtXlamb.shape==(nt,nch)
             assert (np.argmin(indtXlamb)>=0
                     and np.argmax(indtXlamb)<=self._ddataRef['nnlamb'])
 
-        return X, nnX, indtX, indXlamb, indtXlamb
+        return X, nnch, indtX, indXlamb, indtXlamb
 
 
     def _checkformat_inputs_dlabels(self, dlabels=None):
@@ -485,7 +485,7 @@ class DataAbstract(utils.ToFuObject):
 
             # Check number of channels wrt data
             nR = np.sum([cc._dgeom['nRays'] for cc in lCam])
-            if not nR == self._ddataRef['nX']:
+            if not nR == self._ddataRef['nch']:
                 msg = "Total nb. of rays from lCam != data.shape[1] !"
                 raise Exception(msg)
         return config, lCam, nC
@@ -506,7 +506,7 @@ class DataAbstract(utils.ToFuObject):
         else:
             for k in dchans.keys():
                 arr = np.asarray(dchans[k]).ravel()
-                assert arr.size==self._ddata['nX']
+                assert arr.size==self._ddata['nch']
                 dchans[k] = arr
         return dchans
 
@@ -524,13 +524,13 @@ class DataAbstract(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_ddataRef():
-        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
+        lk = ['data', 't', 'X', 'lamb', 'nt', 'nch', 'nlamb', 'nnch', 'nnlamb',
               'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
         return lk
 
     @staticmethod
     def _get_keys_ddata():
-        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
+        lk = ['data', 't', 'X', 'lamb', 'nt', 'nch', 'nlamb', 'nnch', 'nnlamb',
               'indtX', 'indtlamb', 'indXlamb', 'indtXlamb', 'uptodate']
         return lk
 
@@ -609,12 +609,12 @@ class DataAbstract(utils.ToFuObject):
         kwdargs = locals()
         del kwdargs['self']
         lout = self._checkformat_inputs_ddataRef(**kwdargs)
-        data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb = lout[:9]
+        data, t, X, lamb, nt, nch, nlamb, nnch, nnlamb = lout[:9]
         indtX, indtlamb, indXlamb, indtXlamb = lout[9:]
 
         self._ddataRef = {'data':data, 't':t, 'X':X, 'lamb':lamb,
-                          'nt':nt, 'nX':nX, 'nlamb':nlamb,
-                          'nnX':nnX, 'nnlamb':nnlamb,
+                          'nt':nt, 'nch':nch, 'nlamb':nlamb,
+                          'nnch':nnch, 'nnlamb':nnlamb,
                           'indtX':indtX, 'indtlamb':indtlamb,
                           'indXlamb':indXlamb, 'indtXlamb':indtXlamb}
 
@@ -813,8 +813,8 @@ class DataAbstract(utils.ToFuObject):
     def nt(self):
         return self.get_ddata('nt')
     @property
-    def nX(self):
-        return self.get_ddata('nX')
+    def nch(self):
+        return self.get_ddata('nch')
 
     @property
     def config(self):
@@ -844,9 +844,9 @@ class DataAbstract(utils.ToFuObject):
         """
         out = self._checkformat_inputs_XRef(X=X, indtX=indtX,
                                             indXlamb=indtXlamb)
-        X, nnX, indtX, indXlamb, indtXlamb = out
+        X, nnch, indtX, indXlamb, indtXlamb = out
         self._ddataRef['X'] = X
-        self._ddataRef['nnX'] = nnX
+        self._ddataRef['nnch'] = nnch
         self._ddataRef['indtX'] = indtX
         self._ddataRef['indtXlamb'] = indtXlamb
         self._ddata['uptodate'] = False
@@ -879,7 +879,7 @@ class DataAbstract(utils.ToFuObject):
         if indch is not None:
             indch = np.asarray(indch)
             assert indch.ndim==1
-            indch = _format_ind(indch, n=self._ddataRef['nX'])
+            indch = _format_ind(indch, n=self._ddataRef['nch'])
         self._dtreat['indch'] = indch
         self._ddata['uptodate'] = False
 
@@ -904,7 +904,7 @@ class DataAbstract(utils.ToFuObject):
         assert ind is None or hasattr(ind,'__iter__')
         assert type(val) in [int,float,np.int64,np.float64]
         if ind is not None:
-            ind = _format_ind(ind, n=self._ddataRef['nX'])
+            ind = _format_ind(ind, n=self._ddataRef['nch'])
         self._dtreat['mask-ind'] = ind
         self._dtreat['mask-val'] = val
         self._ddata['uptodate'] = False
@@ -915,7 +915,7 @@ class DataAbstract(utils.ToFuObject):
         assert np.sum(C)>=2
         if data0 is not None:
             data0 = np.asarray(data0).ravel()
-            assert data0.shape==(self._ddataRef['nX'],)
+            assert data0.shape==(self._ddataRef['nch'],)
             Dt, indt = None, None
         else:
             if indt is not None:
@@ -946,7 +946,7 @@ class DataAbstract(utils.ToFuObject):
         """
         assert indt is None or type(indt) in [np.ndarray, list, dict]
         if isinstance(indt,dict):
-            C = [type(k) is int and k<self._ddataRef['nX'] for k in indt.keys()]
+            C = [type(k) is int and k<self._ddataRef['nch'] for k in indt.keys()]
             assert all(C)
             for k in indt.keys():
                 assert hasattr(indt[k],'__iter__')
@@ -977,11 +977,11 @@ class DataAbstract(utils.ToFuObject):
             assert all(C)
             for k in indch.keys():
                 assert hasattr(indch[k],'__iter__')
-                indch[k] = _format_ind(indch[k], n=self._ddataRef['nX'])
+                indch[k] = _format_ind(indch[k], n=self._ddataRef['nch'])
         else:
             indch = np.asarray(indch)
             assert indch.ndim==1
-            indch = _format_ind(indch, n=self._ddataRef['nX'])
+            indch = _format_ind(indch, n=self._ddataRef['nch'])
         self._dtreat['interp-indch'] = indch
         self._ddata['uptodate'] = False
 
@@ -1227,22 +1227,22 @@ class DataAbstract(utils.ToFuObject):
         # --------------------
         # Safety check
         if d.ndim==2:
-            (nt, nX), nlamb = d.shape, 0
+            (nt, nch), nlamb = d.shape, 0
         else:
-            nt, nX, nlamb = d.shape
+            nt, nch, nlamb = d.shape
         assert d.ndim in [2,3]
         assert t.shape==(nt,)
-        assert X.shape==(self._ddataRef['nnX'], nX)
+        assert X.shape==(self._ddataRef['nnch'], nch)
         if lamb is not None:
             assert lamb.shape==(self._ddataRef['nnlamb'], nlamb)
 
-        lout = [d, t, X, lamb, nt, nX, nlamb,
+        lout = [d, t, X, lamb, nt, nch, nlamb,
                 indtX, indtlamb, indXlamb, indtXlamb]
         return lout
 
     def _set_ddata(self):
         if not self._ddata['uptodate']:
-            data, t, X, lamb, nt, nX, nlamb,\
+            data, t, X, lamb, nt, nch, nlamb,\
                     indtX, indtlamb, indXlamb, indtXlamb\
                     = self._get_treated_data()
             self._ddata['data'] = data
@@ -1250,9 +1250,9 @@ class DataAbstract(utils.ToFuObject):
             self._ddata['X'] = X
             self._ddata['lamb'] = lamb
             self._ddata['nt'] = nt
-            self._ddata['nX'] = nX
+            self._ddata['nch'] = nch
             self._ddata['nlamb'] = nlamb
-            self._ddata['nnX'] = self._ddataRef['nnX']
+            self._ddata['nnch'] = self._ddataRef['nnch']
             self._ddata['nnlamb'] = self._ddataRef['nnlamb']
             self._ddata['indtX'] = indtX
             self._ddata['indtlamb'] = indtlamb
@@ -1407,7 +1407,7 @@ class DataAbstract(utils.ToFuObject):
 
         if lC[0]:
             # get all channels
-            ind = np.ones((self._ddataRef['nX'],),dtype=bool)
+            ind = np.ones((self._ddataRef['nch'],),dtype=bool)
 
         elif lC[1]:
             # get touch
@@ -1428,14 +1428,14 @@ class DataAbstract(utils.ToFuObject):
 
         elif lC[2]:
             # get values on X
-            if self._ddataRef['nnX']==1:
-                ind = _select_ind(val, self._ddataRef['X'], self._ddataRef['nX'])
+            if self._ddataRef['nnch']==1:
+                ind = _select_ind(val, self._ddataRef['X'], self._ddataRef['nch'])
             else:
-                ind = np.zeros((self._ddataRef['nt'],self._ddataRef['nX']),dtype=bool)
-                for ii in range(0,self._ddataRef['nnX']):
+                ind = np.zeros((self._ddataRef['nt'],self._ddataRef['nch']),dtype=bool)
+                for ii in range(0,self._ddataRef['nnch']):
                     iind = self._ddataRef['indtX']==ii
                     ind[iind,:] =  _select_ind(val, self._ddataRef['X'],
-                                               self._ddataRef['nX'])[np.newaxis,:]
+                                               self._ddataRef['nch'])[np.newaxis,:]
 
         else:
             assert type(key) is str and key in self._dchans['dchans'].keys()
@@ -1520,12 +1520,16 @@ class DataAbstract(utils.ToFuObject):
                              draw=draw, connect=connect)
         return kh
 
-    def plot_compare(self, lD, key=None, invert=None, plotmethod='imshow',
-                     cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
-                     Bck=True, indref=0, fs=None, dmargin=None,
-                     vmin=None, vmax=None, normt=False,
-                     wintit=None, tit=None, fontsize=None,
-                     draw=True, connect=True):
+    def plot_compare(self, lD, key=None,
+                     cmap=None, ms=4, vmin=None, vmax=None,
+                     vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
+                     ntMax=None, nchMax=None, nlbdMax=3,
+                     lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
+                     inct=[1,10], incX=[1,5], inclbd=[1,10],
+                     fmt_t='06.3f', fmt_X='01.0f',
+                     invert=True, Lplot='In', dmarker=None,
+                     Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
+                     fontsize=None, labelpad=None, draw=True, connect=True):
         """ Plot several Data instances of the same diag
 
         Useful to compare :
@@ -1538,14 +1542,19 @@ class DataAbstract(utils.ToFuObject):
         C1 = issubclass(lD.__class__,DataAbstract)
         assert C0 or C1, 'Provided first arg. must be a tf.data.DataAbstract or list !'
         lD = [lD] if C1 else lD
-        KH = _plot.Data_plot([self]+lD, key=key, invert=invert, Bck=Bck,
+        kh = _plot.Data_plot([self]+lD, key=key, indref=0,
+                             cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                             vmin_map=vmin_map, vmax_map=vmax_map,
+                             cmap_map=cmap_map, normt_map=normt_map,
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
-                             plotmethod=plotmethod, cmap=cmap, ms=ms,
+                             lls=lls, lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
+                             inct=inct, incX=incX, inclbd=inclbd,
+                             fmt_t=fmt_t, fmt_X=fmt_X, Lplot=Lplot,
+                             invert=invert, dmarker=dmarker, Bck=Bck,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                             vmin=vmin, vmax=vmax, normt=normt,
-                             fontsize=fontsize, indref=indref,
+                             fontsize=fontsize, labelpad=labelpad,
                              draw=draw, connect=connect)
-        return KH
+        return kh
 
     def plot_combine(self, lD, key=None, invert=None, plotmethod='imshow',
                      cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,

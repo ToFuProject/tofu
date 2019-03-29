@@ -850,17 +850,17 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     lidt = [id(t) for t in lt]
 
     # ---------
-    # Check nX and X
-    c0 = [dd.nX == lData[0].nX for dd in lData[1:]]
+    # Check nch and X
+    c0 = [dd.nch == lData[0].nch for dd in lData[1:]]
     if not all(c0):
-        msg = "All Data objects must have the same number of channels (self.nX)"
+        msg = "All Data objects must have the same number of channels (self.nch)"
         msg += "\nYou can set the indices of the channels with self.set_indch()"
         raise Exception(msg)
-    nX = lData[0].nX
+    nch = lData[0].nch
 
-    #X, nX, nnX, indtX = lData[0]['X'], lData[0]['nX'], lData[0]['nnX'], lData[0]['indtX']
+    #X, nch, nnch, indtX = lData[0]['X'], lData[0]['nch'], lData[0]['nnch'], lData[0]['indtX']
     if nD == 1:
-        if nX == 1:
+        if nch == 1:
             DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
         else:
             DX = np.array([[np.nanmin(dd.X), np.nanmax(dd.X)] for dd in lData])
@@ -868,17 +868,17 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         Xlab = r"{0} ({1})".format(lData[0].dlabels['X']['name'],
                                    lData[0].dlabels['X']['units'])
 
-        lXtype = ['x' if lData[ii].ddata['nnX'] == 1 else 'x1'
+        lXtype = ['x' if lData[ii].ddata['nnch'] == 1 else 'x1'
                   for ii in range(0,nDat)]
-        lXother = [None if lData[ii].ddata['nnX'] == 1 else lidt[ii]
+        lXother = [None if lData[ii].ddata['nnch'] == 1 else lidt[ii]
                    for ii in range(0,nDat)]
-        lindtX = [(None if lData[ii].ddata['nnX'] == 1
+        lindtX = [(None if lData[ii].ddata['nnch'] == 1
                    else lData[ii].ddata['indtX'])
                   for ii in range(0,nDat)]
     else:
-        c0 = [dd.ddata['nnX'] > 1 for dd in lData]
+        c0 = [dd.ddata['nnch'] > 1 for dd in lData]
         if any(c0):
-            msg = "DataCam2D cannot have nnX > 1 !"
+            msg = "DataCam2D cannot have nnch > 1 !"
             raise Exception(msg)
         c0 = [dd.ddata['indtX'] is None for dd in lData]
         if not all(c0):
@@ -908,7 +908,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
     # dchans
     if key is None:
-        dchans = np.arange(0,nX)
+        dchans = np.arange(0,nch)
     else:
         dchans = lData[0].dchans(key)
     idchans = id(dchans)
@@ -1019,11 +1019,11 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # Background (optional)
     if Bck:
         if nD == 1:
-            if lData[0].ddata['nnX'] == 1:
+            if lData[0].ddata['nnch'] == 1:
                 env = [np.nanmin(ldata[0],axis=0), np.nanmax(ldata[0],axis=0)]
                 dax['X'][0].fill_between(lX[0].ravel(), env[0], env[1], facecolor=cbck)
-            tbck = np.tile(np.r_[lt[0], np.nan], nX)
-            dbck = np.vstack((ldata[0], np.full((1,nX),np.nan))).T.ravel()
+            tbck = np.tile(np.r_[lt[0], np.nan], nch)
+            dbck = np.vstack((ldata[0], np.full((1,nch),np.nan))).T.ravel()
             dax['t'][1].plot(tbck, dbck, lw=1., ls='-', c=cbck)
         else:
             dax['t'][1].fill_between(lt[0], np.nanmin(ldata[0],axis=1),
@@ -1212,7 +1212,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
             # Time data profiles
             if nD == 1:
-                l0, = dax['X'][0].plot(lX[ii][0,:], np.full((nX,),np.nan),
+                l0, = dax['X'][0].plot(lX[ii][0,:], np.full((nch,),np.nan),
                                        c=lct[jj], ls=lls[ii], lw=1.)
                 dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
                                                 'lrid':[lidt[ii]]}},
@@ -1495,16 +1495,16 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     idt = id(t)
 
     # X
-    X, nX, nnX, indtX = ddata['X'], ddata['nX'], ddata['nnX'], ddata['indtX']
+    X, nch, nnch, indtX = ddata['X'], ddata['nch'], ddata['nnch'], ddata['indtX']
     if nD == 1:
-        if nX == 1:
+        if nch == 1:
             DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
         else:
             DX = [np.nanmin(X), np.nanmax(X)]
         Xlab = r"{0} ({1})".format(Data.dlabels['X']['name'],
                                    Data.dlabels['X']['units'])
     else:
-        assert nnX == 1
+        assert nnch == 1
         assert indtX is None
         x1, x2, indr, extent = Data.get_X12plot('imshow')
         if Bck:
@@ -1513,7 +1513,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         idx12 = id((x1,x2))
         n12 = [x1.size, x2.size]
 
-    if nnX == 1:
+    if nnch == 1:
         Xtype = 'x'
         Xother = None
     elif indtX is None:
@@ -1523,7 +1523,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     # dchans
     if key is None:
-        dchans = np.arange(0,nX)
+        dchans = np.arange(0,nch)
     else:
         dchans = Data.dchans(key)
     idchans = id(dchans)
@@ -1621,11 +1621,11 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     if Bck:
         if nD == 1:
-            if nnX == 1:
+            if nnch == 1:
                 env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
                 dax['X'][0].fill_between(X.ravel(), env[0], env[1], facecolor=cbck)
-            tbck = np.tile(np.r_[t, np.nan], nX)
-            dbck = np.vstack((data, np.full((1,nX),np.nan))).T.ravel()
+            tbck = np.tile(np.r_[t, np.nan], nch)
+            dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
             dax['t'][0].plot(tbck, dbck, lw=1., ls='-', c=cbck)
         else:
             dax['t'][0].fill_between(t, np.nanmin(data,axis=1),
@@ -1824,7 +1824,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
         # Time data profiles
         if nD == 1:
-            l0, = dax['X'][0].plot(X[0,:], np.full((nX,),np.nan),
+            l0, = dax['X'][0].plot(X[0,:], np.full((nch,),np.nan),
                                    c=lct[jj], ls='-', lw=1.)
             dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idt]}},
                         'drefid':{idt:jj}}
@@ -1833,11 +1833,11 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
             # lpsd and ang profiles
             for ii in range(0,nfMax):
-                l0, = dax['X'][1].plot(X[0,:], np.full((nX,),np.nan),
+                l0, = dax['X'][1].plot(X[0,:], np.full((nch,),np.nan),
                                        c=lct[jj], ls=llsf[ii], lw=1.)
                 dobj[l0] = {'dupdate':{'ydata':{'id':idlpsd, 'lrid':[idtf,idf]}},
                             'drefid':{idtf:jj, idf:ii}}
-                l1, = dax['X'][2].plot(X[0,:], np.full((nX,),np.nan),
+                l1, = dax['X'][2].plot(X[0,:], np.full((nch,),np.nan),
                                        c=lct[jj], ls=llsf[ii], lw=1.)
                 dobj[l1] = {'dupdate':{'ydata':{'id':idlang, 'lrid':[idtf,idf]}},
                             'drefid':{idtf:jj, idf:ii}}

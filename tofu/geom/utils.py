@@ -679,7 +679,8 @@ def _create_config_testcase(config='A1', out='object',
 def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
                   R=2.4, r=1., elong=0., Dshape=0.,
-                  divlow=True, divup=True, nP=200, out='object'):
+                  divlow=True, divup=True, nP=200,
+                  out='object', SavePath='./'):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
@@ -746,14 +747,16 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
                               'pos':Bump_posextent[0],
                               'extent':Bump_posextent[1]}}
         else:
-            ves = _core.Ves(Poly=poly, Type=Type, Lim=Lim, Exp=Exp, Name='Ves')
+            ves = _core.Ves(Poly=poly, Type=Type, Lim=Lim, Exp=Exp, Name='Ves',
+                            SavePath=SavePath)
             baf = _core.PFC(Poly=pbaffle, Type=Type, Lim=Lim,
-                            Exp=Exp, Name='Baffle', color='b')
+                            Exp=Exp, Name='Baffle', color='b', SavePath=SavePath)
             bump = _core.PFC(Poly=pbump, Type=Type,
                              pos=Bump_posextent[0], extent=Bump_posextent[1],
-                             Exp=Exp, Name='Bumper', color='g')
+                             Exp=Exp, Name='Bumper', color='g', SavePath=SavePath)
 
-            conf = _core.Config(Name='Dummy', Exp=Exp, lStruct=[ves,baf,bump])
+            conf = _core.Config(Name='Dummy', Exp=Exp, lStruct=[ves,baf,bump],
+                                SavePath=SavePath)
     return conf
 
 ###########################################################
@@ -839,7 +842,8 @@ def _create_CamLOS(case=None, nD=1, Etendues=None, Surfaces=None,
                    dchans=None, Exp=None, Diag=None, Name=None, color=None,
                    P=None, F=0.1, D12=0.1, N12=100, method=None,
                    angs=[-np.pi,0.,0.], nIn=None, VType='Tor', dcam=_dcam,
-                   defRY=None, Lim=None, config=None, out=object):
+                   defRY=None, Lim=None, config=None, out=object,
+                   SavePath='./'):
     assert nD in [1,2]
     if not out in [object,'object','Du','dict',dict]:
         msg = _createCamerr.format('1')
@@ -894,7 +898,7 @@ def _create_CamLOS(case=None, nD=1, Etendues=None, Surfaces=None,
         cam = cls(Name=Name, Exp=Exp, Diag=Diag,
                   dgeom={'pinhole':P, 'D':Ds}, method=method,
                   Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
-                  color=color, config=config)
+                  color=color, config=config, SavePath=SavePath)
         return cam
 
 

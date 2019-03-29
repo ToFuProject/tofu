@@ -3935,7 +3935,7 @@ class Rays(utils.ToFuObject):
 
     def calc_signal(self, ff, t=None, ani=None, fkwdargs={}, Brightness=True,
                     res=0.005, DL=None, resMode='abs', method='sum',
-                    ind=None, out=object, plot=True, plotmethod='imshow',
+                    ind=None, out=object, plot=True, dataname=None,
                     fs=None, dmargin=None, wintit=None, invert=True,
                     units=None, draw=True, connect=True):
         """ Return the line-integrated emissivity
@@ -4036,31 +4036,38 @@ class Rays(utils.ToFuObject):
 
         # Format output
         if Brightness is False:
+            if dataname is None:
+                dataname = r"LOS-integral x Etendue"
             if t is None or len(t)==1 or E.size==1:
                 sig = sig*E
             else:
                 sig = sig*E[np.newaxis,:]
             if units is None:
                 units = r"origin x $m^3.sr$"
-        elif units is None:
-            units = r"origin x m"
+        else:
+            if dataname is None:
+                dataname = r"LOS-integral"
+            if units is None:
+                units = r"origin x m"
 
-        if plot or out is object:
-            dkwdargs = dict(data=sig, t=t, lCam=self, Name=self.Id.Name,
-                            dlabels={'data':units}, Exp=self.Id.Exp,
-                            Diag=self.Id.Diag)
+        if plot or out in [object,'object']:
+            kwdargs = dict(data=sig, t=t, lCam=self, Name=self.Id.Name,
+                           dlabels={'data':{'units':units, 'name':dataname}},
+                           Exp=self.Id.Exp, Diag=self.Id.Diag)
             import tofu.data as tfd
             if self._is2D():
                 osig = tfd.DataCam2D(**kwdargs)
             else:
                 osig = tfd.DataCam1D(**kwdargs)
             if plot:
-                KH = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
+                kh = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
                                plotmethod=plotmethod, invert=invert,
                                draw=draw, connect=connect)
-            if out is object:
-                sig = osig
-        return sig, units
+
+        if out in [object, 'object']:
+            return osig
+        else:
+            return sig, units
 
     def plot(self, lax=None, proj='all', Lplot=_def.LOSLplot, element='L',
              element_config='P', Leg='', dL=None, dPtD=_def.LOSMd,
