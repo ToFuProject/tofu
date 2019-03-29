@@ -28,13 +28,30 @@ x	1/ Calculer uniquement kIn / kOut pour N (~1-100) polygones
 	(ex.: des surfaces de flux)
 	TODO: pas de structs !!
 
->	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
+x	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
 	traversent pas, la distance la plus courte d entre une ligne et un
 	polygone (et le paramÃ¨tre k du point associÃ© sur la ligne).
 	Retourner d=0 si la ligne traverse (i.e. si il existe un kIn et/ou
 	un kout)
 	> parametres entrées: (nvert, poly, vin, lims si lin, los_origin,
 	                       los_direction)
+
+/!\ Only did it for toroidal polygons... is it really necessary ?
+/!\ I erased the function "is los close to vpoly"
+
+       o Interface Python:
+           qui appelle une des deux (si il existe un parametre epislon)
+	          > vectoriser à plusieurs polys
+       		  > version true/false si >0 et < eps (tableau booleen nlos*npoly)
+       o Interface Python :
+           qui appelle une des deux avex une variable pour choisir si LOS/poly ou l'inverse
+	          > plein LOS, plein poly, pour chaque ligne: tableau d'indice (de taille nlos)
+		  indiquant le poly pourlequel la LOS est le plus proche. (min(distance) mais
+	          pour laquelle la LOS ne passe pas à l'intérieur).
+	          Poly sont ordonnees : du plus petit au plus grand
+                   > plein LOS, plein poly, pour chaque poly: tableau d'indice (de taille npoly)
+                   indiquant la LOS pourlequel le poly est le plus proche. (min(distance) mais
+                   pour laquelle la LOS ne passe pas à l'intérieur).
 
 >	2.1/ Ask Didier (vignetting algo ?)
 	> In : (list los_orig, list los_dirc, list contour3d, ncontour, list nvert...)
