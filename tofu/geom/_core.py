@@ -2990,7 +2990,7 @@ class Rays(utils.ToFuObject):
             lSVIny = np.asarray(lSVIny)
 
             largs = [D, u, VPoly, VVIn]
-            dkwd = dict(ves_lims=Lim, ves_nlim=nLim,
+            dkwd = dict(ves_lims=Lim,
                         nstruct_tot=num_tot_structs,
                         nstruct_lim=num_lim_structs,
                         lstruct_polyx=lSPolyx,
