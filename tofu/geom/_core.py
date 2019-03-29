@@ -2404,7 +2404,7 @@ class Rays(utils.ToFuObject):
                     'Lim':None,
                     'Nstep':50}}
 
-    _dcases = {'A':{'type':tuple},
+    _dcases = {'A':{'type':tuple, 'lk':[]},
                'B':{'type':dict, 'lk':['D','u']},
                'C':{'type':dict, 'lk':['D','pinhole']},
                'D':{'type':dict, 'lk':['pinhole','F','nIn','e1','x1']},
