@@ -2557,7 +2557,7 @@ class Rays(utils.ToFuObject):
 
         if case in ['A','B']:
             D = dgeom[0] if case == 'A' else dgeom['D']
-            u = dgeom[1] if case == 'B' else dgeom['u']
+            u = dgeom[1] if case == 'A' else dgeom['u']
             D = _checkformat_Du(D, 'D')
             u = _checkformat_Du(u, 'u')
             # Normalize u
