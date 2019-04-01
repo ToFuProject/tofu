@@ -3185,6 +3185,47 @@ class Rays(utils.ToFuObject):
         dd = {'PkIn':PkIn, 'PkOut':PkOut, 'PRMin':PRMin, 'RMin':RMin}
         self._dgeom.update(dd)
 
+    def _compute_dgeom_extra2D(self):
+        if not '2d' in self.Id.Cls.lower():
+            return
+        D, u = self.D, self.u
+        C = np.nanmean(D,axis=1)
+        CD0 = D[:,:-1] - C[:,np.newaxis]
+        CD1 = D[:,1:] - C[:,np.newaxis]
+        cross = np.array([CD1[1,1:]*CD0[2,:-1]-CD1[2,1:]*CD0[1,:-1],
+                          CD1[2,1:]*CD0[0,:-1]-CD1[0,1:]*CD0[2,:-1],
+                          CD1[0,1:]*CD0[1,:-1]-CD1[1,1:]*CD0[0,:-1]])
+        crossn2 = np.sum(cross**2,axis=0)
+        if np.all(np.abs(crossn2)<1.e-12):
+            msg = "Is %s really a 2D camera ? (LOS aligned?)"%self.Id.Name
+            warnings.warn(msg)
+        cross = cross[:,np.nanargmax(crossn2)]
+        cross = cross / np.linalg.norm(cross)
+        nIn = cross if np.sum(cross*np.nanmean(u,axis=1))>0. else -cross
+
+        # Find most relevant e1 (for pixels alignment), without a priori info
+        D0D = D-D[:,0][:,np.newaxis]
+        dist = np.sqrt(np.sum(D0D**2,axis=0))
+        dd = np.min(dist[1:])
+        e1 = (D[:,1]-D[:,0])/np.linalg.norm(D[:,1]-D[:,0])
+        # crossbis= np.sqrt((D0D[1,:]*e1[2]-D0D[2,:]*e1[1])**2
+                          # + (D0D[2,:]*e1[0]-D0D[0,:]*e1[2])**2
+                          # + (D0D[0,:]*e1[1]-D0D[1,:]*e1[0])**2)
+        # D0D = D0D[:,crossbis<dd/3.]
+        # sca = np.sum(D0D*e1[:,np.newaxis],axis=0)
+        # e1 = D0D[:,np.argmax(np.abs(sca))]
+        try:
+            import tofu.geom.utils as geom_utils
+        except Exception:
+            from . import utils as geom_utils
+
+        nIn, e1, e2 = geom_utils.get_nIne1e2(C, nIn=nIn, e1=e1)
+        if np.abs(np.abs(nIn[2])-1.)>1.e-12:
+            if np.abs(e1[2])>np.abs(e2[2]):
+                e1, e2 = e2, e1
+        e2 = e2 if e2[2]>0. else -e2
+        self._dgeom.update({'C':C, 'nIn':nIn, 'e1':e1, 'e2':e2})
+
     def set_Etendues(self, val):
         val = self._checkformat_inputs_dES(val)
         self._dgeom['Etendues'] = val

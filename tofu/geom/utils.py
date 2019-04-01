@@ -151,7 +151,7 @@ def get_nIne1e2(P, nIn=None, e1=None, e2=None):
     e1 = e1 / np.linalg.norm(e1)
 
     if not np.abs(np.sum(nIn*e1))<1.e-12:
-        msg = "Identified local base does not seem valid:\n"
+        msg = "Identified local base does not seem valid!\n"
         msg += "nIn = %s\n"%str(nIn)
         msg += "e1 =  %s\n"%str(e1)
         msg += "np.sum(nIn*e1) = sum(%s) = %s"%(nIn*e1, np.sum(nIn*e1))
