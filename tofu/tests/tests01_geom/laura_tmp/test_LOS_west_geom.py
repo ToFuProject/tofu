@@ -244,13 +244,15 @@ def plot_all_configs():
 def touch_plot_all_configs():
     ABconfigs = ["A1", "A2", "A3", "B1", "B2", "B3"]
     for indx, config in enumerate(ABconfigs):
-        indcam = -2
+        indcam = -4
         if config=="A2":
             cam = CamsA[indcam]
         elif config=="A3":
             cam = CamsA3[indcam]
         else:
             cam = Cams[indcam]
+        print(cam)
+        print(plt.get_backend())
         D, u, loscam = get_Du(cam, config=config, make_cam=True,
                               is_new_ver = _is_new_version)
         loscam.plot_touch()

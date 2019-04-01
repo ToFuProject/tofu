@@ -6,7 +6,7 @@ import os
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
-# plt.swtich_backend("Qt5Agg")
+plt.switch_backend("Qt5Agg")
 
 # tofu-specific ( >= 1.3.23-58 )
 import tofu as tf
@@ -267,8 +267,8 @@ def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
 
     # Compute the LOS starting points and unit vectors
     (D,u) = tf.geom.utils._compute_CamLOS2D_pinhole(P, F, D12, N12,
-                                             nIn=nIn, angs=None,
-                                             return_Du=True)
+                                                    nIn=nIn, angs=None,
+                                                    return_Du=True)
 
     if make_cam or plot:
         assert config is not None, "You must specify a config !"
@@ -283,7 +283,7 @@ def get_Du(cam, dcam=_dcam, make_cam=False, plot=False,
         else:
             method ="ref"
         cam = tf.geom.CamLOS2D(Exp=conf.Id.Exp, Name=cam, dgeom=(D,u),
-                               config=conf, Diag='Test', method=method)
+                               config=conf, Diag='Test', method=method, plotdebug=False)
 
     else:
         cam = None
