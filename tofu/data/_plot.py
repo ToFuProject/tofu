@@ -1620,6 +1620,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
             lCross, lHor = None, None
         else:
             lCross, lHor = None, None
+    else:
+        lCross, lHor = None, None
 
     if Bck:
         if nD == 1:

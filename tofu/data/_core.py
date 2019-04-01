@@ -155,6 +155,8 @@ class DataAbstract(utils.ToFuObject):
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dchans = dict.fromkeys(self._get_keys_dchans())
         self._dextra = dict.fromkeys(self._get_keys_dextra())
+        if self._is2D():
+            self._dX12 = dict.fromkeys(self._get_keys_dX12())
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
@@ -164,9 +166,9 @@ class DataAbstract(utils.ToFuObject):
         if Id is not None:
             assert isinstance(Id,utils.ID)
             Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
-        assert type(Name) is str
-        assert type(Diag) is str
-        assert type(Exp) is str
+        assert type(Name) is str, Name
+        assert type(Diag) is str, Diag
+        assert type(Exp) is str, Exp
         if include is None:
             include = cls._ddef['Id']['include']
         assert shot is None or type(shot) in [int,np.int64]
@@ -178,7 +180,7 @@ class DataAbstract(utils.ToFuObject):
             if 'shot' not in include:
                 include.append('shot')
         kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot,
-                        'include':include})
+                        'Diag':Diag, 'include':include})
         return kwdargs
 
     ###########
@@ -543,9 +545,11 @@ class DataAbstract(utils.ToFuObject):
               'dfit', 'indt',  'indch', 'indlamb', 'interp-t']
         return lk
 
-    @staticmethod
-    def _get_keys_dlabels():
-        lk = ['data','t','X','lamb']
+    @classmethod
+    def _get_keys_dlabels(cls):
+        lk = ['data','t','X']
+        if cls._isSpectral():
+            lk.append('lamb')
         return lk
 
     @staticmethod
@@ -555,7 +559,7 @@ class DataAbstract(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_dX12():
-        lk = ['x1','x2','n1', 'n2',
+        lk = ['from', 'x1','x2','n1', 'n2',
               'ind1', 'ind2', 'indr']
         return lk
 
@@ -626,7 +630,7 @@ class DataAbstract(utils.ToFuObject):
 
     def _set_dlabels(self, dlabels=None):
         dlabels = self._checkformat_inputs_dlabels(dlabels=dlabels)
-        self._dlabels = dlabels
+        self._dlabels.update(dlabels)
 
     def _set_dgeom(self, lCam=None, config=None):
         config, lCam, nC = self._checkformat_inputs_dgeom(lCam=lCam,
@@ -682,7 +686,7 @@ class DataAbstract(utils.ToFuObject):
         if strip in [0,2]:
             self._set_ddata()
         elif strip in [1,3]:
-            self.clear_data()
+            self.clear_ddata()
 
     def _strip_dgeom(self, strip=0, force=False):
         if self._dstrip['strip']==strip:
@@ -787,9 +791,10 @@ class DataAbstract(utils.ToFuObject):
                 'dtreat':{'dict':self._dtreat, 'lexcept':None},
                 'dlabels':{'dict':self._dlabels, 'lexcept':None},
                 'dgeom':{'dict':self._dgeom, 'lexcept':None},
-                'dX12':{'dict':self._dX12, 'lexcept':None},
                 'dchans':{'dict':self._dchans, 'lexcept':None},
                 'dextra':{'dict':self._dextra, 'lexcept':None}}
+        if self._is2D():
+            dout['dX12'] = {'dict':self._dX12, 'lexcept':None}
         return dout
 
     def _from_dict(self, fd):
@@ -798,9 +803,12 @@ class DataAbstract(utils.ToFuObject):
         self._dtreat.update(**fd['dtreat'])
         self._dlabels.update(**fd['dlabels'])
         self._dgeom.update(**fd['dgeom'])
-        self._dX12.update(**fd['dX12'])
-        self._dchans.update(**fd['dchans'])
         self._dextra.update(**fd['dextra'])
+        if 'dchans' not in fd.keys():
+            fd['dchans'] = {}
+        self._dchans.update(**fd['dchans'])
+        if self._is2D():
+            self._dX12.update(**fd['dX12'])
 
 
     ###########
@@ -1644,7 +1652,8 @@ class DataAbstract(utils.ToFuObject):
                          method='scipy-fourier', deg=False,
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
-                         boundary='constant', padded=True, wave='morlet'):
+                         boundary='constant', padded=True,
+                         wave='morlet', warn=True):
         """ Return the power spectrum density for each channel
 
         The power spectrum density is computed with the chosen method
@@ -1706,7 +1715,8 @@ class DataAbstract(utils.ToFuObject):
                                               method=method, window=window,
                                               detrend=detrend, nperseg=nperseg,
                                               noverlap=noverlap, boundary=boundary,
-                                              padded=padded, wave=wave)
+                                              padded=padded, wave=wave,
+                                              warn=warn)
         return tf, f, lpsd, lang
 
     def plot_spectrogram(self, fmin=None, fmax=None,
@@ -1719,7 +1729,7 @@ class DataAbstract(utils.ToFuObject):
                          ms=4, ntMax=None, nfMax=None,
                          Bck=True, fs=None, dmargin=None, wintit=None,
                          tit=None, vmin=None, vmax=None, normt=False,
-                         draw=True, connect=True, returnspect=False):
+                         draw=True, connect=True, returnspect=False, warn=True):
         """ Plot the spectrogram of all channels with chosen method
 
         All non-plotting arguments are fed to self.calc_spectrogram()
@@ -1738,7 +1748,8 @@ class DataAbstract(utils.ToFuObject):
                                               method=method, window=window,
                                               detrend=detrend, nperseg=nperseg,
                                               noverlap=noverlap, boundary=boundary,
-                                              padded=padded, wave=wave)
+                                              padded=padded, wave=wave,
+                                              warn=warn)
         kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang, fmax=fmax,
                                          invert=invert, plotmethod=plotmethod,
                                          cmap_f=cmap_f, cmap_img=cmap_img,
@@ -2034,8 +2045,10 @@ params = sig.parameters
 
 class DataCam1D(DataAbstract):
     """ Data object used for 1D cameras or list of 1D cameras  """
-    def _isSpectral(self):  return False
-    def _is2D(self):        return False
+    @classmethod
+    def _isSpectral(cls):  return False
+    @classmethod
+    def _is2D(cls):        return False
 lp = [p for p in params.values() if p.name not in ['lamb','dX12']]
 DataCam1D.__signature__ = sig.replace(parameters=lp)
 
@@ -2044,11 +2057,14 @@ DataCam1D.__signature__ = sig.replace(parameters=lp)
 class DataCam2D(DataAbstract):
     """ Data object used for 2D cameras or list of 2D cameras  """
 
-    def _isSpectral(self):  return False
-    def _is2D(self):        return True
+    @classmethod
+    def _isSpectral(cls):  return False
+    @classmethod
+    def _is2D(cls):        return True
 
     def _checkformat_dX12(self, dX12=None):
-        lc = [dX12 is None, dX12 == 'geom', isinstance(dX12, dict)]
+        lc = [dX12 is None, dX12 == 'geom' or dX12 == {'from':'geom'},
+              isinstance(dX12, dict) and dX12 != {'from':'geom'}]
         if not np.sum(lc) == 1:
             msg = "dX12 must be either:\n"
             msg += "    - None\n"
@@ -2067,8 +2083,9 @@ class DataCam2D(DataAbstract):
             if not c2:
                 msg = "dX12 cannot be derived from dgeom['lCam'][0].dX12 !"
                 raise Exception(msg)
+            dX12 = {'from':'geom'}
 
-        if lc[2]:
+        elif lc[2]:
             ls = ['x1','x2','ind1','ind2']
             assert all([ss in dX12.keys() for ss in ls])
             x1 = np.asarray(dX12['x1']).ravel()
@@ -2078,22 +2095,23 @@ class DataCam2D(DataAbstract):
                                                     ind2=dX12['ind2'],
                                                     n1=n1, n2=n2)
             dX12 = {'x1':x1, 'x2':x2, 'n1':n1, 'n2':n2,
-                    'ind1':ind1, 'ind2':ind2, 'indr':indr}
+                    'ind1':ind1, 'ind2':ind2, 'indr':indr, 'from':'self'}
         return dX12
 
     def set_dX12(self, dX12=None):
         dX12 = self._checkformat_dX12(dX12)
-        self._dX12 = dX12
+        self._dX12.update(dX12)
 
     @property
     def dX12(self):
-        if self._dX12 == 'geom':
+        if self._dX12 is not None and self._dX12['from'] == 'geom':
             dX12 = self._dgeom['lCam'][0].dX12
         else:
             dX12 = self._dX12
         return dX12
 
     def get_X12plot(self, plot='imshow'):
+        assert self.dX12 is not None
         if plot == 'imshow':
             x1, x2 = self.dX12['x1'], self.dX12['x2']
             x1min, Dx1min = x1[0], 0.5*(x1[1]-x1[0])

@@ -870,8 +870,7 @@ class ToFuObjectBase(object):
         If deep=True, all attributes themselves are also copies
         """
         dd = self.to_dict(strip=strip, deep=deep)
-        obj = self.__class__(fromdict=dd)
-        return obj
+        return self.__class__(fromdict=dd)
 
     def get_nbytes(self):
         """ Compute and return the object size in bytes (i.e.: octets)
@@ -952,10 +951,19 @@ class ToFuObjectBase(object):
                     elif type(d0[k]) is np.ndarray:
                         eqk = d0[k].shape==d1[k].shape
                         if eqk:
-                            eqk = np.allclose(d0[k],d1[k], equal_nan=True)
-                            if not eqk:
-                                m0 = str(d0[k])
-                                m1 = str(d1[k])
+                            eqk = d0[k].dtype == d1[k].dtype
+                            if eqk:
+                                if (issubclass(d0[k].dtype.type, np.int)
+                                    or issubclass(d0[k].dtype.type, np.float)):
+                                    eqk = np.allclose(d0[k],d1[k], equal_nan=True)
+                                else:
+                                    eqk = np.all(d0[k]==d1[k])
+                                if not eqk:
+                                    m0 = str(d0[k])
+                                    m1 = str(d1[k])
+                            else:
+                                m0 = str(d0[k].dtype)
+                                m1 = str(d1[k].dtype)
                         else:
                             m0 = "shape {0}".format(d0[k].shape)
                             m1 = "shape {0}".format(d1[k].shape)

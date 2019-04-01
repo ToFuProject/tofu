@@ -3359,9 +3359,10 @@ class Rays(utils.ToFuObject):
     def _to_dict(self):
         dout = {'dconfig':{'dict':self._dconfig, 'lexcept':None},
                 'dgeom':{'dict':self.dgeom, 'lexcept':None},
-                'dX12':{'dict':self.dX12, 'lexcept':None},
                 'dchans':{'dict':self.dchans, 'lexcept':None},
                 'dsino':{'dict':self.dsino, 'lexcept':None}}
+        if self._is2D():
+            dout['dX12'] = {'dict':self._dX12, 'lexcept':None}
         return dout
 
     @classmethod
@@ -3379,10 +3380,11 @@ class Rays(utils.ToFuObject):
 
         self._dconfig.update(**fd['dconfig'])
         self._dgeom.update(**fd['dgeom'])
-        self._dX12.update(**fd['dX12'])
         self._dsino.update(**fd['dsino'])
         if 'dchans' in fd.keys():
             self._dchans.update(**fd['dchans'])
+        if self._is2D():
+            self._dX12.update(**fd['dX12'])
 
 
     ###########

@@ -25,7 +25,7 @@ def spectrogram(data, t,
                 fmin=None, method='scipy-fourier', deg=False,
                 window='hann', detrend='linear',
                 nperseg=None, noverlap=None,
-                boundary='constant', padded=True, wave='morlet'):
+                boundary='constant', padded=True, wave='morlet', warn=True):
 
     # Format/check inputs
     lm = ['scipy-fourier', 'scipy-stft']#, 'scipy-wavelet']
@@ -57,10 +57,10 @@ def spectrogram(data, t,
                                                        noverlap=noverlap,
                                                        detrend=detrend,
                                                        boundary=boundary,
-                                                       padded=padded)
+                                                       padded=padded, warn=warn)
     elif method=='scipy-wavelet':
         f, lspect = _spectrogram_scipy_wavelet(data, fs, nt, nch,
-                                               fmin=fmin, wave=wave)
+                                               fmin=fmin, wave=wave, warn=warn)
         tf = t.copy()
 
     return tf, f, lpsd, lang
@@ -70,7 +70,7 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
                                window=('tukey', 0.25), deg=False,
                                nperseg=None, noverlap=None,
                                detrend='linear', stft=False,
-                               boundary='constant', padded=True):
+                               boundary='constant', padded=True, warn=True):
     """ Return a spectrogram for each channel, and a common frequency vector
 
     The min frequency of interest fmin fixes the nb. of pt. per seg. (if None)
@@ -87,10 +87,11 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
     # Check inputs
     if nperseg is None and fmin is None:
         fmin = _fmin_coef*(fs/nt)
-        msg = "nperseg and fmin were not provided\n"
-        msg += "    => fmin automatically set to 10.*fs/nt:\n"
-        msg += "       fmin = 10.*{0} / {1} = {2} Hz".format(fs,nt,fmin)
-        warnings.warn(msg)
+        if warn:
+            msg = "nperseg and fmin were not provided\n"
+            msg += "    => fmin automatically set to 10.*fs/nt:\n"
+            msg += "       fmin = 10.*{0} / {1} = {2} Hz".format(fs,nt,fmin)
+            warnings.warn(msg)
 
     # Format inputs
     if nperseg is None:
@@ -128,7 +129,8 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
     return f, tf, lpsd, lang
 
 
-def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):
+def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet',
+                               warn=True):
 
     if wave!='morlet':
         msg = "Only the morlet wavelet implmented so far !"
@@ -138,8 +140,9 @@ def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):
     # Check inputs
     if fmin is None:
         fmin = _fmin_coef*(fs/nt)
-        msg = "fmin was not provided => set to 10.*fs/nt"
-        warnings.warn(msg)
+        if warn:
+            msg = "fmin was not provided => set to 10.*fs/nt"
+            warnings.warn(msg)
 
     nw = int((1./fmin-2./fs)*fs)
     widths = 2.*np.pi*np.linspace(fmin,fs/2.,nw)

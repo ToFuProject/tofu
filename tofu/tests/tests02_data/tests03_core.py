@@ -361,7 +361,7 @@ class Test01_DataCam12D(object):
 
     def test18_spectrogram(self):
         for oo in self.lobj:
-            kh = oo.plot_spectrogram()
+            kh = oo.plot_spectrogram(warn=False)
         plt.close('all')
 
     def test19_plot_svd(self):
@@ -369,16 +369,22 @@ class Test01_DataCam12D(object):
 
     def test20_copy_equal(self):
         for oo in self.lobj:
-            assert oo.copy() == oo
+            obj = oo.copy()
+            assert obj == oo
 
     def test21_get_nbytes(self):
         for oo in self.lobj:
             nb, dnb = oo.get_nbytes()
 
     def test22_strip_nbytes(self):
+        self.lpfe = []
         lok = self.lobj[0].__class__._dstrip['allowed']
         nb = np.full((len(lok),), np.nan)
         for oo in self.lobj:
+            if oo.dgeom['lCam'] is not None:
+                for cc in oo.dgeom['lCam']:
+                    self.lpfe.append( cc.save(verb=True,
+                                              return_pfe=True) )
             for ii in lok:
                 oo.strip(ii)
                 nb[ii] = oo.get_nbytes()[0]
@@ -392,6 +398,8 @@ class Test01_DataCam12D(object):
             obj = tfpf.Open(pfe, Print=False)
             # Just to check the loaded version works fine
             assert oo == obj
+            os.remove(pfe)
+        for pfe in set(self.lpfe):
             os.remove(pfe)
 
 
