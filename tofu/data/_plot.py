@@ -1015,6 +1015,8 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             lCross, lHor = None, None
         else:
             lCross, lHor = None, None
+    else:
+        lCross, lHor = None, None
 
     # Background (optional)
     if Bck:

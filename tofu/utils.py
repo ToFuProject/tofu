@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractmethod
 import getpass
 import subprocess
 import itertools as itt
+import warnings
 
 # Common
 import numpy as np
@@ -2345,8 +2346,8 @@ class KeyHandler_mpl(object):
     def _warn_ifnotInteractive(self):
         warn = False
         if not self.isinteractive:
-            msg = "Not interactive:\n"
-            msg += "    - backend : %s   (prefer Qt5Agg)"%plt.get_backend()
+            msg = "Not interactive backend!:\n"
+            msg += "    - backend : %s   (prefer Qt5Agg)\n"%plt.get_backend()
             msg += "    - canvas  : %s"%self.can.__class__.__name__
             warnings.warn(msg)
             warn = True

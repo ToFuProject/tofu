@@ -111,7 +111,7 @@ class DataAbstract(utils.ToFuObject):
     # Fixed (class-wise) dictionary of default properties
     _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
                               'Name','shot','version']},
-             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfilter',
+             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfit',
                                 'indt', 'indch', 'indlamb', 'interp-t']}}
 
     # Does not exist before Python 3.6 !!!
@@ -441,8 +441,10 @@ class DataAbstract(utils.ToFuObject):
                     dtreat[k] = self._ddef['dtreat'][k]
                 else:
                     dtreat[k] = None
-            if k=='order':
-                assert dtreat[k] is not None
+            if k == 'order':
+                if dtreat[k] is None:
+                    dtreat[k] = self.__class__._ddef['dtreat']['order']
+                assert type(dtreat[k]) is list
                 assert dtreat[k][-1] == 'interp-t'
                 assert all([ss in dtreat[k][-4:-1]
                             for ss in ['indt','indch','indlamb']])
@@ -538,7 +540,7 @@ class DataAbstract(utils.ToFuObject):
     def _get_keys_dtreat():
         lk = ['order','mask-ind', 'mask-val', 'interp-indt', 'interp-indch',
               'data0-indt', 'data0-Dt', 'data0-data',
-              'dfilter', 'indt',  'indch', 'indlamb', 'interp-t']
+              'dfit', 'indt',  'indch', 'indlamb', 'interp-t']
         return lk
 
     @staticmethod
@@ -947,7 +949,11 @@ class DataAbstract(utils.ToFuObject):
         if any(lC):
             if lC[0]:
                 data0 = np.asarray(data0).ravel()
-                assert data0.shape==(self._ddataRef['nch'],)
+                if not data0.shape == (self._ddataRef['nch'],):
+                    msg = "Provided data0 has wrong shape !\n"
+                    msg += "    - Expected: (%s,)\n"%self._ddataRef['nch']
+                    msg += "    - Provided: %s"%data0.shape
+                    raise Exception(msg)
                 Dt, indt = None, None
             else:
                 if lC[2]:
@@ -976,14 +982,15 @@ class DataAbstract(utils.ToFuObject):
         Time indices refer to self.ddataRef['t']
         Channel indices refer to self.ddataRef['X']
         """
-        assert indt is None or type(indt) in [np.ndarray, list, dict]
-        if isinstance(indt,dict):
-            C = [type(k) is int and k<self._ddataRef['nch'] for k in indt.keys()]
-            assert all(C)
+        lC = [indt is None, type(indt) in [np.ndarray,list], type(indt) is dict]
+        assert any(lC)
+        if lC[2]:
+            lc = [type(k) is int and k<self._ddataRef['nch'] for k in indt.keys()]
+            assert all(lc)
             for k in indt.keys():
                 assert hasattr(indt[k],'__iter__')
                 indt[k] = _format_ind(indt[k], n=self._ddataRef['nt'])
-        else:
+        elif lC[1]:
             indt = np.asarray(indt)
             assert indt.ndim==1
             indt = _format_ind(indt, n=self._ddataRef['nt'])
@@ -1003,28 +1010,40 @@ class DataAbstract(utils.ToFuObject):
         Time indices refer to self.ddataRef['t']
         Channel indices refer to self.ddataRef['X']
         """
-        assert indch is None or type(indch) in [np.ndarray, list, dict]
-        if isinstance(indch,dict):
-            C = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
-            assert all(C)
+        lC = [indch is None, type(indch) in [np.ndarray,list], type(indch) is dict]
+        assert any(lC)
+        if lC[2]:
+            lc = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
+            assert all(lc)
             for k in indch.keys():
                 assert hasattr(indch[k],'__iter__')
                 indch[k] = _format_ind(indch[k], n=self._ddataRef['nch'])
-        else:
+        elif lC[1]:
             indch = np.asarray(indch)
             assert indch.ndim==1
             indch = _format_ind(indch, n=self._ddataRef['nch'])
         self._dtreat['interp-indch'] = indch
         self._ddata['uptodate'] = False
 
-    def set_dtreat_dfilter(self, dfilter=None):
-        """  """
-        assert dfilter is None or isinstance(dfilter,dict)
-        if isinstance(dfilter,dict):
-            assert 'type' in dfilter.keys()
-            assert dfilter['type'] in ['svd','fft']
+    def set_dtreat_dfit(self, dfit=None):
+        """ Set the fitting dictionnary
 
-        self._dtreat['dfilter'] = dfilter
+        A dict contaning all parameters for fitting the data
+        Valid dict content includes:
+            - 'type': str
+                'fft':  A fourier filtering
+                'svd':  A svd filtering
+
+        """
+        warnings.warn("Not implemented yet !, dfit forced to None")
+        dfit = None
+
+        assert dfit is None or isinstance(dfit,dict)
+        if isinstance(dfit,dict):
+            assert 'type' in dfit.keys()
+            assert dfit['type'] in ['svd','fft']
+
+        self._dtreat['dfit'] = dfit
         self._ddata['uptodate'] = False
 
     def set_dtreat_interpt(self, t=None):
@@ -1084,12 +1103,12 @@ class DataAbstract(utils.ToFuObject):
         return data
 
     @staticmethod
-    def _dfilter(data, dfilter):
-        if dfilter is not None:
-            if dfilter['type']=='svd':
+    def _dfit(data, dfit):
+        if dfit is not None:
+            if dfit['type']=='svd':
                 #data = _comp.()
                 pass
-            elif dfilter['type']=='svd':
+            elif dfit['type']=='svd':
                 #data = _comp.()
                 pass
         return data
@@ -1171,7 +1190,7 @@ class DataAbstract(utils.ToFuObject):
             - 'interp_indt' :
             - 'interp_indch' :
             - 'data0' :
-            - 'dfilter' :
+            - 'dfit' :
             - 'indt' :
             - 'indch' :
             - 'interp_t':
@@ -1239,8 +1258,8 @@ class DataAbstract(utils.ToFuObject):
                                        self._ddataRef['X'])
             if kk=='data0':
                 d = self._data0(d, self._dtreat['data0-data'])
-            if kk=='dfilter' and self._dtreat['dfilter'] is not None:
-                d = self._dfilter(d, **self._dtreat['dfilter'])
+            if kk=='dfit' and self._dtreat['dfit'] is not None:
+                d = self._dfit(d, **self._dtreat['dfit'])
 
             # data + others
             if kk=='indt' and self._dtreat['indt'] is not None:
@@ -1311,14 +1330,15 @@ class DataAbstract(utils.ToFuObject):
         """
         lC = [self._dtreat[k] is not None for k in self._dtreat.keys()
               if k != 'order']
-        if any(C) and not force:
+        if any(lC) and not force:
             msg = """BEWARE : You are about to delete the data treatment
                               i.e.: to clear self.dtreat (and also self.ddata)
                               Are you sure ?
                               If yes, use self.clear_dtreat(force=True)"""
             raise Exception(msg)
-        self._dtreat = dict.fromkeys(self._get_keys_dtreat())
-        self.clear_data()
+        dtreat = dict.fromkeys(self._get_keys_dtreat())
+        self._dtreat = self._checkformat_inputs_dtreat(dtreat)
+        self.clear_ddata()
 
     def dchans(self, key=None):
         """ Return the dchans updated with indch
@@ -1694,7 +1714,7 @@ class DataAbstract(utils.ToFuObject):
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
                          boundary='constant', padded=True, wave='morlet',
-                         invert=None, plotmethod='imshow',
+                         invert=True, plotmethod='imshow',
                          cmap_f=None, cmap_img=None,
                          ms=4, ntMax=None, nfMax=None,
                          Bck=True, fs=None, dmargin=None, wintit=None,

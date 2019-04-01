@@ -4,6 +4,7 @@ This module contains tests for tofu.geom in its structured version
 
 # Built-in
 import os
+import warnings
 
 # Standard
 import numpy as np
@@ -189,6 +190,7 @@ class Test01_DataCam12D(object):
 
         # Storing
         cls.lobj = lData
+        cls.t = t
 
     @classmethod
     def teardown_class(cls):
@@ -224,7 +226,7 @@ class Test01_DataCam12D(object):
                 assert type(out0) is dict
                 t = np.linspace(0,10,10)
                 dd = {'pouet': {'t':t, 'data':t,
-                                'name':'pouet', 'units':'pouet units'}}
+                                'label':'pouet', 'units':'pouet units'}}
                 oo.set_dextra(dd, method='update')
 
     def test03_select_t(self):
@@ -268,10 +270,10 @@ class Test01_DataCam12D(object):
             # Re-initialise
             oo.set_dtreat_indch()
             # set mask
-            mask = np.random.randint(0,oo.ddataRef['nch'], size=10)
+            mask = np.arange(0,oo.ddataRef['nch'],10)
             oo.set_dtreat_mask(ind=mask, val=np.nan)
             nbnan = np.sum(np.any(np.isnan(oo.data), axis=0))
-            assert nbnan == 10, [oo.nch, oo.ddataRef['nch'], nbnan]
+            assert nbnan >= mask.size, [oo.ddataRef['nch'], nbnan]
 
     def test08_dtreat_set_data0(self):
         for oo in self.lobj:
@@ -294,33 +296,109 @@ class Test01_DataCam12D(object):
 
             oo.set_dtreat_data0()
             assert oo.dtreat['data0-data'] is None
-            assert np.allclose(oo.data, oo.dataRef['data'])
+            assert np.allclose(oo.data, oo.ddataRef['data'])
 
+    def test09_dtreat_set_interp_indt(self):
+        for oo in self.lobj:
+            ind = np.arange(0,oo.nt,10)
+            oo.set_dtreat_interp_indt( ind )
+            assert oo._dtreat['interp-indt'].sum() == ind.size
+
+            ind = dict([(ii, np.arange(0,oo.nt,5)) for ii in range(0,oo.nch,3)])
+            oo.set_dtreat_interp_indt( ind )
+            assert type(oo._dtreat['interp-indt']) is dict
+
+            oo.set_dtreat_interp_indt()
+            assert oo._dtreat['interp-indt'] is None
+
+    def test10_dtreat_set_interp_indch(self):
+        for oo in self.lobj:
+            ind = np.arange(0,oo.nch,10)
+            oo.set_dtreat_interp_indch( ind )
+            assert oo._dtreat['interp-indch'].sum() == ind.size
+
+            ind = dict([(ii, np.arange(0,oo.nch,5)) for ii in range(0,oo.nt,3)])
+            oo.set_dtreat_interp_indch( ind )
+            assert type(oo._dtreat['interp-indch']) is dict
+
+            oo.set_dtreat_interp_indch()
+            assert oo._dtreat['interp-indch'] is None
+
+    def test11_streat_set_dfit(self):
+        for oo in self.lobj:
+            oo.set_dtreat_dfit()
+
+    def test12_streat_set_interpt(self):
+        t = np.linspace(self.t[0]-0.1, self.t[-1]+0.5, 100)
+        for oo in self.lobj:
+            oo.set_dtreat_interpt(t)
+
+    def test13_clear_ddata(self):
+        for ii in range(0,len(self.lobj)):
+            if ii%2 == 0:
+                self.lobj[ii].clear_ddata()
+
+    def test14_clear_dtreat(self):
+        for ii in range(0,len(self.lobj)):
+            if ii%2 == 1:
+                self.lobj[ii].clear_dtreat(force=True)
+
+
+    def test15_plot(self):
+        for oo in self.lobj:
+            kh = oo.plot(key=None, ntMax=4, nchMax=2, fs=None,
+                         dmargin=dict(left=0.06, right=0.9),
+                         wintit='test', tit='AHAH')
+        plt.close('all')
+
+    def test16_compare(self):
+        for oo in self.lobj:
+            kh = oo.plot_compare(oo)
+        plt.close('all')
+
+    def test17_plot_combine(self):
+        warnings.warn('Not implemented yet !')
+
+    def test18_spectrogram(self):
+        for oo in self.lobj:
+            kh = oo.plot_spectrogram()
+        plt.close('all')
+
+    def test19_plot_svd(self):
+        warnings.warn('Not implemented yet !')
+
+    def test20_copy_equal(self):
+        for oo in self.lobj:
+            assert oo.copy() == oo
+
+    def test21_get_nbytes(self):
+        for oo in self.lobj:
+            nb, dnb = oo.get_nbytes()
+
+    def test22_strip_nbytes(self):
+        lok = self.lobj[0].__class__._dstrip['allowed']
+        nb = np.full((len(lok),), np.nan)
+        for oo in self.lobj:
+            for ii in lok:
+                oo.strip(ii)
+                nb[ii] = oo.get_nbytes()[0]
+            assert np.all(np.diff(nb)<0.)
+            for ii in lok[::-1]:
+                oo.strip(ii)
+
+    def test23_saveload(self):
+        for oo in self.lobj:
+            pfe = oo.save(verb=False, return_pfe=True)
+            obj = tfpf.Open(pfe, Print=False)
+            # Just to check the loaded version works fine
+            assert oo == obj
+            os.remove(pfe)
+
+
+"""
     def test12_operators(self):
         o0 = self.lobj[-1]
         o1 = 100.*(o0-0.1*o0)
-
-    def test13_plot(self):
-        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
-                   and plt.get_current_fig_manager().toolbar is not None)
-        for ii in range(0,len(self.lobj)):
-            oo = self.lobj[ii]
-            KH = oo.plot(key=None, ntMax=4, nchMax=2, fs=None,
-                         dmargin=dict(left=0.06, right=0.9),
-                         connect=connect, wintit='test', tit='AHAH')
-            KH = oo.plot(key='Name', draw=False, dmargin=None, connect=connect)
-        plt.close('all')
-
-    def test14_compare(self):
-        if self.__class__ is Test02_Data2D:
-            return
-        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
-                   and plt.get_current_fig_manager().toolbar is not None)
-        o0 = self.lobj[0]
-        for ii in range(1,len(self.lobj)):
-            oo = self.lobj[ii]
-            KH = oo.plot_compare(o0, connect=connect)
-        plt.close('all')
 
     def test15_combine(self):
         if self.__class__ is Test02_Data2D:
@@ -333,27 +411,7 @@ class Test01_DataCam12D(object):
             KH = oo.plot_combine(o0, connect=connect)
         plt.close('all')
 
-    def test16_tofromdict(self):
-        for ii in range(0,len(self.lobj)):
-            oo = self.lobj[ii]
-            dd = oo._todict()
-            if oo.Id.Cls=='Data1D':
-                oo = tfd.Data1D(fromdict=dd)
-            else:
-                oo = tfd.Data2D(fromdict=dd)
-            assert dd==oo._todict(), "Unequal to and from dict !"
-
-    def test17_saveload(self):
-        for ii in range(0,len(self.lobj)):
-            oo = self.lobj[ii]
-            dd = oo._todict()
-            pfe = oo.save(verb=False, return_pfe=True)
-            obj = tfpf.Open(pfe, Print=False)
-            # Just to check the loaded version works fine
-            do = obj._todict()
-            assert tfu.dict_cmp(dd,do)
-            os.remove(pfe)
-
+"""
 
 
 
