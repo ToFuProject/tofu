@@ -216,7 +216,28 @@ class Test01_DataCam12D(object):
                     oo.set_dchans(dch2, method='update')
                 assert all([len(out0[ss])==oo.ddataRef['nch'] for ss in lk])
 
-    def test02_select_t(self):
+    def test02_set_dextra(self):
+        for ii in range(0,len(self.lobj)):
+            oo = self.lobj[ii]
+            out0 = oo.dextra
+            if out0 is not None:
+                assert type(out0) is dict
+                t = np.linspace(0,10,10)
+                dd = {'pouet': {'t':t, 'data':t,
+                                'name':'pouet', 'units':'pouet units'}}
+                oo.set_dextra(dd, method='update')
+
+    def test03_set_dtreat_indt(self):
+        for ii in range(0,len(self.lobj)):
+            oo = self.lobj[ii]
+            oo.set_dtreat_indt(t=[2,3])
+            assert np.all((oo.t>=2) & (oo.t<=3))
+            oo.set_indt(indt=list(range(0,min(4,oo.ddataRef['nt']))))
+            assert oo.nt == 4 or oo.nt==1
+            oo.set_indt()
+            assert oo.nt == oo.Ref['nt']
+
+    def test03_select_t(self):
         for oo in self.lobj:
             ind = oo.select_t(t=None, out=bool)
             assert ind.sum()==oo.ddataRef['nt']
@@ -231,18 +252,6 @@ class Test01_DataCam12D(object):
             else:
                 assert np.all((oo.t[ind]>=1.) & (oo.t[ind]<=4))
 
-    def test03_set_indt(self):
-        for ii in range(0,len(self.lobj)):
-            oo = self.lobj[ii]
-            oo.set_indt(t=[2,3])
-            if oo.Ref['t'] is None:
-                assert oo.indt.sum()==oo.Ref['nt']
-            else:
-                assert np.all((oo.t>=2) & (oo.t<=3))
-            oo.set_indt(indt=list(range(0,min(4,oo.Ref['nt']))))
-            assert oo.nt == 4 or oo.nt==1
-            oo.set_indt()
-            assert oo.nt == oo.Ref['nt']
 
     def test04_select_ch(self):
         for ii in range(0,len(self.lobj)):
