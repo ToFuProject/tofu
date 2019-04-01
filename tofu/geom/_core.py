@@ -2802,11 +2802,11 @@ class Rays(utils.ToFuObject):
             if dgeom['case'] in ['A','B']:
                 u = dgeom['u'][:,0:1]
                 sca2 = np.sum(dgeom['u'][:,1:]*u,axis=0)**2
-                if np.all(sca2<1.-1.e-9):
+                if np.all(sca2 < 1.-1.e-9):
                     DDb = dgeom['D'][:,1:]-dgeom['D'][:,0:1]
-                    k = np.sum(DDb*(u + np.sqrt(sca)*dgeom['u'][:,1:]),axis=0)
-                    k = k / (1.-sca**2)
-                    if np.all(k[1:]-k[0]<1.e-9):
+                    k = np.sum(DDb*(u + np.sqrt(sca2)*dgeom['u'][:,1:]),axis=0)
+                    k = k / (1.-sca2)
+                    if k[0] > 0 and np.all(k[1:]-k[0]<1.e-9):
                         pinhole = dgeom['D'][:,0] + k[0]*u
                         dgeom['pinhole'] = pinhole
 
