@@ -3124,15 +3124,16 @@ class Rays(utils.ToFuObject):
         cross = cross[:,np.nanargmax(crossn2)]
         cross = cross / np.linalg.norm(cross)
         nIn = cross if np.sum(cross*np.nanmean(u,axis=1))>0. else -cross
+
         # Find most relevant e1 (for pixels alignment), without a priori info
         D0D = D-D[:,0][:,np.newaxis]
         dist = np.sqrt(np.sum(D0D**2,axis=0))
         dd = np.min(dist[1:])
         e1 = (D[:,1]-D[:,0])/np.linalg.norm(D[:,1]-D[:,0])
-        cross = np.sqrt((D0D[1,:]*e1[2]-D0D[2,:]*e1[1])**2
-                        + (D0D[2,:]*e1[0]-D0D[0,:]*e1[2])**2
-                        + (D0D[0,:]*e1[1]-D0D[1,:]*e1[0])**2)
-        D0D = D0D[:,cross<dd/3.]
+        crossbis= np.sqrt((D0D[1,:]*e1[2]-D0D[2,:]*e1[1])**2
+                          + (D0D[2,:]*e1[0]-D0D[0,:]*e1[2])**2
+                          + (D0D[0,:]*e1[1]-D0D[1,:]*e1[0])**2)
+        D0D = D0D[:,crossbis<dd/3.]
         sca = np.sum(D0D*e1[:,np.newaxis],axis=0)
         e1 = D0D[:,np.argmax(np.abs(sca))]
         try:
