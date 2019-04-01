@@ -1038,24 +1038,27 @@ def test13_LOS_PInOut():
     # print(us[:,0])
     # print("++++++++++++++++++++++++++++++++++++++")
 
-
     # import matplotlib.pyplot as plt
     # plt.ion()
     # plt.clf()
-    # ax1 = plt.subplot(121)
-    # ax1.plot(VP[0], VP[1])
-    # ax1.plot(SP1x, SP1y)
-    # ax1.plot([0, 8, 8, 0], [7, 7, 8, 8])
-    # ray_min = 0
-    # ray_max = 0
-    # for i in range(ray_min,ray_max+1):
-    #     ax1.plot([Ds[0][i],
-    #               Ds[0][i] + us[0][i]],
-    #              [Ds[2][i],
-    #               Ds[2][i] + us[2][i]],
-    #              linewidth=2.0, label="ray"+str(i))
-    #     ax1.scatter(Ds[0][i], Ds[2][i], 10)
-    # ax1.legend()
+    # # ax1 = plt.subplot(121)
+    # # ax1.plot(VP[0], VP[1])
+    # # ax1.plot(SP1x, SP1y)
+    # # ax1.plot([0, 8, 8, 0], [7, 7, 8, 8])
+    # # ray_min = 0
+    # # ray_max = 0
+    # for i in range(0, nlos):
+    #     # ax1.plot([Ds[0][i],
+    #     #           Ds[0][i] + us[0][i]],
+    #     #          [Ds[2][i],
+    #     #           Ds[2][i] + us[2][i]],
+    #     #          linewidth=2.0, label="ray"+str(i))
+    #     from mpl_toolkits.mplot3d import proj3d
+    #     fig = plt.figure()
+    #     ax = fig.gca(projection='3d')
+    #     ax.scatter3D(Ds[0][i], Ds[1][i], Ds[2][i])
+    # plt.savefig("xyzpng")
+    #ax1.legend()
     # theta = np.linspace(0, 2.*np.pi, 100)
     # rmin = min(VP[0])
     # rmax = max(VP[0])
@@ -1085,12 +1088,15 @@ def test13_LOS_PInOut():
 
     ##...........................................
     Ves = tf.geom.Ves(Name="test", Exp="toto", Poly=VP)
-    structS1 = tf.geom.PFC(Name="test", Exp="toto", Poly=SP0)
+    structS1 = tf.geom.PFC(Name="test", Exp="toto", Poly=SP1, Lim=SL1_or)
     config = tf.geom.Config(Name="test", Exp="toto", lStruct=[Ves, structS1])
-    cam = tf.geom.CamLOS2D(Exp="NAme", Name="NAME", dgeom=(Ds,us),
+    ds1r = [Ds[0][0], Ds[0][1], Ds[0][2]]
+    us1r = [us[0][0], us[0][1], us[0][2]]
+    print(ds1r, us1r)
+    cam = tf.geom.CamLOS1D(Exp="NAme", Name="NAME", dgeom=(Ds, us),
                            config=config, Diag='Test', method="ref", plotdebug=False)
     cam.plot_touch()
-
+    plt.savefig("test.png")
     # PIn, POut, kPIn, kPOut_or,\
     #     VperpIn, VperpOut, \
     #     IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
