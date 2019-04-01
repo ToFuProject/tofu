@@ -155,7 +155,7 @@ def get_nIne1e2(P, nIn=None, e1=None, e2=None):
         msg += "nIn = %s\n"%str(nIn)
         msg += "e1 =  %s\n"%str(e1)
         msg += "np.sum(nIn*e1) = sum(%s) = %s"%(nIn*e1, np.sum(nIn*e1))
-        raise Exception(msg
+        raise Exception(msg)
 
     if e2 is None:
         e2 = np.cross(nIn,e1)
