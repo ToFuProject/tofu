@@ -755,10 +755,23 @@ def test13_LOS_PInOut():
     SP0 = np.array([[6.,7.,7.,6.,6.],[6.,6.,7.,7.,6.]])
     SP1 = np.array([[7.,8.,8.,7.,7.],[7.,7.,8.,8.,7.]])
     SP2 = np.array([[6.,7.,7.,6.,6.],[7.,7.,8.,8.,7.]])
-    SL0 = np.array([0.,1.])*2.*np.pi
-    SL1 = [np.array(ss)*2.*np.pi for ss in [[0.,1./3.],[2./3.,1.]]]
-    SL2 = np.array([2./3.,1.])*2.*np.pi
-
+    SP0x = [6.,7.,7.,6.,6.]
+    SP1x = [7.,8.,8.,7.,7.]
+    SP2x = [6.,7.,7.,6.,6.]
+    SP0y = [6.,6.,7.,7.,6.]
+    SP1y = [7.,7.,8.,8.,7.]
+    SP2y = [7.,7.,8.,8.,7.]
+    nstruct_lim = 3
+    nstruct_tot =1+2+1
+    lstruct_nlim=np.asarray([1, 2, 1])
+    SL0 = np.asarray([np.array([0.,1.])*2.*np.pi])
+    SL1 = np.asarray([np.array(ss)*2.*np.pi for ss in [[0.,1./3.],[2./3.,1.]]])
+    SL2 = np.asarray([np.array([2./3.,1.])*2.*np.pi])
+    lspolyx = np.asarray(SP0x + SP1x + SP2x)
+    lspolyy = np.asarray(SP0y + SP1y + SP2y)
+    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.int64)*5)
+    lsvinx = np.asarray([VIn[0], VIn[0], VIn[0]]).flatten()
+    lsviny = np.asarray([VIn[1], VIn[1], VIn[1]]).flatten()
     # Linear without Struct
     y, z = [5.,5.,6.5,7.5,9.,9.,7.5,6.5], [7.5,6.5,5.,5.,6.5,7.5,9.,9.]
     N = len(y)
@@ -810,20 +823,21 @@ def test13_LOS_PInOut():
                      1,1,2,2,3,3,0,0,
                      1,1,2,2,3,3,0,0,
                      -2,-2,-2,-2,-1,-1,-1,-1],dtype=int)
-    PIn, POut, kPIn, kPOut,\
-        VperpIn, VperpOut, IIn, \
-        IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL,
-                                            VType='Lin', Test=True)
-    assert np.allclose(PIn,Sols_In, equal_nan=True)
-    assert np.allclose(POut,Sols_Out, equal_nan=True)
+    ndim, nlos = np.shape(Ds)
+    kPIn, kPOut,\
+        VperpOut, IOut= GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn,
+                                                     ves_lims=VL,
+                                                     ves_type='Lin', test=True)
+    VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
+    IOut = np.transpose(IOut.reshape(nlos, 3))
     assert np.allclose(kPIn,np.concatenate((np.ones((3*N,)),
                                             2.*np.pi*np.ones((8,)) )),
                        equal_nan=True)
     assert np.allclose(kPOut,np.concatenate((3.*np.ones((kPOut.size-8,)),
                                              2.*np.pi*(1.+np.ones((8,))))),
                        equal_nan=True)
-    assert np.allclose(VperpIn, -us) and np.allclose(VperpOut, -us)
-    assert np.allclose(IIn, Iin) and np.allclose(IOut[2,:], Iout)
+    assert np.allclose(VperpOut, -us)
+    assert np.allclose(IOut[2,:], Iout)
 
     # Linear with Struct
     x = [1./6,1./6,1./6,1./6,1./6,1./6,1./6,1./6,
@@ -855,15 +869,22 @@ def test13_LOS_PInOut():
                       0,0,0,0,0,0,0,0,
                       0,0,0,1,0,1,1,0,
                       0,0,0,0,0,0,1,0]], dtype=int)
-    PIn, POut, kPIn, kPOut, \
-        VperpIn, VperpOut, \
-        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL,
-                                                 LSPoly=[SP0,SP1,SP2],
-                                                 LSLim=[SL0,SL1,SL2],
-                                                 LSVIn=[VIn,VIn,VIn],
-                                                 VType='Lin', Test=True)
-    assert np.allclose(PIn,Sols_In, equal_nan=True)
-    assert np.allclose(POut,Sols_Out, equal_nan=True)
+    kPIn, kPOut, \
+        VperpOut, \
+        IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=VL,
+                                            nstruct_tot=nstruct_tot,
+                                            nstruct_lim=nstruct_lim,
+                                            lnvert=lnvert,
+                                            lstruct_polyx=lspolyx,
+                                            lstruct_polyy=lspolyy,
+                                            lstruct_nlim=lstruct_nlim,
+                                            lstruct_lims=[SL0,SL1,SL2],
+                                            lstruct_normx=lsvinx,
+                                            lstruct_normy=lsviny,
+                                            ves_type='Lin', test=True)
+    VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
+    IOut = np.transpose(IOut.reshape(nlos, 3))
+
     assert np.allclose(kPIn,np.concatenate((np.ones((3*N,)),
                                             2.*np.pi*np.ones((8,)))),
                        equal_nan=True)
@@ -872,10 +893,9 @@ def test13_LOS_PInOut():
                                                1,1,1,2,2,1,1,1],
                                               2.*np.pi*np.array([1,2,1,1+2./3,
                                                                  1,2,1,1]))))
-    assert np.allclose(VperpIn, -us) and np.allclose(VperpOut, -us)
-    assert np.allclose(IIn, Iin) and np.allclose(IOut[2,:], Iout)
+    assert np.allclose(VperpOut, -us)
+    assert np.allclose(IOut[2,:], Iout)
     assert np.allclose(IOut[:2,:], indS)
-
 
     # Toroidal, without Struct
     Theta = np.pi*np.array([1./4.,3./4.,5./4.,7./4.])
@@ -920,15 +940,32 @@ def test13_LOS_PInOut():
                      1,1,2,2,3,3,0,0,
                      1,1,2,2,3,3,0,0,
                      1,1,1,1,1,1,1,1])
-    PIn, POut, kPIn, kPOut,\
-        VperpIn, VperpOut, \
-        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
-                                                 VType='Tor', Test=True)
+    ndim, nlos = np.shape(Ds)
+
+    kPIn, kPOut,\
+        VperpOut, \
+        IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
+                                            ves_type='Tor', test=True)
+    VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
+    IOut = np.transpose(IOut.reshape(nlos, 3))
+    # Reconstructing PIn and Pout from kPIn and kPOut
+    PIn = np.zeros_like(VperpOut)
+    POut = np.zeros_like(VperpOut)
+    for i in range(nlos):
+        for j in range(ndim):
+            PIn[j, i]  = Ds[j, i] + kPIn[i]  * us[j, i]
+            POut[j, i] = Ds[j, i] + kPOut[i] * us[j, i]
+    # ...
     ThetaIn  = np.arctan2(PIn[1,32:],  PIn[0,32:])
     ThetaOut = np.arctan2(POut[1,32:], POut[0,32:])
     ErIn = np.array([np.cos(ThetaIn), np.sin(ThetaIn), np.zeros((8,))])
     ErOut = np.array([np.cos(ThetaOut), np.sin(ThetaOut), np.zeros((8,))])
-
+    assert np.allclose(kPIn[:32],np.ones((4*N,)),
+                       equal_nan=True) and np.all((kPIn[32:]>0.) &
+                                                  (kPIn[32:]<6.5))
+    assert np.allclose(kPOut[:32], 3.*np.ones((4*N,)),
+                       equal_nan=True) and np.all((kPOut[32:]>6.5) &
+                                                  (kPOut[32:]<16.))
     assert np.allclose(PIn[:,:32], Sols_In[:,:32],
                        equal_nan=True) and np.all((ThetaIn>-np.pi/2.) &
                                                   (ThetaIn<0.))
@@ -939,22 +976,15 @@ def test13_LOS_PInOut():
                        8.*np.ones((8,))) and np.allclose(np.hypot(POut[0,32:],
                                                                   POut[1,32:]),
                                                          8.*np.ones((8,)))
-    assert np.allclose(kPIn[:32],np.ones((4*N,)),
-                       equal_nan=True) and np.all((kPIn[32:]>0.) &
-                                                  (kPIn[32:]<6.5))
-    assert np.allclose(kPOut[:32], 3.*np.ones((4*N,)),
-                       equal_nan=True) and np.all((kPOut[32:]>6.5) &
-                                                  (kPOut[32:]<16.))
-    assert np.allclose(VperpIn[:,:32], -us[:,:32]) and \
-        np.allclose(VperpOut[:,:32], -us[:,:32]) and \
-        np.allclose(VperpIn[:,32:],ErIn) and \
+    assert np.allclose(VperpOut[:,:32], -us[:,:32]) and \
         np.allclose(VperpOut[:,32:],-ErOut)
-    assert np.allclose(IIn, Iin) and np.allclose(IOut[2,:], Iout)
+    assert np.allclose(IOut[2,:], Iout)
 
     # Toroidal, with Struct
-    SL0 = None
-    SL1 = [np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]]
-    SL2 = np.array([0.5,3./2.])*np.pi
+    SL0 = np.asarray([None])
+    SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]])
+    SL2 = np.asarray([np.array([0.5,3./2.])*np.pi])
+    lstruct_nlim = np.array([0, 2, 1])
     Sols_In, Sols_Out = [], []
     rsol_In = [[6.,6.,6.5,7.5,8.,8.,7.5,6.5],
                [6.,6.,6.5,7.5,8.,8.,7.5,6.5],
@@ -991,13 +1021,30 @@ def test13_LOS_PInOut():
                      [0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
                       0,0,0,1,0,1,1,0, 0,0,0,0,0,0,0,0, 0,0,0,0, 0,0,0,1]],
                     dtype=int)
-    PIn, POut, kPIn, kPOut,\
-        VperpIn, VperpOut, \
-        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
-                                                 LSPoly=[SP0,SP1,SP2],
-                                                 LSLim=[SL0,SL1,SL2],
-                                                 LSVIn=[VIn,VIn,VIn],
-                                                 VType='Tor', Test=True)
+    kPIn, kPOut,\
+        VperpOut, \
+        IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
+                                            nstruct_tot=nstruct_tot,
+                                            nstruct_lim=nstruct_lim,
+                                            lnvert=lnvert,
+                                            lstruct_polyx=lspolyx,
+                                            lstruct_polyy=lspolyy,
+                                            lstruct_nlim=lstruct_nlim,
+                                            lstruct_lims=[SL0,SL1,SL2],
+                                            lstruct_normx=lsvinx,
+                                            lstruct_normy=lsviny,
+                                            ves_type='Tor', test=True)
+    VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
+    IOut = np.transpose(IOut.reshape(nlos, 3))
+    # Reconstructing PIn and Pout from kPIn and kPOut
+    PIn = np.zeros_like(VperpOut)
+    POut = np.zeros_like(VperpOut)
+    ndim, nlos = np.shape(VperpOut)
+    for i in range(nlos):
+        for j in range(ndim):
+            PIn[j, i]  = Ds[j, i] + kPIn[i]  * us[j, i]
+            POut[j, i] = Ds[j, i] + kPOut[i] * us[j, i]
+    # ...
     RIn, ROut = np.hypot(PIn[0,32:],PIn[1,32:]), np.hypot(POut[0,32:],
                                                           POut[1,32:])
     ThetaIn  = np.arctan2(PIn[1,32:],  PIn[0,32:])
@@ -1007,6 +1054,16 @@ def test13_LOS_PInOut():
     vperpout = np.concatenate((ErOut[:,0:1],-ErOut[:,1:2],-ey,
                                -ErOut[:,3:4], -ErOut[:,4:5],ErOut[:,5:6],ex,ex),
                               axis=1)
+    assert np.allclose(kPIn[:32],np.ones((4*N,)),
+                       equal_nan=True) and np.all((kPIn[32:]>0.) &
+                                                  (kPIn[32:]<6.5))
+    print("exact =")
+    print(kpout)
+    print("mine =")
+    print(kPOut[:32])
+    assert np.allclose(kPOut[:32], kpout,
+                       equal_nan=True) and np.all((kPOut[32:]>=3.) &
+                                                  (kPOut[32:]<16.))
     assert np.allclose(PIn[:,:32],Sols_In[:,:32],
                        equal_nan=True) and np.all((ThetaIn>-np.pi/2.) &
                                                   (ThetaIn<0.))
@@ -1014,12 +1071,6 @@ def test13_LOS_PInOut():
                        equal_nan=True) and np.all((ThetaOut>-np.pi) &
                                                   (ThetaOut<np.pi/2.))
     assert np.all((RIn>=6.) & (RIn<=8.)) and np.all((ROut>=6.) & (ROut<=8.))
-    assert np.allclose(kPIn[:32],np.ones((4*N,)),
-                       equal_nan=True) and np.all((kPIn[32:]>0.) &
-                                                  (kPIn[32:]<6.5))
-    assert np.allclose(kPOut[:32], kpout,
-                       equal_nan=True) and np.all((kPOut[32:]>=3.) &
-                                                  (kPOut[32:]<16.))
     assert np.allclose(VperpIn[:,:32], -us[:,:32]) and \
         np.allclose(VperpOut[:,:32], -us[:,:32]) and \
         np.allclose(VperpIn[:,32:],ErIn) and \

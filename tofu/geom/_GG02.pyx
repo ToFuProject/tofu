@@ -1814,7 +1814,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                               long[::1] lnvert=None,
                               int nstruct_tot=0,
                               int nstruct_lim=0,
-                              int ves_nlim=-1,
                               double rmin=-1,
                               double eps_uz=_SMALL, double eps_a=_VSMALL,
                               double eps_vz=_VSMALL, double eps_b=_VSMALL,
@@ -1839,12 +1838,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
        by ves_poly
     nstruct : int
        Total number of structures (counting each limited structure as one)
-    ves_nlim : int
-       Number of limits of the vessel
-           -1 : no limits, vessel continuous all around
-            1 : vessel is limited
     ves_lims : array
-       If ves_nlim==1 contains the limits min and max of vessel
+       Contains the limits min and max of vessel
     lstruct_poly : list
        List of coordinates of the vertices of all structures on poloidal plane
     lstruct_lims : list
@@ -1868,7 +1863,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
        The num_threads argument indicates how many threads the team should
        consist of. If not given, OpenMP will decide how many threads to use.
        Typically this is the number of cores available on the machine.
-    Return
+    Returns
     ======
     coeff_inter_in : (num_los) array
        scalars level of "in" intersection of the LOS (if k=0 at origin)
@@ -1927,20 +1922,66 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                           eps_plane]]), error_message
         error_message = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], error_message
-
-    # == Treating input ========================================================
-    # if there are, we get the limits for the vessel
-    if ves_nlim == 0:
-        llim_ves[0] = 1
-        lbounds_ves[0] = 0
-        lbounds_ves[1] = 0
-    elif ves_nlim == 1:
-        llim_ves[0] = 0
-        lbounds_ves[0] = Catan2(Csin(ves_lims[0]), Ccos(ves_lims[0]))
-        lbounds_ves[1] = Catan2(Csin(ves_lims[1]), Ccos(ves_lims[1]))
+        error_message = "If you define structures you must define all the "\
+                        + "structural variables: \n"\
+                        + "    - lstruct_polyx, lstruct_polyy, lstruct_lims,\n"\
+                        + "    - lstruct_nlim, nstruct_tot, nstruct_lim,\n"\
+                        + "    - lnvert, lstruct_normx, lstruct_normy\n"
+        bool1 = ((lstruct_polyx is not None)
+                 or (lstruct_polyy is not None)
+                 or (lstruct_normx is not None)
+                 or (lstruct_normy is not None)
+                 or (lstruct_nlim is not None)
+                 or (lstruct_lims is not None)
+                 or (lnvert is not None)
+                 or (nstruct_tot > 0) or (nstruct_lim > 0))
+        if not bool1:
+            try:
+                bool1 = ((len(lstruct_polyx) > 0)
+                         or (len(lstruct_polyy) > 0)
+                         or (len(lstruct_normx) > 0)
+                         or (len(lstruct_normy) > 0)
+                         or (len(lstruct_nlim) > 0)
+                         or (len(lstruct_lims) > 0)
+                         or (len(lnvert) > 0)
+                         or (nstruct_tot > 0)
+                         or (nstruct_lim > 0))
+                bool2 = ((len(lstruct_polyx) > 0)
+                         and (len(lstruct_polyy) > 0)
+                         and (len(lstruct_normx) > 0)
+                         and (len(lstruct_normy) > 0)
+                         and (len(lstruct_nlim) > 0)
+                         and (len(lstruct_lims) > 0)
+                         and (len(lnvert) > 0)
+                         and (nstruct_tot > 0)
+                         and (nstruct_lim > 0))
+                assert (not bool1 or bool2), error_message
+            except:
+                print(error_message)
+        else:
+            bool1 = ((lstruct_polyx is not None)
+                 or (lstruct_polyy is not None)
+                 or (lstruct_normx is not None)
+                 or (lstruct_normy is not None)
+                 or (lstruct_nlim is not None)
+                 or (lstruct_lims is not None)
+                 or (lnvert is not None)
+                 or (nstruct_tot > 0) or (nstruct_lim > 0))
+            assert (not bool1 or bool2), error_message
 
     # ==========================================================================
     if ves_type.lower() == 'tor':
+        # .. if there are, we get the limits for the vessel ....................
+        if ves_lims is None:
+            are_limited = False
+            lbounds_ves[0] = 0
+            lbounds_ves[1] = 0
+            llim_ves[0] = 1
+        else:
+            are_limited = True
+            lbounds_ves[0] = Catan2(Csin(ves_lims[0]), Ccos(ves_lims[0]))
+            lbounds_ves[1] = Catan2(Csin(ves_lims[1]), Ccos(ves_lims[1]))
+            llim_ves[0] = 0
         # -- Toroidal case -----------------------------------------------------
         # rmin is necessary to avoid looking on the other side of the tokamak
         if rmin < 0.:
@@ -1948,7 +1989,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                 np.min(np.hypot(ray_orig[0, ...],
                                                 ray_orig[1, ...])))
         rmin2 = rmin*rmin
-
         # Variable to avoid looking "behind" blind spot of tore
         if forbid:
             forbid0, forbidbis = 1, 1
@@ -2039,6 +2079,16 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
             free(lsz_lim)
             free(llimits)
     else:
+        # .. if there are, we get the limits for the vessel ....................
+        if ves_lims is None:
+            are_limited = False
+            lbounds_ves[0] = 0
+            lbounds_ves[1] = 0
+        else:
+            are_limited = True
+            lbounds_ves[0] = ves_lims[0]
+            lbounds_ves[1] = ves_lims[1]
+
         # -- Cylindrical case --------------------------------------------------
         raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
                                     &ves_poly[0][0], &ves_poly[1][0],
@@ -2063,12 +2113,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                 else:
                     lslim = lstruct_lims[ii]
                 if ii == 0:
-                    lsz_lim[0] = 0
                     nvert = lnvert[0]
                     ind_min = 0
                 else:
                     nvert = lnvert[ii] - lnvert[ii - 1]
-                    lsz_lim[ii] = lstruct_nlim[ii-1] + lsz_lim[ii-1]
                     ind_min = lnvert[ii-1]
                 # and loop over the limits (one continous structure)
                 for jj in range(max(len_lim,1)):
@@ -2084,7 +2132,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                                 lbounds_ves[0], lbounds_ves[1],
                                                 coeff_inter_in, coeff_inter_out,
                                                 vperp_out, ind_inter_out,
-                                                eps_plane, ii+1, jj+1)
+                                                eps_plane, ii+1, jj)
 
     free(lbounds)
     free(langles)
@@ -2460,7 +2508,6 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                     # Only of on the fraction of plane
                     if q>=0. and q<1.:
                         X = Ds[0,ii] + k*us[0,ii]
-
                         # Only if within limits
                         if X>=L0 and X<=L1:
                             sca = us[1,ii] * normx_tab[jj] \
@@ -2473,7 +2520,6 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                             elif sca>=0 and k<min(kin,kout):
                                 kin = k
                                 indin = jj
-
         # For two faces
         # Only if plane not parallel to line
         if Cabs(us[0,ii])>EpsPlane:
@@ -2511,38 +2557,43 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                         indin = -2
         # == Analyzing if there was impact ====================================
         if Done==1:
-            kout_tab[ii] = kout
-            # To be finished
-            if indout==-1:
-                vperpout_tab[0 + 3 * ii] = 1.
-                vperpout_tab[1 + 3 * ii] = 0.
-                vperpout_tab[2 + 3 * ii] = 0.
-            elif indout==-2:
-                vperpout_tab[0 + 3 * ii] = -1.
-                vperpout_tab[1 + 3 * ii] = 0.
-                vperpout_tab[2 + 3 * ii] = 0.
-            else:
-                vperpout_tab[0 + 3 * ii] = 0.
-                vperpout_tab[1 + 3 * ii] = normx_tab[indout]
-                vperpout_tab[2 + 3 * ii] = normy_tab[indout]
-            indout_tab[0 + 3 * ii] = ind_struct
-            indout_tab[1 + 3 * ii] = ind_lim_struct
-            indout_tab[2 + 3 * ii] = indout
-            if kin<kin_tab[ii]:
+            if (ind_struct == 0 and ind_lim_struct == 0):
+                kout_tab[ii] = kout
+                if kin < kout:
+                    kin_tab[ii] = kin
                 # To be finished
                 if indout==-1:
-                    vperpout_tab[0 + 3 * ii] = -1.
+                    vperpout_tab[0 + 3 * ii] = 1.
                     vperpout_tab[1 + 3 * ii] = 0.
                     vperpout_tab[2 + 3 * ii] = 0.
                 elif indout==-2:
-                    vperpout_tab[0 + 3 * ii] = 1.
+                    vperpout_tab[0 + 3 * ii] = -1.
                     vperpout_tab[1 + 3 * ii] = 0.
                     vperpout_tab[2 + 3 * ii] = 0.
                 else:
                     vperpout_tab[0 + 3 * ii] = 0.
-                    vperpout_tab[1 + 3 * ii] = -normx_tab[indout]
-                    vperpout_tab[2 + 3 * ii] = -normy_tab[indout]
-                kin_tab[ii] = kin
+                    vperpout_tab[1 + 3 * ii] = normx_tab[indout]
+                    vperpout_tab[2 + 3 * ii] = normy_tab[indout]
+                indout_tab[0 + 3 * ii] = 0
+                indout_tab[1 + 3 * ii] = 0
+                indout_tab[2 + 3 * ii] = indout
+            elif kin<kout_tab[ii] and kin < kout:
+                kout_tab[ii] = kin
+                indout_tab[0 + 3 * ii] = ind_struct
+                indout_tab[1 + 3 * ii] = ind_lim_struct
+                indout_tab[2 + 3 * ii] = indin
+                if indout==-1:
+                    vperpout_tab[0 + 3 * ii] = 1.
+                    vperpout_tab[1 + 3 * ii] = 0.
+                    vperpout_tab[2 + 3 * ii] = 0.
+                elif indout==-2:
+                    vperpout_tab[0 + 3 * ii] = -1.
+                    vperpout_tab[1 + 3 * ii] = 0.
+                    vperpout_tab[2 + 3 * ii] = 0.
+                else:
+                    vperpout_tab[0 + 3 * ii] = 0.
+                    vperpout_tab[1 + 3 * ii] = normx_tab[indout]
+                    vperpout_tab[2 + 3 * ii] = normy_tab[indout]
     return
 
 
@@ -2557,7 +2608,6 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                                 int num_surf,
                                 double[::1] ves_lims=None,
                                 long[::1] lnvert=None,
-                                int ves_nlim=-1,
                                 double rmin=-1,
                                 double eps_uz=_SMALL, double eps_a=_VSMALL,
                                 double eps_vz=_VSMALL, double eps_b=_VSMALL,
@@ -2568,7 +2618,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     polygons (toroidal or linear)  of IN structures (non-solid, or `empty`
     inside for the LOS).
     Attention: the surfaces can be limited, but they all have to have the
-    same limits defined by (ves_lims, ves_nlim)
+    same limits defined by (ves_lims)
     Return the set of kmin / kmax for each In struct and for each LOS
 
     Params
@@ -2585,12 +2635,8 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     ves_norm : (num_surf, 2, num_vertex-1) double array
        Normal vectors going "inwards" of the edges of the Polygon defined
        by ves_poly
-    ves_nlim : int
-       Number of limits of the vessel
-           -1 : no limits, vessel continuous all around
-            1 : vessel is limited
     ves_lims : array
-       If ves_nlim==1 contains the limits min and max of vessel
+       Contains the limits min and max of vessel
     rmin : double
        Minimal radius of vessel to take into consideration
     eps<val> : double
@@ -2650,19 +2696,17 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
         error_message = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], error_message
 
-    # == Treating input ========================================================
-    # if there are, we get the limits for the vessel
-    if ves_nlim == 0:
-        are_limited = False
-        lbounds_ves[0] = 0
-        lbounds_ves[1] = 0
-    elif ves_nlim == 1:
-        are_limited = True
-        lbounds_ves[0] = Catan2(Csin(ves_lims[0]), Ccos(ves_lims[0]))
-        lbounds_ves[1] = Catan2(Csin(ves_lims[1]), Ccos(ves_lims[1]))
-
     # ==========================================================================
     if ves_type.lower() == 'tor':
+        # .. if there are, we get the limits for the vessel ....................
+        if ves_lims is None:
+            are_limited = False
+            lbounds_ves[0] = 0
+            lbounds_ves[1] = 0
+        else:
+            are_limited = True
+            lbounds_ves[0] = Catan2(Csin(ves_lims[0]), Ccos(ves_lims[0]))
+            lbounds_ves[1] = Catan2(Csin(ves_lims[1]), Ccos(ves_lims[1]))
         # -- Toroidal case -----------------------------------------------------
         for ind_surf in range(num_surf):
             # rmin is necessary to avoid looking on the other side of the tok
@@ -2694,6 +2738,16 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                                          eps_b, eps_plane,
                                          num_threads)
     else:
+        # .. if there are, we get the limits for the vessel ....................
+        if ves_lims is None:
+            are_limited = False
+            lbounds_ves[0] = 0
+            lbounds_ves[1] = 0
+        else:
+            are_limited = True
+            lbounds_ves[0] = ves_lims[0]
+            lbounds_ves[1] = ves_lims[1]
+
         # -- Cylindrical case --------------------------------------------------
         for ind_surf in range(num_surf):
             # Getting size of poly
@@ -5029,8 +5083,7 @@ cdef inline void dist_los_circle_core(const double[3] direction,
     cdef int numRoots, i
     cdef double zero = 0., m0sqr, m0, rm0
     cdef double lambd, m2b2, b1sqr, b1, r0sqr, twoThirds, sHat, gHat, cutoff, s
-    cdef double[3] vzero
-    cdef double[3] D, oldD
+    cdef double[3] D
     cdef double[3] MxN
     cdef double[3] DxN
     cdef double[3] NxDelta
@@ -5047,7 +5100,6 @@ cdef inline void dist_los_circle_core(const double[3] direction,
     for i in range(3):
         circle_center[i] = 0.
         circle_normal[i] = 0.
-        vzero[i] = 0.
         roots[i] = 0.
     circle_normal[2] = 1
     circle_center[2] = circ_z
@@ -5335,7 +5387,6 @@ cdef inline bint is_los_circle_close_core(const double[3] direction,
     cdef int numRoots, i
     cdef double zero = 0., m0sqr, m0, rm0
     cdef double lambd, m2b2, b1sqr, b1, r0sqr, twoThirds, sHat, gHat, cutoff, s
-    cdef double[3] vzero
     cdef double[3] D
     cdef double[3] MxN
     cdef double[3] DxN
@@ -5354,7 +5405,6 @@ cdef inline bint is_los_circle_close_core(const double[3] direction,
     for i in range(3):
         circle_center[i] = 0.
         circle_normal[i] = 0.
-        vzero[i] = 0.
         roots[i] = 0.
     circle_normal[2] = 1
     circle_center[2] = circ_z
@@ -5613,7 +5663,6 @@ cdef void is_los_circle_close_vec_core(int num_los, int num_cir,
         free(dirv)
         free(orig)
     return
-
 
 
 def comp_dist_los_vpoly(double[:, ::1] ray_orig,
@@ -6142,7 +6191,6 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
     cdef double[::1] indIn=indIn_, indOut=indOut_
 
     for ii in range(0,Nl):
-
         kout, kin, Done = 1.e12, 1e12, 0
         # For cylinder
         for jj in range(0,Ns):
@@ -6168,7 +6216,6 @@ cdef Calc_LOS_PInOut_Lin(double[:,::1] Ds, double [:,::1] us, double[:,::1] VPol
                             elif sca>=0 and k<min(kin,kout):
                                 kin = k
                                 indin = jj
-
         # For two faces
         # Only if plane not parallel to line
         if Cabs(us[0,ii])>EpsPlane:
