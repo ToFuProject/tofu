@@ -3130,12 +3130,12 @@ class Rays(utils.ToFuObject):
         dist = np.sqrt(np.sum(D0D**2,axis=0))
         dd = np.min(dist[1:])
         e1 = (D[:,1]-D[:,0])/np.linalg.norm(D[:,1]-D[:,0])
-        crossbis= np.sqrt((D0D[1,:]*e1[2]-D0D[2,:]*e1[1])**2
-                          + (D0D[2,:]*e1[0]-D0D[0,:]*e1[2])**2
-                          + (D0D[0,:]*e1[1]-D0D[1,:]*e1[0])**2)
-        D0D = D0D[:,crossbis<dd/3.]
-        sca = np.sum(D0D*e1[:,np.newaxis],axis=0)
-        e1 = D0D[:,np.argmax(np.abs(sca))]
+        # crossbis= np.sqrt((D0D[1,:]*e1[2]-D0D[2,:]*e1[1])**2
+                          # + (D0D[2,:]*e1[0]-D0D[0,:]*e1[2])**2
+                          # + (D0D[0,:]*e1[1]-D0D[1,:]*e1[0])**2)
+        # D0D = D0D[:,crossbis<dd/3.]
+        # sca = np.sum(D0D*e1[:,np.newaxis],axis=0)
+        # e1 = D0D[:,np.argmax(np.abs(sca))]
         try:
             import tofu.geom.utils as geom_utils
         except Exception:
