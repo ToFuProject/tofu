@@ -141,12 +141,13 @@ def get_nIne1e2(P, nIn=None, e1=None, e2=None):
     if nIn is None:
         nIn = -P
     nIn = nIn / np.linalg.norm(nIn)
+
     if e1 is None:
-        if np.abs(np.abs(nIn[2])-1.)<1.e-12:
+        if np.abs(np.abs(nIn[2])-1.) < 1.e-12:
             e1 = ephi
         else:
             e1 = np.cross(nIn,ez)
-        e1 = e1 if np.sum(e1*ephi)>0. else -e1
+        e1 = e1 if np.sum(e1*ephi) > 0. else -e1
     e1 = e1 / np.linalg.norm(e1)
 
     if not np.abs(np.sum(nIn*e1))<1.e-12:
