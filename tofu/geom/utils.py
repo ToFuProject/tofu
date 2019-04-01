@@ -141,17 +141,22 @@ def get_nIne1e2(P, nIn=None, e1=None, e2=None):
     if nIn is None:
         nIn = -P
     nIn = nIn / np.linalg.norm(nIn)
+
     if e1 is None:
-        if np.abs(np.abs(nIn[2])-1.)<1.e-12:
+        if np.abs(np.abs(nIn[2])-1.) < 1.e-12:
             e1 = ephi
         else:
             e1 = np.cross(nIn,ez)
-        e1 = e1 if np.sum(e1*ephi)>0. else -e1
+        e1 = e1 if np.sum(e1*ephi) > 0. else -e1
     e1 = e1 / np.linalg.norm(e1)
-    msg = "nIn = %s\n"%str(nIn)
-    msg += "e1 = %s\n"%str(e1)
-    msg += "np.sum(nIn*e1) = {0}".format(np.sum(nIn*e1))
-    assert np.abs(np.sum(nIn*e1))<1.e-12, msg
+
+    if not np.abs(np.sum(nIn*e1))<1.e-12:
+        msg = "Identified loacl base does not seem valid!\n"
+        msg += "nIn = %s\n"%str(nIn)
+        msg += "e1 =  %s\n"%str(e1)
+        msg += "np.sum(nIn*e1) = sum(%s) = %s"%(nIn*e1, np.sum(nIn*e1))
+        raise Exception(msg)
+
     if e2 is None:
         e2 = np.cross(nIn,e1)
     e2 = e2 / np.linalg.norm(e2)

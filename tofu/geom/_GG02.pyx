@@ -2309,7 +2309,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
             loc_vp[2] = 0.
             if is_out_struct:
                 # if structure is of "Out" type, then we compute the last
-                # poit where it went out of a structure.
+                # point where it went out of a structure.
                 ind_loc[0] = ind_inter_out[2+3*ind_los]
                 kpin_loc[0] = coeff_inter_out[ind_los]
                 last_pout[0] = kpin_loc[0] * loc_dir[0] + loc_org[0]
@@ -2360,16 +2360,37 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         lim_is_none = lis_limited[ind_struct+jj] == 1
                         # We test if it is really necessary to compute the inter
                         # ie. we check if the ray intersects the bounding box
+                        if ind_los ==0:
+                            found_new_kout = True
+                        else:
+                            found_new_kout = False
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
                                                         &lbounds[(ind_struct + jj)*6],
-                                                        loc_org)
+                                                        loc_org, debug_plot=found_new_kout)
+                        with gil:
+                            if ind_los == 0:
+                                print("1. For struct =", ii, jj, kpout_loc[0], kpin_loc[0])
+                                print("los ori =", loc_org[0], loc_org[1], loc_org[2])
+                                print("los ori =", loc_dir[0], loc_dir[1], loc_dir[2])
+                                print("sign ray =", sign_ray[0],sign_ray[1],sign_ray[2])
+                                print("invr_ray =", invr_ray[0],invr_ray[1],invr_ray[2])
+                                print("lbounds =")
+                                for kk in range(6):
+                                    print("   ", lbounds[(ind_struct + jj)*6 + kk])
                         if not inter_bbox:
                             continue
+                        with gil:
+                            if ind_los == 0:
+                                print("continuing....")
                         # We check that the bounding box is not "behind"
                         # the last POut encountered
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
                                                         &lbounds[(ind_struct + jj)*6],
                                                         last_pout)
+                        with gil:
+                            if ind_los == 0:
+                                print("2. For struct =", ii, jj, kpout_loc[0], kpin_loc[0])
+
                         if inter_bbox:
                             continue
                          # Else, we compute the new values
@@ -2395,6 +2416,10 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                               kpout_loc,
                                                               ind_loc,
                                                               loc_vp)
+                        with gil:
+                            if ind_los == 0:
+                                print("3. For struct =", ii, jj, kpout_loc[0], kpin_loc[0])
+
                         if found_new_kout :
                             coeff_inter_out[ind_los] = kpin_loc[0]
                             vperp_out[0+3*ind_los] = loc_vp[0]
@@ -3475,7 +3500,7 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
     # computing sign and direction
     for  ii in range(3):
         if ray_vdir[ii] * ray_vdir[ii] < _VSMALL:
-            inv_direction[ii] = t0
+            inv_direction[ii] = 1. / _VSMALL
         else:
             inv_direction[ii] = 1. / ray_vdir[ii]
         if ray_vdir[ii] < 0.:
@@ -3487,7 +3512,8 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
 cdef inline bint inter_ray_aabb_box(const int[3] sign,
                                     const double[3] inv_direction,
                                     const double[6] bounds,
-                                    const double[3] ds) nogil:
+                                    const double[3] ds,
+                                    bint debug_plot=False) nogil:
     """
     Computes intersection between a ray (LOS) and a axis aligned bounding
     box. It returns True if ray intersects box, else False.
@@ -3532,9 +3558,13 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
     if (tzmax < tmax):
         tmax = tzmax
 
-    res = (tmin < t0) and (tmax > -t0)
+    if debug_plot:
+        with gil:
+            print("tmin, tmax, tzmin, tzmax, t0=", tmin, tmax, tzmin, tzmax, t0)
     if (tmin < 0) :
         return 0
+
+    res = (tmin < t0) and (tmax > -t0)
     return  res
 
 
