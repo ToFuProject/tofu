@@ -981,10 +981,18 @@ def test13_LOS_PInOut():
     assert np.allclose(IOut[2,:], Iout)
 
     # Toroidal, with Struct
+    SL0_or =None
+    SL1_or =np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]
+    SL2_or =np.array([0.5,3./2.])*np.pi
+
     SL0 = np.asarray([None])
     SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]])
     SL2 = np.asarray([np.array([0.5,3./2.])*np.pi])
     lstruct_nlim = np.array([0, 2, 1])
+    nstruct_lim = 3
+    nstruct_tot =1+2+1
+    lstruct_nlim=np.asarray([0, 2, 1])
+    #....
     Sols_In, Sols_Out = [], []
     rsol_In = [[6.,6.,6.5,7.5,8.,8.,7.5,6.5],
                [6.,6.,6.5,7.5,8.,8.,7.5,6.5],
@@ -1021,6 +1029,17 @@ def test13_LOS_PInOut():
                      [0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
                       0,0,0,1,0,1,1,0, 0,0,0,0,0,0,0,0, 0,0,0,0, 0,0,0,1]],
                     dtype=int)
+
+
+    PIn, POut, kPIn, kPOut_or,\
+        VperpIn, VperpOut, \
+        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
+                                                 LSPoly=[SP0,SP1,SP2],
+                                                 LSLim=[SL0_or,SL1_or,SL2_or],
+                                                 LSVIn=[VIn,VIn,VIn],
+                                                 VType='Tor', Test=True)
+
+    print("================================")
     kPIn, kPOut,\
         VperpOut, \
         IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
@@ -1061,6 +1080,8 @@ def test13_LOS_PInOut():
     print(kpout)
     print("mine =")
     print(kPOut[:32])
+    print("old =")
+    print(kPOut_or[:32])
     assert np.allclose(kPOut[:32], kpout,
                        equal_nan=True) and np.all((kPOut[32:]>=3.) &
                                                   (kPOut[32:]<16.))
