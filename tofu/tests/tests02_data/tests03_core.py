@@ -15,7 +15,7 @@ from nose import with_setup # optional
 
 # tofu-specific
 from tofu import __version__
-import tofu.pathfile as tfpf
+import tofu.utils as tfu
 import tofu.geom as tfg
 import tofu.data as tfd
 
@@ -192,9 +192,18 @@ class Test01_DataCam12D(object):
         cls.lobj = lData
         cls.t = t
 
+        # Saving for intermediate use
+        lpfe = []
+        for oo in cls.lobj:
+            if oo._dgeom['config'] is not None:
+                lpfe.append( oo._dgeom['config'].save(verb=True,
+                                                      return_pfe=True) )
+        cls.lpfe = lpfe
+
     @classmethod
     def teardown_class(cls):
-        pass
+        for pfe in set(cls.lpfe):
+            os.remove(pfe)
 
     def setup(self):
         #print("TestUM:setup() before each test method")
@@ -377,30 +386,22 @@ class Test01_DataCam12D(object):
             nb, dnb = oo.get_nbytes()
 
     def test22_strip_nbytes(self):
-        self.lpfe = []
         lok = self.lobj[0].__class__._dstrip['allowed']
         nb = np.full((len(lok),), np.nan)
         for oo in self.lobj:
-            if oo.dgeom['lCam'] is not None:
-                for cc in oo.dgeom['lCam']:
-                    # Bugging???
-                    self.lpfe.append( cc.save(verb=True,
-                                              return_pfe=True) )
             for ii in lok:
                 oo.strip(ii)
                 nb[ii] = oo.get_nbytes()[0]
-            assert np.all(np.diff(nb)<0.)
+            assert np.all(np.diff(nb)<=0.), nb
             for ii in lok[::-1]:
                 oo.strip(ii)
 
     def test23_saveload(self):
         for oo in self.lobj:
-            pfe = oo.save(verb=False, return_pfe=True)
-            obj = tfpf.Open(pfe, Print=False)
+            pfe = oo.save(deep=False, verb=False, return_pfe=True)
+            obj = tfu.load(pfe, verb=False)
             # Just to check the loaded version works fine
             assert oo == obj
-            os.remove(pfe)
-        for pfe in set(self.lpfe):
             os.remove(pfe)
 
 

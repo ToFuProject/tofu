@@ -340,11 +340,13 @@ def _save_npz(dd, pathfileext, compressed=False):
         dt[kt] = np.asarray([type(dd[k]).__name__])
         if dd[k] is None:
             dd[k] = np.asarray([None])
-        elif type(dd[k]) in [int,float,np.int64,np.float64,bool,str]:
+        elif (type(dd[k]) in [int,float,bool,str]
+              or issubclass(dd[k].__class__,np.int)
+              or issubclass(dd[k].__class__,np.float)):
             dd[k] = np.asarray([dd[k]])
         elif type(dd[k]) in [list,tuple]:
             dd[k] = np.asarray(dd[k])
-        elif not isinstance(dd[k],np.ndarray):
+        elif not isinstance(dd[k], np.ndarray):
             msg += "\n    {0} : {1}".format(k,str(type(dd[k])))
             err = True
     if err:
@@ -386,11 +388,13 @@ def load(name, path=None, strip=None, verb=True):
     """
 
     """
-    msg = "Arg name must be a str (file name or full path+file)"
-    msg += " or a list of str patterns to be found at path"
-    C0 = isinstance(name,str)
-    C1 = isinstance(name,list) and all([isinstance(ss,str) for ss in name])
-    assert C0 or C1, msg
+    c0 = isinstance(name,str)
+    c1 = isinstance(name,list) and all([isinstance(ss,str) for ss in name])
+    if not (c0 or c1):
+        msg = "Arg name must be a str (file name or full path+file)"
+        msg += " or a list of str patterns to be found at pathi\n"
+        msg += "    name : %s"%name
+        raise Exception(msg)
     msg = "Arg path must be a str !"
     assert path is None or isinstance(path,str), msg
 

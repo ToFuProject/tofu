@@ -683,16 +683,16 @@ class DataAbstract(utils.ToFuObject):
         if self._dstrip['strip']==strip:
             return
 
-        if strip in [0,2]:
+        if strip in [0,1] and self._dstrip['strip'] in [2]:
             self._set_ddata()
-        elif strip in [1,3]:
+        elif strip in [2] and self._dstrip['strip'] in [0,1]:
             self.clear_ddata()
 
     def _strip_dgeom(self, strip=0, force=False):
         if self._dstrip['strip']==strip:
             return
 
-        if strip in [0,1] and self._dstrip['strip'] in [2,3]:
+        if strip in [0] and self._dstrip['strip'] in [1,2]:
             lC, config = None, None
             if self._dgeom['lCam'] is not None:
                 assert type(self._dgeom['lCam']) is list
@@ -707,7 +707,7 @@ class DataAbstract(utils.ToFuObject):
 
             self._set_dgeom(lCam=lC, config=config)
 
-        elif strip in [2,3] and self._dstrip['strip'] in [0,1]:
+        elif strip in [1,2] and self._dstrip['strip'] in [0]:
             if self._dgeom['lCam'] is not None:
                 lpfe = []
                 for cc in self._dgeom['lCam']:
@@ -767,9 +767,8 @@ class DataAbstract(utils.ToFuObject):
         cls._dstrip['allowed'] = [0,1,2,3]
         nMax = max(cls._dstrip['allowed'])
         doc = """
-                 1: clear data
-                 2: dgeom all pathfile (=> tf.geom.Rays.strip(-1))
-                 3: dgeom all pathfile + data clear
+                 1: dgeom pathfiles
+                 2: dgeom pathfiles + clear data
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
         if sys.version[0]=='2':
@@ -861,7 +860,7 @@ class DataAbstract(utils.ToFuObject):
         return self._dgeom['config']
     @property
     def lCam(self):
-        return self._get_lCam()
+        return self._dgeom['lCam']
 
     @abstractmethod
     def _isSpectral(self):
@@ -1791,8 +1790,16 @@ class DataAbstract(utils.ToFuObject):
         kh = _plot.plot_svd()
         return kh
 
-
-
+    def save(self, path=None, name=None,
+             strip=None, deep=False, mode='npz',
+             compressed=False, verb=True, return_pfe=False):
+        if deep is False:
+            self.strip(1)
+        out = super(DataAbstract, self).save(path=path, name=name,
+                                             deep=deep, mode=mode,
+                                             strip=strip, compressed=compressed,
+                                             return_pfe=return_pfe, verb=verb)
+        return out
 
 
 

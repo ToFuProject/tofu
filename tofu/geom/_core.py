@@ -2637,7 +2637,8 @@ class Rays(utils.ToFuObject):
         return dgeom
 
     def _checkformat_dX12(self, dX12=None):
-        lc = [dX12 is None, dX12 == 'geom', isinstance(dX12, dict)]
+        lc = [dX12 is None, dX12 == 'geom' or dX12 == {'from':'geom'},
+              isinstance(dX12, dict)]
         if not np.sum(lc) == 1:
             msg = "dX12 must be either:\n"
             msg += "    - None\n"
@@ -2656,6 +2657,7 @@ class Rays(utils.ToFuObject):
             if not c2:
                 msg = "dX12 cannot be derived from dgeom (info not known) !"
                 raise Exception(msg)
+            dX12 = {'from':'geom'}
 
         if lc[2]:
             ls = ['x1','x2','ind1','ind2']
@@ -2667,7 +2669,7 @@ class Rays(utils.ToFuObject):
                                                     ind2=dX12['ind2'],
                                                     n1=n1, n2=n2)
             dX12 = {'x1':x1, 'x2':x2, 'n1':n1, 'n2':n2,
-                    'ind1':ind1, 'ind2':ind2, 'indr':indr}
+                    'ind1':ind1, 'ind2':ind2, 'indr':indr, 'from':'self'}
         return dX12
 
     @staticmethod
@@ -3176,7 +3178,7 @@ class Rays(utils.ToFuObject):
 
     def set_dX12(self, dX12=None):
         dX12 = self._checkformat_dX12(dX12)
-        self._dX12 = dX12
+        self._dX12.update(dX12)
 
     def _compute_dsino_extra(self):
         if self._dsino['k'] is not None:
@@ -4299,7 +4301,7 @@ class CamLOS2D(Rays):
 
     @property
     def dX12(self):
-        if self._dX12 == 'geom':
+        if self._dX12 is not None and self._dX12['from'] == 'geom':
             dX12 = self._dgeom['dX12']
         else:
             dX12 = self._dX12
