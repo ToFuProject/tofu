@@ -1902,6 +1902,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
 
+    if ves_type.lower() == 'tor':
+        print("trying to do toroidal stuff !!!!!!")
     # == Testing inputs ========================================================
     if test:
         error_message = "ray_orig and ray_vdir must have the same shape: "\
@@ -1935,7 +1937,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                  or (lstruct_lims is not None)
                  or (lnvert is not None)
                  or (nstruct_tot > 0) or (nstruct_lim > 0))
-        if not bool1:
+        if bool1:
             try:
                 bool1 = ((len(lstruct_polyx) > 0)
                          or (len(lstruct_polyy) > 0)
@@ -1956,21 +1958,22 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                          and (nstruct_tot > 0)
                          and (nstruct_lim > 0))
                 assert (not bool1 or bool2), error_message
-            except:
-                print(error_message)
+            except Exception:
+                assert False, error_message
         else:
-            bool1 = ((lstruct_polyx is not None)
-                 or (lstruct_polyy is not None)
-                 or (lstruct_normx is not None)
-                 or (lstruct_normy is not None)
-                 or (lstruct_nlim is not None)
-                 or (lstruct_lims is not None)
-                 or (lnvert is not None)
-                 or (nstruct_tot > 0) or (nstruct_lim > 0))
+            bool2 = ((lstruct_polyx is not None)
+                 and (lstruct_polyy is not None)
+                 and (lstruct_normx is not None)
+                 and (lstruct_normy is not None)
+                 and (lstruct_nlim is not None)
+                 and (lstruct_lims is not None)
+                 and (lnvert is not None)
+                 and (nstruct_tot > 0) and (nstruct_lim > 0))
             assert (not bool1 or bool2), error_message
 
     # ==========================================================================
     if ves_type.lower() == 'tor':
+        print("yeap doing toroidal stuff !!!!!!")
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None:
             are_limited = False

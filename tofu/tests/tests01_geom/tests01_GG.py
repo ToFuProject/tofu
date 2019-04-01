@@ -945,7 +945,7 @@ def test13_LOS_PInOut():
     kPIn, kPOut,\
         VperpOut, \
         IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
-                                            ves_type='Tor', test=True)
+                                            ves_type='Tor', test=True, num_threads=1)
     VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
     IOut = np.transpose(IOut.reshape(nlos, 3))
     # Reconstructing PIn and Pout from kPIn and kPOut
@@ -1033,7 +1033,7 @@ def test13_LOS_PInOut():
                                             lstruct_lims=[SL0,SL1,SL2],
                                             lstruct_normx=lsvinx,
                                             lstruct_normy=lsviny,
-                                            ves_type='Tor', test=True)
+                                            ves_type='Tor', test=True, num_threads=1)
     VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
     IOut = np.transpose(IOut.reshape(nlos, 3))
     # Reconstructing PIn and Pout from kPIn and kPOut
