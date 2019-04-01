@@ -640,15 +640,34 @@ class DataAbstract(utils.ToFuObject):
         Use the kwarg 'method' to set / update the dict
 
         """
+        assert method in ['set','update']
         dchans = self._checkformat_inputs_dchans(dchans=dchans)
         if method == 'set':
             self._dchans = dchans
         else:
             self._dchans.update(dchans)
 
-    def set_dextra(self, dextra=None):
+    def set_dextra(self, dextra=None, method='set'):
+        """ Set (or update) the dextra dict
+
+        dextra is a dict of nested dict
+        It contains all extra signal that can help interpret the data
+            e.g.: heating power time traces, plasma current...
+        Each nested dict should have the following fields:
+            't'    : 1D np.ndarray (time vector)
+            'data' : 1D np.ndarray (data time trace)
+            'name' : str (used as label in legend)
+            'units': str (used n parenthesis in legend after name)
+
+        Use the kwarg 'method' to set / update the dict
+
+        """
+        assert method in ['set','update']
         dextra = self._checkformat_inputs_dextra(dextra=dextra)
-        self._dextra = dextra
+        if method == 'set':
+            self._dextra = dextra
+        else:
+            self._dextra.update(dextra)
 
     ###########
     # strip dictionaries
