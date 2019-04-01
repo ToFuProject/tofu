@@ -202,7 +202,7 @@ class Test01_DataCam12D(object):
         #print("TestUM:teardown() after each test method")
         pass
 
-    def test01_dchans(self):
+    def test01_set_dchans(self):
         for ii in range(0,len(self.lobj)):
             oo = self.lobj[ii]
             out0 = oo.dchans()
@@ -212,6 +212,8 @@ class Test01_DataCam12D(object):
                 if len(lk)>0:
                     out1 = oo.dchans(key=lk[0])
                     assert type(out1) is np.ndarray
+                    dch2 = {'dch2':['abc' for ii in range(0,oo.ddataRef['nch'])]}
+                    oo.set_dchans(dch2, method='update')
                 assert all([len(out0[ss])==oo.ddataRef['nch'] for ss in lk])
 
     def test02_select_t(self):

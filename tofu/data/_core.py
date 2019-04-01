@@ -631,9 +631,20 @@ class DataAbstract(utils.ToFuObject):
                                                           config=config)
         self._dgeom = {'lCam':lCam, 'nC':nC, 'config':config}
 
-    def set_dchans(self, dchans=None):
+    def set_dchans(self, dchans=None, method='set'):
+        """ Set (or update) the dchans dict
+
+        dchans is a dict of np.ndarrays of len() = self.nch containing
+        channel-specific information
+
+        Use the kwarg 'method' to set / update the dict
+
+        """
         dchans = self._checkformat_inputs_dchans(dchans=dchans)
-        self._dchans = dchans
+        if method == 'set':
+            self._dchans = dchans
+        else:
+            self._dchans.update(dchans)
 
     def set_dextra(self, dextra=None):
         dextra = self._checkformat_inputs_dextra(dextra=dextra)
