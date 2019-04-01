@@ -383,6 +383,7 @@ class Test01_DataCam12D(object):
         for oo in self.lobj:
             if oo.dgeom['lCam'] is not None:
                 for cc in oo.dgeom['lCam']:
+                    # Bugging???
                     self.lpfe.append( cc.save(verb=True,
                                               return_pfe=True) )
             for ii in lok:
