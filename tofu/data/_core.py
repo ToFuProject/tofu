@@ -888,14 +888,15 @@ class DataAbstract(utils.ToFuObject):
         uses self.select_t(t=t) to produce it
 
         """
-        lC = [indt is None,t is None]
-        assert np.sum(lC)>=1
+        lC = [indt is not None, t is not None]
         if all(lC):
-            ind = None
-        elif C[0]:
+            msg = "Please provide either t or indt (or none)!"
+            raise Exception(msg)
+
+        if lC[1]:
             ind = self.select_t(t=t, out=bool)
-        elif C[1]:
-            ind = _format_ind(indt, n=self._Ref['nt'])
+        else:
+            ind = _format_ind(indt, n=self._ddataRef['nt'])
         self._dtreat['indt'] = ind
         self._ddata['uptodate'] = False
 
@@ -909,7 +910,7 @@ class DataAbstract(utils.ToFuObject):
         if indch is not None:
             indch = np.asarray(indch)
             assert indch.ndim==1
-            indch = _format_ind(indch, n=self._ddataRef['nch'])
+        indch = _format_ind(indch, n=self._ddataRef['nch'])
         self._dtreat['indch'] = indch
         self._ddata['uptodate'] = False
 
@@ -940,22 +941,23 @@ class DataAbstract(utils.ToFuObject):
         self._ddata['uptodate'] = False
 
     def set_dtreat_data0(self, data0=None, Dt=None, indt=None):
-        assert self._ddataRef['nt']>1, "Useless if only one data slice !"
-        C = [data0 is None, Dt is None, indt is None]
-        assert np.sum(C)>=2
-        if data0 is not None:
-            data0 = np.asarray(data0).ravel()
-            assert data0.shape==(self._ddataRef['nch'],)
-            Dt, indt = None, None
-        else:
-            if indt is not None:
-                indt = _format_ind(indt, n=self._ddataRef['nt'])
+        lC = [data0 is not None, Dt is not None, indt is not None]
+        assert np.sum(lC) <= 1
+
+        if any(lC):
+            if lC[0]:
+                data0 = np.asarray(data0).ravel()
+                assert data0.shape==(self._ddataRef['nch'],)
+                Dt, indt = None, None
             else:
-                indt = self.select_t(t=Dt, out=bool)
-            if np.any(indt):
-                data0 = self._ddataRef['data'][indt,:]
-                if np.sum(indt)>1:
-                    data0 = np.nanmean(data,axis=0)
+                if lC[2]:
+                    indt = _format_ind(indt, n=self._ddataRef['nt'])
+                else:
+                    indt = self.select_t(t=Dt, out=bool)
+                if np.any(indt):
+                    data0 = self._ddataRef['data'][indt,:]
+                    if np.sum(indt)>1:
+                        data0 = np.nanmean(data0,axis=0)
         self._dtreat['data0-indt'] = indt
         self._dtreat['data0-Dt'] = Dt
         self._dtreat['data0-data'] = data0
@@ -1444,12 +1446,12 @@ class DataAbstract(utils.ToFuObject):
             if self._dgeom['lCam'] is None:
                 msg = "self.dgeom['lCam'] must be set to use touch !"
                 raise Exception(msg)
-            if any([type(cc) is str for ss in self._dgeom['lCam']]):
+            if any([type(cc) is str for cc in self._dgeom['lCam']]):
                 msg = "self.dgeom['lCam'] contains pathfiles !"
                 msg += "\n  => Run self.strip(0)"
                 raise Exception(msg)
             ind = []
-            for cc in self._dgeom['LCam']:
+            for cc in self._dgeom['lCam']:
                 ind.append(cc.select(touch=touch, log=log, out=bool))
             if len(ind)==1:
                 ind = ind[0]
@@ -1468,7 +1470,13 @@ class DataAbstract(utils.ToFuObject):
                                                self._ddataRef['nch'])[np.newaxis,:]
 
         else:
-            assert type(key) is str and key in self._dchans['dchans'].keys()
+            if not (type(key) is str and key in self._dchans.keys()):
+                msg = "Provided key not valid!\n"
+                msg += "    - key: %s\n"%str(key)
+                msg += "Please provide a valid key of self.dchans():\n"
+                msg += "    - " + "\n    - ".join(self._dchans.keys())
+                raise Exception(msg)
+
             ltypes = [str,int,float,np.int64,np.float64]
             C0 = type(val) in ltypes
             C1 = type(val) in [list,tuple,np.ndarray]
@@ -1477,7 +1485,7 @@ class DataAbstract(utils.ToFuObject):
                 val = [val]
             else:
                 assert all([type(vv) in ltypes for vv in val])
-            ind = np.vstack([self.Ref['dchans'][key]==ii for ii in val])
+            ind = np.vstack([self._dchans[key]==ii for ii in val])
             if log=='any':
                 ind = np.any(ind,axis=0)
             elif log=='all':

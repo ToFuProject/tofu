@@ -227,80 +227,80 @@ class Test01_DataCam12D(object):
                                 'name':'pouet', 'units':'pouet units'}}
                 oo.set_dextra(dd, method='update')
 
-    def test03_set_dtreat_indt(self):
-        for ii in range(0,len(self.lobj)):
-            oo = self.lobj[ii]
-            oo.set_dtreat_indt(t=[2,3])
-            assert np.all((oo.t>=2) & (oo.t<=3))
-            oo.set_indt(indt=list(range(0,min(4,oo.ddataRef['nt']))))
-            assert oo.nt == 4 or oo.nt==1
-            oo.set_indt()
-            assert oo.nt == oo.Ref['nt']
-
     def test03_select_t(self):
         for oo in self.lobj:
             ind = oo.select_t(t=None, out=bool)
             assert ind.sum()==oo.ddataRef['nt']
             ind = oo.select_t(t=5, out=bool)
-            if oo.ddataRef['t'] is None:
-                assert ind.sum()==oo.ddataRef['nt']
-            else:
-                assert ind.sum()==1
+            assert ind.sum() == 1
             ind = oo.select_t(t=[1,4], out=bool)
-            if oo.ddataRef['t'] is None:
-                assert ind.sum()==oo.ddataRef['nt']
-            else:
-                assert np.all((oo.t[ind]>=1.) & (oo.t[ind]<=4))
-
+            assert np.all((oo.t[ind]>=1.) & (oo.t[ind]<=4))
 
     def test04_select_ch(self):
-        for ii in range(0,len(self.lobj)):
-            oo = self.lobj[ii]
-            if oo.geom is not None and oo.geom['LCam'] is not None:
-                ind = oo.select_ch(touch='Ves', out=bool)
-                assert ind.sum()==oo.Ref['nch']
-            if oo.Ref['dchans'] not in [None,{}] :
-                ind =oo.select_ch(key='Name',val=['C0-0','C1-0'],log='any',out=bool)
-                assert ind.sum() in [1,2]
+        for oo in self.lobj:
+            if oo.dgeom['lCam'] is not None:
+                name = oo.config.dStruct['lorder'][0]
+                ind = oo.select_ch(touch=name, out=bool)
+                assert ind.sum() > 0
+                assert np.allclose(ind, oo.select_ch(touch=0,
+                                                     out=bool))
+            if len(oo.dchans().keys()) > 0:
+                ind = oo.select_ch(key='Name', val=['c0','c10'],
+                                   log='any', out=bool)
+                assert ind.sum() == 2
 
-    def test05_set_indch(self):
-        for ii in range(0,len(self.lobj)):
-            oo = self.lobj[ii]
-            if oo.geom is not None and oo.geom['LCam'] is not None:
-                oo.set_indch(touch='Ves')
-                assert oo.indch.sum()==oo.Ref['nch']
-            if oo.Ref['dchans'] not in [None,{}] :
-                oo.set_indch(key='Name',val=['C0-0','C1-0'],log='any')
-                assert oo.indch.sum() in [1,2]
-            oo.set_indch(indch=list(range(0,min(5,oo.Ref['nch']))))
-            assert oo.indch.sum() in [oo.Ref['nch'],5]
+    def test05_set_dtreat_indt(self):
+        for oo in self.lobj:
+            oo.set_dtreat_indt(t=[2,3])
+            assert np.all((oo.t>=2) & (oo.t<=3))
+            oo.set_dtreat_indt(indt=list(range(0,min(4,oo.ddataRef['nt']))))
+            assert oo.nt == 4 or oo.nt==1
+            oo.set_dtreat_indt()
+            assert oo.nt == oo.ddataRef['nt']
 
-    def test06_set_data0(self):
-        for ii in range(0,len(self.lobj)):
-            oo = self.lobj[ii]
+    def test06_set_dtreat_indch(self):
+        for oo in self.lobj:
+            oo.set_dtreat_indch(indch = range(0,10))
+            assert oo.dtreat['indch'].sum() == 10
+
+    def test07_set_dtreat_mask(self):
+        for oo in self.lobj:
             # Re-initialise
-            oo.set_indt()
-            oo.set_indch()
-            if oo.Ref['nt']>1:
-                oo.set_data0(data0=oo.Ref['data'][0,:])
-                assert oo.data0['indt'] is None and oo.data0['Dt'] is None
-                assert np.allclose(oo.data[0,:],0.)
-                oo.set_data0(indt=[1,2,6,8,9])
-                assert oo.data0['indt'].sum()==5
-                assert oo.data0['data'].size==oo.Ref['nch']
-                if oo.t is not None:
-                    oo.set_data0(Dt=[2,3])
-                    assert oo.data0['Dt'][0]>=2. and oo.data0['Dt'][1]<=3.
-                    assert oo.data0['data'].size==oo.Ref['nch']
-                oo.set_data0()
-                assert oo.data0['data'] is None
-                assert np.allclose(oo.data,oo.Ref['data'])
+            oo.set_dtreat_indch()
+            # set mask
+            mask = np.random.randint(0,oo.ddataRef['nch'], size=10)
+            oo.set_dtreat_mask(ind=mask, val=np.nan)
+            nbnan = np.sum(np.any(np.isnan(oo.data), axis=0))
+            assert nbnan == 10, [oo.nch, oo.ddataRef['nch'], nbnan]
 
-    def test07_operators(self):
+    def test08_dtreat_set_data0(self):
+        for oo in self.lobj:
+            # Re-initialise
+            oo.set_dtreat_indt()
+            oo.set_dtreat_mask()
+
+            oo.set_dtreat_data0( data0 = oo.data[0,:] )
+            assert oo.dtreat['data0-indt'] is None
+            assert oo.dtreat['data0-Dt'] is None
+            assert np.allclose(oo.data[0,:],0.), oo.data[0,:]
+
+            oo.set_dtreat_data0(indt=[1,2,6,8,9])
+            assert oo.dtreat['data0-indt'].sum() == 5
+            assert oo.dtreat['data0-data'].size == oo.ddataRef['nch']
+
+            oo.set_dtreat_data0(Dt=[2,3])
+            assert oo.dtreat['data0-Dt'][0] >= 2. and oo.dtreat['data0-Dt'][1] <= 3.
+            assert oo.dtreat['data0-data'].size == oo.ddataRef['nch']
+
+            oo.set_dtreat_data0()
+            assert oo.dtreat['data0-data'] is None
+            assert np.allclose(oo.data, oo.dataRef['data'])
+
+    def test12_operators(self):
         o0 = self.lobj[-1]
         o1 = 100.*(o0-0.1*o0)
 
-    def test08_plot(self):
+    def test13_plot(self):
         connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
                    and plt.get_current_fig_manager().toolbar is not None)
         for ii in range(0,len(self.lobj)):
@@ -311,7 +311,7 @@ class Test01_DataCam12D(object):
             KH = oo.plot(key='Name', draw=False, dmargin=None, connect=connect)
         plt.close('all')
 
-    def test09_compare(self):
+    def test14_compare(self):
         if self.__class__ is Test02_Data2D:
             return
         connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
@@ -322,7 +322,7 @@ class Test01_DataCam12D(object):
             KH = oo.plot_compare(o0, connect=connect)
         plt.close('all')
 
-    def test10_combine(self):
+    def test15_combine(self):
         if self.__class__ is Test02_Data2D:
             return
         connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
@@ -333,7 +333,7 @@ class Test01_DataCam12D(object):
             KH = oo.plot_combine(o0, connect=connect)
         plt.close('all')
 
-    def test11_tofromdict(self):
+    def test16_tofromdict(self):
         for ii in range(0,len(self.lobj)):
             oo = self.lobj[ii]
             dd = oo._todict()
@@ -343,7 +343,7 @@ class Test01_DataCam12D(object):
                 oo = tfd.Data2D(fromdict=dd)
             assert dd==oo._todict(), "Unequal to and from dict !"
 
-    def test12_saveload(self):
+    def test17_saveload(self):
         for ii in range(0,len(self.lobj)):
             oo = self.lobj[ii]
             dd = oo._todict()

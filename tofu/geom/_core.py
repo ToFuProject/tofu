@@ -3602,6 +3602,7 @@ class Rays(utils.ToFuObject):
                 larr = [list,tuple,np.ndarray]
                 touch = [touch] if not type(touch) is list else touch
                 assert len(touch) in [1,2,3]
+
                 def _check_touch(tt):
                     cS = type(tt) is str and len(tt.split('_'))==2
                     c0 = type(tt) in lint
@@ -3610,11 +3611,22 @@ class Rays(utils.ToFuObject):
                     return cS, c0, c1
                 for ii in range(0,3-len(touch)):
                     touch.append([])
+
                 ntouch = len(touch)
-                assert ntouch==3
+                assert ntouch == 3
+
                 for ii in range(0,ntouch):
                     cS, c0, c1 = _check_touch(touch[ii])
-                    assert cS or c0 or c1
+
+                    if not (cS or c0 or c1):
+                        msg = "Provided touch is not valid:\n"%touch
+                        msg += "    - Provided: %s\n"%str(touch)
+                        msg += "Please provide either:\n"
+                        msg += "    - str in the form 'Cls_Name'\n"
+                        msg += "    - int (index)\n"
+                        msg += "    - array of int indices"
+                        raise Exception(msg)
+
                     if cS:
                         lS = self.lStruct_computeInOut
                         k0, k1 = touch[ii].split('_')
