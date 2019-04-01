@@ -1902,8 +1902,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
 
-    if ves_type.lower() == 'tor':
-        print("trying to do toroidal stuff !!!!!!")
     # == Testing inputs ========================================================
     if test:
         error_message = "ray_orig and ray_vdir must have the same shape: "\
@@ -1973,7 +1971,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
 
     # ==========================================================================
     if ves_type.lower() == 'tor':
-        print("yeap doing toroidal stuff !!!!!!")
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None:
             are_limited = False
@@ -2042,7 +2039,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                 for jj in range(max(len_lim,1)):
                     # We compute the structure's bounding box:
                     if lslim[jj] is not None:
-                        print("...ii,jj=", ii,jj)
                         lim_ves[0] = lslim[jj][0]
                         lim_ves[1] = lslim[jj][1]
                         llimits[ind_struct] = 0 # False : struct is limited
@@ -2369,37 +2365,15 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                         &lbounds[(ind_struct + jj)*6],
                                                         loc_org, debug_plot=found_new_kout,
                                                         countin=True)
-                        with gil:
-                            if ind_los == 16:
-                                print("1. For struct =", ii, jj, kpout_loc[0], kpin_loc[0])
-                                print("los ori =", loc_org[0], loc_org[1], loc_org[2])
-                                print("los ori =", loc_dir[0], loc_dir[1], loc_dir[2])
-                                print("sign ray =", sign_ray[0],sign_ray[1],sign_ray[2])
-                                print("invr_ray =", invr_ray[0],invr_ray[1],invr_ray[2])
-                                print("lbounds =")
-                                for kk in range(6):
-                                    print("   ", lbounds[(ind_struct + jj)*6 + kk])
-                                print("====> inter_bbox = ", inter_bbox)
                         if not inter_bbox:
                             continue
-                        with gil:
-                            if ind_los == 16:
-                                print("continuing....")
                         # We check that the bounding box is not "behind"
                         # the last POut encountered
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
                                                         &lbounds[(ind_struct + jj)*6],
                                                         last_pout, countin=False)
-                        with gil:
-                            if ind_los == 16:
-                                print("2. For struct =", ii, jj, kpout_loc[0], kpin_loc[0])
-
                         if inter_bbox:
                             continue
-                        with gil:
-                            if ind_los == 16:
-                                print("continuing....")
-
                          # Else, we compute the new values
                         found_new_kout = comp_inter_los_vpoly(loc_org,
                                                               loc_dir,
@@ -2423,10 +2397,6 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                               kpout_loc,
                                                               ind_loc,
                                                               loc_vp)
-                        with gil:
-                            if ind_los == 16:
-                                print("3. For struct =", ii, jj, kpout_loc[0], kpin_loc[0])
-
                         if found_new_kout :
                             coeff_inter_out[ind_los] = kpin_loc[0]
                             vperp_out[0+3*ind_los] = loc_vp[0]
@@ -3551,9 +3521,6 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
     tmax = (bounds[(1-sign[0])*3] - ds[0]) * inv_direction[0]
     tymin = (bounds[(sign[1])*3 + 1] - ds[1]) * inv_direction[1]
     tymax = (bounds[(1-sign[1])*3+1] - ds[1]) * inv_direction[1]
-    if debug_plot:
-        with gil:
-            print("tmin, tmax, tymin, tymax = ", tmin, tmax, tymin, tymax)
     if ( (tmin > tymax) or (tymin > tmax) ):
         return 0
     if (tymin > tmin):
@@ -3566,29 +3533,18 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
     else:
         tzmin = Cnan
         tzmax = Cnan
-    if debug_plot:
-        with gil:
-            print("tzmin, tzmax =", tzmin, tzmax)
     if ( (tmin > tzmax) or (tzmin > tmax) ):
         return 0
     if (tzmin > tmin):
         tmin = tzmin
     if (tzmax < tmax):
         tmax = tzmax
-
-    if debug_plot:
-        with gil:
-            print("tmin, tmax, tzmin, tzmax, t0=", tmin, tmax, tzmin, tzmax, t0)
     if countin and (tmin < 0.) and (tmax < 0.):
         return 0
     elif not countin and tmin < 0:
         return 0
 
     res = (tmin < t0) and (tmax > -t0)
-    if debug_plot:
-        with gil:
-            print("res =", res)
-
     return  res
 
 
@@ -3708,8 +3664,6 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
     sin_min = Csin(lmin)
     cos_max = Ccos(lmax)
     sin_max = Csin(lmax)
-    with gil:
-        print("heeeeere", lmin, lmax)
     if (lmin >= 0.) and (lmax >= 0.):
         if lmax > half_pi and lmin < half_pi:
             comp_bbox_poly_tor(nvert,
@@ -3772,9 +3726,6 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
                                    &bounds_min[0],
                                    0.0, lmax)
         # we compute the extremes of the two boxes:
-        with gil:
-            for ii in range(6):
-                print("b1, b2 =", bounds[ii], bounds_min[ii])
         for ii in range(3):
             if bounds[ii] > bounds_min[ii]:
                 bounds[ii] = bounds_min[ii]
@@ -3801,9 +3752,6 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
             zmin = temp[2]
         if zmax < temp[2]:
             zmax = temp[2]
-        with gil:
-            for jj in range(3):
-                print("  +For jj= ", jj, temp[jj], " cos, sin =", cos_min, sin_min)
         # .....
         temp[0] = vertr[ii]
         temp[1] = vertz[ii]
@@ -3821,20 +3769,12 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
             zmin = temp[2]
         if zmax < temp[2]:
             zmax = temp[2]
-        with gil:
-            for jj in range(3):
-                print("  -For jj= ", jj, temp[jj], " cos, sin =", cos_max, sin_max)
-
     bounds[0] = xmin
     bounds[1] = ymin
     bounds[2] = zmin
     bounds[3] = xmax
     bounds[4] = ymax
     bounds[5] = zmax
-    with gil:
-        for ii in range(6):
-            print("bounds =", bounds[ii])
-
     return
 
 

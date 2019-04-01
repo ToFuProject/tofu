@@ -144,6 +144,8 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
             start = time.time()
             out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
 
+        if (out == np.nan):
+            print("Sorry... there are Nans..............")
         elapsed = time.time() - start
         if config == "A2":
             num = int(vcam[2:])
@@ -335,16 +337,16 @@ def check_memory_usage2(cam="V1000000", config="B2"):
 if __name__ == "__main__":
     # test_LOS_compact()
     # test_LOS_all()
-    #test_LOS_all(save=True, saveCam=["V1000", "VA1000"])
+    # test_LOS_all(save=True, saveCam=["V1000", "VA1000"])
     # test_LOS_cprofiling()
     # plot_all_configs()
-    touch_plot_all_configs()
+    # touch_plot_all_configs()
     # touch_plot_config_cam("A2", "VA10000")
     # touch_plot_config_cam("A1", "V10000")
-    # touch_plot_config_cam("B3", "V10000")
+    # touch_plot_config_cam("B2", "V10")
     # line profiling.....
     # test_line_profile(cam="V100000")
-    # print(test_LOS_west_configs("B3", ["V10000"]))
+    print(test_LOS_west_configs("A1", ["V10"]))
     # print(test_LOS_west_configs("B2", "V1000", save=True, saveCam=["V1000"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     #are_results_the_same()
