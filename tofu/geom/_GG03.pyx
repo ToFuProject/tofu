@@ -1982,7 +1982,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
             lbounds_ves[0] = Catan2(Csin(ves_lims[0]), Ccos(ves_lims[0]))
             lbounds_ves[1] = Catan2(Csin(ves_lims[1]), Ccos(ves_lims[1]))
             llim_ves[0] = 0
-            print("HEEEEEEEEEEEEEEEEEEEEEERE")
         # -- Toroidal case -----------------------------------------------------
         # rmin is necessary to avoid looking on the other side of the tokamak
         if rmin < 0.:
@@ -2060,15 +2059,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                         lim_max = 0.
                     langles[ind_struct*2] = lim_min
                     langles[ind_struct*2 + 1] = lim_max
-                    print "For struct =", ii, jj, "=>", ind_struct, " lbounds =\n",\
-                          ind_struct*6, lbounds[ind_struct*6], "\n",\
-                          ind_struct*6+1, lbounds[ind_struct*6+1], "\n",\
-                          ind_struct*6+2, lbounds[ind_struct*6+2], "\n",\
-                          ind_struct*6+3, lbounds[ind_struct*6+3], "\n",\
-                          ind_struct*6+4, lbounds[ind_struct*6+4], "\n",\
-                          ind_struct*6+5, lbounds[ind_struct*6+5], "\n",\
-                          " langles = \n",\
-                          langles[ind_struct*2],langles[ind_struct*2+1]
                     ind_struct = 1 + ind_struct
             # end loops over structures
 
@@ -2403,8 +2393,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                               kpin_loc,
                                                               kpout_loc,
                                                               ind_loc,
-                                                              loc_vp,
-                                                              debug_plot=ind_los==97)
+                                                              loc_vp)
                         if found_new_kout :
                             coeff_inter_out[ind_los] = kpin_loc[0]
                             vperp_out[0+3*ind_los] = loc_vp[0]
@@ -2438,11 +2427,8 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                       eps_a,eps_b, eps_plane,
                                                       True,
                                                       kpin_loc, kpout_loc,
-                                                      ind_loc, loc_vp, debug_plot=ind_los==97)
+                                                      ind_loc, loc_vp)
                 if found_new_kout:
-                    if ind_los == 97:
-                        with gil:
-                            print("=====> indloc = ", ind_loc[0])
                     coeff_inter_in[ind_los]  = kpin_loc[0]
                     coeff_inter_out[ind_los] = kpout_loc[0]
                     ind_inter_out[2+3*ind_los] = ind_loc[0]
@@ -3427,10 +3413,6 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                         indin = -2
     # == Analyzing if there was impact =========================================
     if done==1:
-        if debug_plot:
-            with gil:
-                print("is_in_struct, indout, indin =", is_in_struct, indout, indin)
-                print("lim is none =", lim_is_none)
         if is_in_struct :
             kpout_loc[0] = kout
             if indout==-1:
