@@ -1199,51 +1199,9 @@ def test16_dist_los_vpoly():
     ray_orig[1][10] = 0.
     ray_orig[2][10] = 2.5
     ray_vdir[0][10] = 1.
-    ray_min = 0
-    ray_max = num_rays-1
-    import matplotlib.pyplot as plt
-    plt.ion()
-    plt.clf()
-    ax1 = plt.subplot(121)
-    ax1.plot(ves_poly0, ves_poly1)
-    ax1.scatter(0, 0, 10)
-    for i in range(ray_min,ray_max+1):
-        ax1.plot([ray_orig[0][i],
-                  ray_orig[0][i] + ray_vdir[0][i]],
-                 [ray_orig[2][i],
-                  ray_orig[2][i] + ray_vdir[2][i]],
-                 linewidth=2.0, label="ray"+str(i))
-        ax1.scatter(ray_orig[0][i], ray_orig[2][i], 10)
-    ax1.legend()
-    # plt.show(block=True)
-    # plt.clf()
-    theta = np.linspace(0, 2.*np.pi, 100)
-    rmin = ves_poly[0][5]#min(ves_poly[0])
-    rmax = ves_poly[0][6]#max(ves_poly[0])
-    print("rmin, rmax =", rmin, rmax)
-    #plt.show()
-    ax2 = plt.subplot(122)
-    ax2.plot(rmin * np.cos(theta), rmin * np.sin(theta))
-    ax2.plot(rmax * np.cos(theta), rmax * np.sin(theta))
-    ax2.plot(5 * np.cos(theta), 5 * np.sin(theta))
-    ax2.plot(2 * np.cos(theta), 2 * np.sin(theta))
-    for i in range(ray_min,ray_max+1):
-        ax2.plot([ray_orig[0][i],
-                  ray_orig[0][i] + ray_vdir[0][i]],
-                 [ray_orig[1][i],
-                  ray_orig[1][i]  + ray_vdir[1][i]],
-                 linewidth=2.0, label="ray"+str(i))
-        ax2.scatter(ray_orig[0][i], ray_orig[1][i], 10)
-    ax2.legend()
-    plt.show()
-    # out :
-    print("************************************************")
-    print(" Oris => \n", ray_orig[:,ray_min:ray_max+1])
-    print(" Dirs => \n", ray_vdir[:,ray_min:ray_max+1])
-    print("************************************************")
-    out = _GG.comp_dist_los_vpoly(
-        np.ascontiguousarray(ray_orig[:,ray_min:ray_max+1], dtype=np.float64),
-        np.ascontiguousarray(ray_vdir[:,ray_min:ray_max+1], dtype=np.float64),
+    out = GG.comp_dist_los_vpoly(
+        np.ascontiguousarray(ray_orig, dtype=np.float64),
+        np.ascontiguousarray(ray_vdir, dtype=np.float64),
         ves_poly, num_threads=1)
 
     exact_ks = [3.0,
@@ -1268,5 +1226,5 @@ def test16_dist_los_vpoly():
                    1.0,
                    0.5,
                    0.5]
-    assert(np.allclose(out[0], exacts_ks))
-    assert(np.allclose(out[1], exacts_dists))
+    assert(np.allclose(out[0], exact_ks))
+    assert(np.allclose(out[1], exact_dists))
