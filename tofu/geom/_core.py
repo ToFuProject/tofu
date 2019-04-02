@@ -1262,8 +1262,8 @@ class CoilPF(StructOut):
         dins, err, msg = cls._check_InputsGeneric(dins, tab=0)
         if err:
             raise Exception(msg)
-        nturns = dins['nturns']['var']
-        return nturns
+        nturn = dins['nturn']['var']
+        return nturn
 
     ###########
     # Get keys of dictionnaries
@@ -3501,6 +3501,10 @@ class Rays(utils.ToFuObject):
         c0 = '2d' in cls.__name__.lower()
         return c0
 
+    @classmethod
+    def _isLOS(cls):
+        c0 = 'los' in cls.__name__.lower()
+        return c0
 
     ###########
     # public methods
@@ -4240,7 +4244,7 @@ class Rays(utils.ToFuObject):
                                     ind=ind, fs=fs, wintit=wintit,
                                     draw=draw, Test=Test)
 
-    def _get_touchcols(self, data=None, method='original', cdef=(0.8,0.8,0.8),
+    def _get_touchcols(self, method='original', cdef=(0.8,0.8,0.8),
                        vmin=None, vmax=None, ind=None):
         def _make_cmap(c):
             c0 = mpl.colors.to_rgb(c)
@@ -4262,15 +4266,14 @@ class Rays(utils.ToFuObject):
         return cols, cmapdef, norm
 
 
-    def plot_touch(self, key=None, quant='length', invert=None,
-                   ind=None, plotmethod='imshow', Bck=True, colmethod='original',
-                   fs=None, wintit=None, tit=None,
+    def plot_touch(self, key=None, quant='length', invert=None, ind=None,
+                   Bck=True, fs=None, wintit=None, tit=None,
                    connect=True, draw=True):
 
-        out = _plot.Rays_plot_touch(self, key=key, Bck=Bck, colmethod=colmethod,
+        out = _plot.Rays_plot_touch(self, key=key, Bck=Bck,
                                     quant=quant, ind=ind, invert=invert,
-                                    plotmethod=plotmethod, connect=connect,
-                                    fs=fs, wintit=wintit, tit=tit, draw=draw)
+                                    connect=connect, fs=fs, wintit=wintit,
+                                    tit=tit, draw=draw)
         return out
 
 

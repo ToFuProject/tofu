@@ -109,6 +109,10 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
     if dmarker is None:
         dmarker = _dmarker
 
+    assert isinstance(cmap, mpl.colors.Colormap) or cmap == 'touch'
+    if cmap == 'touch':
+        msg = "Option cmap='touch' will be available in future releases  :-)"
+        raise Exception(msg)
 
     # ------------------
     # Plot
@@ -930,6 +934,11 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             vmax = np.max([np.nanmax(dd) for dd in ldata])
         norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
         nan2_data = np.full((x2.size,x1.size),np.nan)
+
+        if cmap == 'touch':
+            lcols = [dd['lCam'][0]._get_touchcols(vmin=vmin, vmax=vmax, cdef=cbck,
+                                                  ind=None)[0] for dd in lData]
+            # To be finished
 
     # ---------
     # Extra

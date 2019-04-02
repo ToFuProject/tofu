@@ -596,11 +596,11 @@ def _check_InputsGeneric(ld, tab=0):
                    and int(ld[k]['var'])==ld[k]['var']
                    and ld[k]['var']>0)
                   for cc in ltypes_f2i]
-            if not c0 or any(lc):
+            if not (c0 or any(lc)):
                 errk = True
                 msgk += bstr1 + "convertible to >0 int from %s"%str(ltypes_f2i)
                 msgk += bstr2 + "{0}".format(ld[k]['var'])
-            ld[k]['var'] = int(ld[k]['var'])
+            ld[k]['var'] = None if c0 else int(ld[k]['var'])
         if '>' in ld[k].keys():
             if not np.all(np.greater(ld[k]['var'], ld[k]['>'])):
                 errk = True

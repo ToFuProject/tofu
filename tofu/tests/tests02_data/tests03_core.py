@@ -196,8 +196,11 @@ class Test01_DataCam12D(object):
         lpfe = []
         for oo in cls.lobj:
             if oo._dgeom['config'] is not None:
-                lpfe.append( oo._dgeom['config'].save(verb=True,
-                                                      return_pfe=True) )
+                lpfe.append( oo._dgeom['config'].save(return_pfe=True) )
+            if oo._dgeom['lCam'] is not None:
+                for cc in oo._dgeom['lCam']:
+                    lpfe.append( cc.save(return_pfe=True) )
+
         cls.lpfe = lpfe
 
     @classmethod
