@@ -2080,7 +2080,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
             free(llimits)
     else:
         # .. if there are, we get the limits for the vessel ....................
-        if ves_lims is None:
+        if ves_lims is None  or np.size(ves_lims) == 0:
             are_limited = False
             lbounds_ves[0] = 0
             lbounds_ves[1] = 0
@@ -2372,28 +2372,29 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         if inter_bbox:
                             continue
                          # Else, we compute the new values
-                        found_new_kout = comp_inter_los_vpoly(loc_org,
-                                                              loc_dir,
-                                                              &lstruct_polyx[totnvert],
-                                                              &lstruct_polyy[totnvert],
-                                                              &lstruct_normx[totnvert - ii],
-                                                              &lstruct_normy[totnvert - ii],
-                                                              nvert-1,
-                                                              lim_is_none,
-                                                              lim_min, lim_max,
-                                                              forbidbis,
-                                                              upscaDp, upar2,
-                                                              dpar2, invuz,
-                                                              s1x, s1y,
-                                                              s2x, s2y,
-                                                              crit2, eps_uz,
-                                                              eps_vz, eps_a,
-                                                              eps_b, eps_plane,
-                                                              False,
-                                                              kpin_loc,
-                                                              kpout_loc,
-                                                              ind_loc,
-                                                              loc_vp)
+                        found_new_kout \
+                            = comp_inter_los_vpoly(loc_org,
+                                                   loc_dir,
+                                                   &lstruct_polyx[totnvert],
+                                                   &lstruct_polyy[totnvert],
+                                                   &lstruct_normx[totnvert - ii],
+                                                   &lstruct_normy[totnvert - ii],
+                                                   nvert-1,
+                                                   lim_is_none,
+                                                   lim_min, lim_max,
+                                                   forbidbis,
+                                                   upscaDp, upar2,
+                                                   dpar2, invuz,
+                                                   s1x, s1y,
+                                                   s2x, s2y,
+                                                   crit2, eps_uz,
+                                                   eps_vz, eps_a,
+                                                   eps_b, eps_plane,
+                                                   False,
+                                                   kpin_loc,
+                                                   kpout_loc,
+                                                   ind_loc,
+                                                   loc_vp)
                         if found_new_kout :
                             coeff_inter_out[ind_los] = kpin_loc[0]
                             vperp_out[0+3*ind_los] = loc_vp[0]
@@ -2563,6 +2564,8 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                 kout_tab[ii] = kout
                 if kin < kout:
                     kin_tab[ii] = kin
+                if ii==9:
+                    print("indout = ", indout, "kin, kout", kin, kout)
                 # To be finished
                 if indout==-1:
                     vperpout_tab[0 + 3 * ii] = 1.
@@ -2701,7 +2704,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     # ==========================================================================
     if ves_type.lower() == 'tor':
         # .. if there are, we get the limits for the vessel ....................
-        if ves_lims is None:
+        if ves_lims is None  or np.size(ves_lims) == 0:
             are_limited = False
             lbounds_ves[0] = 0
             lbounds_ves[1] = 0
@@ -2741,7 +2744,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                                          num_threads)
     else:
         # .. if there are, we get the limits for the vessel ....................
-        if ves_lims is None:
+        if ves_lims is None  or np.size(ves_lims) == 0:
             are_limited = False
             lbounds_ves[0] = 0
             lbounds_ves[1] = 0

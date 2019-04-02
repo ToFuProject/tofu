@@ -828,14 +828,16 @@ def test13_LOS_PInOut():
         VperpOut, IOut= GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn,
                                                      ves_lims=VL,
                                                      ves_type='Lin', test=True)
-    VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
-    IOut = np.transpose(IOut.reshape(nlos, 3))
     assert np.allclose(kPIn,np.concatenate((np.ones((3*N,)),
                                             2.*np.pi*np.ones((8,)) )),
                        equal_nan=True)
     assert np.allclose(kPOut,np.concatenate((3.*np.ones((kPOut.size-8,)),
                                              2.*np.pi*(1.+np.ones((8,))))),
                        equal_nan=True)
+    print("vperpout =")
+    print(VperpOut)
+    print("-us =")
+    print(-us)
     assert np.allclose(VperpOut, -us)
     assert np.allclose(IOut[2,:], Iout)
 
@@ -882,9 +884,6 @@ def test13_LOS_PInOut():
                                             lstruct_normx=lsvinx,
                                             lstruct_normy=lsviny,
                                             ves_type='Lin', test=True)
-    VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
-    IOut = np.transpose(IOut.reshape(nlos, 3))
-
     assert np.allclose(kPIn,np.concatenate((np.ones((3*N,)),
                                             2.*np.pi*np.ones((8,)))),
                        equal_nan=True)
@@ -946,8 +945,6 @@ def test13_LOS_PInOut():
         VperpOut, \
         IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
                                             ves_type='Tor', test=True)
-    VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
-    IOut = np.transpose(IOut.reshape(nlos, 3))
     # Reconstructing PIn and Pout from kPIn and kPOut
     PIn = np.zeros_like(VperpOut)
     POut = np.zeros_like(VperpOut)
@@ -1046,8 +1043,6 @@ def test13_LOS_PInOut():
     assert np.allclose(kPOut[:32], kpout,
                        equal_nan=True) and np.all((kPOut[32:]>=3.) &
                                                   (kPOut[32:]<16.))
-    VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
-    IOut = np.transpose(IOut.reshape(nlos, 3))
     # Reconstructing PIn and Pout from kPIn and kPOut
     PIn = np.zeros_like(VperpOut)
     POut = np.zeros_like(VperpOut)

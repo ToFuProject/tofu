@@ -3033,8 +3033,6 @@ class Rays(utils.ToFuObject):
             out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
             # Currently computes and returns too many things
             kIn, kOut, vperp, indout = out
-            # vperp  = np.transpose(vperp.reshape(self._dgeom['nRays'], 3))
-            # indout = np.transpose(indout.reshape(self._dgeom['nRays'], 3))
         else:
             pass
         return kIn, kOut, vperp, indout
