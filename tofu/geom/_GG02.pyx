@@ -1972,7 +1972,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     # ==========================================================================
     if ves_type.lower() == 'tor':
         # .. if there are, we get the limits for the vessel ....................
-        if ves_lims is None:
+        if ves_lims is None or np.size(ves_lims) == 0:
             are_limited = False
             lbounds_ves[0] = 0
             lbounds_ves[1] = 0
@@ -1982,6 +1982,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
             lbounds_ves[0] = Catan2(Csin(ves_lims[0]), Ccos(ves_lims[0]))
             lbounds_ves[1] = Catan2(Csin(ves_lims[1]), Ccos(ves_lims[1]))
             llim_ves[0] = 0
+            print("HEEEEEEEEEEEEEEEEEEEEEERE")
         # -- Toroidal case -----------------------------------------------------
         # rmin is necessary to avoid looking on the other side of the tokamak
         if rmin < 0.:
@@ -2059,6 +2060,15 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                         lim_max = 0.
                     langles[ind_struct*2] = lim_min
                     langles[ind_struct*2 + 1] = lim_max
+                    print "For struct =", ii, jj, "=>", ind_struct, " lbounds =\n",\
+                          ind_struct*6, lbounds[ind_struct*6], "\n",\
+                          ind_struct*6+1, lbounds[ind_struct*6+1], "\n",\
+                          ind_struct*6+2, lbounds[ind_struct*6+2], "\n",\
+                          ind_struct*6+3, lbounds[ind_struct*6+3], "\n",\
+                          ind_struct*6+4, lbounds[ind_struct*6+4], "\n",\
+                          ind_struct*6+5, lbounds[ind_struct*6+5], "\n",\
+                          " langles = \n",\
+                          langles[ind_struct*2],langles[ind_struct*2+1]
                     ind_struct = 1 + ind_struct
             # end loops over structures
 
@@ -2138,7 +2148,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     free(langles)
 
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out),\
-           np.asarray(vperp_out), np.asarray(ind_inter_out, dtype=int)
+           np.transpose(np.asarray(vperp_out).reshape(num_los,3)),\
+           np.transpose(np.asarray(ind_inter_out, dtype=int).reshape(num_los, 3))
 
 
 cdef inline void raytracing_inout_struct_tor(int num_los,
@@ -2357,13 +2368,9 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         lim_is_none = lis_limited[ind_struct+jj] == 1
                         # We test if it is really necessary to compute the inter
                         # ie. we check if the ray intersects the bounding box
-                        if ind_los == 16:
-                            found_new_kout = True
-                        else:
-                            found_new_kout = False
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
                                                         &lbounds[(ind_struct + jj)*6],
-                                                        loc_org, debug_plot=found_new_kout,
+                                                        loc_org,
                                                         countin=True)
                         if not inter_bbox:
                             continue
@@ -2396,7 +2403,8 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                               kpin_loc,
                                                               kpout_loc,
                                                               ind_loc,
-                                                              loc_vp)
+                                                              loc_vp,
+                                                              debug_plot=ind_los==97)
                         if found_new_kout :
                             coeff_inter_out[ind_los] = kpin_loc[0]
                             vperp_out[0+3*ind_los] = loc_vp[0]
@@ -2430,8 +2438,11 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                       eps_a,eps_b, eps_plane,
                                                       True,
                                                       kpin_loc, kpout_loc,
-                                                      ind_loc, loc_vp,)
+                                                      ind_loc, loc_vp, debug_plot=ind_los==97)
                 if found_new_kout:
+                    if ind_los == 97:
+                        with gil:
+                            print("=====> indloc = ", ind_loc[0])
                     coeff_inter_in[ind_los]  = kpin_loc[0]
                     coeff_inter_out[ind_los] = kpout_loc[0]
                     ind_inter_out[2+3*ind_los] = ind_loc[0]
@@ -3056,7 +3067,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                       const double eps_b, const double eps_pln,
                                       const bint is_in_struct,
                                       double[1] kpin_loc, double[1] kpout_loc,
-                                      int[1] ind_loc, double[3] vperpin) nogil:
+                                      int[1] ind_loc, double[3] vperpin,
+                                      bint debug_plot=False) nogil:
     """
     Computes the entry and exit point of ONE provided LOS/rays for a single
     structure that can be of type "OUT" (is_out_struct=True) or "IN"
@@ -3415,6 +3427,10 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                         indin = -2
     # == Analyzing if there was impact =========================================
     if done==1:
+        if debug_plot:
+            with gil:
+                print("is_in_struct, indout, indin =", is_in_struct, indout, indin)
+                print("lim is none =", lim_is_none)
         if is_in_struct :
             kpout_loc[0] = kout
             if indout==-1:
