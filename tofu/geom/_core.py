@@ -4268,11 +4268,12 @@ class Rays(utils.ToFuObject):
             if np.any(indtouch):
                 indok  = indtouch & ind
                 indout = indtouch & ~ind
-                if out == int:
-                    indok  = indok.nonzero()[0]
-                    indout = indout.nonzero()[0]
-                dElt[kn] = {'indok':indok, 'indout':indout,
-                            'col':ss.get_color()}
+                if np.any(indok) or np.any(indout):
+                    if out == int:
+                        indok  = indok.nonzero()[0]
+                        indout = indout.nonzero()[0]
+                    dElt[kn] = {'indok':indok, 'indout':indout,
+                                'col':ss.get_color()}
         return dElt
 
     def get_touch_colors(self, ind=None, dElt=None,

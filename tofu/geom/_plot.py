@@ -1418,14 +1418,15 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
                                  c=cbck, ls='-', lw=1.)
         elif nD == 1:
             for kn, v in dElt.items():
-                crok = [np.concatenate((lCross[ii],nan2), axis=1)
-                        for ii in v['indok']]
-                crok = np.concatenate(crok, axis=1)
-                dax['cross'][0].plot(crok[0,:],  crok[1,:],  c=v['col'], lw=1.)
-                crok = [np.concatenate((lHor[ii],nan2), axis=1)
-                        for ii in v['indok']]
-                crok = np.concatenate(crok, axis=1)
-                dax['hor'][0].plot(crok[0,:],  crok[1,:],  c=v['col'], lw=1.)
+                if np.any(v['indok']):
+                    crok = [np.concatenate((lCross[ii],nan2), axis=1)
+                            for ii in v['indok']]
+                    crok = np.concatenate(crok, axis=1)
+                    dax['cross'][0].plot(crok[0,:],  crok[1,:],  c=v['col'], lw=1.)
+                    crok = [np.concatenate((lHor[ii],nan2), axis=1)
+                            for ii in v['indok']]
+                    crok = np.concatenate(crok, axis=1)
+                    dax['hor'][0].plot(crok[0,:],  crok[1,:],  c=v['col'], lw=1.)
                 if np.any(v['indout']):
                     crout = [np.concatenate((lCross[ii],nan2), axis=1)
                              for ii in v['indout']]
