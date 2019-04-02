@@ -1179,7 +1179,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     for jj in range(0,nchMax):
 
         # Channel text
-        l0 = dax['txtx'][0].text(0.5, 0., r'',
+        l0 = dax['txtx'][0].text((0.5+jj)/nchMax, 0., r'',
                                  color='k', fontweight='bold',
                                  fontsize=6., ha='center', va='bottom')
         dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[lidX[0]],

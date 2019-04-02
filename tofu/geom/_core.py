@@ -4244,29 +4244,57 @@ class Rays(utils.ToFuObject):
                                     ind=ind, fs=fs, wintit=wintit,
                                     draw=draw, Test=Test)
 
-    def _get_touchcols(self, method='original', cdef=(0.8,0.8,0.8),
-                       vmin=None, vmax=None, ind=None):
-        def _make_cmap(c):
-            c0 = mpl.colors.to_rgb(c)
-            dc = {'red':((0.,c0[0],c0[0]),(1.,1.,1.)),
-                  'green':((0,c0[1],c0[1]),(1.,1.,1.)),
-                  'blue':((0.,c0[2],c0[2]),(1.,1.,1.))}
-            cm = mpl.colors.LinearSegmentedColormap(c, dc)
-            return cm
-        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
-        cmapdef = _make_cmap(cdef)
-        lS = self.lStruct_computeInOut
-        cols = np.zeros((self.nRays, 4))
-        cols[:,:-1] = mpl.colors.to_rgb(cdef)
-        for ss in lS:
-            inde = self.select(touch=ss.Id.Cls+'_'+ss.Id.Name, out=bool)
-            if ind is not None:
-                inde = inde & ind
-            cols[inde,:-1] = ss.get_color()[:-1]
-        return cols, cmapdef, norm
 
+    def get_touch_dict(self, ind=None, out=bool):
+        """ Get a dictionnary of Cls_Name struct with indices of Rays touching
 
-    def plot_touch(self, key=None, quant='length', invert=None, ind=None,
+        Only includes Struct object with compute = True
+            (as returned by self.lStruct__computeInOut_computeInOut)
+        Also return the associated colors
+        If in is not None, the indices for each Struct are split between:
+            - indok : rays touching Struct and in ind
+            - indout: rays touching Struct but not in ind
+
+        """
+        if self.config is None:
+            msg = "Config must be set in order to get touch dict !"
+            raise Exception(msg)
+
+        dElt = {}
+        ind = self._check_indch(ind, out=bool)
+        for ss in self.lStruct_computeInOut:
+            kn = "%s_%s"%(ss.__class__.__name__, ss.Id.Name)
+            indtouch = self.select(touch=kn, out=bool)
+            if np.any(indtouch):
+                indok  = indtouch & ind
+                indout = indtouch & ~ind
+                if out == int:
+                    indok  = indok.nonzero()[0]
+                    indout = indout.nonzero()[0]
+                dElt[kn] = {'indok':indok, 'indout':indout,
+                            'col':ss.get_color()}
+        return dElt
+
+    def get_touch_colors(self, ind=None, dElt=None,
+                         cbck=(0.8,0.8,0.8), rgba=True):
+        if dElt is None:
+            dElt = self.get_touch_dict(ind=None, out=bool)
+        else:
+            assert type(dElt) is dict
+            assert all([type(k) is str and type(v) is dict
+                        for k,v in dElt.items()])
+
+        if rgba:
+            colors = np.tile(mpl.colors.to_rgba(cbck), (self.nRays,1)).T
+            for k,v in dElt.items():
+                colors[:,v['indok']] = np.r_[mpl.colors.to_rgba(v['col'])][:,None]
+        else:
+            colors = np.tile(mpl.colors.to_rgb(cbck), (self.nRays,1)).T
+            for k,v in dElt.items():
+                colors[:,v['indok']] = np.r_[mpl.colors.to_rgb(v['col'])][:,None]
+        return colors
+
+    def plot_touch(self, key=None, quant='lengths', invert=None, ind=None,
                    Bck=True, fs=None, wintit=None, tit=None,
                    connect=True, draw=True):
 

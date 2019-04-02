@@ -1177,44 +1177,50 @@ def _make_cmap(c):
 
 
 
-def Rays_plot_touch(cam, key=None, ind=None, quant='length', cdef=_cdef,
+def Rays_plot_touch(cam, key=None, ind=None, quant='lengths', cdef=_cdef,
                     invert=None, Bck=True, cbck=_cbck, Lplot='In',
                     incch=[1,10], ms=4, cmap='touch', vmin=None, vmax=None,
                     fmt_ch='02.0f', labelpad=_labelpad, dmargin=None,
                     nchMax=_nchMax, lcch=_lcch, fs=None, wintit=None, tit=None,
                     fontsize=_fontsize, draw=True, connect=True):
 
-    if type(cam) is list:
-        assert all([cc.config==cam[0].config for cc in cam])
-    if ind is not None and type(cam) is list and len(cam)>1:
-        msg = "Cannot provide ind if cam is a list !"
-        raise Exception(msg)
+    ########
+    # Prepare
     if ind is not None:
-        if type(cam) is list:
-            ind = cam[0]._check_indch(ind, out=bool)
-        else:
-            ind = cam._check_indch(ind, out=bool)
-
+        ind = cam._check_indch(ind, out=bool)
     if wintit is None:
         wintit = _wintit
-
-    if type(cam) is list or '1D' in cam.Id.Cls:
-        if not type(cam) is list:
-            cam = [cam]
-        out = _cam1D_plot_touch(cam, key=key, ind=ind, cdef=cdef,
-                                fs=fs, wintit=wintit, tit=tit, draw=draw)
-    else:
-        invert = True if invert is None else invert
-        # out = _cam2D_plot_touch2(cam, ind=ind, quant=quant, cdef=cdef, nchMax=nchMax,
-                                 # invert=invert, Bck=Bck,
-                                 # lcch=lcch, fs=fs, wintit=wintit, tit=tit,
-                                 # fontsize=fontsize, draw=draw, connect=connect)
-        # out = _cam2D_plot_touch(cam, ind=ind, cdef=cdef, nchMax=nchMax,
-                                 # invert=invert, plotmethod=plotmethod,
-                                 # lcch=lcch, fs=fs, wintit=wintit, tit=tit,
-                                 # fontsize=fontsize, draw=draw, connect=connect)
+    assert (issubclass(cam.__class__, utils.ToFuObject)
+            and 'cam' in cam.Id.Cls.lower())
 
     nD = 2 if cam._is2D() else 1
+    if nD == 2:
+        invert = True if invert is None else invert
+
+
+    assert type(quant) in [str,np.ndarray]
+    if type(quant) is str:
+        lok = ['lengths','indices','Etendues','Surfaces']
+        if not quant in lok:
+            msg = "Valid flags for kwarg quant are:\n"
+            msg += "    [" + ", ".join(lok) + "]\n"
+            msg += "    Provided: %s"%quant
+            raise Exception(msg)
+        if quant in ['Etendues','Surfaces'] and getattr(cam,quant) is None:
+            msg = "Required quantity is not set:\n"
+            msg += "    self.%s = None\n"%quant
+            msg += "  => use self.set_%s() first"%quant
+            raise Exception(msg)
+    else:
+        quant = quant.ravel()
+        if quant.shape != (cam.nRays,):
+            msg = "Provided quant has wrong shape!\n"
+            msg += "    - Expected: (%s,)"%cam.nRays
+            msg += "    - Provided: %s"%quant.shape
+            raise Exception(msg)
+
+    ########
+    # Plot
     out = _Cam12D_plottouch(cam, key=key, ind=ind, quant=quant, nchMax=nchMax,
                             Bck=Bck, lcch=lcch, cbck=cbck, Lplot=Lplot,
                             incch=incch, ms=ms, cmap=cmap, vmin=vmin, vmax=vmax,
@@ -1892,9 +1898,8 @@ def _Cam12D_plot_touch_init(fs=None, dmargin=None, fontsize=8,
     axC.set_aspect('equal', adjustable='datalim')
     axH.set_aspect('equal', adjustable='datalim')
 
-    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
-    DY = (axp.get_position().bounds[1]
-          - cax.get_position().bounds[1] - cax.get_position().bounds[3])
+    Ytxt = axp.get_position().bounds[1] + axp.get_position().bounds[3]
+    DY = 0.02
     Xtxt = axp.get_position().bounds[0]
     DX = axp.get_position().bounds[2]
     axtxtch = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
@@ -1925,11 +1930,11 @@ def _Cam12D_plot_touch_init(fs=None, dmargin=None, fontsize=8,
     return dax
 
 
-def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
+def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
                       Bck=True, lcch=_lcch, cbck=_cbck, Lplot='In',
                       incch=[1,5], ms=4, plotmethod='imshow',
                       cmap=None, vmin=None, vmax=None,
-                      fmt_ch='01.0f', invert=True,
+                      fmt_ch='01.0f', invert=True, Dlab=None,
                       fontsize=_fontsize, labelpad=_labelpad,
                       fs=None, dmargin=None, wintit=_wintit, tit=None,
                       draw=True, connect=True, nD=1):
@@ -1947,6 +1952,7 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
     # Check nch and X
     nch = cam.nRays
 
+    nan2 = np.full((2,1),np.nan)
     if nD == 1:
         Xlab = r"index"
         Xtype = 'x'
@@ -1955,7 +1961,6 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
         x1, x2, indr, extent = cam.get_X12plot('imshow')
         if Bck:
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
-            nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
         n12 = [x1.size, x2.size]
         Xtype = 'x'
@@ -1971,22 +1976,35 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
     idchans = id(dchans)
 
     # ---------
+    # Check colors
+
+    dElt = cam.get_touch_dict(ind=ind, out=int)
+
+    # ---------
     # Check data
 
     # data
-    if quant == 'length':
-        if cam._isLOS():
-            Dlab = r'LOS length'+r'$m$'
-            data = cam.kOut-cam.kIn
-            data[np.isinf(data)] = np.nan
+    if type(quant) is str:
+        if quant == 'lengths':
+            if cam._isLOS():
+                Dlab = r'LOS length'+r'$m$'
+                data = cam.kOut-cam.kIn
+                data[np.isinf(data)] = np.nan
+            else:
+                Dlab = r'VOS volume'+r'$m^3$'
+                data = None
+                raise Exception("Not coded yet !")
+        elif quant == 'indices':
+            Dlab = r'index' + r' ($a.u.$)'
+            data = np.arange(0,cam.nRays)
         else:
-            Dlab = r'VOS volume'+r'$m^3$'
-            data = None
-            raise Exception("Not coded yet !")
-    elif quant == 'ind':
-        Dname = 'index'
-        Dunits = r"$a.u.$"
-        data = np.arange(0,cam.nRays)
+            data = getattr(cam, quant)
+            Dlab = quant
+            Dlab += r' ($m^2/sr$)' if quant == 'Etendues' else r' ($m^2$)'
+    else:
+        data = quant
+        Dlab = '' if Dlab is None else Dlab
+
     iddata = id(data)
 
     vmin = np.nanmin(data) if vmin is None else vmin
@@ -1997,12 +2015,11 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
     else:
         norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
         if cmap == 'touch':
-            cols = cam._get_touchcols(vmin=vmin, vmax=vmax, cdef=cbck, ind=None)[0]
-            # To be finished
+            cols = cam.get_touch_colors(dElt=dElt)
         else:
-            pass
-
-
+            cols = np.tile(mpl.colors.to_rgba(cmap), (self.nRays,1)).T
+        cols[-1,:] = 1.-norm(data)
+        cols = np.swapaxes(cols[:,indr.T], 0,2)
 
     #########
     # Plot
@@ -2012,7 +2029,7 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
     dax = _Cam12D_plot_touch_init(fs=fs, wintit=wintit, nchMax=nchMax,
                                   dmargin=dmargin, fontsize=fontsize, nD=nD)
 
-    fig = dax['chan2D'][0].figure
+    fig = dax['X'][0].figure
 
     if tit is None:
         tit = r"%s - %s - %s"%(cam.Id.Exp, cam.Id.Diag, cam.Id.Name)
@@ -2039,12 +2056,25 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
                                  c=cbck, ls='-', lw=1.)
             dax['hor'][0].plot(horbck[0,:], horbck[1,:],
                                  c=cbck, ls='-', lw=1.)
-        elif Bck:
-            out = cam.plot(lax=[dax['cross'][0], dax['hor'][0]],
-                           element='L', Lplot=Lplot,
-                           dL={'c':cbck,'lw':0.5},
-                           dLeg=None, draw=False)
-            dax['cross'][0], dax['hor'][0] = out
+        elif nD == 1:
+            for kn, v in dElt.items():
+                crok = [np.concatenate((lCross[ii],nan2), axis=1)
+                        for ii in v['indok']]
+                crok = np.concatenate(crok, axis=1)
+                dax['cross'][0].plot(crok[0,:],  crok[1,:],  c=v['col'], lw=1.)
+                crok = [np.concatenate((lHor[ii],nan2), axis=1)
+                        for ii in v['indok']]
+                crok = np.concatenate(crok, axis=1)
+                dax['hor'][0].plot(crok[0,:],  crok[1,:],  c=v['col'], lw=1.)
+                if np.any(v['indout']):
+                    crout = [np.concatenate((lCross[ii],nan2), axis=1)
+                             for ii in v['indout']]
+                    crout = np.concatenate(crout, axis=1)
+                    dax['cross'][0].plot(crout[0,:], crout[1,:], c=cbck, lw=1.)
+                    crout = [np.concatenate((lHor[ii],nan2), axis=1)
+                             for ii in v['indout']]
+                    crout = np.concatenate(crout, axis=1)
+                    dax['hor'][0].plot(crout[0,:], crout[1,:], c=cbck, lw=1.)
         lHor = np.stack(lHor)
         idlCross = id(lCross)
         idlHor = id(lHor)
@@ -2053,14 +2083,27 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
 
     # data, TBF
     if nD == 1:
-        dax['X'][0].plot(X, data,
-                         c=lct[jj], ls='-', lw=1.)
-    else:
-        if cmap == 'touch':
-            pass
+        for kn,v in dElt.items():
+            dax['X'][0].plot(X[v['indok']], data[v['indok']],
+                             marker='o', ms=ms, mfc='None',
+                             c=v['col'], ls='-', lw=1.)
+            dax['X'][0].plot(X[v['indout']], data[v['indout']],
+                             marker='o', ms=ms, mfc='None',
+                             c=cbck, ls='-', lw=1.)
+    elif nD == 2:
         dax['X'][0].imshow(cols, extent=extent, aspect='equal',
-                           interpolation='nearest', origin='lower',
-                           zorder=-1, norm=norm, cmap=cmap)
+                           interpolation='nearest', origin='lower', zorder=-1)
+        cmapdef = plt.cm.gray if cmap == 'touch' else cmap
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0],
+                                       cmap=cmapdef, norm=norm,
+                                       orientation='horizontal')
+        cb.set_label(Dlab)
+        # Define datanorm because colorbar => xlim in (0,1)
+        if dax['colorbar'][0].get_xlim() == (0.,1.):
+            datanorm = np.asarray(norm(data))
+        else:
+            datanorm = data
+        iddatanorm= id(datanorm)
 
 
     # ---------------
@@ -2087,23 +2130,25 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
                              fontsize=6., ha='left', va='center')
 
     # dref
-    dref = {idX:{'group':'channel', 'val':X, 'inc':incX}}
+    dref = {idX:{'group':'channel', 'val':X, 'inc':incch}}
 
     if nD == 2:
         dref[idX]['2d'] = (x1,x2)
 
     # ddata
-    ddat = {iddata:{'val':ldata[ii], 'refids':[idX]}}
+    ddat = {iddata:{'val':data, 'refids':[idX]}}
     ddat[idchans] = {'val':dchans, 'refids':[idX]}
     if lCross is not None:
         ddat[idlCross] = {'val':lCross, 'refids':[idX]}
         ddat[idlHor] = {'val':lHor, 'refids':[idX]}
     if nD == 2:
         ddat[idx12] = {'val':(x1,x2), 'refids':[idX]}
+        if iddatanorm not in ddat.keys():
+            ddat[iddatanorm] = {'val':datanorm, 'refids':[idX]}
 
     # dax
     lax_fix = [dax['cross'][0], dax['hor'][0],
-               dax['txtg'][0], dax['txtx'][0]]
+               dax['txtg'][0], dax['txtch'][0]]
 
     dax2 = {}
     if nD == 1:
@@ -2122,8 +2167,8 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
     for jj in range(0,nchMax):
 
         # Channel text
-        l0 = dax['txtx'][0].text(0.5, 0., r'',
-                                 color='k', fontweight='bold',
+        l0 = dax['txtch'][0].text((0.5+jj)/nchMax, 0., r'',
+                                 color=lcch[jj], fontweight='bold',
                                  fontsize=6., ha='center', va='bottom')
         dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[idX],
                                       'bstr':'{0:%s}'%fmt_ch}},
@@ -2160,7 +2205,7 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='length', nchMax=_nchMax,
 
             # Channel colorbar indicators
             l0 = dax['colorbar'][0].axvline([np.nan], ls='-', c=lcch[jj])
-            dobj[l0] = {'dupdate':{'data':{'id':idcolobar, 'lrid':[idX]}},
+            dobj[l0] = {'dupdate':{'xdata':{'id':iddatanorm, 'lrid':[idX]}},
                         'drefid':{idX:jj}}
 
 
