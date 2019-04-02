@@ -2564,8 +2564,6 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                 kout_tab[ii] = kout
                 if kin < kout:
                     kin_tab[ii] = kin
-                if ii==9:
-                    print("indout = ", indout, "kin, kout", kin, kout)
                 # To be finished
                 if indout==-1:
                     vperpout_tab[0 + 3 * ii] = 1.
@@ -5152,26 +5150,47 @@ def comp_dist_los_circle(double dir1, double dir2, double dir3,
     orig[1] = ori2
     dirv[2] = dir3
     orig[2] = ori3
-    if norm_dir < 0.:
-        norm_dir = compute_dot_prod(dirv, dirv)
     dist_los_circle_core(dirv, orig, radius, circ_z, norm_dir, res)
     return res
 
-cdef inline void dist_los_circle_core(const double[3] direction,
+cdef inline void dist_los_circle_core(const double[3] direct,
                                       const double[3] origin,
                                       const double radius, const double circ_z,
-                                      const double norm_dir,
+                                      double norm_dir,
                                       double[2] result) nogil:
-    # This function computes the intersection of a Ray (or Line Of Sight)
-    # and a circle in 3D. It returns `kmin`, the coefficient such that the
-    # ray of origin O = [ori1, ori2, ori3] and of directional vector
-    # D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
-    # and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
-    # And `distance` the distance between the two closest points
-    # The variable `norm_dir` is the squared norm of the direction of the ray.
-    # ---
-    # Source: https://www.geometrictools.com/Documentation/DistanceToCircle3.pdf
-    # The line is P(t) = B+t*M.  The circle is |X-C| = r with Dot(N,X-C)=0.
+    """
+    This function computes the intersection of a Ray (or Line Of Sight)
+    and a horizontal circle in 3. It returns `kmin` the coefficient such that
+    the ray of origin O = [ori1, ori2, ori3] and of directional vector
+    D = [dir1, dir2, dir3] is closest to the circle of radius `radius`,
+    center `(0, 0, circ_z)` and of normal (0,0,1) at the point P = O + kmin * D.
+    And `distance` the distance between the two closest points
+    The variable `norm_dir` is the norm of the direction of the ray.
+    if you haven't normalized the ray (and for optimization reasons you dont
+    want to, you can pass norm_dir = -1
+    ---
+    Source: https://www.geometrictools.com/Documentation/DistanceToCircle3.pdf
+    The line is P(t) = B+t*M.  The circle is |X-C| = r with Dot(N,X-C)=0.
+
+    Params
+    ======
+    direct : double (3) array
+       directional vector of the ray
+    origin : double (3) array
+       origin of the array (in 3d)
+    radius : double
+       radius of the circle
+    circ_z : double
+       3rd coordinate of the center of the circle
+       ie. the circle center is (0,0, circ_z)
+    norm_dir : double (3) array
+       normal of the direction of the vector (for computation performance)
+    result : double (2) array
+       - result[0] will contain the DISTANCE from line closest point to circle
+       closest point
+       - result[1] will contain the k coefficient to find the line point closest
+       to the circle
+    """
     cdef int numRoots, i
     cdef double zero = 0., m0sqr, m0, rm0
     cdef double lambd, m2b2, b1sqr, b1, r0sqr, twoThirds, sHat, gHat, cutoff, s
@@ -5182,17 +5201,24 @@ cdef inline void dist_los_circle_core(const double[3] direction,
     cdef double[3] circle_normal
     cdef double[3] roots
     cdef double[3] diff
+    cdef double[3] direction
+    cdef double[3] line_closest
     cdef double[3] circle_center
     cdef double[3] circle_closest
-    cdef double[3] line_closest
     cdef double tmin
     cdef double distance
+    cdef double inv_norm_dir
 
+    if norm_dir < 0:
+        norm_dir = Csqrt(compute_dot_prod(direct, direct))
+    inv_norm_dir = 1./ norm_dir
     # .. initialization .....
     for i in range(3):
         circle_center[i] = 0.
         circle_normal[i] = 0.
         roots[i] = 0.
+        # we normalize direction
+        direction[i] = direct[i] * inv_norm_dir
     circle_normal[2] = 1
     circle_center[2] = circ_z
 
@@ -5366,6 +5392,7 @@ cdef inline void dist_los_circle_core(const double[3] direction,
                 t = Cabs(circle_center[2] - origin[2])
                 result[0] = 0
                 result[1] = Csqrt(radius*radius + t*t)
+    result[0] = result[0] * inv_norm_dir
     return
 
 
@@ -5839,6 +5866,8 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
         free(loc_dir)
     free(res_loc)
     return np.asarray(kmin_vpoly), np.asarray(dist_vpoly)
+
+
 
 cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                                           const double[3] ray_vdir,

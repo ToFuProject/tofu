@@ -36,7 +36,7 @@ x	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
 	> parametres entrées: (nvert, poly, vin, lims si lin, los_origin,
 	                       los_direction)
 
-/!\ Only did it for toroidal polygons... is it really necessary ?
+ 	>> Only did it for toroidal polygons... is it really necessary ?
 /!\ I erased the function "is los close to vpoly"
 
        o Interface Python:
