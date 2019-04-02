@@ -144,8 +144,12 @@ def test_LOS_west_configs(config="B2", cams=["V1000"], plot=False, save=False, s
             start = time.time()
             out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
 
-        if (out == np.nan):
-            print("Sorry... there are Nans..............")
+        if np.isnan(np.sum(out[0])):
+            print("0. Sorry... there are Nans..............")
+        elif np.isnan(np.sum(out[1])):
+            print("1. Sorry... there are Nans..............")
+        else:
+            print(out[0])
         elapsed = time.time() - start
         if config == "A2":
             num = int(vcam[2:])
@@ -346,7 +350,9 @@ if __name__ == "__main__":
     # touch_plot_config_cam("B2", "V10")
     # line profiling.....
     # test_line_profile(cam="V100000")
+    #touch_plot_config_cam("A1", "V10")
     print(test_LOS_west_configs("A1", ["V10"]))
+    #print(test_LOS_west_configs("B3", ["V1000"]))
     # print(test_LOS_west_configs("B2", "V1000", save=True, saveCam=["V1000"]))
     # test_LOS_all(save=True,saveCam=["V1000", "VA1000"])
     #are_results_the_same()

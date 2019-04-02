@@ -945,7 +945,7 @@ def test13_LOS_PInOut():
     kPIn, kPOut,\
         VperpOut, \
         IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
-                                            ves_type='Tor', test=True, num_threads=1)
+                                            ves_type='Tor', test=True)
     VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
     IOut = np.transpose(IOut.reshape(nlos, 3))
     # Reconstructing PIn and Pout from kPIn and kPOut
@@ -1030,140 +1030,55 @@ def test13_LOS_PInOut():
                       0,0,0,1,0,1,1,0, 0,0,0,0,0,0,0,0, 0,0,0,0, 0,0,0,1]],
                     dtype=int)
 
-
-    # print("++++++++++++++++++++++++++++++++++++++")
-    # print("Ds =")
-    # print(Ds[:,0])
-    # print("us =")
-    # print(us[:,0])
-    # print("++++++++++++++++++++++++++++++++++++++")
-
-    # import matplotlib.pyplot as plt
-    # plt.ion()
-    # plt.clf()
-    # # ax1 = plt.subplot(121)
-    # # ax1.plot(VP[0], VP[1])
-    # # ax1.plot(SP1x, SP1y)
-    # # ax1.plot([0, 8, 8, 0], [7, 7, 8, 8])
-    # # ray_min = 0
-    # # ray_max = 0
-    # for i in range(0, nlos):
-    #     # ax1.plot([Ds[0][i],
-    #     #           Ds[0][i] + us[0][i]],
-    #     #          [Ds[2][i],
-    #     #           Ds[2][i] + us[2][i]],
-    #     #          linewidth=2.0, label="ray"+str(i))
-    #     from mpl_toolkits.mplot3d import proj3d
-    #     fig = plt.figure()
-    #     ax = fig.gca(projection='3d')
-    #     ax.scatter3D(Ds[0][i], Ds[1][i], Ds[2][i])
-    # plt.savefig("xyzpng")
-    #ax1.legend()
-    # theta = np.linspace(0, 2.*np.pi, 100)
-    # rmin = min(VP[0])
-    # rmax = max(VP[0])
-    # print("rmin, rmax =", rmin, rmax)
-    # ax2 = plt.subplot(122)
-    # ax2.plot(rmin * np.cos(theta), rmin * np.sin(theta), c='b')
-    # ax2.plot(rmax * np.cos(theta), rmax * np.sin(theta), c='b')
-    # rmin = min(SP1x)
-    # rmax = max(SP1x)
-    # ax2.plot(rmin * np.cos(theta), rmax * np.sin(theta))
-    # ax2.plot(rmax * np.cos(theta), rmax * np.sin(theta))
-    # ax2.plot([0, 8, 8, 0], [0, 0, 8, 8])
-
-    # print(SP1x)
-    # print(SP1y)
-    # print(SL1)
-    # for i in range(ray_min,ray_max+1):
-    #     ax2.plot([Ds[0][i],
-    #               Ds[0][i] + us[0][i]],
-    #              [Ds[1][i],
-    #               Ds[1][i]  + us[1][i]],
-    #              linewidth=2.0, label="ray"+str(i))
-    #     ax2.scatter(Ds[0][i], Ds[1][i], 10)
-    # ax2.legend()
-    # plt.show(block=True)
-    # plt.savefig("outpng")
-
-    ##...........................................
-    Ves = tf.geom.Ves(Name="test", Exp="toto", Poly=VP)
-    structS1 = tf.geom.PFC(Name="test", Exp="toto", Poly=SP1, Lim=SL1_or)
-    config = tf.geom.Config(Name="test", Exp="toto", lStruct=[Ves, structS1])
-    ds1r = [Ds[0][0], Ds[0][1], Ds[0][2]]
-    us1r = [us[0][0], us[0][1], us[0][2]]
-    print(ds1r, us1r)
-    cam = tf.geom.CamLOS1D(Exp="NAme", Name="NAME", dgeom=(Ds, us),
-                           config=config, Diag='Test', method="ref", plotdebug=False)
-    cam.plot_touch()
-    plt.savefig("test.png")
-    # PIn, POut, kPIn, kPOut_or,\
-    #     VperpIn, VperpOut, \
-    #     IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
-    #                                              LSPoly=[SP0,SP1,SP2],
-    #                                              LSLim=[SL0_or,SL1_or,SL2_or],
-    #                                              LSVIn=[VIn,VIn,VIn],
-    #                                              VType='Tor', Test=True)
-    # print("iout 0 = ", IOut[:,0])
-    # print("================================")
-    # kPIn, kPOut,\
-    #     VperpOut, \
-    #     IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
-    #                                         nstruct_tot=nstruct_tot,
-    #                                         nstruct_lim=nstruct_lim,
-    #                                         lnvert=lnvert,
-    #                                         lstruct_polyx=lspolyx,
-    #                                         lstruct_polyy=lspolyy,
-    #                                         lstruct_nlim=lstruct_nlim,
-    #                                         lstruct_lims=[SL0,SL1,SL2],
-    #                                         lstruct_normx=lsvinx,
-    #                                         lstruct_normy=lsviny,
-    #                                         ves_type='Tor', test=True, num_threads=1)
-    # print("exact =")
-    # print(kpout)
-    # print("mine =")
-    # print(kPOut[:32])
-    # print("old =")
-    # print(kPOut_or[:32])
-    # assert np.allclose(kPOut[:32], kpout,
-    #                    equal_nan=True) and np.all((kPOut[32:]>=3.) &
-    #                                               (kPOut[32:]<16.))
-    # VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
-    # IOut = np.transpose(IOut.reshape(nlos, 3))
-    # # Reconstructing PIn and Pout from kPIn and kPOut
-    # PIn = np.zeros_like(VperpOut)
-    # POut = np.zeros_like(VperpOut)
-    # ndim, nlos = np.shape(VperpOut)
-    # for i in range(nlos):
-    #     for j in range(ndim):
-    #         PIn[j, i]  = Ds[j, i] + kPIn[i]  * us[j, i]
-    #         POut[j, i] = Ds[j, i] + kPOut[i] * us[j, i]
-    # # ...
-    # RIn, ROut = np.hypot(PIn[0,32:],PIn[1,32:]), np.hypot(POut[0,32:],
-    #                                                       POut[1,32:])
-    # ThetaIn  = np.arctan2(PIn[1,32:],  PIn[0,32:])
-    # ThetaOut = np.arctan2(POut[1,32:], POut[0,32:])
-    # ErIn = np.array([np.cos(ThetaIn), np.sin(ThetaIn), np.zeros((8,))])
-    # ErOut = np.array([np.cos(ThetaOut), np.sin(ThetaOut), np.zeros((8,))])
-    # vperpout = np.concatenate((ErOut[:,0:1],-ErOut[:,1:2],-ey,
-    #                            -ErOut[:,3:4], -ErOut[:,4:5],ErOut[:,5:6],ex,ex),
-    #                           axis=1)
-    # assert np.allclose(kPIn[:32],np.ones((4*N,)),
-    #                    equal_nan=True) and np.all((kPIn[32:]>0.) &
-    #                                               (kPIn[32:]<6.5))
-    # assert np.allclose(PIn[:,:32],Sols_In[:,:32],
-    #                    equal_nan=True) and np.all((ThetaIn>-np.pi/2.) &
-    #                                               (ThetaIn<0.))
-    # assert np.allclose(POut[:,:32],Sols_Out[:,:32],
-    #                    equal_nan=True) and np.all((ThetaOut>-np.pi) &
-    #                                               (ThetaOut<np.pi/2.))
-    # assert np.all((RIn>=6.) & (RIn<=8.)) and np.all((ROut>=6.) & (ROut<=8.))
-    # assert np.allclose(VperpIn[:,:32], -us[:,:32]) and \
-    #     np.allclose(VperpOut[:,:32], -us[:,:32]) and \
-    #     np.allclose(VperpIn[:,32:],ErIn) and \
-    #     np.allclose(VperpOut[:,32:],vperpout)
-    # assert np.allclose(IIn, Iin) and np.allclose(IOut[2,:], Iout)
-    # assert np.allclose(IOut[:2,:],indS)
+    kPIn, kPOut,\
+        VperpOut, \
+        IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
+                                            nstruct_tot=nstruct_tot,
+                                            nstruct_lim=nstruct_lim,
+                                            lnvert=lnvert,
+                                            lstruct_polyx=lspolyx,
+                                            lstruct_polyy=lspolyy,
+                                            lstruct_nlim=lstruct_nlim,
+                                            lstruct_lims=[SL0,SL1,SL2],
+                                            lstruct_normx=lsvinx,
+                                            lstruct_normy=lsviny,
+                                            ves_type='Tor', test=True)
+    assert np.allclose(kPOut[:32], kpout,
+                       equal_nan=True) and np.all((kPOut[32:]>=3.) &
+                                                  (kPOut[32:]<16.))
+    VperpOut  = np.transpose(VperpOut.reshape(nlos, 3))
+    IOut = np.transpose(IOut.reshape(nlos, 3))
+    # Reconstructing PIn and Pout from kPIn and kPOut
+    PIn = np.zeros_like(VperpOut)
+    POut = np.zeros_like(VperpOut)
+    ndim, nlos = np.shape(VperpOut)
+    for i in range(nlos):
+        for j in range(ndim):
+            PIn[j, i]  = Ds[j, i] + kPIn[i]  * us[j, i]
+            POut[j, i] = Ds[j, i] + kPOut[i] * us[j, i]
+    # ...
+    RIn, ROut = np.hypot(PIn[0,32:],PIn[1,32:]), np.hypot(POut[0,32:],
+                                                          POut[1,32:])
+    ThetaIn  = np.arctan2(PIn[1,32:],  PIn[0,32:])
+    ThetaOut = np.arctan2(POut[1,32:], POut[0,32:])
+    ErIn = np.array([np.cos(ThetaIn), np.sin(ThetaIn), np.zeros((8,))])
+    ErOut = np.array([np.cos(ThetaOut), np.sin(ThetaOut), np.zeros((8,))])
+    vperpout = np.concatenate((ErOut[:,0:1],-ErOut[:,1:2],-ey,
+                               -ErOut[:,3:4], -ErOut[:,4:5],ErOut[:,5:6],ex,ex),
+                              axis=1)
+    assert np.allclose(kPIn[:32],np.ones((4*N,)),
+                       equal_nan=True) and np.all((kPIn[32:]>0.) &
+                                                  (kPIn[32:]<6.5))
+    assert np.allclose(PIn[:,:32],Sols_In[:,:32],
+                       equal_nan=True) and np.all((ThetaIn>-np.pi/2.) &
+                                                  (ThetaIn<0.))
+    assert np.allclose(POut[:,:32],Sols_Out[:,:32],
+                       equal_nan=True) and np.all((ThetaOut>-np.pi) &
+                                                  (ThetaOut<np.pi/2.))
+    assert np.all((RIn>=6.) & (RIn<=8.)) and np.all((ROut>=6.) & (ROut<=8.))
+    assert np.allclose(VperpOut[:,:32], -us[:,:32]) and \
+        np.allclose(VperpOut[:,32:],vperpout)
+    assert np.allclose(IOut[:2,:],indS)
 
 
 def test11_LOS_sino():
