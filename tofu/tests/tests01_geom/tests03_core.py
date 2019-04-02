@@ -2,6 +2,8 @@
 This module contains tests for tofu.geom in its structured version
 """
 
+
+
 # External modules
 import os
 import numpy as np
@@ -162,7 +164,13 @@ for tt in dobj.keys():
             assert Poly.size>=2*3
             kwd = dict(Name=ln[ii]+tt, Exp=_Exp, SavePath=_here,
                        Poly=Poly, Lim=Lim, Type=tt)
+
+            # Possible segmentation fault !!!!
+            print(2.233, tt, cc, ln[ii], ii)    # DB
+            print(2.234, kwd)    # DB
+            print(tfg.__file__)
             dobj[tt][cc][ln[ii]] = eval('tfg.%s(**kwd)'%cc)
+            print(2.235, ii)    # DB
 
 
 
@@ -443,7 +451,6 @@ for typ in dobj.keys():
                             lStruct=lS, Lim=Lim,
                             Type=typ, SavePath=_here)
 
-
 class Test02_Config(object):
 
     @classmethod
@@ -637,10 +644,15 @@ for typ in dconf.keys():
                 D = np.array([np.repeat(3.+X[::-1],nP),
                               np.full((nP*nP,),4.+foc),
                               np.tile(0.01+X,nP)])
+        print("Eval 2", typ, c) # DB
         cls = eval("tfg.%s"%c)
+        print("Eval 2.1") # DB
         dCams[typ][c] = cls(Name='V1000', config=dconf[typ],
                             dgeom={'pinhole':ph, 'D':D}, method="optimized",
                             Exp=_Exp, Diag='Test', SavePath=_here)
+        print("Eval 2.2") # DB
+
+print("Eval 3", typ, c) # DB
 
 class Test03_Rays(object):
 
