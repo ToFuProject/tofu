@@ -834,10 +834,6 @@ def test13_LOS_PInOut():
     assert np.allclose(kPOut,np.concatenate((3.*np.ones((kPOut.size-8,)),
                                              2.*np.pi*(1.+np.ones((8,))))),
                        equal_nan=True)
-    print("vperpout =")
-    print(VperpOut)
-    print("-us =")
-    print(-us)
     assert np.allclose(VperpOut, -us)
     assert np.allclose(IOut[2,:], Iout)
 
@@ -1076,7 +1072,7 @@ def test13_LOS_PInOut():
     assert np.allclose(IOut[:2,:],indS)
 
 
-def test11_LOS_sino():
+def test14_LOS_sino():
 
     RZ = np.array([2.,0.])
     r = np.array([0.1, 0.2, 0.1])
@@ -1114,7 +1110,7 @@ def test11_LOS_sino():
     assert np.allclose(np.abs(phi0),phi)
 
 
-def test11_LOS_sino_vec():
+def test15_LOS_sino_vec():
     N = 10**2
     RZ = np.array([2.,0.])
     Ds = np.array([np.linspace(-0.5,0.5,N),
@@ -1138,3 +1134,139 @@ def test11_LOS_sino_vec():
         assert not np.isnan(np.sum(p0))
         assert not np.isnan(np.sum(ImpTheta0))
         assert not np.isnan(np.sum(phi0))
+
+def test16_dist_los_vpoly():
+    num_rays = 11
+    ves_poly = np.zeros((2, 9))
+    ves_poly0 = [2, 3, 4, 5, 5, 4, 3, 2, 2]
+    ves_poly1 = [2, 1, 1, 2, 3, 4, 4, 3, 2]
+    ves_poly[0] = np.asarray(ves_poly0)
+    ves_poly[1] = np.asarray(ves_poly1)
+    # rays :
+    ray_orig = np.zeros((3,num_rays))
+    ray_vdir = np.zeros((3,num_rays))
+    # ray 0 :
+    ray_orig[0][0] = 0
+    ray_orig[2][0] = 5
+    ray_vdir[0][0] = 1
+    # ray 1 :
+    ray_orig[0][1] = 3.5
+    ray_orig[2][1] = 5
+    ray_vdir[0][1] = 1
+    # ray 2 :
+    ray_orig[0][2] = 3.5
+    ray_orig[2][2] = 5
+    ray_orig[1][2] = -1
+    ray_vdir[0][2] = -1
+    # ray 3:
+    ray_orig[0][3] = 4
+    ray_orig[2][3] = -1
+    ray_vdir[0][3] = 1
+    ray_vdir[2][3] = 1
+    # ray 4:
+    ray_orig[0][4] = 7
+    ray_orig[2][4] = 3
+    ray_vdir[0][4] = 1
+    ray_vdir[2][4] = 1
+    # ray 5:
+    ray_orig[0][5] = 6
+    ray_orig[2][5] = 2.4
+    ray_orig[1][5] = -1.3
+    ray_vdir[1][5] = 1
+    ray_vdir[2][5] = 0.01
+    # ray 6:
+    ray_orig[0][6] = 0.
+    ray_orig[1][6] = 0.
+    ray_orig[2][6] = -1.
+    ray_vdir[2][6] = 0.5
+    # ray 7:
+    ray_orig[0][7] = 0.
+    ray_orig[1][7] = 0.
+    ray_orig[2][7] = 4.
+    ray_vdir[2][7] = -1.
+    # ray 8:
+    ray_orig[0][8] = 1.
+    ray_orig[1][8] = 0.
+    ray_orig[2][8] = 2.
+    ray_vdir[2][8] = -1.
+    # ray 9:
+    ray_orig[0][9] = 3.5
+    ray_orig[1][9] = 0.
+    ray_orig[2][9] = 0.5
+    ray_vdir[2][9] = -1.
+    # ray 10:
+    ray_orig[0][10] = 5.5
+    ray_orig[1][10] = 0.
+    ray_orig[2][10] = 2.5
+    ray_vdir[0][10] = 1.
+    ray_min = 0
+    ray_max = num_rays-1
+    import matplotlib.pyplot as plt
+    plt.ion()
+    plt.clf()
+    ax1 = plt.subplot(121)
+    ax1.plot(ves_poly0, ves_poly1)
+    ax1.scatter(0, 0, 10)
+    for i in range(ray_min,ray_max+1):
+        ax1.plot([ray_orig[0][i],
+                  ray_orig[0][i] + ray_vdir[0][i]],
+                 [ray_orig[2][i],
+                  ray_orig[2][i] + ray_vdir[2][i]],
+                 linewidth=2.0, label="ray"+str(i))
+        ax1.scatter(ray_orig[0][i], ray_orig[2][i], 10)
+    ax1.legend()
+    # plt.show(block=True)
+    # plt.clf()
+    theta = np.linspace(0, 2.*np.pi, 100)
+    rmin = ves_poly[0][5]#min(ves_poly[0])
+    rmax = ves_poly[0][6]#max(ves_poly[0])
+    print("rmin, rmax =", rmin, rmax)
+    #plt.show()
+    ax2 = plt.subplot(122)
+    ax2.plot(rmin * np.cos(theta), rmin * np.sin(theta))
+    ax2.plot(rmax * np.cos(theta), rmax * np.sin(theta))
+    ax2.plot(5 * np.cos(theta), 5 * np.sin(theta))
+    ax2.plot(2 * np.cos(theta), 2 * np.sin(theta))
+    for i in range(ray_min,ray_max+1):
+        ax2.plot([ray_orig[0][i],
+                  ray_orig[0][i] + ray_vdir[0][i]],
+                 [ray_orig[1][i],
+                  ray_orig[1][i]  + ray_vdir[1][i]],
+                 linewidth=2.0, label="ray"+str(i))
+        ax2.scatter(ray_orig[0][i], ray_orig[1][i], 10)
+    ax2.legend()
+    plt.show()
+    # out :
+    print("************************************************")
+    print(" Oris => \n", ray_orig[:,ray_min:ray_max+1])
+    print(" Dirs => \n", ray_vdir[:,ray_min:ray_max+1])
+    print("************************************************")
+    out = _GG.comp_dist_los_vpoly(
+        np.ascontiguousarray(ray_orig[:,ray_min:ray_max+1], dtype=np.float64),
+        np.ascontiguousarray(ray_vdir[:,ray_min:ray_max+1], dtype=np.float64),
+        ves_poly, num_threads=1)
+
+    exact_ks = [3.0,
+                0.5,
+                0.6715728752538102,
+                0.9999999999999992,
+                0.0,
+                1.2576248261177692,
+                6.0,
+                1.0,
+                -0.0,
+                0.0,
+                0.0]
+    exact_dists = [1.0,
+                   1.0,
+                   1.0,
+                   1.4142135623730951,
+                   2.0,
+                   2.448667030011657,
+                   2.0,
+                   2.0,
+                   1.0,
+                   0.5,
+                   0.5]
+    assert(np.allclose(out[0], exacts_ks))
+    assert(np.allclose(out[1], exacts_dists))
