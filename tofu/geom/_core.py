@@ -3921,7 +3921,7 @@ class Rays(utils.ToFuObject):
             nLim = self.config.nLim
             Type = self.config.Id.Type
             largs = [D, u, lPoly[0], lVIn[0]]
-            dkwd = dict(ves_lims=Lim, ves_nlim=nLim, ves_type=Type)
+            dkwd = dict(ves_lims=Lim, ves_type=Type)
         else:
             # To be adjusted later
             pass
