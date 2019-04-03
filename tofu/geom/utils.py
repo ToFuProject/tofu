@@ -29,7 +29,6 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-#_path_testcases = '/Home/DV226270/ToFu_All/tofu_WEST/tofu_west/config/inputs'
 _here = os.path.abspath(__file__)
 _root = _here[:_here.rfind('/tofu')]
 _path_testcases = os.path.join(_root,'tofu/geom/inputs')
@@ -659,12 +658,12 @@ def _create_config_testcase(config='A1', out='object',
     lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
     lS = []
     for cc in dconfig[config].keys():
-        if cc=='Exp':
+        if cc == 'Exp':
             continue
         for ss in dconfig[config][cc]:
             ff = [f for f in lf
                   if all([s in f for s in [cc,ss]])]
-            if not len(ff)==1:
+            if not len(ff) == 1:
                 msg = "No / several matching files\n"
                 msg += "  Folder: %s\n"%path
                 msg += "    Criteria: [%s, %s]\n"%(cc,ss)
@@ -677,7 +676,7 @@ def _create_config_testcase(config='A1', out='object',
             if out not in ['object',object]:
                 obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
             lS.append(obj)
-    if out=='dict':
+    if out == 'dict':
         conf = dict([tt for tt in lS])
     else:
         conf = _core.Config(Name=config, Exp=dconfig[config]['Exp'], lStruct=lS)
