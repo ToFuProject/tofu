@@ -5,8 +5,9 @@ import sys
 import os
 import itertools as itt
 import copy
+import inspect
 import warnings
-#from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
 
 # Common
 import numpy as np
@@ -24,7 +25,7 @@ except Exception:
     from . import _plot as _plot
     from . import _def as _def
 
-__all__ = ['Data1D','Data2D','DataSpectro']
+__all__ = ['DataCam1D','DataCam2D']
 
 
 #############################################
@@ -103,30 +104,31 @@ def _select_ind(v, ref, nRef):
 #       class
 #############################################
 
-class Data(utils.ToFuObject):
+class DataAbstract(utils.ToFuObject):
+
+    __metaclass__ = ABCMeta
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'Type':'1D',
-                   'include':['Mod','Cls','Exp','Diag',
+    _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
                               'Name','shot','version']},
-             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfilter',
+             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfit',
                                 'indt', 'indch', 'indlamb', 'interp-t']}}
 
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
         # Python 2
-        super(Data,cls).__init_subclass__(**kwdargs)
+        super(DataAbstract,cls).__init_subclass__(**kwdargs)
         # Python 3
         #super().__init_subclass__(**kwdargs)
-        cls._ddef = copy.deepcopy(Data._ddef)
+        cls._ddef = copy.deepcopy(DataAbstract._ddef)
         #cls._dplot = copy.deepcopy(Struct._dplot)
         #cls._set_color_ddef(cls._color)
 
 
     def __init__(self, data=None, t=None, X=None, lamb=None,
-                 dchans=None, dlabels=None,
+                 dchans=None, dlabels=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 dextra=None, lCam=None, config=None, Type=None,
+                 dextra=None, lCam=None, config=None,
                  fromdict=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
 
@@ -141,11 +143,11 @@ class Data(utils.ToFuObject):
         kwdargs = locals()
         del kwdargs['self']
         # super()
-        super(Data,self).__init__(**kwdargs)
+        super(DataAbstract,self).__init__(**kwdargs)
 
     def _reset(self):
         # super()
-        super(Data,self)._reset()
+        super(DataAbstract,self)._reset()
         self._ddataRef = dict.fromkeys(self._get_keys_ddataRef())
         self._dtreat = dict.fromkeys(self._get_keys_dtreat())
         self._ddata = dict.fromkeys(self._get_keys_ddata())
@@ -153,22 +155,20 @@ class Data(utils.ToFuObject):
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dchans = dict.fromkeys(self._get_keys_dchans())
         self._dextra = dict.fromkeys(self._get_keys_dextra())
+        if self._is2D():
+            self._dX12 = dict.fromkeys(self._get_keys_dX12())
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
-                               Exp=None, shot=None, Type=None,
+                               Exp=None, shot=None,
                                Diag=None, include=None,
                                **kwdargs):
         if Id is not None:
             assert isinstance(Id,utils.ID)
-            Name, Exp, shot = Id.Name, Id.Exp, Id.shot
-            Type, Diag = Id.Type, Id.Diag
-        assert type(Name) is str
-        assert type(Diag) is str
-        assert type(Exp) is str
-        if Type is None:
-            Type = cls._ddef['Id']['Type']
-        assert Type in ['1D','2D','1DSpectral','2DSpectral']
+            Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
+        assert type(Name) is str, Name
+        assert type(Diag) is str, Diag
+        assert type(Exp) is str, Exp
         if include is None:
             include = cls._ddef['Id']['include']
         assert shot is None or type(shot) in [int,np.int64]
@@ -179,8 +179,8 @@ class Data(utils.ToFuObject):
             shot = int(shot)
             if 'shot' not in include:
                 include.append('shot')
-        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot, 'Type':Type,
-                        'include':include})
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot,
+                        'Diag':Diag, 'include':include})
         return kwdargs
 
     ###########
@@ -212,6 +212,11 @@ class Data(utils.ToFuObject):
     @staticmethod
     def _get_largs_dgeom():
         largs = ['lCam','config']
+        return largs
+
+    @staticmethod
+    def _get_largs_dX12():
+        largs = ['dX12']
         return largs
 
     @staticmethod
@@ -255,7 +260,7 @@ class Data(utils.ToFuObject):
 
         ndim = data.ndim
         assert ndim in [2,3]
-        if not self._isSpectral:
+        if not self._isSpectral():
             msg = "self is not of spectral type"
             msg += "\n  => the data cannot be 3D ! (ndim)"
             assert ndim==2, msg
@@ -271,14 +276,14 @@ class Data(utils.ToFuObject):
             lC = [X is None, lamb is None]
             assert any(lC)
             if all(lC):
-                if not self._isSpectral:
+                if self._isSpectral():
                     X = np.array([0])
                     lamb = np.arange(0,n1)
                     data = data.reshape((nt,1,n1))
                 else:
                     X = np.arange(0,n1)
             elif lC[0]:
-                assert self._isSpectral
+                assert self._isSpectral()
                 X = np.array([0])
                 data = data.reshape((nt,1,n1))
                 assert lamb.ndim in [1,2]
@@ -287,11 +292,11 @@ class Data(utils.ToFuObject):
                 elif lamb.ndim==2:
                     assert lamb.shape[1]==n1
             else:
-                assert not self._isSpectral
+                assert not self._isSpectral()
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
         else:
-            assert self._isSpectral
+            assert self._isSpectral()
             n2 = data.shape[2]
             lC = [X is None, lamb is None]
             if lC[0]:
@@ -315,8 +320,8 @@ class Data(utils.ToFuObject):
 
 
         # Get shapes
-        nt, nX = data.shape[:2]
-        nnX = X.shape[0]
+        nt, nch = data.shape[:2]
+        nnch = X.shape[0]
         if data.ndim==3:
             nnlamb, nlamb = lamb.shape
         else:
@@ -325,7 +330,7 @@ class Data(utils.ToFuObject):
         # Check indices
         if indtX is not None:
             assert indtX.shape==(nt,)
-            assert np.min(indtX)>=0 and np.max(indtX)<=nnX
+            assert np.min(indtX)>=0 and np.max(indtX)<=nnch
         lC = [indtlamb is None, indXlamb is None, indtXlamb is None]
         assert lC[2] or (~lC[2] and np.sum(lC[:2])==2)
         if lC[2]:
@@ -333,20 +338,20 @@ class Data(utils.ToFuObject):
                 assert indtlamb.shape==(nt,)
                 assert inp.min(indtlamb)>=0 and np.max(indtlamb)<=nnlamb
             if not lC[1]:
-                assert indXlamb.shape==(nX,)
+                assert indXlamb.shape==(nch,)
                 assert inp.min(indXlamb)>=0 and np.max(indXlamb)<=nnlamb
         else:
-            assert indtXlamb.shape==(nt,nX)
+            assert indtXlamb.shape==(nt,nch)
             assert inp.min(indtXlamb)>=0 and np.max(indtXlamb)<=nnlamb
 
         # Check consistency X/lamb shapes vs indices
         if X is not None and indtX is None:
-            assert nnX in [1,nt]
+            assert nnch in [1,nt]
             if lamb is not None:
                 if all([ii is None for ii in [indtlamb,indXlamb,indtXlamb]]):
                     assert nnlamb in [1,nt]
 
-        l = [data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb,
+        l = [data, t, X, lamb, nt, nch, nlamb, nnch, nnlamb,
              indtX, indtlamb, indXlamb, indtXlamb]
         return l
 
@@ -363,12 +368,12 @@ class Data(utils.ToFuObject):
 
         if ndim==2:
             if X is None:
-                if self._isSpectral:
+                if self._isSpectral():
                     X = np.array([0])
                 else:
                     X = np.arange(0,n1)
             else:
-                assert not self._isSpectral
+                assert not self._isSpectral()
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
         else:
@@ -381,14 +386,14 @@ class Data(utils.ToFuObject):
             X = np.array([X])
 
         # Get shapes
-        nnX, nX = X.shape
+        nnch, nch = X.shape
 
         # Check indices
         if indtX is None:
             indtX = self._ddataRef['indtX']
         if indtX is not None:
             assert indtX.shape==(nt,)
-            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnX
+            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnch
         if indXlamb is None:
             indXlamb = self._ddataRef['indXlamb']
         if indtXlamb is None:
@@ -396,16 +401,16 @@ class Data(utils.ToFuObject):
 
         if indtXlamb is not None:
             assert indXlamb is None
-            assert indXlamb.shape==(nX,)
+            assert indXlamb.shape==(nch,)
             assert (np.argmin(indXlamb)>=0
                     and np.argmax(indXlamb)<=self._ddataRef['nnlamb'])
         else:
             assert indXlamb is None
-            assert indtXlamb.shape==(nt,nX)
+            assert indtXlamb.shape==(nt,nch)
             assert (np.argmin(indtXlamb)>=0
                     and np.argmax(indtXlamb)<=self._ddataRef['nnlamb'])
 
-        return X, nnX, indtX, indXlamb, indtXlamb
+        return X, nnch, indtX, indXlamb, indtXlamb
 
 
     def _checkformat_inputs_dlabels(self, dlabels=None):
@@ -413,7 +418,7 @@ class Data(utils.ToFuObject):
             dlabels = {}
         assert type(dlabels) is dict
         lk = ['data','t','X']
-        if self._isSpectral:
+        if self._isSpectral():
             lk.append('lamb')
         for k in lk:
             if not k in dlabels.keys():
@@ -438,8 +443,10 @@ class Data(utils.ToFuObject):
                     dtreat[k] = self._ddef['dtreat'][k]
                 else:
                     dtreat[k] = None
-            if k=='order':
-                assert dtreat[k] is not None
+            if k == 'order':
+                if dtreat[k] is None:
+                    dtreat[k] = self.__class__._ddef['dtreat']['order']
+                assert type(dtreat[k]) is list
                 assert dtreat[k][-1] == 'interp-t'
                 assert all([ss in dtreat[k][-4:-1]
                             for ss in ['indt','indch','indlamb']])
@@ -456,14 +463,12 @@ class Data(utils.ToFuObject):
                 lCam = [lCam]
             nC = len(lCam)
             # Check type consistency
-            for dd in ['1d','2d']:
-                if dd in self.Id.Type.lower():
-                    lc = [dd in cc.Id.Cls.lower() for cc in lCam]
-                    if not all(lc):
-                        msg = "The following cameras have wrong class (%s)"%dd
-                        lm = ['%s: %s'%(cc.Id.Name,cc.Id.Cls) for cc in lCam]
-                        msg += "\n    " + "\n    ".join(lm)
-                        raise Exception(msg)
+            lc = [cc._is2D() == self._is2D() for cc in lCam]
+            if not all(lc):
+                ls = ['%s : %s'%(cc.Id.Name,cc.Id.Cls) for cc in lCam]
+                msg = "%s (%s) fed wrong lCam:\n"%(self.Id.Name,self.Id.Cls)
+                msg += "    - " + "\n    - ".join(ls)
+                raise Exception(msg)
             # Check config consistency
             lconf = [cc.config for cc in lCam]
             if not all([cc is not None for cc in lconf]):
@@ -484,7 +489,7 @@ class Data(utils.ToFuObject):
 
             # Check number of channels wrt data
             nR = np.sum([cc._dgeom['nRays'] for cc in lCam])
-            if not nR==self._ddata['nX']:
+            if not nR == self._ddataRef['nch']:
                 msg = "Total nb. of rays from lCam != data.shape[1] !"
                 raise Exception(msg)
         return config, lCam, nC
@@ -505,7 +510,7 @@ class Data(utils.ToFuObject):
         else:
             for k in dchans.keys():
                 arr = np.asarray(dchans[k]).ravel()
-                assert arr.size==self._ddata['nX']
+                assert arr.size==self._ddata['nch']
                 dchans[k] = arr
         return dchans
 
@@ -515,6 +520,7 @@ class Data(utils.ToFuObject):
             for k in dextra.keys():
                 assert isinstance(dextra[k],dict)
                 assert 't' in dextra[k].keys()
+        return dextra
 
     ###########
     # Get keys of dictionnaries
@@ -522,13 +528,13 @@ class Data(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_ddataRef():
-        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
+        lk = ['data', 't', 'X', 'lamb', 'nt', 'nch', 'nlamb', 'nnch', 'nnlamb',
               'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
         return lk
 
     @staticmethod
     def _get_keys_ddata():
-        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
+        lk = ['data', 't', 'X', 'lamb', 'nt', 'nch', 'nlamb', 'nnch', 'nnlamb',
               'indtX', 'indtlamb', 'indXlamb', 'indtXlamb', 'uptodate']
         return lk
 
@@ -536,17 +542,25 @@ class Data(utils.ToFuObject):
     def _get_keys_dtreat():
         lk = ['order','mask-ind', 'mask-val', 'interp-indt', 'interp-indch',
               'data0-indt', 'data0-Dt', 'data0-data',
-              'dfilter', 'indt',  'indch', 'indlamb', 'interp-t']
+              'dfit', 'indt',  'indch', 'indlamb', 'interp-t']
         return lk
 
-    @staticmethod
-    def _get_keys_dlabels():
-        lk = ['data','t','X','lamb']
+    @classmethod
+    def _get_keys_dlabels(cls):
+        lk = ['data','t','X']
+        if cls._isSpectral():
+            lk.append('lamb')
         return lk
 
     @staticmethod
     def _get_keys_dgeom():
         lk = ['config', 'lCam', 'nC']
+        return lk
+
+    @staticmethod
+    def _get_keys_dX12():
+        lk = ['from', 'x1','x2','n1', 'n2',
+              'ind1', 'ind2', 'indr']
         return lk
 
     @staticmethod
@@ -564,24 +578,29 @@ class Data(utils.ToFuObject):
     ###########
 
     def _init(self, data=None, t=None, X=None, lamb=None, dtreat=None, dchans=None,
-              dlabels=None, dextra=None, lCam=None, config=None, **kwdargs):
+              dlabels=None, dextra=None, lCam=None, config=None, **kwargs):
+        kwdargs = locals()
+        kwdargs.update(**kwargs)
         largs = self._get_largs_ddataRef()
-        kwddataRef = self._extract_kwdargs(locals(), largs)
+        kwddataRef = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dtreat()
-        kwdtreat = self._extract_kwdargs(locals(), largs)
+        kwdtreat = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dlabels()
-        kwdlabels = self._extract_kwdargs(locals(), largs)
+        kwdlabels = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dgeom()
-        kwdgeom = self._extract_kwdargs(locals(), largs)
+        kwdgeom = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dchans()
-        kwdchans = self._extract_kwdargs(locals(), largs)
+        kwdchans = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dextra()
-        kwdextra = self._extract_kwdargs(locals(), largs)
+        kwdextra = self._extract_kwdargs(kwdargs, largs)
         self._set_ddataRef(**kwddataRef)
         self.set_dtreat(**kwdtreat)
         self._set_ddata()
         self._set_dlabels(**kwdlabels)
         self._set_dgeom(**kwdgeom)
+        if self._is2D():
+            kwdX12 = self._extract_kwdargs(kwdargs, self._get_largs_dX12())
+            self.set_dX12(**kwdX12)
         self.set_dchans(**kwdchans)
         self.set_dextra(**kwdextra)
         self._dstrip['strip'] = 0
@@ -596,12 +615,12 @@ class Data(utils.ToFuObject):
         kwdargs = locals()
         del kwdargs['self']
         lout = self._checkformat_inputs_ddataRef(**kwdargs)
-        data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb = lout[:9]
+        data, t, X, lamb, nt, nch, nlamb, nnch, nnlamb = lout[:9]
         indtX, indtlamb, indXlamb, indtXlamb = lout[9:]
 
         self._ddataRef = {'data':data, 't':t, 'X':X, 'lamb':lamb,
-                          'nt':nt, 'nX':nX, 'nlamb':nlamb,
-                          'nnX':nnX, 'nnlamb':nnlamb,
+                          'nt':nt, 'nch':nch, 'nlamb':nlamb,
+                          'nnch':nnch, 'nnlamb':nnlamb,
                           'indtX':indtX, 'indtlamb':indtlamb,
                           'indXlamb':indXlamb, 'indtXlamb':indtXlamb}
 
@@ -611,20 +630,50 @@ class Data(utils.ToFuObject):
 
     def _set_dlabels(self, dlabels=None):
         dlabels = self._checkformat_inputs_dlabels(dlabels=dlabels)
-        self._dlabels = dlabels
+        self._dlabels.update(dlabels)
 
     def _set_dgeom(self, lCam=None, config=None):
         config, lCam, nC = self._checkformat_inputs_dgeom(lCam=lCam,
                                                           config=config)
         self._dgeom = {'lCam':lCam, 'nC':nC, 'config':config}
 
-    def set_dchans(self, dchans=None):
-        dchans = self._checkformat_inputs_dchans(dchans=dchans)
-        self._dchans = dchans
+    def set_dchans(self, dchans=None, method='set'):
+        """ Set (or update) the dchans dict
 
-    def set_dextra(self, dextra=None):
+        dchans is a dict of np.ndarrays of len() = self.nch containing
+        channel-specific information
+
+        Use the kwarg 'method' to set / update the dict
+
+        """
+        assert method in ['set','update']
+        dchans = self._checkformat_inputs_dchans(dchans=dchans)
+        if method == 'set':
+            self._dchans = dchans
+        else:
+            self._dchans.update(dchans)
+
+    def set_dextra(self, dextra=None, method='set'):
+        """ Set (or update) the dextra dict
+
+        dextra is a dict of nested dict
+        It contains all extra signal that can help interpret the data
+            e.g.: heating power time traces, plasma current...
+        Each nested dict should have the following fields:
+            't'    : 1D np.ndarray (time vector)
+            'data' : 1D np.ndarray (data time trace)
+            'name' : str (used as label in legend)
+            'units': str (used n parenthesis in legend after name)
+
+        Use the kwarg 'method' to set / update the dict
+
+        """
+        assert method in ['set','update']
         dextra = self._checkformat_inputs_dextra(dextra=dextra)
-        self._dextra = dextra
+        if method == 'set':
+            self._dextra = dextra
+        else:
+            self._dextra.update(dextra)
 
     ###########
     # strip dictionaries
@@ -634,16 +683,16 @@ class Data(utils.ToFuObject):
         if self._dstrip['strip']==strip:
             return
 
-        if strip in [0,2]:
+        if strip in [0,1] and self._dstrip['strip'] in [2]:
             self._set_ddata()
-        elif strip in [1,3]:
-            self.clear_data()
+        elif strip in [2] and self._dstrip['strip'] in [0,1]:
+            self.clear_ddata()
 
     def _strip_dgeom(self, strip=0, force=False):
         if self._dstrip['strip']==strip:
             return
 
-        if strip in [0,1] and self._dstrip['strip'] in [2,3]:
+        if strip in [0] and self._dstrip['strip'] in [1,2]:
             lC, config = None, None
             if self._dgeom['lCam'] is not None:
                 assert type(self._dgeom['lCam']) is list
@@ -658,7 +707,7 @@ class Data(utils.ToFuObject):
 
             self._set_dgeom(lCam=lC, config=config)
 
-        elif strip in [2,3] and self._dstrip['strip'] in [0,1]:
+        elif strip in [1,2] and self._dstrip['strip'] in [0]:
             if self._dgeom['lCam'] is not None:
                 lpfe = []
                 for cc in self._dgeom['lCam']:
@@ -718,9 +767,8 @@ class Data(utils.ToFuObject):
         cls._dstrip['allowed'] = [0,1,2,3]
         nMax = max(cls._dstrip['allowed'])
         doc = """
-                 1: clear data
-                 2: dgeom all pathfile (=> tf.geom.Rays.strip(-1))
-                 3: dgeom all pathfile + data clear
+                 1: dgeom pathfiles
+                 2: dgeom pathfiles + clear data
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
         if sys.version[0]=='2':
@@ -730,7 +778,7 @@ class Data(utils.ToFuObject):
 
     def strip(self, strip=0):
         # super()
-        super(Data,self).strip(strip=strip)
+        super(DataAbstract,self).strip(strip=strip)
 
     def _strip(self, strip=0):
         self._strip_ddata(strip=strip)
@@ -744,6 +792,8 @@ class Data(utils.ToFuObject):
                 'dgeom':{'dict':self._dgeom, 'lexcept':None},
                 'dchans':{'dict':self._dchans, 'lexcept':None},
                 'dextra':{'dict':self._dextra, 'lexcept':None}}
+        if self._is2D():
+            dout['dX12'] = {'dict':self._dX12, 'lexcept':None}
         return dout
 
     def _from_dict(self, fd):
@@ -752,8 +802,12 @@ class Data(utils.ToFuObject):
         self._dtreat.update(**fd['dtreat'])
         self._dlabels.update(**fd['dlabels'])
         self._dgeom.update(**fd['dgeom'])
-        self._dchans.update(**fd['dchans'])
         self._dextra.update(**fd['dextra'])
+        if 'dchans' not in fd.keys():
+            fd['dchans'] = {}
+        self._dchans.update(**fd['dchans'])
+        if self._is2D():
+            self._dX12.update(**fd['dX12'])
 
 
     ###########
@@ -798,19 +852,22 @@ class Data(utils.ToFuObject):
     def nt(self):
         return self.get_ddata('nt')
     @property
-    def nX(self):
-        return self.get_ddata('nX')
+    def nch(self):
+        return self.get_ddata('nch')
 
     @property
     def config(self):
         return self._dgeom['config']
     @property
     def lCam(self):
-        return self._get_lCam()
+        return self._dgeom['lCam']
 
-    @property
+    @abstractmethod
     def _isSpectral(self):
-        return 'spectral' in self.__class__.__name__.lower()
+        return 'spectral' in self.__class__.name.lower()
+    @abstractmethod
+    def _is2D(self):
+        return '2d' in self.__class__.__name__.lower()
 
 
     ###########
@@ -826,9 +883,9 @@ class Data(utils.ToFuObject):
         """
         out = self._checkformat_inputs_XRef(X=X, indtX=indtX,
                                             indXlamb=indtXlamb)
-        X, nnX, indtX, indXlamb, indtXlamb = out
+        X, nnch, indtX, indXlamb, indtXlamb = out
         self._ddataRef['X'] = X
-        self._ddataRef['nnX'] = nnX
+        self._ddataRef['nnch'] = nnch
         self._ddataRef['indtX'] = indtX
         self._ddataRef['indtXlamb'] = indtXlamb
         self._ddata['uptodate'] = False
@@ -840,14 +897,15 @@ class Data(utils.ToFuObject):
         uses self.select_t(t=t) to produce it
 
         """
-        lC = [indt is None,t is None]
-        assert np.sum(lC)>=1
+        lC = [indt is not None, t is not None]
         if all(lC):
-            ind = None
-        elif C[0]:
+            msg = "Please provide either t or indt (or none)!"
+            raise Exception(msg)
+
+        if lC[1]:
             ind = self.select_t(t=t, out=bool)
-        elif C[1]:
-            ind = _format_ind(indt, n=self._Ref['nt'])
+        else:
+            ind = _format_ind(indt, n=self._ddataRef['nt'])
         self._dtreat['indt'] = ind
         self._ddata['uptodate'] = False
 
@@ -861,7 +919,7 @@ class Data(utils.ToFuObject):
         if indch is not None:
             indch = np.asarray(indch)
             assert indch.ndim==1
-            indch = _format_ind(indch, n=self._ddataRef['nX'])
+        indch = _format_ind(indch, n=self._ddataRef['nch'])
         self._dtreat['indch'] = indch
         self._ddata['uptodate'] = False
 
@@ -872,7 +930,7 @@ class Data(utils.ToFuObject):
         Must be a 1d array
 
         """
-        if not self._isSpectral:
+        if not self._isSpectral():
             msg = "The wavelength can only be set with DataSpectral object !"
             raise Exception(msg)
         if indlamb is not None:
@@ -886,28 +944,33 @@ class Data(utils.ToFuObject):
         assert ind is None or hasattr(ind,'__iter__')
         assert type(val) in [int,float,np.int64,np.float64]
         if ind is not None:
-            ind = _format_ind(ind, n=self._ddataRef['nX'])
+            ind = _format_ind(ind, n=self._ddataRef['nch'])
         self._dtreat['mask-ind'] = ind
         self._dtreat['mask-val'] = val
         self._ddata['uptodate'] = False
 
     def set_dtreat_data0(self, data0=None, Dt=None, indt=None):
-        assert self._ddataRef['nt']>1, "Useless if only one data slice !"
-        C = [data0 is None, Dt is None, indt is None]
-        assert np.sum(C)>=2
-        if data0 is not None:
-            data0 = np.asarray(data0).ravel()
-            assert data0.shape==(self._ddataRef['nX'],)
-            Dt, indt = None, None
-        else:
-            if indt is not None:
-                indt = _format_ind(indt, n=self._ddataRef['nt'])
+        lC = [data0 is not None, Dt is not None, indt is not None]
+        assert np.sum(lC) <= 1
+
+        if any(lC):
+            if lC[0]:
+                data0 = np.asarray(data0).ravel()
+                if not data0.shape == (self._ddataRef['nch'],):
+                    msg = "Provided data0 has wrong shape !\n"
+                    msg += "    - Expected: (%s,)\n"%self._ddataRef['nch']
+                    msg += "    - Provided: %s"%data0.shape
+                    raise Exception(msg)
+                Dt, indt = None, None
             else:
-                indt = self.select_t(t=Dt, out=bool)
-            if np.any(indt):
-                data0 = self._ddataRef['data'][indt,:]
-                if np.sum(indt)>1:
-                    data0 = np.nanmean(data,axis=0)
+                if lC[2]:
+                    indt = _format_ind(indt, n=self._ddataRef['nt'])
+                else:
+                    indt = self.select_t(t=Dt, out=bool)
+                if np.any(indt):
+                    data0 = self._ddataRef['data'][indt,:]
+                    if np.sum(indt)>1:
+                        data0 = np.nanmean(data0,axis=0)
         self._dtreat['data0-indt'] = indt
         self._dtreat['data0-Dt'] = Dt
         self._dtreat['data0-data'] = data0
@@ -926,14 +989,15 @@ class Data(utils.ToFuObject):
         Time indices refer to self.ddataRef['t']
         Channel indices refer to self.ddataRef['X']
         """
-        assert indt is None or type(indt) in [np.ndarray, list, dict]
-        if isinstance(indt,dict):
-            C = [type(k) is int and k<self._ddataRef['nX'] for k in indt.keys()]
-            assert all(C)
+        lC = [indt is None, type(indt) in [np.ndarray,list], type(indt) is dict]
+        assert any(lC)
+        if lC[2]:
+            lc = [type(k) is int and k<self._ddataRef['nch'] for k in indt.keys()]
+            assert all(lc)
             for k in indt.keys():
                 assert hasattr(indt[k],'__iter__')
                 indt[k] = _format_ind(indt[k], n=self._ddataRef['nt'])
-        else:
+        elif lC[1]:
             indt = np.asarray(indt)
             assert indt.ndim==1
             indt = _format_ind(indt, n=self._ddataRef['nt'])
@@ -953,28 +1017,40 @@ class Data(utils.ToFuObject):
         Time indices refer to self.ddataRef['t']
         Channel indices refer to self.ddataRef['X']
         """
-        assert indch is None or type(indch) in [np.ndarray, list, dict]
-        if isinstance(indch,dict):
-            C = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
-            assert all(C)
+        lC = [indch is None, type(indch) in [np.ndarray,list], type(indch) is dict]
+        assert any(lC)
+        if lC[2]:
+            lc = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
+            assert all(lc)
             for k in indch.keys():
                 assert hasattr(indch[k],'__iter__')
-                indch[k] = _format_ind(indch[k], n=self._ddataRef['nX'])
-        else:
+                indch[k] = _format_ind(indch[k], n=self._ddataRef['nch'])
+        elif lC[1]:
             indch = np.asarray(indch)
             assert indch.ndim==1
-            indch = _format_ind(indch, n=self._ddataRef['nX'])
+            indch = _format_ind(indch, n=self._ddataRef['nch'])
         self._dtreat['interp-indch'] = indch
         self._ddata['uptodate'] = False
 
-    def set_dtreat_dfilter(self, dfilter=None):
-        """  """
-        assert dfilter is None or isinstance(dfilter,dict)
-        if isinstance(dfilter,dict):
-            assert 'type' in dfilter.keys()
-            assert dfilter['type'] in ['svd','fft']
+    def set_dtreat_dfit(self, dfit=None):
+        """ Set the fitting dictionnary
 
-        self._dtreat['dfilter'] = dfilter
+        A dict contaning all parameters for fitting the data
+        Valid dict content includes:
+            - 'type': str
+                'fft':  A fourier filtering
+                'svd':  A svd filtering
+
+        """
+        warnings.warn("Not implemented yet !, dfit forced to None")
+        dfit = None
+
+        assert dfit is None or isinstance(dfit,dict)
+        if isinstance(dfit,dict):
+            assert 'type' in dfit.keys()
+            assert dfit['type'] in ['svd','fft']
+
+        self._dtreat['dfit'] = dfit
         self._ddata['uptodate'] = False
 
     def set_dtreat_interpt(self, t=None):
@@ -1034,12 +1110,12 @@ class Data(utils.ToFuObject):
         return data
 
     @staticmethod
-    def _dfilter(data, dfilter):
-        if dfilter is not None:
-            if dfilter['type']=='svd':
+    def _dfit(data, dfit):
+        if dfit is not None:
+            if dfit['type']=='svd':
                 #data = _comp.()
                 pass
-            elif dfilter['type']=='svd':
+            elif dfit['type']=='svd':
                 #data = _comp.()
                 pass
         return data
@@ -1121,7 +1197,7 @@ class Data(utils.ToFuObject):
             - 'interp_indt' :
             - 'interp_indch' :
             - 'data0' :
-            - 'dfilter' :
+            - 'dfit' :
             - 'indt' :
             - 'indch' :
             - 'interp_t':
@@ -1189,8 +1265,8 @@ class Data(utils.ToFuObject):
                                        self._ddataRef['X'])
             if kk=='data0':
                 d = self._data0(d, self._dtreat['data0-data'])
-            if kk=='dfilter' and self._dtreat['dfilter'] is not None:
-                d = self._dfilter(d, **self._dtreat['dfilter'])
+            if kk=='dfit' and self._dtreat['dfit'] is not None:
+                d = self._dfit(d, **self._dtreat['dfit'])
 
             # data + others
             if kk=='indt' and self._dtreat['indt'] is not None:
@@ -1209,22 +1285,22 @@ class Data(utils.ToFuObject):
         # --------------------
         # Safety check
         if d.ndim==2:
-            (nt, nX), nlamb = d.shape, 0
+            (nt, nch), nlamb = d.shape, 0
         else:
-            nt, nX, nlamb = d.shape
+            nt, nch, nlamb = d.shape
         assert d.ndim in [2,3]
         assert t.shape==(nt,)
-        assert X.shape==(self._ddataRef['nnX'], nX)
+        assert X.shape==(self._ddataRef['nnch'], nch)
         if lamb is not None:
             assert lamb.shape==(self._ddataRef['nnlamb'], nlamb)
 
-        lout = [d, t, X, lamb, nt, nX, nlamb,
+        lout = [d, t, X, lamb, nt, nch, nlamb,
                 indtX, indtlamb, indXlamb, indtXlamb]
         return lout
 
     def _set_ddata(self):
         if not self._ddata['uptodate']:
-            data, t, X, lamb, nt, nX, nlamb,\
+            data, t, X, lamb, nt, nch, nlamb,\
                     indtX, indtlamb, indXlamb, indtXlamb\
                     = self._get_treated_data()
             self._ddata['data'] = data
@@ -1232,9 +1308,9 @@ class Data(utils.ToFuObject):
             self._ddata['X'] = X
             self._ddata['lamb'] = lamb
             self._ddata['nt'] = nt
-            self._ddata['nX'] = nX
+            self._ddata['nch'] = nch
             self._ddata['nlamb'] = nlamb
-            self._ddata['nnX'] = self._ddataRef['nnX']
+            self._ddata['nnch'] = self._ddataRef['nnch']
             self._ddata['nnlamb'] = self._ddataRef['nnlamb']
             self._ddata['indtX'] = indtX
             self._ddata['indtlamb'] = indtlamb
@@ -1261,14 +1337,15 @@ class Data(utils.ToFuObject):
         """
         lC = [self._dtreat[k] is not None for k in self._dtreat.keys()
               if k != 'order']
-        if any(C) and not force:
+        if any(lC) and not force:
             msg = """BEWARE : You are about to delete the data treatment
                               i.e.: to clear self.dtreat (and also self.ddata)
                               Are you sure ?
                               If yes, use self.clear_dtreat(force=True)"""
             raise Exception(msg)
-        self._dtreat = dict.fromkeys(self._get_keys_dtreat())
-        self.clear_data()
+        dtreat = dict.fromkeys(self._get_keys_dtreat())
+        self._dtreat = self._checkformat_inputs_dtreat(dtreat)
+        self.clear_ddata()
 
     def dchans(self, key=None):
         """ Return the dchans updated with indch
@@ -1389,19 +1466,19 @@ class Data(utils.ToFuObject):
 
         if lC[0]:
             # get all channels
-            ind = np.ones((self._ddataRef['nX'],),dtype=bool)
+            ind = np.ones((self._ddataRef['nch'],),dtype=bool)
 
         elif lC[1]:
             # get touch
             if self._dgeom['lCam'] is None:
                 msg = "self.dgeom['lCam'] must be set to use touch !"
                 raise Exception(msg)
-            if any([type(cc) is str for ss in self._dgeom['lCam']]):
+            if any([type(cc) is str for cc in self._dgeom['lCam']]):
                 msg = "self.dgeom['lCam'] contains pathfiles !"
                 msg += "\n  => Run self.strip(0)"
                 raise Exception(msg)
             ind = []
-            for cc in self._dgeom['LCam']:
+            for cc in self._dgeom['lCam']:
                 ind.append(cc.select(touch=touch, log=log, out=bool))
             if len(ind)==1:
                 ind = ind[0]
@@ -1410,17 +1487,23 @@ class Data(utils.ToFuObject):
 
         elif lC[2]:
             # get values on X
-            if self._ddataRef['nnX']==1:
-                ind = _select_ind(val, self._ddataRef['X'], self._ddataRef['nX'])
+            if self._ddataRef['nnch']==1:
+                ind = _select_ind(val, self._ddataRef['X'], self._ddataRef['nch'])
             else:
-                ind = np.zeros((self._ddataRef['nt'],self._ddataRef['nX']),dtype=bool)
-                for ii in range(0,self._ddataRef['nnX']):
+                ind = np.zeros((self._ddataRef['nt'],self._ddataRef['nch']),dtype=bool)
+                for ii in range(0,self._ddataRef['nnch']):
                     iind = self._ddataRef['indtX']==ii
                     ind[iind,:] =  _select_ind(val, self._ddataRef['X'],
-                                               self._ddataRef['nX'])[np.newaxis,:]
+                                               self._ddataRef['nch'])[np.newaxis,:]
 
         else:
-            assert type(key) is str and key in self._dchans['dchans'].keys()
+            if not (type(key) is str and key in self._dchans.keys()):
+                msg = "Provided key not valid!\n"
+                msg += "    - key: %s\n"%str(key)
+                msg += "Please provide a valid key of self.dchans():\n"
+                msg += "    - " + "\n    - ".join(self._dchans.keys())
+                raise Exception(msg)
+
             ltypes = [str,int,float,np.int64,np.float64]
             C0 = type(val) in ltypes
             C1 = type(val) in [list,tuple,np.ndarray]
@@ -1429,7 +1512,7 @@ class Data(utils.ToFuObject):
                 val = [val]
             else:
                 assert all([type(vv) in ltypes for vv in val])
-            ind = np.vstack([self.Ref['dchans'][key]==ii for ii in val])
+            ind = np.vstack([self._dchans[key]==ii for ii in val])
             if log=='any':
                 ind = np.any(ind,axis=0)
             elif log=='all':
@@ -1466,7 +1549,7 @@ class Data(utils.ToFuObject):
             The array of indices, of dtype specified by keywordarg out
 
         """
-        if not self._isSpectral:
+        if not self._isSpectral():
             msg = ""
             raise Exception(msg)
         assert out in [bool,int]
@@ -1476,25 +1559,42 @@ class Data(utils.ToFuObject):
         return ind
 
 
-    def plot(self, key=None, invert=None, plotmethod='imshow',
-             cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
-             Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
-             vmin=None, vmax=None, normt=False, draw=True, connect=True):
-        """ Plot the data content in a predefined figure  """
-        KH = _plot.Data_plot(self, key=key, invert=invert, Bck=Bck,
-                             ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
-                             plotmethod=plotmethod, cmap=cmap, ms=ms,
-                             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                             vmin=vmin, vmax=vmax, normt=normt,
-                             draw=draw, connect=connect)
-        return KH
 
-    def plot_compare(self, lD, key=None, invert=None, plotmethod='imshow',
-                     cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
-                     Bck=True, indref=0, fs=None, dmargin=None,
-                     vmin=None, vmax=None, normt=False,
-                     wintit=None, tit=None, fontsize=None,
-                     draw=True, connect=True):
+    def plot(self, key=None,
+             cmap=None, ms=4, vmin=None, vmax=None,
+             vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
+             ntMax=None, nchMax=None, nlbdMax=3,
+             lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
+             inct=[1,10], incX=[1,5], inclbd=[1,10],
+             fmt_t='06.3f', fmt_X='01.0f',
+             invert=True, Lplot='In', dmarker=None,
+             Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
+             fontsize=None, labelpad=None, draw=True, connect=True):
+        """ Plot the data content in a generic interactive figure  """
+        kh = _plot.Data_plot(self, key=key, indref=0,
+                             cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                             vmin_map=vmin_map, vmax_map=vmax_map,
+                             cmap_map=cmap_map, normt_map=normt_map,
+                             ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
+                             lls=lls, lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
+                             inct=inct, incX=incX, inclbd=inclbd,
+                             fmt_t=fmt_t, fmt_X=fmt_X, Lplot=Lplot,
+                             invert=invert, dmarker=dmarker, Bck=Bck,
+                             fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                             fontsize=fontsize, labelpad=labelpad,
+                             draw=draw, connect=connect)
+        return kh
+
+    def plot_compare(self, lD, key=None,
+                     cmap=None, ms=4, vmin=None, vmax=None,
+                     vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
+                     ntMax=None, nchMax=None, nlbdMax=3,
+                     lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
+                     inct=[1,10], incX=[1,5], inclbd=[1,10],
+                     fmt_t='06.3f', fmt_X='01.0f',
+                     invert=True, Lplot='In', dmarker=None,
+                     Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
+                     fontsize=None, labelpad=None, draw=True, connect=True):
         """ Plot several Data instances of the same diag
 
         Useful to compare :
@@ -1503,18 +1603,23 @@ class Data(utils.ToFuObject):
 
         """
         C0 = isinstance(lD,list)
-        C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
-        C1 = issubclass(lD.__class__,Data)
-        assert C0 or C1, 'Provided first arg. must be a tf.data.Data or list !'
+        C0 = C0 and all([issubclass(dd.__class__,DataAbstract) for dd in lD])
+        C1 = issubclass(lD.__class__,DataAbstract)
+        assert C0 or C1, 'Provided first arg. must be a tf.data.DataAbstract or list !'
         lD = [lD] if C1 else lD
-        KH = _plot.Data_plot([self]+lD, key=key, invert=invert, Bck=Bck,
+        kh = _plot.Data_plot([self]+lD, key=key, indref=0,
+                             cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                             vmin_map=vmin_map, vmax_map=vmax_map,
+                             cmap_map=cmap_map, normt_map=normt_map,
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
-                             plotmethod=plotmethod, cmap=cmap, ms=ms,
+                             lls=lls, lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
+                             inct=inct, incX=incX, inclbd=inclbd,
+                             fmt_t=fmt_t, fmt_X=fmt_X, Lplot=Lplot,
+                             invert=invert, dmarker=dmarker, Bck=Bck,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                             vmin=vmin, vmax=vmax, normt=normt,
-                             fontsize=fontsize, indref=indref,
+                             fontsize=fontsize, labelpad=labelpad,
                              draw=draw, connect=connect)
-        return KH
+        return kh
 
     def plot_combine(self, lD, key=None, invert=None, plotmethod='imshow',
                      cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
@@ -1528,9 +1633,9 @@ class Data(utils.ToFuObject):
 
         """
         C0 = isinstance(lD,list)
-        C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
-        C1 = issubclass(lD.__class__,Data)
-        assert C0 or C1, 'Provided first arg. must be a tf.data.Data or list !'
+        C0 = C0 and all([issubclass(dd.__class__,DataAbstract) for dd in lD])
+        C1 = issubclass(lD.__class__,DataAbstract)
+        assert C0 or C1, 'Provided first arg. must be a tf.data.DataAbstract or list !'
         lD = [lD] if C1 else lD
         KH = _plot.Data_plot_combine([self]+lD, key=key, invert=invert, Bck=Bck,
                                      ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
@@ -1546,7 +1651,8 @@ class Data(utils.ToFuObject):
                          method='scipy-fourier', deg=False,
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
-                         boundary='constant', padded=True, wave='morlet'):
+                         boundary='constant', padded=True,
+                         wave='morlet', warn=True):
         """ Return the power spectrum density for each channel
 
         The power spectrum density is computed with the chosen method
@@ -1608,7 +1714,8 @@ class Data(utils.ToFuObject):
                                               method=method, window=window,
                                               detrend=detrend, nperseg=nperseg,
                                               noverlap=noverlap, boundary=boundary,
-                                              padded=padded, wave=wave)
+                                              padded=padded, wave=wave,
+                                              warn=warn)
         return tf, f, lpsd, lang
 
     def plot_spectrogram(self, fmin=None, fmax=None,
@@ -1616,11 +1723,12 @@ class Data(utils.ToFuObject):
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
                          boundary='constant', padded=True, wave='morlet',
-                         invert=None, plotmethod='imshow',
-                         cmap=None, ms=4, ntMax=None, nchMax=None,
+                         invert=True, plotmethod='imshow',
+                         cmap_f=None, cmap_img=None,
+                         ms=4, ntMax=None, nfMax=None,
                          Bck=True, fs=None, dmargin=None, wintit=None,
                          tit=None, vmin=None, vmax=None, normt=False,
-                         draw=True, connect=True, returnspect=False):
+                         draw=True, connect=True, returnspect=False, warn=True):
         """ Plot the spectrogram of all channels with chosen method
 
         All non-plotting arguments are fed to self.calc_spectrogram()
@@ -1639,11 +1747,13 @@ class Data(utils.ToFuObject):
                                               method=method, window=window,
                                               detrend=detrend, nperseg=nperseg,
                                               noverlap=noverlap, boundary=boundary,
-                                              padded=padded, wave=wave)
+                                              padded=padded, wave=wave,
+                                              warn=warn)
         kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang, fmax=fmax,
                                          invert=invert, plotmethod=plotmethod,
-                                         cmap=cmap, ms=ms, ntMax=ntMax,
-                                         nchMax=nchMax, Bck=Bck, fs=fs,
+                                         cmap_f=cmap_f, cmap_img=cmap_img,
+                                         ms=ms, ntMax=ntMax,
+                                         nfMax=nfMax, Bck=Bck, fs=fs,
                                          dmargin=dmargin, wintit=wintit,
                                          tit=tit, vmin=vmin, vmax=vmax,
                                          normt=normt, draw=draw,
@@ -1680,8 +1790,16 @@ class Data(utils.ToFuObject):
         kh = _plot.plot_svd()
         return kh
 
-
-
+    def save(self, path=None, name=None,
+             strip=None, deep=False, mode='npz',
+             compressed=False, verb=True, return_pfe=False):
+        if deep is False:
+            self.strip(1)
+        out = super(DataAbstract, self).save(path=path, name=name,
+                                             deep=deep, mode=mode,
+                                             strip=strip, compressed=compressed,
+                                             return_pfe=return_pfe, verb=verb)
+        return out
 
 
 
@@ -1701,7 +1819,7 @@ class Data(utils.ToFuObject):
 ############################################ To be finished
 
 
-
+"""
     def _get_LCam(self):
         if self.geom is None or self.geom['LCam'] is None:
             lC = None
@@ -1918,7 +2036,7 @@ def _recreatefromoperator(d0, other, opfunc):
         data = Data(d, **kwdargs)
     return data
 
-
+"""
 
 
 
@@ -1928,54 +2046,94 @@ def _recreatefromoperator(d0, other, opfunc):
 #               Data1D and Data2D
 #####################################################################
 
+sig = inspect.signature(DataAbstract)
+params = sig.parameters
 
-class Data1D(Data):
+
+class DataCam1D(DataAbstract):
     """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data=None, t=None, dchans=None, dlabels=None,
-                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, Ves=None, LStruct=None, fromdict=None,
-                 SavePath=os.path.abspath('./')):
-        Data.__init__(self, data, t=t, dchans=dchans, dlabels=dlabels,
-                 Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra, CamCls='1D',
-                 lCam=LCam, Ves=Ves, LStruct=LStruct, fromdict=fromdict, SavePath=SavePath)
+    @classmethod
+    def _isSpectral(cls):  return False
+    @classmethod
+    def _is2D(cls):        return False
+lp = [p for p in params.values() if p.name not in ['lamb','dX12']]
+DataCam1D.__signature__ = sig.replace(parameters=lp)
 
 
 
-class Data2D(Data):
-    """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data=None, t=None, dchans=None, dlabels=None,
-                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, Ves=None, LStruct=None, X12=None, fromdict=None,
-                 SavePath=os.path.abspath('./')):
-        Data.__init__(self, data, t=t, dchans=dchans, dlabels=dlabels,
-                      Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra,
-                      lCam=LCam,
-                      fromdict=fromdict, SavePath=SavePath)
-        self.set_X12(X12)
+class DataCam2D(DataAbstract):
+    """ Data object used for 2D cameras or list of 2D cameras  """
 
-    def set_X12(self, X12=None):
-        X12 = X12 if (self.geom is None or self.geom['LCam'] is None) else None
-        if X12 is not None:
-            X12 = np.asarray(X12)
-            assert X12.shape==(2,self.Ref['nch'])
-        self._X12 = X12
+    @classmethod
+    def _isSpectral(cls):  return False
+    @classmethod
+    def _is2D(cls):        return True
 
-    def get_X12(self, out='1d'):
-        if self._X12 is None:
-            C0 = self.geom is not None
-            C0 = C0 and self.geom['LCam'] is not None
-            msg = "X12 must be set for plotting if LCam not provided !"
-            assert C0, msg
-            X12, DX12 = self.geom['LCam'][0].get_X12(out=out)
+    def _checkformat_dX12(self, dX12=None):
+        lc = [dX12 is None, dX12 == 'geom' or dX12 == {'from':'geom'},
+              isinstance(dX12, dict) and dX12 != {'from':'geom'}]
+        if not np.sum(lc) == 1:
+            msg = "dX12 must be either:\n"
+            msg += "    - None\n"
+            msg += "    - 'geom' : will be derived from the cam geometry\n"
+            msg += "    - dict : containing {'x1'  : array of coords.,\n"
+            msg += "                         'x2'  : array of coords.,\n"
+            msg += "                         'ind1': array of int indices,\n"
+            msg += "                         'ind2': array of int indices}"
+            raise Exception(msg)
+
+        if lc[1]:
+            ls = self._get_keys_dX12()
+            c0 = self._dgeom['lCam'] is not None
+            c1 = c0 and len(self._dgeom['lCam']) == 1
+            c2 = c1 and self._dgeom['lCam'][0].dX12 is not None
+            if not c2:
+                msg = "dX12 cannot be derived from dgeom['lCam'][0].dX12 !"
+                raise Exception(msg)
+            dX12 = {'from':'geom'}
+
+        elif lc[2]:
+            ls = ['x1','x2','ind1','ind2']
+            assert all([ss in dX12.keys() for ss in ls])
+            x1 = np.asarray(dX12['x1']).ravel()
+            x2 = np.asarray(dX12['x2']).ravel()
+            n1, n2 = x1.size, x2.size
+            ind1, ind2, indr = self._get_ind12r_n12(ind1=dX12['ind1'],
+                                                    ind2=dX12['ind2'],
+                                                    n1=n1, n2=n2)
+            dX12 = {'x1':x1, 'x2':x2, 'n1':n1, 'n2':n2,
+                    'ind1':ind1, 'ind2':ind2, 'indr':indr, 'from':'self'}
+        return dX12
+
+    def set_dX12(self, dX12=None):
+        dX12 = self._checkformat_dX12(dX12)
+        self._dX12.update(dX12)
+
+    @property
+    def dX12(self):
+        if self._dX12 is not None and self._dX12['from'] == 'geom':
+            dX12 = self._dgeom['lCam'][0].dX12
         else:
-            X12 = self._X12
-            if out.lower()=='2d':
-                x1u, x2u, ind, DX12 = utils.get_X12fromflat(X12)
-                X12 = [x1u,x2u,ind]
-            else:
-                DX12 = None
-        return X12, DX12
+            dX12 = self._dX12
+        return dX12
 
+    def get_X12plot(self, plot='imshow'):
+        assert self.dX12 is not None
+        if plot == 'imshow':
+            x1, x2 = self.dX12['x1'], self.dX12['x2']
+            x1min, Dx1min = x1[0], 0.5*(x1[1]-x1[0])
+            x1max, Dx1max = x1[-1], 0.5*(x1[-1]-x1[-2])
+            x2min, Dx2min = x2[0], 0.5*(x2[1]-x2[0])
+            x2max, Dx2max = x2[-1], 0.5*(x2[-1]-x2[-2])
+            extent = (x1min - Dx1min, x1max + Dx1max,
+                      x2min - Dx2min, x2max + Dx2max)
+            indr = self.dX12['indr']
+            return x1, x2, indr, extent
+
+
+
+lp = [p for p in params.values() if p.name not in ['lamb']]
+DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 
@@ -1995,7 +2153,7 @@ class Data2D(Data):
 
 
 
-class DataSpectro(Data):
+class DataSpectro(DataAbstract):
     """ data should be provided in (nt,nlamb,chan) format  """
 
     def __init__(self, data=None, lamb=None, t=None, dchans=None, dlabels=None,

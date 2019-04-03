@@ -2124,7 +2124,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                         lbounds_ves[0] = lslim[jj][0]
                         lbounds_ves[1] = lslim[jj][1]
                     raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir,
-                                                nvert,
+                                                nvert-1,
                                                 &lstruct_polyx[ind_min],
                                                 &lstruct_polyy[ind_min],
                                                 &lstruct_normx[ind_min-ii],
@@ -2505,24 +2505,29 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                 if k>=0.:
                     V1 = polyx_tab[jj+1]-polyx_tab[jj]
                     V2 = polyy_tab[jj+1]-polyy_tab[jj]
-                    q = (  (Ds[1,ii] + k * us[1,ii] - polyx_tab[jj]) * V1
-                         + (Ds[2,ii] + k * us[2,ii] - polyy_tab[jj]) * V2) \
-                         / (V1*V1 + V2*V2)
-                    # Only of on the fraction of plane
-                    if q>=0. and q<1.:
-                        X = Ds[0,ii] + k*us[0,ii]
-                        # Only if within limits
-                        if X>=L0 and X<=L1:
-                            sca = us[1,ii] * normx_tab[jj] \
-                                  + us[2,ii] * normy_tab[jj]
-                            # Only if new
-                            if sca<=0 and k<kout:
-                                kout = k
-                                indout = jj
-                                Done = 1
-                            elif sca>=0 and k<min(kin,kout):
-                                kin = k
-                                indin = jj
+                    if (V1**2 + V2**2 > _VSMALL):
+                        q = (  (Ds[1,ii] + k * us[1,ii] - polyx_tab[jj]) * V1
+                             + (Ds[2,ii] + k * us[2,ii] - polyy_tab[jj]) * V2) \
+                             / (V1*V1 + V2*V2)
+                        # Only of on the fraction of plane
+                        if q>=0. and q<1.:
+                            X = Ds[0,ii] + k*us[0,ii]
+                            # Only if within limits
+                            if X>=L0 and X<=L1:
+                                sca = us[1,ii] * normx_tab[jj] \
+                                      + us[2,ii] * normy_tab[jj]
+                                # Only if new
+                                if sca<=0 and k<kout:
+                                    kout = k
+                                    indout = jj
+                                    Done = 1
+                                elif sca>=0 and k<min(kin,kout):
+                                    kin = k
+                                    indin = jj
+                    else:
+                        from warnings import warn
+                        warn("The polygon has double identical points",
+                             Warning)
         # For two faces
         # Only if plane not parallel to line
         if Cabs(us[0,ii])>EpsPlane:

@@ -2,6 +2,8 @@
 This module contains tests for tofu.geom in its structured version
 """
 
+
+
 # External modules
 import os
 import numpy as np
@@ -110,6 +112,7 @@ def teardown_module(module):
 #   Struct subclasses
 #
 #######################################################
+
 
 path = os.path.join(_here,'tests03_core_data')
 lf = os.listdir(path)
@@ -443,7 +446,6 @@ for typ in dobj.keys():
                             lStruct=lS, Lim=Lim,
                             Type=typ, SavePath=_here)
 
-
 class Test02_Config(object):
 
     @classmethod
@@ -511,12 +513,12 @@ class Test02_Config(object):
             obj = self.dobj[typ]
             n = [ss.Id.Name for ss in obj.lStruct if 'Baffle' in ss.Id.Name]
             n = n[0]
-            B = obj.dstruct['dStruct']['PFC'][n].copy()
-            assert n in obj.dstruct['dStruct']['PFC'].keys()
+            B = obj.dStruct['dObj']['PFC'][n].copy()
+            assert n in obj.dStruct['dObj']['PFC'].keys()
             assert n in obj.dextraprop['dvisible']['PFC'].keys()
             assert hasattr(obj.PFC,n)
             obj.remove_Struct('PFC',n)
-            assert n not in obj.dstruct['dStruct']['PFC'].keys()
+            assert n not in obj.dStruct['dObj']['PFC'].keys()
             assert n not in obj.dextraprop['dvisible']['PFC'].keys()
             try:
                 hasattr(obj.PFC,n)
@@ -524,14 +526,14 @@ class Test02_Config(object):
                 assert err.__class__.__name__=='KeyError'
             self.dobj[typ].add_Struct(struct=B,
                                       dextraprop={'visible':True})
-            assert n in obj.dstruct['dStruct']['PFC'].keys()
+            assert n in obj.dStruct['dObj']['PFC'].keys()
             assert n in obj.dextraprop['dvisible']['PFC'].keys()
             assert hasattr(obj.PFC,n)
 
     def test08_setget_color(self):
         for typ in self.dobj.keys():
             col = self.dobj[typ].get_color()
-            for c in self.dobj[typ].dstruct['dStruct'].keys():
+            for c in self.dobj[typ].dStruct['dObj'].keys():
                 eval("self.dobj[typ].%s.set_color('r')"%c)
 
     def test09_get_summary(self):
