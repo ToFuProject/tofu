@@ -2470,10 +2470,10 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                                 elif sca>=0 and k<min(kin,kout):
                                     kin = k
                                     indin = jj
-                else:
-                    from warnings import warn
-                    warn("The polygon has double identical points",
-                         Warning)
+                    else:
+                        from warnings import warn
+                        warn("The polygon has double identical points",
+                             Warning)
         # For two faces
         # Only if plane not parallel to line
         if Cabs(us[0,ii])>EpsPlane:
