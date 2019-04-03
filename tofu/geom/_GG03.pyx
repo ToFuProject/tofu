@@ -3245,9 +3245,8 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                     elif sca>=0 and k<min(kin,kout):
                                         kin = k
                                         indin = jj
-
-    # == More general non-horizontal semi-line case ============================
     else:
+        # == More general non-horizontal semi-line case ============================
         for jj in range(nvert):
             v0 = lpolyx[jj+1]-lpolyx[jj]
             v1 = lpolyy[jj+1]-lpolyy[jj]
@@ -3257,7 +3256,6 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
             coeff = - upar2 * (ray_orig[2] - lpolyy[jj])**2 * invuz * invuz +\
                     2. * upscaDp * (ray_orig[2]-lpolyy[jj]) * invuz -\
                     dpar2 + lpolyx[jj] * lpolyx[jj]
-
             if ((val_a * val_a < eps_a * eps_a) and
                 (val_b * val_b > eps_b * eps_b)):
                 q = -coeff / (2. * val_b)
@@ -5186,9 +5184,9 @@ cdef inline void dist_los_circle_core(const double[3] direct,
     norm_dir : double (3) array
        normal of the direction of the vector (for computation performance)
     result : double (2) array
-       - result[0] will contain the DISTANCE from line closest point to circle
+       - result[0] will contain the k coefficient to find the line point closest
        closest point
-       - result[1] will contain the k coefficient to find the line point closest
+       - result[1] will contain the DISTANCE from line closest point to circle
        to the circle
     """
     cdef int numRoots, i
@@ -5924,6 +5922,7 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
             at the point P_i = orig[i] + kmin[i] * vdir[i]
         dist_vpoly : (num_los) double array
             `distance[i]` is the distance from P_i to the extruded polygon.
+             if the i-th LOS intersects the poly, then distance[i] = Cnan
     ---
     This is the PYTHON function, use only if you need this computation from
     Python, if you need it from Cython, use `dist_los_circle_core`
@@ -5937,6 +5936,8 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
     cdef double v0, v1, val_a, val_b
     cdef double[2] res_a
     cdef double[2] res_b
+    cdef double[3] circle_tangent
+    cdef double rdotvec
     res_final[0] = 1000000000
     res_final[1] = 1000000000
 
@@ -5968,8 +5969,6 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
                                          norm_dir2, res_a)
                 else:
-                    with gil:
-                        print("heeeeeeeeeeeeeeeeeeeeeeeeeere")
                     # The we need to compute the radius (the height is Z_D)
                     # of the circle in the same plane as the LOS and compute the
                     # distance between the LOS and circle.
@@ -5977,10 +5976,25 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     dist_los_circle_core(ray_vdir, ray_orig,
                                          radius_z, ray_orig[2],
                                          norm_dir2, res_a)
+                    if res_a[1] < _VSMALL:
+                        # The line is either tangent or intersects the frustum
+                        # we need to make the difference
+                        k = res_a[0]
+                        # we compute the ray from circle center to P
+                        circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
+                        circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
+                        circle_tangent[2] = 0. # the line is horizontal
+                        rdotvec = compute_dot_prod(circle_tangent, ray_vdir)
+                        if Cabs(rdotvec) > _VSMALL:
+                            # There is an intersection, distance = Cnan
+                            res_final[1] = Cnan # distance
+                            res_final[0] = k # k
+                            # no need to continue
+                            return
                 if (res_final[1] > res_a[1]
                     or (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
-                    res_final[0] = res_a[0] # distance
-                    res_final[1] = res_a[1] # k
+                    res_final[0] = res_a[0] # k
+                    res_final[1] = res_a[1] # distance
             else:
                 # -- case with horizontal cone (aka cone is a plane annulus) ---
                 # Then the shortest distance is the distance to the
@@ -5989,20 +6003,50 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                 dist_los_circle_core(ray_vdir, ray_orig,
                                      lpolyx[jj], lpolyy[jj],
                                      norm_dir2, res_a)
+                if res_a[1] < _VSMALL:
+                    # The line is either tangent or intersects the frustum
+                    # we need to make the difference
+                    k = res_a[0]
+                    # we compute the ray from circle center to P
+                    circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
+                    circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
+                    circle_tangent[2] = 0. # the ray is horizontal
+                    rdotvec = compute_dot_prod(circle_tangent, ray_vdir)
+                    if Cabs(rdotvec) > _VSMALL:
+                        # There is an intersection, distance = Cnan
+                        res_final[1] = Cnan # distance
+                        res_final[0] = k # k
+                        # no need to continue
+                        return
                 dist_los_circle_core(ray_vdir, ray_orig,
                                      lpolyx[jj+1], lpolyy[jj+1],
                                      norm_dir2, res_b)
+                if res_b[1] < _VSMALL:
+                    # The line is either tangent or intersects the frustum
+                    # we need to make the difference
+                    k = res_b[0]
+                    # we compute the ray from circle center to P
+                    circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
+                    circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
+                    circle_tangent[2] = 0. # the ray is horizontal
+                    rdotvec = compute_dot_prod(circle_tangent, ray_vdir)
+                    if Cabs(rdotvec) > _VSMALL:
+                        # There is an intersection, distance = Cnan
+                        res_final[1] = Cnan # distance
+                        res_final[0] = k # k
+                        # no need to continue
+                        return
                 # The result is the one associated to the shortest distance
                 if (res_final[1] > res_a[1] or
                     (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
-                    res_final[0] = res_a[0]
-                    res_final[1] = res_a[1]
+                    res_final[0] = res_a[0] # k
+                    res_final[1] = res_a[1] # distance
                 if (res_final[1] > res_b[1] or
                     (res_final[1] == res_b[1] and res_final[0] > res_b[0])):
-                    res_final[0] = res_b[0]
-                    res_final[1] = res_b[1]
-    # == More general non-horizontal semi-line case ============================
+                    res_final[0] = res_b[0] # k
+                    res_final[1] = res_b[1] # distance
     else:
+        # == More general non-horizontal semi-line case ========================
         for jj in range(nvert-1):
             v0 = lpolyx[jj+1]-lpolyx[jj]
             v1 = lpolyy[jj+1]-lpolyy[jj]
@@ -6037,15 +6081,16 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                         if k >= 0.:
                             # Then there is an intersection
                             res_a[0] = k
-                            res_a[1] = 0
+                            res_a[1] = Cnan
+                            return # no need to move forward
                         else:
                             # The closest point on the line is the LOS origin
                             res_a[0] = 0
                             res_a[1] = -k * Csqrt(norm_dir2)
                 if (res_final[1] > res_a[1]
                     or (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
-                    res_final[0] = res_a[0]
-                    res_final[1] = res_a[1]
+                    res_final[0] = res_a[0] # k
+                    res_final[1] = res_a[1] # distance
             elif (val_b * val_b >= val_a * coeff):
                 sqd = Csqrt(val_b * val_b - val_a * coeff)
                 # First solution
@@ -6056,9 +6101,6 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                                          lpolyx[jj], lpolyy[jj],
                                          norm_dir2, res_a)
                 elif q > 1:
-                    # ray_vdir[0] = ray_vdir[0] / Csqrt(norm_dir2)
-                    # ray_vdir[2] = ray_vdir[2] / Csqrt(norm_dir2)
-                    # norm_dir2 = 1.
                     # Then we only need to compute distance to circle C_B
                     dist_los_circle_core(ray_vdir, ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
@@ -6068,15 +6110,16 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     if k >= 0.:
                         # There is an intersection
                         res_a[0] = k
-                        res_a[1] = 0
+                        res_a[1] = Cnan
+                        return # no need to continue
                     else:
                         # The closest point on the LOS is its origin
                         res_a[0] = 0
                         res_a[1] = -k * Csqrt(norm_dir2)
                 if (res_final[1] > res_a[1]
                     or (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
-                    res_final[0] = res_a[0]
-                    res_final[1] = res_a[1]
+                    res_final[0] = res_a[0] # k
+                    res_final[1] = res_a[1] # distance
                 # Second solution
                 q = (-val_b - sqd) / val_a
                 if q < 0:
@@ -6092,8 +6135,10 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                 else:
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                     if k>=0.:
+                        # there is an intersection
                         res_b[0] = k
-                        res_b[1] = 0
+                        res_b[1] = Cnan
+                        return # no need to continue
                     else:
                         # The closest point on the LOS is its origin
                         res_b[0] = 0
@@ -6103,6 +6148,7 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[0] = res_b[0]
                     res_final[1] = res_b[1]
     res_final[0] = res_final[0] / norm_dir2_ori
+    return
 
 """
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
