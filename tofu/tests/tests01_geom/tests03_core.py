@@ -417,8 +417,8 @@ class Test01_Struct(object):
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
                     obj = self.dobj[typ][c][n]
-                    pfe = obj.save(return_pfe=True)
-                    obj2 = tf.load(pfe)
+                    pfe = obj.save(return_pfe=True, verb=False)
+                    obj2 = tf.load(pfe, verb=False)
                     assert obj==obj2
                     os.remove(pfe)
 
@@ -427,7 +427,7 @@ class Test01_Struct(object):
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
                     obj = self.dobj[typ][c][n]
-                    pfe = obj.save_to_txt(return_pfe=True)
+                    pfe = obj.save_to_txt(return_pfe=True, verb=False)
                     os.remove(pfe)
 
 
@@ -458,7 +458,7 @@ class Test02_Config(object):
             lpfe = [os.path.join(ss.Id.SavePath, ss.Id.SaveName+'.npz')
                     for ss in lS]
             for ss in lS:
-                ss.save()
+                ss.save(verb=False)
             cls.dlpfe[typ] = lpfe
         cls.dobj = dobj
 
@@ -657,10 +657,10 @@ class Test03_Rays(object):
                 dlpfe[typ][c] = []
                 for s in dobj[typ][c].config.lStruct:
                     pfe = os.path.join(s.Id.SavePath,s.Id.SaveName+'.npz')
-                    s.save()
+                    s.save(verb=False)
                     dlpfe[typ][c].append(pfe)
                 dobj[typ][c].config.strip(-1)
-                dobj[typ][c].config.save()
+                dobj[typ][c].config.save(verb=False)
                 dobj[typ][c].config.strip(0)
                 pfe = os.path.join(dobj[typ][c].config.Id.SavePath,
                                    dobj[typ][c].config.Id.SaveName+'.npz')
@@ -1015,7 +1015,7 @@ class Test09_LensTor:
         plt.close('all')
 
     def test03_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1057,7 +1057,7 @@ class Test10_LensLin:
         plt.close('all')
 
     def test03_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1094,7 +1094,7 @@ class Test11_ApertTor:
         plt.close('all')
 
     def test02_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1130,7 +1130,7 @@ class Test12_ApertLin:
         plt.close('all')
 
     def test02_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1268,7 +1268,7 @@ class Test13_DetectApertTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1412,7 +1412,7 @@ class Test14_DetectApertLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1550,7 +1550,7 @@ class Test15_DetectLensTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1688,7 +1688,7 @@ class Test16_DetectLensLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1847,7 +1847,7 @@ class Test17_GDetectApertTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1997,7 +1997,7 @@ class Test18_GDetectApertLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -2133,7 +2133,7 @@ class Test19_GDetectLensTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -2268,7 +2268,7 @@ class Test20_GDetectLensLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
