@@ -381,13 +381,11 @@ def _save_mat(dd, pathfileext, compressed=False):
     dmat.update(**dt)
     scpio.savemat(pathfileext, dmat, do_compression=compressed, format='5')
 
+###################################
+#       loading routines
+###################################
 
-
-
-def load(name, path=None, strip=None, verb=True):
-    """
-
-    """
+def _filefind(name, path=None, lmodes=['.npz','.mat']):
     c0 = isinstance(name,str)
     c1 = isinstance(name,list) and all([isinstance(ss,str) for ss in name])
     if not (c0 or c1):
@@ -395,8 +393,9 @@ def load(name, path=None, strip=None, verb=True):
         msg += " or a list of str patterns to be found at pathi\n"
         msg += "    name : %s"%name
         raise Exception(msg)
-    msg = "Arg path must be a str !"
-    assert path is None or isinstance(path,str), msg
+    if path is not None and not isinstance(path,str):
+        msg = "Arg path must be a str !"
+        raise Exception(msg)
 
     # Extract folder and file name
     if isinstance(name,str):
@@ -407,37 +406,48 @@ def load(name, path=None, strip=None, verb=True):
         elif path is None:
             path = './'
     path = os.path.normpath(os.path.abspath(path))
-    msg = "Specified folder does not exist :"
-    msg += "\n    {0}".format(path)
-    assert os.path.isdir(path), msg
+    if not os.path.isdir(path):
+        msg = "Specified folder does not exist :"
+        msg += "\n    {0}".format(path)
+        raise Exception(msg)
 
     # Check unicity of matching file
     lf = os.listdir(path)
     lf = [ff for ff in lf if all([ss in ff for ss in name])]
-    if len(lf)!=1:
+    if len(lf) != 1:
         msg = "No / several matching files found:"
         msg += "\n  folder: {0}".format(path)
         msg += "\n  for   : {0}".format('['+', '.join(name)+']')
         msg += "\n    " + "\n    ".join(lf)
         raise Exception(msg)
-    name = lf[0]
+    nameext = lf[0]
 
     # Check file extension
-    lmodes = ['.npz','.mat']
-    msg = "None / too many of the available file extensions !"
-    msg += "\n  file: {0}".format(name)
-    msg += "\n  ext.: {0}:".format('['+', '.format(lmodes)+']')
-    indend = [ss==name[-4:] for ss in lmodes]
-    indin = [ss in name for ss in lmodes]
-    assert np.sum(indend)==1 and np.sum(indin)==1, msg
+    indend = [ss==nameext[-4:] for ss in lmodes]
+    indin = [ss in nameext for ss in lmodes]
+    if np.sum(indend) != 1 or np.sum(indin) != 1:
+        msg = "None / too many of the available file extensions !"
+        msg += "\n  file: {0}".format(nameext)
+        msg += "\n  ext.: {0}:".format('['+', '.format(lmodes)+']')
+        raise Exception(msg)
 
     # load and format dict
+    name = nameext[:-4]
     mode = lmodes[np.argmax(indend)].replace('.','')
-    pathfileext = os.path.join(path,name)
+    pfe = os.path.join(path,nameext)
+    return name, mode, pfe
+
+
+
+def load(name, path=None, strip=None, verb=True):
+    """
+
+    """
+    name, mode, pfe = _filefind(name=name, path=path, lmodes=['.npz','.mat'])
     if mode=='npz':
-        dd = _load_npz(pathfileext)
+        dd = _load_npz(pfe)
     elif mode=='npz':
-        dd = _load_mat(pathfileext)
+        dd = _load_mat(pfe)
 
     # Recreate from dict
     exec("import tofu.{0} as mod".format(dd['dId_dall_Mod']))
@@ -502,6 +512,34 @@ def _load_npz(pathfileext):
     return dout
 
 
+#######
+#   tf.geom.Struct - specific
+#######
+
+def load_from_txt(name=None, path=None, strip=None, verb=True,
+                  Name=None, Exp=None):
+
+    lCls = ['PFC','CoilPF','CoilCS','Ves','PlasmaDomain']
+    name, mode, pfe = _filefind(name=name, path=path, lmodes=['.txt'])
+    lk = name.split('_')
+
+    # Extract class
+    lcc = [np.sum([k == cls for k in lk]) == 1 for cls in lCls]
+    if not np.sum(lcc) == 1:
+        msg = "Provided file name does not include any known Struct subclass:\n"
+        msg += "    - Provided file name: %s\n"%name
+        msg += "     - Valid classes: [%s]"%', '.join(lCls)
+        raise Exception(msg)
+    cls = lCls[np.nonzero(lcc)[0][0]]
+
+    # Recreate object
+    import tofu.geom as mod
+    obj = eval("mod.%s.from_txt(pfe, Name=Name, Exp=Exp)"%cls)
+    if verb:
+        msg = "Loaded from txt:\n"
+        msg += "    " + pfe
+        print(msg)
+    return obj
 
 
 

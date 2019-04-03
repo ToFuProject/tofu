@@ -1005,8 +1005,8 @@ class Struct(utils.ToFuObject):
 
     def save_to_txt(self, path='./', name=None,
                     include=['Mod','Cls','Exp','Name'],
-                    fmt='%.18e', delimiter=' ', newline='\n', header='',
-                    footer='', comments='# ', encoding=None, verb=True, return_pfe=False):
+                    fmt='%.18e', delimiter=' ',
+                    footer='', encoding=None, verb=True, return_pfe=False):
         """ Save the basic geometrical attributes only (polygon and pos/extent)
 
         The attributes are saved to a txt file with chosen encoding
@@ -1065,6 +1065,12 @@ class Struct(utils.ToFuObject):
         posext = np.vstack((self.pos, self.extent)).T
         out = np.vstack((nPno,poly,posext))
 
+        # default standards
+        newline = '\n'
+        comments = '#'
+        header = ' Cls = %s\n Exp = %s\n Name = %s'%(self.__class__.__name__,
+                                                     self.Id.Exp, self.Id.Name)
+
         kwds = dict(fmt=fmt, delimiter=delimiter, newline=newline,
                    header=header, footer=footer, comments=comments)
         if 'encoding' in inspect.signature(np.savetxt).parameters:
@@ -1110,6 +1116,7 @@ class Struct(utils.ToFuObject):
                 - An instance of the relevant tofu.geom.Struct subclass
                 - A dict with keys 'poly', 'pos' and 'extent'
         """
+
         if not out in [object,'object','dict']:
             msg = "Arg out must be either:"
             msg += "    - 'object': return a %s instance\n"%cls.__name__
@@ -1145,6 +1152,13 @@ class Struct(utils.ToFuObject):
             pos, extent = oo[1+npts:,0], oo[1+npts:,1]
         else:
             pos, extent = None, None
+
+         # Try reading Exp and Name if not provided
+        if Exp is None:
+            Exp = cls._from_txt_extract_params(pfe, 'Exp')
+        if Name is None:
+            Name = cls._from_txt_extract_params(pfe, 'Name')
+
         if out=='dict':
             return {'poly':poly, 'pos':pos, 'extent':extent}
         else:
@@ -1155,6 +1169,36 @@ class Struct(utils.ToFuObject):
                       SavePath=SavePath, color=color)
             return obj
 
+    @staticmethod
+    def _from_txt_extract_params(pfe, param):
+        p, name = os.path.split(pfe)
+
+        # Try from file name
+        lk = name.split('_')
+        lind = [param in k for k in lk]
+        if np.sum(lind) > 1:
+            msg = "Several values form %s found in file name:\n"
+            msg += "    file: %s"%pfe
+            raise Exception(msg)
+        if any(lind):
+            paramstr = lk[np.nonzero(lind)[0][0]]
+            paramstr = paramstr.replace(param,'')
+            return paramstr
+
+        # try from file content
+        paramstr = None
+        lout = [param, '#', ':', '=', ' ', '\n', '\t']
+        with open(pfe) as fid:
+            while True:
+                line = fid.readline()
+                if param in line:
+                    for k in lout:
+                        line = line.replace(k,'')
+                    paramstr = line
+                    break
+                elif not line:
+                    break
+        return paramstr
 
 
 
