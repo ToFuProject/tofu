@@ -5913,7 +5913,7 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
         dpar2 : double
            if u = [ux, uy, uz] is the direction of the ray, and D=[dx, dy, dz]
            its origin, then dpar2 = dx*dx + dy*dy
-        invuz : double 
+        invuz : double
         eps_<val> : double
            Small value, acceptance of error
     Returns
@@ -5968,6 +5968,8 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
                                          norm_dir2, res_a)
                 else:
+                    with gil:
+                        print("heeeeeeeeeeeeeeeeeeeeeeeeeere")
                     # The we need to compute the radius (the height is Z_D)
                     # of the circle in the same plane as the LOS and compute the
                     # distance between the LOS and circle.

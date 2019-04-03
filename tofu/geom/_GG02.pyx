@@ -5913,7 +5913,7 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
         dpar2 : double
            if u = [ux, uy, uz] is the direction of the ray, and D=[dx, dy, dz]
            its origin, then dpar2 = dx*dx + dy*dy
-        invuz : double 
+        invuz : double
         eps_<val> : double
            Small value, acceptance of error
     Returns
@@ -5999,8 +5999,8 @@ cdef inline void comp_dist_los_vpoly_core(const double[3] ray_orig,
                     (res_final[1] == res_b[1] and res_final[0] > res_b[0])):
                     res_final[0] = res_b[0]
                     res_final[1] = res_b[1]
-    # == More general non-horizontal semi-line case ============================
     else:
+        # == More general non-horizontal semi-line case ========================
         for jj in range(nvert-1):
             v0 = lpolyx[jj+1]-lpolyx[jj]
             v1 = lpolyy[jj+1]-lpolyy[jj]
