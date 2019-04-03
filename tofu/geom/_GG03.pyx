@@ -2062,12 +2062,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                 else:
                     lslim = lstruct_lims[ii]
                 if ii == 0:
-                    lsz_lim[0] = 0
                     nvert = lnvert[0]
                     ind_min = 0
                 else:
                     nvert = lnvert[ii] - lnvert[ii - 1]
-                    lsz_lim[ii] = lstruct_nlim[ii-1] + lsz_lim[ii-1]
                     ind_min = lnvert[ii-1]
                 # and loop over the limits (one continous structure)
                 for jj in range(max(len_lim,1)):
