@@ -113,6 +113,7 @@ def teardown_module(module):
 #
 #######################################################
 
+
 path = os.path.join(_here,'tests03_core_data')
 lf = os.listdir(path)
 lf = [f for f in lf if all([s in f for s in [_Exp,'.txt']])]
@@ -642,7 +643,6 @@ for typ in dconf.keys():
         dCams[typ][c] = cls(Name='V1000', config=dconf[typ],
                             dgeom={'pinhole':ph, 'D':D}, method="optimized",
                             Exp=_Exp, Diag='Test', SavePath=_here)
-
 
 class Test03_Rays(object):
 

@@ -354,6 +354,17 @@ class Struct(utils.ToFuObject):
         if Poly.shape[0]!=2:
             Poly = Poly.T
 
+        # Elimininate any double identical point
+        ind = np.sum(np.diff(Poly,axis=1)**2, axis=0) < 1.e-12
+        if np.any(ind):
+            npts = Poly.shape[1]
+            msg = "%s instance: double identical points in Poly\n"%cls.__name__
+            msg += "  => %s points removed\n"%ind.sum()
+            msg += "  => Poly goes from %s to %s points"%(npts,npts-ind.sum())
+            warnings.warn(msg)
+            Poly = Poly[:,~ind]
+
+
         lC = [Lim is None, pos is None]
         if not any(lC):
             msg = "Please provide either Lim xor pos/extent pair!\n"
