@@ -2073,7 +2073,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                         lbounds_ves[0] = lslim[jj][0]
                         lbounds_ves[1] = lslim[jj][1]
                     raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir,
-                                                nvert,
+                                                nvert-1,
                                                 &lstruct_polyx[ind_min],
                                                 &lstruct_polyy[ind_min],
                                                 &lstruct_normx[ind_min-ii],
