@@ -5,9 +5,13 @@ import sys
 import os
 import itertools as itt
 import copy
-import inspect
 import warnings
 from abc import ABCMeta, abstractmethod
+if sys.version[0] == '3':
+    import inspect
+else:
+    # Python 2 back-porting
+    import funcsigs as inspect
 
 # Common
 import numpy as np

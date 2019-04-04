@@ -2199,7 +2199,8 @@ def get_valf(val, lrids, linds):
     elif type(val) is tuple:
         assert ninds == 1 and lrids == linds
         n1, n2 = val[0].size, val[1].size
-        def func(*li, val=val, n1=n1, n2=n2):
+        # Python 2 and 3 syntax
+        def func(val=val, n1=n1, n2=n2, *li):
             i1 = li[0] % n1
             i2 = li[0] // n1
             return (val[0][i1], val[1][i2])
