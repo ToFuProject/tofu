@@ -1228,3 +1228,85 @@ def test16_dist_los_vpoly():
                    0.5]
     assert(np.allclose(out[0], exact_ks))
     assert(np.allclose(out[1], exact_dists))
+
+
+# ==============================================================================
+#
+#                       DISTANCE CIRCLE - LOS
+#
+# ==============================================================================
+
+def test17_distance_los_to_circle():
+    # == One Line One Circle ===================================================
+    # -- simplest circle -------------------------------------------------------
+    radius = 1.
+    circ_z = 0.
+    # Horizontal ray with no intersection with circle ..........................
+    ray_or = np.array([-2.5, 1.5, 0])
+    ray_vd = np.array([1., 0, 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 2.5), "Problem with 'k'"
+    assert np.isclose(res[1], 0.5), "Problem with 'dist'"
+    # Horizontal ray tagential to circle at origin..............................
+    ray_or = np.array([0, 1., 0])
+    ray_vd = np.array([1., 0, 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 0.), "Problem with 'k'"
+    assert np.isclose(res[1], 0.), "Problem with 'dist'"
+    # Diagonal ray with one intersection........................................
+    ray_or = np.array([0, 0., 0])
+    ray_vd = np.array([1., 1., 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    k_ex = np.sqrt(2.)*0.5
+    assert np.isclose(res[0], k_ex), "Problem with 'k'"
+    assert np.isclose(res[1], 0.), "Problem with 'dist'"
+    # Diagonal ray with no intersction with circle .............................
+    ray_or = np.array([-3, 0., 0])
+    ray_vd = np.array([1., 1, 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    dist_ex = 1.1213203435596426
+    assert np.isclose(res[0], 3./2.), "Problem with 'k'"
+    assert np.isclose(res[1], dist_ex), "Problem with 'dist'"
+    # -- Changing plane circle and radius  -------------------------------------
+    radius = 2.
+    circ_z = 3.
+    # Vertical ray with no intersection with circle ............................
+    ray_or = np.array([3.8, -1.3, 3.])
+    ray_vd = np.array([0., 1., 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 1.3), "Problem with 'k'"
+    assert np.isclose(res[1], 1.8), "Problem with 'dist'"
+    # Normal ray passing on bottom of circle center ............................
+    ray_or = np.array([0, 0., -3.])
+    ray_vd = np.array([0.,0., -1.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 0), "Problem with 'k'"
+    assert np.isclose(res[1], 6.324555320336759), "Problem with 'dist'"
+    # Normal ray passing through circle center .................................
+    ray_or = np.array([0, 0., 0.])
+    ray_vd = np.array([0.,0., 1.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 3.), "Problem with 'k'"
+    assert np.isclose(res[1], 2.), "Problem with 'dist'"
+    # == Vectorial tests =======================================================
+    circle_radius = np.array([0.5, 1, 3.5])
+    circle_zcoord = np.array([-1.1, .5, 6])
+    ray1_origin = np.array([0., 0,-2.])
+    ray1_direct = np.array([0., 0, 1.])
+    ray2_origin = np.array([-4, 0, 7.])
+    ray2_direct = np.array([1., 0., 0])
+    rays_origin = np.array([ray1_origin, ray2_origin])
+    rays_direct = np.array([ray1_direct, ray2_direct])
+    nlos = 2
+    ncir = 3
+    res = GG.comp_dist_los_circle_vec(nlos, ncir,
+                                      rays_direct,
+                                      rays_origin,
+                                      circle_radius,
+                                      circle_zcoord)
+    k_exact = np.array([[0.9, 2.5, 8. ],
+                        [3.5, 3. , 0.5]])
+    d_exact = np.array([[0.5, 1. , 3.5],
+                        [8.1, 6.5, 1. ]])
+    assert np.allclose(res[0], k_exact), "Problem with 'k'"
+    assert np.allclose(res[1], d_exact), "Problem with 'dist'"

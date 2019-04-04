@@ -5069,6 +5069,11 @@ def Dust_calc_SolidAngle(pos, r, pts,
                     sang[ii,jj] = pir2*(1-Csqrt(1-r[ii]**2/dij2))
     return sang
 
+# ==============================================================================
+#
+#                       VECTOR CALCULUS HELPERS
+#
+# ==============================================================================
 cdef inline void compute_cross_prod(const double[3] vec_a,
                                     const double[3] vec_b,
                                     double[3] res) nogil:
@@ -5133,33 +5138,53 @@ cdef inline double compute_find(double m2b2, double rm0sqr,
         return root
 
 
-def comp_dist_los_circle(double dir1, double dir2, double dir3,
-                          double ori1, double ori2, double ori3,
-                          double radius, double circ_z, double norm_dir=-1.0):
-    # This function computes the intersection of a Ray (or Line Of Sight)
-    # and a circle in 3D. It returns `kmin` and `dist`. Where `kmin` is the
-    # coefficient such that the ray of origin O = [ori1, ori2, ori3]
-    # and of directional vector D = [dir1, dir2, dir3] is closest to the circle
-    #  of radius `radius` and centered `(0, 0, circ_z)` at the point
-    # P = O + kmin * D.
-    # And `distance` the distance between the two closest points (line closest
-    # and circle closest)
-    # The variable `norm_dir` is the squared norm of the direction of the ray.
-    # ---
-    # This is the PYTHON function, use only if you need this computation from
-    # Python, if you need it from Cython, use `dist_los_circle_core`
-    # ............
-    cdef double[3] dirv
-    cdef double[3] orig
+# ==============================================================================
+#
+#                       DISTANCE CIRCLE - LOS
+#
+# ==============================================================================
+def comp_dist_los_circle(np.ndarray[double,ndim=1,mode='c'] ray_vdir,
+                         np.ndarray[double,ndim=1,mode='c'] ray_orig,
+                         double radius, double circ_z, double norm_dir=-1.0):
+    """
+    This function computes the intersection of a Ray (or Line Of Sight)
+    and a circle in 3D. It returns `kmin` and `dist`. Where `kmin` is the
+    coefficient such that the ray of origin O = [ori1, ori2, ori3]
+    and of directional vector D = [dir1, dir2, dir3] is closest to the circle
+     of radius `radius` and centered `(0, 0, circ_z)` at the point
+    P = O + kmin * D.
+    And `distance` the distance between the two closest points (line closest
+    and circle closest)
+    The variable `norm_dir` is the squared norm of the direction of the ray.
+    Params
+    =====
+    ray_vdir: (3) double array
+        ray's director vector V such that P \in Ray iff P(t) = O + t*V
+    ray_orig : (3) double array
+        ray's origin coordinates O such that P \in Ray iff P(t) = O + t*V
+    radius : double
+        radius r of horizontal circle centered in (0,0,circ_z)
+    circ_z : double
+        3rd coordinate of horizontal circle centered in (0,0,circ_z) of radius r
+    norm_dir : double (optional)
+        If for computation reasons it makes sense, you can pass the norm of the
+        director vector
+    Returns
+    =======
+    result : double (2) array
+       - result[0] will contain the k coefficient to find the line point closest
+       closest point
+       - result[1] will contain the DISTANCE from line closest point to circle
+       to the circle
+    ---
+    This is the PYTHON function, use only if you need this computation from
+    Python, if you need it from Cython, use `dist_los_circle_core`
+    """
     cdef double[2] res
-    dirv[0] = dir1
-    orig[0] = ori1
-    dirv[1] = dir2
-    orig[1] = ori2
-    dirv[2] = dir3
-    orig[2] = ori3
-    dist_los_circle_core(dirv, orig, radius, circ_z, norm_dir, res)
-    return res
+    dist_los_circle_core(<double*>ray_vdir.data,
+                         <double*>ray_orig.data,
+                         radius, circ_z, norm_dir, res)
+    return np.asarray(res)
 
 cdef inline void dist_los_circle_core(const double[3] direct,
                                       const double[3] origin,
@@ -5411,20 +5436,26 @@ def comp_dist_los_circle_vec(int nlos, int ncircles,
                              np.ndarray[double,ndim=1,mode='c'] circle_z,
                              np.ndarray[double,ndim=1,mode='c'] norm_dir = None):
     """
-    # This function computes the intersection of a Ray (or Line Of Sight)
-    # and a circle in 3D. It returns `kmin`, the coefficient such that the
-    # ray of origin O = [ori1, ori2, ori3] and of directional vector
-    # D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
-    # and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
-    # The variable `norm_dir` is the squared norm of the direction of the ray.
-    # This is the vectorial version, we expect the directions and origins to be:
-    # dirs = [dir1_los1, dir2_los1, dir3_los1, dir1_los2,...]
-    # oris = [ori1_los1, ori2_los1, ori3_los1, ori1_los2,...]
-    # The result is given in the format:
-    # res = [kmin(los1, cir1), kmin(los1, cir2),...]
-    # ---
-    # This is the PYTHON function, use only if you need this computation from
-    # Python, if you need it from Cython, use `dist_los_circle_core`
+    This function computes the intersection of a Ray (or Line Of Sight)
+    and a circle in 3D. It returns `kmin`, the coefficient such that the
+    ray of origin O = [ori1, ori2, ori3] and of directional vector
+    D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
+    and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
+    The variable `norm_dir` is the squared norm of the direction of the ray.
+    This is the vectorial version, we expect the directions and origins to be:
+    dirs = [[dir1_los1, dir2_los1, dir3_los1], [dir1_los2,...]
+    oris = [[ori1_los1, ori2_los1, ori3_los1], [ori1_los2,...]
+    Returns
+    =======
+    res : (2, nlos, ncircles)
+        res = [res_k, res_d] where res_k is a (nlos, ncircles) numpy array
+        with the k coefficients for each LOS where the minimum distance
+        to each circle is reached
+        is met for each circle, and res_d is a (nlos, ncircles) numpy array
+        with the distance between each LOS to each circle
+    ---
+    This is the PYTHON function, use only if you need this computation from
+    Python, if you need it from Cython, use `dist_los_circle_core`
     """
     cdef array kmin_tab = clone(array('d'), nlos*ncircles, True)
     cdef array dist_tab = clone(array('d'), nlos*ncircles, True)
@@ -5438,7 +5469,8 @@ def comp_dist_los_circle_vec(int nlos, int ncircles,
                                   <double*>circle_z.data,
                                   <double*>norm_dir.data,
                                   kmin_tab, dist_tab)
-    return np.asarray(kmin_tab), np.asarray(dist_tab)
+    return np.asarray(kmin_tab).reshape(nlos, ncircles), \
+        np.asarray(dist_tab).reshape(nlos, ncircles)
 
 cdef void comp_dist_los_circle_vec_core(int num_los, int num_cir,
                                         double* los_directions,

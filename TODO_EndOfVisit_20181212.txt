@@ -45,13 +45,13 @@ x	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
        		  x version true/false si >0 et < eps (tableau booleen nlos*npoly)
        o Interface Python :
            qui appelle une des deux avex une variable pour choisir si LOS/poly ou l'inverse
-	          > plein LOS, plein poly, pour chaque ligne: tableau d'indice (de taille nlos)
-		  indiquant le poly pourlequel la LOS est le plus proche. (min(distance) mais
-	          pour laquelle la LOS ne passe pas à l'intérieur).
-	          Poly sont ordonnees : du plus petit au plus grand
-                   > plein LOS, plein poly, pour chaque poly: tableau d'indice (de taille npoly)
-                   indiquant la LOS pourlequel le poly est le plus proche. (min(distance) mais
-                   pour laquelle la LOS ne passe pas à l'intérieur).
+	          x plein LOS, plein poly, pour chaque ligne: tableau d'indice (de taille nlos)
+		    indiquant le poly pourlequel la LOS est le plus proche. (min(distance) mais
+	            pour laquelle la LOS ne passe pas à l'intérieur).
+	            Poly sont ordonnees : du plus petit au plus grand
+                  x plein LOS, plein poly, pour chaque poly: tableau d'indice (de taille npoly)
+                    indiquant la LOS pourlequel le poly est le plus proche. (min(distance) mais
+                    pour laquelle la LOS ne passe pas à l'intérieur).
 
 >	2.1/ Ask Didier (vignetting algo ?)
 	> In : (list los_orig, list los_dirc, list contour3d, ncontour, list nvert...)
