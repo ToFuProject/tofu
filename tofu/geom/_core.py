@@ -9,9 +9,11 @@ import sys
 import warnings
 #from abc import ABCMeta, abstractmethod
 import copy
-import inspect
 if sys.version[0]=='2':
     import re, tokenize, keyword
+    import funcsigs as inspect
+else:
+    import inspect
 
 
 # Common

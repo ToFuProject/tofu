@@ -104,6 +104,7 @@ def emiss(pts, t=None):
 class Test01_DataCam12D(object):
 
 
+    @staticmethod
     def _create_cams(nch, lconf, ld, SavePath='./'):
         c0 = tfg.utils.create_CamLOS1D(P=[4.5,0,0], F=0.1, N12=nch, D12=0.05,
                                        angs=[-np.pi,np.pi/10.,0.],
@@ -120,7 +121,7 @@ class Test01_DataCam12D(object):
         return [c0, c1]
 
     @classmethod
-    def setup_class(cls, nch=30, nt=50, SavePath='./'):
+    def setup_class(cls, nch=30, nt=50, SavePath='./', verb=False):
 
         # time vector
         t = np.linspace(0, 10, nt)
@@ -196,10 +197,11 @@ class Test01_DataCam12D(object):
         lpfe = []
         for oo in cls.lobj:
             if oo._dgeom['config'] is not None:
-                lpfe.append( oo._dgeom['config'].save(return_pfe=True) )
+                lpfe.append( oo._dgeom['config'].save(return_pfe=True,
+                                                      verb=verb) )
             if oo._dgeom['lCam'] is not None:
                 for cc in oo._dgeom['lCam']:
-                    lpfe.append( cc.save(return_pfe=True) )
+                    lpfe.append( cc.save(return_pfe=True, verb=verb) )
 
         cls.lpfe = lpfe
 
@@ -253,15 +255,17 @@ class Test01_DataCam12D(object):
     def test04_select_ch(self):
         for oo in self.lobj:
             if oo.dgeom['lCam'] is not None:
-                name = oo.config.dStruct['lorder'][0]
-                ind = oo.select_ch(touch=name, out=bool)
-                assert ind.sum() > 0
+                name = [k for k in oo.config.dStruct['lorder']
+                       if 'Ves' in k or 'PlasmaDomain' in k]
+                assert len(name) == 1
+                ind = oo.select_ch(touch=name[0], out=bool)
+                assert ind.sum() > 0, (ind.sum(), ind)
                 assert np.allclose(ind, oo.select_ch(touch=0,
                                                      out=bool))
             if len(oo.dchans().keys()) > 0:
                 ind = oo.select_ch(key='Name', val=['c0','c10'],
                                    log='any', out=bool)
-                assert ind.sum() == 2
+                assert ind.sum() == 2, (ind.sum(), ind)
 
     def test05_set_dtreat_indt(self):
         for oo in self.lobj:
@@ -388,21 +392,21 @@ class Test01_DataCam12D(object):
         for oo in self.lobj:
             nb, dnb = oo.get_nbytes()
 
-    def test22_strip_nbytes(self):
+    def test22_strip_nbytes(self, verb=False):
         lok = self.lobj[0].__class__._dstrip['allowed']
         nb = np.full((len(lok),), np.nan)
         for oo in self.lobj:
             for ii in lok:
-                oo.strip(ii)
+                oo.strip(ii, verb=verb)
                 nb[ii] = oo.get_nbytes()[0]
             assert np.all(np.diff(nb)<=0.), nb
             for ii in lok[::-1]:
-                oo.strip(ii)
+                oo.strip(ii, verb=verb)
 
-    def test23_saveload(self):
+    def test23_saveload(self, verb=False):
         for oo in self.lobj:
-            pfe = oo.save(deep=False, verb=False, return_pfe=True)
-            obj = tfu.load(pfe, verb=False)
+            pfe = oo.save(deep=False, verb=verb, return_pfe=True)
+            obj = tfu.load(pfe, verb=verb)
             # Just to check the loaded version works fine
             assert oo == obj
             os.remove(pfe)

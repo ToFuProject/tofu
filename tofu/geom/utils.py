@@ -1,8 +1,13 @@
 
 # Built-in
+import sys
 import os
 import warnings
-import inspect
+if sys.version[0] == '3':
+    import inspect
+else:
+    # Python 2 back-porting
+    import funcsigs as inspect
 
 # Common
 import numpy as np
@@ -657,7 +662,7 @@ def _create_config_testcase(config='A1', out='object',
     # Get file names for config
     lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
     lS = []
-    lcls = [k for k in dconfig[config].keys() if k!= 'Exp']
+    lcls = sorted([k for k in dconfig[config].keys() if k!= 'Exp'])
     Exp = dconfig[config]['Exp']
     for cc in lcls:
         for ss in dconfig[config][cc]:
