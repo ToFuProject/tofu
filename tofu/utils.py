@@ -2190,17 +2190,18 @@ def get_indrefind(dind, linds, drefid):
 def get_valf(val, lrids, linds):
     # Python 2 vs 3:
     # The order of arguments is reversed for lambda functions !
-    #   => use py2 convention, compatible with both
+    #   => use py2 convention, compatible with both, WRONG !!!
+    # Replace *li by li (which is always an array of max 3 elements
     ninds = len(linds)
     if type(val) is list:
         assert ninds == 1 and lrids == linds
-        func = lambda val=val, *li: val[li[0]]
+        func = lambda li, val=val: val[li[0]]
 
     elif type(val) is tuple:
         assert ninds == 1 and lrids == linds
         n1, n2 = val[0].size, val[1].size
         # Python 2 and 3 syntax
-        def func(val=val, n1=n1, n2=n2, *li):
+        def func(li, val=val, n1=n1, n2=n2):
             i1 = li[0] % n1
             i2 = li[0] // n1
             return (val[0][i1], val[1][i2])
@@ -2215,45 +2216,45 @@ def get_valf(val, lrids, linds):
 
         if ndim == ninds:
             if ndim == 1:
-                func = lambda val=val, *li: val[li[0]]
+                func = lambda li, val=val: val[li[0]]
 
             elif ndim == 2:
-                func = lambda  val=val, *li: val[li[0],li[1]]
+                func = lambda li,  val=val: val[li[0],li[1]]
 
             elif ndim == 3:
-                func = lambda val=val, *li: val[li[0],li[1],li[2]]
+                func = lambda li, val=val: val[li[0],li[1],li[2]]
 
         else:
             lord = np.r_[[lrids.index(ii) for ii in linds]].astype(int)
             if ninds == 1:
                 if ndim == 2:
                     if lord[0] == 0:
-                        func = lambda val=val, *li: val[li[0],:]
+                        func = lambda li, val=val: val[li[0],:]
 
                     elif lord[0] == 1:
-                        func = lambda val=val, *li: val[:,li[0]]
+                        func = lambda li, val=val: val[:,li[0]]
 
                 elif ndim == 3:
                     if lord[0] == 0:
-                        func = lambda val=val, *li: val[li[0],:,:]
+                        func = lambda li, val=val: val[li[0],:,:]
 
                     elif lord[0] == 1:
-                        func = lambda val=val, *li: val[:,li[0],:]
+                        func = lambda li, val=val: val[:,li[0],:]
 
                     elif lord[0] == 2:
-                        func = lambda val=val, *li: val[:,:,li[0]]
+                        func = lambda li, val=val: val[:,:,li[0]]
 
             elif ninds == 2:
                 assert ndim == 3
                 args = np.argsort(lord)
                 if np.all(lord[args] == [0,1]):
-                    func = lambda  val=val, *li: val[li[args[0]], li[args[1]],:]
+                    func = lambda  li, val=val: val[li[args[0]], li[args[1]],:]
 
                 elif np.all(lord[args] == [0,2]):
-                    func = lambda  val=val, *li: val[li[args[0]], :, li[args[1]]]
+                    func = lambda  li, val=val: val[li[args[0]], :, li[args[1]]]
 
                 if np.all(lord[args] == [1,2]):
-                    func = lambda val=val, *li: val[:, li[args[0]], li[args[1]]]
+                    func = lambda li, val=val: val[:, li[args[0]], li[args[1]]]
 
     return func
 
@@ -2711,7 +2712,7 @@ class KeyHandler_mpl(object):
         ancur = np.zeros((2,nref),dtype=int)
         ancur[1,:] = [dgroup[dref[rid]['group']]['nMax'] for rid in lref]
         cumsum0 = np.r_[0, np.cumsum(ancur[1,:])]
-        arefind = np.zeros((np.sum(ancur[1,:])),dtype=int)
+        arefind = np.zeros((np.sum(ancur[1,:]),),dtype=int)
         dind = {'lrefid':lref, 'anMaxcur':ancur, 'arefind':arefind,
                 'cumsum0':cumsum0}
 
@@ -2946,7 +2947,7 @@ class KeyHandler_mpl(object):
             for k in self.dobj[obj]['dupdate'].keys():
                 ii = self.dobj[obj]['dupdate'][k]['indrefind']  # 20 us
                 li = self.dind['arefind'][ii]   # 50 us
-                val = self.dobj[obj]['dupdate'][k]['fgetval']( *li )    # 0.0001 s
+                val = self.dobj[obj]['dupdate'][k]['fgetval']( li )    # 0.0001 s
                 self.dobj[obj]['dupdate'][k]['fupdate']( val )  # 2 ms
 
         # --- Redraw all objects (due to background restore) --- 25 ms
