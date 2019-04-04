@@ -3393,11 +3393,11 @@ class Rays(utils.ToFuObject):
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
     def _strip_dconfig(self, strip=0, verb=True):
-        if self._dstrip['strip']==strip:
+        if self._dstrip['strip'] == strip:
             return
 
         if strip<self._dstrip['strip']:
-            if self._dstrip['strip']==4:
+            if self._dstrip['strip'] == 4:
                 pfe = self._dconfig['Config']
                 try:
                     self._dconfig['Config'] = utils.load(pfe, verb=verb)
@@ -3408,9 +3408,9 @@ class Rays(utils.ToFuObject):
                     msg += "\n    strip = {0}".format(strip)
                     raise Exception(msg)
 
-            self._dconfig['Config'].strip(strip)
+            self._dconfig['Config'].strip(strip, verb=verb)
         else:
-            if strip==4:
+            if strip == 4:
                 path, name = self.config.Id.SavePath, self.config.Id.SaveName
                 # --- Check !
                 lf = os.listdir(path)
@@ -3436,7 +3436,7 @@ class Rays(utils.ToFuObject):
                 self._dconfig['Config'] = pathfile
 
             else:
-                self._dconfig['Config'].strip(strip)
+                self._dconfig['Config'].strip(strip, verb=verb)
 
 
     def _strip_dsino(self, strip=0):
