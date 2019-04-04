@@ -593,7 +593,7 @@ class Test02_Config(object):
             msg = "Unequal saved / loaded objects !"
             assert obj==self.dobj[typ], msg
             # Just to check the loaded version works fine
-            obj.strip(0)
+            obj.strip(0, verb=False)
             os.remove(pfe)
 
 
@@ -916,7 +916,7 @@ class Test03_Rays(object):
                 msg = "Unequal saved / loaded objects !"
                 assert obj2==obj, msg
                 # Just to check the loaded version works fine
-                obj2.strip(0)
+                obj2.strip(0, verb=False)
                 os.remove(pfe)
 
 
