@@ -1896,19 +1896,20 @@ class Config(utils.ToFuObject):
     # strip dictionaries
     ###########
 
-    def _strip_dStruct(self, strip=0, force=False):
-        if self._dstrip['strip']==strip:
+    def _strip_dStruct(self, strip=0, force=False, verb=True):
+        if self._dstrip['strip'] == strip:
             return
 
-        if self._dstrip['strip']>strip:
+        if self._dstrip['strip'] > strip:
 
             # Reload if necessary
-            if self._dstrip['strip']==3:
+            if self._dstrip['strip'] == 3:
                 for k in self._dStruct['dObj'].keys():
                     for kk in self._dStruct['dObj'][k].keys():
                         pfe = self._dStruct['dObj'][k][kk]
                         try:
-                            self._dStruct['dObj'][k][kk] = utils.load(pfe)
+                            self._dStruct['dObj'][k][kk] = utils.load(pfe,
+                                                                      verb=verb)
                         except Exception as err:
                             msg = str(err)
                             msg += "\n    k = {0}".format(str(k))
@@ -1938,7 +1939,7 @@ class Config(utils.ToFuObject):
                         self._dStruct['dObj'][k][kk].strip(strip=strip)
                 lkeep = self._get_keys_dStruct()
 
-            elif strip==3:
+            elif strip == 3:
                 for k in self._dStruct['lCls']:
                     for kk, v  in self._dStruct['dObj'][k].items():
                         path, name = v.Id.SavePath, v.Id.SaveName
@@ -1995,12 +1996,12 @@ class Config(utils.ToFuObject):
         else:
             cls.strip.__doc__ = doc
 
-    def strip(self, strip=0, force=False):
+    def strip(self, strip=0, force=False, verb=True):
         # super()
-        super(Config,self).strip(strip=strip, force=force)
+        super(Config,self).strip(strip=strip, force=force, verb=verb)
 
-    def _strip(self, strip=0, force=False):
-        self._strip_dStruct(strip=strip, force=force)
+    def _strip(self, strip=0, force=False, verb=True):
+        self._strip_dStruct(strip=strip, force=force, verb=verb)
         #self._strip_dextraprop()
         #self._strip_dsino()
 
@@ -3391,7 +3392,7 @@ class Rays(utils.ToFuObject):
                          'Etendues','Surfaces','isImage','dX12']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
-    def _strip_dconfig(self, strip=0):
+    def _strip_dconfig(self, strip=0, verb=True):
         if self._dstrip['strip']==strip:
             return
 
@@ -3399,7 +3400,7 @@ class Rays(utils.ToFuObject):
             if self._dstrip['strip']==4:
                 pfe = self._dconfig['Config']
                 try:
-                    self._dconfig['Config'] = utils.load(pfe)
+                    self._dconfig['Config'] = utils.load(pfe, verb=verb)
                 except Exception as err:
                     msg = str(err)
                     msg += "\n    type(pfe) = {0}".format(str(type(pfe)))
@@ -3473,12 +3474,12 @@ class Rays(utils.ToFuObject):
         else:
             cls.strip.__doc__ = doc
 
-    def strip(self, strip=0):
+    def strip(self, strip=0, verb=True):
         # super()
-        super(Rays,self).strip(strip=strip)
+        super(Rays,self).strip(strip=strip, verb=verb)
 
-    def _strip(self, strip=0):
-        self._strip_dconfig(strip=strip)
+    def _strip(self, strip=0, verb=True):
+        self._strip_dconfig(strip=strip, verb=verb)
         self._strip_dgeom(strip=strip)
         self._strip_dsino(strip=strip)
 
