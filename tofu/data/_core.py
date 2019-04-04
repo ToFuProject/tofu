@@ -692,7 +692,7 @@ class DataAbstract(utils.ToFuObject):
         elif strip in [2] and self._dstrip['strip'] in [0,1]:
             self.clear_ddata()
 
-    def _strip_dgeom(self, strip=0, force=False):
+    def _strip_dgeom(self, strip=0, force=False, verb=True):
         if self._dstrip['strip']==strip:
             return
 
@@ -703,11 +703,11 @@ class DataAbstract(utils.ToFuObject):
                 assert all([type(ss) is str for ss in self._dgeom['lCam']])
                 lC = []
                 for ii in range(0,len(self._dgeom['lCam'])):
-                    lC.append(utils.load(self._dgeom['lCam'][ii]))
+                    lC.append(utils.load(self._dgeom['lCam'][ii], verb=verb))
 
             elif self._dgeom['config'] is not None:
                 assert type(self._dgeom['config']) is str
-                config = utils.load(self._dgeom['config'])
+                config = utils.load(self._dgeom['config'], verb=verb)
 
             self._set_dgeom(lCam=lC, config=config)
 
@@ -780,13 +780,13 @@ class DataAbstract(utils.ToFuObject):
         else:
             cls.strip.__doc__ = doc
 
-    def strip(self, strip=0):
+    def strip(self, strip=0, verb=True):
         # super()
-        super(DataAbstract,self).strip(strip=strip)
+        super(DataAbstract,self).strip(strip=strip, verb=verb)
 
-    def _strip(self, strip=0):
+    def _strip(self, strip=0, verb=True):
         self._strip_ddata(strip=strip)
-        self._strip_dgeom(strip=strip)
+        self._strip_dgeom(strip=strip, verb=verb)
 
     def _to_dict(self):
         dout = {'ddataRef':{'dict':self._ddataRef, 'lexcept':None},
