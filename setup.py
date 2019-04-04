@@ -82,12 +82,14 @@ if sys.version[0]=='2':
                                           "--symbolic-full-name",
                                           "--abbrev-ref",
                                           "HEAD"]).rstrip()
+    extralib = ['funcsigs']
 elif sys.version[0]=='3':
     git_branch = subprocess.check_output(["git",
                                           "rev-parse",
                                           "--symbolic-full-name",
                                           "--abbrev-ref",
                                           "HEAD"]).rstrip().decode()
+    extralib = []
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -147,6 +149,7 @@ else:
                             sources=["tofu/geom/"+gg+".cpp"],
                             language='c++',
                             include_dirs=['tofu/cpp/'])]
+
 
 setup(
     name='tofu',
@@ -227,7 +230,7 @@ setup(
             poly,
             'cython',
             'pandas',
-            ],
+            ] + extralib,
 
     python_requires = '>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*,!=3.5.*',
 
