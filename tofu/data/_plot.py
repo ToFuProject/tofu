@@ -25,8 +25,9 @@ except Exception:
 
 __all__ = ['Data_plot', 'Data_plot_combine',
            'Data_plot_spectrogram']
-__author_email__ = 'didier.vezinet@cea.fr'
-_wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
+#__author_email__ = 'didier.vezinet@cea.fr'
+__github = 'https://github.com/ToFuProject/tofu/issues'
+_wintit = 'tofu-%s    report issues / requests at %s'%(__version__, __github)
 _nchMax, _ntMax, _nfMax = 4, 3, 3
 _fontsize = 8
 _labelpad = 0
