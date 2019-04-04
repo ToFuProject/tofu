@@ -951,9 +951,9 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 idteq = id(lData[ii].dextra[k]['t'])
                 if idteq not in dteq[ii].keys():
                     dteq[ii][idteq] = lData[ii].dextra[k]['t']
-                dlextra[k][ii] = dict([(k,v)
-                                        for k,v in lData[ii].dextra[k].items()
-                                        if not k == 't'])
+                dlextra[k][ii] = dict([(kk,v)
+                                        for kk,v in lData[ii].dextra[k].items()
+                                        if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
                 if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
