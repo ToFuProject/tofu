@@ -5509,8 +5509,7 @@ cdef void comp_dist_los_circle_vec_core(int num_los, int num_cir,
                 orig[i] = los_origins[ind_los * 3 + i]
             norm_dir = norm_dir_tab[ind_los]
             if norm_dir < 0.:
-                norm_dir = dirv[2] * dirv[2] + dirv[1] * dirv[1] \
-                  + dirv[0] * dirv[0]
+                norm_dir = Csqrt(compute_dot_prod(dirv, dirv))
             for ind_cir in range(num_cir):
                 radius = circle_radius[ind_cir]
                 circ_z = circle_z[ind_cir]
@@ -5523,24 +5522,22 @@ cdef void comp_dist_los_circle_vec_core(int num_los, int num_cir,
         free(loc_res)
     return
 
-def is_close_los_circle(double dir1, double dir2, double dir3,
-                         double ori1, double ori2, double ori3,
-                         double radius, double circ_z, double eps,
-                         double norm_dir=-1.0):
-    cdef double[3] dirv
-    cdef double[3] orig
-    dirv[0] = dir1
-    orig[0] = ori1
-    dirv[1] = dir2
-    orig[1] = ori2
-    dirv[2] = dir3
-    orig[2] = ori3
-    if norm_dir < 0.:
-        norm_dir = compute_dot_prod(dirv, dirv)
-    return is_close_los_circle_core(dirv, orig, radius, circ_z, norm_dir, eps)
+# ==============================================================================
+#
+#                       TEST CLOSENESS CIRCLE - LOS
+#
+# ==============================================================================
+
+def is_close_los_circle(np.ndarray[double,ndim=1,mode='c'] ray_vdir,
+                        np.ndarray[double,ndim=1,mode='c'] ray_orig,
+                        double radius, double circ_z, double eps,
+                        double norm_dir=-1.0):
+    return is_close_los_circle_core(<double*>ray_vdir.data,
+                                    <double*>ray_orig.data,
+                                    radius, circ_z, norm_dir, eps)
 
 
-cdef inline bint is_close_los_circle_core(const double[3] direction,
+cdef inline bint is_close_los_circle_core(const double[3] direct,
                                           const double[3] origin,
                                           double radius, double circ_z,
                                           double norm_dir, double eps) nogil:
@@ -5559,15 +5556,22 @@ cdef inline bint is_close_los_circle_core(const double[3] direction,
     cdef double[3] circle_center
     cdef double[3] circle_closest
     cdef double[3] line_closest
+    cdef double[3] direction
     cdef double tmin
     cdef double distance
     cdef bint are_close
 
     # .. initialization .....
+    if norm_dir < 0:
+        norm_dir = Csqrt(compute_dot_prod(direct, direct))
+    inv_norm_dir = 1./ norm_dir
+    # .. initialization .....
     for i in range(3):
         circle_center[i] = 0.
         circle_normal[i] = 0.
         roots[i] = 0.
+        # we normalize direction
+        direction[i] = direct[i] * inv_norm_dir
     circle_normal[2] = 1
     circle_center[2] = circ_z
 
@@ -5579,10 +5583,8 @@ cdef inline bint is_close_los_circle_core(const double[3] direction,
     m0sqr = compute_dot_prod(MxN, MxN)
 
     if (m0sqr > zero):
-
         # Compute the critical points s for F'(s) = 0.
         numRoots = 0
-
         # The line direction M and the plane normal N are not parallel.  Move
         # the line origin B = (b0,b1,b2) to B' = B + lambd*direction =
         # (0,b1',b2').
@@ -5740,7 +5742,7 @@ cdef inline bint is_close_los_circle_core(const double[3] direction,
                 t = Cabs(circle_center[2] - origin[2])
                 are_close = Csqrt(radius*radius + t*t) < eps
                 return are_close
-
+    return 0
 
 def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
                              np.ndarray[double,ndim=2,mode='c'] dirs,
@@ -5814,8 +5816,7 @@ cdef void is_close_los_circle_vec_core(int num_los, int num_cir,
                 orig[i] = los_origins[ind_los * 3 + i]
             norm_dir = norm_dir_tab[ind_los]
             if norm_dir < 0.:
-                norm_dir = dirv[2] * dirv[2] + dirv[1] * dirv[1] \
-                  + dirv[0] * dirv[0]
+                norm_dir = Csqrt(compute_dot_prod(dirv, dirv))
             for ind_cir in range(num_cir):
                 radius = circle_radius[ind_cir]
                 circ_z = circle_z[ind_cir]
