@@ -26,10 +26,11 @@ except Exception:
     from . import _GG as _GG
 
 
-__author_email__ = 'didier.vezinet@cea.fr'
+#__author_email__ = 'didier.vezinet@cea.fr'
 _fontsize = 8
 _labelpad = 0
-_wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
+__github = 'https://github.com/ToFuProject/tofu/issues'
+_wintit = 'tofu-%s    report issues / requests at %s'%(__version__, __github)
 _nchMax = 4
 _cdef = 'k'
 _cbck = (0.8,0.8,0.8)

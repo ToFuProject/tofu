@@ -2335,7 +2335,7 @@ class DataSpectro(DataAbstract):
 
     def plot(self, key=None, invert=None, plotmethod='imshow',
              cmap=plt.cm.gray, ms=4, Max=None,
-             fs=None, dmargin=None, wintit='tofu',
+             fs=None, dmargin=None, wintit=None,
              draw=True, connect=True):
         """ Plot the data content in a predefined figure  """
         dax, KH = _plot.Data_plot(self, key=key, invert=invert, Max=Max,
