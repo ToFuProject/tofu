@@ -1288,6 +1288,16 @@ def test17_distance_los_to_circle():
     res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
     assert np.isclose(res[0], 3.), "Problem with 'k'"
     assert np.isclose(res[1], 2.), "Problem with 'dist'"
+    # # temp...................
+    # ray3_or = np.array([-np.sqrt(2.), np.sqrt(2.), -1.1])
+    # ray3_vd = np.array([1. + np.sqrt(2.)/2., -np.sqrt(2.)/2., 1.1])
+    # radius = 1.
+    # circ_z = -1.1
+    # res = GG.comp_dist_los_circle(ray3_vd, ray3_or, radius, circ_z)
+    # for i in range(3):
+    #     print("P found = ",i, ray3_or[i] + res[0]*ray3_vd[i])
+    # assert np.isclose(res[0], 2*0.325844650125497), "Problem with 'k' = "+str(res[0])+" "+str(res[1])
+    # assert np.isclose(res[1], 0.35842911513804676), "Problem with 'dist' = "+str(res[1])
     # == Vectorial tests =======================================================
     circle_radius = np.array([0.5, 1, 3.5])
     circle_zcoord = np.array([-1.1, .5, 6])

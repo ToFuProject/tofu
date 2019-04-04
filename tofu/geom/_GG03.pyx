@@ -5436,20 +5436,26 @@ def comp_dist_los_circle_vec(int nlos, int ncircles,
                              np.ndarray[double,ndim=1,mode='c'] circle_z,
                              np.ndarray[double,ndim=1,mode='c'] norm_dir = None):
     """
-    # This function computes the intersection of a Ray (or Line Of Sight)
-    # and a circle in 3D. It returns `kmin`, the coefficient such that the
-    # ray of origin O = [ori1, ori2, ori3] and of directional vector
-    # D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
-    # and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
-    # The variable `norm_dir` is the squared norm of the direction of the ray.
-    # This is the vectorial version, we expect the directions and origins to be:
-    # dirs = [[dir1_los1, dir2_los1, dir3_los1], [dir1_los2,...]
-    # oris = [[ori1_los1, ori2_los1, ori3_los1], [ori1_los2,...]
-    # The result is given in the format:
-    # res = [kmin(los1, cir1), kmin(los1, cir2),...]
-    # ---
-    # This is the PYTHON function, use only if you need this computation from
-    # Python, if you need it from Cython, use `dist_los_circle_core`
+    This function computes the intersection of a Ray (or Line Of Sight)
+    and a circle in 3D. It returns `kmin`, the coefficient such that the
+    ray of origin O = [ori1, ori2, ori3] and of directional vector
+    D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
+    and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
+    The variable `norm_dir` is the squared norm of the direction of the ray.
+    This is the vectorial version, we expect the directions and origins to be:
+    dirs = [[dir1_los1, dir2_los1, dir3_los1], [dir1_los2,...]
+    oris = [[ori1_los1, ori2_los1, ori3_los1], [ori1_los2,...]
+    Returns
+    =======
+    res : (2, nlos, ncircles)
+        res = [res_k, res_d] where res_k is a (nlos, ncircles) numpy array
+        with the k coefficients for each LOS where the minimum distance
+        to each circle is reached
+        is met for each circle, and res_d is a (nlos, ncircles) numpy array
+        with the distance between each LOS to each circle
+    ---
+    This is the PYTHON function, use only if you need this computation from
+    Python, if you need it from Cython, use `dist_los_circle_core`
     """
     cdef array kmin_tab = clone(array('d'), nlos*ncircles, True)
     cdef array dist_tab = clone(array('d'), nlos*ncircles, True)
