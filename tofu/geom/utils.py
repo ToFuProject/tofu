@@ -657,12 +657,12 @@ def _create_config_testcase(config='A1', out='object',
     # Get file names for config
     lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
     lS = []
-    for cc in dconfig[config].keys():
-        if cc == 'Exp':
-            continue
+    lcls = [k for k in dconfig[config].keys() if k!= 'Exp']
+    Exp = dconfig[config]['Exp']
+    for cc in lcls:
         for ss in dconfig[config][cc]:
             ff = [f for f in lf
-                  if all([s in f for s in [cc,ss]])]
+                  if all([s in f for s in [cc,Exp,ss]])]
             if not len(ff) == 1:
                 msg = "No / several matching files\n"
                 msg += "  Folder: %s\n"%path

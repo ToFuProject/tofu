@@ -65,7 +65,7 @@ if not 'matplotlib.pyplot' in sys.modules:
 
 import tofu.pathfile as pathfile
 import tofu.utils as utils
-from tofu.utils import save, load, load_from_txt
+from tofu.utils import save, load
 import tofu._plot as _plot
 import tofu.geom as geom
 import tofu.data as data
