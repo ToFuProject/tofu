@@ -888,7 +888,7 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                      dLeg=_def.TorLegd, multi=False, ind=None,
                      draw=True, fs=None, wintit=_wintit, Test=True):
     assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
-    dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
+    dPts = {'D':('D',dPtD), 'I':('PkIn',dPtI), 'O':('PkOut',dPtO),
             'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Cross', fs=fs, wintit=wintit,
@@ -908,7 +908,7 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                 P = L._dsino['pts'][:,ind]
             elif kk=='D':
                 P = L.D[:,ind]
-            elif not (kk=='R' and L.config.Id.Type=='Lin'):
+            elif not (kk == 'R' and L.config.Id.Type == 'Lin'):
                 P = L._dgeom[dPts[kk][0]][:,ind]
             if len(ind)==1:
                 P = P.reshape((3,1))
@@ -937,7 +937,7 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
                    dLeg=_def.TorLegd, multi=False, ind=None,
                    draw=True, fs=None, wintit=_wintit, Test=True):
     assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
-    dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
+    dPts = {'D':('D',dPtD), 'I':('PkIn',dPtI), 'O':('PkOut',dPtO),
             'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
 
     if ax is None:
@@ -982,7 +982,7 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
                    dLeg=_def.TorLegd, multi=False, ind=None,
                    draw=True, fs=None, wintit=_wintit, Test=True):
     assert ax is None or isinstance(ax,Axes3D), 'Arg ax should be plt.Axes instance !'
-    dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
+    dPts = {'D':('D',dPtD), 'I':('PkIn',dPtI), 'O':('PkOut',dPtO),
             'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
 
     if ax is None:
