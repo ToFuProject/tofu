@@ -22,6 +22,7 @@ import tofu.pathfile as tfpf
 
 _sep = '_'
 _dict_lexcept_key = []
+_pyv = int(sys.version[0])
 
 ###############################################
 #           File searching
@@ -2187,10 +2188,16 @@ def get_indrefind(dind, linds, drefid):
 
 
 def get_valf(val, lrids, linds):
+    # Python 2 vs 3:
+    # The order of arguments is reversed for lambda functions !
+    #   (as far as )
     ninds = len(linds)
     if type(val) is list:
         assert ninds == 1 and lrids == linds
-        func = lambda *li, val=val: val[li[0]]
+        if _pyv == 3:
+            func = lambda *li, val=val: val[li[0]]
+        else:
+            func = lambda val=val, *li: val[li[0]]
 
     elif type(val) is tuple:
         assert ninds == 1 and lrids == linds
@@ -2210,35 +2217,79 @@ def get_valf(val, lrids, linds):
 
         if ndim == ninds:
             if ndim == 1:
-                func = lambda *li, val=val: val[li[0]]
+                if _pyv == 3:
+                    func = lambda *li, val=val: val[li[0]]
+                else:
+                    func = lambda val=val, *li: val[li[0]]
+
             elif ndim == 2:
-                func = lambda *li, val=val: val[li[0],li[1]]
+                if _pyv == 3:
+                    func = lambda *li, val=val: val[li[0],li[1]]
+                else:
+                    func = lambda  val=val, *li: val[li[0],li[1]]
+
             elif ndim == 3:
-                func = lambda *li, val=val: val[li[0],li[1],li[2]]
+                if _pyv == 3:
+                    func = lambda *li, val=val: val[li[0],li[1],li[2]]
+                else:
+                    func = lambda val=val, *li: val[li[0],li[1],li[2]]
+
         else:
             lord = np.r_[[lrids.index(ii) for ii in linds]].astype(int)
             if ninds == 1:
                 if ndim == 2:
                     if lord[0] == 0:
-                        func = lambda *li, val=val: val[li[0],:]
+                        if _pyv == 3:
+                            func = lambda *li, val=val: val[li[0],:]
+                        else:
+                            func = lambda val=val, *li: val[li[0],:]
+
                     elif lord[0] == 1:
-                        func = lambda *li, val=val: val[:,li[0]]
+                        if _pyv == 3:
+                            func = lambda *li, val=val: val[:,li[0]]
+                        else:
+                            func = lambda val=val, *li: val[:,li[0]]
+
                 elif ndim == 3:
                     if lord[0] == 0:
-                        func = lambda *li, val=val: val[li[0],:,:]
+                        if _pyv == 3:
+                            func = lambda *li, val=val: val[li[0],:,:]
+                        else:
+                            func = lambda val=val, *li: val[li[0],:,:]
+
                     elif lord[0] == 1:
-                        func = lambda *li, val=val: val[:,li[0],:]
+                        if _pyv == 3:
+                            func = lambda *li, val=val: val[:,li[0],:]
+                        else:
+                            func = lambda val=val, *li: val[:,li[0],:]
+
                     elif lord[0] == 2:
-                        func = lambda *li, val=val: val[:,:,li[0]]
+                        if _pyv == 3:
+                            func = lambda *li, val=val: val[:,:,li[0]]
+                        else:
+                            func = lambda val=val, *li: val[:,:,li[0]]
+
             elif ninds == 2:
                 assert ndim == 3
                 args = np.argsort(lord)
                 if np.all(lord[args] == [0,1]):
-                    func = lambda *li, val=val: val[li[args[0]], li[args[1]],:]
+                    if _pyv == 3:
+                        func = lambda *li, val=val: val[li[args[0]], li[args[1]],:]
+                    else:
+                        func = lambda  val=val, *li: val[li[args[0]], li[args[1]],:]
+
                 elif np.all(lord[args] == [0,2]):
-                    func = lambda *li, val=val: val[li[args[0]], :, li[args[1]]]
+                    if _pyv == 3:
+                        func = lambda *li, val=val: val[li[args[0]], :, li[args[1]]]
+                    else:
+                        func = lambda  val=val, *li: val[li[args[0]], :, li[args[1]]]
+
                 if np.all(lord[args] == [1,2]):
-                    func = lambda *li, val=val: val[:, li[args[0]], li[args[1]]]
+                    if _pyv == 3:
+                        func = lambda *li, val=val: val[:, li[args[0]], li[args[1]]]
+                    else:
+                        func = lambda val=val, *li: val[:, li[args[0]], li[args[1]]]
+
     return func
 
 def get_fupdate(obj, typ, n12=None, norm=None, bstr=None):
