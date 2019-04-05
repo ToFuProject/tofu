@@ -1488,7 +1488,7 @@ def test18_comp_dist_los_vpoly():
     assert np.allclose(dist_vec, out[1])
 
 
-def test18_comp_dist_los_vpoly_vec():
+def test19_comp_dist_los_vpoly_vec():
     # !!!!!! ARTIFICIAL TEST CASE SINCE THIS IS ONLY A SIMPLIFIED VERSION !!!!!!
     # ves 0
     ves_poly0 = np.zeros((2, 5))
@@ -1520,7 +1520,6 @@ def test18_comp_dist_los_vpoly_vec():
     ray_orig[2][0] = 4.5
     ray_orig[2][2] = 7.
     ray_vdir[2][1] = -1.
-    print(ray_vdir)
     # .. computing .............................................................
     k, dist = GG.comp_dist_los_vpoly_vec(2,  num_rays,
                                      ray_orig,
@@ -1532,3 +1531,46 @@ def test18_comp_dist_los_vpoly_vec():
     assert np.allclose(dist[1], [0.5, np.nan], equal_nan=True)
     assert np.allclose(k[2], [2.17944947, 3.96862697], equal_nan=True)
     assert np.allclose(dist[2], [2., 1.], equal_nan=True)
+
+# ==============================================================================
+#
+#                         ARE LOS AND EXT-POLY CLOSE
+#
+# ==============================================================================
+def test20_is_close_los_vpoly_vec():
+    # !!!!!! ARTIFICIAL TEST CASE SINCE THIS IS ONLY A SIMPLIFIED VERSION !!!!!!
+    # ves 0
+    ves_poly0 = np.zeros((2, 5))
+    ves_poly00 = [4, 5, 5, 4, 4]
+    ves_poly01 = [4, 4, 5, 5, 4]
+    ves_poly0[0] = np.asarray(ves_poly00)
+    ves_poly0[1] = np.asarray(ves_poly01)
+    # ves 1
+    ves_poly1 = np.zeros((2, 5))
+    ves_poly10 = [3, 6, 6, 3, 3]
+    ves_poly11 = [3, 3, 6, 6, 3]
+    ves_poly1[0] = np.asarray(ves_poly10)
+    ves_poly1[1] = np.asarray(ves_poly11)
+    vessels = np.asarray([ves_poly0, ves_poly1])
+    # Tab for rays
+    num_rays = 3
+    ray_orig = np.zeros((num_rays,3))
+    ray_vdir = np.zeros((num_rays,3))
+    # ray 0 : First ray intersects first
+    ray_orig[0][0] = 5.01
+    ray_orig[0][2] = 5.01
+    ray_vdir[0][1] = 1.
+    ray_vdir[0][2] = 1.
+    # ray 1 : close to second one
+    ray_orig[1][0] = 6.01
+    ray_orig[1][2] = 6.01
+    ray_vdir[1][1] = 1.
+    # ray 2 : close to none
+    ray_orig[2][0] = 8.
+    ray_orig[2][2] = 8.
+    ray_vdir[2][1] = 1.
+    # .. computing .............................................................
+    out = GG.is_close_los_vpoly_vec(2,  num_rays,
+                                    ray_orig, ray_vdir,
+                                    vessels, 0.1)
+    assert np.allclose(out, [[True, False],[False,  True], [False, False]])

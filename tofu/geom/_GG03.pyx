@@ -6381,6 +6381,11 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     return
 
 
+# ==============================================================================
+#
+#                         ARE LOS AND EXT-POLY CLOSE
+#
+# ==============================================================================
 
 def is_close_los_vpoly_vec(int nvpoly, int nlos,
                            np.ndarray[double,ndim=2,mode='c'] ray_orig,
@@ -6442,7 +6447,7 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
                                 epsilon,
                                 are_close,
                                 num_threads)
-    return np.asarray(are_close, dtype=bool)
+    return np.asarray(are_close, dtype=bool).reshape(nlos, nvpoly)
 
 
 cdef void is_close_los_vpoly_vec_core(int num_poly, int nlos,
