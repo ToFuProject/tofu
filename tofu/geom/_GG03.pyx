@@ -6806,7 +6806,7 @@ cdef void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
     This is the CYTHON function, use only if you need this computation from
     Cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
-    cdef int i, ind_los, ind_pol, ind_pol2
+    cdef int i, ind_los, ind_pol, ind_pol2, indloc
     cdef int npts_poly
     cdef double* loc_res
     cdef double* loc_dir
@@ -6822,6 +6822,10 @@ cdef void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
     from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
+
+    # initialization ...............................................
+    for indloc in range(nlos):
+        ind_close_tab[indloc] = num_poly-1
 
     # == Defining parallel part ================================================
     with nogil, parallel():
@@ -6852,9 +6856,6 @@ cdef void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
                                            eps_uz, eps_vz,
                                            eps_a, eps_b,
                                            loc_res)
-                # initialization ...............................................
-                if ind_los == 0:
-                    ind_close_tab[ind_pol] = -1
                 # filling the array when nan found .............................
                 if not loc_res[1] == loc_res[1]:
                     #the closer poly is the one just before
