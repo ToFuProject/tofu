@@ -373,7 +373,9 @@ class Test01_DataCam12D(object):
         plt.close('all')
 
     def test17_plot_combine(self):
-        warnings.warn('Not implemented yet !')
+        for ii in range(1,len(self.lobj)):
+            kh = self.lobj[ii].plot_combine(self.lobj[ii-1])
+        plt.close('all')
 
     def test18_spectrogram(self):
         for oo in self.lobj:

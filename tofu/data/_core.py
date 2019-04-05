@@ -866,13 +866,19 @@ class DataAbstract(utils.ToFuObject):
     def lCam(self):
         return self._dgeom['lCam']
 
+    @property
+    def _isLOS(self):
+        c0 = self._dgeom['lCam'] is not None
+        if c0:
+            c0 = all([cc._isLOS() for cc in self.dgeom['lCam']])
+        return c0
+
     @abstractmethod
     def _isSpectral(self):
         return 'spectral' in self.__class__.name.lower()
     @abstractmethod
     def _is2D(self):
         return '2d' in self.__class__.__name__.lower()
-
 
     ###########
     # Hidden and public methods for ddata
@@ -1625,12 +1631,16 @@ class DataAbstract(utils.ToFuObject):
                              draw=draw, connect=connect)
         return kh
 
-    def plot_combine(self, lD, key=None, invert=None, plotmethod='imshow',
-                     cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
-                     Bck=True, indref=0, fs=None, dmargin=None,
-                     vmin=None, vmax=None, normt=False,
-                     wintit=None, tit=None, fontsize=None,
-                     draw=True, connect=True):
+    def plot_combine(self, lD, key=None, Bck=True, indref=0,
+                  cmap=None, ms=4, vmin=None, vmax=None,
+                  vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
+                  ntMax=None, nchMax=None, nlbdMax=3,
+                  inct=[1,10], incX=[1,5], inclbd=[1,10],
+                  lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
+                  fmt_t='06.3f', fmt_X='01.0f',
+                  invert=True, Lplot='In', dmarker=None,
+                  fs=None, dmargin=None, wintit=None, tit=None,
+                  fontsize=None, labelpad=None, draw=True, connect=True):
         """ Plot several Data instances of different diags
 
         Useful to visualize several diags for the same shot
@@ -1641,14 +1651,21 @@ class DataAbstract(utils.ToFuObject):
         C1 = issubclass(lD.__class__,DataAbstract)
         assert C0 or C1, 'Provided first arg. must be a tf.data.DataAbstract or list !'
         lD = [lD] if C1 else lD
-        KH = _plot.Data_plot_combine([self]+lD, key=key, invert=invert, Bck=Bck,
-                                     ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
-                                     plotmethod=plotmethod, cmap=cmap, ms=ms,
-                                     fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                                     vmin=vmin, vmax=vmax, normt=normt,
-                                     indref=indref, fontsize=fontsize,
-                                     draw=draw, connect=connect)
-        return KH
+        kh = _plot.Data_plot_combine([self]+lD, key=key, Bck=Bck,
+                                     indref=indref, cmap=cmap, ms=ms,
+                                     vmin=vmin, vmax=vmax,
+                                     vmin_map=vmin_map, vmax_map=vmax_map,
+                                     cmap_map=cmap_map, normt_map=normt_map,
+                                     ntMax=ntMax, nchMax=nchMax,
+                                     inct=inct, incX=incX,
+                                     lls=lls, lct=lct, lcch=lcch, cbck=cbck,
+                                     fmt_t=fmt_t, fmt_X=fmt_X,
+                                     invert=invert, Lplot=Lplot,
+                                     dmarker=dmarker, fs=fs, dmargin=dmargin,
+                                     wintit=wintit, tit=tit, fontsize=fontsize,
+                                     labelpad=labelpad, draw=draw,
+                                     connect=connect)
+        return kh
 
 
     def calc_spectrogram(self, fmin=None,
