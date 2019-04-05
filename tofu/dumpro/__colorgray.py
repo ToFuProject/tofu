@@ -9,20 +9,18 @@ output: gray(The gray scale version of the shot on which a threshold function
              will be applied in the next step)
 """
 
-# to convert video into grayscale for setting threshold
-# this is the first step
-# then it stores the converted video as gray.avi for further processing
-
 import numpy as np
 import cv2
 
 def ConvertGray(video_file):
     """Converts imput video file to grayscale and saves it as Grayscale.avi
     
-    Initially it reads the video file and gets the values of its parameters,
-    such as frame height, width etc. According to this the output file is decided.
-    The output file will have the same size as the input video but its fps is set 
-    to 25 fps
+    ==========================================================================
+    Parameters
+    ==========================================================================
+    input:
+    --------------------------------------------------------------------------
+     video file(mp4,avi)
     """
 
    
@@ -51,4 +49,4 @@ def ConvertGray(video_file):
     out.release()
     cv2.destroyAllWindows()
     
-    return none
+    return 'Grayscale.avi'
