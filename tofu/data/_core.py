@@ -866,13 +866,19 @@ class DataAbstract(utils.ToFuObject):
     def lCam(self):
         return self._dgeom['lCam']
 
+    @property
+    def _isLOS(self):
+        c0 = self._dgeom['lCam'] is not None
+        if c0:
+            c0 = all([cc._isLOS() for cc in self.dgeom['lCam']])
+        return c0
+
     @abstractmethod
     def _isSpectral(self):
         return 'spectral' in self.__class__.name.lower()
     @abstractmethod
     def _is2D(self):
         return '2d' in self.__class__.__name__.lower()
-
 
     ###########
     # Hidden and public methods for ddata
@@ -1643,9 +1649,9 @@ class DataAbstract(utils.ToFuObject):
         lD = [lD] if C1 else lD
         KH = _plot.Data_plot_combine([self]+lD, key=key, invert=invert, Bck=Bck,
                                      ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
-                                     plotmethod=plotmethod, cmap=cmap, ms=ms,
+                                     cmap=cmap, ms=ms,
                                      fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                                     vmin=vmin, vmax=vmax, normt=normt,
+                                     vmin=vmin, vmax=vmax,
                                      indref=indref, fontsize=fontsize,
                                      draw=draw, connect=connect)
         return KH
