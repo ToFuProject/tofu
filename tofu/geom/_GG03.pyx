@@ -39,6 +39,8 @@ __all__ = ['CoordShift',
            "is_close_los_vpoly_vec",
            "is_close_los_circle",
            "is_close_los_circle_vec",
+           "which_los_closer_vpoly_vec",
+           "which_vpoly_closer_los_vec",
            "LOS_sino_findRootkPMin_Tor",
            'Poly_isClockwise', 'Poly_Order', 'Poly_VolAngTor',
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
@@ -6555,7 +6557,11 @@ cdef void is_close_los_vpoly_vec_core(int num_poly, int nlos,
 
 
 
-
+# ==============================================================================
+#
+#                         WHICH LOS/VPOLY IS CLOSER
+#
+# ==============================================================================
 
 def which_los_closer_vpoly_vec(int nvpoly, int nlos,
                                np.ndarray[double,ndim=2,mode='c'] ray_orig,
@@ -6598,7 +6604,7 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
-    cdef array ind_close_tab = clone(array('d'), nvpoly, True)
+    cdef array ind_close_tab = clone(array('i'), nvpoly, True)
     which_los_closer_vpoly_vec_core(nvpoly, nlos,
                                     <double*>ray_orig.data,
                                     <double*>ray_vdir.data,
@@ -6655,16 +6661,18 @@ cdef void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
     This is the CYTHON function, use only if you need this computation from
     Cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
     """
-    cdef int i, ind_los, ind_pol, ind_pol2
+    cdef int i, ind_los, ind_pol, ind_pol2, indloc
     cdef int npts_poly
     cdef double* loc_res
     cdef double* loc_dir
     cdef double* loc_org
-    cdef double* loc_dist
+    cdef double loc_dist
     cdef double* lpolyx
     cdef double* lpolyy
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
+    cdef array kmin_tab = clone(array('d'), num_poly*nlos, True)
+    cdef array dist_tab = clone(array('d'), num_poly*nlos, True)
 
     if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
         assert False, "The function is only implemented with the simple"\
@@ -6673,47 +6681,28 @@ cdef void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
-    # == Defining parallel part ================================================
-    with nogil, parallel():
-        # We use local arrays for each thread so...
-        loc_dist = <double*>malloc(num_poly*sizeof(double))
-        loc_dir = <double*>malloc(3*sizeof(double))
-        loc_org = <double*>malloc(3*sizeof(double))
-        loc_res = <double*>malloc(2*sizeof(double))
-        # == The parallelization over the LOS ==================================
-        for ind_los in prange(nlos, schedule='dynamic'):
-            for i in range(3):
-                loc_dir[i] = ray_vdir[ind_los * 3 + i]
-                loc_org[i] = ray_orig[ind_los * 3 + i]
-            # -- Computing values that depend on the LOS/ray -------------------
-            upscaDp = loc_dir[0]*loc_org[0] + loc_dir[1]*loc_org[1]
-            upar2   = loc_dir[0]*loc_dir[0] + loc_dir[1]*loc_dir[1]
-            dpar2   = loc_org[0]*loc_org[0] + loc_org[1]*loc_org[1]
-            invuz = 1./loc_dir[2]
-            crit2 = upar2*crit2_base
-            # -- Looping over each flux surface---------------------------------
-            for ind_pol in range(num_poly):
-                npts_poly = ves_poly[ind_pol].shape[1]
-                simple_dist_los_vpoly_core(loc_org, loc_dir,
-                                           &ves_poly[ind_pol][0][0],
-                                           &ves_poly[ind_pol][1][0],
-                                           npts_poly, upscaDp,
-                                           upar2, dpar2,
-                                           invuz, crit2,
-                                           eps_uz, eps_vz,
-                                           eps_a, eps_b,
-                                           loc_res)
-                # initialization ...............................................
-                if ind_los == 0:
-                    ind_close_tab[ind_pol] = -1
-                    loc_dist[ind_pol] = -10000000000.
-                # filling the array in case closer los .........................
-                if loc_res[1] < loc_dist[ind_pol]:
-                    ind_close_tab[ind_pol] = ind_los
-        free(loc_dir)
-        free(loc_org)
-        free(loc_res)
-        free(loc_dist)
+    for indloc in range(num_poly):
+        ind_close_tab[indloc] = -1
+    comp_dist_los_vpoly_vec_core(num_poly, nlos,
+                                 ray_orig,
+                                 ray_vdir,
+                                 ves_poly,
+                                 eps_uz, eps_a,
+                                 eps_vz, eps_b,
+                                 eps_plane,
+                                 ves_type,
+                                 algo_type,
+                                 kmin_tab, dist_tab,
+                                 num_threads)
+
+    # We use local arrays for each thread so...
+    for ind_pol in range(num_poly):
+        loc_dist = 100000000.
+        for ind_los in range(nlos):
+            if (dist_tab[ind_los*num_poly + ind_pol] < loc_dist):
+                ind_close_tab[ind_pol] = ind_los
+                loc_dist = dist_tab[ind_los*num_poly + ind_pol]
+
     return
 
 
@@ -6754,13 +6743,13 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
             among all other poly without going over it.
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `which_los_closer_vpoly_vec_core`
+    Python, if you need it from Cython, use `which_vpoly_closer_los_vec_core`
     """
     from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
-    cdef array ind_close_tab = clone(array('d'), nlos, True)
+    cdef array ind_close_tab = clone(array('i'), nlos, True)
     which_vpoly_closer_los_vec_core(nvpoly, nlos,
                                     <double*>ray_orig.data,
                                     <double*>ray_vdir.data,
