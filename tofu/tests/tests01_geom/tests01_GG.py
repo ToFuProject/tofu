@@ -1232,7 +1232,7 @@ def test16_dist_los_vpoly():
 
 # ==============================================================================
 #
-#                       DISTANCE CIRCLE - LOS
+#                           DISTANCE CIRCLE - LOS
 #
 # ==============================================================================
 
@@ -1296,8 +1296,10 @@ def test17_distance_los_to_circle():
     # res = GG.comp_dist_los_circle(ray3_vd, ray3_or, radius, circ_z)
     # for i in range(3):
     #     print("P found = ",i, ray3_or[i] + res[0]*ray3_vd[i])
-    # assert np.isclose(res[0], 2*0.325844650125497), "Problem with 'k' = "+str(res[0])+" "+str(res[1])
-    # assert np.isclose(res[1], 0.35842911513804676), "Problem with 'dist' = "+str(res[1])
+    # assert np.isclose(res[0], 2*0.325844650125497),\
+    #    "Problem with 'k' = "+str(res[0])+" "+str(res[1])
+    # assert np.isclose(res[1], 0.35842911513804676), \
+    #    "Problem with 'dist' = "+str(res[1])
     # == Vectorial tests =======================================================
     circle_radius = np.array([0.5, 1, 3.5])
     circle_zcoord = np.array([-1.1, .5, 6])
@@ -1322,6 +1324,11 @@ def test17_distance_los_to_circle():
     assert np.allclose(res[1], d_exact), "Problem with 'dist'"
 
 
+# ==============================================================================
+#
+#                       TEST CLOSENESS CIRCLE - LOS
+#
+# ==============================================================================
 
 def test17_is_los_close_to_circle():
     sqrt2 = np.sqrt(2.)
@@ -1379,3 +1386,149 @@ def test17_is_los_close_to_circle():
     assert res[2][0] == True
     assert res[3][0] == False
 
+# ==============================================================================
+#
+#                       DISTANCE BETWEEN LOS AND EXT-POLY
+#
+# ==============================================================================
+def test18_comp_dist_los_vpoly():
+    # !!!!!! ARTIFICIAL TEST CASE SINCE THIS IS ONLY A SIMPLIFIED VERSION !!!!!!
+    num_rays = 11
+    ves_poly = np.zeros((2, 9))
+    ves_poly0 = [2, 3, 4, 5, 5, 4, 3, 2, 2]
+    ves_poly1 = [2, 1, 1, 2, 3, 4, 4, 3, 2]
+    ves_poly[0] = np.asarray(ves_poly0)
+    ves_poly[1] = np.asarray(ves_poly1)
+    # rays :
+    ray_orig = np.zeros((3,num_rays))
+    ray_vdir = np.zeros((3,num_rays))
+    # ray 0 :
+    ray_orig[0][0] = 0
+    ray_orig[2][0] = 5
+    ray_vdir[0][0] = 1
+    # ray 1 :
+    ray_orig[0][1] = 3.5
+    ray_orig[2][1] = 5
+    ray_vdir[0][1] = 1
+    # ray 2 :
+    ray_orig[0][2] = 3.5
+    ray_orig[2][2] = 5
+    ray_orig[1][2] = -1
+    ray_vdir[0][2] = -1
+    # ray 3:
+    ray_orig[0][3] = 4
+    ray_orig[2][3] = -1
+    ray_vdir[0][3] = 1
+    ray_vdir[2][3] = 1
+    # ray 4:
+    ray_orig[0][4] = 7
+    ray_orig[2][4] = 3
+    ray_vdir[0][4] = 1
+    ray_vdir[2][4] = 1
+    # ray 5:
+    ray_orig[0][5] = 6
+    ray_orig[2][5] = 2.4
+    ray_orig[1][5] = -1.3
+    ray_vdir[1][5] = 1
+    ray_vdir[2][5] = 0.0
+    # ray 6:
+    ray_orig[0][6] = 0.
+    ray_orig[1][6] = 0.
+    ray_orig[2][6] = -1.
+    ray_vdir[2][6] = 0.5
+    # ray 7:
+    ray_orig[0][7] = 0.
+    ray_orig[1][7] = 0.
+    ray_orig[2][7] = 4.
+    ray_vdir[2][7] = -1.
+    # ray 8:
+    ray_orig[0][8] = 1.
+    ray_orig[1][8] = 0.
+    ray_orig[2][8] = 2.
+    ray_vdir[2][8] = -1.
+    # ray 9:
+    ray_orig[0][9] = 3.5
+    ray_orig[1][9] = 0.
+    ray_orig[2][9] = 0.5
+    ray_vdir[2][9] = -1.
+    # ray 10:
+    ray_orig[0][10] = 5.5
+    ray_orig[1][10] = 0.
+    ray_orig[2][10] = 2.5
+    ray_vdir[0][10] = 1.
+
+    # .. computing .............................................................
+    out = GG.comp_dist_los_vpoly(np.ascontiguousarray(ray_orig),
+                                 np.ascontiguousarray(ray_vdir),
+                                 ves_poly)
+    print(out)
+    k_vec = [3.0,
+             0.5,
+             0.6715728752538102,
+             1.0,
+             0.0,
+             1.3,
+             6.0,
+             1.0,
+             0.0,
+             0.0,
+             0.0]
+    dist_vec = [1.0,
+                1.0,
+                1.0,
+                np.sqrt(2.0),
+                2.0,
+                1.0,
+                2.0,
+                2.0,
+                1.0,
+                0.5,
+                0.5]
+    assert np.allclose(k_vec, out[0])
+    assert np.allclose(dist_vec, out[1])
+
+
+def test18_comp_dist_los_vpoly_vec():
+    # !!!!!! ARTIFICIAL TEST CASE SINCE THIS IS ONLY A SIMPLIFIED VERSION !!!!!!
+    # ves 0
+    ves_poly0 = np.zeros((2, 5))
+    ves_poly00 = [4, 5, 5, 4, 4]
+    ves_poly01 = [4, 4, 5, 5, 4]
+    ves_poly0[0] = np.asarray(ves_poly00)
+    ves_poly0[1] = np.asarray(ves_poly01)
+    # ves 1
+    ves_poly1 = np.zeros((2, 5))
+    ves_poly10 = [3, 6, 6, 3, 3]
+    ves_poly11 = [3, 3, 6, 6, 3]
+    ves_poly1[0] = np.asarray(ves_poly10)
+    ves_poly1[1] = np.asarray(ves_poly11)
+    vessels = np.asarray([ves_poly0, ves_poly1])
+    # Tab for rays
+    num_rays = 3
+    ray_orig = np.zeros((num_rays,3))
+    ray_vdir = np.zeros((num_rays,3))
+    # ray 0 : First ray intersects all
+    ray_orig[0][0] = 4.
+    ray_orig[0][2] = 4.
+    ray_vdir[0][1] = 1.
+    ray_vdir[0][2] = 1.
+    # ray 1 : intersects outer circle but not inner
+    ray_orig[1][0] = 5.5
+    ray_orig[1][2] = 4.
+    ray_vdir[1][1] = 1.
+    # ray 2 : above all polys
+    ray_orig[2][0] = 4.5
+    ray_orig[2][2] = 7.
+    ray_vdir[2][1] = -1.
+    print(ray_vdir)
+    # .. computing .............................................................
+    k, dist = GG.comp_dist_los_vpoly_vec(2,  num_rays,
+                                     ray_orig,
+                                     ray_vdir,
+                                     vessels)
+    assert np.allclose(k[0], [np.nan, np.nan], equal_nan=True)
+    assert np.allclose(dist[0], [np.nan, np.nan], equal_nan=True)
+    assert np.allclose(k[1], [0., np.nan], equal_nan=True)
+    assert np.allclose(dist[1], [0.5, np.nan], equal_nan=True)
+    assert np.allclose(k[2], [2.17944947, 3.96862697], equal_nan=True)
+    assert np.allclose(dist[2], [2., 1.], equal_nan=True)

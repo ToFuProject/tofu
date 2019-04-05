@@ -5835,183 +5835,6 @@ cdef void is_close_los_circle_vec_core(int num_los, int num_cir,
 #
 # ==============================================================================
 
-def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
-                            np.ndarray[double,ndim=2,mode='c'] ray_orig,
-                            np.ndarray[double,ndim=2,mode='c'] ray_vdir,
-                            np.ndarray[double,ndim=3,mode='c'] ves_poly,
-                            double eps_uz=_SMALL, double eps_a=_VSMALL,
-                            double eps_vz=_VSMALL, double eps_b=_VSMALL,
-                            double eps_plane=_VSMALL, str ves_type='Tor',
-                            str algo_type='simple', int num_threads=16):
-    """
-    This function computes the distance (and the associated k) between num_los
-    Rays (or LOS) and several `IN` structures (polygons extruded around the axis
-    (0,0,1), eg. flux surfaces).
-    For more details on the algorithm please see PDF: <name_of_pdf>.pdf #TODO
-
-    Params
-    ======
-        nvpoly : int
-           Number of flux surfaces
-        nlos : int
-           Number of LOS
-        ray_orig : (3, num_los) double array
-           LOS origin points coordinates
-        ray_vdir : (3, num_los) double array
-           LOS normalized direction vector
-        ves_poly : (num_pol, 2, num_vertex) double array
-           Coordinates of the vertices of the Polygon defining the 2D poloidal
-           cut of the different IN surfaces
-           WARNING : we suppose all poly are nested in each other,
-                     from inner to outer
-        eps_<val> : double
-           Small value, acceptance of error
-    Returns
-    =======
-        kmin_vpoly : (npoly, num_los) double array
-            Of the form [k_00, k_01, ..., k_0n, k_10, k_11, ..., k_1n, ...]
-            where k_ij is the coefficient for the j-th flux surface
-            such that the i-th ray (LOS) is closest to the extruded polygon
-            at the point P_i = orig[i] + kmin[i] * vdir[i]
-        dist_vpoly : (npoly, num_los) double array
-            `distance[i * num_poly + j]` is the distance from P_i to the i-th
-            extruded poly.
-    ---
-    This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `comp_dist_los_vpoly_vec_core`
-    """
-    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
-        assert False, "The function is only implemented with the simple"\
-            + " algorithm and for toroidal vessels... Sorry!"
-    from warnings import warn
-    warn("This function supposes that the polys are nested from inner to outer",
-         Warning)
-
-    cdef array kmin_tab = clone(array('d'), nvpoly*nlos, True)
-    cdef array dist_tab = clone(array('d'), nvpoly*nlos, True)
-    comp_dist_los_vpoly_vec_core(nvpoly, nlos,
-                                 <double*>ray_orig.data,
-                                 <double*>ray_vdir.data,
-                                 ves_poly,
-                                 eps_uz, eps_a,
-                                 eps_vz, eps_b,
-                                 eps_plane,
-                                 ves_type,
-                                 algo_type,
-                                 kmin_tab, dist_tab,
-                                 num_threads)
-    return np.asarray(kmin_tab), np.asarray(dist_tab)
-
-
-cdef void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
-                                       double* ray_orig,
-                                       double* ray_vdir,
-                                       double[:,:,::1] ves_poly,
-                                       double eps_uz,
-                                       double eps_a,
-                                       double eps_vz,
-                                       double eps_b,
-                                       double eps_plane,
-                                       str ves_type,
-                                       str algo_type,
-                                       double[::1] res_k,
-                                       double[::1] res_dist,
-                                       int num_threads=16):
-    """
-    This function computes the distance (and the associated k) between nlos
-    Rays (or LOS) and several `IN` structures (polygons extruded around the axis
-    (0,0,1), eg. flux surfaces).
-    For more details on the algorithm please see PDF: <name_of_pdf>.pdf #TODO
-
-    Params
-    ======
-        num_poly : int
-           Number of flux surfaces
-        nlos : int
-           Number of LOS
-        ray_orig : (3, nlos) double array
-           LOS origin points coordinates
-        ray_vdir : (3, nlos) double array
-           LOS normalized direction vector
-        ves_poly : (num_pol, 2, num_vertex) double array
-           Coordinates of the vertices of the Polygon defining the 2D poloidal
-           cut of the different IN surfaces.
-           WARNING : we suppose all poly are nested in each other,
-                     from inner to outer
-        eps_<val> : double
-           Small value, acceptance of error
-    Returns
-    =======
-        kmin_vpoly : (npoly, nlos) double array
-            Of the form [k_00, k_01, ..., k_0n, k_10, k_11, ..., k_1n, ...]
-            where k_ij is the coefficient for the j-th flux surface
-            such that the i-th ray (LOS) is closest to the extruded polygon
-            at the point P_i = orig[i] + kmin[i] * vdir[i]
-        dist_vpoly : (npoly, nlos) double array
-            `distance[j, i]` is the distance from P_i to the i-th extruded poly.
-    ---
-    This is the CYTHON function, use only if you need this computation from
-    Cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
-    """
-    cdef int i, ind_los, ind_pol, ind_pol2
-    cdef int npts_poly
-    cdef double* loc_res
-    cdef double* loc_dir
-    cdef double* loc_org
-    cdef double* lpolyx
-    cdef double* lpolyy
-    cdef double crit2, invuz,  dpar2, upar2, upscaDp
-    cdef double crit2_base = eps_uz * eps_uz /400.
-
-    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
-        assert False, "The function is only implemented with the simple"\
-            + " algorithm and for toroidal vessels... Sorry!"
-    from warnings import warn
-    warn("This function supposes that the polys are nested from outer to inner",
-         Warning)
-
-    # == Defining parallel part ================================================
-    with nogil, parallel():
-        # We use local arrays for each thread so...
-        loc_dir = <double*>malloc(3*sizeof(double))
-        loc_org = <double*>malloc(3*sizeof(double))
-        loc_res = <double*>malloc(2*sizeof(double))
-        # == The parallelization over the LOS ==================================
-        for ind_los in prange(nlos, schedule='dynamic'):
-            for i in range(3):
-                loc_dir[i] = ray_vdir[ind_los * 3 + i]
-                loc_org[i] = ray_orig[ind_los * 3 + i]
-            # -- Computing values that depend on the LOS/ray -------------------
-            upscaDp = loc_dir[0]*loc_org[0] + loc_dir[1]*loc_org[1]
-            upar2   = loc_dir[0]*loc_dir[0] + loc_dir[1]*loc_dir[1]
-            dpar2   = loc_org[0]*loc_org[0] + loc_org[1]*loc_org[1]
-            invuz = 1./loc_dir[2]
-            crit2 = upar2*crit2_base
-            # -- Looping over each flux surface---------------------------------
-            for ind_pol in range(num_poly):
-                npts_poly = ves_poly[ind_pol].shape[1]
-                simple_dist_los_vpoly_core(loc_org, loc_dir,
-                                           &ves_poly[ind_pol][0][0],
-                                           &ves_poly[ind_pol][1][0],
-                                           npts_poly, upscaDp,
-                                           upar2, dpar2,
-                                           invuz, crit2,
-                                           eps_uz, eps_vz,
-                                           eps_a, eps_b,
-                                           loc_res)
-                res_k[ind_los * num_poly + ind_pol] = loc_res[0]
-                res_dist[ind_los * num_poly + ind_pol] = loc_res[1]
-                if not loc_res[1] == loc_res[1] : #is nan
-                    for ind_pol2 in range(ind_pol, num_poly):
-                        res_k[ind_los * num_poly + ind_pol2] = Cnan
-                        res_dist[ind_los * num_poly + ind_pol2] = Cnan
-                    continue
-        free(loc_dir)
-        free(loc_org)
-        free(loc_res)
-    return
-
-
 def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                         double[:, ::1] ray_vdir,
                         double[:, ::1] ves_poly,
@@ -6095,6 +5918,183 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
         free(res_loc)
     return np.asarray(kmin_vpoly), np.asarray(dist_vpoly)
 
+
+def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
+                            np.ndarray[double,ndim=2,mode='c'] ray_orig,
+                            np.ndarray[double,ndim=2,mode='c'] ray_vdir,
+                            np.ndarray[double,ndim=3,mode='c'] ves_poly,
+                            double eps_uz=_SMALL, double eps_a=_VSMALL,
+                            double eps_vz=_VSMALL, double eps_b=_VSMALL,
+                            double eps_plane=_VSMALL, str ves_type='Tor',
+                            str algo_type='simple', int num_threads=16):
+    """
+    This function computes the distance (and the associated k) between num_los
+    Rays (or LOS) and several `IN` structures (polygons extruded around the axis
+    (0,0,1), eg. flux surfaces).
+    For more details on the algorithm please see PDF: <name_of_pdf>.pdf #TODO
+
+    Params
+    ======
+        nvpoly : int
+           Number of flux surfaces
+        nlos : int
+           Number of LOS
+        ray_orig : (3, num_los) double array
+           LOS origin points coordinates
+        ray_vdir : (3, num_los) double array
+           LOS normalized direction vector
+        ves_poly : (num_pol, 2, num_vertex) double array
+           Coordinates of the vertices of the Polygon defining the 2D poloidal
+           cut of the different IN surfaces
+           WARNING : we suppose all poly are nested in each other,
+                     from inner to outer
+        eps_<val> : double
+           Small value, acceptance of error
+    Returns
+    =======
+        kmin_vpoly : (npoly, num_los) double array
+            Of the form [k_00, k_01, ..., k_0n, k_10, k_11, ..., k_1n, ...]
+            where k_ij is the coefficient for the j-th flux surface
+            such that the i-th ray (LOS) is closest to the extruded polygon
+            at the point P_i = orig[i] + kmin[i] * vdir[i]
+        dist_vpoly : (npoly, num_los) double array
+            `distance[i * num_poly + j]` is the distance from P_i to the i-th
+            extruded poly.
+    ---
+    This is the PYTHON function, use only if you need this computation from
+    Python, if you need it from Cython, use `comp_dist_los_vpoly_vec_core`
+    """
+    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
+        assert False, "The function is only implemented with the simple"\
+            + " algorithm and for toroidal vessels... Sorry!"
+    from warnings import warn
+    warn("This function supposes that the polys are nested from inner to outer",
+         Warning)
+
+    cdef array kmin_tab = clone(array('d'), nvpoly*nlos, True)
+    cdef array dist_tab = clone(array('d'), nvpoly*nlos, True)
+    comp_dist_los_vpoly_vec_core(nvpoly, nlos,
+                                 <double*>ray_orig.data,
+                                 <double*>ray_vdir.data,
+                                 ves_poly,
+                                 eps_uz, eps_a,
+                                 eps_vz, eps_b,
+                                 eps_plane,
+                                 ves_type,
+                                 algo_type,
+                                 kmin_tab, dist_tab,
+                                 num_threads)
+    return np.asarray(kmin_tab).reshape(nlos, nvpoly),\
+        np.asarray(dist_tab).reshape(nlos, nvpoly)
+
+
+cdef void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
+                                       double* ray_orig,
+                                       double* ray_vdir,
+                                       double[:,:,::1] ves_poly,
+                                       double eps_uz,
+                                       double eps_a,
+                                       double eps_vz,
+                                       double eps_b,
+                                       double eps_plane,
+                                       str ves_type,
+                                       str algo_type,
+                                       double[::1] res_k,
+                                       double[::1] res_dist,
+                                       int num_threads=16):
+    """
+    This function computes the distance (and the associated k) between nlos
+    Rays (or LOS) and several `IN` structures (polygons extruded around the axis
+    (0,0,1), eg. flux surfaces).
+    For more details on the algorithm please see PDF: <name_of_pdf>.pdf #TODO
+
+    Params
+    ======
+        num_poly : int
+           Number of flux surfaces
+        nlos : int
+           Number of LOS
+        ray_orig : (3, nlos) double array
+           LOS origin points coordinates
+        ray_vdir : (3, nlos) double array
+           LOS normalized direction vector
+        ves_poly : (num_pol, 2, num_vertex) double array
+           Coordinates of the vertices of the Polygon defining the 2D poloidal
+           cut of the different IN surfaces.
+           WARNING : we suppose all poly are nested in each other,
+                     from inner to outer
+        eps_<val> : double
+           Small value, acceptance of error
+    Returns
+    =======
+        kmin_vpoly : (npoly, nlos) double array
+            Of the form [k_00, k_01, ..., k_0n, k_10, k_11, ..., k_1n, ...]
+            where k_ij is the coefficient for the j-th flux surface
+            such that the i-th ray (LOS) is closest to the extruded polygon
+            at the point P_i = orig[i] + kmin[i] * vdir[i]
+        dist_vpoly : (npoly, nlos) double array
+            `distance[j, i]` is the distance from P_i to the i-th extruded poly.
+    ---
+    This is the CYTHON function, use only if you need this computation from
+    Cython, if you need it from Python, use `comp_dist_los_vpoly_vec`
+    """
+    cdef int i, ind_los, ind_pol, ind_pol2
+    cdef int npts_poly
+    cdef double* loc_res
+    cdef double* loc_dir
+    cdef double* loc_org
+    cdef double* lpolyx
+    cdef double* lpolyy
+    cdef double crit2, invuz,  dpar2, upar2, upscaDp
+    cdef double crit2_base = eps_uz * eps_uz /400.
+
+    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
+        assert False, "The function is only implemented with the simple"\
+            + " algorithm and for toroidal vessels... Sorry!"
+    from warnings import warn
+    warn("This function supposes that the polys are nested from inner to outer",
+         Warning)
+
+    # == Defining parallel part ================================================
+    with nogil, parallel():
+        # We use local arrays for each thread so...
+        loc_dir = <double*>malloc(3*sizeof(double))
+        loc_org = <double*>malloc(3*sizeof(double))
+        loc_res = <double*>malloc(2*sizeof(double))
+        # == The parallelization over the LOS ==================================
+        for ind_los in prange(nlos, schedule='dynamic'):
+            for i in range(3):
+                loc_dir[i] = ray_vdir[ind_los * 3 + i]
+                loc_org[i] = ray_orig[ind_los * 3 + i]
+            # -- Computing values that depend on the LOS/ray -------------------
+            upscaDp = loc_dir[0]*loc_org[0] + loc_dir[1]*loc_org[1]
+            upar2   = loc_dir[0]*loc_dir[0] + loc_dir[1]*loc_dir[1]
+            dpar2   = loc_org[0]*loc_org[0] + loc_org[1]*loc_org[1]
+            invuz = 1./loc_dir[2]
+            crit2 = upar2*crit2_base
+            # -- Looping over each flux surface---------------------------------
+            for ind_pol in range(num_poly):
+                npts_poly = ves_poly[ind_pol].shape[1]
+                simple_dist_los_vpoly_core(loc_org, loc_dir,
+                                           &ves_poly[ind_pol][0][0],
+                                           &ves_poly[ind_pol][1][0],
+                                           npts_poly, upscaDp,
+                                           upar2, dpar2,
+                                           invuz, crit2,
+                                           eps_uz, eps_vz,
+                                           eps_a, eps_b,
+                                           loc_res)
+                res_k[ind_los * num_poly + ind_pol] = loc_res[0]
+                res_dist[ind_los * num_poly + ind_pol] = loc_res[1]
+                if not loc_res[1] == loc_res[1] : #is nan
+                    for ind_pol2 in range(ind_pol, num_poly):
+                        res_k[ind_los * num_poly + ind_pol2] = Cnan
+                        res_dist[ind_los * num_poly + ind_pol2] = Cnan
+                    continue
+        free(loc_dir)
+        free(loc_org)
+        free(loc_res)
+    return
 
 
 cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
@@ -6218,7 +6218,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         if Cabs(rdotvec) > _VSMALL:
                             # There is an intersection, distance = Cnan
                             res_final[1] = Cnan # distance
-                            res_final[0] = k # k
+                            res_final[0] = Cnan # k
                             # no need to continue
                             return
                 if (res_final[1] > res_a[1]
@@ -6245,7 +6245,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     if Cabs(rdotvec) > _VSMALL:
                         # There is an intersection, distance = Cnan
                         res_final[1] = Cnan # distance
-                        res_final[0] = k # k
+                        res_final[0] = Cnan # k
                         # no need to continue
                         return
                 dist_los_circle_core(ray_vdir, ray_orig,
@@ -6263,7 +6263,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     if Cabs(rdotvec) > _VSMALL:
                         # There is an intersection, distance = Cnan
                         res_final[1] = Cnan # distance
-                        res_final[0] = k # k
+                        res_final[0] = Cnan # k
                         # no need to continue
                         return
                 # The result is the one associated to the shortest distance
@@ -6310,8 +6310,8 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                         if k >= 0.:
                             # Then there is an intersection
-                            res_a[0] = k
-                            res_a[1] = Cnan
+                            res_final[0] = Cnan
+                            res_final[1] = Cnan
                             return # no need to move forward
                         else:
                             # The closest point on the line is the LOS origin
@@ -6339,8 +6339,8 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                     if k >= 0.:
                         # There is an intersection
-                        res_a[0] = k
-                        res_a[1] = Cnan
+                        res_final[0] = Cnan
+                        res_final[1] = Cnan
                         return # no need to continue
                     else:
                         # The closest point on the LOS is its origin
@@ -6366,8 +6366,8 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                     if k>=0.:
                         # there is an intersection
-                        res_b[0] = k
-                        res_b[1] = Cnan
+                        res_final[0] = Cnan
+                        res_final[1] = Cnan
                         return # no need to continue
                     else:
                         # The closest point on the LOS is its origin
@@ -6426,7 +6426,7 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
     Python, if you need it from Cython, use `is_close_los_vpoly_vec_core`
     """
     from warnings import warn
-    warn("This function supposes that the polys are nested from outer to inner",
+    warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
     cdef array are_close = clone(array('i'), nvpoly*nlos, True)
@@ -6507,7 +6507,7 @@ cdef void is_close_los_vpoly_vec_core(int num_poly, int nlos,
         assert False, "The function is only implemented with the simple"\
             + " algorithm and for toroidal vessels... Sorry!"
     from warnings import warn
-    warn("This function supposes that the polys are nested from outer to inner",
+    warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
     # == Defining parallel part ================================================
@@ -6590,7 +6590,7 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
     Python, if you need it from Cython, use `which_los_closer_vpoly_vec_core`
     """
     from warnings import warn
-    warn("This function supposes that the polys are nested from outer to inner",
+    warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
     cdef array ind_close_tab = clone(array('d'), nvpoly, True)
@@ -6665,7 +6665,7 @@ cdef void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
         assert False, "The function is only implemented with the simple"\
             + " algorithm and for toroidal vessels... Sorry!"
     from warnings import warn
-    warn("This function supposes that the polys are nested from outer to inner",
+    warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
     # == Defining parallel part ================================================
@@ -6752,7 +6752,7 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
     Python, if you need it from Cython, use `which_los_closer_vpoly_vec_core`
     """
     from warnings import warn
-    warn("This function supposes that the polys are nested from outer to inner",
+    warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
     cdef array ind_close_tab = clone(array('d'), nlos, True)
@@ -6826,7 +6826,7 @@ cdef void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
         assert False, "The function is only implemented with the simple"\
             + " algorithm and for toroidal vessels... Sorry!"
     from warnings import warn
-    warn("This function supposes that the polys are nested from outer to inner",
+    warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
     # == Defining parallel part ================================================
