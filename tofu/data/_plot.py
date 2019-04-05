@@ -25,8 +25,9 @@ except Exception:
 
 __all__ = ['Data_plot', 'Data_plot_combine',
            'Data_plot_spectrogram']
-__author_email__ = 'didier.vezinet@cea.fr'
-_wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
+#__author_email__ = 'didier.vezinet@cea.fr'
+__github = 'https://github.com/ToFuProject/tofu/issues'
+_wintit = 'tofu-%s    report issues / requests at %s'%(__version__, __github)
 _nchMax, _ntMax, _nfMax = 4, 3, 3
 _fontsize = 8
 _labelpad = 0
@@ -763,8 +764,7 @@ def _init_DataCam12D(fs=None, dmargin=None,
                                      sharex=Laxp[0], sharey=Laxp[0]),
                      fig.add_subplot(gs1[3:,3], fc='w',
                                      sharex=Laxp[0], sharey=Laxp[0])]
-        for ii in range(0,len(Laxp)):
-            Laxp[ii].set_aspect('equal', adjustable='datalim')
+            Laxp[0].set_aspect('equal', adjustable='datalim')
     axH = fig.add_subplot(gs1[0:2,4], fc='w')
     axC = fig.add_subplot(gs1[2:,4], fc='w')
     axC.set_aspect('equal', adjustable='datalim')
@@ -952,9 +952,9 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 idteq = id(lData[ii].dextra[k]['t'])
                 if idteq not in dteq[ii].keys():
                     dteq[ii][idteq] = lData[ii].dextra[k]['t']
-                dlextra[k][ii] = dict([(k,v)
-                                        for k,v in lData[ii].dextra[k].items()
-                                        if not k == 't'])
+                dlextra[k][ii] = dict([(kk,v)
+                                        for kk,v in lData[ii].dextra[k].items()
+                                        if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
                 if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():

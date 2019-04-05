@@ -9,9 +9,11 @@ import sys
 import warnings
 #from abc import ABCMeta, abstractmethod
 import copy
-import inspect
 if sys.version[0]=='2':
     import re, tokenize, keyword
+    import funcsigs as inspect
+else:
+    import inspect
 
 
 # Common
@@ -1005,8 +1007,8 @@ class Struct(utils.ToFuObject):
 
     def save_to_txt(self, path='./', name=None,
                     include=['Mod','Cls','Exp','Name'],
-                    fmt='%.18e', delimiter=' ', newline='\n', header='',
-                    footer='', comments='# ', encoding=None, verb=True, return_pfe=False):
+                    fmt='%.18e', delimiter=' ',
+                    footer='', encoding=None, verb=True, return_pfe=False):
         """ Save the basic geometrical attributes only (polygon and pos/extent)
 
         The attributes are saved to a txt file with chosen encoding
@@ -1065,6 +1067,12 @@ class Struct(utils.ToFuObject):
         posext = np.vstack((self.pos, self.extent)).T
         out = np.vstack((nPno,poly,posext))
 
+        # default standards
+        newline = '\n'
+        comments = '#'
+        header = ' Cls = %s\n Exp = %s\n Name = %s'%(self.__class__.__name__,
+                                                     self.Id.Exp, self.Id.Name)
+
         kwds = dict(fmt=fmt, delimiter=delimiter, newline=newline,
                    header=header, footer=footer, comments=comments)
         if 'encoding' in inspect.signature(np.savetxt).parameters:
@@ -1110,6 +1118,7 @@ class Struct(utils.ToFuObject):
                 - An instance of the relevant tofu.geom.Struct subclass
                 - A dict with keys 'poly', 'pos' and 'extent'
         """
+
         if not out in [object,'object','dict']:
             msg = "Arg out must be either:"
             msg += "    - 'object': return a %s instance\n"%cls.__name__
@@ -1145,6 +1154,13 @@ class Struct(utils.ToFuObject):
             pos, extent = oo[1+npts:,0], oo[1+npts:,1]
         else:
             pos, extent = None, None
+
+         # Try reading Exp and Name if not provided
+        if Exp is None:
+            Exp = cls._from_txt_extract_params(pfe, 'Exp')
+        if Name is None:
+            Name = cls._from_txt_extract_params(pfe, 'Name')
+
         if out=='dict':
             return {'poly':poly, 'pos':pos, 'extent':extent}
         else:
@@ -1155,6 +1171,36 @@ class Struct(utils.ToFuObject):
                       SavePath=SavePath, color=color)
             return obj
 
+    @staticmethod
+    def _from_txt_extract_params(pfe, param):
+        p, name = os.path.split(pfe)
+
+        # Try from file name
+        lk = name.split('_')
+        lind = [param in k for k in lk]
+        if np.sum(lind) > 1:
+            msg = "Several values form %s found in file name:\n"
+            msg += "    file: %s"%pfe
+            raise Exception(msg)
+        if any(lind):
+            paramstr = lk[np.nonzero(lind)[0][0]]
+            paramstr = paramstr.replace(param,'')
+            return paramstr
+
+        # try from file content
+        paramstr = None
+        lout = [param, '#', ':', '=', ' ', '\n', '\t']
+        with open(pfe) as fid:
+            while True:
+                line = fid.readline()
+                if param in line:
+                    for k in lout:
+                        line = line.replace(k,'')
+                    paramstr = line
+                    break
+                elif not line:
+                    break
+        return paramstr
 
 
 
@@ -1852,19 +1898,20 @@ class Config(utils.ToFuObject):
     # strip dictionaries
     ###########
 
-    def _strip_dStruct(self, strip=0, force=False):
-        if self._dstrip['strip']==strip:
+    def _strip_dStruct(self, strip=0, force=False, verb=True):
+        if self._dstrip['strip'] == strip:
             return
 
-        if self._dstrip['strip']>strip:
+        if self._dstrip['strip'] > strip:
 
             # Reload if necessary
-            if self._dstrip['strip']==3:
+            if self._dstrip['strip'] == 3:
                 for k in self._dStruct['dObj'].keys():
                     for kk in self._dStruct['dObj'][k].keys():
                         pfe = self._dStruct['dObj'][k][kk]
                         try:
-                            self._dStruct['dObj'][k][kk] = utils.load(pfe)
+                            self._dStruct['dObj'][k][kk] = utils.load(pfe,
+                                                                      verb=verb)
                         except Exception as err:
                             msg = str(err)
                             msg += "\n    k = {0}".format(str(k))
@@ -1894,7 +1941,7 @@ class Config(utils.ToFuObject):
                         self._dStruct['dObj'][k][kk].strip(strip=strip)
                 lkeep = self._get_keys_dStruct()
 
-            elif strip==3:
+            elif strip == 3:
                 for k in self._dStruct['lCls']:
                     for kk, v  in self._dStruct['dObj'][k].items():
                         path, name = v.Id.SavePath, v.Id.SaveName
@@ -1951,12 +1998,12 @@ class Config(utils.ToFuObject):
         else:
             cls.strip.__doc__ = doc
 
-    def strip(self, strip=0, force=False):
+    def strip(self, strip=0, force=False, verb=True):
         # super()
-        super(Config,self).strip(strip=strip, force=force)
+        super(Config,self).strip(strip=strip, force=force, verb=verb)
 
-    def _strip(self, strip=0, force=False):
-        self._strip_dStruct(strip=strip, force=force)
+    def _strip(self, strip=0, force=False, verb=True):
+        self._strip_dStruct(strip=strip, force=force, verb=verb)
         #self._strip_dextraprop()
         #self._strip_dsino()
 
@@ -3345,15 +3392,15 @@ class Rays(utils.ToFuObject):
                          'Etendues','Surfaces','isImage','dX12']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
-    def _strip_dconfig(self, strip=0):
-        if self._dstrip['strip']==strip:
+    def _strip_dconfig(self, strip=0, verb=True):
+        if self._dstrip['strip'] == strip:
             return
 
         if strip<self._dstrip['strip']:
-            if self._dstrip['strip']==4:
+            if self._dstrip['strip'] == 4:
                 pfe = self._dconfig['Config']
                 try:
-                    self._dconfig['Config'] = utils.load(pfe)
+                    self._dconfig['Config'] = utils.load(pfe, verb=verb)
                 except Exception as err:
                     msg = str(err)
                     msg += "\n    type(pfe) = {0}".format(str(type(pfe)))
@@ -3361,9 +3408,9 @@ class Rays(utils.ToFuObject):
                     msg += "\n    strip = {0}".format(strip)
                     raise Exception(msg)
 
-            self._dconfig['Config'].strip(strip)
+            self._dconfig['Config'].strip(strip, verb=verb)
         else:
-            if strip==4:
+            if strip == 4:
                 path, name = self.config.Id.SavePath, self.config.Id.SaveName
                 # --- Check !
                 lf = os.listdir(path)
@@ -3389,7 +3436,7 @@ class Rays(utils.ToFuObject):
                 self._dconfig['Config'] = pathfile
 
             else:
-                self._dconfig['Config'].strip(strip)
+                self._dconfig['Config'].strip(strip, verb=verb)
 
 
     def _strip_dsino(self, strip=0):
@@ -3427,12 +3474,12 @@ class Rays(utils.ToFuObject):
         else:
             cls.strip.__doc__ = doc
 
-    def strip(self, strip=0):
+    def strip(self, strip=0, verb=True):
         # super()
-        super(Rays,self).strip(strip=strip)
+        super(Rays,self).strip(strip=strip, verb=verb)
 
-    def _strip(self, strip=0):
-        self._strip_dconfig(strip=strip)
+    def _strip(self, strip=0, verb=True):
+        self._strip_dconfig(strip=strip, verb=verb)
         self._strip_dgeom(strip=strip)
         self._strip_dsino(strip=strip)
 

@@ -5,9 +5,13 @@ import sys
 import os
 import itertools as itt
 import copy
-import inspect
 import warnings
 from abc import ABCMeta, abstractmethod
+if sys.version[0] == '3':
+    import inspect
+else:
+    # Python 2 back-porting
+    import funcsigs as inspect
 
 # Common
 import numpy as np
@@ -688,7 +692,7 @@ class DataAbstract(utils.ToFuObject):
         elif strip in [2] and self._dstrip['strip'] in [0,1]:
             self.clear_ddata()
 
-    def _strip_dgeom(self, strip=0, force=False):
+    def _strip_dgeom(self, strip=0, force=False, verb=True):
         if self._dstrip['strip']==strip:
             return
 
@@ -699,11 +703,11 @@ class DataAbstract(utils.ToFuObject):
                 assert all([type(ss) is str for ss in self._dgeom['lCam']])
                 lC = []
                 for ii in range(0,len(self._dgeom['lCam'])):
-                    lC.append(utils.load(self._dgeom['lCam'][ii]))
+                    lC.append(utils.load(self._dgeom['lCam'][ii], verb=verb))
 
             elif self._dgeom['config'] is not None:
                 assert type(self._dgeom['config']) is str
-                config = utils.load(self._dgeom['config'])
+                config = utils.load(self._dgeom['config'], verb=verb)
 
             self._set_dgeom(lCam=lC, config=config)
 
@@ -776,13 +780,13 @@ class DataAbstract(utils.ToFuObject):
         else:
             cls.strip.__doc__ = doc
 
-    def strip(self, strip=0):
+    def strip(self, strip=0, verb=True):
         # super()
-        super(DataAbstract,self).strip(strip=strip)
+        super(DataAbstract,self).strip(strip=strip, verb=verb)
 
-    def _strip(self, strip=0):
+    def _strip(self, strip=0, verb=True):
         self._strip_ddata(strip=strip)
-        self._strip_dgeom(strip=strip)
+        self._strip_dgeom(strip=strip, verb=verb)
 
     def _to_dict(self):
         dout = {'ddataRef':{'dict':self._ddataRef, 'lexcept':None},
@@ -2331,7 +2335,7 @@ class DataSpectro(DataAbstract):
 
     def plot(self, key=None, invert=None, plotmethod='imshow',
              cmap=plt.cm.gray, ms=4, Max=None,
-             fs=None, dmargin=None, wintit='tofu',
+             fs=None, dmargin=None, wintit=None,
              draw=True, connect=True):
         """ Plot the data content in a predefined figure  """
         dax, KH = _plot.Data_plot(self, key=key, invert=invert, Max=Max,
