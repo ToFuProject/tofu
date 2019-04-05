@@ -1,8 +1,13 @@
 
 # Built-in
+import sys
 import os
 import warnings
-import inspect
+if sys.version[0] == '3':
+    import inspect
+else:
+    # Python 2 back-porting
+    import funcsigs as inspect
 
 # Common
 import numpy as np
@@ -29,8 +34,9 @@ _dict_lexcept_key = []
 _lok = np.arange(0,9)
 _lok = np.array([_lok, _lok+10])
 
-_path_testcases = '/Home/DV226270/ToFu_All/tofu_WEST/tofu_west/config/inputs'
-
+_here = os.path.abspath(__file__)
+_root = _here[:_here.rfind('/tofu')]
+_path_testcases = os.path.join(_root,'tofu/geom/inputs')
 
 ###########################################################
 #       COCOS
@@ -141,17 +147,22 @@ def get_nIne1e2(P, nIn=None, e1=None, e2=None):
     if nIn is None:
         nIn = -P
     nIn = nIn / np.linalg.norm(nIn)
+
     if e1 is None:
-        if np.abs(np.abs(nIn[2])-1.)<1.e-12:
+        if np.abs(np.abs(nIn[2])-1.) < 1.e-12:
             e1 = ephi
         else:
             e1 = np.cross(nIn,ez)
-        e1 = e1 if np.sum(e1*ephi)>0. else -e1
+        e1 = e1 if np.sum(e1*ephi) > 0. else -e1
     e1 = e1 / np.linalg.norm(e1)
-    msg = "nIn = %s\n"%str(nIn)
-    msg += "e1 = %s\n"%str(e1)
-    msg += "np.sum(nIn*e1) = {0}".format(np.sum(nIn*e1))
-    assert np.abs(np.sum(nIn*e1))<1.e-12, msg
+
+    if not np.abs(np.sum(nIn*e1))<1.e-12:
+        msg = "Identified local base does not seem valid!\n"
+        msg += "nIn = %s\n"%str(nIn)
+        msg += "e1 =  %s\n"%str(e1)
+        msg += "np.sum(nIn*e1) = sum(%s) = %s"%(nIn*e1, np.sum(nIn*e1))
+        raise Exception(msg)
+
     if e2 is None:
         e2 = np.cross(nIn,e1)
     e2 = e2 / np.linalg.norm(e2)
@@ -575,8 +586,8 @@ def _compute_CamLOS2D_pinhole(P=None, F=0.1, D12=0.1, N12=100,
     # Get starting points
     d1 = 0.5*D12[0]*np.linspace(-1.,1.,N12[0],endpoint=True)
     d2 = 0.5*D12[1]*np.linspace(-1.,1.,N12[1],endpoint=True)
-    d1f = np.repeat(d1,N12[1])
-    d2f = np.tile(d2,N12[0])
+    d1f = np.tile(d1,N12[1])
+    d2f = np.repeat(d2,N12[0])
     d1e = d1f[np.newaxis,:]*e1[:,np.newaxis]
     d2e = d2f[np.newaxis,:]*e2[:,np.newaxis]
 
@@ -651,13 +662,13 @@ def _create_config_testcase(config='A1', out='object',
     # Get file names for config
     lf = [f for f in os.listdir(path) if f[-4:]=='.txt']
     lS = []
-    for cc in dconfig[config].keys():
-        if cc=='Exp':
-            continue
+    lcls = sorted([k for k in dconfig[config].keys() if k!= 'Exp'])
+    Exp = dconfig[config]['Exp']
+    for cc in lcls:
         for ss in dconfig[config][cc]:
             ff = [f for f in lf
-                  if all([s in f for s in [cc,ss]])]
-            if not len(ff)==1:
+                  if all([s in f for s in [cc,Exp,ss]])]
+            if not len(ff) == 1:
                 msg = "No / several matching files\n"
                 msg += "  Folder: %s\n"%path
                 msg += "    Criteria: [%s, %s]\n"%(cc,ss)
@@ -670,7 +681,7 @@ def _create_config_testcase(config='A1', out='object',
             if out not in ['object',object]:
                 obj = ((ss,{'Poly':obj[0], 'pos':obj[1], 'extent':obj[2]}),)
             lS.append(obj)
-    if out=='dict':
+    if out == 'dict':
         conf = dict([tt for tt in lS])
     else:
         conf = _core.Config(Name=config, Exp=dconfig[config]['Exp'], lStruct=lS)
@@ -679,7 +690,8 @@ def _create_config_testcase(config='A1', out='object',
 def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
                   R=2.4, r=1., elong=0., Dshape=0.,
-                  divlow=True, divup=True, nP=200, out='object'):
+                  divlow=True, divup=True, nP=200,
+                  out='object', SavePath='./'):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
@@ -746,14 +758,16 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
                               'pos':Bump_posextent[0],
                               'extent':Bump_posextent[1]}}
         else:
-            ves = _core.Ves(Poly=poly, Type=Type, Lim=Lim, Exp=Exp, Name='Ves')
+            ves = _core.Ves(Poly=poly, Type=Type, Lim=Lim, Exp=Exp, Name='Ves',
+                            SavePath=SavePath)
             baf = _core.PFC(Poly=pbaffle, Type=Type, Lim=Lim,
-                            Exp=Exp, Name='Baffle', color='b')
+                            Exp=Exp, Name='Baffle', color='b', SavePath=SavePath)
             bump = _core.PFC(Poly=pbump, Type=Type,
                              pos=Bump_posextent[0], extent=Bump_posextent[1],
-                             Exp=Exp, Name='Bumper', color='g')
+                             Exp=Exp, Name='Bumper', color='g', SavePath=SavePath)
 
-            conf = _core.Config(Name='Dummy', Exp=Exp, lStruct=[ves,baf,bump])
+            conf = _core.Config(Name='Dummy', Exp=Exp, lStruct=[ves,baf,bump],
+                                SavePath=SavePath)
     return conf
 
 ###########################################################
@@ -839,7 +853,8 @@ def _create_CamLOS(case=None, nD=1, Etendues=None, Surfaces=None,
                    dchans=None, Exp=None, Diag=None, Name=None, color=None,
                    P=None, F=0.1, D12=0.1, N12=100, method=None,
                    angs=[-np.pi,0.,0.], nIn=None, VType='Tor', dcam=_dcam,
-                   defRY=None, Lim=None, config=None, out=object):
+                   defRY=None, Lim=None, config=None, out=object,
+                   SavePath='./'):
     assert nD in [1,2]
     if not out in [object,'object','Du','dict',dict]:
         msg = _createCamerr.format('1')
@@ -894,7 +909,7 @@ def _create_CamLOS(case=None, nD=1, Etendues=None, Surfaces=None,
         cam = cls(Name=Name, Exp=Exp, Diag=Diag,
                   dgeom={'pinhole':P, 'D':Ds}, method=method,
                   Etendues=Etendues, Surfaces=Surfaces, dchans=dchans,
-                  color=color, config=config)
+                  color=color, config=config, SavePath=SavePath)
         return cam
 
 

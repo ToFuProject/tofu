@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from matplotlib.path import Path
 import matplotlib.gridspec as mplgrid
 from mpl_toolkits.mplot3d import Axes3D
-
+import tofu as tf
 # Nose-specific
 from nose import with_setup # optional
 
@@ -755,10 +755,23 @@ def test13_LOS_PInOut():
     SP0 = np.array([[6.,7.,7.,6.,6.],[6.,6.,7.,7.,6.]])
     SP1 = np.array([[7.,8.,8.,7.,7.],[7.,7.,8.,8.,7.]])
     SP2 = np.array([[6.,7.,7.,6.,6.],[7.,7.,8.,8.,7.]])
-    SL0 = np.array([0.,1.])*2.*np.pi
-    SL1 = [np.array(ss)*2.*np.pi for ss in [[0.,1./3.],[2./3.,1.]]]
-    SL2 = np.array([2./3.,1.])*2.*np.pi
-
+    SP0x = [6.,7.,7.,6.,6.]
+    SP1x = [7.,8.,8.,7.,7.]
+    SP2x = [6.,7.,7.,6.,6.]
+    SP0y = [6.,6.,7.,7.,6.]
+    SP1y = [7.,7.,8.,8.,7.]
+    SP2y = [7.,7.,8.,8.,7.]
+    nstruct_lim = 3
+    nstruct_tot =1+2+1
+    lstruct_nlim=np.asarray([1, 2, 1])
+    SL0 = np.asarray([np.array([0.,1.])*2.*np.pi])
+    SL1 = np.asarray([np.array(ss)*2.*np.pi for ss in [[0.,1./3.],[2./3.,1.]]])
+    SL2 = np.asarray([np.array([2./3.,1.])*2.*np.pi])
+    lspolyx = np.asarray(SP0x + SP1x + SP2x)
+    lspolyy = np.asarray(SP0y + SP1y + SP2y)
+    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.int64)*5)
+    lsvinx = np.asarray([VIn[0], VIn[0], VIn[0]]).flatten()
+    lsviny = np.asarray([VIn[1], VIn[1], VIn[1]]).flatten()
     # Linear without Struct
     y, z = [5.,5.,6.5,7.5,9.,9.,7.5,6.5], [7.5,6.5,5.,5.,6.5,7.5,9.,9.]
     N = len(y)
@@ -810,20 +823,19 @@ def test13_LOS_PInOut():
                      1,1,2,2,3,3,0,0,
                      1,1,2,2,3,3,0,0,
                      -2,-2,-2,-2,-1,-1,-1,-1],dtype=int)
-    PIn, POut, kPIn, kPOut,\
-        VperpIn, VperpOut, IIn, \
-        IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL,
-                                            VType='Lin', Test=True)
-    assert np.allclose(PIn,Sols_In, equal_nan=True)
-    assert np.allclose(POut,Sols_Out, equal_nan=True)
+    ndim, nlos = np.shape(Ds)
+    kPIn, kPOut,\
+        VperpOut, IOut= GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn,
+                                                     ves_lims=VL,
+                                                     ves_type='Lin', test=True)
     assert np.allclose(kPIn,np.concatenate((np.ones((3*N,)),
                                             2.*np.pi*np.ones((8,)) )),
                        equal_nan=True)
     assert np.allclose(kPOut,np.concatenate((3.*np.ones((kPOut.size-8,)),
                                              2.*np.pi*(1.+np.ones((8,))))),
                        equal_nan=True)
-    assert np.allclose(VperpIn, -us) and np.allclose(VperpOut, -us)
-    assert np.allclose(IIn, Iin) and np.allclose(IOut[2,:], Iout)
+    assert np.allclose(VperpOut, -us)
+    assert np.allclose(IOut[2,:], Iout)
 
     # Linear with Struct
     x = [1./6,1./6,1./6,1./6,1./6,1./6,1./6,1./6,
@@ -855,15 +867,19 @@ def test13_LOS_PInOut():
                       0,0,0,0,0,0,0,0,
                       0,0,0,1,0,1,1,0,
                       0,0,0,0,0,0,1,0]], dtype=int)
-    PIn, POut, kPIn, kPOut, \
-        VperpIn, VperpOut, \
-        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=VL,
-                                                 LSPoly=[SP0,SP1,SP2],
-                                                 LSLim=[SL0,SL1,SL2],
-                                                 LSVIn=[VIn,VIn,VIn],
-                                                 VType='Lin', Test=True)
-    assert np.allclose(PIn,Sols_In, equal_nan=True)
-    assert np.allclose(POut,Sols_Out, equal_nan=True)
+    kPIn, kPOut, \
+        VperpOut, \
+        IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=VL,
+                                            nstruct_tot=nstruct_tot,
+                                            nstruct_lim=nstruct_lim,
+                                            lnvert=lnvert,
+                                            lstruct_polyx=lspolyx,
+                                            lstruct_polyy=lspolyy,
+                                            lstruct_nlim=lstruct_nlim,
+                                            lstruct_lims=[SL0,SL1,SL2],
+                                            lstruct_normx=lsvinx,
+                                            lstruct_normy=lsviny,
+                                            ves_type='Lin', test=True)
     assert np.allclose(kPIn,np.concatenate((np.ones((3*N,)),
                                             2.*np.pi*np.ones((8,)))),
                        equal_nan=True)
@@ -872,10 +888,9 @@ def test13_LOS_PInOut():
                                                1,1,1,2,2,1,1,1],
                                               2.*np.pi*np.array([1,2,1,1+2./3,
                                                                  1,2,1,1]))))
-    assert np.allclose(VperpIn, -us) and np.allclose(VperpOut, -us)
-    assert np.allclose(IIn, Iin) and np.allclose(IOut[2,:], Iout)
+    assert np.allclose(VperpOut, -us)
+    assert np.allclose(IOut[2,:], Iout)
     assert np.allclose(IOut[:2,:], indS)
-
 
     # Toroidal, without Struct
     Theta = np.pi*np.array([1./4.,3./4.,5./4.,7./4.])
@@ -920,15 +935,30 @@ def test13_LOS_PInOut():
                      1,1,2,2,3,3,0,0,
                      1,1,2,2,3,3,0,0,
                      1,1,1,1,1,1,1,1])
-    PIn, POut, kPIn, kPOut,\
-        VperpIn, VperpOut, \
-        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
-                                                 VType='Tor', Test=True)
+    ndim, nlos = np.shape(Ds)
+
+    kPIn, kPOut,\
+        VperpOut, \
+        IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
+                                            ves_type='Tor', test=True)
+    # Reconstructing PIn and Pout from kPIn and kPOut
+    PIn = np.zeros_like(VperpOut)
+    POut = np.zeros_like(VperpOut)
+    for i in range(nlos):
+        for j in range(ndim):
+            PIn[j, i]  = Ds[j, i] + kPIn[i]  * us[j, i]
+            POut[j, i] = Ds[j, i] + kPOut[i] * us[j, i]
+    # ...
     ThetaIn  = np.arctan2(PIn[1,32:],  PIn[0,32:])
     ThetaOut = np.arctan2(POut[1,32:], POut[0,32:])
     ErIn = np.array([np.cos(ThetaIn), np.sin(ThetaIn), np.zeros((8,))])
     ErOut = np.array([np.cos(ThetaOut), np.sin(ThetaOut), np.zeros((8,))])
-
+    assert np.allclose(kPIn[:32],np.ones((4*N,)),
+                       equal_nan=True) and np.all((kPIn[32:]>0.) &
+                                                  (kPIn[32:]<6.5))
+    assert np.allclose(kPOut[:32], 3.*np.ones((4*N,)),
+                       equal_nan=True) and np.all((kPOut[32:]>6.5) &
+                                                  (kPOut[32:]<16.))
     assert np.allclose(PIn[:,:32], Sols_In[:,:32],
                        equal_nan=True) and np.all((ThetaIn>-np.pi/2.) &
                                                   (ThetaIn<0.))
@@ -939,22 +969,23 @@ def test13_LOS_PInOut():
                        8.*np.ones((8,))) and np.allclose(np.hypot(POut[0,32:],
                                                                   POut[1,32:]),
                                                          8.*np.ones((8,)))
-    assert np.allclose(kPIn[:32],np.ones((4*N,)),
-                       equal_nan=True) and np.all((kPIn[32:]>0.) &
-                                                  (kPIn[32:]<6.5))
-    assert np.allclose(kPOut[:32], 3.*np.ones((4*N,)),
-                       equal_nan=True) and np.all((kPOut[32:]>6.5) &
-                                                  (kPOut[32:]<16.))
-    assert np.allclose(VperpIn[:,:32], -us[:,:32]) and \
-        np.allclose(VperpOut[:,:32], -us[:,:32]) and \
-        np.allclose(VperpIn[:,32:],ErIn) and \
+    assert np.allclose(VperpOut[:,:32], -us[:,:32]) and \
         np.allclose(VperpOut[:,32:],-ErOut)
-    assert np.allclose(IIn, Iin) and np.allclose(IOut[2,:], Iout)
+    assert np.allclose(IOut[2,:], Iout)
 
     # Toroidal, with Struct
-    SL0 = None
-    SL1 = [np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]]
-    SL2 = np.array([0.5,3./2.])*np.pi
+    SL0_or =None
+    SL1_or =[np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]]
+    SL2_or =[np.array([0.5,3./2.])*np.pi]
+
+    SL0 = np.asarray([None])
+    SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]])
+    SL2 = np.asarray([np.array([0.5,3./2.])*np.pi])
+    lstruct_nlim = np.array([0, 2, 1])
+    nstruct_lim = 3
+    nstruct_tot =1+2+1
+    lstruct_nlim=np.asarray([0, 2, 1])
+    #....
     Sols_In, Sols_Out = [], []
     rsol_In = [[6.,6.,6.5,7.5,8.,8.,7.5,6.5],
                [6.,6.,6.5,7.5,8.,8.,7.5,6.5],
@@ -991,13 +1022,32 @@ def test13_LOS_PInOut():
                      [0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
                       0,0,0,1,0,1,1,0, 0,0,0,0,0,0,0,0, 0,0,0,0, 0,0,0,1]],
                     dtype=int)
-    PIn, POut, kPIn, kPOut,\
-        VperpIn, VperpOut, \
-        IIn, IOut = GG.SLOW_LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, Lim=None,
-                                                 LSPoly=[SP0,SP1,SP2],
-                                                 LSLim=[SL0,SL1,SL2],
-                                                 LSVIn=[VIn,VIn,VIn],
-                                                 VType='Tor', Test=True)
+
+    kPIn, kPOut,\
+        VperpOut, \
+        IOut = GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn, ves_lims=None,
+                                            nstruct_tot=nstruct_tot,
+                                            nstruct_lim=nstruct_lim,
+                                            lnvert=lnvert,
+                                            lstruct_polyx=lspolyx,
+                                            lstruct_polyy=lspolyy,
+                                            lstruct_nlim=lstruct_nlim,
+                                            lstruct_lims=[SL0,SL1,SL2],
+                                            lstruct_normx=lsvinx,
+                                            lstruct_normy=lsviny,
+                                            ves_type='Tor', test=True)
+    assert np.allclose(kPOut[:32], kpout,
+                       equal_nan=True) and np.all((kPOut[32:]>=3.) &
+                                                  (kPOut[32:]<16.))
+    # Reconstructing PIn and Pout from kPIn and kPOut
+    PIn = np.zeros_like(VperpOut)
+    POut = np.zeros_like(VperpOut)
+    ndim, nlos = np.shape(VperpOut)
+    for i in range(nlos):
+        for j in range(ndim):
+            PIn[j, i]  = Ds[j, i] + kPIn[i]  * us[j, i]
+            POut[j, i] = Ds[j, i] + kPOut[i] * us[j, i]
+    # ...
     RIn, ROut = np.hypot(PIn[0,32:],PIn[1,32:]), np.hypot(POut[0,32:],
                                                           POut[1,32:])
     ThetaIn  = np.arctan2(PIn[1,32:],  PIn[0,32:])
@@ -1007,6 +1057,9 @@ def test13_LOS_PInOut():
     vperpout = np.concatenate((ErOut[:,0:1],-ErOut[:,1:2],-ey,
                                -ErOut[:,3:4], -ErOut[:,4:5],ErOut[:,5:6],ex,ex),
                               axis=1)
+    assert np.allclose(kPIn[:32],np.ones((4*N,)),
+                       equal_nan=True) and np.all((kPIn[32:]>0.) &
+                                                  (kPIn[32:]<6.5))
     assert np.allclose(PIn[:,:32],Sols_In[:,:32],
                        equal_nan=True) and np.all((ThetaIn>-np.pi/2.) &
                                                   (ThetaIn<0.))
@@ -1014,21 +1067,12 @@ def test13_LOS_PInOut():
                        equal_nan=True) and np.all((ThetaOut>-np.pi) &
                                                   (ThetaOut<np.pi/2.))
     assert np.all((RIn>=6.) & (RIn<=8.)) and np.all((ROut>=6.) & (ROut<=8.))
-    assert np.allclose(kPIn[:32],np.ones((4*N,)),
-                       equal_nan=True) and np.all((kPIn[32:]>0.) &
-                                                  (kPIn[32:]<6.5))
-    assert np.allclose(kPOut[:32], kpout,
-                       equal_nan=True) and np.all((kPOut[32:]>=3.) &
-                                                  (kPOut[32:]<16.))
-    assert np.allclose(VperpIn[:,:32], -us[:,:32]) and \
-        np.allclose(VperpOut[:,:32], -us[:,:32]) and \
-        np.allclose(VperpIn[:,32:],ErIn) and \
+    assert np.allclose(VperpOut[:,:32], -us[:,:32]) and \
         np.allclose(VperpOut[:,32:],vperpout)
-    assert np.allclose(IIn, Iin) and np.allclose(IOut[2,:], Iout)
     assert np.allclose(IOut[:2,:],indS)
 
 
-def test11_LOS_sino():
+def test14_LOS_sino():
 
     RZ = np.array([2.,0.])
     r = np.array([0.1, 0.2, 0.1])
@@ -1066,7 +1110,7 @@ def test11_LOS_sino():
     assert np.allclose(np.abs(phi0),phi)
 
 
-def test11_LOS_sino_vec():
+def test15_LOS_sino_vec():
     N = 10**2
     RZ = np.array([2.,0.])
     Ds = np.array([np.linspace(-0.5,0.5,N),
@@ -1090,3 +1134,531 @@ def test11_LOS_sino_vec():
         assert not np.isnan(np.sum(p0))
         assert not np.isnan(np.sum(ImpTheta0))
         assert not np.isnan(np.sum(phi0))
+
+def test16_dist_los_vpoly():
+    num_rays = 11
+    ves_poly = np.zeros((2, 9))
+    ves_poly0 = [2, 3, 4, 5, 5, 4, 3, 2, 2]
+    ves_poly1 = [2, 1, 1, 2, 3, 4, 4, 3, 2]
+    ves_poly[0] = np.asarray(ves_poly0)
+    ves_poly[1] = np.asarray(ves_poly1)
+    # rays :
+    ray_orig = np.zeros((3,num_rays))
+    ray_vdir = np.zeros((3,num_rays))
+    # ray 0 :
+    ray_orig[0][0] = 0
+    ray_orig[2][0] = 5
+    ray_vdir[0][0] = 1
+    # ray 1 :
+    ray_orig[0][1] = 3.5
+    ray_orig[2][1] = 5
+    ray_vdir[0][1] = 1
+    # ray 2 :
+    ray_orig[0][2] = 3.5
+    ray_orig[2][2] = 5
+    ray_orig[1][2] = -1
+    ray_vdir[0][2] = -1
+    # ray 3:
+    ray_orig[0][3] = 4
+    ray_orig[2][3] = -1
+    ray_vdir[0][3] = 1
+    ray_vdir[2][3] = 1
+    # ray 4:
+    ray_orig[0][4] = 7
+    ray_orig[2][4] = 3
+    ray_vdir[0][4] = 1
+    ray_vdir[2][4] = 1
+    # ray 5:
+    ray_orig[0][5] = 6
+    ray_orig[2][5] = 2.4
+    ray_orig[1][5] = -1.3
+    ray_vdir[1][5] = 1
+    ray_vdir[2][5] = 0.01
+    # ray 6:
+    ray_orig[0][6] = 0.
+    ray_orig[1][6] = 0.
+    ray_orig[2][6] = -1.
+    ray_vdir[2][6] = 0.5
+    # ray 7:
+    ray_orig[0][7] = 0.
+    ray_orig[1][7] = 0.
+    ray_orig[2][7] = 4.
+    ray_vdir[2][7] = -1.
+    # ray 8:
+    ray_orig[0][8] = 1.
+    ray_orig[1][8] = 0.
+    ray_orig[2][8] = 2.
+    ray_vdir[2][8] = -1.
+    # ray 9:
+    ray_orig[0][9] = 3.5
+    ray_orig[1][9] = 0.
+    ray_orig[2][9] = 0.5
+    ray_vdir[2][9] = -1.
+    # ray 10:
+    ray_orig[0][10] = 5.5
+    ray_orig[1][10] = 0.
+    ray_orig[2][10] = 2.5
+    ray_vdir[0][10] = 1.
+    out = GG.comp_dist_los_vpoly(
+        np.ascontiguousarray(ray_orig, dtype=np.float64),
+        np.ascontiguousarray(ray_vdir, dtype=np.float64),
+        ves_poly, num_threads=1)
+
+    exact_ks = [3.0,
+                0.5,
+                0.6715728752538102,
+                0.9999999999999992,
+                0.0,
+                1.2576248261177692,
+                6.0,
+                1.0,
+                -0.0,
+                0.0,
+                0.0]
+    exact_dists = [1.0,
+                   1.0,
+                   1.0,
+                   1.4142135623730951,
+                   2.0,
+                   2.448667030011657,
+                   2.0,
+                   2.0,
+                   1.0,
+                   0.5,
+                   0.5]
+    assert(np.allclose(out[0], exact_ks))
+    assert(np.allclose(out[1], exact_dists))
+
+
+# ==============================================================================
+#
+#                           DISTANCE CIRCLE - LOS
+#
+# ==============================================================================
+
+def test17_distance_los_to_circle():
+    # == One Line One Circle ===================================================
+    # -- simplest circle -------------------------------------------------------
+    radius = 1.
+    circ_z = 0.
+    # Horizontal ray with no intersection with circle ..........................
+    ray_or = np.array([-2.5, 1.5, 0])
+    ray_vd = np.array([1., 0, 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 2.5), "Problem with 'k'"
+    assert np.isclose(res[1], 0.5), "Problem with 'dist'"
+    # Horizontal ray tagential to circle at origin..............................
+    ray_or = np.array([0, 1., 0])
+    ray_vd = np.array([1., 0, 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 0.), "Problem with 'k'"
+    assert np.isclose(res[1], 0.), "Problem with 'dist'"
+    # Diagonal ray with one intersection........................................
+    ray_or = np.array([0, 0., 0])
+    ray_vd = np.array([1., 1., 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    k_ex = np.sqrt(2.)*0.5
+    assert np.isclose(res[0], k_ex), "Problem with 'k'"
+    assert np.isclose(res[1], 0.), "Problem with 'dist'"
+    # Diagonal ray with no intersction with circle .............................
+    ray_or = np.array([-3, 0., 0])
+    ray_vd = np.array([1., 1, 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    dist_ex = 1.1213203435596426
+    assert np.isclose(res[0], 3./2.), "Problem with 'k'"
+    assert np.isclose(res[1], dist_ex), "Problem with 'dist'"
+    # -- Changing plane circle and radius  -------------------------------------
+    radius = 2.
+    circ_z = 3.
+    # Vertical ray with no intersection with circle ............................
+    ray_or = np.array([3.8, -1.3, 3.])
+    ray_vd = np.array([0., 1., 0.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 1.3), "Problem with 'k'"
+    assert np.isclose(res[1], 1.8), "Problem with 'dist'"
+    # Normal ray passing on bottom of circle center ............................
+    ray_or = np.array([0, 0., -3.])
+    ray_vd = np.array([0.,0., -1.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 0), "Problem with 'k'"
+    assert np.isclose(res[1], 6.324555320336759), "Problem with 'dist'"
+    # Normal ray passing through circle center .................................
+    ray_or = np.array([0, 0., 0.])
+    ray_vd = np.array([0.,0., 1.])
+    res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
+    assert np.isclose(res[0], 3.), "Problem with 'k'"
+    assert np.isclose(res[1], 2.), "Problem with 'dist'"
+    # # temp...................
+    # ray3_or = np.array([-np.sqrt(2.), np.sqrt(2.), -1.1])
+    # ray3_vd = np.array([1. + np.sqrt(2.)/2., -np.sqrt(2.)/2., 1.1])
+    # radius = 1.
+    # circ_z = -1.1
+    # res = GG.comp_dist_los_circle(ray3_vd, ray3_or, radius, circ_z)
+    # for i in range(3):
+    #     print("P found = ",i, ray3_or[i] + res[0]*ray3_vd[i])
+    # assert np.isclose(res[0], 2*0.325844650125497),\
+    #    "Problem with 'k' = "+str(res[0])+" "+str(res[1])
+    # assert np.isclose(res[1], 0.35842911513804676), \
+    #    "Problem with 'dist' = "+str(res[1])
+    # == Vectorial tests =======================================================
+    circle_radius = np.array([0.5, 1, 3.5])
+    circle_zcoord = np.array([-1.1, .5, 6])
+    ray1_origin = np.array([0., 0,-2.])
+    ray1_direct = np.array([0., 0, 1.])
+    ray2_origin = np.array([-4, 0, 7.])
+    ray2_direct = np.array([1., 0., 0])
+    rays_origin = np.array([ray1_origin, ray2_origin])
+    rays_direct = np.array([ray1_direct, ray2_direct])
+    nlos = 2
+    ncir = 3
+    res = GG.comp_dist_los_circle_vec(nlos, ncir,
+                                      rays_direct,
+                                      rays_origin,
+                                      circle_radius,
+                                      circle_zcoord)
+    k_exact = np.array([[0.9, 2.5, 8. ],
+                        [3.5, 3. , 0.5]])
+    d_exact = np.array([[0.5, 1. , 3.5],
+                        [8.1, 6.5, 1. ]])
+    assert np.allclose(res[0], k_exact), "Problem with 'k'"
+    assert np.allclose(res[1], d_exact), "Problem with 'dist'"
+
+
+# ==============================================================================
+#
+#                       TEST CLOSENESS CIRCLE - LOS
+#
+# ==============================================================================
+
+def test17_is_los_close_to_circle():
+    sqrt2 = np.sqrt(2.)
+    #...
+    radius = 1.
+    circ_z = 0.
+    # A "yes" case with a tangential ray .......................................
+    ray_or1 = np.array([0., sqrt2, 0])
+    ray_vd1 = np.array([1., -1, 0.])
+    res = GG.is_close_los_circle(ray_vd1, ray_or1, radius, circ_z, 0.1)
+    assert np.isclose(res, True), "res = "+str(res)
+    # A "yes" case with a non tangential ray ...................................
+    ray_or2 = np.array([0., sqrt2+0.01, 0])
+    ray_vd2 = np.array([1., -1, 0.])
+    res = GG.is_close_los_circle(ray_vd2, ray_or2, radius, circ_z, 0.1)
+    assert np.isclose(res, True)
+    # A "yes" case with a intersection...........................................
+    ray_or3 = np.array([0., sqrt2, 0])
+    ray_vd3 = np.array([0, -1., 0.])
+    res = GG.is_close_los_circle(ray_vd3, ray_or3, radius, circ_z, 0.1)
+    assert np.isclose(res, True)
+    # A "no" case with no intersection..........................................
+    ray_or4 = np.array([0., sqrt2, 0])
+    ray_vd4 = np.array([1., 0, 0.])
+    res = GG.is_close_los_circle(ray_vd4, ray_or4, radius, circ_z, 0.1)
+    assert np.isclose(res, False)
+    # # == Vectorial case ========================================================
+    # # Similar cases but symetric or negative
+    # A "yes" case with a tangential ray .......................................
+    ray_or1 = np.array([sqrt2, 0., 0])
+    ray_vd1 = np.array([-1., 1.0, 0.])
+    # A "yes" case with a non tangential ray ...................................
+    ray_or2 = np.array([sqrt2+0.001, 0., 0])
+    ray_vd2 = np.array([-1., 1, 0.])
+    # A "yes" case with a intersection...........................................
+    ray_or3 = np.array([sqrt2, 0., 0])
+    ray_vd3 = np.array([-1, 0, 0.])
+    # A "no" case with no intersection..........................................
+    ray_or4 = np.array([sqrt2, -1., 0])
+    ray_vd4 = np.array([0., 1., 0.])
+    #Computing result..........................................................
+    nlos = 4
+    ncircles = 1
+    los_dirs = np.asarray([ray_vd1, ray_vd2, ray_vd3, ray_vd4])
+    los_oris = np.asarray([ray_or1, ray_or2, ray_or3, ray_or4])
+    circle_radius=np.asarray([radius])
+    circle_zcoord=np.asarray([circ_z])
+    res = GG.is_close_los_circle_vec(nlos, ncircles,
+                                     0.005,
+                                     los_dirs, los_oris,
+                                     circle_radius,
+                                     circle_zcoord)
+    assert res[0][0] == True
+    assert res[1][0] == True
+    assert res[2][0] == True
+    assert res[3][0] == False
+
+# ==============================================================================
+#
+#                       DISTANCE BETWEEN LOS AND EXT-POLY
+#
+# ==============================================================================
+def test18_comp_dist_los_vpoly():
+    # !!!!!! ARTIFICIAL TEST CASE SINCE THIS IS ONLY A SIMPLIFIED VERSION !!!!!!
+    num_rays = 11
+    ves_poly = np.zeros((2, 9))
+    ves_poly0 = [2, 3, 4, 5, 5, 4, 3, 2, 2]
+    ves_poly1 = [2, 1, 1, 2, 3, 4, 4, 3, 2]
+    ves_poly[0] = np.asarray(ves_poly0)
+    ves_poly[1] = np.asarray(ves_poly1)
+    # rays :
+    ray_orig = np.zeros((3,num_rays))
+    ray_vdir = np.zeros((3,num_rays))
+    # ray 0 :
+    ray_orig[0][0] = 0
+    ray_orig[2][0] = 5
+    ray_vdir[0][0] = 1
+    # ray 1 :
+    ray_orig[0][1] = 3.5
+    ray_orig[2][1] = 5
+    ray_vdir[0][1] = 1
+    # ray 2 :
+    ray_orig[0][2] = 3.5
+    ray_orig[2][2] = 5
+    ray_orig[1][2] = -1
+    ray_vdir[0][2] = -1
+    # ray 3:
+    ray_orig[0][3] = 4
+    ray_orig[2][3] = -1
+    ray_vdir[0][3] = 1
+    ray_vdir[2][3] = 1
+    # ray 4:
+    ray_orig[0][4] = 7
+    ray_orig[2][4] = 3
+    ray_vdir[0][4] = 1
+    ray_vdir[2][4] = 1
+    # ray 5:
+    ray_orig[0][5] = 6
+    ray_orig[2][5] = 2.4
+    ray_orig[1][5] = -1.3
+    ray_vdir[1][5] = 1
+    ray_vdir[2][5] = 0.0
+    # ray 6:
+    ray_orig[0][6] = 0.
+    ray_orig[1][6] = 0.
+    ray_orig[2][6] = -1.
+    ray_vdir[2][6] = 0.5
+    # ray 7:
+    ray_orig[0][7] = 0.
+    ray_orig[1][7] = 0.
+    ray_orig[2][7] = 4.
+    ray_vdir[2][7] = -1.
+    # ray 8:
+    ray_orig[0][8] = 1.
+    ray_orig[1][8] = 0.
+    ray_orig[2][8] = 2.
+    ray_vdir[2][8] = -1.
+    # ray 9:
+    ray_orig[0][9] = 3.5
+    ray_orig[1][9] = 0.
+    ray_orig[2][9] = 0.5
+    ray_vdir[2][9] = -1.
+    # ray 10:
+    ray_orig[0][10] = 5.5
+    ray_orig[1][10] = 0.
+    ray_orig[2][10] = 2.5
+    ray_vdir[0][10] = 1.
+
+    # .. computing .............................................................
+    out = GG.comp_dist_los_vpoly(np.ascontiguousarray(ray_orig),
+                                 np.ascontiguousarray(ray_vdir),
+                                 ves_poly)
+    print(out)
+    k_vec = [3.0,
+             0.5,
+             0.6715728752538102,
+             1.0,
+             0.0,
+             1.3,
+             6.0,
+             1.0,
+             0.0,
+             0.0,
+             0.0]
+    dist_vec = [1.0,
+                1.0,
+                1.0,
+                np.sqrt(2.0),
+                2.0,
+                1.0,
+                2.0,
+                2.0,
+                1.0,
+                0.5,
+                0.5]
+    assert np.allclose(k_vec, out[0])
+    assert np.allclose(dist_vec, out[1])
+
+
+def test19_comp_dist_los_vpoly_vec():
+    # !!!!!! ARTIFICIAL TEST CASE SINCE THIS IS ONLY A SIMPLIFIED VERSION !!!!!!
+    # ves 0
+    ves_poly0 = np.zeros((2, 5))
+    ves_poly00 = [4, 5, 5, 4, 4]
+    ves_poly01 = [4, 4, 5, 5, 4]
+    ves_poly0[0] = np.asarray(ves_poly00)
+    ves_poly0[1] = np.asarray(ves_poly01)
+    # ves 1
+    ves_poly1 = np.zeros((2, 5))
+    ves_poly10 = [3, 6, 6, 3, 3]
+    ves_poly11 = [3, 3, 6, 6, 3]
+    ves_poly1[0] = np.asarray(ves_poly10)
+    ves_poly1[1] = np.asarray(ves_poly11)
+    vessels = np.asarray([ves_poly0, ves_poly1])
+    # Tab for rays
+    num_rays = 3
+    ray_orig = np.zeros((num_rays,3))
+    ray_vdir = np.zeros((num_rays,3))
+    # ray 0 : First ray intersects all
+    ray_orig[0][0] = 4.
+    ray_orig[0][2] = 4.
+    ray_vdir[0][1] = 1.
+    ray_vdir[0][2] = 1.
+    # ray 1 : intersects outer circle but not inner
+    ray_orig[1][0] = 5.5
+    ray_orig[1][2] = 4.
+    ray_vdir[1][1] = 1.
+    # ray 2 : above all polys
+    ray_orig[2][0] = 4.5
+    ray_orig[2][2] = 7.
+    ray_vdir[2][1] = -1.
+    # .. computing .............................................................
+    k, dist = GG.comp_dist_los_vpoly_vec(2,  num_rays,
+                                     ray_orig,
+                                     ray_vdir,
+                                     vessels)
+    assert np.allclose(k[0], [np.nan, np.nan], equal_nan=True)
+    assert np.allclose(dist[0], [np.nan, np.nan], equal_nan=True)
+    assert np.allclose(k[1], [0., np.nan], equal_nan=True)
+    assert np.allclose(dist[1], [0.5, np.nan], equal_nan=True)
+    assert np.allclose(k[2], [2.17944947, 3.96862697], equal_nan=True)
+    assert np.allclose(dist[2], [2., 1.], equal_nan=True)
+
+# ==============================================================================
+#
+#                         ARE LOS AND EXT-POLY CLOSE
+#
+# ==============================================================================
+def test20_is_close_los_vpoly_vec():
+    # !!!!!! ARTIFICIAL TEST CASE SINCE THIS IS ONLY A SIMPLIFIED VERSION !!!!!!
+    # ves 0
+    ves_poly0 = np.zeros((2, 5))
+    ves_poly00 = [4, 5, 5, 4, 4]
+    ves_poly01 = [4, 4, 5, 5, 4]
+    ves_poly0[0] = np.asarray(ves_poly00)
+    ves_poly0[1] = np.asarray(ves_poly01)
+    # ves 1
+    ves_poly1 = np.zeros((2, 5))
+    ves_poly10 = [3, 6, 6, 3, 3]
+    ves_poly11 = [3, 3, 6, 6, 3]
+    ves_poly1[0] = np.asarray(ves_poly10)
+    ves_poly1[1] = np.asarray(ves_poly11)
+    vessels = np.asarray([ves_poly0, ves_poly1])
+    # Tab for rays
+    num_rays = 3
+    ray_orig = np.zeros((num_rays,3))
+    ray_vdir = np.zeros((num_rays,3))
+    # ray 0 : First ray intersects first
+    ray_orig[0][0] = 5.01
+    ray_orig[0][2] = 5.01
+    ray_vdir[0][1] = 1.
+    ray_vdir[0][2] = 1.
+    # ray 1 : close to second one
+    ray_orig[1][0] = 6.01
+    ray_orig[1][2] = 6.01
+    ray_vdir[1][1] = 1.
+    # ray 2 : close to none
+    ray_orig[2][0] = 8.
+    ray_orig[2][2] = 8.
+    ray_vdir[2][1] = 1.
+    # .. computing .............................................................
+    out = GG.is_close_los_vpoly_vec(2,  num_rays,
+                                    ray_orig, ray_vdir,
+                                    vessels, 0.1)
+    assert np.allclose(out, [[True, False],[False,  True], [False, False]])
+
+
+# ==============================================================================
+#
+#                         ARE LOS AND EXT-POLY CLOSE
+#
+# ==============================================================================
+def test21_which_los_closer_vpoly_vec():
+    # !!!!!! ARTIFICIAL TEST CASE SINCE THIS IS ONLY A SIMPLIFIED VERSION !!!!!!
+    # ves 0
+    ves_poly0 = np.zeros((2, 5))
+    ves_poly00 = [4, 5, 5, 4, 4]
+    ves_poly01 = [4, 4, 5, 5, 4]
+    ves_poly0[0] = np.asarray(ves_poly00)
+    ves_poly0[1] = np.asarray(ves_poly01)
+    # ves 1
+    ves_poly1 = np.zeros((2, 5))
+    ves_poly10 = [3, 6, 6, 3, 3]
+    ves_poly11 = [3, 3, 6, 6, 3]
+    ves_poly1[0] = np.asarray(ves_poly10)
+    ves_poly1[1] = np.asarray(ves_poly11)
+    vessels = np.asarray([ves_poly0, ves_poly1])
+    # Tab for rays
+    num_rays = 3
+    ray_orig = np.zeros((num_rays,3))
+    ray_vdir = np.zeros((num_rays,3))
+    # ray 0 : First ray intersects first
+    ray_orig[0][0] = 5.01
+    ray_orig[0][2] = 5.01
+    ray_vdir[0][1] = 1.
+    ray_vdir[0][2] = 1.
+    # ray 1 : close to second one
+    ray_orig[1][0] = 6.01
+    ray_orig[1][2] = 6.01
+    ray_vdir[1][1] = 1.
+    # ray 2 : close to none
+    ray_orig[2][0] = 8.
+    ray_orig[2][2] = 8.
+    ray_vdir[2][1] = 1.
+    # .. computing .............................................................
+    out = GG.which_los_closer_vpoly_vec(2,  num_rays,
+                                        ray_orig, ray_vdir,
+                                        vessels)
+    assert np.allclose(out, [0, 1])
+
+
+# ==============================================================================
+#
+#                         ARE LOS AND EXT-POLY CLOSE
+#
+# ==============================================================================
+def test21_which_los_closer_vpoly_vec():
+    # !!!!!! ARTIFICIAL TEST CASE SINCE THIS IS ONLY A SIMPLIFIED VERSION !!!!!!
+    # ves 0
+    ves_poly0 = np.zeros((2, 5))
+    ves_poly00 = [4, 5, 5, 4, 4]
+    ves_poly01 = [4, 4, 5, 5, 4]
+    ves_poly0[0] = np.asarray(ves_poly00)
+    ves_poly0[1] = np.asarray(ves_poly01)
+    # ves 1
+    ves_poly1 = np.zeros((2, 5))
+    ves_poly10 = [3, 6, 6, 3, 3]
+    ves_poly11 = [3, 3, 6, 6, 3]
+    ves_poly1[0] = np.asarray(ves_poly10)
+    ves_poly1[1] = np.asarray(ves_poly11)
+    vessels = np.asarray([ves_poly0, ves_poly1])
+    # Tab for rays
+    num_rays = 3
+    ray_orig = np.zeros((num_rays,3))
+    ray_vdir = np.zeros((num_rays,3))
+    # ray 0 : First ray intersects first
+    ray_orig[0][0] = 5.01
+    ray_orig[0][2] = 5.01
+    ray_vdir[0][1] = 1.
+    ray_vdir[0][2] = 1.
+    # ray 1 : close to second one
+    ray_orig[1][0] = 6.01
+    ray_orig[1][2] = 6.01
+    ray_vdir[1][1] = 1.
+    # ray 2 : close to none
+    ray_orig[2][0] = 8.
+    ray_orig[2][2] = 8.
+    ray_vdir[2][1] = 1.
+    # .. computing .............................................................
+    out = GG.which_vpoly_closer_los_vec(2,  num_rays,
+                                        ray_orig, ray_vdir,
+                                        vessels, num_threads=1)
+    assert np.allclose(out, [0, 1, 1])

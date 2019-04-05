@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import warnings
 
 # tofu
 try:
@@ -24,8 +25,9 @@ except Exception:
 
 __all__ = ['Data_plot', 'Data_plot_combine',
            'Data_plot_spectrogram']
-__author_email__ = 'didier.vezinet@cea.fr'
-_wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
+#__author_email__ = 'didier.vezinet@cea.fr'
+__github = 'https://github.com/ToFuProject/tofu/issues'
+_wintit = 'tofu-%s    report issues / requests at %s'%(__version__, __github)
 _nchMax, _ntMax, _nfMax = 4, 3, 3
 _fontsize = 8
 _labelpad = 0
@@ -33,42 +35,99 @@ _lls = ['-','--','-.',':']
 _lct = [plt.cm.tab20.colors[ii] for ii in [0,2,4,1,3,5]]
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
+_cbck = (0.8,0.8,0.8)
+_dmarker = {'Ax':'o', 'X':'x'}
 
 
 def Data_plot(lData, key=None, Bck=True, indref=0,
-              cmap=plt.cm.gray, ms=4, vmin=None, vmax=None, normt=False,
+              cmap=None, ms=4, vmin=None, vmax=None,
+              vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
               ntMax=None, nchMax=None, nlbdMax=3,
-              lls=_lls, lct=_lct, lcch=_lcch,
-              plotmethod='imshow', invert=False,
-              fs=None, dmargin=None, wintit=_wintit, tit=None,
-              fontsize=None, draw=True, connect=True):
+              inct=[1,10], incX=[1,5], inclbd=[1,10],
+              lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
+              fmt_t='06.3f', fmt_X='01.0f',
+              invert=True, Lplot='In', dmarker=None,
+              fs=None, dmargin=None, wintit=None, tit=None,
+              fontsize=None, labelpad=None, draw=True, connect=True):
 
-    if wintit is None:
-        wintit = _wintit
+
+    # ------------------
+    # Preliminary checks
     if not isinstance(lData,list):
         lData = [lData]
+
+    c0 = [dd._is2D() == lData[0]._is2D() for dd in lData[1:]]
+    if not all(c0):
+        msg = "All Data objects must be either 1D or 2D, not mixed !\n"
+        msg += "    (check on self._is2D())"
+        raise Exception(msg)
+
+    c0 = [dd._isSpectral() for dd in lData]
+    if any(c0):
+        msg = "Only provide non-spectral Data !\n"
+        msg += "    (check self._isSpectral()"
+        raise Exception(msg)
+
+    nD = 2 if lData[0]._is2D() else 1
+    c0 = nD > 1 and len(lData) > 2
+    if c0:
+        msg = "Compare not implemented for more than 2 CamLOS2D yet!"
+        raise Exception(msg)
+
+    c0 = [dd.ddata['indtX'] is None for dd in lData]
+    if not all(c0):
+        msg = "Cases with indtX != None not properly handled yet !"
+        raise Exception(msg)
+
+    # ------------------
+    # Input formatting
     if fontsize is None:
         fontsize = _fontsize
+    if ntMax is None:
+        ntMax = _ntMax if nD == 1 else 1
+    if nD == 2:
+        ntMax = min(ntMax,2)
+    if nchMax is None:
+        nchMax = _nchMax
+    if cmap_map is None:
+        cmap_map = plt.cm.gray_r
+    if cmap is None:
+        cmap = plt.cm.gray_r
+    if wintit is None:
+        wintit = _wintit
+    if labelpad is None:
+        labelpad = _labelpad
+    if lct is None:
+        lct = _lct
+    if lcch is None:
+        lcch = _lcch
+    if lclbd is None:
+        lctlbd = _lclbd
+    if lls is None:
+        lls = _lls
+    if cbck is None:
+        cbck = _cbck
+    if dmarker is None:
+        dmarker = _dmarker
 
-    if '1d' in lData[0]._CamCls.lower():
-        ntMax = _ntMax if ntMax is None else ntMax
-        nchMax = _nchMax if nchMax is None else nchMax
-        KH = _Data1D_plot(lData, key=key, indref=indref,
-                          nchMax=nchMax, ntMax=ntMax,
-                          Bck=Bck, lls=lls, lct=lct, lcch=lcch,
+    assert isinstance(cmap, mpl.colors.Colormap) or cmap == 'touch'
+    if cmap == 'touch':
+        msg = "Option cmap='touch' will be available in future releases  :-)"
+        raise Exception(msg)
+
+    # ------------------
+    # Plot
+    KH = _DataCam12D_plot(lData, nD=nD, key=key, indref=indref,
+                          nchMax=nchMax, ntMax=ntMax, inct=inct, incX=incX,
+                          Bck=Bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
+                          cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                          cmap_map=cmap_map, vmin_map=vmin_map,
+                          vmax_map=vmax_map, normt_map=normt_map,
+                          fmt_t=fmt_t, fmt_X=fmt_X, labelpad=labelpad,
+                          Lplot=Lplot, invert=invert, dmarker=dmarker,
                           fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
                           fontsize=fontsize, draw=draw, connect=connect)
 
-    else:
-        ntMax = 1 if ntMax is None else ntMax
-        nchMax = _nchMax if nchMax is None else nchMax
-        KH = _Data2D_plot(lData, key=key, indref=indref,
-                          nchMax=nchMax, ntMax=ntMax,
-                          Bck=Bck, lls=lls, lct=lct, lcch=lcch,
-                          cmap=cmap, ms=ms, vmin=vmin, vmax=vmax, normt=normt,
-                          fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                          plotmethod=plotmethod, invert=invert,
-                          fontsize=fontsize, draw=draw, connect=connect)
     return KH
 
 
@@ -101,793 +160,6 @@ def Data_plot_combine(lData, key=None, Bck=True, indref=0,
                             plotmethod=plotmethod, invert=invert,
                             fontsize=fontsize, draw=draw, connect=connect)
     return KH
-
-###################################################
-###################################################
-#           Data1D
-###################################################
-###################################################
-
-class KH1D(utils.KeyHandler):
-
-    def __init__(self, can, daxT, ntMax=3, nchMax=3):
-
-        utils.KeyHandler.__init__(self, can, daxT=daxT,
-                                  ntMax=ntMax, nchMax=nchMax, nlambMax=1)
-
-    def update(self):
-
-        # Restore background
-        self._update_restore_Bck(list(self.daxr.keys()))
-
-        # Update and get lax
-        lax = self._update_vlines_and_Eq()
-
-        # Blit
-        self._update_blit(lax)
-
-
-
-def _init_Data1D(fs=None, dmargin=None,
-                 fontsize=8,  wintit=_wintit,
-                 nchMax=4, ntMax=4):
-    axCol = "w"
-    fs = utils.get_figuresize(fs, fsdef=_def.fs1D)
-    if dmargin is None:
-        dmargin = _def.dmargin1D
-    fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
-        fig.canvas.set_window_title(wintit)
-    gs1 = gridspec.GridSpec(6, 5, **dmargin)
-    axp = fig.add_subplot(gs1[:,2:-1], fc='w')
-    Laxt = [fig.add_subplot(gs1[:3,:2], fc='w')]
-    Laxt.append(fig.add_subplot(gs1[3:,:2],fc='w', sharex=Laxt[0], sharey=axp))
-    axH = fig.add_subplot(gs1[0:2,4], fc='w')
-    axC = fig.add_subplot(gs1[2:,4], fc='w')
-    axC.set_aspect('equal', adjustable='datalim')
-    axH.set_aspect('equal', adjustable='datalim')
-
-    Ytxt = Laxt[1].get_position().bounds[1]+Laxt[1].get_position().bounds[3]
-    DY = Laxt[0].get_position().bounds[1] - Ytxt
-    Xtxt = Laxt[1].get_position().bounds[0]
-    DX = Laxt[1].get_position().bounds[2]
-    axtxtch = fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None')
-    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
-    Xtxt = axp.get_position().bounds[0]
-    DX = axp.get_position().bounds[2]
-    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
-    for ax in [axtxtch, axtxtt]:
-        ax.patch.set_alpha(0.)
-        for ss in ['left','right','bottom','top']:
-            ax.spines[ss].set_visible(False)
-        ax.set_xticks([]), ax.set_yticks([])
-        ax.set_xlim(0,1),  ax.set_ylim(0,1)
-
-    dax = {'t':[{'ax':aa, 'dh':{'vline':[]}} for aa in Laxt],
-           'chan':[{'ax':axp, 'dh':{'vline':[]}}],
-           'cross':[{'ax':axC, 'dh':{}}],
-           'hor':[{'ax':axH, 'dh':{}}],
-           'txtch':[{'ax':axtxtch, 'dh':{}}],
-           'txtt':[{'ax':axtxtt, 'dh':{}}]}
-    for kk in dax.keys():
-        for ii in range(0,len(dax[kk])):
-            dax[kk][ii]['ax'].tick_params(labelsize=fontsize)
-    return dax
-
-
-def _Data1D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
-                 indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
-                 fs=None, dmargin=None, wintit=_wintit, tit=None,
-                 fontsize=_fontsize, draw=True, connect=True):
-
-    #########
-    # Prepare
-    #########
-    # Use tuple unpacking to make sure indref is 0
-    if not indref==0:
-        lData[0], lData[indref] = lData[indref], lData[0]
-    nDat = len(lData)
-
-    # Get data and time limits
-    Dunits = lData[0].dunits['data']
-    lDlim = np.array([(np.nanmin(dd.data),
-                       np.nanmax(dd.data)) for dd in lData])
-    Dd = [min(0.,np.min(lDlim[:,0])),
-          max(0.,np.max(lDlim[:,1]))]
-    Dd = [Dd[0]-0.05*np.diff(Dd), Dd[1]+0.05*np.diff(Dd)]
-
-    # Format axes
-    dax = _init_Data1D(fs=fs, dmargin=dmargin, wintit=wintit,
-                       nchMax=nchMax, ntMax=ntMax)
-    if tit is None:
-        tit = []
-        if lData[0].Id.Exp is not None:
-            tit.append(lData[0].Id.Exp)
-        if lData[0].Id.Diag is not None:
-            tit.append(lData[0].Id.Diag)
-        if lData[0].shot is not None:
-            tit.append(r"{0:05.0f}".format(lData[0].shot))
-        tit = ' - '.join(tit)
-    dax['t'][0]['ax'].figure.suptitle(tit)
-
-    for ii in range(0,len(dax['t'])):
-        dtrig = {'1dprof':[0 for jj in range(0,nDat)]} if ii==1 else None
-        dax['t'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}
-                                       for jj in range(0,nDat)]
-    dax['t'][1]['dh']['ttrace'] = [0 for jj in range(0,nDat)]
-
-    for ii in range(0,len(dax['chan'])):
-        dtrig = {'ttrace':[0 for jj in range(0,nDat)]} if ii==0 else None
-        dax['chan'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}
-                                          for jj in range(0,nDat)]
-        dax['chan'][ii]['dh']['1dprof'] = [0 for jj in range(0,nDat)]
-
-
-    # Plot vessel
-    if lData[0].geom is not None:
-        if lData[0].geom['Ves'] is not None:
-            out = lData[0].geom['Ves'].plot(Lax=[dax['cross'][0]['ax'],
-                                                 dax['hor'][0]['ax']],
-                                            Elt='P', dLeg=None, draw=False)
-            dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
-        if lData[0].geom['LStruct'] is not None:
-            for ss in lData[0].geom['LStruct']:
-                out = ss.plot(Lax=[dax['cross'][0]['ax'], dax['hor'][0]['ax']],
-                              Elt='P', dLeg=None, draw=False)
-                dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
-        if lData[0].geom['LCam'] is not None:
-            for cc in lData[0].geom['LCam']:
-                out = cc.plot(Lax=[dax['cross'][0]['ax'], dax['hor'][0]['ax']],
-                              Elt='L', Lplot='In',
-                              dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
-                              dLeg=None, draw=False)
-                dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
-
-
-
-
-    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
-    cbck = (0.8,0.8,0.8,0.8)
-    lEq = ['Ax','Sep','q1']
-    for ii in range(0,nDat):
-        nt, nch = lData[ii].nt, lData[ii].nch
-
-        chansRef = np.arange(0,lData[ii].Ref['nch'])
-        chans = chansRef[lData[ii].indch]
-        Dchans = [-1,lData[ii].Ref['nch']]
-        Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
-        if lData[ii].Ref['dchans'] in [None,{}]:
-            chlabRef = chansRef
-            chlab = chans
-        else:
-            chlabRef = chansRef if key is None else lData[ii].Ref['dchans'][key]
-            chlab = chans if key is None else lData[ii].dchans(key)
-
-        if lData[ii].t is None:
-            t = np.arange(0,lData[ii].nt)
-        elif nt==1:
-            t = np.array([lData[ii].t]).ravel()
-        else:
-            t = lData[ii].t
-        if nt==1:
-            Dti = [t[0]-0.001,t[0]+0.001]
-        else:
-            Dti = [np.nanmin(t), np.nanmax(t)]
-        Dt = [min(Dt[0],Dti[0]), max(Dt[1],Dti[1])]
-        data = lData[ii].data.reshape((nt,nch))
-
-        # Setting tref and plotting handles
-        if ii==0:
-            tref = t.copy()
-            chref = chans.copy()
-            for jj in range(0,len(dax['t'])):
-                dax['t'][jj]['xref'] = tref
-            for jj in range(0,len(dax['chan'])):
-                dax['chan'][jj]['xref'] = chref
-            if Bck:
-                env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
-                dax['chan'][0]['ax'].fill_between(chans, env[0], env[1], facecolor=cbck)
-                tbck = np.tile(np.r_[t, np.nan], nch)
-                dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
-                dax['t'][1]['ax'].plot(tbck, dbck, lw=1., ls='-', c=cbck)
-
-        # Adding vline t and trig
-        ltg, lt = [], []
-        for ll in range(0,len(dax['t'])):
-            dax['t'][ll]['dh']['vline'][ii]['xref'] = t
-            lv = []
-            for jj in range(0,ntMax):
-                l0 = dax['t'][ll]['ax'].axvline(np.nan, c=lct[jj], ls=lls[ii],
-                                               lw=1.)
-                lv.append(l0)
-                if ll==0:
-                    l1, = dax['chan'][0]['ax'].plot(chans,
-                                                    np.full((nch,),np.nan),
-                                                    c=lct[jj], ls=lls[ii],
-                                                    lw=1.)
-                    ltg.append(l1)
-                    if ii==0:
-                        l = dax['txtt'][0]['ax'].text((0.5+jj)/ntMax, 0., r'',
-                                                      color=lct[jj], fontweight='bold',
-                                                      fontsize=6., ha='center',
-                                                      va='bottom')
-                        lt.append(l)
-            if ll==0:
-                dtg = {'xref':t, 'h':ltg, 'y':data}
-            dax['t'][ll]['dh']['vline'][ii]['h'] = lv
-        dax['t'][1]['dh']['vline'][ii]['trig']['1dprof'][ii] = dtg
-        if ii==0:
-            dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
-            dax['t'][1]['dh']['vline'][0]['trig'].update(dttxt)
-            dax['txtt'][0]['dh'] = dttxt
-        dax['chan'][0]['dh']['1dprof'][ii] = dtg
-
-        # Adding vline ch
-        ltg = []
-        for ll in range(0,len(dax['chan'])):
-            dax['chan'][ll]['dh']['vline'][ii]['xref'] = chans
-            lv = []
-            for jj in range(0,nchMax):
-                lab = r"Data{0} ch{1}".format(ii,jj)
-                l0 = dax['chan'][ll]['ax'].axvline(np.nan, c=lcch[jj], ls=lls[ii],
-                                                   lw=1., label=lab)
-                lv.append(l0)
-                if ll==0:
-                    l1, = dax['t'][1]['ax'].plot(t,np.full((nt,),np.nan),
-                                                 c=lcch[jj], ls=lls[ii], lw=1.,
-                                                 label=lab)
-                    ltg.append(l1)
-            if ll==0:
-                dtg = {'xref':chans, 'h':ltg, 'y':data.T}
-            dax['chan'][ll]['dh']['vline'][ii]['h'] = lv
-        dax['chan'][0]['dh']['vline'][ii]['trig']['ttrace'][ii] = dtg
-        dax['t'][1]['dh']['ttrace'][ii] = dtg
-
-        # Adding Equilibrium and extra
-        if hasattr(lData[ii],'dextra') and lData[ii].dextra is not None:
-            lk = list(lData[ii].dextra.keys())
-            lkEq = [lk.pop(lk.index(lEq[jj]))
-                    for jj in range(len(lEq)) if lEq[jj] in lk]
-            if ii == 0:
-                dhcross = None if len(lkEq)==0 else {}
-            axcross = dax['cross'][0]['ax']
-            for kk in lData[ii].dextra.keys():
-                dd = lData[ii].dextra[kk]
-                if kk == 'Ax':
-                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
-                    dax['t'][0]['ax'].plot(dd['t'], x,
-                                           ls=lls[ii], lw=1.,
-                                           label=r'$R_{Ax}$ (m)')
-                    dax['t'][0]['ax'].plot(dd['t'], y,
-                                           ls=lls[ii], lw=1.,
-                                           label=r'$Z_{Ax}$ (m)')
-                # Plot 2d equilibrium
-                if kk in lkEq and ii == 0:
-                    tref = lData[ii].dextra[lkEq[0]]['t']
-                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
-                    dhcross[kk] = [{'h':[], 'x':x, 'y':y, 'xref':tref}]
-
-                    for jj in range(0,ntMax):
-                        ll, = axcross.plot(np.full((dd['nP'],),np.nan),
-                                           np.full((dd['nP'],),np.nan),
-                                           ls=lls[ii], c=lct[jj], lw=1.,
-                                           label=dd['label'])
-                        dhcross[kk][0]['h'].append(ll)
-
-                elif 'data2D' not in dd.keys() and 't' in dd.keys():
-                    c = dd['c'] if 'c' in dd.keys() else 'k'
-                    lab = dd['label'] + ' (%s)'%dd['units']
-                    dax['t'][0]['ax'].plot(dd['t'], dd['data'],
-                                           ls=lls[ii], lw=1., c=c, label=lab)
-
-            if ii == 0 and dhcross is not None:
-                dax['cross'][0]['dh'].update(dhcross)
-                dax['t'][1]['dh']['vline'][ii]['trig'].update(dhcross)
-
-            if ii == 0:
-                dax['t'][0]['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
-                                         ncol=4, mode='expand', borderaxespad=0.,
-                                         prop={'size':fontsize})
-
-        # Adding mobile LOS and text
-        C0 =  lData[ii].geom is not None and lData[ii].geom['LCam'] is not None
-        if ii == 0 and C0:
-            if 'LOS' in lData[ii]._CamCls:
-                lCross, lHor, llab = [], [], []
-                for ll in range(0,len(lData[ii].geom['LCam'])):
-                    lCross += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Cross',
-                                                                   multi=True)
-                    lHor += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Hor',
-                                                                 multi=True)
-                    llab += [lData[ii].geom['LCam'][ll].Id.Name + s
-                             for s in lData[ii].geom['LCam'][ll].dchans['Name']]
-
-                lHor = np.stack(lHor)
-                dlosc = {'los':[{'h':[],'xy':lCross, 'xref':chans}]}
-                dlosh = {'los':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':chans}]}
-                dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':chans}]}
-                for jj in range(0,nchMax):
-                    l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
-                                                   [np.nan,np.nan],
-                                                   c=lcch[jj], ls=lls[ii], lw=2.)
-                    dlosc['los'][0]['h'].append(l)
-                    l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
-                                                  [np.nan,np.nan],
-                                                  c=lcch[jj], ls=lls[ii], lw=2.)
-                    dlosh['los'][0]['h'].append(l)
-                    l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
-                                               color=lcch[jj],
-                                               fontweight='bold', fontsize=6.,
-                                               ha='center', va='bottom')
-                    dchtxt['txt'][0]['h'].append(l)
-                dax['hor'][0]['dh'].update(dlosh)
-                dax['cross'][0]['dh'].update(dlosc)
-                dax['txtch'][0]['dh'].update(dchtxt)
-                dax['chan'][0]['dh']['vline'][ii]['trig'].update(dlosh)
-                dax['chan'][0]['dh']['vline'][ii]['trig'].update(dlosc)
-                dax['chan'][0]['dh']['vline'][ii]['trig'].update(dchtxt)
-            else:
-                raise Exception("Not coded yet !")
-
-    dax['t'][0]['ax'].set_xlim(Dt)
-    dax['t'][1]['ax'].set_ylabel(r"data (%s)"%Dunits, fontsize=fontsize)
-    dax['t'][1]['ax'].set_xlabel(r"t ($s$)", fontsize=fontsize)
-    dax['chan'][0]['ax'].set_xlim(Dch)
-    dax['chan'][0]['ax'].set_ylim(Dd)
-    dax['chan'][0]['ax'].set_xlabel(r"", fontsize=fontsize)
-    dax['chan'][0]['ax'].set_ylabel(r"data (%s)"%Dunits, fontsize=fontsize)
-    dax['chan'][0]['ax'].set_xticks(chansRef)
-    dax['chan'][0]['ax'].set_xticklabels(chlabRef, rotation=45)
-
-
-
-
-    can = dax['t'][0]['ax'].figure.canvas
-    can.draw()
-
-    kh = utils.KeyHandler_mpl(can, dgroup, dobj, dref, dax)
-
-    if connect:
-        kh.disconnect_old()
-        kh.connect()
-    if draw:
-        can.draw()
-    return KH
-
-
-
-
-
-
-
-
-
-###################################################
-###################################################
-#           Data2D
-###################################################
-###################################################
-
-class KH2D(utils.KeyHandler):
-
-    def __init__(self, can, daxT, ntMax=3, nchMax=3):
-
-        utils.KeyHandler.__init__(self, can, daxT=daxT,
-                                  ntMax=ntMax, nchMax=nchMax, nlambMax=1)
-
-    def update(self):
-
-        # Restore background
-        self._update_restore_Bck(list(self.daxr.keys()))
-
-        # Update and get lax
-        lax = self._update_vlines_and_Eq()
-
-        # Blit
-        self._update_blit(lax)
-
-
-def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
-    assert out.lower() in ['pcolormesh','imshow']
-    x1, x2, ind, dX12 = utils.get_X12fromflat(X12_1d)
-    if out=='pcolormesh':
-        x1 = np.r_[x1-dX12[0]/2., x1[-1]+dX12[0]/2.]
-        x2 = np.r_[x2-dX12[1]/2., x2[-1]+dX12[1]/2.]
-    return x1, x2, ind, dX12
-
-
-def _init_Data2D(fs=None, dmargin=None,
-                 fontsize=8,  wintit=_wintit,
-                 nchMax=4, ntMax=1, nDat=1):
-    assert nDat<=3, "Cannot display more than 3 Data objects !"
-    axCol = "w"
-    fs = utils.get_figuresize(fs, fsdef=_def.fs2D)
-    if dmargin is None:
-        dmargin = _def.dmargin2D
-    fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
-        fig.canvas.set_window_title(wintit)
-    gs1 = gridspec.GridSpec(7, 5, **dmargin)
-    Laxt = [fig.add_subplot(gs1[:3,:2], fc='w')]
-    Laxt.append(fig.add_subplot(gs1[3:,:2],fc='w', sharex=Laxt[0]))
-    pos = list(gs1[6,2:-1].get_position(fig).bounds)
-    pos[-1] = pos[-1]/2.
-    cax = fig.add_axes(pos, fc='w')
-    daxpii = {1:[(0,6)], 2:[(0,3),(3,6)], 3:[(0,2),(2,4),(4,6)]}
-    axpi = daxpii[nDat]
-    laxp = [fig.add_subplot(gs1[axpi[0][0]:axpi[0][1],2:-1], fc='w')]
-    if nDat>1:
-        for ii in range(1,nDat):
-            laxp.append(fig.add_subplot(gs1[axpi[ii][0]:axpi[ii][1],2:-1],
-                                        fc='w', sharex=laxp[0], sharey=laxp[0]))
-    axH = fig.add_subplot(gs1[:3,4], fc='w')
-    axC = fig.add_subplot(gs1[3:,4], fc='w')
-    axC.set_aspect('equal', adjustable='datalim')
-    axH.set_aspect('equal', adjustable='datalim')
-
-    # Text boxes
-    Ytxt = Laxt[1].get_position().bounds[1]+Laxt[1].get_position().bounds[3]
-    DY = Laxt[0].get_position().bounds[1] - Ytxt
-    Xtxt = Laxt[1].get_position().bounds[0]
-    DX = Laxt[1].get_position().bounds[2]
-    axtxtch = fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None')
-
-    Ytxt = laxp[0].get_position().bounds[1] + laxp[0].get_position().bounds[3]
-    Xtxt = laxp[0].get_position().bounds[0]
-    DX = laxp[0].get_position().bounds[2]
-    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
-
-    for ax in [axtxtch, axtxtt]:
-        axtxtch.patch.set_alpha(0.)
-        for ss in ['left','right','bottom','top']:
-            ax.spines[ss].set_visible(False)
-        ax.set_xticks([]), ax.set_yticks([])
-        ax.set_xlim(0,1),  ax.set_ylim(0,1)
-
-    # Dict
-    dax = {'t':[{'ax':aa, 'dh':{'vline':[]}} for aa in Laxt],
-           'chan2D':[{'ax':aa, 'dh':{'vline':[]}} for aa in laxp],
-           'cross':[{'ax':axC, 'dh':{}}],
-           'hor':[{'ax':axH, 'dh':{}}],
-           'colorbar':[{'ax':cax, 'dh':{}}],
-           'txtch':[{'ax':axtxtch, 'dh':{}}],
-           'txtt':[{'ax':axtxtt, 'dh':{}}]}
-    for kk in dax.keys():
-        for ii in range(0,len(dax[kk])):
-            dax[kk][ii]['ax'].tick_params(labelsize=fontsize)
-    return dax
-
-
-
-
-def _Data2D_plot(lData, key=None, nchMax=_nchMax, ntMax=1,
-                 indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
-                 cmap=plt.cm.gray, ms=4, NaN0=np.nan,
-                 vmin=None, vmax=None, normt=False, dMag=None,
-                 fs=None, dmargin=None, wintit=_wintit, tit=None,
-                 plotmethod='imshow', invert=False, fontsize=_fontsize,
-                 draw=True, connect=True):
-
-    #########
-    # Prepare
-    #########
-    # Use tuple unpacking to make sure indref is 0
-    if not indref==0:
-        lData[0], lData[indref] = lData[indref], lData[0]
-    nDat = len(lData)
-
-    # Get data and time limits
-    Dunits = lData[0].dunits['data']
-    lDlim = np.array([(np.nanmin(dd.data),
-                       np.nanmax(dd.data)) for dd in lData])
-    Dd = [min(0.,np.min(lDlim[:,0])),
-          max(0.,np.max(lDlim[:,1]))]
-    Dd = [Dd[0]-0.05*np.diff(Dd), Dd[1]+0.05*np.diff(Dd)]
-
-    X12, DX12 = lData[0].get_X12(out='1d')
-    X12T = X12.T
-    #X12[:,np.all(np.isnan(lData[0].data),axis=0)] = np.nan
-    X1p, X2p, indp, dX12 = _prepare_pcolormeshimshow(X12, out=plotmethod)
-    DX1 = [np.nanmin(X1p),np.nanmax(X1p)]
-    DX2 = [np.nanmin(X2p),np.nanmax(X2p)]
-
-    indp = indp.T
-    indpnan = np.isnan(indp)
-    indp[indpnan] = 0
-    indp = indp.astype(int)
-    incx = {'left':np.r_[-dX12[0],0.], 'right':np.r_[dX12[0],0.],
-            'down':np.r_[0.,-dX12[1]], 'up':np.r_[0.,dX12[1]]}
-
-    if normt:
-        vmin, vmax = 0., 1.
-    else:
-        vmin = np.nanmin(lDlim[:,0]) if vmin is None else vmin
-        vmax = np.nanmax(lDlim[:,1]) if vmax is None else vmax
-    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
-
-    # Format axes
-    dax = _init_Data2D(fs=fs, dmargin=dmargin, wintit=wintit,
-                       nchMax=nchMax, ntMax=ntMax, nDat=nDat)
-    if tit is None:
-        tit = []
-        if lData[0].Id.Exp is not None:
-            tit.append(lData[0].Id.Exp)
-        if lData[0].Id.Diag is not None:
-            tit.append(lData[0].Id.Diag)
-        if lData[0].shot is not None:
-            tit.append(r"{0:05.0f}".format(lData[0].shot))
-        tit = ' - '.join(tit)
-    dax['t'][0]['ax'].figure.suptitle(tit)
-
-    # Prepare data in axe
-    dax['t'][0]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':None}
-                                  for jj in range(0,nDat)]
-    dax['t'][1]['dh']['vline'] = [{'h':[0], 'xref':0,
-                                   'trig':{'2dprof':[0]}}
-                                  for jj in range(0,nDat)]
-    dax['t'][1]['dh']['ttrace'] = [0 for jj in range(0,nDat)]
-
-    for ii in range(0,len(dax['chan2D'])):
-        dtrig = {'ttrace':[0]}
-        dax['chan2D'][ii]['dh']['vline'] = [{'h':[0], 'xref':0, 'trig':dtrig}]
-        dax['chan2D'][ii]['dh']['2dprof'] = [0]
-
-    mpl.colorbar.ColorbarBase(dax['colorbar'][0]['ax'], cmap=cmap,
-                              norm=norm, orientation='horizontal')
-
-    # Plot vessel
-    if lData[0].geom is not None:
-        if lData[0].geom['Ves'] is not None:
-            out = lData[0].geom['Ves'].plot(Lax=[dax['cross'][0]['ax'],
-                                                 dax['hor'][0]['ax']],
-                                            Elt='P', dLeg=None, draw=False)
-            dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
-        if lData[0].geom['LStruct'] is not None:
-            for ss in lData[0].geom['LStruct']:
-                out = ss.plot(Lax=[dax['cross'][0]['ax'], dax['hor'][0]['ax']],
-                              Elt='P', dLeg=None, draw=False)
-                dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
-
-    # Plot
-    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
-    cbck = (0.8,0.8,0.8,0.8)
-    lEq = ['Ax','Sep','q1']
-
-    for ii in range(0,nDat):
-        nt, nch = lData[ii].nt, lData[ii].nch
-
-        chansRef = np.arange(0,lData[ii].Ref['nch'])
-        chans = chansRef[lData[ii].indch]
-        Dchans = [-1,lData[ii].Ref['nch']]
-        Dch = [min(Dch[0],Dchans[0]), max(Dch[1],Dchans[1])]
-        if lData[ii].Ref['dchans'] in [None,{}]:
-            chlabRef = chansRef
-            chlab = chans
-        else:
-            chlabRef = chansRef if key is None else lData[ii].Ref['dchans'][key]
-            chlab = chans if key is None else lData[ii].dchans(key)
-
-        if lData[ii].t is None:
-            t = np.arange(0,lData[ii].nt)
-        elif nt==1:
-            t = np.array([lData[ii].t]).ravel()
-        else:
-            t = lData[ii].t
-        if nt==1:
-            Dti = [t[0]-0.001,t[0]+0.001]
-        else:
-            Dti = [np.nanmin(t), np.nanmax(t)]
-        Dt = [min(Dt[0],Dti[0]), max(Dt[1],Dti[1])]
-        data = lData[ii].data
-        if nt==1:
-            data = data.reshape((nt,nch))
-
-        msg = "Cannot plot CamLOS2D if indch is not None !"
-        assert lData[ii]._indch is None, msg
-        data[:,indpnan.ravel()] = np.nan
-        if normt:
-            data = data/np.nanmax(data,axis=1)[:,np.newaxis]
-
-        # Setting tref and plotting handles
-        if ii==0:
-            tref = t.copy()
-            chref = chans.copy()
-            for jj in range(0,len(dax['t'])):
-                dax['t'][jj]['xref'] = tref
-            if Bck:
-                dax['t'][1]['ax'].fill_between(t, np.nanmin(data,axis=1),
-                                               np.nanmax(data, axis=1),
-                                               facecolor=cbck)
-        dax['chan2D'][ii]['xref'] = X12T
-
-        # Adding vline t and trig
-        ltg, lt = [], []
-        for ll in range(0,len(dax['t'])):
-            dax['t'][ll]['dh']['vline'][ii]['xref'] = t
-            lv = []
-            for jj in range(0,ntMax):
-                l0 = dax['t'][ll]['ax'].axvline(np.nan, c=lct[jj], ls=lls[ii],
-                                               lw=1.)
-                lv.append(l0)
-                if ll==1:
-                    nanY = np.full(indp.shape,np.nan)
-                    if plotmethod=='imshow':
-                        extent = (DX1[0],DX1[1],DX2[0],DX2[1])
-                        l1 = dax['chan2D'][ii]['ax'].imshow(nanY,
-                                                           interpolation='nearest',
-                                                           norm=norm,
-                                                           cmap=cmap,
-                                                           extent=extent,
-                                                           aspect='equal',
-                                                           origin='lower',
-                                                           zorder=-1)
-                    elif plotmethod=='pcolormesh':
-                        l1 = dax['chan2D'][ii]['ax'].pcolormesh(X1p, X2p, nanY,
-                                                               edgecolors='None',
-                                                               norm=norm,
-                                                               cmap=cmap,
-                                                               zorder=-1)
-                    ltg.append(l1)
-                    if ii==0:
-                        l = dax['txtt'][0]['ax'].text((0.5+jj)/ntMax, 0., r'',
-                                                      color=lct[jj], fontweight='bold',
-                                                      fontsize=6., ha='center',
-                                                      va='bottom')
-                        lt.append(l)
-            if ll==1:
-                dtg = {'xref':t, 'h':ltg}
-                if plotmethod=='imshow':
-                    dtg.update({plotmethod:{'data':data,'ind':indp}})
-                else:
-                    dtg.update({plotmethod:{'data':data, 'norm':norm,'cm':cmap}})
-            dax['t'][ll]['dh']['vline'][ii]['h'] = lv
-        dax['t'][1]['dh']['vline'][ii]['trig']['2dprof'][0] = dict(dtg)
-
-        if ii==0:
-            dttxt = {'txt':[{'xref':t, 'h':lt, 'txt':t, 'format':'06.3f'}]}
-            dax['t'][1]['dh']['vline'][0]['trig'].update(dttxt)
-            dax['txtt'][0]['dh'] = dttxt
-        dax['chan2D'][ii]['dh']['2dprof'][0] = dtg
-
-        # Adding vline ch
-        ltg = []
-        #for ll in range(0,len(dax['chan2D'])):
-        #
-        dax['chan2D'][ii]['dh']['vline'][0]['xref'] = X12T
-        lv, lch = [], []
-        for jj in range(0,nchMax):
-            lab = r"Data{0} ch{1}".format(ii,jj)
-            l0, = dax['chan2D'][ii]['ax'].plot([np.nan],[np.nan],
-                                               mec=lcch[jj], ls='None',
-                                               marker='s', mew=2.,
-                                               ms=ms, mfc='None',
-                                               label=lab, zorder=10)
-            lv.append(l0)
-            #if ll==0:
-            #
-            l1, = dax['t'][1]['ax'].plot(t,np.full((nt,),np.nan),
-                                         c=lcch[jj], ls=lls[ii], lw=1.,
-                                         label=lab)
-            ltg.append(l1)
-
-            l2 = dax['colorbar'][0]['ax'].axvline(np.nan, ls=lls[ii], c=lcch[jj],
-                                                  label=lab)
-            lch.append(l2)
-            #
-        dax['chan2D'][ii]['dh']['vline'][0]['h'] = lv
-        #
-        dtg = {'xref':X12T, 'h':ltg, 'y':data.T}
-        dax['chan2D'][ii]['dh']['vline'][0]['trig']['ttrace'][0] = dtg
-        dax['t'][1]['dh']['ttrace'][ii] = dtg
-
-        # Adding Equilibrium and extra
-        if hasattr(lData[ii],'dextra') and lData[ii].dextra is not None:
-            lk = list(lData[ii].dextra.keys())
-            lkEq = [lk.pop(lk.index(lEq[jj]))
-                    for jj in range(len(lEq)) if lEq[jj] in lk]
-            if ii == 0:
-                dhcross = None if len(lkEq)==0 else {}
-            axcross = dax['cross'][0]['ax']
-            for kk in lData[ii].dextra.keys():
-                dd = lData[ii].dextra[kk]
-                if kk == 'Ax':
-                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
-                    dax['t'][0]['ax'].plot(dd['t'], x,
-                                           ls=lls[ii], lw=1.,
-                                           label=r'$R_{Ax}$ (m)')
-                    dax['t'][0]['ax'].plot(dd['t'], y,
-                                           ls=lls[ii], lw=1.,
-                                           label=r'$Z_{Ax}$ (m)')
-                # Plot 2d equilibrium
-                if kk in lkEq and ii == 0:
-                    tref = lData[ii].dextra[lkEq[0]]['t']
-                    x, y = dd['data2D'][:,:,0], dd['data2D'][:,:,1]
-                    dhcross[kk] = [{'h':[], 'x':x, 'y':y, 'xref':tref}]
-
-                    for jj in range(0,ntMax):
-                        ll, = axcross.plot(np.full((dd['nP'],),np.nan),
-                                           np.full((dd['nP'],),np.nan),
-                                           ls=lls[ii], c=lct[jj], lw=1.,
-                                           label=dd['label'])
-                        dhcross[kk][0]['h'].append(ll)
-
-                elif 'data2D' not in dd.keys() and 't' in dd.keys():
-                    c = dd['c'] if 'c' in dd.keys() else 'k'
-                    lab = dd['label'] + ' (%s)'%dd['units']
-                    dax['t'][0]['ax'].plot(dd['t'], dd['data'],
-                                           ls=lls[ii], lw=1., c=c, label=lab)
-
-            if ii == 0 and dhcross is not None:
-                dax['cross'][0]['dh'].update(dhcross)
-                dax['t'][1]['dh']['vline'][ii]['trig'].update(dhcross)
-
-            if ii == 0:
-                dax['t'][0]['ax'].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
-                                         ncol=4, mode='expand', borderaxespad=0.,
-                                         prop={'size':fontsize})
-        # Adding mobile LOS and text
-        C0 = lData[ii].geom is not None and lData[ii].geom['LCam'] is not None
-        if ii == 0 and C0:
-            if 'LOS' in lData[ii]._CamCls:
-                lCross, lHor, llab = [], [], []
-                for ll in range(0,len(lData[ii].geom['LCam'])):
-                    lCross += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Cross',
-                                                                   multi=True)
-                    lHor += lData[ii].geom['LCam'][ll]._get_plotL(Lplot='In', Proj='Hor',
-                                                                 multi=True)
-                    llab += [lData[ii].geom['LCam'][ll].Id.Name + s
-                             for s in lData[ii].geom['LCam'][ll].dchans['Name']]
-
-                lHor = np.stack(lHor)
-                dlosc = {'los':[{'h':[],'xy':lCross, 'xref':chans}]}
-                dlosh = {'los':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':chans}]}
-                dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':chans}]}
-                for jj in range(0,nchMax):
-                    l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
-                                                   [np.nan,np.nan],
-                                                   c=lcch[jj], ls=lls[ii], lw=2.)
-                    dlosc['los'][0]['h'].append(l)
-                    l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
-                                                  [np.nan,np.nan],
-                                                  c=lcch[jj], ls=lls[ii], lw=2.)
-                    dlosh['los'][0]['h'].append(l)
-                    l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
-                                               color=lcch[jj],
-                                               fontweight='bold', fontsize=6.,
-                                               ha='center', va='bottom')
-                    dchtxt['txt'][0]['h'].append(l)
-                dax['hor'][0]['dh'].update(dlosh)
-                dax['cross'][0]['dh'].update(dlosc)
-                dax['txtch'][0]['dh'].update(dchtxt)
-                dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dlosh)
-                dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dlosc)
-                dax['chan2D'][0]['dh']['vline'][ii]['trig'].update(dchtxt)
-            else:
-                raise Exception("Not coded yet !")
-        dax['chan2D'][ii]['incx'] = incx
-        dax['chan2D'][ii]['ax'].set_ylabel(r"pix.", fontsize=fontsize)
-
-    dax['t'][0]['ax'].set_xlim(Dt)
-    dax['t'][1]['ax'].set_ylabel(r"data (%s)"%Dunits, fontsize=fontsize)
-    dax['t'][1]['ax'].set_xlabel(r"t ($s$)", fontsize=fontsize)
-    dax['chan2D'][0]['ax'].set_xlim(DX1)
-    dax['chan2D'][0]['ax'].set_ylim(DX2)
-    dax['chan2D'][-1]['ax'].set_xlabel(r"pix.", fontsize=fontsize)
-
-    # Plot mobile parts
-    can = dax['t'][0]['ax'].figure.canvas
-    can.draw()
-    KH = KH2D(can, dax, ntMax=ntMax, nchMax=nchMax)
-
-    if connect:
-        KH.disconnect_old()
-        KH.connect()
-    if draw:
-        can.draw()
-    return KH
-
-
-
 
 
 
@@ -1009,7 +281,7 @@ def _init_Data_combine(fs=None, dmargin=None,
 
 def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
                        indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch,
-                       cmap=plt.cm.gray, ms=4, NaN0=np.nan,
+                       cmap=plt.cm.gray, ms=4, NaN0=np.nan, cbck=_cbck,
                        vmin=None, vmax=None, normt=False, dMag=None,
                        fs=None, dmargin=None, wintit=_wintit, tit=None,
                        plotmethod='imshow', invert=False,
@@ -1134,7 +406,6 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
     dax['t'][0]['dh']['vline'][0]['h'] = lt
 
     Dt = [np.inf,-np.inf]
-    cbck = (0.8,0.8,0.8,0.8)
     for ii in range(0,nDat):
         kax = 'chan2D' if '2d' in lData[ii].Id.Cls.lower() else 'chan'
         print("")   # DB
@@ -1448,6 +719,608 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
     return KH
 
 
+#######################################################################
+#######################################################################
+#######################################################################
+#               Plot data
+#######################################################################
+#######################################################################
+
+
+def _init_DataCam12D(fs=None, dmargin=None,
+                     fontsize=8,  wintit=_wintit,
+                     nchMax=4, ntMax=4, nD=1, nDat=1):
+    # Figure
+    axCol = "w"
+    fs = utils.get_figuresize(fs, fsdef=_def.fs1D)
+    if dmargin is None:
+        dmargin = _def.dmargin1D
+    fig = plt.figure(facecolor=axCol,figsize=fs)
+    if wintit is not None:
+        fig.canvas.set_window_title(wintit)
+
+    # Axes
+    gs1 = gridspec.GridSpec(6, 5, **dmargin)
+    Laxt = [fig.add_subplot(gs1[:3,:2], fc='w')]
+    Laxt.append(fig.add_subplot(gs1[3:,:2],fc='w', sharex=Laxt[0]))
+    if nD == 1:
+        Laxp = [fig.add_subplot(gs1[:,2:-1], fc='w', sharey=Laxt[1])]
+    else:
+        if nDat == 1 and ntMax == 1:
+            Laxp = [fig.add_subplot(gs1[:,2:4], fc='w')]
+        elif nDat == 1 and ntMax == 2:
+            Laxp = [fig.add_subplot(gs1[:,2], fc='w')]
+            Laxp.append(fig.add_subplot(gs1[:,3], fc='w',
+                                        sharex=Laxp[0], sharey=Laxp[0]))
+        elif nDat == 2 and ntMax == 1:
+            Laxp = [fig.add_subplot(gs1[:3,2:4], fc='w')]
+            Laxp.append(fig.add_subplot(gs1[3:,2:4], fc='w',
+                                        sharex=Laxp[0], sharey=Laxp[0]))
+        else:
+            Laxp = [fig.add_subplot(gs1[:3,2], fc='w')]
+            Laxp += [fig.add_subplot(gs1[:3,3], fc='w',
+                                     sharex=Laxp[0], sharey=Laxp[0]),
+                     fig.add_subplot(gs1[3:,2], fc='w',
+                                     sharex=Laxp[0], sharey=Laxp[0]),
+                     fig.add_subplot(gs1[3:,3], fc='w',
+                                     sharex=Laxp[0], sharey=Laxp[0])]
+            Laxp[0].set_aspect('equal', adjustable='datalim')
+    axH = fig.add_subplot(gs1[0:2,4], fc='w')
+    axC = fig.add_subplot(gs1[2:,4], fc='w')
+    axC.set_aspect('equal', adjustable='datalim')
+    axH.set_aspect('equal', adjustable='datalim')
+
+    # Text
+    Ytxt = Laxt[1].get_position().bounds[1]+Laxt[1].get_position().bounds[3]
+    DY = Laxt[0].get_position().bounds[1] - Ytxt
+    Xtxt = Laxt[1].get_position().bounds[0]
+    DX = Laxt[1].get_position().bounds[2]
+    axtxtch = fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None')
+
+    Ytxt = Laxp[0].get_position().bounds[1] + Laxp[0].get_position().bounds[3]
+    Xtxt = Laxp[0].get_position().bounds[0]
+    DX = Laxp[0].get_position().bounds[2]
+    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
+
+    xtxt, Ytxt, dx, DY = 0.01, 0.98, 0.15, 0.02
+    axtxtg = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+
+    # dax
+    dax = {'t':Laxt,
+           'X':Laxp,
+           'cross':[axC],
+           'hor':[axH],
+           'txtg':[axtxtg],
+           'txtx':[axtxtch],
+           'txtt':[axtxtt]}
+
+    # Format all axes
+    for kk in dax.keys():
+        for ii in range(0,len(dax[kk])):
+            dax[kk][ii].tick_params(labelsize=fontsize)
+            if 'txt' in kk:
+                dax[kk][ii].patch.set_alpha(0.)
+                for ss in ['left','right','bottom','top']:
+                    dax[kk][ii].spines[ss].set_visible(False)
+                dax[kk][ii].set_xticks([]), dax[kk][ii].set_yticks([])
+                dax[kk][ii].set_xlim(0,1),  dax[kk][ii].set_ylim(0,1)
+    return dax
+
+
+
+def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
+                     indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
+                     fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
+                     inct=[1,10], incX=[1,5], ms=4,
+                     cmap=None, vmin=None, vmax=None,
+                     vmin_map=None, vmax_map=None,
+                     cmap_map=None, normt_map=False,
+                     fmt_t='06.3f', fmt_X='01.0f', dmarker=_dmarker,
+                     fontsize=_fontsize, labelpad=_labelpad,
+                     invert=True, draw=True, connect=True, nD=1):
+
+
+
+    #########
+    # Prepare
+    #########
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
+
+    # Use tuple unpacking to make sure indref is 0
+    if not indref==0:
+        lData[0], lData[indref] = lData[indref], lData[0]
+    nDat = len(lData)
+
+    c0 = [all([dd.dlabels[kk] == lData[0].dlabels[kk] for dd in lData[1:]])
+          for kk in ['t','X','data']]
+    if not all(c0):
+        msg = "All Data objects must have the same:\n"
+        msg += "    dlabels['t'], dlabels['X'] and dlabels['data'] !"
+        raise Exception(msg)
+
+
+    # ---------
+    # Get time
+    lt = [dd.t for dd in lData]
+    nt = lData[0].nt
+    if nt == 1:
+        Dt = [t[0]-0.001,t[0]+0.001]
+    else:
+        Dt = np.array([[np.nanmin(t), np.nanmax(t)] for t in lt])
+        Dt = [np.min(Dt[:,0]), np.max(Dt[:,1])]
+    tlab = r"{0} ({1})".format(lData[0].dlabels['t']['name'],
+                               lData[0].dlabels['t']['units'])
+    ttype = 'x'
+    lidt = [id(t) for t in lt]
+
+    # ---------
+    # Check nch and X
+    c0 = [dd.nch == lData[0].nch for dd in lData[1:]]
+    if not all(c0):
+        msg = "All Data objects must have the same number of channels (self.nch)"
+        msg += "\nYou can set the indices of the channels with self.set_indch()"
+        raise Exception(msg)
+    nch = lData[0].nch
+
+    #X, nch, nnch, indtX = lData[0]['X'], lData[0]['nch'], lData[0]['nnch'], lData[0]['indtX']
+    if nD == 1:
+        if nch == 1:
+            DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
+        else:
+            DX = np.array([[np.nanmin(dd.X), np.nanmax(dd.X)] for dd in lData])
+            DX = [np.min(DX[:,0]), np.max(DX[:,1])]
+        Xlab = r"{0} ({1})".format(lData[0].dlabels['X']['name'],
+                                   lData[0].dlabels['X']['units'])
+
+        lXtype = ['x' if lData[ii].ddata['nnch'] == 1 else 'x1'
+                  for ii in range(0,nDat)]
+        lXother = [None if lData[ii].ddata['nnch'] == 1 else lidt[ii]
+                   for ii in range(0,nDat)]
+        lindtX = [(None if lData[ii].ddata['nnch'] == 1
+                   else lData[ii].ddata['indtX'])
+                  for ii in range(0,nDat)]
+    else:
+        c0 = [dd.ddata['nnch'] > 1 for dd in lData]
+        if any(c0):
+            msg = "DataCam2D cannot have nnch > 1 !"
+            raise Exception(msg)
+        c0 = [dd.ddata['indtX'] is None for dd in lData]
+        if not all(c0):
+            msg = "All DataCam2D objects must have indtX is None !"
+            raise Exception(msg)
+        c0 = [dd.get_X12plot('imshow') for dd in lData]
+        c0 = [all([np.allclose(cc[ii],c0[0][ii]) for ii in range(0,4)])
+              for cc in c0[1:]]
+        if not all(c0):
+            msg = "All DataCam2D must have the same (x1,x2,indr,extent) !\n"
+            msg += "    Check x1, x2, indr, extent = self.get_X12plot('imshow')"
+            raise Exception(msg)
+
+        x1, x2, indr, extent = lData[0].get_X12plot('imshow')
+        if Bck:
+            indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
+            nan2 = np.full((2,1),np.nan)
+        idx12 = id((x1,x2))
+        n12 = [x1.size, x2.size]
+        # Other
+        lXtype = ['x']*nDat
+        lXother = [None]*nDat
+        lindtX = [None]*nDat
+
+    lX = [dd.X for dd in lData]
+    lidX = [id(X) for X in lX]
+
+    # dchans
+    if key is None:
+        dchans = np.arange(0,nch)
+    else:
+        dchans = lData[0].dchans(key)
+    idchans = id(dchans)
+
+    # ---------
+    # Check data
+    ldata = [dd.data for dd in lData]
+    vmin = np.min([np.nanmin(dat) for dat in ldata])
+    vmax = np.max([np.nanmax(dat) for dat in ldata])
+    Dlim = [min(0.,vmin), max(0.,vmax)]
+    Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
+    Dlab = r"{0} ({1})".format(lData[0].dlabels['data']['name'],
+                               lData[0].dlabels['data']['units'])
+    liddata = [id(dat) for dat in ldata]
+    if nD == 2:
+        if vmin is None:
+            vmin = np.min([np.nanmin(dd) for dd in ldata])
+        if vmax is None:
+            vmax = np.max([np.nanmax(dd) for dd in ldata])
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        nan2_data = np.full((x2.size,x1.size),np.nan)
+
+        if cmap == 'touch':
+            lcols = [dd['lCam'][0]._get_touchcols(vmin=vmin, vmax=vmax, cdef=cbck,
+                                                  ind=None)[0] for dd in lData]
+            # To be finished
+
+    # ---------
+    # Extra
+    lkEq = ['Sep','Ax','X']
+    lkEqmap = lkEq + ['map']
+    dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
+    dteq = dict([(ii,{}) for ii in range(0,nDat)])
+    for ii in range(0,nDat):
+        if lData[ii].dextra is not None:
+            for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
+                idteq = id(lData[ii].dextra[k]['t'])
+                if idteq not in dteq[ii].keys():
+                    dteq[ii][idteq] = lData[ii].dextra[k]['t']
+                dlextra[k][ii] = dict([(kk,v)
+                                        for kk,v in lData[ii].dextra[k].items()
+                                        if not kk == 't'])
+                dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
+                dlextra[k][ii]['idt'] = idteq
+                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                    dlextra[k][ii]['marker'] = dmarker[k]
+            if len(dteq[ii].keys()) > 1:
+                msg = "Several distinct time bases in self.dextra for:\n"
+                msg += "    - lData[%s]: %s:\n"%(ii,lData[ii].Id.SaveName)
+                msg += "        - " + "\n        - ".join(lkEqmap)
+                warnings.warn(msg)
+
+
+    #########
+    # Plot
+    #########
+
+    # Format axes
+    dax = _init_DataCam12D(fs=fs, dmargin=dmargin, wintit=wintit,
+                        nchMax=nchMax, ntMax=ntMax, nD=nD, nDat=nDat)
+    fig  = dax['t'][0].figure
+    if tit is None:
+        tit = []
+        if lData[0].Id.Exp is not None:
+            tit.append(lData[0].Id.Exp)
+        if lData[0].Id.Diag is not None:
+            tit.append(lData[0].Id.Diag)
+        if lData[0].Id.shot is not None:
+            tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
+        tit = ' - '.join(tit)
+    fig.suptitle(tit)
+
+
+    # -----------------
+    # Plot conf and bck
+    c0 = lData[0]._dgeom['config'] is not None
+    c1 = c0 and lData[0]._dgeom['lCam'] is not None
+    if c0:
+        out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
+                                             element='P', dLeg=None, draw=False)
+        dax['cross'][0], dax['hor'][0] = out
+        if c1 and 'LOS' in lData[0]._dgeom['lCam'][0].Id.Cls:
+            lCross, lHor, llab = [], [], []
+            for cc in lData[0]._dgeom['lCam']:
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+                if Bck and nD == 2:
+                    crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
+                                lCross[indbck[2]],nan2,lCross[indbck[3]]]
+                    crossbck = np.concatenate(crossbck,axis=1)
+                    horbck = [lHor[indbck[0]],nan2,lHor[indbck[1]],nan2,
+                              lHor[indbck[2]],nan2,lHor[indbck[3]]]
+                    horbck = np.concatenate(horbck,axis=1)
+                    dax['cross'][0].plot(crossbck[0,:], crossbck[1,:],
+                                         c=cbck, ls='-', lw=1.)
+                    dax['hor'][0].plot(horbck[0,:], horbck[1,:],
+                                         c=cbck, ls='-', lw=1.)
+                elif Bck:
+                    out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
+                                  element='L', Lplot=Lplot,
+                                  dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
+                                  dLeg=None, draw=False)
+                    dax['cross'][0], dax['hor'][0] = out
+
+            lHor = np.stack(lHor)
+            idlCross = id(lCross)
+            idlHor = id(lHor)
+        elif c1:
+            lCross, lHor = None, None
+        else:
+            lCross, lHor = None, None
+    else:
+        lCross, lHor = None, None
+
+    # Background (optional)
+    if Bck:
+        if nD == 1:
+            if lData[0].ddata['nnch'] == 1:
+                env = [np.nanmin(ldata[0],axis=0), np.nanmax(ldata[0],axis=0)]
+                dax['X'][0].fill_between(lX[0].ravel(), env[0], env[1], facecolor=cbck)
+            tbck = np.tile(np.r_[lt[0], np.nan], nch)
+            dbck = np.vstack((ldata[0], np.full((1,nch),np.nan))).T.ravel()
+            dax['t'][1].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+        else:
+            dax['t'][1].fill_between(lt[0], np.nanmin(ldata[0],axis=1),
+                                     np.nanmax(ldata[0],axis=1),
+                                     facecolor=cbck)
+
+    # Static extra (time traces)
+    for ii in range(0,nDat):
+        if lData[ii].dextra is not None:
+            lk = [k for k in lData[ii].dextra.keys() if k not in lkEqmap]
+            for kk in lk:
+                dd = lData[ii].dextra[kk]
+                if 't' in dd.keys():
+                    co = dd['c'] if 'c' in dd.keys() else 'k'
+                    lab = dd['label'] + ' (%s)'%dd['units'] if ii==0 else None
+                    dax['t'][0].plot(dd['t'], dd['data'],
+                                     ls=lls[ii], lw=1., c=co, label=lab)
+
+    dax['t'][0].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
+                       ncol=4, mode='expand', borderaxespad=0., prop={'size':fontsize})
+
+
+    # ---------------
+    # Lims and labels
+    dax['t'][0].set_xlim(Dt)
+    dax['t'][1].set_ylim(Dd)
+    dax['t'][1].set_xlabel(tlab, **fldict)
+    dax['t'][1].set_ylabel(Dlab, **fldict)
+    if nD == 1:
+        dax['X'][0].set_xlim(DX)
+        dax['X'][0].set_xlabel(Xlab, **fldict)
+    else:
+        dax['X'][0].set_xlim(extent[:2])
+        dax['X'][0].set_ylim(extent[2:])
+        if invert:
+            dax['X'][0].invert_xaxis()
+            dax['X'][0].invert_yaxis()
+
+
+    ##################
+    # Interactivity dict
+
+    dgroup = {'time':      {'nMax':ntMax, 'key':'f1',
+                            'defid':lidt[0], 'defax':dax['t'][1]},
+              'channel':   {'nMax':nchMax, 'key':'f2',
+                            'defid':lidX[0], 'defax':dax['X'][0]}}
+
+    # Group info (make dynamic in later versions ?)
+    msg = '  '.join(['%s: %s'%(v['key'],k) for k, v in dgroup.items()])
+    l0 = dax['txtg'][0].text(0., 0., msg,
+                             color='k', fontweight='bold',
+                             fontsize=6., ha='left', va='center')
+
+    # dref
+    lref = [(lidt[ii],{'group':'time', 'val':lt[ii], 'inc':inct})
+            for ii in range(0,nDat)]
+    lref += [(lidX[ii],{'group':'channel', 'val':lX[ii], 'inc':incX,
+                        'otherid':lXother[ii], 'indother':lindtX[ii]})
+             for ii in range(0,nDat)]
+    llrr = [[(k,v) for k,v in dteq[ii].items()] for ii in range(0,nDat)]
+    llrr = itt.chain.from_iterable(llrr)
+    lref += [(kv[0], {'group':'time', 'val':kv[1], 'inc':inct}) for kv in llrr]
+    dref = dict(lref)
+
+    if nD == 2:
+        for ii in range(0,nDat):
+            dref[lidX[ii]]['2d'] = (x1,x2)
+
+    # ddata
+    ddat = dict([(liddata[ii], {'val':ldata[ii], 'refids':[lidt[ii],lidX[ii]]})
+                 for ii in range(0,nDat)])
+    ddat[idchans] = {'val':dchans, 'refids':[lidX[0]]}
+    if lCross is not None:
+        ddat[idlCross] = {'val':lCross, 'refids':[lidX[0]]}
+        ddat[idlHor] = {'val':lHor, 'refids':[lidX[0]]}
+    if nD == 2:
+        ddat[idx12] = {'val':(x1,x2), 'refids':[lidX[0]]}
+
+    if dlextra['map'][0] is not None:
+        ddat[dlextra['map'][0]['id']] = {'val':dlextra['map'][0]['data2D'],
+                                         'refids':[dlextra['map'][0]['idt']]}
+
+    for ii in range(0,nDat):
+        for k in set(lkEq).intersection(dlextra.keys()):
+            if dlextra[k][ii] is not None:
+                ddat[dlextra[k][ii]['id']] = {'val':dlextra[k][ii]['data2D'],
+                                              'refids':[dlextra[k][ii]['idt']]}
+
+    # dax
+    lax_fix = [dax['cross'][0], dax['hor'][0],
+               dax['txtg'][0], dax['txtt'][0], dax['txtx'][0]]
+
+    dax2 = {dax['t'][1]: {'ref':dict([(idt,'x') for idt in lidt]),
+                          'graph':{lidt[0]:'x'}},
+            dax['t'][0]: {'ref':{},
+                          'graph':{}}}
+    for ii in range(0,nDat):
+        ll = list(dteq[ii].keys())
+        if len(ll) == 0:
+            ll = [lidt[0]]
+        else:
+            dax2[dax['t'][0]]['ref'][ll[0]] = 'x'
+        if ii == 0:
+            dax2[dax['t'][0]]['graph'][ll[0]] = 'x'
+
+    if nD == 1:
+        dax2.update({dax['X'][0]: {'ref':dict([(idX,'x') for idX in lidX]),
+                                   'graph':{lidX[0]:'x'}}})
+    else:
+        for ii in range(0,nDat):
+            for jj in range(0,ntMax):
+                dax2[dax['X'][ii*ntMax+jj]] = {'ref':{lidX[ii]:'2d'},'invert':invert}
+
+    dobj = {}
+
+
+
+    ##################
+    # Populating dobj
+
+    # -------------
+    # One-shot and one-time 2D map
+    if dlextra['map'][0] is not None:
+        map_ = dlextra['map'][0]['data2D']
+        if normt_map:
+            map_ = map_ / np.nanmax(map_,axis=0)[np.newaxis,:,:]
+        vmin_map = np.nanmin(map_) if vmin_map is None else vmin_map
+        vmax_map = np.nanmax(map_) if vmax_map is None else vmax_map
+        norm_map = mpl.colors.Normalize(vmin=vmin_map, vmax=vmax_map)
+        nan2_map = np.full(map_.shape[1:],np.nan)
+        im = dax['cross'][0].imshow(nan2_map, aspect='equal',
+                                    extent= dlextra['map'][0]['extent'],
+                                    interpolation='nearest', origin='lower',
+                                    zorder=0, norm=norm_map,
+                                    cmap=cmap_map)
+        dobj[im] = {'dupdate':{'data':{'id':dlextra['map'][0]['id'],
+                                       'lrid':[dlextra['map'][0]['idt']]}},
+                    'drefid':{dlextra['map'][0]['idt']:0}}
+
+    # -------------
+    # One-shot channels
+    for jj in range(0,nchMax):
+
+        # Channel text
+        l0 = dax['txtx'][0].text((0.5+jj)/nchMax, 0., r'',
+                                 color='k', fontweight='bold',
+                                 fontsize=6., ha='center', va='bottom')
+        dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[lidX[0]],
+                                      'bstr':'{0:%s}'%fmt_X}},
+                    'drefid':{lidX[0]:jj}}
+        # los
+        if c1:
+            l, = dax['cross'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                      c=lcch[jj], ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlCross, 'lrid':[lidX[0]]}},
+                        'drefid':{lidX[0]:jj}}
+            l, = dax['hor'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                    c=lcch[jj], ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlHor, 'lrid':[lidX[0]]}},
+                        'drefid':{lidX[0]:jj}}
+
+    # -------------
+    # One-shot time
+    for jj in range(0,ntMax):
+        # Time txt
+        l0 = dax['txtt'][0].text((0.5+jj)/ntMax, 0., r'',
+                                 color=lct[jj], fontweight='bold',
+                                 fontsize=6., ha='center', va='bottom')
+        dobj[l0] = {'dupdate':{'txt':{'id':lidt[0], 'lrid':[lidt[0]],
+                                      'bstr':'{0:%s} s'%fmt_t}},
+                    'drefid':{lidt[0]:jj}}
+
+
+    # -------------
+    # Data-specific
+    for ii in range(0,nDat):
+
+        # Time
+        for jj in range(0,ntMax):
+
+            # Time vlines
+            for ll in range(0,len(dax['t'])):
+                l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls=lls[ii], lw=1.)
+                dobj[l0] = {'dupdate':{'xdata':{'id':lidt[ii], 'lrid':[lidt[ii]]}},
+                            'drefid':{lidt[ii]:jj}}
+
+            # Time data profiles
+            if nD == 1:
+                l0, = dax['X'][0].plot(lX[ii][0,:], np.full((nch,),np.nan),
+                                       c=lct[jj], ls=lls[ii], lw=1.)
+                dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
+                                                'lrid':[lidt[ii]]}},
+                            'drefid':{lidt[ii]:jj}}
+                if lXother[ii] is not None:
+                    dobj[l0]['dupdate']['xdata'] = {'id':lidX[ii],
+                                                    'lrid':[lXother[ii]]}
+            else:
+                im = dax['X'][ii*ntMax+jj].imshow(nan2_data, extent=extent, aspect='equal',
+                                         interpolation='nearest', origin='lower',
+                                         zorder=-1, norm=norm,
+                                         cmap=cmap)
+                dobj[im] = {'dupdate':{'data-reshape':{'id':liddata[ii], 'n12':n12,
+                                                       'lrid':[lidt[ii]]}},
+                            'drefid':{lidt[ii]:jj}}
+
+            # Time equilibrium and map
+            if lData[ii].dextra is not None:
+                for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
+                    id_ = dlextra[kk][ii]['id']
+                    idt = dlextra[kk][ii]['idt']
+                    if kk == 'Sep':
+                        l0, = dax['cross'][0].plot([np.nan],[np.nan],
+                                                   c=lct[jj], ls=lls[ii],
+                                                   lw=1.)
+                    else:
+                        marker = dlextra[kk][ii]['marker']
+                        l0, = dax['cross'][0].plot([np.nan],[np.nan],
+                                                   mec=lct[jj], mfc='None', ls=lls[ii],
+                                                   ms=ms, marker=marker)
+                    dobj[l0] = {'dupdate':{'data':{'id':id_,
+                                                   'lrid':[idt]}},
+                                'drefid':{idt:jj}}
+
+
+        # Channel
+        for jj in range(0,nchMax):
+
+            # Channel time trace
+            l0, = dax['t'][1].plot(lt[ii], np.full((lt[ii].size,),np.nan),
+                                   c=lcch[jj], ls=lls[ii], lw=1.)
+            dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii], 'lrid':[lidX[ii]]}},
+                        'drefid':{lidX[ii]:jj}}
+
+            # Channel vlines or pixels
+            if nD == 1:
+                if lXother[ii] is None:
+                    l0 = dax['X'][0].axvline(np.nan, c=lcch[jj], ls=lls[ii], lw=1.)
+                    dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
+                                                    'lrid':[lidX[ii]]}},
+                                'drefid':{lidX[ii]:jj}}
+                else:
+                    for ll in range(0,ntMax):
+                        l0 = dax['X'][0].axvline(np.nan, c=lcch[jj], ls=lls[ii], lw=1.)
+                        dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
+                                                        'lrid':[lidt[ii],lidX[ii]]}},
+                                    'drefid':{lidX[ii]:jj, lidt[ii]:ll}}
+            else:
+                for ll in range(0,ntMax):
+                    l0, = dax['X'][ii*ntMax+ll].plot([np.nan],[np.nan],
+                                                 mec=lcch[jj], ls='None',
+                                                 marker='s', mew=2.,
+                                                 ms=ms, mfc='None', zorder=10)
+                    # Here we put lidX[0] because all have the same (and it
+                    # avoids overdefining ddat[idx12]
+                    dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[lidX[0]]}},
+                                'drefid':{lidX[0]:jj}}
+
+
+    ##################
+    # Instanciate KeyHandler
+    can = fig.canvas
+    can.draw()
+
+    kh = utils.KeyHandler_mpl(can=can,
+                              dgroup=dgroup, dref=dref, ddata=ddat,
+                              dobj=dobj, dax=dax2, lax_fix=lax_fix,
+                              groupinit='time', follow=True)
+
+    if connect:
+        kh.disconnect_old()
+        kh.connect()
+    if draw:
+        can.draw()
+    return kh
+
+
+
+
+
+
+
+
+
+
+
+
 
 #######################################################################
 #######################################################################
@@ -1459,8 +1332,9 @@ def _Data_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=1,
 
 def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
                           key=None, Bck=True, indref=0,
-                          cmap=None, ms=4, vmin=None, vmax=None,
-                          normt=False, ntMax=None, nchMax=None, nfMax=3,
+                          cmap_f=None, cmap_img=None, ms=4,
+                          vmin=None, vmax=None,
+                          normt=False, ntMax=None, nfMax=3,
                           lls=_lls, lct=_lct, lcch=_lcch,
                           plotmethod='imshow', invert=False,
                           fs=None, dmargin=None, wintit=_wintit, tit=None,
@@ -1471,34 +1345,25 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
     if fontsize is None:
         fontsize = _fontsize
 
-    if '1d' in Data.Id.Cls.lower() or '1d' in Data.Id.Type.lower():
-        ntMax = _ntMax if ntMax is None else ntMax
-        nchMax = _nchMax if nchMax is None else nchMax
-        nfMax = _nfMax if nfMax is None else nfMax
-        KH = _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
-                                      fmax=fmax, key=key,
-                                      ntMax=ntMax, nfMax=nfMax,
-                                      Bck=Bck, llsf=lls, lct=lct,
-                                      cmap=cmap, normt=normt,
-                                      vmin=vmin, vmax=vmax,
-                                      fs=fs, dmargin=dmargin, wintit=wintit,
-                                      tit=tit, fontsize=fontsize,
-                                      draw=draw, connect=connect)
+    ntMax = _ntMax if ntMax is None else ntMax
+    nfMax = _nfMax if nfMax is None else nfMax
+    nD = 1
+    if Data._is2D():
+        nD = 2
+        ntMax = 1
+        nfMax = 1
 
-    else:
-        ntMax = 1 if ntMax is None else ntMax
-        nchMax = _nchMax if nchMax is None else nchMax
-        nfMax = _nfMax if nfMax is None else nfMax
-        KH = _Data2D_plot_spectrogram(Data, tf, f, lpsd, lang, key=key,
-                                      nchMax=nchMax, ntMax=ntMax,
-                                      Bck=Bck, lls=lls, lct=lct, lcch=lcch,
-                                      cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
-                                      normt=normt, fs=fs, dmargin=dmargin,
-                                      wintit=wintit, tit=tit,
-                                      plotmethod=plotmethod, invert=invert,
-                                      fontsize=fontsize,
-                                      draw=draw, connect=connect)
-    return KH
+    kh = _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
+                                  fmax=fmax, key=key, nD=nD,
+                                  ntMax=ntMax, nfMax=nfMax,
+                                  Bck=Bck, llsf=lls, lct=lct,
+                                  cmap_f=cmap_f, cmap_img=cmap_img,
+                                  normt=normt, invert=invert,
+                                  vmin=vmin, vmax=vmax, ms=ms,
+                                  fs=fs, dmargin=dmargin, wintit=wintit,
+                                  tit=tit, fontsize=fontsize,
+                                  draw=draw, connect=connect)
+    return kh
 
 
 
@@ -1521,16 +1386,28 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
         laxp += [fig.add_subplot(gs1[2:4,2:4], fc='w', sharex=laxp[0]),
                  fig.add_subplot(gs1[4:,2:4], fc='w', sharex=laxp[0])]
     else:
+        from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
         laxp = [fig.add_subplot(gs1[:2,2:4], fc='w')]
         laxp += [fig.add_subplot(gs1[2:4,2:4], fc='w',
                                  sharex=laxp[0], sharey=laxp[0]),
                  fig.add_subplot(gs1[4:,2:4], fc='w',
                                  sharex=laxp[0], sharey=laxp[0])]
+        laxcb = [None for ii in [0,1,2]]
+        for ii in range(0,len(laxp)):
+            ax_divider = make_axes_locatable(laxp[ii])
+            laxcb[ii] = ax_divider.append_axes("right",
+                                               size="5%", pad="5%")
+
     axH = fig.add_subplot(gs1[0:2,4], fc='w')
     axC = fig.add_subplot(gs1[2:,4], fc='w')
     axC.set_aspect('equal', adjustable='datalim')
     axH.set_aspect('equal', adjustable='datalim')
 
+    # text group
+    xtxt, Ytxt, dx, DY = 0.01, 0.98, 0.15, 0.02
+    axtxtg = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+
+    # text x
     Ytxt = laxt[0].get_position().bounds[1]+laxt[0].get_position().bounds[3]
     DY = (laxt[0].get_position().bounds[1]
           - (laxt[1].get_position().bounds[1]+laxt[1].get_position().bounds[3]))
@@ -1540,6 +1417,7 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
     dx = DX - 0.15*(DX-Xtxt)
     axtxtx = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
 
+    # text t and f
     Ytxt = laxp[0].get_position().bounds[1]+laxp[0].get_position().bounds[3]
     Xtxt = laxp[0].get_position().bounds[0]
     DX = laxp[0].get_position().bounds[2]
@@ -1548,20 +1426,30 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
     axtxtt = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
     Ytxt = laxp[1].get_position().bounds[1]+laxp[1].get_position().bounds[3]
     axtxtf = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
-    for ax in [axtxtx, axtxtt, axtxtf]:
+
+    # formatting text
+    for ax in [axtxtg, axtxtx, axtxtt, axtxtf]:
         ax.patch.set_alpha(0.)
         for ss in ['left','right','bottom','top']:
             ax.spines[ss].set_visible(False)
         ax.set_xticks([]), ax.set_yticks([])
         ax.set_xlim(0,1),  ax.set_ylim(0,1)
 
+    # Return ax dict
     dax = {'t':laxt,
            'X':laxp,
            'cross':[axC],
            'hor':[axH],
+           'txtg':[axtxtg],
            'txtx':[axtxtx],
            'txtt':[axtxtt],
            'txtf':[axtxtf]}
+
+    # Add colorbars if 2D
+    if nD == 2:
+        dax['colorbar'] = laxcb
+
+    # Format all axes
     for kk in dax.keys():
         for ii in range(0,len(dax[kk])):
             dax[kk][ii].tick_params(labelsize=fontsize)
@@ -1580,16 +1468,19 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                              Bck=True, llsf=_lls, lct=_lct,
                              inct=[1,10], incX=[1,5], incf=[1,10],
                              fmt_t='06.3f', fmt_X='01.0f', fmt_f='05.2f',
-                             dchanskey=None, cmap=None, normt=False,
-                             vmin=None, vmax=None,
+                             cmap_f=None, cmap_img=None,
+                             normt=False, ms=4, invert=True,
+                             vmin=None, vmax=None, cbck=_cbck, Lplot='In',
                              fs=None, dmargin=None, wintit=_wintit, tit=None,
                              fontsize=_fontsize, labelpad=_labelpad,
                              draw=True, connect=True):
 
-    assert Data.Id.Cls in ['Data','Data1D','Data2D']
+    assert Data.Id.Cls in ['DataCam1D','DataCam2D']
     assert nD in [1,2]
-    if cmap is None:
-        cmap = plt.cm.gray_r
+    if cmap_f is None:
+        cmap_f = plt.cm.gray_r
+    if cmap_img is None:
+        cmap_img = plt.cm.viridis
 
     #########
     # Prepare
@@ -1598,7 +1489,6 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     # Start extracting data
     fldict = dict(fontsize=fontsize, labelpad=labelpad)
     Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
-    cbck = (0.8,0.8,0.8,0.8)
     lEq = ['Ax','Sep','q1']
 
     # Force update for safety
@@ -1616,33 +1506,44 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     idt = id(t)
 
     # X
+    X, nch, nnch, indtX = ddata['X'], ddata['nch'], ddata['nnch'], ddata['indtX']
     if nD == 1:
-        X, nX, nnX, indtX = ddata['X'], ddata['nX'], ddata['nnX'], ddata['indtX']
-        if nX == 1:
+        if nch == 1:
             DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
         else:
             DX = [np.nanmin(X), np.nanmax(X)]
         Xlab = r"{0} ({1})".format(Data.dlabels['X']['name'],
                                    Data.dlabels['X']['units'])
-        if nnX == 1:
-            Xtype = 'x'
-            Xother = None
-        elif indtX is None:
-            Xtype = 'x1'
-            Xother = idt
-        idX = id(X)
-        if dchanskey is None:
-            dchans = np.arange(0,nX)
-        else:
-            dchans = Data.dchans(dchanskey)
-        idchans = id(dchans)
     else:
-        x1, x2, extent = Data.get_X12('imshow')
-        idx1, idx2 = id(x1), id(x2)
+        assert nnch == 1
+        assert indtX is None
+        x1, x2, indr, extent = Data.get_X12plot('imshow')
+        if Bck:
+            indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
+            nan2 = np.full((2,1),np.nan)
+        idx12 = id((x1,x2))
+        n12 = [x1.size, x2.size]
+
+    if nnch == 1:
+        Xtype = 'x'
+        Xother = None
+    elif indtX is None:
+        Xtype = 'x1'
+        Xother = idt
+    idX = id(X)
+
+    # dchans
+    if key is None:
+        dchans = np.arange(0,nch)
+    else:
+        dchans = Data.dchans(key)
+    idchans = id(dchans)
 
     # data
     data = Data.data
-    Dlim = [min(0.,np.nanmin(data)), max(0.,np.nanmax(data))]
+    vmin = np.nanmin(data)
+    vmax = np.nanmax(data)
+    Dlim = [min(0.,vmin), max(0.,vmax)]
     Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
     Dlab = r"{0} ({1})".format(Data.dlabels['data']['name'],
                                Data.dlabels['data']['units'])
@@ -1650,6 +1551,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     # tf
     Dtf = [np.nanmin(tf), np.nanmax(tf)]
+    dtf = 0.5*(tf[1]-tf[0])
     idtf = id(tf)
 
     # f
@@ -1659,7 +1561,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     anglab = r'$ang(F)$ ($rad$)'
     ftype = 'y'
     idf = id(f)
-    dtf, df = 0.5*(tf[1]-tf[0]), 0.5*(f[1]-f[0])
+    df = 0.5*(f[1]-f[0])
+    extentf = (Dtf[0]-dtf,Dtf[1]+dtf, Df[0]-df, Df[1]+df)
 
     # lpsd and lang
     lpsd = np.swapaxes(np.stack(lpsd,axis=0),1,2)
@@ -1667,7 +1570,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         lpsd = lpsd / np.nanmax(lpsd,axis=2)[:,:,np.newaxis]
     lang = np.swapaxes(np.stack(lang,axis=0),1,2)
     Dpsd = [np.nanmin(lpsd), np.nanmax(lpsd)]
-    Dang = [np.nanmin(lang), np.nanmax(lang)]
+    angmax = np.pi
     idlpsd = id(lpsd)
     idlang = id(lang)
 
@@ -1675,7 +1578,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     ############
     # Format axes
     dax = _init_Data1D_spectrogram(fs=fs, dmargin=dmargin,
-                                   wintit=wintit)
+                                   wintit=wintit, nD=nD)
     fig = dax['t'][0].figure
 
     if tit is None:
@@ -1699,36 +1602,78 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         if c1 and 'LOS' in Data._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
             for cc in Data._dgeom['lCam']:
-                out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
-                              element='L', Lplot='In',
-                              dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
-                              dLeg=None, draw=False)
-                dax['cross'][0], dax['hor'][0] = out
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+                if Bck and cc._is2D():
+                    crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
+                                lCross[indbck[2]],nan2,lCross[indbck[3]]]
+                    crossbck = np.concatenate(crossbck,axis=1)
+                    horbck = [lHor[indbck[0]],nan2,lHor[indbck[1]],nan2,
+                              lHor[indbck[2]],nan2,lHor[indbck[3]]]
+                    horbck = np.concatenate(horbck,axis=1)
+                    dax['cross'][0].plot(crossbck[0,:], crossbck[1,:],
+                                         c=cbck, ls='-', lw=1.)
+                    dax['hor'][0].plot(horbck[0,:], horbck[1,:],
+                                         c=cbck, ls='-', lw=1.)
+                elif Bck:
+                    out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
+                                  element='L', Lplot=Lplot,
+                                  dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
+                                  dLeg=None, draw=False)
+                    dax['cross'][0], dax['hor'][0] = out
 
-                lCross += cc._get_plotL(Lplot='In', proj='cross', multi=True)
-                lHor += cc._get_plotL(Lplot='In', proj='hor', multi=True)
-                lHor = np.stack(lHor)
-                idlCross = id(lCross)
-                idlHor = id(lHor)
+            lHor = np.stack(lHor)
+            idlCross = id(lCross)
+            idlHor = id(lHor)
         elif c1:
             lCross, lHor = None, None
         else:
             lCross, lHor = None, None
+    else:
+        lCross, lHor = None, None
 
     if Bck:
-        if nnX == 1 and nD == 1:
-            env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
-            dax['X'][0].fill_between(X.ravel(), env[0], env[1], facecolor=cbck)
-        tbck = np.tile(np.r_[t, np.nan], nX)
-        dbck = np.vstack((data, np.full((1,nX),np.nan))).T.ravel()
-        dax['t'][0].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+        if nD == 1:
+            if nnch == 1:
+                env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
+                dax['X'][0].fill_between(X.ravel(), env[0], env[1], facecolor=cbck)
+            tbck = np.tile(np.r_[t, np.nan], nch)
+            dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
+            dax['t'][0].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+        else:
+            dax['t'][0].fill_between(t, np.nanmin(data,axis=1),
+                                     np.nanmax(data,axis=1),
+                                     facecolor=cbck)
+
+    # Colorbars if 2D
+    if nD == 2:
+        norm_data = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0], cmap=cmap_img,
+                                       orientation='vertical',
+                                       norm=norm_data)
+        dax['colorbar'][0].set_ylabel(Dlab, **fldict)
+
+        norm_psd = mpl.colors.Normalize(vmin=Dpsd[0], vmax=Dpsd[1])
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][1], cmap=cmap_img,
+                                       orientation='vertical',
+                                       norm=norm_psd)
+        dax['colorbar'][1].set_ylabel(psdlab, **fldict)
+
+        norm_ang = mpl.colors.Normalize(vmin=-angmax, vmax=angmax)
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][2],
+                                       cmap=plt.cm.seismic,
+                                       orientation='vertical',
+                                       norm=norm_ang,
+                                       ticks=[-angmax, 0, angmax])
+        dax['colorbar'][2].set_ylabel(anglab, **fldict)
+
 
     # ---------------
     # Lims and labels
-    fmax = Df[1] if fmax is None else fmax
+    fmax = extentf[3] if fmax is None else fmax
     dax['t'][0].set_xlim(Dt)
     dax['t'][0].set_ylim(Dd)
-    dax['t'][1].set_ylim(Df[0]-df, fmax+df)
+    dax['t'][1].set_ylim(extentf[2], fmax)
     dax['t'][-1].set_xlabel(tlab, **fldict)
     dax['t'][0].set_ylabel(Dlab, **fldict)
     dax['t'][1].set_ylabel(flab, **fldict)
@@ -1737,7 +1682,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         dax['X'][0].set_xlim(DX)
         dax['X'][0].set_ylim(Dd)
         dax['X'][1].set_ylim(Dpsd)
-        dax['X'][2].set_ylim(Dang)
+        dax['X'][2].set_ylim([-np.pi,np.pi])
         dax['X'][-1].set_xlabel(Xlab, **fldict)
         dax['X'][0].set_ylabel(Dlab, **fldict)
         dax['X'][1].set_ylabel(psdlab, **fldict)
@@ -1745,6 +1690,15 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     else:
         dax['X'][0].set_xlim(extent[:2])
+        dax['X'][0].set_ylim(extent[2:])
+
+    # invert
+    if invert and nD == 2:
+        for ii in range(0,3):
+            dax['X'][ii].invert_xaxis()
+            dax['X'][ii].invert_yaxis()
+
+
 
     ##################
     # Interactivity dict
@@ -1756,17 +1710,20 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
               'frequency': {'nMax':nfMax, 'key':'f3',
                             'defid':idf, 'defax':dax['t'][1]}}
 
+    # Group info (make dynamic in later versions ?)
+    msg = '  '.join(['%s: %s'%(v['key'],k) for k, v in dgroup.items()])
+    l0 = dax['txtg'][0].text(0., 0., msg,
+                             color='k', fontweight='bold',
+                             fontsize=6., ha='left', va='center')
+
+
     dref = {idt:  {'group':'time', 'val':t, 'inc':inct},
             idtf: {'group':'time', 'val':tf, 'inc':inct},
             idX:  {'group':'channel', 'val':X, 'inc':incX,
                    'otherid':Xother, 'indother':indtX},
             idf:  {'group':'frequency', 'val':f, 'inc':incf}}
-    if nD == 1:
-        dref[idX] = {'group':'channel', 'val':X, 'inc':incX,
-                     'otherid':Xother, 'indother':indtX}
-    else:
-        dref[idX] = {'group':'channel', 'val':(x1,x2), 'inc':incx12}
-
+    if nD == 2:
+        dref[idX]['2d'] = (x1,x2)
 
     ddat = {iddata: {'val':data, 'refids':[idt,idX]},
             idlpsd: {'val':lpsd, 'refids':[idX,idf,idtf]},
@@ -1775,9 +1732,11 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     if lCross is not None:
         ddat[idlCross] = {'val':lCross, 'refids':[idX]}
         ddat[idlHor] = {'val':lHor, 'refids':[idX]}
+    if nD == 2:
+        ddat[idx12] = {'val':(x1,x2), 'refids':[idX]}
 
     lax_fix = [dax['cross'][0], dax['hor'][0],
-               dax['txtx'][0], dax['txtf'][0]]
+               dax['txtg'][0], dax['txtt'][0], dax['txtx'][0], dax['txtf'][0]]
     dax2 = {dax['t'][0]: {'ref':{idt:'x'}},
             dax['t'][1]: {'ref':{idtf:'x', idf:'y'}, 'defrefid':idf},
             dax['t'][2]: {'ref':{idtf:'x', idf:'y'}, 'defrefid':idf}}
@@ -1787,9 +1746,9 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                      dax['X'][1]: {'ref':{idX:'x'}},
                      dax['X'][2]: {'ref':{idX:'x'}}})
     else:
-        dax2.update({dax['X'][0]: {'ref':{idX:'2d'}},
-                     dax['X'][1]: {'ref':{idX:'2d'}},
-                     dax['X'][2]: {'ref':{idX:'2d'}}})
+        dax2.update({dax['X'][0]: {'ref':{idX:'2d'}, 'invert':invert},
+                     dax['X'][1]: {'ref':{idX:'2d'}, 'invert':invert},
+                     dax['X'][2]: {'ref':{idX:'2d'}, 'invert':invert}})
     dobj = {}
 
 
@@ -1799,8 +1758,9 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
 
     # Channel
-    extent = (Dtf[0]-dtf,Dtf[1]+dtf, Df[0]-df, Df[1]+df)
     for jj in range(0,1):
+
+        # Channel text
         l0 = dax['txtx'][0].text(0.5, 0., r'',
                                  color='k', fontweight='bold',
                                  fontsize=6., ha='center', va='bottom')
@@ -1808,11 +1768,13 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                       'bstr':'{0:%s}'%fmt_X}},
                     'drefid':{idX:jj}}
 
+        # Channel time trace
         l0, = dax['t'][0].plot(t, np.full((nt,),np.nan),
                                c='k', ls='-', lw=1.)
         dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
 
+        # Channel vlines or pixels
         if nD == 1:
             if Xother is None:
                 for ll in range(0,len(dax['X'])):
@@ -1826,30 +1788,24 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                         dobj[l0] = {'dupdate':{'xdata':{'id':idX,
                                                         'lrid':[idt,idX]}},
                                     'drefid':{idX:jj, idt:ii}}
-        else:
-            for ll in range(0,len(dax['X'])):
-                l0, = dax['X'][ll].plot([np.nan],[np.nan],
-                                        mec='k', ls='None', marker='s', mew=2.,
-                                        ms=ms, mfc='None', zorder=10)
-                dobj[l0] = {'dupdate':{'data':{'id':idX, 'lrid':[idX]}},
-                            'drefid':{idX:jj}}
 
 
         # psd imshow
-        l0 = dax['t'][1].imshow(np.full(lpsd.shape[1:],np.nan), cmap=cmap,
+        l0 = dax['t'][1].imshow(np.full(lpsd.shape[1:],np.nan), cmap=cmap_f,
                                 origin='lower', aspect='auto',
-                                extent=extent,
+                                extent=extentf,
                                 vmin=Dpsd[0], vmax=Dpsd[1],
                                 interpolation='nearest')
-        dobj[l0] = {'dupdate':{'imshow':{'id':idlpsd, 'lrid':[idX]}},
+        dobj[l0] = {'dupdate':{'data':{'id':idlpsd, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
 
         # ang imshow
-        l0 = dax['t'][2].imshow(np.full(lang.shape[1:],np.nan), cmap=cmap,
-                                origin='lower', aspect='auto',
-                                extent=extent,
-                                vmin=Dang[0], vmax=Dang[1], interpolation='nearest')
-        dobj[l0] = {'dupdate':{'imshow':{'id':idlang, 'lrid':[idX]}},
+        l0 = dax['t'][2].imshow(np.full(lang.shape[1:],np.nan),
+                                cmap=plt.cm.seismic,
+                                origin='lower', aspect='auto', extent=extentf,
+                                vmin=-np.pi, vmax=np.pi,
+                                interpolation='nearest')
+        dobj[l0] = {'dupdate':{'data':{'id':idlang, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
 
         # los
@@ -1865,6 +1821,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     # Time
     for jj in range(0,ntMax):
+        # Time txt
         l0 = dax['txtt'][0].text((0.5+jj)/ntMax, 0., r'',
                                  color=lct[jj], fontweight='bold',
                                  fontsize=6., ha='center', va='bottom')
@@ -1872,39 +1829,76 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                       'bstr':'{0:%s} s'%fmt_t}},
                     'drefid':{idt:jj}}
 
-        l0, = dax['X'][0].plot(X[0,:], np.full((nX,),np.nan),
-                               c=lct[jj], ls='-', lw=1.)
-        dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idt]}},
-                    'drefid':{idt:jj}}
-        if Xother is not None:
-            dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
-
-
+        # Time vlines
         for ll in range(0,len(dax['t'])):
             l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls='-', lw=1.)
             dobj[l0] = {'dupdate':{'xdata':{'id':idt, 'lrid':[idt]}},
                         'drefid':{idt:jj}}
 
-        # lpsd and ang
-        for ii in range(0,nfMax):
-            l0, = dax['X'][1].plot(X[0,:], np.full((nX,),np.nan),
-                                   c=lct[jj], ls=llsf[ii], lw=1.)
-            dobj[l0] = {'dupdate':{'ydata':{'id':idlpsd, 'lrid':[idtf,idf]}},
-                        'drefid':{idtf:jj, idf:ii}}
-            l1, = dax['X'][2].plot(X[0,:], np.full((nX,),np.nan),
-                                   c=lct[jj], ls=llsf[ii], lw=1.)
-            dobj[l1] = {'dupdate':{'ydata':{'id':idlang, 'lrid':[idtf,idf]}},
-                        'drefid':{idtf:jj, idf:ii}}
-
-            # To be finished !!!!! check ids handling in tf.utils !!!
+        # Time data profiles
+        if nD == 1:
+            l0, = dax['X'][0].plot(X[0,:], np.full((nch,),np.nan),
+                                   c=lct[jj], ls='-', lw=1.)
+            dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idt]}},
+                        'drefid':{idt:jj}}
             if Xother is not None:
                 dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
-                dobj[l0]['drefid'][Xother] = jj
-                dobj[l1]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
-                dobj[l1]['drefid'][Xother] = jj
+
+            # lpsd and ang profiles
+            for ii in range(0,nfMax):
+                l0, = dax['X'][1].plot(X[0,:], np.full((nch,),np.nan),
+                                       c=lct[jj], ls=llsf[ii], lw=1.)
+                dobj[l0] = {'dupdate':{'ydata':{'id':idlpsd, 'lrid':[idtf,idf]}},
+                            'drefid':{idtf:jj, idf:ii}}
+                l1, = dax['X'][2].plot(X[0,:], np.full((nch,),np.nan),
+                                       c=lct[jj], ls=llsf[ii], lw=1.)
+                dobj[l1] = {'dupdate':{'ydata':{'id':idlang, 'lrid':[idtf,idf]}},
+                            'drefid':{idtf:jj, idf:ii}}
+
+                if Xother is not None:
+                    dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
+                    dobj[l0]['drefid'][Xother] = jj
+                    dobj[l1]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
+                    dobj[l1]['drefid'][Xother] = jj
+        else:
+            nan2 = np.full((x2.size,x1.size),np.nan)
+            im = dax['X'][0].imshow(nan2, extent=extent, aspect='equal',
+                                    interpolation='nearest', origin='lower',
+                                    zorder=-1, norm=norm_data,
+                                    cmap=cmap_img)
+            dobj[im] = {'dupdate':{'data-reshape':{'id':iddata, 'n12':n12,
+                                                   'lrid':[idt]}},
+                        'drefid':{idt:jj}}
+
+            im = dax['X'][1].imshow(nan2, extent=extent, aspect='equal',
+                                    interpolation='nearest', origin='lower',
+                                    zorder=-1, norm=norm_psd,
+                                    cmap=cmap_img)
+            dobj[im] = {'dupdate':{'data-reshape':{'id':idlpsd, 'n12':n12,
+                                                   'lrid':[idtf,idf]}},
+                        'drefid':{idtf:jj, idf:0}}
+
+            im = dax['X'][2].imshow(nan2, extent=extent, aspect='equal',
+                                    interpolation='nearest', origin='lower',
+                                    zorder=-1, norm=norm_ang,
+                                    cmap=plt.cm.seismic)
+            dobj[im] = {'dupdate':{'data-reshape':{'id':idlang, 'n12':n12,
+                                                   'lrid':[idtf,idf]}},
+                        'drefid':{idtf:jj, idf:0}}
+
+    # pixel on top of imshows
+    if nD == 2:
+        jj = 0
+        for ll in range(0,len(dax['X'])):
+            l0, = dax['X'][ll].plot([np.nan],[np.nan],
+                                    mec='k', ls='None', marker='s', mew=2.,
+                                    ms=ms, mfc='None', zorder=10)
+            dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
 
     # Frequency
     for jj in range(0,nfMax):
+        # Frequency text
         l0 = dax['txtf'][0].text((0.5+jj)/ntMax, 0., r'',
                                  color='k', fontweight='bold',
                                  fontsize=6., ha='center', va='bottom')
@@ -1912,6 +1906,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                       'bstr':'{0:%s} Hz'%fmt_t}},
                     'drefid':{idf:jj}}
 
+        # Frequency hlines x 2
         l0 = dax['t'][1].axhline(np.nan, c='k', ls=llsf[jj], lw=1.)
         dobj[l0] = {'dupdate':{'ydata':{'id':idf, 'lrid':[idf]}},
                     'drefid':{idf:jj}}
@@ -1921,7 +1916,9 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                     'drefid':{idf:jj}}
 
 
-    # Plot mobile parts
+
+
+    # Instanciate KeyHandler
     can = fig.canvas
     can.draw()
     kh = utils.KeyHandler_mpl(can=can,

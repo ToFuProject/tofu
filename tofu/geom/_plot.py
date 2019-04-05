@@ -26,13 +26,15 @@ except Exception:
     from . import _GG as _GG
 
 
-__author_email__ = 'didier.vezinet@cea.fr'
+#__author_email__ = 'didier.vezinet@cea.fr'
 _fontsize = 8
-_wintit = 'tofu-{0}    {1}'.format(__version__,__author_email__)
+_labelpad = 0
+__github = 'https://github.com/ToFuProject/tofu/issues'
+_wintit = 'tofu-%s    report issues / requests at %s'%(__version__, __github)
 _nchMax = 4
-_cdef = (0.8,0.8,0.8)
+_cdef = 'k'
+_cbck = (0.8,0.8,0.8)
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
-
 
 # Generic
 def _check_Lax(Lax=None, n=2):
@@ -181,7 +183,6 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
         dLeg = None
 
     for ii in  range(0,nS):
-
         dplot = _Struct_plot_format(lS[ii], proj=proj, Elt=element,
                                     dP=dP, dI=dI, dBs=dBs,
                                     dBv=dBv, dVect=dVect, dIHor=dIHor,
@@ -888,7 +889,7 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                      dLeg=_def.TorLegd, multi=False, ind=None,
                      draw=True, fs=None, wintit=_wintit, Test=True):
     assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
-    dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
+    dPts = {'D':('D',dPtD), 'I':('PkIn',dPtI), 'O':('PkOut',dPtO),
             'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
     if ax is None:
         ax = _def.Plot_LOSProj_DefAxes('Cross', fs=fs, wintit=wintit,
@@ -908,7 +909,7 @@ def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
                 P = L._dsino['pts'][:,ind]
             elif kk=='D':
                 P = L.D[:,ind]
-            elif not (kk=='R' and L.config.Id.Type=='Lin'):
+            elif not (kk == 'R' and L.config.Id.Type == 'Lin'):
                 P = L._dgeom[dPts[kk][0]][:,ind]
             if len(ind)==1:
                 P = P.reshape((3,1))
@@ -937,7 +938,7 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
                    dLeg=_def.TorLegd, multi=False, ind=None,
                    draw=True, fs=None, wintit=_wintit, Test=True):
     assert ax is None or isinstance(ax,plt.Axes), 'Wrong input for ax !'
-    dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
+    dPts = {'D':('D',dPtD), 'I':('PkIn',dPtI), 'O':('PkOut',dPtO),
             'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
 
     if ax is None:
@@ -982,7 +983,7 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
                    dLeg=_def.TorLegd, multi=False, ind=None,
                    draw=True, fs=None, wintit=_wintit, Test=True):
     assert ax is None or isinstance(ax,Axes3D), 'Arg ax should be plt.Axes instance !'
-    dPts = {'D':('D',dPtD), 'I':('PkMin',dPtI), 'O':('PkMax',dPtO),
+    dPts = {'D':('D',dPtD), 'I':('PkIn',dPtI), 'O':('PkOut',dPtO),
             'R':('PRMin',dPtR),'P':('RefPt',dPtP)}
 
     if ax is None:
@@ -1164,232 +1165,72 @@ def _Plot_Sinogram_3D(L,ax=None,Leg ='', Ang='theta', AngUnit='rad',
 
 
 ########################################################
+########################################################
+########################################################
 #           plot_touch
 ########################################################
-
-def _make_cmap(c):
-
-    c0 = mpl.colors.to_rgb(c)
-    dc = {'red':((0.,c0[0],c0[0]),(1.,1.,1.)),
-          'green':((0,c0[1],c0[1]),(1.,1.,1.)),
-          'blue':((0.,c0[2],c0[2]),(1.,1.,1.))}
-    cm = mpl.colors.LinearSegmentedColormap(c, dc)
-    return cm
+########################################################
 
 
-
-def Rays_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
-                    invert=None, plotmethod='imshow',
+def Rays_plot_touch(cam, key=None, ind=None, quant='lengths', cdef=_cdef,
+                    invert=None, Bck=True, cbck=_cbck, Lplot='In',
+                    incch=[1,10], ms=4, cmap='touch', vmin=None, vmax=None,
+                    fmt_ch='02.0f', labelpad=_labelpad, dmargin=None,
                     nchMax=_nchMax, lcch=_lcch, fs=None, wintit=None, tit=None,
                     fontsize=_fontsize, draw=True, connect=True):
 
-    if type(Cam) is list:
-        assert all([cc.config==Cam[0].config for cc in Cam])
-    if ind is not None and type(Cam) is list and len(Cam)>1:
-        msg = "Cannot provide ind if Cam is a list !"
-        raise Exception(msg)
+    ########
+    # Prepare
     if ind is not None:
-        if type(Cam) is list:
-            ind = Cam[0]._check_indch(ind,out=bool)
-        else:
-            ind = Cam._check_indch(ind,out=bool)
-
+        ind = cam._check_indch(ind, out=bool)
     if wintit is None:
         wintit = _wintit
+    assert (issubclass(cam.__class__, utils.ToFuObject)
+            and 'cam' in cam.Id.Cls.lower())
 
-    if type(Cam) is list or '1D' in Cam.Id.Cls:
-        if not type(Cam) is list:
-            Cam = [Cam]
-        out = _Cam1D_plot_touch(Cam, key=key, ind=ind, cdef=cdef,
-                                fs=fs, wintit=wintit, tit=tit, draw=draw)
-    else:
+    nD = 2 if cam._is2D() else 1
+    if nD == 2:
         invert = True if invert is None else invert
-        out = _Cam2D_plot_touch(Cam, ind=ind, cdef=cdef, nchMax=nchMax,
-                                invert=invert, plotmethod=plotmethod,
-                                lcch=lcch, fs=fs, wintit=wintit, tit=tit,
-                                fontsize=fontsize, draw=draw, connect=connect)
+
+
+    assert type(quant) in [str,np.ndarray]
+    if type(quant) is str:
+        lok = ['lengths','indices','Etendues','Surfaces']
+        if not quant in lok:
+            msg = "Valid flags for kwarg quant are:\n"
+            msg += "    [" + ", ".join(lok) + "]\n"
+            msg += "    Provided: %s"%quant
+            raise Exception(msg)
+        if quant in ['Etendues','Surfaces'] and getattr(cam,quant) is None:
+            msg = "Required quantity is not set:\n"
+            msg += "    self.%s = None\n"%quant
+            msg += "  => use self.set_%s() first"%quant
+            raise Exception(msg)
+    else:
+        quant = quant.ravel()
+        if quant.shape != (cam.nRays,):
+            msg = "Provided quant has wrong shape!\n"
+            msg += "    - Expected: (%s,)"%cam.nRays
+            msg += "    - Provided: %s"%quant.shape
+            raise Exception(msg)
+
+    ########
+    # Plot
+    out = _Cam12D_plottouch(cam, key=key, ind=ind, quant=quant, nchMax=nchMax,
+                            Bck=Bck, lcch=lcch, cbck=cbck, Lplot=Lplot,
+                            incch=incch, ms=ms, cmap=cmap, vmin=vmin, vmax=vmax,
+                            fmt_ch=fmt_ch, invert=invert,
+                            fontsize=fontsize, labelpad=labelpad,
+                            fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                            draw=draw, connect=connect, nD=nD)
     return out
 
 
-def  _Cam1D_plot_touch_init(fs=None, wintit=_wintit, nchMax=_nchMax):
-    axCol = "w"
-    if fs is None:
-        fs = (10,7)
-    elif type(fs) is str and fs.lower()=='a4':
-        fs = (8.27,11.69)
-    fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
-        fig.canvas.set_window_title(wintit)
-    gs1 = gridspec.GridSpec(6, 3,
-                            left=0.05, bottom=0.05, right=0.99, top=0.94,
-                            wspace=None, hspace=0.4)
-    axp = fig.add_subplot(gs1[:,:-1], fc='w')
-    axH = fig.add_subplot(gs1[0:2,2], fc='w')
-    axC = fig.add_subplot(gs1[2:,2], fc='w')
 
-    axC.set_aspect('equal', adjustable='datalim')
-    axH.set_aspect('equal', adjustable='datalim')
-    dax = {'prof':[axp], '2D':[axC,axH]}
-    for kk in dax.keys():
-        for ii in range(0,len(dax[kk])):
-            dax[kk][ii].tick_params(labelsize=8)
-    return dax
+def _Cam12D_plot_touch_init(fs=None, dmargin=None, fontsize=8,
+                            wintit=_wintit, nchMax=_nchMax, nD=1):
 
-
-def _Cam1D_plot_touch(Cam, key=None, ind=None, cdef=_cdef,
-                      nchMax=_nchMax, fs=None, tit=None, wintit=_wintit, draw=True):
-
-    # Prepare
-    if 'LOS' in Cam[0].Id.Cls:
-        Dname = 'LOS length'
-        Dunits = r"$m$"
-        data = [cc._dgeom['kOut']-cc._dgeom['kIn'] for cc in Cam]
-        data = np.concatenate(tuple(data))
-    else:
-        Dname = 'VOS volume'
-        Dunits = r"$m^3$"
-        data = None
-        raise Exception("Not codd yet !")
-    Dd = [min(0,np.nanmin(data)), 1.2*np.nanmax(data)]
-
-    nch = data.size
-    nchmax = min(nch,50)
-    if nch>nchmax:
-        indchans = np.arange(0,nch, nch//nchmax)
-    else:
-        indchans = np.arange(0,nch)
-    chans = np.arange(0,nch)
-    Dchans = [-1,nch]
-    if key is None:
-        chlab = chans
-    else:
-        chlab = itt.chain.from_iterable([cc._dchans[kk] for cc in Cam])
-
-    lS = [cc.lStruct_computeInOut for cc in Cam]
-    lS = lS[0] if len(lS)==1 else list(itt.chain.from_iterable(lS))
-    lSP = [os.path.join(s.Id.SavePath,s.Id.SaveName) for s in lS]
-    lS = [lS[lSP.index(ss)] for ss in list(set(lSP))]
-
-    if ind is not None:
-        indl = np.zeros((Cam[0].nRays,),dtype=int)
-        indl[ind] = np.arange(0,ind.sum())
-
-    dElt = {}
-    for ss in lS:
-        kn = ss.Id.Cls+'_'+ss.Id.Name
-        inde = []
-        for cc in Cam:
-            try:
-                ii = cc.select(touch=kn,out=bool)
-            except:
-                ii = np.zeros((cc.nRays,),dtype=bool)
-            inde.append(ii)
-        inde = np.concatenate(tuple(inde))
-        if ind is not None:
-            indi = indl[inde]
-            inde[:] = inde & ind
-        else:
-            indi = inde.nonzero()[0]
-        dElt[kn] = {'inde':inde.nonzero()[0], 'indi':indi, 'c':ss.get_color()}
-
-    nan = np.full((2,1),np.nan)
-    if 'LOS' in Cam[0].Id.Cls:
-        if ind is not None:
-            lCross = Cam[0]._get_plotL(Lplot='In', proj='cross', ind=ind, multi=True)
-            lHor = Cam[0]._get_plotL(Lplot='In', proj='hor', ind=ind, multi=True)
-        else:
-            lCross = [cc._get_plotL(Lplot='In', proj='Cross', multi=True)
-                      for cc in Cam]
-            lHor = [cc._get_plotL(Lplot='In', proj='Hor', multi=True)
-                    for cc in Cam]
-            lCross = list(itt.chain.from_iterable(lCross))
-            lHor = list(itt.chain.from_iterable(lHor))
-        for ee in dElt.keys():
-            if dElt[ee]['inde'].size>0:
-                cr = [np.concatenate((lCross[ii],nan),axis=1)
-                      for ii in dElt[ee]['indi']]
-                cr = np.concatenate(tuple(cr),axis=1)
-                hh = [np.concatenate((lHor[ii],nan),axis=1)
-                      for ii in dElt[ee]['indi']]
-                hh = np.concatenate(tuple(hh),axis=1)
-                dElt[ee]['cr'] = cr
-                dElt[ee]['hh'] = hh
-
-    else:
-        raise Exception("Not coded yet !")
-
-
-    # Format axes
-    dax = _Cam1D_plot_touch_init(fs=fs, wintit=wintit)
-
-    dax['prof'][0].set_xlim(Dchans),   dax['prof'][0].set_ylim(Dd)
-    dax['prof'][0].set_xlabel(r"", fontsize=8)
-    dax['prof'][0].set_ylabel(r"%s (%s)"%(Dname,Dunits), fontsize=8)
-    dax['prof'][0].set_xticks(chans[indchans])
-    dax['prof'][0].set_xticklabels([chlab[ii] for ii in indchans], rotation=45)
-
-    # Plot fixed parts
-    if Cam[0].config is not None:
-        dax['2D'] = Cam[0].config.plot(lax=dax['2D'], element='P', dLeg=None)
-    if tit is None:
-        tit = r"%s - %s"%(Cam[0].Id.Exp,Cam[0].Id.Diag)
-        if len(Cam)==1:
-            tit += r" - %s"%Cam[0].Id.Name
-    dax['prof'][0].figure.suptitle(tit)
-
-    for ee in dElt.keys():
-        if dElt[ee]['inde'].size>0:
-            c, inde = dElt[ee]['c'], dElt[ee]['inde']
-            cr, hh = dElt[ee]['cr'], dElt[ee]['hh']
-            dax['prof'][0].plot(chans[inde], data[inde],
-                                ls='None', marker='x', ms=8, c=c)
-            if 'LOS' in Cam[0].Id.Cls:
-                dax['2D'][0].plot(cr[0,:], cr[1,:], ls='-', lw=1., c=c)
-                dax['2D'][1].plot(hh[0,:], hh[1,:], ls='-', lw=1., c=c)
-
-    if draw:
-        dax['prof'][0].figure.canvas.draw()
-    return dax
-
-
-###################################################
-###################################################
-#           Data2D
-###################################################
-###################################################
-
-class KH2D(utils.KeyHandler):
-
-    def __init__(self, can, daxT, ntMax=3, nchMax=3):
-
-        utils.KeyHandler.__init__(self, can, daxT=daxT,
-                                  ntMax=ntMax, nchMax=nchMax, nlambMax=1)
-
-    def update(self):
-
-        # Restore background
-        self._update_restore_Bck(list(self.daxr.keys()))
-
-        # Update and get lax
-        lax = self._update_vlines_and_Eq()
-
-        # Blit
-        self._update_blit(lax)
-
-def _prepare_pcolormeshimshow(X12_1d, out='imshow'):
-    assert out.lower() in ['pcolormesh','imshow']
-    try:
-        import tofu.geom.utils as geom_utils
-    except Exception:
-        from geom import utils as geom_utils
-    x1, x2, ind, dX12 = geom_utils.get_X12fromflat(X12_1d)
-    if out=='pcolormesh':
-        x1 = np.r_[x1-dX12[0]/2., x1[-1]+dX12[0]/2.]
-        x2 = np.r_[x2-dX12[1]/2., x2[-1]+dX12[1]/2.]
-    return x1, x2, ind, dX12
-
-def _Cam2D_plot_touch_init(fs=None, dmargin=None,
-                           fontsize=8, wintit=_wintit, nchMax=_nchMax):
+    # Figure
     axCol = "w"
     if fs is None:
         fs = (10,7)
@@ -1402,230 +1243,347 @@ def _Cam2D_plot_touch_init(fs=None, dmargin=None,
         dmargin = {'left':0.03, 'right':0.99,
                    'bottom':0.05, 'top':0.92,
                    'wspace':None, 'hspace':0.4}
+
+    # Axes
     gs1 = gridspec.GridSpec(6, 3, **dmargin)
-    pos = list(gs1[5,:-1].get_position(fig).bounds)
-    pos[-1] = pos[-1]/2.
-    cax = fig.add_axes(pos, fc='w')
-    axp = fig.add_subplot(gs1[:5,:-1], fc='w')
+    if nD == 1:
+        axp = fig.add_subplot(gs1[:,:-1], fc='w')
+    else:
+        pos = list(gs1[5,:-1].get_position(fig).bounds)
+        pos[-1] = pos[-1]/2.
+        cax = fig.add_axes(pos, fc='w')
+        axp = fig.add_subplot(gs1[:5,:-1], fc='w')
     axH = fig.add_subplot(gs1[0:2,2], fc='w')
     axC = fig.add_subplot(gs1[2:,2], fc='w')
 
     axC.set_aspect('equal', adjustable='datalim')
     axH.set_aspect('equal', adjustable='datalim')
 
-    Ytxt = axp.get_position().bounds[1]+axp.get_position().bounds[3]
-    DY = (axp.get_position().bounds[1]
-          - cax.get_position().bounds[1] - cax.get_position().bounds[3])
+    Ytxt = axp.get_position().bounds[1] + axp.get_position().bounds[3]
+    DY = 0.02
     Xtxt = axp.get_position().bounds[0]
     DX = axp.get_position().bounds[2]
     axtxtch = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='w')
-    for ax in [axtxtch]:
-        ax.patch.set_alpha(0.)
-        for ss in ['left','right','bottom','top']:
-            ax.spines[ss].set_visible(False)
-        ax.set_xticks([]), ax.set_yticks([])
-        ax.set_xlim(0,1),  ax.set_ylim(0,1)
 
-    dax = {'chan2D':[{'ax':axp,'dh':{'vline':[]}}],
-           'cross':[{'ax':axC, 'dh':{}}],
-           'hor':[{'ax':axH, 'dh':{}}],
-           'colorbar':[{'ax':cax, 'dh':{}}],
-           'txtch':[{'ax':axtxtch, 'dh':{}}]}
+    xtxt, Ytxt, dx, DY = 0.01, 0.98, 0.15, 0.02
+    axtxtg = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+
+    # Dict
+    dax = {'X':[axp],
+           'cross':[axC],
+           'hor':[axH],
+           'txtg':[axtxtg],
+           'txtch':[axtxtch]}
+    if nD == 2:
+        dax['colorbar'] = [cax]
+
+    # Formatting
     for kk in dax.keys():
         for ii in range(0,len(dax[kk])):
-            dax[kk][ii]['ax'].tick_params(labelsize=fontsize)
+            dax[kk][ii].tick_params(labelsize=fontsize)
+            if 'txt' in kk:
+                dax[kk][ii].patch.set_alpha(0.)
+                for ss in ['left','right','bottom','top']:
+                    dax[kk][ii].spines[ss].set_visible(False)
+                dax[kk][ii].set_xticks([]), dax[kk][ii].set_yticks([])
+                dax[kk][ii].set_xlim(0,1),  dax[kk][ii].set_ylim(0,1)
+
     return dax
 
 
+def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
+                      Bck=True, lcch=_lcch, cbck=_cbck, Lplot='In',
+                      incch=[1,5], ms=4, plotmethod='imshow',
+                      cmap=None, vmin=None, vmax=None,
+                      fmt_ch='01.0f', invert=True, Dlab=None,
+                      fontsize=_fontsize, labelpad=_labelpad,
+                      fs=None, dmargin=None, wintit=_wintit, tit=None,
+                      draw=True, connect=True, nD=1):
 
-def _Cam2D_plot_touch(Cam, key=None, ind=None, ms=4, lcch=_lcch, cdef=_cdef,
-                      plotmethod='scatter', invert=False, nchMax=_nchMax,
-                      dmargin=None, fs=None, wintit=_wintit, tit=None,
-                      fontsize=_fontsize, draw=True, connect=True):
+    assert plotmethod == 'imshow', "plotmethod %s not coded yet !"%plotmethod
 
+    #########
     # Prepare
-    if 'LOS' in Cam.Id.Cls:
-        Dname = 'LOS length'
-        Dunits = r"$m$"
-        data = Cam.kOut-Cam.kIn
-        data[np.isinf(data)] = np.nan
-    else:
-        Dname = 'VOS volume'
-        Dunits = r"$m^3$"
-        data = None
-        raise Exception("Not coded yet !")
+    #########
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
 
-    nch = data.size
-    chans = np.arange(0,nch)
-    Dchans = [-1,nch]
+
+
+    # ---------
+    # Check nch and X
+    nch = cam.nRays
+
+    nan2 = np.full((2,1),np.nan)
+    if nD == 1:
+        Xlab = r"index"
+        Xtype = 'x'
+        DX = [-1., nch]
+    else:
+        x1, x2, indr, extent = cam.get_X12plot('imshow')
+        if Bck:
+            indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
+        idx12 = id((x1,x2))
+        n12 = [x1.size, x2.size]
+        Xtype = 'x'
+
+    X = np.arange(0,nch)
+    idX = id(X)
+
+    # dchans
     if key is None:
-        chlab = chans
+        dchans = np.arange(0,nch)
     else:
-        chlab = Cam.dchans[kk]
-    X12, DX12 = Cam.get_X12(out='1d')
-    X12T = X12.T
+        dchans = cam.dchans(key)
+    idchans = id(dchans)
 
-    X1p, X2p, indp, dX12 = _prepare_pcolormeshimshow(X12, out=plotmethod)
-    DX1 = [np.nanmin(X1p),np.nanmax(X1p)]
-    DX2 = [np.nanmin(X2p),np.nanmax(X2p)]
+    # ---------
+    # Check colors
 
-    incx = {'left':np.r_[-dX12[0],0.], 'right':np.r_[dX12[0],0.],
-            'down':np.r_[0.,-dX12[1]], 'up':np.r_[0.,dX12[1]]}
+    dElt = cam.get_touch_dict(ind=ind, out=int)
 
-    if 'LOS' in Cam.Id.Cls:
-        lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
-        lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
-    else:
-        raise Exception("Not coded yet !")
+    # ---------
+    # Check data
 
-    # Get colors
-    datamin, datamax = np.nanmin(data), np.nanmax(data)
-    norm = mpl.colors.Normalize(vmin=datamin, vmax=datamax)
-    cmapdef = _make_cmap(cdef)
-    scamapdef = mpl.cm.ScalarMappable(norm=norm, cmap=cmapdef)
-    lS = Cam.lStruct_computeInOut
-    cols = np.full((data.size,4),np.nan)
-    dElt = {}
-    for ss in lS:
-        kn = ss.Id.Cls+'_'+ss.Id.Name
-        inde = Cam.select(touch=kn,out=bool)
-        if ind is not None:
-            indin = inde & ind
-            indout = inde & (~ind)
-        c = ss.get_color()[:-1]
-        cmap = _make_cmap(c)
-        scamap = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
-        if ind is None:
-            cols[inde,:] = scamap.to_rgba(data[inde])
+    # data
+    if type(quant) is str:
+        if quant == 'lengths':
+            if cam._isLOS():
+                Dlab = r'LOS length'+r'$m$'
+                data = cam.kOut-cam.kIn
+                data[np.isinf(data)] = np.nan
+            else:
+                Dlab = r'VOS volume'+r'$m^3$'
+                data = None
+                raise Exception("Not coded yet !")
+        elif quant == 'indices':
+            Dlab = r'index' + r' ($a.u.$)'
+            data = np.arange(0,cam.nRays)
         else:
-            cols[indin,:] = scamap.to_rgba(data[indin])
-            cols[indout,:] = scamapdef.to_rgba(data[indout])
+            data = getattr(cam, quant)
+            Dlab = quant
+            Dlab += r' ($m^2/sr$)' if quant == 'Etendues' else r' ($m^2$)'
+    else:
+        data = quant
+        Dlab = '' if Dlab is None else Dlab
 
-    # Prepare colors
-    if plotmethod=='imshow':
-        try:
-            import tofu.geom.utils as geom_utils
-        except Exception:
-            from geom import utils as geom_utils
-        x1u, x2u, ind, DX12 = geom_utils.get_X12fromflat(X12)
-        nx1, nx2 = x1u.size, x2u.size
-        extent = (x1u.min(),x1u.max(),x2u.min(),x2u.max())
+    iddata = id(data)
+
+    vmin = np.nanmin(data) if vmin is None else vmin
+    vmax = np.nanmax(data) if vmax is None else vmax
+    if nD == 1:
+        Dlim = [min(0.,vmin), max(0.,vmax)]
+        Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
+    else:
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        if cmap == 'touch':
+            cols = cam.get_touch_colors(dElt=dElt)
+        else:
+            cols = np.tile(mpl.colors.to_rgba(cmap), (self.nRays,1)).T
+        cols[-1,:] = 1.-norm(data)
+        cols = np.swapaxes(cols[:,indr.T], 0,2)
+
+    #########
+    # Plot
+    #########
 
     # Format axes
-    dax = _Cam2D_plot_touch_init(fs=fs, wintit=wintit, nchMax=nchMax,
-                                 dmargin=dmargin, fontsize=fontsize)
+    dax = _Cam12D_plot_touch_init(fs=fs, wintit=wintit, nchMax=nchMax,
+                                  dmargin=dmargin, fontsize=fontsize, nD=nD)
 
-    # Plot fixed parts
-    out = Cam.config.plot(lax=[dax['cross'][0]['ax'],
-                               dax['hor'][0]['ax']],
-                          element='P', dLeg=None, draw=False)
-    dax['cross'][0]['ax'], dax['hor'][0]['ax'] = out
+    fig = dax['X'][0].figure
 
     if tit is None:
-        tit = r"%s - %s - %s"%(Cam.Id.Exp, Cam.Id.Diag, Cam.Id.Name)
-    dax['chan2D'][0]['ax'].figure.suptitle(tit)
+        tit = r"%s - %s - %s"%(cam.Id.Exp, cam.Id.Diag, cam.Id.Name)
+    fig.suptitle(tit)
 
-    dax['chan2D'][0]['xref'] = X12T
-    if plotmethod=='scatter':
-        dax['chan2D'][0]['ax'].set_xlim(DX1)
-        dax['chan2D'][0]['ax'].set_ylim(DX2)
-        dax['chan2D'][0]['ax'].scatter(X12[0,:],X12[1,:], c=cols,
-                                       s=8, marker='s', edgecolors='None',
-                                       zorder=-1)
-    elif plotmethod=='imshow':
-        dax['chan2D'][0]['ax'].set_xlim(extent[0:2])
-        dax['chan2D'][0]['ax'].set_ylim(extent[2:])
-        try:
-            cols = cols.reshape((nx1,nx2,4)).swapaxes(0,1)
-        except Exception as err:
-            import ipdb
-            ipdb.set_trace()
-            raise err
-        dax['chan2D'][0]['ax'].imshow(cols, extent=extent, aspect='equal',
-                                      interpolation='nearest', origin='lower',
-                                      zorder=-1)
+    # -----------------
+    # Plot conf and bck
+    if cam.config is not None:
+        out = cam.config.plot(lax=[dax['cross'][0], dax['hor'][0]],
+                              element='P', dLeg=None, draw=False)
+        dax['cross'][0], dax['hor'][0] = out
 
-    # Plot colorbar
-    cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0]['ax'],
-                                   cmap=cmapdef, norm=norm,
-                                   orientation='horizontal')
-    cb.set_label(r"LOS length (m)")
-    # Define datanorm because colorbar => xlim in (0,1)
-    if dax['colorbar'][0]['ax'].get_xlim()==(0.,1.):
-        datanorm = ((data-datamin)/(datamax-datamin))[:,np.newaxis]
+    if cam._isLOS():
+        lCross = cam._get_plotL(Lplot=Lplot, proj='cross', multi=True)
+        lHor = cam._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+        if Bck and nD == 2:
+            crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
+                        lCross[indbck[2]],nan2,lCross[indbck[3]]]
+            crossbck = np.concatenate(crossbck,axis=1)
+            horbck = [lHor[indbck[0]],nan2,lHor[indbck[1]],nan2,
+                      lHor[indbck[2]],nan2,lHor[indbck[3]]]
+            horbck = np.concatenate(horbck,axis=1)
+            dax['cross'][0].plot(crossbck[0,:], crossbck[1,:],
+                                 c=cbck, ls='-', lw=1.)
+            dax['hor'][0].plot(horbck[0,:], horbck[1,:],
+                                 c=cbck, ls='-', lw=1.)
+        elif nD == 1:
+            for kn, v in dElt.items():
+                if np.any(v['indok']):
+                    crok = [np.concatenate((lCross[ii],nan2), axis=1)
+                            for ii in v['indok']]
+                    crok = np.concatenate(crok, axis=1)
+                    dax['cross'][0].plot(crok[0,:],  crok[1,:],  c=v['col'], lw=1.)
+                    crok = [np.concatenate((lHor[ii],nan2), axis=1)
+                            for ii in v['indok']]
+                    crok = np.concatenate(crok, axis=1)
+                    dax['hor'][0].plot(crok[0,:],  crok[1,:],  c=v['col'], lw=1.)
+                if np.any(v['indout']):
+                    crout = [np.concatenate((lCross[ii],nan2), axis=1)
+                             for ii in v['indout']]
+                    crout = np.concatenate(crout, axis=1)
+                    dax['cross'][0].plot(crout[0,:], crout[1,:], c=cbck, lw=1.)
+                    crout = [np.concatenate((lHor[ii],nan2), axis=1)
+                             for ii in v['indout']]
+                    crout = np.concatenate(crout, axis=1)
+                    dax['hor'][0].plot(crout[0,:], crout[1,:], c=cbck, lw=1.)
+        lHor = np.stack(lHor)
+        idlCross = id(lCross)
+        idlHor = id(lHor)
     else:
-        datanorm = data[:,np.newaxis]
+        lCross, lHor = None, None
 
-    # Plot LOS
-    if 'LOS' in Cam.Id.Cls:
-        lCross = Cam._get_plotL(Lplot='In', proj='cross', multi=True)
-        lHor = Cam._get_plotL(Lplot='In', proj='hor', multi=True)
-        if 'Name' in Cam.dchans.keys():
-            llab = [Cam.Id.Name + s for s in Cam.dchans['Name']]
+    # data, TBF
+    if nD == 1:
+        for kn,v in dElt.items():
+            dax['X'][0].plot(X[v['indok']], data[v['indok']],
+                             marker='o', ms=ms, mfc='None',
+                             c=v['col'], ls='-', lw=1.)
+            dax['X'][0].plot(X[v['indout']], data[v['indout']],
+                             marker='o', ms=ms, mfc='None',
+                             c=cbck, ls='-', lw=1.)
+    elif nD == 2:
+        dax['X'][0].imshow(cols, extent=extent, aspect='equal',
+                           interpolation='nearest', origin='lower', zorder=-1)
+        cmapdef = plt.cm.gray if cmap == 'touch' else cmap
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0],
+                                       cmap=cmapdef, norm=norm,
+                                       orientation='horizontal')
+        cb.set_label(Dlab)
+        # Define datanorm because colorbar => xlim in (0,1)
+        if dax['colorbar'][0].get_xlim() == (0.,1.):
+            datanorm = np.asarray(norm(data))
         else:
-            llab = [Cam.Id.Name + '-{0}'.format(ii)
-                    for ii in range(0,Cam.nRays)]
+            datanorm = data
+        iddatanorm= id(datanorm)
 
-        lv = []
-        dlosc = {'losc':[{'h':[],'xy':lCross, 'xref':X12T}]}
-        lHor= np.stack(tuple(lHor),axis=0)
-        dlosh = {'losh':[{'h':[],'x':lHor[:,0,:], 'y':lHor[:,1,:], 'xref':X12T}]}
-        dcolb = {'vline':[{'h':[],'x':datanorm, 'xref':X12T}]}
-        dchtxt = {'txt':[{'h':[],'txt':llab, 'xref':X12T}]}
-        for jj in range(0,nchMax):
-            lab = r"ch{0}".format(jj)
-            l, = dax['chan2D'][0]['ax'].plot([np.nan],[np.nan],
-                                              mec=lcch[jj], ls='None',
-                                              marker='s', mew=2.,
-                                              ms=ms, mfc='None',
-                                              label=lab, zorder=10)
-            lv.append(l)
-            l, = dax['cross'][0]['ax'].plot([np.nan,np.nan],
-                                           [np.nan,np.nan],
-                                           c=lcch[jj], ls='-', lw=2.)
-            dlosc['losc'][0]['h'].append(l)
-            l, = dax['hor'][0]['ax'].plot([np.nan,np.nan],
-                                          [np.nan,np.nan],
-                                          c=lcch[jj], ls='-', lw=2.)
-            dlosh['losh'][0]['h'].append(l)
-            l = dax['colorbar'][0]['ax'].axvline(np.nan, ls='-', lw=1,
-                                                 c=lcch[jj], zorder=10)
-            dcolb['vline'][0]['h'].append(l)
-            l = dax['txtch'][0]['ax'].text((0.5+jj)/nchMax,0., r"",
-                                       color=lcch[jj],
-                                       fontweight='bold', fontsize=6.,
-                                       ha='center', va='bottom')
-            dchtxt['txt'][0]['h'].append(l)
-        dax['chan2D'][0]['dh']['vline'] = [{'h':lv, 'xref':X12T,
-                                            'trig':{}}]
-        dax['hor'][0]['dh'].update(dlosh)
-        dax['cross'][0]['dh'].update(dlosc)
-        dax['colorbar'][0]['dh'].update(dcolb)
-        dax['txtch'][0]['dh'].update(dchtxt)
-        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dlosh)
-        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dlosc)
-        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dcolb)
-        dax['chan2D'][0]['dh']['vline'][0]['trig'].update(dchtxt)
+
+    # ---------------
+    # Lims and labels
+    if nD == 1:
+        dax['X'][0].set_xlim(DX)
+        dax['X'][0].set_xlabel(Xlab, **fldict)
     else:
-        raise Exception("Not coded yet !")
-    dax['chan2D'][0]['incx'] = incx
-    dax['chan2D'][0]['ax'].set_ylabel(r"pix.", fontsize=fontsize)
+        dax['X'][0].set_xlim(extent[:2])
+        dax['X'][0].set_ylim(extent[2:])
+        if invert:
+            dax['X'][0].invert_xaxis()
+            dax['X'][0].invert_yaxis()
 
-    dax['chan2D'][0]['ax'].set_xlabel(r"$X_1$", fontsize=8)
-    dax['chan2D'][0]['ax'].set_ylabel(r"$X_2$", fontsize=8)
-    if invert:
-        dax['chan2D'][0]['ax'].invert_xaxis()
-        dax['chan2D'][0]['ax'].invert_yaxis()
-    dax['chan2D'][0]['invert'] = invert
+    ##################
+    # Interactivity dict
+    dgroup = {'channel':   {'nMax':nchMax, 'key':'f1',
+                            'defid':idX, 'defax':dax['X'][0]}}
 
-    # Plot mobile parts
-    can = dax['chan2D'][0]['ax'].figure.canvas
+    # Group info (make dynamic in later versions ?)
+    msg = '  '.join(['%s: %s'%(v['key'],k) for k, v in dgroup.items()])
+    l0 = dax['txtg'][0].text(0., 0., msg,
+                             color='k', fontweight='bold',
+                             fontsize=6., ha='left', va='center')
+
+    # dref
+    dref = {idX:{'group':'channel', 'val':X, 'inc':incch}}
+
+    if nD == 2:
+        dref[idX]['2d'] = (x1,x2)
+
+    # ddata
+    ddat = {iddata:{'val':data, 'refids':[idX]}}
+    ddat[idchans] = {'val':dchans, 'refids':[idX]}
+    if lCross is not None:
+        ddat[idlCross] = {'val':lCross, 'refids':[idX]}
+        ddat[idlHor] = {'val':lHor, 'refids':[idX]}
+    if nD == 2:
+        ddat[idx12] = {'val':(x1,x2), 'refids':[idX]}
+        if iddatanorm not in ddat.keys():
+            ddat[iddatanorm] = {'val':datanorm, 'refids':[idX]}
+
+    # dax
+    lax_fix = [dax['cross'][0], dax['hor'][0],
+               dax['txtg'][0], dax['txtch'][0]]
+
+    dax2 = {}
+    if nD == 1:
+        dax2[dax['X'][0]] = {'ref':{idX:'x'}}
+    else:
+        dax2[dax['X'][0]] = {'ref':{idX:'2d'},'invert':invert}
+
+    dobj = {}
+
+
+    ##################
+    # Populating dobj
+
+    # -------------
+    # One-shot channels
+    for jj in range(0,nchMax):
+
+        # Channel text
+        l0 = dax['txtch'][0].text((0.5+jj)/nchMax, 0., r'',
+                                 color=lcch[jj], fontweight='bold',
+                                 fontsize=6., ha='center', va='bottom')
+        dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[idX],
+                                      'bstr':'{0:%s}'%fmt_ch}},
+                    'drefid':{idX:jj}}
+        # los
+        if cam._isLOS():
+            l, = dax['cross'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                      c=lcch[jj], ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlCross, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
+            l, = dax['hor'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                    c=lcch[jj], ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlHor, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
+
+    # -------------
+    # Data-specific
+
+
+    # Channel
+    for jj in range(0,nchMax):
+
+        # Channel vlines or pixels
+        if nD == 1:
+            l0 = dax['X'][0].axvline(np.nan, c=lcch[jj], ls='-', lw=1.)
+            dobj[l0] = {'dupdate':{'xdata':{'id':idX, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
+        else:
+            l0, = dax['X'][0].plot([np.nan],[np.nan],
+                                   mec=lcch[jj], ls='None', marker='s', mew=2.,
+                                   ms=ms, mfc='None', zorder=10)
+            dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
+
+            # Channel colorbar indicators
+            l0 = dax['colorbar'][0].axvline([np.nan], ls='-', c=lcch[jj])
+            dobj[l0] = {'dupdate':{'xdata':{'id':iddatanorm, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
+
+
+    ##################
+    # Instanciate KeyHandler
+    can = fig.canvas
     can.draw()
-    KH = KH2D(can, dax, nchMax=nchMax)
+
+    kh = utils.KeyHandler_mpl(can=can,
+                              dgroup=dgroup, dref=dref, ddata=ddat,
+                              dobj=dobj, dax=dax2, lax_fix=lax_fix,
+                              groupinit='channel', follow=True)
 
     if connect:
-        KH.disconnect_old()
-        KH.connect()
+        kh.disconnect_old()
+        kh.connect()
     if draw:
         can.draw()
-    return KH
+    return kh

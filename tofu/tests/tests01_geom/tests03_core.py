@@ -2,6 +2,8 @@
 This module contains tests for tofu.geom in its structured version
 """
 
+
+
 # External modules
 import os
 import numpy as np
@@ -48,7 +50,7 @@ def setup_module(module):
         v = v[0]
         if '.npz' in v:
             v = v[:v.index('.npz')]
-        print(v, __version__)
+        # print(v, __version__)
         if v!=__version__:
             lF.append(f)
     if len(lF)>0:
@@ -75,7 +77,7 @@ def teardown_module(module):
         v = v[0]
         if '.npz' in v:
             v = v[:v.index('.npz')]
-        print(v, __version__)
+        # print(v, __version__)
         if v==__version__:
             lF.append(f)
     if len(lF)>0:
@@ -110,6 +112,7 @@ def teardown_module(module):
 #   Struct subclasses
 #
 #######################################################
+
 
 path = os.path.join(_here,'tests03_core_data')
 lf = os.listdir(path)
@@ -409,22 +412,22 @@ class Test01_Struct(object):
                                         Sketch=False, draw=False, fs='a4')
                     plt.close('all')
 
-    def test16_saveload(self):
+    def test16_saveload(self, verb=False):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
                     obj = self.dobj[typ][c][n]
-                    pfe = obj.save(return_pfe=True)
-                    obj2 = tf.load(pfe)
+                    pfe = obj.save(return_pfe=True, verb=verb)
+                    obj2 = tf.load(pfe, verb=verb)
                     assert obj==obj2
                     os.remove(pfe)
 
-    def test17_save_to_txt(self):
+    def test17_save_to_txt(self, verb=False):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
                     obj = self.dobj[typ][c][n]
-                    pfe = obj.save_to_txt(return_pfe=True)
+                    pfe = obj.save_to_txt(return_pfe=True, verb=verb)
                     os.remove(pfe)
 
 
@@ -443,11 +446,10 @@ for typ in dobj.keys():
                             lStruct=lS, Lim=Lim,
                             Type=typ, SavePath=_here)
 
-
 class Test02_Config(object):
 
     @classmethod
-    def setup_class(cls, dobj=dconf):
+    def setup_class(cls, dobj=dconf, verb=False):
         #print("")
         #print("--------- "+VerbHead+cls.__name__)
         cls.dlpfe = {}
@@ -456,7 +458,7 @@ class Test02_Config(object):
             lpfe = [os.path.join(ss.Id.SavePath, ss.Id.SaveName+'.npz')
                     for ss in lS]
             for ss in lS:
-                ss.save()
+                ss.save(verb=verb)
             cls.dlpfe[typ] = lpfe
         cls.dobj = dobj
 
@@ -490,17 +492,17 @@ class Test02_Config(object):
         for typ in self.dobj.keys():
             nb, dnb = self.dobj[typ].get_nbytes()
 
-    def test05_strip_nbytes(self):
+    def test05_strip_nbytes(self, verb=False):
         lok = tfg.Config._dstrip['allowed']
         nb = np.full((len(lok),), np.nan)
         for typ in self.dobj.keys():
             obj = self.dobj[typ]
             for ii in lok:
-                obj.strip(ii)
+                obj.strip(ii, verb=verb)
                 nb[ii] = obj.get_nbytes()[0]
             assert np.all(np.diff(nb)<0.)
             for ii in lok[::-1]:
-                obj.strip(ii)
+                obj.strip(ii, verb=verb)
 
     def test06_set_dsino(self):
         for typ in self.dobj.keys():
@@ -511,12 +513,12 @@ class Test02_Config(object):
             obj = self.dobj[typ]
             n = [ss.Id.Name for ss in obj.lStruct if 'Baffle' in ss.Id.Name]
             n = n[0]
-            B = obj.dstruct['dStruct']['PFC'][n].copy()
-            assert n in obj.dstruct['dStruct']['PFC'].keys()
+            B = obj.dStruct['dObj']['PFC'][n].copy()
+            assert n in obj.dStruct['dObj']['PFC'].keys()
             assert n in obj.dextraprop['dvisible']['PFC'].keys()
             assert hasattr(obj.PFC,n)
             obj.remove_Struct('PFC',n)
-            assert n not in obj.dstruct['dStruct']['PFC'].keys()
+            assert n not in obj.dStruct['dObj']['PFC'].keys()
             assert n not in obj.dextraprop['dvisible']['PFC'].keys()
             try:
                 hasattr(obj.PFC,n)
@@ -524,14 +526,14 @@ class Test02_Config(object):
                 assert err.__class__.__name__=='KeyError'
             self.dobj[typ].add_Struct(struct=B,
                                       dextraprop={'visible':True})
-            assert n in obj.dstruct['dStruct']['PFC'].keys()
+            assert n in obj.dStruct['dObj']['PFC'].keys()
             assert n in obj.dextraprop['dvisible']['PFC'].keys()
             assert hasattr(obj.PFC,n)
 
     def test08_setget_color(self):
         for typ in self.dobj.keys():
             col = self.dobj[typ].get_color()
-            for c in self.dobj[typ].dstruct['dStruct'].keys():
+            for c in self.dobj[typ].dStruct['dObj'].keys():
                 eval("self.dobj[typ].%s.set_color('r')"%c)
 
     def test09_get_summary(self):
@@ -583,15 +585,15 @@ class Test02_Config(object):
             lax = self.dobj[typ].plot_sino()
         plt.close('all')
 
-    def test14_saveload(self):
+    def test14_saveload(self, verb=False):
         for typ in self.dobj.keys():
             self.dobj[typ].strip(-1)
-            pfe = self.dobj[typ].save(verb=False, return_pfe=True)
-            obj = tf.load(pfe, verb=False)
+            pfe = self.dobj[typ].save(verb=verb, return_pfe=True)
+            obj = tf.load(pfe, verb=verb)
             msg = "Unequal saved / loaded objects !"
             assert obj==self.dobj[typ], msg
             # Just to check the loaded version works fine
-            obj.strip(0)
+            obj.strip(0, verb=verb)
             os.remove(pfe)
 
 
@@ -645,7 +647,7 @@ for typ in dconf.keys():
 class Test03_Rays(object):
 
     @classmethod
-    def setup_class(cls, dobj=dCams):
+    def setup_class(cls, dobj=dCams, verb=False):
         #print ("")
         #print "--------- "+VerbHead+cls.__name__
         dlpfe = {}
@@ -655,11 +657,11 @@ class Test03_Rays(object):
                 dlpfe[typ][c] = []
                 for s in dobj[typ][c].config.lStruct:
                     pfe = os.path.join(s.Id.SavePath,s.Id.SaveName+'.npz')
-                    s.save()
+                    s.save(verb=verb)
                     dlpfe[typ][c].append(pfe)
                 dobj[typ][c].config.strip(-1)
-                dobj[typ][c].config.save()
-                dobj[typ][c].config.strip(0)
+                dobj[typ][c].config.save(verb=verb)
+                dobj[typ][c].config.strip(0, verb=verb)
                 pfe = os.path.join(dobj[typ][c].config.Id.SavePath,
                                    dobj[typ][c].config.Id.SaveName+'.npz')
                 dlpfe[typ][c].append(pfe)
@@ -716,18 +718,18 @@ class Test03_Rays(object):
             for c in self.dobj[typ].keys():
                 nb, dnb = self.dobj[typ][c].get_nbytes()
 
-    def test05_strip_nbytes(self):
+    def test05_strip_nbytes(self, verb=False):
         lok = tfg.Rays._dstrip['allowed']
         nb = np.full((len(lok),), np.nan)
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
                 for ii in lok:
-                    obj.strip(ii)
+                    obj.strip(ii, verb=verb)
                     nb[ii] = obj.get_nbytes()[0]
                 assert np.all(np.diff(nb)<0.)
                 for ii in lok[::-1]:
-                    obj.strip(ii)
+                    obj.strip(ii, verb=verb)
 
     def test06_set_dsino(self):
         for typ in self.dobj.keys():
@@ -886,14 +888,14 @@ class Test03_Rays(object):
                     print(msg)
                 plt.close('all')
 
-    def test11_plot_sino(self):
+    def test12_plot_sino(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
                 ax = obj.plot_sino()
             plt.close('all')
 
-    def test12_plot_touch(self):
+    def test13_plot_touch(self):
         connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
                    and getattr(plt.get_current_fig_manager(),'toolbar')
                    is not None)
@@ -904,17 +906,17 @@ class Test03_Rays(object):
                 lax = obj.plot_touch(ind=ind, connect=connect)
             plt.close('all')
 
-    def test13_saveload(self):
+    def test14_saveload(self, verb=False):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
-                obj.strip(-1)
-                pfe = obj.save(verb=False, return_pfe=True)
-                obj2 = tf.load(pfe, verb=False)
+                obj.strip(-1, verb=verb)
+                pfe = obj.save(verb=verb, return_pfe=True)
+                obj2 = tf.load(pfe, verb=verb)
                 msg = "Unequal saved / loaded objects !"
                 assert obj2==obj, msg
                 # Just to check the loaded version works fine
-                obj2.strip(0)
+                obj2.strip(0, verb=verb)
                 os.remove(pfe)
 
 
@@ -1013,7 +1015,7 @@ class Test09_LensTor:
         plt.close('all')
 
     def test03_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1055,7 +1057,7 @@ class Test10_LensLin:
         plt.close('all')
 
     def test03_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1092,7 +1094,7 @@ class Test11_ApertTor:
         plt.close('all')
 
     def test02_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1128,7 +1130,7 @@ class Test12_ApertLin:
         plt.close('all')
 
     def test02_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1266,7 +1268,7 @@ class Test13_DetectApertTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1410,7 +1412,7 @@ class Test14_DetectApertLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1548,7 +1550,7 @@ class Test15_DetectLensTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1686,7 +1688,7 @@ class Test16_DetectLensLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1845,7 +1847,7 @@ class Test17_GDetectApertTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1995,7 +1997,7 @@ class Test18_GDetectApertLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -2131,7 +2133,7 @@ class Test19_GDetectLensTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -2266,7 +2268,7 @@ class Test20_GDetectLensLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
