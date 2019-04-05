@@ -2,6 +2,8 @@
 This module contains tests for tofu.geom in its structured version
 """
 
+
+
 # External modules
 import os
 import numpy as np
@@ -13,6 +15,7 @@ from nose import with_setup # optional
 
 
 # Importing package tofu.geom
+import tofu as tf
 from tofu import __version__
 import tofu.defaults as tfd
 import tofu.pathfile as tfpf
@@ -20,8 +23,10 @@ import tofu.utils as tfu
 import tofu.geom as tfg
 
 
-here = os.path.abspath(os.path.dirname(__file__))
+_here = os.path.abspath(os.path.dirname(__file__))
 VerbHead = 'tofu.geom.tests03_core'
+keyVers = 'Vers'
+_Exp = 'WEST'
 
 
 #######################################################
@@ -32,28 +37,53 @@ VerbHead = 'tofu.geom.tests03_core'
 
 def setup_module(module):
     print("") # this is to get a newline after the dots
-    LF = os.listdir(here)
-    LF = [lf for lf in LF if all([ss in lf for ss in ['TFG_','Test','_Vv','.npz']])]
-    LF = [lf for lf in LF if not lf[lf.index('_Vv')+2:lf.index('_U')]==__version__]
-    print("Removing the following previous test files:")
-    print (LF)
-    for lf in LF:
-        os.remove(os.path.join(here,lf))
-    #print("setup_module before anything in this file")
+    lf = os.listdir(_here)
+    lf = [f for f in lf
+         if all([s in f for s in ['TFG_',_Exp,'.npz']])]
+    lF = []
+    for f in lf:
+        ff = f.split('_')
+        v = [fff[len(keyVers):] for fff in ff
+             if fff[:len(keyVers)]==keyVers]
+        msg = f + "\n    "+str(ff) + "\n    " + str(v)
+        assert len(v)==1, msg
+        v = v[0]
+        if '.npz' in v:
+            v = v[:v.index('.npz')]
+        # print(v, __version__)
+        if v!=__version__:
+            lF.append(f)
+    if len(lF)>0:
+        print("Removing the following previous test files:")
+        for f in lF:
+            os.remove(os.path.join(_here,f))
+        #print("setup_module before anything in this file")
 
 def teardown_module(module):
     #os.remove(VesTor.Id.SavePath + VesTor.Id.SaveName + '.npz')
     #os.remove(VesLin.Id.SavePath + VesLin.Id.SaveName + '.npz')
     #print("teardown_module after everything in this file")
     #print("") # this is to get a newline
-    LF = os.listdir(here)
-    LF = [lf for lf in LF if all([ss in lf for ss in ['TFG_','Test','_Vv','.npz']])]
-    LF = [lf for lf in LF if lf[lf.index('_Vv')+2:lf.index('_U')]==__version__]
-    print("Removing the following test files:")
-    print (LF)
-    for lf in LF:
-        os.remove(os.path.join(here,lf))
-    pass
+    lf = os.listdir(_here)
+    lf = [f for f in lf
+         if all([s in f for s in ['TFG_',_Exp,'.npz']])]
+    lF = []
+    for f in lf:
+        ff = f.split('_')
+        v = [fff[len(keyVers):] for fff in ff
+             if fff[:len(keyVers)]==keyVers]
+        msg = f + "\n    "+str(ff) + "\n    " + str(v)
+        assert len(v)==1, msg
+        v = v[0]
+        if '.npz' in v:
+            v = v[:v.index('.npz')]
+        # print(v, __version__)
+        if v==__version__:
+            lF.append(f)
+    if len(lF)>0:
+        print("Removing the following test files:")
+        for f in lF:
+            os.remove(os.path.join(_here,f))
 
 
 #def my_setup_function():
@@ -79,41 +109,79 @@ def teardown_module(module):
 
 #######################################################
 #
-#     Creating Ves objects and testing methods
+#   Struct subclasses
 #
 #######################################################
 
 
-#R, r = 1.5, 0.6
-#PDiv = [R+r*np.array([-0.4,-1./8.,1./8.,0.4]),r*np.array([-1.3,-1.1,-1.1,-1.3])]
-#PVes = np.linspace(-2.*np.pi/5.,7.*np.pi/5., 100)
-#PVes = [R + r*np.cos(PVes), r*np.sin(PVes)]
-#PVes = np.concatenate((PVes,PDiv),axis=1)
+path = os.path.join(_here,'tests03_core_data')
+lf = os.listdir(path)
+lf = [f for f in lf if all([s in f for s in [_Exp,'.txt']])]
+lCls = sorted(set([f.split('_')[1] for f in lf]))
 
-PVes = np.loadtxt(os.path.join(here,'test_Ves.txt'),
-                               dtype='float', skiprows=1, ndmin=2, comments='#')
-Lim = 2.*np.pi*1.7*np.array([-0.5,0.5])
+dobj = {'Tor':{}, 'Lin':{}}
+for tt in dobj.keys():
+    for cc in lCls:
+        lfc = [f for f in lf if f.split('_')[1]==cc and 'V0' in f]
+        ln = []
+        for f in lfc:
+            if 'CoilCS' in f:
+                ln.append(f.split('_')[2].split('.')[0])
+            else:
+                ln.append(f.split('_')[2].split('.')[0])
+        lnu = sorted(set(ln))
+        if not len(lnu)==len(ln):
+            msg = "Non-unique name list for {0}:".format(cc)
+            msg += "\n    ln = [{0}]".format(', '.join(ln))
+            msg += "\n    lnu = [{0}]".format(', '.join(lnu))
+            raise Exception(msg)
+        dobj[tt][cc] = {}
+        for ii in range(0,len(ln)):
+            if 'BumperOuter' in ln[ii]:
+                Lim = np.r_[10.,20.]*np.pi/180.
+            elif 'BumperInner' in ln[ii]:
+                t0 = np.arange(0,360,60)*np.pi/180.
+                Dt = 5.*np.pi/180.
+                Lim = t0[np.newaxis,:] + Dt*np.r_[-1.,1.][:,np.newaxis]
+            elif 'Ripple' in ln[ii]:
+                t0 = np.arange(0,360,30)*np.pi/180.
+                Dt = 2.5*np.pi/180.
+                Lim = t0[np.newaxis,:] + Dt*np.r_[-1.,1.][:,np.newaxis]
+            elif 'IC' in ln[ii]:
+                t0 = np.arange(0,360,120)*np.pi/180.
+                Dt = 10.*np.pi/180.
+                Lim = t0[np.newaxis,:] + Dt*np.r_[-1.,1.][:,np.newaxis]
+            elif 'LH' in ln[ii]:
+                t0 = np.arange(-180,180,120)*np.pi/180.
+                Dt = 10.*np.pi/180.
+                Lim = t0[np.newaxis,:] + Dt*np.r_[-1.,1.][:,np.newaxis]
+            elif tt=='Lin':
+                Lim = np.r_[0.,10.]
+            else:
+                Lim = None
+
+            Poly = np.loadtxt(os.path.join(path,lfc[ii]))
+            assert Poly.ndim==2
+            assert Poly.size>=2*3
+            kwd = dict(Name=ln[ii]+tt, Exp=_Exp, SavePath=_here,
+                       Poly=Poly, Lim=Lim, Type=tt)
+            dobj[tt][cc][ln[ii]] = eval('tfg.%s(**kwd)'%cc)
 
 
 
-class Test01_Ves:
+
+class Test01_Struct(object):
 
     @classmethod
-    def setup_class(cls, PVes=PVes, Lim=Lim):
+    def setup_class(cls, dobj=dobj):
         #print("")
         #print("---- "+cls.__name__)
-        cls.LObj = [tfg.Ves('Test', PVes, Type='Tor', shot=0, Exp='Test',
-                            SavePath=here)]
-        cls.LObj.append(tfg.Ves('Test', PVes, Type='Lin', Lim=Lim, shot=0,
-                                Exp='Test', SavePath=here))
+        cls.dobj = dobj
 
     @classmethod
     def teardown_class(cls):
         #print("teardown_class() after any methods in this class")
-        cls.VesTor = tfg.Ves('Test00', PVes, Type='Tor', shot=0, Exp='Test', SavePath=here)
-        cls.VesLin = tfg.Ves('Test00', PVes, Type='Lin', Lim=Lim, shot=0, Exp='Test', SavePath=here)
-        cls.VesTor.save()
-        cls.VesLin.save()
+        pass
 
     def setup(self):
         #print("TestUM:setup() before each test method")
@@ -123,149 +191,410 @@ class Test01_Ves:
         #print("TestUM:teardown() after each test method")
         pass
 
-    def test01_isInside(self, NR=20, NZ=20, NThet=10):
-        for ii in range(0,len(self.LObj)):
-            PtsR = np.linspace(self.LObj[ii].geom['P1Min'][0],self.LObj[ii].geom['P1Max'][0],NR)
-            PtsZ = np.linspace(self.LObj[ii].geom['P2Min'][0],self.LObj[ii].geom['P2Max'][0],NZ)
-            PtsRZ = np.array([np.tile(PtsR,(NZ,1)).flatten(), np.tile(PtsZ,(NR,1)).T.flatten()])
-            if self.LObj[ii].Type=='Tor' and self.LObj[ii].Lim is None:
-                In = '(R,Z)'
-            if self.LObj[ii].Type=='Lin':
-                PtsRZ = np.concatenate((np.zeros((1,NR*NZ)),PtsRZ),axis=0)
-                In = '(X,Y,Z)'
-            elif self.LObj[ii].Type=='Tor' and self.LObj[ii].Lim is not None:
-                PtsRZ = np.concatenate((PtsRZ,np.zeros((1,NR*NZ))),axis=0)
+    def test01_todict(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    d = self.dobj[typ][c][n].to_dict()
+                    assert type(d) is dict
+                    assert all([any([s in k for k in d.keys()]
+                                    for s in ['Id','geom','sino','strip'])])
+
+    def test02_fromdict(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                d = list(self.dobj[typ][c].values())[0].to_dict()
+                obj = eval('tfg.%s(fromdict=d)'%c)
+                assert isinstance(obj,eval('tfg.%s'%c))
+
+    def test03_copy_equal(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n].copy()
+                    assert obj == self.dobj[typ][c][n]
+                    assert not  obj != self.dobj[typ][c][n]
+
+    def test04_get_nbytes(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    nb, dnb = self.dobj[typ][c][n].get_nbytes()
+
+    def test05_strip_nbytes(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                lok = eval('tfg.%s'%c)._dstrip['allowed']
+                nb = np.full((len(lok),), np.nan)
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    for ii in lok:
+                        obj.strip(ii)
+                        nb[ii] = obj.get_nbytes()[0]
+                    assert np.all(np.diff(nb)<0.)
+                    for ii in lok[::-1]:
+                        obj.strip(ii)
+
+    def test06_set_dsino(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    self.dobj[typ][c][n].set_dsino([2.4,0.])
+
+    def test07_setget_color(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    col = self.dobj[typ][c][n].get_color()
+                    self.dobj[typ][c][n].set_color(col)
+
+    def test08_isInside(self, NR=20, NZ=20, NThet=10):
+        for typ in self.dobj.keys():
+            if tt=='Tor':
+                R = np.linspace(1,3,100)
+                Z = np.linspace(-1,1,100)
+                phi = np.pi/4.
+                pts = np.array([np.tile(R,Z.size),
+                                np.repeat(Z,R.size),
+                                np.full((R.size*Z.size),phi)])
                 In = '(R,Z,Phi)'
-            indRZ = self.LObj[ii].isInside(PtsRZ, In=In)
-            assert type(indRZ) is np.ndarray
-            if self.LObj[ii].Lim is None or self.LObj[ii]._Multi is False:
-                assert indRZ.shape==(PtsRZ.shape[1],)
             else:
-                assert indRZ.shape==(len(self.LObj[ii].Lim),PtsRZ.shape[1])
+                X = 4.
+                Y = np.linspace(1,3,100)
+                Z = np.linspace(-1,1,100)
+                pts = np.array([np.full((Y.size*Z.size),X),
+                                np.tile(Y,Z.size),
+                                np.repeat(Z,Y.size)])
+                In = '(X,Y,Z)'
 
-    def test02_InsideConvexPoly(self):
-        self.LObj[0].get_InsideConvexPoly(Plot=False, Test=True)
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    ind = obj.isInside(pts, In=In)
+                    if obj.noccur<=1:
+                        assert ind.shape==(pts.shape[1],)
+                    elif not ind.shape == (obj.noccur,pts.shape[1]):
+                        msg = "ind.shape = {0}".format(str(ind.shape))
+                        msg += "\n  But noccur = {0}".format(obj.noccur)
+                        msg += "\n  and npts = {0}".format(pts.shape[1])
+                        raise Exception(msg)
 
-    def test03_get_sampleEdge(self):
-        Pts, dlr, ind = self.LObj[0].get_sampleEdge(dl=0.05, DS=None,
-                                                    dlMode='abs', DIn=0.001)
-        Pts, dlr, ind = self.LObj[0].get_sampleEdge(dl=0.1, DS=None,
-                                                    dlMode='rel', DIn=-0.001)
-        Pts, dlr, ind = self.LObj[0].get_sampleEdge(dl=0.05, DS=[None,[-2.,0.]],
-                                                    dlMode='abs', DIn=0.)
 
-    def test04_get_sampleCross(self):
-        Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.02, DS=None, dSMode='abs', ind=None)
-        Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.02, DS=None, dSMode='abs', ind=ind)
-        Pts, dS, ind, dSr = self.LObj[0].get_sampleCross(0.1, DS=[[0.,2.5],None], dSMode='rel', ind=None)
 
-    def test05_get_sampleS(self):
-        for ii in range(0,len(self.LObj)):
-            Pts0, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=[[2.,3.],[0.,5.],[0.,np.pi/2.]],
-                                                           dSMode='abs', ind=None, DIn=0.001, Out='(X,Y,Z)')
-            Pts1, dS, ind, dSr = self.LObj[ii].get_sampleS(0.02, DS=None, dSMode='abs', ind=ind, DIn=0.001, Out='(X,Y,Z)')
-            if type(Pts0) is list:
-                assert all([np.allclose(Pts0[ii],Pts1[ii]) for ii in range(0,len(Pts0))])
-            else:
-                assert np.allclose(Pts0,Pts1)
+    def test09_InsideConvexPoly(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    self.dobj[typ][c][n].get_InsideConvexPoly(Plot=False,
+                                                              Test=True)
 
-    def test06_get_sampleV(self):
-        if self.LObj[0].Id.Cls=='Ves':
-            LDV = [[[1.,2.],[0.,2.],[3.*np.pi/4.,5.*np.pi/4.]], [[-1.,1.],[1.,2.],[0.,2.]]]
-            for ii in range(0,len(self.LObj)):
-                Pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=LDV[ii], dVMode='abs', ind=None, Out='(R,Z,Phi)')
-                Pts, dV, ind, dVr = self.LObj[ii].get_sampleV(0.05, DV=None, dVMode='abs', ind=ind, Out='(R,Z,Phi)')
+    def test10_get_sampleEdge(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    out = obj.get_sampleEdge(0.05, resMode='abs',
+                                             offsetIn=0.001)
+                    out = obj.get_sampleEdge(0.1, resMode='rel',
+                                             offsetIn=-0.001)
+                    out = obj.get_sampleEdge(0.05, DS=[None,[-2.,0.]],
+                                             resMode='abs', offsetIn=0.)
 
-    def test07_plot(self):
-        for ii in range(0,len(self.LObj)):
-            if self.LObj[ii].Id.Cls=='Ves':
-                Pdict = {'c':'k'}
-            else:
-                Pdict = {'ec':'None','fc':(0.8,0.8,0.8,0.5)}
-            Lax1 = self.LObj[ii].plot(Proj='All', Elt='PIBsBvV', dP=Pdict,
-                                      draw=False, fs=None, Test=True)
-            Lax2 = self.LObj[ii].plot(Proj='Cross', Elt='PIBsBvV', dP=Pdict,
-                                      draw=False, fs=(10,6), Test=True)
-            Lax3 = self.LObj[ii].plot(Proj='Hor', Elt='PIBsBvV', dP=Pdict,
-                                      draw=False, fs=None, Test=True)
-            plt.close('all')
+    def test11_get_sampleCross(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    try:
+                        obj = self.dobj[typ][c][n]
+                        ii = 0
+                        out = obj.get_sampleCross(0.02, resMode='abs')
+                        ind = out[2]
+                        ii = 1
+                        out = obj.get_sampleCross(0.02, resMode='abs', ind=ind)
+                        PMinMax = (obj.dgeom['P1Min'][0],
+                                   obj.dgeom['P1Max'][0])
+                        DS1 = PMinMax[0] + (PMinMax[1]-PMinMax[0])/2.
+                        ii = 2
+                        out = obj.get_sampleCross(0.1, DS=[[None,DS1],None],
+                                                  resMode='rel')
+                    except Exception as err:
+                        msg = str(err)
+                        msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
+                        msg += " and ii={0}".format(ii)
+                        raise Exception(msg)
 
-    def test08_plot_sino(self):
-        Lax1 = self.LObj[0].plot_sino(Proj='Cross', Ang='xi', AngUnit='deg',
-                                      Sketch=True, draw=False, fs=None, Test=True)
-        Lax2 = self.LObj[0].plot_sino(Proj='Cross', Ang='theta', AngUnit='rad',
-                                      Sketch=True, draw=False, fs='a4', Test=True)
-        plt.close('all')
+    def test12_get_sampleS(self):
+        for typ in self.dobj.keys():
+            # Todo : introduce possibility of choosing In coordinates !
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
+                    P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
+                    DS = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
+                    try:
+                        ii = 0
+                        out = obj.get_sampleS(0.05, resMode='abs', DS=DS,
+                                              offsetIn=0.02, Out='(X,Y,Z)')
+                        pts0, ind = out[0], out[2]
+                        ii = 1
+                        out = obj.get_sampleS(0.05, resMode='abs', ind=ind,
+                                              offsetIn=0.02, Out='(X,Y,Z)')
+                        pts1 = out[0]
+                    except Exception as err:
+                        msg = str(err)
+                        msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
+                        msg += "\n    ii={0}".format(ii)
+                        msg += "\n    Lim={0}".format(str(obj.Lim))
+                        msg += "\n    DS={0}".format(str(DS))
+                        raise Exception(msg)
 
-    def test09_tofromdict(self):
-        for ii in range(0,len(self.LObj)):
-            dd = self.LObj[ii]._todict()
-            if self.LObj[ii].Id.Cls=='Ves':
-                oo = tfg.Ves(fromdict=dd)
-            else:
-                oo = tfg.Struct(fromdict=dd)
-            assert dd==oo._todict(), "Unequal to and from dict !"
+                    if type(pts0) is list:
+                        assert all([np.allclose(pts0[ii],pts1[ii])
+                                    for ii in range(0,len(pts0))])
+                    else:
+                        assert np.allclose(pts0,pts1)
 
-    def test10_saveload(self):
-        for ii in range(0,len(self.LObj)):
-            self.LObj[ii].save(Print=False)
-            PathFileExt = os.path.join(self.LObj[ii].Id.SavePath, self.LObj[ii].Id.SaveName+'.npz')
-            obj = tfpf.Open(PathFileExt, Print=False)
-            # Just to check the loaded version works fine
-            out = obj.get_sampleCross(0.02, DS=None, dSMode='abs', ind=None)
-            Lax = obj.plot(Proj='All', Elt='P')
-            dd = self.LObj[ii]._todict()
-            assert tfu.dict_cmp(dd,obj._todict())
-            os.remove(PathFileExt)
+    def test13_get_sampleV(self):
+        for typ in self.dobj.keys():
+            # Todo : introduce possibility of choosing In coordinates !
+            for c in self.dobj[typ].keys():
+                if issubclass(eval('tfg.%s'%c), tfg._core.StructOut):
+                    continue
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
+                    P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
+                    box = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
+                    try:
+                        ii = 0
+                        out = obj.get_sampleV(0.1, resMode='abs', DV=box,
+                                              Out='(X,Y,Z)')
+                        pts0, ind = out[0], out[2]
+                        ii = 1
+                        out = obj.get_sampleV(0.1, resMode='abs', ind=ind,
+                                              Out='(X,Y,Z)')
+                        pts1 = out[0]
+                    except Exception as err:
+                        msg = str(err)
+                        msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
+                        msg += "\n    ii={0}".format(ii)
+                        msg += "\n    Lim={0}".format(str(obj.Lim))
+                        msg += "\n    DS={0}".format(str(box))
+                        raise Exception(msg)
+
+                    if type(pts0) is list:
+                        assert all([np.allclose(pts0[ii],pts1[ii])
+                                    for ii in range(0,len(pts0))])
+                    else:
+                        assert np.allclose(pts0,pts1)
+
+    def test14_plot(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    lax = obj.plot(element='P', proj='all', draw=False)
+                    lax = obj.plot(element='PIBsBvV', proj='all', draw=False)
+                    lax = obj.plot(element='P', indices=True, draw=False)
+                    plt.close('all')
+
+    def test15_plot_sino(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                if issubclass(eval('tfg.%s'%c), tfg._core.StructOut):
+                    continue
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    lax = obj.plot_sino(Ang='xi', AngUnit='deg',
+                                        Sketch=True, draw=False)
+                    lax = obj.plot_sino(Ang='theta', AngUnit='rad',
+                                        Sketch=False, draw=False, fs='a4')
+                    plt.close('all')
+
+    def test16_saveload(self, verb=False):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    pfe = obj.save(return_pfe=True, verb=verb)
+                    obj2 = tf.load(pfe, verb=verb)
+                    assert obj==obj2
+                    os.remove(pfe)
+
+    def test17_save_to_txt(self, verb=False):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    pfe = obj.save_to_txt(return_pfe=True, verb=verb)
+                    os.remove(pfe)
 
 
 #######################################################
 #
-#  Creating Struct objects and testing methods
+#  Creating Config objects and testing methods
 #
 #######################################################
+dconf = {}
+for typ in dobj.keys():
+    lS = []
+    for c in dobj[typ].keys():
+        lS += list(dobj[typ][c].values())
+    Lim = None if typ=='Tor' else [0.,10.]
+    dconf[typ] = tfg.Config(Name='Test%s'%typ, Exp=_Exp,
+                            lStruct=lS, Lim=Lim,
+                            Type=typ, SavePath=_here)
 
-class Test02_Struct(Test01_Ves):
+class Test02_Config(object):
 
     @classmethod
-    def setup_class(cls, PVes=PVes, Lim=Lim):
+    def setup_class(cls, dobj=dconf, verb=False):
         #print("")
         #print("--------- "+VerbHead+cls.__name__)
-        cls.LObj = [tfg.Struct('Test02', PVes, Type='Tor',
-                               shot=0, Exp='Test', SavePath=here)]
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor',
-                                   Lim=[-np.pi/2.,np.pi/4.],
-                                   shot=0, Exp='Test', SavePath=here))
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin', Lim=Lim,
-                                   shot=0, Exp='Test', SavePath=here,
-                                   mobile=True))
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Tor',
-                                   Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
-                                   shot=0, Exp='Test', SavePath=here))
-        cls.LObj.append(tfg.Struct('Test', PVes, Type='Lin',
-                                   Lim=np.array([[0.,1.],[0.5,1.5],[-2.,-1.]]),
-                                   shot=0, Exp='Test', SavePath=here))
+        cls.dlpfe = {}
+        for typ in dobj.keys():
+            lS = dobj[typ].lStruct
+            lpfe = [os.path.join(ss.Id.SavePath, ss.Id.SaveName+'.npz')
+                    for ss in lS]
+            for ss in lS:
+                ss.save(verb=verb)
+            cls.dlpfe[typ] = lpfe
+        cls.dobj = dobj
 
     @classmethod
     def teardown_class(cls):
         #print("teardown_class() after any methods in this class")
-        cls.SL0 = tfg.Struct('Test02', PVes, Type='Lin', Lim=np.array([0.,1.]),
-                             shot=0, Exp='Test', SavePath=here)
-        cls.SL1 = tfg.Struct('Test03', PVes, Type='Lin',
-                             Lim=np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
-                             shot=0, Exp='Test', SavePath=here)
-        cls.ST0 = tfg.Struct('Test02', PVes*0.8, Type='Tor', Lim=None, shot=0, Exp='Test',
-                             SavePath=here, mobile=True)
-        cls.ST1 = tfg.Struct('Test03', PVes, Type='Tor',
-                             Lim=np.pi*np.array([[0.,1/4.],[3./4.,5./4.],[-1./2,0.]]),
-                             shot=0, Exp='Test', SavePath=here)
-        cls.SL0.save(), cls.SL1.save()
-        cls.ST0.save(), cls.ST1.save()
+        for typ in cls.dlpfe.keys():
+            for f in cls.dlpfe[typ]:
+                os.remove(f)
 
+    def test01_todict(self):
+        for typ in self.dobj.keys():
+            d = self.dobj[typ].to_dict()
+            assert type(d) is dict
+            assert all([any([s in k for k in d.keys()]
+                            for s in ['Id','geom','struct','sino','strip'])])
 
+    def test02_fromdict(self):
+        for typ in self.dobj.keys():
+            d = self.dobj[typ].to_dict()
+            obj = tfg.Config(fromdict=d)
+            assert isinstance(obj, tfg.Config)
 
+    def test03_copy_equal(self):
+        for typ in self.dobj.keys():
+            obj = self.dobj[typ].copy()
+            assert obj == self.dobj[typ]
+            assert not  obj != self.dobj[typ]
 
+    def test04_get_nbytes(self):
+        for typ in self.dobj.keys():
+            nb, dnb = self.dobj[typ].get_nbytes()
 
+    def test05_strip_nbytes(self, verb=False):
+        lok = tfg.Config._dstrip['allowed']
+        nb = np.full((len(lok),), np.nan)
+        for typ in self.dobj.keys():
+            obj = self.dobj[typ]
+            for ii in lok:
+                obj.strip(ii, verb=verb)
+                nb[ii] = obj.get_nbytes()[0]
+            assert np.all(np.diff(nb)<0.)
+            for ii in lok[::-1]:
+                obj.strip(ii, verb=verb)
+
+    def test06_set_dsino(self):
+        for typ in self.dobj.keys():
+            self.dobj[typ].set_dsino([2.4,0.])
+
+    def test07_addremove_struct(self):
+        for typ in self.dobj.keys():
+            obj = self.dobj[typ]
+            n = [ss.Id.Name for ss in obj.lStruct if 'Baffle' in ss.Id.Name]
+            n = n[0]
+            B = obj.dStruct['dObj']['PFC'][n].copy()
+            assert n in obj.dStruct['dObj']['PFC'].keys()
+            assert n in obj.dextraprop['dvisible']['PFC'].keys()
+            assert hasattr(obj.PFC,n)
+            obj.remove_Struct('PFC',n)
+            assert n not in obj.dStruct['dObj']['PFC'].keys()
+            assert n not in obj.dextraprop['dvisible']['PFC'].keys()
+            try:
+                hasattr(obj.PFC,n)
+            except Exception as err:
+                assert err.__class__.__name__=='KeyError'
+            self.dobj[typ].add_Struct(struct=B,
+                                      dextraprop={'visible':True})
+            assert n in obj.dStruct['dObj']['PFC'].keys()
+            assert n in obj.dextraprop['dvisible']['PFC'].keys()
+            assert hasattr(obj.PFC,n)
+
+    def test08_setget_color(self):
+        for typ in self.dobj.keys():
+            col = self.dobj[typ].get_color()
+            for c in self.dobj[typ].dStruct['dObj'].keys():
+                eval("self.dobj[typ].%s.set_color('r')"%c)
+
+    def test09_get_summary(self):
+        for typ in self.dobj.keys():
+            self.dobj[typ].get_summary()
+
+    def test10_isInside(self, NR=20, NZ=20, NThet=10):
+        for typ in self.dobj.keys():
+            if typ=='Tor':
+                R = np.linspace(1,3,100)
+                Z = np.linspace(-1,1,100)
+                phi = np.pi/4.
+                pts = np.array([np.tile(R,Z.size),
+                                np.repeat(Z,R.size),
+                                np.full((R.size*Z.size),phi)])
+                In = '(R,Z,Phi)'
+            else:
+                X = 4.
+                Y = np.linspace(1,3,100)
+                Z = np.linspace(-1,1,100)
+                pts = np.array([np.full((Y.size*Z.size),X),
+                                np.tile(Y,Z.size),
+                                np.repeat(Z,Y.size)])
+                In = '(X,Y,Z)'
+
+                obj = self.dobj[typ]
+                ind = obj.isInside(pts, In=In)
+                if not ind.shape == (obj.nStruct, pts.shape[1]):
+                    msg = "ind.shape = {0}".format(str(ind.shape))
+                    msg += "\n  But nStruct = {0}".format(obj.nStruct)
+                    msg += "\n  and npts = {0}".format(pts.shape[1])
+                    raise Exception(msg)
+
+    def test11_setget_visible(self):
+        for typ in self.dobj.keys():
+            vis = self.dobj[typ].get_visible()
+            self.dobj[typ].CoilPF.set_visible(False)
+
+    def test12_plot(self):
+        for typ in self.dobj.keys():
+            n = [ss.Id.Name for ss in self.dobj[typ].lStruct
+                 if 'Baffle' in ss.Id.Name][0]
+            eval("self.dobj[typ].PFC.%s.set_color('g')"%n)
+            lax = self.dobj[typ].plot()
+        plt.close('all')
+
+    def test13_plot_sino(self):
+        for typ in self.dobj.keys():
+            lax = self.dobj[typ].plot_sino()
+        plt.close('all')
+
+    def test14_saveload(self, verb=False):
+        for typ in self.dobj.keys():
+            self.dobj[typ].strip(-1)
+            pfe = self.dobj[typ].save(verb=verb, return_pfe=True)
+            obj = tf.load(pfe, verb=verb)
+            msg = "Unequal saved / loaded objects !"
+            assert obj==self.dobj[typ], msg
+            # Just to check the loaded version works fine
+            obj.strip(0, verb=verb)
+            os.remove(pfe)
 
 
 #######################################################
@@ -274,36 +603,84 @@ class Test02_Struct(Test01_Ves):
 #
 #######################################################
 
+dCams = {}
+foc = 0.08
+DX = 0.05
+for typ in dconf.keys():
+    dCams[typ] = {}
+    if typ=='Tor':
+        phi = np.pi/4.
+        eR = np.r_[np.cos(phi),np.sin(phi),0.]
+        ephi = np.r_[np.sin(phi),-np.cos(phi),0.]
+        R = 3.5
+        ph = np.r_[R*np.cos(phi),R*np.sin(phi),0.2]
+    else:
+        ph = np.r_[3.,4.,0.]
+    ez = np.r_[0.,0.,1.]
+    for c in ['CamLOS2D','CamLOS1D']:
+        if '1D' in c:
+            nP = 100
+            X = np.linspace(-DX,DX,nP)
+            if typ=='Tor':
+                D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
+                     + X[np.newaxis,:]*ephi[:,np.newaxis])
+            else:
+                D = np.array([3.+X,
+                              np.full((nP,),4.+foc),
+                              np.full((nP,),0.02)])
+        else:
+            nP = 100
+            X = np.linspace(-DX,DX,nP)
+            if typ=='Tor':
+                D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
+                     + np.repeat(X[::-1],nP)[np.newaxis,:]*ephi[:,np.newaxis]
+                     + np.tile(X,nP)[np.newaxis,:]*ez[:,np.newaxis])
+            else:
+                D = np.array([np.repeat(3.+X[::-1],nP),
+                              np.full((nP*nP,),4.+foc),
+                              np.tile(0.01+X,nP)])
+        cls = eval("tfg.%s"%c)
+        dCams[typ][c] = cls(Name='V1000', config=dconf[typ],
+                            dgeom={'pinhole':ph, 'D':D}, method="optimized",
+                            Exp=_Exp, Diag='Test', SavePath=_here)
 
-
-class Test03_Rays:
+class Test03_Rays(object):
 
     @classmethod
-    def setup_class(cls):
+    def setup_class(cls, dobj=dCams, verb=False):
         #print ("")
         #print "--------- "+VerbHead+cls.__name__
-        LVes = [Test01_Ves.VesLin]*3+[Test01_Ves.VesTor]*3
-        LS = [None, Test02_Struct.SL0, [Test02_Struct.SL0,Test02_Struct.SL1],
-              None, Test02_Struct.ST0, [Test02_Struct.ST0,Test02_Struct.ST1]]
-        cls.LObj = [None for vv in LVes]
-        N = 50
-        cls.N = N
-        for ii in range(0,len(LVes)):
-            P1M = LVes[ii].geom['P1Max'][0]
-            Ds = np.array([np.linspace(-0.5,0.5,N),
-                           np.full((N,),(0.95+0.3*ii/len(LVes))*P1M),
-                           np.zeros((N,))])
-            us = np.array([np.linspace(-0.5,0.5,N),
-                           -np.ones((N,)),
-                           np.linspace(-0.5,0.5,N)])
-            cls.LObj[ii] = tfg.Rays('Test'+str(ii), (Ds,us), Ves=LVes[ii],
-                                    LStruct=LS[ii], Exp=None, Diag='Test',
-                                    SavePath=here)
+        dlpfe = {}
+        for typ in dobj.keys():
+            dlpfe[typ] = {}
+            for c in dobj[typ].keys():
+                dlpfe[typ][c] = []
+                for s in dobj[typ][c].config.lStruct:
+                    pfe = os.path.join(s.Id.SavePath,s.Id.SaveName+'.npz')
+                    s.save(verb=verb)
+                    dlpfe[typ][c].append(pfe)
+                dobj[typ][c].config.strip(-1)
+                dobj[typ][c].config.save(verb=verb)
+                dobj[typ][c].config.strip(0, verb=verb)
+                pfe = os.path.join(dobj[typ][c].config.Id.SavePath,
+                                   dobj[typ][c].config.Id.SaveName+'.npz')
+                dlpfe[typ][c].append(pfe)
+        cls.dobj = dobj
+        cls.dlpfe = dlpfe
 
     @classmethod
     def teardown_class(cls):
         #print ("teardown_class() after any methods in this class")
         pass
+        # for typ in cls.dobj.keys():
+            # for c in cls.dobj[typ].keys():
+                # for f in cls.dlpfe[typ][c]:
+                    # try:
+                        # os.remove(f)
+                    # except Exception as err:
+                        # msg = str(err)
+                        # msg += '\n\n'+str(f)
+                        # raise Exception(msg)
 
     def setup(self):
         #print ("TestUM:setup() before each test method")
@@ -313,41 +690,143 @@ class Test03_Rays:
         #print ("TestUM:teardown() after each test method")
         pass
 
-    def test01_select(self):
-        for ii in range(0,len(self.LObj)):
-            if self.LObj[ii].LStruct is None:
-                el = 'Ves'
-            else:
-                el = self.LObj[ii].LStruct[-1].Id.Name
-            ind = self.LObj[ii].select(touch=el)
+    def test01_todict(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                d = self.dobj[typ][c].to_dict()
+                assert type(d) is dict
+                assert all([any([s in k for k in d.keys()]
+                                for s in ['Id','geom','config',
+                                          'sino','chan','strip'])])
 
-    def test02_get_sample(self):
-        for ii in range(0,len(self.LObj)):
-            Pts, kPts, dl = self.LObj[ii].get_sample(0.02, dlMode='abs',
-                                                     method='sum',DL=None)
-            for jj in range(0,self.N):
-                assert Pts[ii].shape[1]==kPts[ii].size
-                assert np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
-                           & (kPts[ii]<=self.LObj[ii].geom['kPOut'][ii]))
-            assert np.all(np.abs(dl[~np.isnan(dl)]-0.02)<0.001)
+    def test02_fromdict(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                d = self.dobj[typ][c].to_dict()
+                obj = eval('tfg.%s(fromdict=d)'%c)
+                assert isinstance(obj, self.dobj[typ][c].__class__)
 
-            Pts, kPts, dl = self.LObj[ii].get_sample(0.1, dlMode='rel',
-                                                     method='simps',DL=[0,1])
-            for jj in range(0,self.N):
-                assert Pts[ii].shape[1]==kPts[ii].size
-                assert np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
-                           & (kPts[ii]<=self.LObj[ii].geom['kPOut'][ii]))
+    def test03_copy_equal(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c].copy()
+                assert obj == self.dobj[typ][c]
+                assert not  obj != self.dobj[typ][c]
 
-            Pts, kPts, dl = self.LObj[ii].get_sample(0.1, dlMode='rel',
-                                                     method='romb',DL=[1,2])
-            for jj in range(0,self.N):
-                assert Pts[ii].shape[1]==kPts[ii].size
-                C = np.all((kPts[ii]>=self.LObj[ii].geom['kPIn'][ii])
-                           & (kPts[ii]<=self.LObj[ii].geom['kPOut'][ii]))
-                assert C, "{0},{1}".format(ii,jj)
+    def test04_get_nbytes(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                nb, dnb = self.dobj[typ][c].get_nbytes()
+
+    def test05_strip_nbytes(self, verb=False):
+        lok = tfg.Rays._dstrip['allowed']
+        nb = np.full((len(lok),), np.nan)
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                for ii in lok:
+                    obj.strip(ii, verb=verb)
+                    nb[ii] = obj.get_nbytes()[0]
+                assert np.all(np.diff(nb)<0.)
+                for ii in lok[::-1]:
+                    obj.strip(ii, verb=verb)
+
+    def test06_set_dsino(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                self.dobj[typ][c].set_dsino([2.4,0.])
+
+    def test07_select(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                n = [ss.Id.Name for ss in self.dobj[typ][c].config.lStruct
+                     if 'Baffle' in ss.Id.Name][0]
+                ind = self.dobj[typ][c].select(touch='PFC_%s'%n)
+                ind = self.dobj[typ][c].select(touch=['PFC_%s'%n,[],[7,8,9]])
+
+    def test08_get_sample(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                out = obj.get_sample(0.02, resMode='abs',
+                                     method='sum',DL=None)
+                pts, k, res = out
+                assert len(pts)==len(k)==obj.nRays
+                for ii in range(0,len(k)):
+                    assert pts[ii].shape[1]==k[ii].size
+                    if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
+                        ind = ~np.isnan(k[ii])
+                        assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
+                                      & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
+                assert np.all(res[~np.isnan(res)]<0.02)
+
+                out = obj.get_sample(0.1, resMode='rel',
+                                     method='simps',DL=[0,1])
+                pts, k, res = out
+                assert len(pts)==len(k)==obj.nRays
+                for ii in range(0,len(k)):
+                    assert pts[ii].shape[1]==k[ii].size
+                    if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
+                        ind = ~np.isnan(k[ii])
+                        if not np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
+                                      & (k[ii][ind]<=obj.kOut[ii]+res[ii])):
+                            msg = typ+' '+c+' '+str(ii)
+                            msg += "\n {0} {1}".format(obj.kIn[ii],obj.kOut[ii])
+                            msg += "\n {0}".format(str(k[ii][ind]))
+                            print(msg)
+                            raise Exception(msg)
+                out = obj.get_sample(0.1, resMode='rel',
+                                     method='romb',DL=[0,1])
+                pts, k, res = out
+                assert len(pts)==len(k)==obj.nRays
+                for ii in range(0,len(k)):
+                    assert pts[ii].shape[1]==k[ii].size
+                    if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
+                        ind = ~np.isnan(k[ii])
+                        assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
+                                      & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
 
 
-    def test03_calc_signal(self):
+    def test09_calc_kInkOut_IsoFlux(self):
+        nP = 10
+        r = np.linspace(0.1,0.4,nP)
+        theta = np.linspace(0.,2*np.pi,100)
+        lp2D = [np.array([2.4+r[ii]*np.cos(theta),
+                          0.+r[ii]*np.sin(theta)]) for ii in range(0,nP)]
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                kIn, kOut = obj.calc_kInkOut_IsoFlux(lp2D)
+                assert kIn.shape==(obj.nRays, nP)
+                assert kOut.shape==(obj.nRays, nP)
+                for ii in range(0,nP):
+                    ind = ~np.isnan(kIn[:,ii])
+                    if not np.all((kIn[ind,ii]>=obj.kIn[ind])
+                                  & (kIn[ind,ii]<=obj.kOut[ind])):
+                        msg = typ+' '+c+' '+str(ii)
+                        msg += "\n {0} {1}".format(obj.kIn[ind],obj.kOut[ind])
+                        msg += "\n {0}".format(str(kIn[ind,ii]))
+                        print(msg)
+                        raise Exception(msg)
+
+                    ind = ~np.isnan(kOut[:,ii])
+                    if not np.all((kOut[ind,ii]>=obj.kIn[ind])
+                                  & (kOut[ind,ii]<=obj.kOut[ind])):
+                        msg = typ+' '+c+' '+str(ii)
+                        msg += "\n {0} {1}".format(obj.kIn[ind],obj.kOut[ind])
+                        msg += "\n {0}".format(str(kOut[ind,ii]))
+                        print(msg)
+                        raise Exception(msg)
+                    ind = (~np.isnan(kIn[:,ii])) & (~np.isnan(kOut[:,ii]))
+                    if not np.all(kIn[ind,ii]<=kOut[ind,ii]):
+                        msg = typ+' '+c+' '+str(ii)
+                        msg += "\n {0}".format(str(kIn[ind,ii]))
+                        msg += "\n {0}".format(str(kOut[ind,ii]))
+                        print(msg)
+                        raise Exception(msg)
+
+
+    def test10_calc_signal(self):
         def ffL(Pts, t=None, Vect=None):
             E = np.exp(-(Pts[1,:]-2.4)**2/0.1 - Pts[2,:]**2/0.1)
             if Vect is not None:
@@ -371,75 +850,77 @@ class Test03_Rays:
             return E
 
         ind = None#[0,10,20,30,40]
-        for ii in range(0,len(self.LObj)):
-            ff = ffT if self.LObj[ii].Ves.Type=='Tor' else ffL
-            if self.LObj[ii].LStruct is not None:
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                ff = ffT if obj.config.Id.Type=='Tor' else ffL
                 t = np.arange(0,10,10)
-                Ani = len(self.LObj[ii].LStruct)==1
-            else:
-                t = None
-                Ani = False
-            plot = self.LObj[ii].Id.Cls in ['LOSCam1D','LOSCam2D']
-            connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
-                       and getattr(plt.get_current_fig_manager(),'toolbar') is
-                       not None)
-            #print(ii, plot, self.LObj[ii].Id.Name, t, ind)  # DB
-            sig = self.LObj[ii].calc_signal(ff, t=t, Ani=Ani, fkwdargs={},
-                                      dl=0.01, DL=None, dlMode='abs', method='simps',
-                                      Warn=False, ind=ind, plot=plot, out='',
-                                      fs=(12,6),dmargin=dict(left=0.06,right=0.9),
-                                      connect=connect)
-            #assert sig.shape==(len(ind),) if t is None else (t.size,len(ind))
-            assert not np.all(np.isnan(sig)), str(ii)
+                connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                           and getattr(plt.get_current_fig_manager(),'toolbar')
+                           is not None)
+                out = obj.calc_signal(ff, t=t, ani=True, fkwdargs={},
+                                      res=0.01, DL=None, resMode='abs',
+                                      method='simps', ind=ind,
+                                      plot=False, out=np.ndarray,
+                                      fs=(12,6), connect=connect)
+                sig, units = out
+                assert not np.all(np.isnan(sig)), str(ii)
+        plt.close('all')
+
+    def test11_plot(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                if '2D' in c:
+                    ind = np.arange(0,obj.nRays,100)
+                else:
+                    ind = None
+                try:
+                    lax = obj.plot(proj='all', element='LDIORP',
+                                   Leg='', draw=False)
+                    lax = obj.plot(proj='cross', element='L',
+                                   Leg=None, draw=False)
+                    lax = obj.plot(proj='hor', element='LDIO',
+                                   Leg='KD', draw=False)
+                except Exception as err:
+                    msg = str(err)
+                    msg += typ+' '+c
+                    print(msg)
+                plt.close('all')
+
+    def test12_plot_sino(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                ax = obj.plot_sino()
             plt.close('all')
 
-    def test04_plot(self):
-        for ii in range(0,len(self.LObj)):
-            Lax = self.LObj[ii].plot(Proj='All', Elt='LDIORP', EltVes='P',
-                                     EltStruct='', Leg='', draw=False)
-            Lax = self.LObj[ii].plot(Proj='Cross', Elt='L', EltVes='P',
-                                     EltStruct='P', Leg=None, draw=False)
-            Lax = self.LObj[ii].plot(Proj='Hor', Elt='LDIO', EltVes='P',
-                                     EltStruct='P', Leg='KD', draw=False)
+    def test13_plot_touch(self):
+        connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                   and getattr(plt.get_current_fig_manager(),'toolbar')
+                   is not None)
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                ind = np.arange(0,obj.nRays,100)
+                lax = obj.plot_touch(ind=ind, connect=connect)
             plt.close('all')
 
-    def test05_plot_touch(self):
-        if self.__class__ is Test04_LOSCams:
-            for ii in range(0,len(self.LObj)):
-                Lax = self.LObj[ii].plot_touch(plotmethod='scatter', draw=False)
-            plt.close('all')
-
-    def test06_plot_sino(self):
-        for ii in range(0,len(self.LObj)):
-            self.LObj[ii].set_sino([2.4,0.])
-            Lax = self.LObj[ii].plot_sino(Proj='Cross', Elt='L',
-                                          Leg=None, draw=False)
-            Lax = self.LObj[ii].plot_sino(Proj='Cross', Elt='LV',
-                                          Leg=None, multi=True, draw=False)
-            #Lax = self.LObj[ii].plot_sino(Proj='3d', Elt='LV',
-            #                              multi=False, Leg='KD', draw=False)
-            plt.close('all')
+    def test14_saveload(self, verb=False):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                obj.strip(-1, verb=verb)
+                pfe = obj.save(verb=verb, return_pfe=True)
+                obj2 = tf.load(pfe, verb=verb)
+                msg = "Unequal saved / loaded objects !"
+                assert obj2==obj, msg
+                # Just to check the loaded version works fine
+                obj2.strip(0, verb=verb)
+                os.remove(pfe)
 
 
-    def test07_tofromdict(self):
-        for ii in range(0,len(self.LObj)):
-            dd = self.LObj[ii]._todict()
-            oo = tfg.Rays(fromdict=dd)
-            assert dd==oo._todict(), "Unequal to and from dict !"
-
-
-    def test08_saveload(self):
-        for ii in range(0,len(self.LObj)):
-            self.LObj[ii].save(Print=False)
-            PFE = os.path.join(self.LObj[ii].Id.SavePath,
-                               self.LObj[ii].Id.SaveName+'.npz')
-            obj = tfpf.Open(PFE, Print=False)
-            dd = self.LObj[ii]._todict()
-            assert tfu.dict_cmp(dd,obj._todict())
-            os.remove(PFE)
-
-
-
+"""
 class Test04_LOSCams(Test03_Rays):
 
     @classmethod
@@ -485,8 +966,7 @@ class Test04_LOSCams(Test03_Rays):
             ind = self.LObj[ii].select(touch=el)
             ind = self.LObj[ii].select(key='Name', val='15', out=bool)
             ind = self.LObj[ii].select(key='Name', val=['02','35'], out=int)
-
-
+"""
 
 
 """
@@ -535,7 +1015,7 @@ class Test09_LensTor:
         plt.close('all')
 
     def test03_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -577,7 +1057,7 @@ class Test10_LensLin:
         plt.close('all')
 
     def test03_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -614,7 +1094,7 @@ class Test11_ApertTor:
         plt.close('all')
 
     def test02_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -650,7 +1130,7 @@ class Test12_ApertLin:
         plt.close('all')
 
     def test02_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -788,7 +1268,7 @@ class Test13_DetectApertTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -932,7 +1412,7 @@ class Test14_DetectApertLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1070,7 +1550,7 @@ class Test15_DetectLensTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1208,7 +1688,7 @@ class Test16_DetectLensLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1367,7 +1847,7 @@ class Test17_GDetectApertTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1517,7 +1997,7 @@ class Test18_GDetectApertLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1653,7 +2133,7 @@ class Test19_GDetectLensTor:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 
@@ -1788,7 +2268,7 @@ class Test20_GDetectLensLin:
         plt.close('all')
 
     def test15_saveload(self):
-        self.Obj.save()
+        self.Obj.save(verb=False)
         obj = tfpf.Open(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
         os.remove(self.Obj.Id.SavePath + self.Obj.Id.SaveName + '.npz')
 

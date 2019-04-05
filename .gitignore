@@ -1,0 +1,56 @@
+# No .pyc files
+*.pyc
+
+# No .so, .c or .nfs files
+*.o
+*.so
+*.c
+*.nfs*
+
+# Mac stuff
+*.AppleDouble
+.DS_Store
+._.DS_Store
+
+# No files finishing with a tilde
+*~
+
+# No jobs
+job_*
+
+# No Nextupdate
+NextUpdate*
+
+# No swap files
+*.swp
+
+# No plugins
+tofu/plugins/
+tofu/geom/build/
+./conda-bld
+conda-bld/
+dist/
+tofu.egg-info/
+build/
+
+#Notes_Upgrades/
+
+# Tex files
+*.aux
+*.log
+
+# .gitignore
+1
+Introduction
+computing
+Details
+.coverage
+
+# Include travis
+!.travis.yml
+
+# installation dir
+usr/
+
+# tests of LOS on west and ITER
+tofu/tests/tests01_geom/laura_tmp/

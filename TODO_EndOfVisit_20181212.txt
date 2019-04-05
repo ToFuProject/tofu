@@ -1,0 +1,118 @@
+Salut Laura,
+
+Alors les prochaines Ã©tapers que je vois (ton avis est Ã©videmment bienvenu):
+
+
+#########################
+* Function principale (kIn kOut, indout, vect):
+x	- Terminer proprement l'optimisation CPU
+x	- Comprendre et terminer optimisation / profilage mÃ©moire (rÃ©sidu?)
+x	- Terminer parallÃ©lisation
+x	- La connecter Ã  la partie orientÃ©e objet, en sortant les calculs
+	preliminaires (limites des boites...) qui ne changeront pas si la
+	camÃ©ra bouge et qu'on refait le calcul (pour optimisation de la
+	position)
+
+
+#########################
+* Autres fonctions nÃ©cessaire (inspirÃ©es de la principale):
+
+x 	0/ Calculer, pour N points (R,Z) (donc cercle plat en 3D), le point le
+	long de la LOS le plus proche du cercle: (projection de la ligne
+	(hyperbole) ou en 3D pbm 4d), retourner k et distance
+
+x	0.1/	Same as 0/ but give back bool when dist < eps => True
+	(eps as parameter).
+
+x	1/ Calculer uniquement kIn / kOut pour N (~1-100) polygones
+	(ex.: des surfaces de flux)
+	TODO: pas de structs !!
+
+x	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
+	traversent pas, la distance la plus courte d entre une ligne et un
+	polygone (et le paramÃ¨tre k du point associÃ© sur la ligne).
+	Retourner d=0 si la ligne traverse (i.e. si il existe un kIn et/ou
+	un kout)
+	> parametres entrées: (nvert, poly, vin, lims si lin, los_origin,
+	                       los_direction)
+
+	>> Only did it for toroidal polygons... is it really necessary ?
+/!\ I erased the function "is los close to vpoly"
+
+       o Interface Python:
+           qui appelle une des deux (si il existe un parametre epislon)
+	        x vectoriser à plusieurs polys
+		x version true/false si >0 et < eps (tableau booleen nlos*npoly)
+       o Interface Python :
+           qui appelle une des deux avex une variable pour choisir si LOS/poly ou l'inverse
+	          x plein LOS, plein poly, pour chaque ligne: tableau d'indice (de taille nlos)
+		    indiquant le poly pourlequel la LOS est le plus proche. (min(distance) mais
+	            pour laquelle la LOS ne passe pas à l'intérieur).
+	            Poly sont ordonnees : du plus petit au plus grand
+                  x plein LOS, plein poly, pour chaque poly: tableau d'indice (de taille npoly)
+                    indiquant la LOS pourlequel le poly est le plus proche. (min(distance) mais
+                    pour laquelle la LOS ne passe pas à l'intérieur).
+
+>	2.1/ Ask Didier (vignetting algo ?)
+	> In : (list los_orig, list los_dirc, list contour3d, ncontour, list nvert...)
+	> Out : (list bool[ncontour * nlos])
+	> contour 'simple' 3d = sans recoupe.
+	>  1. bbox - los
+	   triangulation du polygon
+
+	3/ Calculer, pour N points de l'espace (~10-100) s'il sont visibles par
+	M autres points (~10^4-10^6), dans une configuration donnÃ©e (ex.: des
+	points le long d'une trajectoire dans la chambre Ã  vide, on veut savoir
+	quels sont les points du plasma - Ã©chantillonÃ© - qui rayonnent
+	dessus). Retourner un tableau 2D (N,M) de booleens. Je calculerai
+	l'angle solide et le vecteur directeur vectoriellement ensuite en me
+	basant sur ce booleen. Un fonction qui retourne ce tableau est donc
+	suffisante.
+
+	4/ Idem, mais pour N polygons 3D plans (ou quasi-plans), attention, le
+	polygone a un sens (i.e.: une face visible, l'autre ne compte pas),
+	seuls les points du bon cotÃ© doivent Ãªtre comptÃ©s comme le voyant
+	   - Eventuellement retourner plutot un tableau d'entier (flags) avec
+	   code (0=pas vu, 1=partiellement, 2=entier), avec tests sur le centre
+	   de masse et les sommets)
+	   - Non-prioritaire : mattre un flag pour dÃ©sactiver le calcul
+	   d'un seul cÃ´tÃ©
+
+	5/ Idem mais calculer aussi l'angle solide associÃ© et le vecteur
+	directeur vers le centre de masse du polygon
+	   Prioritaire : uniquement pour les polygones vu en entier
+
+	6/ Pour les fonction 3/ et 5/, dans le cas ou le champ par lequel on
+	eut multiplier l'angle solide est axisymmÃ©trique (toroidalement
+	invariant), on peut le multiplier par l'intÃ©grale toroidale de l'angle
+	solideau lieu de faire un calcul dÃ©taillÃ© dans tout le volume. Dans ce
+	cas, le calcul doit aller plus vite et Ã©conomiser pas mal de mÃ©moire
+	puisqu'on Ã©crase sur une dimension). Il fut alors:
+		- Echantilloner le volume qui nous intÃ©resse (fonction
+		sample_V() existante, s'en inspirer), en faisant une boucle sur
+		le grand rayon R (car c'est lui qui dÃ©termine le nombre
+		d'Ã©chantillonages toroidaux), c'est cette boucle supÃ©rieure
+		que l'on pourra ensuite parallliser..
+		- En dÃ©duire un Ã©chantillonage (phi,Z), pour chaque point de
+		l'Ã©chantillonage voir si le point / polygone est visible, le
+		cas Ã©chÃ©ant calculer l'angle solide (et le vecteur ? Ã
+		discuter), puis l'intÃ©grer sur phi.
+		- A la fin on obtient une carte 2D (R,Z) de l'angle solide
+		intÃ©grÃ© en phi
+
+	7/ Faire la mÃªme chose que 5/ mais en intercalant un nombre arbitraire
+	d'ouvertires polygonles et de grilles polygonales, calculer l'angle
+	solide correspondant Ã  l'intersection de tous ces polygones vu du
+	plasma (i.e. : les photons doivent passer Ã  travers toutes les
+	ouvertures / griles avant d'atteindre les dÃ©tecteurs).
+
+	7/ On va commencer Ã  gÃ©rer:
+		- Les rÃ©flexions (spÃ©culaires et diffusives)
+		- Les rÃ©flexions sur un cristal Ã  simple ou double courbure
+		(pour les spectromÃ¨tres)
+
+	8/ S'attaquer aux maillages (an 2)
+
+J'arrive ;-)
+A toute
+Didier
