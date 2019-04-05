@@ -3133,7 +3133,7 @@ class Rays(utils.ToFuObject):
             lSVIny = np.asarray(lSVIny)
 
             largs = [D, u, VPoly, VVIn]
-            dkwd = dict(ves_lims=Lim, ves_nlim=nLim,
+            dkwd = dict(ves_lims=Lim,
                         nstruct_tot=num_tot_structs,
                         nstruct_lim=num_lim_structs,
                         lstruct_polyx=lSPolyx,
@@ -3170,8 +3170,6 @@ class Rays(utils.ToFuObject):
             out = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
             # Currently computes and returns too many things
             kIn, kOut, vperp, indout = out
-            vperp  = np.transpose(vperp.reshape(self._dgeom['nRays'], 3))
-            indout = np.transpose(indout.reshape(self._dgeom['nRays'], 3))
         else:
             pass
         return kIn, kOut, vperp, indout
@@ -3970,7 +3968,7 @@ class Rays(utils.ToFuObject):
             nLim = self.config.nLim
             Type = self.config.Id.Type
             largs = [D, u, lPoly[0], lVIn[0]]
-            dkwd = dict(ves_lims=Lim, ves_nlim=nLim, ves_type=Type)
+            dkwd = dict(ves_lims=Lim, ves_type=Type)
         else:
             # To be adjusted later
             pass
