@@ -1687,7 +1687,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         elif Bck and not lis2D[ii]:
             if lData[ii].ddata['nnch'] == 1:
                 env = [np.nanmin(ldata[ii],axis=0), np.nanmax(ldata[ii],axis=0)]
-                dax['X'][ii].fill_between(lX[0].ravel(), env[0], env[1], facecolor=cbck)
+                dax['X'][ii].fill_between(lX[ii].ravel(), env[0], env[1], facecolor=cbck)
             tbck = np.tile(np.r_[lt[ii], np.nan], lnch[ii])
             dbck = np.vstack((ldata[ii], np.full((1,lnch[ii]),np.nan))).T.ravel()
             dax['t'][ii+1].plot(tbck, dbck, lw=1., ls='-', c=cbck)
@@ -1800,9 +1800,9 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                          interpolation='nearest', origin='lower',
                                          zorder=0, norm=norm_map,
                                          cmap=cmap_map)
-            dobj[im] = {'dupdate':{'data':{'id':dlextra['map'][0]['id'],
-                                           'lrid':[dlextra['map'][0]['idt']]}},
-                        'drefid':{dlextra['map'][0]['idt']:0}}
+            dobj[im] = {'dupdate':{'data':{'id':dlextra['map'][ii]['id'],
+                                           'lrid':[dlextra['map'][ii]['idt']]}},
+                        'drefid':{dlextra['map'][ii]['idt']:0}}
 
     # -------------
     # One-shot channels

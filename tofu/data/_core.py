@@ -1664,7 +1664,7 @@ class DataAbstract(utils.ToFuObject):
                                      dmarker=dmarker, fs=fs, dmargin=dmargin,
                                      wintit=wintit, tit=tit, fontsize=fontsize,
                                      labelpad=labelpad, draw=draw,
-                                     connect=connect):
+                                     connect=connect)
         return kh
 
 
