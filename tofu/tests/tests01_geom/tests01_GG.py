@@ -1321,28 +1321,61 @@ def test17_distance_los_to_circle():
     assert np.allclose(res[0], k_exact), "Problem with 'k'"
     assert np.allclose(res[1], d_exact), "Problem with 'dist'"
 
+
+
 def test17_is_los_close_to_circle():
     sqrt2 = np.sqrt(2.)
     #...
     radius = 1.
     circ_z = 0.
     # A "yes" case with a tangential ray .......................................
-    ray_or = np.array([0., sqrt2, 0])
-    ray_vd = np.array([1., -1, 0.])
-    res = GG.is_close_los_circle(ray_vd, ray_or, radius, circ_z, 0.1)
+    ray_or1 = np.array([0., sqrt2, 0])
+    ray_vd1 = np.array([1., -1, 0.])
+    res = GG.is_close_los_circle(ray_vd1, ray_or1, radius, circ_z, 0.1)
     assert np.isclose(res, True), "res = "+str(res)
     # A "yes" case with a non tangential ray ...................................
-    ray_or = np.array([0., sqrt2+0.01, 0])
-    ray_vd = np.array([1., -1, 0.])
-    res = GG.is_close_los_circle(ray_vd, ray_or, radius, circ_z, 0.1)
+    ray_or2 = np.array([0., sqrt2+0.01, 0])
+    ray_vd2 = np.array([1., -1, 0.])
+    res = GG.is_close_los_circle(ray_vd2, ray_or2, radius, circ_z, 0.1)
     assert np.isclose(res, True)
-    # A "no" case with a intersection...........................................
-    ray_or = np.array([0., sqrt2+0.01, 0])
-    ray_vd = np.array([0, 1., 0.])
-    res = GG.is_close_los_circle(ray_vd, ray_or, radius, circ_z, 0.1)
+    # A "yes" case with a intersection...........................................
+    ray_or3 = np.array([0., sqrt2, 0])
+    ray_vd3 = np.array([0, -1., 0.])
+    res = GG.is_close_los_circle(ray_vd3, ray_or3, radius, circ_z, 0.1)
+    assert np.isclose(res, True)
+    # A "no" case with no intersection..........................................
+    ray_or4 = np.array([0., sqrt2, 0])
+    ray_vd4 = np.array([1., 0, 0.])
+    res = GG.is_close_los_circle(ray_vd4, ray_or4, radius, circ_z, 0.1)
     assert np.isclose(res, False)
-    # A "no" case with no intersection...........................................
-    ray_or = np.array([0., sqrt2+0.01, 0])
-    ray_vd = np.array([1., 0, 0.])
-    res = GG.is_close_los_circle(ray_vd, ray_or, radius, circ_z, 0.1)
-    assert np.isclose(res, False)
+    # # == Vectorial case ========================================================
+    # # Similar cases but symetric or negative
+    # A "yes" case with a tangential ray .......................................
+    ray_or1 = np.array([sqrt2, 0., 0])
+    ray_vd1 = np.array([-1., 1.0, 0.])
+    # A "yes" case with a non tangential ray ...................................
+    ray_or2 = np.array([sqrt2+0.001, 0., 0])
+    ray_vd2 = np.array([-1., 1, 0.])
+    # A "yes" case with a intersection...........................................
+    ray_or3 = np.array([sqrt2, 0., 0])
+    ray_vd3 = np.array([-1, 0, 0.])
+    # A "no" case with no intersection..........................................
+    ray_or4 = np.array([sqrt2, -1., 0])
+    ray_vd4 = np.array([0., 1., 0.])
+    #Computing result..........................................................
+    nlos = 4
+    ncircles = 1
+    los_dirs = np.asarray([ray_vd1, ray_vd2, ray_vd3, ray_vd4])
+    los_oris = np.asarray([ray_or1, ray_or2, ray_or3, ray_or4])
+    circle_radius=np.asarray([radius])
+    circle_zcoord=np.asarray([circ_z])
+    res = GG.is_close_los_circle_vec(nlos, ncircles,
+                                     0.005,
+                                     los_dirs, los_oris,
+                                     circle_radius,
+                                     circle_zcoord)
+    assert res[0][0] == True
+    assert res[1][0] == True
+    assert res[2][0] == True
+    assert res[3][0] == False
+

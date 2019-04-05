@@ -5532,6 +5532,14 @@ def is_close_los_circle(np.ndarray[double,ndim=1,mode='c'] ray_vdir,
                         np.ndarray[double,ndim=1,mode='c'] ray_orig,
                         double radius, double circ_z, double eps,
                         double norm_dir=-1.0):
+    """
+    This function checks if at maximum a LOS is at a distance epsilon
+    form a cirlce
+    The result is True when distance < epsilon
+    ---
+    This is the PYTHON function, use only if you need this computation from
+    Python, if you need it from Cython, use `is_los_close_circle_core`
+    """
     return is_close_los_circle_core(<double*>ray_vdir.data,
                                     <double*>ray_orig.data,
                                     radius, circ_z, norm_dir, eps)
@@ -5559,6 +5567,7 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
     cdef double[3] direction
     cdef double tmin
     cdef double distance
+    cdef double inv_norm_dir
     cdef bint are_close
 
     # .. initialization .....
@@ -5742,7 +5751,7 @@ cdef inline bint is_close_los_circle_core(const double[3] direct,
                 t = Cabs(circle_center[2] - origin[2])
                 are_close = Csqrt(radius*radius + t*t) < eps
                 return are_close
-    return 0
+
 
 def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
                              np.ndarray[double,ndim=2,mode='c'] dirs,
@@ -5751,20 +5760,12 @@ def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
                              np.ndarray[double,ndim=1,mode='c'] circle_z,
                              np.ndarray[double,ndim=1,mode='c'] norm_dir=None):
     """
-    This function computes the intersection of a Ray (or Line Of Sight)
-    and a circle in 3D. It returns `kmin`, the coefficient such that the
-    ray of origin O = [ori1, ori2, ori3] and of directional vector
-    D = [dir1, dir2, dir3] is closest to the circle of radius `radius`
-    and centered `(0, 0, circ_z)` at the point P = O + kmin * D.
-    The variable `norm_dir` is the squared norm of the direction of the ray.
-    This is the vectorial version, we expect the directions and origins to be:
-    dirs = [dir1_los1, dir2_los1, dir3_los1, dir1_los2,...]
-    oris = [ori1_los1, ori2_los1, ori3_los1, ori1_los2,...]
-    The result is given in the format:
-    res = [kmin(los1, cir1), kmin(los1, cir2),...]
+    This function checks if at maximum a LOS is at a distance epsilon
+    form a cirlce. Vectorial version
+    The result is True when distance < epsilon
     ---
     This is the PYTHON function, use only if you need this computation from
-    Python, if you need it from Cython, use `dist_los_circle_core`
+    Python, if you need it from Cython, use `is_los_close_circle_core`
     """
     cdef array res = clone(array('i'), nlos, True)
 
@@ -5778,7 +5779,8 @@ def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
                                  <double*>circle_z.data,
                                  <double*>norm_dir.data,
                                  res)
-    return np.asarray(res)
+    return np.asarray(res, dtype=bool).reshape(nlos, ncircles)
+
 
 cdef void is_close_los_circle_vec_core(int num_los, int num_cir,
                                        double eps,
@@ -5787,7 +5789,7 @@ cdef void is_close_los_circle_vec_core(int num_los, int num_cir,
                                        double* circle_radius,
                                        double* circle_z,
                                        double* norm_dir_tab,
-                                       double[::1] res) nogil:
+                                       int[::1] res) nogil:
     """
     This function computes the intersection of a Ray (or Line Of Sight)
     and a circle in 3D. It returns `kmin`, the coefficient such that the
@@ -5827,6 +5829,11 @@ cdef void is_close_los_circle_vec_core(int num_los, int num_cir,
         free(orig)
     return
 
+# ==============================================================================
+#
+#                       DISTANCE BETWEEN LOS AND EXT-POLY
+#
+# ==============================================================================
 
 def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
                             np.ndarray[double,ndim=2,mode='c'] ray_orig,
