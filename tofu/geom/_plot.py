@@ -1308,7 +1308,6 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
     fldict = dict(fontsize=fontsize, labelpad=labelpad)
 
 
-
     # ---------
     # Check nch and X
     nch = cam.nRays
