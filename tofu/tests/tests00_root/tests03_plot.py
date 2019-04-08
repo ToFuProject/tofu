@@ -97,12 +97,15 @@ class Test01_plot_shotovervew(object):
         #print("")
         #print("---- "+cls.__name__)
 
+        # conf
+        cls.conf = tf.geom.utils.create_config('B3')
+
         # time vectors
         t0 = np.linspace(0,10,100)
         teq0 = t0 + 0.1
-        t1 = np.linspace(t0[0],t1[-11]+1, t0.size//2)
+        t1 = np.linspace(t0[0],t0[-1]+1, t0.size//2)
         t2 = np.linspace(t0[0]-1.,t0[-1]-1., 2*t0.size)
-        t2eq = t2 - 0.1
+        teq2 = t2 - 0.1
 
         Ax0 = np.array([2.4+0.1*np.cos(teq0), 0.1*np.sin(teq0)]).T
         Ax2 = np.array([2.4+0.1*np.sin(teq2), 0.05*np.cos(teq2)]).T
@@ -138,10 +141,18 @@ class Test01_plot_shotovervew(object):
         pass
 
     def test01_plot_shotoverview(self):
-        # One by one
+        # One by one, without conf
         for shot, dextra in self.dobj.items():
-            kh = tf.plot_shotoverview({shot:dextra})
+            kh = tf._plot.plot_shotoverview({shot:dextra})
 
-        # All together
-        kh = tf.plot_shotoverview(self.obj)
+        # All together, without conf
+        kh = tf._plot.plot_shotoverview(self.dobj)
+        plt.close('all')
+
+        # One by one, with conf
+        for shot, dextra in self.dobj.items():
+            kh = tf._plot.plot_shotoverview({shot:dextra}, config=self.conf)
+
+        # All together, with conf
+        kh = tf._plot.plot_shotoverview(self.dobj, config=self.conf)
         plt.close('all')
