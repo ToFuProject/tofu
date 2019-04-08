@@ -90,12 +90,16 @@ def _plot_shotoverview_init(ns=1, sharet=True, sharey=True, shareRZ=True,
         else:
             laxt[ii] = fig.add_subplot(axarr[ii,:2], sharex=sht, sharey=shy)
             laxc[ii] = fig.add_subplot(axarr[ii,2], sharex=shRZ, sharey=shRZ)
-            # if not shareRZ:
-                # ax2.set_aspect('equal', adjustable='datalim')
+            if not shareRZ:
+                ax2.set_aspect('equal', adjustable='datalim')
 
     laxc[-1].set_xlabel(r'$R$ ($m$)')
     laxt[-1].set_xlabel(r'$t$ ($s$)', fontsize=fontsize)
-    laxc[0].set_aspect('equal', adjustable='datalim')
+
+    # datalim or box must be chosen for shared axis depending on matplotlib
+    # version => let matplotlib decide until support for matplotlib 2.X.X is
+    # stopped
+    laxc[0].set_aspect('equal')#, adjustable='box')
 
     xtxt = laxc[0].get_position().bounds[0]
     dx = laxc[0].get_position().bounds[2]
