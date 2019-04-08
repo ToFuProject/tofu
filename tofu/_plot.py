@@ -81,26 +81,24 @@ def _plot_shotoverview_init(ns=1, sharet=True, sharey=True, shareRZ=True,
     laxt = [None for ii in range(0,ns)]
     laxc = [None for ii in range(0,ns)]
     for ii in range(0,ns):
-        if ii==0:
-            axt = fig.add_subplot(axarr[ii,:2])
-            ax2 = fig.add_subplot(axarr[ii,2])
-            sht = axt if sharet else None
-            shy = axt if sharey else None
-            shRZ = ax2 if shareRZ else None
+        if ii == 0:
+            laxt[ii] = fig.add_subplot(axarr[ii,:2])
+            laxc[ii] = fig.add_subplot(axarr[ii,2])
+            sht = laxt[0] if sharet else None
+            shy = laxt[0] if sharey else None
+            shRZ = laxc[0] if shareRZ else None
         else:
-            axt = fig.add_subplot(axarr[ii,:2], sharex=sht, sharey=shy)
-            ax2 = fig.add_subplot(axarr[ii,2], sharex=shRZ, sharey=shRZ)
+            laxt[ii] = fig.add_subplot(axarr[ii,:2], sharex=sht, sharey=shy)
+            laxc[ii] = fig.add_subplot(axarr[ii,2], sharex=shRZ, sharey=shRZ)
             # if not shareRZ:
                 # ax2.set_aspect('equal', adjustable='datalim')
-        laxt[ii] = axt
-        laxc[ii] = ax2
 
     laxc[-1].set_xlabel(r'$R$ ($m$)')
     laxt[-1].set_xlabel(r'$t$ ($s$)', fontsize=fontsize)
     laxc[0].set_aspect('equal', adjustable='datalim')
 
-    xtxt = ax2.get_position().bounds[0]
-    dx = ax2.get_position().bounds[2]
+    xtxt = laxc[0].get_position().bounds[0]
+    dx = laxc[0].get_position().bounds[2]
     Ytxt, DY = np.sum(laxc[0].get_position().bounds[1::2]), 0.1
     axtxtt = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
 
