@@ -84,20 +84,20 @@ def _plot_shotoverview_init(ns=1, sharet=True, sharey=True, shareRZ=True,
         if ii==0:
             axt = fig.add_subplot(axarr[ii,:2])
             ax2 = fig.add_subplot(axarr[ii,2])
-            ax2.set_aspect('equal', adjustable='datalim')
             sht = axt if sharet else None
             shy = axt if sharey else None
             shRZ = ax2 if shareRZ else None
         else:
             axt = fig.add_subplot(axarr[ii,:2], sharex=sht, sharey=shy)
             ax2 = fig.add_subplot(axarr[ii,2], sharex=shRZ, sharey=shRZ)
-            if not shareRZ:
-                ax2.set_aspect('equal', adjustable='datalim')
+            # if not shareRZ:
+                # ax2.set_aspect('equal', adjustable='datalim')
         laxt[ii] = axt
         laxc[ii] = ax2
 
     laxc[-1].set_xlabel(r'$R$ ($m$)')
     laxt[-1].set_xlabel(r'$t$ ($s$)', fontsize=fontsize)
+    laxc[0].set_aspect('equal', adjustable='datalim')
 
     xtxt = ax2.get_position().bounds[0]
     dx = ax2.get_position().bounds[2]
