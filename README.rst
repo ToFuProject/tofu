@@ -29,13 +29,6 @@
 ToFu
 ====
 
------
-
-**Warning**
-This Pypi package focuses on tomography for fusion research.
-It uses the same name as a previous package dedicated to a testing framework coupling fixtures and tests loosely, now renamed **reahl-tofu** and developped by Iwan Vosloo since 2006. If you ended up here looking for a web-oriented library, you should probably redirect to the more recent [**reahl-tofu**](https://pypi.python.org/pypi/reahl-tofu) page.
-
------
 
 ToFu stands for Tomography for Fusion, it is an open-source machine-independent python library
 with non-open source plugins containing all machine-dependent routines.
@@ -72,6 +65,42 @@ This geometry module allows in particular:
 * To discretise the VOS for a numerical 3D integration of a simulated emissivity in order to compute the associated signal
 
 It is in this geometrical sense that ToFu enables a synthetic diagnostic approach, it does not provide the tools for simulating the emissivity (that should be an input, provided by another code).
+
+----
+
+
+Installing ToFu
+***************
+
+- **Standard mode**::
+
+    conda install -c tofuproject tofu 
+
+- **Developer mode**
+
+Install dependencies.::
+
+    python (2.7 or 3)
+    numpy
+    scipy
+    matplotlib
+    cython
+    nose
+    pygments
+    pandas
+    polygon3 (or polygon2 if you are using python 2.7)
+
+Checkout the ToFu git repository and from the top directory::
+    
+    python setup.py build_ext --inplace
+    python setup.py install
+
+
+-----
+
+**Warning**
+This Pypi package focuses on tomography for fusion research.
+It uses the same name as a previous package dedicated to a testing framework coupling fixtures and tests loosely, now renamed **reahl-tofu** and developped by Iwan Vosloo since 2006. If you ended up here looking for a web-oriented library, you should probably redirect to the more recent [**reahl-tofu**](https://pypi.python.org/pypi/reahl-tofu) page.
 
 
 
