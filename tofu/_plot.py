@@ -13,9 +13,6 @@ except Exception:
     from tofu.version import __version__
     from .. import utils as utils
 
-# DEPRECATED
-from tofu.utils import KeyHandler as tfKH
-
 
 __all__ = ['plot_shotoverview']
 
