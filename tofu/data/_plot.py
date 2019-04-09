@@ -2067,8 +2067,6 @@ def Data_plot_svd(Data, chronos, s, topos, modes=None,
         lls = _lls
     if cbck is None:
         cbck = _cbck
-    if dmarker is None:
-        dmarker = _dmarker
     if modes is None:
         modes = np.arange(0,6)
 

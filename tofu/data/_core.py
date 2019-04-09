@@ -1823,9 +1823,9 @@ class DataAbstract(utils.ToFuObject):
                  cmap_topos=None, vmin_topos=None, vmax_topos=None,
                  ntMax=None, nchMax=None, ms=4,
                  inct=[1,10], incX=[1,5], incm=[1,5],
-                 lls=None, lct=None, lcch=None, lcm=None, cbck=None, invert=False,
-                 fmt_t='06.3f', fmt_X='01.0f', fmt_m='03.0f',
-                 fs=None, dmargin=None, labelpad=None, wintit=_wintit, tit=None,
+                 lls=None, lct=None, lcch=None, lcm=None, cbck=None,
+                 invert=False, fmt_t='06.3f', fmt_X='01.0f', fmt_m='03.0f',
+                 fs=None, dmargin=None, labelpad=None, wintit=None, tit=None,
                  fontsize=None, draw=True, connect=True):
         """ Plot the chosen modes of the svd decomposition
 
