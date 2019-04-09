@@ -383,7 +383,9 @@ class Test01_DataCam12D(object):
         plt.close('all')
 
     def test19_plot_svd(self):
-        warnings.warn('Not implemented yet !')
+        for oo in self.lobj:
+            kh = oo.plot_svd()
+        plt.close('all')
 
     def test20_copy_equal(self):
         for oo in self.lobj:

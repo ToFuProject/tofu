@@ -1818,14 +1818,40 @@ class DataAbstract(utils.ToFuObject):
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
         return u, s, v
 
-    def plot_svd(self, modes=None, lapack_driver='gesdd', invert=True):
-        """ Plot the chosen modes of the svd decomposition """
-        # For 50 channels (1D) and 1000 times
-        # Computation takes ~ 0.2 s
-        # Plotting takes ~ 11 s
+    def plot_svd(self, lapack_driver='gesdd', modes=None, key=None, Bck=True,
+                 Lplot='In', cmap=None, vmin=None, vmax=None,
+                 cmap_topos=None, vmin_topos=None, vmax_topos=None,
+                 ntMax=None, nchMax=None, ms=4,
+                 inct=[1,10], incX=[1,5], incm=[1,5],
+                 lls=None, lct=None, lcch=None, lcm=None, cbck=None, invert=False,
+                 fmt_t='06.3f', fmt_X='01.0f', fmt_m='03.0f',
+                 fs=None, dmargin=None, labelpad=None, wintit=_wintit, tit=None,
+                 fontsize=None, draw=True, connect=True):
+        """ Plot the chosen modes of the svd decomposition
+
+        All modes will be plotted, the keyword 'modes' is only used to
+        determine the reference modes for computing a common scale for
+        vizualisation
+
+        Runs self.calc_svd() and then plots the result in an interactive figure
+
+        """
+        # Computing (~0.2 s for 50 channels 1D and 1000 times)
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+
+        # Plotting (~11 s for 50 channels 1D and 1000 times)
         kh = _plot.Data_plot_svd(self, chronos, s, topos, modes=modes,
-                                 invert=invert)
+                                 key=key, Bck=Bck, Lplot=Lplot,
+                                 cmap=cmap, vmin=vmin, vmax=vmax,
+                                 cmap_topos=cmap_topos, vmin_topos=vmin_topos,
+                                 vmax_topos=vmax_topos,
+                                 ntMax=ntMax, nchMax=nchMax, ms=ms,
+                                 inct=inct, incX=incX, incm=incm,
+                                 lls=lls, lct=lct, lcch=lcch, lcm=lcm, cbck=cbck,
+                                 invert=invert, fmt_t=fmt_t, fmt_X=fmt_X, fmt_m=fmt_m,
+                                 fs=fs, dmargin=dmargin, labelpad=labelpad, wintit=wintit,
+                                 tit=tit, fontsize=fontsize, draw=draw,
+                                 connect=connect)
         return kh
 
     def save(self, path=None, name=None,

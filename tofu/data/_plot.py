@@ -27,7 +27,7 @@ __all__ = ['Data_plot', 'Data_plot_combine',
            'Data_plot_spectrogram']
 #__author_email__ = 'didier.vezinet@cea.fr'
 __github = 'https://github.com/ToFuProject/tofu/issues'
-_wintit = 'tofu-%s    report issues / requests at %s'%(__version__, __github)
+_wintit = 'tofu-%s        report issues / requests at %s'%(__version__, __github)
 _nchMax, _ntMax, _nfMax = 4, 3, 3
 _fontsize = 8
 _labelpad = 0
@@ -2023,38 +2023,68 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 #######################################################################
 
 
-def Data_plot_svd(Data, u, s, v, modes=None,
-                  key=None, Bck=True, indref=0,
-                  cmap=None, vmin=None, vmax=None, ms=4,
-                  normt=False, ntMax=None, nchMax=3,
-                  lls=_lls, lct=_lct, lcch=_lcch, invert=False,
-                  fs=None, dmargin=None, labelpad=_labelpad, wintit=_wintit, tit=None,
+def Data_plot_svd(Data, chronos, s, topos, modes=None,
+                  key=None, Bck=True, Lplot='In',
+                  cmap=None, vmin=None, vmax=None,
+                  cmap_topos=None, vmin_topos=None, vmax_topos=None,
+                  ntMax=None, nchMax=None, ms=4,
+                  inct=[1,10], incX=[1,5], incm=[1,5],
+                  lls=None, lct=None, lcch=None, lcm=None, cbck=None,
+                  invert=True, fmt_t='06.3f', fmt_X='01.0f', fmt_m='03.0f',
+                  fs=None, dmargin=None, labelpad=None, wintit=None, tit=None,
                   fontsize=None, draw=True, connect=True):
 
     assert issubclass(Data.__class__, utils.ToFuObject)
     assert Data._isSpectral() is False
 
-    if wintit is None:
-        wintit = _wintit
+    nD = 2 if Data._is2D() else 1
+
+    # ------------------
+    # Input formatting
     if fontsize is None:
         fontsize = _fontsize
-
-    ntMax = _ntMax if ntMax is None else ntMax
-    nchMax = _nchMax if nchMax is None else nchMax
-    nD = 1
+    if ntMax is None:
+        ntMax = _ntMax
     if Data._is2D():
-        nD = 2
         ntMax = 1
+    if nchMax is None:
+        nchMax = _nchMax
+    if cmap is None:
+        cmap = plt.cm.gray_r
+    if cmap_topos is None:
+        cmap = plt.cm.seismic
+    if wintit is None:
+        wintit = _wintit
+    if labelpad is None:
+        labelpad = _labelpad
+    if lct is None:
+        lct = _lct
+    if lcch is None:
+        lcch = _lcch
+    if lcm is None:
+        lcm = _lcm
+    if lls is None:
+        lls = _lls
+    if cbck is None:
+        cbck = _cbck
+    if dmarker is None:
+        dmarker = _dmarker
     if modes is None:
         modes = np.arange(0,6)
 
-    kh = _Data_plot_svd(Data, u, s, v, modes=modes, key=key, nD=nD,
-                        ntMax=ntMax, nchMax=nchMax,
-                        Bck=Bck, lls=lls, lct=lct,
-                        cmap=cmap, vmin=vmin, vmax=vmax, ms=ms,
-                        invert=invert, fs=fs, dmargin=dmargin, labelpad=labelpad,
-                        wintit=wintit, tit=tit, fontsize=fontsize,
-                        draw=draw, connect=connect)
+    # ------------------
+    # Plotting
+    kh = _Data_plot_svd(Data, chronos, s, topos, modes=modes,
+                        key=key, Bck=Bck, Lplot=Lplot,
+                        cmap=cmap, vmin=vmin, vmax=vmax,
+                        cmap_topos=cmap_topos, vmin_topos=vmin_topos,
+                        vmax_topos=vmax_topos, nD=nD,
+                        ntMax=ntMax, nchMax=nchMax, ms=ms,
+                        inct=inct, incX=incX, incm=incm,
+                        lls=lls, lct=lct, lcch=lcch, lcm=lcm, cbck=cbck,
+                        invert=invert, fmt_t=fmt_t, fmt_X=fmt_X, fmt_m=fmt_m,
+                        fs=fs, dmargin=dmargin, labelpad=labelpad, wintit=wintit,
+                        tit=tit, fontsize=fontsize, draw=draw, connect=connect)
     return kh
 
 
@@ -2163,7 +2193,7 @@ def _init_Data_svd(fs=None, dmargin=None, nD=1,
 
 
 def _Data_plot_svd(Data, chronos, s, topos, modes=None,
-                   key=None, Bck=True, indref=0, Lplot='In',
+                   key=None, Bck=True, Lplot='In',
                    cmap=None, vmin=None, vmax=None,
                    cmap_topos=None, vmin_topos=None, vmax_topos=None,
                    ntMax=None, nchMax=None, ms=4,
