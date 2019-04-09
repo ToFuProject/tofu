@@ -27,7 +27,7 @@ __all__ = ['Data_plot', 'Data_plot_combine',
            'Data_plot_spectrogram']
 #__author_email__ = 'didier.vezinet@cea.fr'
 __github = 'https://github.com/ToFuProject/tofu/issues'
-_wintit = 'tofu-%s    report issues / requests at %s'%(__version__, __github)
+_wintit = 'tofu-%s        report issues / requests at %s'%(__version__, __github)
 _nchMax, _ntMax, _nfMax = 4, 3, 3
 _fontsize = 8
 _labelpad = 0
@@ -35,6 +35,7 @@ _lls = ['-','--','-.',':']
 _lct = [plt.cm.tab20.colors[ii] for ii in [0,2,4,1,3,5]]
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
+_lcm = _lclbd
 _cbck = (0.8,0.8,0.8)
 _dmarker = {'Ax':'o', 'X':'x'}
 
@@ -1832,6 +1833,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     ##################
     # Populating dobj
+    ##################
 
 
     # Channel
@@ -1993,6 +1995,627 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                     'drefid':{idf:jj}}
 
 
+
+
+    # Instanciate KeyHandler
+    can = fig.canvas
+    can.draw()
+    kh = utils.KeyHandler_mpl(can=can,
+                              dgroup=dgroup, dref=dref, ddata=ddat,
+                              dobj=dobj, dax=dax2, lax_fix=lax_fix,
+                              groupinit='time', follow=True)
+
+    if connect:
+        kh.disconnect_old()
+        kh.connect()
+    if draw:
+        can.draw()
+    return kh
+
+
+
+
+#######################################################################
+#######################################################################
+#######################################################################
+#               Plot svd
+#######################################################################
+#######################################################################
+
+
+def Data_plot_svd(Data, chronos, s, topos, modes=None,
+                  key=None, Bck=True, Lplot='In',
+                  cmap=None, vmin=None, vmax=None,
+                  cmap_topos=None, vmin_topos=None, vmax_topos=None,
+                  ntMax=None, nchMax=None, ms=4,
+                  inct=[1,10], incX=[1,5], incm=[1,5],
+                  lls=None, lct=None, lcch=None, lcm=None, cbck=None,
+                  invert=True, fmt_t='06.3f', fmt_X='01.0f', fmt_m='03.0f',
+                  fs=None, dmargin=None, labelpad=None, wintit=None, tit=None,
+                  fontsize=None, draw=True, connect=True):
+
+    assert issubclass(Data.__class__, utils.ToFuObject)
+    assert Data._isSpectral() is False
+
+    nD = 2 if Data._is2D() else 1
+
+    # ------------------
+    # Input formatting
+    if fontsize is None:
+        fontsize = _fontsize
+    if ntMax is None:
+        ntMax = _ntMax
+    if Data._is2D():
+        ntMax = 1
+    if nchMax is None:
+        nchMax = _nchMax
+    if cmap is None:
+        cmap = plt.cm.gray_r
+    if cmap_topos is None:
+        cmap = plt.cm.seismic
+    if wintit is None:
+        wintit = _wintit
+    if labelpad is None:
+        labelpad = _labelpad
+    if lct is None:
+        lct = _lct
+    if lcch is None:
+        lcch = _lcch
+    if lcm is None:
+        lcm = _lcm
+    if lls is None:
+        lls = _lls
+    if cbck is None:
+        cbck = _cbck
+    if modes is None:
+        modes = np.arange(0,6)
+
+    # ------------------
+    # Plotting
+    kh = _Data_plot_svd(Data, chronos, s, topos, modes=modes,
+                        key=key, Bck=Bck, Lplot=Lplot,
+                        cmap=cmap, vmin=vmin, vmax=vmax,
+                        cmap_topos=cmap_topos, vmin_topos=vmin_topos,
+                        vmax_topos=vmax_topos, nD=nD,
+                        ntMax=ntMax, nchMax=nchMax, ms=ms,
+                        inct=inct, incX=incX, incm=incm,
+                        lls=lls, lct=lct, lcch=lcch, lcm=lcm, cbck=cbck,
+                        invert=invert, fmt_t=fmt_t, fmt_X=fmt_X, fmt_m=fmt_m,
+                        fs=fs, dmargin=dmargin, labelpad=labelpad, wintit=wintit,
+                        tit=tit, fontsize=fontsize, draw=draw, connect=connect)
+    return kh
+
+
+
+def _init_Data_svd(fs=None, dmargin=None, nD=1,
+                   fontsize=8,  wintit=_wintit):
+
+    # Prepare
+    axCol = "w"
+    fs = utils.get_figuresize(fs)
+    if dmargin is None:
+        dmargin = _def.dmargin1D
+    fig = plt.figure(facecolor=axCol,figsize=fs)
+    if wintit is not None:
+        fig.canvas.set_window_title(wintit)
+
+    # Axes array
+    gs1 = gridspec.GridSpec(4, 5, **dmargin)
+    laxt = [fig.add_subplot(gs1[0,:2], fc='w')]
+    laxt += [fig.add_subplot(gs1[1,:2], fc='w', sharex=laxt[0])]
+    for ii in range(2,4):
+        laxt += [fig.add_subplot(gs1[ii,:2], fc='w',
+                                 sharex=laxt[0],sharey=laxt[1])]
+
+    if nD == 1:
+        laxp = [fig.add_subplot(gs1[0,2:4], fc='w', sharey=laxt[0])]
+        laxp += [fig.add_subplot(gs1[1,2:4], fc='w', sharex=laxp[0])]
+        for ii in range(2,4):
+            laxp += [fig.add_subplot(gs1[ii,2:4], fc='w',
+                                     sharex=laxp[0], sharey=laxp[1])]
+    else:
+        from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+        laxp = [fig.add_subplot(gs1[0,2:4], fc='w')]
+        for ii in range(0,6):
+            laxp += [fig.add_subplot(gs1[1+ii//2, 2+ii%2], fc='w',
+                                     sharex=laxp[0], sharey=laxp[0])]
+        ax_divider = make_axes_locatable(laxp[0])
+        laxcb = [ax_divider.append_axes("right", size="5%", pad="15%")]
+        laxcb += [ax_divider.append_axes("right", size="5%", pad="30%")]
+
+    axm = fig.add_subplot(gs1[0,4], fc='w', yscale='log')
+    axH = fig.add_subplot(gs1[1,4], fc='w')
+    axC = fig.add_subplot(gs1[2:,4], fc='w')
+    axC.set_aspect('equal', adjustable='datalim')
+    axH.set_aspect('equal', adjustable='datalim')
+
+    # text x
+    Ytxt = np.sum(laxt[0].get_position().bounds[1::2])
+    DY = (laxt[0].get_position().bounds[1]
+          - np.sum(laxt[1].get_position().bounds[1::2]))/2.
+    Xtxt = laxt[0].get_position().bounds[0]
+    DX = laxt[0].get_position().bounds[2]
+    axtxtx = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='None')
+
+    # text t
+    Ytxt = np.sum(laxp[0].get_position().bounds[1::2])
+    Xtxt = laxp[0].get_position().bounds[0]
+    axtxtt = fig.add_axes([Xtxt, Ytxt, DX, DY], fc='None')
+
+    # text group
+    xtxt, dx, Ytxt = 0., 0.15, 1.-DY
+    axtxtg = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+
+    # texts modes
+    laxtxtm = [None for ii in range(0,6)]
+    for ii in range(0,6):
+        Xtxt = laxp[0].get_position().bounds[0] + (ii%2)*DX/2.
+        indax = ii//(3-nD) + 1
+        Ytxt = np.sum(laxp[indax].get_position().bounds[1::2])
+        ax = fig.add_axes([Xtxt, Ytxt, DX/2., DY], fc='None')
+        laxtxtm[ii] = ax
+
+    # Return ax dict
+    dax = {'t':laxt,
+           'X':laxp,
+           'm':[axm],
+           'cross':[axC],
+           'hor':[axH],
+           'txtg':[axtxtg],
+           'txtx':[axtxtx],
+           'txtt':[axtxtt],
+           'txtm':laxtxtm}
+
+    # Add colorbars if 2D
+    if nD == 2:
+        dax['colorbar'] = laxcb
+
+    # Format all axes
+    for kk in dax.keys():
+        for ii in range(0,len(dax[kk])):
+            dax[kk][ii].tick_params(labelsize=fontsize)
+            # For faster plotting :
+            if kk not in ['cross','hor']:
+                dax[kk][ii].autoscale(False)
+                dax[kk][ii].use_sticky_edges = False
+        if 'txt' in kk:
+            for ii in range(0,len(dax[kk])):
+                dax[kk][ii].patch.set_alpha(0.)
+                for ss in ['left','right','bottom','top']:
+                    dax[kk][ii].spines[ss].set_visible(False)
+                dax[kk][ii].set_xticks([]), dax[kk][ii].set_yticks([])
+                dax[kk][ii].set_xlim(0,1),  dax[kk][ii].set_ylim(0,1)
+
+    return dax
+
+
+
+def _Data_plot_svd(Data, chronos, s, topos, modes=None,
+                   key=None, Bck=True, Lplot='In',
+                   cmap=None, vmin=None, vmax=None,
+                   cmap_topos=None, vmin_topos=None, vmax_topos=None,
+                   ntMax=None, nchMax=None, ms=4,
+                   inct=[1,10], incX=[1,5], incm=[1,5],
+                   lls=_lls, lct=_lct, lcch=_lcch, lcm=_lcm, cbck=_cbck, invert=False,
+                   fmt_t='06.3f', fmt_X='01.0f', fmt_m='03.0f',
+                   fs=None, dmargin=None, labelpad=None, wintit=_wintit, tit=None,
+                   fontsize=None, draw=True, connect=True, nD=1):
+
+    assert Data.Id.Cls in ['DataCam1D','DataCam2D']
+    assert nD in [1,2]
+    if cmap is None:
+        cmap = plt.cm.gray_r
+    if cmap_topos is None:
+        cmap_topos = plt.cm.seismic
+    nmMax = 6
+
+    invert = True
+
+    #########
+    # Prepare
+    #########
+
+    # Start extracting data
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
+    Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
+    lEq = ['Ax','Sep','q1']
+
+    # Force update for safety
+    ddata = Data.ddata
+
+    # t
+    t, nt = ddata['t'], ddata['nt']
+    if nt == 1:
+        Dt = [t[0]-0.001,t[0]+0.001]
+    else:
+        Dt = [np.nanmin(t), np.nanmax(t)]
+    tlab = r"{0} ({1})".format(Data.dlabels['t']['name'],
+                               Data.dlabels['t']['units'])
+    ttype = 'x'
+    idt = id(t)
+
+    # X
+    X, nch, nnch, indtX = ddata['X'], ddata['nch'], ddata['nnch'], ddata['indtX']
+    if nD == 1:
+        if nch == 1:
+            DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
+        else:
+            DX = [np.nanmin(X), np.nanmax(X)]
+        Xlab = r"{0} ({1})".format(Data.dlabels['X']['name'],
+                                   Data.dlabels['X']['units'])
+    else:
+        assert nnch == 1
+        assert indtX is None
+        x1, x2, indr, extent = Data.get_X12plot('imshow')
+        if Bck:
+            indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
+            nan2 = np.full((2,1),np.nan)
+        idx12 = id((x1,x2))
+        n12 = [x1.size, x2.size]
+
+    if nnch == 1:
+        Xtype = 'x'
+        Xother = None
+    elif indtX is None:
+        Xtype = 'x1'
+        Xother = idt
+    idX = id(X)
+
+    # dchans
+    if key is None:
+        dchans = np.arange(0,nch)
+    else:
+        dchans = Data.dchans(key)
+    idchans = id(dchans)
+
+    # data
+    data = Data.data
+    vmin = np.nanmin(data)
+    vmax = np.nanmax(data)
+    Dlim = [min(0.,vmin), max(0.,vmax)]
+    Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
+    Dlab = r"{0} ({1})".format(Data.dlabels['data']['name'],
+                               Data.dlabels['data']['units'])
+    iddata = id(data)
+
+    # singular values
+    Ds = (np.min(s),np.max(s))
+    Ds = (Ds[0], Ds[1]+0.05*np.diff(Ds))
+    indmodes = np.arange(0,s.size)
+    Dm = (-1, np.max(modes)+1)
+    idm = id(indmodes)
+
+    # chronos
+    vabs_chronos = np.nanmax(np.abs(chronos[:,modes]))
+    Dchronos = (-vabs_chronos, vabs_chronos)
+    idchronos = id(chronos)
+
+    # topos
+    vabs_topos = np.nanmax(np.abs(topos[modes,:]))
+    Dtopos = (-vabs_topos, vabs_topos)
+    if vmin_topos is None:
+        vmin_topos = -vabs_topos
+    if vmax_topos is None:
+        vmax_topos = vabs_topos
+    idtopos = id(topos)
+
+    ############
+    # Format axes
+    ############
+    dax = _init_Data_svd(fs=fs, dmargin=dmargin,
+                         wintit=wintit, nD=nD)
+    fig = dax['t'][0].figure
+
+    if tit is None:
+        tit = []
+        if Data.Id.Exp is not None:
+            tit.append(Data.Id.Exp)
+        if Data.Id.Diag is not None:
+            tit.append(Data.Id.Diag)
+        if Data.Id.shot is not None:
+            tit.append(r"{0:05.0f}".format(Data.Id.shot))
+        tit = ' - '.join(tit)
+    fig.suptitle(tit)
+
+    ############
+    # Plot static
+    ############
+
+    # Config and LOS
+    c0 = Data._dgeom['config'] is not None
+    c1 = c0 and Data._dgeom['lCam'] is not None
+    if c0:
+        out = Data._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
+                                         element='P', dLeg=None, draw=False)
+        dax['cross'][0], dax['hor'][0] = out
+        if c1 and 'LOS' in Data._dgeom['lCam'][0].Id.Cls:
+            lCross, lHor, llab = [], [], []
+            for cc in Data._dgeom['lCam']:
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+                if Bck and cc._is2D():
+                    crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
+                                lCross[indbck[2]],nan2,lCross[indbck[3]]]
+                    crossbck = np.concatenate(crossbck,axis=1)
+                    horbck = [lHor[indbck[0]],nan2,lHor[indbck[1]],nan2,
+                              lHor[indbck[2]],nan2,lHor[indbck[3]]]
+                    horbck = np.concatenate(horbck,axis=1)
+                    dax['cross'][0].plot(crossbck[0,:], crossbck[1,:],
+                                         c=cbck, ls='-', lw=1.)
+                    dax['hor'][0].plot(horbck[0,:], horbck[1,:],
+                                         c=cbck, ls='-', lw=1.)
+                elif Bck:
+                    out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
+                                  element='L', Lplot=Lplot,
+                                  dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
+                                  dLeg=None, draw=False)
+                    dax['cross'][0], dax['hor'][0] = out
+
+            lHor = np.stack(lHor)
+            idlCross = id(lCross)
+            idlHor = id(lHor)
+        elif c1:
+            lCross, lHor = None, None
+        else:
+            lCross, lHor = None, None
+    else:
+        lCross, lHor = None, None
+
+    # Background
+    if Bck:
+        if nD == 1:
+            if nnch == 1:
+                env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
+                dax['X'][0].fill_between(X.ravel(), env[0], env[1], facecolor=cbck)
+            tbck = np.tile(np.r_[t, np.nan], nch)
+            dbck = np.vstack((data, np.full((1,nch),np.nan))).T.ravel()
+            dax['t'][0].plot(tbck, dbck, lw=1., ls='-', c=cbck)
+        else:
+            dax['t'][0].fill_between(t, np.nanmin(data,axis=1),
+                                     np.nanmax(data,axis=1),
+                                     facecolor=cbck)
+
+    # Colorbars if 2D
+    if nD == 2:
+        # Data
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][0], cmap=cmap,
+                                       orientation='vertical',
+                                       norm=norm)
+        dax['colorbar'][0].set_ylabel(Dlab, **fldict)
+
+        # topos
+        norm_topos = mpl.colors.Normalize(vmin=vmin_topos, vmax=vmax_topos)
+        cb = mpl.colorbar.ColorbarBase(dax['colorbar'][1], cmap=cmap_topos,
+                                       orientation='vertical',
+                                       norm=norm_topos)
+        dax['colorbar'][1].set_ylabel(r'topos (a.u.)', **fldict)
+
+    # modes
+    dax['m'][0].plot(s, ls='-', marker='.', c='k', lw=1.)
+
+    # Zero for chronos and topos
+    for ii in range(1,len(dax['t'])):
+        dax['t'][ii].axhline(0., c='k', ls='--', lw=1.)
+    if nD == 1:
+        for ii in range(1,len(dax['t'])):
+            dax['X'][ii].axhline(0., c='k', ls='--', lw=1.)
+
+
+    # ---------------
+    # Lims and labels
+    dax['t'][0].set_xlim(Dt)
+    dax['t'][0].set_ylim(Dd)
+    dax['t'][1].set_ylim(Dchronos)
+    for ii in range(0,len(dax['t'])):
+        dax['t'][ii].set_ylabel(Dlab, **fldict)
+    dax['t'][-1].set_xlabel(tlab, **fldict)
+    dax['m'][0].set_xlabel(r'mode index')
+    dax['m'][0].set_ylabel(r'sing. value')
+    dax['m'][0].set_xlim(Dm)
+    dax['m'][0].set_ylim(Ds)
+    if nD == 1:
+        dax['X'][0].set_xlim(DX)
+        dax['X'][-1].set_xlabel(Xlab, **fldict)
+        dax['X'][1].set_ylim(Dtopos)
+
+    else:
+        dax['X'][0].set_xlim(extent[:2])
+        dax['X'][0].set_ylim(extent[2:])
+
+    # invert
+    if invert and nD == 2:
+        # shared axis => inverting the reference is enough
+        dax['X'][0].invert_xaxis()
+        dax['X'][0].invert_yaxis()
+
+
+    ##################
+    # Interactivity dict
+    ##################
+
+    # dgroup
+    dgroup = {'time':    {'nMax':ntMax, 'key':'f1',
+                          'defid':idt, 'defax':dax['t'][0]},
+              'channel': {'nMax':nchMax, 'key':'f2',
+                          'defid':idX, 'defax':dax['X'][0]},
+              'mode':    {'nMax':nmMax, 'key':'f3',
+                          'defid':idm, 'defax':dax['m'][0]}}
+
+    msg = '  '.join(['%s: %s'%(v['key'],k) for k, v in dgroup.items()])
+    l0 = dax['txtg'][0].text(0.05, 0.4, msg,
+                             color='k', fontweight='bold',
+                             fontsize=6., ha='left', va='center')
+
+    # dref
+    dref = {idt:  {'group':'time', 'val':t, 'inc':inct},
+            idX:  {'group':'channel', 'val':X, 'inc':incX,
+                   'otherid':Xother, 'indother':indtX},
+            idm:  {'group':'mode', 'val':indmodes, 'inc':incm}}
+    if nD == 2:
+        dref[idX]['2d'] = (x1,x2)
+
+    # ddata
+    ddat = {iddata: {'val':data, 'refids':[idt,idX]},
+            idchans:{'val':dchans, 'refids':[idX]},
+            idchronos: {'val':chronos.T, 'refids':[idm]},
+            idtopos: {'val':topos, 'refids':[idm]}}
+    if lCross is not None:
+        ddat[idlCross] = {'val':lCross, 'refids':[idX]}
+        ddat[idlHor] = {'val':lHor, 'refids':[idX]}
+    if nD == 2:
+        ddat[idx12] = {'val':(x1,x2), 'refids':[idX]}
+
+    # dax
+    lax_fix = (dax['cross'] + dax['hor']
+               + dax['txtg'] + dax['txtt'] + dax['txtx'] + dax['txtm'])
+    dax2 = dict([(ax, {'ref':{idt:'x'}}) for ax in dax['t']])
+    if nD == 1:
+        dax2.update(dict([(ax, {'ref':{idX:'x'}}) for ax in dax['X']]))
+    else:
+        dax2.update(dict([(ax, {'ref':{idX:'2d'}, 'invert':invert})
+                          for ax in dax['X']]))
+    dax2[dax['m'][0]] = {'ref':{idm:'x'}}
+
+    # dobj
+    dobj = {}
+
+
+
+    ##################
+    # Populating dobj
+    ##################
+
+    nant = np.full((nt,),np.nan)
+    nanch = np.full((nch,),np.nan)
+
+    # Channel
+    for jj in range(0,nchMax):
+
+        # Channel text
+        l0 = dax['txtx'][0].text((0.5+jj)/nchMax, 0., r'',
+                                 color=lcch[jj], fontweight='bold',
+                                 fontsize=6., ha='center', va='bottom')
+        dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[idX],
+                                      'bstr':'{0:%s}'%fmt_X}},
+                    'drefid':{idX:jj}}
+
+        # Channel time trace
+        l0, = dax['t'][0].plot(t, nant,
+                               c=lcch[jj], ls='-', lw=1.)
+        dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idX]}},
+                    'drefid':{idX:jj}}
+
+        # Channel vlines or pixels
+        if nD == 1:
+            if Xother is None:
+                for ll in range(0,len(dax['X'])):
+                    l0 = dax['X'][ll].axvline(np.nan, c=lcch[jj], ls='-', lw=1.)
+                    dobj[l0] = {'dupdate':{'xdata':{'id':idX, 'lrid':[idX]}},
+                                'drefid':{idX:jj}}
+            else:
+                for ll in range(0,len(dax['X'])):
+                    for ii in range(0,ntMax):
+                        l0 = dax['X'][ll].axvline(np.nan, c=lcch[jj], ls='-', lw=1.)
+                        dobj[l0] = {'dupdate':{'xdata':{'id':idX,
+                                                        'lrid':[idt,idX]}},
+                                    'drefid':{idX:jj, idt:ii}}
+
+        # los
+        if c1:
+            l, = dax['cross'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                      c=lcch[jj], ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlCross, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
+            l, = dax['hor'][0].plot([np.nan,np.nan], [np.nan,np.nan],
+                                    c='k', ls='-', lw=2.)
+            dobj[l] = {'dupdate':{'data':{'id':idlHor, 'lrid':[idX]}},
+                        'drefid':{idX:jj}}
+
+    # Time
+    if nD == 2:
+        nan2 = np.full((x2.size,x1.size),np.nan)
+    for jj in range(0,ntMax):
+        # Time txt
+        l0 = dax['txtt'][0].text((0.5+jj)/ntMax, 0., r'',
+                                 color=lct[jj], fontweight='bold',
+                                 fontsize=6., ha='center', va='bottom')
+        dobj[l0] = {'dupdate':{'txt':{'id':idt, 'lrid':[idt],
+                                      'bstr':'{0:%s} s'%fmt_t}},
+                    'drefid':{idt:jj}}
+
+        # Time vlines
+        for ll in range(0,len(dax['t'])):
+            l0 = dax['t'][ll].axvline(np.nan, c=lct[jj], ls='-', lw=1.)
+            dobj[l0] = {'dupdate':{'xdata':{'id':idt, 'lrid':[idt]}},
+                        'drefid':{idt:jj}}
+
+        # Time data profiles
+        if nD == 1:
+            l0, = dax['X'][0].plot(X[0,:], nanch,
+                                   c=lct[jj], ls='-', lw=1.)
+            dobj[l0] = {'dupdate':{'ydata':{'id':iddata, 'lrid':[idt]}},
+                        'drefid':{idt:jj}}
+            if Xother is not None:
+                dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
+
+        else:
+            im = dax['X'][0].imshow(nan2, extent=extent, aspect='equal',
+                                    interpolation='nearest', origin='lower',
+                                    zorder=-1, norm=norm,
+                                    cmap=cmap)
+            dobj[im] = {'dupdate':{'data-reshape':{'id':iddata, 'n12':n12,
+                                                   'lrid':[idt]}},
+                        'drefid':{idt:jj}}
+
+    # modes
+    for jj in range(0,nmMax):
+        # mode txt
+        l0 = dax['txtm'][jj].text(0.5, 0., r'',
+                                  color=lcm[jj%2], fontweight='bold',
+                                  fontsize=6., ha='center', va='bottom')
+        dobj[l0] = {'dupdate':{'txt':{'id':idm, 'lrid':[idm],
+                                      'bstr':'mode {0:%s}'%fmt_m}},
+                    'drefid':{idm:jj}}
+
+        # mode vlines
+        l0 = dax['m'][0].axvline(np.nan, c=lcm[jj%2], ls='-', lw=1.)
+        dobj[l0] = {'dupdate':{'xdata':{'id':idm, 'lrid':[idm]}},
+                    'drefid':{idm:jj}}
+
+        # Chronos
+        l0, = dax['t'][jj//2+1].plot(t, nant,
+                                     c=lcm[jj%2], ls='-', lw=1.)
+        dobj[l0] = {'dupdate':{'ydata':{'id':idchronos, 'lrid':[idm]}},
+                    'drefid':{idm:jj}}
+
+        # Topos
+        if nD == 1:
+            l0, = dax['X'][jj//2+1].plot(X[0,:], nanch,
+                                   c=lcm[jj%2], ls='-', lw=1.)
+            dobj[l0] = {'dupdate':{'ydata':{'id':idtopos, 'lrid':[idm]}},
+                        'drefid':{idm:jj}}
+            if Xother is not None:
+                dobj[l0]['dupdate']['xdata'] = {'id':idX, 'lrid':[Xother]}
+
+        else:
+            im = dax['X'][jj+1].imshow(nan2,
+                                       extent=extent, aspect='equal',
+                                       interpolation='nearest', origin='lower',
+                                       zorder=-1, norm=norm_topos, cmap=cmap_topos)
+            dobj[im] = {'dupdate':{'data-reshape':{'id':idtopos, 'n12':n12,
+                                                   'lrid':[idm]}},
+                        'drefid':{idm:jj}}
+
+    # pixel on top of imshows
+    if nD == 2:
+        for jj in range(0,nchMax):
+            for ll in range(0,len(dax['X'])):
+                l0, = dax['X'][ll].plot([np.nan],[np.nan],
+                                        mec=lcch[jj], ls='None', marker='s', mew=2.,
+                                        ms=ms, mfc='None', zorder=10)
+                dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
+                            'drefid':{idX:jj}}
 
 
     # Instanciate KeyHandler

@@ -13,15 +13,12 @@ except Exception:
     from tofu.version import __version__
     from .. import utils as utils
 
-# DEPRECATED
-from tofu.utils import KeyHandler as tfKH
-
 
 __all__ = ['plot_shotoverview']
 
 _fs = (12,6)
 __github = 'https://github.com/ToFuProject/tofu/issues'
-_wintit = 'tofu-%s    report issues / requests at %s'%(__version__, __github)
+_wintit = 'tofu-%s        report issues / requests at %s'%(__version__, __github)
 _dmargin = dict(left=0.04, right=0.99,
                 bottom=0.07, top=0.93,
                 wspace=0.25, hspace=0.12)

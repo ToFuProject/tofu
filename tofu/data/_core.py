@@ -1784,31 +1784,74 @@ class DataAbstract(utils.ToFuObject):
         else:
             return kh
 
-    def calc_mainfreq(self):
-        """ Return the spectrogram main frequency vs time for each channel """
-        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
-        lf = [f[np.nanargmax(ss,axis=1)] for ss in lspect]
-        return tf, np.tile(lf).T
-
     def calc_svd(self, lapack_driver='gesdd'):
         """ Return the SVD decomposition of data
 
-        Uses scipy.linalg.svd(), with:
-            full_matrices=True
-            compute_uv=True
-            overwrite_a=False
-            check_finite=True
+        The input data np.ndarray shall be of dimension 2,
+            with time as the first dimension, and the channels in the second
+            Hence data should be of shape (nt, nch)
 
-        See online doc for details
+        Uses scipy.linalg.svd(), with:
+            full_matrices = True
+            compute_uv = True
+            overwrite_a = False
+            check_finite = True
+
+        See scipy online doc for details
+
+        Return
+        ------
+        chronos:    np.ndarray
+            First arg (u) returned by scipy.linalg.svd()
+            Contains the so-called 'chronos', of shape (nt, nt)
+                i.e.: the time-dependent part of the decoposition
+        s:          np.ndarray
+            Second arg (s) returned by scipy.linalg.svd()
+            Contains the singular values, of shape (nch,)
+                i.e.: the channel-dependent part of the decoposition
+        topos:      np.ndarray
+            Third arg (v) returned by scipy.linalg.svd()
+            Contains the so-called 'topos', of shape (nch, nch)
+                i.e.: the channel-dependent part of the decoposition
 
         """
-        u, s, v = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+        chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
         return u, s, v
 
-    def plot_svd(self, modes=np.arange(0,10), lapack_driver='gesdd'):
-        """ Plot the chosen svd components (topos and chronos) """
-        u, s, v = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
-        kh = _plot.plot_svd()
+    def plot_svd(self, lapack_driver='gesdd', modes=None, key=None, Bck=True,
+                 Lplot='In', cmap=None, vmin=None, vmax=None,
+                 cmap_topos=None, vmin_topos=None, vmax_topos=None,
+                 ntMax=None, nchMax=None, ms=4,
+                 inct=[1,10], incX=[1,5], incm=[1,5],
+                 lls=None, lct=None, lcch=None, lcm=None, cbck=None,
+                 invert=False, fmt_t='06.3f', fmt_X='01.0f', fmt_m='03.0f',
+                 fs=None, dmargin=None, labelpad=None, wintit=None, tit=None,
+                 fontsize=None, draw=True, connect=True):
+        """ Plot the chosen modes of the svd decomposition
+
+        All modes will be plotted, the keyword 'modes' is only used to
+        determine the reference modes for computing a common scale for
+        vizualisation
+
+        Runs self.calc_svd() and then plots the result in an interactive figure
+
+        """
+        # Computing (~0.2 s for 50 channels 1D and 1000 times)
+        chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+
+        # Plotting (~11 s for 50 channels 1D and 1000 times)
+        kh = _plot.Data_plot_svd(self, chronos, s, topos, modes=modes,
+                                 key=key, Bck=Bck, Lplot=Lplot,
+                                 cmap=cmap, vmin=vmin, vmax=vmax,
+                                 cmap_topos=cmap_topos, vmin_topos=vmin_topos,
+                                 vmax_topos=vmax_topos,
+                                 ntMax=ntMax, nchMax=nchMax, ms=ms,
+                                 inct=inct, incX=incX, incm=incm,
+                                 lls=lls, lct=lct, lcch=lcch, lcm=lcm, cbck=cbck,
+                                 invert=invert, fmt_t=fmt_t, fmt_X=fmt_X, fmt_m=fmt_m,
+                                 fs=fs, dmargin=dmargin, labelpad=labelpad, wintit=wintit,
+                                 tit=tit, fontsize=fontsize, draw=draw,
+                                 connect=connect)
         return kh
 
     def save(self, path=None, name=None,
