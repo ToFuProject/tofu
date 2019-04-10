@@ -28,7 +28,7 @@ __all__ = ['Data_plot', 'Data_plot_combine',
 #__author_email__ = 'didier.vezinet@cea.fr'
 __github = 'https://github.com/ToFuProject/tofu/issues'
 _wintit = 'tofu-%s        report issues / requests at %s'%(__version__, __github)
-_nchMax, _ntMax, _nfMax = 4, 3, 3
+_nchMax, _ntMax, _nfMax, _nlbdMax = 4, 3, 3, 3
 _fontsize = 8
 _labelpad = 0
 _lls = ['-','--','-.',':']
@@ -64,9 +64,9 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
         raise Exception(msg)
 
     c0 = [dd._isSpectral() for dd in lData]
-    if any(c0):
-        msg = "Only provide non-spectral Data !\n"
-        msg += "    (check self._isSpectral()"
+    if any(c0) and not all(c0):
+        msg = "All Data should be either spectral or non-spectral !\n"
+        msg += "    (check self._isSpectral())"
         raise Exception(msg)
 
     nD = 2 if lData[0]._is2D() else 1
@@ -111,6 +111,11 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
     if dmarker is None:
         dmarker = _dmarker
 
+    if lData[0]._isSpectral():
+        ntMax = min(2,ntMax)
+        nXMax = min(2,nXMax)
+        nlbdMax = min(2,nlbdMax)
+
     assert isinstance(cmap, mpl.colors.Colormap) or cmap == 'touch'
     if cmap == 'touch':
         msg = "Option cmap='touch' will be available in future releases  :-)"
@@ -118,16 +123,31 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
 
     # ------------------
     # Plot
-    kh = _DataCam12D_plot(lData, nD=nD, key=key, indref=indref,
-                          nchMax=nchMax, ntMax=ntMax, inct=inct, incX=incX,
-                          Bck=Bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
-                          cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
-                          cmap_map=cmap_map, vmin_map=vmin_map,
-                          vmax_map=vmax_map, normt_map=normt_map,
-                          fmt_t=fmt_t, fmt_X=fmt_X, labelpad=labelpad,
-                          Lplot=Lplot, invert=invert, dmarker=dmarker,
-                          fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                          fontsize=fontsize, draw=draw, connect=connect)
+    if lData[0]._isSpectral():
+        kh = _DataCam12D_plot_spectral(lData, nD=nD, key=key, indref=indref,
+                                       nchMax=nchMax, ntMax=ntMax,
+                                       nlbdMax=nlbdMax, inct=inct, incX=incX,
+                                       inclbd=inclbd, Bck=Bck, lls=lls, lct=lct,
+                                       lcch=lcch, lclbd=lclbd, cbck=cbck,
+                                       cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                                       cmap_map=cmap_map, vmin_map=vmin_map,
+                                       vmax_map=vmax_map, normt_map=normt_map,
+                                       fmt_t=fmt_t, fmt_X=fmt_X, labelpad=labelpad,
+                                       Lplot=Lplot, invert=invert, dmarker=dmarker,
+                                       fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                                       fontsize=fontsize, draw=draw, connect=connect)
+
+    else:
+        kh = _DataCam12D_plot(lData, nD=nD, key=key, indref=indref,
+                              nchMax=nchMax, ntMax=ntMax, inct=inct, incX=incX,
+                              Bck=Bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
+                              cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                              cmap_map=cmap_map, vmin_map=vmin_map,
+                              vmax_map=vmax_map, normt_map=normt_map,
+                              fmt_t=fmt_t, fmt_X=fmt_X, labelpad=labelpad,
+                              Lplot=Lplot, invert=invert, dmarker=dmarker,
+                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
+                              fontsize=fontsize, draw=draw, connect=connect)
 
     return kh
 
@@ -808,6 +828,301 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
 
 
+
+#######################################################################
+#######################################################################
+#######################################################################
+#               Plot data spectral
+#######################################################################
+#######################################################################
+
+
+def _init_DataCam12D_spectral(fs=None, dmargin=None,
+                              fontsize=8,  wintit=_wintit,
+                              nchMax=4, ntMax=4, nlbdMax=3,
+                              nD=1, nDat=1):
+    # Figure
+    axCol = "w"
+    fs = utils.get_figuresize(fs, fsdef=_def.fs1D)
+    if dmargin is None:
+        dmargin = _def.dmargin1D
+    fig = plt.figure(facecolor=axCol,figsize=fs)
+    if wintit is not None:
+        fig.canvas.set_window_title(wintit)
+
+    # Axes
+    gs1 = gridspec.GridSpec(6, 5, **dmargin)
+    Laxt = [fig.add_subplot(gs1[:3,:2], fc='w')]
+    Laxt.append(fig.add_subplot(gs1[3:,:2],fc='w', sharex=Laxt[0]))
+    if nD == 1:
+        Laxp = [fig.add_subplot(gs1[:,2:-1], fc='w', sharey=Laxt[1])]
+    else:
+        if nDat == 1 and ntMax == 1:
+            Laxp = [fig.add_subplot(gs1[:,2:4], fc='w')]
+        elif nDat == 1 and ntMax == 2:
+            Laxp = [fig.add_subplot(gs1[:,2], fc='w')]
+            Laxp.append(fig.add_subplot(gs1[:,3], fc='w',
+                                        sharex=Laxp[0], sharey=Laxp[0]))
+        elif nDat == 2 and ntMax == 1:
+            Laxp = [fig.add_subplot(gs1[:3,2:4], fc='w')]
+            Laxp.append(fig.add_subplot(gs1[3:,2:4], fc='w',
+                                        sharex=Laxp[0], sharey=Laxp[0]))
+        else:
+            Laxp = [fig.add_subplot(gs1[:3,2], fc='w')]
+            Laxp += [fig.add_subplot(gs1[:3,3], fc='w',
+                                     sharex=Laxp[0], sharey=Laxp[0]),
+                     fig.add_subplot(gs1[3:,2], fc='w',
+                                     sharex=Laxp[0], sharey=Laxp[0]),
+                     fig.add_subplot(gs1[3:,3], fc='w',
+                                     sharex=Laxp[0], sharey=Laxp[0])]
+            Laxp[0].set_aspect('equal', adjustable='datalim')
+    axH = fig.add_subplot(gs1[0:2,4], fc='w')
+    axC = fig.add_subplot(gs1[2:,4], fc='w')
+    axC.set_aspect('equal', adjustable='datalim')
+    axH.set_aspect('equal', adjustable='datalim')
+
+    # Text
+    Ytxt = Laxt[1].get_position().bounds[1]+Laxt[1].get_position().bounds[3]
+    DY = Laxt[0].get_position().bounds[1] - Ytxt
+    Xtxt = Laxt[1].get_position().bounds[0]
+    DX = Laxt[1].get_position().bounds[2]
+    axtxtch = fig.add_axes([Xtxt+0.1*(DX-Xtxt), Ytxt, DX, DY], fc='None')
+
+    Ytxt = Laxp[0].get_position().bounds[1] + Laxp[0].get_position().bounds[3]
+    Xtxt = Laxp[0].get_position().bounds[0]
+    DX = Laxp[0].get_position().bounds[2]
+    axtxtt = fig.add_axes([Xtxt+0.2*(DX-Xtxt), Ytxt, DX, DY], fc='None')
+
+    xtxt, Ytxt, dx, DY = 0.01, 0.98, 0.15, 0.02
+    axtxtg = fig.add_axes([xtxt, Ytxt, dx, DY], fc='None')
+
+    # dax
+    dax = {'t':Laxt,
+           'X':Laxp,
+           'cross':[axC],
+           'hor':[axH],
+           'txtg':[axtxtg],
+           'txtx':[axtxtch],
+           'txtt':[axtxtt]}
+
+    # Format all axes
+    for kk in dax.keys():
+        for ii in range(0,len(dax[kk])):
+            dax[kk][ii].tick_params(labelsize=fontsize)
+            if 'txt' in kk:
+                dax[kk][ii].patch.set_alpha(0.)
+                for ss in ['left','right','bottom','top']:
+                    dax[kk][ii].spines[ss].set_visible(False)
+                dax[kk][ii].set_xticks([]), dax[kk][ii].set_yticks([])
+                dax[kk][ii].set_xlim(0,1),  dax[kk][ii].set_ylim(0,1)
+    return dax
+
+
+
+def _DataCam12D_plot(lData, key=None,
+                     nchMax=_nchMax, ntMax=_ntMax, nlbdMax=_nlbdMax,
+                     indref=0, Bck=True, lls=_lls,
+                     lct=_lct, lcch=_lcch, lclbd=_lclbd, cbck=_cbck,
+                     fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
+                     inct=[1,10], incX=[1,5], inclbd=[1,10], ms=4,
+                     cmap=None, vmin=None, vmax=None,
+                     vmin_map=None, vmax_map=None,
+                     cmap_map=None, normt_map=False,
+                     fmt_t='06.3f', fmt_X='01.0f', dmarker=_dmarker,
+                     fontsize=_fontsize, labelpad=_labelpad,
+                     invert=True, draw=True, connect=True, nD=1):
+
+
+
+    #########
+    # Prepare
+    #########
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
+
+    # Use tuple unpacking to make sure indref is 0
+    if not indref==0:
+        lData[0], lData[indref] = lData[indref], lData[0]
+    nDat = len(lData)
+
+    c0 = [all([dd.dlabels[kk] == lData[0].dlabels[kk] for dd in lData[1:]])
+          for kk in ['t','X','data','lambda']]
+    if not all(c0):
+        msg = "All Data objects must have the same:\n"
+        msg += "    dlabels[k], for k in ['t','X','lambda','data'] !"
+        raise Exception(msg)
+
+
+    # ---------
+    # Get time
+    lt = [dd.t for dd in lData]
+    nt = lData[0].nt
+    if nt == 1:
+        Dt = [t[0]-0.001,t[0]+0.001]
+    else:
+        Dt = np.array([[np.nanmin(t), np.nanmax(t)] for t in lt])
+        Dt = [np.min(Dt[:,0]), np.max(Dt[:,1])]
+    tlab = r"{0} ({1})".format(lData[0].dlabels['t']['name'],
+                               lData[0].dlabels['t']['units'])
+    ttype = 'x'
+    lidt = [id(t) for t in lt]
+
+    # ---------
+    # Check nch and X
+    c0 = [dd.nch == lData[0].nch for dd in lData[1:]]
+    if not all(c0):
+        msg = "All Data objects must have the same number of channels (self.nch)"
+        msg += "\nYou can set the indices of the channels with self.set_indch()"
+        raise Exception(msg)
+    nch = lData[0].nch
+
+    #X, nch, nnch, indtX = lData[0]['X'], lData[0]['nch'], lData[0]['nnch'], lData[0]['indtX']
+    if nD == 1:
+        if nch == 1:
+            DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
+        else:
+            DX = np.array([[np.nanmin(dd.X), np.nanmax(dd.X)] for dd in lData])
+            DX = [np.min(DX[:,0]), np.max(DX[:,1])]
+        Xlab = r"{0} ({1})".format(lData[0].dlabels['X']['name'],
+                                   lData[0].dlabels['X']['units'])
+
+        lXtype = ['x' if lData[ii].ddata['nnch'] == 1 else 'x1'
+                  for ii in range(0,nDat)]
+        lXother = [None if lData[ii].ddata['nnch'] == 1 else lidt[ii]
+                   for ii in range(0,nDat)]
+        lindtX = [(None if lData[ii].ddata['nnch'] == 1
+                   else lData[ii].ddata['indtX'])
+                  for ii in range(0,nDat)]
+    else:
+        c0 = [dd.ddata['nnch'] > 1 for dd in lData]
+        if any(c0):
+            msg = "DataCam2D cannot have nnch > 1 !"
+            raise Exception(msg)
+        c0 = [dd.ddata['indtX'] is None for dd in lData]
+        if not all(c0):
+            msg = "All DataCam2D objects must have indtX is None !"
+            raise Exception(msg)
+        c0 = [dd.get_X12plot('imshow') for dd in lData]
+        c0 = [all([np.allclose(cc[ii],c0[0][ii]) for ii in range(0,4)])
+              for cc in c0[1:]]
+        if not all(c0):
+            msg = "All DataCam2D must have the same (x1,x2,indr,extent) !\n"
+            msg += "    Check x1, x2, indr, extent = self.get_X12plot('imshow')"
+            raise Exception(msg)
+
+        x1, x2, indr, extent = lData[0].get_X12plot('imshow')
+        if Bck:
+            indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
+            nan2 = np.full((2,1),np.nan)
+        idx12 = id((x1,x2))
+        n12 = [x1.size, x2.size]
+        # Other
+        lXtype = ['x']*nDat
+        lXother = [None]*nDat
+        lindtX = [None]*nDat
+
+    lX = [dd.X for dd in lData]
+    lidX = [id(X) for X in lX]
+
+    # dchans
+    if key is None:
+        dchans = np.arange(0,nch)
+    else:
+        dchans = lData[0].dchans(key)
+    idchans = id(dchans)
+
+    # ---------
+    # Check nlamb and lambda
+    c0 = [dd.nlamb == lData[0].nlamb for dd in lData[1:]]
+    if not all(c0):
+        msg = "All Data objects must have the same number of wavelengths"
+        msg += "\nYou can set the indices of lambda with self.set_indlamb()"
+        raise Exception(msg)
+    nlamb = lData[0].nlamb
+    Dlamb = np.array([[np.nanmin(dd.lamb), np.nanmax(dd.lamb)] for dd in lData])
+    Dlamb = [np.min(Dlamb[:,0]), np.max(Dlamb[:,1])]
+    lamblab = r"{0} ({1})".format(lData[0].dlabels['lamb']['name'],
+                               lData[0].dlabels['lamb']['units'])
+
+    llambtype = ['x' if lData[ii].ddata['nnlamb'] == 1 else 'x1'
+              for ii in range(0,nDat)]
+    llambother = [None if lData[ii].ddata['nnlamb'] == 1 else lidt[ii]
+               for ii in range(0,nDat)]
+    lindXlamb = [(None if lData[ii].ddata['nnlamb'] == 1
+               else lData[ii].ddata['indXlamb'])
+              for ii in range(0,nDat)]
+
+
+
+
+
+
+    # ---------
+    # Check data
+    ldata = [dd.data for dd in lData]
+    vmin = np.min([np.nanmin(dat) for dat in ldata])
+    vmax = np.max([np.nanmax(dat) for dat in ldata])
+    Dlim = [min(0.,vmin), max(0.,vmax)]
+    Dd = [Dlim[0]-0.05*np.diff(Dlim), Dlim[1]+0.05*np.diff(Dlim)]
+    Dlab = r"{0} ({1})".format(lData[0].dlabels['data']['name'],
+                               lData[0].dlabels['data']['units'])
+    liddata = [id(dat) for dat in ldata]
+    if nD == 2:
+        if vmin is None:
+            vmin = np.min([np.nanmin(dd) for dd in ldata])
+        if vmax is None:
+            vmax = np.max([np.nanmax(dd) for dd in ldata])
+        norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+        nan2_data = np.full((x2.size,x1.size),np.nan)
+
+        if cmap == 'touch':
+            lcols = [dd['lCam'][0]._get_touchcols(vmin=vmin, vmax=vmax, cdef=cbck,
+                                                  ind=None)[0] for dd in lData]
+            # To be finished
+
+    # ---------
+    # Extra
+    lkEq = ['Sep','Ax','X']
+    lkEqmap = lkEq + ['map']
+    dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
+    dteq = dict([(ii,{}) for ii in range(0,nDat)])
+    for ii in range(0,nDat):
+        if lData[ii].dextra is not None:
+            for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
+                idteq = id(lData[ii].dextra[k]['t'])
+                if idteq not in dteq[ii].keys():
+                    dteq[ii][idteq] = lData[ii].dextra[k]['t']
+                dlextra[k][ii] = dict([(kk,v)
+                                        for kk,v in lData[ii].dextra[k].items()
+                                        if not kk == 't'])
+                dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
+                dlextra[k][ii]['idt'] = idteq
+                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                    dlextra[k][ii]['marker'] = dmarker[k]
+            if len(dteq[ii].keys()) > 1:
+                msg = "Several distinct time bases in self.dextra for:\n"
+                msg += "    - lData[%s]: %s:\n"%(ii,lData[ii].Id.SaveName)
+                msg += "        - " + "\n        - ".join(lkEqmap)
+                warnings.warn(msg)
+
+
+    #########
+    # Plot
+    #########
+
+    # Format axes
+    dax = _init_DataCam12D(fs=fs, dmargin=dmargin, wintit=wintit,
+                        nchMax=nchMax, ntMax=ntMax, nD=nD, nDat=nDat)
+    fig  = dax['t'][0].figure
+    if tit is None:
+        tit = []
+        if lData[0].Id.Exp is not None:
+            tit.append(lData[0].Id.Exp)
+        if lData[0].Id.Diag is not None:
+            tit.append(lData[0].Id.Diag)
+        if lData[0].Id.shot is not None:
+            tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
+        tit = ' - '.join(tit)
+    fig.suptitle(tit)
 
 
 
