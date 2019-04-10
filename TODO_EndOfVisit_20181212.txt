@@ -37,7 +37,6 @@ x	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
 	                       los_direction)
 
  	>> Only did it for toroidal polygons... is it really necessary ?
-/!\ I erased the function "is los close to vpoly"
 
        o Interface Python:
            qui appelle une des deux (si il existe un parametre epislon)
