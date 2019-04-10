@@ -40,8 +40,8 @@ x	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
 
        o Interface Python:
            qui appelle une des deux (si il existe un parametre epislon)
-	          x vectoriser à plusieurs polys
-       		  x version true/false si >0 et < eps (tableau booleen nlos*npoly)
+	        x vectoriser à plusieurs polys
+		x version true/false si >0 et < eps (tableau booleen nlos*npoly)
        o Interface Python :
            qui appelle une des deux avex une variable pour choisir si LOS/poly ou l'inverse
 	          x plein LOS, plein poly, pour chaque ligne: tableau d'indice (de taille nlos)

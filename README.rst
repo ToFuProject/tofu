@@ -66,6 +66,35 @@ This geometry module allows in particular:
 
 It is in this geometrical sense that ToFu enables a synthetic diagnostic approach, it does not provide the tools for simulating the emissivity (that should be an input, provided by another code).
 
+----
+
+
+Installing ToFu
+***************
+
+- **Standard mode**::
+
+    conda install -c tofuproject tofu 
+
+- **Developer mode**
+
+Install dependencies.::
+
+    python (2.7 or 3)
+    numpy
+    scipy
+    matplotlib
+    cython
+    nose
+    pygments
+    pandas
+    polygon3 (or polygon2 if you are using python 2.7)
+
+Checkout the ToFu git repository and from the top directory::
+    
+    python setup.py build_ext --inplace
+    python setup.py install
+
 
 -----
 

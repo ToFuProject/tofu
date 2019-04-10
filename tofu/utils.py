@@ -14,7 +14,6 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-import datetime as dtm # DB
 
 # tofu-specific
 from tofu import __version__
@@ -3103,10 +3102,10 @@ class KeyHandler_mpl(object):
             refid = self.dcur['refid']
             ax = self.dcur['ax']
 
-            # Debug
-            if refid not in self.dax[ax]['dmovkeys'].keys():    # DB
-                print(refid, self.dref[refid]['group'])  # DB
-                print(ax, self.dax[ax]['dmovkeys']) # DB
+            # # Debug
+            # if refid not in self.dax[ax]['dmovkeys'].keys():    # DB
+                # print(refid, self.dref[refid]['group'])  # DB
+                # print(ax, self.dax[ax]['dmovkeys']) # DB
 
             if movk not in self.dax[ax]['dmovkeys'][refid].keys():
                 return
