@@ -354,7 +354,7 @@ class DataAbstract(utils.ToFuObject):
             assert nnch in [1,nt]
             if lamb is not None:
                 if all([ii is None for ii in [indtlamb,indXlamb,indtXlamb]]):
-                    assert nnlamb in [1,nt]
+                    assert nnlamb in [1,nch]
 
         l = [data, t, X, lamb, nt, nch, nlamb, nnch, nnlamb,
              indtX, indtlamb, indXlamb, indtXlamb]
@@ -1602,8 +1602,9 @@ class DataAbstract(utils.ToFuObject):
                      ntMax=None, nchMax=None, nlbdMax=3,
                      lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
                      inct=[1,10], incX=[1,5], inclbd=[1,10],
-                     fmt_t='06.3f', fmt_X='01.0f',
+                     fmt_t='06.3f', fmt_X='01.0f', fmt_l='07.3f',
                      invert=True, Lplot='In', dmarker=None,
+                     sharey=True, sharelamb=True,
                      Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
                      fontsize=None, labelpad=None, draw=True, connect=True):
         """ Plot several Data instances of the same diag
@@ -1625,8 +1626,9 @@ class DataAbstract(utils.ToFuObject):
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
                              lls=lls, lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
                              inct=inct, incX=incX, inclbd=inclbd,
-                             fmt_t=fmt_t, fmt_X=fmt_X, Lplot=Lplot,
+                             fmt_t=fmt_t, fmt_X=fmt_X, fmt_l=fmt_l, Lplot=Lplot,
                              invert=invert, dmarker=dmarker, Bck=Bck,
+                             sharey=sharey, sharelamb=sharelamb,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
                              fontsize=fontsize, labelpad=labelpad,
                              draw=draw, connect=connect)
@@ -2137,12 +2139,10 @@ class DataCam1D(DataAbstract):
 lp = [p for p in params.values() if p.name not in ['lamb','dX12']]
 DataCam1D.__signature__ = sig.replace(parameters=lp)
 
-class DataCam1DSpectral(DataAbstract):
+class DataCam1DSpectral(DataCam1D):
     """ Data object used for 1D cameras or list of 1D cameras  """
     @classmethod
     def _isSpectral(cls):  return True
-    @classmethod
-    def _is2D(cls):        return False
 
     @property
     def lamb(self):
@@ -2224,13 +2224,25 @@ class DataCam2D(DataAbstract):
             indr = self.dX12['indr']
             return x1, x2, indr, extent
 
-
-
 lp = [p for p in params.values() if p.name not in ['lamb']]
 DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 
+class DataCam2DSpectral(DataCam2D):
+    """ Data object used for 1D cameras or list of 1D cameras  """
+    @classmethod
+    def _isSpectral(cls):  return True
+
+    @property
+    def lamb(self):
+        return self.get_ddata('lamb')
+    @property
+    def nlamb(self):
+        return self.get_ddata('nlamb')
+
+lp = [p for p in params.values()]
+DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 

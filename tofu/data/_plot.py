@@ -44,11 +44,12 @@ _dmarker = {'Ax':'o', 'X':'x'}
 def Data_plot(lData, key=None, Bck=True, indref=0,
               cmap=None, ms=4, vmin=None, vmax=None,
               vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
-              ntMax=None, nchMax=None, nlbdMax=3,
+              ntMax=None, nchMax=None, nlbdMax=None,
               inct=[1,10], incX=[1,5], inclbd=[1,10],
               lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
-              fmt_t='06.3f', fmt_X='01.0f',
+              fmt_t='06.3f', fmt_X='01.0f', fmt_l='07.3f',
               invert=True, Lplot='In', dmarker=None,
+              sharey=True, sharelamb=True,
               fs=None, dmargin=None, wintit=None, tit=None,
               fontsize=None, labelpad=None, draw=True, connect=True):
 
@@ -104,7 +105,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
     if lcch is None:
         lcch = _lcch
     if lclbd is None:
-        lctlbd = _lclbd
+        lclbd = _lclbd
     if lls is None:
         lls = _lls
     if cbck is None:
@@ -113,9 +114,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
         dmarker = _dmarker
 
     if lData[0]._isSpectral():
-        ntMax = min(2,ntMax)
         nchMax = min(2,nchMax)
-        nlbdMax = min(2,nlbdMax)
 
     assert isinstance(cmap, mpl.colors.Colormap) or cmap == 'touch'
     if cmap == 'touch':
@@ -132,18 +131,21 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
             if len(lData) == 2:
                 ntMax = 1
 
-        kh = _DataCam12D_plot_spectral(lData, nD=nD, key=key, indref=indref,
-                                       nchMax=nchMax, ntMax=ntMax,
-                                       nlbdMax=nlbdMax, inct=inct, incX=incX,
-                                       inclbd=inclbd, Bck=Bck, lls=lls, lct=lct,
-                                       lcch=lcch, lclbd=lclbd, cbck=cbck,
-                                       cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
-                                       cmap_map=cmap_map, vmin_map=vmin_map,
-                                       vmax_map=vmax_map, normt_map=normt_map,
-                                       fmt_t=fmt_t, fmt_X=fmt_X, labelpad=labelpad,
-                                       Lplot=Lplot, invert=invert, dmarker=dmarker,
-                                       fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                                       fontsize=fontsize, draw=draw, connect=connect)
+        kh = _DataCam12D_plot_spectral(lData, key=key,
+                                       nchMax=nchMax, ntMax=ntMax, nlbdMax=nlbdMax,
+                                       indref=indref, Bck=Bck, lls=lls,
+                                       lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
+                                       fs=fs, dmargin=dmargin, wintit=wintit,
+                                       tit=tit, Lplot=Lplot, ms=ms,
+                                       inct=inct, incX=incX, inclbd=inclbd,
+                                       cmap=cmap, vmin=vmin, vmax=vmax,
+                                       vmin_map=vmin_map, vmax_map=vmax_map,
+                                       cmap_map=cmap_cmap, normt_map=normt_map,
+                                       fmt_t=fmt_t, fmt_X=fmt_X, fmt_l=fmt_l,
+                                       dmarker=dmarker, fontsize=fontsize,
+                                       labelpad=labelpad, invert=invert,
+                                       draw=draw, connect=connect, nD=nD,
+                                       sharey=sharey, sharelamb=sharelamb)
 
     else:
         kh = _DataCam12D_plot(lData, nD=nD, key=key, indref=indref,
@@ -848,7 +850,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 def _init_DataCam12D_spectral(fs=None, dmargin=None,
                               sharey=True, sharelamb=True,
                               fontsize=8,  wintit=_wintit,
-                              nchMax=4, nch=1, nD=1, nDat=1):
+                              nchMax=4, nch=1, nD=1, ntMax=1, nDat=1):
     # Figure
     axCol = "w"
     fs = utils.get_figuresize(fs, fsdef=_def.fs1D)
@@ -1006,10 +1008,9 @@ def _DataCam12D_plot_spectral(lData, key=None,
                               cmap=None, vmin=None, vmax=None,
                               vmin_map=None, vmax_map=None,
                               cmap_map=None, normt_map=False,
-                              fmt_t='06.3f', fmt_X='01.0f', dmarker=_dmarker,
+                              fmt_t='06.3f', fmt_X='01.0f', fmt_l='07.3f', dmarker=_dmarker,
                               fontsize=_fontsize, labelpad=_labelpad,
                               invert=True, draw=True, connect=True, nD=1,
-                              # new
                               sharey=True, sharelamb=True):
 
 
@@ -1025,7 +1026,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     nDat = len(lData)
 
     c0 = [all([dd.dlabels[kk] == lData[0].dlabels[kk] for dd in lData[1:]])
-          for kk in ['t','X','data','lambda']]
+          for kk in ['t','X','data','lamb']]
     if not all(c0):
         msg = "All Data objects must have the same:\n"
         msg += "    dlabels[k], for k in ['t','X','lambda','data'] !"
@@ -1200,9 +1201,11 @@ def _DataCam12D_plot_spectral(lData, key=None,
     #########
 
     # Format axes
-    dax = _init_DataCam12D_spectral(fs=fs, dmargin=dmargin, wintit=wintit,
+    dax = _init_DataCam12D_spectral(fs=fs, dmargin=dmargin,
+                                    sharey=sharey, sharelamb=sharelamb,
+                                    fontsize=fontsize, wintit=wintit,
                                     nchMax=nchMax, nch=nch, nD=nD,
-                                    sharey=sharey, sharelamb=sharelamb)
+                                    ntMax=ntMax, nDat=nDat)
     fig  = dax['t'][0].figure
     if tit is None:
         tit = []
@@ -1294,6 +1297,8 @@ def _DataCam12D_plot_spectral(lData, key=None,
     dax['t'][1].set_ylabel(Dlab, **fldict)
     dax['t'][-1].set_ylabel(Dintlab, **fldict)
     dax['t'][-1].set_xlabel(tlab, **fldict)
+    dax['lamb'][0].set_xlim(Dlamb)
+    dax['lamb'][-1].set_xlabel(lamblab, **fldict)
     if nchMax == 2:
         dax['t'][2].set_ylabel(Dlab, **fldict)
         if not sharey:
@@ -1392,7 +1397,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
             dax2[dax['t'][0]]['graph'][ll[0]] = 'x'
 
     dax2.update(dict([(dax['lamb'][ii], {'ref':dict([(idl,'x') for idl in lidlamb]),
-                                         'graph':lidlamb[0]})
+                                         'graph':{lidlamb[0]:'x'}})
                       for ii in range(0,len(dax['lamb']))]))
 
     if nD == 1 and dax['X'] is not None:
@@ -1436,13 +1441,12 @@ def _DataCam12D_plot_spectral(lData, key=None,
     for jj in range(0,nchMax):
 
         # Channel text
-        for ll in range(0,len(dax['txtx'])):
-            l0 = dax['txtx'][ll].text((0.5+jj)/nchMax, 0., r'',
-                                      color='k', fontweight='bold',
-                                      fontsize=6., ha='center', va='bottom')
-            dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[lidX[0]],
-                                          'bstr':'{0:%s}'%fmt_X}},
-                        'drefid':{lidX[0]:jj}}
+        l0 = dax['txtx'][jj].text(0.05, 0.5, r'', rotation=90,
+                                  color=lcch[jj], fontweight='bold',
+                                  fontsize=6., ha='left', va='center')
+        dobj[l0] = {'dupdate':{'txt':{'id':idchans, 'lrid':[lidX[0]],
+                                      'bstr':'channel {0:%s}'%fmt_X}},
+                    'drefid':{lidX[0]:jj}}
         # los
         if c1:
             l, = dax['cross'][0].plot([np.nan,np.nan], [np.nan,np.nan],
@@ -1466,11 +1470,26 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                           'bstr':'{0:%s} s'%fmt_t}},
                         'drefid':{lidt[0]:jj}}
 
+    # -------------
+    # One-shot lambda
+    for jj in range(0,nlbdMax):
+        # lambda txt
+        for ll in range(0,nchMax):
+            l0 = dax['txtl'][ll].text((0.5+jj)/nlbdMax, 0., r'',
+                                      color=lclbd[jj], fontweight='bold',
+                                      fontsize=6., ha='center', va='bottom')
+            dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0], 'lrid':[lidlamb[0]],
+                                          'bstr':'{0:%s}'%fmt_l}},
+                        'drefid':{lidlamb[0]:jj}}
+
 
     # -------------
     # Data-specific
 
+    nanch = np.full((nch,),np.nan)
     for ii in range(0,nDat):
+        nant = np.full((lt[ii].size,),np.nan)
+        nanlamb = np.full((nlamb,), np.nan)
 
         # Time
         for jj in range(0,ntMax):
@@ -1481,25 +1500,23 @@ def _DataCam12D_plot_spectral(lData, key=None,
                 dobj[l0] = {'dupdate':{'xdata':{'id':lidt[ii], 'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
 
-
-            # TBF !!!!!!!!!!!!!!!!!!!!!!!
             # Time data profiles if nch > 1
             if nch > 1:
                 if nD == 1:
-                    l0, = dax['X'][0].plot(lX[ii][0,:], np.full((nch,),np.nan),
+                    l0, = dax['X'][0].plot(lX[ii][0,:], nanch,
                                            c=lct[jj], ls=lls[ii], lw=1.)
-                    dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
+                    dobj[l0] = {'dupdate':{'ydata':{'id':liddataint[ii],
                                                     'lrid':[lidt[ii]]}},
                                 'drefid':{lidt[ii]:jj}}
                     if lXother[ii] is not None:
                         dobj[l0]['dupdate']['xdata'] = {'id':lidX[ii],
                                                         'lrid':[lXother[ii]]}
                 else:
-                    im = dax['X'][ii*ntMax+jj].imshow(nan2_data, extent=extent, aspect='equal',
-                                             interpolation='nearest', origin='lower',
-                                             zorder=-1, norm=norm,
-                                             cmap=cmap)
-                    dobj[im] = {'dupdate':{'data-reshape':{'id':liddata[ii], 'n12':n12,
+                    im = dax['X'][ii+jj].imshow(nan2_data, extent=extent, aspect='equal',
+                                                interpolation='nearest', origin='lower',
+                                                zorder=-1, norm=norm,
+                                                cmap=cmap)
+                    dobj[im] = {'dupdate':{'data-reshape':{'id':liddataint[ii], 'n12':n12,
                                                            'lrid':[lidt[ii]]}},
                                 'drefid':{lidt[ii]:jj}}
 
@@ -1521,9 +1538,68 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                                    'lrid':[idt]}},
                                 'drefid':{idt:jj}}
 
-
         # Channel
+        for jj in range(0,nchMax):
 
+            # Channel time trace
+            l0, = dax['t'][-1].plot(lt[ii], nant,
+                                    c=lcch[jj], ls=lls[ii], lw=1.)
+            dobj[l0] = {'dupdate':{'ydata':{'id':liddataint[ii], 'lrid':[lidX[ii]]}},
+                        'drefid':{lidX[ii]:jj}}
+
+            # Channel vlines or pixels
+            if nD == 1:
+                if lXother[ii] is None:
+                    l0 = dax['X'][0].axvline(np.nan, c=lcch[jj], ls=lls[ii], lw=1.)
+                    dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
+                                                    'lrid':[lidX[ii]]}},
+                                'drefid':{lidX[ii]:jj}}
+                else:
+                    for ll in range(0,ntMax):
+                        l0 = dax['X'][0].axvline(np.nan, c=lcch[jj], ls=lls[ii], lw=1.)
+                        dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
+                                                        'lrid':[lidt[ii],lidX[ii]]}},
+                                    'drefid':{lidX[ii]:jj, lidt[ii]:ll}}
+            else:
+                for ll in range(0,ntMax):
+                    l0, = dax['X'][ii*ntMax+ll].plot([np.nan],[np.nan],
+                                                 mec=lcch[jj], ls='None',
+                                                 marker='s', mew=2.,
+                                                 ms=ms, mfc='None', zorder=10)
+                    # Here we put lidX[0] because all have the same (and it
+                    # avoids overdefining ddat[idx12]
+                    dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[lidX[0]]}},
+                                'drefid':{lidX[0]:jj}}
+
+            # -------
+            # lambda
+            # lambda time trace
+            for ll in range(0,nlbdMax):
+                l0, = dax['t'][1+jj].plot(lt[ii], nant,
+                                          c=lclbd[ll], ls=lls[ii], lw=1.)
+                dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
+                                                'lrid':[lidX[ii],lidlamb[ii]]}},
+                            'drefid':{lidX[ii]:jj, lidlamb[ii]:ll}}
+
+            # lambda profile
+            for ll in range(0,ntMax):
+                l0, = dax['lamb'][jj].plot(llamb[ii][0,:], nanlamb,
+                                           c=lct[ll], ls=lls[ii], lw=1.)
+                dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
+                                                'lrid':[lidt[ii],lidX[ii]]}},
+                            'drefid':{lidt[ii]:ll, lidX[ii]:jj}}
+
+            # lambda vlines
+            for ll in range(0,nlbdMax):
+                l0 = dax['lamb'][jj].axvline(np.nan, c=lclbd[ll], ls=lls[ii], lw=1.)
+                if llambother[ii] is None:
+                    dobj[l0] = {'dupdate':{'xdata':{'id':lidlamb[ii],
+                                                    'lrid':[lidlamb[ii]]}},
+                                'drefid':{lidlamb[ii]:ll}}
+                else:
+                    dobj[l0] = {'dupdate':{'xdata':{'id':lidlamb[ii],
+                                                    'lrid':[lidX[ii],lidlamb[ii]]}},
+                                'drefid':{lidX[ii]:jj, lidlamb[ii]:ll}}
 
 
 
@@ -1543,15 +1619,15 @@ def _DataCam12D_plot_spectral(lData, key=None,
     can = fig.canvas
     can.draw()
 
-    kh = None
-    # kh = utils.KeyHandler_mpl(can=can,
-                              # dgroup=dgroup, dref=dref, ddata=ddat,
-                              # dobj=dobj, dax=dax2, lax_fix=lax_fix,
-                              # groupinit='time', follow=True)
+    # kh = None
+    kh = utils.KeyHandler_mpl(can=can,
+                              dgroup=dgroup, dref=dref, ddata=ddat,
+                              dobj=dobj, dax=dax2, lax_fix=lax_fix,
+                              groupinit='time', follow=True)
 
-    # if connect:
-        # kh.disconnect_old()
-        # kh.connect()
+    if connect:
+        kh.disconnect_old()
+        kh.connect()
     if draw:
         can.draw()
     return kh
