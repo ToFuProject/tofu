@@ -919,18 +919,18 @@ def _init_DataCam12D_spectral(fs=None, dmargin=None,
 
 
 
-def _DataCam12D_plot(lData, key=None,
-                     nchMax=_nchMax, ntMax=_ntMax, nlbdMax=_nlbdMax,
-                     indref=0, Bck=True, lls=_lls,
-                     lct=_lct, lcch=_lcch, lclbd=_lclbd, cbck=_cbck,
-                     fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
-                     inct=[1,10], incX=[1,5], inclbd=[1,10], ms=4,
-                     cmap=None, vmin=None, vmax=None,
-                     vmin_map=None, vmax_map=None,
-                     cmap_map=None, normt_map=False,
-                     fmt_t='06.3f', fmt_X='01.0f', dmarker=_dmarker,
-                     fontsize=_fontsize, labelpad=_labelpad,
-                     invert=True, draw=True, connect=True, nD=1):
+def _DataCam12D_plot_spectral(lData, key=None,
+                              nchMax=_nchMax, ntMax=_ntMax, nlbdMax=_nlbdMax,
+                              indref=0, Bck=True, lls=_lls,
+                              lct=_lct, lcch=_lcch, lclbd=_lclbd, cbck=_cbck,
+                              fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
+                              inct=[1,10], incX=[1,5], inclbd=[1,10], ms=4,
+                              cmap=None, vmin=None, vmax=None,
+                              vmin_map=None, vmax_map=None,
+                              cmap_map=None, normt_map=False,
+                              fmt_t='06.3f', fmt_X='01.0f', dmarker=_dmarker,
+                              fontsize=_fontsize, labelpad=_labelpad,
+                              invert=True, draw=True, connect=True, nD=1):
 
 
 
@@ -2549,8 +2549,15 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
     ttype = 'x'
     idt = id(t)
 
+    #------
     # X
     X, nch, nnch, indtX = ddata['X'], ddata['nch'], ddata['nnch'], ddata['indtX']
+
+    # svd will only be displayed vs channel (no varying X, for the topos)
+    if nnch > 1:
+        X = np.arange(0,nch)[None,:]
+        nnch = 1
+
     if nD == 1:
         if nch == 1:
             DX = [X[0,0]-0.1*X[0,0], X[0,0]+0.1*X[0,0]]
@@ -2568,12 +2575,8 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
         idx12 = id((x1,x2))
         n12 = [x1.size, x2.size]
 
-    if nnch == 1:
-        Xtype = 'x'
-        Xother = None
-    elif indtX is None:
-        Xtype = 'x1'
-        Xother = idt
+    Xtype = 'x'
+    Xother = None
     idX = id(X)
 
     # dchans
@@ -2936,6 +2939,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
     # Instanciate KeyHandler
     can = fig.canvas
     can.draw()
+
     kh = utils.KeyHandler_mpl(can=can,
                               dgroup=dgroup, dref=dref, ddata=ddat,
                               dobj=dobj, dax=dax2, lax_fix=lax_fix,
