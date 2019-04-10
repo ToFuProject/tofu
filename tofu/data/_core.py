@@ -29,7 +29,8 @@ except Exception:
     from . import _plot as _plot
     from . import _def as _def
 
-__all__ = ['DataCam1D','DataCam2D']
+__all__ = ['DataCam1D','DataCam2D',
+           'DataCam1DSpectral']
 
 
 #############################################
@@ -1730,6 +1731,9 @@ class DataAbstract(utils.ToFuObject):
             list of () spectrograms
 
         """
+        if self._isSpectral():
+            msg = "spectrogram not implemented yet for spectral data class"
+            raise Exception(msg)
         tf, f, lpsd, lang = _comp.spectrogram(self.data, self.t,
                                               fmin=fmin, deg=deg,
                                               method=method, window=window,
@@ -1763,6 +1767,9 @@ class DataAbstract(utils.ToFuObject):
         kh :    tofu.utils.HeyHandler
             The tofu KeyHandler object handling figure interactivity
         """
+        if self._isSpectral():
+            msg = "spectrogram not implemented yet for spectral data class"
+            raise Exception(msg)
         tf, f, lpsd, lang = _comp.spectrogram(self.data, self.t,
                                               fmin=fmin, deg=deg,
                                               method=method, window=window,
@@ -1815,6 +1822,9 @@ class DataAbstract(utils.ToFuObject):
                 i.e.: the channel-dependent part of the decoposition
 
         """
+        if self._isSpectral():
+            msg = "svd not implemented yet for spectral data class"
+            raise Exception(msg)
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
         return u, s, v
 
@@ -1836,6 +1846,9 @@ class DataAbstract(utils.ToFuObject):
         Runs self.calc_svd() and then plots the result in an interactive figure
 
         """
+        if self._isSpectral():
+            msg = "svd not implemented yet for spectral data class"
+            raise Exception(msg)
         # Computing (~0.2 s for 50 channels 1D and 1000 times)
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
 
@@ -2120,9 +2133,26 @@ class DataCam1D(DataAbstract):
     def _isSpectral(cls):  return False
     @classmethod
     def _is2D(cls):        return False
+
 lp = [p for p in params.values() if p.name not in ['lamb','dX12']]
 DataCam1D.__signature__ = sig.replace(parameters=lp)
 
+class DataCam1DSpectral(DataAbstract):
+    """ Data object used for 1D cameras or list of 1D cameras  """
+    @classmethod
+    def _isSpectral(cls):  return True
+    @classmethod
+    def _is2D(cls):        return False
+
+    @property
+    def lamb(self):
+        return self.get_ddata('lamb')
+    @property
+    def nlamb(self):
+        return self.get_ddata('nlamb')
+
+lp = [p for p in params.values() if p.name not in ['dX12']]
+DataCam1D.__signature__ = sig.replace(parameters=lp)
 
 
 class DataCam2D(DataAbstract):
