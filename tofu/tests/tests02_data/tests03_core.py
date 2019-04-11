@@ -416,6 +416,136 @@ class Test01_DataCam12D(object):
             os.remove(pfe)
 
 
+
+
+
+class Test02_DataCam12DSpectral(Test01_DataCam12D):
+
+    @classmethod
+    def setup_class(cls, nch=30, nt=50, SavePath='./', verb=False):
+
+        # time vector
+        t = np.linspace(0, 10, nt)
+
+        # Configs
+        conf0 = tfg.utils.create_config(case='B2')
+        conf1 = tfg.utils.create_config(case='B3')
+
+        # dchans and cams
+        d0 = dict(Name=['C0-{0}'.format(ii) for ii in range(0,nch)])
+        d1 = dict(Name=['C1-{0}'.format(ii) for ii in range(0,nch)])
+        lc = cls._create_cams(nch, [conf0, conf1], [d0, d1], SavePath=SavePath)
+
+        # -------
+        # dextra
+        nteq = nt // 2
+        teq = np.linspace(t.min(), t.max(), nteq)
+        teq2 = np.copy(teq) - 0.01
+        Ax = np.array([2.4+0.1*np.cos(teq2), 0.1*np.sin(teq2)]).T
+        Ax2 = np.array([2.4+0.1*np.cos(teq2/2.), 0.1*np.sin(teq2/2.)]).T
+        Sep = (Ax[:,:,None]
+               + 0.4*np.array([[-1,1,1,-1],[-1,-1,1,1]])[None,:,:])
+        Sep2 = (Ax2[:,:,None]
+                + 0.3*np.array([[-1,1,1,-1],[-1,-1,1,1]])[None,:,:])
+
+        n1, n2 = 40, 60
+        x1, x2 = np.linspace(2,3,n1), np.linspace(-0.8,0.8,n2)
+        dx1, dx2 = (x1[1]-x1[0])/2., (x2[1]-x2[0])/2
+        extent = (x1[0]-dx1, x1[-1]+dx1, x2[0]-dx2, x2[-1]+dx2)
+        pts = np.array([np.tile(x1,n2), np.zeros((n1*n2,)), np.repeat(x2,n1)])
+        emis = emiss(pts, t=teq2).reshape(nteq, n2, n1)
+        dextra0 = {'pouet':{'t':teq, 'c':'k', 'data':np.sin(teq),
+                            'units':'a.u.' , 'label':'pouet'},
+                   'Ax':{'t':teq2, 'data2D':Ax},
+                   'Sep':{'t':teq2, 'data2D':Sep},
+                   'map':{'t':teq2, 'data2D':emis, 'extent':extent}}
+        dextra1 = {'pouet':{'t':teq, 'c':'k', 'data':np.cos(teq),
+                            'units':'a.u.' , 'label':'pouet'},
+                   'Ax':{'t':teq2, 'data2D':Ax2},
+                   'Sep':{'t':teq2, 'data2D':Sep2}}
+
+        # lamb
+        nlamb = 100
+        lamb = np.linspace(10,20,nlamb)
+        flamb = np.exp(-(lamb-12)**2/0.1) + 0.4*np.exp(-(lamb-16)**2/0.5)
+
+        # -------
+        # signal as Data from lcams
+        lm = ['sum', 'simps']
+        lData = [None for ii in range(0,len(lc))]
+        for ii in range(0,len(lc)):
+            sig = lc[ii].calc_signal(emiss, t=t, res=0.01, method=lm[ii],
+                                     plot=False, out=np.ndarray)[0]
+            sig = sig[:,:,None]*flamb[None,None,:]
+            cls = eval('tfd.DataCam%sDSpectral'%('2' if lc[ii]._is2D() else '1'))
+            data = cls(data=sig, Name='All', Diag='Test',
+                       Exp=conf0.Id.Exp, lCam=lc[ii], t=t,
+                       lamb=lamb, config=conf0)
+            lData[ii] = data
+
+        # Setting dchans
+        for ii in range(0,len(lData)):
+            if ii % 2 == 0:
+                lData[ii].set_dchans({'Name':['c%s'%jj for jj in
+                                              range(0,lData[ii].nch)]})
+
+        # Setting dextra
+        for ii in range(0,len(lData)):
+            de = dextra0 if ii % 2 == 0 else dextra1
+            lData[ii].set_dextra(dextra=de)
+
+        # Storing
+        cls.lobj = lData
+        cls.t = t
+
+        # Saving for intermediate use
+        lpfe = []
+        for oo in cls.lobj:
+            if oo._dgeom['config'] is not None:
+                lpfe.append( oo._dgeom['config'].save(return_pfe=True,
+                                                      verb=verb) )
+            if oo._dgeom['lCam'] is not None:
+                for cc in oo._dgeom['lCam']:
+                    lpfe.append( cc.save(return_pfe=True, verb=verb) )
+
+        cls.lpfe = lpfe
+
+    def test08_dtreat_set_data0(self):
+        for oo in self.lobj:
+            # Re-initialise
+            oo.set_dtreat_indt()
+            oo.set_dtreat_mask()
+
+            oo.set_dtreat_data0( data0 = oo.data[0,:,:] )
+            assert oo.dtreat['data0-indt'] is None
+            assert oo.dtreat['data0-Dt'] is None
+            assert np.allclose(oo.data[0,:,:],0.), oo.data[0,:,:]
+
+            oo.set_dtreat_data0(indt=[1,2,6,8,9])
+            assert oo.dtreat['data0-indt'].sum() == 5
+            assert oo.dtreat['data0-data'].size == oo.ddataRef['nch']
+
+            oo.set_dtreat_data0(Dt=[2,3])
+            assert oo.dtreat['data0-Dt'][0] >= 2. and oo.dtreat['data0-Dt'][1] <= 3.
+            assert oo.dtreat['data0-data'].size == oo.ddataRef['nch']
+
+            oo.set_dtreat_data0()
+            assert oo.dtreat['data0-data'] is None
+            assert np.allclose(oo.data, oo.ddataRef['data'])
+
+    def test17_plot_combine(self):
+        pass
+
+    def test18_spectrogram(self):
+        pass
+
+    def test19_plot_svd(self):
+        pass
+
+
+
+
+
 """
     def test12_operators(self):
         o0 = self.lobj[-1]

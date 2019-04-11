@@ -30,7 +30,7 @@ except Exception:
     from . import _def as _def
 
 __all__ = ['DataCam1D','DataCam2D',
-           'DataCam1DSpectral']
+           'DataCam1DSpectral','DataCam2DSpectral']
 
 
 #############################################
