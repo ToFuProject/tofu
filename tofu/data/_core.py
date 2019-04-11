@@ -966,12 +966,17 @@ class DataAbstract(utils.ToFuObject):
 
         if any(lC):
             if lC[0]:
-                data0 = np.asarray(data0).ravel()
-                if not data0.shape == (self._ddataRef['nch'],):
-                    msg = "Provided data0 has wrong shape !\n"
-                    msg += "    - Expected: (%s,)\n"%self._ddataRef['nch']
-                    msg += "    - Provided: %s"%data0.shape
-                    raise Exception(msg)
+                data0 = np.asarray(data0)
+                if self._isSpectral():
+                    shape = (self._ddataRef['nch'],self._ddataRef['nlamb'])
+                else:
+                    shape = (self._ddataRef['nch'],)
+                    data0 = data0.ravel()
+                    if not data0.shape == shape:
+                        msg = "Provided data0 has wrong shape !\n"
+                        msg += "    - Expected: %s\n"%str(shape)
+                        msg += "    - Provided: %s"%data0.shape
+                        raise Exception(msg)
                 Dt, indt = None, None
             else:
                 if lC[2]:
@@ -979,7 +984,10 @@ class DataAbstract(utils.ToFuObject):
                 else:
                     indt = self.select_t(t=Dt, out=bool)
                 if np.any(indt):
-                    data0 = self._ddataRef['data'][indt,:]
+                    if self._isSpectral():
+                        data0 = self._ddataRef['data'][indt,:,:]
+                    else:
+                        data0 = self._ddataRef['data'][indt,:]
                     if np.sum(indt)>1:
                         data0 = np.nanmean(data0,axis=0)
         self._dtreat['data0-indt'] = indt
@@ -1112,12 +1120,12 @@ class DataAbstract(utils.ToFuObject):
     @staticmethod
     def _data0(data, data0):
         if data0 is not None:
-            if data.shape==data0.shape:
+            if data.shape == data0.shape:
                 data = data - data0
-            elif data.ndim==2:
+            elif data.ndim == 2:
                 data = data - data0[np.newaxis,:]
-            if data.ndim==3:
-                data = data - data0[np.newaxis,:,np.newaxis]
+            if data.ndim == 3:
+                data = data - data0[np.newaxis,:,:]
         return data
 
     @staticmethod

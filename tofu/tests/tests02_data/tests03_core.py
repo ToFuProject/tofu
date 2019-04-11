@@ -206,16 +206,15 @@ class Test01_DataCam12D(object):
         cls.lpfe = lpfe
 
     @classmethod
+    def setup(self):
+        pass
+    def teardown(self):
+        pass
+
+    @classmethod
     def teardown_class(cls):
         for pfe in set(cls.lpfe):
             os.remove(pfe)
-
-    def setup(self):
-        #print("TestUM:setup() before each test method")
-        pass
-
-    def teardown(self):
-        #print("TestUM:teardown() after each test method")
         pass
 
     def test01_set_dchans(self):
@@ -256,7 +255,7 @@ class Test01_DataCam12D(object):
         for oo in self.lobj:
             if oo.dgeom['lCam'] is not None:
                 name = [k for k in oo.config.dStruct['lorder']
-                       if 'Ves' in k or 'PlasmaDomain' in k]
+                        if 'Ves' in k or 'PlasmaDomain' in k]
                 assert len(name) == 1
                 ind = oo.select_ch(touch=name[0], out=bool)
                 assert ind.sum() > 0, (ind.sum(), ind)
@@ -422,7 +421,7 @@ class Test01_DataCam12D(object):
 class Test02_DataCam12DSpectral(Test01_DataCam12D):
 
     @classmethod
-    def setup_class(cls, nch=30, nt=50, SavePath='./', verb=False):
+    def setup(cls, nch=30, nt=50, SavePath='./', verb=False):
 
         # time vector
         t = np.linspace(0, 10, nt)
@@ -477,10 +476,10 @@ class Test02_DataCam12DSpectral(Test01_DataCam12D):
             sig = lc[ii].calc_signal(emiss, t=t, res=0.01, method=lm[ii],
                                      plot=False, out=np.ndarray)[0]
             sig = sig[:,:,None]*flamb[None,None,:]
-            cls = eval('tfd.DataCam%sDSpectral'%('2' if lc[ii]._is2D() else '1'))
-            data = cls(data=sig, Name='All', Diag='Test',
+            cla = eval('tfd.DataCam%sDSpectral'%('2' if lc[ii]._is2D() else '1'))
+            data = cla(data=sig, Name='All', Diag='Test',
                        Exp=conf0.Id.Exp, lCam=lc[ii], t=t,
-                       lamb=lamb, config=conf0)
+                       lamb=lamb)
             lData[ii] = data
 
         # Setting dchans
@@ -523,11 +522,13 @@ class Test02_DataCam12DSpectral(Test01_DataCam12D):
 
             oo.set_dtreat_data0(indt=[1,2,6,8,9])
             assert oo.dtreat['data0-indt'].sum() == 5
-            assert oo.dtreat['data0-data'].size == oo.ddataRef['nch']
+            assert oo.dtreat['data0-data'].shape == (oo.ddataRef['nch'],
+                                                     oo.ddataRef['nlamb'])
 
             oo.set_dtreat_data0(Dt=[2,3])
             assert oo.dtreat['data0-Dt'][0] >= 2. and oo.dtreat['data0-Dt'][1] <= 3.
-            assert oo.dtreat['data0-data'].size == oo.ddataRef['nch']
+            assert oo.dtreat['data0-data'].shape == (oo.ddataRef['nch'],
+                                                     oo.ddataRef['nlamb'])
 
             oo.set_dtreat_data0()
             assert oo.dtreat['data0-data'] is None
