@@ -29,7 +29,8 @@ except Exception:
     from . import _plot as _plot
     from . import _def as _def
 
-__all__ = ['DataCam1D','DataCam2D']
+__all__ = ['DataCam1D','DataCam2D',
+           'DataCam1DSpectral','DataCam2DSpectral']
 
 
 #############################################
@@ -353,7 +354,7 @@ class DataAbstract(utils.ToFuObject):
             assert nnch in [1,nt]
             if lamb is not None:
                 if all([ii is None for ii in [indtlamb,indXlamb,indtXlamb]]):
-                    assert nnlamb in [1,nt]
+                    assert nnlamb in [1,nch]
 
         l = [data, t, X, lamb, nt, nch, nlamb, nnch, nnlamb,
              indtX, indtlamb, indXlamb, indtXlamb]
@@ -965,12 +966,17 @@ class DataAbstract(utils.ToFuObject):
 
         if any(lC):
             if lC[0]:
-                data0 = np.asarray(data0).ravel()
-                if not data0.shape == (self._ddataRef['nch'],):
-                    msg = "Provided data0 has wrong shape !\n"
-                    msg += "    - Expected: (%s,)\n"%self._ddataRef['nch']
-                    msg += "    - Provided: %s"%data0.shape
-                    raise Exception(msg)
+                data0 = np.asarray(data0)
+                if self._isSpectral():
+                    shape = (self._ddataRef['nch'],self._ddataRef['nlamb'])
+                else:
+                    shape = (self._ddataRef['nch'],)
+                    data0 = data0.ravel()
+                    if not data0.shape == shape:
+                        msg = "Provided data0 has wrong shape !\n"
+                        msg += "    - Expected: %s\n"%str(shape)
+                        msg += "    - Provided: %s"%data0.shape
+                        raise Exception(msg)
                 Dt, indt = None, None
             else:
                 if lC[2]:
@@ -978,7 +984,10 @@ class DataAbstract(utils.ToFuObject):
                 else:
                     indt = self.select_t(t=Dt, out=bool)
                 if np.any(indt):
-                    data0 = self._ddataRef['data'][indt,:]
+                    if self._isSpectral():
+                        data0 = self._ddataRef['data'][indt,:,:]
+                    else:
+                        data0 = self._ddataRef['data'][indt,:]
                     if np.sum(indt)>1:
                         data0 = np.nanmean(data0,axis=0)
         self._dtreat['data0-indt'] = indt
@@ -1111,12 +1120,12 @@ class DataAbstract(utils.ToFuObject):
     @staticmethod
     def _data0(data, data0):
         if data0 is not None:
-            if data.shape==data0.shape:
+            if data.shape == data0.shape:
                 data = data - data0
-            elif data.ndim==2:
+            elif data.ndim == 2:
                 data = data - data0[np.newaxis,:]
-            if data.ndim==3:
-                data = data - data0[np.newaxis,:,np.newaxis]
+            if data.ndim == 3:
+                data = data - data0[np.newaxis,:,:]
         return data
 
     @staticmethod
@@ -1601,8 +1610,9 @@ class DataAbstract(utils.ToFuObject):
                      ntMax=None, nchMax=None, nlbdMax=3,
                      lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
                      inct=[1,10], incX=[1,5], inclbd=[1,10],
-                     fmt_t='06.3f', fmt_X='01.0f',
+                     fmt_t='06.3f', fmt_X='01.0f', fmt_l='07.3f',
                      invert=True, Lplot='In', dmarker=None,
+                     sharey=True, sharelamb=True,
                      Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
                      fontsize=None, labelpad=None, draw=True, connect=True):
         """ Plot several Data instances of the same diag
@@ -1624,8 +1634,9 @@ class DataAbstract(utils.ToFuObject):
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
                              lls=lls, lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
                              inct=inct, incX=incX, inclbd=inclbd,
-                             fmt_t=fmt_t, fmt_X=fmt_X, Lplot=Lplot,
+                             fmt_t=fmt_t, fmt_X=fmt_X, fmt_l=fmt_l, Lplot=Lplot,
                              invert=invert, dmarker=dmarker, Bck=Bck,
+                             sharey=sharey, sharelamb=sharelamb,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
                              fontsize=fontsize, labelpad=labelpad,
                              draw=draw, connect=connect)
@@ -1730,6 +1741,9 @@ class DataAbstract(utils.ToFuObject):
             list of () spectrograms
 
         """
+        if self._isSpectral():
+            msg = "spectrogram not implemented yet for spectral data class"
+            raise Exception(msg)
         tf, f, lpsd, lang = _comp.spectrogram(self.data, self.t,
                                               fmin=fmin, deg=deg,
                                               method=method, window=window,
@@ -1763,6 +1777,9 @@ class DataAbstract(utils.ToFuObject):
         kh :    tofu.utils.HeyHandler
             The tofu KeyHandler object handling figure interactivity
         """
+        if self._isSpectral():
+            msg = "spectrogram not implemented yet for spectral data class"
+            raise Exception(msg)
         tf, f, lpsd, lang = _comp.spectrogram(self.data, self.t,
                                               fmin=fmin, deg=deg,
                                               method=method, window=window,
@@ -1815,6 +1832,9 @@ class DataAbstract(utils.ToFuObject):
                 i.e.: the channel-dependent part of the decoposition
 
         """
+        if self._isSpectral():
+            msg = "svd not implemented yet for spectral data class"
+            raise Exception(msg)
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
         return u, s, v
 
@@ -1836,6 +1856,9 @@ class DataAbstract(utils.ToFuObject):
         Runs self.calc_svd() and then plots the result in an interactive figure
 
         """
+        if self._isSpectral():
+            msg = "svd not implemented yet for spectral data class"
+            raise Exception(msg)
         # Computing (~0.2 s for 50 channels 1D and 1000 times)
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
 
@@ -2120,9 +2143,24 @@ class DataCam1D(DataAbstract):
     def _isSpectral(cls):  return False
     @classmethod
     def _is2D(cls):        return False
+
 lp = [p for p in params.values() if p.name not in ['lamb','dX12']]
 DataCam1D.__signature__ = sig.replace(parameters=lp)
 
+class DataCam1DSpectral(DataCam1D):
+    """ Data object used for 1D cameras or list of 1D cameras  """
+    @classmethod
+    def _isSpectral(cls):  return True
+
+    @property
+    def lamb(self):
+        return self.get_ddata('lamb')
+    @property
+    def nlamb(self):
+        return self.get_ddata('nlamb')
+
+lp = [p for p in params.values() if p.name not in ['dX12']]
+DataCam1D.__signature__ = sig.replace(parameters=lp)
 
 
 class DataCam2D(DataAbstract):
@@ -2194,13 +2232,25 @@ class DataCam2D(DataAbstract):
             indr = self.dX12['indr']
             return x1, x2, indr, extent
 
-
-
 lp = [p for p in params.values() if p.name not in ['lamb']]
 DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 
+class DataCam2DSpectral(DataCam2D):
+    """ Data object used for 1D cameras or list of 1D cameras  """
+    @classmethod
+    def _isSpectral(cls):  return True
+
+    @property
+    def lamb(self):
+        return self.get_ddata('lamb')
+    @property
+    def nlamb(self):
+        return self.get_ddata('nlamb')
+
+lp = [p for p in params.values()]
+DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 
