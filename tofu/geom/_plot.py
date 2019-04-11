@@ -30,7 +30,7 @@ except Exception:
 _fontsize = 8
 _labelpad = 0
 __github = 'https://github.com/ToFuProject/tofu/issues'
-_wintit = 'tofu-%s    report issues / requests at %s'%(__version__, __github)
+_wintit = 'tofu-%s        report issues / requests at %s'%(__version__, __github)
 _nchMax = 4
 _cdef = 'k'
 _cbck = (0.8,0.8,0.8)
@@ -1306,7 +1306,6 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
     # Prepare
     #########
     fldict = dict(fontsize=fontsize, labelpad=labelpad)
-
 
 
     # ---------

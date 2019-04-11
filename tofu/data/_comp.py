@@ -8,6 +8,7 @@ import numpy as np
 import scipy.signal as scpsig
 import scipy.interpolate as scpinterp
 import scipy.linalg as scplin
+import scipy.stats as scpstats
 
 _fmin_coef = 5.
 
@@ -165,10 +166,28 @@ def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet',
 #############################################
 
 def calc_svd(data, lapack_driver='gesdd'):
-    u, s, v = scplin.svd(data, full_matrices=True, compute_uv=True,
-                         overwrite_a=False, check_finite=True,
-                         lapack_driver=lapack_driver)
-    return u, s, v
+    chronos, s, topos = scplin.svd(data, full_matrices=True, compute_uv=True,
+                                   overwrite_a=False, check_finite=True,
+                                   lapack_driver=lapack_driver)
+
+    # Test if reversed correlation
+    lind = [np.nanargmax(np.std(data,axis=0)),
+            np.nanargmax(np.mean(data,axis=0)),
+            0, data.shape[1]//2, -1]
+
+    corr = np.zeros((len(lind),2))
+    for ii in range(0,len(lind)):
+        corr[ii,:] = scpstats.pearsonr(chronos[:,0], data[:,lind[ii]])
+
+    ind = corr[:,1] < 0.05
+    if np.any(ind):
+        corr = corr[ind,0]
+        if corr[np.argmax(np.abs(corr))] < 0.:
+            chronos, topos = -chronos, -topos
+
+    return chronos, s, topos
+
+
 
 
 
