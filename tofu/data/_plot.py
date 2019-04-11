@@ -87,7 +87,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
     if fontsize is None:
         fontsize = _fontsize
     if ntMax is None:
-        ntMax = _ntMax if nD == 1 else 1
+        ntMax = _ntMax
     if nD == 2:
         ntMax = min(ntMax,2)
     if nchMax is None:
