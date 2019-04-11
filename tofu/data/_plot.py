@@ -290,7 +290,9 @@ def _init_DataCam12D(fs=None, dmargin=None,
                                      sharex=Laxp[0], sharey=Laxp[0]),
                      fig.add_subplot(gs1[3:,3], fc='w',
                                      sharex=Laxp[0], sharey=Laxp[0])]
-            Laxp[0].set_aspect('equal', adjustable='datalim')
+            # Do not specify datalim due to both axis shared (depends on
+            # matplotlib version)
+            Laxp[0].set_aspect('equal')
     axH = fig.add_subplot(gs1[0:2,4], fc='w')
     axC = fig.add_subplot(gs1[2:,4], fc='w')
     axC.set_aspect('equal', adjustable='datalim')

@@ -421,7 +421,7 @@ class Test01_DataCam12D(object):
 class Test02_DataCam12DSpectral(Test01_DataCam12D):
 
     @classmethod
-    def setup(cls, nch=30, nt=50, SavePath='./', verb=False):
+    def setup_class(cls, nch=30, nt=50, SavePath='./', verb=False):
 
         # time vector
         t = np.linspace(0, 10, nt)
