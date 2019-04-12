@@ -100,7 +100,7 @@ def core_profile_1d(lprof, tlim=None,
 
     if mapping:
         msg = "A bounding Structure instance must be provided if mapping is True!"
-        assert Struct is not None, msg
+        assert Struct is None, msg
 
     if verb:
         nsteps = 3 + np.sum([mapping,plot])
