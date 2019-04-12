@@ -18,80 +18,155 @@ import tofu.tofu2imas._utils as _utils
 
 
 
-class Eq2D(object):
-    """ A generic class for handling 2D magnetic equilibria and getting basic
-    interpolations and quantities from an EQUINOX ids
+class Equilibrium2D(object):
+    """ A generic class for handling 2D magnetic equilibria
+
+    Provides:
+        - equilibrium-related quantities
+        - spatial interpolation methods
 
     """
 
+    _dquantdef = {'ids':['psi', 'phi', 'theta', 'j_tor', 'j_parallel',
+                         'b_field_r', 'b_field_z', 'b_field_tor'],
+                  'temp':['b_field_norm', 'rho_pol_norm',
+                          'rho_tor', 'rho_tor_norm']}
 
-    def __init__(self, **kwdargs):
-        assert kwdargs
-        lkeys = list(kwdargs.keys())
 
-        largs = ['shot','usr','run','machine','occ']
-        lin = [ss for ss in largs if ss in lkeys]
-        C0 = 'shot' in lin and kwdargs['shot'] is not None
-        C1 = 'ids' in lkeys and kwdargs['ids'] is not None
-        assert np.sum([C0,C1])<=1, "Provide either ids or shot !"
+    def __init__(self, user=None, shot=None, run=None, occ=None,
+                 tokamak=None, version=None, dids=None):
 
-        ids = None
-        if C0:
-            din = dict([(kk,kwdargs[kk]) for kk in lin])
-            ids = self._get_ids(**din)
-        elif C1:
-            ids = kwdargs['ids']
-        self._set_Eq_from_ids(ids)
+        self.set_dequilibrium()
+
+
+
+
+    def _checkformat_dids():
+        return _utils._get_defaults(user=user, shot=shot, run=run, occ=occ,
+                                    tokamak=tokamak, version=version,
+                                    dids=dids)
+
+
+    def _init(self, **kwdargs):
+
+
+
+    def set_dEquilibrium(self, tlim=None, user=None, shot=None,
+                         run=None, occ=None, tokamak=None, version=None,
+                         dids=None, get=True):
+        # IDS
+        dids = self._checkformat_dids(user=user, shot=shot, run=run, occ=occ,
+                                      tokamak=tokamak, version=version, dids=dids)
+
+        # Quantities
+        dquant = dict([(k, dict.fromkeys(v))
+                       for k, v in self._dquantdef.items])
+        lquant = self._dquantdef['ids'] + self.dquantdef['temp']
+
+
+        dEq = {'tlim':tlim,
+               'dids':dids,
+               'idseq':None,
+               'dquant':dquant,
+               'lquant':lquant}
+        self._dequilibrium = dEq
+        if get:
+            self.get_idseq()
+
+    def get_idseq(self, tlim=None):
+
+        # Preformat
+        if tlim is None:
+            tlim = self._dequilibrium['tlim']
+        else:
+            self._dequilibrium['tlim'] = tlim
+
+        # get the ids
+        dids = self.dids
+        ids = imas.ids(s=dids['shot'], r=dids['run'])
+        ids.open_env(dids['user'], dids['tokamak'], dids['version'])
+        ids.equilibrium.get()
+        idseq = ids.equilibrium
+
+        # Extract key values
+        t = np.asarray(idseq.time).ravel()
+        indt = np.ones((t.size,), dtype=bool)
+        if tlim is not None:
+            indt[(t<tlim[0]) | (t>tlim[1])] = False
+        t = t[indt]
+        indt = np.nonzero()[0]
+        nt = t.size
+
+        # Extract stored quantities of interest
+        for qq in self.dquant['ids'].keys():
+            self.dquant['ids'][qq] = np.full((nt,nx), np.nan)
+
+        for ii in range(0,nt):
+            idseqii = idseq.ggd[indt[ii]]
+            for qq in self.dquant['ids'].keys():
+                quant[ii,:] = idseq.ggd[indt[ii]].%s
+
+
+
+
+        self._dequilibrium['t'] = t
+
+    # def get_equilibrium(self):
+        # # IRFM-specific
+        # import imas_west
+
+        # # Check if shot exists
+        # run_number = '{:04d}'.format(run)
+        # shot_file  = os.path.expanduser('~' + usr + '/public/imasdb/' + machine + \
+                                        # '/3/0/' + 'ids_' + str(shot) + run_number + \
+                                        # '.datafile')
+        # if (not os.path.isfile(shot_file)):
+            # raise FileNotFoundError('IMAS file does not exist')
+
+        # # Get ids
+        # ids = imas_west.get(shot=shot, ids_name='equilibrium',
+                            # imas_run=run, imas_user=usr,
+                            # imas_machine=machine, imas_occurrence=occ)
+        # return ids
+
 
 
     ######################
     # Read-only attributes
 
     @property
-    def ids(self):
-        return self._ids
+    def dequilibrium(self):
+        return self._dequilibrium
+    @property
+    def dids(self):
+        return self._dequilibrium['dids']
+    @property
+    def idseq(self):
+        return self._dequilibrium['idseq']
+    @property
+    def dquant(self):
+        return self._dequilibrium['dquant']
+    @property
+    def lquant(self):
+        return self._dequilibrium['lquant']
 
 
-    #####################
-    # Hidden methods for setting the reference equilibrium quantities
-
-    def _get_ids(self, shot=_shot, usr=_usr, machine=_machine, run=_run, occ=_occ):
-        # IRFM-specific
-        import imas_west
-
-        # Check if shot exists
-        run_number = '{:04d}'.format(run)
-        shot_file  = os.path.expanduser('~' + usr + '/public/imasdb/' + machine + \
-                                        '/3/0/' + 'ids_' + str(shot) + run_number + \
-                                        '.datafile')
-        if (not os.path.isfile(shot_file)):
-            raise FileNotFoundError('IMAS file does not exist')
-
-        # Get ids
-        ids = imas_west.get(shot=shot, ids_name='equilibrium',
-                            imas_run=run, imas_user=usr,
-                            imas_machine=machine, imas_occurrence=occ)
-        return ids
-
-    def _set_Eq_from_ids(self, ids):
-        self._ids = ids
-
-        self._lquant_ids = ['psi', 'phi', 'theta',
-                            'j_tor', 'j_parallel',
-                            'b_field_r', 'b_field_z', 'b_field_tor']
-        self._lquant_temp = ['b_field_norm', 'rho_pol_norm',
-                             'rho_tor', 'rho_tor_norm']
-        self._lquant_total = self._lquant_ids + self._lquant_temp
-        self._dtemp = dict([(ss,None) for ss in self._lquant_temp])
 
 
     #####################
     # Hidden methods for getting equilibrium quantities
 
     def _get_quant(self, quant):
-        assert self.ids is not None, "ids was not set !"
-        if quant in self._lquant_ids:
-            out = eval('self._ids.ggd[0].{0}'.format(quant))
+
+        # Check
+        if self.idseq is None:
+            msg = "self.idseq is None!\n"
+            msg += "    => you need to get the idseq first!\n"
+            msg += "    => use self.get_idseq()"
+            raise Exception(msg)
+
+        if quant in self.dquant['ids'].keys():
+            out = eval('self.idseq.ggd[0].{0}'.format(quant))
         else:
             if self._dtemp[quant] is None:
                 if quant == 'b_field_norm':
