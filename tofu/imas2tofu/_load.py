@@ -12,6 +12,7 @@ import numpy as np
 
 # tofu-specific
 import tofu.data as tfdata
+import tofu.imas2tofu._utils as _utils
 
 #  imas-specific
 import imas
@@ -20,49 +21,6 @@ import imas
 
 __all__ = ['core_profile_1d']
 
-
-_IMAS_USER = 'imas_public'
-_IMAS_SHOT = 0
-_IMAS_RUN = 0
-_IMAS_OCC = 0
-_IMAS_TOKAMAK = 'west'
-_IMAS_VERSION = '3'
-_IMAS_SHOTR = -1
-_IMAS_RUNR = -1
-_IMAS_DIDS = {'user':_IMAS_USER,
-              'shot':_IMAS_SHOT,
-              'run':_IMAS_RUN,
-              'occ':_IMAS_OCC,
-              'tokamak':_IMAS_TOKAMAK,
-              'version':_IMAS_VERSION,
-              'shotr':_IMAS_SHOTR,
-              'runr':_IMAS_RUNR}
-
-#############################################################
-#############################################################
-#               Defaults and mapping
-#############################################################
-
-def _get_defaults(user=None, shot=None, run=None, occ=None,
-                  tokamak=None, version=None, dids=None):
-
-    lc0 = [vv is None for vv in [user, shot, run, occ, tokamak, version]]
-    lc = [dids is None, all(lc0)]
-    if not any(lc):
-        msg = "Provide either:\n"
-        msg += "    - dids : a dict of imas ids identifiers\n"
-        msg += "    - user, shot...: the identifiers themselves"
-        raise Exception (msg)
-
-    assert dids is None or isinstance(dids, dict)
-    if dids is None:
-        dids = _IMAS_DIDS
-    else:
-        for k in _IMAS_DIDS.keys():
-            if k not in dids.keys():
-                dids[k] = _IMAS_DIDS[k]
-
-    return dids
 
 
 def _get_nodes_core_profiles_dict():
@@ -155,14 +113,14 @@ def core_profile_1d(lprof, tlim=None,
         print("(1/%s) Checking inputs..."%str(nsteps))
 
     # ids dict
-    dids = _get_defaults(user=user, shot=shot, run=run, occ=occ,
-                         tokamak=tokamak, version=version, dids=dids)
+    dids = _utils._get_defaults(user=user, shot=shot, run=run, occ=occ,
+                                tokamak=tokamak, version=version, dids=dids)
 
     # Equilibrium ids dict: by default use the same ids
     if dids_eq is None:
         dids_eq = dict(dids)
     else:
-        dids_eq = _get_defaults(dids=dids_eq)
+        dids_eq = _utils._get_defaults(dids=dids_eq)
 
     # get dict of available profiles
     if dprof is None:

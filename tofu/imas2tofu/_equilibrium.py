@@ -8,17 +8,11 @@ import warnings
 import numpy as np
 import scipy.interpolate as scpinterp
 
+# tofu-specific
+import tofu.tofu2imas._utils as _utils
 
-# library-specific
-import tools as tools
+#import tools as tools
 
-
-# Default values
-_shot = 0
-_machine = 'west'
-_usr = 'imas_public'
-_run = 0
-_occ = 0
 
 
 
