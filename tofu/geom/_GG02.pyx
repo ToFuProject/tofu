@@ -454,6 +454,9 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
 ########################################################
 
 
+#........................................... INLINE THIS FUNCTION .......................
+# and create interface for python........................................................
+#........................................................................................
 # Preliminary function to get optimal resolution from input resolution
 @cython.cdivision(True)
 @cython.wraparound(False)
@@ -462,6 +465,9 @@ def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True,
                              dLMode='abs', double margin=_VSMALL):
     """ Get the actual reolution from the desired resolution and MinMax
     and limits
+    LMINMAX = limites du segment AB à echantilloner
+    dL = eps
+    DL = 
     """
     # Get the number of mesh elements in LMinMax
     cdef double N
@@ -512,6 +518,9 @@ def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True,
         jj = nL0 + ii
         indL[ii] = jj
         L[ii] = LMinMax[0] + (0.5 + (<double>jj))*dLr
+    # L = k....
+    # dLr = precision effective au moins eps
+    # 
     return np.asarray(L), dLr, np.asarray(indL), <long>N
 
 
@@ -586,7 +595,8 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     return Pts, dS, d1r, d2r
 
 
-
+#............... TODO..........................................................................
+# ....................... INLINE .. INTERFACE ..................................
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3986,6 +3996,10 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 #               Sampling
 ######################################################################
 
+
+# .................................. TODO .................................
+# optimize this algorithm..................................................
+# .................................. TODO .................................
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -3996,10 +4010,14 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                    double[:,::1] DLs, str dLMode='abs', str method='sum',
                    Test=True):
-
+    # NE PAS RENVOYER LES POINTS..........................................
+    # k = [liste de k pour LOS_0, liste de k pour LOS_1, ...]
+    # + un autre tab d'indices : [indice du dernier de LOS_0, indice du dernier de LOS_1, ...]
+    # tq : on peut utiliser split avec k
+    #.....................................................................
     """ Return the sampled line, with the specified method
 
-    'linspace': return the N+1 edges, including the first and last point
+    #.. n'existe plus : 'linspace': return the N+1 edges, including the first and last point
     'sum' :     return N segments centers
     'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
     'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
