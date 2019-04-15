@@ -100,11 +100,12 @@ class Equilibrium2D(object):
         # Extract stored quantities of interest
         for qq in self.dquant['ids'].keys():
             self.dquant['ids'][qq] = np.full((nt,nx), np.nan)
+            self.dquant['ids'][qq]
 
         for ii in range(0,nt):
             idseqii = idseq.ggd[indt[ii]]
             for qq in self.dquant['ids'].keys():
-                quant[ii,:] = idseq.ggd[indt[ii]].%s
+                quant[ii,:] = eval('idseqii.%s'%)
 
 
 
