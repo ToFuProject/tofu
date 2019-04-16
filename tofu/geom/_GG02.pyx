@@ -45,6 +45,7 @@ __all__ = ['CoordShift',
            'Poly_isClockwise', 'Poly_Order', 'Poly_VolAngTor',
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
            '_Ves_isInside',
+           'discretize_segment',
            '_Ves_mesh_dlfromL_cython',
            '_Ves_meshCross_FromD', '_Ves_meshCross_FromInd', '_Ves_Smesh_Cross',
            '_Ves_Vmesh_Tor_SubFromD_cython', '_Ves_Vmesh_Tor_SubFromInd_cython',
@@ -454,6 +455,7 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
 ########################################################
 
 
+# TODO...........
 #........................................... INLINE THIS FUNCTION .......................
 # and create interface for python........................................................
 #........................................................................................
@@ -522,6 +524,165 @@ def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True,
     # dLr = precision effective au moins eps
     # 
     return np.asarray(L), dLr, np.asarray(indL), <long>N
+
+
+
+
+# ==============================================================================
+#
+#                                   LINEAR MESHING
+#                               i.e. Discretizing lines
+#
+# ==============================================================================
+def discretize_segment(double[::1] LMinMax, double dstep,
+                       double[::1] DL=None, bint Lim=True,
+                       str mode='abs', double margin=_VSMALL):
+    """
+    Discretize a segment LMin-LMax. If `mode` is "abs" (absolute), then the
+    segment will be discretized in cells each of size `dstep`. Else, if `mode`
+    is "rel" (relative), the meshing step is relative to the segments norm (ie.
+    the actual discretization step will be (LMax - LMin)/dstep).
+    It is possible to only one to discretize the segment on a sub-domain. If so,
+    the sub-domain limits are given in DL.
+    Parameters
+    ==========
+    LMinMax : (2)-double array
+        Gives the limits LMin and LMax of the segment. LMinMax = [LMin, LMax]
+    dstep: double
+        Step of discretization, can be absolute (default) or relative
+    DL : (optional) (2)-double array
+        Sub domain of discretization. If not None and if Lim, LMinMax = DL
+        (can be only on one limit and can be bigger or smaller than original).
+        Actual desired limits
+    Lim : (optional) bool
+        Indicated if the subdomain should be taken into account
+    mode : (optional) string
+        If `mode` is "abs" (absolute), then the
+        segment will be discretized in cells each of size `dstep`. Else,
+        if "rel" (relative), the meshing step is relative to the segments norm
+        (the actual discretization step will be (LMax - LMin)/dstep).
+    margin : (optional) double
+        Margin value for cell length
+    Returns
+    =======
+    ldiscret: double array
+        array of the discretized coordinates on the segment of desired limits
+    resolution: double
+        step of discretization
+    lindex: int array
+        array of the indices corresponding to ldiscret with respects to the
+        original segment LMinMax (if no DL, from 0 to N-1)
+    N : int64
+        Number of points on LMinMax segment
+    """
+    cdef int ii
+    cdef long N = 0
+    cdef long Nind = 0
+    cdef double resolution = 0.0
+    cdef double* ldiscret_arr = NULL
+    cdef int* lindex_arr = NULL
+    cdef array ldiscret
+    cdef array lindex
+
+    discretize_segment_core(LMinMax, dstep,
+                            ldiscret_arr, resolution, lindex_arr, N, Nind,
+                            DL, Lim, mode, margin)
+    ldiscret = clone(array('d'), Nind, True)
+    lindex = clone(array('i'), Nind, True)
+    for ii in range(Nind):
+        ldiscret[ii] = ldiscret_arr[ii]
+        lindex[ii] = lindex_arr[ii]
+    if not ldiscret_arr == NULL:
+        free(ldiscret_arr)
+    if not lindex_arr == NULL:
+        free(lindex_arr)
+    return np.asarray(ldiscret), resolution, np.asarray(lindex), N
+
+
+
+cdef void discretize_segment_core(double[::1] LMinMax, double dstep,
+                                  double* ldiscret, double resolution,
+                                  int* lindex, long num_cells, long Nind,
+                                  double[::1] DL=None, bint Lim=True,
+                                  str mode='abs', double margin=_VSMALL):
+    """
+    Discretize a segment LMin-LMax. If `mode` is "abs" (absolute), then the
+    segment will be discretized in cells each of size `dstep`. Else, if `mode`
+    is "rel" (relative), the meshing step is relative to the segments norm (ie.
+    the actual discretization step will be (LMax - LMin)/dstep).
+    It is possible to only one to discretize the segment on a sub-domain. If so,
+    the sub-domain limits are given in DL.
+    CYTHON core
+    Parameters
+    ==========
+    LMinMax : (2)-double array
+        Gives the limits LMin and LMax of the segment. LMinMax = [LMin, LMax]
+    dstep: double
+        Step of discretization, can be absolute (default) or relative
+    DL : (optional) (2)-double array
+        Sub domain of discretization. If not None and if Lim, LMinMax = DL
+        (can be only on one limit)
+    Lim : (optional) bool
+        Indicated if the subdomain should be taken into account
+    mode : (optional) string
+        If `mode` is "abs" (absolute), then the
+        segment will be discretized in cells each of size `dstep`. Else,
+        if "rel" (relative), the meshing step is relative to the segments norm
+        (the actual discretization step will be (LMax - LMin)/dstep).
+    margin : (optional) double
+        Margin value for cell length
+    """
+    cdef int nL0, nL1, ii, jj
+    cdef double abs0, abs1
+    cdef double inv_reso, new_margin
+    cdef double[2] desired_limits
+
+    # .. Computing "real" discretization step, depending on `mode`..............
+    if mode.lower()=='abs':
+        num_cells = <int>Cceil((LMinMax[1] - LMinMax[0])/dstep)
+    else:
+        num_cells = <int>Cceil(1./dstep)
+    resolution = (LMinMax[1] - LMinMax[0])/num_cells
+    # .. Computing desired limits ..............................................
+    if DL is None:
+        desired_limits[0] = LMinMax[0]
+        desired_limits[1] = LMinMax[1]
+    else:
+        if DL[0] is None:
+            DL[0] = LMinMax[0]
+        if DL[1] is None:
+            DL[1] = LMinMax[1]
+        if Lim and DL[0]<=LMinMax[0]:
+            DL[0] = LMinMax[0]
+        if Lim and DL[1]>=LMinMax[1]:
+            DL[1] = LMinMax[1]
+        desired_limits[0] = DL[0]
+        desired_limits[1] = DL[1]
+    # .. Get the extreme indices of the mesh elements that really need to be
+    # created within those limits...............................................
+    inv_reso = 1./resolution
+    new_margin = margin*resolution
+    abs0 = Cabs(desired_limits[0] - LMinMax[0])
+    if abs0 - resolution * Cfloor(abs0 * inv_reso) < new_margin:
+        nL0 = int(Cround((desired_limits[0] - LMinMax[0]) * inv_reso))
+    else:
+        nL0 = int(Cfloor((desired_limits[0] - LMinMax[0]) * inv_reso))
+    abs1 = Cabs(desired_limits[1] - LMinMax[0])
+    if abs1 - resolution * Cfloor(abs1 * inv_reso) < new_margin:
+        nL1 = int(Cround((desired_limits[1] - LMinMax[0]) * inv_reso) - 1)
+    else:
+        nL1 = int(Cfloor((desired_limits[1] - LMinMax[0]) * inv_reso))
+    # Get the total number of indices
+    Nind = nL1 + 1 - nL0
+    # .. Computing coordinates and indices .....................................
+    ldiscret = <double *>malloc(Nind * sizeof(double))
+    lindex = <int *>malloc(Nind * sizeof(int))
+    for ii in range(Nind):
+        jj = nL0 + ii
+        lindex[ii] = jj
+        ldiscret[ii] = LMinMax[0] + (0.5 + jj) * resolution
+    return
+
 
 
 ########################################################
@@ -2233,7 +2394,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
        Critical value to evaluate for each LOS if horizontal or not
     nstruct_lim : int
        Number of OUT structures (not counting the limited versions).
-       If not is_out_struct then lenght of vpoly.
+       If not is_out_struct then length of vpoly.
     lbounds : (6 * nstruct) double array
        Coordinates of lower and upper edges of the bounding box for each
        structures (nstruct = sum_i(nstruct_lim * lsz_lim[i])
@@ -2846,7 +3007,7 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
        Critical value to evaluate for each LOS if horizontal or not
     npts_poly : int
        Number of OUT structures (not counting the limited versions).
-       If not is_out_struct then lenght of vpoly.
+       If not is_out_struct then length of vpoly.
     langles : (2 * nstruct) double array
        Minimum and maximum angles where the structure lives. If the structure
        number 'i' is toroidally continous then langles[i:i+2] = [0, 0].
