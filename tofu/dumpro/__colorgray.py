@@ -18,7 +18,6 @@ import cv2
 def ConvertGray(video_file):
     """Converts imput video file to grayscale and saves it as Grayscale.avi
     
-    ==========================================================================
     Parameters
     -----------------------
     video_file:      supported formats - mp4,avi
@@ -48,6 +47,7 @@ def ConvertGray(video_file):
     #videowriter writes the new video with the frame height and width and fps   
     #videowriter(videoname, format, fps, dimensions_of_frame,)
     out = cv2.VideoWriter('Grayscale.avi',fourcc, 25 ,(frame_width,frame_height),0)    
+    
     #loops over the entire video frame by frame and convert each to grayscale
     #then writting it to output file     
     while(cap.isOpened()):
@@ -59,6 +59,7 @@ def ConvertGray(video_file):
         frame = gray
         #writing the gray frames to out        
         out.write(frame)
+    
     #closing everything       
     cap.release()
     out.release()

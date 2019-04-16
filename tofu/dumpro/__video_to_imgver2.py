@@ -9,11 +9,14 @@ output: all the frames in video are converted to images
 """
 
 
+#standard
+import os
+import warnings
 
+#built-ins
 import cv2
 import numpy as np
-import os
-import __colorgray
+
 # Playing video from file:
 def video2imgconvertor(video_file):
     print(video_file)

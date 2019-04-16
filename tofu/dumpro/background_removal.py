@@ -3,12 +3,31 @@
 Created on Thu Apr 11 13:41:12 2019
 
 @author: napra
+
+This removes the background of the video and return the foreground as a video 
+file
+
+The user must have opencv 3 or greater to use this subroutine 
 """
 
+#Built-ins
 import numpy as np
 import cv2
 
 def Background_Removal(Video_file):
+    """ Removes the background from video and returns it as Foreground.avi
+    
+    Parameters
+    -----------------------
+    video_file:      supported formats - mp4,avi
+     input video passed in as argument
+    
+    Return
+    -----------------------
+    File:            Foreground.avi
+     video file which is in .avi format    
+     
+    """
     
     cap = cv2.VideoCapture(Video_file)
     
@@ -31,12 +50,6 @@ def Background_Removal(Video_file):
         movie = back.apply(frame)
         
         out.write(movie)
-        
-        cv2.imshow('frame',movie)
-        #cv2.imshow('frame',frame)
-        k = cv2.waitKey(30) & 0xff
-        if k == 27:
-            break
     
     cap.release()
     cv2.destroyAllWindows()
