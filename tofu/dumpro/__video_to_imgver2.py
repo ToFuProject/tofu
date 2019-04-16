@@ -3,19 +3,12 @@
 Created on Wed Apr  3 10:48:03 2019
 
 @author: napra
+
+input: video_file (The Grayscale converted video)
+output: all the frames in video are converted to images
 """
 
-'''
-Using OpenCV takes a video and produces a number of images.
-Requirements
-----
-0You require OpenCV to be installed.
-Run
----
-Open the main.py and edit the path to the video. Then run:
-$ python main.py
-Which will produce a folder called data with the images.
-'''
+
 
 import cv2
 import numpy as np

@@ -34,8 +34,6 @@ def Dumpro(video_file):
     print(cap)
     
     gray = __colorgray.ConvertGray(video_file)
-    print(type(gray))
-    print(gray)
     __video_to_imgver2.video2imgconvertor(gray)
     
     return 'conversion successful'
