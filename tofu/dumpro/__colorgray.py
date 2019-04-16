@@ -24,16 +24,33 @@ def ConvertGray(video_file):
     --------------------------------------------------------------------------
     output:
      video file name which is in .avi format
+     
+     
+     Didier: Parameters means input in docstr, so you just need to write:
+     Parameters
+     ----------
+     video_file:   parameter type
+         parameter description
+     
+     Return
+     ------
+     file:         output type
+         output description
+     
+     
     """
 
+    # Didier: all comments indentation should be aligned with code identation
+    # I correct some of them below for example
+    
 # reading the input file   
     cap = cv2.VideoCapture(video_file)
-#read the first frame    
+    #read the first frame    
     ret,frame = cap.read()
 
 #describing the four character code fourcc  
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-#getting frame height and width
+    #getting frame height and width
     frame_width = int(cap.get(3))
     frame_height = int(cap.get(4))
     
@@ -45,9 +62,9 @@ def ConvertGray(video_file):
 #then writting it to output file     
     while(cap.isOpened()):
         ret, frame = cap.read()
-#to check whether cap read the file successfully         
+        #to check whether cap read the file successfully         
         if not ret: break
-#conversion from RGB TO GRAY frame by frame        
+        #conversion from RGB TO GRAY frame by frame        
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         frame = gray
 #writing the gray frames to out        
