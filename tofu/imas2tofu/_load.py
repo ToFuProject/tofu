@@ -11,8 +11,14 @@ loading routines
 import numpy as np
 
 # tofu-specific
-import tofu.data as tfdata
-import tofu.imas2tofu._utils as _utils
+try:
+    import tofu.data as tfdata
+    import tofu.imas2tofu._utils as _utils
+    import tofu.imas2tofu._equilibrium as _equilibrium
+except Exception:
+    from .. import data as tfdata
+    from . import _utils
+    from . import _equilibrium
 
 #  imas-specific
 import imas
