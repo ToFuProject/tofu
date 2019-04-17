@@ -52,7 +52,10 @@ def video2imgconvertor(video_file, path = './data'):
     #Creating Directory
     try:
         if not os.path.exists(path):
-            os.makedirs(path)
+            msg = "The provided path does not exist:\n"
+            msg += "\t-path: %s"%path
+            msg += "\t=> Please create the repository and try again" 
+            raise Exception(msg)
     
     #Checking for permission error
     except OSError:
