@@ -11,8 +11,13 @@ preprocessing
 
 You need to have Opencv 3 or greater installed, for using this subroutine
 """
-#
+# Built-in
+import os
+
+# Standard
 import numpy as np
+
+# More special
 try:
     import cv2
 except ImportError:
@@ -52,7 +57,9 @@ def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type 
     
     #videowriter writes the new video with the frame height and width and fps   
     #videowriter(videoname, format, fps, dimensions_of_frame,)
-    out = cv2.VideoWriter(path+output_name + output_type,fourcc, 25 ,(frame_width,frame_height),0)    
+    pfe = os.path.join(path, output_name + output_type)
+    out = cv2.VideoWriter(pfe, fourcc, 25,
+                          (frame_width,frame_height),0)    
     
     #loops over the entire video frame by frame and convert each to grayscale
     #then writting it to output file     
@@ -70,4 +77,4 @@ def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type 
     out.release()
     cv2.destroyAllWindows()
     
-    return path+output_name+output_type
+    return pfe
