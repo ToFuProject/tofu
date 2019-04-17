@@ -15,23 +15,26 @@ You need to have Opencv 3 or greater installed, for using this subroutine
 import numpy as np
 import cv2
 
-def ConvertGray(video_file):
+def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type = '.avi'):
     """Converts imput video file to grayscale and saves it as Grayscale.avi
     
     Parameters
     -----------------------
-    video_file:      supported formats - mp4,avi
-     input video passed in as argument
+    video_file:       mp4,avi
+     input video along with its path passed in as argument
+    path:             string
+     Path where the user wants to save the video
+    output_name:      String
+     Name of the Grayscale converted video
+    output_type:      String
+     Format of output defined by user. By default .avi 
     
     Return
     -----------------------
-    File:            Grayscale.avi
-     video file which is in .avi format    
+    File:            String
+     Path along with the name and type of video    
      
     """
-
-    # Didier: all comments indentation should be aligned with code identation
-    # I correct some of them below for example
     
     # reading the input file   
     cap = cv2.VideoCapture(video_file)
@@ -46,7 +49,7 @@ def ConvertGray(video_file):
     
     #videowriter writes the new video with the frame height and width and fps   
     #videowriter(videoname, format, fps, dimensions_of_frame,)
-    out = cv2.VideoWriter('Grayscale.avi',fourcc, 25 ,(frame_width,frame_height),0)    
+    out = cv2.VideoWriter(path+output_name + output_type,fourcc, 25 ,(frame_width,frame_height),0)    
     
     #loops over the entire video frame by frame and convert each to grayscale
     #then writting it to output file     
@@ -56,13 +59,12 @@ def ConvertGray(video_file):
         if not ret: break
         #conversion from RGB TO GRAY frame by frame        
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        frame = gray
         #writing the gray frames to out        
-        out.write(frame)
+        out.write(gray)
     
     #closing everything       
     cap.release()
     out.release()
     cv2.destroyAllWindows()
     
-    return 'Grayscale.avi'
+    return path+output_name+output_type
