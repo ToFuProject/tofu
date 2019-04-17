@@ -31,7 +31,11 @@ _IMAS_DIDS = {'user':_IMAS_USER,
 def _get_defaults(user=None, shot=None, run=None, occ=None,
                   tokamak=None, version=None, dids=None):
 
-    lc0 = [vv is None for vv in [user, shot, run, occ, tokamak, version]]
+    dins = locals()
+    lkins = set(dins.keys()).intersection(_IMAS_DIDS.keys())
+    dins = dict([(k,dins[k]) for k in lkins])
+
+    lc0 = [vv is None for vv in dins.values()]
     lc = [dids is None, all(lc0)]
     if not any(lc):
         msg = "Provide either:\n"
@@ -42,6 +46,9 @@ def _get_defaults(user=None, shot=None, run=None, occ=None,
     assert dids is None or isinstance(dids, dict)
     if dids is None:
         dids = _IMAS_DIDS
+        for k,v in dins.items():
+            if v is not None:
+                dids[k] = v
     else:
         for k in _IMAS_DIDS.keys():
             if k not in dids.keys():
