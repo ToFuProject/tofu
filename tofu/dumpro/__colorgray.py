@@ -11,9 +11,12 @@ preprocessing
 
 You need to have Opencv 3 or greater installed, for using this subroutine
 """
-
+#
 import numpy as np
-import cv2
+try:
+    import cv2
+except ImportError:
+    print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
 def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type = '.avi'):
     """Converts imput video file to grayscale and saves it as Grayscale.avi
