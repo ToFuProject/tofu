@@ -3,50 +3,82 @@
 Created on Wed Apr  3 10:48:03 2019
 
 @author: napra
+
+input: video_file (The Grayscale converted video)
+output: all the frames in video are converted to images
 """
 
-'''
-Using OpenCV takes a video and produces a number of images.
-Requirements
-----
-0You require OpenCV to be installed.
-Run
----
-Open the main.py and edit the path to the video. Then run:
-$ python main.py
-Which will produce a folder called data with the images.
-'''
 
-import cv2
-import numpy as np
+#standard
 import os
-import __colorgray
-# Playing video from file:
+import warnings
 
-cap = cv2.VideoCapture(__colorgray.ConvertGray('E:/NERD/Python/KSTAR_003723_tv01.avi'))
-
+#built-ins
+import numpy as np
 try:
-    if not os.path.exists('data'):
-        os.makedirs('data')
+    import cv2
+except ImportError:
+    print("Cannot find opencv package. Try pip intall opencv-contrib-python")
 
-except OSError:
-    print ('Error: Creating directory of data')
 
-currentFrame = 0
-
-while(True):
-    # Capture frame-by-frame
-    ret, frame = cap.read()
-    # Saves image of the current frame in jpg file
-    name = './data/frame' + str(currentFrame) + '.jpg'
-    print ('Creating...' + name)
-    cv2.imwrite(name, frame)
-    # To stop duplicate images
-    currentFrame += 1
-    if not ret:
-        break
-# When everything done, release the capture
-
-cap.release()
-
-cv2.destroyAllWindows()
+# Playing video from file:
+def video2imgconvertor(video_file, path = './data'):
+    """Breaks up an input video file into it's constituent frames and 
+    saves them as jpg image
+    
+    Parameters
+    -----------------------
+    video_file:      mp4/avi
+     input video passed in as argument
+    path:            string
+     Path where the user wants to save the images
+    Return
+    -----------------------
+    File:            String
+     Path where the images are stored    
+     
+    """
+    
+    print("Converting Video to Images ...... Please Wait")
+    
+    #trying to open the video file
+    try:
+        #Reading the video file
+        cap = cv2.VideoCapture(video_file)
+    #incase of error in file name or path raising exception    
+    except IOError:
+        print("Path ot file name incorrect or file does not exist")
+          
+    #Creating Directory
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path)
+    
+    #Checking for permission error
+    except OSError:
+        print ('Error: Creating directory of data')
+    
+    #Loop Variable    
+    currentFrame = 0
+    
+    #Looping over the entire video    
+    while(True):
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        # Saves image of the current frame in jpg file
+        #frame number starts from 0
+        name = path + str(currentFrame) + '.jpg'
+        cv2.imwrite(name, frame)
+        
+        # To stop duplicate images
+        currentFrame += 1
+        #To break out of loop when conversion is done
+        #ret reads false after we have exhausted through our frames 
+        if not ret:
+            break
+    
+    # When everything done, release the capture
+    cap.release()
+    cv2.destroyAllWindows()
+    
+    return path
