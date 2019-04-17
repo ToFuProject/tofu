@@ -576,73 +576,59 @@ def discretize_segment(double[::1] LMinMax, double dstep,
         Number of points on LMinMax segment
     """
     cdef int ii
-    cdef long N = 0
-    cdef long Nind = 0
-    cdef double resolution = 0.0
+    cdef long[1] N
+    cdef long[1] Nind
+    cdef int[1] nL0
+    cdef double[1] resolution
     cdef double* ldiscret_arr = NULL
     cdef int* lindex_arr = NULL
     cdef array ldiscret
     cdef array lindex
 
-    discretize_segment_core(LMinMax, dstep,
-                            ldiscret_arr, resolution, lindex_arr, N, Nind,
-                            DL, Lim, mode, margin)
-    ldiscret = clone(array('d'), Nind, True)
-    lindex = clone(array('i'), Nind, True)
-    for ii in range(Nind):
+    first_discretize_segment_core(LMinMax, dstep,
+                                resolution, N, Nind, nL0,
+                                DL, Lim, mode, margin)
+
+    ldiscret_arr = <double *>malloc(Nind[0] * sizeof(double))
+    lindex_arr = <int *>malloc(Nind[0] * sizeof(int))
+
+    second_discretize_segment_core(LMinMax, ldiscret_arr, lindex_arr,
+                                   nL0[0], resolution[0], Nind[0])
+
+    ldiscret = clone(array('d'), Nind[0], True)
+    lindex = clone(array('i'), Nind[0], True)
+    for ii in range(Nind[0]):
         ldiscret[ii] = ldiscret_arr[ii]
         lindex[ii] = lindex_arr[ii]
     if not ldiscret_arr == NULL:
         free(ldiscret_arr)
     if not lindex_arr == NULL:
         free(lindex_arr)
-    return np.asarray(ldiscret), resolution, np.asarray(lindex), N
+    return np.asarray(ldiscret), resolution[0], np.asarray(lindex), N[0]
 
 
 
-cdef void discretize_segment_core(double[::1] LMinMax, double dstep,
-                                  double* ldiscret, double resolution,
-                                  int* lindex, long num_cells, long Nind,
-                                  double[::1] DL=None, bint Lim=True,
-                                  str mode='abs', double margin=_VSMALL):
-    """
-    Discretize a segment LMin-LMax. If `mode` is "abs" (absolute), then the
-    segment will be discretized in cells each of size `dstep`. Else, if `mode`
-    is "rel" (relative), the meshing step is relative to the segments norm (ie.
-    the actual discretization step will be (LMax - LMin)/dstep).
-    It is possible to only one to discretize the segment on a sub-domain. If so,
-    the sub-domain limits are given in DL.
-    CYTHON core
-    Parameters
-    ==========
-    LMinMax : (2)-double array
-        Gives the limits LMin and LMax of the segment. LMinMax = [LMin, LMax]
-    dstep: double
-        Step of discretization, can be absolute (default) or relative
-    DL : (optional) (2)-double array
-        Sub domain of discretization. If not None and if Lim, LMinMax = DL
-        (can be only on one limit)
-    Lim : (optional) bool
-        Indicated if the subdomain should be taken into account
-    mode : (optional) string
-        If `mode` is "abs" (absolute), then the
-        segment will be discretized in cells each of size `dstep`. Else,
-        if "rel" (relative), the meshing step is relative to the segments norm
-        (the actual discretization step will be (LMax - LMin)/dstep).
-    margin : (optional) double
-        Margin value for cell length
-    """
-    cdef int nL0, nL1, ii, jj
+cdef inline void first_discretize_segment_core(double[::1] LMinMax,
+                                               double dstep,
+                                               double[1] resolution,
+                                               long[1] num_cells,
+                                               long[1] Nind,
+                                               int[1] nL0,
+                                               double[::1] DL=None,
+                                               bint Lim=True,
+                                               str mode='abs',
+                                               double margin=_VSMALL):
+    cdef int nL1, ii, jj
     cdef double abs0, abs1
     cdef double inv_reso, new_margin
     cdef double[2] desired_limits
 
     # .. Computing "real" discretization step, depending on `mode`..............
     if mode.lower()=='abs':
-        num_cells = <int>Cceil((LMinMax[1] - LMinMax[0])/dstep)
+        num_cells[0] = <int>Cceil((LMinMax[1] - LMinMax[0])/dstep)
     else:
-        num_cells = <int>Cceil(1./dstep)
-    resolution = (LMinMax[1] - LMinMax[0])/num_cells
+        num_cells[0] = <int>Cceil(1./dstep)
+    resolution[0] = (LMinMax[1] - LMinMax[0])/num_cells[0]
     # .. Computing desired limits ..............................................
     if DL is None:
         desired_limits[0] = LMinMax[0]
@@ -660,30 +646,35 @@ cdef void discretize_segment_core(double[::1] LMinMax, double dstep,
         desired_limits[1] = DL[1]
     # .. Get the extreme indices of the mesh elements that really need to be
     # created within those limits...............................................
-    inv_reso = 1./resolution
-    new_margin = margin*resolution
+    inv_reso = 1./resolution[0]
+    new_margin = margin*resolution[0]
     abs0 = Cabs(desired_limits[0] - LMinMax[0])
-    if abs0 - resolution * Cfloor(abs0 * inv_reso) < new_margin:
-        nL0 = int(Cround((desired_limits[0] - LMinMax[0]) * inv_reso))
+    if abs0 - resolution[0] * Cfloor(abs0 * inv_reso) < new_margin:
+        nL0[0] = int(Cround((desired_limits[0] - LMinMax[0]) * inv_reso))
     else:
-        nL0 = int(Cfloor((desired_limits[0] - LMinMax[0]) * inv_reso))
+        nL0[0] = int(Cfloor((desired_limits[0] - LMinMax[0]) * inv_reso))
     abs1 = Cabs(desired_limits[1] - LMinMax[0])
-    if abs1 - resolution * Cfloor(abs1 * inv_reso) < new_margin:
+    if abs1 - resolution[0] * Cfloor(abs1 * inv_reso) < new_margin:
         nL1 = int(Cround((desired_limits[1] - LMinMax[0]) * inv_reso) - 1)
     else:
         nL1 = int(Cfloor((desired_limits[1] - LMinMax[0]) * inv_reso))
     # Get the total number of indices
-    Nind = nL1 + 1 - nL0
+    Nind[0] = nL1 + 1 - nL0[0]
+    return
+
+cdef inline void second_discretize_segment_core(double[::1] LMinMax,
+                                                double* ldiscret,
+                                                int* lindex,
+                                                int nL0,
+                                                double resolution,
+                                                long Nind):
+    cdef int ii, jj
     # .. Computing coordinates and indices .....................................
-    ldiscret = <double *>malloc(Nind * sizeof(double))
-    lindex = <int *>malloc(Nind * sizeof(int))
     for ii in range(Nind):
         jj = nL0 + ii
         lindex[ii] = jj
         ldiscret[ii] = LMinMax[0] + (0.5 + jj) * resolution
     return
-
-
 
 ########################################################
 ########################################################

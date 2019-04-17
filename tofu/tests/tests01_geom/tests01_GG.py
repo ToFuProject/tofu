@@ -201,28 +201,30 @@ def test04_Ves_isInside(VPoly=VPoly):
 #####################################################
 
 def test05_Ves_mesh_dlfromL():
-
     LMinMax = np.array([0.,10.])
     L, dLr, indL, N = GG.discretize_segment(LMinMax, 20., DL=None,
                                                   Lim=True, margin=1.e-9)
+
     assert np.allclose(L,[5.]) and dLr==10. and np.allclose(indL,[0]) and N==1
     L, dLr, indL, N = GG.discretize_segment(LMinMax, 1., DL=None,
                                                   Lim=True, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(0,10)) and dLr==1. and \
         np.allclose(indL,range(0,10)) and N==10
-    L, dLr, indL, N = GG.discretize_segment(LMinMax, 1., DL=[2.,8.],
-                                                  Lim=True, margin=1.e-9)
+    DL = np.array([2.,8.])
+    L, dLr, indL, N = GG.discretize_segment(LMinMax, 1., DL=DL,
+                                            Lim=True, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,8)) and dLr==1. and \
         np.allclose(indL,range(2,8)) and N==10
-    L, dLr, indL, N = GG.discretize_segment(LMinMax, 1., DL=[2.,12.],
+    DL = np.array([2.,12.])
+    L, dLr, indL, N = GG.discretize_segment(LMinMax, 1., DL=DL,
                                                   Lim=True, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,10)) and dLr==1. and \
         np.allclose(indL,range(2,10)) and N==10
-    L, dLr, indL, N = GG.discretize_segment(LMinMax, 1., DL=[2.,12.],
+    DL = np.array([2.,12.])
+    L, dLr, indL, N = GG.discretize_segment(LMinMax, 1., DL=DL,
                                                   Lim=False, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,12)) and dLr==1. and \
         np.allclose(indL,range(2,12)) and N==10
-    assert(False)
 
 
 
