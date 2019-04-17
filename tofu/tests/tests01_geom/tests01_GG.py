@@ -289,8 +289,8 @@ def test07_Ves_Vmesh_Tor(VPoly=VPoly):
             dRr, dZr, dRPhir = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi,
                                                                  RMinMax,
                                                                  ZMinMax,
-                                                                 DR=[0.5,2.],
-                                                                 DZ=[0.,1.2],
+                                                                 DR=np.array([0.5,2.]),
+                                                                 DZ=np.array([0.,1.2]),
                                                                  DPhi=LDPhi[ii],
                                                                  VPoly=VPoly,
                                                                  Out='(R,Z,Phi)',
@@ -339,9 +339,9 @@ def test08_Ves_Vmesh_Lin(VPoly=VPoly):
     Pts, dV, ind,\
         dXr, dYr, dZr = GG._Ves_Vmesh_Lin_SubFromD_cython(dX, dY, dZ, XMinMax,
                                                           YMinMax, ZMinMax,
-                                                          DX=[8.,15.],
-                                                          DY=[0.5,2.],
-                                                          DZ=[0.,1.2],
+                                                          DX=np.array([8.,15.]),
+                                                          DY=np.array([0.5,2.]),
+                                                          DZ=np.array([0.,1.2]),
                                                           VPoly=VPoly,
                                                           margin=1.e-9)
     assert Pts.ndim==2 and Pts.shape[0]==3
@@ -584,9 +584,9 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
             dRPhir, \
             VPbis = GG._Ves_Smesh_TorStruct_SubFromD_cython(np.array(LPhi[ii][0]),
                                                             dL, dRPhi, VPoly,
-                                                            DR=[0.5,2.],
-                                                            DZ=[0.,1.2],
-                                                            DPhi=LPhi[ii][1],
+                                                            DR=np.array([0.5,2.]),
+                                                            DZ=np.array([0.,1.2]),
+                                                            DPhi=np.array(LPhi[ii][1]),
                                                             DIn=DIn, VIn=VIn,
                                                             Out='(R,Z,Phi)',
                                                             margin=1.e-9)
