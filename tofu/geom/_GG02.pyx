@@ -3440,7 +3440,7 @@ def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut,
 
 
 
-"""
+
 ########################################################
 ########################################################
 ########################################################
@@ -3448,7 +3448,6 @@ def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut,
 ########################################################
 ########################################################
 ########################################################
-"""
 
 
 ######################################################
@@ -3456,7 +3455,6 @@ def LOS_sino(double[:,::1] D, double[:,::1] u, double[::1] RZ, double[::1] kOut,
 #               Dust
 ######################################################
 ######################################################
-
 
 def Dust_calc_SolidAngle(pos, r, pts,
                          approx=True, out_coefonly=False,
@@ -3962,14 +3960,14 @@ def comp_dist_los_circle_vec(int nlos, int ncircles,
     return np.asarray(kmin_tab).reshape(nlos, ncircles), \
         np.asarray(dist_tab).reshape(nlos, ncircles)
 
-cdef void comp_dist_los_circle_vec_core(int num_los, int num_cir,
-                                        double* los_directions,
-                                        double* los_origins,
-                                        double* circle_radius,
-                                        double* circle_z,
-                                        double* norm_dir_tab,
-                                        double[::1] res_k,
-                                        double[::1] res_dist) nogil:
+cdef inline void comp_dist_los_circle_vec_core(int num_los, int num_cir,
+                                               double* los_directions,
+                                               double* los_origins,
+                                               double* circle_radius,
+                                               double* circle_z,
+                                               double* norm_dir_tab,
+                                               double[::1] res_k,
+                                               double[::1] res_dist) nogil:
     """ This function computes the intersection of a Ray (or Line Of Sight)
     # and a circle in 3D. It returns `kmin`, the coefficient such that the
     # ray of origin O = [ori1, ori2, ori3] and of directional vector
@@ -4272,14 +4270,14 @@ def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
     return np.asarray(res, dtype=bool).reshape(nlos, ncircles)
 
 
-cdef void is_close_los_circle_vec_core(int num_los, int num_cir,
-                                       double eps,
-                                       double* los_directions,
-                                       double* los_origins,
-                                       double* circle_radius,
-                                       double* circle_z,
-                                       double* norm_dir_tab,
-                                       int[::1] res) nogil:
+cdef inline void is_close_los_circle_vec_core(int num_los, int num_cir,
+                                              double eps,
+                                              double* los_directions,
+                                              double* los_origins,
+                                              double* circle_radius,
+                                              double* circle_z,
+                                              double* norm_dir_tab,
+                                              int[::1] res) nogil:
     """
     This function computes the intersection of a Ray (or Line Of Sight)
     and a circle in 3D. It returns `kmin`, the coefficient such that the
@@ -4478,20 +4476,20 @@ def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
         np.asarray(dist_tab).reshape(nlos, nvpoly)
 
 
-cdef void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
-                                       double* ray_orig,
-                                       double* ray_vdir,
-                                       double[:,:,::1] ves_poly,
-                                       double eps_uz,
-                                       double eps_a,
-                                       double eps_vz,
-                                       double eps_b,
-                                       double eps_plane,
-                                       str ves_type,
-                                       str algo_type,
-                                       double[::1] res_k,
-                                       double[::1] res_dist,
-                                       int num_threads=16):
+cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
+                                              double* ray_orig,
+                                              double* ray_vdir,
+                                              double[:,:,::1] ves_poly,
+                                              double eps_uz,
+                                              double eps_a,
+                                              double eps_vz,
+                                              double eps_b,
+                                              double eps_plane,
+                                              str ves_type,
+                                              str algo_type,
+                                              double[::1] res_k,
+                                              double[::1] res_dist,
+                                              int num_threads=16):
     """
     This function computes the distance (and the associated k) between nlos
     Rays (or LOS) and several `IN` structures (polygons extruded around the axis
@@ -4914,8 +4912,8 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
     Returns
     =======
         are_close : (npoly * num_los) bool array
-            `are_close[i * num_poly + j]` indicates if distance between i-th LOS and
-            j-th poly are closer than epsilon. (True if distance<epsilon)
+            `are_close[i * num_poly + j]` indicates if distance between i-th LOS
+            and j-th poly are closer than epsilon. (True if distance<epsilon)
     ---
     This is the PYTHON function, use only if you need this computation from
     Python, if you need it from Cython, use `is_close_los_vpoly_vec_core`
@@ -4940,20 +4938,20 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
     return np.asarray(are_close, dtype=bool).reshape(nlos, nvpoly)
 
 
-cdef void is_close_los_vpoly_vec_core(int num_poly, int nlos,
-                                      double* ray_orig,
-                                      double* ray_vdir,
-                                      double[:,:,::1] ves_poly,
-                                      double eps_uz,
-                                      double eps_a,
-                                      double eps_vz,
-                                      double eps_b,
-                                      double eps_plane,
-                                      str ves_type,
-                                      str algo_type,
-                                      double epsilon,
-                                      int[::1] are_close,
-                                      int num_threads=16):
+cdef inline void is_close_los_vpoly_vec_core(int num_poly, int nlos,
+                                             double* ray_orig,
+                                             double* ray_vdir,
+                                             double[:,:,::1] ves_poly,
+                                             double eps_uz,
+                                             double eps_a,
+                                             double eps_vz,
+                                             double eps_b,
+                                             double eps_plane,
+                                             str ves_type,
+                                             str algo_type,
+                                             double epsilon,
+                                             int[::1] are_close,
+                                             int num_threads=16):
     """
     This function computes the distance (and the associated k) between nlos
     Rays (or LOS) and several `IN` structures (polygons extruded around the axis
@@ -5107,19 +5105,19 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
     return np.asarray(ind_close_tab)
 
 
-cdef void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
-                                          double* ray_orig,
-                                          double* ray_vdir,
-                                          double[:,:,::1] ves_poly,
-                                          double eps_uz,
-                                          double eps_a,
-                                          double eps_vz,
-                                          double eps_b,
-                                          double eps_plane,
-                                          str ves_type,
-                                          str algo_type,
-                                          int[::1] ind_close_tab,
-                                          int num_threads=16):
+cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
+                                                 double* ray_orig,
+                                                 double* ray_vdir,
+                                                 double[:,:,::1] ves_poly,
+                                                 double eps_uz,
+                                                 double eps_a,
+                                                 double eps_vz,
+                                                 double eps_b,
+                                                 double eps_plane,
+                                                 str ves_type,
+                                                 str algo_type,
+                                                 int[::1] ind_close_tab,
+                                                 int num_threads=16):
     """
     Params
     ======
@@ -5252,19 +5250,19 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
     return np.asarray(ind_close_tab)
 
 
-cdef void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
-                                          double* ray_orig,
-                                          double* ray_vdir,
-                                          double[:,:,::1] ves_poly,
-                                          double eps_uz,
-                                          double eps_a,
-                                          double eps_vz,
-                                          double eps_b,
-                                          double eps_plane,
-                                          str ves_type,
-                                          str algo_type,
-                                          int[::1] ind_close_tab,
-                                          int num_threads=16):
+cdef inline void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
+                                                 double* ray_orig,
+                                                 double* ray_vdir,
+                                                 double[:,:,::1] ves_poly,
+                                                 double eps_uz,
+                                                 double eps_a,
+                                                 double eps_vz,
+                                                 double eps_b,
+                                                 double eps_plane,
+                                                 str ves_type,
+                                                 str algo_type,
+                                                 int[::1] ind_close_tab,
+                                                 int num_threads=16):
     """
     Params
     ======
