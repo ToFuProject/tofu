@@ -196,19 +196,19 @@ def core_profile_1d(lprof, tlim=None,
 
         # sampling of the cross-section
         x1, x2 = Struct.get_sampleCross(mode='img')
-        pts = np.array([np.tile(x1, x2.size),
-                        np.repeat(x2, x1.size)])
-        indok = Struct.isInside(pts, In='(R,Z)')
+        ptsRZ = np.array([np.tile(x1, x2.size),
+                          np.repeat(x2, x1.size)])
+        indok = Struct.isInside(ptsRZ, In='(R,Z)')
 
         # Computing of data
         data2D = np.full((nt, x1,x2), np.nan)
 
-        for pp in lprof:
-            # Get time-space interpolator for
+        # Get Equilibrium2D for position interpolation
+        eq = _equilibrium.Equilibrium2D(didsEq, dquant={'ggd':['phi']})
 
-            # Get xpts and interpolate
-            #xpts =
-            #data2D[:,ind] =
+        for pp in lprof:
+            pass
+
 
             dout[pp]['dextra'] = {'map': {'t':t, 'data2D':data2D, 'extent':extent}}
     else:
