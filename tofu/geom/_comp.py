@@ -181,7 +181,12 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
     if ind is None:
-        Pts, dS, ind, d1r, d2r = _GG._Ves_meshCross_FromD(MinMax1, MinMax2, dS[0], dS[1], D1=DS[0], D2=DS[1], dSMode=dSMode, VPoly=VPoly, margin=margin)
+        Pts, dS, ind, d1r, d2r = _GG.discretize_polygon(MinMax1, MinMax2,
+                                                        dS[0], dS[1],
+                                                        D1=DS[0], D2=DS[1],
+                                                        mode=dSMode,
+                                                        VPoly=VPoly,
+                                                        margin=margin)
     else:
         assert type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0), "Arg ind must be a np.ndarray of int !"
         Pts, dS, d1r, d2r = _GG._Ves_meshCross_FromInd(MinMax1, MinMax2, dS[0], dS[1], ind, dSMode=dSMode, margin=margin)

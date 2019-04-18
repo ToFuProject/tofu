@@ -774,7 +774,7 @@ class Struct(utils.ToFuObject):
 
         The sampling domain can be limited by DS or ind
         """
-        args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
+        args = [self.Poly_closed, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, margin=1.e-9)
         pts, dS, ind, reseff = _comp._Ves_get_sampleCross(*args, **kwdargs)

@@ -29,7 +29,8 @@ cdef inline bint is_point_in_path(const int nvert,
                                   const double testy) nogil:
     """
     Computes if a point of coordiates (testx, testy) is in the polygon defined
-    by nvert vertices of coordinates (vertx, verty)
+    by nvert vertices of coordinates (vertx, verty).
+    WARNING: the poly should be CLOSED
     Params
     ======
         nvert : int
@@ -54,6 +55,46 @@ cdef inline bint is_point_in_path(const int nvert,
              / (verty[i+1]-verty[i]) + vertx[i]) ):
             c = not c
     return c
+
+
+cdef inline int is_point_in_path_vec(const int nvert,
+                                     const double* vertx,
+                                     const double* verty,
+                                     const int npts,
+                                     const double* testx,
+                                     const double* testy,
+                                     bint* is_in_path) nogil:
+    """
+    Computes if a series of points of coordiates (testx[ii], testy[ii]) is in
+    the polygon defined by nvert vertices of coordinates (vertx, verty)
+    Params
+    ======
+        nvert : int
+           number of vertices in polygon
+        vertx : double array
+           x-coordinates of polygon
+        verty : double array
+           y-coordinate of polygon
+        npts : int
+           number of points to test if in poly or not
+        testx : double array
+           x-coordinates of points to be tested if in or out of polygon
+        testy : double array
+           y-coordinates of points to be tested if in or out of polygon
+        is_in_path : bint array
+           True if point is in the polygon, else False
+    Returns
+    =======
+     The number of "true"
+    """
+    cdef int ii
+    cdef int tot_true = 0
+    cdef bint c = 0
+    for ii in range(npts):
+        c = is_point_in_path(nvert, vertx, verty, testx[ii], testy[ii])
+        is_in_path[ii] = c
+        tot_true += c*1
+    return tot_true
 
 
 # ==============================================================================

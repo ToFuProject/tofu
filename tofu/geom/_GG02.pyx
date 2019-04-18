@@ -17,6 +17,7 @@ from cython.parallel cimport parallel
 from libc.stdlib cimport malloc, free, realloc
 
 from _basic_geom_tools cimport _VSMALL, _SMALL
+from _basic_geom_tools cimport is_point_in_path_vec
 from _raytracing_tools cimport comp_bbox_poly_tor
 from _raytracing_tools cimport comp_bbox_poly_tor_lim
 from _raytracing_tools cimport raytracing_inout_struct_lin
@@ -55,7 +56,7 @@ __all__ = ['CoordShift',
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
            '_Ves_isInside',
            'discretize_segment',
-           '_Ves_meshCross_FromD', '_Ves_meshCross_FromInd', '_Ves_Smesh_Cross',
+           'discretize_polygon', '_Ves_meshCross_FromInd', '_Ves_Smesh_Cross',
            '_Ves_Vmesh_Tor_SubFromD_cython', '_Ves_Vmesh_Tor_SubFromInd_cython',
            '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
            '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
@@ -69,7 +70,6 @@ __all__ = ['CoordShift',
            'LOS_isVis_PtFromPts_VesStruct',
            'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
            'LOS_sino','integrate1d']
-
 
 
 ########################################################
@@ -554,46 +554,126 @@ def discretize_segment(double[::1] LMinMax, double dstep,
 
 
 ########################################################
-########################################################
 #       Meshing - Common - Polygon face
 ########################################################
 
 @cython.cdivision(True)
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def _Ves_meshCross_FromD(double[::1] MinMax1, double[::1] MinMax2, double d1,
-                         double d2, D1=None, D2=None,str dSMode='abs',
-                         VPoly=None, double margin=_VSMALL):
-    cdef double[::1] X1, X2
-    cdef double dX1, dX2
-    cdef long[::1] ind1, ind2
-    cdef int N1, N2, n1, n2, ii, jj, nn
-    cdef np.ndarray[double,ndim=2] Pts
-    cdef np.ndarray[double,ndim=1] dS
-    cdef np.ndarray[long,ndim=1] ind
+def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
+                             double dstep1, double dstep2,
+                             D1=None, D2=None, str mode='abs',
+                             double[:,::1] VPoly=None,
+                             double margin=_VSMALL):
+    cdef int num_pts_vpoly
+    cdef int ndisc
+    cdef int tot_true
+    cdef long[1] num_cells1
+    cdef long[1] num_cells2
+    cdef long[1] nind1
+    cdef long[1] nind2
+    cdef int[1] nL0_1
+    cdef int[1] nL0_2
+    cdef bint* are_in_poly = NULL
+    cdef int* lindex1_arr = NULL
+    cdef int* lindex2_arr = NULL
+    cdef double* ldiscret1_arr = NULL
+    cdef double* ldiscret2_arr = NULL
+    cdef double* ldiscr_tmp
+    cdef long* lindex_tmp
+    cdef array ldiscr
+    cdef array lresol
+    cdef array lindex
+    cdef double[2] dl1_array
+    cdef double[2] dl2_array
+    cdef double[2] resolutions
 
-    X1, d1r, ind1, N1 = discretize_segment(MinMax1, d1, D1, Lim=True,
-                                           mode=dSMode, margin=margin)
-    X2, d2r, ind2, N2 = discretize_segment(MinMax2, d2, D2, Lim=True,
-                                           mode=dSMode, margin=margin)
-    n1, n2 = len(X1), len(X2)
-
-    Pts = np.empty((2,n1*n2))
-    dS = d1r*d2r*np.ones((n1*n2,))
-    ind = np.empty((n1*n2,),dtype=int)
-    for ii in range(0,n2):
-        for jj in range(0,n1):
-            nn = jj+n1*ii
-            Pts[0,nn] = X1[jj]
-            Pts[1,nn] = X2[ii]
-            ind[nn] = ind1[jj] + n1*ind2[ii]
-    if VPoly is not None:
-        iin = Path(VPoly.T).contains_points(Pts.T, transform=None, radius=0.0)
-        if np.sum(iin)==1:
-            Pts, dS, ind = Pts[:,iin].reshape((2,1)), dS[iin], ind[iin]
+    # .. Treating subdomains and Limits ........................................
+    if D1 is None:
+        dl1_array[0] = Cnan
+        dl1_array[1] = Cnan
+    else:
+        if D1[0] is None:
+            dl1_array[0] = Cnan
         else:
-            Pts, dS, ind = Pts[:,iin], dS[iin], ind[iin]
-    return Pts, dS, ind, d1r, d2r
+            dl1_array[0] = D1[0]
+        if D1[1] is None:
+            dl1_array[1] = Cnan
+        else:
+            dl1_array[1] = D1[1]
+    if D2 is None:
+        dl2_array[0] = Cnan
+        dl2_array[1] = Cnan
+    else:
+        if D2[0] is None:
+            dl2_array[0] = Cnan
+        else:
+            dl2_array[0] = D2[0]
+        if D2[1] is None:
+            dl2_array[1] = Cnan
+        else:
+            dl2_array[1] = D2[1]
+    # .. Discretizing on the first direction ...................................
+    first_discretize_segment_core(LMinMax1, dstep1,
+                                  &resolutions[0], num_cells1, nind1,
+                                  nL0_1, dl1_array, True, mode, margin)
+    ldiscret1_arr = <double *>malloc(nind1[0] * sizeof(double))
+    lindex1_arr = <int *>malloc(nind1[0] * sizeof(int))
+    second_discretize_segment_core(LMinMax1, ldiscret1_arr, lindex1_arr,
+                                   nL0_1[0], resolutions[0], nind1[0])
+    # .. Discretizing on the second direction ..................................
+    first_discretize_segment_core(LMinMax2, dstep2,
+                                  &resolutions[1], num_cells2, nind2,
+                                  nL0_2, dl2_array, True, mode, margin)
+    ldiscret2_arr = <double *>malloc(nind2[0] * sizeof(double))
+    lindex2_arr = <int *>malloc(nind2[0] * sizeof(int))
+    second_discretize_segment_core(LMinMax2, ldiscret2_arr, lindex2_arr,
+                                   nL0_2[0], resolutions[1], nind2[0])
+    #....
+    if VPoly is not None:
+        ndisc = nind1[0] * nind2[0]
+        ldiscr_tmp = <double *>malloc(ndisc * 2 * sizeof(double))
+        lindex_tmp = <long *>malloc(ndisc * sizeof(long))
+        for ii in range(0,nind1[1]):
+            for jj in range(0,nind1[0]):
+                nn = jj + nind1[0] * ii
+                ldiscr_tmp[nn] = ldiscret1_arr[jj]
+                ldiscr_tmp[ndisc + nn] = ldiscret2_arr[ii]
+                lindex_tmp[nn] = lindex1_arr[jj] + nind1[0] * lindex2_arr[ii]
+        num_pts_vpoly = VPoly.shape[1] - 1
+        are_in_poly = <bint *>malloc(ndisc * sizeof(bint))
+        tot_true = is_point_in_path_vec(num_pts_vpoly,
+                                        &VPoly[0][0], &VPoly[1][0],
+                                        ndisc,
+                                        &ldiscr_tmp[0], &ldiscr_tmp[ndisc],
+                                        are_in_poly)
+        ldiscr = clone(array('d'), tot_true*2, True)
+        lindex = clone(array('l'), tot_true, True)
+        lresol = clone(array('d'), tot_true, True)
+        jj = 0
+        for ii in range(ndisc):
+            if are_in_poly[ii]:
+                lresol[jj] = resolutions[0] * resolutions[1]
+                lindex[jj] = lindex_tmp[ii]
+                ldiscr[jj] = ldiscr_tmp[ii]
+                ldiscr[jj + tot_true] = ldiscr_tmp[ii + ndisc]
+                jj = jj + 1
+        return np.asarray(ldiscr).reshape(2,tot_true), np.asarray(lresol),\
+          np.asarray(lindex), resolutions[0], resolutions[1]
+    else:
+        ndisc = nind1[0] * nind2[0]
+        ldiscr = clone(array('d'), ndisc*2, True)
+        lindex = clone(array('l'), ndisc, True)
+        lresol = clone(array('d'), ndisc, True)
+        for ii in range(0,nind1[1]):
+            for jj in range(0,nind1[0]):
+                nn = jj + nind1[0] * ii
+                ldiscr[nn] = ldiscret1_arr[jj]
+                ldiscr[ndisc + nn] = ldiscret2_arr[ii]
+                lindex[nn] = lindex1_arr[jj] + nind1[0] * lindex2_arr[ii]
+                lresol[nn] = resolutions[0] * resolutions[1]
+        return np.asarray(ldiscr).reshape(2,ndisc), np.asarray(lresol),\
+          np.asarray(lindex), resolutions[0], resolutions[1]
 
 
 @cython.cdivision(True)
