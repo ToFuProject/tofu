@@ -22,11 +22,12 @@ import imas
 
 
 
-class Equilibrium2D(object):
-    """ A generic class for handling 2D magnetic equilibria
+class Plasma2D(object):
+    """ A generic class for handling 2D (and 1D) plasma profiles
 
     Provides:
         - equilibrium-related quantities
+        - any 1d profile (can be remapped on 2D equilibrium)
         - spatial interpolation methods
 
     """
@@ -40,80 +41,211 @@ class Equilibrium2D(object):
 
     _lquantall = ['phi','psi','rho_tor_norm', 'rho_pol_norm',
                   'b_field_r', 'b_field_z', 'b_field_tor', 'b_field_norm']
-    _dquantall = {'ggd':None, 'profiles_1d':None, 'profiles_2d':None}
 
-    _dquantcomp = {'b_field_norm':['b_field_r', 'b_field_z', 'b_field_tor'],
-                   'rho_pol_norm':['psi']}
+    _dcomp = {'b_field_norm':['b_field_r', 'b_field_z', 'b_field_tor'],
+              'rho_pol_norm':['psi']}
 
     _dquantmap1d = ['psi','phi','rho_tor_norm','rho_pol_norm']
 
     # Pre-set lists of quantities to be loaded from the ids, useful in typical use cases
-    _dpreset = {'pos':{'ggd':{'ids':['psi','phi'],
-                              'comp':[]},
-                       'profiles_1d':{'ids':['phi','psi',
-                                             'rho_tor_norm', 'rho_pol_norm'],
-                                      'comp':[]}}}
+    _dpreset = {'pos':{'2d':['psi','phi'],
+                       '1d':['phi','psi','rho_tor_norm','rho_pol_norm']}}
 
 
     #----------------
     # Class creation and instanciation
     #----------------
 
-    def __init__(self, dquant='pos', tlim=None, user=None, shot=None, run=None, occ=None,
-                 tokamak=None, version=None, dids=None, verb=True):
+    def __init__(self, preset=None, tlim=None,
+                 dids_2d=None, lquant_2d=None, d2d=None,
+                 dids_1d=None, lquant_1d=None, d1d=None,
+                 dmesh=None, dtime=None,
+                 verb=True):
 
         if verb:
-            print("Equilibrium")
-            print("\t(1/2) Get equilibrium ids from imas...")
+            print("(1/2) Get equilibrium ids from imas, 2d quantities...")
 
-        # ids input dict
-        dids = self._checkformat_dids(user=user, shot=shot, run=run, occ=occ,
-                                      tokamak=tokamak, version=version, dids=dids)
+        # Check inputs
+        out = self._checkformat_dins(preset=preset,
+                                     dids_2d=dids_2d, lquant_2d=lquant_2d,
+                                     d2d=d2d, dids_1d=dids_1d,
+                                     lquant_1d=lquant_1d, d1d=d1d,
+                                     dtime=dtime, dmesh=dmesh)
+        dids_2d, lquant_2d, d2d, dids_1d, lquant_1d, d1d, dtime, dmesh = out
 
-        # get the ids
-        ids = imas.ids(s=dids['shot'], r=dids['run'])
-        ids.open_env(dids['user'], dids['tokamak'], dids['version'])
-        ids.equilibrium.get()
-        idseq = ids.equilibrium
+        # Get d2d from ids
+        idseq2 = None
+        if d2d is None:
+            ids2 = self._openids(dids_2d)
+            idseq2 = ids2.equilibrium
+            # dtime and dmesh
+            dtime = self._checkformat_tlim(tlim, idseq2)
+            lqav, npts = self._checkformat_lquantav(idseq2, nd=2)
+            dmesh = self._get_dmesh(idseq2, npts)
+            # quantities stored in ids
+            self._dquantav = {2:{'lqav':lqav, 'npts':npts}}
+            d2d, valid2 = self._get_dnd(idseq2, lquant_2d,
+                                        dtime['nt'], dtime['indt'], nd=2)
+            # compute missing quantities
+            d2d = self._comp_quant(d2d, lquant_2d, dtime['nt'], npts, nd=2)
+
 
         if verb:
-            print("\t(2/2) Get time, 2d triangular mesh and profiles...")
+            print("(2/2) Get equilibrium ids from imas, 1d quantities...")
 
-        # tlim
-        tlim, t, indt = self._checkformat_tlim(tlim, idseq)
-        nt = t.size
+        # Get d1d from ids
+        idseq1 = None
+        if d1d is None:
+            if dids_1d == dids_2d:
+                ids1 = ids2
+                t = None
+            else:
+                ids1 = self._openids(dids_1d)
+                t = idseq1.time
+            idseq1 = ids1.equilibrium
+            # quantities stored in ids
+            lqav, npts = self._checkformat_lquantav(idseq1, nd=1)
+            self._dquantav[1] = {'lqav':lqav, 'npts':npts}
+            d1d, valid1 = self._get_dnd(idseq1, lquant_1d,
+                                        dtime['nt'], dtime['indt'], nd=1,
+                                        t=t, tref=dtime['t'])
+            dtime['valid'] = np.vstack((valid2,valid1)).T
+            # compute missing quantities
+            d1d = self._comp_quant(d1d, lquant_1d, dtime['nt'], npts, nd=1)
 
-        # check available quantities
-        nggd, np1 = self._checkformat_avquant(idseq)
+        # close idss
+        if idseq2 is not None:
+            ids2.close()
+        if idseq1 is not None and dids_1d != dids_2d:
+            ids1.close()
 
-        # Extract 2D mesh as matplotlib triangulation
-        nodes, indtri, ftype = self._checkformat_2dmesh(idseq, nggd)
-        indtri = self._checkformat_tri(nodes, indtri)
-        mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1],
-                                       triangles=indtri)
-        nnod, ntri = nodes.shape[0], indtri.shape[0]
+        # Check if remapping can be done
+        self._lquantboth = list(set(d2d.keys()).intersection(d1d.keys()))
+        if len(self._lquantboth) == 0:
+            msg = "No quantity seems available both in 2d and 1d!\n"
+            msg += "  => impossible to perform pts2profiles1d interpolations!"
+            warnings.warn(msg)
 
-        # Extract (or compute) required quantities
-        dquant = self._checkformat_dquant(dquant)
-        self._dquant = dict([(k0, {}) for k0 in dquant.keys()])
-        indok = self._extract_quantids(dquant, idseq, nt, indt, nggd, np1)
-        self._comp_dquant(dquant, nt, nggd, np1)
-
-        # close ids
-        ids.close()
-
+        # -------------------------------------
         # Update dict
-        self._dids = dids
-        self._dmesh2d = {'mpltri':mpltri, 'ftype':ftype,
-                         'nnod':nnod, 'ntri':ntri,
-                         'nodes':None, 'faces':None}
-        self._dtime = {'t':t, 'indt':indt, 'nt':nt, 'tlim':tlim, 'indok':indok}
+        self._dtime = dtime
+        self._dmesh = dmesh
+        self._d2d = d2d
+        self._d1d = d1d
+
+
 
 
 
     #---------------------
     # Methods for checking and formatting inputs
     #---------------------
+
+    @staticmethod
+    def _checkformat_didslquantdnd(dids=None, lquant=None, dnd=None, nd=1):
+
+        # Conflicts
+        lc = [dids is not None and lquant is not None, dnd is not None]
+
+        if np.sum(lc) != 1:
+            msg = "Provide (dids_{0}d,lquant_{0}d) xor d{0}d !".format(nd)
+            raise Exception(msg)
+
+        # dids and dnd
+        if lc[0]:
+            dids = _utils._get_defaults( dids=dids )
+        else:
+            c0 = type(dnd) is dict
+            c0 &= all([type(kk) is str for kk in dnd.keys()])
+            c0 &= all([type(vv) is np.ndarray for vv in dnd.values()])
+            lv = list(dnd.values())
+            c0 &= all([vv.shape == lv[0].shape for vv in dnd.values()])
+            if not c0:
+                msg = "All values in dids_{}d must be:\n".format(nd)
+                msg += "    - np.ndarray of same shape!"
+                raise Exception(msg)
+
+        # lquant
+        c0 = type(lquant) is str
+        c1 = type(lquant) is list and all([type(ss) is str
+                                           for ss in lquant])
+        if not (c0 or c1):
+            msg = "Arg lquant_{0}d must be a str or a list of str !".format(nd)
+            raise Exception(msg)
+        if c0:
+            lquant = [lquant]
+        return dids, lquant, dnd
+
+    @staticmethod
+    def _checkformat_dtimemesh(dtime, dmesh, d2d):
+        assert type(dtime) is dict and type(dmesh) is dict
+
+        # dtime
+        lk = ['indt','nt','t','tlim']
+        assert sorted(dtime.keys()) == sorted(lk)
+        dtime['t'] = np.asarray(dtime['t']).ravel()
+        dtime['indt'] = np.asarray(dtime['indt']).ravel().astype(int)
+        dtime['tlim'] = np.asarray(dtime['tlim']).ravel()
+        assert dtime['nt'] == dtime['t'].size == dtime['indt'].size
+        assert np.allclose(dtime['t'], np.unique(dtime['t']))
+        assert np.allclose(dtime['indt'], np.unique(dtime['indt']))
+        assert dtime['tlim'].size == 2
+
+        # dmesh
+        lk = ['nodes','triangles','nnodes','ntri','mpltri','fkind']
+        assert sorted(dmesh.keys()) == sorted(lk)
+        dmesh['nodes'] = np.atleast_2d(dmesh['nodes'], dtype=float)
+        dmesh['triangles'] = np.atleast_2d(dmesh['triangles'], dtype=int)
+        assert dmesh['nodes'].shape == (dmesh['nnodes'],2)
+        assert dmesh['triangles'].shape == (dmesh['ntri'],3)
+        assert np.max(dmesh['triangles']) < dmesh['nnodes']
+        if 'mpltri' not in dmesh.keys() or dmesh['mpltri'] is None:
+            dmesh['mpltri'] = mpl.tri.Triangulation(dmesh['nodes'][:,0],
+                                                    dmesh['nodes'][:,1],
+                                                    dmesh['triangles'])
+        assert isinstance(dmesh['mpltri'], mpl.tri.Triangulation)
+        assert dmesh['fkind'] in ['nearest','linear']
+        return dtime, dmesh
+
+
+    @classmethod
+    def _checkformat_dins(cls, preset=None,
+                          dids_2d=None, lquant_2d=None, d2d=None,
+                          dids_1d=None, lquant_1d=None, d1d=None,
+                          dtime=None, dmesh=None):
+
+        if preset is not None:
+            if not d2d is None and d1d is None:
+                msg = "Cannot use preset and d2d/d1d simultaneously !"
+                raise Exception(msg)
+            lquant_2d = cls._dpreset[preset]['2d']
+            lquant_1d = cls._dpreset[preset]['1d']
+
+        # Check 2d
+        dids_2d, lquant_2d, d2d = cls._checkformat_didslquantdnd(dids_2d,
+                                                                 lquant_2d,
+                                                                 d2d, nd=2)
+        # Check 1d
+        if d1d is None and lquant_1d is not None and dids_1d is None:
+            dids_1d = dict(dids_2d)
+        dids_1d, lquant_1d, d1d = cls._checkformat_didslquantdnd(dids_1d,
+                                                                 lquant_1d,
+                                                                 d1d, nd=1)
+        # Check dmesh and dtime
+        lc = [dmesh is None, dtime is None]
+        c0 = all(lc) and d2d is None
+        c1 = not any(lc) and d2d is not None
+        if (np.sum(lc) not in [0,2]) or not (c0 or c1):
+            msg = ""
+            raise Exception(msg)
+
+        if c1:
+            dtime, dmesh = cls._checkformat_dtimemesh(dtime, dmesh, d2d)
+            assert dtime['nt'] == list(d2d.values())[0].shape[0]
+            if d1d is not None:
+                assert dtime['nt'] == list(d1d.values())[0].shape[0]
+
+        return dids_2d, lquant_2d, d2d, dids_1d, lquant_1d, d1d, dtime, dmesh
 
     @staticmethod
     def _checkformat_tlim(tlim, idseq):
@@ -136,111 +268,109 @@ class Equilibrium2D(object):
         t = t[indt]
         indt = np.nonzero(indt)[0]
         nt = t.size
-        return tlim, t, indt
+        return {'tlim':tlim, 'nt':nt, 't':t, 'indt':indt}
 
     @staticmethod
-    def _checkformat_dids(user=None, shot=None, run=None, occ=None,
-                          tokamak=None, version=None, dids=None):
-        return _utils._get_defaults(user=user, shot=shot, run=run, occ=occ,
-                                    tokamak=tokamak, version=version,
-                                    dids=dids)
+    def _openids(dids):
+        ids = imas.ids(s=dids['shot'], r=dids['run'])
+        ids.open_env(dids['user'], dids['tokamak'], dids['version'])
+        ids.equilibrium.get()
+        return ids
 
-    def _checkformat_avquant(self, idseq):
-        s0 = idseq.time_slice[0]
-        lout = ['get','getNodeType','grid','setExpIdx']
+    @staticmethod
+    def _checkformat_lquantav(idseq, nd=1):
+        lout = ['get','getNodeType','grid','setExpIdx','error']
 
-        # Check 2D ggd
-        lq = [ss for ss in dir(s0.ggd[0])
-              if ss[0] != '_' and ss not in lout]
-
-        lggd = [qq for qq in self._lquantall
-                if qq in lq and len(getattr(s0.ggd[0],qq)[0].values) != 0]
-        if len(lggd) > 0:
-            nggd = len(getattr(s0.ggd[0],lggd[0])[0].values)
+        # Check
+        if nd == 2:
+            obj = idseq.time_slice[0].ggd[0]
         else:
-            nggd = 0
+            obj = idseq.time_slice[0].profiles_1d
 
-        # Check if in profiles_1d
-        lq = [ss for ss in dir(s0.profiles_1d)
-              if ss[0] != '_' and ss not in lout]
-        lp1 = [qq for qq in self._lquantall
-               if qq in lq and len(getattr(s0.profiles_1d,qq)) != 0]
-        if len(lp1) > 0:
-            np1 = len(getattr(s0.profiles_1d,lp1[0]))
+        lq = [ss for ss in dir(obj)
+              if ss[0] != '_' and all([ou not in ss for ou in lout])]
+
+        if nd == 2:
+            lqav = [qq for qq in lq
+                    if (hasattr(getattr(obj,qq),'__len__')
+                        and len(getattr(obj,qq)) > 0
+                        and len(getattr(obj,qq)[0].values) > 0)]
+            llen = np.array([len(getattr(obj,qq)[0].values) for qq in lqav])
+            assert np.all(llen == llen[0])
+            if len(lqav) > 0:
+                  npts = llen[0]
         else:
-            np1 = 0
+            lqav = [qq for qq in lq
+                    if (hasattr(getattr(obj,qq),'__len__')
+                        and len(getattr(obj,qq)) > 0)]
+            llen = np.array([len(getattr(obj,qq)) for qq in lqav])
+            assert np.all(llen == llen[0])
+            if len(lqav) > 0:
+                npts = llen[0]
 
-        # Update instance attributes with actually available quantities
-        self._lquantall = list(set(lggd).union(lp1))
-        self._lquantboth = list(set(lggd).intersection(lp1))
-        self._dquantall['ggd'] = lggd
-        self._dquantall['profiles_1d'] = lp1
+        if len(lqav) == 0:
+            npts = 0
+        return lqav, npts
 
-        if len(self._lquantboth) == 0:
-            msg = "No quantity seems available both in ggd and profiles_1d!\n"
-            msg += "  => impossible to perform pts2profiles1d interpolations!"
-            warnings.warn(msg)
-        return nggd , np1
+    def _get_dnd(self, idseq, lquant, nt, indt, nd=1, t=None, tref=None):
 
-
-    def _checkformat_dquant(self, dquant):
-        if type(dquant) is str:
-            if not dquant in self._dpreset.keys():
-                msg = "If dquant is a str, must be a valid key of self._dpreset"
-                raise Exception(msg)
-            dquant = self._dpreset[dquant]
-
-        c0 = (type(dquant) is dict
-              and all([kk in ['ggd','profiles_1d'] for kk in dquant.keys()]))
-        c01 = c0 and all([type(v) is list and all([type(ss) is str for ss in v])
-                          for v in dquant.values()])
-        c02 = c0 and all([type(v) is dict and all([vv in ['ids','comp']
-                                               for vv in v.keys()])
-                          for v in dquant.values()])
-        if not (c01 or c02):
-            msg = "Arg dquant must be dict of keys in ['ggd','profiles_1d']\n"
-            msg += "Values must be either:\n"
-            msg += "    - a list of quant str (see cls._lquantall for ex.)\n"
-            msg += "    - a dict {'ids':l0, 'comp':l1}\n"
-            msg += "        (where l0 and l1 are lists of quant str)"
+        # Check availability or computability
+        lout = [qq for qq in lquant if qq not in self._dquantav[nd]['lqav']]
+        lnot = [qq for qq in lout if qq not in self._dcomp.keys()
+                or any([qi not in self._dquantav[nd]['lqav'] for qi in self._dcomp[qq]])]
+        if len(lnot) > 0:
+            msg = "Some quantities not available / not computable from ids:\n"
+            msg += "    - " + "\n    - ".join(lnot)
+            import ipdb
+            ipdb.set_trace()
             raise Exception(msg)
 
-        if c01:
-            dquant = {'ggd':{'ids':dquant['ggd'], 'comp':[]},
-                      'profiles_1d':{'ids':dquant['profiles_1d'], 'comp':[]}}
+        # get size
+        npts = self._dquantav[nd]['npts']
 
-        # Make sure no double and all quant in self._lquantall
-        for k0 in dquant.keys():
-            dquant[k0]['ids'] = sorted(set(dquant[k0]['ids']))
-            dquant[k0]['comp'] = sorted(set(dquant[k0]['comp']))
-            for qq in dquant[k0]['ids']:
-                c0 = qq in self._dquantall[k0]
-                if not c0:
-                    dquant[k0]['ids'].remove(qq)
-                    dquant[k0]['comp'].append(qq)
+        # Get data
+        valid = np.ones((nt,),dtype=bool)
+        dnd = dict([(qq, np.full((nt, npts), np.nan)) for qq in lquant])
+        if nd == 1:
+            if t is None:
+                for ii in range(0,nt):
+                    if idseq.code.output_flag[indt[ii]] <= -1:
+                       valid[ii] = False
+                       continue
+                    eqii = idseq.time_slice[indt[ii]].profiles_1d
+                    for qq in lquant:
+                        dnd[qq][ii,:] = getattr(eqii, qq)
+            else:
+                indtref = np.digitize(tref, 0.5*(t[1:]+t[:-1]))
+                for ii in range(0,nt):
+                    indtii = indtref[indt[ii]]
+                    if idseq.code.output_flag[indtii] <= -1:
+                       valid[ii] = False
+                       continue
+                    eqii = idseq.time_slice[indtii].profiles_1d
+                    for qq in lquant:
+                        dnd[qq][ii,:] = getattr(eqii, qq)
 
-            dquant[k0]['ids'] = sorted(set(dquant[k0]['ids']))
-            dquant[k0]['comp'] = sorted(set(dquant[k0]['comp']))
-            for qq in dquant[k0]['comp']:
-                c0 = qq in self._dquantcomp.keys()
-                c0 &= all([qi in self._dquantall[k0]
-                           for qi in self._dquantcomp[qq]])
-                if not c0:
-                    msg = "The following quant cannot be computed:\n"
-                    msg += "    - %s"%qq
-                    raise Exception(msg)
-        return dquant
+        else:
+            for ii in range(0,nt):
+                if idseq.code.output_flag[indt[ii]] <= -1:
+                   valid[ii] = False
+                   continue
+                eqii = idseq.time_slice[indt[ii]].ggd[0]
+                for qq in lquant:
+                    dnd[qq][ii,:] = getattr(eqii, qq)[0].values
 
+        return dnd, valid
 
-    @staticmethod
-    def _checkformat_2dmesh(idseq, nval):
+    @classmethod
+    def _get_dmesh(cls, idseq, npts):
 
         # Check the grid exists
         c0 = len(idseq.grids_ggd) == 1
         c0 &= len(idseq.grids_ggd[0].grid) == 1
         c0 &= len(idseq.grids_ggd[0].grid[0].space) == 1
         if not c0:
-            msg = ""
+            msg = "No grid seems to exist at idseq.grids_ggd[0].grid[0].space"
             raise Exception(msg)
         space0 = idseq.grids_ggd[0].grid[0].space[0]
 
@@ -263,15 +393,40 @@ class Equilibrium2D(object):
             raise Exception(msg)
 
         # Determine whether it is a piece-wise constant or linear interpolation
-        if not nval in [nnod, ntri]:
+        if not npts in [nnod, ntri]:
             msg = "The number of values in 2d grid quantities is not conform\n"
             msg += "For a triangular grid, it should be either equal to:\n"
             msg += "    - the nb. of triangles (nearest neighbourg)\n"
             msg += "    - the nb. of nodes (linear interpolation)"
             raise Exception(msg)
-        ftype = 'linear' if nval == nnod else 'nearest'
-        return nodes, indtri, ftype
+        ftype = 'linear' if npts == nnod else 'nearest'
+        indtri = cls._checkformat_tri(nodes, indtri)
+        mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indtri)
+        dmesh = {'nodes':nodes, 'triangles':indtri, 'ftype':ftype,
+                 'nnodes':nnod,'ntri':ntri,'mpltri':mpltri}
+        return dmesh
 
+    @classmethod
+    def _comp_quant(cls, dnd, lquant, nt, npts, nd=1):
+        for qq in lquant:
+            c0 = qq not in dnd.keys() or dnd[qq] is None
+            c0 = c0 and qq in cls._dcomp.keys()
+            c0 = c0 and all([ss in dnd.keys() for ss in cls._dcomp[qq]])
+            if not c0:
+                continue
+            val = np.full((nt,npts), np.nan)
+            if qq == 'b_field_norm':
+                val[:] = np.sqrt(np.sum([dnd[qi]**2
+                                         for qi in cls._dcomp[qq]], axis=0))
+
+            elif qq == 'rho_pol_norm' and nd == 1:
+                psi = dnd[self._dcomp[qq][0]]
+                psiM0 = psi - psi[:,0:1]
+                psi10 = psi[:,-1] - psi[:,0]
+                ind = psi10 != 0.
+                val[ind,:] = np.sqrt( psiM0[ind,:] / psi10[ind,None] )
+            dnd[qq] = val
+        return dnd
 
     @staticmethod
     def _checkformat_tri(nodes, indtri):
@@ -292,82 +447,28 @@ class Equilibrium2D(object):
 
 
     #---------------------
-    # Methods for getting quant
-    #---------------------
-
-
-    def _extract_quantids(self, dquant, idseq, nt, indt, nggd, np1):
-
-        # Prepare data arrays
-        for qq in dquant['ggd']['ids']:
-            self._dquant['ggd'][qq] = np.full((nt,nggd), np.nan)
-        for qq in dquant['profiles_1d']['ids']:
-            self._dquant['profiles_1d'][qq] = np.full((nt,np1), np.nan)
-
-        indok = np.ones((nt,),dtype=bool)
-
-        # Extract 2d quantities of interest
-        for ii in range(0,nt):
-
-            # Check output convergence flag
-            if idseq.code.output_flag[indt[ii]] <= -1:
-                indok[ii] = False
-                continue
-
-            # ggd
-            idseqii = idseq.time_slice[indt[ii]]
-            for qq in self._dquant['ggd'].keys():
-                self._dquant['ggd'][qq][ii,:] = getattr(idseqii.ggd[0],qq)[0].values
-
-            # profiles_1d
-            for qq in self._dquant['profiles_1d'].keys():
-                self._dquant['profiles_1d'][qq][ii,:] = getattr(idseqii.profiles_1d,qq)
-
-        # Set indok in dtime
-        return indok
-
-    def _comp_dquant(self, dquant, nt, nggd, np1):
-        for k0, v0 in dquant.items():
-            nn = nggd if k0 == 'ggd' else np1
-            for qq in v0['comp']:
-                val = np.full((nt,nn), np.nan)
-
-                if qq == 'b_field_norm':
-                    val[:] = np.sqrt(np.sum([self._dquant[k0][qi]**2
-                                             for qi in self._dquantcomp[qq]],
-                                            axis=0))
-
-                elif qq == 'rho_pol_norm' and k0 == 'profiles_1d':
-                    psi = self._dquant[k0][self._dquantcomp[qq][0]]
-                    psiM0 = psi - psi[:,0:1]
-                    psi10 = psi[:,-1] - psi[:,0]
-                    ind = psi10 != 0.
-                    val[ind,:] = np.sqrt( psiM0[ind,:] / psi10[ind,None] )
-
-                self._dquant[k0][qq] = val
-
-
-
-    #---------------------
     # Properties (read-only attributes)
     #---------------------
 
     @property
-    def dids(self):
-        return self._dids
+    def d2d(self):
+        return self._d2d
     @property
-    def dmesh2d(self):
-        return self._dmesh2d
+    def d1d(self):
+        return self._d1d
     @property
-    def dquant(self):
-        return self._dquant
+    def dmesh(self):
+        return self._dmesh
+    @property
+    def dtime(self):
+        return self._dtime
     @property
     def t(self):
         return self._dtime['t']
 
 
     #---------------------
-    # Compute extra quantities
+    # Methods for interpolation
     #---------------------
 
     def _interp_pts2profile1d(self, ptsRZ, quant, indt, indtu, ref='psi',
@@ -381,9 +482,9 @@ class Equilibrium2D(object):
         npts = ptsRZ.shape[1]
 
         # aliases
-        mpltri = self._dmesh2d['mpltri']
+        mpltri = self._dmesh['mpltri']
         trifind = mpltri.get_trifinder()
-        vref = self._dquant['ggd'][ref]
+        vref = self._d2d[ref]
         r, z = ptsRZ[0,:], ptsRZ[1,:]
 
         # loop on time
@@ -391,7 +492,7 @@ class Equilibrium2D(object):
 
         if quant == ref:
             for ii in range(0,nteq):
-                if not self._dtime['indok'][indtu[ii]]:
+                if not self.dtime['valid'][indtu[ii],0]:
                     continue
 
                 ind = ii if indt is None else indt == indtu[ii]
@@ -403,11 +504,11 @@ class Equilibrium2D(object):
                 val[ind,:] = vrefii[None,:]
 
         else:
-            refprof = self.dquant['profiles_1d'][ref]
-            prof = self.dquant['profiles_1d'][quant]
+            refprof = self._d1d[ref]
+            prof = self._d1d[quant]
 
             for ii in range(0,nteq):
-                if not self._dtime['indok'][indtu[ii]]:
+                if not np.all(self._dtime['valid'][indtu[ii],:]):
                     continue
 
                 ind = ii if indt is None else indt == indtu[ii]
@@ -441,14 +542,18 @@ class Equilibrium2D(object):
 
         """
         # Check requested quant is available
-        if not quant in self.dquant['profiles_1d'].keys():
-            msg = "Requested quant (%s) not available as profiles_1d:\n"
+        if not quant in self.d1d.keys():
+            msg = "Requested quant (%s) not available as 1d field:\n"
             msg += "Available quant are (set at instanciation):\n"
-            msg += "    - %s"%str(self.dquant['profiles_1d'].keys())
+            msg += "    - %s"%str(self.d1d.keys())
             raise Exception(msg)
 
         # Check the ptsRZ is (2,npts) array of floats
         ptsRZ = np.atleast_2d(ptsRZ)
+        if not 2 in ptsRZ.shape:
+            msg = "ptsRZ must ba np.ndarray of (R,Z) points coordinates"
+            raise Exception(msg)
+
         if ptsRZ.shape[0] != 2:
             ptsRZ = ptsRZ.T
 
@@ -461,7 +566,7 @@ class Equilibrium2D(object):
             indt = np.digitize(t, tbins)
             indtu = np.unique(indt)
 
-        # Check chosen ref is available
+        # Check choosen ref is available
         lref = sorted(set(self._lquantboth).intersection(self._dquantmap1d))
         if ref is None:
             if quant in lref:
@@ -484,90 +589,10 @@ class Equilibrium2D(object):
 
 
 
-    #####################
-    # Hidden methods for getting equilibrium quantities
 
-    def _get_quant(self, quant):
-
-        # Check
-        if self.idseq is None:
-            msg = "self.idseq is None!\n"
-            msg += "    => you need to get the idseq first!\n"
-            msg += "    => use self.get_idseq()"
-            raise Exception(msg)
-
-        if quant in self.dquant['ids'].keys():
-            out = eval('self.idseq.ggd[0].{0}'.format(quant))
-        else:
-            if self._dtemp[quant] is None:
-                if quant == 'b_field_norm':
-                   q  = np.sqrt(self._ids.ggd[0].b_field_r**2
-                                + self._ids.ggd[0].b_field_z**2
-                                + self._ids.ggd[0].b_field_tor**2)
-                elif quant == 'rho_pol_norm':
-                    q = np.full(self._ids.ggd[0].psi.shape,np.nan)
-                    psiM0 = self._ids.ggd[0].psi - self._ids.profiles_1d.psi[:,0:1]
-                    psi10 = self._ids.profiles_1d.psi[:,-1] - self._ids.profiles_1d.psi[:,0]
-                    ind = psi10!=0
-                    q[ind,:] = np.sqrt(psiM0[ind,:]/psi10[ind,np.newaxis])
-                elif 'rho_tor' in quant:
-                    qq = self._ids.profiles_1d.rho_tor
-                    if 'norm' in quant:
-                        ind = (qq[:,-1]!=0.) & (~np.isnan(qq[:,-1]))
-                        qq[ind,:] = qq[ind,:]/qq[ind,-1:]
-                        qq[~ind,:] = np.nan
-                    q = np.full(self._ids.ggd[0].psi.shape,np.nan)
-                    for ii in range(0,self._ids.time.size):
-                        q[ii,:] = np.interp(self._ids.ggd[0].psi[ii,:],
-                                            self._ids.profiles_1d.psi[ii,:],
-                                            qq[ii,:], right=np.nan)
-                self._dtemp[quant] = q
-            out = self._dtemp[quant]
-        return out
 
     #####################
-    # Hidden methods for interpolation
-
-    def _format_lquant(self, lquant):
-        if type(lquant) is str:
-            lquant = [lquant]
-
-        ok = np.array([ss in self._lquant_total for ss in lquant])
-        indnotok = (~ok).nonzero()[0]
-        if indnotok.size>0:
-            msg = ["The following quantities cannot be interpolated:"]
-            msg += [lquant[ii] for ii in indnotok]
-            msg = "\n    ".join(msg)
-            warnings.warn(msg)
-        lquant = [lquant[ii] for ii in ok.nonzero()[0]]
-        nquant = len(lquant)
-        return lquant, nquant
-
-
-    def _get_tindt(self, t, indt):
-        # Format time vector
-        if t is not None:
-            if type(t) in [int,float,np.int64,np.float64]:
-                t = np.array([t],dtype=float)
-            else:
-                t = np.asarray(t).astype(float).ravel()
-            nt = t.size
-
-        # Format indt vector
-        if indt is not None:
-            if type(indt) in [int,float,np.int64,np.float64]:
-                indt = np.array([t],dtype=int)
-            else:
-                indt = np.asarray(indt).astype(int).ravel()
-            nt = indt.size
-
-        # If no tim provided, take all
-        t_all = t is None and indt is None
-        if t_all:
-            nt = self._ids.time.size
-            indt = np.arange(0,nt)
-
-        return t, indt, nt, t_all
+    # Hidden extra methods for backup (not used yet)
 
 
     def _get_ptsRZindpts(self, ptsRZ, indpts, nt):
@@ -610,11 +635,10 @@ class Equilibrium2D(object):
 
 
 
-    #####################
     # General interpolation method
 
-    def interp2d(self, lquant=[], ptsRZ=None, t=None,
-                 indt=None, indpts=None, method_t='nearest', ravel=True):
+    def _interp2d(self, lquant=[], ptsRZ=None, t=None,
+                  indt=None, indpts=None, method_t='nearest', ravel=True):
 
         #######################
         # Basic check of inputs
@@ -795,9 +819,9 @@ class Equilibrium2D(object):
 
 
 
-    def interp2d_inv(self, lquant=[], lval=[],
-                     t=None, indt=None, method_t='nearest',
-                     line=None, res=None, ravel=True):
+    def _interp2d_inv(self, lquant=[], lval=[],
+                      t=None, indt=None, method_t='nearest',
+                      line=None, res=None, ravel=True):
 
         #######################
         # Basic check of inputs
