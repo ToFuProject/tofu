@@ -398,7 +398,7 @@ class Equilibrium2D(object):
                 # get ref values for mapping
                 vrefii = mpl.tri.LinearTriInterpolator(mpltri,
                                                        vref[indtu[ii],:],
-                                                       trifinder=trifind)(x,y)
+                                                       trifinder=trifind)(r,z)
                 # Broadcast in time
                 val[ind,:] = vrefii[None,:]
 
@@ -414,14 +414,14 @@ class Equilibrium2D(object):
                 # get ref values for mapping
                 vrefii = mpl.tri.LinearTriInterpolator(mpltri,
                                                        vref[indtu[ii],:],
-                                                       trifinder=trifind)(x,y)
+                                                       trifinder=trifind)(r,z)
 
                 # interpolate 1d
-                import ipdb
-                ipdb.set_trace()
-
-                vii = scpinterp.interp1d(refprof[indtu[ii],:], prof[indtu[ii],:],
-                                         kind=kind, fill_value=fill_value)(vrefii)
+                vii = scpinterp.interp1d(refprof[indtu[ii],:],
+                                         prof[indtu[ii],:],
+                                         kind=kind,
+                                         bounds_error=False,
+                                         fill_value=fill_value)(np.asarray(vrefii))
 
                 # Broadcast in time
                 val[ind,:] = vii[None,:]
