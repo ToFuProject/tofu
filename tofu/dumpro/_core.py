@@ -30,56 +30,64 @@ import _comp
 class Video(object):
     """ A Dust movie processing algorithm designed to track dust and plot their
     trajectories
-    
+   
+    Provide a filename
+   
     """
     
-    def __init__(self,path = "./",):
+    def __init__(self, filename):
         
+        # join is for joining together several path parts
+        # os.path.abspath(path) returns the absolute path of your path
         
-        pfe = os.path.join(path)
+        # you can split the char str into path + file
+        # path, filename = os.path.split(filename)
+        
+        path = os.path.abspath(path)
         try:
-            if not os.path.exists(pfe):
+            if not os.path.exists(path): # os.path.isfile
                 msg = "The provided path does not exist:\n"
                 msg += "\t-path: %s"%path
                 msg += "\t=> Please provide the correct path and try again" 
                 raise Exception(msg)
             else:
-                self.cap = cv2.VideoCapture(pfe)
+                self.cap = cv2.VideoCapture(path)
                     
-                self.frame_width = int(self.cap.get(3))
-                self.frame_height = int(self.cap.get(4))
-                self.video_time = self.cap.get(cv2.CAP_PROP_POS_MSEC)
-                self.N_frames = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
-                self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+                self.__frame_width = int(self.cap.get(3))
+                self.__frame_height = int(self.cap.get(4))
+                self.__video_time = self.cap.get(cv2.CAP_PROP_POS_MSEC)
+                self.__N_frames = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
+                self.__fps = self.cap.get(cv2.CAP_PROP_FPS)
         
-    def Resolution(self):
+    def resolution(self):
         
-        width = self.frame_width
-        height = self.frame_height
+        width = self.__frame_width
+        height = self.__frame_height
         
         return (width,height)
 
-    def Duration(self):
-        
-        return self.video_time
+    @property
+    def video_time(self):
+        return self.__video_time
     
     def Frame_count(self):
         
         return self.N_frames
     
-    def FPS(self):
+    def fps(self):
         
-        return self.fps
+        return self.__fps
     
 #    def grayscale(self):
 #        
 #        
 #    
-    def Dumpro(self):
+    def dumpro(self):
+        """ Create a new instance with the grayscale-converted video """
         
         gray = __colorgray.ConvertGray(video_file)
             
-        return 'conversion successful'
+        return self.__class__(gray)
 
 
     
