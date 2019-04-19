@@ -574,7 +574,7 @@ class Plasma2D(object):
             if quant in lref:
                 ref = quant
             else:
-                ref = 'phi'
+                ref = lref[0]
         if ref not in lref:
             msg = "The chosen ref for remapping (%s) is not available:\n"
             msg += "    - Available refs: %s"%str(lref)
@@ -593,8 +593,13 @@ class Plasma2D(object):
     # Methods for getting data
     #---------------------
 
-    def get_Data(self, lquant, X='rho_tor_norm',
+    def get_Data(self, lquant, X='rho_tor_norm', ref=None,
                  remap=True, res=0.01, kind='linear'):
+
+        try:
+            import tofu.data as tfd
+        except Exception:
+            from .. import data as tfd
 
         # Check and format input
         assert type(lquant) in [str,list]
@@ -604,6 +609,9 @@ class Plasma2D(object):
         nquant = len(lquant)
         assert X in self.d1d.keys()
 
+        if ref is None and X in self._lquantboth:
+            ref = X
+
         # compute remap
         if remap:
             refS = list(self.config.dStruct['dObj']['Ves'].values())[0]
@@ -611,18 +619,19 @@ class Plasma2D(object):
             dmap = {'t':self.t, 'data2D':None, 'extent':extent}
 
         # Define Data
-        dcommon = dict(Exp=self.Id.Exp, shot=self.Id.shot, conf=self.config,
-                       t=self.t, X=self.d1d[X])
+        dcommon = dict(Exp=self.Id['Exp'], shot=self.Id['shot'],
+                       Diag='profiles1d',
+                       config=self.config, t=self.t, X=self.d1d[X])
 
         # Get output
         lout = [None for qq in lquant]
         for ii in range(0,nquant):
             dmapii = dict(dmap)
             dmapii['data2D'] = self.interp_pts2profile1d(ptsRZ, lquant[ii],
-                                                         ref=X, kind=kind)
-            lout[ii] = DataCam1D(Name=qq, data=self.d1d[qq],
-                                 dextra={'map':dmapii},
-                                 **dcommon)
+                                                         ref=ref, kind=kind)
+            lout[ii] = tfd.DataCam1D(Name=lquant[ii], data=self.d1d[lquant[ii]],
+                                     dextra={'map':dmapii},
+                                     **dcommon)
 
         if nquant == 1:
             lout = lout[0]
@@ -635,17 +644,17 @@ class Plasma2D(object):
 
     def plot(self, lquant, X='rho_tor_norm',
              remap=True, res=0.01, kind='linear'):
-        lData = self.get_Data(lquant, X=X, remap=remap, res=res, kind=kind)
-        if len(lData) == 1:
-            kh = lData[0].plot()
+        lDat = self.get_Data(lquant, X=X, remap=remap, res=res, kind=kind)
+        if type(lDat) is list:
+            kh = lDat[0].plot_combine(lDat[1:])
         else:
-            kh = lData[0].plot_combine(lData[1:])
+            kh = lDat.plot()
         return kh
 
     def plot_combine(self, lquant, lData, X='rho_tor_norm',
                      remap=True, res=0.01, kind='linear'):
         lDat = self.get_Data(lquant, X=X, remap=remap, res=res, kind=kind)
-        if len(lDat) > 1:
+        if type(lDat) is list:
             lData = lDat[1:] + lData
         kh = lDat[0].plot_combine(lData)
         return kh

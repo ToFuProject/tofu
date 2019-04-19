@@ -195,7 +195,20 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
                                                               margin=margin)
             out = (Pts, dS, ind, (d1r,d2r))
         else:
-            # todo
+            x1, d1r, ind1, N1 = _GG._Ves_mesh_dlfromL_cython(MinMax1,
+                                                             dS[0], DS[0],
+                                                             Lim=True,
+                                                             dLMode=dSMode,
+                                                             margin=margin)
+            x2, d2r, ind2, N2 = _GG._Ves_mesh_dlfromL_cython(MinMax2,
+                                                             dS[1], DS[1],
+                                                             Lim=True,
+                                                             dLMode=dSMode,
+                                                             margin=margin)
+            xx1, xx2 = np.meshgrid(x1,x2)
+            pts = np.squeeze([xx1,xx2])
+            extent = (x1[0]-d1r/2., x1[-1]+d1r/2., x2[0]-d2r/2., x2[-1]+d2r/2.)
+            out = (pts, x1, x2, extent)
 
     else:
         assert mode == 'flat'
