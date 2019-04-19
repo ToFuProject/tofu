@@ -36,19 +36,24 @@ class Video(object):
     """ A Dust movie processing algorithm designed to track dust and plot their
     trajectories
 
-    Provide a filename
+    Input:
+    --------------------------------------------
+    filename = video file along with the path
+    time_windows = the time interval to apply the DUMPRO code
+    
+    Attributes:
+    --------------------------------------------
+    __frame_width = width of the video
+    __frame_height = height of the video
+    __video_time = time length of the video
+    __N_frames =  total number of frames in the video
+    __fps = number of frames per second 
 
     """
 
     def __init__(self, filename, time_window):
 
-        # join is for joining together several path parts
-        # os.path.abspath(path) returns the absolute path of your path
-
-        # you can split the char str into path + file
-        # path, filename = os.path.split(filename)
-
-       #path = os.path.abspath(path)
+        
         if not os.path.isfile(filename): # os.path.isfile(path)
             msg = "The provided path does not exist:\n"
             msg += "\t- path: %s"%filename
@@ -72,19 +77,15 @@ class Video(object):
     @property
     def video_time(self):
         return self.__video_time
-
+    @property
     def Frame_count(self):
 
         return self.N_frames
-
+    @property
     def fps(self):
 
         return self.__fps
 
-#    def grayscale(self):
-#        
-#        
-#    
     def grayscale(self,path,output_name,output_type):
         """ Create a new instance with the grayscale-converted video """
 
@@ -92,8 +93,12 @@ class Video(object):
 
         return self.__class__(gray)
 
-    def removebackground(self):
+    def removebackground(self,path,output_name,output_type):
 
-        foreground = _comp.__background_removal.Background_Removal(self)
+        foreground = _comp.__background_removal.Background_Removal(self,path,output_name,output_type)
 
         return self.__class__(foreground)
+    
+#    def convert2image(self):
+        
+        
