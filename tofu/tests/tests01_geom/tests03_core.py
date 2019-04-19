@@ -301,13 +301,17 @@ class Test01_Struct(object):
                                              resMode='abs', offsetIn=0.)
 
     def test11_get_sampleCross(self):
+        iitmp = 0
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 for n in self.dobj[typ][c].keys():
                     try:
+                        print("begin iitmp =", iitmp)
                         obj = self.dobj[typ][c][n]
+                        print("step 1")
                         ii = 0
                         out = obj.get_sampleCross(0.02, resMode='abs')
+                        print("sample cross done")
                         ind = out[2]
                         ii = 1
                         out = obj.get_sampleCross(0.02, resMode='abs', ind=ind)
@@ -315,8 +319,11 @@ class Test01_Struct(object):
                                    obj.dgeom['P1Max'][0])
                         DS1 = PMinMax[0] + (PMinMax[1]-PMinMax[0])/2.
                         ii = 2
+                        print("last step")
                         out = obj.get_sampleCross(0.1, DS=[[None,DS1],None],
                                                   resMode='rel')
+                        print("done for iitmp =", iitmp)
+                        iitmp +=1
                     except Exception as err:
                         msg = str(err)
                         msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
