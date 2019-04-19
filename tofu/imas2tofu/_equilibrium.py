@@ -60,8 +60,14 @@ class Plasma2D(object):
                  dids_2d=None, lquant_2d=None, d2d=None,
                  dids_1d=None, lquant_1d=None, d1d=None,
                  dmesh=None, dtime=None,
-                 verb=True):
+                 verb=True, Exp=None, shot=None, conf=None):
 
+        # Temporary fix
+        self.config = conf
+        self.Id = {'shot':shot, 'Exp':Exp}
+
+
+        # Start the deal...
         if verb:
             print("(1/2) Get equilibrium ids from imas, 2d quantities...")
 
@@ -315,14 +321,15 @@ class Plasma2D(object):
     def _get_dnd(self, idseq, lquant, nt, indt, nd=1, t=None, tref=None):
 
         # Check availability or computability
-        lout = [qq for qq in lquant if qq not in self._dquantav[nd]['lqav']]
-        lnot = [qq for qq in lout if qq not in self._dcomp.keys()
-                or any([qi not in self._dquantav[nd]['lqav'] for qi in self._dcomp[qq]])]
-        if len(lnot) > 0:
+        slquant = set(lquant)
+        lids = slquant.intersection(self._dquantav[nd]['lqav'])
+        lcomp = slquant.intersection(self._dcomp.keys()).difference(lids)
+        lcomp = [qq for qq in lcomp if all([qi in self._dquantav[nd]['lqav']
+                                            for qi in self._dcomp[qq]])]
+        lrest = slquant.difference(lids).difference(lcomp)
+        if len(lrest) > 0:
             msg = "Some quantities not available / not computable from ids:\n"
-            msg += "    - " + "\n    - ".join(lnot)
-            import ipdb
-            ipdb.set_trace()
+            msg += "    - " + "\n    - ".join(lrest)
             raise Exception(msg)
 
         # get size
@@ -330,7 +337,7 @@ class Plasma2D(object):
 
         # Get data
         valid = np.ones((nt,),dtype=bool)
-        dnd = dict([(qq, np.full((nt, npts), np.nan)) for qq in lquant])
+        dnd = dict([(qq, np.full((nt, npts), np.nan)) for qq in lids])
         if nd == 1:
             if t is None:
                 for ii in range(0,nt):
@@ -338,7 +345,7 @@ class Plasma2D(object):
                        valid[ii] = False
                        continue
                     eqii = idseq.time_slice[indt[ii]].profiles_1d
-                    for qq in lquant:
+                    for qq in lids:
                         dnd[qq][ii,:] = getattr(eqii, qq)
             else:
                 indtref = np.digitize(tref, 0.5*(t[1:]+t[:-1]))
@@ -348,7 +355,7 @@ class Plasma2D(object):
                        valid[ii] = False
                        continue
                     eqii = idseq.time_slice[indtii].profiles_1d
-                    for qq in lquant:
+                    for qq in lids:
                         dnd[qq][ii,:] = getattr(eqii, qq)
 
         else:
@@ -357,7 +364,7 @@ class Plasma2D(object):
                    valid[ii] = False
                    continue
                 eqii = idseq.time_slice[indt[ii]].ggd[0]
-                for qq in lquant:
+                for qq in lids:
                     dnd[qq][ii,:] = getattr(eqii, qq)[0].values
 
         return dnd, valid
@@ -406,14 +413,13 @@ class Plasma2D(object):
                  'nnodes':nnod,'ntri':ntri,'mpltri':mpltri}
         return dmesh
 
-    @classmethod
-    def _comp_quant(cls, dnd, lquant, nt, npts, nd=1):
-        for qq in lquant:
-            c0 = qq not in dnd.keys() or dnd[qq] is None
-            c0 = c0 and qq in cls._dcomp.keys()
-            c0 = c0 and all([ss in dnd.keys() for ss in cls._dcomp[qq]])
-            if not c0:
-                continue
+    def _comp_quant(self, dnd, lquant, nt, npts, nd=1):
+        slquant = set(lquant)
+        lids = slquant.intersection(self._dquantav[nd]['lqav'])
+        lcomp = slquant.intersection(self._dcomp.keys()).difference(lids)
+        lcomp = [qq for qq in lcomp if all([qi in self._dquantav[nd]['lqav']
+                                            for qi in self._dcomp[qq]])]
+        for qq in lcomp:
             val = np.full((nt,npts), np.nan)
             if qq == 'b_field_norm':
                 val[:] = np.sqrt(np.sum([dnd[qi]**2
@@ -587,12 +593,84 @@ class Plasma2D(object):
         return val
 
 
+    #---------------------
+    # Methods for getting data
+    #---------------------
+
+    def get_Data(self, lquant, X='rho_tor_norm',
+                 remap=True, res=0.01, kind='linear'):
+
+        # Check and format input
+        assert type(lquant) in [str,list]
+        if type(lquant) is str:
+            lquant = [lquant]
+        assert all([qq in self.d1d.keys() for qq in lquant])
+        nquant = len(lquant)
+        assert X in self.d1d.keys()
+
+        # compute remap
+        if remap:
+            refS = list(self.config.dStruct['dObj']['Ves'].values())[0]
+            ptsRZ, x1, x2, extent = refS.get_sampleCross(res, mode='imshow')
+            dmap = {'t':self.t, 'data2D':None, 'extent':extent}
+
+        # Define Data
+        dcommon = dict(Exp=self.Id.Exp, shot=self.Id.shot, conf=self.config,
+                       t=self.t, X=self.d1d[X])
+
+        # Get output
+        lout = [None for qq in lquant]
+        for ii in range(0,nquant):
+            dmapii = dict(dmap)
+            dmapii['data2D'] = self.interp_pts2profile1d(ptsRZ, lquant[ii],
+                                                         ref=X, kind=kind)
+            lout[ii] = DataCam1D(Name=qq, data=self.d1d[qq],
+                                 dextra={'map':dmapii},
+                                 **dcommon)
+
+        if nquant == 1:
+            lout = lout[0]
+        return lout
+
+
+    #---------------------
+    # Methods for plotting data
+    #---------------------
+
+    def plot(self, lquant, X='rho_tor_norm',
+             remap=True, res=0.01, kind='linear'):
+        lData = self.get_Data(lquant, X=X, remap=remap, res=res, kind=kind)
+        if len(lData) == 1:
+            kh = lData[0].plot()
+        else:
+            kh = lData[0].plot_combine(lData[1:])
+        return kh
+
+    def plot_combine(self, lquant, lData, X='rho_tor_norm',
+                     remap=True, res=0.01, kind='linear'):
+        lDat = self.get_Data(lquant, X=X, remap=remap, res=res, kind=kind)
+        if len(lDat) > 1:
+            lData = lDat[1:] + lData
+        kh = lDat[0].plot_combine(lData)
+        return kh
+
+
+
+
+
+
+
+
+
+
 
 
 
 
     #####################
+    #####################
     # Hidden extra methods for backup (not used yet)
+    #####################
 
 
     def _get_ptsRZindpts(self, ptsRZ, indpts, nt):
