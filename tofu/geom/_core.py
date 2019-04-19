@@ -769,16 +769,29 @@ class Struct(utils.ToFuObject):
                                                   margin=1.e-9)
         return pts, dlr, ind
 
-    def get_sampleCross(self, res, DS=None, resMode='abs', ind=None):
+    def get_sampleCross(self, res, DS=None, resMode='abs', ind=None, mode='flat'):
         """ Sample, with resolution res, the 2D cross-section
 
         The sampling domain can be limited by DS or ind
+
+        Depending on the value of mode, the method returns:
+            - 'flat': (tuned for integrals computing)
+                pts   : (2,npts) array of points coordinates
+                dS    : (npts,) array of surfaces
+                ind   : (npts,) array of integer indices
+                reseff: (2,) array of effective resolution (R and Z)
+            - 'imshow' : (tuned for imshow plotting)
+                pts : (2,n1,n2) array of points coordinates
+                x1  : (n1,) vector of unique x1 coordinates
+                x2  : (n2,) vector of unique x2 coordinates
+                extent : the extent to be fed to mpl.pyplot.imshow()
+
         """
         args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
-        kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, margin=1.e-9)
-        pts, dS, ind, reseff = _comp._Ves_get_sampleCross(*args, **kwdargs)
-        return pts, dS, ind, reseff
+        kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, margin=1.e-9, mode=mode)
+        out = _comp._Ves_get_sampleCross(*args, **kwdargs)
+        return out
 
     def get_sampleS(self, res, DS=None, resMode='abs',
                     ind=None, offsetIn=0., Out='(X,Y,Z)', Ind=None):
