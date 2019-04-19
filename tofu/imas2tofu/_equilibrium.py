@@ -485,16 +485,18 @@ class Plasma2D(object):
             nt = nteq
         else:
             nt = indt.size
-        npts = ptsRZ.shape[1]
+        shape = ptsRZ.shape
 
         # aliases
         mpltri = self._dmesh['mpltri']
         trifind = mpltri.get_trifinder()
         vref = self._d2d[ref]
-        r, z = ptsRZ[0,:], ptsRZ[1,:]
+        r, z = ptsRZ[0], ptsRZ[1]
 
         # loop on time
-        val = np.full((nt, npts), np.nan)
+        shapeval = list(shape)
+        shapeval[0] = nt
+        val = np.full(tuple(shapeval), np.nan)
 
         if quant == ref:
             for ii in range(0,nteq):
@@ -503,12 +505,9 @@ class Plasma2D(object):
 
                 ind = ii if indt is None else indt == indtu[ii]
                 # get ref values for mapping
-                vrefii = mpl.tri.LinearTriInterpolator(mpltri,
-                                                       vref[indtu[ii],:],
-                                                       trifinder=trifind)(r,z)
-                # Broadcast in time
-                val[ind,:] = vrefii[None,:]
-
+                val[ind] = vrefii = mpl.tri.LinearTriInterpolator(mpltri,
+                                                                  vref[indtu[ii],:],
+                                                                  trifinder=trifind)(r,z)
         else:
             refprof = self._d1d[ref]
             prof = self._d1d[quant]
@@ -524,14 +523,11 @@ class Plasma2D(object):
                                                        trifinder=trifind)(r,z)
 
                 # interpolate 1d
-                vii = scpinterp.interp1d(refprof[indtu[ii],:],
-                                         prof[indtu[ii],:],
-                                         kind=kind,
-                                         bounds_error=False,
-                                         fill_value=fill_value)(np.asarray(vrefii))
-
-                # Broadcast in time
-                val[ind,:] = vii[None,:]
+                val[ind] = scpinterp.interp1d(refprof[indtu[ii],:],
+                                              prof[indtu[ii],:],
+                                              kind=kind,
+                                              bounds_error=False,
+                                              fill_value=fill_value)(np.asarray(vrefii))
 
         return val
 
@@ -554,14 +550,14 @@ class Plasma2D(object):
             msg += "    - %s"%str(self.d1d.keys())
             raise Exception(msg)
 
-        # Check the ptsRZ is (2,npts) array of floats
+        # Check the ptsRZ is (2,...) array of floats
         ptsRZ = np.atleast_2d(ptsRZ)
-        if not 2 in ptsRZ.shape:
-            msg = "ptsRZ must ba np.ndarray of (R,Z) points coordinates"
-            raise Exception(msg)
-
         if ptsRZ.shape[0] != 2:
-            ptsRZ = ptsRZ.T
+            msg = "ptsRZ must ba np.ndarray of (R,Z) points coordinates\n"
+            msg += "Can be multi-dimensional, but the 1st dimension is (R,Z)\n"
+            msg += "    - Expected shape : (2,...)\n"
+            msg += "    - Provided shape : %s"%str(ptsRZ.shape)
+            raise Exception(msg)
 
         # Get time indices
         if t is None:
