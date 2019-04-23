@@ -534,6 +534,7 @@ def discretize_segment(double[::1] LMinMax, double dstep,
                                   resolution, N, Nind, nL0,
                                   dl_array, Lim, mode, margin)
 
+    assert(Nind[0] > 0)
     ldiscret_arr = <double *>malloc(Nind[0] * sizeof(double))
     lindex_arr = <int *>malloc(Nind[0] * sizeof(int))
 
@@ -617,6 +618,7 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
     first_discretize_segment_core(LMinMax1, dstep1,
                                   &resolutions[0], num_cells1, nind1,
                                   nL0_1, dl1_array, True, mode, margin)
+    assert(nind1[0] > 0)
     ldiscret1_arr = <double *>malloc(nind1[0] * sizeof(double))
     lindex1_arr = <int *>malloc(nind1[0] * sizeof(int))
     second_discretize_segment_core(LMinMax1, ldiscret1_arr, lindex1_arr,
@@ -625,6 +627,7 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
     first_discretize_segment_core(LMinMax2, dstep2,
                                   &resolutions[1], num_cells2, nind2,
                                   nL0_2, dl2_array, True, mode, margin)
+    assert(nind2[0] > 0)
     ldiscret2_arr = <double *>malloc(nind2[0] * sizeof(double))
     lindex2_arr = <int *>malloc(nind2[0] * sizeof(int))
     second_discretize_segment_core(LMinMax2, ldiscret2_arr, lindex2_arr,
@@ -665,7 +668,7 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
         ldiscr = clone(array('d'), ndisc*2, True)
         lindex = clone(array('l'), ndisc, True)
         lresol = clone(array('d'), ndisc, True)
-        for ii in range(0,nind1[1]):
+        for ii in range(0,nind2[0]):
             for jj in range(0,nind1[0]):
                 nn = jj + nind1[0] * ii
                 ldiscr[nn] = ldiscret1_arr[jj]
