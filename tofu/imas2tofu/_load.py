@@ -14,11 +14,11 @@ import numpy as np
 try:
     import tofu.data as tfdata
     import tofu.imas2tofu._utils as _utils
-    import tofu.imas2tofu._equilibrium as _equilibrium
+    import tofu.imas2tofu._Plasma2DLoader as  _Plasma2DLoader
 except Exception:
     from .. import data as tfdata
     from . import _utils
-    from . import _equilibrium
+    from . import _Plasma2DLoader
 
 #  imas-specific
 import imas

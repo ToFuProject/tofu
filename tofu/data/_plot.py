@@ -2150,8 +2150,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                             'drefid':{lidt[ii]:jj}}
 
             else:
-                l0, = dax['X'][0].plot(lX[ii][0,:], np.full((lnch[ii],),np.nan),
-                                       c=lct[jj], ls=lls[0], lw=1.)
+                l0, = dax['X'][ii].plot(lX[ii][0,:], np.full((lnch[ii],),np.nan),
+                                        c=lct[jj], ls=lls[0], lw=1.)
                 dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
                                                 'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
