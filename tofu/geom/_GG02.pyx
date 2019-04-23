@@ -647,7 +647,7 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
         ldiscr_tmp = <double *>malloc(ndisc * 2 * sizeof(double))
         lindex_tmp = <long *>malloc(ndisc * sizeof(long))
         print("3.1")
-        for ii in range(0,nind1[1]):
+        for ii in range(0,nind2[0]):
             for jj in range(0,nind1[0]):
                 nn = jj + nind1[0] * ii
                 ldiscr_tmp[nn] = ldiscret1_arr[jj]
