@@ -166,17 +166,27 @@ def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None, marg
 
 
 
-def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, margin=1.e-9):
+def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
+                         DS=None, dSMode='abs', ind=None, margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
-    assert type(dS) in types or (hasattr(dS,'__iter__') and len(dS)==2 and all([type(ds) in types for ds in dS])), "Arg dS must be a float or a list 2 floats !"
-    dS = [float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1])]
+    assert type(dS) in types or (hasattr(dS,'__iter__') and len(dS)==2
+                                 and all([type(ds) in types for ds in dS])), \
+                                 "Arg dS must be a float or a list 2 floats !"
+    dS = [float(dS),float(dS)] if type(dS) in types \
+         else [float(dS[0]),float(dS[1])]
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
     if DS is None:
         DS = [None,None]
     else:
-        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
-    assert type(dSMode) is str and dSMode.lower() in ['abs','rel'], "Arg dSMode must be in ['abs','rel'] !"
-    assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
+        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2
+                                   and all([ss is None or type(ss) in types
+                                            for ss in ds])) for ds in DS])
+    assert type(dSMode) is str and dSMode.lower() in ['abs','rel'],\
+        "Arg dSMode must be in ['abs','rel'] !"
+    assert ind is None or (type(ind) is np.ndarray and ind.ndim==1
+                           and ind.dtype in ['int32','int64']
+                           and np.all(ind>=0)), \
+                           "Arg ind must be None or 1D np.ndarray of positive int !"
 
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
@@ -188,8 +198,13 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs
                                                         VPoly=VPoly,
                                                         margin=margin)
     else:
-        assert type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0), "Arg ind must be a np.ndarray of int !"
-        Pts, dS, d1r, d2r = _GG._Ves_meshCross_FromInd(MinMax1, MinMax2, dS[0], dS[1], ind, dSMode=dSMode, margin=margin)
+        assert (type(ind) is np.ndarray and ind.ndim==1
+                and ind.dtype in ['int32','int64'] and np.all(ind>=0)),\
+                "Arg ind must be a np.ndarray of int !"
+        Pts, dS, d1r, d2r = _GG._Ves_meshCross_FromInd(MinMax1, MinMax2,
+                                                       dS[0], dS[1],
+                                                       ind, dSMode=dSMode,
+                                                       margin=margin)
     return Pts, dS, ind, (d1r,d2r)
 
 

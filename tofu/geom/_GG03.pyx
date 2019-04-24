@@ -26,6 +26,7 @@ from _raytracing_tools cimport raytracing_minmax_struct_lin
 from _raytracing_tools cimport raytracing_minmax_struct_tor
 from _sampling_tools cimport first_discretize_segment_core
 from _sampling_tools cimport second_discretize_segment_core
+from _sampling_tools cimport discretize_segment_core
 
 
 # import
@@ -507,17 +508,12 @@ def discretize_segment(double[::1] LMinMax, double dstep,
     N : int64
         Number of points on LMinMax segment
     """
-    cdef int ii
     cdef long[1] N
-    cdef long[1] Nind
-    cdef int[1] nL0
     cdef double[2] dl_array
     cdef double[1] resolution
-    cdef double* ldiscret_arr = NULL
-    cdef int* lindex_arr = NULL
-    cdef array ldiscret
-    cdef array lindex
-
+    cdef array ldiscret = array('d', [])
+    cdef array lindex = array('l', [])
+    #.. preparing inputs........................................................
     if DL is None:
         dl_array[0] = Cnan
         dl_array[1] = Cnan
@@ -530,25 +526,9 @@ def discretize_segment(double[::1] LMinMax, double dstep,
             dl_array[1] = Cnan
         else:
             dl_array[1] = DL[1]
-    first_discretize_segment_core(LMinMax, dstep,
-                                  resolution, N, Nind, nL0,
-                                  dl_array, Lim, mode, margin)
-
-    ldiscret_arr = <double *>malloc(Nind[0] * sizeof(double))
-    lindex_arr = <int *>malloc(Nind[0] * sizeof(int))
-
-    second_discretize_segment_core(LMinMax, ldiscret_arr, lindex_arr,
-                                   nL0[0], resolution[0], Nind[0])
-
-    ldiscret = clone(array('d'), Nind[0], True)
-    lindex = clone(array('l'), Nind[0], True)
-    for ii in range(Nind[0]):
-        ldiscret[ii] = ldiscret_arr[ii]
-        lindex[ii] = lindex_arr[ii]
-    if not ldiscret_arr == NULL:
-        free(ldiscret_arr)
-    if not lindex_arr == NULL:
-        free(lindex_arr)
+    #.. calling cython function.................................................
+    discretize_segment_core(LMinMax, dstep, dl_array, Lim, mode, margin,
+                            ldiscret, resolution, lindex, N)
     return np.asarray(ldiscret), resolution[0], np.asarray(lindex), N[0]
 
 
@@ -587,7 +567,6 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef double[2] dl1_array
     cdef double[2] dl2_array
     cdef double[2] resolutions
-
     # .. Treating subdomains and Limits ........................................
     if D1 is None:
         dl1_array[0] = Cnan
@@ -684,14 +663,14 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
                            double margin=_VSMALL):
     cdef double[::1] X1, X2
     cdef double dX1, dX2
-    cdef long[::1] bla
+    cdef long[::1] dummy
     cdef int N1, N2, NP=ind.size, ii, i1, i2
     cdef np.ndarray[double,ndim=2] Pts
     cdef np.ndarray[double,ndim=1] dS
 
-    X1, d1r, bla, N1 = discretize_segment(MinMax1, d1, None, Lim=True,
+    X1, d1r, dummy, N1 = discretize_segment(MinMax1, d1, None, Lim=True,
                                           mode=dSMode, margin=margin)
-    X2, d2r, bla, N2 = discretize_segment(MinMax2, d2, None, Lim=True,
+    X2, d2r, dummy, N2 = discretize_segment(MinMax2, d2, None, Lim=True,
                                           mode=dSMode, margin=margin)
 
     Pts = np.empty((2,NP))
