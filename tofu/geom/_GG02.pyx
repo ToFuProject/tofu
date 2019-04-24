@@ -658,19 +658,37 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
 def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
                            double d2, long[::1] ind, str dSMode='abs',
                            double margin=_VSMALL):
-    cdef double[::1] X1, X2
-    cdef double dX1, dX2
-    cdef long[::1] dummy
-    cdef int N1, N2, NP=ind.size, ii, i1, i2
-    cdef np.ndarray[double,ndim=2] Pts
+    #cdef double[::1] X1, X2
+    #cdef double dX1, dX2
+    cdef double d1r, d2r
+    #cdef long[::1] dummy
+    cdef int N1, N2
+    cdef int NP = ind.size
+    cdef int ii, i1, i2
+    cdef np.ndarray[double,ndim=2] Pts = np.empty((2,NP))
     cdef np.ndarray[double,ndim=1] dS
-
-    X1, d1r, dummy, N1 = discretize_segment(MinMax1, d1, None, Lim=True,
-                                          mode=dSMode, margin=margin)
-    X2, d2r, dummy, N2 = discretize_segment(MinMax2, d2, None, Lim=True,
-                                          mode=dSMode, margin=margin)
-
-    Pts = np.empty((2,NP))
+    cdef long[2] num_cells
+    cdef double[2] resolution
+    cdef double[2] dl_array
+    cdef double* X1 = NULL
+    cdef double* X2 = NULL
+    cdef long* dummy = NULL
+    #.. preparing inputs........................................................
+    dl_array[0] = Cnan
+    dl_array[1] = Cnan
+    #.. calling cython function.................................................
+    discretize_segment_core(MinMax1, d1, dl_array, True, dSMode, margin,
+                            &X1, &resolution[0], &dummy, &num_cells[0])
+    discretize_segment_core(MinMax2, d2, dl_array, True, dSMode, margin,
+                            &X2, &resolution[1], &dummy, &num_cells[1])
+    d1r = resolution[0]
+    d2r = resolution[1]
+    N1 = num_cells[0]
+    N2 = num_cells[1]
+    # X1, d1r, dummy, N1 = discretize_segment(MinMax1, d1, None, Lim=True,
+    #                                       mode=dSMode, margin=margin)
+    # X2, d2r, dummy, N2 = discretize_segment(MinMax2, d2, None, Lim=True,
+    #                                       mode=dSMode, margin=margin)
     dS = d1r*d2r*np.ones((NP,))
     for ii in range(0,NP):
         i2 = ind[ii] // N1
