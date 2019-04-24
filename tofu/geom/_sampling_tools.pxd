@@ -46,9 +46,9 @@ cdef inline long discretize_segment_core(double[::1] LMinMax, double dstep,
         # ldiscret_arr[0] = <double *>malloc(Nind[0] * sizeof(double))
     print("------------------- before 4")
     if (lindex_arr[0] == NULL):
-        lindex_arr[0] = <long *>malloc(Nind[0] * sizeof(int))
+        lindex_arr[0] = <long *>malloc(Nind[0] * sizeof(long))
     else:
-        lindex_arr[0] = <long *>realloc(lindex_arr[0], Nind[0] * sizeof(int))
+        lindex_arr[0] = <long *>realloc(lindex_arr[0], Nind[0] * sizeof(long))
         # free(lindex_arr[0])
         # lindex_arr[0] = <long *>malloc(Nind[0] * sizeof(int))
     print("------------------- before 5")

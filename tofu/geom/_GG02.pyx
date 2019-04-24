@@ -613,7 +613,7 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
                                   &resolutions[0], num_cells1, nind1,
                                   nL0_1, dl1_array, True, mode, margin)
     ldiscret1_arr = <double *>malloc(nind1[0] * sizeof(double))
-    lindex1_arr = <long *>malloc(nind1[0] * sizeof(int))
+    lindex1_arr = <long *>malloc(nind1[0] * sizeof(long))
     second_discretize_segment_core(LMinMax1, ldiscret1_arr, lindex1_arr,
                                    nL0_1[0], resolutions[0], nind1[0])
     # .. Discretizing on the second direction ..................................
@@ -621,7 +621,7 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
                                   &resolutions[1], num_cells2, nind2,
                                   nL0_2, dl2_array, True, mode, margin)
     ldiscret2_arr = <double *>malloc(nind2[0] * sizeof(double))
-    lindex2_arr = <long *>malloc(nind2[0] * sizeof(int))
+    lindex2_arr = <long *>malloc(nind2[0] * sizeof(long))
     second_discretize_segment_core(LMinMax2, ldiscret2_arr, lindex2_arr,
                                    nL0_2[0], resolutions[1], nind2[0])
     #....
