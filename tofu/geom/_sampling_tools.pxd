@@ -26,35 +26,20 @@ cdef inline long discretize_segment_core(double[::1] LMinMax, double dstep,
     cdef int[1] nL0
     cdef long[1] Nind
 
-    print("------------------- before 1")
     first_discretize_segment_core(LMinMax, dstep,
                                   resolution, N, Nind, nL0,
                                   DL, Lim, mode, margin)
-    print("------------------- before 2")
-
-    if (Nind[0] <= 0):
-        assert False, "Size should be > 0"+str(Nind[0])
-    else:
-        print("Nind[0] :::::::::::::::::::::::::::", Nind[0])
-    print("------------------- before 3")
     if (ldiscret_arr[0] == NULL):
         ldiscret_arr[0] = <double *>malloc(Nind[0] * sizeof(double))
     else:
         ldiscret_arr[0] = <double *>realloc(ldiscret_arr[0],
                                             Nind[0] * sizeof(double))
-        # free(ldiscret_arr[0])
-        # ldiscret_arr[0] = <double *>malloc(Nind[0] * sizeof(double))
-    print("------------------- before 4")
     if (lindex_arr[0] == NULL):
         lindex_arr[0] = <long *>malloc(Nind[0] * sizeof(long))
     else:
         lindex_arr[0] = <long *>realloc(lindex_arr[0], Nind[0] * sizeof(long))
-        # free(lindex_arr[0])
-        # lindex_arr[0] = <long *>malloc(Nind[0] * sizeof(int))
-    print("------------------- before 5")
     second_discretize_segment_core(LMinMax, ldiscret_arr[0], lindex_arr[0],
                                    nL0[0], resolution[0], Nind[0])
-    print("----------outing")
     return Nind[0]
 
 

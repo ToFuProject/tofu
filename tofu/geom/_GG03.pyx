@@ -1,4 +1,4 @@
-# cython: boundscheck=True
+# cython: boundscheck=False
 # cython: wraparound=False
 # cython: cdivision=True
 #
@@ -514,12 +514,6 @@ def discretize_segment(double[::1] LMinMax, double dstep,
     cdef double[1] resolution
     cdef double* ld_array = NULL
     cdef long* lindex = NULL
-    cdef double** pp_ld = <double**>malloc(sizeof(double*))
-    cdef long** pp_li = <long**>malloc(sizeof(long*))
-    cdef np.ndarray[double, ndim=1] np_ld
-    cdef np.ndarray[long, ndim=1] np_li
-    pp_ld = &ld_array
-    pp_li = &lindex
     #.. preparing inputs........................................................
     if DL is None:
         dl_array[0] = Cnan
@@ -534,18 +528,11 @@ def discretize_segment(double[::1] LMinMax, double dstep,
         else:
             dl_array[1] = DL[1]
     #.. calling cython function.................................................
-    print(")))))))))) before discretizating segment core", dl_array[0], dl_array[1])
     sz_ld = discretize_segment_core(LMinMax, dstep, dl_array, Lim, mode, margin,
-                                    pp_ld, resolution, pp_li, N)
-    print(")))))))))) after discretizating segment core")
-    print("ld_array =", ld_array[0])
-    np_ld = np.asarray(<double[:sz_ld]> ld_array)
-    np_li = np.asarray(<long[:sz_ld]>lindex)
-    # free(ld_array)
-    # free(lindex)
-    # free(pp_ld)
-    # free(pp_li)
-    return np_ld, resolution[0], np_li, N[0]
+                                    &ld_array, resolution, &lindex, N)
+    #.. converting and returning................................................
+    return np.asarray(<double[:sz_ld]> ld_array), resolution[0],\
+        np.asarray(<long[:sz_ld]>lindex), N[0]
 
 
 
@@ -613,7 +600,7 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
                                   &resolutions[0], num_cells1, nind1,
                                   nL0_1, dl1_array, True, mode, margin)
     ldiscret1_arr = <double *>malloc(nind1[0] * sizeof(double))
-    lindex1_arr = <long *>malloc(nind1[0] * sizeof(int))
+    lindex1_arr = <long *>malloc(nind1[0] * sizeof(long))
     second_discretize_segment_core(LMinMax1, ldiscret1_arr, lindex1_arr,
                                    nL0_1[0], resolutions[0], nind1[0])
     # .. Discretizing on the second direction ..................................
@@ -621,7 +608,7 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
                                   &resolutions[1], num_cells2, nind2,
                                   nL0_2, dl2_array, True, mode, margin)
     ldiscret2_arr = <double *>malloc(nind2[0] * sizeof(double))
-    lindex2_arr = <long *>malloc(nind2[0] * sizeof(int))
+    lindex2_arr = <long *>malloc(nind2[0] * sizeof(long))
     second_discretize_segment_core(LMinMax2, ldiscret2_arr, lindex2_arr,
                                    nL0_2[0], resolutions[1], nind2[0])
     #....
@@ -721,12 +708,10 @@ def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None,
         for ii in range(0,NP-1):
             v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
             LMinMax[1] = Csqrt(v0**2 + v1**2)
-            print(">>>>>>>>>>>>>>>> before call discretize_segment")
             L, dlr, indL, N[ii] = discretize_segment(LMinMax, dL,
                                                      mode=dLMode,
                                                      DL=None, Lim=True,
                                                      margin=margin)
-            print(">>>>>>>>>>>>>>>> after call discretize_segment")
             VPolybis.append((VPoly[0,ii],VPoly[1,ii]))
             v0, v1 = v0/LMinMax[1], v1/LMinMax[1]
             for jj in range(0,N[ii]):
