@@ -551,10 +551,10 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef int num_pts_vpoly
     cdef int ndisc
     cdef int tot_true
+    cdef long nind1
+    cdef long nind2
     cdef long[1] num_cells1
     cdef long[1] num_cells2
-    cdef long[1] nind1
-    cdef long[1] nind2
     cdef int[1] nL0_1
     cdef int[1] nL0_2
     cdef bint* are_in_poly = NULL
@@ -596,32 +596,26 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
         else:
             dl2_array[1] = D2[1]
     # .. Discretizing on the first direction ...................................
-    first_discretize_segment_core(LMinMax1, dstep1,
-                                  &resolutions[0], num_cells1, nind1,
-                                  nL0_1, dl1_array, True, mode, margin)
-    ldiscret1_arr = <double *>malloc(nind1[0] * sizeof(double))
-    lindex1_arr = <long *>malloc(nind1[0] * sizeof(long))
-    second_discretize_segment_core(LMinMax1, ldiscret1_arr, lindex1_arr,
-                                   nL0_1[0], resolutions[0], nind1[0])
+    nind1 = discretize_segment_core(LMinMax1, dstep1, dl1_array,
+                                    True, mode, margin,
+                                    &ldiscret1_arr, &resolutions[0],
+                                    &lindex1_arr, num_cells1)
     # .. Discretizing on the second direction ..................................
-    first_discretize_segment_core(LMinMax2, dstep2,
-                                  &resolutions[1], num_cells2, nind2,
-                                  nL0_2, dl2_array, True, mode, margin)
-    ldiscret2_arr = <double *>malloc(nind2[0] * sizeof(double))
-    lindex2_arr = <long *>malloc(nind2[0] * sizeof(long))
-    second_discretize_segment_core(LMinMax2, ldiscret2_arr, lindex2_arr,
-                                   nL0_2[0], resolutions[1], nind2[0])
+    nind2 = discretize_segment_core(LMinMax2, dstep2, dl2_array,
+                                    True, mode, margin,
+                                    &ldiscret2_arr, &resolutions[1],
+                                    &lindex2_arr, num_cells2)
     #....
     if VPoly is not None:
-        ndisc = nind1[0] * nind2[0]
+        ndisc = nind1 * nind2
         ldiscr_tmp = <double *>malloc(ndisc * 2 * sizeof(double))
         lindex_tmp = <long *>malloc(ndisc * sizeof(long))
-        for ii in range(0,nind2[0]):
-            for jj in range(0,nind1[0]):
-                nn = jj + nind1[0] * ii
+        for ii in range(0,nind2):
+            for jj in range(0,nind1):
+                nn = jj + nind1 * ii
                 ldiscr_tmp[nn] = ldiscret1_arr[jj]
                 ldiscr_tmp[ndisc + nn] = ldiscret2_arr[ii]
-                lindex_tmp[nn] = lindex1_arr[jj] + nind1[0] * lindex2_arr[ii]
+                lindex_tmp[nn] = lindex1_arr[jj] + nind1 * lindex2_arr[ii]
         num_pts_vpoly = VPoly.shape[1] - 1
         are_in_poly = <bint *>malloc(ndisc * sizeof(bint))
         tot_true = is_point_in_path_vec(num_pts_vpoly,
@@ -643,16 +637,16 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
         return np.asarray(ldiscr).reshape(2,tot_true), np.asarray(lresol),\
           np.asarray(lindex), resolutions[0], resolutions[1]
     else:
-        ndisc = nind1[0] * nind2[0]
+        ndisc = nind1 * nind2
         ldiscr = clone(array('d'), ndisc*2, True)
         lindex = clone(array('l'), ndisc, True)
         lresol = clone(array('d'), ndisc, True)
-        for ii in range(0,nind2[0]):
-            for jj in range(0,nind1[0]):
-                nn = jj + nind1[0] * ii
+        for ii in range(nind2):
+            for jj in range(nind1):
+                nn = jj + nind1 * ii
                 ldiscr[nn] = ldiscret1_arr[jj]
                 ldiscr[ndisc + nn] = ldiscret2_arr[ii]
-                lindex[nn] = lindex1_arr[jj] + nind1[0] * lindex2_arr[ii]
+                lindex[nn] = lindex1_arr[jj] + nind1 * lindex2_arr[ii]
                 lresol[nn] = resolutions[0] * resolutions[1]
         return np.asarray(ldiscr).reshape(2,ndisc), np.asarray(lresol),\
           np.asarray(lindex), resolutions[0], resolutions[1]
