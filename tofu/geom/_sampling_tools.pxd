@@ -16,40 +16,46 @@ from libc.stdlib cimport malloc, free, realloc
 # =  LINEAR MESHING
 # ==============================================================================
 
-cdef inline void discretize_segment_core(double[::1] LMinMax, double dstep,
+cdef inline long discretize_segment_core(double[::1] LMinMax, double dstep,
                                          double[2] DL, bint Lim,
                                          str mode, double margin,
-                                         array ldiscret, double[1] resolution,
-                                         array lindex, long[1] N):
+                                         double** ldiscret_arr,
+                                         double[1] resolution,
+                                         long** lindex_arr, long[1] N):
     cdef int ii
     cdef int[1] nL0
     cdef long[1] Nind
-    cdef int* lindex_arr = NULL
-    cdef double* ldiscret_arr = NULL
-    cdef array ld
-    cdef array li
 
+    print("------------------- before 1")
     first_discretize_segment_core(LMinMax, dstep,
                                   resolution, N, Nind, nL0,
                                   DL, Lim, mode, margin)
+    print("------------------- before 2")
 
-    ldiscret_arr = <double *>malloc(Nind[0] * sizeof(double))
-    lindex_arr = <int *>malloc(Nind[0] * sizeof(int))
-
-    second_discretize_segment_core(LMinMax, ldiscret_arr, lindex_arr,
+    if (Nind[0] <= 0):
+        assert False, "Size should be > 0"+str(Nind[0])
+    else:
+        print("Nind[0] :::::::::::::::::::::::::::", Nind[0])
+    print("------------------- before 3")
+    if (ldiscret_arr[0] == NULL):
+        ldiscret_arr[0] = <double *>malloc(Nind[0] * sizeof(double))
+    else:
+        ldiscret_arr[0] = <double *>realloc(ldiscret_arr[0],
+                                            Nind[0] * sizeof(double))
+        # free(ldiscret_arr[0])
+        # ldiscret_arr[0] = <double *>malloc(Nind[0] * sizeof(double))
+    print("------------------- before 4")
+    if (lindex_arr[0] == NULL):
+        lindex_arr[0] = <long *>malloc(Nind[0] * sizeof(int))
+    else:
+        lindex_arr[0] = <long *>realloc(lindex_arr[0], Nind[0] * sizeof(int))
+        # free(lindex_arr[0])
+        # lindex_arr[0] = <long *>malloc(Nind[0] * sizeof(int))
+    print("------------------- before 5")
+    second_discretize_segment_core(LMinMax, ldiscret_arr[0], lindex_arr[0],
                                    nL0[0], resolution[0], Nind[0])
-    ld = clone(array('d'), Nind[0], True)
-    li = clone(array('l'), Nind[0], True)
-    extend(ldiscret, ld)
-    extend(lindex, li)
-    for ii in range(Nind[0]):
-        ldiscret[ii] = ldiscret_arr[ii]
-        lindex[ii] = lindex_arr[ii]
-    if not ldiscret_arr == NULL:
-        free(ldiscret_arr)
-    if not lindex_arr == NULL:
-        free(lindex_arr)
-    return
+    print("----------outing")
+    return Nind[0]
 
 
 cdef inline void first_discretize_segment_core(double[::1] LMinMax,
@@ -80,7 +86,6 @@ cdef inline void first_discretize_segment_core(double[::1] LMinMax,
         num_cells[0] = <int>Cceil(1./dstep)
     resolution[0] = (LMinMax[1] - LMinMax[0])/num_cells[0]
     # .. Computing desired limits ..............................................
-    print("DL =", DL[0], DL[1], Cisnan(DL[0]), Cisnan(DL[1]))
     if Cisnan(DL[0]) and Cisnan(DL[1]):
         desired_limits[0] = LMinMax[0]
         desired_limits[1] = LMinMax[1]
@@ -106,19 +111,16 @@ cdef inline void first_discretize_segment_core(double[::1] LMinMax,
         nL0[0] = int(Cfloor((desired_limits[0] - LMinMax[0]) * inv_reso))
     abs1 = Cabs(desired_limits[1] - LMinMax[0])
     if abs1 - resolution[0] * Cfloor(abs1 * inv_reso) < new_margin:
-        print("ds_lim, minmax =", desired_limits[0], desired_limits[1], LMinMax[0], LMinMax[1])
         nL1 = int(Cround((desired_limits[1] - LMinMax[0]) * inv_reso) - 1)
     else:
         nL1 = int(Cfloor((desired_limits[1] - LMinMax[0]) * inv_reso))
     # Get the total number of indices
     Nind[0] = nL1 + 1 - nL0[0]
-    if Nind[0] <= 0:
-        print("nL1, nL0 = ", nL1, nL0[0])
     return
 
 cdef inline void second_discretize_segment_core(double[::1] LMinMax,
                                                 double* ldiscret,
-                                                int* lindex,
+                                                long* lindex,
                                                 int nL0,
                                                 double resolution,
                                                 long Nind):
