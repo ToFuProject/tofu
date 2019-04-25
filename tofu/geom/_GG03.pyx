@@ -653,8 +653,8 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
         ndisc = nind1 * nind2
         ldiscr_tmp = <double *>malloc(ndisc * 2 * sizeof(double))
         lindex_tmp = <long *>malloc(ndisc * sizeof(long))
-        for ii in range(0,nind2):
-            for jj in range(0,nind1):
+        for ii in range(nind2):
+            for jj in range(nind1):
                 nn = jj + nind1 * ii
                 ldiscr_tmp[nn] = ldiscret1_arr[jj]
                 ldiscr_tmp[ndisc + nn] = ldiscret2_arr[ii]
