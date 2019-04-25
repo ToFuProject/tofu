@@ -30,7 +30,8 @@ except Exception:
     from . import _def as _def
 
 __all__ = ['DataCam1D','DataCam2D',
-           'DataCam1DSpectral','DataCam2DSpectral']
+           'DataCam1DSpectral','DataCam2DSpectral',
+           'Plasma2D']
 
 
 #############################################
@@ -2278,24 +2279,15 @@ class Plasma2D(object):
     """
 
     #----------------
-    # Class attributes
-    #----------------
-
-    # Quantities can be either stored in the ids ('ids')
-    # Or have to be computed ('comp')
-
-
-    #----------------
     # Class creation and instanciation
     #----------------
 
     def __init__(self, dtime=None, d1d=None,
                  d2d=None, dmesh=None,
-                 Exp=None, shot=None, conf=None):
+                 Exp=None, Name=None, shot=None, conf=None):
 
         # Check dtime is not None
-        dtime = self._checkformat_dall(dtime=dtime, d1d=d1d,
-                                      d2d=d2d, dmesh=dmesh)
+        self._checkformat_dall()
 
         # Get indt
         for k0 in dtime.keys():
@@ -2303,7 +2295,7 @@ class Plasma2D(object):
             dindref[idt] = {'indmax':dtime[k0]['t'].size,
                             'group':'time'}
 
-            ddata[idt] = {'val':dtime[k0]['t'],
+            ddata[idt] = {'data':dtime[k0]['t'],
                           'quant':'time', 'name':k0, 'units':'s',
                           'indref':(idt,)}
 
@@ -2312,8 +2304,10 @@ class Plasma2D(object):
         if d1d is not None:
             for k0 in d1d.keys():
                 idd = id(d1d[k0])
+                data, units, quant, name = self._extract_dnd(d1d, k0)
+
                 # ref
-                shape = d1d[k0].shape
+                shape = data.shape
                 lrefrad = [v for v in dindref.values()
                            if v['group'] == 'radius']
                 c0 = len(lrefrad) == 0
@@ -2330,8 +2324,8 @@ class Plasma2D(object):
                     kt = [k for k,v in dindref.items()
                          if v['group'] == 'time' and v['indmax'] == shape[0]]
                     indref = (kt[0], idd)
-                ddata[idd] = {'val':d1d[k0],
-                              'quant':k0, 'name':k0, 'units':'a.u.',
+                    ddata[idd] = {'data':data,
+                              'quant':quant, 'name':name, 'units':units,
                               'indref':indref}
 
         # dmesh ref
@@ -2341,15 +2335,15 @@ class Plasma2D(object):
                 dindref[idm] = {'indmax':dmesh[k0]['indmax'],
                                 'group':'mesh'}
 
-                ddata[idm] = {'val':dmesh[k0],
+                ddata[idm] = {'data':dmesh[k0],
                               'quant':k0, 'name':k0, 'units':'a.u.',
                               'indref':(idm,)}
-
 
         # d2d
         if d2d is not None:
             for k0 in d2d.keys():
                 idd2 = id(d2d[k0])
+                data, units, quant, name = self._extract_dnd(d1d, k0)
                 shape = d2d[k0].shape
                 assert len(shape) == 2
                 kt = [k for k,v in dindref.items()
@@ -2358,8 +2352,8 @@ class Plasma2D(object):
                 km = [k for k,v in dindref.items()
                       if v['group'] == 'mesh' and v['indmax'] == shape[1]]
                 assert len(km) == 1
-                ddata[idd2] = {'val':d2d[k0],
-                               'quant':k0, 'name':k0, 'units':'a.u.',
+                ddata[idd2] = {'data':data,
+                               'quant':quant, 'name':name, 'units':units,
                                'indref':(kt[0],km[0])}
 
         # dgroup
@@ -2372,9 +2366,7 @@ class Plasma2D(object):
 
         # Temporary fix
         self.config = conf
-        self.Id = {'shot':shot, 'Exp':Exp}
-
-
+        self.Id = {'shot':shot, 'Name':Name, 'Exp':Exp}
 
         # -------------------------------------
         # Update dict
@@ -2390,12 +2382,90 @@ class Plasma2D(object):
     # Methods for checking and formatting inputs
     #---------------------
 
+    @staticmethod
+    def _extract_dnd(k0, dnd):
+        lk = dnd[k0].keys()
+        if type(dnd[k0]) is dict:
+            assert 'data' in lk
+            data = dnd[k0]['data']
+            if 'units' in lk:
+                units = dnd[k0]['units']
+            else:
+                units = 'a.u.'
+            if 'quant' in lk:
+                quant = dnd[k0]['quant']
+            else:
+                quant = k0
+            if 'name' in lk:
+                name = dnd[k0]['name']
+            else:
+                name = k0
+        else:
+            data = dnd[k0]
+            units = 'a.u.'
+            quant = k0
+            name = k0
+        return data, units, quant, name
+
+
+    def _checkformat_dall():
+        pass
+
 
     @staticmethod
-    def _checkformat_dtimemesh(dtime, dmesh, d2d):
-        assert type(dtime) is dict and type(dmesh) is dict
+    def _complement(dgroup, dindref, ddata):
 
-        # dtime
+        # --------------
+        # ddata
+        lkstr = ['quant','name','units']
+        for id_, vd in ddata.items():
+            assert all([kk in vd.keys() for kk in lkstr])
+            assert all([type(vd[kk]) is str for kk in lkstr])
+            assert all([ii in dindref.keys() for ii in vd['indref']])
+            assert 'data' in vd.keys()
+            type_ = type(vd['data'])
+            shape = tuple([dindref[ii]['indmax'] for ii in vd['indref']])
+            if len(shape) == 1:
+                c0 = type_ is dict and vd['group'] == 'mesh'
+                c1 = not c0 and len(vd['data']) == shape[0]
+                assert c0 or c1
+                if c0:
+                    ddata[id_]['data'] = self._checkformat_dmesh(vd['data'])
+            else:
+                assert type(vd['data']) is np.ndarray
+                assert vd['data'].shape == shape
+        lni = sorted([(vd['name'],vd['indref']) for vd in ddata.values()])
+        if not len(set(lni)) == len(lni):
+            msg = "Names / indref tuples for data should be unique !\n"
+            msg += "    - %s"%str(lni)
+            raise Exception(msg)
+
+        # --------------
+        # dindref
+        for id_ in dindref.keys():
+            dindref[id_]['liddata'] = [kk for kk, vv in ddata.items()
+                                       if id_ in vv['indref']]
+            assert dindref[id_]['group'] in dgroup.keys()
+
+        # --------------
+        # dgroup
+        for ggi, vg in dgroup.items():
+            lidindref = [id_ for id_, vv in dindref.items() if vv['group'] == gg]
+            liddata = [id_ for id_ in ddata.keys()
+                       if any([id_ in dindref[vref]['liddata']
+                               for vref in lidindref])]
+            assert vg['indref'] in lidindref
+            dgroup[gg]['lidindref'] = lidindref
+            dgroup[gg]['liddata'] = liddata
+
+
+
+
+
+
+    @staticmethod
+    def _checkformat_dtime(dtime):
+        assert type(dtime) is dict
         lk = ['indt','nt','t','tlim']
         assert sorted(dtime.keys()) == sorted(lk)
         dtime['t'] = np.asarray(dtime['t']).ravel()
@@ -2405,8 +2475,11 @@ class Plasma2D(object):
         assert np.allclose(dtime['t'], np.unique(dtime['t']))
         assert np.allclose(dtime['indt'], np.unique(dtime['indt']))
         assert dtime['tlim'].size == 2
+        return dtime
 
-        # dmesh
+    @staticmethod
+    def _checkformat_dmesh(dmesh):
+        assert type(dmesh) is dict
         lk = ['nodes','triangles','nnodes','ntri','mpltri','fkind']
         assert sorted(dmesh.keys()) == sorted(lk)
         dmesh['nodes'] = np.atleast_2d(dmesh['nodes'], dtype=float)
@@ -2420,7 +2493,7 @@ class Plasma2D(object):
                                                     dmesh['triangles'])
         assert isinstance(dmesh['mpltri'], mpl.tri.Triangulation)
         assert dmesh['fkind'] in ['nearest','linear']
-        return dtime, dmesh
+        return dmesh
 
 
 
@@ -2469,27 +2542,6 @@ class Plasma2D(object):
                  'nnodes':nnod,'ntri':ntri,'mpltri':mpltri}
         return dmesh
 
-    def _comp_quant(self, dnd, lquant, nt, npts, nd=1):
-        slquant = set(lquant)
-        lids = slquant.intersection(self._dquantav[nd]['lqav'])
-        lcomp = slquant.intersection(self._dcomp.keys()).difference(lids)
-        lcomp = [qq for qq in lcomp if all([qi in self._dquantav[nd]['lqav']
-                                            for qi in self._dcomp[qq]])]
-        for qq in lcomp:
-            val = np.full((nt,npts), np.nan)
-            if qq == 'b_field_norm':
-                val[:] = np.sqrt(np.sum([dnd[qi]**2
-                                         for qi in cls._dcomp[qq]], axis=0))
-
-            elif qq == 'rho_pol_norm' and nd == 1:
-                psi = dnd[self._dcomp[qq][0]]
-                psiM0 = psi - psi[:,0:1]
-                psi10 = psi[:,-1] - psi[:,0]
-                ind = psi10 != 0.
-                val[ind,:] = np.sqrt( psiM0[ind,:] / psi10[ind,None] )
-            dnd[qq] = val
-        return dnd
-
     @staticmethod
     def _checkformat_tri(nodes, indtri):
         x = nodes[indtri,0]
@@ -2513,83 +2565,274 @@ class Plasma2D(object):
     #---------------------
 
     @property
-    def d2d(self):
+    def dgroup(self):
         return self._d2d
     @property
-    def d1d(self):
+    def dindref(self):
         return self._d1d
     @property
-    def dmesh(self):
+    def ddata(self):
         return self._dmesh
     @property
     def dtime(self):
-        return self._dtime
+        return dict([(kk, vv) for kk, vv in self._ddata.items()
+                     if vv['group'] == 'time'])
     @property
-    def t(self):
-        return self._dtime['t']
+    def dmesh(self):
+        return dict([(kk, vv) for kk, vv in self._ddata.items()
+                     if vv['group'] == 'mesh'])
 
+    #---------------------
+    # Read-only for internal use
+    #---------------------
+
+    @property
+    def _lquantboth(self):
+        """ Return list of quantities available both in 1d and 2d """
+        lq1 = [vd['quant'] for vd in self._dgroup['radius']['liddata']]
+        lq2 = [vd['quant'] for vd in self._dgroup['mesh']['liddata']]
+        lq = list(set(lq1).intersection(lq2))
+        return lq
+
+    def _get_liddata(self, quant=None, name=None, units=None,
+                     indref=None, group=None, log='all'):
+        assert log in ['all','any']
+        lid = self._ddata.keys()
+        ind = np.ones((5,len(lid)),dtype=bool)
+        if quant is not None:
+            ind[0,:] = [self._ddata[id_]['quant'] == quant for id_ in lid]
+        if name is not None:
+            ind[1,:] = [self._ddata[id_]['name'] == name for id_ in lid]
+        if units is not None:
+            ind[2,:] = [self._ddata[id_]['units'] == units for id_ in lid]
+        if indref is not None:
+            ind[3,:] = [indref in self._ddata[id_]['indref'] for id_ in lid]
+        if group is not None:
+            ind[4,:] = [self._ddata[id_]['group'] == group for id_ in lid]
+
+        if log == 'all':
+            ind = np.all(ind, axis=0)
+        else:
+            ind = np.any(ind, axis=0)
+        return lid
 
     #---------------------
     # Methods for interpolation
     #---------------------
 
-    def _interp_pts2profile1d(self, ptsRZ, quant, indt, indtu, ref='psi',
-                              kind='linear', fill_value=np.nan):
 
-        nteq = indtu.size
-        if indt is None:
-            nt = nteq
+    def _get_quantrefid(self, quant, ref):
+
+        # Get relevant lists
+        l1dn = self._get_liddata(name=quant, group='radius')
+        l1dq = self._get_liddata(quant=quant, group='radius')
+
+        l2dn = self._get_liddata(name=quant, group='mesh')
+        l2dq = self._get_liddata(quant=quant, group='mesh')
+
+        # Check if quant 2d
+        idref1d, idref2d = None, None
+        if len(l2dn) > 0:
+            if len(l2dn) > 1:
+                msg = "Ambiguous 2d name"
+                raise Exception(msg)
+            idquant = l2dn[0]
+            return idquant, idref1d, idref2d
+        if len(l2dq) > 0:
+            if len(l2dq) > 1:
+                msg = "Ambiguous 2d quant"
+                raise Exception(msg)
+            idquant = l2dq[0]
+            return idquant, idref1d, idref2d
+
+        # Check if quant 1d
+        if len(l1dn) > 0:
+            if len(l1dn) > 1:
+                msg = "Ambiguous 1d name"
+                raise Exception(msg)
+            idquant = l1dn[0]
+        elif len(l1dq) > 0:
+            if len(l1dq) > 1:
+                msg = "Ambiguous 1d quant"
+                raise Exception(msg)
+            idquant = l1dq[0]
         else:
-            nt = indt.size
-        shape = ptsRZ.shape
+            msg = "Quant %s matches no name / quant in 2d nor 1d!"%quant
+            raise Exception(msg)
 
-        # aliases
-        mpltri = self._dmesh['mpltri']
+        # Get associated ref
+        assert ref is not None, "ref must be provided to interpolate %s"%quant
+
+        l1dn = self._get_liddata(name=ref, group='radius')
+        l1dq = self._get_liddata(quant=ref, group='radius')
+
+        l2dn = self._get_liddata(name=ref, group='mesh')
+        l2dq = self._get_liddata(quant=ref, group='mesh')
+
+        lquantboth = self._lquantboth()
+
+        cn = len(l1dn) >= 1 and len(l2dn) >= 1
+        cq = len(l1dq) >= 1 and len(l2dq) >= 1
+        if not cn or cq:
+            msg = "Ref %s must match either a name or a quantity !"%ref
+            raise Exception(msg)
+        if cn:
+            if not (len(l1dn) == 1 and len(l2dn) == 1):
+                msg = "Ambiguous ref name !"
+                raise Exception(msg)
+            idref1d = l1dn[0]
+            idref2d = l2dn[0]
+        else:
+            idref1d = l1dq[0]
+            idref2d = l2dq[0]
+
+        return idquant, idref1d, idref2d
+
+
+    def _get_indtmult(self, t=None, idquant=None, idref1d=None, idref2d=None):
+
+        # Get time vectors and bins
+        idtq = self._ddata[idquant]['indref'][0]
+        tq = self._ddata[idtq]['data']
+        if idref1d is not None:
+            tbinq = 0.5*(tq[1:]+tq[:-1])
+            idtr1 = self._ddata[idref1d]['indref'][0]
+            tr1 = self._ddata[idtr1]['data']
+            tbinr1 = 0.5*(tr1[1:]+tqr1[:-1])
+        if idref2d is not None and idref2d != idref1d:
+            idtr2 = self._ddata[idref2d]['indref'][0]
+            tr2 = self._ddata[idtr2]['data']
+            tbinr2 = 0.5*(tr2[1:]+tr2[:-1])
+
+        # Get tbinall and tall
+        if idref1d is None:
+            tbinall = tbinq
+            tall = tq
+        else:
+            if idref2d is None:
+                tbinall = np.unique(np.r_[tbinq,tbinr1])
+            else:
+                tbinall = np.unique(np.r_[tbinq,tbinr1,tbinr2])
+            tall = np.r_[tbinall[0] - 0.5*(tbinall[1]-tbinall[0]),
+                         0.5*(tbinall[1:]+tbinall[:-1]),
+                         tbinall[-1] + 0.5*(tbinall[-1]-tbinall[-2])]
+
+        # Get indtqr1r2 (tall with respect to tq, tr1, tr2)
+        indtq, indtr1, indtr2 = None, None, None
+        indtq = np.digitize(tall, tbinq)
+        if idref1d is None:
+            assert np.all(indtq == np.arange(0,tall.size))
+        if idref1d is not None:
+            indtr1 = np.digitize(tall, tbinr1)
+        if idref2d is not None:
+            indtr2 = np.digitize(tall, tbinr2)
+
+        # Get indt (t with respect to tbinall)
+        indt, indtu = None, None
+        if t is not None:
+            indt = np.digitize(t, tbinall)
+            indtu = np.unique(indt)
+
+            # Update
+            tall = tall[indtu]
+            indtq = indtq[indtu]
+            if idref1d is not None:
+                indtr1 = indtq[indtu]
+            if idref2d is not None:
+                indtr2 = indtq[indtu]
+        ntall = tall.size
+        return tall, ntall, indt, indtu, indtq, indtr1, indtr2
+
+
+    def _interp_pts2profile1d(self, ptsRZ,
+                              idquant, idref1d, idref2d, t=None,
+                              interp_t='nearest',
+                              interp_space='linear',
+                              fill_value=np.nan):
+
+        # Get idmesh
+        if idref1d is None:
+            lidmesh = [qq for qq in self._ddata[idquant]['indref']
+                       if self._dindref[qq]['group'] == 'mesh']
+        else:
+            lidmesh = [qq for qq in self._ddata[idref2d]['indref']
+                       if self._dindref[qq]['group'] == 'mesh']
+        assert len(lidmesh) == 1
+        idmesh = lidmesh[0]
+
+        # Get mesh
+        mpltri = self._ddata[idmesh]['data']['mpltri']
         trifind = mpltri.get_trifinder()
-        vref = self._d2d[ref]
         r, z = ptsRZ[0], ptsRZ[1]
 
-        # loop on time
-        shapeval = list(shape)
-        shapeval[0] = nt
+        # Get common time indices
+        if interp_t == 'nearest':
+            out = self._get_indtmult(t=t, idquant=idquant,
+                                     idref1d=idref1d, idref2d=idref2d)
+            tall, ntall, indt, indtu, indtq, indtr1, indtr2 = out
+
+        # Prepare output
+        shapeval = list(ptsRZ.shape)
+        shapeval[0] = ntall
         val = np.full(tuple(shapeval), np.nan)
 
-        if quant == ref:
-            for ii in range(0,nteq):
-                if not self.dtime['valid'][indtu[ii],0]:
-                    continue
+        # Interpolate
+        # Note : Maybe consider using scipy.LinearNDInterpolator ?
+        vquant = self._ddata[idquant]['data']
+        if idref1d is None:
+            if t is None:
+                for ii in range(0,ntall):
+                    val[ii,...] = mpl.tri.LinearTriInterpolator(mpltri,
+                                                                vquant[indtq[ii],:],
+                                                                trifinder=trifind)(r,z)
+            else:
+                for ii in range(0,ntall):
+                    ind = indt == indtu[ii]
+                    val[ind,...] = mpl.tri.LinearTriInterpolator(mpltri,
+                                                                 vquant[indtq[ii],:],
+                                                                 trifinder=trifind)(r,z)
 
-                ind = ii if indt is None else indt == indtu[ii]
-                # get ref values for mapping
-                val[ind] = vrefii = mpl.tri.LinearTriInterpolator(mpltri,
-                                                                  vref[indtu[ii],:],
-                                                                  trifinder=trifind)(r,z)
         else:
-            refprof = self._d1d[ref]
-            prof = self._d1d[quant]
+            vr2 = self._ddata[idref2d]['data']
+            vr1 = self._ddata[idref1d]['data']
+            if t is None:
+                for ii in range(0,ntall):
+                    # get ref values for mapping
+                    vii = mpl.tri.LinearTriInterpolator(mpltri,
+                                                        vr2[indtr2[ii],:],
+                                                        trifinder=trifind)(r,z)
 
-            for ii in range(0,nteq):
-                if not np.all(self._dtime['valid'][indtu[ii],:]):
-                    continue
+                    # interpolate 1d
+                    val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                     vquant[indtq[ii],:],
+                                                     kind=interp_space,
+                                                     bounds_error=False,
+                                                     fill_value=fill_value)(np.asarray(vii))
+            else:
+                for ii in range(0,ntall):
+                    # get ref values for mapping
+                    vii = mpl.tri.LinearTriInterpolator(mpltri,
+                                                        vr2[indtr2[ii],:],
+                                                        trifinder=trifind)(r,z)
 
-                ind = ii if indt is None else indt == indtu[ii]
-                # get ref values for mapping
-                vrefii = mpl.tri.LinearTriInterpolator(mpltri,
-                                                       vref[indtu[ii],:],
-                                                       trifinder=trifind)(r,z)
-
-                # interpolate 1d
-                val[ind] = scpinterp.interp1d(refprof[indtu[ii],:],
-                                              prof[indtu[ii],:],
-                                              kind=kind,
-                                              bounds_error=False,
-                                              fill_value=fill_value)(np.asarray(vrefii))
-
-        return val
+                    # interpolate 1d
+                    ind = indt == indtu[ii]
+                    val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                      vquant[indtq[ii],:],
+                                                      kind=interp_space,
+                                                      bounds_error=False,
+                                                      fill_value=fill_value)(np.asarray(vii))
 
 
-    def interp_pts2profile1d(self, ptsRZ, quant, t=None, ref=None,
-                             kind='linear', fill_value=np.nan):
+        # return time
+        if t is None:
+            t = tall
+        return val, t
+
+
+    def interp_pts2profile(self, quant, ptsRZ=None, t=None, ref=None,
+                           interp_t='nearest', interp_space='linear',
+                           fill_value=np.nan):
         """ Return the value of the desired profiles_1d quantity
 
         For the desired inputs points (pts):
@@ -2599,14 +2842,19 @@ class Plasma2D(object):
             - using a nearest-neighbourg approach for time
 
         """
-        # Check requested quant is available
-        if not quant in self.d1d.keys():
-            msg = "Requested quant (%s) not available as 1d field:\n"
-            msg += "Available quant are (set at instanciation):\n"
-            msg += "    - %s"%str(self.d1d.keys())
-            raise Exception(msg)
+        # Check inputs
+        assert interp_t == 'nearest', "Only 'nearest' available so far!"
+
+        # Check requested quant is available in 2d or 1d
+        idquant, idrefd1, idref2d = self._get_idquantref(quant, ref)
 
         # Check the ptsRZ is (2,...) array of floats
+        if ptsRZ is None:
+            if idrefd1 is None:
+                ptsRZ = self.dmesh[idquant]['data']['nodes'].T
+            else:
+                ptsRZ = self.dmesh[idref2]['data']['nodes'].T
+
         ptsRZ = np.atleast_2d(ptsRZ)
         if ptsRZ.shape[0] != 2:
             msg = "ptsRZ must ba np.ndarray of (R,Z) points coordinates\n"
@@ -2615,34 +2863,13 @@ class Plasma2D(object):
             msg += "    - Provided shape : %s"%str(ptsRZ.shape)
             raise Exception(msg)
 
-        # Get time indices
-        if t is None:
-            indt = None
-            indtu = np.arange(0, self.t.size)
-        else:
-            tbins = 0.5*(self.t[1:] + self.t[:-1])
-            indt = np.digitize(t, tbins)
-            indtu = np.unique(indt)
-
-        # Check choosen ref is available
-        lref = sorted(set(self._lquantboth).intersection(self._dquantmap1d))
-        if ref is None:
-            if quant in lref:
-                ref = quant
-            else:
-                ref = lref[0]
-        if ref not in lref:
-            msg = "The chosen ref for remapping (%s) is not available:\n"
-            msg += "    - Available refs: %s"%str(lref)
-            raise Exception(msg)
-
         # Interpolation (including time broadcasting)
-        val = self._interp_pts2profile1d(ptsRZ, quant,
-                                         indt, indtu, ref=ref,
-                                         kind='linear',
-                                         fill_value=fill_value)
-
-        return val
+        val, t = self._interp_pts2profile(ptsRZ, idquant,
+                                          idref1d, idref2d, t=t,
+                                          interp_t=interp_t,
+                                          interp_space=interp_space,
+                                          fill_value=fill_value)
+        return val, t
 
 
     #---------------------
@@ -2661,6 +2888,12 @@ class Plasma2D(object):
         assert type(lquant) in [str,list]
         if type(lquant) is str:
             lquant = [lquant]
+
+        for qq in lquant:
+            # Check requested quant is available in 2d or 1d
+            idquant, idrefd1, idref2d = self._get_idquantref(quant, ref)
+
+
         assert all([qq in self.d1d.keys() for qq in lquant])
         nquant = len(lquant)
         assert X in self.d1d.keys()
@@ -2672,7 +2905,7 @@ class Plasma2D(object):
         if remap:
             refS = list(self.config.dStruct['dObj']['Ves'].values())[0]
             ptsRZ, x1, x2, extent = refS.get_sampleCross(res, mode='imshow')
-            dmap = {'t':self.t, 'data2D':None, 'extent':extent}
+            dmap = {'t':None, 'data2D':None, 'extent':extent}
 
         # Define Data
         dcommon = dict(Exp=self.Id['Exp'], shot=self.Id['shot'],
@@ -2683,12 +2916,12 @@ class Plasma2D(object):
         lout = [None for qq in lquant]
         for ii in range(0,nquant):
             dmapii = dict(dmap)
-            dmapii['data2D'] = self.interp_pts2profile1d(ptsRZ, lquant[ii],
-                                                         ref=ref, kind=kind)
+            val, tii = self.interp_pts2profile1d(ptsRZ, lquant[ii],
+                                                 ref=ref, kind=kind)
+            dmapii['data2D'], dmapii['t'], val, tii
             lout[ii] = tfd.DataCam1D(Name=lquant[ii], data=self.d1d[lquant[ii]],
                                      dextra={'map':dmapii},
                                      **dcommon)
-
         if nquant == 1:
             lout = lout[0]
         return lout
