@@ -151,17 +151,26 @@ def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, 
 
 
 
-def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None, margin=1.e-9):
+def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None,
+                        margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dL) in types and type(DIn) in types
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
     if DS is None:
         DS = [None,None]
     else:
-        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
-    assert type(dLMode) is str and dLMode.lower() in ['abs','rel'], "Arg dLMode must be in ['abs','rel'] !" 
+        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and
+                                   all([ss is None or type(ss) in types
+                                        for ss in ds])) for ds in DS])
+    assert (type(dLMode) is str and
+            dLMode.lower() in ['abs','rel']), "Arg dLMode must be in ['abs','rel'] !" 
     #assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
-    Pts, dLr, ind, N, Rref, VPolybis = _GG._Ves_Smesh_Cross(VPoly, float(dL), dLMode=dLMode.lower(), D1=DS[0], D2=DS[1], margin=margin, DIn=float(DIn), VIn=VIn)
+    Pts, dLr, ind, N,\
+        Rref, VPolybis = _GG._Ves_Smesh_Cross(VPoly, float(dL),
+                                              mode=dLMode.lower(),
+                                              D1=DS[0], D2=DS[1],
+                                              margin=margin,
+                                              DIn=float(DIn), VIn=VIn)
     return Pts, dLr, ind
 
 

@@ -685,10 +685,6 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     d2r = resolution[1]
     N1 = num_cells[0]
     N2 = num_cells[1]
-    # X1, d1r, dummy, N1 = discretize_segment(MinMax1, d1, None, Lim=True,
-    #                                       mode=dSMode, margin=margin)
-    # X2, d2r, dummy, N2 = discretize_segment(MinMax2, d2, None, Lim=True,
-    #                                       mode=dSMode, margin=margin)
     dS = d1r*d2r*np.ones((NP,))
     for ii in range(0,NP):
         i2 = ind[ii] // N1
@@ -698,13 +694,9 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     return Pts, dS, d1r, d2r
 
 
-#............... TODO..........................................................................
-# ....................... INLINE .. INTERFACE ..................................
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None,
-                     D2=None, double margin=_VSMALL, double DIn=0., VIn=None):
+def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL,
+                     str mode='abs', list D1=None, list D2=None,
+                     double margin=_VSMALL, double DIn=0., VIn=None):
     cdef int ii, jj, nn=0, NP=VPoly.shape[1]
     cdef double[::1] LMinMax, L
     cdef double v0, v1, dlr
@@ -721,7 +713,7 @@ def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None,
             v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
             LMinMax[1] = Csqrt(v0**2 + v1**2)
             L, dlr, indL, N[ii] = discretize_segment(LMinMax, dL,
-                                                     mode=dLMode,
+                                                     mode=mode,
                                                      DL=None, Lim=True,
                                                      margin=margin)
             VPolybis.append((VPoly[0,ii],VPoly[1,ii]))
@@ -741,7 +733,7 @@ def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None,
             v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
             LMinMax[1] = Csqrt(v0**2 + v1**2)
             L, dlr, indL, N[ii] = discretize_segment(LMinMax, dL,
-                                                     mode=dLMode,
+                                                     mode=mode,
                                                      DL=None, Lim=True,
                                                      margin=margin)
             VPolybis.append((VPoly[0,ii],VPoly[1,ii]))
@@ -1848,7 +1840,10 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
 
     # Get the actual R and Z resolutions and mesh elements
     X, dXr, bla, NX = discretize_segment(XMinMax, dX, DL=None, Lim=True, margin=margin)
-    PtsCross, dLr, bla, NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None, margin=margin, DIn=DIn, VIn=VIn)
+    PtsCross, dLr, bla, NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL,
+                                                           D1=None, D2=None,
+                                                           margin=margin,
+                                                           DIn=DIn, VIn=VIn)
     Ln = PtsCross.shape[1]
 
     LPts, LdS = [], []
