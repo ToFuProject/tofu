@@ -18,7 +18,7 @@ from _basic_geom_tools cimport _VSMALL
 # =  LINEAR MESHING
 # ==============================================================================
 
-cdef inline long discretize_segment_core(double[::1] LMinMax, double dstep,
+cdef inline long discretize_line1d_core(double[::1] LMinMax, double dstep,
                                          double[2] DL, bint Lim,
                                          str mode, double margin,
                                          double** ldiscret_arr,
@@ -28,7 +28,7 @@ cdef inline long discretize_segment_core(double[::1] LMinMax, double dstep,
     cdef int[1] nL0
     cdef long[1] Nind
 
-    first_discretize_segment_core(LMinMax, dstep,
+    first_discretize_line1d_core(LMinMax, dstep,
                                   resolution, N, Nind, nL0,
                                   DL, Lim, mode, margin)
     if (ldiscret_arr[0] == NULL):
@@ -40,12 +40,12 @@ cdef inline long discretize_segment_core(double[::1] LMinMax, double dstep,
         lindex_arr[0] = <long *>malloc(Nind[0] * sizeof(long))
     else:
         lindex_arr[0] = <long *>realloc(lindex_arr[0], Nind[0] * sizeof(long))
-    second_discretize_segment_core(LMinMax, ldiscret_arr[0], lindex_arr[0],
+    second_discretize_line1d_core(LMinMax, ldiscret_arr[0], lindex_arr[0],
                                    nL0[0], resolution[0], Nind[0])
     return Nind[0]
 
 
-cdef inline void first_discretize_segment_core(double[::1] LMinMax,
+cdef inline void first_discretize_line1d_core(double[::1] LMinMax,
                                                double dstep,
                                                double[1] resolution,
                                                long[1] num_cells,
@@ -59,7 +59,7 @@ cdef inline void first_discretize_segment_core(double[::1] LMinMax,
     Computes the resolution, the desired limits, and the number of cells when
     discretising the segmen LMinMax with the given parameters. It doesn't do the
     actual discretization.
-    For that part, please refer to: second_discretize_segment_core
+    For that part, please refer to: second_discretize_line1d_core
     """
     cdef int nL1, ii, jj
     cdef double abs0, abs1
@@ -105,7 +105,7 @@ cdef inline void first_discretize_segment_core(double[::1] LMinMax,
     Nind[0] = nL1 + 1 - nL0[0]
     return
 
-cdef inline void second_discretize_segment_core(double[::1] LMinMax,
+cdef inline void second_discretize_line1d_core(double[::1] LMinMax,
                                                 double* ldiscret,
                                                 long* lindex,
                                                 int nL0,
@@ -116,7 +116,7 @@ cdef inline void second_discretize_segment_core(double[::1] LMinMax,
     Computes the coordinates of the cells on the discretized segment and the
     associated list of indices.
     This function need some parameters computed with the first algorithm:
-    first_discretize_segment_core
+    first_discretize_line1d_core
     """
     cdef int ii, jj
     # .. Computing coordinates and indices .....................................
@@ -164,7 +164,7 @@ cdef inline void discretize_ves_poly(double[:, ::1] VPoly, double dstep,
             v1 = VPoly[1,ii+1]-VPoly[1,ii]
             LMinMax[1] = Csqrt(v0*v0 + v1*v1)
             inv_norm = 1./LMinMax[1]
-            discretize_segment_core(LMinMax, dstep, dl_array, True,
+            discretize_line1d_core(LMinMax, dstep, dl_array, True,
                                     mode, margin, &ldiscret, loc_resolu,
                                     &lindex, &numcells[0][ii])
             # .. prepaaring Poly bis array......................................
@@ -205,7 +205,7 @@ cdef inline void discretize_ves_poly(double[:, ::1] VPoly, double dstep,
             v1 = VPoly[1,ii+1]-VPoly[1,ii]
             LMinMax[1] = Csqrt(v0*v0 + v1*v1)
             inv_norm = 1./LMinMax[1]
-            discretize_segment_core(LMinMax, dstep, dl_array, True,
+            discretize_line1d_core(LMinMax, dstep, dl_array, True,
                                     mode, margin, &ldiscret, loc_resolu,
                                     &lindex, &numcells[0][ii])
             # .. prepaaring Poly bis array......................................

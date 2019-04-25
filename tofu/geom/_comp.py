@@ -166,7 +166,7 @@ def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None,
             dLMode.lower() in ['abs','rel']), "Arg dLMode must be in ['abs','rel'] !" 
     #assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
     Pts, dLr, ind, N,\
-        Rref, VPolybis = _GG._Ves_Smesh_Cross(VPoly, float(dL),
+        Rref, VPolybis = _GG.discretize_vpoly(VPoly, float(dL),
                                               mode=dLMode.lower(),
                                               D1=DS[0], D2=DS[1],
                                               margin=margin,

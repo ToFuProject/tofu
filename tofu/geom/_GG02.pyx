@@ -24,7 +24,7 @@ from _raytracing_tools cimport raytracing_inout_struct_lin
 from _raytracing_tools cimport raytracing_inout_struct_tor
 from _raytracing_tools cimport raytracing_minmax_struct_lin
 from _raytracing_tools cimport raytracing_minmax_struct_tor
-from _sampling_tools cimport discretize_segment_core
+from _sampling_tools cimport discretize_line1d_core
 from _sampling_tools cimport discretize_ves_poly
 
 
@@ -55,9 +55,9 @@ __all__ = ['CoordShift',
            'Poly_isClockwise', 'Poly_Order', 'Poly_VolAngTor',
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
            '_Ves_isInside',
-           'discretize_segment',
+           'discretize_line1d',
            'discretize_polygon', '_Ves_meshCross_FromInd',
-           '_Ves_Smesh_Cross',
+           'discretize_vpoly',
            '_Ves_Vmesh_Tor_SubFromD_cython', '_Ves_Vmesh_Tor_SubFromInd_cython',
            '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
            '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
@@ -464,14 +464,14 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
 # ==============================================================================
 #
 #                                   LINEAR MESHING
-#                               i.e. Discretizing lines
+#                          i.e. Discretizing horizontal lines
 #
 # ==============================================================================
-def discretize_segment(double[::1] LMinMax, double dstep,
+def discretize_line1d(double[::1] LMinMax, double dstep,
                        DL=None, bint Lim=True,
                        str mode='abs', double margin=_VSMALL):
     """
-    Discretize a segment LMin-LMax. If `mode` is "abs" (absolute), then the
+    Discretize a 1D segment LMin-LMax. If `mode` is "abs" (absolute), then the
     segment will be discretized in cells each of size `dstep`. Else, if `mode`
     is "rel" (relative), the meshing step is relative to the segments norm (ie.
     the actual discretization step will be (LMax - LMin)/dstep).
@@ -528,26 +528,56 @@ def discretize_segment(double[::1] LMinMax, double dstep,
         else:
             dl_array[1] = DL[1]
     #.. calling cython function.................................................
-    sz_ld = discretize_segment_core(LMinMax, dstep, dl_array, Lim, mode, margin,
+    sz_ld = discretize_line1d_core(LMinMax, dstep, dl_array, Lim, mode, margin,
                                     &ldiscret, resolution, &lindex, N)
     #.. converting and returning................................................
     return np.asarray(<double[:sz_ld]> ldiscret), resolution[0],\
         np.asarray(<long[:sz_ld]>lindex), N[0]
 
 
-
-########################################################
-#       Meshing - Common - Polygon face
-########################################################
-
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
+# ==============================================================================
+#
+#                                   2D MESHING
+#                           i.e. Discretizing polygons
+#
+# ==============================================================================
 def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
                        double dstep1, double dstep2,
                        D1=None, D2=None, str mode='abs',
                        double[:,::1] VPoly=None,
                        double margin=_VSMALL):
+    """
+    Parameters
+    ==========
+    LMinMax : (2)-double array
+        Gives the limits LMin and LMax of the segment. LMinMax = [LMin, LMax]
+    dstep: double
+        Step of discretization, can be absolute (default) or relative
+    DL : (optional) (2)-double array
+        Sub domain of discretization. If not None and if Lim, LMinMax = DL
+        (can be only on one limit and can be bigger or smaller than original).
+        Actual desired limits
+    Lim : (optional) bool
+        Indicated if the subdomain should be taken into account
+    mode : (optional) string
+        If `mode` is "abs" (absolute), then the
+        segment will be discretized in cells each of size `dstep`. Else,
+        if "rel" (relative), the meshing step is relative to the segments norm
+        (the actual discretization step will be (LMax - LMin)/dstep).
+    margin : (optional) double
+        Margin value for cell length
+    Returns
+    =======
+    ldiscret: double array
+        array of the discretized coordinates on the segment of desired limits
+    resolution: double
+        step of discretization
+    lindex: int array
+        array of the indices corresponding to ldiscret with respects to the
+        original segment LMinMax (if no DL, from 0 to N-1)
+    N : int64
+        Number of points on LMinMax segment
+    """
     cdef int num_pts_vpoly
     cdef int ndisc
     cdef int tot_true
@@ -596,12 +626,12 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
         else:
             dl2_array[1] = D2[1]
     # .. Discretizing on the first direction ...................................
-    nind1 = discretize_segment_core(LMinMax1, dstep1, dl1_array,
+    nind1 = discretize_line1d_core(LMinMax1, dstep1, dl1_array,
                                     True, mode, margin,
                                     &ldiscret1_arr, &resolutions[0],
                                     &lindex1_arr, num_cells1)
     # .. Discretizing on the second direction ..................................
-    nind2 = discretize_segment_core(LMinMax2, dstep2, dl2_array,
+    nind2 = discretize_line1d_core(LMinMax2, dstep2, dl2_array,
                                     True, mode, margin,
                                     &ldiscret2_arr, &resolutions[1],
                                     &lindex2_arr, num_cells2)
@@ -677,9 +707,9 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     dl_array[0] = Cnan
     dl_array[1] = Cnan
     #.. calling cython function.................................................
-    discretize_segment_core(MinMax1, d1, dl_array, True, dSMode, margin,
+    discretize_line1d_core(MinMax1, d1, dl_array, True, dSMode, margin,
                             &X1, &resolution[0], &dummy, &num_cells[0])
-    discretize_segment_core(MinMax2, d2, dl_array, True, dSMode, margin,
+    discretize_line1d_core(MinMax2, d2, dl_array, True, dSMode, margin,
                             &X2, &resolution[1], &dummy, &num_cells[1])
     d1r = resolution[0]
     d2r = resolution[1]
@@ -694,7 +724,7 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     return Pts, dS, d1r, d2r
 
 
-def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL,
+def discretize_vpoly(double[:,::1] VPoly, double dL,
                      str mode='abs', list D1=None, list D2=None,
                      double margin=_VSMALL, double DIn=0.,
                      double[:,::1] VIn=None):
@@ -742,75 +772,6 @@ def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL,
 
 
 
-def _Ves_Smesh_Cross2(double[:,::1] VPoly, double dL,
-                     str mode='abs', list D1=None, list D2=None,
-                     double margin=_VSMALL, double DIn=0.,
-                     double[:,::1] VIn=None):
-    cdef int ii, jj, nn=0, NP=VPoly.shape[1]
-    cdef double[::1] LMinMax, L
-    cdef double v0, v1, dlr
-    cdef long[::1] indL
-    cdef np.ndarray[long,ndim=1] N, ind
-    cdef np.ndarray[double,ndim=1] dLr, Rref
-    cdef np.ndarray[double,ndim=2] PtsCross
-    cdef list LPtsCross=[], LdLr=[], Lind=[], LRref=[], VPolybis=[]
-
-    LMinMax = np.array([0.,1.],dtype=float)
-    N = np.empty((NP-1,),dtype=int)
-    if DIn==0.:
-        for ii in range(0,NP-1):
-            v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
-            LMinMax[1] = Csqrt(v0**2 + v1**2)
-            L, dlr, indL, N[ii] = discretize_segment(LMinMax, dL,
-                                                     mode=mode,
-                                                     DL=None, Lim=True,
-                                                     margin=margin)
-            VPolybis.append((VPoly[0,ii],VPoly[1,ii]))
-            v0, v1 = v0/LMinMax[1], v1/LMinMax[1]
-            for jj in range(0,N[ii]):
-                LdLr.append(dlr)
-                LRref.append(VPoly[0,ii] + L[jj]*v0)
-                LPtsCross.append((VPoly[0,ii] + L[jj]*v0,
-                                  VPoly[1,ii] + L[jj]*v1))
-                Lind.append(nn)
-                nn += 1
-                VPolybis.append((VPoly[0,ii] + jj*dlr*v0,
-                                 VPoly[1,ii] + jj*dlr*v1))
-        VPolybis.append((VPoly[0,0],VPoly[1,0]))
-    else:
-        for ii in range(0,NP-1):
-            v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
-            LMinMax[1] = Csqrt(v0**2 + v1**2)
-            L, dlr, indL, N[ii] = discretize_segment(LMinMax, dL,
-                                                     mode=mode,
-                                                     DL=None, Lim=True,
-                                                     margin=margin)
-            VPolybis.append((VPoly[0,ii],VPoly[1,ii]))
-            v0, v1 = v0/LMinMax[1], v1/LMinMax[1]
-            for jj in range(0,N[ii]):
-                LdLr.append(dlr)
-                LRref.append(VPoly[0,ii] + L[jj]*v0)
-                LPtsCross.append((VPoly[0,ii] + L[jj]*v0 + DIn*VIn[0,ii],
-                                  VPoly[1,ii] + L[jj]*v1 + DIn*VIn[1,ii]))
-                Lind.append(nn)
-                nn += 1
-                VPolybis.append((VPoly[0,ii] + jj*dlr*v0,
-                                 VPoly[1,ii] + jj*dlr*v1))
-        VPolybis.append((VPoly[0,0],VPoly[1,0]))
-
-    PtsCross, dLr, ind, Rref = np.array(LPtsCross).T, np.array(LdLr), \
-      np.array(Lind,dtype=int), np.array(LRref)
-    if D1 is not None:
-        indin = (PtsCross[0,:]>=D1[0]) & (PtsCross[0,:]<=D1[1])
-        PtsCross = PtsCross[:,indin]
-        dLr, ind = dLr[indin], ind[indin]
-    if D2 is not None:
-        indin = (PtsCross[1,:]>=D2[0]) & (PtsCross[1,:]<=D2[1])
-        PtsCross = PtsCross[:,indin]
-        dLr, ind = dLr[indin], ind[indin]
-
-    return PtsCross, dLr, ind, N, Rref, np.array(VPolybis).T
-
 
 ########################################################
 ########################################################
@@ -840,11 +801,11 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     cdef np.ndarray[double,ndim=1] iii, dV, ind
 
     # Get the actual R and Z resolutions and mesh elements
-    R0, dRr0, indR0, NR0 = discretize_segment(RMinMax, dR, None,
+    R0, dRr0, indR0, NR0 = discretize_line1d(RMinMax, dR, None,
                                               Lim=True, margin=margin)
-    R, dRr, indR, NR = discretize_segment(RMinMax, dR, DR, Lim=True,
+    R, dRr, indR, NR = discretize_line1d(RMinMax, dR, DR, Lim=True,
                                           margin=margin)
-    Z, dZr, indZ, NZ = discretize_segment(ZMinMax, dZ, DZ, Lim=True,
+    Z, dZr, indZ, NZ = discretize_line1d(ZMinMax, dZ, DZ, Lim=True,
                                           margin=margin)
     Rn = len(R)
     Zn = len(Z)
@@ -985,9 +946,9 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
     cdef np.ndarray[double,ndim=1] dV=np.empty((NP,))
 
     # Get the actual R and Z resolutions and mesh elements
-    R, dRr, indR, NR = discretize_segment(RMinMax, dR, None, Lim=True,
+    R, dRr, indR, NR = discretize_line1d(RMinMax, dR, None, Lim=True,
                                                 margin=margin)
-    Z, dZr, indZ, NZ = discretize_segment(ZMinMax, dZ, None, Lim=True,
+    Z, dZr, indZ, NZ = discretize_line1d(ZMinMax, dZ, None, Lim=True,
                                                 margin=margin)
     Rn, Zn = len(R), len(Z)
 
@@ -1068,11 +1029,11 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
     cdef np.ndarray[long,ndim=1] ind
 
     # Get the actual X, Y and Z resolutions and mesh elements
-    X, dXr, indX, NX = discretize_segment(XMinMax, dX, DX, Lim=True,
+    X, dXr, indX, NX = discretize_line1d(XMinMax, dX, DX, Lim=True,
                                                 margin=margin)
-    Y, dYr, indY, NY = discretize_segment(YMinMax, dY, DY, Lim=True,
+    Y, dYr, indY, NY = discretize_line1d(YMinMax, dY, DY, Lim=True,
                                                 margin=margin)
-    Z, dZr, indZ, NZ = discretize_segment(ZMinMax, dZ, DZ, Lim=True,
+    Z, dZr, indZ, NZ = discretize_line1d(ZMinMax, dZ, DZ, Lim=True,
                                                 margin=margin)
     Xn, Yn, Zn = len(X), len(Y), len(Z)
 
@@ -1109,11 +1070,11 @@ def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
     cdef np.ndarray[double,ndim=2] Pts
 
     # Get the actual X, Y and Z resolutions and mesh elements
-    X, dXr, bla, NX = discretize_segment(XMinMax, dX, None, Lim=True,
+    X, dXr, bla, NX = discretize_line1d(XMinMax, dX, None, Lim=True,
                                                margin=margin)
-    Y, dYr, bla, NY = discretize_segment(YMinMax, dY, None, Lim=True,
+    Y, dYr, bla, NY = discretize_line1d(YMinMax, dY, None, Lim=True,
                                                margin=margin)
-    Z, dZr, bla, NZ = discretize_segment(ZMinMax, dZ, None, Lim=True,
+    Z, dZr, bla, NZ = discretize_line1d(ZMinMax, dZ, None, Lim=True,
                                                margin=margin)
 
     indZ = ind // (NX*NY)
@@ -1272,7 +1233,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
 
         # Get the actual R and Z resolutions and mesh elements
         PtsCross, dLr, indL, \
-          NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None,
+          NL, Rref, VPbis = discretize_vpoly(VPoly, dL, D1=None, D2=None,
                                              margin=margin, DIn=DIn, VIn=VIn)
         R0 = np.copy(Rref)
         NR0 = R0.size
@@ -1420,7 +1381,7 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
 
     # Get the actual R and Z resolutions and mesh elements
     PtsCross, dLrRef, indL,\
-      NL, RrefRef, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None,
+      NL, RrefRef, VPbis = discretize_vpoly(VPoly, dL, D1=None, D2=None,
                                             margin=margin, DIn=DIn, VIn=VIn)
     Ln = dLrRef.size
     # Number of Phi per R
@@ -1549,11 +1510,11 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
         # Get the mesh for the faces
         if any(Faces) :
             R0, dR0r, indR0,\
-              NR0 = discretize_segment(np.array([np.min(VPoly[0,:]),
+              NR0 = discretize_line1d(np.array([np.min(VPoly[0,:]),
                                                        np.max(VPoly[0,:])]),
                                              dL, DL=DR, Lim=True, margin=margin)
             Z0, dZ0r, indZ0,\
-              NZ0 = discretize_segment(np.array([np.min(VPoly[1,:]),
+              NZ0 = discretize_line1d(np.array([np.min(VPoly[1,:]),
                                                        np.max(VPoly[1,:])]),
                                              dL, DL=DZ, Lim=True, margin=margin)
             R0n, Z0n = len(R0), len(Z0)
@@ -1663,11 +1624,11 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
     Dphi = DIn/np.max(VPoly[0,:]) if DIn!=0. else 0.
 
     # Get the basic meshes for the faces
-    R0, dR0r, bla, NR0 = discretize_segment(np.array([np.min(VPoly[0,:]),
+    R0, dR0r, bla, NR0 = discretize_line1d(np.array([np.min(VPoly[0,:]),
                                                             np.max(VPoly[0,:])]),
                                                   dL, DL=None, Lim=True,
                                                   margin=margin)
-    Z0, dZ0r, bla, NZ0 = discretize_segment(np.array([np.min(VPoly[1,:]),
+    Z0, dZ0r, bla, NZ0 = discretize_line1d(np.array([np.min(VPoly[1,:]),
                                                             np.max(VPoly[1,:])]),
                                                   dL, DL=None, Lim=True,
                                                   margin=margin)
@@ -1791,22 +1752,22 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
 
         # Get the mesh for the faces
         Y0, dY0r,\
-          indY0, NY0 = discretize_segment(np.array([np.min(VPoly[0,:]),
+          indY0, NY0 = discretize_line1d(np.array([np.min(VPoly[0,:]),
                                                     np.max(VPoly[0,:])]),
                                           dL, DL=DY, Lim=True, margin=margin)
         Z0, dZ0r,\
-          indZ0, NZ0 = discretize_segment(np.array([np.min(VPoly[1,:]),
+          indZ0, NZ0 = discretize_line1d(np.array([np.min(VPoly[1,:]),
                                                     np.max(VPoly[1,:])]),
                                           dL, DL=DZ, Lim=True, margin=margin)
         Y0n, Z0n = len(Y0), len(Z0)
 
         # Get the actual R and Z resolutions and mesh elements
-        X, dXr, indX, NX = discretize_segment(XMinMax, dX,
+        X, dXr, indX, NX = discretize_line1d(XMinMax, dX,
                                               DL=DX,
                                               Lim=True, margin=margin)
         Xn = len(X)
         PtsCross, dLr, indL,\
-          NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL, D1=None, D2=None,
+          NL, Rref, VPbis = discretize_vpoly(VPoly, dL, D1=None, D2=None,
                                              margin=margin, DIn=DIn, VIn=VIn)
         NR0 = Rref.size
         indin = np.ones((PtsCross.shape[1],),dtype=bool)
@@ -1884,12 +1845,12 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
     cdef np.ndarray[long,ndim=1] indX, indY0, indZ0, indL, NL, ii
 
     # Get the mesh for the faces
-    Y0, dY0r, bla, NY0 = discretize_segment(np.array([np.min(VPoly[0,:]),np.max(VPoly[0,:])]), dL, DL=None, Lim=True, margin=margin)
-    Z0, dZ0r, bla, NZ0 = discretize_segment(np.array([np.min(VPoly[1,:]),np.max(VPoly[1,:])]), dL, DL=None, Lim=True, margin=margin)
+    Y0, dY0r, bla, NY0 = discretize_line1d(np.array([np.min(VPoly[0,:]),np.max(VPoly[0,:])]), dL, DL=None, Lim=True, margin=margin)
+    Z0, dZ0r, bla, NZ0 = discretize_line1d(np.array([np.min(VPoly[1,:]),np.max(VPoly[1,:])]), dL, DL=None, Lim=True, margin=margin)
 
     # Get the actual R and Z resolutions and mesh elements
-    X, dXr, bla, NX = discretize_segment(XMinMax, dX, DL=None, Lim=True, margin=margin)
-    PtsCross, dLr, bla, NL, Rref, VPbis = _Ves_Smesh_Cross(VPoly, dL,
+    X, dXr, bla, NX = discretize_line1d(XMinMax, dX, DL=None, Lim=True, margin=margin)
+    PtsCross, dLr, bla, NL, Rref, VPbis = discretize_vpoly(VPoly, dL,
                                                            D1=None, D2=None,
                                                            margin=margin,
                                                            DIn=DIn, VIn=VIn)

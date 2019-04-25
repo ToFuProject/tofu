@@ -10,7 +10,7 @@ from libc.math cimport isnan as Cisnan
 #                                   LINEAR MESHING
 # ==============================================================================
 
-cdef inline void first_discretize_segment_core(double[::1] LMinMax,
+cdef inline void first_discretize_line1d_core(double[::1] LMinMax,
                                                double dstep,
                                                double[1] resolution,
                                                long[1] num_cells,
@@ -24,7 +24,7 @@ cdef inline void first_discretize_segment_core(double[::1] LMinMax,
     Computes the resolution, the desired limits, and the number of cells when
     discretising the segmen LMinMax with the given parameters. It doesn't do the
     actual discretization.
-    For that part, please refer to: second_discretize_segment_core
+    For that part, please refer to: second_discretize_line1d_core
     """
     cdef int nL1, ii, jj
     cdef double abs0, abs1
@@ -70,7 +70,7 @@ cdef inline void first_discretize_segment_core(double[::1] LMinMax,
     Nind[0] = nL1 + 1 - nL0[0]
     return
 
-cdef inline void second_discretize_segment_core(double[::1] LMinMax,
+cdef inline void second_discretize_line1d_core(double[::1] LMinMax,
                                                 double* ldiscret,
                                                 int* lindex,
                                                 int nL0,
@@ -81,7 +81,7 @@ cdef inline void second_discretize_segment_core(double[::1] LMinMax,
     Computes the coordinates of the cells on the discretized segment and the
     associated list of indices.
     This function need some parameters computed with the first algorithm:
-    first_discretize_segment_core
+    first_discretize_line1d_core
     """
     cdef int ii, jj
     # .. Computing coordinates and indices .....................................
