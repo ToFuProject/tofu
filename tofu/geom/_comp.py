@@ -200,7 +200,7 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
     if ind is None:
-        Pts, dS, ind, d1r, d2r = _GG.discretize_polygon(MinMax1, MinMax2,
+        Pts, dS, ind, d1r, d2r = _GG.discretize_segment2d(MinMax1, MinMax2,
                                                         dS[0], dS[1],
                                                         D1=DS[0], D2=DS[1],
                                                         mode=dSMode,

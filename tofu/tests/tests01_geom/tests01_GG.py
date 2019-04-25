@@ -210,17 +210,17 @@ def test05_Ves_mesh_dlfromL():
                                                   Lim=True, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(0,10)) and dLr==1. and \
         np.allclose(indL,range(0,10)) and N==10
-    DL = np.array([2.,8.])
+    DL = [2.,8.]
     L, dLr, indL, N = GG.discretize_line1d(LMinMax, 1., DL=DL,
                                             Lim=True, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,8)) and dLr==1. and \
         np.allclose(indL,range(2,8)) and N==10
-    DL = np.array([2.,12.])
+    DL = [2.,12.]
     L, dLr, indL, N = GG.discretize_line1d(LMinMax, 1., DL=DL,
                                                   Lim=True, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,10)) and dLr==1. and \
         np.allclose(indL,range(2,10)) and N==10
-    DL = np.array([2.,12.])
+    DL = [2.,12.]
     L, dLr, indL, N = GG.discretize_line1d(LMinMax, 1., DL=DL,
                                                   Lim=False, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,12)) and dLr==1. and \
@@ -584,8 +584,8 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
             dRPhir, \
             VPbis = GG._Ves_Smesh_TorStruct_SubFromD_cython(np.array(LPhi[ii][0]),
                                                             dL, dRPhi, VPoly,
-                                                            DR=np.array([0.5,2.]),
-                                                            DZ=np.array([0.,1.2]),
+                                                            DR=[0.5,2.],
+                                                            DZ=[0.,1.2],
                                                             DPhi=np.array(LPhi[ii][1]),
                                                             DIn=DIn, VIn=VIn,
                                                             Out='(R,Z,Phi)',

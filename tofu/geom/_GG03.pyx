@@ -56,7 +56,7 @@ __all__ = ['CoordShift',
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
            '_Ves_isInside',
            'discretize_line1d',
-           'discretize_polygon', '_Ves_meshCross_FromInd',
+           'discretize_segment2d', '_Ves_meshCross_FromInd',
            'discretize_vpoly',
            '_Ves_Vmesh_Tor_SubFromD_cython', '_Ves_Vmesh_Tor_SubFromInd_cython',
            '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
@@ -541,24 +541,32 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
 #                           i.e. Discretizing polygons
 #
 # ==============================================================================
-def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
+def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
                        double dstep1, double dstep2,
                        D1=None, D2=None, str mode='abs',
                        double[:,::1] VPoly=None,
                        double margin=_VSMALL):
     """
+    Discretizes a 2D segment where the 1st coordinates are defined in LMinMax1
+    and the second ones in LMinMax2. The refinement in x is defined by dstep1,
+    and dstep2 defines the resolution on y.
+    Optionnally you can give a VPoly to which the discretized in which the
+    segment has to be included.
+    This function is basically a generalization of discretize_line1d.
     Parameters
     ==========
-    LMinMax : (2)-double array
-        Gives the limits LMin and LMax of the segment. LMinMax = [LMin, LMax]
-    dstep: double
+    LMinMax1 : (2)-double array
+        Gives the limits LMin and LMax of the x coordinates of the segment.
+        LMinMax1 = [xmin, xmax]
+    LMinMax2 : (2)-double array
+        Gives the limits LMin and LMax of the y coordinates of the segment.
+        LMinMax2 = [ymin, ymax]
+    dstep1 or dstep2 : double
         Step of discretization, can be absolute (default) or relative
-    DL : (optional) (2)-double array
+    D1 or D2 : (optional) (2)-double array
         Sub domain of discretization. If not None and if Lim, LMinMax = DL
         (can be only on one limit and can be bigger or smaller than original).
         Actual desired limits
-    Lim : (optional) bool
-        Indicated if the subdomain should be taken into account
     mode : (optional) string
         If `mode` is "abs" (absolute), then the
         segment will be discretized in cells each of size `dstep`. Else,
@@ -566,17 +574,22 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
         (the actual discretization step will be (LMax - LMin)/dstep).
     margin : (optional) double
         Margin value for cell length
+    VPoly : (optional) 2d double array
+        If present, we check that the discretized segment is included in the
+        path defined by VPoly.
     Returns
     =======
-    ldiscret: double array
+    ldiscret: double 2d array
         array of the discretized coordinates on the segment of desired limits
-    resolution: double
-        step of discretization
+    resolution: double array
+        step of discretization on 2d (typically resolution-on-x*resolution-on-y)
     lindex: int array
         array of the indices corresponding to ldiscret with respects to the
         original segment LMinMax (if no DL, from 0 to N-1)
-    N : int64
-        Number of points on LMinMax segment
+    resol1 : double
+        Smallest resolution on x
+    resol2 : double
+        Smallest resolution on y
     """
     cdef int num_pts_vpoly
     cdef int ndisc
@@ -681,17 +694,10 @@ def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
         return np.asarray(ldiscr).reshape(2,ndisc), np.asarray(lresol),\
           np.asarray(lindex), resolutions[0], resolutions[1]
 
-
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
                            double d2, long[::1] ind, str dSMode='abs',
                            double margin=_VSMALL):
-    #cdef double[::1] X1, X2
-    #cdef double dX1, dX2
     cdef double d1r, d2r
-    #cdef long[::1] dummy
     cdef int N1, N2
     cdef int NP = ind.size
     cdef int ii, i1, i2
@@ -1450,8 +1456,8 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
 def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
                                          double dRPhi,
                                          double[:,::1] VPoly,
-                                         double[::1] DR=None,
-                                         double[::1] DZ=None,
+                                         list DR=None,
+                                         list DZ=None,
                                          double[::1] DPhi=None,
                                          double DIn=0., VIn=None,
                                          str Out='(X,Y,Z)',
