@@ -8,10 +8,12 @@
 cimport cython
 from libc.math cimport ceil as Cceil, fabs as Cabs
 from libc.math cimport floor as Cfloor, round as Cround
+from libc.math cimport sqrt as Csqrt
 from libc.math cimport isnan as Cisnan
-from cpython.array cimport array, clone, extend
+from libc.math cimport NAN as Cnan
 from libc.stdlib cimport malloc, free, realloc
-
+from cpython.array cimport array, clone
+from _basic_geom_tools cimport _VSMALL
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
@@ -122,4 +124,123 @@ cdef inline void second_discretize_segment_core(double[::1] LMinMax,
         jj = nL0 + ii
         lindex[ii] = jj
         ldiscret[ii] = LMinMax[0] + (0.5 + jj) * resolution
+    return
+
+# ==============================================================================
+# =  Vessel's poloidal cut discretization
+# ==============================================================================
+
+cdef inline void discretize_ves_poly(double[:, ::1] VPoly, double dstep,
+                                     str mode, double margin, double DIn,
+                                     double[:, ::1] VIn,
+                                     double** XCross, double** YCross,
+                                     double** resol,
+                                     long** ind, long** numcells, double** Rref,
+                                     double** XPolybis, double** YPolybis,
+                                     int[1] tot_sz_vb, int[1] tot_sz_ot,
+                                     int NP):
+    cdef Py_ssize_t sz_vpoly_bis = 0
+    cdef Py_ssize_t sz_others = 0
+    cdef Py_ssize_t last_sz_vbis = 0
+    cdef Py_ssize_t last_sz_othr = 0
+    cdef int ii, jj
+    cdef double v0, v1
+    cdef double inv_norm
+    cdef double[1] loc_resolu
+    cdef double[2] LMinMax
+    cdef double[2] dl_array
+    cdef double* ldiscret = NULL
+    cdef long* lindex = NULL
+
+    #.. initialization..........................................................
+    LMinMax[0] = 0.
+    dl_array[0] = Cnan
+    dl_array[1] = Cnan
+    numcells[0] = <long*>malloc((NP-1)*sizeof(long))
+    #.. Filling arrays..........................................................
+    if abs(DIn) < _VSMALL:
+        for ii in range(NP-1):
+            v0 = VPoly[0,ii+1]-VPoly[0,ii]
+            v1 = VPoly[1,ii+1]-VPoly[1,ii]
+            LMinMax[1] = Csqrt(v0*v0 + v1*v1)
+            inv_norm = 1./LMinMax[1]
+            discretize_segment_core(LMinMax, dstep, dl_array, True,
+                                    mode, margin, &ldiscret, loc_resolu,
+                                    &lindex, &numcells[0][ii])
+            # .. prepaaring Poly bis array......................................
+            last_sz_vbis = sz_vpoly_bis
+            sz_vpoly_bis += 1 + numcells[0][ii]
+            XPolybis[0] = <double*>realloc(XPolybis[0], sz_vpoly_bis*sizeof(double))
+            YPolybis[0] = <double*>realloc(YPolybis[0], sz_vpoly_bis*sizeof(double))
+            XPolybis[0][sz_vpoly_bis - (1 + numcells[0][ii])] = VPoly[0, ii]
+            YPolybis[0][sz_vpoly_bis - (1 + numcells[0][ii])] = VPoly[1, ii]
+            # .. preparing other arrays ........................................
+            last_sz_othr = sz_others
+            sz_others += numcells[0][ii]
+            resol[0]  = <double*>realloc(resol[0],  sizeof(double)*sz_others)
+            Rref[0]   = <double*>realloc(Rref[0],   sizeof(double)*sz_others)
+            XCross[0] = <double*>realloc(XCross[0], sizeof(double)*sz_others)
+            YCross[0] = <double*>realloc(YCross[0], sizeof(double)*sz_others)
+            ind[0] = <long*>realloc(ind[0], sizeof(long)*sz_others)
+            # ...
+            v0 = v0 * inv_norm
+            v1 = v1 * inv_norm
+            for jj in range(numcells[0][ii]):
+                ind[0][last_sz_othr + jj] = last_sz_othr + jj
+                resol[0][last_sz_othr + jj] = loc_resolu[0]
+                Rref[0][last_sz_othr + jj] = VPoly[0,ii] + ldiscret[jj]*v0
+                XCross[0][last_sz_othr + jj] = VPoly[0,ii] + ldiscret[jj]*v0
+                YCross[0][last_sz_othr + jj] = VPoly[1,ii] + ldiscret[jj]*v1
+                XPolybis[0][last_sz_vbis + jj] = VPoly[0,ii] + jj*loc_resolu[0]*v0
+                YPolybis[0][last_sz_vbis + jj] = VPoly[1,ii] + jj*loc_resolu[0]*v1
+        # We close the polygon of VPolybis
+        sz_vpoly_bis += 1
+        XPolybis[0] = <double*>realloc(XPolybis[0], sz_vpoly_bis*sizeof(double))
+        YPolybis[0] = <double*>realloc(YPolybis[0], sz_vpoly_bis*sizeof(double))
+        XPolybis[0][sz_vpoly_bis - 1] = VPoly[0, 0]
+        YPolybis[0][sz_vpoly_bis - 1] = VPoly[1, 0]
+    else:
+        for ii in range(NP-1):
+            v0 = VPoly[0,ii+1]-VPoly[0,ii]
+            v1 = VPoly[1,ii+1]-VPoly[1,ii]
+            LMinMax[1] = Csqrt(v0*v0 + v1*v1)
+            inv_norm = 1./LMinMax[1]
+            discretize_segment_core(LMinMax, dstep, dl_array, True,
+                                    mode, margin, &ldiscret, loc_resolu,
+                                    &lindex, &numcells[0][ii])
+            # .. prepaaring Poly bis array......................................
+            last_sz_vbis = sz_vpoly_bis
+            sz_vpoly_bis += 1 + numcells[0][ii]
+            XPolybis[0] = <double*>realloc(XPolybis[0], sz_vpoly_bis*sizeof(double))
+            YPolybis[0] = <double*>realloc(YPolybis[0], sz_vpoly_bis*sizeof(double))
+            XPolybis[0][sz_vpoly_bis - (1 + numcells[0][ii])] = VPoly[0, ii]
+            YPolybis[0][sz_vpoly_bis - (1 + numcells[0][ii])] = VPoly[1, ii]
+            # .. preparing other arrays ........................................
+            last_sz_othr = sz_others
+            sz_others += numcells[0][ii]
+            resol[0]  = <double*>realloc(resol[0],  sizeof(double)*sz_others)
+            Rref[0]   = <double*>realloc(Rref[0],   sizeof(double)*sz_others)
+            XCross[0] = <double*>realloc(XCross[0], sizeof(double)*sz_others)
+            YCross[0] = <double*>realloc(YCross[0], sizeof(double)*sz_others)
+            ind[0] = <long*>realloc(ind[0], sizeof(long)*sz_others)
+            # ...
+            v0 = v0 * inv_norm
+            v1 = v1 * inv_norm
+            for jj in range(numcells[0][ii]):
+                ind[0][last_sz_othr] = last_sz_othr
+                resol[0][last_sz_othr] = loc_resolu[0]
+                Rref[0][last_sz_othr] = VPoly[0,ii] + ldiscret[jj]*v0
+                XCross[0][last_sz_othr] = VPoly[0,ii] + ldiscret[jj]*v0 + DIn*VIn[0,ii]
+                YCross[0][last_sz_othr] = VPoly[1,ii] + ldiscret[jj]*v1 + DIn*VIn[1,ii]
+                XPolybis[0][last_sz_vbis + jj] = VPoly[0,ii] + jj*loc_resolu[0]*v0
+                YPolybis[0][last_sz_vbis + jj] = VPoly[1,ii] + jj*loc_resolu[0]*v1
+                last_sz_othr += 1
+        # We close the polygon of VPolybis
+        sz_vpoly_bis += 1
+        XPolybis[0] = <double*>realloc(XPolybis[0], sz_vpoly_bis*sizeof(double))
+        YPolybis[0] = <double*>realloc(YPolybis[0], sz_vpoly_bis*sizeof(double))
+        XPolybis[0][sz_vpoly_bis - 1] = VPoly[0, 0]
+        YPolybis[0][sz_vpoly_bis - 1] = VPoly[1, 0]
+    tot_sz_vb[0] = sz_vpoly_bis
+    tot_sz_ot[0] = sz_others
     return

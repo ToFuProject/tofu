@@ -24,9 +24,8 @@ from _raytracing_tools cimport raytracing_inout_struct_lin
 from _raytracing_tools cimport raytracing_inout_struct_tor
 from _raytracing_tools cimport raytracing_minmax_struct_lin
 from _raytracing_tools cimport raytracing_minmax_struct_tor
-from _sampling_tools cimport first_discretize_segment_core
-from _sampling_tools cimport second_discretize_segment_core
 from _sampling_tools cimport discretize_segment_core
+from _sampling_tools cimport discretize_ves_poly
 
 
 # import
@@ -57,7 +56,8 @@ __all__ = ['CoordShift',
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
            '_Ves_isInside',
            'discretize_segment',
-           'discretize_polygon', '_Ves_meshCross_FromInd', '_Ves_Smesh_Cross',
+           'discretize_polygon', '_Ves_meshCross_FromInd',
+           '_Ves_Smesh_Cross',
            '_Ves_Vmesh_Tor_SubFromD_cython', '_Ves_Vmesh_Tor_SubFromInd_cython',
            '_Ves_Vmesh_Lin_SubFromD_cython', '_Ves_Vmesh_Lin_SubFromInd_cython',
            '_Ves_Smesh_Tor_SubFromD_cython', '_Ves_Smesh_Tor_SubFromInd_cython',
@@ -512,7 +512,7 @@ def discretize_segment(double[::1] LMinMax, double dstep,
     cdef long[1] N
     cdef double[2] dl_array
     cdef double[1] resolution
-    cdef double* ld_array = NULL
+    cdef double* ldiscret = NULL
     cdef long* lindex = NULL
     #.. preparing inputs........................................................
     if DL is None:
@@ -529,9 +529,9 @@ def discretize_segment(double[::1] LMinMax, double dstep,
             dl_array[1] = DL[1]
     #.. calling cython function.................................................
     sz_ld = discretize_segment_core(LMinMax, dstep, dl_array, Lim, mode, margin,
-                                    &ld_array, resolution, &lindex, N)
+                                    &ldiscret, resolution, &lindex, N)
     #.. converting and returning................................................
-    return np.asarray(<double[:sz_ld]> ld_array), resolution[0],\
+    return np.asarray(<double[:sz_ld]> ldiscret), resolution[0],\
         np.asarray(<long[:sz_ld]>lindex), N[0]
 
 
@@ -544,10 +544,10 @@ def discretize_segment(double[::1] LMinMax, double dstep,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def discretize_polygon(double[::1] LMinMax1, double[::1] LMinMax2,
-                             double dstep1, double dstep2,
-                             D1=None, D2=None, str mode='abs',
-                             double[:,::1] VPoly=None,
-                             double margin=_VSMALL):
+                       double dstep1, double dstep2,
+                       D1=None, D2=None, str mode='abs',
+                       double[:,::1] VPoly=None,
+                       double margin=_VSMALL):
     cdef int num_pts_vpoly
     cdef int ndisc
     cdef int tot_true
@@ -696,7 +696,56 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
 
 def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL,
                      str mode='abs', list D1=None, list D2=None,
-                     double margin=_VSMALL, double DIn=0., VIn=None):
+                     double margin=_VSMALL, double DIn=0.,
+                     double[:,::1] VIn=None):
+    cdef int NP=VPoly.shape[1]
+    cdef int[1] sz_vb, sz_ot
+    cdef double* XCross = NULL
+    cdef double* YCross = NULL
+    cdef double* XPolybis = NULL
+    cdef double* YPolybis = NULL
+    cdef double* Rref = NULL
+    cdef double* resolution = NULL
+    cdef long* ind = NULL
+    cdef long* numcells = NULL
+    cdef np.ndarray[double,ndim=2] PtsCross, VPolybis
+    cdef np.ndarray[double,ndim=1] Rref_arr, resol
+    cdef np.ndarray[long,ndim=1] ind_arr, N_arr
+    cdef np.ndarray[long,ndim=1] ind_in
+
+    assert (not (DIn == 0.) or VIn is not None)
+
+    discretize_ves_poly(VPoly, dL, mode, margin, DIn, VIn,
+                        &XCross, &YCross, &resolution,
+                        &ind, &numcells, &Rref, &XPolybis, &YPolybis,
+                        sz_vb, sz_ot, NP)
+    PtsCross = np.asarray([<double[:sz_ot[0]]> XCross,
+                           <double[:sz_ot[0]]> YCross])
+    VPolybis = np.asarray([<double[:sz_vb[0]]> XPolybis,
+                           <double[:sz_vb[0]]> YPolybis])
+    resol = np.asarray(<double[:sz_ot[0]]> resolution)
+    Rref_arr = np.asarray(<double[:sz_ot[0]]> Rref)
+    ind_arr = np.asarray(<long[:sz_ot[0]]> ind)
+    N_arr = np.asarray(<long[:NP-1]> numcells)
+    if D1 is not None:
+        indin = (PtsCross[0,:]>=D1[0]) & (PtsCross[0,:]<=D1[1])
+        PtsCross = PtsCross[:,indin]
+        resol = resol[indin]
+        ind_arr = ind_arr[indin]
+    if D2 is not None:
+        indin = (PtsCross[1,:]>=D2[0]) & (PtsCross[1,:]<=D2[1])
+        PtsCross = PtsCross[:,indin]
+        resol = resol[indin]
+        ind_arr = ind_arr[indin]
+    return PtsCross, resol, ind_arr, N_arr, Rref_arr, VPolybis
+
+
+
+
+def _Ves_Smesh_Cross2(double[:,::1] VPoly, double dL,
+                     str mode='abs', list D1=None, list D2=None,
+                     double margin=_VSMALL, double DIn=0.,
+                     double[:,::1] VIn=None):
     cdef int ii, jj, nn=0, NP=VPoly.shape[1]
     cdef double[::1] LMinMax, L
     cdef double v0, v1, dlr
