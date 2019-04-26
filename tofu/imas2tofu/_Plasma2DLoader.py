@@ -73,6 +73,23 @@ class Plasma2DLoader(object):
     _lpriorityref = ['eq','cprof','csource']
 
 
+    _dqmap = {'Te':{'lq':['electrons.temperature','t_e','Te'],
+                    'units':'eV'},
+              'ne':{'lq':['electrons.density','n_e','ne'],
+                    'units':'m-3'},
+              'psi':{'lq':['psi','grid.psi'],
+                     'units':'a.u.'},
+              'phi':{'lq':['phi','grid.phi'],
+                     'units':'a.u.'},
+              'rhotn':{'lq':['rho_tor_norm','grid.rho_tor_norm'],
+                       'units':'adim.'},
+              'rhopn':{'lq':['rho_pol_norm','grid.rho_pol_norm'],
+                       'units':'adim.'},
+              'zeff':{'lq':['zeff'], 'units':'adim.'},
+              'prad':{'lq':['prad'], 'units':'W/m3'},
+              'time':{'lq':['time'], 'units':'s'}}
+
+
     #----------------
     # Class creation and instanciation
     #----------------
@@ -332,9 +349,9 @@ class Plasma2DLoader(object):
                     else:
                         q0 = None
                         q1 = qq
-                    if not hasattr(obj,qq):
+                    if not hasattr(obj,q1):
                         continue
-                    npts = len(getattr(obj,qq))
+                    npts = len(getattr(obj,q1))
                     if npts == 0:
                         continue
                     val = np.full((nt, npts), np.nan)
@@ -424,8 +441,9 @@ class Plasma2DLoader(object):
         ftype = 'linear' if npts == nnod else 'nearest'
         indtri = cls._checkformat_tri(nodes, indtri)
         mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indtri)
-        dmesh = {'nodes':nodes, 'triangles':indtri, 'ftype':ftype,
-                 'nnodes':nnod,'ntri':ntri,'mpltri':mpltri}
+        dmesh = {'nodes':nodes, 'faces':indtri,
+                 'type':'tri', 'ftype':ftype,
+                 'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
         return dmesh
 
     def _comp(self, qq, lq, nt, npts):
@@ -465,7 +483,19 @@ class Plasma2DLoader(object):
     # Export to Plasma2D
     #---------------------
 
-    def to_plasma2D(self, Name=None, conf=None):
+    def _get_quantunitsfromname(self,qq):
+        lk = [kk for kk,vv in self._dqmap.items()
+              if qq in vv['lq']]
+        if len(lk) == 1:
+            quant = lk[0]
+            units = self._dqmap[quant]['units']
+        else:
+            quant = qq
+            units = 'a.u.'
+        return quant, units
+
+
+    def to_Plasma2D(self, Name=None, conf=None, out=object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
@@ -492,27 +522,40 @@ class Plasma2DLoader(object):
 
         # ---------------------------
         # dtime
-        dtime = {}
-        for kk,vv in self._dtime.items():
-            dtime['t'+kk] = vv
+        dtime = self._dtime
 
         # dmesh
         dmesh = {'eq':self._dmesh}
 
         # d1d
-        d1d, d2d = {}, {}
+        d1d, d2d, dradius = {}, {}, {}
         for k0, v0 in self._dquant.items():
             for k1, v1 in v0.items():
                 for qq, v2 in v1['dq'].items():
+                    if v2['val'] is None:
+                        continue
+                    quant, units = self._get_quantunitsfromname(qq)
                     if k1 == '1d':
-                        d1d[k0+qq] = {'data':v2['val'],
-                                      'quant':qq,
-                                      'units':'a.u.'}
+                        d1d[k0+'.'+qq] = {'data':v2['val'],
+                                          'quant':quant,
+                                          'units':units,
+                                          'radius':k0,
+                                          'time':k0}
+                        if k0 not in dradius.keys():
+                            dradius[k0] = {'size':v2['val'].shape[-1]}
                     elif k1 == '2d':
-                        d2d[k0+qq] = {'data':v2['val'],
-                                      'quant':qq,
-                                      'units':'a.u.'}
+                        d2d[k0+'.'+qq] = {'data':v2['val'],
+                                          'quant':quant,
+                                          'units':units,
+                                          'mesh':k0,
+                                          'time':k0}
 
-        plasma = tfd.Plasma2D(dtime=dtime, dmesh=dmesh, d1d=d1d, d2d=d2d,
-                              Exp=Exp, shot=shot, Name=Name, conf=conf)
+        if out == object:
+            plasma = tfd.Plasma2D(dtime=dtime, dradius=dradius, dmesh=dmesh,
+                                  d1d=d1d, d2d=d2d,
+                                  Exp=Exp, shot=shot, Name=Name, conf=conf)
+        else:
+            plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
+                          d1d=d1d, d2d=d2d,
+                          Exp=Exp, shot=shot, Name=Name, conf=conf)
         return plasma
