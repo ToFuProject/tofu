@@ -2016,7 +2016,10 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                           'otherid':lXother[ii], 'indother':lindtX[ii]}
         if lis2D[ii]:
             dref[lidX[ii]]['2d'] = (lx1[ii],lx2[ii])
-    idteq, teq = list(dteq[0].items())[0]
+    if len(list(dteq[0].items())) == 0:
+        idteq, teq = lidt[0], lt[0]
+    else:
+        idteq, teq = list(dteq[0].items())[0]
     dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
 
     # ddata
