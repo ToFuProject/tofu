@@ -47,7 +47,7 @@ def video2imgconvertor(video_file, path = './data'):
         cap = cv2.VideoCapture(video_file)
     #incase of error in file name or path raising exception    
     except IOError:
-        print("Path ot file name incorrect or file does not exist")
+        print("Path or file name incorrect or file does not exist")
           
     #Creating Directory
     try:
@@ -70,7 +70,7 @@ def video2imgconvertor(video_file, path = './data'):
         ret, frame = cap.read()
         # Saves image of the current frame in jpg file
         #frame number starts from 0
-        name = path + str(currentFrame) + '.jpg'
+        name = path + 'frame'+ str(currentFrame) + '.jpg'
         cv2.imwrite(name, frame)
         
         # To stop duplicate images

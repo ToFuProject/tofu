@@ -20,9 +20,14 @@ def slice_video(video_file,tlim):
     start = str(tlim[0])
     start_time = start.split(':'or '.')
     
+    stop = str(tlim[1])
+    stop_time = start.split(':' or '.')
     
-    start_frame_count = fps*60*tlim[0]
-    stop_frame_count = fps*60*tlim[1]
+    start_time = start_time[0] + start_time[1]
+    stop_time = stop_time[0] + stop_time[1]
+        
+    start_frame_count = fps*60*start_time
+    stop_frame_count = fps*60*stop_time
     
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     
@@ -33,21 +38,6 @@ def slice_video(video_file,tlim):
 #    out = cv2.VideoWriter('sliced.avi', fourcc, fps, (frame_width, frame_height),0)
     curr_frame = cap.set(2,start_frame_count) 
     
-    
-    
-    while (curr_frame <= stop_frame_count):
-        ret,frame = cap.read()
-        
-        if not ret: break
-        
-        cv2.imshow('Frame',frame)
- 
-    # Press Q on keyboard to  exit
-        if cv2.waitKey(25) & 0xFF == ord('q'):
-            break
-        
- #       out.write(frame
-        
     cap.release()
 #    out.release()
     cv2.destroyAllWindows()
