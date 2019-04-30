@@ -140,6 +140,8 @@ def flatten_dict(d, parent_key='', sep=_sep, deep='ref',
                     v = v.to_dict(deep='dict')
                 elif deep=='copy':
                     v = v.copy(deep='copy')
+            if type(k) is int:
+                k = str(k)
             new_key = parent_key + sep + k if parent_key else k
             if isinstance(v, collections.MutableMapping):
                 items.extend(flatten_dict(v, new_key,
@@ -151,13 +153,15 @@ def flatten_dict(d, parent_key='', sep=_sep, deep='ref',
 def _reshape_dict(ss, vv, dinit={}, sep=_sep):
     ls = ss.split(sep)
     k = ss if len(ls)==1 else ls[0]
-    if len(ls)==2:
+    if k.isdecimal():
+        k = int(k)
+    if len(ls) == 2:
         dk = {ls[1]:vv}
         if k not in dinit.keys():
             dinit[k] = {}
         assert isinstance(dinit[k],dict)
         dinit[k].update({ls[1]:vv})
-    elif len(ls)>2:
+    elif len(ls) > 2:
         if k not in dinit.keys():
             dinit[k] = {}
         _reshape_dict(sep.join(ls[1:]), vv, dinit=dinit[k], sep=sep)

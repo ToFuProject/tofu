@@ -16,9 +16,13 @@ except Exception:
     raise Exception(msg)
 
 try:
-    import tofu.imas2tofu._load as load
+    from tofu.imas2tofu._configloader import load_Config
+    from tofu.imas2tofu._plasma2Dloader import load_Plasma2D
+    #import tofu.imas2tofu._DiagLoader as load_Diag
 except Exception:
-    from . import _load as load
+    from ._configloader import load_Config
+    from ._plasma2Dloader import load_Plasma2D
+    #from . import _DiagLoader as load_Diag
 
 
-__all__ = ['load']
+__all__ = ['load_Config','load_Plasma2D']#,'load_Diag']
