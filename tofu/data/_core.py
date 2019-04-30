@@ -2524,7 +2524,7 @@ class Plasma2D(utils.ToFuObject):
         dgroup, dindref, ddata = {}, {}, {}
         # Get indt
         for k0 in dtime.keys():
-            idt = id(dtime[k0])
+            idt = str(id(dtime[k0]))
             dindref[idt] = {'size':dtime[k0]['t'].size,
                             'name':k0,
                             'group':'time'}
@@ -2535,7 +2535,7 @@ class Plasma2D(utils.ToFuObject):
 
         # get radius
         for k0, v0 in dradius.items():
-            idr = id(v0)
+            idr = str(id(v0))
             dindref[idr] = {'size':v0['size'],
                             'name':k0,
                             'group':'radius'}
@@ -2544,7 +2544,7 @@ class Plasma2D(utils.ToFuObject):
         iddref = None
         if d1d is not None:
             for k0 in d1d.keys():
-                idd = id(d1d[k0])
+                idd = str(id(d1d[k0]))
                 data, units, quant, name = self._extract_dnd(d1d, k0)
 
                 if data is None:
@@ -2575,7 +2575,7 @@ class Plasma2D(utils.ToFuObject):
         # dmesh ref
         if dmesh is not None:
             for k0 in dmesh.keys():
-                idm = id(dmesh[k0])
+                idm = str(id(dmesh[k0]))
                 dindref[idm] = {'size':dmesh[k0]['size'],
                                 'name':k0,
                                 'group':'mesh'}
@@ -2587,7 +2587,7 @@ class Plasma2D(utils.ToFuObject):
         # d2d
         if d2d is not None:
             for k0 in d2d.keys():
-                idd2 = id(d2d[k0])
+                idd2 = str(id(d2d[k0]))
                 data, units, quant, name = self._extract_dnd(d2d, k0)
                 shape = data.shape
                 lrefrad = [kk for kk, vv in dindref.items()
@@ -2888,9 +2888,9 @@ class Plasma2D(utils.ToFuObject):
 
         if verb:
             sep = "\n------------\n"
-            print("dgroup", sep, df0, end="\n\n")
-            print("dindref", sep, df1, end="\n\n")
-            print("ddata", sep, df2, end="\n\n")
+            print("dgroup", sep, df0, "\n")
+            print("dindref", sep, df1, "\n")
+            print("ddata", sep, df2, "\n")
         if Return:
             return df0, df1, df2
 
