@@ -495,7 +495,7 @@ class Plasma2DLoader(object):
         return quant, units
 
 
-    def to_Plasma2D(self, Name=None, conf=None, out=object):
+    def to_Plasma2D(self, Name=None, config=None, out=object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
@@ -550,12 +550,9 @@ class Plasma2DLoader(object):
                                           'mesh':k0,
                                           'time':k0}
 
+        plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
+                      d1d=d1d, d2d=d2d,
+                      Exp=Exp, shot=shot, Name=Name, config=config)
         if out == object:
-            plasma = tfd.Plasma2D(dtime=dtime, dradius=dradius, dmesh=dmesh,
-                                  d1d=d1d, d2d=d2d,
-                                  Exp=Exp, shot=shot, Name=Name, conf=conf)
-        else:
-            plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
-                          d1d=d1d, d2d=d2d,
-                          Exp=Exp, shot=shot, Name=Name, conf=conf)
+            plasma = tfd.Plasma2D( **plasma )
         return plasma
