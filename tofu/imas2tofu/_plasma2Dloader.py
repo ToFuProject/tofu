@@ -1,10 +1,17 @@
 
 
 # Built-in
+import sys
 import os
 import warnings
 import itertools as itt
 import operator
+
+if sys.version[0] == '2':
+    import funcsigs as inspect
+else:
+    import inspect
+
 
 # Common
 import numpy as np
@@ -24,7 +31,15 @@ import imas
 
 
 
-__all__ = ['Plasma2DLoader']
+__all__ = ['Plasma2DLoader', 'load_Plasma2D']
+
+
+
+#######################################
+#######################################
+#       class
+######################################
+
 
 
 class Plasma2DLoader(object):
@@ -89,6 +104,9 @@ class Plasma2DLoader(object):
               'prad':{'lq':['prad'], 'units':'W/m3'},
               'time':{'lq':['time'], 'units':'s'}}
 
+    _didsk = {'tokamak':15, 'user':15, 'version':7,
+              'shot':6, 'run':3, 'occ':3, 'shotr':6, 'runr':3}
+
 
     #----------------
     # Class creation and instanciation
@@ -120,7 +138,6 @@ class Plasma2DLoader(object):
                                         'npts':None}
         self._dtime = dict([(k0,{}) for k0 in self._dquant.keys()])
 
-
         # Get quantities
         idsref = None
         lk0 = [k0 for k0 in self._lpriorityref if k0 in self._dquant.keys()]
@@ -134,8 +151,17 @@ class Plasma2DLoader(object):
             else:
                 dids[k0]['ids'] = self._openids(dids[k0]['dict'])
             if verb:
-                print("Getting %s..."%k0)
-            idsnode = self._get_idsnode(dids['eq']['ids'], k0)
+                if k0 == lk0[0]:
+                    msg = ''.rjust(20)
+                    msg += '  '.join([kk.rjust(vv)
+                                      for kk,vv in self._didsk.items()])
+                    print(msg)
+                msg = ("Getting %s..."%k0).rjust(20)
+                if dids[k0]['dict'] is not None:
+                    msg += '  '.join([str(dids[k0]['dict'][kk]).rjust(vv)
+                                        for kk,vv in self._didsk.items()])
+                print(msg)
+            idsnode = self._get_idsnode(dids[k0]['ids'], k0)
 
             # Check availability and get quantities
             self._checkformat_quantav(idsnode, k0, tlim)
@@ -495,7 +521,7 @@ class Plasma2DLoader(object):
         return quant, units
 
 
-    def to_Plasma2D(self, Name=None, config=None, out=object):
+    def to_object(self, Name=None, config=None, out=object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
@@ -556,3 +582,24 @@ class Plasma2DLoader(object):
         if out == object:
             plasma = tfd.Plasma2D( **plasma )
         return plasma
+
+
+#######################################
+#######################################
+#       function
+######################################
+
+
+
+def load_Plasma2D(Name=None, config=None, out=object, **kwdargs):
+    plasma = Plasma2DLoader(**kwdargs)
+    return plasma.to_object(Name=Name, config=config, out=out)
+
+sig = inspect.signature(Plasma2DLoader)
+kind = inspect.Parameter.POSITIONAL_OR_KEYWORD
+params = list(sig.parameters.values())
+params = params + [params[0].replace(name='Name', default=None, kind=kind),
+                   params[0].replace(name='config', default=None, kind=kind)]
+load_Plasma2D.__signature__ = sig.replace(parameters=params)
+
+del sig, params, kind
