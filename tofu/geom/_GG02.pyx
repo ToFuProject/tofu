@@ -1,5 +1,6 @@
 # cython: boundscheck=False
 # cython: wraparound=False
+# cython: initializedcheck=False
 # cython: cdivision=True
 #
 cimport cython
@@ -25,7 +26,7 @@ from _raytracing_tools cimport raytracing_inout_struct_tor
 from _raytracing_tools cimport raytracing_minmax_struct_lin
 from _raytracing_tools cimport raytracing_minmax_struct_tor
 from _sampling_tools cimport discretize_line1d_core
-from _sampling_tools cimport discretize_ves_poly
+from _sampling_tools cimport discretize_vpoly_core
 
 
 # import
@@ -83,6 +84,7 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
     2D to 3D, 3D to 2D, cylindrical to cartesian...
     (CrossRef is an angle (Tor) or a distance (X for Lin))
     """
+    cdef str str_ii
     assert all([type(ff) is str and ',' in ff for ff in [In,Out]]), (
         "Arg In and Out (coordinate format) must be comma-separated  !")
     assert type(Pts) is np.ndarray and Pts.ndim in [1,2] and \
@@ -113,25 +115,25 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
     if InT==OutT:
         assert all([ss in Ins for ss in Outs])
         pts = []
-        for ii in Outs:
-            if ii=='phi':
+        for str_ii in Outs:
+            if str_ii=='phi':
                 # TODO : @DV > why ? no need of transform
                 # >>> ts les angles entre [-pi, pi] -> ajouter un if ?
-                pts.append(np.arctan2(np.sin(Pts[Ins.index(ii),:]),
-                                      np.cos(Pts[Ins.index(ii),:])))
+                pts.append(np.arctan2(np.sin(Pts[Ins.index(str_ii),:]),
+                                      np.cos(Pts[Ins.index(str_ii),:])))
             else:
-                pts.append(Pts[Ins.index(ii),:])
+                pts.append(Pts[Ins.index(str_ii),:])
     elif InT=='cart':
         pts = []
-        for ii in Outs:
-            if ii=='r':
+        for str_ii in Outs:
+            if str_ii=='r':
                 assert all([ss in Ins for ss in ['x','y']])
                 pts.append(np.hypot(Pts[Ins.index('x'),:],
                                     Pts[Ins.index('y'),:]))
-            elif ii=='z':
+            elif str_ii=='z':
                 assert 'z' in Ins
                 pts.append(Pts[Ins.index('z'),:])
-            elif ii=='phi':
+            elif str_ii=='phi':
                 if all([ss in Ins for ss in ['x','y']]):
                     pts.append(np.arctan2(Pts[Ins.index('y'),:],
                                           Pts[Ins.index('x'),:]))
@@ -142,8 +144,8 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
                 # TODO: @VZ > else... ? if Outs = (x, r, phi) ?
     else:
         pts = []
-        for ii in Outs:
-            if ii=='x':
+        for str_ii in Outs:
+            if str_ii=='x':
                 if all([ss in Ins for ss in ['r','phi']]) :
                     # TODO : @VZ : and CrossRef is None ?
                     # >>> ajouter un warning si crossref a ete defini
@@ -153,11 +155,11 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
                     pts.append( CrossRef*np.ones((Pts.shape[1],)) )
                 else:
                     raise Exception("There is no x value available !")
-            elif ii=='y':
+            elif str_ii=='y':
                 assert all([ss in Ins for ss in ['r','phi']])
                 pts.append(Pts[Ins.index('r'),:] *
                            np.sin(Pts[Ins.index('phi'),:]))
-            elif ii=='z':
+            elif str_ii=='z':
                 assert 'z' in Ins
                 pts.append(Pts[Ins.index('z'),:])
                 # TODO : else....?
@@ -201,7 +203,7 @@ def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     product (of just the right edges) suffices.  Code for this is
     available at ftp://cs.smith.edu/pub/code/polyorient.C (2K).
     """
-    cdef int ii, NP=Poly.shape[1]
+    cdef Py_ssize_t ii, NP=Poly.shape[1]
     cdef double Sum=0.
     for ii in range(0,NP-1):
         # Slightly faster solution: (to check)  and try above solution ?
@@ -405,6 +407,7 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
         assert type(VType) is str and VType.lower() in ['tor','lin'], "Arg VType must be a str in ['Tor','Lin'] !"
         assert type(nLim) in [int,np.int64] and nLim>=0
 
+    cdef Py_ssize_t ii
     path = Path(VPoly.T)
     if VType.lower()=='tor':
         if Lim is None or nLim==0:
@@ -463,8 +466,8 @@ def _Ves_isInside(Pts, VPoly, Lim=None, nLim=None,
 
 # ==============================================================================
 #
-#                                   LINEAR MESHING
-#                          i.e. Discretizing horizontal lines
+#                                 LINEAR MESHING
+#                       i.e. Discretizing horizontal lines
 #
 # ==============================================================================
 def discretize_line1d(double[::1] LMinMax, double dstep,
@@ -514,7 +517,12 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     cdef double[1] resolution
     cdef double* ldiscret = NULL
     cdef long* lindex = NULL
-    #.. preparing inputs........................................................
+    cdef str mode_low = mode.lower()
+    cdef int mode_num
+    # .. Testing ...............................................................
+    assert mode_low in ['abs', 'rel'], "Mode has to be 'abs' (absolute)" +\
+        " or 'rel' (relative)"
+    # .. preparing inputs.......................................................
     if DL is None:
         dl_array[0] = Cnan
         dl_array[1] = Cnan
@@ -527,9 +535,17 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
             dl_array[1] = Cnan
         else:
             dl_array[1] = DL[1]
+    if mode_low == 'abs':
+        mode_num = 1
+    elif mode_low == 'rel':
+        mode_num = 2
+    else:
+        # should never reach this point
+        mode_num = -1
+        assert(False)
     #.. calling cython function.................................................
-    sz_ld = discretize_line1d_core(LMinMax, dstep, dl_array, Lim, mode, margin,
-                                    &ldiscret, resolution, &lindex, N)
+    sz_ld = discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim, mode_num,
+                                   margin, &ldiscret, resolution, &lindex, N)
     #.. converting and returning................................................
     return np.asarray(<double[:sz_ld]> ldiscret), resolution[0],\
         np.asarray(<long[:sz_ld]>lindex), N[0]
@@ -591,6 +607,7 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     resol2 : double
         Smallest resolution on y
     """
+    cdef Py_ssize_t ii, jj
     cdef int num_pts_vpoly
     cdef int ndisc
     cdef int tot_true
@@ -613,6 +630,11 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef double[2] dl1_array
     cdef double[2] dl2_array
     cdef double[2] resolutions
+    cdef str mode_low = mode.lower()
+    cdef int mode_num
+    # .. Testing ...............................................................
+    assert mode_low in ['abs', 'rel'], "Mode has to be 'abs' (absolute)" +\
+        " or 'rel' (relative)"
     # .. Treating subdomains and Limits ........................................
     if D1 is None:
         dl1_array[0] = Cnan
@@ -638,16 +660,24 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
             dl2_array[1] = Cnan
         else:
             dl2_array[1] = D2[1]
+    if mode_low == 'abs':
+        mode_num = 1
+    elif mode_low == 'rel':
+        mode_num = 2
+    else:
+        # should never reach this point
+        mode_num = -1
+        assert(False)
     # .. Discretizing on the first direction ...................................
-    nind1 = discretize_line1d_core(LMinMax1, dstep1, dl1_array,
-                                    True, mode, margin,
-                                    &ldiscret1_arr, &resolutions[0],
-                                    &lindex1_arr, num_cells1)
+    nind1 = discretize_line1d_core(&LMinMax1[0], dstep1, dl1_array,
+                                   True, mode_num, margin,
+                                   &ldiscret1_arr, &resolutions[0],
+                                   &lindex1_arr, num_cells1)
     # .. Discretizing on the second direction ..................................
-    nind2 = discretize_line1d_core(LMinMax2, dstep2, dl2_array,
-                                    True, mode, margin,
-                                    &ldiscret2_arr, &resolutions[1],
-                                    &lindex2_arr, num_cells2)
+    nind2 = discretize_line1d_core(&LMinMax2[0], dstep2, dl2_array,
+                                   True, mode_num, margin,
+                                   &ldiscret2_arr, &resolutions[1],
+                                   &lindex2_arr, num_cells2)
     #....
     if VPoly is not None:
         ndisc = nind1 * nind2
@@ -697,10 +727,11 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
 def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
                            double d2, long[::1] ind, str dSMode='abs',
                            double margin=_VSMALL):
+    cdef Py_ssize_t NP = ind.size
+    cdef Py_ssize_t ii
     cdef double d1r, d2r
     cdef int N1, N2
-    cdef int NP = ind.size
-    cdef int ii, i1, i2
+    cdef int i1, i2
     cdef np.ndarray[double,ndim=2] Pts = np.empty((2,NP))
     cdef np.ndarray[double,ndim=1] dS
     cdef long[2] num_cells
@@ -709,14 +740,27 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     cdef double* X1 = NULL
     cdef double* X2 = NULL
     cdef long* dummy = NULL
+    cdef str mode_low = dSMode.lower()
+    cdef int mode_num
+    # .. Testing ...............................................................
+    assert mode_low in ['abs', 'rel'], "Mode has to be 'abs' (absolute)" +\
+        " or 'rel' (relative)"
     #.. preparing inputs........................................................
     dl_array[0] = Cnan
     dl_array[1] = Cnan
+    if mode_low == 'abs':
+        mode_num = 1
+    elif mode_low == 'rel':
+        mode_num = 2
+    else:
+        # should never reach this point
+        mode_num = -1
+        assert(False)
     #.. calling cython function.................................................
-    discretize_line1d_core(MinMax1, d1, dl_array, True, dSMode, margin,
-                            &X1, &resolution[0], &dummy, &num_cells[0])
-    discretize_line1d_core(MinMax2, d2, dl_array, True, dSMode, margin,
-                            &X2, &resolution[1], &dummy, &num_cells[1])
+    discretize_line1d_core(&MinMax1[0], d1, dl_array, True, mode_num, margin,
+                           &X1, &resolution[0], &dummy, &num_cells[0])
+    discretize_line1d_core(&MinMax2[0], d2, dl_array, True, mode_num, margin,
+                           &X2, &resolution[1], &dummy, &num_cells[1])
     d1r = resolution[0]
     d2r = resolution[1]
     N1 = num_cells[0]
@@ -734,6 +778,47 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
                      str mode='abs', list D1=None, list D2=None,
                      double margin=_VSMALL, double DIn=0.,
                      double[:,::1] VIn=None):
+    """
+    Discretizes a VPoly (2D polygon of a cross section in (R,Z) coordinates).
+    The refinement on R and Z is defined dL.
+    Optionnally you can give a coefficient (DIn) and the normal vectors going
+    inwards the VPoly (VIn), and the result will be slightly shifted inwards
+    (or outwards if DIn<0) of DIn*VIn.
+    Parameters
+    ==========
+    VPoly : (2, num_vertex) double array
+       Coordinates of the vertices of the Polygon defining the 2D poloidal
+       cut of the Vessel
+    dL : double
+        Step of discretization, can be absolute (default) or relative
+    D1 or D2 : (optional) (2)-double array
+        Sub domain of discretization.
+        (can be only on one limit and can be bigger or smaller than original).
+        Actual desired limits
+    mode : (optional) string
+        If `mode` is "abs" (absolute), then the
+        segment will be discretized in cells each of size `dstep`. Else,
+        if "rel" (relative), the meshing step is relative to the segments norm
+    margin : (optional) double
+        Margin value for cell length
+    Returns
+    =======
+    return PtsCross, resol, ind_arr, N_arr, Rref_arr, VPolybis
+    PtsCross: double 2d array
+        array of the discretized coordinates of the VPoly
+    resol: double 1d array
+        step of discretization on 2d
+    ind_arr: int  1d array
+        array of the indices corresponding to ldiscret with respects to the
+        original VPoly
+    N_arr : int 1d array
+        number of cells on each segment of the VPoly
+    Rref_arr : double 1d array
+        reference Radius coordinates, not shifted even if DIn <> 0.
+        If DIn == 0, then Rref_arr = PtsCross[0, ...]
+    VPolybis :
+        
+    """
     cdef int NP=VPoly.shape[1]
     cdef int[1] sz_vb, sz_ot
     cdef double* XCross = NULL
@@ -748,13 +833,27 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     cdef np.ndarray[double,ndim=1] Rref_arr, resol
     cdef np.ndarray[long,ndim=1] ind_arr, N_arr
     cdef np.ndarray[long,ndim=1] ind_in
-
+    cdef str mode_low = mode.lower()
+    cdef int mode_num
+    # .. Testing ...............................................................
+    assert mode_low in ['abs', 'rel'], "Mode has to be 'abs' (absolute)" +\
+        " or 'rel' (relative)"
     assert (not (DIn == 0.) or VIn is not None)
-
-    discretize_ves_poly(VPoly, dL, mode, margin, DIn, VIn,
-                        &XCross, &YCross, &resolution,
-                        &ind, &numcells, &Rref, &XPolybis, &YPolybis,
-                        sz_vb, sz_ot, NP)
+    # .. preparing inputs.......................................................
+    if mode_low == 'abs':
+        mode_num = 1
+    elif mode_low == 'rel':
+        mode_num = 2
+    else:
+        # should never reach this point
+        mode_num = -1
+        assert(False)
+    discretize_vpoly_core(VPoly, dL, mode_num, margin, DIn, VIn,
+                          &XCross, &YCross, &resolution,
+                          &ind, &numcells, &Rref, &XPolybis, &YPolybis,
+                          &sz_vb[0], &sz_ot[0], NP)
+    assert not ((XCross == NULL) or (YCross == NULL)
+                or (XPolybis == NULL) or (YPolybis == NULL))
     PtsCross = np.asarray([<double[:sz_ot[0]]> XCross,
                            <double[:sz_ot[0]]> YCross])
     VPolybis = np.asarray([<double[:sz_vb[0]]> XPolybis,
@@ -778,26 +877,22 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
 
 
 
-
-########################################################
-########################################################
-#       Meshing - Volume - Tor
-########################################################
-
-
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
+# ==============================================================================
+#
+#                     3D MESHING in TOROIDAL configurations
+#                           i.e. Discretizing Volumes
+#
+# ==============================================================================
 def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
                                    double[::1] RMinMax, double[::1] ZMinMax,
                                    double[::1] DR=None, double[::1] DZ=None,
                                    DPhi=None, VPoly=None,
                                    str Out='(X,Y,Z)', double margin=_VSMALL):
-    """Return the desired submesh indicated by the limits (DR,DZ,DPhi),
+    """
+    Return the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (dR,dZ,dRphi)
     """
     cdef double[::1] R0, R, Z, dRPhir, dPhir, NRPhi
-    #cdef double[::1] dPhi, NRZPhi_cum0, indPhi, phi
     cdef double dRr0, dRr, dZr, DPhi0, DPhi1
     cdef double abs0, abs1, phi, indiijj
     cdef long[::1] indR0, indR, indZ, Phin, NRPhi0
@@ -930,11 +1025,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     return Pts, dV, ind.astype(int), dRr, dZr, np.asarray(dRPhir)
 
 
-
-
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
 def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
                                      double[::1] RMinMax, double[::1] ZMinMax,
                                      long[::1] ind, str Out='(X,Y,Z)',
@@ -946,7 +1036,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
     cdef double dRr, dZr, phi
     cdef long[::1] indR, indZ, NRPhi0, NRPhi
     cdef long NR, NZ, Rn, Zn, NP=len(ind), Rratio
-    cdef int ii=0, jj=0, iiR, iiZ, iiphi
+    cdef Py_ssize_t ii=0, jj=0, iiR, iiZ, iiphi
     cdef double[:,::1] Phi
     cdef np.ndarray[double,ndim=2] Pts=np.empty((3,NP))
     cdef np.ndarray[double,ndim=1] dV=np.empty((NP,))
@@ -1010,12 +1100,12 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
     return Pts, dV, dRr, dZr, np.asarray(dRPhir)[~np.isnan(dRPhir)]
 
 
-
-########################################################
-########################################################
-#       Meshing - Volume - Lin
-########################################################
-
+# ==============================================================================
+#
+#                      3D MESHING in LINEAR configurations
+#                           i.e. Discretizing Volumes
+#
+# ==============================================================================
 
 def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
                                    double[::1] XMinMax, double[::1] YMinMax,
@@ -1713,7 +1803,7 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 cdef _check_DLvsLMinMax(double[::1] LMinMax, DL=None):
-    Inter = 1
+    cdef int Inter = 1
     if DL is not None:
         assert len(DL)==2 and DL[0]<DL[1]
         assert LMinMax[0]<LMinMax[1]
@@ -2011,10 +2101,10 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
        where k is the index of edge impacted on the j-th sub structure of the
        structure number i. If the LOS impacted the vessel i=j=0
     """
+    cdef Py_ssize_t ii, jj, kk
     cdef int npts_poly = ves_norm.shape[1]
     cdef int num_los = ray_orig.shape[1]
     cdef int ind_struct = 0
-    cdef int ii, jj, kk
     cdef int len_lim
     cdef int ind_min
     cdef int nvert
@@ -2477,7 +2567,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         C0 = type(VType) is str and VType.lower() in ['tor','lin']
         assert C0, "Arg VType must be a str in ['Tor','Lin']!"
 
-    cdef int ii, jj, npts=pts.shape[1]
+    cdef Py_ssize_t ii, jj, npts=pts.shape[1]
     cdef np.ndarray[double, ndim=2, mode='c'] Ds, dus
     Ds = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
     dus = (pts-Ds)/k
@@ -2547,77 +2637,87 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 
 
 
-######################################################################
-#               Sampling
-######################################################################
-
-
-# .................................. TODO .................................
-# optimize this algorithm..................................................
-# .................................. TODO .................................
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
+# ==============================================================================
+#
+#                                  LOS SAMPLING
+#
+# ==============================================================================
 @cython.initializedcheck(False)
 @cython.profile(False)
 @cython.linetrace(False)
 @cython.binding(False)
 def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
-                   double[:,::1] DLs, str dLMode='abs', str method='sum',
-                   Test=True):
+                   double[:,::1] DLs, str dmethod='abs',
+                   str method='sum', bint Test=True):
     # NE PAS RENVOYER LES POINTS..........................................
     # k = [liste de k pour LOS_0, liste de k pour LOS_1, ...]
     # + un autre tab d'indices : [indice du dernier de LOS_0, indice du dernier de LOS_1, ...]
     # tq : on peut utiliser split avec k
+    # 'linspace': return the N+1 edges, including the first and last point ....
+    #...
     #.....................................................................
     """ Return the sampled line, with the specified method
 
-    #.. n'existe plus : 'linspace': return the N+1 edges, including the first and last point
+    #.. n'existe plus :
     'sum' :     return N segments centers
     'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
     'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
     """
+    cdef bint C0, C1
+    cdef int sz1_ds, sz2_ds
+    cdef int sz1_us, sz2_us
+    cdef int sz1_dls, sz2_dls
+    cdef str error_message
+    cdef str dmode = dmethod.lower()
+    cdef str imode = method.lower()
+    # Ds shape needed for testing and in algo
+    sz1_ds = Ds.shape[0]
+    sz2_ds = Ds.shape[1]
+    # .. verifying arguments ...................................................
     if Test:
-        assert Ds.shape[0]==us.shape[0]==3, "Args Ds, us - dim 0"
-        assert DLs.shape[0]==2, "Arg DLs - dim 0"
-        assert Ds.shape[1]==us.shape[1]==DLs.shape[1], "Args Ds, us, DLs 1"
-        C0 = not hasattr(dL,'__iter__') and dL>0.
-        C1 = hasattr(dL,'__iter__') and len(dL)==Ds.shape[1] and np.all(dL>0.)
-        assert C0 or C1, "Arg dL must be >0.!"
-        assert dLMode.lower() in ['abs','rel'], "Arg dLMode in ['abs','rel']"
-        assert method.lower() in ['sum','simps','romb'], "Arg method"
+        sz1_us = us.shape[0]
+        sz2_us = us.shape[1]
+        sz1_dls = DLs.shape[0]
+        sz2_dls = DLs.shape[1]
+        assert sz1_ds == 3, "Dim 0 of arg Ds should be 3"
+        assert sz1_us == 3, "Dim 0 of arg us should be 3"
+        assert sz1_dls == 2, "Dim 0 of arg DLs should be 2"
+        error_message = "Args Ds, us, DLs should have same dimension 1"
+        assert sz2_ds == sz2_us == sz2_dls, error_message
+        C0 = not hasattr(dL, '__iter__') and dL > 0.
+        C1 = hasattr(dL, '__iter__') and len(dL)==sz2_ds and np.all(dL>0.)
+        assert C0 or C1, "Arg dL must be a double or a List, and all dL >0.!"
+        error_message = "Argument dmethod (discretization method) should be in"\
+                        +" ['abs','rel'], for absolute or relative."
+        assert dmode in ['abs','rel'], error_message
+        error_message = "Wrong method of integration." \
+                        + " Options are: ['sum','simps','romb', 'linspace']"
+        assert imode in ['sum','simps','romb','linspace'], error_message
 
-    cdef unsigned int ii, jj, N, ND = Ds.shape[1]
+    cdef unsigned int ii, jj, N, ND = sz2_ds
     cdef double kkk, D0, D1, D2, u0, u1, u2, dl0, dl
     cdef np.ndarray[double,ndim=1] dLr = np.empty((ND,),dtype=float)
     cdef np.ndarray[double,ndim=1] kk
-    cdef np.ndarray[double,ndim=2] pts
-    cdef list Pts=[0 for ii in range(0,ND)], k=[0 for ii in range(0,ND)]
+    cdef list k=[0 for ii in range(0,ND)]
 
-    dLMode = dLMode.lower()
-    method = method.lower()
+    dmethod = dmethod.lower()
     # Case with unique dL
     if not hasattr(dL,'__iter__'):
-        if dLMode=='rel':
+        if dmode=='rel':
             N = <long>(Cceil(1./dL))
-            if method=='sum':
+            if imode=='sum':
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     dl = (DLs[1,ii]-dl0)/<double>N
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N),dtype=float)
                     kk = np.empty((N,),dtype=float)
                     for jj in range(0,N):
                         kkk = dl0 + (0.5+<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
-            elif method=='simps':
+            elif imode=='simps':
                 N = N if N%2==0 else N+1
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
@@ -2625,15 +2725,10 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N+1),dtype=float)
                     kk = np.empty((N+1,),dtype=float)
                     for jj in range(0,N+1):
                         kkk = dl0 + (<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
 
             else:
@@ -2644,19 +2739,14 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N+1),dtype=float)
                     kk = np.empty((N+1,),dtype=float)
                     for jj in range(0,N+1):
                         kkk = dl0 + (<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
 
         else:
-            if method=='sum':
+            if imode=='sum':
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
@@ -2665,18 +2755,13 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N),dtype=float)
                     kk = np.empty((N,),dtype=float)
                     for jj in range(0,N):
                         kkk = dl0 + (0.5+<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
 
-            elif method=='simps':
+            elif imode=='simps':
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
@@ -2686,17 +2771,11 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N+1),dtype=float)
                     kk = np.empty((N+1,),dtype=float)
                     for jj in range(0,N+1):
                         kkk = dl0 + (<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
-
             else:
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
@@ -2707,21 +2786,15 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N+1),dtype=float)
                     kk = np.empty((N+1,),dtype=float)
                     for jj in range(0,N+1):
                         kkk = dl0 + (<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
-
     # Case with different resolution for each LOS
     else:
-        if dLMode=='rel':
-            if method=='sum':
+        if dmode=='rel':
+            if imode=='sum':
                 for ii in range(0,ND):
                     N = <long>(Cceil(1./dL[ii]))
                     dl0 = DLs[0,ii]
@@ -2729,17 +2802,12 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N),dtype=float)
                     kk = np.empty((N,),dtype=float)
                     for jj in range(0,N):
                         kkk = dl0 + (0.5+<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
-            elif method=='simps':
+            elif imode=='simps':
                 for ii in range(0,ND):
                     N = <long>(Cceil(1./dL[ii]))
                     N = N if N%2==0 else N+1
@@ -2748,17 +2816,11 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N+1),dtype=float)
                     kk = np.empty((N+1,),dtype=float)
                     for jj in range(0,N+1):
                         kkk = dl0 + (<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
-
             else:
                 for ii in range(0,ND):
                     N = <long>(Cceil(1./dL[ii]))
@@ -2768,19 +2830,13 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N+1),dtype=float)
                     kk = np.empty((N+1,),dtype=float)
                     for jj in range(0,N+1):
                         kkk = dl0 + (<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
-
         else:
-            if method=='sum':
+            if imode=='sum':
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
@@ -2789,18 +2845,13 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N),dtype=float)
                     kk = np.empty((N,),dtype=float)
                     for jj in range(0,N):
                         kkk = dl0 + (0.5+<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
 
-            elif method=='simps':
+            elif imode=='simps':
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
@@ -2810,17 +2861,11 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N+1),dtype=float)
                     kk = np.empty((N+1,),dtype=float)
                     for jj in range(0,N+1):
                         kkk = dl0 + (<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
-
             else:
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
@@ -2831,18 +2876,12 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    pts = np.empty((3,N+1),dtype=float)
                     kk = np.empty((N+1,),dtype=float)
                     for jj in range(0,N+1):
                         kkk = dl0 + (<double>jj)*dl
                         kk[jj] = kkk
-                        pts[0,jj] = D0 + kkk*u0
-                        pts[1,jj] = D1 + kkk*u1
-                        pts[2,jj] = D2 + kkk*u2
-                    Pts[ii] = pts
                     k[ii] = kk
-
-    return Pts, k, dLr
+    return k, dLr
 
 
 
@@ -2921,7 +2960,6 @@ def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
     return ani
 
 
-
 def integrate1d(y, double dx, t=None, str method='sum'):
     """ Generic integration method ['sum','simps','romb']
 
@@ -2964,7 +3002,7 @@ def integrate1d(y, double dx, t=None, str method='sum'):
 @cython.binding(False)
 def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                    double[:,::1] DLs, t=None, Ani=None, dict fkwdargs={},
-                   str dLMode='abs', str method='simps',
+                   str dmethod='abs', str method='simps',
                    Test=True):
 
     """ Return the sampled line, with the specified method
@@ -2981,7 +3019,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
         C0 = not hasattr(dL,'__iter__') and dL>0.
         C1 = hasattr(dL,'__iter__') and len(dL)==Ds.shape[1] and np.all(dL>0.)
         assert C0 or C1, "Arg dL must be >0.!"
-        assert dLMode.lower() in ['abs','rel'], "Arg dLMode in ['abs','rel']"
+        assert dmethod.lower() in ['abs','rel'], "Arg dmethod in ['abs','rel']"
         assert method.lower() in ['sum','simps','romb'], "Arg method"
     # Testing function
     cdef bool ani = check_ff(ff,t=t,Ani=Ani)
@@ -2997,11 +3035,11 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
         axm = 1
     cdef np.ndarray[double,ndim=2] sig = np.empty((nt,ND),dtype=float)
 
-    dLMode = dLMode.lower()
+    dmethod = dmethod.lower()
     method = method.lower()
     # Case with unique dL
     if not hasattr(dL,'__iter__'):
-        if dLMode=='rel':
+        if dmethod=='rel':
             N = <long>(Cceil(1./dL))
             if method=='sum':
                 for ii in range(0,ND):
@@ -3116,7 +3154,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
 
     # Case with different resolution for each LOS
     else:
-        if dLMode=='rel':
+        if dmethod=='rel':
             if method=='sum':
                 for ii in range(0,ND):
                     N = <long>(Cceil(1./dL[ii]))

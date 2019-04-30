@@ -3936,7 +3936,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Todo : reverse in _GG : make compact default for faster computation !
         lpts, k, reseff = _GG.LOS_get_sample(Ds, us, res, DL,
-                                             dLMode=resMode, method=method)
+                                             dmethod=resMode, method=method)
         if compact:
             pts = np.concatenate(lpts, axis=1)
             ind = np.array([pt.shape[1] for pt in lpts], dtype=int)
@@ -4172,7 +4172,7 @@ class Rays(utils.ToFuObject):
             # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
             # Exclude Rays not seeing the plasma
             s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
-                                    dLMode=resMode, method=method,
+                                    dmethod=resMode, method=method,
                                     t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
             if t is None or len(t)==1:
                 sig[indok] = s

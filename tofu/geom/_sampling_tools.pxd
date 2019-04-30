@@ -14,16 +14,17 @@ from libc.math cimport NAN as Cnan
 from libc.stdlib cimport malloc, free, realloc
 from cpython.array cimport array, clone
 from _basic_geom_tools cimport _VSMALL
+
+
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
-
-cdef inline long discretize_line1d_core(double[::1] LMinMax, double dstep,
+cdef inline long discretize_line1d_core(double* LMinMax, double dstep,
                                          double[2] DL, bint Lim,
-                                         str mode, double margin,
+                                         int mode, double margin,
                                          double** ldiscret_arr,
                                          double[1] resolution,
-                                         long** lindex_arr, long[1] N):
+                                         long** lindex_arr, long[1] N) nogil:
     cdef int ii
     cdef int[1] nL0
     cdef long[1] Nind
@@ -44,17 +45,16 @@ cdef inline long discretize_line1d_core(double[::1] LMinMax, double dstep,
                                    nL0[0], resolution[0], Nind[0])
     return Nind[0]
 
-
-cdef inline void first_discretize_line1d_core(double[::1] LMinMax,
-                                               double dstep,
-                                               double[1] resolution,
-                                               long[1] num_cells,
-                                               long[1] Nind,
-                                               int[1] nL0,
-                                               double[2] DL,
-                                               bint Lim,
-                                               str mode,
-                                               double margin):
+cdef inline void first_discretize_line1d_core(double* LMinMax,
+                                              double dstep,
+                                              double[1] resolution,
+                                              long[1] num_cells,
+                                              long[1] Nind,
+                                              int[1] nL0,
+                                              double[2] DL,
+                                              bint Lim,
+                                              int mode,
+                                              double margin) nogil:
     """
     Computes the resolution, the desired limits, and the number of cells when
     discretising the segmen LMinMax with the given parameters. It doesn't do the
@@ -67,9 +67,9 @@ cdef inline void first_discretize_line1d_core(double[::1] LMinMax,
     cdef double[2] desired_limits
 
     # .. Computing "real" discretization step, depending on `mode`..............
-    if mode.lower()=='abs':
+    if mode == 1: # absolute
         num_cells[0] = <int>Cceil((LMinMax[1] - LMinMax[0])/dstep)
-    else:
+    else: # relative
         num_cells[0] = <int>Cceil(1./dstep)
     resolution[0] = (LMinMax[1] - LMinMax[0])/num_cells[0]
     # .. Computing desired limits ..............................................
@@ -105,12 +105,12 @@ cdef inline void first_discretize_line1d_core(double[::1] LMinMax,
     Nind[0] = nL1 + 1 - nL0[0]
     return
 
-cdef inline void second_discretize_line1d_core(double[::1] LMinMax,
-                                                double* ldiscret,
-                                                long* lindex,
-                                                int nL0,
-                                                double resolution,
-                                                long Nind):
+cdef inline void second_discretize_line1d_core(double* LMinMax,
+                                               double* ldiscret,
+                                               long* lindex,
+                                               int nL0,
+                                               double resolution,
+                                               long Nind) nogil:
     """
     Does the actual discretization of the segment LMinMax.
     Computes the coordinates of the cells on the discretized segment and the
@@ -130,22 +130,24 @@ cdef inline void second_discretize_line1d_core(double[::1] LMinMax,
 # =  Vessel's poloidal cut discretization
 # ==============================================================================
 
-cdef inline void discretize_ves_poly(double[:, ::1] VPoly, double dstep,
-                                     str mode, double margin, double DIn,
-                                     double[:, ::1] VIn,
-                                     double** XCross, double** YCross,
-                                     double** resol,
-                                     long** ind, long** numcells, double** Rref,
-                                     double** XPolybis, double** YPolybis,
-                                     int[1] tot_sz_vb, int[1] tot_sz_ot,
-                                     int NP):
-    cdef Py_ssize_t sz_vpoly_bis = 0
+cdef inline void discretize_vpoly_core(double[:, ::1] VPoly, double dstep,
+                                       int mode, double margin, double DIn,
+                                       double[:, ::1] VIn,
+                                       double** XCross, double** YCross,
+                                       double** reso, long** ind,
+                                       long** numcells, double** Rref,
+                                       double** XPolybis, double** YPolybis,
+                                       int[1] tot_sz_vb, int[1] tot_sz_ot,
+                                       int NP) nogil:
+    cdef Py_ssize_t sz_vbis = 0
     cdef Py_ssize_t sz_others = 0
     cdef Py_ssize_t last_sz_vbis = 0
     cdef Py_ssize_t last_sz_othr = 0
     cdef int ii, jj
     cdef double v0, v1
+    cdef double rv0, rv1
     cdef double inv_norm
+    cdef double shiftx, shifty
     cdef double[1] loc_resolu
     cdef double[2] LMinMax
     cdef double[2] dl_array
@@ -158,7 +160,7 @@ cdef inline void discretize_ves_poly(double[:, ::1] VPoly, double dstep,
     dl_array[1] = Cnan
     numcells[0] = <long*>malloc((NP-1)*sizeof(long))
     #.. Filling arrays..........................................................
-    if abs(DIn) < _VSMALL:
+    if Cabs(DIn) < _VSMALL:
         for ii in range(NP-1):
             v0 = VPoly[0,ii+1]-VPoly[0,ii]
             v1 = VPoly[1,ii+1]-VPoly[1,ii]
@@ -168,37 +170,39 @@ cdef inline void discretize_ves_poly(double[:, ::1] VPoly, double dstep,
                                     mode, margin, &ldiscret, loc_resolu,
                                     &lindex, &numcells[0][ii])
             # .. prepaaring Poly bis array......................................
-            last_sz_vbis = sz_vpoly_bis
-            sz_vpoly_bis += 1 + numcells[0][ii]
-            XPolybis[0] = <double*>realloc(XPolybis[0], sz_vpoly_bis*sizeof(double))
-            YPolybis[0] = <double*>realloc(YPolybis[0], sz_vpoly_bis*sizeof(double))
-            XPolybis[0][sz_vpoly_bis - (1 + numcells[0][ii])] = VPoly[0, ii]
-            YPolybis[0][sz_vpoly_bis - (1 + numcells[0][ii])] = VPoly[1, ii]
+            last_sz_vbis = sz_vbis
+            sz_vbis += 1 + numcells[0][ii]
+            XPolybis[0] = <double*>realloc(XPolybis[0], sz_vbis*sizeof(double))
+            YPolybis[0] = <double*>realloc(YPolybis[0], sz_vbis*sizeof(double))
+            XPolybis[0][sz_vbis - (1 + numcells[0][ii])] = VPoly[0, ii]
+            YPolybis[0][sz_vbis - (1 + numcells[0][ii])] = VPoly[1, ii]
             # .. preparing other arrays ........................................
             last_sz_othr = sz_others
             sz_others += numcells[0][ii]
-            resol[0]  = <double*>realloc(resol[0],  sizeof(double)*sz_others)
-            Rref[0]   = <double*>realloc(Rref[0],   sizeof(double)*sz_others)
+            reso[0] = <double*>realloc(reso[0], sizeof(double)*sz_others)
+            Rref[0] = <double*>realloc(Rref[0], sizeof(double)*sz_others)
             XCross[0] = <double*>realloc(XCross[0], sizeof(double)*sz_others)
             YCross[0] = <double*>realloc(YCross[0], sizeof(double)*sz_others)
             ind[0] = <long*>realloc(ind[0], sizeof(long)*sz_others)
             # ...
             v0 = v0 * inv_norm
             v1 = v1 * inv_norm
+            rv0 = loc_resolu[0]*v0
+            rv1 = loc_resolu[0]*v1
             for jj in range(numcells[0][ii]):
                 ind[0][last_sz_othr + jj] = last_sz_othr + jj
-                resol[0][last_sz_othr + jj] = loc_resolu[0]
-                Rref[0][last_sz_othr + jj] = VPoly[0,ii] + ldiscret[jj]*v0
-                XCross[0][last_sz_othr + jj] = VPoly[0,ii] + ldiscret[jj]*v0
-                YCross[0][last_sz_othr + jj] = VPoly[1,ii] + ldiscret[jj]*v1
-                XPolybis[0][last_sz_vbis + jj] = VPoly[0,ii] + jj*loc_resolu[0]*v0
-                YPolybis[0][last_sz_vbis + jj] = VPoly[1,ii] + jj*loc_resolu[0]*v1
+                reso[0][last_sz_othr + jj] = loc_resolu[0]
+                Rref[0][last_sz_othr + jj] = VPoly[0,ii] + ldiscret[jj] * v0
+                XCross[0][last_sz_othr + jj] = VPoly[0,ii] + ldiscret[jj] * v0
+                YCross[0][last_sz_othr + jj] = VPoly[1,ii] + ldiscret[jj] * v1
+                XPolybis[0][last_sz_vbis + jj] = VPoly[0,ii] + jj * rv0
+                YPolybis[0][last_sz_vbis + jj] = VPoly[1,ii] + jj * rv1
         # We close the polygon of VPolybis
-        sz_vpoly_bis += 1
-        XPolybis[0] = <double*>realloc(XPolybis[0], sz_vpoly_bis*sizeof(double))
-        YPolybis[0] = <double*>realloc(YPolybis[0], sz_vpoly_bis*sizeof(double))
-        XPolybis[0][sz_vpoly_bis - 1] = VPoly[0, 0]
-        YPolybis[0][sz_vpoly_bis - 1] = VPoly[1, 0]
+        sz_vbis += 1
+        XPolybis[0] = <double*>realloc(XPolybis[0], sz_vbis*sizeof(double))
+        YPolybis[0] = <double*>realloc(YPolybis[0], sz_vbis*sizeof(double))
+        XPolybis[0][sz_vbis - 1] = VPoly[0, 0]
+        YPolybis[0][sz_vbis - 1] = VPoly[1, 0]
     else:
         for ii in range(NP-1):
             v0 = VPoly[0,ii+1]-VPoly[0,ii]
@@ -209,16 +213,16 @@ cdef inline void discretize_ves_poly(double[:, ::1] VPoly, double dstep,
                                     mode, margin, &ldiscret, loc_resolu,
                                     &lindex, &numcells[0][ii])
             # .. prepaaring Poly bis array......................................
-            last_sz_vbis = sz_vpoly_bis
-            sz_vpoly_bis += 1 + numcells[0][ii]
-            XPolybis[0] = <double*>realloc(XPolybis[0], sz_vpoly_bis*sizeof(double))
-            YPolybis[0] = <double*>realloc(YPolybis[0], sz_vpoly_bis*sizeof(double))
-            XPolybis[0][sz_vpoly_bis - (1 + numcells[0][ii])] = VPoly[0, ii]
-            YPolybis[0][sz_vpoly_bis - (1 + numcells[0][ii])] = VPoly[1, ii]
+            last_sz_vbis = sz_vbis
+            sz_vbis += 1 + numcells[0][ii]
+            XPolybis[0] = <double*>realloc(XPolybis[0], sz_vbis*sizeof(double))
+            YPolybis[0] = <double*>realloc(YPolybis[0], sz_vbis*sizeof(double))
+            XPolybis[0][sz_vbis - (1 + numcells[0][ii])] = VPoly[0, ii]
+            YPolybis[0][sz_vbis - (1 + numcells[0][ii])] = VPoly[1, ii]
             # .. preparing other arrays ........................................
             last_sz_othr = sz_others
             sz_others += numcells[0][ii]
-            resol[0]  = <double*>realloc(resol[0],  sizeof(double)*sz_others)
+            reso[0]  = <double*>realloc(reso[0],  sizeof(double)*sz_others)
             Rref[0]   = <double*>realloc(Rref[0],   sizeof(double)*sz_others)
             XCross[0] = <double*>realloc(XCross[0], sizeof(double)*sz_others)
             YCross[0] = <double*>realloc(YCross[0], sizeof(double)*sz_others)
@@ -226,21 +230,25 @@ cdef inline void discretize_ves_poly(double[:, ::1] VPoly, double dstep,
             # ...
             v0 = v0 * inv_norm
             v1 = v1 * inv_norm
+            rv0 = loc_resolu[0]*v0
+            rv1 = loc_resolu[0]*v1
+            shiftx = DIn*VIn[0,ii]
+            shifty = DIn*VIn[1,ii]
             for jj in range(numcells[0][ii]):
                 ind[0][last_sz_othr] = last_sz_othr
-                resol[0][last_sz_othr] = loc_resolu[0]
-                Rref[0][last_sz_othr] = VPoly[0,ii] + ldiscret[jj]*v0
-                XCross[0][last_sz_othr] = VPoly[0,ii] + ldiscret[jj]*v0 + DIn*VIn[0,ii]
-                YCross[0][last_sz_othr] = VPoly[1,ii] + ldiscret[jj]*v1 + DIn*VIn[1,ii]
-                XPolybis[0][last_sz_vbis + jj] = VPoly[0,ii] + jj*loc_resolu[0]*v0
-                YPolybis[0][last_sz_vbis + jj] = VPoly[1,ii] + jj*loc_resolu[0]*v1
+                reso[0][last_sz_othr] = loc_resolu[0]
+                Rref[0][last_sz_othr]   = VPoly[0,ii] + ldiscret[jj]*v0
+                XCross[0][last_sz_othr] = VPoly[0,ii] + ldiscret[jj]*v0 + shiftx
+                YCross[0][last_sz_othr] = VPoly[1,ii] + ldiscret[jj]*v1 + shifty
+                XPolybis[0][last_sz_vbis + jj] = VPoly[0,ii] + jj * rv0
+                YPolybis[0][last_sz_vbis + jj] = VPoly[1,ii] + jj * rv1
                 last_sz_othr += 1
         # We close the polygon of VPolybis
-        sz_vpoly_bis += 1
-        XPolybis[0] = <double*>realloc(XPolybis[0], sz_vpoly_bis*sizeof(double))
-        YPolybis[0] = <double*>realloc(YPolybis[0], sz_vpoly_bis*sizeof(double))
-        XPolybis[0][sz_vpoly_bis - 1] = VPoly[0, 0]
-        YPolybis[0][sz_vpoly_bis - 1] = VPoly[1, 0]
-    tot_sz_vb[0] = sz_vpoly_bis
+        sz_vbis += 1
+        XPolybis[0] = <double*>realloc(XPolybis[0], sz_vbis*sizeof(double))
+        YPolybis[0] = <double*>realloc(YPolybis[0], sz_vbis*sizeof(double))
+        XPolybis[0][sz_vbis - 1] = VPoly[0, 0]
+        YPolybis[0][sz_vbis - 1] = VPoly[1, 0]
+    tot_sz_vb[0] = sz_vbis
     tot_sz_ot[0] = sz_others
     return
