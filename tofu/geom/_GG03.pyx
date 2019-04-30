@@ -27,7 +27,12 @@ from _raytracing_tools cimport raytracing_minmax_struct_lin
 from _raytracing_tools cimport raytracing_minmax_struct_tor
 from _sampling_tools cimport discretize_line1d_core
 from _sampling_tools cimport discretize_vpoly_core
-
+from _sampling_tools cimport middle_rule_abs, middle_rule_rel
+from _sampling_tools cimport middle_rule_abs_var, middle_rule_rel_var
+from _sampling_tools cimport left_rule_abs
+from _sampling_tools cimport simps_left_rule_rel, romb_left_rule_rel
+from _sampling_tools cimport simps_left_rule_rel_var, romb_left_rule_rel_var
+from _sampling_tools cimport simps_left_rule_abs_var, romb_left_rule_abs_var
 
 # import
 import sys
@@ -520,7 +525,7 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     cdef str mode_low = mode.lower()
     cdef int mode_num
     # .. Testing ...............................................................
-    assert mode_low in ['abs', 'rel'], "Mode has to be 'abs' (absolute)" +\
+    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be 'abs' (absolute)" +\
         " or 'rel' (relative)"
     # .. preparing inputs.......................................................
     if DL is None:
@@ -633,7 +638,7 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef str mode_low = mode.lower()
     cdef int mode_num
     # .. Testing ...............................................................
-    assert mode_low in ['abs', 'rel'], "Mode has to be 'abs' (absolute)" +\
+    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be 'abs' (absolute)" +\
         " or 'rel' (relative)"
     # .. Treating subdomains and Limits ........................................
     if D1 is None:
@@ -743,7 +748,7 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     cdef str mode_low = dSMode.lower()
     cdef int mode_num
     # .. Testing ...............................................................
-    assert mode_low in ['abs', 'rel'], "Mode has to be 'abs' (absolute)" +\
+    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be 'abs' (absolute)" +\
         " or 'rel' (relative)"
     #.. preparing inputs........................................................
     dl_array[0] = Cnan
@@ -836,7 +841,7 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     cdef str mode_low = mode.lower()
     cdef int mode_num
     # .. Testing ...............................................................
-    assert mode_low in ['abs', 'rel'], "Mode has to be 'abs' (absolute)" +\
+    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be 'abs' (absolute)" +\
         " or 'rel' (relative)"
     assert (not (DIn == 0.) or VIn is not None)
     # .. preparing inputs.......................................................
@@ -872,6 +877,14 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
         PtsCross = PtsCross[:,indin]
         resol = resol[indin]
         ind_arr = ind_arr[indin]
+    # free(XCross)
+    # free(YCross)
+    # free(XPolybis)
+    # free(YPolybis)
+    # free(resolution)
+    # free(Rref)
+    # free(ind)
+    # free(numcells)
     return PtsCross, resol, ind_arr, N_arr, Rref_arr, VPolybis
 
 
@@ -2642,7 +2655,6 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 #                                  LOS SAMPLING
 #
 # ==============================================================================
-@cython.initializedcheck(False)
 @cython.profile(False)
 @cython.linetrace(False)
 @cython.binding(False)
@@ -2670,9 +2682,21 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     cdef str error_message
     cdef str dmode = dmethod.lower()
     cdef str imode = method.lower()
+    cdef double kkk, D0, D1, D2, u0, u1, u2, dl0, dl
+    cdef double[::1] dl_view
+    cdef Py_ssize_t ii, jj, N
+    cdef Py_ssize_t num_los
+    cdef array dLr
+    cdef array los_ind
+    cdef double* los_coeffs = NULL
+    cdef np.ndarray[double,ndim=1] los_coeffs_arr
+
     # Ds shape needed for testing and in algo
     sz1_ds = Ds.shape[0]
     sz2_ds = Ds.shape[1]
+    num_los = sz2_ds
+    dLr = clone(array('d'), num_los, True)
+    los_ind = clone(array('i'), num_los, True)
     # .. verifying arguments ...................................................
     if Test:
         sz1_us = us.shape[0]
@@ -2694,194 +2718,92 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                         + " Options are: ['sum','simps','romb', 'linspace']"
         assert imode in ['sum','simps','romb','linspace'], error_message
 
-    cdef unsigned int ii, jj, N, ND = sz2_ds
-    cdef double kkk, D0, D1, D2, u0, u1, u2, dl0, dl
-    cdef np.ndarray[double,ndim=1] dLr = np.empty((ND,),dtype=float)
-    cdef np.ndarray[double,ndim=1] kk
-    cdef list k=[0 for ii in range(0,ND)]
-
-    dmethod = dmethod.lower()
     # Case with unique dL
     if not hasattr(dL,'__iter__'):
         if dmode=='rel':
-            N = <long>(Cceil(1./dL))
+            N = <Py_ssize_t> Cceil(1./dL)
             if imode=='sum':
-                for ii in range(0,ND):
-                    dl0 = DLs[0,ii]
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N,),dtype=float)
-                    for jj in range(0,N):
-                        kkk = dl0 + (0.5+<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
+                los_coeffs = <double*>malloc(sizeof(double)*N*num_los)
+                middle_rule_abs(num_los, N, &DLs[0,0], &DLs[1, 0],
+                                &dLr.data.as_doubles[0],
+                                &los_coeffs[0],
+                                &los_ind.data.as_ints[0])
             elif imode=='simps':
                 N = N if N%2==0 else N+1
-                for ii in range(0,ND):
-                    dl0 = DLs[0,ii]
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N+1,),dtype=float)
-                    for jj in range(0,N+1):
-                        kkk = dl0 + (<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
-
-            else:
+                los_coeffs = <double*>malloc(sizeof(double)*(N+1)*num_los)
+                left_rule_abs(num_los, N, &DLs[0,0], &DLs[1, 0],
+                              &dLr.data.as_doubles[0],
+                              &los_coeffs[0],
+                              &los_ind.data.as_ints[0])
+            elif imode=='romb':
                 N = 2**(<long>(Cceil(Clog2(<double>N))))
-                for ii in range(0,ND):
-                    dl0 = DLs[0,ii]
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N+1,),dtype=float)
-                    for jj in range(0,N+1):
-                        kkk = dl0 + (<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
-
+                los_coeffs = <double*>malloc(sizeof(double)*(N+1)*num_los)
+                left_rule_abs(num_los, N, &DLs[0,0], &DLs[1, 0],
+                              &dLr.data.as_doubles[0],
+                              &los_coeffs[0],
+                              &los_ind.data.as_ints[0])
         else:
             if imode=='sum':
-                for ii in range(0,ND):
-                    dl0 = DLs[0,ii]
-                    # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N,),dtype=float)
-                    for jj in range(0,N):
-                        kkk = dl0 + (0.5+<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
-
+                middle_rule_rel(num_los, dL, &DLs[0,0], &DLs[1, 0],
+                                &dLr.data.as_doubles[0],
+                                &los_coeffs,
+                                &los_ind.data.as_ints[0])
             elif imode=='simps':
-                for ii in range(0,ND):
-                    dl0 = DLs[0,ii]
-                    # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
-                    N = N if N%2==0 else N+1
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N+1,),dtype=float)
-                    for jj in range(0,N+1):
-                        kkk = dl0 + (<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
+                simps_left_rule_rel(num_los, dL, &DLs[0,0], &DLs[1, 0],
+                                    &dLr.data.as_doubles[0],
+                                    &los_coeffs,
+                                    &los_ind.data.as_ints[0])
+
             else:
-                for ii in range(0,ND):
-                    dl0 = DLs[0,ii]
-                    # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
-                    N = 2**(<long>(Cceil(Clog2(<double>N))))
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N+1,),dtype=float)
-                    for jj in range(0,N+1):
-                        kkk = dl0 + (<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
+                romb_left_rule_rel(num_los, dL, &DLs[0,0], &DLs[1, 0],
+                                   &dLr.data.as_doubles[0],
+                                   &los_coeffs,
+                                   &los_ind.data.as_ints[0])
     # Case with different resolution for each LOS
     else:
-        if dmode=='rel':
+        dl_view=dL
+        if dmode=='abs':
             if imode=='sum':
-                for ii in range(0,ND):
-                    N = <long>(Cceil(1./dL[ii]))
-                    dl0 = DLs[0,ii]
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N,),dtype=float)
-                    for jj in range(0,N):
-                        kkk = dl0 + (0.5+<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
+                middle_rule_abs_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
+                                    &dLr.data.as_doubles[0],
+                                    &los_coeffs,
+                                    &los_ind.data.as_ints[0])
             elif imode=='simps':
-                for ii in range(0,ND):
-                    N = <long>(Cceil(1./dL[ii]))
-                    N = N if N%2==0 else N+1
-                    dl0 = DLs[0,ii]
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N+1,),dtype=float)
-                    for jj in range(0,N+1):
-                        kkk = dl0 + (<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
+                simps_left_rule_abs_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
+                                        &dLr.data.as_doubles[0],
+                                        &los_coeffs,
+                                        &los_ind.data.as_ints[0])
             else:
-                for ii in range(0,ND):
-                    N = <long>(Cceil(1./dL[ii]))
-                    N = 2**(<long>(Cceil(Clog2(<double>N))))
-                    dl0 = DLs[0,ii]
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N+1,),dtype=float)
-                    for jj in range(0,N+1):
-                        kkk = dl0 + (<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
+                romb_left_rule_abs_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
+                                       &dLr.data.as_doubles[0],
+                                       &los_coeffs,
+                                       &los_ind.data.as_ints[0])
         else:
             if imode=='sum':
-                for ii in range(0,ND):
-                    dl0 = DLs[0,ii]
-                    # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N,),dtype=float)
-                    for jj in range(0,N):
-                        kkk = dl0 + (0.5+<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
-
+                middle_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
+                                    &dLr.data.as_doubles[0],
+                                    &los_coeffs,
+                                    &los_ind.data.as_ints[0])
             elif imode=='simps':
-                for ii in range(0,ND):
-                    dl0 = DLs[0,ii]
-                    # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
-                    N = N if N%2==0 else N+1
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N+1,),dtype=float)
-                    for jj in range(0,N+1):
-                        kkk = dl0 + (<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
+                simps_left_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
+                                        &dLr.data.as_doubles[0],
+                                        &los_coeffs,
+                                        &los_ind.data.as_ints[0])
             else:
-                for ii in range(0,ND):
-                    dl0 = DLs[0,ii]
-                    # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
-                    N = 2**(<long>(Cceil(Clog2(<double>N))))
-                    dl = (DLs[1,ii]-dl0)/<double>N
-                    dLr[ii] = dl
-                    D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
-                    u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
-                    kk = np.empty((N+1,),dtype=float)
-                    for jj in range(0,N+1):
-                        kkk = dl0 + (<double>jj)*dl
-                        kk[jj] = kkk
-                    k[ii] = kk
-    return k, dLr
+                print(num_los)
+                print(dl_view[0])
+                print(DLs[0,0], DLs[1,0])
+                print(dLr[0])
+                print(los_ind[0])
+                romb_left_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
+                                       &dLr.data.as_doubles[0],
+                                       &los_coeffs,
+                                       &los_ind.data.as_ints[0])
+    print("los_ind last = ", los_ind[num_los-1])
+    los_coeffs_arr = np.asarray(<double[:los_ind[num_los-1]]> los_coeffs)
+    # if not los_coeffs == NULL:
+    #     free(los_coeffs)
+    return los_coeffs_arr, np.asarray(dLr), np.asarray(los_ind)
 
 
 

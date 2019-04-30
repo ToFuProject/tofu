@@ -11,6 +11,7 @@ from libc.math cimport floor as Cfloor, round as Cround
 from libc.math cimport sqrt as Csqrt
 from libc.math cimport isnan as Cisnan
 from libc.math cimport NAN as Cnan
+from libc.math cimport log2 as Clog2
 from libc.stdlib cimport malloc, free, realloc
 from cpython.array cimport array, clone
 from _basic_geom_tools cimport _VSMALL
@@ -63,7 +64,7 @@ cdef inline void first_discretize_line1d_core(double* LMinMax,
     """
     cdef int nL1, ii, jj
     cdef double abs0, abs1
-    cdef double inv_reso, new_margin
+    cdef double inv_resol, new_margin
     cdef double[2] desired_limits
 
     # .. Computing "real" discretization step, depending on `mode`..............
@@ -89,18 +90,18 @@ cdef inline void first_discretize_line1d_core(double* LMinMax,
         desired_limits[1] = DL[1]
     # .. Get the extreme indices of the mesh elements that really need to be
     # created within those limits...............................................
-    inv_reso = 1./resolution[0]
+    inv_resol = 1./resolution[0]
     new_margin = margin*resolution[0]
     abs0 = Cabs(desired_limits[0] - LMinMax[0])
-    if abs0 - resolution[0] * Cfloor(abs0 * inv_reso) < new_margin:
-        nL0[0] = int(Cround((desired_limits[0] - LMinMax[0]) * inv_reso))
+    if abs0 - resolution[0] * Cfloor(abs0 * inv_resol) < new_margin:
+        nL0[0] = int(Cround((desired_limits[0] - LMinMax[0]) * inv_resol))
     else:
-        nL0[0] = int(Cfloor((desired_limits[0] - LMinMax[0]) * inv_reso))
+        nL0[0] = int(Cfloor((desired_limits[0] - LMinMax[0]) * inv_resol))
     abs1 = Cabs(desired_limits[1] - LMinMax[0])
-    if abs1 - resolution[0] * Cfloor(abs1 * inv_reso) < new_margin:
-        nL1 = int(Cround((desired_limits[1] - LMinMax[0]) * inv_reso) - 1)
+    if abs1 - resolution[0] * Cfloor(abs1 * inv_resol) < new_margin:
+        nL1 = int(Cround((desired_limits[1] - LMinMax[0]) * inv_resol) - 1)
     else:
-        nL1 = int(Cfloor((desired_limits[1] - LMinMax[0]) * inv_reso))
+        nL1 = int(Cfloor((desired_limits[1] - LMinMax[0]) * inv_resol))
     # Get the total number of indices
     Nind[0] = nL1 + 1 - nL0[0]
     return
@@ -251,4 +252,301 @@ cdef inline void discretize_vpoly_core(double[:, ::1] VPoly, double dstep,
         YPolybis[0][sz_vbis - 1] = VPoly[1, 0]
     tot_sz_vb[0] = sz_vbis
     tot_sz_ot[0] = sz_others
+    return
+
+
+# ==============================================================================
+# == LOS sampling
+# ==============================================================================
+
+# -- Quadrature Rules : Middle Rule --------------------------------------------
+cdef inline void middle_rule_abs(int num_los, int num_raf,
+                                 double* los_lims_x,
+                                 double* los_lims_y,
+                                 double* los_resolution,
+                                 double* los_coeffs,
+                                 int* los_ind) nogil:
+    cdef Py_ssize_t ii, jj
+    cdef double inv_nraf
+    cdef double loc_resol
+    inv_nraf = 1./num_raf
+
+    for ii in range(num_los):
+        loc_resol = (los_lims_y[ii] - los_lims_x[ii])*inv_nraf
+        los_resolution[ii] = loc_resol
+        for jj in range(num_raf):
+            los_coeffs[ii*num_raf + jj] = los_lims_x[ii] + (0.5 + jj)*loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf
+        else:
+            los_ind[ii] = num_raf + los_ind[ii-1]
+    return
+
+cdef inline void middle_rule_rel(int num_los, double resol,
+                                 double* los_lims_x,
+                                 double* los_lims_y,
+                                 double* los_resolution,
+                                 double** los_coeffs,
+                                 int* los_ind) nogil:
+    cdef Py_ssize_t ii, jj
+    cdef int num_raf
+    cdef double seg_length
+    cdef double loc_resol
+    cdef double inv_resol = 1./resol
+    # ...
+    for ii in range(num_los):
+        seg_length = los_lims_y[ii] - los_lims_x[ii]
+        num_raf = <int>(Cceil(seg_length*inv_resol))
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf
+            with gil:
+                print("first alloc =", num_raf)
+            los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
+        else:
+            los_ind[ii] = num_raf + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        for jj in range(num_raf):
+            los_coeffs[0][ii*0 + jj] = los_lims_x[ii] \
+                                             + (0.5 + jj) * loc_resol
+    return
+
+cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
+                                     double* los_lims_x,
+                                     double* los_lims_y,
+                                     double* los_resolution,
+                                     double** los_coeffs,
+                                     int* los_ind) nogil:
+    cdef Py_ssize_t ii, jj
+    cdef int num_raf
+    cdef double loc_resol
+    # ...
+    for ii in range(num_los):
+        num_raf = <int>(Cceil(1./resolutions[ii]))
+        loc_resol = 1./num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf
+            los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
+        else:
+            los_ind[ii] = num_raf + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                          los_ind[ii] * sizeof(double))
+        for jj in range(num_raf):
+            los_coeffs[0][ii*num_raf + jj] = los_lims_x[ii] \
+                                             + (0.5 + jj) * loc_resol
+    return
+
+cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
+                                     double* los_lims_x,
+                                     double* los_lims_y,
+                                     double* los_resolution,
+                                     double** los_coeffs,
+                                     int* los_ind) nogil:
+    cdef Py_ssize_t ii, jj
+    cdef int num_raf
+    cdef double seg_length
+    cdef double loc_resol
+    # ...
+    for ii in range(num_los):
+        seg_length = los_lims_y[ii] - los_lims_x[ii]
+        num_raf = <int>(Cceil(seg_length/resolutions[ii]))
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf
+            los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
+        else:
+            los_ind[ii] = num_raf + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                          los_ind[ii] * sizeof(double))
+        for jj in range(num_raf):
+            los_coeffs[0][ii*num_raf + jj] = los_lims_x[ii] \
+                                             + (0.5 + jj) * loc_resol
+    return
+
+# -- Quadrature Rules : Left Rule ----------------------------------------------
+cdef inline void left_rule_abs(int num_los, int num_raf,
+                               double* los_lims_x,
+                               double* los_lims_y,
+                               double* los_resolution,
+                               double* los_coeffs,
+                               int* los_ind):
+    cdef Py_ssize_t ii, jj
+    cdef double inv_nraf
+    cdef double loc_resol
+    inv_nraf = 1./num_raf
+    # ...
+    for ii in range(num_los):
+        loc_resol = (los_lims_y[ii] - los_lims_x[ii])*inv_nraf
+        los_resolution[ii] = loc_resol
+        for jj in range(num_raf + 1):
+            los_coeffs[ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf + 1
+        else:
+            los_ind[ii] = num_raf +  1 + los_ind[ii-1]
+    return
+
+cdef inline void simps_left_rule_rel(int num_los, double resol,
+                                     double* los_lims_x,
+                                     double* los_lims_y,
+                                     double* los_resolution,
+                                     double** los_coeffs,
+                                     int* los_ind):
+    cdef Py_ssize_t ii, jj
+    cdef double seg_length
+    cdef double loc_resol
+    cdef double inv_resol = 1./resol
+    # ...
+    for ii in range(num_los):
+        seg_length = los_lims_y[ii] - los_lims_x[ii]
+        num_raf = <int>(Cceil(seg_length*inv_resol))
+        num_raf = num_raf if num_raf%2==0 else num_raf+1
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            los_ind[ii] = num_raf +  1 + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        for jj in range(num_raf + 1):
+            los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
+    return
+
+cdef inline void romb_left_rule_rel(int num_los, double resol,
+                                    double* los_lims_x,
+                                    double* los_lims_y,
+                                    double* los_resolution,
+                                    double** los_coeffs,
+                                    int* los_ind) :
+    cdef Py_ssize_t ii, jj
+    cdef double seg_length
+    cdef double loc_resol
+    cdef double inv_resol = 1./resol
+    # ...
+    for ii in range(num_los):
+        seg_length = los_lims_y[ii] - los_lims_x[ii]
+        num_raf = <int>(Cceil(seg_length*inv_resol))
+        num_raf = 2**(<long>(Cceil(Clog2(num_raf))))
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            los_ind[ii] = num_raf +  1 + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        for jj in range(num_raf + 1):
+            los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
+    return
+
+
+cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
+                                         double* los_lims_x,
+                                         double* los_lims_y,
+                                         double* los_resolution,
+                                         double** los_coeffs,
+                                         int* los_ind):
+    cdef Py_ssize_t ii, jj
+    cdef double loc_resol
+    # ...
+    for ii in range(num_los):
+        num_raf = <int>(Cceil(1./resolutions[ii]))
+        num_raf = num_raf if num_raf%2==0 else num_raf+1
+        loc_resol = 1. / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            los_ind[ii] = num_raf +  1 + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        for jj in range(num_raf + 1):
+            los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
+    return
+
+cdef inline void simps_left_rule_rel_var(int num_los, double* resolutions,
+                                         double* los_lims_x,
+                                         double* los_lims_y,
+                                         double* los_resolution,
+                                         double** los_coeffs,
+                                         int* los_ind):
+    cdef Py_ssize_t ii, jj
+    cdef double seg_length
+    cdef double loc_resol
+    # ...
+    for ii in range(num_los):
+        seg_length = los_lims_y[ii] - los_lims_x[ii]
+        num_raf = <int>(Cceil(seg_length/resolutions[ii]))
+        num_raf = num_raf if num_raf%2==0 else num_raf+1
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            los_ind[ii] = num_raf +  1 + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        for jj in range(num_raf + 1):
+            los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
+    return
+
+cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
+                                        double* los_lims_x,
+                                        double* los_lims_y,
+                                        double* los_resolution,
+                                        double** los_coeffs,
+                                        int* los_ind) :
+    cdef Py_ssize_t ii, jj
+    cdef double loc_resol
+    # ...
+    for ii in range(num_los):
+        num_raf = <int>(Cceil(1./resolutions[ii]))
+        num_raf = 2**(<long>(Cceil(Clog2(num_raf))))
+        loc_resol = 1. / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            los_ind[ii] = num_raf +  1 + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        for jj in range(num_raf + 1):
+            los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
+    return
+
+cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
+                                        double* los_lims_x,
+                                        double* los_lims_y,
+                                        double* los_resolution,
+                                        double** los_coeffs,
+                                        int* los_ind) :
+    cdef Py_ssize_t ii, jj
+    cdef double seg_length
+    cdef double loc_resol
+    # ...
+    for ii in range(num_los):
+        seg_length = los_lims_y[ii] - los_lims_x[ii]
+        num_raf = <int>(Cceil(seg_length/resolutions[ii]))
+        num_raf = 2**(<long>(Cceil(Clog2(num_raf))))
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            los_ind[ii] = num_raf +  1 + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        for jj in range(num_raf + 1):
+            los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
     return
