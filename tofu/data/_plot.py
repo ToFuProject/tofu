@@ -2022,6 +2022,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         idteq, teq = list(dteq[0].items())[0]
     dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
 
+
     # ddata
     ddat = {}
     for ii in range(0,nDat):

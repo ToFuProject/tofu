@@ -2276,7 +2276,7 @@ DataCam2D.__signature__ = sig.replace(parameters=lp)
 
 
 
-class Plasma2D(object):
+class Plasma2D(utils.ToFuObject):
     """ A generic class for handling 2D (and 1D) plasma profiles
 
     Provides:
@@ -2285,21 +2285,241 @@ class Plasma2D(object):
         - spatial interpolation methods
 
     """
+    # Fixed (class-wise) dictionary of default properties
+    _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
+                              'Name','shot','version']},
+             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfit',
+                                'indt', 'indch', 'indlamb', 'interp-t']}}
 
+    # Does not exist before Python 3.6 !!!
+    def __init_subclass__(cls, **kwdargs):
+        # Python 2
+        super(Plasma2D,cls).__init_subclass__(**kwdargs)
+        # Python 3
+        #super().__init_subclass__(**kwdargs)
+        cls._ddef = copy.deepcopy(Plasma2D._ddef)
+        #cls._dplot = copy.deepcopy(Struct._dplot)
+        #cls._set_color_ddef(cls._color)
 
-
-    #----------------
-    # Class creation and instanciation
-    #----------------
 
     def __init__(self, dtime=None, dradius=None, d1d=None,
-                 d2d=None, dmesh=None,
-                 Exp=None, Name=None, shot=None, conf=None):
+                 d2d=None, dmesh=None, config=None,
+                 Id=None, Name=None, Exp=None, shot=None,
+                 fromdict=None, SavePath=os.path.abspath('./'),
+                 SavePath_Include=tfpf.defInclude):
+
+        # To replace __init_subclass__ for Python 2
+        if sys.version[0]=='2':
+            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
+            self.__class__._strip_init()
+
+        # Create a dplot at instance level
+        #self._dplot = copy.deepcopy(self.__class__._dplot)
+
+        kwdargs = locals()
+        del kwdargs['self']
+        # super()
+        super(Plasma2D,self).__init__(**kwdargs)
+
+    def _reset(self):
+        # super()
+        super(Plasma2D,self)._reset()
+        self._dgroup = dict.fromkeys(self._get_keys_dgroup())
+        self._dindref = dict.fromkeys(self._get_keys_dindref())
+        self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self._dgeom = dict.fromkeys(self._get_keys_dgeom())
+
+    @classmethod
+    def _checkformat_inputs_Id(cls, Id=None, Name=None,
+                               Exp=None, shot=None,
+                               include=None, **kwdargs):
+        if Id is not None:
+            assert isinstance(Id,utils.ID)
+            Name, Exp, shot = Id.Name, Id.Exp, Id.shot
+        assert type(Name) is str, Name
+        assert type(Exp) is str, Exp
+        if include is None:
+            include = cls._ddef['Id']['include']
+        assert shot is None or type(shot) in [int,np.int64]
+        if shot is None:
+            if 'shot' in include:
+                include.remove('shot')
+        else:
+            shot = int(shot)
+            if 'shot' not in include:
+                include.append('shot')
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot,
+                        'include':include})
+        return kwdargs
+
+    ###########
+    # Get largs
+    ###########
+
+    @staticmethod
+    def _get_largs_dindrefdatagroup():
+        largs = ['dtime', 'dradius', 'dmesh', 'd1d', 'd2d']
+        return largs
+
+    @staticmethod
+    def _get_largs_dgeom():
+        largs = ['config']
+        return largs
+
+    ###########
+    # Get check and format inputs
+    ###########
+
+    #---------------------
+    # Methods for checking and formatting inputs
+    #---------------------
+
+    @staticmethod
+    def _extract_dnd(dnd, k0):
+        lk = dnd[k0].keys()
+        if type(dnd[k0]) is dict:
+            assert 'data' in lk
+            data = dnd[k0]['data']
+            if 'units' in lk:
+                units = dnd[k0]['units']
+            else:
+                units = 'a.u.'
+            if 'quant' in lk:
+                quant = dnd[k0]['quant']
+            else:
+                quant = k0
+            if 'name' in lk:
+                name = dnd[k0]['name']
+            else:
+                name = k0
+        else:
+            data = dnd[k0]
+            units = 'a.u.'
+            quant = k0
+            name = k0
+        return data, units, quant, name
+
+    @staticmethod
+    def _checkformat_dtrm(dtime, dradius, dmesh):
+        dd = {'dtime':dtime, 'dradius':dradius, 'dmesh':dmesh}
+        lc = [type(di) is dict for di in dd.values()]
+        if not all(lc):
+            ls = ["    - %s : %s"%(kk, type(vv)) for kk, vv in dd.items()]
+            msg = "All inputs should be dict !\n"
+            msg += "\n".join(ls)
+            raise exception(msg)
+
+        # dtime
+        for k0, v0 in dtime.items():
+            c0 = type(k0) is str and 't' in v0.keys()
+            c0 &= v0['t'] is not None
+            try:
+                dtime[k0]['t'] = np.asarray(v0['t']).ravel()
+            except Exception:
+                c0 = False
+            if not c0:
+                msg = "Arg dtime must be a dict of nested dict such that:\n"
+                msg += "    - each key is a str (name of the radius)\n"
+                msg += "    - each nested dict has one item ('t',np.ndarray)\n"
+                msg += "e.g.:  dtime = {'t1':{'t':np.array([0,...,10])},\n"
+                msg += "                't2':{'t':np.array([0.1,...5.5])}}"
+                raise Exception(msg)
+
+        # dradius
+        for k0, v0 in dradius.items():
+            c0 = type(k0) is str
+            c0 &= type(v0) is dict and len(v0.keys()) == 1
+            c0 &= 'size' in v0.keys() and type(v0['size']) is int
+            if not c0:
+                msg = "Arg dradius must be a dict of nested dict such that:\n"
+                msg += "    - each key is a str (name of the radius)\n"
+                msg += "    - each nested dict has one item ('size',int)\n"
+                msg += "e.g.:  dradius = {'radius1':{'size}:10,\n"
+                msg += "                  'radius2':{'size':100},\n"
+                msg += "                  'radius3':{'size':1000}}"
+                raise Exception(msg)
+
+        # dmesh
+        for k0, v0 in dmesh.items():
+            assert type(k0) is str
+            assert type(v0) is dict
+            assert all([type(k1) is str for k1 in v0.keys()])
+            ls = ['type','ftype','nodes','faces','nfaces','nnodes']
+            assert all([ss in v0.keys() for ss in ls])
+            dmesh[k0]['nodes'] = np.atleast_2d(dmesh[k0]['nodes']).astype(float)
+            dmesh[k0]['faces'] = np.atleast_2d(dmesh[k0]['faces']).astype(int)
+            assert dmesh[k0]['nodes'].shape == (v0['nnodes'],2)
+            assert np.max(dmesh[k0]['faces']) < v0['nnodes']
+            assert v0['type'] == 'tri'  # Only triangular meshes so far
+            if v0['type'] == 'tri':
+                assert dmesh[k0]['faces'].shape == (v0['nfaces'],3)
+                if 'mpltri' not in v0.keys() or v0['mpltri'] is None:
+                    dmesh[k0]['mpltri'] = mplTri(dmesh[k0]['nodes'][:,0],
+                                                 dmesh[k0]['nodes'][:,1],
+                                                 dmesh[k0]['faces'])
+                assert isinstance(dmesh[k0]['mpltri'], mplTri)
+                assert v0['ftype'] == 'linear'  # Only linear interp so far
+                if v0['ftype'] == 'linear':
+                    dmesh[k0]['size'] = v0['nnodes']
+        return dtime, dradius, dmesh
+
+    def _checkformat_inputs_dgeom(self, config=None):
+        if config is not None:
+            assert issubclass(config.__class__, utils.ToFuObject)
+        return config
+
+    ###########
+    # Get keys of dictionnaries
+    ###########
+
+    @staticmethod
+    def _get_keys_dgroup():
+        lk = ['time', 'radius', 'mesh']
+        return lk
+
+    @staticmethod
+    def _get_keys_dindref():
+        lk = []
+        return lk
+
+    @staticmethod
+    def _get_keys_ddata():
+        lk = []
+        return lk
+
+    @staticmethod
+    def _get_keys_dgeom():
+        lk = ['config']
+        return lk
+
+
+    ###########
+    # _init
+    ###########
+
+    def _init(self, dtime=None, dradius=None, dmesh=None, d1d=None, d2d=None,
+              config=None, **kwargs):
+        kwdargs = locals()
+        kwdargs.update(**kwargs)
+        largs = self._get_largs_dindrefdatagroup()
+        kwdindrefdatagroup = self._extract_kwdargs(kwdargs, largs)
+        largs = self._get_largs_dgeom()
+        kwdgeom = self._extract_kwdargs(kwdargs, largs)
+        self._set_dindrefdatagroup(**kwdindrefdatagroup)
+        self.set_dgeom(**kwdgeom)
+        self._dstrip['strip'] = 0
+
+
+    ###########
+    # set dictionaries
+    ###########
+
+    def _set_dindrefdatagroup(self, dtime=None, dradius=None, dmesh=None,
+                              d1d=None, d2d=None):
 
         # Check dtime is not None
-        out = self._checkformat_dall(dtime=dtime, d1d=d1d, d2d=d2d,
-                                     dradius=dradius, dmesh=dmesh)
-        dtime, d1d, d2d, dradius, dmesh = out
+        out = self._checkformat_dtrm(dtime=dtime, dradius=dradius, dmesh=dmesh)
+        dtime, dradius, dmesh = out
 
         dgroup, dindref, ddata = {}, {}, {}
         # Get indt
@@ -2396,96 +2616,10 @@ class Plasma2D(object):
         # Complement
         self._complement(dgroup, dindref, ddata)
 
-        # Temporary fix
-        self._config = conf
-        self.Id = {'shot':shot, 'Name':Name, 'Exp':Exp}
-
-        # -------------------------------------
         # Update dict
         self._dgroup = dgroup
         self._dindref = dindref
         self._ddata = ddata
-
-
-
-
-
-    #---------------------
-    # Methods for checking and formatting inputs
-    #---------------------
-
-    @staticmethod
-    def _extract_dnd(dnd, k0):
-        lk = dnd[k0].keys()
-        if type(dnd[k0]) is dict:
-            assert 'data' in lk
-            data = dnd[k0]['data']
-            if 'units' in lk:
-                units = dnd[k0]['units']
-            else:
-                units = 'a.u.'
-            if 'quant' in lk:
-                quant = dnd[k0]['quant']
-            else:
-                quant = k0
-            if 'name' in lk:
-                name = dnd[k0]['name']
-            else:
-                name = k0
-        else:
-            data = dnd[k0]
-            units = 'a.u.'
-            quant = k0
-            name = k0
-        return data, units, quant, name
-
-    @staticmethod
-    def _checkformat_dall(dtime, d1d, d2d, dradius, dmesh):
-        dd = {'dtime':dtime, 'd1d':d1d, 'd2d':d2d, 'dmesh':dmesh}
-        lc = [type(di) is dict for di in dd.values()]
-        if not all(lc):
-            ls = ["    - %s : %s"%(kk, type(vv)) for kk, vv in dd.items()]
-            msg = "All inputs should be dict !\n"
-            msg += "\n".join(ls)
-            raise exception(msg)
-
-        # dtime
-        for k0, v0 in dtime.items():
-            assert type(k0) is str
-            assert 't' in v0.keys()
-            assert v0['t'] is not None
-            dtime[k0]['t'] = np.asarray(v0['t']).ravel()
-
-        # d1d
-
-        # d2d
-
-        # dmesh
-        for k0, v0 in dmesh.items():
-            assert type(k0) is str
-            assert type(v0) is dict
-            assert all([type(k1) is str for k1 in v0.keys()])
-            ls = ['type','ftype','nodes','faces','nfaces','nnodes']
-            assert all([ss in v0.keys() for ss in ls])
-            dmesh[k0]['nodes'] = np.atleast_2d(dmesh[k0]['nodes']).astype(float)
-            dmesh[k0]['faces'] = np.atleast_2d(dmesh[k0]['faces']).astype(int)
-            assert dmesh[k0]['nodes'].shape == (v0['nnodes'],2)
-            assert np.max(dmesh[k0]['faces']) < v0['nnodes']
-            assert v0['type'] == 'tri'  # Only triangular meshes so far
-            if v0['type'] == 'tri':
-                assert dmesh[k0]['faces'].shape == (v0['nfaces'],3)
-                if 'mpltri' not in v0.keys() or v0['mpltri'] is None:
-                    dmesh[k0]['mpltri'] = mplTri(dmesh[k0]['nodes'][:,0],
-                                                 dmesh[k0]['nodes'][:,1],
-                                                 dmesh[k0]['faces'])
-                assert isinstance(dmesh[k0]['mpltri'], mplTri)
-                assert v0['ftype'] == 'linear'  # Only linear interp so far
-                if v0['ftype'] == 'linear':
-                    dmesh[k0]['size'] = v0['nnodes']
-        return dtime, d1d, d2d, dradius, dmesh
-
-
-
 
 
     @classmethod
@@ -2546,87 +2680,96 @@ class Plasma2D(object):
             dgroup[gg]['liddata'] = liddata
 
 
+    def set_dgeom(self, config=None):
+        config = self._checkformat_inputs_dgeom(config=config)
+        self._dgeom = {'config':config}
 
 
-    @staticmethod
-    def _checkformat_dtime(dtime):
-        assert type(dtime) is dict
-        lk = ['indt','nt','t','tlim']
-        assert sorted(dtime.keys()) == sorted(lk)
-        dtime['t'] = np.asarray(dtime['t']).ravel()
-        dtime['indt'] = np.asarray(dtime['indt']).ravel().astype(int)
-        dtime['tlim'] = np.asarray(dtime['tlim']).ravel()
-        assert dtime['nt'] == dtime['t'].size == dtime['indt'].size
-        assert np.allclose(dtime['t'], np.unique(dtime['t']))
-        assert np.allclose(dtime['indt'], np.unique(dtime['indt']))
-        assert dtime['tlim'].size == 2
-        return dtime
+    ###########
+    # strip dictionaries
+    ###########
+
+    def _strip_ddata(self, strip=0):
+        pass
+
+
+    def _strip_dgeom(self, strip=0, force=False, verb=True):
+        if self._dstrip['strip']==strip:
+            return
+
+        if strip in [0] and self._dstrip['strip'] in [1]:
+            config = None
+            if self._dgeom['config'] is not None:
+                assert type(self._dgeom['config']) is str
+                config = utils.load(self._dgeom['config'], verb=verb)
+
+            self._set_dgeom(config=config)
+
+        elif strip in [1] and self._dstrip['strip'] in [0]:
+            if self._dgeom['config'] is not None:
+                path = self._dgeom['config'].Id.SavePath
+                name = self._dgeom['config'].Id.SaveName
+                pfe = os.path.join(path, name+'.npz')
+                lf = os.listdir(path)
+                lf = [ff for ff in lf if name+'.npz' in ff]
+                exist = len(lf)==1
+                if not exist:
+                    msg = """BEWARE:
+                        You are about to delete the config object
+                        Only the path/name to saved a object will be kept
+
+                        But it appears that the following object has no
+                        saved file where specified (obj.Id.SavePath)
+                        Thus it won't be possible to retrieve it
+                        (unless available in the current console:"""
+                    msg += "\n    - {0}".format(pfe)
+                    if force:
+                        warning.warn(msg)
+                    else:
+                        raise Exception(msg)
+                self._dgeom['config'] = pfe
+
+    ###########
+    # _strip and get/from dict
+    ###########
 
     @classmethod
-    def _get_dmesh(cls, idseq, npts):
+    def _strip_init(cls):
+        cls._dstrip['allowed'] = [0,1]
+        nMax = max(cls._dstrip['allowed'])
+        doc = """
+                 1: dgeom pathfiles
+                 """
+        doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
+        if sys.version[0]=='2':
+            cls.strip.__func__.__doc__ = doc
+        else:
+            cls.strip.__doc__ = doc
 
-        # Check the grid exists
-        c0 = len(idseq.grids_ggd) == 1
-        c0 &= len(idseq.grids_ggd[0].grid) == 1
-        c0 &= len(idseq.grids_ggd[0].grid[0].space) == 1
-        if not c0:
-            msg = "No grid seems to exist at idseq.grids_ggd[0].grid[0].space"
-            raise Exception(msg)
-        space0 = idseq.grids_ggd[0].grid[0].space[0]
+    def strip(self, strip=0, verb=True):
+        # super()
+        super(Plasma2D,self).strip(strip=strip, verb=verb)
 
-        # Check it is triangular with more than 1 node and triangle
-        nnod = len(space0.objects_per_dimension[0].object)
-        ntri = len(space0.objects_per_dimension[2].object)
-        if nnod <=1 or ntri <= 1:
-            msg = "There seem to be an unsufficient number of nodes / triangles"
-            raise Exception(msg)
-        nodes = np.vstack([nod.geometry
-                           for nod in space0.objects_per_dimension[0].object])
-        indtri = np.vstack([tri.nodes
-                            for tri in space0.objects_per_dimension[2].object])
-        indtri = indtri.astype(int)
-        c0 = indtri.shape[1] == 3
-        c0 &= np.max(indtri) < nnod
-        if not c0:
-            msg = "The mesh does not seem to be trianguler:\n"
-            msg += "    - each face has %s nodes\n"%str(indtri.shape[1])
-            raise Exception(msg)
+    def _strip(self, strip=0, verb=True):
+        self._strip_dgeom(strip=strip, verb=verb)
 
-        # Determine whether it is a piece-wise constant or linear interpolation
-        if not npts in [nnod, ntri]:
-            msg = "The number of values in 2d grid quantities is not conform\n"
-            msg += "For a triangular grid, it should be either equal to:\n"
-            msg += "    - the nb. of triangles (nearest neighbourg)\n"
-            msg += "    - the nb. of nodes (linear interpolation)"
-            raise Exception(msg)
-        ftype = 'linear' if npts == nnod else 'nearest'
-        indtri = cls._checkformat_tri(nodes, indtri)
-        mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indtri)
-        dmesh = {'nodes':nodes, 'triangles':indtri, 'ftype':ftype,
-                 'nnodes':nnod,'ntri':ntri,'mpltri':mpltri}
-        return dmesh
+    def _to_dict(self):
+        dout = {'dgroup':{'dict':self._dgroup, 'lexcept':None},
+                'dindref':{'dict':self._dindref, 'lexcept':None},
+                'ddata':{'dict':self._ddata, 'lexcept':None},
+                'dgeom':{'dict':self._dgeom, 'lexcept':None}}
+        return dout
 
-    @staticmethod
-    def _checkformat_tri(nodes, indtri):
-        x = nodes[indtri,0]
-        y = nodes[indtri,1]
-        orient = ((y[:,1]-y[:,0])*(x[:,2]-x[:,1])
-                  - (y[:,2]-y[:,1])*(x[:,1]-x[:,0]))
-
-        indclock = orient > 0.
-        if np.any(indclock):
-            msg = "Some triangles in are not counter-clockwise\n"
-            msg += "  (necessary for matplotlib.tri.Triangulation)\n"
-            msg += "    => %s / %s triangles are re-defined"
-            warnings.warn(msg)
-            indtri[indclock,1], indtri[indclock,2] = (indtri[indclock,2],
-                                                      indtri[indclock,1])
-        return indtri
+    def _from_dict(self, fd):
+        self._dgroup.update(**fd['dgroup'])
+        self._dindref.update(**fd['dindref'])
+        self._ddata.update(**fd['ddata'])
+        self._dgeom.update(**fd['dgeom'])
 
 
-    #---------------------
-    # Properties (read-only attributes)
-    #---------------------
+    ###########
+    # properties
+    ###########
 
     @property
     def dgroup(self):
@@ -2651,7 +2794,7 @@ class Plasma2D(object):
                      if vv['group'] == 'mesh'])
     @property
     def config(self):
-        return self._config
+        return self._dgeom['config']
 
     #---------------------
     # Read-only for internal use
@@ -2660,8 +2803,8 @@ class Plasma2D(object):
     @property
     def _lquantboth(self):
         """ Return list of quantities available both in 1d and 2d """
-        lq1 = [vd['quant'] for vd in self._dgroup['radius']['liddata']]
-        lq2 = [vd['quant'] for vd in self._dgroup['mesh']['liddata']]
+        lq1 = [self._ddata[vd]['quant'] for vd in self._dgroup['radius']['liddata']]
+        lq2 = [self._ddata[vd]['quant'] for vd in self._dgroup['mesh']['liddata']]
         lq = list(set(lq1).intersection(lq2))
         return lq
 
@@ -3042,7 +3185,7 @@ class Plasma2D(object):
         return idX
 
     def get_Data(self, lquant, X=None, ref=None,
-                 remap=False, res=0.01, kind='linear'):
+                 remap=False, res=0.01, interp_space='linear'):
 
         try:
             import tofu.data as tfd
@@ -3077,7 +3220,7 @@ class Plasma2D(object):
                 ref = X
 
         # Define Data
-        dcommon = dict(Exp=self.Id['Exp'], shot=self.Id['shot'],
+        dcommon = dict(Exp=self.Id.Exp, shot=self.Id.shot,
                        Diag='profiles1d', config=self.config)
 
         # Get output
@@ -3101,9 +3244,9 @@ class Plasma2D(object):
 
             if remap:
                 dmapii = dict(dmap)
-                val, tii = self.interp_pts2profile(qq, ptsRZ=ptsRZ,
-                                                   ref=ref, kind=kind)
-                dmapii['data2D'], dmapii['t'], val, tii
+                val, tii = self.interp_pts2profile(qq, ptsRZ=ptsRZ, ref=ref,
+                                                   interp_space=interp_space)
+                dmapii['data2D'], dmapii['t'] = val, tii
                 dextra = {'map':dmapii}
             lout[ii] = DataCam1D(Name = qq,
                                  data = self._ddata[idq]['data'],
@@ -3119,18 +3262,20 @@ class Plasma2D(object):
     # Methods for plotting data
     #---------------------
 
-    def plot(self, lquant, X=None,
-             remap=False, res=0.01, kind='linear'):
-        lDat = self.get_Data(lquant, X=X, remap=remap, res=res, kind=kind)
+    def plot(self, lquant, X=None, ref=None,
+             remap=False, res=0.01, interp_space='linear'):
+        lDat = self.get_Data(lquant, X=X, remap=remap,
+                             ref=ref, res=res, interp_space=interp_space)
         if type(lDat) is list:
             kh = lDat[0].plot_combine(lDat[1:])
         else:
             kh = lDat.plot()
         return kh
 
-    def plot_combine(self, lquant, lData, X=None,
-                     remap=False, res=0.01, kind='linear'):
-        lDat = self.get_Data(lquant, X=X, remap=remap, res=res, kind=kind)
+    def plot_combine(self, lquant, lData, X=None, ref=None,
+                     remap=False, res=0.01, interp_space='linear'):
+        lDat = self.get_Data(lquant, X=X, remap=remap,
+                             ref=ref, res=res, interp_space=interp_space)
         if type(lDat) is list:
             lData = lDat[1:] + lData
         kh = lDat[0].plot_combine(lData)
