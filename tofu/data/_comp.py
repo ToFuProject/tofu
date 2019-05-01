@@ -59,6 +59,7 @@ def spectrogram(data, t,
                                                        detrend=detrend,
                                                        boundary=boundary,
                                                        padded=padded, warn=warn)
+        tf = tf + t[0]
     elif method=='scipy-wavelet':
         f, lspect = _spectrogram_scipy_wavelet(data, fs, nt, nch,
                                                fmin=fmin, wave=wave, warn=warn)
