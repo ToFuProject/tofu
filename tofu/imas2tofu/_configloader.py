@@ -82,7 +82,7 @@ class ConfigLoader(object):
             idsnode = self._get_idsnode(dids[k0]['ids'], k0)
 
         # Get dStruct
-        dStruct = self._get_dStruct(dids, idsnode)
+        self._get_dStruct(dids, idsnode)
 
         # Close ids
         for k0 in lk0:
