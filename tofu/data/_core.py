@@ -1149,21 +1149,25 @@ class DataAbstract(utils.ToFuObject):
         return data
 
     @staticmethod
-    def _indt(data, t=None,
+    def _indt(data, t=None, X=None, nnch=None,
               indtX=None, indtlamb=None, indtXlamb=None, indt=None):
+        nt0 = t.size
         if data.ndim==2:
             data = data[indt,:]
         elif data.ndim==3:
             data = data[indt,:,:]
         if t is not None:
             t = t[indt]
+        if X is not None and X.ndim == 2 and X.shape[0] == nt0:
+            X = X[indt,:]
+            nnch = indt.sum()
         if indtX is not None:
             indtX = indtX[indt]
         if indtlamb is not None:
             indtlamb = indtlamb[indt]
         elif indtXlamb is not None:
             indtXlamb = indtXlamb[indt,:]
-        return data, t, indtX, indtlamb, indtXlamb
+        return data, t, X, indtX, indtlamb, indtXlamb, nnch
 
     @staticmethod
     def _indch(data, X=None,
@@ -1278,6 +1282,7 @@ class DataAbstract(utils.ToFuObject):
         if indtXlamb is not None:
             indtXlamb = indtXlamb.copy()
 
+        nnch = self._ddataRef['nnch']
         # --------------------
         # Apply data treatment
         for kk in self._dtreat['order']:
@@ -1298,9 +1303,10 @@ class DataAbstract(utils.ToFuObject):
 
             # data + others
             if kk=='indt' and self._dtreat['indt'] is not None:
-                d,t, indtX,indtlamb,indtXlamb = self._indt(d, t, indtX,
-                                                           indtlamb, indtXlamb,
-                                                           self._dtreat['indt'])
+                d,t,X, indtX,indtlamb,indtXlamb, nnch = self._indt(d, t, X,
+                                                                   nnch, indtX,
+                                                                   indtlamb, indtXlamb,
+                                                                   self._dtreat['indt'])
             if kk=='indch' and self._dtreat['indch'] is not None:
                 d,X, indXlamb,indtXlamb = self._indch(d, X, indXlamb, indtXlamb,
                                                       self._dtreat['indch'])
@@ -1318,19 +1324,19 @@ class DataAbstract(utils.ToFuObject):
             nt, nch, nlamb = d.shape
         assert d.ndim in [2,3]
         assert t.shape==(nt,)
-        assert X.shape==(self._ddataRef['nnch'], nch)
+        assert X.shape==(nnch, nch)
         if lamb is not None:
             assert lamb.shape==(self._ddataRef['nnlamb'], nlamb)
 
         lout = [d, t, X, lamb, nt, nch, nlamb,
-                indtX, indtlamb, indXlamb, indtXlamb]
+                indtX, indtlamb, indXlamb, indtXlamb, nnch]
         return lout
 
     def _set_ddata(self):
         if not self._ddata['uptodate']:
             data, t, X, lamb, nt, nch, nlamb,\
-                    indtX, indtlamb, indXlamb, indtXlamb\
-                    = self._get_treated_data()
+                    indtX, indtlamb, indXlamb, indtXlamb,\
+                    nnch = self._get_treated_data()
             self._ddata['data'] = data
             self._ddata['t'] = t
             self._ddata['X'] = X
@@ -1338,7 +1344,7 @@ class DataAbstract(utils.ToFuObject):
             self._ddata['nt'] = nt
             self._ddata['nch'] = nch
             self._ddata['nlamb'] = nlamb
-            self._ddata['nnch'] = self._ddataRef['nnch']
+            self._ddata['nnch'] = nnch
             self._ddata['nnlamb'] = self._ddataRef['nnlamb']
             self._ddata['indtX'] = indtX
             self._ddata['indtlamb'] = indtlamb

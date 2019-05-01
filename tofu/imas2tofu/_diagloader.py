@@ -273,6 +273,16 @@ class DiagLoader(object):
             if idskey == 'spectrovis':
                 data = np.swapaxes(data, 1,2)
 
+            # Get X if any
+            X = None
+            if 'X' in self._dref[idskey].keys():
+                Xstr = self._dref[idskey]['X']
+                (x0, x1) = Xstr.split('.') if '.' in Xstr else (Xstr,None)
+                if x1 is None:
+                    X = np.array([getattr(cc,x0).data for cc in chans]).T
+                else:
+                    X = np.array([getattr(getattr(cc,x0),x1).data for cc in chans]).T
+
         # --------------
         # Get geom
         # --------------
@@ -332,7 +342,7 @@ class DiagLoader(object):
                             Etendues=etend, Surfaces=surf,
                             config=conf, Exp=Exp, shot=shot)]
 
-        dout[self._dref[idskey]['data']] = {'data':data, 't':t, 'lamb':lamb,
+        dout[self._dref[idskey]['data']] = {'data':data, 't':t, 'X':X, 'lamb':lamb,
                                             'Diag':idskey, 'lCam':lCam, 'Exp':Exp,
                                             'shot':shot}
         self._ddiag = dout
