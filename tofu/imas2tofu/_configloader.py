@@ -200,8 +200,6 @@ class ConfigLoader(object):
 #       function
 ######################################
 
-
-
 def load_Config(Name=None, **kwdargs):
 
     config = ConfigLoader(**kwdargs)
