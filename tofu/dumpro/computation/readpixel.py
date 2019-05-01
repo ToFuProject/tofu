@@ -21,8 +21,6 @@ try:
     import cv2
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
-    
-import PIL
 
 def read_pixel(Image):
     """ Converts input Grayscale Image into Numpy Array and then returns the 
@@ -35,7 +33,7 @@ def read_pixel(Image):
      
     Return
     -----------------
-    Pixel:          Numpy array 
+    pixel:          Numpy array 
      Numpy array having the dimention of the Image frame and the corresponding
      value of the intensity(since it is a grayscale image at the corresponding)
      position
@@ -44,25 +42,13 @@ def read_pixel(Image):
     #reading the image, O ndicates that the image is in single channel which
     #means it is a grayscale image
     try:
-        image = cv2.imread(Image,0)
+        pixel = cv2.imread(Image,0)
     except IOError:
         msg = "The provided file does not exist:\n"
         msg += "\t-path: %s"%path
         msg += "\t=> Please check the path or the filename" 
         Print(msg)
     
-    #Finding the dimensions of the frame 
-    height, width = image.shape
-    
-    #Creating array with the dimensions of the image where each element 
-    #represents the corresponding pixel
-    pixel = np.ndarray((image.shape[0],image.shape[1]), dtype = int)
-    
-    #Looping through the image assigning values to the array
-    for i in range(0,image.shape[0]):
-        for j in range(0,image.shape[1]):
-            pixel[i][j] = image.item(i, j)
-
     #returning the array
     return pixel
             
