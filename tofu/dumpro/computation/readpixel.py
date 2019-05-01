@@ -56,7 +56,7 @@ def read_pixel(Image):
     
     #Creating array with the dimensions of the image where each element 
     #represents the corresponding pixel
-    pixel = np.random.randint(0,5,(image.shape[0],image.shape[1]))
+    pixel = np.ndarray((image.shape[0],image.shape[1]), dtype = int)
     
     #Looping through the image assigning values to the array
     for i in range(0,image.shape[0]):
