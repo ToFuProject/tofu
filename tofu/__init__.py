@@ -52,6 +52,7 @@ Created on Wed May 18 2016
 @author_email: didier.vezinet@gmail.com
 """
 import sys
+import warnings
 if sys.version[0] == '2':
     from version import __version__
 elif sys.version[0] == '3':
@@ -69,15 +70,23 @@ from tofu.utils import save, load
 import tofu._plot as _plot
 import tofu.geom as geom
 import tofu.data as data
+
+ok = True
+try:
+    import tofu.imas2tofu as imas2tofu
+except Exception as err:
+    warnings.warn(str(err))
+    ok = False
 #import tofu.dust as dust
 
 
-__all__ = ['pathfile','utils','_plot','geom','data']#,'dust']
+__all__ = ['pathfile','utils','_plot','geom','data']
+if ok:
+    __all__.append('imas2tofu')
 
-del sys
 
-#__all__.extend(['__version__'])
-#__all__.extend(core.__all__)
+del sys, warnings, ok
+
 #__all__.extend(['geom', 'mesh', 'matcomp', 'data', 'inv'])
 
 #__name__ = ""

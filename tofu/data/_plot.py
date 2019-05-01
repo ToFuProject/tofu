@@ -2016,8 +2016,12 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                           'otherid':lXother[ii], 'indother':lindtX[ii]}
         if lis2D[ii]:
             dref[lidX[ii]]['2d'] = (lx1[ii],lx2[ii])
-    idteq, teq = list(dteq[0].items())[0]
+    if len(list(dteq[0].items())) == 0:
+        idteq, teq = lidt[0], lt[0]
+    else:
+        idteq, teq = list(dteq[0].items())[0]
     dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
+
 
     # ddata
     ddat = {}
@@ -2150,8 +2154,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                             'drefid':{lidt[ii]:jj}}
 
             else:
-                l0, = dax['X'][0].plot(lX[ii][0,:], np.full((lnch[ii],),np.nan),
-                                       c=lct[jj], ls=lls[0], lw=1.)
+                l0, = dax['X'][ii].plot(lX[ii][0,:], np.full((lnch[ii],),np.nan),
+                                        c=lct[jj], ls=lls[0], lw=1.)
                 dobj[l0] = {'dupdate':{'ydata':{'id':liddata[ii],
                                                 'lrid':[lidt[ii]]}},
                             'drefid':{lidt[ii]:jj}}
@@ -2478,12 +2482,17 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     # lpsd and lang
     lpsd = np.swapaxes(np.stack(lpsd,axis=0),1,2)
+    maxx = np.nanmax(np.nanmax(lpsd,axis=1,keepdims=True),axis=2).ravel()
+    lpsd_norm = lpsd / maxx[:,None,None]
     if normt:
-        lpsd = lpsd / np.nanmax(lpsd,axis=2)[:,:,np.newaxis]
+        maxx = np.nanmax(lpsd_norm,axis=2,keepdims=True)
+        lpsd_norm = lpsd_norm / maxx
     lang = np.swapaxes(np.stack(lang,axis=0),1,2)
     Dpsd = [np.nanmin(lpsd), np.nanmax(lpsd)]
+    Dpsd_norm = [np.nanmin(lpsd_norm), np.nanmax(lpsd_norm)]
     angmax = np.pi
     idlpsd = id(lpsd)
+    idlpsd_norm = id(lpsd_norm)
     idlang = id(lang)
 
 
@@ -2565,10 +2574,10 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                        norm=norm_data)
         dax['colorbar'][0].set_ylabel(Dlab, **fldict)
 
-        norm_psd = mpl.colors.Normalize(vmin=Dpsd[0], vmax=Dpsd[1])
+        norm_psd0 = mpl.colors.Normalize(vmin=Dpsd[0], vmax=Dpsd[1])
         cb = mpl.colorbar.ColorbarBase(dax['colorbar'][1], cmap=cmap_img,
                                        orientation='vertical',
-                                       norm=norm_psd)
+                                       norm=norm_psd0)
         dax['colorbar'][1].set_ylabel(psdlab, **fldict)
 
         norm_ang = mpl.colors.Normalize(vmin=-angmax, vmax=angmax)
@@ -2578,6 +2587,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                        norm=norm_ang,
                                        ticks=[-angmax, 0, angmax])
         dax['colorbar'][2].set_ylabel(anglab, **fldict)
+    norm_psd1 = mpl.colors.Normalize(vmin=Dpsd_norm[0], vmax=Dpsd_norm[1])
 
 
     # ---------------
@@ -2639,6 +2649,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
     ddat = {iddata: {'val':data, 'refids':[idt,idX]},
             idlpsd: {'val':lpsd, 'refids':[idX,idf,idtf]},
+            idlpsd_norm: {'val':lpsd_norm, 'refids':[idX,idf,idtf]},
             idlang: {'val':lang, 'refids':[idX,idf,idtf]},
             idchans:{'val':dchans, 'refids':[idX]}}
     if lCross is not None:
@@ -2707,9 +2718,9 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         l0 = dax['t'][1].imshow(np.full(lpsd.shape[1:],np.nan), cmap=cmap_f,
                                 origin='lower', aspect='auto',
                                 extent=extentf,
-                                vmin=Dpsd[0], vmax=Dpsd[1],
+                                norm=norm_psd1,
                                 interpolation='nearest')
-        dobj[l0] = {'dupdate':{'data':{'id':idlpsd, 'lrid':[idX]}},
+        dobj[l0] = {'dupdate':{'data':{'id':idlpsd_norm, 'lrid':[idX]}},
                     'drefid':{idX:jj}}
 
         # ang imshow
@@ -2785,7 +2796,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
             im = dax['X'][1].imshow(nan2, extent=extent, aspect='equal',
                                     interpolation='nearest', origin='lower',
-                                    zorder=-1, norm=norm_psd,
+                                    zorder=-1, norm=norm_psd0,
                                     cmap=cmap_img)
             dobj[im] = {'dupdate':{'data-reshape':{'id':idlpsd, 'n12':n12,
                                                    'lrid':[idtf,idf]}},

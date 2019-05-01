@@ -12,6 +12,7 @@ import warnings
 # Common
 import numpy as np
 import matplotlib as mpl
+from matplotlib.tri import Triangulation as mplTri
 import matplotlib.pyplot as plt
 
 
@@ -151,13 +152,13 @@ def flatten_dict(d, parent_key='', sep=_sep, deep='ref',
 def _reshape_dict(ss, vv, dinit={}, sep=_sep):
     ls = ss.split(sep)
     k = ss if len(ls)==1 else ls[0]
-    if len(ls)==2:
+    if len(ls) == 2:
         dk = {ls[1]:vv}
         if k not in dinit.keys():
             dinit[k] = {}
         assert isinstance(dinit[k],dict)
         dinit[k].update({ls[1]:vv})
-    elif len(ls)>2:
+    elif len(ls) > 2:
         if k not in dinit.keys():
             dinit[k] = {}
         _reshape_dict(sep.join(ls[1:]), vv, dinit=dinit[k], sep=sep)
@@ -1030,6 +1031,21 @@ class ToFuObjectBase(object):
                         if not eqk:
                             m0 = str(d0[k])
                             m1 = str(d1[k])
+                    elif isinstance(d0[k], mplTri):
+                        eqk = np.allclose(d0[k].x, d1[k].x)
+                        if not eqk:
+                            m0 = 'x ' + str(d0[k].x)
+                            m1 = 'x ' + str(d1[k].x)
+                        else:
+                            eqk = np.allclose(d0[k].y, d1[k].y)
+                            if not eqk:
+                                m0 = 'y ' + str(d0[k].y)
+                                m1 = 'y ' + str(d1[k].y)
+                            else:
+                                eqk = np.all(d0[k].triangles == d1[k].triangles)
+                                if not eqk:
+                                    m0 = 'tri ' + str(d0[k].triangles)
+                                    m1 = 'tri ' + str(d1[k].triangles)
                     else:
                         msg = "How to handle :\n"
                         msg += "    {0} is a {1}".format(k,str(type(d0[k])))

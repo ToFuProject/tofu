@@ -166,9 +166,14 @@ def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None, marg
 
 
 
-def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs', ind=None, margin=1.e-9):
+def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
+                         DS=None, dSMode='abs', ind=None,
+                         margin=1.e-9, mode='flat'):
+    assert mode in ['flat','imshow']
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
-    assert type(dS) in types or (hasattr(dS,'__iter__') and len(dS)==2 and all([type(ds) in types for ds in dS])), "Arg dS must be a float or a list 2 floats !"
+    c0 = (hasattr(dS,'__iter__') and len(dS)==2
+          and all([type(ds) in types for ds in dS]))
+    assert c0 or type(dS) in types, "Arg dS must be a float or a list 2 floats !"
     dS = [float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1])]
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
     if DS is None:
@@ -181,11 +186,41 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS, DS=None, dSMode='abs
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
     if ind is None:
-        Pts, dS, ind, d1r, d2r = _GG._Ves_meshCross_FromD(MinMax1, MinMax2, dS[0], dS[1], D1=DS[0], D2=DS[1], dSMode=dSMode, VPoly=VPoly, margin=margin)
+        if mode == 'flat':
+            Pts, dS, ind, d1r, d2r = _GG._Ves_meshCross_FromD(MinMax1, MinMax2,
+                                                              dS[0], dS[1],
+                                                              D1=DS[0], D2=DS[1],
+                                                              dSMode=dSMode,
+                                                              VPoly=VPoly,
+                                                              margin=margin)
+            out = (Pts, dS, ind, (d1r,d2r))
+        else:
+            x1, d1r, ind1, N1 = _GG._Ves_mesh_dlfromL_cython(MinMax1,
+                                                             dS[0], DS[0],
+                                                             Lim=True,
+                                                             dLMode=dSMode,
+                                                             margin=margin)
+            x2, d2r, ind2, N2 = _GG._Ves_mesh_dlfromL_cython(MinMax2,
+                                                             dS[1], DS[1],
+                                                             Lim=True,
+                                                             dLMode=dSMode,
+                                                             margin=margin)
+            xx1, xx2 = np.meshgrid(x1,x2)
+            pts = np.squeeze([xx1,xx2])
+            extent = (x1[0]-d1r/2., x1[-1]+d1r/2., x2[0]-d2r/2., x2[-1]+d2r/2.)
+            out = (pts, x1, x2, extent)
+
     else:
-        assert type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0), "Arg ind must be a np.ndarray of int !"
-        Pts, dS, d1r, d2r = _GG._Ves_meshCross_FromInd(MinMax1, MinMax2, dS[0], dS[1], ind, dSMode=dSMode, margin=margin)
-    return Pts, dS, ind, (d1r,d2r)
+        assert mode == 'flat'
+        c0 = type(ind) is np.ndarray and ind.ndim==1
+        c0 = c0 and ind.dtype in ['int32','int64'] and np.all(ind>=0)
+        assert c0, "Arg ind must be a np.ndarray of int !"
+        Pts, dS, d1r, d2r = _GG._Ves_meshCross_FromInd(MinMax1, MinMax2,
+                                                       dS[0], dS[1], ind,
+                                                       dSMode=dSMode,
+                                                       margin=margin)
+        out = (Pts, dS, ind, (d1r,d2r))
+    return out
 
 
 def _Ves_get_sampleV(VPoly, Min1, Max1, Min2, Max2, dV,
