@@ -44,21 +44,24 @@ def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type 
      
     """
     
-    # reading the input file   
-    cap = cv2.VideoCapture(video_file)
+    # reading the input file 
+    try:
+        cap = cv2.VideoCapture(video_file)
+    except IOError:
+        print("Path or file name incorrect or file does not exist")
     #read the first frame    
     ret,frame = cap.read()
 
     #describing the four character code fourcc  
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    #getting frame height and width
+    #getting frame height and width and fps
     frame_width = int(cap.get(3))
     frame_height = int(cap.get(4))
-    
+    fps = cap.get(cv2.CAP_PROP_FPS)
     #videowriter writes the new video with the frame height and width and fps   
     #videowriter(videoname, format, fps, dimensions_of_frame,)
     pfe = os.path.join(path, output_name + output_type)
-    out = cv2.VideoWriter(pfe, fourcc, 25,
+    out = cv2.VideoWriter(pfe, fourcc, fps,
                           (frame_width,frame_height),0)    
     
     #loops over the entire video frame by frame and convert each to grayscale
