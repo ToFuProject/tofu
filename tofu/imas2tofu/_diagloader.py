@@ -326,7 +326,7 @@ class DiagLoader(object):
             # Get names, try deducing cameras
             cls = eval('tfg.%s'%self._dref[idskey]['geom'])
             names = [cc.name for cc in chans]
-            if all([nn != '' for nn in names]):
+            if all([nn != '' for nn in names]) and idskey == 'spectrovis':
                 lcam, nb = zip(*[(nn[:-2], nn[-2:]) for nn in names])
                 lcamu = list(set(lcam))
                 lind = [np.asarray(lcam) == cam for cam in lcamu]
