@@ -2951,6 +2951,8 @@ class Rays(utils.ToFuObject):
 
 
     def _complete_dX12(self, dgeom):
+
+        # Test if unique starting point
         if dgeom['case'] in ['A','B','C']:
             # Test if pinhole
             if dgeom['case'] in ['A','B']:
@@ -2967,6 +2969,12 @@ class Rays(utils.ToFuObject):
             # Test if all D are on a common plane or line
             v0 = dgeom['D'][:,1]-dgeom['D'][:,0]
             va = dgeom['D']-dgeom['D'][:,0:1]
+
+            # critetrion of unique D
+            crit = np.sum(va**2) > 1.e-9
+            if not crit:
+                return dgeom
+
             v0 = v0/np.linalg.norm(v0)
             van = np.full(va.shape, np.nan)
             van[:,1:] = va[:,1:] / np.sqrt(np.sum(va[:,1:]**2,axis=0))[np.newaxis,:]
