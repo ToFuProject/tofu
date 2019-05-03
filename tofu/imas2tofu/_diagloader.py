@@ -87,6 +87,9 @@ class DiagLoader(object):
                            'lamb':'grating_spectrometer.wavelengths',
                            'units':r'$photons/(m^2.sr.s.m)$'}}
 
+    for k,v in _dref.items():
+        _dref[k]['lk'] = [k,v['ids']]
+
     _didsk = {'tokamak':15, 'user':15, 'version':7,
               'shot':6, 'run':3, 'occ':3, 'shotr':6, 'runr':3}
 
@@ -140,7 +143,14 @@ class DiagLoader(object):
         assert diag is not None
 
         # diag
-        assert diag in cls._dref.keys()
+        assert type(diag) is str
+        lk = list(dk.keys())
+        lc = [diag in dk[k]['lk'] for k in lk]
+        if not np.sum(lc) == 1:
+            msg = "None or several matches for diag = %s:"%diag
+            msg += "    - "+"\n    - ".join([str(dk[k]['lk']) for k in lk])
+            raise Exception(msg)
+        diag = dk[lk[lc.index(True)]]
 
         # Check dids
         lk0 = [diag]
@@ -239,108 +249,126 @@ class DiagLoader(object):
 
         lamb = None
         if data:
-            (s0, s1) = signal.split('.') if '.' in signal else (signal, None)
-            if not idsnode.ids_properties.homogeneous_time == 1:
-                mm = "    - ids.{0}.ids_properties.homogeneous_time = {1}"
-                msg = "This version of tofu only handles homogenous time\n"
-                msg += "The following ids does not fulfill this criteron:\n"
-                msg += mm.format(idskey,
-                                 idsnode.ids_properties.homogeneous_time)
-                warnings.warn(msg)
-                indch, ts, ls = self._get_shapes(idsnode, idskey,
-                                                 signal, lambstr=lambstr)
-                chans = [idsnode.channel[ii] for ii in indch.nonzero()[0]]
-                if s1 is None:
-                    t = getattr(chans[0],s0).time
-                else:
-                    t = getattr(getattr(chans[0],s0),s1).time
-                if lambstr is not None:
-                    (sl0, sl1) = (lambstr.split('.') if '.' in lambstr
-                                else (lambstr, None))
-                    if sl1 is None:
-                        lamb = getattr(chans[0],sl0)
+            try:
+                (s0, s1) = signal.split('.') if '.' in signal else (signal, None)
+                if not idsnode.ids_properties.homogeneous_time == 1:
+                    mm = "    - ids.{0}.ids_properties.homogeneous_time = {1}"
+                    msg = "This version of tofu only handles homogenous time\n"
+                    msg += "The following ids does not fulfill this criteron:\n"
+                    msg += mm.format(idskey,
+                                     idsnode.ids_properties.homogeneous_time)
+                    warnings.warn(msg)
+                    indch, ts, ls = self._get_shapes(idsnode, idskey,
+                                                     signal, lambstr=lambstr)
+                    chans = [idsnode.channel[ii] for ii in indch.nonzero()[0]]
+                    if s1 is None:
+                        t = getattr(chans[0],s0).time
                     else:
-                        lamb = getattr(getattr(chans[0],sl0),sl1)
-            else:
-                t = idsnode.time
+                        t = getattr(getattr(chans[0],s0),s1).time
+                    if lambstr is not None:
+                        (sl0, sl1) = (lambstr.split('.') if '.' in lambstr
+                                    else (lambstr, None))
+                        if sl1 is None:
+                            lamb = getattr(chans[0],sl0)
+                        else:
+                            lamb = getattr(getattr(chans[0],sl0),sl1)
+                else:
+                    t = idsnode.time
+                    chans = idsnode.channel
+
+                if s1 is None:
+                    data = np.squeeze([getattr(cc,s0).data for cc in chans]).T
+                else:
+                    data = np.squeeze([getattr(getattr(cc,s0),s1).data
+                                       for cc in chans]).T
+                if idskey == 'spectrovis':
+                    data = np.swapaxes(data, 1,2)
+
+                # Get X if any
+                X = None
+                if 'X' in self._dref[idskey].keys():
+                    Xstr = self._dref[idskey]['X']
+                    (x0, x1) = Xstr.split('.') if '.' in Xstr else (Xstr,None)
+                    if x1 is None:
+                        X = np.array([getattr(cc,x0).data for cc in chans]).T
+                    else:
+                        X = np.array([getattr(getattr(cc,x0),x1).data
+                                      for cc in chans]).T
+            except Exception as err:
+                msg = str(err)
+                msg += "\n\n Could not get data from ids !"
+                warnings.warn(msg)
                 chans = idsnode.channel
 
-            if s1 is None:
-                data = np.squeeze([getattr(cc,s0).data for cc in chans]).T
-            else:
-                data = np.squeeze([getattr(getattr(cc,s0),s1).data
-                                   for cc in chans]).T
-            if idskey == 'spectrovis':
-                data = np.swapaxes(data, 1,2)
-
-            # Get X if any
-            X = None
-            if 'X' in self._dref[idskey].keys():
-                Xstr = self._dref[idskey]['X']
-                (x0, x1) = Xstr.split('.') if '.' in Xstr else (Xstr,None)
-                if x1 is None:
-                    X = np.array([getattr(cc,x0).data for cc in chans]).T
-                else:
-                    X = np.array([getattr(getattr(cc,x0),x1).data for cc in chans]).T
+        else:
+            chans = idsnode.channel
 
         # --------------
         # Get geom
         # --------------
-        lCam = None
         if geom and self._dref[idskey]['geom'] is not False:
-            conf = ConfigLoader(dids=dids[idskey]['dict'])
-            conf = conf.to_object(Name='ids')
-            Ds = np.array([[cc.line_of_sight.first_point.r,
-                            cc.line_of_sight.first_point.z,
-                            cc.line_of_sight.first_point.phi]
-                           for cc in chans])
-            ends = np.array([[cc.line_of_sight.second_point.r,
-                            cc.line_of_sight.second_point.z,
-                            cc.line_of_sight.second_point.phi]
-                           for cc in chans])
-            Ds = np.array([Ds[:,0]*np.cos(Ds[:,2]),
-                           Ds[:,0]*np.sin(Ds[:,2]),
-                           Ds[:,1]])
-            ends = np.array([ends[:,0]*np.cos(ends[:,2]),
-                             ends[:,0]*np.sin(ends[:,2]),
-                             ends[:,1]])
-            us = ends-Ds
-            us = us / np.sqrt(np.sum(us**2, axis=0))[None,:]
-            if np.any(np.abs(Ds)>1000.):
-                # mm -> m
-                Ds = Ds / 1000.
+            try:
+                conf = ConfigLoader(dids=dids[idskey]['dict'])
+                conf = conf.to_object(Name='ids')
+                Ds = np.array([[cc.line_of_sight.first_point.r,
+                                cc.line_of_sight.first_point.z,
+                                cc.line_of_sight.first_point.phi]
+                               for cc in chans])
+                ends = np.array([[cc.line_of_sight.second_point.r,
+                                cc.line_of_sight.second_point.z,
+                                cc.line_of_sight.second_point.phi]
+                               for cc in chans])
+                Ds = np.array([Ds[:,0]*np.cos(Ds[:,2]),
+                               Ds[:,0]*np.sin(Ds[:,2]),
+                               Ds[:,1]])
+                ends = np.array([ends[:,0]*np.cos(ends[:,2]),
+                                 ends[:,0]*np.sin(ends[:,2]),
+                                 ends[:,1]])
+                us = ends-Ds
+                us = us / np.sqrt(np.sum(us**2, axis=0))[None,:]
+                if np.any(np.abs(Ds)>1000.):
+                    # mm -> m
+                    Ds = Ds / 1000.
 
-            if hasattr(chans[0], 'etendue'):
-                etend = np.squeeze([cc.etendue for cc in chans])
-                etend[etend<0.] = np.nan
-            else:
-                etend = None
-            c0 = hasattr(chans[0], 'detector')
-            c0 = c0 and hasattr(chans[0].detector, 'surface')
-            if c0:
-                surf = np.squeeze([cc.detector.surface for cc in chans])
-                surf[surf<0.] = np.nan
-            else:
-                surf = None
+                if hasattr(chans[0], 'etendue'):
+                    etend = np.squeeze([cc.etendue for cc in chans])
+                    etend[etend<0.] = np.nan
+                else:
+                    etend = None
+                c0 = hasattr(chans[0], 'detector')
+                c0 = c0 and hasattr(chans[0].detector, 'surface')
+                if c0:
+                    surf = np.squeeze([cc.detector.surface for cc in chans])
+                    surf[surf<0.] = np.nan
+                else:
+                    surf = None
 
-            # Get names, try deducing cameras
-            cls = eval('tfg.%s'%self._dref[idskey]['geom'])
-            names = [cc.name for cc in chans]
-            if all([nn != '' for nn in names]) and idskey == 'spectrovis':
-                lcam, nb = zip(*[(nn[:-2], nn[-2:]) for nn in names])
-                lcamu = list(set(lcam))
-                lind = [np.asarray(lcam) == cam for cam in lcamu]
-                lCam = [cls(Diag=idskey, Name=lcamu[ii],
-                            dgeom=(Ds[:,lind[ii]], us[:,lind[ii]]),
-                            Etendues=etend[lind[ii]],
-                            Surfaces=surf[lind[ii]],
-                            dchans={'names':np.asarray(names)[lind[ii]]},
-                            config=conf, Exp=Exp, shot=shot)
-                        for ii in range(0,len(lcamu))]
-            else:
-                lCam = [cls(Diag=idskey, Name='ids', dgeom=(Ds,us),
-                            Etendues=etend, Surfaces=surf,
-                            config=conf, Exp=Exp, shot=shot)]
+                # Get names, try deducing cameras
+                cls = eval('tfg.%s'%self._dref[idskey]['geom'])
+                names = [cc.name for cc in chans]
+                if all([nn != '' for nn in names]) and idskey == 'spectrovis':
+                    lcam, nb = zip(*[(nn[:-2], nn[-2:]) for nn in names])
+                    lcamu = list(set(lcam))
+                    lind = [np.asarray(lcam) == cam for cam in lcamu]
+                    lCam = [cls(Diag=idskey, Name=lcamu[ii],
+                                dgeom=(Ds[:,lind[ii]], us[:,lind[ii]]),
+                                Etendues=etend[lind[ii]],
+                                Surfaces=surf[lind[ii]],
+                                dchans={'names':np.asarray(names)[lind[ii]]},
+                                config=conf, Exp=Exp, shot=shot)
+                            for ii in range(0,len(lcamu))]
+                else:
+                    lCam = [cls(Diag=idskey, Name='ids', dgeom=(Ds,us),
+                                Etendues=etend, Surfaces=surf,
+                                config=conf, Exp=Exp, shot=shot)]
+
+            except Exception as err:
+                msg = str(err)
+                msg += "\n\n Could not get geometry from ids !"
+                warnings.warn(msg)
+                lCam = None
+        else:
+            lCam = None
 
         dout[self._dref[idskey]['data']] = {'data':data, 't':t, 'X':X, 'lamb':lamb,
                                             'Diag':idskey, 'lCam':lCam, 'Exp':Exp,
