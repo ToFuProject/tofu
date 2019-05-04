@@ -191,244 +191,244 @@ class Test01_Struct(object):
         #print("TestUM:teardown() after each test method")
         pass
 
-    # def test01_todict(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 d = self.dobj[typ][c][n].to_dict()
-    #                 assert type(d) is dict
-    #                 assert all([any([s in k for k in d.keys()]
-    #                                 for s in ['Id','geom','sino','strip'])])
+    def test01_todict(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    d = self.dobj[typ][c][n].to_dict()
+                    assert type(d) is dict
+                    assert all([any([s in k for k in d.keys()]
+                                    for s in ['Id','geom','sino','strip'])])
 
-    # def test02_fromdict(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             d = list(self.dobj[typ][c].values())[0].to_dict()
-    #             obj = eval('tfg.%s(fromdict=d)'%c)
-    #             assert isinstance(obj,eval('tfg.%s'%c))
+    def test02_fromdict(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                d = list(self.dobj[typ][c].values())[0].to_dict()
+                obj = eval('tfg.%s(fromdict=d)'%c)
+                assert isinstance(obj,eval('tfg.%s'%c))
 
-    # def test03_copy_equal(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n].copy()
-    #                 assert obj == self.dobj[typ][c][n]
-    #                 assert not  obj != self.dobj[typ][c][n]
+    def test03_copy_equal(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n].copy()
+                    assert obj == self.dobj[typ][c][n]
+                    assert not  obj != self.dobj[typ][c][n]
 
-    # def test04_get_nbytes(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 nb, dnb = self.dobj[typ][c][n].get_nbytes()
+    def test04_get_nbytes(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    nb, dnb = self.dobj[typ][c][n].get_nbytes()
 
-    # def test05_strip_nbytes(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             lok = eval('tfg.%s'%c)._dstrip['allowed']
-    #             nb = np.full((len(lok),), np.nan)
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n]
-    #                 for ii in lok:
-    #                     obj.strip(ii)
-    #                     nb[ii] = obj.get_nbytes()[0]
-    #                 assert np.all(np.diff(nb)<0.)
-    #                 for ii in lok[::-1]:
-    #                     obj.strip(ii)
+    def test05_strip_nbytes(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                lok = eval('tfg.%s'%c)._dstrip['allowed']
+                nb = np.full((len(lok),), np.nan)
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    for ii in lok:
+                        obj.strip(ii)
+                        nb[ii] = obj.get_nbytes()[0]
+                    assert np.all(np.diff(nb)<0.)
+                    for ii in lok[::-1]:
+                        obj.strip(ii)
 
-    # def test06_set_dsino(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 self.dobj[typ][c][n].set_dsino([2.4,0.])
+    def test06_set_dsino(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    self.dobj[typ][c][n].set_dsino([2.4,0.])
 
-    # def test07_setget_color(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 col = self.dobj[typ][c][n].get_color()
-    #                 self.dobj[typ][c][n].set_color(col)
+    def test07_setget_color(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    col = self.dobj[typ][c][n].get_color()
+                    self.dobj[typ][c][n].set_color(col)
 
-    # def test08_isInside(self, NR=20, NZ=20, NThet=10):
-    #     for typ in self.dobj.keys():
-    #         if tt=='Tor':
-    #             R = np.linspace(1,3,100)
-    #             Z = np.linspace(-1,1,100)
-    #             phi = np.pi/4.
-    #             pts = np.array([np.tile(R,Z.size),
-    #                             np.repeat(Z,R.size),
-    #                             np.full((R.size*Z.size),phi)])
-    #             In = '(R,Z,Phi)'
-    #         else:
-    #             X = 4.
-    #             Y = np.linspace(1,3,100)
-    #             Z = np.linspace(-1,1,100)
-    #             pts = np.array([np.full((Y.size*Z.size),X),
-    #                             np.tile(Y,Z.size),
-    #                             np.repeat(Z,Y.size)])
-    #             In = '(X,Y,Z)'
+    def test08_isInside(self, NR=20, NZ=20, NThet=10):
+        for typ in self.dobj.keys():
+            if tt=='Tor':
+                R = np.linspace(1,3,100)
+                Z = np.linspace(-1,1,100)
+                phi = np.pi/4.
+                pts = np.array([np.tile(R,Z.size),
+                                np.repeat(Z,R.size),
+                                np.full((R.size*Z.size),phi)])
+                In = '(R,Z,Phi)'
+            else:
+                X = 4.
+                Y = np.linspace(1,3,100)
+                Z = np.linspace(-1,1,100)
+                pts = np.array([np.full((Y.size*Z.size),X),
+                                np.tile(Y,Z.size),
+                                np.repeat(Z,Y.size)])
+                In = '(X,Y,Z)'
 
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n]
-    #                 ind = obj.isInside(pts, In=In)
-    #                 if obj.noccur<=1:
-    #                     assert ind.shape==(pts.shape[1],)
-    #                 elif not ind.shape == (obj.noccur,pts.shape[1]):
-    #                     msg = "ind.shape = {0}".format(str(ind.shape))
-    #                     msg += "\n  But noccur = {0}".format(obj.noccur)
-    #                     msg += "\n  and npts = {0}".format(pts.shape[1])
-    #                     raise Exception(msg)
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    ind = obj.isInside(pts, In=In)
+                    if obj.noccur<=1:
+                        assert ind.shape==(pts.shape[1],)
+                    elif not ind.shape == (obj.noccur,pts.shape[1]):
+                        msg = "ind.shape = {0}".format(str(ind.shape))
+                        msg += "\n  But noccur = {0}".format(obj.noccur)
+                        msg += "\n  and npts = {0}".format(pts.shape[1])
+                        raise Exception(msg)
 
 
 
-    # def test09_InsideConvexPoly(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 self.dobj[typ][c][n].get_InsideConvexPoly(Plot=False,
-    #                                                           Test=True)
+    def test09_InsideConvexPoly(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    self.dobj[typ][c][n].get_InsideConvexPoly(Plot=False,
+                                                              Test=True)
 
-    # def test10_get_sampleEdge(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n]
-    #                 out = obj.get_sampleEdge(0.05, resMode='abs',
-    #                                          offsetIn=0.001)
-    #                 out = obj.get_sampleEdge(0.1, resMode='rel',
-    #                                          offsetIn=-0.001)
-    #                 out = obj.get_sampleEdge(0.05, DS=[None,[-2.,0.]],
-    #                                          resMode='abs', offsetIn=0.)
+    def test10_get_sampleEdge(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    out = obj.get_sampleEdge(0.05, resMode='abs',
+                                             offsetIn=0.001)
+                    out = obj.get_sampleEdge(0.1, resMode='rel',
+                                             offsetIn=-0.001)
+                    out = obj.get_sampleEdge(0.05, DS=[None,[-2.,0.]],
+                                             resMode='abs', offsetIn=0.)
 
-    # def test11_get_sampleCross(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 try:
-    #                     obj = self.dobj[typ][c][n]
-    #                     ii = 0
-    #                     out = obj.get_sampleCross(0.02, resMode='abs')
-    #                     ind = out[2]
-    #                     ii = 1
-    #                     out = obj.get_sampleCross(0.02, resMode='abs', ind=ind)
-    #                     PMinMax = (obj.dgeom['P1Min'][0],
-    #                                obj.dgeom['P1Max'][0])
-    #                     DS1 = PMinMax[0] + (PMinMax[1]-PMinMax[0])/2.
-    #                     ii = 2
-    #                     out = obj.get_sampleCross(0.1, DS=[[None,DS1],None],
-    #                                               resMode='rel')
-    #                 except Exception as err:
-    #                     msg = str(err)
-    #                     msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
-    #                     msg += " and ii={0}".format(ii)
-    #                     raise Exception(msg)
+    def test11_get_sampleCross(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    try:
+                        obj = self.dobj[typ][c][n]
+                        ii = 0
+                        out = obj.get_sampleCross(0.02, resMode='abs')
+                        ind = out[2]
+                        ii = 1
+                        out = obj.get_sampleCross(0.02, resMode='abs', ind=ind)
+                        PMinMax = (obj.dgeom['P1Min'][0],
+                                   obj.dgeom['P1Max'][0])
+                        DS1 = PMinMax[0] + (PMinMax[1]-PMinMax[0])/2.
+                        ii = 2
+                        out = obj.get_sampleCross(0.1, DS=[[None,DS1],None],
+                                                  resMode='rel')
+                    except Exception as err:
+                        msg = str(err)
+                        msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
+                        msg += " and ii={0}".format(ii)
+                        raise Exception(msg)
 
-    # def test12_get_sampleS(self):
-    #     for typ in self.dobj.keys():
-    #         # Todo : introduce possibility of choosing In coordinates !
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n]
-    #                 P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
-    #                 P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
-    #                 DS = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
-    #                 try:
-    #                     ii = 0
-    #                     out = obj.get_sampleS(0.05, resMode='abs', DS=DS,
-    #                                           offsetIn=0.02, Out='(X,Y,Z)')
-    #                     pts0, ind = out[0], out[2]
-    #                     ii = 1
-    #                     out = obj.get_sampleS(0.05, resMode='abs', ind=ind,
-    #                                           offsetIn=0.02, Out='(X,Y,Z)')
-    #                     pts1 = out[0]
-    #                 except Exception as err:
-    #                     msg = str(err)
-    #                     msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
-    #                     msg += "\n    ii={0}".format(ii)
-    #                     msg += "\n    Lim={0}".format(str(obj.Lim))
-    #                     msg += "\n    DS={0}".format(str(DS))
-    #                     raise Exception(msg)
+    def test12_get_sampleS(self):
+        for typ in self.dobj.keys():
+            # Todo : introduce possibility of choosing In coordinates !
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
+                    P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
+                    DS = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
+                    try:
+                        ii = 0
+                        out = obj.get_sampleS(0.05, resMode='abs', DS=DS,
+                                              offsetIn=0.02, Out='(X,Y,Z)')
+                        pts0, ind = out[0], out[2]
+                        ii = 1
+                        out = obj.get_sampleS(0.05, resMode='abs', ind=ind,
+                                              offsetIn=0.02, Out='(X,Y,Z)')
+                        pts1 = out[0]
+                    except Exception as err:
+                        msg = str(err)
+                        msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
+                        msg += "\n    ii={0}".format(ii)
+                        msg += "\n    Lim={0}".format(str(obj.Lim))
+                        msg += "\n    DS={0}".format(str(DS))
+                        raise Exception(msg)
 
-    #                 if type(pts0) is list:
-    #                     assert all([np.allclose(pts0[ii],pts1[ii])
-    #                                 for ii in range(0,len(pts0))])
-    #                 else:
-    #                     assert np.allclose(pts0,pts1)
+                    if type(pts0) is list:
+                        assert all([np.allclose(pts0[ii],pts1[ii])
+                                    for ii in range(0,len(pts0))])
+                    else:
+                        assert np.allclose(pts0,pts1)
 
-    # def test13_get_sampleV(self):
-    #     for typ in self.dobj.keys():
-    #         # Todo : introduce possibility of choosing In coordinates !
-    #         for c in self.dobj[typ].keys():
-    #             if issubclass(eval('tfg.%s'%c), tfg._core.StructOut):
-    #                 continue
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n]
-    #                 P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
-    #                 P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
-    #                 box = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
-    #                 try:
-    #                     ii = 0
-    #                     out = obj.get_sampleV(0.1, resMode='abs', DV=box,
-    #                                           Out='(X,Y,Z)')
-    #                     pts0, ind = out[0], out[2]
-    #                     ii = 1
-    #                     out = obj.get_sampleV(0.1, resMode='abs', ind=ind,
-    #                                           Out='(X,Y,Z)')
-    #                     pts1 = out[0]
-    #                 except Exception as err:
-    #                     msg = str(err)
-    #                     msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
-    #                     msg += "\n    ii={0}".format(ii)
-    #                     msg += "\n    Lim={0}".format(str(obj.Lim))
-    #                     msg += "\n    DS={0}".format(str(box))
-    #                     raise Exception(msg)
+    def test13_get_sampleV(self):
+        for typ in self.dobj.keys():
+            # Todo : introduce possibility of choosing In coordinates !
+            for c in self.dobj[typ].keys():
+                if issubclass(eval('tfg.%s'%c), tfg._core.StructOut):
+                    continue
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
+                    P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
+                    box = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
+                    try:
+                        ii = 0
+                        out = obj.get_sampleV(0.1, resMode='abs', DV=box,
+                                              Out='(X,Y,Z)')
+                        pts0, ind = out[0], out[2]
+                        ii = 1
+                        out = obj.get_sampleV(0.1, resMode='abs', ind=ind,
+                                              Out='(X,Y,Z)')
+                        pts1 = out[0]
+                    except Exception as err:
+                        msg = str(err)
+                        msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
+                        msg += "\n    ii={0}".format(ii)
+                        msg += "\n    Lim={0}".format(str(obj.Lim))
+                        msg += "\n    DS={0}".format(str(box))
+                        raise Exception(msg)
 
-    #                 if type(pts0) is list:
-    #                     assert all([np.allclose(pts0[ii],pts1[ii])
-    #                                 for ii in range(0,len(pts0))])
-    #                 else:
-    #                     assert np.allclose(pts0,pts1)
+                    if type(pts0) is list:
+                        assert all([np.allclose(pts0[ii],pts1[ii])
+                                    for ii in range(0,len(pts0))])
+                    else:
+                        assert np.allclose(pts0,pts1)
 
-    # def test14_plot(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n]
-    #                 lax = obj.plot(element='P', proj='all', draw=False)
-    #                 lax = obj.plot(element='PIBsBvV', proj='all', draw=False)
-    #                 lax = obj.plot(element='P', indices=True, draw=False)
-    #                 plt.close('all')
+    def test14_plot(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    lax = obj.plot(element='P', proj='all', draw=False)
+                    lax = obj.plot(element='PIBsBvV', proj='all', draw=False)
+                    lax = obj.plot(element='P', indices=True, draw=False)
+                    plt.close('all')
 
-    # def test15_plot_sino(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             if issubclass(eval('tfg.%s'%c), tfg._core.StructOut):
-    #                 continue
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n]
-    #                 lax = obj.plot_sino(Ang='xi', AngUnit='deg',
-    #                                     Sketch=True, draw=False)
-    #                 lax = obj.plot_sino(Ang='theta', AngUnit='rad',
-    #                                     Sketch=False, draw=False, fs='a4')
-    #                 plt.close('all')
+    def test15_plot_sino(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                if issubclass(eval('tfg.%s'%c), tfg._core.StructOut):
+                    continue
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    lax = obj.plot_sino(Ang='xi', AngUnit='deg',
+                                        Sketch=True, draw=False)
+                    lax = obj.plot_sino(Ang='theta', AngUnit='rad',
+                                        Sketch=False, draw=False, fs='a4')
+                    plt.close('all')
 
-    # def test16_saveload(self, verb=False):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n]
-    #                 pfe = obj.save(return_pfe=True, verb=verb)
-    #                 obj2 = tf.load(pfe, verb=verb)
-    #                 assert obj==obj2
-    #                 os.remove(pfe)
+    def test16_saveload(self, verb=False):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    pfe = obj.save(return_pfe=True, verb=verb)
+                    obj2 = tf.load(pfe, verb=verb)
+                    assert obj==obj2
+                    os.remove(pfe)
 
-    # def test17_save_to_txt(self, verb=False):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             for n in self.dobj[typ][c].keys():
-    #                 obj = self.dobj[typ][c][n]
-    #                 pfe = obj.save_to_txt(return_pfe=True, verb=verb)
-    #                 os.remove(pfe)
+    def test17_save_to_txt(self, verb=False):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                for n in self.dobj[typ][c].keys():
+                    obj = self.dobj[typ][c][n]
+                    pfe = obj.save_to_txt(return_pfe=True, verb=verb)
+                    os.remove(pfe)
 
 
 #######################################################
@@ -690,67 +690,72 @@ class Test03_Rays(object):
         #print ("TestUM:teardown() after each test method")
         pass
 
-    # def test01_todict(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             d = self.dobj[typ][c].to_dict()
-    #             assert type(d) is dict
-    #             assert all([any([s in k for k in d.keys()]
-    #                             for s in ['Id','geom','config',
-    #                                       'sino','chan','strip'])])
+    def test01_todict(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                d = self.dobj[typ][c].to_dict()
+                assert type(d) is dict
+                assert all([any([s in k for k in d.keys()]
+                                for s in ['Id','geom','config',
+                                          'sino','chan','strip'])])
 
-    # def test02_fromdict(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             d = self.dobj[typ][c].to_dict()
-    #             obj = eval('tfg.%s(fromdict=d)'%c)
-    #             assert isinstance(obj, self.dobj[typ][c].__class__)
+    def test02_fromdict(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                d = self.dobj[typ][c].to_dict()
+                obj = eval('tfg.%s(fromdict=d)'%c)
+                assert isinstance(obj, self.dobj[typ][c].__class__)
 
-    # def test03_copy_equal(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             obj = self.dobj[typ][c].copy()
-    #             assert obj == self.dobj[typ][c]
-    #             assert not  obj != self.dobj[typ][c]
+    def test03_copy_equal(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c].copy()
+                assert obj == self.dobj[typ][c]
+                assert not  obj != self.dobj[typ][c]
 
-    # def test04_get_nbytes(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             nb, dnb = self.dobj[typ][c].get_nbytes()
+    def test04_get_nbytes(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                nb, dnb = self.dobj[typ][c].get_nbytes()
 
-    # def test05_strip_nbytes(self, verb=False):
-    #     lok = tfg.Rays._dstrip['allowed']
-    #     nb = np.full((len(lok),), np.nan)
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             obj = self.dobj[typ][c]
-    #             for ii in lok:
-    #                 obj.strip(ii, verb=verb)
-    #                 nb[ii] = obj.get_nbytes()[0]
-    #             assert np.all(np.diff(nb)<0.)
-    #             for ii in lok[::-1]:
-    #                 obj.strip(ii, verb=verb)
+    def test05_strip_nbytes(self, verb=False):
+        lok = tfg.Rays._dstrip['allowed']
+        nb = np.full((len(lok),), np.nan)
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                obj = self.dobj[typ][c]
+                for ii in lok:
+                    obj.strip(ii, verb=verb)
+                    nb[ii] = obj.get_nbytes()[0]
+                assert np.all(np.diff(nb)<0.)
+                for ii in lok[::-1]:
+                    obj.strip(ii, verb=verb)
 
-    # def test06_set_dsino(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             self.dobj[typ][c].set_dsino([2.4,0.])
+    def test06_set_dsino(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                self.dobj[typ][c].set_dsino([2.4,0.])
 
-    # def test07_select(self):
-    #     for typ in self.dobj.keys():
-    #         for c in self.dobj[typ].keys():
-    #             n = [ss.Id.Name for ss in self.dobj[typ][c].config.lStruct
-    #                  if 'Baffle' in ss.Id.Name][0]
-    #             ind = self.dobj[typ][c].select(touch='PFC_%s'%n)
-    #             ind = self.dobj[typ][c].select(touch=['PFC_%s'%n,[],[7,8,9]])
+    def test07_select(self):
+        for typ in self.dobj.keys():
+            for c in self.dobj[typ].keys():
+                n = [ss.Id.Name for ss in self.dobj[typ][c].config.lStruct
+                     if 'Baffle' in ss.Id.Name][0]
+                ind = self.dobj[typ][c].select(touch='PFC_%s'%n)
+                ind = self.dobj[typ][c].select(touch=['PFC_%s'%n,[],[7,8,9]])
 
     def test08_get_sample(self):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
+                Ds, us = obj.D[:], obj.u[:]
+                Ds = Ds.transpose()
+                us = us.transpose()
                 out = obj.get_sample(0.02, resMode='abs',
                                      method='sum',DL=None)
-                pts, k, res = out
+                k, res, lind = out
+                k = np.split(k, lind[:-1])
+                pts = [np.array([dij + ki * uij for (dij, uij) in zip(di, ui)]) for (ki, di, ui) in zip(k, Ds, us)]
                 assert len(pts)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
                     assert pts[ii].shape[1]==k[ii].size
@@ -762,7 +767,9 @@ class Test03_Rays(object):
 
                 out = obj.get_sample(0.1, resMode='rel',
                                      method='simps',DL=[0,1])
-                pts, k, res = out
+                k, res, lind = out
+                k = np.split(k, lind[:-1])
+                pts = [np.array([dij + ki * uij for (dij, uij) in zip(di, ui)]) for (ki, di, ui) in zip(k, Ds, us)]
                 assert len(pts)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
                     assert pts[ii].shape[1]==k[ii].size
@@ -777,7 +784,9 @@ class Test03_Rays(object):
                             raise Exception(msg)
                 out = obj.get_sample(0.1, resMode='rel',
                                      method='romb',DL=[0,1])
-                pts, k, res = out
+                k, res, lind = out
+                k = np.split(k, lind[:-1])
+                pts = [np.array([dij + ki * uij for (dij, uij) in zip(di, ui)]) for (ki, di, ui) in zip(k, Ds, us)]
                 assert len(pts)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
                     assert pts[ii].shape[1]==k[ii].size

@@ -29,8 +29,8 @@ from _sampling_tools cimport discretize_line1d_core
 from _sampling_tools cimport discretize_vpoly_core
 from _sampling_tools cimport middle_rule_abs, middle_rule_rel
 from _sampling_tools cimport middle_rule_abs_var, middle_rule_rel_var
-from _sampling_tools cimport left_rule_abs
-from _sampling_tools cimport simps_left_rule_rel, romb_left_rule_rel
+from _sampling_tools cimport left_rule_rel
+from _sampling_tools cimport simps_left_rule_abs, romb_left_rule_abs
 from _sampling_tools cimport simps_left_rule_rel_var, romb_left_rule_rel_var
 from _sampling_tools cimport simps_left_rule_abs_var, romb_left_rule_abs_var
 
@@ -2724,38 +2724,38 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
             N = <Py_ssize_t> Cceil(1./dL)
             if imode=='sum':
                 los_coeffs = <double*>malloc(sizeof(double)*N*num_los)
-                middle_rule_abs(num_los, N, &DLs[0,0], &DLs[1, 0],
+                middle_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
                                 &dLr.data.as_doubles[0],
                                 &los_coeffs[0],
                                 &los_ind.data.as_ints[0])
             elif imode=='simps':
                 N = N if N%2==0 else N+1
                 los_coeffs = <double*>malloc(sizeof(double)*(N+1)*num_los)
-                left_rule_abs(num_los, N, &DLs[0,0], &DLs[1, 0],
+                left_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
                               &dLr.data.as_doubles[0],
                               &los_coeffs[0],
                               &los_ind.data.as_ints[0])
             elif imode=='romb':
                 N = 2**(<long>(Cceil(Clog2(<double>N))))
                 los_coeffs = <double*>malloc(sizeof(double)*(N+1)*num_los)
-                left_rule_abs(num_los, N, &DLs[0,0], &DLs[1, 0],
+                left_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
                               &dLr.data.as_doubles[0],
                               &los_coeffs[0],
                               &los_ind.data.as_ints[0])
         else:
             if imode=='sum':
-                middle_rule_rel(num_los, dL, &DLs[0,0], &DLs[1, 0],
+                middle_rule_abs(num_los, dL, &DLs[0,0], &DLs[1, 0],
                                 &dLr.data.as_doubles[0],
                                 &los_coeffs,
                                 &los_ind.data.as_ints[0])
             elif imode=='simps':
-                simps_left_rule_rel(num_los, dL, &DLs[0,0], &DLs[1, 0],
+                simps_left_rule_abs(num_los, dL, &DLs[0,0], &DLs[1, 0],
                                     &dLr.data.as_doubles[0],
                                     &los_coeffs,
                                     &los_ind.data.as_ints[0])
 
             else:
-                romb_left_rule_rel(num_los, dL, &DLs[0,0], &DLs[1, 0],
+                romb_left_rule_abs(num_los, dL, &DLs[0,0], &DLs[1, 0],
                                    &dLr.data.as_doubles[0],
                                    &los_coeffs,
                                    &los_ind.data.as_ints[0])
@@ -2790,19 +2790,11 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                                         &los_coeffs,
                                         &los_ind.data.as_ints[0])
             else:
-                print(num_los)
-                print(dl_view[0])
-                print(DLs[0,0], DLs[1,0])
-                print(dLr[0])
-                print(los_ind[0])
                 romb_left_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
                                        &dLr.data.as_doubles[0],
                                        &los_coeffs,
                                        &los_ind.data.as_ints[0])
-    print("los_ind last = ", los_ind[num_los-1])
     los_coeffs_arr = np.asarray(<double[:los_ind[num_los-1]]> los_coeffs)
-    # if not los_coeffs == NULL:
-    #     free(los_coeffs)
     return los_coeffs_arr, np.asarray(dLr), np.asarray(los_ind)
 
 

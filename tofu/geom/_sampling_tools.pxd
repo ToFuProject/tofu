@@ -260,7 +260,7 @@ cdef inline void discretize_vpoly_core(double[:, ::1] VPoly, double dstep,
 # ==============================================================================
 
 # -- Quadrature Rules : Middle Rule --------------------------------------------
-cdef inline void middle_rule_abs(int num_los, int num_raf,
+cdef inline void middle_rule_rel(int num_los, int num_raf,
                                  double* los_lims_x,
                                  double* los_lims_y,
                                  double* los_resolution,
@@ -282,7 +282,7 @@ cdef inline void middle_rule_abs(int num_los, int num_raf,
             los_ind[ii] = num_raf + los_ind[ii-1]
     return
 
-cdef inline void middle_rule_rel(int num_los, double resol,
+cdef inline void middle_rule_abs(int num_los, double resol,
                                  double* los_lims_x,
                                  double* los_lims_y,
                                  double* los_resolution,
@@ -301,16 +301,14 @@ cdef inline void middle_rule_rel(int num_los, double resol,
         los_resolution[ii] = loc_resol
         if ii == 0:
             los_ind[ii] = num_raf
-            with gil:
-                print("first alloc =", num_raf)
             los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
         else:
             los_ind[ii] = num_raf + los_ind[ii-1]
             los_coeffs[0] = <double*>realloc(los_coeffs[0],
                                              los_ind[ii] * sizeof(double))
         for jj in range(num_raf):
-            los_coeffs[0][ii*0 + jj] = los_lims_x[ii] \
-                                             + (0.5 + jj) * loc_resol
+            los_coeffs[0][los_ind[ii] - num_raf + jj] = los_lims_x[ii] \
+                                                + (0.5 + jj) * loc_resol
     return
 
 cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
@@ -321,33 +319,6 @@ cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
                                      int* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
-    cdef double loc_resol
-    # ...
-    for ii in range(num_los):
-        num_raf = <int>(Cceil(1./resolutions[ii]))
-        loc_resol = 1./num_raf
-        los_resolution[ii] = loc_resol
-        if ii == 0:
-            los_ind[ii] = num_raf
-            los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
-        else:
-            los_ind[ii] = num_raf + los_ind[ii-1]
-            los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                          los_ind[ii] * sizeof(double))
-        for jj in range(num_raf):
-            los_coeffs[0][ii*num_raf + jj] = los_lims_x[ii] \
-                                             + (0.5 + jj) * loc_resol
-    return
-
-cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
-                                     double* los_lims_x,
-                                     double* los_lims_y,
-                                     double* los_resolution,
-                                     double** los_coeffs,
-                                     int* los_ind) nogil:
-    cdef Py_ssize_t ii, jj
-    cdef int num_raf
-    cdef double seg_length
     cdef double loc_resol
     # ...
     for ii in range(num_los):
@@ -363,12 +334,39 @@ cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
             los_coeffs[0] = <double*>realloc(los_coeffs[0],
                                           los_ind[ii] * sizeof(double))
         for jj in range(num_raf):
-            los_coeffs[0][ii*num_raf + jj] = los_lims_x[ii] \
+            los_coeffs[0][los_ind[ii] - num_raf + jj] = los_lims_x[ii] \
+                                             + (0.5 + jj) * loc_resol
+    return
+
+cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
+                                     double* los_lims_x,
+                                     double* los_lims_y,
+                                     double* los_resolution,
+                                     double** los_coeffs,
+                                     int* los_ind) nogil:
+    cdef Py_ssize_t ii, jj
+    cdef int num_raf
+    cdef double seg_length
+    cdef double loc_resol
+    # ...
+    for ii in range(num_los):
+        num_raf = <int>(Cceil(1./resolutions[ii]))
+        loc_resol = 1./num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf
+            los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
+        else:
+            los_ind[ii] = num_raf + los_ind[ii-1]
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                          los_ind[ii] * sizeof(double))
+        for jj in range(num_raf):
+            los_coeffs[0][los_ind[ii] - num_raf + jj] = los_lims_x[ii] \
                                              + (0.5 + jj) * loc_resol
     return
 
 # -- Quadrature Rules : Left Rule ----------------------------------------------
-cdef inline void left_rule_abs(int num_los, int num_raf,
+cdef inline void left_rule_rel(int num_los, int num_raf,
                                double* los_lims_x,
                                double* los_lims_y,
                                double* los_resolution,
@@ -390,7 +388,7 @@ cdef inline void left_rule_abs(int num_los, int num_raf,
             los_ind[ii] = num_raf +  1 + los_ind[ii-1]
     return
 
-cdef inline void simps_left_rule_rel(int num_los, double resol,
+cdef inline void simps_left_rule_abs(int num_los, double resol,
                                      double* los_lims_x,
                                      double* los_lims_y,
                                      double* los_resolution,
@@ -418,7 +416,7 @@ cdef inline void simps_left_rule_rel(int num_los, double resol,
             los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
     return
 
-cdef inline void romb_left_rule_rel(int num_los, double resol,
+cdef inline void romb_left_rule_abs(int num_los, double resol,
                                     double* los_lims_x,
                                     double* los_lims_y,
                                     double* los_resolution,
@@ -447,7 +445,7 @@ cdef inline void romb_left_rule_rel(int num_los, double resol,
     return
 
 
-cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
+cdef inline void simps_left_rule_rel_var(int num_los, double* resolutions,
                                          double* los_lims_x,
                                          double* los_lims_y,
                                          double* los_resolution,
@@ -472,7 +470,7 @@ cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
             los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
     return
 
-cdef inline void simps_left_rule_rel_var(int num_los, double* resolutions,
+cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
                                          double* los_lims_x,
                                          double* los_lims_y,
                                          double* los_resolution,
@@ -499,7 +497,7 @@ cdef inline void simps_left_rule_rel_var(int num_los, double* resolutions,
             los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
     return
 
-cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
+cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
                                         double* los_lims_x,
                                         double* los_lims_y,
                                         double* los_resolution,
@@ -524,7 +522,7 @@ cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
             los_coeffs[0][ii*(num_raf + 1) + jj] = los_lims_x[ii] + jj * loc_resol
     return
 
-cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
+cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
                                         double* los_lims_x,
                                         double* los_lims_y,
                                         double* los_resolution,
