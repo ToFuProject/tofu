@@ -6,6 +6,7 @@
 # Utility functions for basic geometry (vector calculus, path, ...)
 ################################################################################
 cimport cython
+from cpython.array cimport array, clone
 from libc.math cimport cos as Ccos, sin as Csin
 from libc.math cimport atan2 as Catan2
 from libc.math cimport sqrt as Csqrt
@@ -128,3 +129,31 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
         else:
             sign[ii] = 0
     return
+
+# ==============================================================================
+# =  Computing Hypothenus
+# =============================================================================
+
+cdef inline array compute_hypot(double[::1] xpts, double[::1] ypts,
+                                int npts=-1):
+    cdef int ii
+    cdef array hypot
+    if npts == -1:
+        npts  = xpts.shape[0]
+    hypot = clone(array('d'), npts, False)
+    for ii in range(npts):
+        hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
+    return hypot
+
+cdef inline double comp_min_hypot(double[::1] xpts, double[::1] ypts,
+                                  int npts=-1):
+    cdef int ii
+    cdef double tmp
+    cdef double hypot = xpts[0]*xpts[0] + ypts[0]*ypts[0]
+    if npts == -1:
+        npts  = xpts.shape[0]
+    for ii in range(npts):
+        tmp = xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii]
+        if tmp < hypot:
+            hypot = tmp
+    return Csqrt(hypot)

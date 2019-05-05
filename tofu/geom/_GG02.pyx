@@ -19,6 +19,8 @@ from libc.stdlib cimport malloc, free, realloc
 
 from _basic_geom_tools cimport _VSMALL, _SMALL
 from _basic_geom_tools cimport is_point_in_path_vec
+from _basic_geom_tools cimport compute_hypot
+from _basic_geom_tools cimport comp_min_hypot
 from _raytracing_tools cimport comp_bbox_poly_tor
 from _raytracing_tools cimport comp_bbox_poly_tor_lim
 from _raytracing_tools cimport raytracing_inout_struct_lin
@@ -90,10 +92,12 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
     (CrossRef is an angle (Tor) or a distance (X for Lin))
     """
     cdef str str_ii
+    cdef long ncoords = Pts.shape[0]
+    cdef long npts
     assert all([type(ff) is str and ',' in ff for ff in [In,Out]]), (
         "Arg In and Out (coordinate format) must be comma-separated  !")
     assert type(Pts) is np.ndarray and Pts.ndim in [1,2] and \
-        Pts.shape[0] in (2,3), ("Points must be a 1D or 2D np.ndarray "
+        ncoords in (2,3), ("Points must be a 1D or 2D np.ndarray "
                                 "of 2 or 3 coordinates !")
     okTypes = [int,float,np.int64,np.float64]
     assert CrossRef is None or type(CrossRef) in okTypes, (
@@ -114,7 +118,7 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
 
     ndim = Pts.ndim
     if ndim==1:
-        Pts = np.copy(Pts.reshape((Pts.shape[0],1)))
+        Pts = np.copy(Pts.reshape((ncoords,1)))
 
     # Compute
     if InT==OutT:
@@ -133,8 +137,8 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
         for str_ii in Outs:
             if str_ii=='r':
                 assert all([ss in Ins for ss in ['x','y']])
-                pts.append(np.hypot(Pts[Ins.index('x'),:],
-                                    Pts[Ins.index('y'),:]))
+                pts.append(compute_hypot(Pts[Ins.index('x'),:],
+                                         Pts[Ins.index('y'),:]))
             elif str_ii=='z':
                 assert 'z' in Ins
                 pts.append(Pts[Ins.index('z'),:])
@@ -143,7 +147,8 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
                     pts.append(np.arctan2(Pts[Ins.index('y'),:],
                                           Pts[Ins.index('x'),:]))
                 elif CrossRef is not None:
-                    pts.append( CrossRef*np.ones((Pts.shape[1],)) )
+                    npts = Pts.shape[1]
+                    pts.append( CrossRef*np.ones((npts,)) )
                 else:
                     raise Exception("There is no phi value available !")
                 # TODO: @VZ > else... ? if Outs = (x, r, phi) ?
@@ -157,7 +162,8 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
                     pts.append(Pts[Ins.index('r'),:] *
                                np.cos(Pts[Ins.index('phi'),:]))
                 elif CrossRef is not None:
-                    pts.append( CrossRef*np.ones((Pts.shape[1],)) )
+                    npts = Pts.shape[1]
+                    pts.append( CrossRef*np.ones((npts,)) )
                 else:
                     raise Exception("There is no x value available !")
             elif str_ii=='y':
@@ -1023,7 +1029,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
 
     if VPoly is not None:
         if Out.lower()=='(x,y,z)':
-            R = np.hypot(Pts[0,:],Pts[1,:])
+            R = compute_hypot(Pts[0,:],Pts[1,:])
             indin = Path(VPoly.T).contains_points(np.array([R,Pts[2,:]]).T,
                                                   transform=None, radius=0.0)
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
@@ -2228,8 +2234,9 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
         # rmin is necessary to avoid looking on the other side of the tokamak
         if rmin < 0.:
             rmin = 0.95*min(np.min(ves_poly[0, ...]),
-                                np.min(np.hypot(ray_orig[0, ...],
-                                                ray_orig[1, ...])))
+                            comp_min_hypot(ray_orig[0, ...],
+                                           ray_orig[1, ...],
+                                           num_los))
         rmin2 = rmin*rmin
         # Variable to avoid looking "behind" blind spot of tore
         if forbid:
@@ -2500,8 +2507,9 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
             # rmin is necessary to avoid looking on the other side of the tok
             if rmin < 0.:
                 rmin = 0.95*min(np.min(ves_poly[ind_surf, 0, ...]),
-                                    np.min(np.hypot(ray_orig[0, ...],
-                                                    ray_orig[1, ...])))
+                                comp_min_hypot(ray_orig[0, ...],
+                                               ray_orig[1, ...],
+                                               num_los))
             rmin2 = rmin*rmin
             # Variable to avoid looking "behind" blind spot of tore
             if forbid:
@@ -2593,7 +2601,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         # RMin is necessary to avoid looking on the other side of the tokamak
         if RMin is None:
             RMin = 0.95*min(np.min(VPoly[0,:]),
-                            np.min(np.hypot(Ds[0,:],Ds[1,:])))
+                            comp_min_hypot(Ds[0,:], Ds[1,:], npts))
 
         # Main function to compute intersections with Vessel
         POut = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid,
@@ -5486,7 +5494,7 @@ def SLOW_LOS_Calc_PInOut_VesStruct(Ds, dus,
         # RMin is necessary to avoid looking on the other side of the tokamak
         if RMin is None:
             RMin = 0.95*min(np.min(VPoly[0,:]),
-                            np.min(np.hypot(Ds[0,:],Ds[1,:])))
+                            comp_min_hypot(Ds[0,:],Ds[1,:], NL))
 
         # Main function to compute intersections with Vessel
         PIn, POut, \
@@ -5720,7 +5728,8 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
     ################
     # Prepare input
     if RMin is None:
-        Rmin = 0.95*min(np.min(VPoly[0,:]),np.min(np.hypot(Ds[0,:],Ds[1,:])))
+        Rmin = 0.95*min(np.min(VPoly[0,:]),
+                        comp_min_hypot(Ds[0,:], Ds[1,:], Nl))
     else:
         Rmin = RMin
 
