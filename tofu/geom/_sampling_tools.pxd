@@ -395,12 +395,9 @@ cdef inline void left_rule_rel(int num_los, int num_raf,
         loc_resol = (los_lims_y[ii] - los_lims_x[ii])*inv_nraf
         los_resolution[ii] = loc_resol
         first_index = ii*(num_raf + 1)
+        los_ind[ii] = first_index + num_raf + 1
         for jj in range(num_raf + 1):
             los_coeffs[first_index + jj] = los_lims_x[ii] + jj * loc_resol
-        if ii == 0:
-            los_ind[ii] = num_raf + 1
-        else:
-            los_ind[ii] = num_raf +  1 + los_ind[ii-1]
     return
 
 cdef inline void simps_left_rule_abs(int num_los, double resol,
