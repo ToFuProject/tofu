@@ -2679,19 +2679,18 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
     'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
     """
-    cdef bint dl_is_list
-    cdef bint C0, C1
-    cdef int sz1_ds, sz2_ds
-    cdef int sz1_us, sz2_us
-    cdef int sz1_dls, sz2_dls
     cdef str error_message
     cdef str dmode = dmethod.lower()
     cdef str imode = method.lower()
+    cdef int sz1_ds, sz2_ds
+    cdef int sz1_us, sz2_us
+    cdef int sz1_dls, sz2_dls
+    cdef int N
+    cdef int num_los
+    cdef bint dl_is_list
+    cdef bint C0, C1
     cdef double val_resol
-    cdef double kkk, D0, D1, D2, u0, u1, u2, dl0, dl
     cdef double[::1] dl_view
-    cdef Py_ssize_t ii, jj, N
-    cdef Py_ssize_t num_los
     cdef array dLr
     cdef array los_ind
     cdef double* los_coeffs = NULL
@@ -2699,8 +2698,8 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     sz1_ds = Ds.shape[0]
     sz2_ds = Ds.shape[1]
     num_los = sz2_ds
-    dLr = clone(array('d'), num_los, True)
-    los_ind = clone(array('i'), num_los, True)
+    dLr = clone(array('d'), num_los, False)
+    los_ind = clone(array('i'), num_los, False)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -2727,7 +2726,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     if not dl_is_list:
         val_resol = dL
         if dmode=='rel':
-            N = <Py_ssize_t> Cceil(1./val_resol)
+            N = <int> Cceil(1./val_resol)
             if imode=='sum':
                 los_coeffs = <double*>malloc(sizeof(double)*N*num_los)
                 middle_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
@@ -2742,7 +2741,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                               &los_coeffs[0],
                               &los_ind.data.as_ints[0])
             elif imode=='romb':
-                N = 2**(<long>(Cceil(Clog2(<double>N))))
+                N = 2**(int(Cceil(Clog2(N))))
                 los_coeffs = <double*>malloc(sizeof(double)*(N+1)*num_los)
                 left_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
                               &dLr.data.as_doubles[0],
