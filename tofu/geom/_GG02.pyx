@@ -1855,20 +1855,11 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
 
     # Preformat
     # Adjust limits
-    print("")
-    print("<<< before:", DX)
     InterX = _check_DLvsLMinMax(XMinMax, DX)
-    print(">>> after:", DX)
-    print("")
-    print("<<< before:", DY)
     InterY = _check_DLvsLMinMax(np.array([np.min(VPoly[0,:]),
                                           np.max(VPoly[0,:])]), DY)
-    print(">>> after:", DY)
-    print("")
-    print("<<< before:", DZ)
     InterZ = _check_DLvsLMinMax(np.array([np.min(VPoly[1,:]),
                                               np.max(VPoly[1,:])]), DZ)
-    print(">>> after:", DZ)
 
     if InterX==1 and InterY==1 and InterZ==1:
 
@@ -2674,16 +2665,8 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                    double[:,::1] DLs, str dmethod='abs',
                    str method='sum', bint Test=True):
-    # NE PAS RENVOYER LES POINTS..........................................
-    # k = [liste de k pour LOS_0, liste de k pour LOS_1, ...]
-    # + un autre tab d'indices : [indice du dernier de LOS_0, indice du dernier de LOS_1, ...]
-    # tq : on peut utiliser split avec k
-    # 'linspace': return the N+1 edges, including the first and last point ....
-    #...
-    #.....................................................................
-    """ Return the sampled line, with the specified method
-
-    #.. n'existe plus :
+    """
+    Return the sampled line, with the specified method
     'sum' :     return N segments centers
     'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
     'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)

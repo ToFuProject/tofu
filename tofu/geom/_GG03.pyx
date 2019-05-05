@@ -1855,20 +1855,11 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
 
     # Preformat
     # Adjust limits
-    print("")
-    print("<<< before:", DX)
     InterX = _check_DLvsLMinMax(XMinMax, DX)
-    print(">>> after:", DX)
-    print("")
-    print("<<< before:", DY)
     InterY = _check_DLvsLMinMax(np.array([np.min(VPoly[0,:]),
                                           np.max(VPoly[0,:])]), DY)
-    print(">>> after:", DY)
-    print("")
-    print("<<< before:", DZ)
     InterZ = _check_DLvsLMinMax(np.array([np.min(VPoly[1,:]),
                                               np.max(VPoly[1,:])]), DZ)
-    print(">>> after:", DZ)
 
     if InterX==1 and InterY==1 and InterZ==1:
 
