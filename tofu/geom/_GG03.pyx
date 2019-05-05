@@ -523,10 +523,11 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     cdef double* ldiscret = NULL
     cdef long* lindex = NULL
     cdef str mode_low = mode.lower()
+    cdef str err_mess
     cdef int mode_num
     # .. Testing ...............................................................
-    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be 'abs' (absolute)" +\
-        " or 'rel' (relative)"
+    err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
+    assert (mode_low == 'abs') or (mode_low == 'rel'), err_mess
     # .. preparing inputs.......................................................
     if DL is None:
         dl_array[0] = Cnan
@@ -612,7 +613,8 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     resol2 : double
         Smallest resolution on y
     """
-    cdef Py_ssize_t ii, jj
+    cdef int nn
+    cdef int ii, jj
     cdef int num_pts_vpoly
     cdef int ndisc
     cdef int tot_true
@@ -636,10 +638,11 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef double[2] dl2_array
     cdef double[2] resolutions
     cdef str mode_low = mode.lower()
+    cdef str err_mess
     cdef int mode_num
     # .. Testing ...............................................................
-    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be 'abs' (absolute)" +\
-        " or 'rel' (relative)"
+    err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
+    assert (mode_low == 'abs') or (mode_low == 'rel'), err_mess
     # .. Treating subdomains and Limits ........................................
     if D1 is None:
         dl1_array[0] = Cnan
