@@ -2679,6 +2679,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
     'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
     """
+    cdef bint dl_is_list
     cdef bint C0, C1
     cdef int sz1_ds, sz2_ds
     cdef int sz1_us, sz2_us
@@ -2686,6 +2687,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     cdef str error_message
     cdef str dmode = dmethod.lower()
     cdef str imode = method.lower()
+    cdef double val_resol
     cdef double kkk, D0, D1, D2, u0, u1, u2, dl0, dl
     cdef double[::1] dl_view
     cdef Py_ssize_t ii, jj, N
@@ -2693,14 +2695,13 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     cdef array dLr
     cdef array los_ind
     cdef double* los_coeffs = NULL
-    cdef np.ndarray[double,ndim=1] los_coeffs_arr
-
-    # Ds shape needed for testing and in algo
+    # .. Ds shape needed for testing and in algo ...............................
     sz1_ds = Ds.shape[0]
     sz2_ds = Ds.shape[1]
     num_los = sz2_ds
     dLr = clone(array('d'), num_los, True)
     los_ind = clone(array('i'), num_los, True)
+    dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
         sz1_us = us.shape[0]
@@ -2712,8 +2713,8 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
         assert sz1_dls == 2, "Dim 0 of arg DLs should be 2"
         error_message = "Args Ds, us, DLs should have same dimension 1"
         assert sz2_ds == sz2_us == sz2_dls, error_message
-        C0 = not hasattr(dL, '__iter__') and dL > 0.
-        C1 = hasattr(dL, '__iter__') and len(dL)==sz2_ds and np.all(dL>0.)
+        C0 = not dl_is_list and dL > 0.
+        C1 = dl_is_list and len(dL)==sz2_ds and np.all(dL>0.)
         assert C0 or C1, "Arg dL must be a double or a List, and all dL >0.!"
         error_message = "Argument dmethod (discretization method) should be in"\
                         +" ['abs','rel'], for absolute or relative."
@@ -2723,9 +2724,10 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
         assert imode in ['sum','simps','romb','linspace'], error_message
 
     # Case with unique dL
-    if not hasattr(dL,'__iter__'):
+    if not dl_is_list:
+        val_resol = dL
         if dmode=='rel':
-            N = <Py_ssize_t> Cceil(1./dL)
+            N = <Py_ssize_t> Cceil(1./val_resol)
             if imode=='sum':
                 los_coeffs = <double*>malloc(sizeof(double)*N*num_los)
                 middle_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
@@ -2748,18 +2750,18 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                               &los_ind.data.as_ints[0])
         else:
             if imode=='sum':
-                middle_rule_abs(num_los, dL, &DLs[0,0], &DLs[1, 0],
+                middle_rule_abs(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
                                 &dLr.data.as_doubles[0],
                                 &los_coeffs,
                                 &los_ind.data.as_ints[0])
             elif imode=='simps':
-                simps_left_rule_abs(num_los, dL, &DLs[0,0], &DLs[1, 0],
+                simps_left_rule_abs(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
                                     &dLr.data.as_doubles[0],
                                     &los_coeffs,
                                     &los_ind.data.as_ints[0])
 
             else:
-                romb_left_rule_abs(num_los, dL, &DLs[0,0], &DLs[1, 0],
+                romb_left_rule_abs(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
                                    &dLr.data.as_doubles[0],
                                    &los_coeffs,
                                    &los_ind.data.as_ints[0])
@@ -2798,8 +2800,8 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                                        &dLr.data.as_doubles[0],
                                        &los_coeffs,
                                        &los_ind.data.as_ints[0])
-    los_coeffs_arr = np.asarray(<double[:los_ind[num_los-1]]> los_coeffs)
-    return los_coeffs_arr, np.asarray(dLr), np.asarray(los_ind)
+    return np.asarray(<double[:los_ind[num_los-1]]> los_coeffs),\
+        np.asarray(dLr), np.asarray(los_ind)
 
 
 
