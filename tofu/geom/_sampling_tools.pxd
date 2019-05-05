@@ -391,13 +391,14 @@ cdef inline void left_rule_rel(int num_los, int num_raf,
     cdef double loc_resol
     inv_nraf = 1./num_raf
     # ...
-    for ii in prange(num_los):
-        loc_resol = (los_lims_y[ii] - los_lims_x[ii])*inv_nraf
-        los_resolution[ii] = loc_resol
-        first_index = ii*(num_raf + 1)
-        los_ind[ii] = first_index + num_raf + 1
-        for jj in range(num_raf + 1):
-            los_coeffs[first_index + jj] = los_lims_x[ii] + jj * loc_resol
+    with nogil, parallel():
+        for ii in prange(num_los):
+            loc_resol = (los_lims_y[ii] - los_lims_x[ii])*inv_nraf
+            los_resolution[ii] = loc_resol
+            first_index = ii*(num_raf + 1)
+            los_ind[ii] = first_index + num_raf + 1
+            for jj in range(num_raf + 1):
+                los_coeffs[first_index + jj] = los_lims_x[ii] + jj * loc_resol
     return
 
 cdef inline void simps_left_rule_abs(int num_los, double resol,
