@@ -516,6 +516,8 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     N : int64
         Number of points on LMinMax segment
     """
+    cdef str err_mess
+    cdef int mode_num
     cdef long sz_ld
     cdef long[1] N
     cdef double[2] dl_array
@@ -523,10 +525,11 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     cdef double* ldiscret = NULL
     cdef long* lindex = NULL
     cdef str mode_low = mode.lower()
-    cdef int mode_num
+    cdef bint mode_is_abs = mode_low == 'abs'
+    cdef bint mode_is_rel = mode_low == 'rel'
     # .. Testing ...............................................................
-    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be 'abs' (absolute)" +\
-        " or 'rel' (relative)"
+    err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
+    assert mode_is_abs or mode_is_rel, err_mess
     # .. preparing inputs.......................................................
     if DL is None:
         dl_array[0] = Cnan
@@ -540,14 +543,10 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
             dl_array[1] = Cnan
         else:
             dl_array[1] = DL[1]
-    if mode_low == 'abs':
+    if mode_is_abs:
         mode_num = 1
-    elif mode_low == 'rel':
+    elif mode_is_rel:
         mode_num = 2
-    else:
-        # should never reach this point
-        mode_num = -1
-        assert(False)
     #.. calling cython function.................................................
     sz_ld = discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim, mode_num,
                                    margin, &ldiscret, resolution, &lindex, N)
@@ -1811,24 +1810,27 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
 #       Meshing - Surface - Lin
 ########################################################
 
-
-@cython.cdivision(True)
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef _check_DLvsLMinMax(double[::1] LMinMax, DL=None):
-    cdef int Inter = 1
+cdef inline int _check_DLvsLMinMax(double[::1] LMinMax, list DL=None):
+    cdef int inter = 1
+    cdef bint dl0_is_not_none
+    cdef bint dl1_is_not_none
     if DL is not None:
-        assert len(DL)==2 and DL[0]<DL[1]
+        dl0_is_not_none = DL[0] is not None
+        dl1_is_not_none = DL[1] is not None
+        assert len(DL)==2
         assert LMinMax[0]<LMinMax[1]
-        DL = list(DL)
-        if DL[0]>LMinMax[1] or DL[1]<LMinMax[0]:
-            Inter = 0
+        if dl0_is_not_none and dl1_is_not_none:
+            assert(DL[0] < DL[1])
+        if dl0_is_not_none and DL[0]>LMinMax[1]:
+            inter = 0
+        elif dl1_is_not_none and DL[1]<LMinMax[0]:
+            inter = 0
         else:
-            if DL[0]<=LMinMax[0]:
+            if dl0_is_not_none and DL[0]<=LMinMax[0]:
                 DL[0] = None
-            if DL[1]>=LMinMax[1]:
+            if dl1_is_not_none and DL[1]>=LMinMax[1]:
                 DL[1] = None
-    return Inter, DL
+    return inter
 
 
 
@@ -1837,7 +1839,7 @@ cdef _check_DLvsLMinMax(double[::1] LMinMax, DL=None):
 @cython.boundscheck(False)
 def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
                                    double[:,::1] VPoly,
-                                   DX=None, DY=None, DZ=None,
+                                   list DX=None, list DY=None, list DZ=None,
                                    double DIn=0., VIn=None,
                                    double margin=_VSMALL):
     """Return the desired surfacic submesh indicated by the limits (DX,DY,DZ),
@@ -1851,11 +1853,20 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
 
     # Preformat
     # Adjust limits
-    InterX, DX = _check_DLvsLMinMax(XMinMax,DX)
-    InterY, DY = _check_DLvsLMinMax(np.array([np.min(VPoly[0,:]),
-                                              np.max(VPoly[0,:])]), DY)
-    InterZ, DZ = _check_DLvsLMinMax(np.array([np.min(VPoly[1,:]),
+    print("")
+    print("<<< before:", DX)
+    InterX = _check_DLvsLMinMax(XMinMax, DX)
+    print(">>> after:", DX)
+    print("")
+    print("<<< before:", DY)
+    InterY = _check_DLvsLMinMax(np.array([np.min(VPoly[0,:]),
+                                          np.max(VPoly[0,:])]), DY)
+    print(">>> after:", DY)
+    print("")
+    print("<<< before:", DZ)
+    InterZ = _check_DLvsLMinMax(np.array([np.min(VPoly[1,:]),
                                               np.max(VPoly[1,:])]), DZ)
+    print(">>> after:", DZ)
 
     if InterX==1 and InterY==1 and InterZ==1:
 
