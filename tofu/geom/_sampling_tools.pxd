@@ -267,7 +267,7 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
                                  double* los_lims_y,
                                  double* los_resolution,
                                  double* los_coeffs,
-                                 int* los_ind) nogil:
+                                 long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int first_index
     cdef double inv_nraf
@@ -278,7 +278,7 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
         loc_resol = (los_lims_y[ii] - los_lims_x[ii])*inv_nraf
         los_resolution[ii] = loc_resol
         first_index = ii*num_raf
-        for jj in prange(num_raf):
+        for jj in prange(num_raf, num_threads=16):
             los_coeffs[first_index + jj] = los_lims_x[ii] + (0.5 + jj)*loc_resol
         if ii == 0:
             los_ind[ii] = num_raf
@@ -286,44 +286,65 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
             los_ind[ii] = num_raf + los_ind[ii-1]
     return
 
-cdef inline void middle_rule_abs(int num_los, double resol,
-                                 double* los_lims_x,
-                                 double* los_lims_y,
-                                 double* los_resolution,
-                                 double** los_coeffs,
-                                 int* los_ind) nogil:
+
+cdef inline long middle_rule_abs_1(int num_los, double resol,
+                                   double* los_lims_x,
+                                   double* los_lims_y,
+                                   double* los_resolution,
+                                   long* ind_cum) nogil:
     cdef Py_ssize_t ii, jj
-    cdef int num_raf
-    cdef int first_index
+    cdef long cum_sum = 0
+    cdef long num_raf
+    cdef long first_index
     cdef double seg_length
     cdef double loc_resol
+    cdef double loc_x
     cdef double inv_resol = 1./resol
     # ...
-    for ii in range(num_los):
+    for ii in prange(num_los):
         seg_length = los_lims_y[ii] - los_lims_x[ii]
-        num_raf = <int>(Cceil(seg_length*inv_resol))
+        num_raf = <long>(Cceil(seg_length*inv_resol))
         loc_resol = seg_length / num_raf
         los_resolution[ii] = loc_resol
-        if ii == 0:
-            los_ind[ii] = num_raf
-            los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
-            first_index = 0
-        else:
-            first_index = los_ind[ii-1]
-            los_ind[ii] = num_raf + first_index
-            los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                             los_ind[ii] * sizeof(double))
-        for jj in prange(num_raf):
-            los_coeffs[0][first_index + jj] = los_lims_x[ii] \
+        ind_cum[ii] = num_raf
+        cum_sum += num_raf
+    return cum_sum
+
+
+cdef inline void middle_rule_abs_2(int num_los,
+                                 double* los_lims_x,
+                                 long* ind_cum,
+                                 double* los_resolution,
+                                 double* los_coeffs,
+                                 long* los_ind) nogil:
+    cdef Py_ssize_t ii, jj
+    cdef long num_raf
+    cdef long first_index
+    cdef double seg_length
+    cdef double loc_resol
+    cdef double loc_x
+    # filling tab......
+    for ii in prange(num_los):
+        first_index = 0
+        for jj in range(0, ii):
+            first_index = first_index + ind_cum[jj]
+        num_raf = ind_cum[ii]
+        los_ind[ii] = num_raf + first_index
+        loc_resol = los_resolution[ii]
+        loc_x = los_lims_x[ii]
+        for jj in range(num_raf):
+            los_coeffs[first_index + jj] = loc_x \
                                               + (0.5 + jj) * loc_resol
+
     return
+
 
 cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
                                      double* los_lims_x,
                                      double* los_lims_y,
                                      double* los_resolution,
                                      double** los_coeffs,
-                                     int* los_ind) nogil:
+                                     long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -343,7 +364,7 @@ cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
             los_ind[ii] = num_raf + first_index
             los_coeffs[0] = <double*>realloc(los_coeffs[0],
                                           los_ind[ii] * sizeof(double))
-        for jj in prange(num_raf):
+        for jj in prange(num_raf, num_threads=16):
             los_coeffs[0][first_index + jj] = los_lims_x[ii] \
                                               + (0.5 + jj) * loc_resol
     return
@@ -353,7 +374,7 @@ cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
                                      double* los_lims_y,
                                      double* los_resolution,
                                      double** los_coeffs,
-                                     int* los_ind) nogil:
+                                     long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -373,7 +394,7 @@ cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
             los_ind[ii] = num_raf + first_index
             los_coeffs[0] = <double*>realloc(los_coeffs[0],
                                           los_ind[ii] * sizeof(double))
-        for jj in prange(num_raf):
+        for jj in prange(num_raf, num_threads=16):
             los_coeffs[0][first_index + jj] = los_lims_x[ii] \
                                               + (0.5 + jj) * loc_resol
     return
@@ -384,21 +405,23 @@ cdef inline void left_rule_rel(int num_los, int num_raf,
                                double* los_lims_y,
                                double* los_resolution,
                                double* los_coeffs,
-                               int* los_ind) nogil:
+                               long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int first_index
     cdef double inv_nraf
     cdef double loc_resol
+    cdef double loc_x
     inv_nraf = 1./num_raf
     # ...
     with nogil, parallel():
         for ii in prange(num_los):
-            loc_resol = (los_lims_y[ii] - los_lims_x[ii])*inv_nraf
+            loc_x = los_lims_x[ii]
+            loc_resol = (los_lims_y[ii] - loc_x)*inv_nraf
             los_resolution[ii] = loc_resol
             first_index = ii*(num_raf + 1)
             los_ind[ii] = first_index + num_raf + 1
             for jj in range(num_raf + 1):
-                los_coeffs[first_index + jj] = los_lims_x[ii] + jj * loc_resol
+                los_coeffs[first_index + jj] = loc_x + jj * loc_resol
     return
 
 cdef inline void simps_left_rule_abs(int num_los, double resol,
@@ -406,7 +429,7 @@ cdef inline void simps_left_rule_abs(int num_los, double resol,
                                      double* los_lims_y,
                                      double* los_resolution,
                                      double** los_coeffs,
-                                     int* los_ind) nogil:
+                                     long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -438,7 +461,7 @@ cdef inline void romb_left_rule_abs(int num_los, double resol,
                                     double* los_lims_y,
                                     double* los_resolution,
                                     double** los_coeffs,
-                                    int* los_ind) nogil:
+                                    long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -449,7 +472,7 @@ cdef inline void romb_left_rule_abs(int num_los, double resol,
     for ii in range(num_los):
         seg_length = los_lims_y[ii] - los_lims_x[ii]
         num_raf = <int>(Cceil(seg_length*inv_resol))
-        num_raf = 2**(<long>(Cceil(Clog2(num_raf))))
+        num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
         loc_resol = seg_length / num_raf
         los_resolution[ii] = loc_resol
         if ii == 0:
@@ -471,7 +494,7 @@ cdef inline void simps_left_rule_rel_var(int num_los, double* resolutions,
                                          double* los_lims_y,
                                          double* los_resolution,
                                          double** los_coeffs,
-                                         int* los_ind) nogil:
+                                         long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -500,7 +523,7 @@ cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
                                          double* los_lims_y,
                                          double* los_resolution,
                                          double** los_coeffs,
-                                         int* los_ind) nogil:
+                                         long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -531,7 +554,7 @@ cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
                                         double* los_lims_y,
                                         double* los_resolution,
                                         double** los_coeffs,
-                                        int* los_ind) nogil:
+                                        long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -539,7 +562,7 @@ cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
     # ...
     for ii in range(num_los):
         num_raf = <int>(Cceil(1./resolutions[ii]))
-        num_raf = 2**(<long>(Cceil(Clog2(num_raf))))
+        num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
         loc_resol = 1. / num_raf
         los_resolution[ii] = loc_resol
         if ii == 0:
@@ -560,7 +583,7 @@ cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
                                         double* los_lims_y,
                                         double* los_resolution,
                                         double** los_coeffs,
-                                        int* los_ind) nogil:
+                                        long* los_ind) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -570,7 +593,7 @@ cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
     for ii in range(num_los):
         seg_length = los_lims_y[ii] - los_lims_x[ii]
         num_raf = <int>(Cceil(seg_length/resolutions[ii]))
-        num_raf = 2**(<long>(Cceil(Clog2(num_raf))))
+        num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
         loc_resol = seg_length / num_raf
         los_resolution[ii] = loc_resol
         if ii == 0:

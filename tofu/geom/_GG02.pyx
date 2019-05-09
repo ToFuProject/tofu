@@ -29,7 +29,9 @@ from _raytracing_tools cimport raytracing_minmax_struct_lin
 from _raytracing_tools cimport raytracing_minmax_struct_tor
 from _sampling_tools cimport discretize_line1d_core
 from _sampling_tools cimport discretize_vpoly_core
-from _sampling_tools cimport middle_rule_abs, middle_rule_rel
+from _sampling_tools cimport middle_rule_abs_1
+from _sampling_tools cimport middle_rule_abs_2
+from _sampling_tools cimport middle_rule_rel
 from _sampling_tools cimport middle_rule_abs_var, middle_rule_rel_var
 from _sampling_tools cimport left_rule_rel
 from _sampling_tools cimport simps_left_rule_abs, romb_left_rule_abs
@@ -618,32 +620,35 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
         Smallest resolution on y
     """
     cdef int nn
-    cdef int ii, jj
-    cdef int num_pts_vpoly
     cdef int ndisc
+    cdef int ii, jj
     cdef int tot_true
+    cdef int mode_num
+    cdef int num_pts_vpoly
+    cdef str err_mess
+    cdef str mode_low = mode.lower()
     cdef long nind1
     cdef long nind2
-    cdef long[1] num_cells1
-    cdef long[1] num_cells2
     cdef int[1] nL0_1
     cdef int[1] nL0_2
-    cdef bint* are_in_poly = NULL
-    cdef long* lindex1_arr = NULL
-    cdef long* lindex2_arr = NULL
-    cdef double* ldiscret1_arr = NULL
-    cdef double* ldiscret2_arr = NULL
-    cdef double* ldiscr_tmp
-    cdef long* lindex_tmp
-    cdef array ldiscr
-    cdef array lresol
-    cdef array lindex
+    cdef long[1] num_cells1
+    cdef long[1] num_cells2
     cdef double[2] dl1_array
     cdef double[2] dl2_array
     cdef double[2] resolutions
-    cdef str mode_low = mode.lower()
-    cdef str err_mess
-    cdef int mode_num
+    cdef long[:] lindex_view
+    cdef double[:] lresol_view
+    cdef double[:,:] ldiscr_view
+    cdef bint* are_in_poly = NULL
+    cdef long* lindex1_arr = NULL
+    cdef long* lindex2_arr = NULL
+    cdef long* lindex_tmp  = NULL
+    cdef double* ldiscret1_arr = NULL
+    cdef double* ldiscret2_arr = NULL
+    cdef double* ldiscr_tmp
+    cdef np.ndarray[double,ndim=2] ldiscr
+    cdef np.ndarray[double,ndim=1] lresol
+    cdef np.ndarray[long,ndim=1] lindex
     # .. Testing ...............................................................
     err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
     assert (mode_low == 'abs') or (mode_low == 'rel'), err_mess
@@ -708,33 +713,39 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
                                         ndisc,
                                         &ldiscr_tmp[0], &ldiscr_tmp[ndisc],
                                         are_in_poly)
-        ldiscr = clone(array('d'), tot_true*2, True)
-        lindex = clone(array('l'), tot_true, True)
-        lresol = clone(array('d'), tot_true, True)
+        ldiscr = np.empty((2, tot_true), dtype=float)
+        lresol = np.empty((tot_true,), dtype=float)
+        lindex = np.empty((tot_true,), dtype=int)
+        ldiscr_view = ldiscr
+        lindex_view = lindex
+        lresol_view = lresol
         jj = 0
         for ii in range(ndisc):
             if are_in_poly[ii]:
-                lresol[jj] = resolutions[0] * resolutions[1]
-                lindex[jj] = lindex_tmp[ii]
-                ldiscr[jj] = ldiscr_tmp[ii]
-                ldiscr[jj + tot_true] = ldiscr_tmp[ii + ndisc]
+                lresol_view[jj] = resolutions[0] * resolutions[1]
+                lindex_view[jj] = lindex_tmp[ii]
+                ldiscr_view[0,jj] = ldiscr_tmp[ii]
+                ldiscr_view[1,jj] = ldiscr_tmp[ii + ndisc]
                 jj = jj + 1
-        return np.asarray(ldiscr).reshape(2,tot_true), np.asarray(lresol),\
-          np.asarray(lindex), resolutions[0], resolutions[1]
+        return ldiscr, lresol,\
+            lindex, resolutions[0], resolutions[1]
     else:
         ndisc = nind1 * nind2
-        ldiscr = clone(array('d'), ndisc*2, True)
-        lindex = clone(array('l'), ndisc, True)
-        lresol = clone(array('d'), ndisc, True)
+        ldiscr = np.empty((2, ndisc), dtype=float)
+        lresol = np.empty((ndisc,), dtype=float)
+        lindex = np.empty((ndisc,), dtype=int)
+        ldiscr_view = ldiscr
+        lindex_view = lindex
+        lresol_view = lresol
         for ii in range(nind2):
             for jj in range(nind1):
                 nn = jj + nind1 * ii
-                ldiscr[nn] = ldiscret1_arr[jj]
-                ldiscr[ndisc + nn] = ldiscret2_arr[ii]
-                lindex[nn] = lindex1_arr[jj] + nind1 * lindex2_arr[ii]
-                lresol[nn] = resolutions[0] * resolutions[1]
-        return np.asarray(ldiscr).reshape(2,ndisc), np.asarray(lresol),\
-          np.asarray(lindex), resolutions[0], resolutions[1]
+                ldiscr_view[0,nn] = ldiscret1_arr[jj]
+                ldiscr_view[1,nn] = ldiscret2_arr[ii]
+                lindex_view[nn] = lindex1_arr[jj] + nind1 * lindex2_arr[ii]
+                lresol_view[nn] = resolutions[0] * resolutions[1]
+        return ldiscr, lresol,\
+            lindex, resolutions[0], resolutions[1]
 
 def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
                            double d2, long[::1] ind, str dSMode='abs',
@@ -2659,9 +2670,6 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 
 
 
-
-
-
 # ==============================================================================
 #
 #                                  LOS SAMPLING
@@ -2686,20 +2694,27 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     cdef int sz1_us, sz2_us
     cdef int sz1_dls, sz2_dls
     cdef int N
+    cdef int ntmp
     cdef int num_los
     cdef bint dl_is_list
     cdef bint C0, C1
     cdef double val_resol
     cdef double[::1] dl_view
-    cdef array dLr
-    cdef array los_ind
+    cdef np.ndarray[double,ndim=1] dLr
+    cdef np.ndarray[double,ndim=1] coeff_arr
+    cdef np.ndarray[long,ndim=1] los_ind
+    cdef long* tmp_arr
+
+
     cdef double* los_coeffs = NULL
     # .. Ds shape needed for testing and in algo ...............................
     sz1_ds = Ds.shape[0]
     sz2_ds = Ds.shape[1]
     num_los = sz2_ds
-    dLr = clone(array('d'), num_los, False)
-    los_ind = clone(array('i'), num_los, False)
+    # dLr = clone(array('d'), num_los, False)
+    # los_ind = clone(array('i'), num_los, False)
+    dLr = np.empty((num_los,), dtype=float)
+    los_ind = np.empty((num_los,), dtype=int)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -2728,79 +2743,84 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
         if dmode=='rel':
             N = <int> Cceil(1./val_resol)
             if imode=='sum':
-                los_coeffs = <double*>malloc(sizeof(double)*N*num_los)
+                coeff_arr = np.empty((N*num_los,), dtype=float)
                 middle_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
-                                &dLr.data.as_doubles[0],
-                                &los_coeffs[0],
-                                &los_ind.data.as_ints[0])
+                                &dLr[0],
+                                &coeff_arr[0],
+                                &los_ind[0])
             elif imode=='simps':
                 N = N if N%2==0 else N+1
-                los_coeffs = <double*>malloc(sizeof(double)*(N+1)*num_los)
+                coeff_arr = np.empty(((N+1)*num_los,), dtype=float)
                 left_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
-                              &dLr.data.as_doubles[0],
-                              &los_coeffs[0],
-                              &los_ind.data.as_ints[0])
+                              &dLr[0],
+                              &coeff_arr[0],
+                              &los_ind[0])
             elif imode=='romb':
                 N = 2**(int(Cceil(Clog2(N))))
-                los_coeffs = <double*>malloc(sizeof(double)*(N+1)*num_los)
+                coeff_arr = np.empty(((N+1)*num_los,), dtype=float)
                 left_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
-                              &dLr.data.as_doubles[0],
-                              &los_coeffs[0],
-                              &los_ind.data.as_ints[0])
+                              &dLr[0],
+                              &coeff_arr[0],
+                              &los_ind[0])
+            return coeff_arr, dLr, los_ind
         else:
             if imode=='sum':
-                middle_rule_abs(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
-                                &dLr.data.as_doubles[0],
-                                &los_coeffs,
-                                &los_ind.data.as_ints[0])
+                tmp_arr = <long*>malloc(num_los*sizeof(long))
+                ntmp = middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
+                                         &dLr[0], &tmp_arr[0])
+                coeff_arr = np.empty((ntmp,), dtype=float)
+                middle_rule_abs_2(num_los, &DLs[0,0], &tmp_arr[0],
+                                  &dLr[0], &coeff_arr[0],
+                                  &los_ind[0])
+                free(tmp_arr)
+                return coeff_arr, dLr, los_ind
             elif imode=='simps':
                 simps_left_rule_abs(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
-                                    &dLr.data.as_doubles[0],
+                                    &dLr[0],
                                     &los_coeffs,
-                                    &los_ind.data.as_ints[0])
-
+                                    &los_ind[0])
             else:
                 romb_left_rule_abs(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
-                                   &dLr.data.as_doubles[0],
+                                   &dLr[0],
                                    &los_coeffs,
-                                   &los_ind.data.as_ints[0])
+                                   &los_ind[0])
     # Case with different resolution for each LOS
     else:
         dl_view=dL
         if dmode=='abs':
             if imode=='sum':
                 middle_rule_abs_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                    &dLr.data.as_doubles[0],
+                                    &dLr[0],
                                     &los_coeffs,
-                                    &los_ind.data.as_ints[0])
+                                    &los_ind[0])
             elif imode=='simps':
                 simps_left_rule_abs_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                        &dLr.data.as_doubles[0],
+                                        &dLr[0],
                                         &los_coeffs,
-                                        &los_ind.data.as_ints[0])
+                                        &los_ind[0])
             else:
                 romb_left_rule_abs_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                       &dLr.data.as_doubles[0],
+                                       &dLr[0],
                                        &los_coeffs,
-                                       &los_ind.data.as_ints[0])
+                                       &los_ind[0])
         else:
             if imode=='sum':
                 middle_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                    &dLr.data.as_doubles[0],
+                                    &dLr[0],
                                     &los_coeffs,
-                                    &los_ind.data.as_ints[0])
+                                    &los_ind[0])
             elif imode=='simps':
                 simps_left_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                        &dLr.data.as_doubles[0],
+                                        &dLr[0],
                                         &los_coeffs,
-                                        &los_ind.data.as_ints[0])
+                                        &los_ind[0])
             else:
                 romb_left_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                       &dLr.data.as_doubles[0],
+                                       &dLr[0],
                                        &los_coeffs,
-                                       &los_ind.data.as_ints[0])
+                                       &los_ind[0])
     return np.asarray(<double[:los_ind[num_los-1]]> los_coeffs),\
-        np.asarray(dLr), np.asarray(los_ind)
+        dLr, los_ind
 
 
 
