@@ -755,10 +755,11 @@ class Test03_Rays(object):
                                      method='sum',DL=None)
                 k, res, lind = out
                 k = np.split(k, lind[:-1])
-                pts = [np.array([dij + ki * uij for (dij, uij) in zip(di, ui)]) for (ki, di, ui) in zip(k, Ds, us)]
-                assert len(pts)==len(k)==obj.nRays
+                # pts = [np.array([dij + ki * uij for (dij, uij)
+                #                  in zip(di, ui)])
+                #        for (ki, di, ui) in zip(k, Ds, us)]
+                assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
-                    assert pts[ii].shape[1]==k[ii].size
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
                         ind = ~np.isnan(k[ii])
                         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
@@ -769,10 +770,11 @@ class Test03_Rays(object):
                                      method='simps',DL=[0,1])
                 k, res, lind = out
                 k = np.split(k, lind[:-1])
-                pts = [np.array([dij + ki * uij for (dij, uij) in zip(di, ui)]) for (ki, di, ui) in zip(k, Ds, us)]
-                assert len(pts)==len(k)==obj.nRays
+                # pts = [np.array([dij + ki * uij for (dij, uij)
+                #                  in zip(di, ui)])
+                #        for (ki, di, ui) in zip(k, Ds, us)]
+                assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
-                    assert pts[ii].shape[1]==k[ii].size
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
                         ind = ~np.isnan(k[ii])
                         if not np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
@@ -786,10 +788,11 @@ class Test03_Rays(object):
                                      method='romb',DL=[0,1])
                 k, res, lind = out
                 k = np.split(k, lind[:-1])
-                pts = [np.array([dij + ki * uij for (dij, uij) in zip(di, ui)]) for (ki, di, ui) in zip(k, Ds, us)]
-                assert len(pts)==len(k)==obj.nRays
+                # pts = [np.array([dij + ki * uij for (dij, uij)
+                #                  in zip(di, ui)])
+                #        for (ki, di, ui) in zip(k, Ds, us)]
+                assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
-                    assert pts[ii].shape[1]==k[ii].size
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
                         ind = ~np.isnan(k[ii])
                         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
