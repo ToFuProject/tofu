@@ -748,9 +748,6 @@ class Test03_Rays(object):
         for typ in self.dobj.keys():
             for c in self.dobj[typ].keys():
                 obj = self.dobj[typ][c]
-                Ds, us = obj.D[:], obj.u[:]
-                Ds = Ds.transpose()
-                us = us.transpose()
                 out = obj.get_sample(0.02, resMode='abs',
                                      method='sum',DL=None)
                 k, res, lind = out
