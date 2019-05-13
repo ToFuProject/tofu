@@ -106,10 +106,10 @@ class ConfigLoader(object):
         lc = [vv['dict'] is None for vv in dids.values()]
 
         idsref = [k for k in lk0 if dids[k]['dict'] is not None][0]
-        dids[idsref]['dict'] = _utils._get_defaults( dids=dids[idsref]['dict'] )
+        dids[idsref]['dict'] = _utils.get_didd( dids=dids[idsref]['dict'] )
         for k in lk0:
             if dids[k]['dict'] is not None:
-                dids[k]['dict'] = _utils._get_defaults( dids=dids[k]['dict'] )
+                dids[k]['dict'] = _utils.get_didd( dids=dids[k]['dict'] )
         return dids
 
     @staticmethod

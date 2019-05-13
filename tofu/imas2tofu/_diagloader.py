@@ -97,13 +97,14 @@ class DiagLoader(object):
     # Class creation and instanciation
     #----------------
 
-    def __init__(self, dids=None, diag=None, signal=None, tlim=None,
+    def __init__(self, dids=None, isopen=False,
+                 diag=None, signal=None, tlim=None,
                  geom=True, data=True, verb=True):
 
         # Preformat
 
         # Check inputs
-        dids, diag = self._checkformat_dins(dids=dids, diag=diag)
+        dids, diag = self._checkformat_dins(dids=dids, isopen=isopen, diag=diag)
 
         # Get quantities
         lk0 = list(dids.keys())
@@ -138,19 +139,19 @@ class DiagLoader(object):
     #---------------------
 
     @classmethod
-    def _checkformat_dins(cls, dids=None, diag=None):
+    def _checkformat_dins(cls, dids=None, isopen=False, diag=None):
         assert dids is not None
         assert diag is not None
 
         # diag
         assert type(diag) is str
-        lk = list(dk.keys())
-        lc = [diag in dk[k]['lk'] for k in lk]
+        lk = list(_dref.keys())
+        lc = [diag in self._dref[k]['lk'] for k in lk]
         if not np.sum(lc) == 1:
             msg = "None or several matches for diag = %s:"%diag
-            msg += "    - "+"\n    - ".join([str(dk[k]['lk']) for k in lk])
+            msg += "    - "+"\n    - ".join([str(_dref[k]['lk']) for k in lk])
             raise Exception(msg)
-        diag = dk[lk[lc.index(True)]]
+        diag = lk[lc.index(True)]]
 
         # Check dids
         lk0 = [diag]
@@ -158,10 +159,10 @@ class DiagLoader(object):
         lc = [vv['dict'] is None for vv in dids.values()]
 
         idsref = [k for k in lk0 if dids[k]['dict'] is not None][0]
-        dids[idsref]['dict'] = _utils._get_defaults( dids=dids[idsref]['dict'] )
+        dids[idsref]['dict'] = _utils.get_didd( didd=dids[idsref]['dict'] )
         for k in lk0:
             if dids[k]['dict'] is not None:
-                dids[k]['dict'] = _utils._get_defaults( dids=dids[k]['dict'] )
+                dids[k]['dict'] = _utils.get_didd( dids=dids[k]['dict'] )
         return dids, diag
 
     @classmethod
@@ -171,7 +172,7 @@ class DiagLoader(object):
         return idsnode
 
     @staticmethod
-    def _openids(dids):
+    def _openids(dids, isopen=False):
         try:
             ids = imas.ids(s=dids['shot'], r=dids['run'])
         except Exception:

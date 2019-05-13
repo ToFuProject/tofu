@@ -113,7 +113,9 @@ class Plasma2DLoader(object):
     #----------------
 
     def __init__(self, dquant='base', tlim=None,
-                 dids_cprof=None, dids_csource=None, dids_eq=None,
+                 dids_eq=None, isopen_eq=False, isget_eq=False,
+                 dids_cprof=None, isopen_cprof=False, isget_cprof=False,
+                 dids_csource=None, isopen_csource=False, isget_csource=False
                  lpriorityref=None, verb=True):
 
         # Preformat
@@ -249,10 +251,10 @@ class Plasma2DLoader(object):
             raise Exception(msg)
 
         idsref = [k for k in lk0 if dids[k]['dict'] is not None][0]
-        dids[idsref]['dict'] = _utils._get_defaults( dids=dids[idsref]['dict'] )
+        dids[idsref]['dict'] = _utils.get_didd( dids=dids[idsref]['dict'] )
         for k in lk0:
             if dids[k]['dict'] is not None:
-                dids[k]['dict'] = _utils._get_defaults( dids=dids[k]['dict'] )
+                dids[k]['dict'] = _utils.get_didd( dids=dids[k]['dict'] )
 
         # Check tlim
         if tlim is not None:
