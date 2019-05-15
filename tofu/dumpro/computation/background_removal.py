@@ -11,14 +11,22 @@ The user must have opencv 3 or greater to use this subroutine
 """
 
 #Built-ins
+import os
+#standard
 import numpy as np
+
+#special
 try:
     import cv2
 except ImportError:
     print("Cannot find opencv package. Try pip intall opencv-contrib-python")
+    
+#dumpro specific
+import framebyframe_sub as rm
+import video_to_array as vta
 
 
-def Background_Removal(Video_file, path = './', output_name = "Foreground", output_type = ".avi"):
+def Background_Removal(video_file, path = None, output_name = None, output_type = None):
     """ Removes the background from video and returns it as Foreground.avi
     
     Parameters
@@ -38,10 +46,28 @@ def Background_Removal(Video_file, path = './', output_name = "Foreground", outp
      Path of the video along with it's name and format    
      
     """
-    #trying to open the video file
+    #splitting the video file into drive and path + file
+    drive, path_file = os.path.splitdrive(video_file)
+    #splitting the path + file 
+    path_of_file, file = os.path.split(path_file)
+    # splitting the file to get the name and the extension
+    file = file.split('.')
+    
+    #checking for the path of the file
+    if path is None:
+        path = os.path.join(drive,path_of_file)
+    #checking for the name of the output file
+    if output_name is None:
+        output_name = file[0]+'_foreground'
+    #checking for the putput format of the video
+    if output_type is None:
+        output_type = '.'+file[1]
+    
+    # reading the input file 
     try:
-        #Reading the video file
-        cap = cv2.VideoCapture(Video_file)
+        #checking if the path provided is correct or not
+        if os.path.exists(video_file):
+            cap = cv2.VideoCapture(video_file)
      #incase of error in file name or path raising exception    
     except IOError:
         print("Path/Filename incorrect or File/path does not exits")
@@ -55,9 +81,12 @@ def Background_Removal(Video_file, path = './', output_name = "Foreground", outp
     #the result video has the same number of pixels
     frame_width = int(cap.get(3))
     frame_height = int(cap.get(4))
-    
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    #dictionary containing the meta data of the video
+    meta_data = {'fps' : fps, 'frame_height' : frame_height, 'frame_width' : frame_width}
     #describing the output file
-    out = cv2.VideoWriter(path+output_name+output_type,fourcc, 25 ,(frame_width,frame_height),0) 
+    pfe = os.path.join(path, output_name + output_type)
+    out = cv2.VideoWriter(pfe,fourcc, fps ,(frame_width,frame_height),0) 
     
     #looping over the video applying the background subtaction method to each frame
     while(cap.isOpened()):
@@ -74,5 +103,8 @@ def Background_Removal(Video_file, path = './', output_name = "Foreground", outp
     #realeasing outputfile and closing any open windows
     cap.release()
     cv2.destroyAllWindows()
-
-    return path+output_name+output_type
+    
+    #(videodata, fps, rows,columns) = vta.video_to_pixel(file)
+    #rm.removebackground(videodata, fps, rows, columns, path, output_name, output_type)
+    
+    return pfe, meta_data
