@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Mon Apr 29 15:45:45 2019
+Created on Tue May 14 14:20:59 2019
 
 @author: napra
-email: napraarpan@gmail.com
-
 """
-#from readpixel import read_pixel
+
 try:
     import cv2
 except ImportError:
@@ -31,7 +29,7 @@ def video_to_pixel(videofile):
      The numpy array containing the pixel internsity information of every
      frame of the video
     """
-    #reading the input file
+    #reading the input file'
     try:
         cap = cv2.VideoCapture(videofile)
     except IOError:
@@ -44,10 +42,12 @@ def video_to_pixel(videofile):
     rows = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     columns = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    print(rows, columns, total_frame)
     #declaration of the empty array
-    pixel = np.ndarray((rows , columns, total_frame), dtype = int)
-    
+    pixel = np.ndarray(( total_frame, rows, columns), dtype = int)
+    #dictionary containing the meta data of the video
+    meta_data = {'fps' : fps, 'frame_width' : rows, 'frame_height' : columns}
     #initialization of the frame variable 
     frame_counter = 0
     
@@ -62,14 +62,13 @@ def video_to_pixel(videofile):
         
         print('frame number',frame_counter)
         
-        #looping through all pixels of the image
-        for i in range(0,rows):
-            for j in range(0,columns):
-                pixel [i][j][frame_counter] = frame.item(i, j)
+        #assigning each frame to the video array
+        pixel [frame_counter] = frame
         #changing the frame variable 
         frame_counter += 1 
     
     cap.release()
     cv2.destroyAllWindows()
     
-    return pixel
+    return (pixel, fps, rows, columns)
+

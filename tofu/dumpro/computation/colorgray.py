@@ -72,8 +72,9 @@ def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type 
         if not ret: break
         #conversion from RGB TO GRAY frame by frame        
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        dst = cv2.fastNlMeansDenoising(gray,None,5,21,7)
         #writing the gray frames to out        
-        out.write(gray)
+        out.write(dst)
     
     #closing everything       
     cap.release()
