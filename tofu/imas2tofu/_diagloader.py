@@ -151,7 +151,7 @@ class DiagLoader(object):
             msg = "None or several matches for diag = %s:"%diag
             msg += "    - "+"\n    - ".join([str(_dref[k]['lk']) for k in lk])
             raise Exception(msg)
-        diag = lk[lc.index(True)]]
+        diag = lk[lc.index(True)]
 
         # Check dids
         lk0 = [diag]

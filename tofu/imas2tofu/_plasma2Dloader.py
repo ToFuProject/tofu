@@ -115,7 +115,7 @@ class Plasma2DLoader(object):
     def __init__(self, dquant='base', tlim=None,
                  dids_eq=None, isopen_eq=False, isget_eq=False,
                  dids_cprof=None, isopen_cprof=False, isget_cprof=False,
-                 dids_csource=None, isopen_csource=False, isget_csource=False
+                 dids_csource=None, isopen_csource=False, isget_csource=False,
                  lpriorityref=None, verb=True):
 
         # Preformat
