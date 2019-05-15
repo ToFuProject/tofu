@@ -23,30 +23,52 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
-def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type = '.avi'):
-    """Converts imput video file to grayscale and saves it as Grayscale.avi
+def ConvertGray(video_file, path = None, output_name = None, output_type = None):
+    """Converts input video file to grayscale and saves it as Grayscale.avi
     
     Parameters
     -----------------------
     video_file:       mp4,avi
      input video along with its path passed in as argument
     path:             string
-     Path where the user wants to save the video
+     Path where the user wants to save the video. By default it take the path 
+     from where the raw video file was loaded
     output_name:      String
-     Name of the Grayscale converted video
+     Name of the Grayscale converted video. By default it appends to the 
+     name of the original file '_grayscale'
     output_type:      String
-     Format of output defined by user. By default .avi 
+     Format of output defined by user. By default it uses the format of the 
+     input video
     
     Return
     -----------------------
-    File:            String
+    pfe:              String
      Path along with the name and type of video    
-     
+    meta_data:        dictionary
+     A dictionary containing the meta data of the video.
     """
+    #splitting the video file into drive and path + file
+    drive, path_file = os.path.splitdrive(video_file)
+    #splitting the path + file 
+    path_of_file, file = os.path.split(path_file)
+    # splitting the file to get the name and the extension
+    file = file.split('.')
+    
+    #checking for the path of the file
+    if path is None:
+        path = os.path.join(drive,path_of_file)
+    #checking for the name of the output file
+    if output_name is None:
+        output_name = file[0]+'_grayscale'
+    #checking for the putput format of the video
+    if output_type is None:
+        output_type = '.'+file[1]
     
     # reading the input file 
     try:
-        cap = cv2.VideoCapture(video_file)
+        #checking if the path provided is correct or not
+        if os.path.exists(video_file):
+            cap = cv2.VideoCapture(video_file)
     except IOError:
         print("Path or file name incorrect or file does not exist")
     #read the first frame    
@@ -58,6 +80,8 @@ def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type 
     frame_width = int(cap.get(3))
     frame_height = int(cap.get(4))
     fps = cap.get(cv2.CAP_PROP_FPS)
+    #dictionary containing the meta data of the video
+    meta_data = {'fps' : fps, 'frame_height' : frame_height, 'frame_width' : frame_width}
     #videowriter writes the new video with the frame height and width and fps   
     #videowriter(videoname, format, fps, dimensions_of_frame,)
     pfe = os.path.join(path, output_name + output_type)
@@ -72,6 +96,8 @@ def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type 
         if not ret: break
         #conversion from RGB TO GRAY frame by frame        
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #denoising the image 
+        #consult opencv documentation for information on the parameters used
         dst = cv2.fastNlMeansDenoising(gray,None,5,21,7)
         #writing the gray frames to out        
         out.write(dst)
@@ -81,4 +107,5 @@ def ConvertGray(video_file, path = './', output_name = 'Grayscale', output_type 
     out.release()
     cv2.destroyAllWindows()
     
-    return pfe
+    #returning the output file and metadata
+    return pfe, meta_data
