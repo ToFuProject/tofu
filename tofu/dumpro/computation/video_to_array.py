@@ -47,7 +47,7 @@ def video_to_pixel(videofile):
     #declaration of the empty array
     pixel = np.ndarray(( total_frame, rows, columns), dtype = int)
     #dictionary containing the meta data of the video
-    meta_data = {'fps' : fps, 'frame_width' : rows, 'frame_height' : columns}
+    meta_data = {'fps' : fps, 'frame_height' : rows, 'frame_width' : columns}
     #initialization of the frame variable 
     frame_counter = 0
     
@@ -70,5 +70,5 @@ def video_to_pixel(videofile):
     cap.release()
     cv2.destroyAllWindows()
     
-    return (pixel, fps, rows, columns)
+    return (pixel, meta_data)
 
