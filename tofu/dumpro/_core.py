@@ -58,58 +58,74 @@ class Video(object):
 
     def __init__(self, filename):
 
-        
+        #checking if the file provided exists or not
         if not os.path.isfile(filename): 
             msg = "The provided path does not exist:\n"
             msg += "\t- path: %s"%filename
             msg += "\t=> Please provide the correct path and try again"
             raise Exception(msg)
-
+        #reading the video file
         self.cap = cv2.VideoCapture(filename)
-
+        #getting the meta data of the video
         self.__frame_width = int(self.cap.get(3))
         self.__frame_height = int(self.cap.get(4))
         self.__video_time = self.cap.get(cv2.CAP_PROP_POS_MSEC)
         self.__N_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.__fps = self.cap.get(cv2.CAP_PROP_FPS)
+        #calculating the duration of the video        
+        self._time = 0. + 
         self.__duration = self.__N_frames/self.__fps
-
+    
+    #defining a getter for the video resolution
     def resolution(self):
 
         width = self.__frame_width
         height = self.__frame_height
         return (width,height)
 
- 
+     #defining  a getter for the video duration
     def video_time(self):
 
         return self.__video_time
-
+    
+    #defining a getter for the total number of frames in the video
     def frame_count(self):
 
         return self.__N_frames
-
+    
+    #defining a getter for the frames per second
     def fps(self):
 
         return self.__fps
     
+    #defining a getter for the video duration
     def duration(self):
         
         return self.__duration
 
-    def grayscale(self,path,output_name,output_type):
+    def grayscale(self,path = None,output_name = None,output_type = None):
         """ Create a new instance with the grayscale-converted video """
 
-        gray = _comp.colorgray.ConvertGray(self, path,output_name, output_type)
+        gray, meta_data = _comp.colorgray.ConvertGray(self, path,output_name, output_type)
 
         return self.__class__(gray)
 
-    def removebackground(self,path,output_name,output_type):
+    def removebackground(self,path = None,output_name = None,output_type = None):
 
         foreground = _comp.background_removal.Background_Removal(self,path,output_name,output_type)
-
+        final = 
         return self.__class__(foreground)
     
-#    def convert2image(self):
+    def dumpro(self, path = None, output_name = None, output_type = None):
+        
+        print('Performing Preprocessing on the Video')
+        print('Performing Grayscale conversion and Noise Removal')
+        
+        gray = _comp.colorgray.ConvertGray(self, path, output_name, output_type)
+        print('grayscale conversion complete: video stored at: '+str(gray))
+        
+        print('Performing background removal')
+        foreground = _comp.background_removal.Background_Removal(gray, path, output_name, output_type)
+        print('background removal complete: video stored at: '+str(foreground))
         
         
