@@ -30,7 +30,7 @@ def binary_threshold(video_file, path = None, output_name = None, output_type = 
         path = os.path.join(drive,path_of_file)
     #checking for the name of the output file
     if output_name is None:
-        output_name = file[0]+'_foreground'
+        output_name = file[0]+'_binary'
     #checking for the putput format of the video
     if output_type is None:
         output_type = '.'+file[1]
