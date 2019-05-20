@@ -31,8 +31,8 @@ _IMAS_DIDD = {'shot':_IMAS_SHOT, 'run':_IMAS_RUN,
 
 
 # Deprecated ?
-_LK = list(itt.chain.from_iterable([list(v.keys())
-                                    for v in _IMAS_DIDS_old.values()]))
+# _LK = list(itt.chain.from_iterable([list(v.keys())
+                                    # for v in _IMAS_DIDS_old.values()]))
 
 
 #############################################################
@@ -60,6 +60,8 @@ class MultiIDSLoader(object):
     _defidd = _IMAS_DIDD
 
     _lidsnames = [k for k in dir(imas) if k[0] != '_']
+    _didsk = {'tokamak':15, 'user':15, 'version':7,
+              'shot':6, 'run':3, 'refshot':6, 'refrun':3}
 
 
     def __init__(self, dids=None,
@@ -76,9 +78,11 @@ class MultiIDSLoader(object):
     def set_dids(self, dids=None,
                  shot=None, run=None, refshot=None, refrun=None,
                  user=None, tokamak=None, version=None, lids=None):
-        dids = self._prepare_dids()
+        dids = self._prepare_dids(dids=dids, shot=shot, run=run,
+                                  refshot=refshot, refrun=refrun,
+                                  user=user, tokamak=tokamak, version=version)
         if dids is None:
-            return
+            didd, dids, refidd = None, None, None
         didd, dids, refidd = self._get_diddids(dids)
         self._dids = dids
         self._didd = didd
@@ -260,7 +264,6 @@ class MultiIDSLoader(object):
     #############
     # methods
 
-
     def _checkformat_idd(self, idd=None):
         lk = self._didd.keys()
         lc = [idd is None, type(idd) is str and idd in lk,
@@ -285,7 +288,10 @@ class MultiIDSLoader(object):
             lids = [ids]
         else:
             lids = ids
-        return lids
+        lidd = sorted(set([self._dids[ids]['idd'] for ids in lids]))
+        llids = [(idd, [ids for ids in lids if self._dids[ids]['idd'] == idd])
+                for idd in lidd]
+        return llids
 
     def _open(self, idd=None):
         lidd = self._checkformat_idd(idd)
@@ -297,20 +303,49 @@ class MultiIDSLoader(object):
                 self._didd[k]['idd'].open_env( *args )
                 self._didd[k]['isopen'] = True
 
-    def _get(self, idsname=None, occ=None):
-        lids = self._checkformat_ids(idsname)
-        for k in lids:
-            if occ is None:
-                oc = self._dids[k]['occ']
-            else:
-                oc = np.r_[occ].astype(int)
-            if self._dids[k]['ids'] is None:
-                idd = self._didd[self._dids[k]['idd']]['idd']
-                self._dids[k]['ids'] = [getattr(idd, k) for ii in oc]
-                self._dids[k]['needidd'] = False
-            for ii in range(0,self._dids[k]['nocc']):
-                self._dids[k]['ids'][ii].get( oc[ii]  )
-                self._dids[k]['isget'][ii] = True
+    def _get(self, idsname=None, occ=None, llids=None, verb=True):
+        if llids is None:
+            llids = self._checkformat_ids(idsname)
+        if verb and len(llids)>0:
+            msgroot = "Getting    ..."
+            ls = [len(ids) + len(str(self._dids[ids]['occ']))
+                  for ids in self._dids.keys()]
+            rjust = len(msgroot) + max(ls)
+            msg = ''.rjust(rjust)
+            msg += '  '.join([kk.rjust(vv) for kk,vv in self._didsk.items()])
+            print(msg)
+        for ii in range(0,len(llids)):
+            for jj in range(0,len(llids[ii][1])):
+                k = llids[ii][1][jj]
+                occref = self._dids[k]['occ']
+                if occ is None:
+                    oc = occref
+                else:
+                    oc = np.unique(np.r_[occ].astype(int))
+                    oc = np.intersect1(oc, occref)
+                indoc = np.array([ll for ll in range(0,occref.size)
+                                  if occref[ll] not in oc])
+
+
+                # Move to initialization ?
+                if self._dids[k]['ids'] is None:
+                    idd = self._didd[self._dids[k]['idd']]['idd']
+                    self._dids[k]['ids'] = [getattr(idd, k) for ii in oc]
+                    self._dids[k]['needidd'] = False
+
+                if verb:
+                    msg = ("Getting %s %s..."%(k,str(oc))).rjust(rjust)
+                    if jj == 0:
+                        params = self._didd[llids[ii][0]]['params']
+                        msg += '  '.join([str(params[kk]).rjust(vv)
+                                            for kk,vv in self._didsk.items()])
+                    else:
+                        msg += '  '.join(['"'.rjust(vv)
+                                          for vv in self._didsk.values()])
+                    print(msg)
+                for ll in oc:
+                    self._dids[k]['ids'][ll].get( oc[ll] )
+                    self._dids[k]['isget'][ll] = True
 
     def _close(self, idd=None):
         lidd = self._checkformat_idd(idd)
@@ -318,20 +353,15 @@ class MultiIDSLoader(object):
             self._didd[k]['idd'].close()
             self._didd[k]['isopen'] = False
 
-
-    def _get_liddfromids(self, idsname=None):
-        lids = self._checkformat_ids(idsname)
-        lidd = sorted(set([self._dids[ids]['idd'] for ids in lids]))
-        return lidd
-
     def get_list_notget_ids(self):
         lids = [k for k,v in self._dids.items() if np.any(v['isget'] == False)]
         return lids
 
-    def open_get_close(self, idsname=None, occ=None):
-        lidd = self._get_liddfromids(idsname)
+    def open_get_close(self, idsname=None, occ=None, verb=True):
+        llids = self._checkformat_ids(idsname)
+        lidd = [lids[0] for lids in llids]
         self._open(idd=lidd)
-        self._get(idsname, occ)
+        self._get(occ=occ, llids=llids)
         self._close(idd=lidd)
 
 
@@ -339,13 +369,34 @@ class MultiIDSLoader(object):
     # Methods for adding ids
     #---------------------
 
-    def add_ids(self, idsname=None, shot=None, idd=None):
+    def add_ids(self, idsname=None, shot=None, idd=None, get=False):
         pass
+        if get:
+            self.open_get_close(idsname=idsname)
 
 
-    def remove_ids(self, idsname=None):
+    def remove_ids(self, idsname=None, occ=None):
         if idsname is not None:
             assert idsname in self._dids.keys()
+            occref = self._dids[idsname]['occ']
+            if occ is None:
+                occ = occref
+            else:
+                occ = np.unique(np.r_[occ].astype(int))
+                occ = np.intersect1d(occ, occref, assume_unique=True)
+            idd = self._dids[idsname]['idd']
+            lids = [k for k,v in self._dids.items() if v['idd']==idd]
+            if lids == [idsname]:
+                del self._didd[idd]
+            if occ == occref:
+                del self._dids[idsname]
+            else:
+                indok = np.array([ii for ii in range(0,occref.size)
+                                  if occref[ii] not in occ])
+                self._dids[idsname]['ids'] = [self._dids[idsname]['ids'][ii]
+                                              for ii in indok]
+                self._dids[idsname]['occ'] = occref[indok]
+                self._dids[idsname]['nocc'] = self._dids[idsname]['occ'].size
 
     #---------------------
     # Methods for showing data
@@ -357,54 +408,40 @@ class MultiIDSLoader(object):
         # # Make sure the data is accessible
         # msg = "The data is not accessible because self.strip(2) was used !"
         # assert self._dstrip['strip']<2, msg
+        import pandas as pd
 
         # -----------------------
         # Build the list
         data = []
         lk = ['user', 'tokamak', 'version',
-              'shot', 'run', 'refshot', 'refrun', 'isopen']
+              'shot', 'run', 'refshot', 'refrun']
         for k0,v0 in self._didd.items():
-            lu = [k0] + [v0[k] for k in lk]
+            lu = [k0] + [v0['params'][k] for k in lk] + [v0['isopen']]
+            ref = '(Ref)' if k0==self._refidd else ''
+            lu += [ref]
             data.append(lu)
 
         # Build the pandas DataFrame for ddata
         col = ['id', 'user', 'tokamak', 'version',
-               'shot', 'run', 'refshot', 'refrun', 'isopen']
+               'shot', 'run', 'refshot', 'refrun', 'isopen', '']
         df0 = pd.DataFrame(data, columns=col)
 
         # -----------------------
         # Build the list
         data = []
-        for k0,v0 in self._dindref.items():
-            lu = [k0, v0['group'], v0['size']]
+        for k0,v0 in self._dids.items():
+            lu = [k0, v0['idd'], v0['occ'], v0['isget']]
             data.append(lu)
 
         # Build the pandas DataFrame for ddata
-        col = ['id', 'group', 'size']
+        col = ['id', 'idd', 'occ', 'isget']
         df1 = pd.DataFrame(data, columns=col)
-
-        # -----------------------
-        # Build the list
-        data = []
-        for k0,v0 in self._ddata.items():
-            if type(v0['data']) is np.ndarray:
-                shape = v0['data'].shape
-            else:
-                shape = v0['data'].__class__.__name__
-            lu = [k0, v0['quant'], v0['name'], v0['units'], shape,
-                  v0['indref'], v0['lgroup']]
-            data.append(lu)
-
-        # Build the pandas DataFrame for ddata
-        col = ['id', 'quant', 'name', 'units', 'shape', 'indref', 'lgroup']
-        df2 = pd.DataFrame(data, columns=col)
         pd.set_option('display.max_columns',max_columns)
         pd.set_option('display.width',width)
 
         if verb:
             sep = "\n------------\n"
             print("didd", sep, df0, "\n")
-            print("dindref", sep, df1, "\n")
-            print("ddata", sep, df2, "\n")
+            print("dids", sep, df1, "\n")
         if Return:
-            return df0, df1, df2
+            return df0, df1
