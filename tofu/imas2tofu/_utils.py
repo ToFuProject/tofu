@@ -25,147 +25,14 @@ _IMAS_TOKAMAK = 'west'
 _IMAS_VERSION = '3'
 _IMAS_SHOTR = -1
 _IMAS_RUNR = -1
-_IMAS_DIDS_old = {'idd':{'shot':_IMAS_SHOT, 'run':_IMAS_RUN,
-                     'refshot':_IMAS_SHOTR, 'refrun':_IMAS_RUNR},
-              'env':{'user':_IMAS_USER, 'tokamak':_IMAS_TOKAMAK,
-                     'version':_IMAS_VERSION},
-              'get':{'occ':_IMAS_OCC}}
 _IMAS_DIDD = {'shot':_IMAS_SHOT, 'run':_IMAS_RUN,
               'refshot':_IMAS_SHOTR, 'refrun':_IMAS_RUNR,
               'user':_IMAS_USER, 'tokamak':_IMAS_TOKAMAK, 'version':_IMAS_VERSION}
-_IMAS_DIDS = _IMAS_DIDD
 
+
+# Deprecated ?
 _LK = list(itt.chain.from_iterable([list(v.keys())
                                     for v in _IMAS_DIDS_old.values()]))
-_IMAS_RIDS = dict([(kk, [k for k,v in _IMAS_DIDS_old.items() if kk in v.keys()][0])
-                   for kk in _LK])
-
-#############################################################
-#############################################################
-#               Defaults and mapping
-#############################################################
-
-def get_didd(user=None, shot=None, run=None,
-             refshot=None, refrun=None, occ=None,
-             tokamak=None, version=None,
-             didd=None, idd=None, isopen=None,
-             ids=None, ids_name=None, isget=None, dout=None):
-    """ return a dict containing """
-
-    if dout is None:
-        dout = {'idd':None,
-                'dids':{},
-                'isopen':False,
-                'disget':{},
-                'params':{}}
-        new = True
-    else:
-        new = False
-        assert type(dout) is dict
-        assert all([kk in dout.keys()
-                    for kk in ['idd','isopen','disget','params']])
-        assert type(dout['isopen']) is bool
-        assert type(dout['disget']) is dict
-        assert type(dout['params']) is dict
-
-    dins = locals()
-    dins = {k: dins[k] for k in _LK}
-    lck = np.array([vv is not None for vv in dins.values()], dtype=bool)
-    lc = [np.any(lck), didd is not None, idd is not None, ids is not None]
-    if np.sum(lc) > 1:
-        msg = "Please provide either (xor):\n"
-        msg += "    - %s\n"%str(_LK)
-        msg += "    - didd : a dict contianing %s\n"%str(_LK)
-        msg += "    - idd : an imas data_entry\n"
-        msg += "    - ids : an imas ids"
-        raise Exception(msg)
-    assert isopen in [None, True, False]
-    assert isget in [None, True, False]
-    assert ids_name is None or type(ids_name) is str
-    assert occ is None or type(occ) is int
-
-    # New can only be used to add ids
-    if new:
-        if np.sum(lc) == 0:
-            lc[0] = True
-    else:
-        assert np.sum(lc) == 0
-        assert ids_name is not None
-
-
-    # -----------------
-    # Engough params from dict
-    # -----------------
-    if lc[0] or lc[1]:
-
-        # dins different from params !
-        if lc[0]:
-            didd = dins
-        for k,v in _IMAS_RIDS.items():
-            if k not in didd.keys() or didd[k] is None:
-                didd[k] = _IMAS_DIDS_old[v][k]
-
-        # convert to params
-        dout['params']['idd'] = dict([(k,didd[k]) for k in _IMAS_DIDS_old['idd'].keys()])
-        dout['params']['env'] = dict([(k,didd[k]) for k in _IMAS_DIDS_old['env'].keys()])
-
-
-        if isopen is True:
-            dout['idd'] = imas.ids(didd['shot'],  didd['run'],
-                                   didd['refshot'], didd['refrun'])
-            dout['idd'].open_env(didd['user'], didd['tokamak'], didd['version'])
-            dout['isopen'] = True
-
-        if dout['isopen'] is True and isget is True and ids_name is not None:
-            dout['dids'][ids_name] = getattr(dout['idd'],ids_name)
-            dout['dids'][ids_name].get( didd['occ'] )
-            dout['disget'][ids_name] = {didd['occ']:True}
-
-    # -----------------
-    # idd directly
-    # -----------------
-    elif lc[2]:
-        dout['params']['idd'] = {'shot':idd.shot, 'run':idd.run,
-                                 'refshot':idd.getRefShot(),
-                                 'refrun':idd.getRefRun()}
-        dout['idd'] = idd
-        if not (idd.expIdx == -1 or idd.expIdx > 0):
-            msg = "Status of the provided idd could not be determined:\n"
-            msg += "    - idd.expIdx : %s   (should be -1 or >0)\n"%str(idd.expIdx)
-            msg += "    - (shot, run): %s\n"%str((idd.shot, idd.run))
-            raise Exception(msg)
-
-        if isopen is not None:
-            assert isopen == (idd.expIdx > 0)
-        dout['isopen'] = isopen
-
-        if dout['isopen'] is True and isget is True and ids_name is not None:
-            occ = _IMAS_OCC if occ is None else occ
-            dout['dids'][ids_name] = getattr(dout['idd'],ids_name)
-            dout['dids'][ids_name].get( occ )
-            dout['disget'][ids_name] = {occ: True}
-
-    # -----------------
-    # ids directly
-    # -----------------
-    elif lc[3]:
-        assert isget in [True,False]
-        assert type(ids_name) is str
-        dout['dids'][ids_name] = ids
-        dout['didsget'][ids_name] = {0:isget}
-
-    # -----------------
-    # ids directly
-    # -----------------
-    if not new:
-        idsget = True
-        occ = _IMAS_OCC if occ is None else occ
-        assert type(ids_name) is str
-        dout['dids'][ids_name] = getattr(dout['idd'], ids_name)
-        dout['dids'][ids_name].get( occ )
-        dout['disget'][ids_name] = {occ: True}
-
-    return dout
 
 
 #############################################################
@@ -175,24 +42,88 @@ def get_didd(user=None, shot=None, run=None,
 
 
 class MultiIDSLoader(object):
+    """ Class for handling multi-ids possibly from different idd
+
+    For each desired ids (e.g.: core_profile, ece, equilibrium...), you can
+    specify a different idd (i.e.: (shot, run, user, tokamak, version))
+
+    The instance will remember from which idd each ids comes from.
+    It provides a structure to keep track of these dependencies
+    Also provides methods for opening idd and getting ids and closing idd
+
+    """
 
 
 
     _def = {'isget':False,
             'ids':None, 'occ':0, 'needidd':True}
-    _defidd = _IMAS_DIDS
+    _defidd = _IMAS_DIDD
 
     _lidsnames = [k for k in dir(imas) if k[0] != '_']
 
-    def __init__(self, dids):
-        super(MultiIDSLoader, self).
 
-    def bla(self):
+    def __init__(self, dids=None,
+                 shot=None, run=None, refshot=None, refrun=None,
+                 user=None, tokamak=None, version=None, lids=None, get=True):
+        super(MultiIDSLoader, self).__init__()
+        self.set_dids(dids=dids, shot=shot, run=run, refshot=refshot,
+                      refrun=refrun, user=user, tokamak=tokamak,
+                      version=version, lids=lids)
+        if get:
+            self.open_get_close()
+
+
+    def set_dids(self, dids=None,
+                 shot=None, run=None, refshot=None, refrun=None,
+                 user=None, tokamak=None, version=None, lids=None):
+        dids = self._prepare_dids()
+        if dids is None:
+            return
+        didd, dids, refidd = self._get_diddids(dids)
+        self._dids = dids
+        self._didd = didd
+        self._refidd = refidd
+
+    @classmethod
+    def _prepare_dids(cls, dids=None,
+                      shot=None, run=None, refshot=None, refrun=None,
+                      user=None, tokamak=None, version=None, lids=None):
+        if dids is None:
+            lc = [shot != None, run != None, refshot != None, refrun != None,
+                  user != None, tokamak != None, version != None, lids != None]
+            if any(lc):
+                dids = cls._get_didsfromkwdargs(shot=shot, run=run,
+                                                refshot=refshot,
+                                                refrun=refrun,
+                                                user=user, tokamak=tokamak,
+                                                version=version, lids=lids)
+        return dids
+
+    @classmethod
+    def _get_didsfromkwdargs(cls, shot=None, run=None, refshot=None, refrun=None,
+                             user=None, tokamak=None, version=None, lids=None):
+        dids = None
+        lc = [shot != None, run != None, refshot != None, refrun != None,
+              user != None, tokamak != None, version != None]
+        if any(lc):
+            lc = [type(lids) is str, type(lids) is list]
+            assert any(lc)
+            if lc[0]:
+                lc = [lids]
+            assert all([ids in cls._lidsnames for ids in lids])
+
+            kwdargs = dict(shot=shot, run=run, refshot=refshot, refrun=refrun,
+                           user=user, tokamak=tokamak, version=version)
+            dids = dict([(ids,{'idd':kwdargs}) for ids in lids])
+        return dids
+
+    @classmethod
+    def _get_diddids(cls, dids):
 
         # Check input
         assert type(dids) is dict
         assert all([type(kk) is str for kk in dids.keys()])
-        assert all([kk in self._lidsnames for kk in dids.keys()])
+        assert all([kk in cls._lidsnames for kk in dids.keys()])
         didd = {}
         for k, v in dids.items():
 
@@ -207,7 +138,7 @@ class MultiIDSLoader(object):
             v = dids[k]
 
             # Implement possibly missing default values
-            for kk, vv in self._def.items():
+            for kk, vv in cls._def.items():
                 dids[k][kk] = v.get(kk, vv)
             v = dids[k]
 
@@ -256,7 +187,7 @@ class MultiIDSLoader(object):
             id_, params = None, {}
             if lc[1]:
                 isopen = v.get('isopen', False)
-                for kk,vv in _IMAS_DIDS.items():
+                for kk,vv in _IMAS_DIDD.items():
                     params[kk] = idd.get(kk,vv)
                 id_ = imas.ids(params['shot'], params['run'],
                                params['refshot'], params['refrun'])
@@ -310,9 +241,8 @@ class MultiIDSLoader(object):
             if all(lc):
                 dids[k]['idd'] = refidd
 
-        self._dids = dids
-        self._didd = didd
-        self._refidd = refidd
+        return didd, dids, refidd
+
 
     #############
     # properties
@@ -403,3 +333,78 @@ class MultiIDSLoader(object):
         self._open(idd=lidd)
         self._get(idsname, occ)
         self._close(idd=lidd)
+
+
+    #---------------------
+    # Methods for adding ids
+    #---------------------
+
+    def add_ids(self, idsname=None, shot=None, idd=None):
+        pass
+
+
+    def remove_ids(self, idsname=None):
+        if idsname is not None:
+            assert idsname in self._dids.keys()
+
+    #---------------------
+    # Methods for showing data
+    #---------------------
+
+    def get_summary(self, max_columns=100, width=1000,
+                    verb=True, Return=False):
+        """ Summary description of the object content as a pandas DataFrame """
+        # # Make sure the data is accessible
+        # msg = "The data is not accessible because self.strip(2) was used !"
+        # assert self._dstrip['strip']<2, msg
+
+        # -----------------------
+        # Build the list
+        data = []
+        lk = ['user', 'tokamak', 'version',
+              'shot', 'run', 'refshot', 'refrun', 'isopen']
+        for k0,v0 in self._didd.items():
+            lu = [k0] + [v0[k] for k in lk]
+            data.append(lu)
+
+        # Build the pandas DataFrame for ddata
+        col = ['id', 'user', 'tokamak', 'version',
+               'shot', 'run', 'refshot', 'refrun', 'isopen']
+        df0 = pd.DataFrame(data, columns=col)
+
+        # -----------------------
+        # Build the list
+        data = []
+        for k0,v0 in self._dindref.items():
+            lu = [k0, v0['group'], v0['size']]
+            data.append(lu)
+
+        # Build the pandas DataFrame for ddata
+        col = ['id', 'group', 'size']
+        df1 = pd.DataFrame(data, columns=col)
+
+        # -----------------------
+        # Build the list
+        data = []
+        for k0,v0 in self._ddata.items():
+            if type(v0['data']) is np.ndarray:
+                shape = v0['data'].shape
+            else:
+                shape = v0['data'].__class__.__name__
+            lu = [k0, v0['quant'], v0['name'], v0['units'], shape,
+                  v0['indref'], v0['lgroup']]
+            data.append(lu)
+
+        # Build the pandas DataFrame for ddata
+        col = ['id', 'quant', 'name', 'units', 'shape', 'indref', 'lgroup']
+        df2 = pd.DataFrame(data, columns=col)
+        pd.set_option('display.max_columns',max_columns)
+        pd.set_option('display.width',width)
+
+        if verb:
+            sep = "\n------------\n"
+            print("didd", sep, df0, "\n")
+            print("dindref", sep, df1, "\n")
+            print("ddata", sep, df2, "\n")
+        if Return:
+            return df0, df1, df2
