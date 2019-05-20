@@ -185,6 +185,9 @@ class MultiIDSLoader(object):
     _lidsnames = [k for k in dir(imas) if k[0] != '_']
 
     def __init__(self, dids):
+        super(MultiIDSLoader, self).
+
+    def bla(self):
 
         # Check input
         assert type(dids) is dict

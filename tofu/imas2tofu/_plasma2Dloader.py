@@ -125,12 +125,13 @@ class Plasma2DLoader(object):
             self._lpriorityref = lpriorityref
 
         # Check inputs
-        out = self._checkformat_dins(dquant=dquant,
-                                     dids_eq=dids_eq,
-                                     dids_cprof=dids_cprof,
-                                     dids_csource=dids_csource,
-                                     tlim=tlim)
-        dquant, dids, tlim = out
+        dquant = self._checkformat_dquant(dquant)
+
+        dids = self._checkformat_dins(dids_eq=dids_eq,
+                                      dids_cprof=dids_cprof,
+                                      dids_csource=dids_csource)
+        tlim = self._checkformat_dins(tlim=tlim)
+
         self._dquant = dict([(k0,{}) for k0 in dquant.keys()])
         for k0 in dquant.keys():
             for k1 in dquant[k0].keys():
@@ -198,7 +199,7 @@ class Plasma2DLoader(object):
     #---------------------
 
     @classmethod
-    def _checkformat_dins(cls, dquant=None,
+    def _checkformat_dquant(cls, dquant=None,
                           dids_cprof=None, dids_csource=None,
                           dids_eq=None, tlim=None):
 
@@ -238,7 +239,12 @@ class Plasma2DLoader(object):
                 for qq in dquant[k0][k1]:
                     if qq in cls._dcomp.keys():
                         dquant[k0][k1] = sorted(set(dquant[k0][k1]).union(cls._dcomp[qq]))
+        return dquant
 
+    @classmethod
+    def _checkformat_dins(cls,
+                          dids_cprof=None, dids_csource=None,
+                          dids_eq=None):
 
         # Check dids
         dids = {'eq':     {'dict':dids_eq, 'ids':None},
@@ -255,7 +261,10 @@ class Plasma2DLoader(object):
         for k in lk0:
             if dids[k]['dict'] is not None:
                 dids[k]['dict'] = _utils.get_didd( dids=dids[k]['dict'] )
+        return dids
 
+    @classmethod
+    def _checkformat_tlim(cls, tlim=None):
         # Check tlim
         if tlim is not None:
             try:
@@ -268,7 +277,7 @@ class Plasma2DLoader(object):
                 msg += "    - Received : %s"%str(tlim)
                 raise Exception(msg)
 
-        return dquant, dids, tlim
+        return tlim
 
     @staticmethod
     def _get_idsnode(ids, idskey='eq'):
