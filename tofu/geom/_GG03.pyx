@@ -27,6 +27,7 @@ from _raytracing_tools cimport raytracing_inout_struct_lin
 from _raytracing_tools cimport raytracing_inout_struct_tor
 from _raytracing_tools cimport raytracing_minmax_struct_lin
 from _raytracing_tools cimport raytracing_minmax_struct_tor
+from _sampling_tools cimport simple_discretize_vpoly_core
 from _sampling_tools cimport discretize_line1d_core
 from _sampling_tools cimport discretize_vpoly_core
 from _sampling_tools cimport middle_rule_abs_1
@@ -3740,7 +3741,7 @@ cdef inline void dist_los_circle_core(const double[3] direct,
                                       const double[3] origin,
                                       const double radius, const double circ_z,
                                       double norm_dir,
-                                      double[2] result) nogil:
+                                      double[2] result, bint debug=False) nogil:
     """
     This function computes the intersection of a Ray (or Line Of Sight)
     and a horizontal circle in 3. It returns `kmin` the coefficient such that
@@ -3822,11 +3823,24 @@ cdef inline void dist_los_circle_core(const double[3] direct,
         m0 = Csqrt(m0sqr)
         rm0 = radius * m0
         lambd = -compute_dot_prod(MxN, DxN) / m0sqr
+        if debug:
+            with gil:
+                print(" > D orig :", D[0], D[1], D[2])
         for i in range(3):
             D[i] += lambd * direction[i]
             DxN[i] += lambd * MxN[i]
         m2b2 = compute_dot_prod(direction, D)
+        if debug:
+            with gil:
+                print(" > direction :", direction[0], direction[1], direction[2])
+                print(" > D modi :", D[0], D[1], D[2])
         b1sqr = compute_dot_prod(DxN, DxN)
+        if debug:
+            with gil:
+                print(" > m2b2 :", m2b2)
+                print(" > b1sq :", b1sqr)
+                print(" > lamb :", lambd)
+                print(" > rm0  :", rm0)
         if (b1sqr > zero) :
             # B' = (0,b1',b2') where b1' != 0.  See Sections 1.1.2 and 1.2.2
             # of the PDF documentation.
@@ -3888,7 +3902,6 @@ cdef inline void dist_los_circle_core(const double[3] direct,
                 s = -m2b2 + rm0
                 roots[numRoots] = s
                 numRoots += 1
-
             elif (m2b2 > zero):
                 s = -m2b2 - rm0
                 roots[numRoots] = s
@@ -3902,6 +3915,9 @@ cdef inline void dist_los_circle_core(const double[3] direct,
                 numRoots += 1
         # Checking which one is the closest solution............................
         tmin = roots[0] + lambd
+        if debug:
+            with gil:
+                print("tmin, numroots =", tmin, numRoots)
         for i in range(1,numRoots):
             t = roots[i] + lambd
             if (t>0 and t<tmin):
@@ -3955,6 +3971,7 @@ cdef inline void dist_los_circle_core(const double[3] direct,
             circle_closest[2] = circ_z + (line_closest[2] - circ_z) * distance
             if t < 0:
                 # fi t is negative, we take origin as closest point
+                t = 0.
                 line_closest[0] = origin[0]
                 line_closest[1] = origin[1]
                 line_closest[2] = origin[2]
@@ -4388,10 +4405,11 @@ cdef inline void is_close_los_circle_vec_core(int num_los, int num_cir,
 def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                         double[:, ::1] ray_vdir,
                         double[:, ::1] ves_poly,
+                        double disc_step=0.1,
                         double eps_uz=_SMALL, double eps_a=_VSMALL,
                         double eps_vz=_VSMALL, double eps_b=_VSMALL,
                         double eps_plane=_VSMALL, str ves_type='Tor',
-                        int num_threads=16):
+                        int num_threads=16, bint debug=False):
     """
     This function computes the distance (and the associated k) between num_los
     Rays (or LOS) and an `IN` structure (a polygon extruded around the axis
@@ -4427,11 +4445,23 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
     cdef double* res_loc = NULL
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
-    cdef array dist_vpoly = clone(array('d'), num_los, True)
-    cdef array kmin_vpoly = clone(array('d'), num_los, True)
-    cdef double[::1] dist_view, kmin_view
-    dist_view = dist_vpoly
-    kmin_view = kmin_vpoly
+    cdef np.ndarray[double,ndim=1] dist = np.empty((num_los,),dtype=float)
+    cdef np.ndarray[double,ndim=1] kmin = np.empty((num_los,),dtype=float)
+    cdef double* list_vpoly_x = NULL
+    cdef double* list_vpoly_y = NULL
+    cdef int new_npts_poly
+    # == Discretizing vpolys ===================================================
+    simple_discretize_vpoly_core(ves_poly,
+                                 npts_poly,
+                                 disc_step, # discretization step
+                                 &list_vpoly_x,
+                                 &list_vpoly_y,
+                                 &new_npts_poly,
+                                 1, # mode = absolute
+                                 _VSMALL)
+    if debug:
+        for ii in range(new_npts_poly):
+            print(ii, list_vpoly_x[ii], list_vpoly_y[ii])
     # == Defining parallel part ================================================
     with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so...
@@ -4453,20 +4483,28 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
             invuz = 1./loc_dir[2]
             crit2 = upar2*crit2_base
             simple_dist_los_vpoly_core(loc_org, loc_dir,
-                                     &ves_poly[0][0],
-                                     &ves_poly[1][0],
-                                     npts_poly, upscaDp,
-                                     upar2, dpar2,
-                                     invuz, crit2,
-                                     eps_uz, eps_vz,
-                                     eps_a, eps_b,
-                                     res_loc)
-            dist_view[ind_los] = res_loc[1]
-            kmin_view[ind_los] = res_loc[0]
+                                       list_vpoly_x,
+                                       list_vpoly_y,
+                                       new_npts_poly, upscaDp,
+                                       upar2, dpar2,
+                                       invuz, crit2,
+                                       eps_uz, eps_vz,
+                                       eps_a, eps_b,
+                                       res_loc, debug=ind_los==3)
+            kmin[ind_los] = res_loc[0]
+            if ind_los == 3:
+                with gil:
+                    print(" LOS DIR et ORIG")
+                    print(loc_org[0], loc_org[1], loc_org[2])
+                    print(loc_dir[0], loc_dir[1], loc_dir[2])
+                    print(res_loc[0], res_loc[1])
+            dist[ind_los] = res_loc[1]
         free(loc_org)
         free(loc_dir)
         free(res_loc)
-    return np.asarray(kmin_vpoly), np.asarray(dist_vpoly)
+    free(list_vpoly_x)
+    free(list_vpoly_y)
+    return kmin, dist
 
 
 def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
@@ -4521,8 +4559,10 @@ def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
-    cdef array kmin_tab = clone(array('d'), nvpoly*nlos, True)
-    cdef array dist_tab = clone(array('d'), nvpoly*nlos, True)
+    cdef np.ndarray[double, ndim=1] kmin = np.empty((nvpoly*nlos,), dtype=float)
+    cdef np.ndarray[double, ndim=1] dist = np.empty((nvpoly*nlos,), dtype=float)
+    cdef int algo_num = 0
+    cdef int ves_num = 1
     comp_dist_los_vpoly_vec_core(nvpoly, nlos,
                                  <double*>ray_orig.data,
                                  <double*>ray_vdir.data,
@@ -4530,12 +4570,12 @@ def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
                                  eps_uz, eps_a,
                                  eps_vz, eps_b,
                                  eps_plane,
-                                 ves_type,
-                                 algo_type,
-                                 kmin_tab, dist_tab,
+                                 ves_num,
+                                 algo_num,
+                                 &kmin[0], &dist[0],
                                  num_threads)
-    return np.asarray(kmin_tab).reshape(nlos, nvpoly),\
-        np.asarray(dist_tab).reshape(nlos, nvpoly)
+    return kmin.reshape(nlos, nvpoly),\
+        dist.reshape(nlos, nvpoly)
 
 
 cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
@@ -4547,11 +4587,12 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
                                               double eps_vz,
                                               double eps_b,
                                               double eps_plane,
-                                              str ves_type,
-                                              str algo_type,
-                                              double[::1] res_k,
-                                              double[::1] res_dist,
-                                              int num_threads=16):
+                                              int ves_type,
+                                              int algo_type,
+                                              double* res_k,
+                                              double* res_dist,
+                                              double disc_step=0.1,
+                                              int num_threads=16) nogil:
     """
     This function computes the distance (and the associated k) between nlos
     Rays (or LOS) and several `IN` structures (polygons extruded around the axis
@@ -4575,6 +4616,10 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
                      from inner to outer
         eps_<val> : double
            Small value, acceptance of error
+        algo_type : int
+           If algo_type = 0, then simple algo will be used
+        ves_type : int
+           If ves_type = 1, then geo is TOROIDAL
     Returns
     =======
         kmin_vpoly : (npoly, nlos) double array
@@ -4597,14 +4642,31 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
     cdef double* lpolyy
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
-
-    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
-        assert False, "The function is only implemented with the simple"\
-            + " algorithm and for toroidal vessels... Sorry!"
-    from warnings import warn
-    warn("This function supposes that the polys are nested from inner to outer",
-         Warning)
-
+    cdef double** list_vpoly_x = NULL
+    cdef double** list_vpoly_y = NULL
+    cdef int* list_npts = NULL
+    # == Tests and warnings ====================================================
+    with gil:
+        if not algo_type == 0 or not ves_type == 1:
+            assert False
+        from warnings import warn
+        warn("This algo supposes that the polys are nested from inner to outer",
+             Warning)
+    # == Discretizing vpolys ===================================================
+    list_vpoly_x = <double**>malloc(sizeof(double*)*num_poly)
+    list_vpoly_y = <double**>malloc(sizeof(double*)*num_poly)
+    list_npts = <int*>malloc(sizeof(int)*num_poly)
+    for ind_pol in range(num_poly):
+        list_vpoly_x[ind_pol] = NULL
+        list_vpoly_y[ind_pol] = NULL
+        simple_discretize_vpoly_core(ves_poly[ind_pol],
+                                     ves_poly[ind_pol].shape[1],
+                                     disc_step, # discretization step
+                                     &list_vpoly_x[ind_pol],
+                                     &list_vpoly_y[ind_pol],
+                                     &list_npts[ind_pol],
+                                     1, # mode = absolute
+                                     _VSMALL)
     # == Defining parallel part ================================================
     with nogil, parallel():
         # We use local arrays for each thread so...
@@ -4624,11 +4686,11 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
             crit2 = upar2*crit2_base
             # -- Looping over each flux surface---------------------------------
             for ind_pol in range(num_poly):
-                npts_poly = ves_poly[ind_pol].shape[1]
                 simple_dist_los_vpoly_core(loc_org, loc_dir,
-                                           &ves_poly[ind_pol][0][0],
-                                           &ves_poly[ind_pol][1][0],
-                                           npts_poly, upscaDp,
+                                           list_vpoly_x[ind_pol],
+                                           list_vpoly_y[ind_pol],
+                                           list_npts[ind_pol],
+                                           upscaDp,
                                            upar2, dpar2,
                                            invuz, crit2,
                                            eps_uz, eps_vz,
@@ -4644,6 +4706,9 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
         free(loc_dir)
         free(loc_org)
         free(loc_res)
+    free(list_vpoly_x)
+    free(list_vpoly_y)
+    free(list_npts)
     return
 
 
@@ -4661,7 +4726,8 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                                             const double eps_vz,
                                             const double eps_a,
                                             const double eps_b,
-                                            double* res_final) nogil:
+                                            double* res_final,
+                                            bint debug=False) nogil:
     """
     This function computes the distance (and the associated k) between a Ray
     (or Line Of Sight) and an `IN` structure (a polygon extruded around the axis
@@ -4770,9 +4836,13 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             res_final[1] = Cnan # distance
                             res_final[0] = Cnan # k
                             # no need to continue
+                            if res_final[0] < 0.:
+                                if debug:
+                                    with gil:
+                                        print("rfotvec is not 0 and im putting cnanas, 1.7")
                             return
-                if (res_final[1] > res_a[1]
-                    or (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
+                if (res_final[1] - res_a[1] > _VSMALL
+                    or (res_final[1] == res_a[1] and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
             else:
@@ -4797,6 +4867,9 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         res_final[1] = Cnan # distance
                         res_final[0] = Cnan # k
                         # no need to continue
+                        if res_final[0] < 0.:
+                            with gil:
+                                print("rfotvec is not 0 and im putting cnanas .18")
                         return
                 dist_los_circle_core(ray_vdir, ray_orig,
                                      lpolyx[jj+1], lpolyy[jj+1],
@@ -4815,14 +4888,17 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         res_final[1] = Cnan # distance
                         res_final[0] = Cnan # k
                         # no need to continue
+                        if res_final[0] < 0.:
+                            with gil:
+                                print("rfotvec is not 0 and im putting cnanas, 1.10")
                         return
                 # The result is the one associated to the shortest distance
-                if (res_final[1] > res_a[1] or
-                    (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
+                if (res_final[1] - res_a[1] > _VSMALL or
+                    (res_final[1] == res_a[1] and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
-                if (res_final[1] > res_b[1] or
-                    (res_final[1] == res_b[1] and res_final[0] > res_b[0])):
+                if (res_final[1] - res_b[1] > _VSMALL or
+                    (res_final[1] == res_b[1] and res_final[0] - res_b[0] > _VSMALL)):
                     res_final[0] = res_b[0] # k
                     res_final[1] = res_b[1] # distance
     else:
@@ -4831,11 +4907,14 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
             v0 = lpolyx[jj+1]-lpolyx[jj]
             v1 = lpolyy[jj+1]-lpolyy[jj]
             val_a = v0 * v0 - upar2 * v1 * invuz * v1 * invuz
-            val_b = lpolyx[jj] * v0 + v1 * (ray_orig[2] - lpolyy[jj]) * upar2 *\
-                    invuz * invuz - upscaDp * v1 * invuz
+            val_b = lpolyx[jj] * v0 + v1 * invuz * (
+                (ray_orig[2] - lpolyy[jj]) * upar2 * invuz - upscaDp)
             coeff = - upar2 * (ray_orig[2] - lpolyy[jj])**2 * invuz * invuz +\
                     2. * upscaDp * (ray_orig[2]-lpolyy[jj]) * invuz -\
                     dpar2 + lpolyx[jj] * lpolyx[jj]
+            if debug:
+                with gil:
+                    print(jj, "---> r0 =", res_final[0], "b, a , coeff, v2", val_b, val_a, coeff, ray_vdir[2])
             if (val_a * val_a < eps_a * eps_a):
                 if (val_b * val_b < eps_b * eps_b):
                     # let's see if C is 0 or not
@@ -4850,7 +4929,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # Then we only need to compute distance to circle C_A
                         dist_los_circle_core(ray_vdir, ray_orig,
                                             lpolyx[jj], lpolyy[jj],
-                                            norm_dir2, res_a)
+                                             norm_dir2, res_a, debug=debug)
                     elif q > 1:
                         # Then we only need to compute distance to circle C_B
                         dist_los_circle_core(ray_vdir, ray_orig,
@@ -4862,19 +4941,30 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                             # Then there is an intersection
                             res_final[0] = Cnan
                             res_final[1] = Cnan
+                            if res_final[0] < 0.:
+                                with gil:
+                                    print("k > 0 ... 2.1  !!!!!!!!!!!!!!")
                             return # no need to move forward
                         else:
                             # The closest point on the line is the LOS origin
                             res_a[0] = 0
                             res_a[1] = -k * Csqrt(norm_dir2)
-                if (res_final[1] > res_a[1]
-                    or (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
+                if (res_final[1] - res_a[1] > _VSMALL
+                    or (res_final[1] == res_a[1] and res_final[0] - res_a[0] > _VSMALL)):
+                    if debug:
+                        with gil:
+                            print("res original =", res_final[0], res_final[1], res_final[0] - res_final[1])
+                            print("trouve par l'algo", res_a[0], res_a[1])
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
             elif (val_b * val_b >= val_a * coeff):
                 sqd = Csqrt(val_b * val_b - val_a * coeff)
                 # First solution
                 q = (-val_b + sqd) / val_a
+                if debug:
+                    with gil:
+                        print("sqd =", sqd, " =", val_b, val_a, coeff)
+                        print(" q = ", q)
                 if q < 0:
                     # Then we only need to compute distance to circle C_A
                     dist_los_circle_core(ray_vdir, ray_orig,
@@ -4884,20 +4974,23 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     # Then we only need to compute distance to circle C_B
                     dist_los_circle_core(ray_vdir, ray_orig,
                                          lpolyx[jj+1], lpolyy[jj+1],
-                                         norm_dir2, res_a)
+                                         norm_dir2, res_a, debug=debug)
                 else :
                     k = (q * v1 - (ray_orig[2] - lpolyy[jj])) * invuz
                     if k >= 0.:
                         # There is an intersection
                         res_final[0] = Cnan
                         res_final[1] = Cnan
+                        if res_final[0] < 0.:
+                            with gil:
+                                print("k > 0 .......... 2.3 !!!!!!")
                         return # no need to continue
                     else:
                         # The closest point on the LOS is its origin
                         res_a[0] = 0
                         res_a[1] = -k * Csqrt(norm_dir2)
-                if (res_final[1] > res_a[1]
-                    or (res_final[1] == res_a[1] and res_final[0] > res_a[0])):
+                if (res_final[1] - res_a[1] > _VSMALL
+                    or (res_final[1] == res_a[1] and res_final[0] - res_a[0] > _VSMALL)):
                     res_final[0] = res_a[0] # k
                     res_final[1] = res_a[1] # distance
                 # Second solution
@@ -4918,15 +5011,21 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # there is an intersection
                         res_final[0] = Cnan
                         res_final[1] = Cnan
+                        if res_final[0] < 0.:
+                            with gil:
+                                print("k > 0 .......... 2.4 !!!!!!")
                         return # no need to continue
                     else:
                         # The closest point on the LOS is its origin
                         res_b[0] = 0
                         res_b[1] = -k * Csqrt(norm_dir2)
-                if (res_final[1] > res_b[1]
-                    or (res_final[1] == res_b[1] and res_final[0] > res_b[0])):
+                if (res_final[1] - res_b[1] > _VSMALL
+                    or (res_final[1] == res_b[1] and res_final[0] - res_b[0] > _VSMALL)):
                     res_final[0] = res_b[0]
                     res_final[1] = res_b[1]
+            if debug:
+                with gil:
+                    print(jj, ">>>,got to the end.... !!!!!", res_final[0], q, val_b, val_a, coeff, ray_vdir[2])
     res_final[0] = res_final[0] / norm_dir2_ori
     return
 
@@ -5219,8 +5318,8 @@ cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
     cdef double* lpolyy
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
-    cdef array kmin_tab = clone(array('d'), num_poly*nlos, True)
-    cdef array dist_tab = clone(array('d'), num_poly*nlos, True)
+    cdef double* kmin = <double*>malloc(sizeof(double)*num_poly*nlos)
+    cdef double* dist = <double*>malloc(sizeof(double)*num_poly*nlos)
 
     if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
         assert False, "The function is only implemented with the simple"\
@@ -5240,16 +5339,16 @@ cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
                                  eps_plane,
                                  ves_type,
                                  algo_type,
-                                 kmin_tab, dist_tab,
+                                 kmin, dist,
                                  num_threads)
 
     # We use local arrays for each thread so...
     for ind_pol in range(num_poly):
         loc_dist = 100000000.
         for ind_los in range(nlos):
-            if (dist_tab[ind_los*num_poly + ind_pol] < loc_dist):
+            if (dist[ind_los*num_poly + ind_pol] < loc_dist):
                 ind_close_tab[ind_pol] = ind_los
-                loc_dist = dist_tab[ind_los*num_poly + ind_pol]
+                loc_dist = dist[ind_los*num_poly + ind_pol]
 
     return
 

@@ -1202,14 +1202,16 @@ def test16_dist_los_vpoly():
     ray_orig[1][10] = 0.
     ray_orig[2][10] = 2.5
     ray_vdir[0][10] = 1.
+    print("with new thingy")
     out = GG.comp_dist_los_vpoly(
         np.ascontiguousarray(ray_orig, dtype=np.float64),
         np.ascontiguousarray(ray_vdir, dtype=np.float64),
-        ves_poly, num_threads=1)
+        ves_poly, disc_step=0.01,
+        num_threads=1)
 
     exact_ks = [3.0,
-                0.5,
-                0.6715728752538102,
+                0.,
+                0.,
                 0.9999999999999992,
                 0.0,
                 1.2576248261177692,
@@ -1229,6 +1231,12 @@ def test16_dist_los_vpoly():
                    1.0,
                    0.5,
                    0.5]
+    print(">>>>>>>>> out =")
+    print(" k =", out[0])
+    print(" dist = ", out[1])
+    print("<<<<<<<<<< expecting =")
+    print(exact_ks)
+    print(exact_dists)
     assert(np.allclose(out[0], exact_ks))
     assert(np.allclose(out[1], exact_dists))
 
@@ -1462,11 +1470,10 @@ def test18_comp_dist_los_vpoly():
     # .. computing .............................................................
     out = GG.comp_dist_los_vpoly(np.ascontiguousarray(ray_orig),
                                  np.ascontiguousarray(ray_vdir),
-                                 ves_poly)
-    print(out)
+                                 ves_poly, disc_step=0.01)
     k_vec = [3.0,
-             0.5,
-             0.6715728752538102,
+             0.0,
+             0.0,
              1.0,
              0.0,
              1.3,
@@ -1486,6 +1493,12 @@ def test18_comp_dist_los_vpoly():
                 1.0,
                 0.5,
                 0.5]
+    print(">>>>>>>>> out =")
+    print(" k =", out[0])
+    print(" dist = ", out[1])
+    print("<<<<<<<<<< expecting =")
+    print(" k_ex =", k_vec)
+    print(" dist_ex =", dist_vec)
     assert np.allclose(k_vec, out[0])
     assert np.allclose(dist_vec, out[1])
 
@@ -1530,7 +1543,11 @@ def test19_comp_dist_los_vpoly_vec():
     assert np.allclose(k[0], [np.nan, np.nan], equal_nan=True)
     assert np.allclose(dist[0], [np.nan, np.nan], equal_nan=True)
     assert np.allclose(k[1], [0., np.nan], equal_nan=True)
+    print("dist 1 = ", dist[1])
+    print("should be =", [0.5, np.nan])
     assert np.allclose(dist[1], [0.5, np.nan], equal_nan=True)
+    print("k, dist 2 =", k[2], dist[2])
+    print("should be ? =", [2.17944947, 3.96862697], [2., 1])
     assert np.allclose(k[2], [2.17944947, 3.96862697], equal_nan=True)
     assert np.allclose(dist[2], [2., 1.], equal_nan=True)
 

@@ -28,7 +28,6 @@ cdef inline long discretize_line1d_core(double* LMinMax, double dstep,
                                          double** ldiscret_arr,
                                          double[1] resolution,
                                          long** lindex_arr, long[1] N) nogil:
-    cdef int ii
     cdef int[1] nL0
     cdef long[1] Nind
 
@@ -127,6 +126,41 @@ cdef inline void second_discretize_line1d_core(double* LMinMax,
         jj = nL0 + ii
         lindex[ii] = jj
         ldiscret[ii] = LMinMax[0] + (0.5 + jj) * resolution
+    return
+
+
+cdef inline void simple_discretize_line1d(double[2] LMinMax, double dstep,
+					  int mode, double margin,
+                                          double** ldiscret_arr,
+                                          double[1] resolution,
+                                          long[1] N) nogil:
+    """
+    Similar version, more simple :
+    - Not possible to define a sub set
+    - Gives back a discretized line WITH the min boundary
+    - WITHOUT max boundary
+    """
+    cdef int ii
+    cdef int numcells
+    cdef double resol
+    cdef double first = LMinMax[0]
+
+    if mode == 1: # absolute
+        numcells = <int>Cceil((LMinMax[1] - first)/dstep)
+    else: # relative
+        num_cells = <int>Cceil(1./dstep)
+    if num_cells < 1 :
+        num_cells = 1
+    resol = (LMinMax[1] - first)/numcells
+    resolution[0] = resol
+    N[0] = numcells
+    if (ldiscret_arr[0] == NULL):
+        ldiscret_arr[0] = <double *>malloc(N[0] * sizeof(double))
+    else:
+        ldiscret_arr[0] = <double *>realloc(ldiscret_arr[0],
+							N[0] * sizeof(double))
+    for ii in range(numcells):
+        ldiscret_arr[0][ii] = first + resol * ii
     return
 
 # ==============================================================================
@@ -254,6 +288,56 @@ cdef inline void discretize_vpoly_core(double[:, ::1] VPoly, double dstep,
         YPolybis[0][sz_vbis - 1] = VPoly[1, 0]
     tot_sz_vb[0] = sz_vbis
     tot_sz_ot[0] = sz_others
+    return
+
+
+# ------------------------------------------------------------------------------
+# - Simplified version of previous algo
+# ------------------------------------------------------------------------------
+cdef inline void simple_discretize_vpoly_core(double[:, ::1] VPoly,
+                                              int num_pts,
+                                              double dstep,
+                                              double** XCross,
+                                              double** YCross,
+                                              int[1] new_nb_pts,
+                                              int mode,
+                                              double margin) nogil:
+    cdef Py_ssize_t sz_others = 0
+    cdef Py_ssize_t last_sz_othr = 0
+    cdef int ii, jj
+    cdef double v0, v1
+    cdef double inv_norm
+    cdef double[1] loc_resolu
+    cdef double[2] LMinMax
+    cdef long[1] numcells
+    cdef double* ldiscret = NULL
+    cdef long* lindex = NULL
+
+    with gil:
+        print("hheeerre dstep = ", dstep)
+    #.. initialization..........................................................
+    LMinMax[0] = 0.
+    #.. Filling arrays..........................................................
+    for ii in range(num_pts-1):
+        v0 = VPoly[0,ii+1]-VPoly[0,ii]
+        v1 = VPoly[1,ii+1]-VPoly[1,ii]
+        LMinMax[1] = Csqrt(v0*v0 + v1*v1)
+        inv_norm = 1./LMinMax[1]
+        simple_discretize_line1d(LMinMax, dstep, mode, margin,
+                                 &ldiscret, loc_resolu, &numcells[0])
+        # .. preparing other arrays ........................................
+        last_sz_othr = sz_others
+        sz_others += numcells[0]
+        XCross[0] = <double*>realloc(XCross[0], sizeof(double)*sz_others)
+        YCross[0] = <double*>realloc(YCross[0], sizeof(double)*sz_others)
+        # ...
+        v0 = v0 * inv_norm
+        v1 = v1 * inv_norm
+        for jj in range(numcells[0]):
+            XCross[0][last_sz_othr + jj] = VPoly[0,ii] + ldiscret[jj] * v0
+            YCross[0][last_sz_othr + jj] = VPoly[1,ii] + ldiscret[jj] * v1
+    # We close the polygon of VPolybis
+    new_nb_pts[0] = sz_others
     return
 
 

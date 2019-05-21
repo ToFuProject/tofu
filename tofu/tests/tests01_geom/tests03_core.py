@@ -629,13 +629,15 @@ for typ in dconf.keys():
                               np.full((nP,),4.+foc),
                               np.full((nP,),0.02)])
         else:
-            nP = 100
-            X = np.linspace(-DX,DX,nP)
             if typ=='Tor':
+                nP = 10000
+                X = np.linspace(-DX,DX,nP)
                 D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
                      + np.repeat(X[::-1],nP)[np.newaxis,:]*ephi[:,np.newaxis]
                      + np.tile(X,nP)[np.newaxis,:]*ez[:,np.newaxis])
             else:
+                nP = 100
+                X = np.linspace(-DX,DX,nP)
                 D = np.array([np.repeat(3.+X[::-1],nP),
                               np.full((nP*nP,),4.+foc),
                               np.tile(0.01+X,nP)])
