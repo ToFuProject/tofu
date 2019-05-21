@@ -4450,6 +4450,7 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
     cdef double* list_vpoly_x = NULL
     cdef double* list_vpoly_y = NULL
     cdef int new_npts_poly
+    cdef bint loc_debug=False
     # == Discretizing vpolys ===================================================
     simple_discretize_vpoly_core(ves_poly,
                                  npts_poly,
@@ -4490,9 +4491,9 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                                        invuz, crit2,
                                        eps_uz, eps_vz,
                                        eps_a, eps_b,
-                                       res_loc, debug=ind_los==7)
+                                       res_loc, debug=(ind_los==7 and debug))
             kmin[ind_los] = res_loc[0]
-            if ind_los == 3:
+            if ind_los == 7:
                 with gil:
                     print(" LOS DIR et ORIG")
                     print(loc_org[0], loc_org[1], loc_org[2])
@@ -4787,6 +4788,9 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
     res_final[0] = 1000000000
     res_final[1] = 1000000000
 
+    with gil:
+        print("")
+        print("========= IN SIMPLE DIST FUNCTION================")
     # == Compute all solutions =================================================
     # Set tolerance value for ray_vdir[2,ii]
     # eps_uz is the tolerated DZ across 20m (max Tokamak size)
@@ -4923,6 +4927,43 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         # such that q = 0,  k = (z_A - z_D) / uz
                         res_a[0] = (lpolyy[jj] - ray_orig[2]) * invuz
                         res_a[1] = 0 # distance = 0 since LOS in cone
+                    elif v0 * v0 < eps_a and upar2 * upar2 < eps_a:
+                        # cylinder and vertical line
+                        if (lpolyy[jj+1] >= ray_orig[2]
+                            and ray_orig[2] >= lpolyy[jj]):
+                            # origin of line in the length of cylinder:
+                            res_a[0] = 0
+                            res_a[1] = upar2 - lpolyx[jj]
+                        elif (lpolyy[jj] >= ray_orig[2]
+                              and ray_orig[2] >= lpolyy[jj+1]):
+                            # origin of line in the length of cylinder:
+                            res_a[0] = 0
+                            res_a[1] = upar2 - lpolyx[jj]
+                        elif (lpolyy[jj] >= ray_orig[2]
+                              and ray_orig[2] <= lpolyy[jj+1]):
+                            # ray origin below cylinder
+                            if ray_vdir[2] < 0:
+                                # if the ray is going down origin is the closest
+                                res_a[0] = 0
+                                res_a[1] = Csqrt((lpolyx[jj] - upar2)**2
+                                                 + (min(lpolyy[jj], lpolyy[jj+1])
+                                                    - ray_orig[2])**2)
+                            else:
+                                res_a[0] = (min(lpolyy[jj], lpolyy[jj+1])
+                                            - ray_orig[2]) * invuz
+                                res_a[1] = Cabs(lpolyx[jj] - upar2)
+                        else:
+                            # ray origin above cylinder
+                            if ray_vdir[2] > 0:
+                                # if the ray is going up origin is the closest
+                                res_a[0] = 0
+                                res_a[1] = Csqrt((lpolyx[jj] - upar2)**2
+                                                 + (max(lpolyy[jj], lpolyy[jj+1])
+                                                    - ray_orig[2])**2)
+                            else:
+                                res_a[0] = (max(lpolyy[jj], lpolyy[jj+1])
+                                            - ray_orig[2]) * invuz
+                                res_a[1] = Cabs(lpolyx[jj] - upar2)
                 else: # (val_b * val_b > eps_b * eps_b):
                     q = -coeff / (2. * val_b)
                     if q < 0. :
@@ -5025,7 +5066,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[1] = res_b[1]
             if debug:
                 with gil:
-                    print(jj, ">>>,got to the end.... !!!!!", res_final[0], q, val_b, val_a, coeff, ray_vdir[2])
+                    print(jj, ">>>,got to the end.... !!!!!", res_final[0], res_final[1], q)
     res_final[0] = res_final[0] / norm_dir2_ori
     return
 
