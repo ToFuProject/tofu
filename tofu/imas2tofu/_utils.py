@@ -107,14 +107,18 @@ class MultiIDSLoader(object):
     def _get_didsfromkwdargs(cls, shot=None, run=None, refshot=None, refrun=None,
                              user=None, tokamak=None, version=None, lids=None):
         dids = None
-        lc = [shot != None, run != None, refshot != None, refrun != None,
-              user != None, tokamak != None, version != None]
-        if any(lc):
+        # lc = [shot != None, run != None, refshot != None, refrun != None,
+              # user != None, tokamak != None, version != None]
+        if lids is not None:
             lc = [type(lids) is str, type(lids) is list]
             assert any(lc)
             if lc[0]:
-                lc = [lids]
-            assert all([ids in cls._lidsnames for ids in lids])
+                lids = [lids]
+            if not all([ids in cls._lidsnames for ids in lids]):
+                msg = "All provided ids names must be valid ids identifiers:\n"
+                msg += "    - Provided: %s\n"%str(lids)
+                msg += "    - Expected: %s"%str(cls._lidsnames)
+                raise Exception(msg)
 
             kwdargs = dict(shot=shot, run=run, refshot=refshot, refrun=refrun,
                            user=user, tokamak=tokamak, version=version)
@@ -122,12 +126,14 @@ class MultiIDSLoader(object):
         return dids
 
     @classmethod
-    def _get_diddids(cls, dids):
+    def _get_diddids(cls, dids, defidd=None):
 
         # Check input
         assert type(dids) is dict
         assert all([type(kk) is str for kk in dids.keys()])
         assert all([kk in cls._lidsnames for kk in dids.keys()])
+        if defidd is None:
+            defidd = cls._defidd
         didd = {}
         for k, v in dids.items():
 
@@ -190,8 +196,9 @@ class MultiIDSLoader(object):
 
             id_, params = None, {}
             if lc[1]:
+                idd = dict([(kk,vv) for kk,vv in idd.items() if vv is not None])
                 isopen = v.get('isopen', False)
-                for kk,vv in _IMAS_DIDD.items():
+                for kk,vv in defidd.items():
                     params[kk] = idd.get(kk,vv)
                 id_ = imas.ids(params['shot'], params['run'],
                                params['refshot'], params['refrun'])
@@ -323,11 +330,10 @@ class MultiIDSLoader(object):
                 else:
                     oc = np.unique(np.r_[occ].astype(int))
                     oc = np.intersect1(oc, occref)
-                indoc = np.array([ll for ll in range(0,occref.size)
-                                  if occref[ll] not in oc])
+                indoc = np.array([np.nonzero(occref==oc[ll])[0][0]
+                                  for ll in range(0,len(oc))]).ravel()
 
-
-                # Move to initialization ?
+                # if ids not provided
                 if self._dids[k]['ids'] is None:
                     idd = self._didd[self._dids[k]['idd']]['idd']
                     self._dids[k]['ids'] = [getattr(idd, k) for ii in oc]
@@ -343,9 +349,11 @@ class MultiIDSLoader(object):
                         msg += '  '.join(['"'.rjust(vv)
                                           for vv in self._didsk.values()])
                     print(msg)
-                for ll in oc:
-                    self._dids[k]['ids'][ll].get( oc[ll] )
-                    self._dids[k]['isget'][ll] = True
+
+                for ll in range(0,len(oc)):
+                    if self._dids[k]['isget'][indoc[ll]] == False:
+                        self._dids[k]['ids'][indoc[ll]].get( oc[ll] )
+                        self._dids[k]['isget'][indoc[ll]] = True
 
     def _close(self, idd=None):
         lidd = self._checkformat_idd(idd)
@@ -369,8 +377,23 @@ class MultiIDSLoader(object):
     # Methods for adding ids
     #---------------------
 
-    def add_ids(self, idsname=None, shot=None, idd=None, get=False):
-        pass
+    def add_ids(self, idsname=None, occ=None,
+                shot=None, run=None, refshot=None, refrun=None,
+                user=None, tokamak=None, version=None,
+                dids=None, get=False):
+        lc = [dids is not None, idsname is not None]
+        if not np.sum(lc) == 1:
+            msg = "Provide either a dids (dict) or an idsname !"
+            raise Exception(msg)
+        if lc[1]:
+            dids = self._get_didsfromkwdargs(shot=shot, run=run,
+                                             refshot=refshot, refrun=refrun,
+                                             user=user, tokamak=tokamak,
+                                             version=version, lids=idsname)
+        defidd = self._didd[self._refidd]['params']
+        didd, dids, refidd = self._get_diddids(dids, defidd=defidd)
+        self._dids.update(dids)
+        self._didd.update(didd)
         if get:
             self.open_get_close(idsname=idsname)
 
@@ -388,18 +411,20 @@ class MultiIDSLoader(object):
             lids = [k for k,v in self._dids.items() if v['idd']==idd]
             if lids == [idsname]:
                 del self._didd[idd]
-            if occ == occref:
+            if np.all(occ == occref):
                 del self._dids[idsname]
             else:
+                isgetref = self._dids[idsname]['isget']
                 indok = np.array([ii for ii in range(0,occref.size)
                                   if occref[ii] not in occ])
                 self._dids[idsname]['ids'] = [self._dids[idsname]['ids'][ii]
                                               for ii in indok]
                 self._dids[idsname]['occ'] = occref[indok]
+                self._dids[idsname]['isget'] = isgetref[indok]
                 self._dids[idsname]['nocc'] = self._dids[idsname]['occ'].size
 
     #---------------------
-    # Methods for showing data
+    # Methods for showing content
     #---------------------
 
     def get_summary(self, max_columns=100, width=1000,
@@ -417,7 +442,7 @@ class MultiIDSLoader(object):
               'shot', 'run', 'refshot', 'refrun']
         for k0,v0 in self._didd.items():
             lu = [k0] + [v0['params'][k] for k in lk] + [v0['isopen']]
-            ref = '(Ref)' if k0==self._refidd else ''
+            ref = '(ref)' if k0==self._refidd else ''
             lu += [ref]
             data.append(lu)
 
@@ -445,3 +470,10 @@ class MultiIDSLoader(object):
             print("dids", sep, df1, "\n")
         if Return:
             return df0, df1
+
+    #---------------------
+    # Methods for returning data
+    #---------------------
+
+    def get_data(self, idsname, lsig, indch=None):
+        pass
