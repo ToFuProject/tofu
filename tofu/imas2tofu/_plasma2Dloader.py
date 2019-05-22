@@ -46,11 +46,11 @@ class Plasma2DLoader(object):
     """ A generic class for handling 2D (and 1D) plasma profiles
 
     Provides:
-        - equilibrium-related quantities
-        - any 1d profile (can be remapped on 2D equilibrium)
-        - spatial interpolation methods
+            - equilibrium-related quantities
+            - any 1d profile (can be remapped on 2D equilibrium)
+            - spatial interpolation methods
 
-    """
+        """
 
     #----------------
     # Class attributes

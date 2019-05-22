@@ -9,6 +9,7 @@ Default parameters and input checking
 
 # Built-ins
 import itertools as itt
+import copy
 
 # Standard
 import numpy as np
@@ -63,6 +64,30 @@ class MultiIDSLoader(object):
     _didsk = {'tokamak':15, 'user':15, 'version':7,
               'shot':6, 'run':3, 'refshot':6, 'refrun':3}
 
+    # Known short version of signal str
+    _dshort = {'core_profiles':
+               {'1dTe':{'str':'profiles_1d[time].electrons.temperature'},
+                '1dne':{'str':'profiles_1d[time].electrons.density'},
+                '1dzeff':{'str':'profiles_1d[time].zeff'},
+                '1dphi':{'str':'profiles_1d[time].grid.phi'},
+                '1dpsi':{'str':'profiles_1d[time].grid.psi'},
+                '1drhotn':{'str':'profiles_1d[time].grid.rho_tor_norm'},
+                '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm'}},
+               'equilibrium':
+               {},
+               'core_sources':
+               {'brem':{'str':"sources['bremsstrahlung'].profiles_1d[time].electrons.energy"},
+                'line':{'str':"sources['lineradiation'].profiles_1d[time].electrons.energy"}},
+               'wall':
+               {},
+               'ece':
+               {'Te': {'str':'channel[chan].t_e.data'},
+                'R': {'str':'channel[chan].position.r.data'},
+                'rhotn':{'str':'channel[chan].position.rho_tor_norm.data'},
+                'tau':{'str':'channel[chan].tau1kev'}}
+              }
+
+
 
     def __init__(self, dids=None,
                  shot=None, run=None, refshot=None, refrun=None,
@@ -71,6 +96,7 @@ class MultiIDSLoader(object):
         self.set_dids(dids=dids, shot=shot, run=run, refshot=refshot,
                       refrun=refrun, user=user, tokamak=tokamak,
                       version=version, lids=lids)
+        self._set_fsig()
         if get:
             self.open_get_close()
 
@@ -269,7 +295,79 @@ class MultiIDSLoader(object):
         return self._refidd
 
     #############
+    #############
     # methods
+    #############
+
+
+    #############
+    # shortcuts
+
+    @staticmethod
+    def _getcharray(ar, col, sep='  ', line='-', just='l'):
+        assert len(col) == ar.shape[1]
+        nn = np.char.str_len(ar).max(axis=0)
+        nn = np.fmax(nn, [len(cc) for cc in col])
+        line = [line*n for n in nn]
+        if just == 'l':
+            col = [col[ii].ljust(nn[ii]) for ii in range(0,len(nn))]
+            block = '\n'.join([sep.join(v) for v in np.char.ljust(ar,nn)])
+        else:
+            col = [col[ii].rjust(nn[ii]) for ii in range(0,len(nn))]
+            block = '\n'.join([sep.join(v) for v in np.char.rjust(ar,nn)])
+        col = sep.join(col)
+        line = sep.join(line)
+        return '\n'.join([col,line,block])
+
+    @classmethod
+    def _shortcuts(cls, obj=None, return_=False, verb=True, sep='  ', line='-', just='l'):
+        if obj is None:
+            obj = cls
+        short = [[(ids, kk, vv['str']) for kk,vv in v.items()]
+                 for ids,v in obj._dshort.items()]
+        short = np.array(list(itt.chain.from_iterable(short)), dtype='U')
+        if verb:
+            col = ['ids', 'shortcut', 'long version']
+            msg = obj._getcharray(short, col, sep=sep, line=line, just=just)
+            print(msg)
+        if return_:
+            return short
+
+    def shortcuts(self, return_=False, verb=True, sep='  ', line='-', just='l'):
+        return self._shortcuts(obj=self, return_=return_, verb=verb,
+                               sep=sep, line=line, just=just)
+
+    def set_shortcuts(self, dshort=None):
+        dsh = copy.deepcopy(self.__class__._dshort)
+        if dshort is not None:
+            c0 = type(dshort) is dict
+            c1 = c0 and all([k0 in self._lidsnames and type(v0) is dict
+                             for k0,v0 in dshort.items()])
+            c2 = c1 and all([all([type(k1) is str and type(v1) in {str,dict}
+                                  for k1,v1 in v0.items()])
+                             for v0 in dshort.values()])
+            if not c2:
+                msg = "Arg dshort should be a dict with valid ids as keys:\n"
+                msg += "    {'ids0': {'shortcut0':'long_version0',\n"
+                msg += "              'shortcut1':'long_version1'},\n"
+                msg += "     'ids1': {'shortcut2':'long_version2',...}}"
+                raise Exception(msg)
+
+            for k0,v0 in dshort.items():
+                for k1,v1 in v0.items():
+                    if type(v1) is str:
+                        dshort[k0][k1] = {'str':v1}
+                    else:
+                        assert 'str' in v1.keys() and type(v1['str']) is str
+
+            for k0, v0 in dshort.items():
+                dsh[k0].update(dshort[k0])
+        self._dshort = dsh
+        self._set_fsig()
+
+
+    #############
+    # data access
 
     def _checkformat_idd(self, idd=None):
         lk = self._didd.keys()
@@ -427,53 +525,230 @@ class MultiIDSLoader(object):
     # Methods for showing content
     #---------------------
 
-    def get_summary(self, max_columns=100, width=1000,
-                    verb=True, Return=False):
-        """ Summary description of the object content as a pandas DataFrame """
-        # # Make sure the data is accessible
-        # msg = "The data is not accessible because self.strip(2) was used !"
-        # assert self._dstrip['strip']<2, msg
-        import pandas as pd
+    def get_summary(self, sep='  ', line='-', just='l',
+                    verb=True, return_=False):
+        """ Summary description of the object content as a np.array of str """
 
         # -----------------------
-        # Build the list
-        data = []
-        lk = ['user', 'tokamak', 'version',
-              'shot', 'run', 'refshot', 'refrun']
+        # idd
+        a0 = []
+        c0 = ['idd', 'user', 'tokamak', 'version',
+              'shot', 'run', 'refshot', 'refrun', 'isopen', '']
         for k0,v0 in self._didd.items():
-            lu = [k0] + [v0['params'][k] for k in lk] + [v0['isopen']]
+            lu = ([k0] + [str(v0['params'][k]) for k in c0[1:-2]]
+                  + [str(v0['isopen'])])
             ref = '(ref)' if k0==self._refidd else ''
             lu += [ref]
-            data.append(lu)
-
-        # Build the pandas DataFrame for ddata
-        col = ['id', 'user', 'tokamak', 'version',
-               'shot', 'run', 'refshot', 'refrun', 'isopen', '']
-        df0 = pd.DataFrame(data, columns=col)
+            a0.append(lu)
+        a0 = np.array(a0, dtype='U')
 
         # -----------------------
-        # Build the list
-        data = []
-        for k0,v0 in self._dids.items():
-            lu = [k0, v0['idd'], v0['occ'], v0['isget']]
-            data.append(lu)
+        # ids
+        c1 = ['ids', 'idd', 'occ', 'isget']
+        a1 = [[k0, v0['idd'], str(v0['occ']), str(v0['isget'])]
+              for k0,v0 in self._dids.items()]
+        a1 = np.array(a1, dtype='U')
 
-        # Build the pandas DataFrame for ddata
-        col = ['id', 'idd', 'occ', 'isget']
-        df1 = pd.DataFrame(data, columns=col)
-        pd.set_option('display.max_columns',max_columns)
-        pd.set_option('display.width',width)
+        if verb or return_ in [True,'msg']:
+            msg0 = self._getcharray(a0, c0,
+                                    sep=sep, line=line, just=just)
+            msg1 = self._getcharray(a1, c1,
+                                    sep=sep, line=line, just=just)
+            if verb:
+                msg = '\n\n'.join([msg0,msg1])
+                print(msg)
+        if return_ != False:
+            if return_ == True:
+                out = (a0, a1, msg0, msg1)
+            elif return_ == 'array':
+                out = (a0, a1)
+            elif return_ == 'msg':
+                out = (msg0, msg1)
+            else:
+                lok = [False, True, 'msg', 'array']
+                raise Exception("Valid return_ values are: %s"%str(lok))
+            return out
 
-        if verb:
-            sep = "\n------------\n"
-            print("didd", sep, df0, "\n")
-            print("dids", sep, df1, "\n")
-        if Return:
-            return df0, df1
 
     #---------------------
     # Methods for returning data
     #---------------------
 
-    def get_data(self, idsname, lsig, indch=None):
-        pass
+    def _checkformat_getdata_ids(self, ids):
+        msg = "Arg ids must be either:\n"
+        msg += "    - None: if self.dids onl has one key\n"
+        msg += "    - str: a valid key of self.dids"
+
+        lc = [ids is None, type(ids) is str]
+        if not any(lc):
+            raise Exception(msg)
+
+        if lc[0]:
+            if len(self._dids.keys()) != 1:
+                raise Exception(msg)
+            ids = list(self._dids.keys())[0]
+        elif lc[1]:
+            if ids not in self._dids.keys():
+                raise Exception(msg)
+        return ids
+
+    @classmethod
+    def _checkformat_getdata_sig(cls, sig, ids):
+        msg = "Arg sig must be a str or a list of str !\n"
+        msg += "  More specifically, a list of valid ids nodes paths"
+        lc = [type(sig) is str, type(sig) is list]
+        if not any(lc):
+            raise Exception(msg)
+        if lc[0]:
+            sig = [sig]
+        elif lc[1]:
+            if any([type(ss) is not str for ss in sig]):
+                raise Exception(msg)
+
+        # Check each sig is either a key / value[str] to self._dshort
+        lk = list(self._dshort['ids'].keys())
+        for ii in range(0,len(sig)):
+            c0 = sig[ii] in lk
+            lc1 = [sig[ii] == self._dshort['ids'][kk]['str'] for kk in lk]
+            if not c0 or any(lc1):
+                msg = "Each provided sig must be either:\n"
+                msg += "    - a valid shortcut (cf. self.shortcuts()\n"
+                msg += "    - a valid long version (cf. self.shortcuts)\n"
+                msg += "\n  Provided sig: %s"%str(sig)
+                raise Exception(msg)
+            if not c0:
+                sig[ii] = lk[lc1.index(True)]
+        return sig
+
+    def _checkformat_getdata_occ(self, occ, ids):
+        msg = "Arg occ must be a either:\n"
+        msg += "    - None: all occurences are used\n"
+        msg += "    - int: occurence to use (in self.dids[ids]['occ'])\n"
+        msg += "    - array of int: occurences to use (in self.dids[ids]['occ'])"
+        lc = [type(occ) is None, type(occ) is int, hasattr(occ,'__iter__')]
+        if not any(lc):
+            raise Exception(msg)
+        if lc[0]:
+            occ = self._dids[ids]['occ']
+        else:
+            occ = np.r_[occ].astype(int).ravel()
+            if any([oc not in self._dids[ids]['occ'] for oc in occ]):
+                raise Exception(msg)
+        return occ
+
+    def _checkformat_getdata_indch(self, indch, nch):
+        msg = "Arg indch must be a either:\n"
+        msg += "    - None: all channels used\n"
+        msg += "    - int: channel to use (index)\n"
+        msg += "    - array of int: channels to use (indices)\n"
+        msg += "    - array of bool: channels to use (indices)"
+        lc = [type(indch) is None, type(indch) is int, hasattr(indch,'__iter__')]
+        if not any(lc):
+            raise Exception(msg)
+        if lc[0]:
+            indch = np.arange(0,nch)
+        else:
+            indch = np.r_[indch].rave()
+            lc = [indch.dtype == np.int, indch.dtype == np.bool]
+            if not any(lc):
+                raise Exception(msg)
+            if lc[1]:
+                indch = np.nonzero(indch)[0]
+            assert np.all((indch>=0) & (indch<nch))
+        return indch
+
+    def _checkformat_getdata_indt(self, indt):
+        msg = "Arg indt must be a either:\n"
+        msg += "    - None: all channels used\n"
+        msg += "    - int: times to use (index)\n"
+        msg += "    - array of int: times to use (indices)"
+        lc = [type(indt) is None, type(indt) is int, hasattr(indt,'__iter__')]
+        if not any(lc):
+            raise Exception(msg)
+        if lc[1] or lc[2]:
+            indt = np.r_[indt].rave()
+            lc = [indt.dtype == np.int]
+            if not any(lc):
+                raise Exception(msg)
+            assert np.all((indt>=0)
+        return indt
+
+    @staticmethod
+    def _get_fsig(sig):
+        ls0 = sig.split('.')
+        lct = ['[time]' in ss for ss in ls0]
+        lcch = ['channel[chan]' in ss for ss in ls0]
+        lc = [any(lct), any(lch)]
+        if not any(lc):
+            def fsig(obj, ls0):
+                sig = getattr(obj, ls0[0])
+                for ss in ls0[1:]:
+                    sig = getattr(sig, ss)
+                return sig
+        elif all(lc):
+
+        elif lc[0]:
+
+        elif lc[1]:
+
+        return fsig
+
+    def _set_fsig(self):
+        for ids in self._dshort.keys():
+            for k,v in self._dshort[ids].items():
+                self._dshort[ids][ss]['fsig'] = self_get_fsig(v['str'])
+
+    def _get_data(self, ids, sig, occ):
+        ls0 = sig.split('/')
+        obj = self._dids[ids][ids]
+
+        # Check if str is in known short str
+        if sig in self._didsshort.keys():
+            sig = self._didsshort[sig]
+
+        # get list of results for occ
+        occref = self._dids[ids]['occ']
+        indoc = np.array([np.nonzero(occref==oc)[0][0] for oc in occ])
+        out = [self._dshort[ids][sig]['fsig'](obj[ii]) for ii in indoc]
+        return out
+
+    def get_data(self, ids=None, sig=None, occ=None, indch=None, indt=None):
+        """ Return a dict of the desired signals extracted from specified ids
+
+        If the ids has a field 'channel', indch is used to specify from which
+        channel data shall be loaded (all by default)
+
+        """
+
+        # ------------------
+        # Check format input
+
+        # ids = valid self.dids.keys()
+        ids = self._checkformat_getdata_ids(ids)
+
+        # sig = list of str
+        lsig = self._checkformat_getdata_sig(sig)
+
+        # occ = np.ndarray of valid int
+        occ = self._checkformat_getdata_occ(occ, ids)
+
+        # Check all occ have isget = True
+        indok = self._dids[ids]['isget'][occ]
+        if not np.all(indok):
+            msg = "All desired occurences shall have been gotten !\n"
+            msg += "    - occ:   %s\n"%str(occ)
+            msg += "    - isget: %s"%str(self._dids[ids]['isget'])
+            raise Exception(msg)
+
+        # check indch if ids has channels
+        if hasattr(self._dids[ids]['ids'][occ[0]], 'channel'):
+            nch = len(getattr(self._dids[ids]['ids'][occ[0]], 'channel'))
+            indch = self._checkformat_getdata_indch(indch, nch)
+
+        # ------------------
+        # get data
+
+        dout = dict.fromkeys(sig)
+        for ss in sig:
+            dout[ss] = self._get_data(ids, ss, occ)
+        return out
