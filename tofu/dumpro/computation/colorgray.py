@@ -5,8 +5,8 @@ Created on Fri Mar  8 08:48:58 2019
 @author: Arpan Khandelwal
 email: napraarpan@gmail.com
 
-Input the video file on which the Dumpro wants the operation to be performed
-and the output is the grayscale video file that will be used for futher 
+Input the video file on which the user wants the operation to be performed
+and the output is the grayscale denoised video file that will be used for futher 
 preprocessing 
 
 You need to have Opencv 3 or greater installed, for using this subroutine
@@ -24,7 +24,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
 def ConvertGray(video_file, path = None, output_name = None, output_type = None):
-    """Converts input video file to grayscale and saves it as Grayscale.avi
+    """Converts input video file to grayscale, denoises it and saves it as Grayscale.avi
     
     Parameters
     -----------------------
@@ -67,7 +67,7 @@ def ConvertGray(video_file, path = None, output_name = None, output_type = None)
     # reading the input file 
     try:
         #checking if the path provided is correct or not
-        if os.path.exists(video_file):
+        if os.path.isfile(video_file):
             cap = cv2.VideoCapture(video_file)
     except IOError:
         print("Path or file name incorrect or file does not exist")
@@ -97,7 +97,8 @@ def ConvertGray(video_file, path = None, output_name = None, output_type = None)
         #conversion from RGB TO GRAY frame by frame        
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #denoising the image 
-        #consult opencv documentation for information on the parameters used
+        #consult opencv documentation on fastnlMeansDenoising for 
+        #further information on the parameters used
         dst = cv2.fastNlMeansDenoising(gray,None,5,21,7)
         #writing the gray frames to out        
         out.write(dst)

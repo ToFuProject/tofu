@@ -2,7 +2,8 @@
 """
 Created on Thu Apr 17 13:41:12 2019
 
-@author: napra
+@author: Arpan Khandelwal
+email: napraarpan@gmail.com
 
 This removes the background of the video and return the foreground as a video 
 file
@@ -22,8 +23,8 @@ except ImportError:
     print("Cannot find opencv package. Try pip intall opencv-contrib-python")
     
 #dumpro specific
-import framebyframe_sub as rm
-import video_to_array as vta
+#import framebyframe_sub as rm
+#import video_to_array as vta
 
 
 def Background_Removal(video_file, path = None, output_name = None, output_type = None):
@@ -66,7 +67,7 @@ def Background_Removal(video_file, path = None, output_name = None, output_type 
     # reading the input file 
     try:
         #checking if the path provided is correct or not
-        if os.path.exists(video_file):
+        if os.path.isfile(video_file):
             cap = cv2.VideoCapture(video_file)
      #incase of error in file name or path raising exception    
     except IOError:

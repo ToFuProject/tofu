@@ -1,12 +1,13 @@
 # computation routines (functions called from _core.py)
 
 #Grayscale conversion routine
-import __colorgray 
+import colorgray 
 #Background computation routine
-import __background_removal
+import background_removal
 #video splitting Routine
-import __video_to_img 
+import video_to_img 
 #Image to numpy array conversion routine
-import __image_2_array
-
+import image_2_array
+#Video to array conversion routine
+import video_to_array 
 

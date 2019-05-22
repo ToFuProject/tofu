@@ -11,7 +11,7 @@ import numpy as np
 
 def play_video(video_file):
     # Create a VideoCapture object and read from input file 
-    cap = cv2.VideoCapture('tree.mp4') 
+    cap = cv2.VideoCapture(video_file) 
     
     # Check if camera opened successfully 
     if (cap.isOpened()== False):  

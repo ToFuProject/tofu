@@ -44,7 +44,8 @@ def video2imgconvertor(video_file, path = './data'):
     #trying to open the video file
     try:
         #Reading the video file
-        cap = cv2.VideoCapture(video_file)
+        if os.path.isfile(video_file):
+            cap = cv2.VideoCapture(video_file)
     #incase of error in file name or path raising exception    
     except IOError:
         print("Path or file name incorrect or file does not exist")
@@ -68,6 +69,9 @@ def video2imgconvertor(video_file, path = './data'):
     while(True):
         # Capture frame-by-frame
         ret, frame = cap.read()
+        #To break out of loop when conversion is done
+        #ret reads false after we have exhausted through our frames 
+        if not ret: break
         # Saves image of the current frame in jpg file
         #frame number starts from 0
         name = path + 'frame'+ str(currentFrame) + '.jpg'
@@ -75,11 +79,7 @@ def video2imgconvertor(video_file, path = './data'):
         
         # To stop duplicate images
         currentFrame += 1
-        #To break out of loop when conversion is done
-        #ret reads false after we have exhausted through our frames 
-        if not ret:
-            break
-    
+        
     # When everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()

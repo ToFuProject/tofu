@@ -2,7 +2,11 @@
 """
 Created on Tue May 14 14:20:59 2019
 
-@author: napra
+@author: Arpan Khandelwal
+email: napraarpan@gmail.com
+
+This Subroutine converts a video file into a numpy array with dimensions time, frame _height and frame_width
+The user must have Opencv 3 or greater and numpy installed to run this subroutine
 """
 
 try:
@@ -11,7 +15,6 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
 import numpy as np
-from PIL import Image
 
 def video_to_pixel(videofile):
     """Converts imput video file to a numpy array
@@ -20,7 +23,7 @@ def video_to_pixel(videofile):
     
     Parameters
     -----------------------
-    video_file:       mp4,avi
+    video_file:       mp4,avi,mpg
      input video along with its path passed in as argument
         
     Return
@@ -55,18 +58,19 @@ def video_to_pixel(videofile):
     while (cap.isOpened()):
         
         ret,frame = cap.read()
+        #breaking out of loop when the frames are exhausted
         if not ret: break
         
         #conversion of each input frame to grayscale single channel image
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        print('frame number',frame_counter)
-        
+                
         #assigning each frame to the video array
         pixel [frame_counter] = frame
         #changing the frame variable 
         frame_counter += 1 
     
+    print('total number of frames converted :', total_frame)
+    #releasing the output file
     cap.release()
     cv2.destroyAllWindows()
     
