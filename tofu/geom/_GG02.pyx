@@ -2780,14 +2780,12 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
             return coeff_arr, dLr, los_ind
         else:
             if imode=='sum':
-                tmp_arr = <long*>malloc(num_los*sizeof(long))
-                ntmp = middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
-                                         &dLr[0], &tmp_arr[0])
+                middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
+                                  &dLr[0], &los_ind[0])
+                ntmp = np.sum(los_ind)
                 coeff_arr = np.empty((ntmp,), dtype=float)
-                middle_rule_abs_2(num_los, &DLs[0,0], &tmp_arr[0],
-                                  &dLr[0], &coeff_arr[0],
-                                  &los_ind[0])
-                free(tmp_arr)
+                middle_rule_abs_2(num_los, &DLs[0,0], &los_ind[0],
+                                  &dLr[0], &coeff_arr[0])
                 return coeff_arr, dLr, los_ind
             elif imode=='simps':
                 simps_left_rule_abs(num_los, val_resol, &DLs[0,0], &DLs[1, 0],

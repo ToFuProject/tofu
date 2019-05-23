@@ -18,7 +18,6 @@ from cython.parallel cimport parallel
 from cpython.array cimport array, clone
 from _basic_geom_tools cimport _VSMALL
 
-
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
@@ -369,13 +368,12 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
     return
 
 
-cdef inline long middle_rule_abs_1(int num_los, double resol,
+cdef inline void middle_rule_abs_1(int num_los, double resol,
                                    double* los_lims_x,
                                    double* los_lims_y,
                                    double* los_resolution,
                                    long* ind_cum) nogil:
-    cdef Py_ssize_t ii, jj
-    cdef long cum_sum = 0
+    cdef Py_ssize_t ii
     cdef long num_raf
     cdef long first_index
     cdef double seg_length
@@ -389,16 +387,13 @@ cdef inline long middle_rule_abs_1(int num_los, double resol,
         loc_resol = seg_length / num_raf
         los_resolution[ii] = loc_resol
         ind_cum[ii] = num_raf
-        cum_sum += num_raf
-    return cum_sum
-
+    return
 
 cdef inline void middle_rule_abs_2(int num_los,
                                  double* los_lims_x,
                                  long* ind_cum,
                                  double* los_resolution,
-                                 double* los_coeffs,
-                                 long* los_ind) nogil:
+                                 double* los_coeffs) nogil:
     cdef Py_ssize_t ii, jj
     cdef long num_raf
     cdef long first_index
@@ -411,7 +406,6 @@ cdef inline void middle_rule_abs_2(int num_los,
         for jj in range(0, ii):
             first_index = first_index + ind_cum[jj]
         num_raf = ind_cum[ii]
-        los_ind[ii] = num_raf + first_index
         loc_resol = los_resolution[ii]
         loc_x = los_lims_x[ii]
         for jj in range(num_raf):
