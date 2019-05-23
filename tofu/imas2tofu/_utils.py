@@ -10,6 +10,7 @@ Default parameters and input checking
 # Built-ins
 import itertools as itt
 import copy
+import functools as ftools
 
 # Standard
 import numpy as np
@@ -66,7 +67,8 @@ class MultiIDSLoader(object):
 
     # Known short version of signal str
     _dshort = {'core_profiles':
-               {'1dTe':{'str':'profiles_1d[time].electrons.temperature'},
+               {'time':{'str':'time'},
+                '1dTe':{'str':'profiles_1d[time].electrons.temperature'},
                 '1dne':{'str':'profiles_1d[time].electrons.density'},
                 '1dzeff':{'str':'profiles_1d[time].zeff'},
                 '1dphi':{'str':'profiles_1d[time].grid.phi'},
@@ -81,7 +83,8 @@ class MultiIDSLoader(object):
                'wall':
                {},
                'ece':
-               {'Te': {'str':'channel[chan].t_e.data'},
+               {'time':{'str':'time'},
+                'Te': {'str':'channel[chan].t_e.data'},
                 'R': {'str':'channel[chan].position.r.data'},
                 'rhotn':{'str':'channel[chan].position.rho_tor_norm.data'},
                 'tau':{'str':'channel[chan].tau1kev'}}
@@ -634,7 +637,7 @@ class MultiIDSLoader(object):
         for ii in range(0,len(sig)):
             c0 = sig[ii] in lk
             lc1 = [sig[ii] == self._dshort[ids][kk]['str'] for kk in lk]
-            if not c0 or any(lc1):
+            if not (c0 or any(lc1)):
                 msg = "Each provided sig must be either:\n"
                 msg += "    - a valid shortcut (cf. self.shortcuts()\n"
                 msg += "    - a valid long version (cf. self.shortcuts)\n"
@@ -666,7 +669,7 @@ class MultiIDSLoader(object):
         msg += "    - int: channel to use (index)\n"
         msg += "    - array of int: channels to use (indices)\n"
         msg += "    - array of bool: channels to use (indices)"
-        lc = [type(indch) is None, type(indch) is int, hasattr(indch,'__iter__')]
+        lc = [indch is None, type(indch) is int, hasattr(indch,'__iter__')]
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
@@ -698,45 +701,50 @@ class MultiIDSLoader(object):
         return indt
 
     @staticmethod
+    def _getattrrecur(obj, ls):
+        out = obj
+        for ss in ls:
+            out = getattr(out,ss)
+        return out
+
+    @staticmethod
     def _get_fsig(sig):
         ls0 = sig.split('.')
         lct = ['[time]' in ss for ss in ls0]
-        lch = ['channel[chan]' in ss for ss in ls0]
+        lch = ['[chan]' in ss for ss in ls0]
         lc = [any(lct), any(lch)]
 
         if not any(lc):
-            def fsig(obj, ls0):
-                sig = getattr(obj, ls0[0])
-                for ss in ls0[1:]:
-                    sig = getattr(sig, ss)
-                return sig
+            def fsig(obj, ls0=ls0):
+                return ftools.reduce(getattr, [obj]+ls0)
 
         elif all(lc):
             msg = "Not implemented yet for sig with both [time] and [chan]"
             raise Exception(msg)
 
         elif lc[0]:
-            sig = sig.replace('[time]','[ii]')
             it = lct.index(True)
             ls1, st, ls2 = ls0[:it], ls0[it].replace('[time]',''), ls0[it+1:]
-            ls1, ls2 = '.''.'.join(ls2)
-            if len(ls2) > 0:
-                ls2 = '.'+ls2
             def fsig(obj, indt=None, ls1=ls1, st=st, ls2=ls2):
-                sig0 = obj
-                for ss in ls1:
-                    sig0 = getattr(sig0, ss)
-                sig0 = getattr(sig0,st)
-                nt = len(sig0)
+                sig0 = ftools.reduce(getattr, [obj]+ls1+[st])
                 if indt is None:
-                    indt = range(0,nt)
-                out = [eval( 'sig0[ii]'+ls2 ) for ii in indt]
-                if all([oo.shape == out[0].shape for oo in out[1:]]):
-                    out = np.vstack(out)
-                return out
+                    indt = range(0,len(sig0))
+                sig = [ftools.reduce(getattr, [sig0[ii]]+ls2) for ii in indt]
+                if all([oo.shape == sig[0].shape for oo in sig[1:]]):
+                    sig = np.vstack(sig)
+                return sig
 
         elif lc[1]:
-            fsig = None
+            ich = lch.index(True)
+            ls1, sch, ls2 = ls0[:ich], ls0[ich].replace('[chan]',''), ls0[ich+1:]
+            def fsig(obj, indch=None, ls1=ls1, sch=sch, ls2=ls2):
+                sig0 = ftools.reduce(getattr, [obj]+ls1+[sch])
+                if indch is None:
+                    indch = range(0,len(sig0))
+                sig = [ftools.reduce(getattr, [sig0[ii]]+ls2) for ii in indch]
+                if all([oo.shape == sig[0].shape for oo in sig[1:]]):
+                    sig = np.vstack(sig).T
+                return sig
 
         return fsig
 
@@ -793,4 +801,4 @@ class MultiIDSLoader(object):
         dout = dict.fromkeys(sig)
         for ss in sig:
             dout[ss] = self._get_data(ids, ss, occ)
-        return out
+        return dout
