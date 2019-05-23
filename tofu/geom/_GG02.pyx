@@ -15,7 +15,7 @@ from libc.math cimport isnan as Cisnan
 from cpython.array cimport array, clone
 from cython.parallel import prange
 from cython.parallel cimport parallel
-from libc.stdlib cimport malloc, free, realloc
+from libc.stdlib cimport malloc, free
 
 from _basic_geom_tools cimport _VSMALL, _SMALL
 from _basic_geom_tools cimport is_point_in_path_vec
@@ -728,6 +728,13 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
                 ldiscr_view[0,jj] = ldiscr_tmp[ii]
                 ldiscr_view[1,jj] = ldiscr_tmp[ii + ndisc]
                 jj = jj + 1
+        free(ldiscr_tmp)
+        free(lindex_tmp)
+        free(are_in_poly)
+        free(ldiscret1_arr)
+        free(ldiscret2_arr)
+        free(lindex1_arr)
+        free(lindex2_arr)
         return ldiscr, lresol,\
             lindex, resolutions[0], resolutions[1]
     else:
@@ -745,6 +752,10 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
                 ldiscr_view[1,nn] = ldiscret2_arr[ii]
                 lindex_view[nn] = lindex1_arr[jj] + nind1 * lindex2_arr[ii]
                 lresol_view[nn] = resolutions[0] * resolutions[1]
+        free(ldiscret1_arr)
+        free(ldiscret2_arr)
+        free(lindex1_arr)
+        free(lindex2_arr)
         return ldiscr, lresol,\
             lindex, resolutions[0], resolutions[1]
 
@@ -795,6 +806,9 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
         i1 = ind[ii]-i2*N1
         Pts[0,ii] = X1[i1]
         Pts[1,ii] = X2[i2]
+    free(X1)
+    free(X2)
+    free(dummy)
     return Pts, dS, d1r, d2r
 
 
@@ -3439,6 +3453,9 @@ cdef inline void NEW_los_sino_tor_vec(int num_los,
             normu0 = dirv[0]/normu
             normu1 = dirv[1]/normu
             circle_closest_phi[ind_los] = Casin(-normu0 * eTheta0 - normu1 * eTheta1)
+        free(dirv)
+        free(orig)
+        free(res)
     return
 
 
@@ -4409,7 +4426,7 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                         double eps_uz=_SMALL, double eps_a=_VSMALL,
                         double eps_vz=_VSMALL, double eps_b=_VSMALL,
                         double eps_plane=_VSMALL, str ves_type='Tor',
-                        int num_threads=16, bint debug=False):
+                        int num_threads=16, bint debug=False, int debug_nlos=-1):
     """
     This function computes the distance (and the associated k) between num_los
     Rays (or LOS) and an `IN` structure (a polygon extruded around the axis
@@ -4491,9 +4508,9 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                                        invuz, crit2,
                                        eps_uz, eps_vz,
                                        eps_a, eps_b,
-                                       res_loc, debug=(ind_los==7 and debug))
+                                       res_loc, debug=(ind_los==debug_nlos and debug))
             kmin[ind_los] = res_loc[0]
-            if ind_los == 7:
+            if ind_los == debug_nlos:
                 with gil:
                     print(" LOS DIR et ORIG")
                     print(loc_org[0], loc_org[1], loc_org[2])
@@ -4697,7 +4714,8 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
                                            eps_uz, eps_vz,
                                            eps_a, eps_b,
                                            loc_res)
-                res_k[ind_los * num_poly + ind_pol] = loc_res[0]
+                if not res_k == NULL:
+                    res_k[ind_los * num_poly + ind_pol] = loc_res[0]
                 res_dist[ind_los * num_poly + ind_pol] = loc_res[1]
                 if not loc_res[1] == loc_res[1] : #is nan
                     for ind_pol2 in range(ind_pol, num_poly):
@@ -4851,60 +4869,73 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                     res_final[1] = res_a[1] # distance
             else:
                 # -- case with horizontal cone (aka cone is a plane annulus) ---
-                # Then the shortest distance is the distance to the
-                # outline circles
-                # computing distance to cricle C_A of radius R_A and height Z_A
-                dist_los_circle_core(ray_vdir, ray_orig,
-                                     lpolyx[jj], lpolyy[jj],
-                                     norm_dir2, res_a)
-                if res_a[1] < _VSMALL:
-                    # The line is either tangent or intersects the frustum
-                    # we need to make the difference
-                    k = res_a[0]
-                    # we compute the ray from circle center to P
-                    circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
-                    circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
-                    circle_tangent[2] = 0. # the ray is horizontal
-                    rdotvec = compute_dot_prod(circle_tangent, ray_vdir)
-                    if Cabs(rdotvec) > _VSMALL:
-                        # There is an intersection, distance = Cnan
-                        res_final[1] = Cnan # distance
-                        res_final[0] = Cnan # k
-                        # no need to continue
-                        if res_final[0] < 0.:
-                            with gil:
-                                print("rfotvec is not 0 and im putting cnanas .18")
-                        return
-                dist_los_circle_core(ray_vdir, ray_orig,
-                                     lpolyx[jj+1], lpolyy[jj+1],
-                                     norm_dir2, res_b)
-                if res_b[1] < _VSMALL:
-                    # The line is either tangent or intersects the frustum
-                    # we need to make the difference
-                    k = res_b[0]
-                    # we compute the ray from circle center to P
-                    circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
-                    circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
-                    circle_tangent[2] = 0. # the ray is horizontal
-                    rdotvec = compute_dot_prod(circle_tangent, ray_vdir)
-                    if Cabs(rdotvec) > _VSMALL:
-                        # There is an intersection, distance = Cnan
-                        res_final[1] = Cnan # distance
-                        res_final[0] = Cnan # k
-                        # no need to continue
-                        if res_final[0] < 0.:
-                            with gil:
-                                print("rfotvec is not 0 and im putting cnanas, 1.10")
-                        return
-                # The result is the one associated to the shortest distance
-                if (res_final[1] - res_a[1] > _VSMALL or
-                    (res_final[1] == res_a[1] and res_final[0] - res_a[0] > _VSMALL)):
-                    res_final[0] = res_a[0] # k
-                    res_final[1] = res_a[1] # distance
-                if (res_final[1] - res_b[1] > _VSMALL or
-                    (res_final[1] == res_b[1] and res_final[0] - res_b[0] > _VSMALL)):
-                    res_final[0] = res_b[0] # k
-                    res_final[1] = res_b[1] # distance
+                if (Cabs(ray_orig[2] - lpolyy[jj]) > _VSMALL
+                    and Csqrt(dpar2) >= min(lpolyx[jj], lpolyx[jj+1])
+                    and Csqrt(dpar2) <= max(lpolyx[jj], lpolyx[jj+1])):
+                    # if ray and annulus are NOT on the same plane:
+                    # AND the origin is somewhere in the annulus (on the
+                    # X,Y plane), the origin is the closest and distance
+                    # is the difference of height
+                    if Cabs(ray_orig[2] - lpolyy[jj]) <= res_final[1]:
+                        res_final[0] = 0 # k
+                        res_final[1] = Cabs(ray_orig[2] - lpolyy[jj])
+                else:
+                    # Then the shortest distance is the distance to the
+                    # outline circles
+                    # computing dist to cricle C_A of radius R_A and height Z_A
+                    dist_los_circle_core(ray_vdir, ray_orig,
+                                         lpolyx[jj], lpolyy[jj],
+                                         norm_dir2, res_a)
+                    if res_a[1] < _VSMALL:
+                        # The line is either tangent or intersects the frustum
+                        # we need to make the difference
+                        k = res_a[0]
+                        # we compute the ray from circle center to P
+                        circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
+                        circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
+                        circle_tangent[2] = 0. # the ray is horizontal
+                        rdotvec = compute_dot_prod(circle_tangent, ray_vdir)
+                        if Cabs(rdotvec) > _VSMALL:
+                            # There is an intersection, distance = Cnan
+                            res_final[1] = Cnan # distance
+                            res_final[0] = Cnan # k
+                            # no need to continue
+                            if res_final[0] < 0.:
+                                with gil:
+                                    print("rfotvec is not 0 and im putting cnanas .18")
+                            return
+                    dist_los_circle_core(ray_vdir, ray_orig,
+                                         lpolyx[jj+1], lpolyy[jj+1],
+                                         norm_dir2, res_b)
+                    if res_b[1] < _VSMALL:
+                        # The line is either tangent or intersects the frustum
+                        # we need to make the difference
+                        k = res_b[0]
+                        # we compute the ray from circle center to P
+                        circle_tangent[0] = -ray_orig[0] - k * ray_vdir[0]
+                        circle_tangent[1] = -ray_orig[1] - k * ray_vdir[1]
+                        circle_tangent[2] = 0. # the ray is horizontal
+                        rdotvec = compute_dot_prod(circle_tangent, ray_vdir)
+                        if Cabs(rdotvec) > _VSMALL:
+                            # There is an intersection, distance = Cnan
+                            res_final[1] = Cnan # distance
+                            res_final[0] = Cnan # k
+                            # no need to continue
+                            if res_final[0] < 0.:
+                                with gil:
+                                    print("rfotvec is not 0 and im putting cnanas, 1.10")
+                            return
+                    # The result is the one associated to the shortest distance
+                    if (res_final[1] - res_a[1] > _VSMALL
+                        or (res_final[1] == res_a[1]
+                         and res_final[0] - res_a[0] > _VSMALL)):
+                        res_final[0] = res_a[0] # k
+                        res_final[1] = res_a[1] # distance
+                    if (res_final[1] - res_b[1] > _VSMALL
+                        or (res_final[1] == res_b[1]
+                         and res_final[0] - res_b[0] > _VSMALL)):
+                        res_final[0] = res_b[0] # k
+                        res_final[1] = res_b[1] # distance
     else:
         # == More general non-horizontal semi-line case ========================
         for jj in range(nvert-1):
@@ -4929,16 +4960,11 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                         res_a[1] = 0 # distance = 0 since LOS in cone
                     elif v0 * v0 < eps_a and upar2 * upar2 < eps_a:
                         # cylinder and vertical line
-                        if (lpolyy[jj+1] >= ray_orig[2]
-                            and ray_orig[2] >= lpolyy[jj]):
+                        if (ray_orig[2] <= max(lpolyy[jj], lpolyy[jj+1])
+                            and ray_orig[2] >= min(lpolyy[jj], lpolyy[jj+1])):
                             # origin of line in the length of cylinder:
                             res_a[0] = 0
-                            res_a[1] = upar2 - lpolyx[jj]
-                        elif (lpolyy[jj] >= ray_orig[2]
-                              and ray_orig[2] >= lpolyy[jj+1]):
-                            # origin of line in the length of cylinder:
-                            res_a[0] = 0
-                            res_a[1] = upar2 - lpolyx[jj]
+                            res_a[1] = Cabs(upar2 - lpolyx[jj])
                         elif (lpolyy[jj] >= ray_orig[2]
                               and ray_orig[2] <= lpolyy[jj+1]):
                             # ray origin below cylinder
@@ -5359,7 +5385,6 @@ cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
     cdef double* lpolyy
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
-    cdef double* kmin = <double*>malloc(sizeof(double)*num_poly*nlos)
     cdef double* dist = <double*>malloc(sizeof(double)*num_poly*nlos)
 
     if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
@@ -5380,7 +5405,7 @@ cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
                                  eps_plane,
                                  ves_type,
                                  algo_type,
-                                 kmin, dist,
+                                 NULL, dist,
                                  num_threads)
 
     # We use local arrays for each thread so...
@@ -5390,7 +5415,7 @@ cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
             if (dist[ind_los*num_poly + ind_pol] < loc_dist):
                 ind_close_tab[ind_pol] = ind_los
                 loc_dist = dist[ind_los*num_poly + ind_pol]
-
+    free(dist)
     return
 
 

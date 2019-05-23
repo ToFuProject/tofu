@@ -312,9 +312,6 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] VPoly,
     cdef long[1] numcells
     cdef double* ldiscret = NULL
     cdef long* lindex = NULL
-
-    with gil:
-        print("hheeerre dstep = ", dstep)
     #.. initialization..........................................................
     LMinMax[0] = 0.
     #.. Filling arrays..........................................................
@@ -338,6 +335,7 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] VPoly,
             YCross[0][last_sz_othr + jj] = VPoly[1,ii] + ldiscret[jj] * v1
     # We close the polygon of VPolybis
     new_nb_pts[0] = sz_others
+    free(ldiscret)
     return
 
 
