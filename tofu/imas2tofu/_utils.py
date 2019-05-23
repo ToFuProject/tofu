@@ -320,11 +320,26 @@ class MultiIDSLoader(object):
         return '\n'.join([col,line,block])
 
     @classmethod
-    def _shortcuts(cls, obj=None, return_=False, verb=True, sep='  ', line='-', just='l'):
+    def _shortcuts(cls, obj=None, ids=None, return_=False, verb=True, sep='  ', line='-', just='l'):
         if obj is None:
             obj = cls
-        short = [[(ids, kk, vv['str']) for kk,vv in v.items()]
-                 for ids,v in obj._dshort.items()]
+        if ids is None:
+            lids = list(obj._dids.keys())
+        elif ids == 'all':
+            lids = list(obj._dshort.keys())
+        else:
+            lc = [type(ids) is str, type(ids) is list and all([type(ss) is str
+                                                               for ss in ids])]
+            assert any(lc), "ids must be an ids name or a list of such !"
+            if lc[0]:
+                lids = [ids]
+            else:
+                lids = lids
+
+        lids = sorted(set(lids).intersection(obj._dshort.keys()))
+
+        short = [[(ids, kk, vv['str']) for kk,vv in obj._dshort[ids].items()]
+                 for ids in lids]
         short = np.array(list(itt.chain.from_iterable(short)), dtype='U')
         if verb:
             col = ['ids', 'shortcut', 'long version']
@@ -333,8 +348,18 @@ class MultiIDSLoader(object):
         if return_:
             return short
 
-    def shortcuts(self, return_=False, verb=True, sep='  ', line='-', just='l'):
-        return self._shortcuts(obj=self, return_=return_, verb=verb,
+    def get_shortcuts(self, ids=None, return_=False, verb=True, sep='  ', line='-', just='l'):
+        """ Display and/or return the builtin shortcuts for imas signal names
+
+        By default (ids=None), only display shortcuts for stored ids
+        To display all possible shortcuts, use ids='all'
+        To display shortcuts for a specific ids, use ids=<idsname>
+
+        These shortcuts can be customized (with self.set_shortcuts())
+        They are useful for use with self.get_data()
+
+        """
+        return self._shortcuts(obj=self, ids=ids, return_=return_, verb=verb,
                                sep=sep, line=line, just=just)
 
     def set_shortcuts(self, dshort=None):
@@ -576,7 +601,7 @@ class MultiIDSLoader(object):
 
     def _checkformat_getdata_ids(self, ids):
         msg = "Arg ids must be either:\n"
-        msg += "    - None: if self.dids onl has one key\n"
+        msg += "    - None: if self.dids only has one key\n"
         msg += "    - str: a valid key of self.dids"
 
         lc = [ids is None, type(ids) is str]
@@ -592,8 +617,7 @@ class MultiIDSLoader(object):
                 raise Exception(msg)
         return ids
 
-    @classmethod
-    def _checkformat_getdata_sig(cls, sig, ids):
+    def _checkformat_getdata_sig(self, sig, ids):
         msg = "Arg sig must be a str or a list of str !\n"
         msg += "  More specifically, a list of valid ids nodes paths"
         lc = [type(sig) is str, type(sig) is list]
@@ -606,10 +630,10 @@ class MultiIDSLoader(object):
                 raise Exception(msg)
 
         # Check each sig is either a key / value[str] to self._dshort
-        lk = list(self._dshort['ids'].keys())
+        lk = list(self._dshort[ids].keys())
         for ii in range(0,len(sig)):
             c0 = sig[ii] in lk
-            lc1 = [sig[ii] == self._dshort['ids'][kk]['str'] for kk in lk]
+            lc1 = [sig[ii] == self._dshort[ids][kk]['str'] for kk in lk]
             if not c0 or any(lc1):
                 msg = "Each provided sig must be either:\n"
                 msg += "    - a valid shortcut (cf. self.shortcuts()\n"
@@ -625,7 +649,7 @@ class MultiIDSLoader(object):
         msg += "    - None: all occurences are used\n"
         msg += "    - int: occurence to use (in self.dids[ids]['occ'])\n"
         msg += "    - array of int: occurences to use (in self.dids[ids]['occ'])"
-        lc = [type(occ) is None, type(occ) is int, hasattr(occ,'__iter__')]
+        lc = [occ is None, type(occ) is int, hasattr(occ,'__iter__')]
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
@@ -670,46 +694,64 @@ class MultiIDSLoader(object):
             lc = [indt.dtype == np.int]
             if not any(lc):
                 raise Exception(msg)
-            assert np.all((indt>=0)
+            assert np.all(indt>=0)
         return indt
 
     @staticmethod
     def _get_fsig(sig):
         ls0 = sig.split('.')
         lct = ['[time]' in ss for ss in ls0]
-        lcch = ['channel[chan]' in ss for ss in ls0]
+        lch = ['channel[chan]' in ss for ss in ls0]
         lc = [any(lct), any(lch)]
+
         if not any(lc):
             def fsig(obj, ls0):
                 sig = getattr(obj, ls0[0])
                 for ss in ls0[1:]:
                     sig = getattr(sig, ss)
                 return sig
+
         elif all(lc):
+            msg = "Not implemented yet for sig with both [time] and [chan]"
+            raise Exception(msg)
 
         elif lc[0]:
+            sig = sig.replace('[time]','[ii]')
+            it = lct.index(True)
+            ls1, st, ls2 = ls0[:it], ls0[it].replace('[time]',''), ls0[it+1:]
+            ls1, ls2 = '.''.'.join(ls2)
+            if len(ls2) > 0:
+                ls2 = '.'+ls2
+            def fsig(obj, indt=None, ls1=ls1, st=st, ls2=ls2):
+                sig0 = obj
+                for ss in ls1:
+                    sig0 = getattr(sig0, ss)
+                sig0 = getattr(sig0,st)
+                nt = len(sig0)
+                if indt is None:
+                    indt = range(0,nt)
+                out = [eval( 'sig0[ii]'+ls2 ) for ii in indt]
+                if all([oo.shape == out[0].shape for oo in out[1:]]):
+                    out = np.vstack(out)
+                return out
 
         elif lc[1]:
+            fsig = None
 
         return fsig
 
     def _set_fsig(self):
         for ids in self._dshort.keys():
             for k,v in self._dshort[ids].items():
-                self._dshort[ids][ss]['fsig'] = self_get_fsig(v['str'])
+                self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
 
     def _get_data(self, ids, sig, occ):
-        ls0 = sig.split('/')
-        obj = self._dids[ids][ids]
-
-        # Check if str is in known short str
-        if sig in self._didsshort.keys():
-            sig = self._didsshort[sig]
 
         # get list of results for occ
         occref = self._dids[ids]['occ']
         indoc = np.array([np.nonzero(occref==oc)[0][0] for oc in occ])
-        out = [self._dshort[ids][sig]['fsig'](obj[ii]) for ii in indoc]
+        out = [self._dshort[ids][sig]['fsig']( self._dids[ids]['ids'][ii] )
+               for ii in indoc]
         return out
 
     def get_data(self, ids=None, sig=None, occ=None, indch=None, indt=None):
@@ -727,7 +769,7 @@ class MultiIDSLoader(object):
         ids = self._checkformat_getdata_ids(ids)
 
         # sig = list of str
-        lsig = self._checkformat_getdata_sig(sig)
+        sig = self._checkformat_getdata_sig(sig, ids)
 
         # occ = np.ndarray of valid int
         occ = self._checkformat_getdata_occ(occ, ids)
