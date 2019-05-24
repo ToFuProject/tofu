@@ -11,6 +11,7 @@ Default parameters and input checking
 import itertools as itt
 import copy
 import functools as ftools
+import warnings
 
 # Standard
 import numpy as np
@@ -30,11 +31,6 @@ _IMAS_RUNR = -1
 _IMAS_DIDD = {'shot':_IMAS_SHOT, 'run':_IMAS_RUN,
               'refshot':_IMAS_SHOTR, 'refrun':_IMAS_RUNR,
               'user':_IMAS_USER, 'tokamak':_IMAS_TOKAMAK, 'version':_IMAS_VERSION}
-
-
-# Deprecated ?
-# _LK = list(itt.chain.from_iterable([list(v.keys())
-                                    # for v in _IMAS_DIDS_old.values()]))
 
 
 #############################################################
@@ -66,7 +62,12 @@ class MultiIDSLoader(object):
               'shot':6, 'run':3, 'refshot':6, 'refrun':3}
 
     # Known short version of signal str
-    _dshort = {'core_profiles':
+    _dshort = {
+               'wall':
+               {'domainR':{'str':'description_2d[0].limiter.unit[0].outline.r'},
+                'domainZ':{'str':'description_2d[0].limiter.unit[0].outline.z'}},
+
+               'core_profiles':
                {'time':{'str':'time'},
                 '1dTe':{'str':'profiles_1d[time].electrons.temperature'},
                 '1dne':{'str':'profiles_1d[time].electrons.density'},
@@ -75,19 +76,36 @@ class MultiIDSLoader(object):
                 '1dpsi':{'str':'profiles_1d[time].grid.psi'},
                 '1drhotn':{'str':'profiles_1d[time].grid.rho_tor_norm'},
                 '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm'}},
+
                'equilibrium':
-               {},
+               {'time':{'str':'time'},
+                'ip':{'str':'time_slice[time].global_quantities.ip'},
+                'q0':{'str':'time_slice[time].global_quantities.q_axis'},
+                'qmin':{'str':'time_slice[time].global_quantities.q_min.value'},
+                'q95':{'str':'time_slice[time].global_quantities.q_95'},
+                'volume':{'str':'time_slice[time].global_quantities.volume'},
+                'BT0':{'str':'time_slice[time].global_quantities.magnetic_axis.b_field_tor'},
+                'AxR':{'str':'time_slice[time].global_quantities.magnetic_axis.r'},
+                'AxZ':{'str':'time_slice[time].global_quantities.magnetic_axis.z'},
+                # 'xR':{'str':'time_slice[time].boundary.x_point[].r'},
+                # 'xZ':{'str':'time_slice[time].boundary.x_point[].z'},
+                # 'strikeR':{'str':'time_slice[time].boundary.strike_point[].r'},
+                # 'strikeZ':{'str':'time_slice[time].boundary.strike_point[].z'},
+                'sepR':{'str':'time_slice[time].boundary_separatrix.outline.r'},
+                'sepZ':{'str':'time_slice[time].boundary_separatrix.outline.z'}},
+
                'core_sources':
-               {'brem':{'str':"sources['bremsstrahlung'].profiles_1d[time].electrons.energy"},
-                'line':{'str':"sources['lineradiation'].profiles_1d[time].electrons.energy"}},
-               'wall':
-               {},
+               {'time':{'str':'time'},
+                'brem':{'str':"source[identifier.name=bremsstrahlung].profiles_1d[time].electrons.energy"},
+                'line':{'str':"source[identifier.name=lineradiation].profiles_1d[time].electrons.energy"}},
+
                'ece':
                {'time':{'str':'time'},
+                'frequency':{'str':'channel[chan].frequency.data'},
                 'Te': {'str':'channel[chan].t_e.data'},
                 'R': {'str':'channel[chan].position.r.data'},
                 'rhotn':{'str':'channel[chan].position.rho_tor_norm.data'},
-                'tau':{'str':'channel[chan].tau1kev'}}
+                'tau':{'str':'channel[chan].optical_depth.data'}}
               }
 
 
@@ -393,6 +411,14 @@ class MultiIDSLoader(object):
         self._dshort = dsh
         self._set_fsig()
 
+    def update_shortcuts(self, ids, short, longstr):
+        assert ids in self._dids.keys()
+        assert type(short) is str
+        assert type(longstr) is str
+        self._dshort[ids][short] = {'str':longstr}
+        self._set_fsig()
+
+
 
     #############
     # data access
@@ -549,6 +575,14 @@ class MultiIDSLoader(object):
                 self._dids[idsname]['isget'] = isgetref[indok]
                 self._dids[idsname]['nocc'] = self._dids[idsname]['occ'].size
 
+    def get_ids(self, ids, occ=None):
+        assert ids in self._dids.keys()
+        if occ is None:
+            occ = self._dids[ids]['occ'][0]
+        else:
+            assert occ in self._dids[ids]['occ']
+        return self._dids[ids]['ids'][occ]
+
     #---------------------
     # Methods for showing content
     #---------------------
@@ -623,12 +657,14 @@ class MultiIDSLoader(object):
     def _checkformat_getdata_sig(self, sig, ids):
         msg = "Arg sig must be a str or a list of str !\n"
         msg += "  More specifically, a list of valid ids nodes paths"
-        lc = [type(sig) is str, type(sig) is list]
+        lc = [sig is None, type(sig) is str, type(sig) is list]
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
-            sig = [sig]
+            sig = list(self._dshort[ids].keys())
         elif lc[1]:
+            sig = [sig]
+        elif lc[2]:
             if any([type(ss) is not str for ss in sig]):
                 raise Exception(msg)
 
@@ -701,50 +737,119 @@ class MultiIDSLoader(object):
         return indt
 
     @staticmethod
-    def _getattrrecur(obj, ls):
-        out = obj
-        for ss in ls:
-            out = getattr(out,ss)
-        return out
+    def _prepare_sig(sig):
+        if '[' in sig:
+            # Get nb and ind
+            ind0 = 0
+            while '[' in sig[ind0:]:
+                ind1 = ind0 + sig[ind0:].index('[')
+                ind2 = ind0 + sig[ind0:].index(']')
+                sig = sig.replace(sig[ind1+1:ind2], sig[ind1+1:ind2].replace('.','/'))
+                ind0 = ind2+1
+        return sig
 
     @staticmethod
-    def _get_fsig(sig):
+    def _get_condfromstr(sid, sig=None):
+        lid0, id1 = sid.split('=')
+        lid0 = lid0.split('.')
+
+        if '.' in id1 and id1.replace('.','').isdecimal():
+            id1 = float(id1)
+        elif id1.isdecimal():
+            id1 = int(id1)
+        elif '.' in id1:
+            msg = "Not clear how to interpret the following condition:\n"
+            msg += "    - sig: %s\n"%sig
+            msg += "    - condition: %s"%sid
+            raise Exception(msg)
+        return lid0, id1
+
+    @classmethod
+    def _get_fsig(cls, sig):
+        sig = cls._prepare_sig(sig)
         ls0 = sig.split('.')
-        lct = ['[time]' in ss for ss in ls0]
-        lch = ['[chan]' in ss for ss in ls0]
-        lc = [any(lct), any(lch)]
+        sig = sig.replace('/','.')
+        ls0 = [ss.replace('/','.') for ss in ls0]
+        ns = len(ls0)
 
-        if not any(lc):
-            def fsig(obj, ls0=ls0):
-                return ftools.reduce(getattr, [obj]+ls0)
+        lc = [all([si in ss for si in ['[',']']]) for ss in ls0]
+        dcond, seq, nseq, jj = {}, [], 0, 0
+        for ii in range(0,ns):
+            nseq = len(seq)
+            if lc[ii]:
+                if nseq > 0:
+                    dcond[jj] = {'type':0, 'lstr': seq}
+                    seq = []
+                    jj += 1
+                ss = ls0[ii]
+                strin = ss[ss.index('[')+1:-1]
+                cond, ind, typ = None, None, 1
+                if '=' in strin:
+                    typ = 2
+                    cond = cls._get_condfromstr(strin, sig=sig)
+                elif strin in ['time','chan']:
+                    ind = strin
+                elif strin.isnumeric():
+                    ind = [int(strin)]
+                dcond[jj] = {'str':ss[:ss.index('[')], 'type':typ,
+                             'ind':ind, 'cond':cond}
+                jj += 1
+            else:
+                seq.append(ls0[ii])
+                if ii == ns-1:
+                    dcond[jj] = {'type':0, 'lstr': seq}
 
-        elif all(lc):
-            msg = "Not implemented yet for sig with both [time] and [chan]"
+        c0 = [v['type'] == 1 and (v['ind'] is None or len(v['ind'])>1)
+             for v in dcond.values()]
+        if np.sum(c0) > 1:
+            msg = "Cannot handle mutiple iterative levels yet !\n"
+            msg += "    - sig: %s"%sig
             raise Exception(msg)
 
-        elif lc[0]:
-            it = lct.index(True)
-            ls1, st, ls2 = ls0[:it], ls0[it].replace('[time]',''), ls0[it+1:]
-            def fsig(obj, indt=None, ls1=ls1, st=st, ls2=ls2):
-                sig0 = ftools.reduce(getattr, [obj]+ls1+[st])
-                if indt is None:
-                    indt = range(0,len(sig0))
-                sig = [ftools.reduce(getattr, [sig0[ii]]+ls2) for ii in indt]
-                if all([oo.shape == sig[0].shape for oo in sig[1:]]):
-                    sig = np.vstack(sig)
-                return sig
+        def fsig(obj, indt=None, indch=None, stack=True, dcond=dcond):
+            sig = [obj]
+            nsig = 1
+            for ii in dcond.keys():
+                if dcond[ii]['type'] == 0:
+                    sig = [ftools.reduce(getattr, [sig[jj]]+dcond[ii]['lstr'])
+                            for jj in range(0,nsig)]
+                elif dcond[ii]['type'] == 1:
+                    for jj in range(0,nsig):
+                        sig[jj] = getattr(sig[jj],dcond[ii]['str'])
+                        nb = len(sig[jj])
+                        if dcond[ii]['ind'] == 'time':
+                            ind = indt
+                        elif dcond[ii]['ind'] == 'chan':
+                            ind = indch
+                        else:
+                            ind = dcond[ii]['ind']
+                        if ind is None:
+                            ind = range(0,nb)
+                        if nsig > 1:
+                            assert len(ind) == 1
+                        if len(ind) == 1:
+                            sig[jj] = sig[jj][ind[0]]
+                        else:
+                            assert nsig == 1
+                            sig = [sig[0][ll] for ll in ind]
+                            nsig = len(sig)
+                else:
+                    for jj in range(0,nsig):
+                        sig[jj] = getattr(sig[jj], dcond[ii]['str'])
+                        nb = len(sig[jj])
+                        ind = [ll for ll in range(0,nb)
+                               if (ftools.reduce(getattr,
+                                                 [sig[jj][ll]]+dcond[ii]['cond'][0])
+                                   == dcond[ii]['cond'][1])]
+                        assert len(ind) == 1
+                        sig[jj] = sig[jj][ind[0]]
 
-        elif lc[1]:
-            ich = lch.index(True)
-            ls1, sch, ls2 = ls0[:ich], ls0[ich].replace('[chan]',''), ls0[ich+1:]
-            def fsig(obj, indch=None, ls1=ls1, sch=sch, ls2=ls2):
-                sig0 = ftools.reduce(getattr, [obj]+ls1+[sch])
-                if indch is None:
-                    indch = range(0,len(sig0))
-                sig = [ftools.reduce(getattr, [sig0[ii]]+ls2) for ii in indch]
-                if all([oo.shape == sig[0].shape for oo in sig[1:]]):
-                    sig = np.vstack(sig).T
-                return sig
+            if nsig == 1:
+                sig = sig[0]
+            elif stack and isinstance(sig[0],np.ndarray):
+                if all([ss.shape == sig[0].shape for ss in sig[1:]]):
+                    sig = np.squeeze(np.stack(sig))
+            return sig
 
         return fsig
 
@@ -753,16 +858,19 @@ class MultiIDSLoader(object):
             for k,v in self._dshort[ids].items():
                 self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
 
-    def _get_data(self, ids, sig, occ):
+    def _get_data(self, ids, sig, occ, indt=None, indch=None, stack=True):
 
         # get list of results for occ
         occref = self._dids[ids]['occ']
         indoc = np.array([np.nonzero(occref==oc)[0][0] for oc in occ])
-        out = [self._dshort[ids][sig]['fsig']( self._dids[ids]['ids'][ii] )
+        out = [self._dshort[ids][sig]['fsig']( self._dids[ids]['ids'][ii] ,
+                                              indt=indt, indch=indch,
+                                              stack=stack)
                for ii in indoc]
         return out
 
-    def get_data(self, ids=None, sig=None, occ=None, indch=None, indt=None):
+    def get_data(self, ids=None, sig=None, occ=None,
+                 indch=None, indt=None, stack=True):
         """ Return a dict of the desired signals extracted from specified ids
 
         If the ids has a field 'channel', indch is used to specify from which
@@ -800,5 +908,11 @@ class MultiIDSLoader(object):
 
         dout = dict.fromkeys(sig)
         for ss in sig:
-            dout[ss] = self._get_data(ids, ss, occ)
+            try:
+                dout[ss] = self._get_data(ids, ss, occ,
+                                          indt=indt, indch=indch, stack=stack)
+            except Exception as err:
+                msg = '\n' + str(err) + '\n'
+                msg += '\tIn ids %s, signal %s could not be loaded !'%(ids,ss)
+                warnings.warn(msg)
         return dout
