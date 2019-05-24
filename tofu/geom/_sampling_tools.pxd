@@ -368,6 +368,13 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
     return
 
 
+
+# cdef inline void middle_rue_abs(int  num_los, double resol,
+#                                    double* los_lims_x,
+#                                    double* los_lims_y,
+#                                    double* los_resolution,
+#                                    long* ind_cum
+
 cdef inline void middle_rule_abs_1(int num_los, double resol,
                                    double* los_lims_x,
                                    double* los_lims_y,
@@ -401,14 +408,14 @@ cdef inline void middle_rule_abs_2(int num_los,
     cdef double loc_resol
     cdef double loc_x
     # filling tab......
-    for ii in prange(num_los):
-        first_index = 0
-        for jj in range(0, ii):
-            first_index = first_index + ind_cum[jj]
+    first_index = 0
+    for ii in range(num_los):
+        if ii > 0:
+            first_index = first_index + ind_cum[ii-1]
         num_raf = ind_cum[ii]
         loc_resol = los_resolution[ii]
         loc_x = los_lims_x[ii]
-        for jj in range(num_raf):
+        for jj in prange(num_raf):
             los_coeffs[first_index + jj] = loc_x \
                                               + (0.5 + jj) * loc_resol
 
