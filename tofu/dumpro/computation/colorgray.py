@@ -66,11 +66,15 @@ def ConvertGray(video_file, path = None, output_name = None, output_type = None)
     
     # reading the input file 
     try:
-        #checking if the path provided is correct or not
-        if os.path.isfile(video_file):
-            cap = cv2.VideoCapture(video_file)
-    except IOError:
-        print("Path or file name incorrect or file does not exist")
+        if not os.path.isfile(video_file):
+            raise Exception
+        cap = cv2.VideoCapture(video_file)
+        
+    except Exception:
+        msg = 'the path or filename is incorrect.'
+        msg += 'PLease verify the path or file name and try again'
+        raise Exception(msg)
+        
     #read the first frame    
     ret,frame = cap.read()
 
