@@ -11,8 +11,9 @@ file
 The user must have opencv 3 or greater to use this subroutine 
 """
 
-#Built-ins
+#nuilt in
 import os
+
 #standard
 import numpy as np
 
@@ -20,16 +21,19 @@ import numpy as np
 try:
     import cv2
 except ImportError:
-    print("Cannot find opencv package. Try pip intall opencv-contrib-python")
+    print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
 #dumpro specific
 #import framebyframe_sub as rm
 #import video_to_array as vta
 
 
-def Background_Removal(video_file, path = None, output_name = None, output_type = None):
+def remove_background(video_file, path = None, output_name = None, output_type = None):
     """ Removes the background from video and returns it as Foreground.avi
     
+    For further information consult the following resources
+    1. https://docs.opencv.org/3.4/db/d5c/tutorial_py_bg_subtraction.html
+       
     Parameters
     -----------------------
     video_file:      supported formats - mp4,avi
@@ -43,9 +47,10 @@ def Background_Removal(video_file, path = None, output_name = None, output_type 
     
     Return
     -----------------------
-    File:             String
+    pfe:             String
      Path of the video along with it's name and format    
-     
+    metadata          dictionary
+     A dictionary containing the metadata of the video
     """
     #splitting the video file into drive and path + file
     drive, path_file = os.path.splitdrive(video_file)
@@ -66,12 +71,14 @@ def Background_Removal(video_file, path = None, output_name = None, output_type 
     
     # reading the input file 
     try:
-        #checking if the path provided is correct or not
-        if os.path.isfile(video_file):
-            cap = cv2.VideoCapture(video_file)
-     #incase of error in file name or path raising exception    
-    except IOError:
-        print("Path/Filename incorrect or File/path does not exits")
+        if not os.path.isfile(video_file):
+            raise Exception
+        cap = cv2.VideoCapture(video_file)
+        
+    except Exception:
+        msg = 'the path or filename is incorrect.'
+        msg += 'PLease verify the path or file name and try again'
+        raise Exception(msg)
     
     #creating the background subtraction method for applying to the video
     back = cv2.bgsegm.createBackgroundSubtractorMOG()
