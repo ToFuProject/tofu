@@ -9,12 +9,18 @@ This Subroutine converts a video file into a numpy array with dimensions time, f
 The user must have Opencv 3 or greater and numpy installed to run this subroutine
 """
 
+#nuilt in
+import os
+
+#standard
+import numpy as np
+
+#special
 try:
     import cv2
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
-import numpy as np
 
 def video_to_pixel(videofile):
     """Converts imput video file to a numpy array
@@ -34,9 +40,14 @@ def video_to_pixel(videofile):
     """
     #reading the input file'
     try:
-        cap = cv2.VideoCapture(videofile)
-    except IOError:
-        print("Path or file name incorrect or file does not exist")
+        if not os.path.isfile(video_file):
+            raise Exception
+        cap = cv2.VideoCapture(video_file)
+        
+    except Exception:
+        msg = 'the path or filename is incorrect.'
+        msg += 'PLease verify the path or file name and try again'
+        raise Exception(msg)
     
     #reading the first frame to get video metadata    
     ret,frame = cap.read()
@@ -46,14 +57,15 @@ def video_to_pixel(videofile):
     columns = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     total_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     fps = int(cap.get(cv2.CAP_PROP_FPS))
-    print(rows, columns, total_frame)
+
     #declaration of the empty array
     pixel = np.ndarray(( total_frame, rows, columns), dtype = int)
+    
     #dictionary containing the meta data of the video
     meta_data = {'fps' : fps, 'frame_height' : rows, 'frame_width' : columns}
+    
     #initialization of the frame variable 
     frame_counter = 0
-    
     #looping over the entire video
     while (cap.isOpened()):
         
