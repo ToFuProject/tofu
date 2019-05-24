@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import warnings as warn
 
 # Nose-specific
-from nose import with_setup # optional
+#from nose import with_setup # optional
 
 
 # Importing package tofu.geom
@@ -111,7 +111,7 @@ for typ in dconf.keys():
                               np.full((nP,),0.02)])
         else:
             if typ=='Tor':
-                nP = 200
+                nP = 600
                 X = np.linspace(-DX,DX,nP)
                 D = (ph[:,np.newaxis] + foc*eR[:,np.newaxis]
                      + np.repeat(X[::-1],nP)[np.newaxis,:]*ephi[:,np.newaxis]

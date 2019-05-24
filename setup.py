@@ -132,10 +132,10 @@ if USE_CYTHON:
     print("")
     #TODO try O3 O2 flags
     if not not_openmp_installed :
-        extra_compile_args=["-O0",  "-fopenmp"]
+        extra_compile_args=["-O0", "-Wall",  "-fopenmp"]
         extra_link_args = ['-fopenmp']
     else:
-        extra_compile_args=["-O0"]
+        extra_compile_args=["-O0", "-Wall"]
         extra_link_args = []
     extensions = [ Extension(name="tofu.geom."+gg,
                              sources=["tofu/geom/"+gg+".pyx"],
@@ -146,8 +146,7 @@ if USE_CYTHON:
                             extra_compile_args=extra_compile_args,
                             extra_link_args=extra_link_args)
                   ]
-
-    extensions = cythonize(extensions)
+    extensions = cythonize(extensions, annotate=True)
 else:
     print("")
     print("NOT Using Cython !!!!!!!!!")
