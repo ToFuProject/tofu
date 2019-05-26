@@ -78,14 +78,13 @@ def binary_threshold(video_file, path = None, output_name = None, output_type = 
     while(cap.isOpened()):
         
         ret, frame = cap.read()
-        print(type(frame))
         #to break out of the loop after exhausting all frames
         if not ret:
             break
         #Applying the binary threshold method
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         nex, movie = cv2.threshold(frame,127,255,cv2.THRESH_BINARY)
-        print(movie.shape)
+        
         #publishing the video
         out.write(movie)
     
