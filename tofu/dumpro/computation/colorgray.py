@@ -23,8 +23,12 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
-def ConvertGray(video_file, path = None, output_name = None, output_type = None):
-    """Converts input video file to grayscale, denoises it and saves it as Grayscale.avi
+def convertgray(video_file, path = None, output_name = None, output_type = None):
+    """Converts input video file to grayscale, denoises it and saves it as 
+    Grayscale.avi
+    
+    The denoising process is very processor intensive and takes time, 
+    but it give very good results. 
     
     Parameters
     -----------------------
