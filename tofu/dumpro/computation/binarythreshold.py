@@ -2,7 +2,8 @@
 """
 Created on Sat May 18 12:05:18 2019
 
-@author: napra
+@author: Arpan Khandelwal
+email: napraarpan@gmail.com
 """
 #Built-ins
 import os
@@ -17,7 +18,32 @@ except ImportError:
     
 
 def binary_threshold(video_file, path = None, output_name = None, output_type = None):
-    """    """
+    """This Subroutine converts a video into binary.  
+    
+    For more informatio look into the foloowinf resource
+    1. https://docs.opencv.org/3.4.0/d7/d4d/tutorial_py_thresholding.html
+    
+    Parameters
+    -----------------------
+    video_file:       mp4,avi,mpg
+     input video along with its path passed in as argument
+    path:             string
+     Path where the user wants to save the video. By default it take the path 
+     from where the raw video file was loaded
+    output_name:      String
+     Name of the binary converted video. By default it appends to the 
+     name of the original file '_bi'
+    output_type:      String
+     Format of output defined by user. By default it uses the format of the 
+     input video
+    
+    Return
+    -----------------------
+    pfe:              String
+     The path along with the videofile name
+    metadata:         Dictionary
+     A dictionary containing all the information on the metadata of the video
+    """
     #splitting the video file into drive and path + file
     drive, path_file = os.path.splitdrive(video_file)
     #splitting the path + file 
@@ -58,7 +84,7 @@ def binary_threshold(video_file, path = None, output_name = None, output_type = 
             break
         #Applying the binary threshold method
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        nex, movie = cv2.threshold(frame,100,255,cv2.THRESH_BINARY)
+        nex, movie = cv2.threshold(frame,127,255,cv2.THRESH_BINARY)
         print(movie.shape)
         #publishing the video
         out.write(movie)
