@@ -22,7 +22,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
 
-def video_to_pixel(videofile):
+def video_to_pixel(video_file):
     """Converts imput video file to a numpy array
     The video file is converted to Grayscale and hence the array is of 
     3 dimension
@@ -42,7 +42,8 @@ def video_to_pixel(videofile):
     try:
         if not os.path.isfile(video_file):
             raise Exception
-        cap = cv2.VideoCapture(video_file)
+        else:
+            cap = cv2.VideoCapture(video_file)
         
     except Exception:
         msg = 'the path or filename is incorrect.'
