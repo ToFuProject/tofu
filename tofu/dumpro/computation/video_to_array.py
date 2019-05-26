@@ -42,8 +42,7 @@ def video_to_pixel(video_file):
     try:
         if not os.path.isfile(video_file):
             raise Exception
-        else:
-            cap = cv2.VideoCapture(video_file)
+        cap = cv2.VideoCapture(video_file)
         
     except Exception:
         msg = 'the path or filename is incorrect.'
