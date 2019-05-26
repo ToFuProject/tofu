@@ -104,20 +104,20 @@ def video2img(video_file, path = None, image_name = None, image_type = None):
     currentFrame = 0
     
     #Looping over the entire video    
-    while(True):
+    while(cap.isOpened()):
         # Capture frame-by-frame
         ret, frame = cap.read()
         #To break out of loop when conversion is done
         #ret reads false after we have exhausted through our frames 
-        if not ret: break
-    
-        # Saves image of the current frame in user defined format 
-        #or by default jpg file
-        #frame number starts from 0
-        name = path + image_name + str(currentFrame) + image_type
-        print('Converting frame :', currentFrame)
-        cv2.imwrite(name, frame)
-        
+        if ret == True:
+            # Saves image of the current frame in user defined format 
+            #or by default jpg file
+            #frame number starts from 0
+            name = path + image_name + str(currentFrame) + image_type
+            print('Converting frame :', currentFrame)
+            cv2.imwrite(name, frame)
+        else:
+            break
         # To stop duplicate images
         currentFrame += 1
     print('Total number of frames converted :', currentFrame)    
