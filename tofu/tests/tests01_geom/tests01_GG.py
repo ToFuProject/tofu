@@ -228,7 +228,7 @@ def test05_Ves_mesh_dlfromL():
 
 
 
-def test06discretize_vpoly(VPoly=VPoly):
+def test06_discretize_vpoly(VPoly=VPoly):
 
     VIn = VPoly[:,1:]-VPoly[:,:-1]
     VIn = np.array([-VIn[1,:],VIn[0,:]])
@@ -1230,12 +1230,6 @@ def test16_dist_los_vpoly():
                    1.0,
                    0.5,
                    0.5]
-    print(">>>>>>>>> out =")
-    print(" k =", out[0])
-    print(" dist = ", out[1])
-    print("<<<<<<<<<< expecting =")
-    print(exact_ks)
-    print(exact_dists)
     assert(np.allclose(out[0], exact_ks))
     assert(np.allclose(out[1], exact_dists))
 
@@ -1492,12 +1486,6 @@ def test18_comp_dist_los_vpoly():
                 1.0,
                 0.5,
                 0.5]
-    print(">>>>>>>>> out =")
-    print(" k =", out[0])
-    print(" dist = ", out[1])
-    print("<<<<<<<<<< expecting =")
-    print(" k_ex =", k_vec)
-    print(" dist_ex =", dist_vec)
     assert np.allclose(k_vec, out[0])
     assert np.allclose(dist_vec, out[1])
 

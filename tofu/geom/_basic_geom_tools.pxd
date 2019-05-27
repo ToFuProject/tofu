@@ -140,6 +140,7 @@ cdef inline array compute_hypot(double[::1] xpts, double[::1] ypts,
     cdef array hypot
     if npts == -1:
         npts  = xpts.shape[0]
+    print("............. in compute hypot, npts =", npts)
     hypot = clone(array('d'), npts, False)
     for ii in range(npts):
         hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
