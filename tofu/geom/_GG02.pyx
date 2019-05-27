@@ -933,16 +933,12 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     cdef np.ndarray[double,ndim=1] iii, dV, ind
 
     # Get the actual R and Z resolutions and mesh elements
-    print(">>>>>>>>>>>>>>< print 1.1")
     R0, dRr0, indR0, NR0 = discretize_line1d(RMinMax, dR, None,
                                              Lim=True, margin=margin)
-    print(">>>>>>>>>>>>>>< print 1.2")
     R, dRr, indR, NR = discretize_line1d(RMinMax, dR, DR, Lim=True,
                                           margin=margin)
-    print(">>>>>>>>>>>>>>< print 1.3")
     Z, dZr, indZ, NZ = discretize_line1d(ZMinMax, dZ, DZ, Lim=True,
                                           margin=margin)
-    print(">>>>>>>>>>>>>>< print 1.4")
     Rn = len(R)
     Zn = len(Z)
 
@@ -961,7 +957,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     nRPhi0, indR0ii = 0, 0
     NP, NPhimax = 0, 0
     Rratio = int(Cceil(R[Rn-1]/R[0]))
-    print(">>>>>>>>>>>>>>< print 1.5")
     for ii in range(0,Rn):
         # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
         NRPhi[ii] = Cceil(2.*Cpi*R[ii]/dRPhi)
@@ -1007,7 +1002,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
             for jj in range(NRPhi_int-nPhi0,Phin[ii]):
                 indI[ii,jj] = <double>( jj- (NRPhi_int-nPhi0) )
         NP += Zn*Phin[ii]
-    print(">>>>>>>>>>>>>>< print 1.6")
     Pts = np.empty((3,NP))
     ind = np.empty((NP,))
     dV = np.empty((NP,))
@@ -1041,35 +1035,21 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
                     ind[NP] = NRPhi0[ii] + indZ[zz]*NRPhi[ii] + indiijj
                     dV[NP] = dRr*dZr*dRPhir[ii]
                     NP += 1
-    print(">>>>>>>>>>>>>>< print 1.7")
     if VPoly is not None:
         if Out.lower()=='(x,y,z)':
-            print("in x,y,z")
             R = _bgt.compute_hypot(Pts[0,:],Pts[1,:])
-            print(" 2.1")
             indin = Path(VPoly.T).contains_points(np.array([R,Pts[2,:]]).T,
                                                   transform=None, radius=0.0)
-            print(" 2.2")
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
-            print(" 2.3")
             Ru = np.unique(R)
-            print(" 2.4... end")
         else:
-            print(" in ELSE")
             indin = Path(VPoly.T).contains_points(Pts[:-1,:].T, transform=None,
                                                   radius=0.0)
-            print(" 3.1")
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
-            print(" 3.2")
             Ru = np.unique(Pts[0,:])
-            print(" 3.3... END")
-        print("4.1")
         if not np.all(Ru==R):
-            print("4.1.5")
             dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
                                if R[ii] in Ru])
-        print("4.2")
-    print(">>>>>>>>>>>>>>< returing")
     return Pts, dV, ind.astype(int), dRr, dZr, np.asarray(dRPhir)
 
 
@@ -1089,7 +1069,6 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
     cdef np.ndarray[double,ndim=2] Pts=np.empty((3,NP))
     cdef np.ndarray[double,ndim=1] dV=np.empty((NP,))
 
-    print("In vmesh tor sub from Ind >>>>>>>>>>>>>>>>>>>>")
     # Get the actual R and Z resolutions and mesh elements
     R, dRr, indR, NR = discretize_line1d(RMinMax, dR, None, Lim=True,
                                                 margin=margin)
@@ -1145,7 +1124,6 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
             if Ru[iiR]==0.:
                 dRPhir[iiR] = dRPhirRef[iiR]
                 Ru[iiR] = 1.
-    print("In vmesh tor sub from Ind >>>>>>>>>>>>>>>>>>>> OUT")
     return Pts, dV, dRr, dZr, np.asarray(dRPhir)[~np.isnan(dRPhir)]
 
 

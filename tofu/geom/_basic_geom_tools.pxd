@@ -6,11 +6,13 @@
 # Utility functions for basic geometry (vector calculus, path, ...)
 ################################################################################
 cimport cython
+from cython.parallel import prange
 from cpython.array cimport array, clone
 from libc.math cimport cos as Ccos, sin as Csin
 from libc.math cimport atan2 as Catan2
 from libc.math cimport sqrt as Csqrt
 from libc.math cimport fabs as Cabs
+
 
 # ==============================================================================
 # =  Geometry global variables
@@ -140,9 +142,8 @@ cdef inline array compute_hypot(double[::1] xpts, double[::1] ypts,
     cdef array hypot
     if npts == -1:
         npts  = xpts.shape[0]
-    print("............. in compute hypot, npts =", npts)
     hypot = clone(array('d'), npts, False)
-    for ii in range(npts):
+    for ii in prange(npts):
         hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
     return hypot
 
