@@ -17,16 +17,23 @@ except ImportError:
     print("Cannot find opencv package. Try pip intall opencv-contrib-python")
     
 
-def binary_threshold(video_file, path = None, output_name = None, output_type = None):
+def binary_threshold(video_file, meta_data = None, path = None, output_name = None, output_type = None):
     """This Subroutine converts a video into binary.  
     
-    For more informatio look into the foloowinf resource
+    For more informatio look into the following resource
     1. https://docs.opencv.org/3.4.0/d7/d4d/tutorial_py_thresholding.html
     
     Parameters
     -----------------------
     video_file:       mp4,avi,mpg
      input video along with its path passed in as argument
+    meta_data:        dictionary
+     A dictionary containing all the video meta_data. By default it is None
+     But if the user inputs some keys into the dictionary, the code will use 
+     the information from the dictionary and fill in the missing gaps if
+     required
+     meta_data has information on total number of frames, demension, fps and 
+     the four character code of the video
     path:             string
      Path where the user wants to save the video. By default it take the path 
      from where the raw video file was loaded
@@ -63,15 +70,44 @@ def binary_threshold(video_file, path = None, output_name = None, output_type = 
         
     cap = cv2.VideoCapture(video_file,0)
     
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    if meta_data == None:
+        #defining the four character code
+        fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+        #defining the frame dimensions
+        frame_width = int(cap.get(3))
+        frame_height = int(cap.get(4))
+        #defining the fps
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the meta_data dictionary
+        meta_data = {'fps' : fps, 'frame_height' : frame_height, 
+                     'frame_width' : frame_width, 'fourcc' : fourcc}
+        
+    else:
+        #describing the four character code      
+        fourcc = meta_data.get('fourcc', int(cap.get(cv2.CAP_PROP_FOURCC)))
+        if 'fourcc' not in meta_data:
+            meta_data['fourcc'] = fourcc
+        
+        #describing the frame width
+        frame_width = meta_data.get('frame_width', int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+        if 'frame_width' not in meta_data:
+            meta_data['frame_width'] = frame_width
+        
+        #describing the frame height
+        frame_height = meta_data.get('frame_height', int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        if 'frame_height' not in meta_data:
+            meta_data['frame_height'] = frame_height
+            
+        #describing the speed of the video in frames per second 
+        fps = meta_data.get('fps', int(cap.get(cv2.CAP_PROP_FPS)))
+        if 'fps' not in meta_data:
+            meta_data['fps'] = fps
+
+        #describing the total number of frames in the video
+        N_frames = meta_data.get('N_frames', int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
+        if 'N_frames' not in meta_data:
+            meta_data['N_frames'] = N_frames
     
-    #get frame width and height of the original video
-    #the result video has the same number of pixels
-    frame_width = int(cap.get(3))
-    frame_height = int(cap.get(4))
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    #dictionary containing the meta data of the video
-    meta_data = {'fps' : fps, 'frame_height' : frame_height, 'frame_width' : frame_width}
     #describing the output file
     pfe = os.path.join(path, output_name + output_type)
     out = cv2.VideoWriter(pfe,fourcc, fps ,(frame_width,frame_height),0) 

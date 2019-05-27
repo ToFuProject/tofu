@@ -34,6 +34,13 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
     -----------------------
     video_file:       mp4,avi
      input video along with its path passed in as argument
+    meta_data:        dictionary
+     A dictionary containing all the video meta_data. By default it is None
+     But if the user inputs some keys into the dictionary, the code will use 
+     the information from the dictionary and fill in the missing gaps if
+     required
+     meta_data has information on total number of frames, demension, fps and 
+     the four character code of the video
     path:             string
      Path where the user wants to save the video. By default it take the path 
      from where the raw video file was loaded
@@ -82,9 +89,9 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
     #read the first frame    
     ret,frame = cap.read()
     
-    if meta_data ==None:
+    if meta_data == None:
         #defining the four character code
-        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+        fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
         #defining the frame dimensions
         frame_width = int(cap.get(3))
         frame_height = int(cap.get(4))
@@ -95,38 +102,31 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
                      'frame_width' : frame_width, 'fourcc' : fourcc}
         
     else:
-         #describing the four character code fourcc 
-         if 'fourcc' in meta_data:
-             fourcc = meta_data['fourcc']
-         else:
-             fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-             #adding value to the dictionary
-             meta_data['fourcc'] = fourcc
+        #describing the four character code      
+        fourcc = meta_data.get('fourcc', int(cap.get(cv2.CAP_PROP_FOURCC)))
+        if 'fourcc' not in meta_data:
+            meta_data['fourcc'] = fourcc
         
-         #describing the frame width
-         if 'frame_width' in meta_data:
-             frame_width = meta_data['frame_width']
-         else:
-             frame_width = int(cap.get(3))
-             #adding value to dictionary
-             meta_data['frame_width'] = frame_width
+        #describing the frame width
+        frame_width = meta_data.get('frame_width', int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+        if 'frame_width' not in meta_data:
+            meta_data['frame_width'] = frame_width
         
-         #describing the frame height
-         if 'frame_height' in meta_data:
-             frame_height = meta_data['frame_height']
-         else:
-             frame_height = int(cap.get(4))
-             #adding value to dictionary
-             meta_data['frame_height'] = frame_height
-        
-         #describing the fps
-         if 'fps' in meta_data:
-             fps = meta_data['fps']
-         else:
-             fps = cap.get(cv2.CAP_PROP_FPS)
-             #adding value to dictionary
-             meta_data['fps'] = fps
-        
+        #describing the frame height
+        frame_height = meta_data.get('frame_height', int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        if 'frame_height' not in meta_data:
+            meta_data['frame_height'] = frame_height
+            
+        #describing the speed of the video in frames per second 
+        fps = meta_data.get('fps', int(cap.get(cv2.CAP_PROP_FPS)))
+        if 'fps' not in meta_data:
+            meta_data['fps'] = fps
+
+        #describing the total number of frames in the video
+        N_frames = meta_data.get('N_frames', int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
+        if 'N_frames' not in meta_data:
+            meta_data['N_frames'] = N_frames
+            
     #videowriter writes the new video with the frame height and width and fps   
     #videowriter(videoname, format, fps, dimensions_of_frame,)
     pfe = os.path.join(path, output_name + output_type)

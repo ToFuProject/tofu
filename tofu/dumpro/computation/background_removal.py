@@ -28,7 +28,7 @@ except ImportError:
 #import video_to_array as vta
 
 
-def remove_background(video_file, path = None, output_name = None, output_type = None):
+def remove_background(video_file, meta_data = None, path = None, output_name = None, output_type = None):
     """ Removes the background from video and returns it as Foreground.avi
     
     For further information consult the following resources
@@ -38,6 +38,13 @@ def remove_background(video_file, path = None, output_name = None, output_type =
     -----------------------
     video_file:      supported formats - mp4,avi
      input video passed in as argument
+    meta_data:        dictionary
+     A dictionary containing all the video meta_data. By default it is None
+     But if the user inputs some keys into the dictionary, the code will use 
+     the information from the dictionary and fill in the missing gaps if
+     required
+     meta_data has information on total number of frames, demension, fps and 
+     the four character code of the video
     path:             string
      Path where the user wants to save the video
     output_name:      String
@@ -79,19 +86,48 @@ def remove_background(video_file, path = None, output_name = None, output_type =
         msg = 'the path or filename is incorrect.'
         msg += 'PLease verify the path or file name and try again'
         raise Exception(msg)
+        
+    if meta_data == None:
+        #defining the four character code
+        fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+        #defining the frame dimensions
+        frame_width = int(cap.get(3))
+        frame_height = int(cap.get(4))
+        #defining the fps
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the meta_data dictionary
+        meta_data = {'fps' : fps, 'frame_height' : frame_height, 
+                     'frame_width' : frame_width, 'fourcc' : fourcc}
+        
+    else:
+        #describing the four character code      
+        fourcc = meta_data.get('fourcc', int(cap.get(cv2.CAP_PROP_FOURCC)))
+        if 'fourcc' not in meta_data:
+            meta_data['fourcc'] = fourcc
+        
+        #describing the frame width
+        frame_width = meta_data.get('frame_width', int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+        if 'frame_width' not in meta_data:
+            meta_data['frame_width'] = frame_width
+        
+        #describing the frame height
+        frame_height = meta_data.get('frame_height', int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        if 'frame_height' not in meta_data:
+            meta_data['frame_height'] = frame_height
+    
+        #describing the speed of the video in frames per second 
+        fps = meta_data.get('fps', int(cap.get(cv2.CAP_PROP_FPS)))
+        if 'fps' not in meta_data:
+            meta_data['fps'] = fps
+
+        #describing the total number of frames in the video
+        N_frames = meta_data.get('N_frames', int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
+        if 'N_frames' not in meta_data:
+            meta_data['N_frames'] = N_frames
     
     #creating the background subtraction method for applying to the video
     back = cv2.bgsegm.createBackgroundSubtractorMOG()
-    #describing the four character code fourcc
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     
-    #get frame width and height of the original video
-    #the result video has the same number of pixels
-    frame_width = int(cap.get(3))
-    frame_height = int(cap.get(4))
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
-    #dictionary containing the meta data of the video
-    meta_data = {'fps' : fps, 'frame_height' : frame_height, 'frame_width' : frame_width}
     #describing the output file
     pfe = os.path.join(path, output_name + output_type)
     out = cv2.VideoWriter(pfe,fourcc, fps ,(frame_width,frame_height),0) 
