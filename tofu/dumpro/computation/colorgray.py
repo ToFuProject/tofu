@@ -23,7 +23,7 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
-def convertgray(video_file, path = None, output_name = None, output_type = None):
+def convertgray(video_file,meta_data = None , path = None, output_name = None, output_type = None):
     """Converts input video file to grayscale, denoises it and saves it as 
     Grayscale.avi
     
@@ -78,18 +78,55 @@ def convertgray(video_file, path = None, output_name = None, output_type = None)
         msg = 'the path or filename is incorrect.'
         msg += 'PLease verify the path or file name and try again'
         raise Exception(msg)
-        
+     
     #read the first frame    
     ret,frame = cap.read()
-
-    #describing the four character code fourcc  
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    #getting frame height and width and fps
-    frame_width = int(cap.get(3))
-    frame_height = int(cap.get(4))
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    #dictionary containing the meta data of the video
-    meta_data = {'fps' : fps, 'frame_height' : frame_height, 'frame_width' : frame_width}
+    
+    if meta_data ==None:
+        #defining the four character code
+        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+        #defining the frame dimensions
+        frame_width = int(cap.get(3))
+        frame_height = int(cap.get(4))
+        #defining the fps
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the meta_data dictionary
+        meta_data = {'fps' : fps, 'frame_height' : frame_height, 
+                     'frame_width' : frame_width, 'fourcc' : fourcc}
+        
+    else:
+         #describing the four character code fourcc 
+         if 'fourcc' in meta_data:
+             fourcc = meta_data['fourcc']
+         else:
+             fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+             #adding value to the dictionary
+             meta_data['fourcc'] = fourcc
+        
+         #describing the frame width
+         if 'frame_width' in meta_data:
+             frame_width = meta_data['frame_width']
+         else:
+             frame_width = int(cap.get(3))
+             #adding value to dictionary
+             meta_data['frame_width'] = frame_width
+        
+         #describing the frame height
+         if 'frame_height' in meta_data:
+             frame_height = meta_data['frame_height']
+         else:
+             frame_height = int(cap.get(4))
+             #adding value to dictionary
+             meta_data['frame_height'] = frame_height
+        
+         #describing the fps
+         if 'fps' in meta_data:
+             fps = meta_data['fps']
+         else:
+             fps = cap.get(cv2.CAP_PROP_FPS)
+             #adding value to dictionary
+             meta_data['fps'] = fps
+        
     #videowriter writes the new video with the frame height and width and fps   
     #videowriter(videoname, format, fps, dimensions_of_frame,)
     pfe = os.path.join(path, output_name + output_type)
