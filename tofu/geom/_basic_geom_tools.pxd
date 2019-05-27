@@ -24,7 +24,6 @@ cdef double _SMALL
 # ==============================================================================
 # =  Point in path
 # ==============================================================================
-
 cdef inline bint is_point_in_path(const int nvert,
                                   const double* vertx,
                                   const double* verty,
@@ -58,7 +57,6 @@ cdef inline bint is_point_in_path(const int nvert,
              / (verty[i+1]-verty[i]) + vertx[i]) ):
             c = not c
     return c
-
 
 cdef inline int is_point_in_path_vec(const int nvert,
                                      const double* vertx,
@@ -103,7 +101,6 @@ cdef inline int is_point_in_path_vec(const int nvert,
 # ==============================================================================
 # =  Computing inverse of vector and sign of each element
 # ==============================================================================
-
 cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
                                       int[3] sign,
                                       double[3] inv_direction) nogil:
@@ -135,20 +132,22 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
 # ==============================================================================
 # =  Computing Hypothenus
 # =============================================================================
-
 cdef inline array compute_hypot(double[::1] xpts, double[::1] ypts,
                                 int npts=-1):
     cdef int ii
     cdef array hypot
+    cdef double* ptr_hypot
     if npts == -1:
         npts  = xpts.shape[0]
     hypot = clone(array('d'), npts, False)
-    for ii in prange(npts):
-        hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
+    ptr_hypot = hypot.data.as_doubles
+    with nogil:
+        for ii in range(npts):
+            ptr_hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
     return hypot
 
 cdef inline double comp_min_hypot(double[::1] xpts, double[::1] ypts,
-                                  int npts=-1):
+                                  int npts=-1) nogil:
     cdef int ii
     cdef double tmp
     cdef double hypot = xpts[0]*xpts[0] + ypts[0]*ypts[0]
