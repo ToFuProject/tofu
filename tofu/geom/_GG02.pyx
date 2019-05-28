@@ -878,14 +878,14 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
                             &sz_vb[0], &sz_ot[0], NP)
     assert not ((XCross == NULL) or (YCross == NULL)
                 or (XPolybis == NULL) or (YPolybis == NULL))
-    PtsCross = np.asarray([<double[:sz_ot[0]]> XCross,
+    PtsCross = np.array([<double[:sz_ot[0]]> XCross,
                            <double[:sz_ot[0]]> YCross])
-    VPolybis = np.asarray([<double[:sz_vb[0]]> XPolybis,
+    VPolybis = np.array([<double[:sz_vb[0]]> XPolybis,
                            <double[:sz_vb[0]]> YPolybis])
-    resol = np.asarray(<double[:sz_ot[0]]> resolution)
-    Rref_arr = np.asarray(<double[:sz_ot[0]]> Rref)
-    ind_arr = np.asarray(<long[:sz_ot[0]]> ind)
-    N_arr = np.asarray(<long[:NP-1]> numcells)
+    resol = np.array(<double[:sz_ot[0]]> resolution)
+    Rref_arr = np.array(<double[:sz_ot[0]]> Rref)
+    ind_arr = np.array(<long[:sz_ot[0]]> ind)
+    N_arr = np.array(<long[:NP-1]> numcells)
     if D1 is not None:
         indin = (PtsCross[0,:]>=D1[0]) & (PtsCross[0,:]<=D1[1])
         PtsCross = PtsCross[:,indin]
@@ -896,14 +896,14 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
         PtsCross = PtsCross[:,indin]
         resol = resol[indin]
         ind_arr = ind_arr[indin]
-    # free(XCross)
-    # free(YCross)
-    # free(XPolybis)
-    # free(YPolybis)
-    # free(resolution)
-    # free(Rref)
-    # free(ind)
-    # free(numcells)
+    free(XCross)
+    free(YCross)
+    free(XPolybis)
+    free(YPolybis)
+    free(resolution)
+    free(Rref)
+    free(ind)
+    free(numcells)
     return PtsCross, resol, ind_arr, N_arr, Rref_arr, VPolybis
 
 
