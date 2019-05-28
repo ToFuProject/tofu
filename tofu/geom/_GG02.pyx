@@ -907,8 +907,6 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     return PtsCross, resol, ind_arr, N_arr, Rref_arr, VPolybis
 
 
-
-
 # ==============================================================================
 #
 #                     3D MESHING in TOROIDAL configurations
@@ -2406,7 +2404,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                    dtype=int).reshape(num_los, 3))
 
 
-
 # =============================================================================
 # = Ray tracing when we only want kMin / kMax
 # -   (useful when working with flux surfaces)
@@ -2673,6 +2670,65 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     ind[indok] = k[indok]<kPOut[indok]
     return ind
 
+# ==============================================================================
+#
+#                                 VIGNETTING
+#
+# ==============================================================================
+def vignetting(double[:, ::1] ray_orig,
+               double[:, ::1] ray_vdir,
+               double[:, :, ::1] vignett_poly,
+               long[::1] lnvert):
+    """
+    ray_orig : (3, num_los) double array
+       LOS origin points coordinates
+    ray_vdir : (3, num_los) double array
+       LOS normalized direction vector
+    vignett_poly : (num_vign, 3, num_vertex) double array
+       Coordinates of the vertices of the Polygon defining the 3D vignett
+    lnvert : (num_vign) long array
+       Number of vertices for each vignett
+    """
+    cdef int ilos, ivign
+    cdef int nvign, nlos
+    cdef int nvert
+    cdef bint inter_bbox
+    cdef double[6] bounds
+    cdef array goes_through
+    cdef int* sign_ray = NULL
+    cdef double* invr_ray = NULL
+    cdef double* loc_org = NULL
+    cdef double* loc_dir = NULL
+    # ...
+    nvign = vignett_poly.shape[0]
+    nlos = ray_orig.shape[1]
+    goes_through = clone(array('i'), nlos * nvign, True)
+    # == Defining parallel part ================================================
+    with nogil, parallel(num_threads=num_threads):
+        # We use local arrays for each thread so
+        loc_org   = <double *> malloc(sizeof(double) * 3)
+        loc_dir   = <double *> malloc(sizeof(double) * 3)
+        invr_ray  = <double *> malloc(sizeof(double) * 3)
+        sign_ray  = <int *> malloc(sizeof(int) * 3)
+        for ilos in range(nlos):
+            loc_org[0] = ray_orig[0, ind_los]
+            loc_org[1] = ray_orig[1, ind_los]
+            loc_org[2] = ray_orig[2, ind_los]
+            loc_dir[0] = ray_vdir[0, ind_los]
+            loc_dir[1] = ray_vdir[1, ind_los]
+            loc_dir[2] = ray_vdir[2, ind_los]
+            compute_inv_and_sign(loc_dir, sign_ray, invr_ray)
+            for ivign in range(nvign):
+                nvert = vignett_poly.shape[2]
+                comp_bbox_poly3d(nvert,
+                                &vignett_poly[ivign, 0],
+                                &vignett_poly[ivign, 1],
+                                &vignett_poly[ivign, 2],
+                                bounds)
+                inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
+                                                lbounds,
+                                                loc_org,
+                                                countin=True)
 
 
 # ==============================================================================
