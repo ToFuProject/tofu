@@ -17,7 +17,7 @@ from libc.math cimport fabs as Cabs
 # ==============================================================================
 # =  Geometry global variables
 # ==============================================================================
-
+# Values defined in the *.pyx file
 cdef double _VSMALL
 cdef double _SMALL
 
@@ -158,3 +158,69 @@ cdef inline double comp_min_hypot(double[::1] xpts, double[::1] ypts,
         if tmp < hypot:
             hypot = tmp
     return Csqrt(hypot)
+
+# ==============================================================================
+# == VECTOR CALCULUS HELPERS
+# ==============================================================================
+cdef inline void compute_cross_prod(const double[3] vec_a,
+                                    const double[3] vec_b,
+                                    double[3] res) nogil:
+    res[0] = vec_a[1]*vec_b[2] - vec_a[2]*vec_b[1]
+    res[1] = vec_a[2]*vec_b[0] - vec_a[0]*vec_b[2]
+    res[2] = vec_a[0]*vec_b[1] - vec_a[1]*vec_b[0]
+    return
+
+cdef inline double compute_dot_prod(const double[3] vec_a,
+                                    const double[3] vec_b) nogil:
+    return vec_a[0] * vec_b[0] + vec_a[1] * vec_b[1] + vec_a[2] * vec_b[2]
+
+
+cdef inline double compute_g(double s, double m2b2, double rm0sqr,
+                             double m0sqr, double b1sqr) nogil:
+    return s + m2b2 - rm0sqr*s / Csqrt(m0sqr*s*s + b1sqr)
+
+cdef inline double compute_bisect(double m2b2, double rm0sqr,
+                                  double m0sqr, double b1sqr,
+                                  double smin, double smax) nogil:
+    cdef int maxIterations = 10000
+    cdef double root = 0.
+    root = compute_find(m2b2, rm0sqr, m0sqr, b1sqr,
+                smin, smax, -1.0, 1.0, maxIterations, root)
+    gmin = compute_g(root, m2b2, rm0sqr, m0sqr, b1sqr)
+    return root
+
+cdef inline double compute_find(double m2b2, double rm0sqr,
+                                double m0sqr, double b1sqr,
+                                double t0, double t1, double f0, double f1,
+                                int maxIterations, double root) nogil:
+    cdef double fm, product
+    if (t0 < t1):
+        # Test the endpoints to see whether F(t) is zero.
+        if f0 == 0.:
+            root = t0
+            return root
+        if f1 == 0.:
+            root = t1
+            return root
+        if f0*f1 > 0.:
+            # It is not known whether the interval bounds a root.
+            return root
+        for i in range(2, maxIterations+1):
+            root = (0.5) * (t0 + t1)
+            if (root == t0 or root == t1):
+                # The numbers t0 and t1 are consecutive floating-point
+                # numbers.
+                break
+            fm = compute_g(root, m2b2, rm0sqr, m0sqr, b1sqr)
+            product = fm * f0
+            if (product < 0.):
+                t1 = root
+                f1 = fm
+            elif (product > 0.):
+                t0 = root
+                f0 = fm
+            else:
+                break
+        return root
+    else:
+        return root
