@@ -2680,9 +2680,6 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 #                                  LOS SAMPLING
 #
 # ==============================================================================
-@cython.profile(False)
-@cython.linetrace(False)
-@cython.binding(False)
 def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                    double[:,::1] DLs, str dmethod='abs',
                    str method='sum', bint Test=True):
@@ -2691,6 +2688,35 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     'sum' :     return N segments centers
     'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
     'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
+    The dmethod defines if the discretization step given is absolute ('abs')
+    or relative ('rel')
+
+    Params
+    ======
+    us: (3, num_los) double array
+        rays director vectors such that P \in Ray iff P(t) = D + t*u
+    Ds: (3, num_los) double array
+        rays origins coordinates O such that P \in Ray iff P(t) = D + t*u
+    dL: double or list of doubles
+        If dL is a single double: discretization step for all LOS.
+        Else dL should be a list of size num_los with the discretization
+        step for each num_los.
+    DLs: (2, num_los) double array
+        For each num_los, it given the maximum and minimum limits of the ray
+    dmethod: string
+        type of discretization step: 'abs' for absolute or 'rel' for relative
+    method: string
+        method of quadrature on the LOS
+    Test: bool
+        to indicate if tests should be done or not
+
+
+    How to recompute Points coordinates from results
+    -------
+    k, res, lind = Los_get_sample(...)
+    nbrepet = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+    kus = k * np.repeat(us, nbrepet, axis=1)
+    Pts = np.repeat(Ds, nbrepet, axis=1) + kus
     """
     cdef str error_message
     cdef str dmode = dmethod.lower()
