@@ -753,10 +753,8 @@ class Test03_Rays(object):
                 out = obj.get_sample(0.02, resMode='abs',
                                      method='sum',DL=None)
                 k, res, lind = out
-                k = np.split(k, lind[:-1])
-                # pts = [np.array([dij + ki * uij for (dij, uij)
-                #                  in zip(di, ui)])
-                #        for (ki, di, ui) in zip(k, Ds, us)]
+                lind = np.cumsum(lind[:-1])
+                k = np.split(k, lind)
                 assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
@@ -769,9 +767,6 @@ class Test03_Rays(object):
                                      method='simps',DL=[0,1])
                 k, res, lind = out
                 k = np.split(k, lind[:-1])
-                # pts = [np.array([dij + ki * uij for (dij, uij)
-                #                  in zip(di, ui)])
-                #        for (ki, di, ui) in zip(k, Ds, us)]
                 assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
@@ -787,9 +782,6 @@ class Test03_Rays(object):
                                      method='romb',DL=[0,1])
                 k, res, lind = out
                 k = np.split(k, lind[:-1])
-                # pts = [np.array([dij + ki * uij for (dij, uij)
-                #                  in zip(di, ui)])
-                #        for (ki, di, ui) in zip(k, Ds, us)]
                 assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
                     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):

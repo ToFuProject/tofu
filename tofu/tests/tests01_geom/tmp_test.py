@@ -74,6 +74,7 @@ for tt in dobj.keys():
                        Poly=Poly, Lim=Lim, Type=tt)
             dobj[tt][cc][ln[ii]] = eval('tfg.%s(**kwd)'%cc)
 
+<<<<<<< HEAD
 dconf = {}
 for typ in dobj.keys():
     lS = []
@@ -126,78 +127,103 @@ for typ in dconf.keys():
         dCams[typ][c] = cls(Name='V1000', config=dconf[typ],
                             dgeom={'pinhole':ph, 'D':D}, method="optimized",
                             Exp=_Exp, Diag='Test', SavePath=_here)
+=======
+>>>>>>> 3dd73127f1f994f076bb29892ab12e9bb4143afe
 
-dobj=dCams
-verb=False
-dlpfe = {}
 for typ in dobj.keys():
-    dlpfe[typ] = {}
+    # Todo : introduce possibility of choosing In coordinates !
     for c in dobj[typ].keys():
-        dlpfe[typ][c] = []
-        for s in dobj[typ][c].config.lStruct:
-            pfe = os.path.join(s.Id.SavePath,s.Id.SaveName+'.npz')
-            s.save(verb=verb)
-            dlpfe[typ][c].append(pfe)
-        dobj[typ][c].config.strip(-1)
-        dobj[typ][c].config.save(verb=verb)
-        dobj[typ][c].config.strip(0, verb=verb)
-        pfe = os.path.join(dobj[typ][c].config.Id.SavePath,
-                           dobj[typ][c].config.Id.SaveName+'.npz')
-        dlpfe[typ][c].append(pfe)
+# <<<<<<< HEAD
+#         dlpfe[typ][c] = []
+#         for s in dobj[typ][c].config.lStruct:
+#             pfe = os.path.join(s.Id.SavePath,s.Id.SaveName+'.npz')
+#             s.save(verb=verb)
+#             dlpfe[typ][c].append(pfe)
+#         dobj[typ][c].config.strip(-1)
+#         dobj[typ][c].config.save(verb=verb)
+#         dobj[typ][c].config.strip(0, verb=verb)
+#         pfe = os.path.join(dobj[typ][c].config.Id.SavePath,
+#                            dobj[typ][c].config.Id.SaveName+'.npz')
+#         dlpfe[typ][c].append(pfe)
 
 
 
-#@profile
-def run_and_rest():
-    for typ in dobj.keys():
-        for c in dobj[typ].keys():
-            obj = dobj[typ][c]
-            Ds, us = obj.D[:], obj.u[:]
-            out = obj.get_sample(0.02, resMode='abs',
-                                 method='sum',DL=None)
-            k, res, lind = out
-            # #nbrepet = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
-            # nbrepet = lind
-            # Pts = np.repeat(Ds, nbrepet, axis=1) + k* np.repeat(us, nbrepet, axis=1)
-            # lind = np.cumsum(lind)[:-1]
-            # k = np.split(k, lind)
-            # assert len(res)==len(k)==obj.nRays
-            # for ii in range(0,len(k)):
-            #     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
-            #         ind = ~np.isnan(k[ii])
-            #         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii]))
-            #         assert np.all(k[ii][ind]<=obj.kOut[ii]+res[ii])
-            # assert np.all(res[~np.isnan(res)]<0.02)
-            # out = obj.get_sample(0.1, resMode='rel',
-            #                      method='simps',DL=[0,1])
-            # k, res, lind = out
-            # k = np.split(k, lind[:-1])
-            # assert len(res)==len(k)==obj.nRays
-            # for ii in range(0,len(k)):
-            #     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
-            #         ind = ~np.isnan(k[ii])
-            #         if not np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
-            #                       & (k[ii][ind]<=obj.kOut[ii]+res[ii])):
-            #             msg = typ+' '+c+' '+str(ii)
-            #             msg += "\n {0} {1}".format(obj.kIn[ii],obj.kOut[ii])
-            #             msg += "\n {0}".format(str(k[ii][ind]))
-            #             print(msg)
-            #             raise Exception(msg)
-            # out = obj.get_sample(0.1, resMode='rel',
-            #                      method='romb',DL=[0,1])
-            # k, res, lind = out
-            # k = np.split(k, lind[:-1])
-            # assert len(res)==len(k)==obj.nRays
-            # for ii in range(0,len(k)):
-            #     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
-            #         ind = ~np.isnan(k[ii])
-            #         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
-            #                   & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
+# #@profile
+# def run_and_rest():
+#     for typ in dobj.keys():
+#         for c in dobj[typ].keys():
+#             obj = dobj[typ][c]
+#             Ds, us = obj.D[:], obj.u[:]
+#             out = obj.get_sample(0.02, resMode='abs',
+#                                  method='sum',DL=None)
+#             k, res, lind = out
+#             # #nbrepet = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+#             # nbrepet = lind
+#             # Pts = np.repeat(Ds, nbrepet, axis=1) + k* np.repeat(us, nbrepet, axis=1)
+#             # lind = np.cumsum(lind)[:-1]
+#             # k = np.split(k, lind)
+#             # assert len(res)==len(k)==obj.nRays
+#             # for ii in range(0,len(k)):
+#             #     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
+#             #         ind = ~np.isnan(k[ii])
+#             #         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii]))
+#             #         assert np.all(k[ii][ind]<=obj.kOut[ii]+res[ii])
+#             # assert np.all(res[~np.isnan(res)]<0.02)
+#             # out = obj.get_sample(0.1, resMode='rel',
+#             #                      method='simps',DL=[0,1])
+#             # k, res, lind = out
+#             # k = np.split(k, lind[:-1])
+#             # assert len(res)==len(k)==obj.nRays
+#             # for ii in range(0,len(k)):
+#             #     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
+#             #         ind = ~np.isnan(k[ii])
+#             #         if not np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
+#             #                       & (k[ii][ind]<=obj.kOut[ii]+res[ii])):
+#             #             msg = typ+' '+c+' '+str(ii)
+#             #             msg += "\n {0} {1}".format(obj.kIn[ii],obj.kOut[ii])
+#             #             msg += "\n {0}".format(str(k[ii][ind]))
+#             #             print(msg)
+#             #             raise Exception(msg)
+#             # out = obj.get_sample(0.1, resMode='rel',
+#             #                      method='romb',DL=[0,1])
+#             # k, res, lind = out
+#             # k = np.split(k, lind[:-1])
+#             # assert len(res)==len(k)==obj.nRays
+#             # for ii in range(0,len(k)):
+#             #     if not (np.isnan(obj.kIn[ii]) or np.isnan(obj.kOut[ii])):
+#             #         ind = ~np.isnan(k[ii])
+#             #         assert np.all((k[ii][ind]>=obj.kIn[ii]-res[ii])
+#             #                   & (k[ii][ind]<=obj.kOut[ii]+res[ii]))
+# =======
+#         if issubclass(eval('tfg.%s'%c), tfg._core.StructOut):
+#             continue
+#         for n in dobj[typ][c].keys():
+#             obj = dobj[typ][c][n]
+#             P1Mm = (obj.dgeom['P1Min'][0], obj.dgeom['P1Max'][0])
+#             P2Mm = (obj.dgeom['P2Min'][1], obj.dgeom['P2Max'][1])
+#             box = None#[[2.,3.], [0.,5.], [0.,np.pi/2.]]
+#             try:
+#                 ii = 0
+#                 out = obj.get_sampleV(0.1, resMode='abs', DV=box,
+#                                       Out='(X,Y,Z)')
+#                 pts0, ind = out[0], out[2]
+#                 ii = 1
+#                 out = obj.get_sampleV(0.1, resMode='abs', ind=ind,
+#                                       Out='(X,Y,Z)')
+#                 pts1 = out[0]
+#             except Exception as err:
+#                 msg = str(err)
+#                 msg += "\nFailed for {0}_{1}_{2}".format(typ,c,n)
+#                 msg += "\n    ii={0}".format(ii)
+#                 msg += "\n    Lim={0}".format(str(obj.Lim))
+#                 msg += "\n    DS={0}".format(str(box))
+#                 raise Exception(msg)
+# >>>>>>> 3dd73127f1f994f076bb29892ab12e9bb4143afe
 
+            if type(pts0) is list:
+                assert all([np.allclose(pts0[ii],pts1[ii])
+                            for ii in range(0,len(pts0))])
+            else:
+                assert np.allclose(pts0,pts1)
 
-import timeit
-start = timeit.default_timer()
-run_and_rest()
-stop = timeit.default_timer()
-print('Time: ', stop - start)
 print("dooooone")

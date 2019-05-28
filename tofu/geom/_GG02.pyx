@@ -3,55 +3,37 @@
 # cython: initializedcheck=False
 # cython: cdivision=True
 #
+# -- Python libraries imports --------------------------------------------------
+import sys
+import numpy as np
+import scipy.integrate as scpintg
+from matplotlib.path import Path
+if sys.version[0]=='3':
+    from inspect import signature as insp
+elif sys.version[0]=='2':
+    from inspect import getargspec as insp
+# -- Cython libraries imports --------------------------------------------------
+from cpython cimport bool
+from cpython.array cimport array, clone
+from cython.parallel import prange
+from cython.parallel cimport parallel
+# -- C libraries imports -------------------------------------------------------
 cimport cython
 cimport numpy as np
-from cpython cimport bool
 from libc.math cimport sqrt as Csqrt, ceil as Cceil, fabs as Cabs
 from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.math cimport NAN as Cnan
 from libc.math cimport isnan as Cisnan
-from cpython.array cimport array, clone
-from cython.parallel import prange
-from cython.parallel cimport parallel
 from libc.stdlib cimport malloc, free
-
+# -- ToFu library imports ------------------------------------------------------
 from _basic_geom_tools cimport _VSMALL, _SMALL
-from _basic_geom_tools cimport is_point_in_path_vec
-from _basic_geom_tools cimport compute_hypot
-from _basic_geom_tools cimport comp_min_hypot
-from _raytracing_tools cimport comp_bbox_poly_tor
-from _raytracing_tools cimport comp_bbox_poly_tor_lim
-from _raytracing_tools cimport raytracing_inout_struct_lin
-from _raytracing_tools cimport raytracing_inout_struct_tor
-from _raytracing_tools cimport raytracing_minmax_struct_lin
-from _raytracing_tools cimport raytracing_minmax_struct_tor
-from _sampling_tools cimport simple_discretize_vpoly_core
-from _sampling_tools cimport discretize_line1d_core
-from _sampling_tools cimport discretize_vpoly_core
-from _sampling_tools cimport middle_rule_abs_1
-from _sampling_tools cimport middle_rule_abs_2
-from _sampling_tools cimport middle_rule_rel
-from _sampling_tools cimport middle_rule_abs_var, middle_rule_rel_var
-from _sampling_tools cimport left_rule_rel
-from _sampling_tools cimport simps_left_rule_abs, romb_left_rule_abs
-from _sampling_tools cimport simps_left_rule_rel_var, romb_left_rule_rel_var
-from _sampling_tools cimport simps_left_rule_abs_var, romb_left_rule_abs_var
+cimport _basic_geom_tools as _bgt
+cimport _raytracing_tools as _rt
+cimport _sampling_tools as _st
 
-# import
-import sys
-import numpy as np
-import scipy.integrate as scpintg
-from matplotlib.path import Path
-
-if sys.version[0]=='3':
-    from inspect import signature as insp
-elif sys.version[0]=='2':
-    from inspect import getargspec as insp
-
-
-
+# == Exports ===================================================================
 __all__ = ['CoordShift',
            "comp_dist_los_circle",
            "comp_dist_los_circle_vec",
@@ -140,8 +122,8 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
         for str_ii in Outs:
             if str_ii=='r':
                 assert all([ss in Ins for ss in ['x','y']])
-                pts.append(compute_hypot(Pts[Ins.index('x'),:],
-                                         Pts[Ins.index('y'),:]))
+                pts.append(_bgt.compute_hypot(Pts[Ins.index('x'),:],
+                                              Pts[Ins.index('y'),:]))
             elif str_ii=='z':
                 assert 'z' in Ins
                 pts.append(Pts[Ins.index('z'),:])
@@ -557,8 +539,9 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     elif mode_is_rel:
         mode_num = 2
     #.. calling cython function.................................................
-    sz_ld = discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim, mode_num,
-                                   margin, &ldiscret, resolution, &lindex, N)
+    sz_ld = _st.discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim,
+                                       mode_num, margin, &ldiscret, resolution,
+                                       &lindex, N)
     #.. converting and returning................................................
     return np.asarray(<double[:sz_ld]> ldiscret), resolution[0],\
         np.asarray(<long[:sz_ld]>lindex), N[0]
@@ -644,9 +627,9 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef long* lindex1_arr = NULL
     cdef long* lindex2_arr = NULL
     cdef long* lindex_tmp  = NULL
+    cdef double* ldiscr_tmp = NULL
     cdef double* ldiscret1_arr = NULL
     cdef double* ldiscret2_arr = NULL
-    cdef double* ldiscr_tmp
     cdef np.ndarray[double,ndim=2] ldiscr
     cdef np.ndarray[double,ndim=1] lresol
     cdef np.ndarray[long,ndim=1] lindex
@@ -687,15 +670,15 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
         mode_num = -1
         assert(False)
     # .. Discretizing on the first direction ...................................
-    nind1 = discretize_line1d_core(&LMinMax1[0], dstep1, dl1_array,
-                                   True, mode_num, margin,
-                                   &ldiscret1_arr, &resolutions[0],
-                                   &lindex1_arr, num_cells1)
+    nind1 = _st.discretize_line1d_core(&LMinMax1[0], dstep1, dl1_array,
+                                       True, mode_num, margin,
+                                       &ldiscret1_arr, &resolutions[0],
+                                       &lindex1_arr, num_cells1)
     # .. Discretizing on the second direction ..................................
-    nind2 = discretize_line1d_core(&LMinMax2[0], dstep2, dl2_array,
-                                   True, mode_num, margin,
-                                   &ldiscret2_arr, &resolutions[1],
-                                   &lindex2_arr, num_cells2)
+    nind2 = _st.discretize_line1d_core(&LMinMax2[0], dstep2, dl2_array,
+                                       True, mode_num, margin,
+                                       &ldiscret2_arr, &resolutions[1],
+                                       &lindex2_arr, num_cells2)
     #....
     if VPoly is not None:
         ndisc = nind1 * nind2
@@ -709,11 +692,11 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
                 lindex_tmp[nn] = lindex1_arr[jj] + nind1 * lindex2_arr[ii]
         num_pts_vpoly = VPoly.shape[1] - 1
         are_in_poly = <bint *>malloc(ndisc * sizeof(bint))
-        tot_true = is_point_in_path_vec(num_pts_vpoly,
-                                        &VPoly[0][0], &VPoly[1][0],
-                                        ndisc,
-                                        &ldiscr_tmp[0], &ldiscr_tmp[ndisc],
-                                        are_in_poly)
+        tot_true = _bgt.is_point_in_path_vec(num_pts_vpoly,
+                                            &VPoly[0][0], &VPoly[1][0],
+                                            ndisc,
+                                            &ldiscr_tmp[0], &ldiscr_tmp[ndisc],
+                                            are_in_poly)
         ldiscr = np.empty((2, tot_true), dtype=float)
         lresol = np.empty((tot_true,), dtype=float)
         lindex = np.empty((tot_true,), dtype=int)
@@ -778,8 +761,8 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     cdef str mode_low = dSMode.lower()
     cdef int mode_num
     # .. Testing ...............................................................
-    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be 'abs' (absolute)" +\
-        " or 'rel' (relative)"
+    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be " +\
+        "'abs' (absolute) or 'rel' (relative)"
     #.. preparing inputs........................................................
     dl_array[0] = Cnan
     dl_array[1] = Cnan
@@ -792,10 +775,12 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
         mode_num = -1
         assert(False)
     #.. calling cython function.................................................
-    discretize_line1d_core(&MinMax1[0], d1, dl_array, True, mode_num, margin,
-                           &X1, &resolution[0], &dummy, &num_cells[0])
-    discretize_line1d_core(&MinMax2[0], d2, dl_array, True, mode_num, margin,
-                           &X2, &resolution[1], &dummy, &num_cells[1])
+    _st.discretize_line1d_core(&MinMax1[0], d1, dl_array, True, mode_num,
+                               margin, &X1, &resolution[0], &dummy,
+                               &num_cells[0])
+    _st.discretize_line1d_core(&MinMax2[0], d2, dl_array, True, mode_num,
+                               margin, &X2, &resolution[1], &dummy,
+                               &num_cells[1])
     d1r = resolution[0]
     d2r = resolution[1]
     N1 = num_cells[0]
@@ -886,10 +871,10 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
         # should never reach this point
         mode_num = -1
         assert(False)
-    discretize_vpoly_core(VPoly, dL, mode_num, margin, DIn, VIn,
-                          &XCross, &YCross, &resolution,
-                          &ind, &numcells, &Rref, &XPolybis, &YPolybis,
-                          &sz_vb[0], &sz_ot[0], NP)
+    _st.discretize_vpoly_core(VPoly, dL, mode_num, margin, DIn, VIn,
+                            &XCross, &YCross, &resolution,
+                            &ind, &numcells, &Rref, &XPolybis, &YPolybis,
+                            &sz_vb[0], &sz_ot[0], NP)
     assert not ((XCross == NULL) or (YCross == NULL)
                 or (XPolybis == NULL) or (YPolybis == NULL))
     PtsCross = np.asarray([<double[:sz_ot[0]]> XCross,
@@ -949,7 +934,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
 
     # Get the actual R and Z resolutions and mesh elements
     R0, dRr0, indR0, NR0 = discretize_line1d(RMinMax, dR, None,
-                                              Lim=True, margin=margin)
+                                             Lim=True, margin=margin)
     R, dRr, indR, NR = discretize_line1d(RMinMax, dR, DR, Lim=True,
                                           margin=margin)
     Z, dZr, indZ, NZ = discretize_line1d(ZMinMax, dZ, DZ, Lim=True,
@@ -972,7 +957,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     nRPhi0, indR0ii = 0, 0
     NP, NPhimax = 0, 0
     Rratio = int(Cceil(R[Rn-1]/R[0]))
-
     for ii in range(0,Rn):
         # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
         NRPhi[ii] = Cceil(2.*Cpi*R[ii]/dRPhi)
@@ -1018,7 +1002,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
             for jj in range(NRPhi_int-nPhi0,Phin[ii]):
                 indI[ii,jj] = <double>( jj- (NRPhi_int-nPhi0) )
         NP += Zn*Phin[ii]
-
     Pts = np.empty((3,NP))
     ind = np.empty((NP,))
     dV = np.empty((NP,))
@@ -1052,10 +1035,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
                     ind[NP] = NRPhi0[ii] + indZ[zz]*NRPhi[ii] + indiijj
                     dV[NP] = dRr*dZr*dRPhir[ii]
                     NP += 1
-
     if VPoly is not None:
         if Out.lower()=='(x,y,z)':
-            R = compute_hypot(Pts[0,:],Pts[1,:])
+            R = _bgt.compute_hypot(Pts[0,:],Pts[1,:])
             indin = Path(VPoly.T).contains_points(np.array([R,Pts[2,:]]).T,
                                                   transform=None, radius=0.0)
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
@@ -1142,7 +1124,6 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
             if Ru[iiR]==0.:
                 dRPhir[iiR] = dRPhirRef[iiR]
                 Ru[iiR] = 1.
-
     return Pts, dV, dRr, dZr, np.asarray(dRPhir)[~np.isnan(dRPhir)]
 
 
@@ -2260,9 +2241,9 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
         # rmin is necessary to avoid looking on the other side of the tokamak
         if rmin < 0.:
             rmin = 0.95*min(np.min(ves_poly[0, ...]),
-                            comp_min_hypot(ray_orig[0, ...],
-                                           ray_orig[1, ...],
-                                           num_los))
+                            _bgt.comp_min_hypot(ray_orig[0, ...],
+                                                ray_orig[1, ...],
+                                                num_los))
         rmin2 = rmin*rmin
         # Variable to avoid looking "behind" blind spot of tore
         if forbid:
@@ -2271,19 +2252,19 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
             forbid0, forbidbis = 0, 0
 
         # -- Computing intersection between LOS and Vessel ---------------------
-        raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
-                                    coeff_inter_out, coeff_inter_in,
-                                    vperp_out, lstruct_nlim, ind_inter_out,
-                                    forbid0, forbidbis,
-                                    rmin, rmin2, Crit2_base,
-                                    npts_poly,  NULL, lbounds_ves,
-                                    llim_ves, NULL, NULL,
-                                    &ves_poly[0][0],
-                                    &ves_poly[1][0],
-                                    &ves_norm[0][0],
-                                    &ves_norm[1][0],
-                                    eps_uz, eps_vz, eps_a, eps_b, eps_plane,
-                                    num_threads, False) # structure is in
+        _rt.raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
+                                        coeff_inter_out, coeff_inter_in,
+                                        vperp_out, lstruct_nlim, ind_inter_out,
+                                        forbid0, forbidbis,
+                                        rmin, rmin2, Crit2_base,
+                                        npts_poly,  NULL, lbounds_ves,
+                                        llim_ves, NULL, NULL,
+                                        &ves_poly[0][0],
+                                        &ves_poly[1][0],
+                                        &ves_norm[0][0],
+                                        &ves_norm[1][0],
+                                        eps_uz, eps_vz, eps_a, eps_b, eps_plane,
+                                        num_threads, False) # structure is in
 
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
@@ -2319,17 +2300,17 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                         llimits[ind_struct] = 0 # False : struct is limited
                         lim_min = Catan2(Csin(lim_ves[0]), Ccos(lim_ves[0]))
                         lim_max = Catan2(Csin(lim_ves[1]), Ccos(lim_ves[1]))
-                        comp_bbox_poly_tor_lim(nvert,
-                                               &lstruct_polyx[ind_min],
-                                               &lstruct_polyy[ind_min],
-                                               &lbounds[ind_struct*6],
-                                               lim_min, lim_max)
+                        _rt.comp_bbox_poly_tor_lim(nvert,
+                                                   &lstruct_polyx[ind_min],
+                                                   &lstruct_polyy[ind_min],
+                                                   &lbounds[ind_struct*6],
+                                                   lim_min, lim_max)
                     else:
                         llimits[ind_struct] = 1 # True : is continous
-                        comp_bbox_poly_tor(nvert,
-                                           &lstruct_polyx[ind_min],
-                                           &lstruct_polyy[ind_min],
-                                           &lbounds[ind_struct*6])
+                        _rt.comp_bbox_poly_tor(nvert,
+                                               &lstruct_polyx[ind_min],
+                                               &lstruct_polyy[ind_min],
+                                               &lbounds[ind_struct*6])
                         lim_min = 0.
                         lim_max = 0.
                     langles[ind_struct*2] = lim_min
@@ -2338,19 +2319,23 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
             # end loops over structures
 
             # -- Computing intersection between structures and LOS -------------
-            raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
-                                        coeff_inter_out, coeff_inter_in,
-                                        vperp_out, lstruct_nlim, ind_inter_out,
-                                        forbid0, forbidbis,
-                                        rmin, rmin2, Crit2_base,
-                                        nstruct_lim,
-                                        lbounds, langles, llimits,
-                                        &lnvert[0], lsz_lim,
-                                        &lstruct_polyx[0], &lstruct_polyy[0],
-                                        &lstruct_normx[0], &lstruct_normy[0],
-                                        eps_uz, eps_vz, eps_a, eps_b, eps_plane,
-                                        num_threads,
-                                        True) # the structure is "OUT"
+            _rt.raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
+                                            coeff_inter_out, coeff_inter_in,
+                                            vperp_out, lstruct_nlim,
+                                            ind_inter_out,
+                                            forbid0, forbidbis,
+                                            rmin, rmin2, Crit2_base,
+                                            nstruct_lim,
+                                            lbounds, langles, llimits,
+                                            &lnvert[0], lsz_lim,
+                                            &lstruct_polyx[0],
+                                            &lstruct_polyy[0],
+                                            &lstruct_normx[0]
+                                            , &lstruct_normy[0],
+                                            eps_uz, eps_vz, eps_a,
+                                            eps_b, eps_plane,
+                                            num_threads,
+                                            True) # the structure is "OUT"
             free(lsz_lim)
             free(llimits)
     else:
@@ -2365,13 +2350,13 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
             lbounds_ves[1] = ves_lims[1]
 
         # -- Cylindrical case --------------------------------------------------
-        raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
-                                    &ves_poly[0][0], &ves_poly[1][0],
-                                    &ves_norm[0][0], &ves_norm[1][0],
-                                    lbounds_ves[0], lbounds_ves[1],
-                                    coeff_inter_in, coeff_inter_out,
-                                    vperp_out, ind_inter_out, eps_plane,
-                                    0, 0) # The vessel is strcuture 0,0
+        _rt.raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
+                                        &ves_poly[0][0], &ves_poly[1][0],
+                                        &ves_norm[0][0], &ves_norm[1][0],
+                                        lbounds_ves[0], lbounds_ves[1],
+                                        coeff_inter_in, coeff_inter_out,
+                                        vperp_out, ind_inter_out, eps_plane,
+                                        0, 0) # The vessel is strcuture 0,0
 
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
@@ -2398,23 +2383,26 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                     if lslim[jj] is not None:
                         lbounds_ves[0] = lslim[jj][0]
                         lbounds_ves[1] = lslim[jj][1]
-                    raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir,
-                                                nvert-1,
-                                                &lstruct_polyx[ind_min],
-                                                &lstruct_polyy[ind_min],
-                                                &lstruct_normx[ind_min-ii],
-                                                &lstruct_normy[ind_min-ii],
-                                                lbounds_ves[0], lbounds_ves[1],
-                                                coeff_inter_in, coeff_inter_out,
-                                                vperp_out, ind_inter_out,
-                                                eps_plane, ii+1, jj)
+                    _rt.raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir,
+                                                    nvert-1,
+                                                    &lstruct_polyx[ind_min],
+                                                    &lstruct_polyy[ind_min],
+                                                    &lstruct_normx[ind_min-ii],
+                                                    &lstruct_normy[ind_min-ii],
+                                                    lbounds_ves[0],
+                                                    lbounds_ves[1],
+                                                    coeff_inter_in,
+                                                    coeff_inter_out,
+                                                    vperp_out, ind_inter_out,
+                                                    eps_plane, ii+1, jj)
 
     free(lbounds)
     free(langles)
 
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out),\
            np.transpose(np.asarray(vperp_out).reshape(num_los,3)),\
-           np.transpose(np.asarray(ind_inter_out, dtype=int).reshape(num_los, 3))
+           np.transpose(np.asarray(ind_inter_out,
+                                   dtype=int).reshape(num_los, 3))
 
 
 
@@ -2533,9 +2521,9 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
             # rmin is necessary to avoid looking on the other side of the tok
             if rmin < 0.:
                 rmin = 0.95*min(np.min(ves_poly[ind_surf, 0, ...]),
-                                comp_min_hypot(ray_orig[0, ...],
-                                               ray_orig[1, ...],
-                                               num_los))
+                                _bgt.comp_min_hypot(ray_orig[0, ...],
+                                                    ray_orig[1, ...],
+                                                    num_los))
             rmin2 = rmin*rmin
             # Variable to avoid looking "behind" blind spot of tore
             if forbid:
@@ -2545,20 +2533,20 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
             # Getting size of poly
             npts_poly = lnvert[ind_surf]
             # -- Computing intersection between LOS and Vessel -----------------
-            raytracing_minmax_struct_tor(num_los, ray_vdir, ray_orig,
-                                         &coeff_inter_out.data.as_doubles[ind_surf*num_los],
-                                         &coeff_inter_in.data.as_doubles[ind_surf*num_los],
-                                         forbid0, forbidbis,
-                                         rmin, rmin2, Crit2_base,
-                                         npts_poly, lbounds_ves,
-                                         are_limited,
-                                         &ves_poly[ind_surf][0][0],
-                                         &ves_poly[ind_surf][1][0],
-                                         &ves_norm[ind_surf][0][0],
-                                         &ves_norm[ind_surf][1][0],
-                                         eps_uz, eps_vz, eps_a,
-                                         eps_b, eps_plane,
-                                         num_threads)
+            _rt.raytracing_minmax_struct_tor(num_los, ray_vdir, ray_orig,
+                                             &coeff_inter_out.data.as_doubles[ind_surf*num_los],
+                                             &coeff_inter_in.data.as_doubles[ind_surf*num_los],
+                                             forbid0, forbidbis,
+                                             rmin, rmin2, Crit2_base,
+                                             npts_poly, lbounds_ves,
+                                             are_limited,
+                                             &ves_poly[ind_surf][0][0],
+                                             &ves_poly[ind_surf][1][0],
+                                             &ves_norm[ind_surf][0][0],
+                                             &ves_norm[ind_surf][1][0],
+                                             eps_uz, eps_vz, eps_a,
+                                             eps_b, eps_plane,
+                                             num_threads)
     else:
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None  or np.size(ves_lims) == 0:
@@ -2574,15 +2562,16 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
         for ind_surf in range(num_surf):
             # Getting size of poly
             npts_poly = lnvert[ind_surf]
-            raytracing_minmax_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
-                                         &ves_poly[ind_surf][0][0],
-                                         &ves_poly[ind_surf][1][0],
-                                         &ves_norm[ind_surf][0][0],
-                                         &ves_norm[ind_surf][1][0],
-                                         lbounds_ves[0], lbounds_ves[1],
-                                         &coeff_inter_out.data.as_doubles[ind_surf*num_los],
-                                         &coeff_inter_in.data.as_doubles[ind_surf*num_los],
-                                         eps_plane)
+            _rt.raytracing_minmax_struct_lin(num_los, ray_orig, ray_vdir,
+                                             npts_poly,
+                                             &ves_poly[ind_surf][0][0],
+                                             &ves_poly[ind_surf][1][0],
+                                             &ves_norm[ind_surf][0][0],
+                                             &ves_norm[ind_surf][1][0],
+                                             lbounds_ves[0], lbounds_ves[1],
+                                             &coeff_inter_out.data.as_doubles[ind_surf*num_los],
+                                             &coeff_inter_in.data.as_doubles[ind_surf*num_los],
+                                             eps_plane)
 
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out)
 
@@ -2627,7 +2616,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
         # RMin is necessary to avoid looking on the other side of the tokamak
         if RMin is None:
             RMin = 0.95*min(np.min(VPoly[0,:]),
-                            comp_min_hypot(Ds[0,:], Ds[1,:], npts))
+                            _bgt.comp_min_hypot(Ds[0,:], Ds[1,:], npts))
 
         # Main function to compute intersections with Vessel
         POut = Calc_LOS_PInOut_Tor(Ds, dus, VPoly, VIn, Lim=Lim, Forbid=Forbid,
@@ -2759,79 +2748,67 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
             N = <int> Cceil(1./val_resol)
             if imode=='sum':
                 coeff_arr = np.empty((N*num_los,), dtype=float)
-                middle_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
-                                &dLr[0],
-                                &coeff_arr[0],
-                                &los_ind[0])
+                _st.middle_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
+                                    &dLr[0], &coeff_arr[0], &los_ind[0])
             elif imode=='simps':
                 N = N if N%2==0 else N+1
                 coeff_arr = np.empty(((N+1)*num_los,), dtype=float)
-                left_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
-                              &dLr[0],
-                              &coeff_arr[0],
-                              &los_ind[0])
+                _st.left_rule_rel(num_los, N,
+                                  &DLs[0,0], &DLs[1, 0], &dLr[0],
+                                  &coeff_arr[0], &los_ind[0])
             elif imode=='romb':
                 N = 2**(int(Cceil(Clog2(N))))
                 coeff_arr = np.empty(((N+1)*num_los,), dtype=float)
-                left_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
-                              &dLr[0],
-                              &coeff_arr[0],
-                              &los_ind[0])
+                _st.left_rule_rel(num_los, N,
+                                  &DLs[0,0], &DLs[1, 0],
+                                  &dLr[0], &coeff_arr[0], &los_ind[0])
             return coeff_arr, dLr, los_ind
         else:
             if imode=='sum':
-                middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
-                                  &dLr[0], &los_ind[0])
+                _st.middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
+                                      &dLr[0], &los_ind[0])
                 ntmp = np.sum(los_ind)
                 coeff_arr = np.empty((ntmp,), dtype=float)
-                middle_rule_abs_2(num_los, &DLs[0,0], &los_ind[0],
-                                  &dLr[0], &coeff_arr[0])
+                _st.middle_rule_abs_2(num_los, &DLs[0,0], &los_ind[0],
+                                      &dLr[0], &coeff_arr[0])
                 return coeff_arr, dLr, los_ind
             elif imode=='simps':
-                simps_left_rule_abs(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
-                                    &dLr[0],
-                                    &los_coeffs,
-                                    &los_ind[0])
+                _st.simps_left_rule_abs(num_los, val_resol,
+                                        &DLs[0,0], &DLs[1, 0],
+                                        &dLr[0], &los_coeffs, &los_ind[0])
             else:
-                romb_left_rule_abs(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
-                                   &dLr[0],
-                                   &los_coeffs,
-                                   &los_ind[0])
+                _st.romb_left_rule_abs(num_los, val_resol,
+                                       &DLs[0,0], &DLs[1, 0],
+                                       &dLr[0], &los_coeffs, &los_ind[0])
     # Case with different resolution for each LOS
     else:
         dl_view=dL
         if dmode=='abs':
             if imode=='sum':
-                middle_rule_abs_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                    &dLr[0],
-                                    &los_coeffs,
-                                    &los_ind[0])
+                _st.middle_rule_abs_var(num_los, &dl_view[0],
+                                        &DLs[0,0], &DLs[1, 0],
+                                        &dLr[0], &los_coeffs, &los_ind[0])
             elif imode=='simps':
-                simps_left_rule_abs_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                        &dLr[0],
-                                        &los_coeffs,
-                                        &los_ind[0])
+                _st.simps_left_rule_abs_var(num_los, &dl_view[0],
+                                            &DLs[0,0], &DLs[1, 0],
+                                            &dLr[0], &los_coeffs, &los_ind[0])
             else:
-                romb_left_rule_abs_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                       &dLr[0],
-                                       &los_coeffs,
-                                       &los_ind[0])
+                _st.romb_left_rule_abs_var(num_los, &dl_view[0],
+                                           &DLs[0,0], &DLs[1, 0],
+                                           &dLr[0], &los_coeffs, &los_ind[0])
         else:
             if imode=='sum':
-                middle_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                    &dLr[0],
-                                    &los_coeffs,
-                                    &los_ind[0])
+                _st.middle_rule_rel_var(num_los, &dl_view[0],
+                                        &DLs[0,0], &DLs[1, 0],
+                                        &dLr[0], &los_coeffs, &los_ind[0])
             elif imode=='simps':
-                simps_left_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                        &dLr[0],
-                                        &los_coeffs,
-                                        &los_ind[0])
+                _st.simps_left_rule_rel_var(num_los, &dl_view[0],
+                                            &DLs[0,0], &DLs[1, 0],
+                                            &dLr[0], &los_coeffs, &los_ind[0])
             else:
-                romb_left_rule_rel_var(num_los, &dl_view[0], &DLs[0,0], &DLs[1, 0],
-                                       &dLr[0],
-                                       &los_coeffs,
-                                       &los_ind[0])
+                _st.romb_left_rule_rel_var(num_los, &dl_view[0],
+                                           &DLs[0,0], &DLs[1, 0],
+                                           &dLr[0], &los_coeffs, &los_ind[0])
     return np.asarray(<double[:los_ind[num_los-1]]> los_coeffs),\
         dLr, los_ind
 
@@ -4450,14 +4427,14 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
     cdef double* list_vpoly_y = NULL
     cdef int new_npts_poly
     # == Discretizing vpolys ===================================================
-    simple_discretize_vpoly_core(ves_poly,
-                                 npts_poly,
-                                 disc_step, # discretization step
-                                 &list_vpoly_x,
-                                 &list_vpoly_y,
-                                 &new_npts_poly,
-                                 1, # mode = absolute
-                                 _VSMALL)
+    _st.simple_discretize_vpoly_core(ves_poly,
+                                    npts_poly,
+                                    disc_step, # discretization step
+                                    &list_vpoly_x,
+                                    &list_vpoly_y,
+                                    &new_npts_poly,
+                                    1, # mode = absolute
+                                    _VSMALL)
     # == Defining parallel part ================================================
     with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so...
@@ -4649,14 +4626,14 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
     for ind_pol in range(num_poly):
         list_vpoly_x[ind_pol] = NULL
         list_vpoly_y[ind_pol] = NULL
-        simple_discretize_vpoly_core(ves_poly[ind_pol],
-                                     ves_poly[ind_pol].shape[1],
-                                     disc_step, # discretization step
-                                     &list_vpoly_x[ind_pol],
-                                     &list_vpoly_y[ind_pol],
-                                     &list_npts[ind_pol],
-                                     1, # mode = absolute
-                                     _VSMALL)
+        _st.simple_discretize_vpoly_core(ves_poly[ind_pol],
+                                        ves_poly[ind_pol].shape[1],
+                                        disc_step, # discretization step
+                                        &list_vpoly_x[ind_pol],
+                                        &list_vpoly_y[ind_pol],
+                                        &list_npts[ind_pol],
+                                        1, # mode = absolute
+                                        _VSMALL)
     # == Defining parallel part ================================================
     with nogil, parallel():
         # We use local arrays for each thread so...
@@ -5616,7 +5593,7 @@ def SLOW_LOS_Calc_PInOut_VesStruct(Ds, dus,
         # RMin is necessary to avoid looking on the other side of the tokamak
         if RMin is None:
             RMin = 0.95*min(np.min(VPoly[0,:]),
-                            comp_min_hypot(Ds[0,:],Ds[1,:], NL))
+                            _bgt.comp_min_hypot(Ds[0,:],Ds[1,:], NL))
 
         # Main function to compute intersections with Vessel
         PIn, POut, \
@@ -5851,7 +5828,7 @@ cdef Calc_LOS_PInOut_Tor(double [:,::1] Ds, double [:,::1] us, double [:,::1] VP
     # Prepare input
     if RMin is None:
         Rmin = 0.95*min(np.min(VPoly[0,:]),
-                        comp_min_hypot(Ds[0,:], Ds[1,:], Nl))
+                        _bgt.comp_min_hypot(Ds[0,:], Ds[1,:], Nl))
     else:
         Rmin = RMin
 
