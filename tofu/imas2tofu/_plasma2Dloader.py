@@ -31,7 +31,8 @@ import imas
 
 
 
-__all__ = ['Plasma2DLoader', 'load_Plasma2D']
+__all__ = ['load_Plasma2D']
+
 
 
 
@@ -599,7 +600,6 @@ class Plasma2DLoader(object):
 #######################################
 #       function
 ######################################
-
 
 
 def load_Plasma2D(Name=None, config=None, out=object, **kwdargs):

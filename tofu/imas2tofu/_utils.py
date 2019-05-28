@@ -67,16 +67,6 @@ class MultiIDSLoader(object):
                {'domainR':{'str':'description_2d[0].limiter.unit[0].outline.r'},
                 'domainZ':{'str':'description_2d[0].limiter.unit[0].outline.z'}},
 
-               'core_profiles':
-               {'time':{'str':'time'},
-                '1dTe':{'str':'profiles_1d[time].electrons.temperature'},
-                '1dne':{'str':'profiles_1d[time].electrons.density'},
-                '1dzeff':{'str':'profiles_1d[time].zeff'},
-                '1dphi':{'str':'profiles_1d[time].grid.phi'},
-                '1dpsi':{'str':'profiles_1d[time].grid.psi'},
-                '1drhotn':{'str':'profiles_1d[time].grid.rho_tor_norm'},
-                '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm'}},
-
                'equilibrium':
                {'time':{'str':'time'},
                 'ip':{'str':'time_slice[time].global_quantities.ip'},
@@ -92,12 +82,30 @@ class MultiIDSLoader(object):
                 # 'strikeR':{'str':'time_slice[time].boundary.strike_point[].r'},
                 # 'strikeZ':{'str':'time_slice[time].boundary.strike_point[].z'},
                 'sepR':{'str':'time_slice[time].boundary_separatrix.outline.r'},
-                'sepZ':{'str':'time_slice[time].boundary_separatrix.outline.z'}},
+                'sepZ':{'str':'time_slice[time].boundary_separatrix.outline.z'},
+                '2dphi':{'str':'time_slice[time].ggd[0].phi[].values'},
+                '2dmesh':{'str':'grids_ggd[itime=0].grid[0].space[0].'}},
+
+               'core_profiles':
+               {'time':{'str':'time'},
+                '1dTe':{'str':'profiles_1d[time].electrons.temperature'},
+                '1dne':{'str':'profiles_1d[time].electrons.density'},
+                '1dzeff':{'str':'profiles_1d[time].zeff'},
+                '1dphi':{'str':'profiles_1d[time].grid.phi'},
+                '1dpsi':{'str':'profiles_1d[time].grid.psi'},
+                '1drhotn':{'str':'profiles_1d[time].grid.rho_tor_norm'},
+                '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm'}},
 
                'core_sources':
                {'time':{'str':'time'},
-                'brem':{'str':"source[identifier.name=bremsstrahlung].profiles_1d[time].electrons.energy"},
-                'line':{'str':"source[identifier.name=lineradiation].profiles_1d[time].electrons.energy"}},
+                '1dpsi':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.psi'},
+                '1drhotn':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.rho_tor_norm'},
+                '1dbrem':{'str':"source[identifier.name=brehmstrahlung].profiles_1d[time].electrons.energy"},
+                '1dline':{'str':"source[identifier.name=lineradiation].profiles_1d[time].electrons.energy"}},
+
+               'edge_sources':
+               {'time':{'str':'time'},
+                'bla':{'str':'bla'}},
 
                'ece':
                {'time':{'str':'time'},
@@ -150,16 +158,19 @@ class MultiIDSLoader(object):
     _RZ2array = lambda ptsR, ptsZ, **kargs: np.array([ptsR,ptsZ]).T
     _eqSep = None
     _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
-
+    _add = lambda a0, a1: a0 + a1
 
     _dcomp = {
               'equilibrium':
-              {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array},
-               'X':{'lstr':['xR','xZ'], 'func':_RZ2array},
-               'strike':{'lstr':['strikeR','strikeZ'], 'func':_RZ2array},
-               'sep':{'lstr':['sepR','sepZ'],
-                      'func':_eqSep,
-                      'kargs':{'npts':100}}}
+              {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array}},
+               #'X':{'lstr':['xR','xZ'], 'func':_RZ2array},
+               #'strike':{'lstr':['strikeR','strikeZ'], 'func':_RZ2array},
+               #'sep':{'lstr':['sepR','sepZ'],
+               #       'func':_eqSep,
+               #       'kargs':{'npts':100}}}
+
+              'core_sources':
+             {'prad1d':{'lstr':['brem1d','line1d'], 'func':_add}}
             }
 
     _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
@@ -1057,6 +1068,6 @@ class MultiIDSLoader(object):
                                                stack=stack, flatocc=flatocc)
             except Exception as err:
                 msg = '\n' + str(err) + '\n'
-                msg += '\tIn ids %s, signal %s could not be loaded !'%(ids,ss)
+                msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
                 warnings.warn(msg)
         return dout
