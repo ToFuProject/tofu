@@ -85,8 +85,8 @@ class MultiIDSLoader(object):
                 'q95':{'str':'time_slice[time].global_quantities.q_95'},
                 'volume':{'str':'time_slice[time].global_quantities.volume'},
                 'BT0':{'str':'time_slice[time].global_quantities.magnetic_axis.b_field_tor'},
-                'AxR':{'str':'time_slice[time].global_quantities.magnetic_axis.r'},
-                'AxZ':{'str':'time_slice[time].global_quantities.magnetic_axis.z'},
+                'axR':{'str':'time_slice[time].global_quantities.magnetic_axis.r'},
+                'axZ':{'str':'time_slice[time].global_quantities.magnetic_axis.z'},
                 # 'xR':{'str':'time_slice[time].boundary.x_point[].r'},
                 # 'xZ':{'str':'time_slice[time].boundary.x_point[].z'},
                 # 'strikeR':{'str':'time_slice[time].boundary.strike_point[].r'},
@@ -101,13 +101,79 @@ class MultiIDSLoader(object):
 
                'ece':
                {'time':{'str':'time'},
-                'frequency':{'str':'channel[chan].frequency.data'},
+                'freq':{'str':'channel[chan].frequency.data'},
                 'Te': {'str':'channel[chan].t_e.data'},
                 'R': {'str':'channel[chan].position.r.data'},
                 'rhotn':{'str':'channel[chan].position.rho_tor_norm.data'},
-                'tau':{'str':'channel[chan].optical_depth.data'}}
+                'tau':{'str':'channel[chan].optical_depth.data'}},
+
+               'interferometer':
+               {'time':{'str':'time'},
+                'ne_integ':{'str':'channel[chan].n_e_line.data'}},
+
+               'bolometer':
+               {'time':{'str':'time'},
+                'power':{'str':'channel[chan].power.data'},
+                'etendue':{'str':'channel[chan].etendue'}},
+
+               'soft_x_rays':
+               {'time':{'str':'time'},
+                'power':{'str':'channel[chan].power.data'},
+                'brightness':{'str':'channel[chan].brightness.data'},
+                'etendue':{'str':'channel[chan].etendue'}},
+
+               'spectrometer_visible':
+               {'time':{'str':'time'},
+                'spectra':{'str':'channel[chan].grating_spectrometer.radiance_spectral.data'},
+                'lamb':{'str':'channel[chan].grating_spectrometer.wavelengths'}},
+
+               'bremsstrahlung_visible':
+               {'time':{'str':'time'},
+                'radiance':{'str':'channel[chan].radiance_spectral.data'}}
               }
 
+
+    _lidslos = ['interferometer', 'bolometer', 'soft_x_rays',
+             'spectrometer_visible']
+    for ids in _lidslos:
+        dlos = {}
+        dlos['los_pt1R'] = {'str':'channel[chan].line_of_sight.first_point.r'}
+        dlos['los_pt1Z'] = {'str':'channel[chan].line_of_sight.first_point.z'}
+        dlos['los_pt1Phi'] = {'str':'channel[chan].line_of_sight.first_point.phi'}
+        dlos['los_pt2R'] = {'str':'channel[chan].line_of_sight.second_point.r'}
+        dlos['los_pt2Z'] = {'str':'channel[chan].line_of_sight.second_point.z'}
+        dlos['los_pt2Phi'] = {'str':'channel[chan].line_of_sight.second_point.phi'}
+        _dshort[ids].update( dlos )
+
+
+    # Computing functions
+    _RZ2array = lambda ptsR, ptsZ, **kargs: np.array([ptsR,ptsZ]).T
+    _eqSep = None
+    _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
+
+
+    _dcomp = {
+              'equilibrium':
+              {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array},
+               'X':{'lstr':['xR','xZ'], 'func':_RZ2array},
+               'strike':{'lstr':['strikeR','strikeZ'], 'func':_RZ2array},
+               'sep':{'lstr':['sepR','sepZ'],
+                      'func':_eqSep,
+                      'kargs':{'npts':100}}}
+            }
+
+    _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
+             'los_pt2R', 'los_pt2Z', 'los_pt2Phi']
+    for ids in _lidslos:
+        _dcomp[ids] = _dcomp.get(ids, {})
+        _dcomp[ids]['los_ptsRZPhi'] = {'lstr':_lstr, 'func':_losptsRZP}
+
+
+    # Uniformize
+    _lids = set(_dshort.keys()).union(_dcomp.keys())
+    for ids in _lids:
+        _dshort[ids] = _dshort.get(ids, {})
+        _dcomp[ids] = _dcomp.get(ids, {})
 
 
     def __init__(self, dids=None,
@@ -325,20 +391,29 @@ class MultiIDSLoader(object):
     # shortcuts
 
     @staticmethod
-    def _getcharray(ar, col, sep='  ', line='-', just='l'):
-        assert len(col) == ar.shape[1]
+    def _getcharray(ar, col=None, sep='  ', line='-', just='l', msg=True):
+
+        ar = np.array(ar, dtype='U')
+
+        # Get just len
         nn = np.char.str_len(ar).max(axis=0)
-        nn = np.fmax(nn, [len(cc) for cc in col])
-        line = [line*n for n in nn]
-        if just == 'l':
-            col = [col[ii].ljust(nn[ii]) for ii in range(0,len(nn))]
-            block = '\n'.join([sep.join(v) for v in np.char.ljust(ar,nn)])
-        else:
-            col = [col[ii].rjust(nn[ii]) for ii in range(0,len(nn))]
-            block = '\n'.join([sep.join(v) for v in np.char.rjust(ar,nn)])
-        col = sep.join(col)
-        line = sep.join(line)
-        return '\n'.join([col,line,block])
+        if col is not None:
+            assert len(col) == ar.shape[1]
+            nn = np.fmax(nn, [len(cc) for cc in col])
+
+        # Apply to array
+        fjust = np.char.ljust if just == 'l' else np.char.rjust
+        out = np.array([sep.join(v) for v in fjust(ar,nn)])
+
+        # Apply to col
+        if col is not None:
+            arcol = np.array([col, [line*n for n in nn]], dtype='U')
+            arcol = np.array([sep.join(v) for v in fjust(arcol,nn)])
+            out = np.append(arcol,out)
+
+        if msg:
+            out = '\n'.join(out)
+        return out
 
     @classmethod
     def _shortcuts(cls, obj=None, ids=None, return_=False, verb=True, sep='  ', line='-', just='l'):
@@ -359,9 +434,21 @@ class MultiIDSLoader(object):
 
         lids = sorted(set(lids).intersection(obj._dshort.keys()))
 
-        short = [[(ids, kk, vv['str']) for kk,vv in obj._dshort[ids].items()]
-                 for ids in lids]
-        short = np.array(list(itt.chain.from_iterable(short)), dtype='U')
+        short = []
+        for ids in lids:
+            lks = obj._dshort[ids].keys()
+            if ids in obj._dcomp.keys():
+                lkc = obj._dcomp[ids].keys()
+                lk = sorted(set(lks).union(lkc))
+            else:
+                lk = sorted(lks)
+            for kk in lk:
+                if kk in lks:
+                    ss = obj._dshort[ids][kk]['str']
+                else:
+                    ss = 'f( %s )'%(', '.join(obj._dcomp[ids][kk]['lstr']))
+                short.append((ids, kk, ss))
+
         if verb:
             col = ['ids', 'shortcut', 'long version']
             msg = obj._getcharray(short, col, sep=sep, line=line, just=just)
@@ -437,6 +524,7 @@ class MultiIDSLoader(object):
         return lidd
 
     def _checkformat_ids(self, ids=None):
+        """ Return a list of tuple (idd, lids) """
         lk = self._dids.keys()
         lc = [ids is None, type(ids) is str and ids in lk,
               hasattr(ids,'__iter__') and all([ii in lk for ii in ids])]
@@ -462,50 +550,66 @@ class MultiIDSLoader(object):
                 self._didd[k]['idd'].open_env( *args )
                 self._didd[k]['isopen'] = True
 
-    def _get(self, idsname=None, occ=None, llids=None, verb=True):
+    def _get(self, idsname=None, occ=None, llids=None, verb=True,
+             sep='  ', line='-', just='l'):
         if llids is None:
             llids = self._checkformat_ids(idsname)
-        if verb and len(llids)>0:
-            msgroot = "Getting    ..."
-            ls = [len(ids) + len(str(self._dids[ids]['occ']))
-                  for ids in self._dids.keys()]
-            rjust = len(msgroot) + max(ls)
-            msg = ''.rjust(rjust)
-            msg += '  '.join([kk.rjust(vv) for kk,vv in self._didsk.items()])
-            print(msg)
+        if len(llids) == 0:
+            return
+
+        if verb:
+            msg0 = ['Getting ids', '[occ]'] + list(self._didsk.keys())
+            lmsg = []
+
+        docc = {}
         for ii in range(0,len(llids)):
+            docc[ii] = {}
             for jj in range(0,len(llids[ii][1])):
-                k = llids[ii][1][jj]
-                occref = self._dids[k]['occ']
+                ids = llids[ii][1][jj]
+                occref = self._dids[ids]['occ']
                 if occ is None:
                     oc = occref
                 else:
                     oc = np.unique(np.r_[occ].astype(int))
                     oc = np.intersect1(oc, occref)
-                indoc = np.array([np.nonzero(occref==oc[ll])[0][0]
-                                  for ll in range(0,len(oc))]).ravel()
+                docc[ii][jj] = oc
+                if verb:
+                    msg = [ids, str(oc)]
+                    if jj == 0:
+                        msg += [str(self._didd[llids[ii][0]]['params'][kk])
+                                for kk in self._didsk.keys()]
+                    else:
+                        msg += ['""' for _ in self._didsk]
+                    lmsg.append(msg)
+
+        if verb:
+            msgar = self._getcharray(lmsg, col=msg0,
+                                     sep=sep, line=line, just=just, msg=False)
+            print('\n'.join(msgar[:2]))
+
+        nline = 0
+        for ii in range(0,len(llids)):
+            for jj in range(0,len(llids[ii][1])):
+                ids = llids[ii][1][jj]
+                occref = self._dids[ids]['occ']
+                indoc = np.array([np.nonzero(occref==docc[ii][jj][ll])[0][0]
+                                  for ll in range(0,len(docc[ii][jj]))]).ravel()
 
                 # if ids not provided
-                if self._dids[k]['ids'] is None:
-                    idd = self._didd[self._dids[k]['idd']]['idd']
-                    self._dids[k]['ids'] = [getattr(idd, k) for ii in oc]
-                    self._dids[k]['needidd'] = False
+                if self._dids[ids]['ids'] is None:
+                    idd = self._didd[self._dids[ids]['idd']]['idd']
+                    self._dids[ids]['ids'] = [getattr(idd, ids) for ii in oc]
+                    self._dids[ids]['needidd'] = False
 
                 if verb:
-                    msg = ("Getting %s %s..."%(k,str(oc))).rjust(rjust)
-                    if jj == 0:
-                        params = self._didd[llids[ii][0]]['params']
-                        msg += '  '.join([str(params[kk]).rjust(vv)
-                                            for kk,vv in self._didsk.items()])
-                    else:
-                        msg += '  '.join(['"'.rjust(vv)
-                                          for vv in self._didsk.values()])
-                    print(msg)
+                    print(msgar[2+nline])
 
                 for ll in range(0,len(oc)):
-                    if self._dids[k]['isget'][indoc[ll]] == False:
-                        self._dids[k]['ids'][indoc[ll]].get( oc[ll] )
-                        self._dids[k]['isget'][indoc[ll]] = True
+                    if self._dids[ids]['isget'][indoc[ll]] == False:
+                        self._dids[ids]['ids'][indoc[ll]].get( oc[ll] )
+                        self._dids[ids]['isget'][indoc[ll]] = True
+                nline += 1
+
 
     def _close(self, idd=None):
         lidd = self._checkformat_idd(idd)
@@ -605,7 +709,7 @@ class MultiIDSLoader(object):
         a0 = np.array(a0, dtype='U')
 
         # -----------------------
-        # ids
+        # ids direct
         c1 = ['ids', 'idd', 'occ', 'isget']
         a1 = [[k0, v0['idd'], str(v0['occ']), str(v0['isget'])]
               for k0,v0 in self._dids.items()]
@@ -639,7 +743,9 @@ class MultiIDSLoader(object):
     def _checkformat_getdata_ids(self, ids):
         msg = "Arg ids must be either:\n"
         msg += "    - None: if self.dids only has one key\n"
-        msg += "    - str: a valid key of self.dids"
+        msg += "    - str: a valid key of self.dids\n\n"
+        msg += "  Provided : %s\n"%ids
+        msg += "  Available: %s"%str(list(self._dids.keys()))
 
         lc = [ids is None, type(ids) is str]
         if not any(lc):
@@ -657,31 +763,39 @@ class MultiIDSLoader(object):
     def _checkformat_getdata_sig(self, sig, ids):
         msg = "Arg sig must be a str or a list of str !\n"
         msg += "  More specifically, a list of valid ids nodes paths"
+        lks = list(self._dshort[ids].keys())
+        lkc = list(self._dcomp[ids].keys())
+        lk = list(set(lks).union(lkc))
         lc = [sig is None, type(sig) is str, type(sig) is list]
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
-            sig = list(self._dshort[ids].keys())
+            sig = lk
         elif lc[1]:
             sig = [sig]
         elif lc[2]:
             if any([type(ss) is not str for ss in sig]):
                 raise Exception(msg)
+        nsig = len(sig)
 
         # Check each sig is either a key / value[str] to self._dshort
-        lk = list(self._dshort[ids].keys())
-        for ii in range(0,len(sig)):
-            c0 = sig[ii] in lk
-            lc1 = [sig[ii] == self._dshort[ids][kk]['str'] for kk in lk]
-            if not (c0 or any(lc1)):
+        comp = np.zeros((nsig,),dtype=bool)
+        for ii in range(0,nsig):
+            lc0 = [sig[ii] in lks,
+                   [sig[ii] == self._dshort[ids][kk]['str'] for kk in lks]]
+            c1 = sig[ii] in lkc
+            if not (lc0[0] or any(lc0[1]) or c1):
                 msg = "Each provided sig must be either:\n"
                 msg += "    - a valid shortcut (cf. self.shortcuts()\n"
                 msg += "    - a valid long version (cf. self.shortcuts)\n"
                 msg += "\n  Provided sig: %s"%str(sig)
                 raise Exception(msg)
-            if not c0:
-                sig[ii] = lk[lc1.index(True)]
-        return sig
+            if c1:
+                comp[ii] = True
+            else:
+                if not lc0[0]:
+                    sig[ii] = lks[lc0[1].index(True)]
+        return sig, comp
 
     def _checkformat_getdata_occ(self, occ, ids):
         msg = "Arg occ must be a either:\n"
@@ -711,7 +825,7 @@ class MultiIDSLoader(object):
         if lc[0]:
             indch = np.arange(0,nch)
         else:
-            indch = np.r_[indch].rave()
+            indch = np.r_[indch].ravel()
             lc = [indch.dtype == np.int, indch.dtype == np.bool]
             if not any(lc):
                 raise Exception(msg)
@@ -844,11 +958,17 @@ class MultiIDSLoader(object):
                         assert len(ind) == 1
                         sig[jj] = sig[jj][ind[0]]
 
-            if nsig == 1:
-                sig = sig[0]
-            elif stack and isinstance(sig[0],np.ndarray):
-                if all([ss.shape == sig[0].shape for ss in sig[1:]]):
-                    sig = np.squeeze(np.stack(sig))
+            lc = [(stack and nsig>1 and isinstance(sig[0],np.ndarray)
+                   and all([ss.shape == sig[0].shape for ss in sig[1:]])),
+                  stack and nsig>1 and type(sig[0]) in [int, float, np.int,
+                                                        np.float, str],
+                  (stack and nsig == 1 and type(sig) in
+                   [np.ndarray,list,tuple])]
+
+            if lc[0]:
+                sig = np.squeeze(np.stack(sig))
+            elif lc[1] or lc[2]:
+                sig = np.squeeze(sig)
             return sig
 
         return fsig
@@ -858,15 +978,31 @@ class MultiIDSLoader(object):
             for k,v in self._dshort[ids].items():
                 self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
 
-    def _get_data(self, ids, sig, occ, indt=None, indch=None, stack=True):
+    def _get_data(self, ids, sig, occ, comp=False, indt=None, indch=None,
+                  stack=True, flatocc=True):
 
         # get list of results for occ
         occref = self._dids[ids]['occ']
         indoc = np.array([np.nonzero(occref==oc)[0][0] for oc in occ])
-        out = [self._dshort[ids][sig]['fsig']( self._dids[ids]['ids'][ii] ,
-                                              indt=indt, indch=indch,
-                                              stack=stack)
-               for ii in indoc]
+        nocc = len(indoc)
+        if comp:
+            import ipdb
+            ipdb.set_trace()
+            lstr = self._dcomp[ids][sig]['lstr']
+            kargs = self._dcomp[ids][sig].get('kargs', {})
+            ddata = self.get_data(ids=ids, sig=lstr,
+                                  occ=occ, indch=indch, indt=indt, stack=stack)
+            out = [self._dcomp[ids][sig]['func']( *[ddata[kk][nn]
+                                                   for kk in lstr], **kargs )
+                   for nn in range(0,nocc)]
+
+        else:
+            out = [self._dshort[ids][sig]['fsig']( self._dids[ids]['ids'][ii],
+                                                  indt=indt, indch=indch,
+                                                  stack=stack )
+                   for ii in indoc]
+        if nocc == 1 and flatocc:
+            out = out[0]
         return out
 
     def get_data(self, ids=None, sig=None, occ=None,
@@ -885,7 +1021,7 @@ class MultiIDSLoader(object):
         ids = self._checkformat_getdata_ids(ids)
 
         # sig = list of str
-        sig = self._checkformat_getdata_sig(sig, ids)
+        sig, comp = self._checkformat_getdata_sig(sig, ids)
 
         # occ = np.ndarray of valid int
         occ = self._checkformat_getdata_occ(occ, ids)
@@ -907,12 +1043,12 @@ class MultiIDSLoader(object):
         # get data
 
         dout = dict.fromkeys(sig)
-        for ss in sig:
-            try:
-                dout[ss] = self._get_data(ids, ss, occ,
-                                          indt=indt, indch=indch, stack=stack)
-            except Exception as err:
-                msg = '\n' + str(err) + '\n'
-                msg += '\tIn ids %s, signal %s could not be loaded !'%(ids,ss)
-                warnings.warn(msg)
+        for ii in range(0,len(sig)):
+            # try:
+            dout[sig[ii]] = self._get_data(ids, sig[ii], occ, comp=comp[ii],
+                                           indt=indt, indch=indch, stack=stack)
+            # except Exception as err:
+                # msg = '\n' + str(err) + '\n'
+                # msg += '\tIn ids %s, signal %s could not be loaded !'%(ids,ss)
+                # warnings.warn(msg)
         return dout
