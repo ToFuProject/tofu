@@ -175,6 +175,12 @@ class MultiIDSLoader(object):
         _dshort[ids] = _dshort.get(ids, {})
         _dcomp[ids] = _dcomp.get(ids, {})
 
+    # All except (for when sig not specified in get_data())
+    _dall_except = {}
+    for ids in _lidslos:
+        _dall_except[ids] = _lstr
+
+
 
     def __init__(self, dids=None,
                  shot=None, run=None, refshot=None, refrun=None,
@@ -765,12 +771,14 @@ class MultiIDSLoader(object):
         msg += "  More specifically, a list of valid ids nodes paths"
         lks = list(self._dshort[ids].keys())
         lkc = list(self._dcomp[ids].keys())
-        lk = list(set(lks).union(lkc))
+        lk = set(lks).union(lkc)
+        if ids in self._dall_except.keys():
+            lk = lk.difference(self._dall_except[ids])
         lc = [sig is None, type(sig) is str, type(sig) is list]
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
-            sig = lk
+            sig = list(lk)
         elif lc[1]:
             sig = [sig]
         elif lc[2]:
@@ -986,12 +994,11 @@ class MultiIDSLoader(object):
         indoc = np.array([np.nonzero(occref==oc)[0][0] for oc in occ])
         nocc = len(indoc)
         if comp:
-            import ipdb
-            ipdb.set_trace()
             lstr = self._dcomp[ids][sig]['lstr']
             kargs = self._dcomp[ids][sig].get('kargs', {})
             ddata = self.get_data(ids=ids, sig=lstr,
-                                  occ=occ, indch=indch, indt=indt, stack=stack)
+                                  occ=occ, indch=indch, indt=indt,
+                                  stack=stack, flatocc=False)
             out = [self._dcomp[ids][sig]['func']( *[ddata[kk][nn]
                                                    for kk in lstr], **kargs )
                    for nn in range(0,nocc)]
@@ -1006,7 +1013,7 @@ class MultiIDSLoader(object):
         return out
 
     def get_data(self, ids=None, sig=None, occ=None,
-                 indch=None, indt=None, stack=True):
+                 indch=None, indt=None, stack=True, flatocc=True):
         """ Return a dict of the desired signals extracted from specified ids
 
         If the ids has a field 'channel', indch is used to specify from which
@@ -1044,11 +1051,12 @@ class MultiIDSLoader(object):
 
         dout = dict.fromkeys(sig)
         for ii in range(0,len(sig)):
-            # try:
-            dout[sig[ii]] = self._get_data(ids, sig[ii], occ, comp=comp[ii],
-                                           indt=indt, indch=indch, stack=stack)
-            # except Exception as err:
-                # msg = '\n' + str(err) + '\n'
-                # msg += '\tIn ids %s, signal %s could not be loaded !'%(ids,ss)
-                # warnings.warn(msg)
+            try:
+                dout[sig[ii]] = self._get_data(ids, sig[ii], occ, comp=comp[ii],
+                                               indt=indt, indch=indch,
+                                               stack=stack, flatocc=flatocc)
+            except Exception as err:
+                msg = '\n' + str(err) + '\n'
+                msg += '\tIn ids %s, signal %s could not be loaded !'%(ids,ss)
+                warnings.warn(msg)
         return dout
