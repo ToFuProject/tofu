@@ -754,9 +754,9 @@ class Test03_Rays(object):
                 out = obj.get_sample(0.02, resMode='abs',
                                      method='sum',DL=None)
                 k, res, lind = out
-                nbrepet = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
-                kus = k * np.repeat(us, nbrepet, axis=1)
-                Pts = np.repeat(Ds, nbrepet, axis=1) + kus
+                # nbrepet = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+                # kus = k * np.repeat(us, nbrepet, axis=1)
+                # Pts = np.repeat(Ds, nbrepet, axis=1) + kus
                 k = np.asarray(np.split(k, lind))
                 assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
