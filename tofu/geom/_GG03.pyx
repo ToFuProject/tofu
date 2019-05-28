@@ -2763,16 +2763,16 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                 _st.left_rule_rel(num_los, N,
                                   &DLs[0,0], &DLs[1, 0],
                                   &dLr[0], &coeff_arr[0], &los_ind[0])
-            return coeff_arr, dLr, los_ind[0:num_los-2]
+            return coeff_arr, dLr, los_ind[:num_los-1]
         else:
             if imode=='sum':
                 _st.middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
                                       &dLr[0], &los_ind[0])
-                ntmp = los_ind[num_los-1]
+                ntmp = np.sum(los_ind)
                 coeff_arr = np.empty((ntmp,), dtype=float)
                 _st.middle_rule_abs_2(num_los, &DLs[0,0], &los_ind[0],
                                       &dLr[0], &coeff_arr[0])
-                return coeff_arr, dLr, los_ind[0:num_los-2]
+                return coeff_arr, dLr, los_ind[0:num_los-1]
             elif imode=='simps':
                 _st.simps_left_rule_abs(num_los, val_resol,
                                         &DLs[0,0], &DLs[1, 0],
@@ -2811,7 +2811,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                                            &DLs[0,0], &DLs[1, 0],
                                            &dLr[0], &los_coeffs, &los_ind[0])
     return np.asarray(<double[:los_ind[num_los-1]]> los_coeffs),\
-        dLr, los_ind[0:num_los-2]
+        dLr, los_ind[0:num_los-1]
 
 
 

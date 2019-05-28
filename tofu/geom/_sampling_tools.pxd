@@ -382,18 +382,16 @@ cdef inline void middle_rule_abs_1(int num_los, double resol,
     cdef double seg_length
     cdef double loc_resol
     cdef double loc_x
-    cdef double inv_resol = 1./resol
+    cdef double inv_resol
     # ...
     with nogil, parallel(num_threads=num_threads):
+        inv_resol = 1./resol
         for ii in prange(num_los):
             seg_length = los_lims_y[ii] - los_lims_x[ii]
             num_raf = <long>(Cceil(seg_length*inv_resol))
             loc_resol = seg_length / num_raf
             los_resolution[ii] = loc_resol
-            if ii == 0:
-                ind_cum[ii] = num_raf
-            else:
-                ind_cum[ii] = num_raf + ind_cum[ii-1]
+            ind_cum[ii] = num_raf
     return
 
 cdef inline void middle_rule_abs_2(int num_los,
@@ -409,18 +407,19 @@ cdef inline void middle_rule_abs_2(int num_los,
     cdef double loc_resol
     cdef double loc_x
     # filling tab......
-    with nogil, parallel(num_threads=num_threads):
-        first_index = 0
-        for ii in range(num_los):
-            if ii > 0:
-                first_index = first_index + ind_cum[ii-1]
-            num_raf = ind_cum[ii]
-            loc_resol = los_resolution[ii]
-            loc_x = los_lims_x[ii]
+    for ii in range(num_los):
+        num_raf = ind_cum[ii]
+        if ii==0:
+            first_index = 0
+        else:
+            first_index = ind_cum[ii-1]
+            ind_cum[ii] = first_index + ind_cum[ii]
+        loc_resol = los_resolution[ii]
+        loc_x = los_lims_x[ii]
+        with nogil, parallel(num_threads=num_threads):
             for jj in prange(num_raf):
                 los_coeffs[first_index + jj] = loc_x \
-                                                  + (0.5 + jj) * loc_resol
-
+                  + (0.5 + jj) * loc_resol
     return
 
 
