@@ -2678,57 +2678,41 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 def vignetting(double[:, ::1] ray_orig,
                double[:, ::1] ray_vdir,
                double[:, :, ::1] vignett_poly,
-               long[::1] lnvert):
+               long[::1] lnvert,
+               int num_threads=16):
     """
     ray_orig : (3, num_los) double array
        LOS origin points coordinates
     ray_vdir : (3, num_los) double array
        LOS normalized direction vector
     vignett_poly : (num_vign, 3, num_vertex) double array
-       Coordinates of the vertices of the Polygon defining the 3D vignett
+       Coordinates of the vertices of the Polygon defining the 3D vignett.
+       POLY CLOSED
     lnvert : (num_vign) long array
-       Number of vertices for each vignett
+       Number of vertices for each vignett (without counting the rebound)
+    Returns
+    ======
+    goes_through: (num_vign, num_los) bool array
+       Indicates for each vignett if each LOS wents through or not
     """
-    cdef int ilos, ivign
     cdef int nvign, nlos
-    cdef int nvert
-    cdef bint inter_bbox
-    cdef double[6] bounds
     cdef array goes_through
     cdef int* sign_ray = NULL
     cdef double* invr_ray = NULL
     cdef double* loc_org = NULL
     cdef double* loc_dir = NULL
-    # ...
+    cdef double* lbounds = NULL
+    # -- Initialization --------------------------------------------------------
     nvign = vignett_poly.shape[0]
     nlos = ray_orig.shape[1]
     goes_through = clone(array('i'), nlos * nvign, True)
-    # == Defining parallel part ================================================
-    with nogil, parallel(num_threads=num_threads):
-        # We use local arrays for each thread so
-        loc_org   = <double *> malloc(sizeof(double) * 3)
-        loc_dir   = <double *> malloc(sizeof(double) * 3)
-        invr_ray  = <double *> malloc(sizeof(double) * 3)
-        sign_ray  = <int *> malloc(sizeof(int) * 3)
-        for ilos in range(nlos):
-            loc_org[0] = ray_orig[0, ind_los]
-            loc_org[1] = ray_orig[1, ind_los]
-            loc_org[2] = ray_orig[2, ind_los]
-            loc_dir[0] = ray_vdir[0, ind_los]
-            loc_dir[1] = ray_vdir[1, ind_los]
-            loc_dir[2] = ray_vdir[2, ind_los]
-            compute_inv_and_sign(loc_dir, sign_ray, invr_ray)
-            for ivign in range(nvign):
-                nvert = vignett_poly.shape[2]
-                comp_bbox_poly3d(nvert,
-                                &vignett_poly[ivign, 0],
-                                &vignett_poly[ivign, 1],
-                                &vignett_poly[ivign, 2],
-                                bounds)
-                inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
-                                                lbounds,
-                                                loc_org,
-                                                countin=True)
+    # -- Preparation -----------------------------------------------------------
+    lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
+    compute_3d_bboxes(vignett_poly, &lnvert[0], lbounds, nvign,
+                      num_threads=num_threads)
+    # -- We call core function -------------------------------------------------
+    vignetting_core(ray_orig, ray_vdir, vignett_poly, &lnvert[0], lbounds,
+                    nvign, nlos, &goes_through[0])
 
 
 # ==============================================================================

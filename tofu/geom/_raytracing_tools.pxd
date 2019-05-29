@@ -374,9 +374,8 @@ cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian=True,
     return
 
 # ==============================================================================
-# =  Raytrcaing on a Torus
+# =  Raytracing on a Torus
 # ==============================================================================
-
 cdef inline void raytracing_inout_struct_tor(int num_los,
                                              double[:,::1] ray_vdir,
                                              double[:,::1] ray_orig,
@@ -1119,13 +1118,13 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                         and is_in_struct)
 
 # ==============================================================================
-# =  Raytrcaing on a Cylinder (Linear case)
+# =  Raytracing on a Cylinder (Linear case)
 # ==============================================================================
 
 cdef inline void raytracing_inout_struct_lin(int Nl,
                                              double[:,::1] Ds,
                                              double [:,::1] us,
-                                             int Ns, # VIn.shape[1]
+                                             int Ns,
                                              double* polyx_tab,
                                              double* polyy_tab,
                                              double* normx_tab,
@@ -1265,7 +1264,7 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
 
 
 # ==============================================================================
-# =  Raytrcaing on a Torus only KMin and KMax
+# =  Raytracing on a Torus only KMin and KMax
 # ==============================================================================
 
 cdef inline void raytracing_minmax_struct_tor(int num_los,
@@ -1302,10 +1301,10 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
        LOS normalized direction vector
     ray_orig : (3, num_los) double array
        LOS origin points coordinates
-    coeff_inter_out : (num_los) double array <INOUT>
+    coeff_inter_out : (num_los*num_surf) double array <INOUT>
        Coefficient of exit (kout) of the last point of intersection for each LOS
        with the global geometry (with ALL structures)
-    coeff_inter_in : (num_los) double array <INOUT>
+    coeff_inter_in : (num_los*num_surf) double array <INOUT>
        Coefficient of entry (kin) of the last point of intersection for each LOS
        with the global geometry (with ALL structures). If intersection at origin
        k = 0, if no intersection k = NAN
@@ -1357,7 +1356,6 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
     cdef int ind_los, ii, jj, kk
     cdef bint lim_is_none
     cdef bint found_new_kout
-    cdef bint inter_bbox
     cdef double[3] dummy
     cdef int[1] silly
     cdef double* kpout_loc = NULL
@@ -1435,7 +1433,7 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
     return
 
 # ==============================================================================
-# =  Raytrcaing on a Cylinder only KMin and KMax
+# =  Raytracing on a Cylinder only KMin and KMax
 # ==============================================================================
 
 cdef inline void raytracing_minmax_struct_lin(int Nl,
@@ -1533,3 +1531,73 @@ cdef inline void raytracing_minmax_struct_lin(int Nl,
             if kin<kin_tab[ii]:
                 kin_tab[ii] = kin
     return
+
+# ==============================================================================
+# =  3D geometry tools
+# ==============================================================================
+cdef inline void compute_3d_bboxes(double[:, :, ::1] vignett_poly,
+                                   long* lnvert,
+                                   double* lbounds,
+                                   int nvign,
+                                   int num_threads=16):
+    cdef int ivign
+    cdef int nvert
+    # ...
+    # -- Defining parallel part ------------------------------------------------
+    with nogil, parallel(num_threads=num_threads):
+        for ivign in prange(nvign):
+            nvert = lnvert[ivign]
+            comp_bbox_poly3d(nvert,
+                             &vignett_poly[ivign, 0],
+                             &vignett_poly[ivign, 1],
+                             &vignett_poly[ivign, 2],
+                             &lbounds[ivign*6])
+    return
+
+
+
+# ==============================================================================
+# =  Vignetting
+# ==============================================================================
+cdef inline void vignetting_core(double[:, ::1] ray_orig,
+                                 double[:, ::1] ray_vdir,
+                                 double[:, :, ::1] vignett_poly,
+                                 long[::1] lnvert,
+                                 double* lbounds,
+                                 int nvign,
+                                 int nlos,
+                                 bint* goes_through):
+    cdef int ilos, ivign
+    cdef int nvert
+    cdef bint inter_bbox
+    # == Defining parallel part ================================================
+    with nogil, parallel(num_threads=num_threads):
+        # We use local arrays for each thread so
+        loc_org   = <double*>malloc(sizeof(double) * 3)
+        loc_dir   = <double*>malloc(sizeof(double) * 3)
+        invr_ray  = <double*>malloc(sizeof(double) * 3)
+        sign_ray  = <int *> malloc(sizeof(int) * 3)
+        for ilos in prange(nlos):
+            loc_org[0] = ray_orig[0, ind_los]
+            loc_org[1] = ray_orig[1, ind_los]
+            loc_org[2] = ray_orig[2, ind_los]
+            loc_dir[0] = ray_vdir[0, ind_los]
+            loc_dir[1] = ray_vdir[1, ind_los]
+            loc_dir[2] = ray_vdir[2, ind_los]
+            compute_inv_and_sign(loc_dir, sign_ray, invr_ray)
+            for ivign in range(nvign):
+                nvert = lnvert[ivign]
+                # -- We check if intersection with  bounding box ---------------
+                comp_bbox_poly3d(nvert,
+                                &vignett_poly[ivign, 0],
+                                &vignett_poly[ivign, 1],
+                                &vignett_poly[ivign, 2],
+                                bounds)
+                inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
+                                                lbounds,
+                                                loc_org,
+                                                countin=True)
+                if not inter_bbox:
+                    goes_through[ivign*num_los + ilos] = 0 # False
+                    continue
+                # -- if none, we continue --------------------------------------
