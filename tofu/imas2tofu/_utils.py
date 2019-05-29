@@ -83,8 +83,22 @@ class MultiIDSLoader(object):
                 # 'strikeZ':{'str':'time_slice[time].boundary.strike_point[].z'},
                 'sepR':{'str':'time_slice[time].boundary_separatrix.outline.r'},
                 'sepZ':{'str':'time_slice[time].boundary_separatrix.outline.z'},
-                '2dphi':{'str':'time_slice[time].ggd[0].phi[].values'},
-                '2dmesh':{'str':'grids_ggd[itime=0].grid[0].space[0].'}},
+
+                '1drhotn':{'str':'time_slice[time].profiles_1d.rho_tor_norm'},
+                '1dphi':{'str':'time_slice[time].profiles_1d.phi'},
+                '1dpsi':{'str':'time_slice[time].profiles_1d.psi'},
+                '1diq':{'str':'time_slice[time].profiles_1d.q'},
+                '1dpe':{'str':'time_slice[time].profiles_1d.pressure'},
+                '1djT':{'str':'time_slice[time].profiles_1d.j_tor'},
+
+                '2dphi':{'str':'time_slice[time].ggd[0].phi[0].values'},
+                '2dpsi':{'str':'time_slice[time].ggd[0].psi[0].values'},
+                '2djT':{'str':'time_slice[time].ggd[0].j_tor[0].values'},
+                '2dBR':{'str':'time_slice[time].ggd[0].b_field_r[0].values'},
+                '2dBT':{'str':'time_slice[time].ggd[0].b_field_tor[0].values'},
+                '2dBZ':{'str':'time_slice[time].ggd[0].b_field_z[0].values'},
+                '2dmeshNodes':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[0].object[].geometry'},
+                '2dmeshTri':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[2].object[].nodes'}},
 
                'core_profiles':
                {'time':{'str':'time'},
@@ -190,7 +204,7 @@ class MultiIDSLoader(object):
     _dall_except = {}
     for ids in _lidslos:
         _dall_except[ids] = _lstr
-
+    _dall_except['equilibrium'] = ['axR','axZ']
 
 
     def __init__(self, dids=None,
