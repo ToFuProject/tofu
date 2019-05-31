@@ -85,8 +85,8 @@ def slice_video(video_file,path = None, output_name = None,output_type = None,
     fps = cap.get(cv2.CAP_PROP_FPS)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     
-    frame_width = int(cap.get(3))
-    frame_height = int(cap.get(4))
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     
     pfe = os.path.join(path, output_name + output_type)
     out = cv2.VideoWriter(pfe, fourcc, fps, ((fh[1]-fh[0]),(fw[1]-fw[0])),0)

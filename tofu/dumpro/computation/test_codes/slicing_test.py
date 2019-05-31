@@ -10,35 +10,28 @@ import numpy as np
 import cv2
 import os
 
-def slice_video(video_file,tlim):
+def slice_video(video_file,fw = None,fh = None):
     
     cap = cv2.VideoCapture(video_file)
     ret, frame = cap.read()
-    
+    fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     
-    start = str(tlim[0])
-    start_time = start.split(':'or '.')
+    pfe = 'E:/NERD/Python/Video_test.avi'
+    out = cv2.VideoWriter(pfe, fourcc, fps, (frame_width,frame_height), 0)
     
-    stop = str(tlim[1])
-    stop_time = start.split(':' or '.')
-    
-    start_time = start_time[0] + start_time[1]
-    stop_time = stop_time[0] + stop_time[1]
-        
-    start_frame_count = fps*60*start_time
-    stop_frame_count = fps*60*stop_time
-    
-    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-    
-    frame_width = int(cap.get(3))
-    frame_height = int(cap.get(4))
-    
-#    pfe = os.path.join(path, output_name + output_type)
-#    out = cv2.VideoWriter('sliced.avi', fourcc, fps, (frame_width, frame_height),0)
-    curr_frame = cap.set(2,start_frame_count) 
-    
+    out = cv2.VideoWriter
+    while cap.isOpened():
+        ret,frame = cap.read()
+        if not ret: break
+        print(type(frame))
+#       
+        cv2.imshow('frame',frame)
+        out.write(frame)
+        if cv2.waitKey(25) & 0xFF == ord('q'): 
+                break
+    #out.release()
     cap.release()
-#    out.release()
     cv2.destroyAllWindows()
-    

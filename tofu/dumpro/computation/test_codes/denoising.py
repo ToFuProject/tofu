@@ -90,17 +90,17 @@ def denoising(video_file, colored, path = None, output_name = None, output_type 
         print(end - start)
         
         return pfe, meta_data
-    else:
-        while cap.isOpened():
-            ret,frame = cap.read()
-            
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            dst = cv2.fastNlMeansDenoising(frame,None,5,21,7)
-            
-            out.write(dst)
-            
-        cap.release()
-        out.release()
-        cv2.destroyAllWindows()
-        
-        return pfe, meta_data
+#    else:
+#        while cap.isOpened():
+#            ret,frame = cap.read()
+#            
+#            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#            dst = cv2.fastNlMeansDenoising(frame,None,5,21,7)
+#            
+#            out.write(dst)
+#            
+#        cap.release()
+#        out.release()
+#        cv2.destroyAllWindows()
+#        
+#        return pfe, meta_data
