@@ -91,6 +91,10 @@ class Video(object):
                           'N_frames' : self.__N_frames,
                           'frame_width' : self.__frame_width,
                           'frame_height' : self.__frame_height}
+
+#############################################################################
+#     Getters for the class attributes
+#############################################################################
         
     @property
     def filename(self):
@@ -124,7 +128,9 @@ class Video(object):
         """ Returns the four character code of the video"""
         return self.__fourcc
 
-
+#############################################################################
+#   Grayscale conversion method
+#############################################################################
         
     #defining a method for grayscale conversion
     def grayscale(self, meta_data = None, path = None,
@@ -141,6 +147,10 @@ class Video(object):
                                                       output_type)
         #returning the grayscale converted video as a new instance 
         return self.__class__(gray)
+    
+#############################################################################
+#   background removal method
+#############################################################################
 
     def removebackground(self, meta_data = None, 
                          path = None,output_name = None, output_type = None):
@@ -154,6 +164,10 @@ class Video(object):
                                                                            output_name, 
                                                                            output_type)
         return self.__class__(foreground)
+    
+#############################################################################
+#   binary conversion method
+#############################################################################
     
     def applybinary(self, meta_data = None, path = None,
                     output_name = None,output_type = None):
@@ -169,7 +183,10 @@ class Video(object):
         #returning the binary converted video as a new instance
         return self.__class__(out[0])
     
-        
+#############################################################################
+#   edge detection method
+#############################################################################
+
     def detectedge(self, meta_data = None, path = None, 
                    output_name = None, output_type = None):
         
@@ -184,13 +201,21 @@ class Video(object):
         #returns the edge detected video as a new instance
         return self.__class__(edge)
     
+#############################################################################
+#   video to image conversion method
+#############################################################################
+    
     def convert2image(self, path = None , image_name = None, image_type = None):
         
         #applying the video to image conversion method
         directory = _comp.video_to_img.video2img(self.__filename, path, image_name, image_type)
         #returning the directory in which the video is stored
         return directory
-        
+    
+#############################################################################
+#   video to numpy arraay conversion method
+#############################################################################
+
     def convert2pixel(self):
         
         #applying the video to array conversion method
