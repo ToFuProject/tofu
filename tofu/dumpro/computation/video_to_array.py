@@ -22,7 +22,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
 
-def video_to_pixel(video_file):
+def video_to_pixel(video_file, meta_data = None):
     """Converts imput video file to a numpy array
     The video file is converted to Grayscale and hence the array is of 
     3 dimension
@@ -31,6 +31,13 @@ def video_to_pixel(video_file):
     -----------------------
     video_file:       mp4,avi,mpg
      input video along with its path passed in as argument
+    meta_data:        dictionary
+     A dictionary containing all the video meta_data. By default it is None
+     But if the user inputs some keys into the dictionary, the code will use 
+     the information from the dictionary and fill in the missing gaps if
+     required
+     meta_data has information on total number of frames, demension, fps and 
+     the four character code of the video
         
     Return
     -----------------------
@@ -52,30 +59,60 @@ def video_to_pixel(video_file):
     #reading the first frame to get video metadata    
     ret,frame = cap.read()
     
-    #reading the video metadata
-    rows = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    columns = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    total_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    if meta_data == None:
+        #defining the four character code
+        fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
+        #defining the frame dimensions
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        #defining the fps
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the meta_data dictionary
+        meta_data = {'fps' : fps, 'frame_height' : frame_height, 
+                     'frame_width' : frame_width, 'fourcc' : fourcc}
+        
+    else:
+        #describing the four character code      
+        fourcc = meta_data.get('fourcc', int(cap.get(cv2.CAP_PROP_FOURCC)))
+        if 'fourcc' not in meta_data:
+            meta_data['fourcc'] = fourcc
+        
+        #describing the frame width
+        frame_width = meta_data.get('frame_width', int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+        if 'frame_width' not in meta_data:
+            meta_data['frame_width'] = frame_width
+        
+        #describing the frame height
+        frame_height = meta_data.get('frame_height', int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        if 'frame_height' not in meta_data:
+            meta_data['frame_height'] = frame_height
+            
+        #describing the speed of the video in frames per second 
+        fps = meta_data.get('fps', int(cap.get(cv2.CAP_PROP_FPS)))
+        if 'fps' not in meta_data:
+            meta_data['fps'] = fps
+
+        #describing the total number of frames in the video
+        N_frames = meta_data.get('N_frames', int(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
+        if 'N_frames' not in meta_data:
+            meta_data['N_frames'] = N_frames
+
 
     #declaration of the empty array
-    pixel = np.ndarray(( total_frame, rows, columns), dtype = int)
-    
-    #dictionary containing the meta data of the video
-    meta_data = {'fps' : fps, 'frame_height' : rows, 'frame_width' : columns}
-    
+    pixel = np.ndarray(( total_frame, width, height), dtype = int)
+
     #initialization of the frame variable 
     frame_counter = 0
     #looping over the entire video
     while (cap.isOpened()):
-        
+
         ret,frame = cap.read()
         #breaking out of loop when the frames are exhausted
         if not ret: break
-        
+
         #conversion of each input frame to grayscale single channel image
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                
+
         #assigning each frame to the video array
         pixel [frame_counter] = frame
         #changing the frame variable 
@@ -86,5 +123,5 @@ def video_to_pixel(video_file):
     cap.release()
     cv2.destroyAllWindows()
     
-    return (pixel, meta_data)
+    return pixel, meta_data
 
