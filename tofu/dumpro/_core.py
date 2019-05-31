@@ -32,6 +32,7 @@ except ImportError:
 
 # dumpro-specific
 import computation as _comp
+import plotting as _plot
 
 ##########################################################
 ##########################################################
@@ -80,7 +81,6 @@ class Video(object):
         #getting the meta data of the video
         self.__frame_width = int(self.cap.get(3))
         self.__frame_height = int(self.cap.get(4))
-        self.__video_time = self.cap.get(cv2.CAP_PROP_POS_MSEC)
         self.__N_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.__fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.__fourcc = int(self.cap.get(cv2.CAP_PROP_FOURCC))
@@ -123,39 +123,64 @@ class Video(object):
     def fourcc(self):
         """ Returns the four character code of the video"""
         return self.__fourcc
-    
+
+
+        
     #defining a method for grayscale conversion
     def grayscale(self, meta_data = None, path = None,
                   output_name = None, output_type = None):
 
         #gray will contain the video path and meta_data will contain the 
         #size of frames, total number of frames and the fps of the video
-        gray, meta_data = _comp.colorgray.convertgray(self.__filename,self.meta_data, path,
-                                                      output_name, output_type)
+        if meta_data == None:
+            meta_data = self.meta_data
+        gray, meta_data = _comp.colorgray.convertgray(self.__filename,
+                                                      meta_data,
+                                                      path,
+                                                      output_name,
+                                                      output_type)
         #returning the grayscale converted video as a new instance 
         return self.__class__(gray)
 
-    def removebackground(self, meta_data = None, path = None,output_name = None, output_type = None):
+    def removebackground(self, meta_data = None, 
+                         path = None,output_name = None, output_type = None):
                
         #applying the background removal operation
         if meta_data == None:
             meta_data = self.meta_data
-        foreground, meta_data = _comp.background_removal.remove_background(self.__filename, meta_data, path, output_name, output_type)
+        foreground, meta_data = _comp.background_removal.remove_background(self.__filename, 
+                                                                           meta_data, 
+                                                                           path, 
+                                                                           output_name, 
+                                                                           output_type)
         return self.__class__(foreground)
     
-    def applybinary(self,path = None,output_name = None,output_type = None):
+    def applybinary(self, meta_data = None, path = None,
+                    output_name = None,output_type = None):
         
         #applying the method of binary conversion
-        out = _comp.binarythreshold.binary_threshold(self.__filename,path,
-                                                     output_name,output_type)
+        if meta_data == None:
+            meta_data = self.meta_data
+        out = _comp.binarythreshold.binary_threshold(self.__filename,
+                                                     meta_data,
+                                                     path,
+                                                     output_name,
+                                                     output_type)
         #returning the binary converted video as a new instance
         return self.__class__(out[0])
     
         
-    def detectedge(self, path = None, output_name = None, output_type = None):
+    def detectedge(self, meta_data = None, path = None, 
+                   output_name = None, output_type = None):
         
         #applying the edge detection method
-        edge, meta_data = _comp.edge_detection.detect_edge(self.__filename, path,output_name,output_type)
+        if meta_data == None:
+            meta_data = self.meta_data
+        edge, meta_data = _comp.edge_detection.detect_edge(self.__filename,
+                                                           meta_data,
+                                                           path,
+                                                           output_name,
+                                                           output_type)
         #returns the edge detected video as a new instance
         return self.__class__(edge)
     
