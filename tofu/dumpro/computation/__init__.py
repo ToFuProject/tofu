@@ -6,7 +6,7 @@
 from . import colorgray
 #background removal subroutine
 from . import background_removal
-#vide to image conversion subroutine
+#video to image conversion subroutine
 from . import video_to_img 
 #Image to numpy array conversion routine
 from . import video_to_array
@@ -15,3 +15,4 @@ from . import playvideo
 #edge detection subroutine
 from . import edge_detection
 
+from . import binarythreshold

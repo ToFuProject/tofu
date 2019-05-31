@@ -74,8 +74,8 @@ def binary_threshold(video_file, meta_data = None, path = None, output_name = No
         #defining the four character code
         fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
         #defining the frame dimensions
-        frame_width = int(cap.get(3))
-        frame_height = int(cap.get(4))
+        frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         #defining the fps
         fps = cap.get(cv2.CAP_PROP_FPS)
         #defining the meta_data dictionary
