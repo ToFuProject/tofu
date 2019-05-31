@@ -10,9 +10,7 @@ from . import background_removal
 from . import video_to_img 
 #Image to numpy array conversion routine
 from . import video_to_array
-#subroutine to play a video
-from . import playvideo
 #edge detection subroutine
 from . import edge_detection
-
+#binary conversion subroutine
 from . import binarythreshold
