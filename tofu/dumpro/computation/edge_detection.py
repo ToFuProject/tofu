@@ -19,7 +19,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
 
-def detect_edge(video_file, meta_data = None, path = None, output_name = None, output_type = None):
+def detect_edge(video_file, meta_data = None, path = None, output_name = None, output_type = None, verb = True):
     """This subroutine detects edges from the the proivided video. The video provided
     must consists of binary images. This is the next step after performing the 
     binary conversion step.
@@ -86,7 +86,9 @@ def detect_edge(video_file, meta_data = None, path = None, output_name = None, o
         
     #read the first frame    
     ret,frame = cap.read()
-
+    if verb == True:
+        print('File successfully loaded for edge detection ...\n')
+        
     if meta_data == None:
         #defining the four character code
         fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
@@ -95,9 +97,12 @@ def detect_edge(video_file, meta_data = None, path = None, output_name = None, o
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         #defining the fps
         fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the total number of frames
+        N_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         #defining the meta_data dictionary
         meta_data = {'fps' : fps, 'frame_height' : frame_height, 
-                     'frame_width' : frame_width, 'fourcc' : fourcc}
+                     'frame_width' : frame_width, 'fourcc' : fourcc,
+                     'N_frames' : N_frames}
         
     else:
         #describing the four character code      
@@ -131,6 +136,10 @@ def detect_edge(video_file, meta_data = None, path = None, output_name = None, o
     out = cv2.VideoWriter(pfe, fourcc, fps,
                           (frame_width,frame_height),0)
     
+    frame_count = 0
+    if verb == True:
+        print('initiating detection of edges in the video ... \n')
+    
     while(cap.isOpened()):
         ret, frame = cap.read()
         #to check whether cap read the file successfully         
@@ -138,10 +147,20 @@ def detect_edge(video_file, meta_data = None, path = None, output_name = None, o
     
         #applying the Canny edge detection algorithm.
         #check docstring for further information
-        edge = cv2.Canny(frame,127,255)    
+        edge = cv2.Canny(frame,127,255)
+        
+        #providing information to user
+        if verb == True:
+            frame_count += 1
+            frames_left = N_frames - frame_count
+            print('Frames left to process : ', frames_left)
+
         out.write(edge)
+        
+    if verb == True:
+        print('All frames processed successfully and output file has been written ... \n')
     
-        #closing everything       
+    #closing everything       
     cap.release()
     out.release()
     cv2.destroyAllWindows()

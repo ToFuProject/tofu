@@ -22,7 +22,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
 
-def video_to_pixel(video_file, meta_data = None):
+def video_to_pixel(video_file, meta_data = None, verb = True):
     """Converts imput video file to a numpy array
     The video file is converted to Grayscale and hence the array is of 
     3 dimension
@@ -58,7 +58,9 @@ def video_to_pixel(video_file, meta_data = None):
     
     #reading the first frame to get video metadata    
     ret,frame = cap.read()
-    
+    if verb == True:
+        print('video reading has been successful ...\n')
+        print('reading meta_data ...\n')
     if meta_data == None:
         #defining the four character code
         fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
@@ -67,9 +69,12 @@ def video_to_pixel(video_file, meta_data = None):
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         #defining the fps
         fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the total number of frames
+        N_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         #defining the meta_data dictionary
         meta_data = {'fps' : fps, 'frame_height' : frame_height, 
-                     'frame_width' : frame_width, 'fourcc' : fourcc}
+                     'frame_width' : frame_width, 'fourcc' : fourcc,
+                     'N_frames' : N_frames}
         
     else:
         #describing the four character code      
@@ -99,8 +104,10 @@ def video_to_pixel(video_file, meta_data = None):
 
 
     #declaration of the empty array
-    pixel = np.ndarray(( total_frame, width, height), dtype = int)
-
+    pixel = np.ndarray(( N_frames, frame_width, frame_height), dtype = int)
+    
+    if verb == True:
+        print('converting to numpy arrray ...\n')
     #initialization of the frame variable 
     frame_counter = 0
     #looping over the entire video
@@ -118,7 +125,9 @@ def video_to_pixel(video_file, meta_data = None):
         #changing the frame variable 
         frame_counter += 1 
     
-    print('total number of frames converted :', total_frame)
+    if verb == True:
+        print('total number of frames converted :', N_frames,'\n')
+        print('array creation successful ...')
     #releasing the output file
     cap.release()
     cv2.destroyAllWindows()

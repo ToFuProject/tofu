@@ -28,7 +28,7 @@ except ImportError:
 #import video_to_array as vta
 
 
-def remove_background(video_file, meta_data = None, path = None, output_name = None, output_type = None):
+def remove_background(video_file, meta_data = None, path = None, output_name = None, output_type = None, verb = True):
     """ Removes the background from video and returns it as Foreground.avi
     
     For further information consult the following resources
@@ -36,7 +36,7 @@ def remove_background(video_file, meta_data = None, path = None, output_name = N
        
     Parameters
     -----------------------
-    video_file:      supported formats - mp4,avi
+    video_file:      supported formats - mp4,avi,mpg
      input video passed in as argument
     meta_data:        dictionary
      A dictionary containing all the video meta_data. By default it is None
@@ -87,6 +87,11 @@ def remove_background(video_file, meta_data = None, path = None, output_name = N
         msg += 'PLease verify the path or file name and try again'
         raise Exception(msg)
         
+    #read the first frame    
+    ret,frame = cap.read()
+    if verb == True:
+        print('File successfully loaded for background removal ...\n')
+        
     if meta_data == None:
         #defining the four character code
         fourcc = int(cap.get(cv2.CAP_PROP_FOURCC))
@@ -95,9 +100,12 @@ def remove_background(video_file, meta_data = None, path = None, output_name = N
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         #defining the fps
         fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the total number of frames
+        N_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         #defining the meta_data dictionary
         meta_data = {'fps' : fps, 'frame_height' : frame_height, 
-                     'frame_width' : frame_width, 'fourcc' : fourcc}
+                     'frame_width' : frame_width, 'fourcc' : fourcc,
+                     'N_frames' : N_frames}
         
     else:
         #describing the four character code      
@@ -132,6 +140,10 @@ def remove_background(video_file, meta_data = None, path = None, output_name = N
     pfe = os.path.join(path, output_name + output_type)
     out = cv2.VideoWriter(pfe,fourcc, fps ,(frame_width,frame_height),0) 
     
+    frame_count = 0
+    if verb == True:
+        print('initiating background removal ... \n')
+
     #looping over the video applying the background subtaction method to each frame
     while(cap.isOpened()):
         
@@ -141,8 +153,18 @@ def remove_background(video_file, meta_data = None, path = None, output_name = N
             break
         #Applying the background subtraction method
         movie = back.apply(frame)
+        
+        #providing information to user
+        if verb == True:
+            frame_count += 1
+            frames_left = N_frames - frame_count
+            print('Frames left to process : ', frames_left)
+        
         #publishing the video
         out.write(movie)
+    
+    if verb == True:
+        print('All frames processed successfully and output file has been written ... \n')
     
     #realeasing outputfile and closing any open windows
     cap.release()

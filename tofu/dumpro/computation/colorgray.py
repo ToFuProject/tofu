@@ -155,6 +155,7 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
         #consult opencv documentation on fastnlMeansDenoising for 
         #further information on the parameters used
         dst = cv2.fastNlMeansDenoising(gray,None,5,21,7)
+        
         if verb == True:
             frame_count += 1
             frames_left = N_frames - frame_count
@@ -162,8 +163,10 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
             
         #writing the gray frames to out        
         out.write(dst)
-        
-    print('All frames processed successfully and output file has been written ... \n')
+    
+    if verb == True:
+        print('All frames processed successfully and output file has been written ... \n')
+    
     #closing everything       
     cap.release()
     out.release()

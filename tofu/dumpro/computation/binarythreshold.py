@@ -17,7 +17,7 @@ except ImportError:
     print("Cannot find opencv package. Try pip intall opencv-contrib-python")
     
 
-def binary_threshold(video_file, meta_data = None, path = None, output_name = None, output_type = None):
+def binary_threshold(video_file, meta_data = None, path = None, output_name = None, output_type = None, verb = True):
     """This Subroutine converts a video into binary.  
     
     For more informatio look into the following resource
@@ -68,7 +68,21 @@ def binary_threshold(video_file, meta_data = None, path = None, output_name = No
     if output_type is None:
         output_type = '.'+file[1]
         
-    cap = cv2.VideoCapture(video_file,0)
+    # reading the input file 
+    try:
+        if not os.path.isfile(video_file):
+            raise Exception
+        cap = cv2.VideoCapture(video_file)
+        
+    except Exception:
+        msg = 'the path or filename is incorrect.'
+        msg += 'PLease verify the path or file name and try again'
+        raise Exception(msg)
+        
+    #read the first frame    
+    ret,frame = cap.read()
+    if verb == True:
+        print('File successfully loaded for conversion to binary ...\n')
     
     if meta_data == None:
         #defining the four character code
@@ -78,9 +92,12 @@ def binary_threshold(video_file, meta_data = None, path = None, output_name = No
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         #defining the fps
         fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the total number of frames
+        N_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         #defining the meta_data dictionary
         meta_data = {'fps' : fps, 'frame_height' : frame_height, 
-                     'frame_width' : frame_width, 'fourcc' : fourcc}
+                     'frame_width' : frame_width, 'fourcc' : fourcc,
+                     'N_frames' : N_frames}
         
     else:
         #describing the four character code      
@@ -111,6 +128,11 @@ def binary_threshold(video_file, meta_data = None, path = None, output_name = No
     #describing the output file
     pfe = os.path.join(path, output_name + output_type)
     out = cv2.VideoWriter(pfe,fourcc, fps ,(frame_width,frame_height),0) 
+    
+    frame_count = 0
+    if verb == True:
+        print('initiating conversion to binary ... \n')
+
     while(cap.isOpened()):
         
         ret, frame = cap.read()
@@ -121,9 +143,18 @@ def binary_threshold(video_file, meta_data = None, path = None, output_name = No
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         nex, movie = cv2.threshold(frame,127,255,cv2.THRESH_BINARY)
         
+        #providing information to user
+        if verb == True:
+            frame_count += 1
+            frames_left = N_frames - frame_count
+            print('Frames left to process : ', frames_left)
+                
         #publishing the video
         out.write(movie)
     
+    if verb == True:
+        print('All frames processed successfully and output file has been written ... \n')
+
     #realeasing outputfile and closing any open windows
     cap.release()
     cv2.destroyAllWindows()

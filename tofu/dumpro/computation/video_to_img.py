@@ -23,7 +23,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
 
-def video2img(video_file, meta_data = None, path = None, image_name = None, image_type = None):
+def video2img(video_file, meta_data = None, path = None, image_name = None, image_type = None, verb = True):
     """Breaks up an input video file into it's constituent frames and 
     saves them as jpg image
     
@@ -82,8 +82,6 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
     if image_type is None:
         image_type = '.jpg'
     
-    print("Converting Video to Images ...... Please Wait")
-    
     #trying to open the video file
     try:
         if not os.path.isfile(video_file):
@@ -94,6 +92,10 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
         msg = 'the path or filename is incorrect.'
         msg += 'PLease verify the path or file name and try again'
         raise Exception(msg)
+        
+    if verb == True:
+        print('Video reading has been successful ...\n')
+        print('reading destination directory ...\n')
     
     #Creating Directory
     try:
@@ -106,6 +108,10 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
     #Checking for permission error
     except OSError:
         print ('Error: Creating directory of data')
+        
+    if verb == True:
+        print('destiantion directory reading successfull ...\n')
+        print('reading meta_data ...\n')
     
     if meta_data == None:
         #defining the four character code
@@ -115,9 +121,12 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         #defining the fps
         fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the total number of frames
+        N_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         #defining the meta_data dictionary
         meta_data = {'fps' : fps, 'frame_height' : frame_height, 
-                     'frame_width' : frame_width, 'fourcc' : fourcc}
+                     'frame_width' : frame_width, 'fourcc' : fourcc,
+                     'N_frames' : N_frames}
         
     else:
         #describing the four character code      
@@ -145,8 +154,14 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
         if 'N_frames' not in meta_data:
             meta_data['N_frames'] = N_frames
     
+    if verb == True:
+        print('reading meta_data successfull ...\n')
+    
     #Loop Variable    
     currentFrame = 0
+    
+    if verb == True:
+        print("Converting Video to Images ...... Please Wait")
     
     #Looping over the entire video    
     while(cap.isOpened()):
