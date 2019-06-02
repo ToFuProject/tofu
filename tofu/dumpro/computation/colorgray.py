@@ -23,7 +23,7 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
-def convertgray(video_file,meta_data = None , path = None, output_name = None, output_type = None):
+def convertgray(video_file,meta_data = None , path = None, output_name = None, output_type = None, verb = True):
     """Converts input video file to grayscale, denoises it and saves it as 
     Grayscale.avi
     
@@ -88,6 +88,8 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
      
     #read the first frame    
     ret,frame = cap.read()
+    if verb == True:
+        print('File successfully loaded for grayscale conversion...\n')
     
     if meta_data == None:
         #defining the four character code
@@ -97,9 +99,12 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
         frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         #defining the fps
         fps = cap.get(cv2.CAP_PROP_FPS)
+        #defining the total number of frames
+        N_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         #defining the meta_data dictionary
         meta_data = {'fps' : fps, 'frame_height' : frame_height, 
-                     'frame_width' : frame_width, 'fourcc' : fourcc}
+                     'frame_width' : frame_width, 'fourcc' : fourcc,
+                     'N_frames' : N_frames}
         
     else:
         #describing the four character code      
@@ -132,6 +137,11 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
     pfe = os.path.join(path, output_name + output_type)
     out = cv2.VideoWriter(pfe, fourcc, fps,
                           (frame_width,frame_height),0)    
+    print(frame_height, frame_width)
+    
+    frame_count = 0
+    if verb == True:
+        print('initiating grayscale conversion and denoising ... \n')
     
     #loops over the entire video frame by frame and convert each to grayscale
     #then writting it to output file     
@@ -145,9 +155,15 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
         #consult opencv documentation on fastnlMeansDenoising for 
         #further information on the parameters used
         dst = cv2.fastNlMeansDenoising(gray,None,5,21,7)
+        if verb == True:
+            frame_count += 1
+            frames_left = N_frames - frame_count
+            print('Frames left to process : ', frames_left)
+            
         #writing the gray frames to out        
         out.write(dst)
-    
+        
+    print('All frames processed successfully and output file has been written ... \n')
     #closing everything       
     cap.release()
     out.release()
