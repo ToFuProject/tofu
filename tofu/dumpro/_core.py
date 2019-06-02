@@ -36,7 +36,7 @@ import plotting as _plot
 
 ##########################################################
 ##########################################################
-#               Title
+#               Video Class
 ##########################################################
 
 class Video(object):
@@ -134,7 +134,7 @@ class Video(object):
         
     #defining a method for grayscale conversion
     def grayscale(self, meta_data = None, path = None,
-                  output_name = None, output_type = None):
+                  output_name = None, output_type = None, verb = True):
 
         #gray will contain the video path and meta_data will contain the 
         #size of frames, total number of frames and the fps of the video
@@ -144,7 +144,8 @@ class Video(object):
                                                       meta_data,
                                                       path,
                                                       output_name,
-                                                      output_type)
+                                                      output_type,
+                                                      Verb)
         #returning the grayscale converted video as a new instance 
         return self.__class__(gray)
     
@@ -153,7 +154,7 @@ class Video(object):
 #############################################################################
 
     def removebackground(self, meta_data = None, 
-                         path = None,output_name = None, output_type = None):
+                         path = None,output_name = None, output_type = None, verb = True):
                
         #applying the background removal operation
         if meta_data == None:
@@ -162,7 +163,8 @@ class Video(object):
                                                                            meta_data, 
                                                                            path, 
                                                                            output_name, 
-                                                                           output_type)
+                                                                           output_type,
+                                                                           verb)
         return self.__class__(foreground)
     
 #############################################################################
@@ -170,7 +172,7 @@ class Video(object):
 #############################################################################
     
     def applybinary(self, meta_data = None, path = None,
-                    output_name = None,output_type = None):
+                    output_name = None,output_type = None, verb = True):
         
         #applying the method of binary conversion
         if meta_data == None:
@@ -179,7 +181,8 @@ class Video(object):
                                                      meta_data,
                                                      path,
                                                      output_name,
-                                                     output_type)
+                                                     output_type,
+                                                     verb)
         #returning the binary converted video as a new instance
         return self.__class__(out[0])
     
@@ -188,7 +191,7 @@ class Video(object):
 #############################################################################
 
     def detectedge(self, meta_data = None, path = None, 
-                   output_name = None, output_type = None):
+                   output_name = None, output_type = None, verb = True):
         
         #applying the edge detection method
         if meta_data == None:
@@ -197,7 +200,8 @@ class Video(object):
                                                            meta_data,
                                                            path,
                                                            output_name,
-                                                           output_type)
+                                                           output_type,
+                                                           verb)
         #returns the edge detected video as a new instance
         return self.__class__(edge)
     
@@ -205,26 +209,37 @@ class Video(object):
 #   video to image conversion method
 #############################################################################
     
-    def convert2image(self, path = None , image_name = None, image_type = None):
+    def convert2image(self, meta_date = None, path = None , image_name = None, image_type = None, verb = True):
         
         #applying the video to image conversion method
-        directory = _comp.video_to_img.video2img(self.__filename, path, image_name, image_type)
+        if meta_data == None:
+            meta_data = self.meta_data
+        directory, meta_data = _comp.video_to_img.video2img(self.__filename,
+                                                 meta_data,
+                                                 path,
+                                                 image_name,
+                                                 image_type,
+                                                 verb)
         #returning the directory in which the video is stored
-        return directory
+        return directory, meta_data
     
 #############################################################################
 #   video to numpy arraay conversion method
 #############################################################################
 
-    def convert2pixel(self):
+    def convert2pixel(self, meta_data = None, verb = True):
         
         #applying the video to array conversion method
-        pixel, meta_data = _comp.video_to_array.video_to_pixel(self.__filename)
+        if meta_data == None:
+            meta_data = self.meta_data
+        pixel, meta_data = _comp.video_to_array.video_to_pixel(self.__filename,
+                                                               meta_data,
+                                                               verb)
         
         return pixel, meta_data
     
     
-    def dumpro(self, path = None, output_name = None, output_type = None):
+    def dumpro(self, meta_data = None, path = None, output_name = None, output_type = None, verb = True):
         
         print('Performing Preprocessing on the Video')
         print('Performing Grayscale conversion and Noise Removal')
