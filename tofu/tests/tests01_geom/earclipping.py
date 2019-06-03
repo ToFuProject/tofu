@@ -98,6 +98,7 @@ def get_one_ears(lpts, lref):
     return
 
 def get_all_ears(llpts):
+    # https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
     lref = are_reflex(llpts)
     lpts = np.copy(llpts)
     npts = lpts.shape[0]
@@ -119,11 +120,9 @@ def get_all_ears(llpts):
     ltri.append(lpts)
     return(ltri)
 
-
-
-
 def intersect_triangle(orig, dire,
                        vert0, vert1, vert2):
+    # https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
     small = 10**-6
     edge1 = vert1 - vert0
     edge2 = vert2 - vert0
