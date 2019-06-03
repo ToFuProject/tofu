@@ -787,7 +787,7 @@ class Struct(utils.ToFuObject):
                 extent : the extent to be fed to mpl.pyplot.imshow()
 
         """
-        args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
+        args = [self.Poly_closed, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, margin=1.e-9, mode=mode)
         out = _comp._Ves_get_sampleCross(*args, **kwdargs)
@@ -3957,7 +3957,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Todo : reverse in _GG : make compact default for faster computation !
         lpts, k, reseff = _GG.LOS_get_sample(Ds, us, res, DL,
-                                             dLMode=resMode, method=method)
+                                             dmethod=resMode, method=method)
         if compact:
             pts = np.concatenate(lpts, axis=1)
             ind = np.array([pt.shape[1] for pt in lpts], dtype=int)
@@ -4193,7 +4193,7 @@ class Rays(utils.ToFuObject):
             # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
             # Exclude Rays not seeing the plasma
             s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
-                                    dLMode=resMode, method=method,
+                                    dmethod=resMode, method=method,
                                     t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
             if t is None or len(t)==1:
                 sig[indok] = s

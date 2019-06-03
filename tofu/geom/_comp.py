@@ -151,17 +151,26 @@ def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, 
 
 
 
-def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None, margin=1.e-9):
+def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None,
+                        margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dL) in types and type(DIn) in types
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
     if DS is None:
         DS = [None,None]
     else:
-        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
-    assert type(dLMode) is str and dLMode.lower() in ['abs','rel'], "Arg dLMode must be in ['abs','rel'] !" 
+        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and
+                                   all([ss is None or type(ss) in types
+                                        for ss in ds])) for ds in DS])
+    assert (type(dLMode) is str and
+            dLMode.lower() in ['abs','rel']), "Arg dLMode must be in ['abs','rel'] !" 
     #assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
-    Pts, dLr, ind, N, Rref, VPolybis = _GG._Ves_Smesh_Cross(VPoly, float(dL), dLMode=dLMode.lower(), D1=DS[0], D2=DS[1], margin=margin, DIn=float(DIn), VIn=VIn)
+    Pts, dLr, ind, N,\
+        Rref, VPolybis = _GG.discretize_vpoly(VPoly, float(dL),
+                                              mode=dLMode.lower(),
+                                              D1=DS[0], D2=DS[1],
+                                              margin=margin,
+                                              DIn=float(DIn), VIn=VIn)
     return Pts, dLr, ind
 
 
@@ -173,24 +182,32 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     c0 = (hasattr(dS,'__iter__') and len(dS)==2
           and all([type(ds) in types for ds in dS]))
-    assert c0 or type(dS) in types, "Arg dS must be a float or a list 2 floats !"
-    dS = [float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1])]
+    assert c0 or type(dS) in types, "Arg dS must be a float or a list 2 floats!"
+    dS = [float(dS),float(dS)] if type(dS) in types else [float(dS[0]),
+                                                          float(dS[1])]
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
     if DS is None:
         DS = [None,None]
     else:
-        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
-    assert type(dSMode) is str and dSMode.lower() in ['abs','rel'], "Arg dSMode must be in ['abs','rel'] !"
-    assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
+        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2
+                                   and all([ss is None or type(ss) in types
+                                            for ss in ds])) for ds in DS])
+    assert type(dSMode) is str and dSMode.lower() in ['abs','rel'],\
+        "Arg dSMode must be in ['abs','rel'] !"
+    assert ind is None or (type(ind) is np.ndarray and ind.ndim==1
+                           and ind.dtype in ['int32','int64']
+                           and np.all(ind>=0)), \
+                           "Arg ind must be None or 1D np.ndarray of positive int !"
 
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
     if ind is None:
         if mode == 'flat':
-            Pts, dS, ind, d1r, d2r = _GG._Ves_meshCross_FromD(MinMax1, MinMax2,
+            Pts, dS, ind, d1r, d2r = _GG.discretize_segment2d(MinMax1, MinMax2,
                                                               dS[0], dS[1],
-                                                              D1=DS[0], D2=DS[1],
-                                                              dSMode=dSMode,
+                                                              D1=DS[0],
+                                                              D2=DS[1],
+                                                              mode=dSMode,
                                                               VPoly=VPoly,
                                                               margin=margin)
             out = (Pts, dS, ind, (d1r,d2r))
@@ -209,7 +226,6 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
             pts = np.squeeze([xx1,xx2])
             extent = (x1[0]-d1r/2., x1[-1]+d1r/2., x2[0]-d2r/2., x2[-1]+d2r/2.)
             out = (pts, x1, x2, extent)
-
     else:
         assert mode == 'flat'
         c0 = type(ind) is np.ndarray and ind.ndim==1
