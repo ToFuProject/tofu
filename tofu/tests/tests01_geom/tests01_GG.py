@@ -201,38 +201,41 @@ def test04_Ves_isInside(VPoly=VPoly):
 #####################################################
 
 def test05_Ves_mesh_dlfromL():
-
     LMinMax = np.array([0.,10.])
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 20., DL=None,
+    L, dLr, indL, N = GG.discretize_line1d(LMinMax, 20., DL=None,
                                                   Lim=True, margin=1.e-9)
+
     assert np.allclose(L,[5.]) and dLr==10. and np.allclose(indL,[0]) and N==1
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=None,
+    L, dLr, indL, N = GG.discretize_line1d(LMinMax, 1., DL=None,
                                                   Lim=True, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(0,10)) and dLr==1. and \
         np.allclose(indL,range(0,10)) and N==10
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,8.],
-                                                  Lim=True, margin=1.e-9)
+    DL = [2.,8.]
+    L, dLr, indL, N = GG.discretize_line1d(LMinMax, 1., DL=DL,
+                                            Lim=True, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,8)) and dLr==1. and \
         np.allclose(indL,range(2,8)) and N==10
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,12.],
+    DL = [2.,12.]
+    L, dLr, indL, N = GG.discretize_line1d(LMinMax, 1., DL=DL,
                                                   Lim=True, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,10)) and dLr==1. and \
         np.allclose(indL,range(2,10)) and N==10
-    L, dLr, indL, N = GG._Ves_mesh_dlfromL_cython(LMinMax, 1., DL=[2.,12.],
+    DL = [2.,12.]
+    L, dLr, indL, N = GG.discretize_line1d(LMinMax, 1., DL=DL,
                                                   Lim=False, margin=1.e-9)
     assert np.allclose(L,0.5+np.arange(2,12)) and dLr==1. and \
         np.allclose(indL,range(2,12)) and N==10
 
 
 
-def test06_Ves_Smesh_Cross(VPoly=VPoly):
+def test06_discretize_vpoly(VPoly=VPoly):
 
     VIn = VPoly[:,1:]-VPoly[:,:-1]
     VIn = np.array([-VIn[1,:],VIn[0,:]])
     VIn = VIn/np.sqrt(np.sum(VIn**2,axis=0))[np.newaxis,:]
     dL = 0.01
 
-    PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL, D1=None,
+    PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL, D1=None,
                                                              D2=None,
                                                              margin=1.e-9,
                                                              DIn=0., VIn=VIn)
@@ -245,7 +248,7 @@ def test06_Ves_Smesh_Cross(VPoly=VPoly):
     assert Rref.shape==(PtsCross.shape[1],) and np.all(Rref==PtsCross[0,:])
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
 
-    PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL,
+    PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL,
                                                              D1=[0.,2.],
                                                              D2=[-2.,0.],
                                                              margin=1.e-9,
@@ -260,7 +263,7 @@ def test06_Ves_Smesh_Cross(VPoly=VPoly):
     assert Rref.size>3*PtsCross.shape[1]
     assert VPbis.ndim==2 and VPbis.shape[1]>=VPoly.shape[1]
 
-    PtsCross, dLr, ind, N, Rref, VPbis = GG._Ves_Smesh_Cross(VPoly, dL,
+    PtsCross, dLr, ind, N, Rref, VPbis = GG.discretize_vpoly(VPoly, dL,
                                                              D1=[0.,2.],
                                                              D2=[-2.,0.],
                                                              margin=1.e-9,
@@ -286,8 +289,8 @@ def test07_Ves_Vmesh_Tor(VPoly=VPoly):
             dRr, dZr, dRPhir = GG._Ves_Vmesh_Tor_SubFromD_cython(dR, dZ, dRPhi,
                                                                  RMinMax,
                                                                  ZMinMax,
-                                                                 DR=[0.5,2.],
-                                                                 DZ=[0.,1.2],
+                                                                 DR=np.array([0.5,2.]),
+                                                                 DZ=np.array([0.,1.2]),
                                                                  DPhi=LDPhi[ii],
                                                                  VPoly=VPoly,
                                                                  Out='(R,Z,Phi)',
@@ -336,9 +339,9 @@ def test08_Ves_Vmesh_Lin(VPoly=VPoly):
     Pts, dV, ind,\
         dXr, dYr, dZr = GG._Ves_Vmesh_Lin_SubFromD_cython(dX, dY, dZ, XMinMax,
                                                           YMinMax, ZMinMax,
-                                                          DX=[8.,15.],
-                                                          DY=[0.5,2.],
-                                                          DZ=[0.,1.2],
+                                                          DX=np.array([8.,15.]),
+                                                          DY=np.array([0.5,2.]),
+                                                          DZ=np.array([0.,1.2]),
                                                           VPoly=VPoly,
                                                           margin=1.e-9)
     assert Pts.ndim==2 and Pts.shape[0]==3
@@ -583,7 +586,7 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
                                                             dL, dRPhi, VPoly,
                                                             DR=[0.5,2.],
                                                             DZ=[0.,1.2],
-                                                            DPhi=LPhi[ii][1],
+                                                            DPhi=np.array(LPhi[ii][1]),
                                                             DIn=DIn, VIn=VIn,
                                                             Out='(R,Z,Phi)',
                                                             margin=1.e-9)
@@ -1199,14 +1202,15 @@ def test16_dist_los_vpoly():
     ray_orig[1][10] = 0.
     ray_orig[2][10] = 2.5
     ray_vdir[0][10] = 1.
+    print("with new thingy")
     out = GG.comp_dist_los_vpoly(
         np.ascontiguousarray(ray_orig, dtype=np.float64),
         np.ascontiguousarray(ray_vdir, dtype=np.float64),
-        ves_poly, num_threads=1)
+        ves_poly, disc_step=0.5)
 
     exact_ks = [3.0,
-                0.5,
-                0.6715728752538102,
+                0.,
+                0.,
                 0.9999999999999992,
                 0.0,
                 1.2576248261177692,
@@ -1288,18 +1292,17 @@ def test17_distance_los_to_circle():
     res = GG.comp_dist_los_circle(ray_vd, ray_or, radius, circ_z)
     assert np.isclose(res[0], 3.), "Problem with 'k'"
     assert np.isclose(res[1], 2.), "Problem with 'dist'"
-    # # temp...................
-    # ray3_or = np.array([-np.sqrt(2.), np.sqrt(2.), -1.1])
-    # ray3_vd = np.array([1. + np.sqrt(2.)/2., -np.sqrt(2.)/2., 1.1])
-    # radius = 1.
-    # circ_z = -1.1
-    # res = GG.comp_dist_los_circle(ray3_vd, ray3_or, radius, circ_z)
-    # for i in range(3):
-    #     print("P found = ",i, ray3_or[i] + res[0]*ray3_vd[i])
-    # assert np.isclose(res[0], 2*0.325844650125497),\
-    #    "Problem with 'k' = "+str(res[0])+" "+str(res[1])
-    # assert np.isclose(res[1], 0.35842911513804676), \
-    #    "Problem with 'dist' = "+str(res[1])
+    # Random ray (not normal, not passing through origin, ...) .................
+    ray3_or = np.array([-1., 1., -1.1])
+    ray3_vd = np.array([2., -2, 1.1])
+    radius = 0.5
+    circ_z = -1.1
+    res = GG.comp_dist_los_circle(ray3_vd, ray3_or, radius, circ_z)
+    # computed using scipy
+    assert np.isclose(res[0], 0.280758570860685), \
+       "Problem with 'k' = "+str(res[0])
+    assert np.isclose(res[1], 0.331367971970488), \
+       "Problem with 'dist' = "+str(res[1])
     # == Vectorial tests =======================================================
     circle_radius = np.array([0.5, 1, 3.5])
     circle_zcoord = np.array([-1.1, .5, 6])
@@ -1460,11 +1463,10 @@ def test18_comp_dist_los_vpoly():
     # .. computing .............................................................
     out = GG.comp_dist_los_vpoly(np.ascontiguousarray(ray_orig),
                                  np.ascontiguousarray(ray_vdir),
-                                 ves_poly)
-    print(out)
+                                 ves_poly, disc_step=0.5)
     k_vec = [3.0,
-             0.5,
-             0.6715728752538102,
+             0.0,
+             0.0,
              1.0,
              0.0,
              1.3,
@@ -1529,7 +1531,7 @@ def test19_comp_dist_los_vpoly_vec():
     assert np.allclose(dist[0], [np.nan, np.nan], equal_nan=True)
     assert np.allclose(k[1], [0., np.nan], equal_nan=True)
     assert np.allclose(dist[1], [0.5, np.nan], equal_nan=True)
-    assert np.allclose(k[2], [2.17944947, 3.96862697], equal_nan=True)
+    assert np.allclose(k[2], [0., 0.], equal_nan=True)
     assert np.allclose(dist[2], [2., 1.], equal_nan=True)
 
 # ==============================================================================
@@ -1660,5 +1662,5 @@ def test21_which_los_closer_vpoly_vec():
     # .. computing .............................................................
     out = GG.which_vpoly_closer_los_vec(2,  num_rays,
                                         ray_orig, ray_vdir,
-                                        vessels, num_threads=1)
+                                        vessels)
     assert np.allclose(out, [0, 1, 1])

@@ -26,11 +26,11 @@
     :target: https://badge.fury.io/py/tofu
 
 
-ToFu
+tofu
 ====
 
 
-ToFu stands for Tomography for Fusion, it is an open-source machine-independent python library
+tofu stands for Tomography for Fusion, it is an open-source machine-independent python library
 with non-open source plugins containing all machine-dependent routines.
 
 It is distributed under the MIT license and aims at providing the fusion community with 
@@ -40,16 +40,16 @@ synthtic diagnostic (direct problem) and tomography (inverse problem).
 It was first created at the Max-Planck Institute for Plasma Physics (IPP) in Garching, Germany, 
 by Didier Vezinet, and is now maintained / debugged / updated by him and other contributors.
 
-A sphinx-generated documentation can be found at [the ToFu documentation page](https://ToFuProject.github.io/tofu/index.html),
+A sphinx-generated documentation can be found at [the tofu documentation page](https://ToFuProject.github.io/tofu/index.html),
 and the code itself is hosted on [GitHub](https://github.com/ToFuProject/tofu).
 
 
 ----
 
-ToFu provides the user with a series of python classes for creating, handling and visualizing a diagnostic geometry, meshes and basis functions, 
+tofu provides the user with a series of python classes for creating, handling and visualizing a diagnostic geometry, meshes and basis functions, 
 geometry matrices, pre-treating experimental data and computing tomographic inversions.
 
-Each one of these main tasks is accomplished by a dedicated module in the larger ToFu package.
+Each one of these main tasks is accomplished by a dedicated module in the larger tofu package.
 
 In its current version, only the geometry and data-handling modules are released. 
 The others, while operational, are not user-friendly and documented yet, they will be available in future releases.
@@ -64,12 +64,12 @@ This geometry module allows in particular:
 * To automatically compute the full Volume of Sight (VOS) in 3D of each {detector+aperture(s)} set
 * To discretise the VOS for a numerical 3D integration of a simulated emissivity in order to compute the associated signal
 
-It is in this geometrical sense that ToFu enables a synthetic diagnostic approach, it does not provide the tools for simulating the emissivity (that should be an input, provided by another code).
+It is in this geometrical sense that tofu enables a synthetic diagnostic approach, it does not provide the tools for simulating the emissivity (that should be an input, provided by another code).
 
 ----
 
 
-Installing ToFu
+Installing tofu
 ***************
 
 - **Standard mode**::
@@ -90,7 +90,7 @@ Install dependencies.::
     pandas
     polygon3 (or polygon2 if you are using python 2.7)
 
-Checkout the ToFu git repository and from the top directory::
+Checkout the tofu git repository and from the top directory::
     
     python setup.py build_ext --inplace
     python setup.py install

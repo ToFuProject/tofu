@@ -132,15 +132,21 @@ if USE_CYTHON:
     print("")
     #TODO try O3 O2 flags
     if not not_openmp_installed :
-        extensions = [ Extension(name="tofu.geom."+gg,
-                                sources=["tofu/geom/"+gg+".pyx"],
-                                extra_compile_args=["-O0",  "-fopenmp"],
-                                extra_link_args=['-fopenmp']) ]
+        extra_compile_args=["-O0", "-Wall",  "-fopenmp"]
+        extra_link_args = ['-fopenmp']
     else:
-        extensions = [ Extension(name="tofu.geom."+gg,
-                                sources=["tofu/geom/"+gg+".pyx"],
-                                extra_compile_args=["-O0"]) ]
-    extensions = cythonize(extensions)
+        extra_compile_args=["-O0", "-Wall"]
+        extra_link_args = []
+    extensions = [ Extension(name="tofu.geom."+gg,
+                             sources=["tofu/geom/"+gg+".pyx"],
+                             extra_compile_args=extra_compile_args,
+                             extra_link_args=extra_link_args),
+                  Extension(name="tofu.geom._basic_geom_tools",
+                            sources=["tofu/geom/_basic_geom_tools.pyx"],
+                            extra_compile_args=extra_compile_args,
+                            extra_link_args=extra_link_args)
+                  ]
+    extensions = cythonize(extensions, annotate=True)
 else:
     print("")
     print("NOT Using Cython !!!!!!!!!")
