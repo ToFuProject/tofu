@@ -222,30 +222,22 @@ class MultiIDSLoader(object):
     def set_dids(self, dids=None,
                  shot=None, run=None, refshot=None, refrun=None,
                  user=None, tokamak=None, version=None, lids=None):
-        dids = self._prepare_dids(dids=dids, shot=shot, run=run,
-                                  refshot=refshot, refrun=refrun,
-                                  user=user, tokamak=tokamak, version=version)
+        lc = [dids is not None, lids is not None]
+        if not np.sum(lc) == 1:
+            msg = "Provide either a dids (dict) or an idsname !"
+            raise Exception(msg)
+        if lc[1]:
+            dids = self._get_didsfromkwdargs(shot=shot, run=run,
+                                             refshot=refshot, refrun=refrun,
+                                             user=user, tokamak=tokamak,
+                                             version=version, lids=lids)
+
         if dids is None:
             didd, dids, refidd = None, None, None
         didd, dids, refidd = self._get_diddids(dids)
         self._dids = dids
         self._didd = didd
         self._refidd = refidd
-
-    @classmethod
-    def _prepare_dids(cls, dids=None,
-                      shot=None, run=None, refshot=None, refrun=None,
-                      user=None, tokamak=None, version=None, lids=None):
-        if dids is None:
-            lc = [shot != None, run != None, refshot != None, refrun != None,
-                  user != None, tokamak != None, version != None, lids != None]
-            if any(lc):
-                dids = cls._get_didsfromkwdargs(shot=shot, run=run,
-                                                refshot=refshot,
-                                                refrun=refrun,
-                                                user=user, tokamak=tokamak,
-                                                version=version, lids=lids)
-        return dids
 
     @classmethod
     def _get_didsfromkwdargs(cls, shot=None, run=None, refshot=None, refrun=None,
@@ -618,7 +610,7 @@ class MultiIDSLoader(object):
                                      sep=sep, line=line, just=just, msg=False)
             print('\n'.join(msgar[:2]))
 
-        nline = 0
+        nline, lerr = 0, []
         for ii in range(0,len(llids)):
             for jj in range(0,len(llids[ii][1])):
                 ids = llids[ii][1][jj]
@@ -633,13 +625,23 @@ class MultiIDSLoader(object):
                     self._dids[ids]['needidd'] = False
 
                 if verb:
-                    print(msgar[2+nline])
+                    print(msgar[2+nline], end='    ...')
 
-                for ll in range(0,len(oc)):
-                    if self._dids[ids]['isget'][indoc[ll]] == False:
-                        self._dids[ids]['ids'][indoc[ll]].get( oc[ll] )
-                        self._dids[ids]['isget'][indoc[ll]] = True
+                try:
+                    for ll in range(0,len(oc)):
+                        if self._dids[ids]['isget'][indoc[ll]] == False:
+                            self._dids[ids]['ids'][indoc[ll]].get( oc[ll] )
+                            self._dids[ids]['isget'][indoc[ll]] = True
+                    done = 'ok'
+                except Exception as err:
+                    done = 'error !'
+                    lerr.append(err)
+                if verb:
+                    print(done)
+
                 nline += 1
+
+        return lerr
 
 
     def _close(self, idd=None):
@@ -656,8 +658,11 @@ class MultiIDSLoader(object):
         llids = self._checkformat_ids(idsname)
         lidd = [lids[0] for lids in llids]
         self._open(idd=lidd)
-        self._get(occ=occ, llids=llids)
+        lerr = self._get(occ=occ, llids=llids)
         self._close(idd=lidd)
+        if verb and len(lerr) > 0:
+            for err in lerr:
+                warnings.warn(str(err))
 
 
     #---------------------
