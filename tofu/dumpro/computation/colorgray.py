@@ -137,7 +137,6 @@ def convertgray(video_file,meta_data = None , path = None, output_name = None, o
     pfe = os.path.join(path, output_name + output_type)
     out = cv2.VideoWriter(pfe, fourcc, fps,
                           (frame_width,frame_height),0)    
-    print(frame_height, frame_width)
     
     frame_count = 0
     if verb == True:
