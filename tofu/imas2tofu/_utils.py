@@ -216,6 +216,24 @@ class MultiIDSLoader(object):
 
 
 
+    # Preset
+
+    _dpreset = {
+                'plasma2d':
+                {'wall':['domainR','domainZ'],
+                 'equilibrium':['time','ax'],
+                 'core_profiles':['time','Te','ne'],
+                 'core_sources':[]},
+
+                'ece':
+                {'wall':['domainR','domainZ'],
+                 'ece':None,
+                 'core_profiles':['time','Te','ne']}
+               }
+
+
+
+
     ###################################
     ###################################
     #       Methods
@@ -266,9 +284,10 @@ class MultiIDSLoader(object):
         if defidd is None:
             defidd = cls._defidd
         didd = {}
+
+        # Check ids
         for k, v in dids.items():
 
-            # Check value and make dict if necessary
             lc0 = [v is None or v == {}, type(v) is dict, hasattr(v, 'ids_properties')]
             assert any(lc0)
             if lc0[0]:
@@ -314,21 +333,6 @@ class MultiIDSLoader(object):
                 dids[k]['needidd'] = False
             v = dids[k]
 
-            # ----------------
-            # check and open idd, populate didd
-            # ----------------
-            idd = v.get('idd', None)
-            if idd is None:
-                dids[k]['idd'] = None
-                continue
-            kwargs = {}
-            if type(idd) is dict:
-                idd, kwargs = None, idd
-            diddi = cls._checkformat_idd(idd=idd, **kwargs)
-
-            name = list(diddi.keys())[0]
-            didd[name] = diddi[name]
-            dids[k]['idd'] = name
 
         # --------------
         #   Now use idd for ids without idd needing one
@@ -493,6 +497,100 @@ class MultiIDSLoader(object):
         assert type(longstr) is str
         self._dshort[ids][short] = {'str':longstr}
         self._set_fsig()
+
+    #############
+    # preset
+
+    @classmethod
+    def _preset(cls, obj=None, ids=None, return_=False, verb=True, sep='  ', line='-', just='l'):
+        if obj is None:
+            obj = cls
+        if ids is None:
+            lids = list(obj._dids.keys())
+        elif ids == 'all':
+            lids = list(obj._dpreset.keys())
+        else:
+            lc = [type(ids) is str, type(ids) is list and all([type(ss) is str
+                                                               for ss in ids])]
+            assert any(lc), "ids must be an ids name or a list of such !"
+            if lc[0]:
+                lids = [ids]
+            else:
+                lids = lids
+
+        lids = sorted(set(lids).intersection(obj._dpreset.keys()))
+
+        preset = []
+        for ids in lids:
+            lks = obj._dpreset[ids].keys()
+            if ids in obj._dcomp.keys():
+                lkc = obj._dcomp[ids].keys()
+                lk = sorted(set(lks).union(lkc))
+            else:
+                lk = sorted(lks)
+            for kk in lk:
+                if kk in lks:
+                    ss = obj._dpreset[ids][kk]['str']
+                else:
+                    ss = 'f( %s )'%(', '.join(obj._dcomp[ids][kk]['lstr']))
+                preset.append((ids, kk, ss))
+
+        if verb:
+            col = ['preset', 'ids', 'shortcuts']
+            msg = obj._getcharray(short, col, sep=sep, line=line, just=just)
+            print(msg)
+        if return_:
+            return short
+
+    def get_shortcuts(self, ids=None, return_=False, verb=True, sep='  ', line='-', just='l'):
+        """ Display and/or return the builtin shortcuts for imas signal names
+
+        By default (ids=None), only display shortcuts for stored ids
+        To display all possible shortcuts, use ids='all'
+        To display shortcuts for a specific ids, use ids=<idsname>
+
+        These shortcuts can be customized (with self.set_shortcuts())
+        They are useful for use with self.get_data()
+
+        """
+        return self._shortcuts(obj=self, ids=ids, return_=return_, verb=verb,
+                               sep=sep, line=line, just=just)
+
+    def set_shortcuts(self, dshort=None):
+        dsh = copy.deepcopy(self.__class__._dshort)
+        if dshort is not None:
+            c0 = type(dshort) is dict
+            c1 = c0 and all([k0 in self._lidsnames and type(v0) is dict
+                             for k0,v0 in dshort.items()])
+            c2 = c1 and all([all([type(k1) is str and type(v1) in {str,dict}
+                                  for k1,v1 in v0.items()])
+                             for v0 in dshort.values()])
+            if not c2:
+                msg = "Arg dshort should be a dict with valid ids as keys:\n"
+                msg += "    {'ids0': {'shortcut0':'long_version0',\n"
+                msg += "              'shortcut1':'long_version1'},\n"
+                msg += "     'ids1': {'shortcut2':'long_version2',...}}"
+                raise Exception(msg)
+
+            for k0,v0 in dshort.items():
+                for k1,v1 in v0.items():
+                    if type(v1) is str:
+                        dshort[k0][k1] = {'str':v1}
+                    else:
+                        assert 'str' in v1.keys() and type(v1['str']) is str
+
+            for k0, v0 in dshort.items():
+                dsh[k0].update(dshort[k0])
+        self._dshort = dsh
+        self._set_fsig()
+
+    def update_shortcuts(self, ids, short, longstr):
+        assert ids in self._dids.keys()
+        assert type(short) is str
+        assert type(longstr) is str
+        self._dshort[ids][short] = {'str':longstr}
+        self._set_fsig()
+
 
 
 
