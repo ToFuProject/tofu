@@ -53,13 +53,18 @@ class MultiIDSLoader(object):
 
 
 
+    ###################################
+    #       Default class attributes
+    ###################################
+
+
     _def = {'isget':False,
             'ids':None, 'occ':0, 'needidd':True}
     _defidd = _IMAS_DIDD
 
     _lidsnames = [k for k in dir(imas) if k[0] != '_']
-    _didsk = {'tokamak':15, 'user':15, 'version':7,
-              'shot':6, 'run':3, 'refshot':6, 'refrun':3}
+    _lidsk = ['tokamak', 'user', 'version',
+              'shot', 'run', 'refshot', 'refrun']
 
     # Known short version of signal str
     _dshort = {
@@ -121,6 +126,9 @@ class MultiIDSLoader(object):
                {'time':{'str':'time'},
                 'bla':{'str':'bla'}},
 
+               'magnetics':
+               {'time':{'str':'time'}},
+
                'ece':
                {'time':{'str':'time'},
                 'freq':{'str':'channel[chan].frequency.data'},
@@ -156,7 +164,7 @@ class MultiIDSLoader(object):
 
 
     _lidslos = ['interferometer', 'bolometer', 'soft_x_rays',
-             'spectrometer_visible']
+                'spectrometer_visible', 'bremsstrahlung_visible']
     for ids in _lidslos:
         dlos = {}
         dlos['los_pt1R'] = {'str':'channel[chan].line_of_sight.first_point.r'}
@@ -207,59 +215,46 @@ class MultiIDSLoader(object):
     _dall_except['equilibrium'] = ['axR','axZ']
 
 
-    def __init__(self, dids=None,
+
+    ###################################
+    ###################################
+    #       Methods
+    ###################################
+
+
+    def __init__(self, dids=None, ids=None, occ=None, idd=None,
                  shot=None, run=None, refshot=None, refrun=None,
-                 user=None, tokamak=None, version=None, lids=None, get=True):
+                 user=None, tokamak=None, version=None, get=True, ref=True):
         super(MultiIDSLoader, self).__init__()
-        self.set_dids(dids=dids, shot=shot, run=run, refshot=refshot,
-                      refrun=refrun, user=user, tokamak=tokamak,
-                      version=version, lids=lids)
+
+        # Initialize dicts
+        self._init_dict()
+        # Check and format inputs
+        if dids is None:
+            self.add_idd(idd=idd,
+                         shot=shot, run=run, refshot=refshot, refrun=refrun,
+                         user=user, tokamak=tokamak, version=version, ref=ref)
+            lidd = list(self._didd.keys())
+            assert len(lidd) <= 1
+            idd = lidd[0] if len(lidd) > 0 else None
+            self.add_ids(ids=ids, occ=occ, idd=idd, get=False)
+        else:
+            self.set_dids(dids)
         self._set_fsig()
         if get:
             self.open_get_close()
 
+    def _init_dict(self):
+        self._didd = {}
+        self._dids = {}
+        self._refidd = None
 
-    def set_dids(self, dids=None,
-                 shot=None, run=None, refshot=None, refrun=None,
-                 user=None, tokamak=None, version=None, lids=None):
-        lc = [dids is not None, lids is not None]
-        if not np.sum(lc) == 1:
-            msg = "Provide either a dids (dict) or an idsname !"
-            raise Exception(msg)
-        if lc[1]:
-            dids = self._get_didsfromkwdargs(shot=shot, run=run,
-                                             refshot=refshot, refrun=refrun,
-                                             user=user, tokamak=tokamak,
-                                             version=version, lids=lids)
-
-        if dids is None:
-            didd, dids, refidd = None, None, None
+    def set_dids(self, dids=None):
         didd, dids, refidd = self._get_diddids(dids)
         self._dids = dids
         self._didd = didd
         self._refidd = refidd
 
-    @classmethod
-    def _get_didsfromkwdargs(cls, shot=None, run=None, refshot=None, refrun=None,
-                             user=None, tokamak=None, version=None, lids=None):
-        dids = None
-        # lc = [shot != None, run != None, refshot != None, refrun != None,
-              # user != None, tokamak != None, version != None]
-        if lids is not None:
-            lc = [type(lids) is str, type(lids) is list]
-            assert any(lc)
-            if lc[0]:
-                lids = [lids]
-            if not all([ids in cls._lidsnames for ids in lids]):
-                msg = "All provided ids names must be valid ids identifiers:\n"
-                msg += "    - Provided: %s\n"%str(lids)
-                msg += "    - Expected: %s"%str(cls._lidsnames)
-                raise Exception(msg)
-
-            kwdargs = dict(shot=shot, run=run, refshot=refshot, refrun=refrun,
-                           user=user, tokamak=tokamak, version=version)
-            dids = dict([(ids,{'idd':kwdargs}) for ids in lids])
-        return dids
 
     @classmethod
     def _get_diddids(cls, dids, defidd=None):
@@ -323,45 +318,16 @@ class MultiIDSLoader(object):
             # check and open idd, populate didd
             # ----------------
             idd = v.get('idd', None)
-            lc = [idd is None, type(idd) is dict, hasattr(idd, 'close')]
-            assert any(lc)
-
-            if lc[0]:
+            if idd is None:
                 dids[k]['idd'] = None
                 continue
+            kwargs = {}
+            if type(idd) is dict:
+                idd, kwargs = None, idd
+            diddi = cls._checkformat_idd(idd=idd, **kwargs)
 
-            id_, params = None, {}
-            if lc[1]:
-                idd = dict([(kk,vv) for kk,vv in idd.items() if vv is not None])
-                isopen = v.get('isopen', False)
-                for kk,vv in defidd.items():
-                    params[kk] = idd.get(kk,vv)
-                id_ = imas.ids(params['shot'], params['run'],
-                               params['refshot'], params['refrun'])
-            elif lc[2]:
-                params = {'shot':idd.shot, 'run':idd.run,
-                          'refshot':idd.getRefShot(), 'refrun':idd.getRefRun()}
-                expIdx = idd.expIdx
-                if not (expIdx == -1 or expIdx > 0):
-                    msg = "Status of the provided idd could not be determined:\n"
-                    msg += "    - idd.expIdx : %s   (should be -1 or >0)\n"%str(expIdx)
-                    msg += "    - (shot, run): %s\n"%str((dd['idd'].shot, dd['idd'].run))
-                    raise Exception(msg)
-                isopen = dd.get('isopen', expIdx > 0)
-                if isopen != (expIdx > 0):
-                    msg = "Provided isopen does not match observed value:\n"
-                    msg += "    - isopen: %s\n"%str(isopen)
-                    msg += "    - expIdx: %s"%str(expIdx)
-                    raise Exception(msg)
-                id_ = idd
-            if 'user' in params.keys():
-                name = [params['user'], params['tokamak'], params['version']]
-            else:
-                name = [str(id(id_))]
-            name += ['{:06.0f}'.format(params['shot']),
-                     '{:05.0f}'.format(params['run'])]
-            name = '_'.join(name)
-            didd[name] = {'idd':id_, 'params':params, 'isopen':isopen}
+            name = list(diddi.keys())[0]
+            didd[name] = diddi[name]
             dids[k]['idd'] = name
 
         # --------------
@@ -533,7 +499,7 @@ class MultiIDSLoader(object):
     #############
     # data access
 
-    def _checkformat_idd(self, idd=None):
+    def _checkformat_get_idd(self, idd=None):
         lk = self._didd.keys()
         lc = [idd is None, type(idd) is str and idd in lk,
               hasattr(idd,'__iter__') and all([ii in lk for ii in idd])]
@@ -546,7 +512,7 @@ class MultiIDSLoader(object):
             lidd = idd
         return lidd
 
-    def _checkformat_ids(self, ids=None):
+    def _checkformat_get_ids(self, ids=None):
         """ Return a list of tuple (idd, lids) """
         lk = self._dids.keys()
         lc = [ids is None, type(ids) is str and ids in lk,
@@ -564,9 +530,14 @@ class MultiIDSLoader(object):
         return llids
 
     def _open(self, idd=None):
-        lidd = self._checkformat_idd(idd)
+        lidd = self._checkformat_get_idd(idd)
         for k in lidd:
             if self._didd[k]['isopen'] == False:
+                if not all([ss in self._didd[k]['params'].keys()
+                            for ss in ['user','tokamak','version']]):
+                    msg = "idd cannot be opened with user, tokamak, version !\n"
+                    msg += "    - name : %s"%k
+                    raise Exception(msg)
                 args = (self._didd[k]['params']['user'],
                         self._didd[k]['params']['tokamak'],
                         self._didd[k]['params']['version'])
@@ -575,13 +546,15 @@ class MultiIDSLoader(object):
 
     def _get(self, idsname=None, occ=None, llids=None, verb=True,
              sep='  ', line='-', just='l'):
+
+        lerr = []
         if llids is None:
-            llids = self._checkformat_ids(idsname)
+            llids = self._checkformat_get_ids(idsname)
         if len(llids) == 0:
-            return
+            return lerr
 
         if verb:
-            msg0 = ['Getting ids', '[occ]'] + list(self._didsk.keys())
+            msg0 = ['Getting ids', '[occ]'] + self._lidsk
             lmsg = []
 
         docc = {}
@@ -600,9 +573,9 @@ class MultiIDSLoader(object):
                     msg = [ids, str(oc)]
                     if jj == 0:
                         msg += [str(self._didd[llids[ii][0]]['params'][kk])
-                                for kk in self._didsk.keys()]
+                                for kk in self._lidsk]
                     else:
-                        msg += ['""' for _ in self._didsk]
+                        msg += ['""' for _ in self._lidsk]
                     lmsg.append(msg)
 
         if verb:
@@ -610,7 +583,7 @@ class MultiIDSLoader(object):
                                      sep=sep, line=line, just=just, msg=False)
             print('\n'.join(msgar[:2]))
 
-        nline, lerr = 0, []
+        nline = 0
         for ii in range(0,len(llids)):
             for jj in range(0,len(llids[ii][1])):
                 ids = llids[ii][1][jj]
@@ -645,7 +618,7 @@ class MultiIDSLoader(object):
 
 
     def _close(self, idd=None):
-        lidd = self._checkformat_idd(idd)
+        lidd = self._checkformat_get_idd(idd)
         for k in lidd:
             self._didd[k]['idd'].close()
             self._didd[k]['isopen'] = False
@@ -654,8 +627,8 @@ class MultiIDSLoader(object):
         lids = [k for k,v in self._dids.items() if np.any(v['isget'] == False)]
         return lids
 
-    def open_get_close(self, idsname=None, occ=None, verb=True):
-        llids = self._checkformat_ids(idsname)
+    def open_get_close(self, ids=None, occ=None, verb=True):
+        llids = self._checkformat_get_ids(ids)
         lidd = [lids[0] for lids in llids]
         self._open(idd=lidd)
         lerr = self._get(occ=occ, llids=llids)
@@ -666,28 +639,198 @@ class MultiIDSLoader(object):
 
 
     #---------------------
-    # Methods for adding ids
+    # Methods for adding / removing idd / ids
     #---------------------
 
-    def add_ids(self, idsname=None, occ=None,
+    @classmethod
+    def _checkformat_idd(cls, idd=None,
+                         shot=None, run=None, refshot=None, refrun=None,
+                         user=None, tokamak=None, version=None,
+                         isopen=None, ref=None, defidd=None):
+        lc = [idd is None, shot is None]
+        if not any(lc):
+            msg = "You cannot provide both idd and shot !"
+            raise Exception(msg)
+
+        if all(lc):
+            didd = {}
+            return didd
+        if defidd is None:
+            defidd = cls._defidd
+
+        if lc[0]:
+            assert type(shot) in [int,np.int]
+            params = dict(shot=int(shot), run=run, refshot=refshot, refrun=refrun,
+                          user=user, tokamak=tokamak, version=version)
+            for kk,vv in defidd.items():
+                if params[kk] is None:
+                    params[kk] = vv
+            idd = imas.ids(params['shot'], params['run'],
+                           params['refshot'], params['refrun'])
+            isopen = False
+
+        elif lc[1]:
+            assert hasattr(idd,'close'), "idd does not seem to be data entry !"
+            params = {'shot':idd.shot, 'run':idd.run,
+                      'refshot':idd.getRefShot(), 'refrun':idd.getRefRun()}
+            expIdx = idd.expIdx
+            if not (expIdx == -1 or expIdx > 0):
+                msg = "Status of the provided idd could not be determined:\n"
+                msg += "    - idd.expIdx : %s   (should be -1 or >0)\n"%str(expIdx)
+                msg += "    - (shot, run): %s\n"%str((idd.shot, idd.run))
+                raise Exception(msg)
+            if isopen is not None:
+                if isopen != (expIdx > 0):
+                    msg = "Provided isopen does not match observed value:\n"
+                    msg += "    - isopen: %s\n"%str(isopen)
+                    msg += "    - expIdx: %s"%str(expIdx)
+                    raise Exception(msg)
+            isopen = expIdx > 0
+
+        if 'user' in params.keys():
+            name = [params['user'], params['tokamak'], params['version']]
+        else:
+            name = [str(id(idd))]
+        name += ['{:06.0f}'.format(params['shot']),
+                 '{:05.0f}'.format(params['run'])]
+        name = '_'.join(name)
+        didd = {name:{'idd':idd, 'params':params, 'isopen':isopen}}
+        return didd
+
+
+    def set_refidd(self, idd=None):
+        if len(self._didd.keys()) == 0:
+            assert idd is None
+        else:
+            assert idd in self._didd.keys()
+        self._refidd = idd
+
+    def add_idd(self, idd=None,
                 shot=None, run=None, refshot=None, refrun=None,
                 user=None, tokamak=None, version=None,
-                dids=None, get=False):
-        lc = [dids is not None, idsname is not None]
-        if not np.sum(lc) == 1:
-            msg = "Provide either a dids (dict) or an idsname !"
-            raise Exception(msg)
-        if lc[1]:
-            dids = self._get_didsfromkwdargs(shot=shot, run=run,
-                                             refshot=refshot, refrun=refrun,
-                                             user=user, tokamak=tokamak,
-                                             version=version, lids=idsname)
-        defidd = self._didd[self._refidd]['params']
-        didd, dids, refidd = self._get_diddids(dids, defidd=defidd)
-        self._dids.update(dids)
+                ref=None, return_name=False):
+        assert ref in [None, True]
+        # didd
+        didd = self._checkformat_idd(idd=idd,
+                                         shot=shot, run=run,
+                                         refshot=refshot, refrun=refrun,
+                                         user=user, tokamak=tokamak,
+                                         version=version)
         self._didd.update(didd)
-        if get:
-            self.open_get_close(idsname=idsname)
+
+        # ref
+        if ref is None:
+            ref = self._refidd  is None
+        if ref == True and len(didd.keys())>0:
+            self.set_refidd(list(didd.keys())[0])
+        if return_name:
+            return name
+
+    def _checkformat_ids(self, ids, occ=None, idd=None, isget=None):
+
+        # Check value and make dict if necessary
+        lc = [type(ids) is str,
+              type(ids) is list,
+              hasattr(ids, 'ids_properties')]
+        if not any(lc):
+            msg = "Arg ids must be either:\n"
+            msg += "    - str : valid ids name\n"
+            msg += "    - a list of such\n"
+            msg += "    - an ids itself\n"
+            msg += "  Provided: %s\n"%str(ids)
+            msg += "  Conditions: %s"%str(lc)
+            raise Exception(msg)
+
+        # Prepare dids[name] = {'ids':None/ids, 'needidd':bool}
+        dids = {}
+        if lc[0]or lc[1]:
+            if lc[0]:
+                ids = [ids]
+            for k in ids:
+                dids[k] = {'ids':None, 'needidd':True, 'idd':idd}
+            lids = ids
+        elif lc[2]:
+            dids[ids.__class__.__name__] = {'ids':ids,
+                                            'needidd':False, 'idd':idd}
+            lids = [ids.__class__.__name__]
+        nids = len(lids)
+
+        # Check / format occ and deduce nocc
+        if occ is None:
+            occ = 0
+        lc = [type(occ) in [int,np.int], hasattr(occ,'__iter__')]
+        assert any(lc)
+        if lc[0]:
+            occ = [np.r_[occ].astype(int) for _ in range(0,nids)]
+        else:
+            if len(occ) == nids:
+                occ = [np.r_[oc].astype(int) for oc in occ]
+            else:
+                occ = [np.r_[occ].astype(int) for _ in range(0,nids)]
+        for ii in range(0,nids):
+            nocc = occ[ii].size
+            dids[lids[ii]]['occ'] = occ[ii]
+            dids[lids[ii]]['nocc'] = nocc
+            if dids[lids[ii]]['ids'] is not None:
+                dids[lids[ii]]['ids'] = [dids[lids[ii]]['ids']]*nocc
+
+
+        # Format isget / get
+        for ii in range(0,nids):
+            nocc = dids[lids[ii]]['nocc']
+            if dids[lids[ii]]['ids'] is None:
+                isgeti = np.zeros((nocc,), dtype=bool)
+            if dids[lids[ii]]['ids'] is not None:
+                if isget is None:
+                    isgeti = False
+                elif type(isget) is bool:
+                    isgeti = bool(isget)
+                elif hasattr(isget,'__iter__'):
+                    if len(isget) == nids:
+                        isgeti = np.r_[isget[ii]]
+                    else:
+                        isgeti = np.r_[isget]
+
+            assert isgeti.size in [1,nocc]
+            if isgeti.size < nocc:
+                isgeti = np.repeat(isgeti,nocc)
+            dids[lids[ii]]['isget'] = isgeti
+
+        return dids
+
+
+
+    def add_ids(self, ids=None, occ=None, idd=None,
+                shot=None, run=None, refshot=None, refrun=None,
+                user=None, tokamak=None, version=None,
+                ref=None, isget=None, get=False):
+
+        # Add idd if relevant
+        if hasattr(idd, 'close') or shot is not None:
+            name = self.add_idd(idd=idd,
+                                shot=shot, run=run,
+                                refshot=refshot, refrun=refrun,
+                                user=user, tokamak=tokamak,
+                                version=version, ref=ref, return_name=True)
+            idd = name
+
+        if idd is None and ids is not None:
+            if self._refidd is None:
+                msg = "idd is None, but the ref idd is not clear:\n"
+                msg += "    - %s"%str([(k,v.get('ref',None))
+                                       for k,v in self._didd.items()])
+                raise Exception(msg)
+            idd = self._refidd
+        elif idd is not None:
+            assert idd in self._didd.keys()
+
+        # Add ids
+        if ids is not None:
+            dids = self._checkformat_ids(ids, occ=occ, idd=idd, isget=isget)
+
+            self._dids.update(dids)
+            if get:
+                self.open_get_close(ids=ids)
 
 
     def remove_ids(self, idsname=None, occ=None):
@@ -734,28 +877,40 @@ class MultiIDSLoader(object):
         # -----------------------
         # idd
         a0 = []
-        c0 = ['idd', 'user', 'tokamak', 'version',
-              'shot', 'run', 'refshot', 'refrun', 'isopen', '']
-        for k0,v0 in self._didd.items():
-            lu = ([k0] + [str(v0['params'][k]) for k in c0[1:-2]]
-                  + [str(v0['isopen'])])
-            ref = '(ref)' if k0==self._refidd else ''
-            lu += [ref]
-            a0.append(lu)
-        a0 = np.array(a0, dtype='U')
+        if len(self._didd) > 0:
+            c0 = ['idd', 'user', 'tokamak', 'version',
+                  'shot', 'run', 'refshot', 'refrun', 'isopen', '']
+            for k0,v0 in self._didd.items():
+                lu = ([k0] + [str(v0['params'][k]) for k in c0[1:-2]]
+                      + [str(v0['isopen'])])
+                ref = '(ref)' if k0==self._refidd else ''
+                lu += [ref]
+                a0.append(lu)
+            a0 = np.array(a0, dtype='U')
 
         # -----------------------
-        # ids direct
-        c1 = ['ids', 'idd', 'occ', 'isget']
-        a1 = [[k0, v0['idd'], str(v0['occ']), str(v0['isget'])]
-              for k0,v0 in self._dids.items()]
-        a1 = np.array(a1, dtype='U')
+        # ids
+        if len(self._dids) > 0:
+            c1 = ['ids', 'idd', 'occ', 'isget']
+            a1 = [[k0, v0['idd'], str(v0['occ']), str(v0['isget'])]
+                  for k0,v0 in self._dids.items()]
+            a1 = np.array(a1, dtype='U')
+        else:
+            a1 = []
 
+
+        # Out
         if verb or return_ in [True,'msg']:
-            msg0 = self._getcharray(a0, c0,
-                                    sep=sep, line=line, just=just)
-            msg1 = self._getcharray(a1, c1,
-                                    sep=sep, line=line, just=just)
+            if len(self._didd) > 0:
+                msg0 = self._getcharray(a0, c0,
+                                        sep=sep, line=line, just=just)
+            else:
+                msg0 = ''
+            if len(self._dids) > 0:
+                msg1 = self._getcharray(a1, c1,
+                                        sep=sep, line=line, just=just)
+            else:
+                msg1 = ''
             if verb:
                 msg = '\n\n'.join([msg0,msg1])
                 print(msg)
@@ -1068,7 +1223,8 @@ class MultiIDSLoader(object):
         if not np.all(indok):
             msg = "All desired occurences shall have been gotten !\n"
             msg += "    - occ:   %s\n"%str(occ)
-            msg += "    - isget: %s"%str(self._dids[ids]['isget'])
+            msg += "    - isget: %s\n"%str(self._dids[ids]['isget'])
+            msg += "  => Try running self.open_get_close()"
             raise Exception(msg)
 
         # check indch if ids has channels
@@ -1089,4 +1245,5 @@ class MultiIDSLoader(object):
                 msg = '\n' + str(err) + '\n'
                 msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
                 warnings.warn(msg)
+                del dout[sig[ii]]
         return dout
