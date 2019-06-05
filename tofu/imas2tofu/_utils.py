@@ -127,7 +127,9 @@ class MultiIDSLoader(object):
                 'bla':{'str':'bla'}},
 
                'magnetics':
-               {'time':{'str':'time'}},
+               {'time':{'str':'time'},
+                'ip':{'str':'method[0].ip.data'},
+                'diamagflux':{'str':'method[0].diamagnetic_flux.data'}},
 
                'ece':
                {'time':{'str':'time'},
@@ -482,6 +484,10 @@ class MultiIDSLoader(object):
                                sep=sep, line=line, just=just)
 
     def set_shortcuts(self, dshort=None):
+        """ Set the dictionary of shortcuts
+
+        If None, resets to the class's default dict
+        """
         dsh = copy.deepcopy(self.__class__._dshort)
         if dshort is not None:
             c0 = type(dshort) is dict
@@ -573,6 +579,10 @@ class MultiIDSLoader(object):
                             sep=sep, line=line, just=just)
 
     def set_preset(self, dpreset=None):
+        """ Set the dictionary of preselections
+
+        If None, resets to the class's default dict
+        """
         dpr = copy.deepcopy(self.__class__._dpreset)
         if dpreset is not None:
             c0 = type(dpreset) is dict
@@ -720,7 +730,7 @@ class MultiIDSLoader(object):
                     self._dids[ids]['needidd'] = False
 
                 if verb:
-                    print(msgar[2+nline], end='    ...')
+                    print(msgar[2+nline])
 
                 try:
                     for ll in range(0,len(oc)):
@@ -731,8 +741,8 @@ class MultiIDSLoader(object):
                 except Exception as err:
                     done = 'error !'
                     lerr.append(err)
-                if verb:
-                    print(done)
+                    if verb:
+                        print('        => failed !')
 
                 nline += 1
 
@@ -848,6 +858,24 @@ class MultiIDSLoader(object):
         if return_name:
             return name
 
+    def remove_idd(self, idd=None):
+        """Remove an idd and all its dependencies (ids) """
+        if idd is not None:
+            if not idd in self._didd.keys():
+                msg = "Please provide the name (str) of a valid idd\n"
+                msg += "Currently available idd are:\n"
+                msg += "    - %s"%str(sorted(self._didd.keys()))
+                raise Exception(msg)
+            lids = [k for k,v in self._dids.items() if v['idd']==idd]
+            del self._didd[idd]
+            for ids in lids:
+                del self._dids[ids]
+
+    def get_idd(self, idd):
+        assert idd in self._didd.keys()
+        return self._didd[idd]['idd']
+
+
     def _checkformat_ids(self, ids, occ=None, idd=None, isget=None):
 
         # Check value and make dict if necessary
@@ -926,6 +954,12 @@ class MultiIDSLoader(object):
                 shot=None, run=None, refshot=None, refrun=None,
                 user=None, tokamak=None, version=None,
                 ref=None, isget=None, get=False):
+        """ Add an ids (or a list of ids)
+
+        Optionally specify also a specific idd to which the ids will be linked
+        The ids can be provided as such, or by name (str)
+
+        """
 
         # Add idd if relevant
         if hasattr(idd, 'close') or shot is not None:
@@ -955,30 +989,39 @@ class MultiIDSLoader(object):
                 self.open_get_close(ids=ids)
 
 
-    def remove_ids(self, idsname=None, occ=None):
-        if idsname is not None:
-            assert idsname in self._dids.keys()
-            occref = self._dids[idsname]['occ']
+    def remove_ids(self, ids=None, occ=None):
+        """ Remove an ids (optionally remove only an occurence)
+
+        If all the ids linked to an idd are removed, said idd is removed too
+
+        """
+        if ids is not None:
+            if not ids in self._dids.keys():
+                msg = "Please provide the name (str) of a valid ids\n"
+                msg += "Currently available ids are:\n"
+                msg += "    - %s"%str(sorted(self._dids.keys()))
+                raise Exception(msg)
+            occref = self._dids[ids]['occ']
             if occ is None:
                 occ = occref
             else:
                 occ = np.unique(np.r_[occ].astype(int))
                 occ = np.intersect1d(occ, occref, assume_unique=True)
-            idd = self._dids[idsname]['idd']
+            idd = self._dids[ids]['idd']
             lids = [k for k,v in self._dids.items() if v['idd']==idd]
-            if lids == [idsname]:
+            if lids == [ids]:
                 del self._didd[idd]
             if np.all(occ == occref):
-                del self._dids[idsname]
+                del self._dids[ids]
             else:
-                isgetref = self._dids[idsname]['isget']
+                isgetref = self._dids[ids]['isget']
                 indok = np.array([ii for ii in range(0,occref.size)
                                   if occref[ii] not in occ])
-                self._dids[idsname]['ids'] = [self._dids[idsname]['ids'][ii]
+                self._dids[ids]['ids'] = [self._dids[ids]['ids'][ii]
                                               for ii in indok]
-                self._dids[idsname]['occ'] = occref[indok]
-                self._dids[idsname]['isget'] = isgetref[indok]
-                self._dids[idsname]['nocc'] = self._dids[idsname]['occ'].size
+                self._dids[ids]['occ'] = occref[indok]
+                self._dids[ids]['isget'] = isgetref[indok]
+                self._dids[ids]['nocc'] = self._dids[ids]['occ'].size
 
     def get_ids(self, ids, occ=None):
         assert ids in self._dids.keys()
@@ -987,6 +1030,7 @@ class MultiIDSLoader(object):
         else:
             assert occ in self._dids[ids]['occ']
         return self._dids[ids]['ids'][occ]
+
 
     #---------------------
     # Methods for showing content
