@@ -85,10 +85,14 @@ class MultiIDSLoader(object):
                 'BT0':{'str':'time_slice[time].global_quantities.magnetic_axis.b_field_tor'},
                 'axR':{'str':'time_slice[time].global_quantities.magnetic_axis.r'},
                 'axZ':{'str':'time_slice[time].global_quantities.magnetic_axis.z'},
-                # 'xR':{'str':'time_slice[time].boundary.x_point[].r'},
-                # 'xZ':{'str':'time_slice[time].boundary.x_point[].z'},
-                # 'strikeR':{'str':'time_slice[time].boundary.strike_point[].r'},
-                # 'strikeZ':{'str':'time_slice[time].boundary.strike_point[].z'},
+                'x0R':{'str':'time_slice[time].boundary.x_point[0].r'},
+                'x0Z':{'str':'time_slice[time].boundary.x_point[0].z'},
+                'x1R':{'str':'time_slice[time].boundary.x_point[1].r'},
+                'x1Z':{'str':'time_slice[time].boundary.x_point[1].z'},
+                'strike0R':{'str':'time_slice[time].boundary.strike_point[0].r'},
+                'strike0Z':{'str':'time_slice[time].boundary.strike_point[0].z'},
+                'strike1R':{'str':'time_slice[time].boundary.strike_point[1].r'},
+                'strike1Z':{'str':'time_slice[time].boundary.strike_point[1].z'},
                 'sepR':{'str':'time_slice[time].boundary_separatrix.outline.r'},
                 'sepZ':{'str':'time_slice[time].boundary_separatrix.outline.z'},
 
@@ -207,9 +211,11 @@ class MultiIDSLoader(object):
               {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array},
                'sep':{'lstr':['sepR','sepZ'],
                       'func':_eqSep, 'kargs':{'npts':100}},
-               '2dB':{'lstr':['2dBT', '2dBR', '2dBZ'], 'func':_eqB}},
-               #'X':{'lstr':['xR','xZ'], 'func':_RZ2array},
-               #'strike':{'lstr':['strikeR','strikeZ'], 'func':_RZ2array}}
+               '2dB':{'lstr':['2dBT', '2dBR', '2dBZ'], 'func':_eqB},
+               'x0':{'lstr':['x0R','x0Z'], 'func':_RZ2array},
+               'x1':{'lstr':['x1R','x1Z'], 'func':_RZ2array},
+               'strike0':{'lstr':['strike0R','strike0Z'], 'func':_RZ2array},
+               'strike1':{'lstr':['strike1R','strike1Z'], 'func':_RZ2array}},
 
               'core_sources':
              {'prad1d':{'lstr':['brem1d','line1d'], 'func':_add}}
@@ -233,7 +239,9 @@ class MultiIDSLoader(object):
     for ids in _lidslos:
         _dall_except[ids] = _lstr
     _dall_except['equilibrium'] = ['axR','axZ','sepR','sepZ',
-                                   '2dBT','2dBR','2dBZ']
+                                   '2dBT','2dBR','2dBZ',
+                                   'x0R','x0Z','x1R','x1Z',
+                                   'strike0R','strike0Z', 'strike1R','strike1Z']
 
 
 
@@ -1301,12 +1309,19 @@ class MultiIDSLoader(object):
         for ii in range(0,ns):
             nseq = len(seq)
             if lc[ii]:
+                # there is []
                 if nseq > 0:
                     dcond[jj] = {'type':0, 'lstr': seq}
                     seq = []
                     jj += 1
+
+                # Isolate [strin]
                 ss = ls0[ii]
                 strin = ss[ss.index('[')+1:-1]
+
+                # typ 0 => no dependency
+                # typ 1 => dependency ([],[time],[chan],[int])
+                # typ 2 => selection ([...=...])
                 cond, ind, typ = None, None, 1
                 if '=' in strin:
                     typ = 2
