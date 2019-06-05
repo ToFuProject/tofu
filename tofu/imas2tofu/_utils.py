@@ -73,10 +73,10 @@ class MultiIDSLoader(object):
                 'domainZ':{'str':'description_2d[0].limiter.unit[0].outline.z'}},
 
                'pulse_schedule':
-               {'time':{'str':'time'}},
+               {'t':{'str':'time'}},
 
                'equilibrium':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 'ip':{'str':'time_slice[time].global_quantities.ip'},
                 'q0':{'str':'time_slice[time].global_quantities.q_axis'},
                 'qmin':{'str':'time_slice[time].global_quantities.q_min.value'},
@@ -109,8 +109,9 @@ class MultiIDSLoader(object):
                 '2dmeshTri':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[2].object[].nodes'}},
 
                'core_profiles':
-               {'time':{'str':'time'},
-                'ip':{'str':'global_quantities.ip'}
+               {'t':{'str':'time'},
+                'ip':{'str':'global_quantities.ip'},
+                'vloop':{'str':'global_quantities.v_loop'},
                 '1dTe':{'str':'profiles_1d[time].electrons.temperature'},
                 '1dne':{'str':'profiles_1d[time].electrons.density'},
                 '1dzeff':{'str':'profiles_1d[time].zeff'},
@@ -120,23 +121,23 @@ class MultiIDSLoader(object):
                 '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm'}},
 
                'core_sources':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 '1dpsi':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.psi'},
                 '1drhotn':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.rho_tor_norm'},
                 '1dbrem':{'str':"source[identifier.name=brehmstrahlung].profiles_1d[time].electrons.energy"},
                 '1dline':{'str':"source[identifier.name=lineradiation].profiles_1d[time].electrons.energy"}},
 
                'edge_sources':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 'bla':{'str':'bla'}},
 
                'magnetics':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 'ip':{'str':'method[0].ip.data'},
                 'diamagflux':{'str':'method[0].diamagnetic_flux.data'}},
 
                'ece':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 'freq':{'str':'channel[chan].frequency.data'},
                 'Te': {'str':'channel[chan].t_e.data'},
                 'R': {'str':'channel[chan].position.r.data'},
@@ -144,27 +145,27 @@ class MultiIDSLoader(object):
                 'tau':{'str':'channel[chan].optical_depth.data'}},
 
                'interferometer':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 'ne_integ':{'str':'channel[chan].n_e_line.data'}},
 
                'bolometer':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 'power':{'str':'channel[chan].power.data'},
                 'etendue':{'str':'channel[chan].etendue'}},
 
                'soft_x_rays':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 'power':{'str':'channel[chan].power.data'},
                 'brightness':{'str':'channel[chan].brightness.data'},
                 'etendue':{'str':'channel[chan].etendue'}},
 
                'spectrometer_visible':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 'spectra':{'str':'channel[chan].grating_spectrometer.radiance_spectral.data'},
                 'lamb':{'str':'channel[chan].grating_spectrometer.wavelengths'}},
 
                'bremsstrahlung_visible':
-               {'time':{'str':'time'},
+               {'t':{'str':'time'},
                 'radiance':{'str':'channel[chan].radiance_spectral.data'}}
               }
 
