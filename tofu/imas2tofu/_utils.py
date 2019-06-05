@@ -184,19 +184,28 @@ class MultiIDSLoader(object):
 
 
     # Computing functions
-    _RZ2array = lambda ptsR, ptsZ, **kargs: np.array([ptsR,ptsZ]).T
-    _eqSep = None
+    _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
     _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
     _add = lambda a0, a1: a0 + a1
+    def _eqSep(sepR, sepZ, npts=100):
+        nt = len(sepR)
+        assert len(sepZ) == nt
+        sep = np.full((nt,npts,2), np.nan)
+        pts = np.arange(0,npts)
+        for ii in range(0,nt):
+            ptsii = np.arange(0,sepR[ii].size)
+            sep[ii,:,0] = np.interp(pts, ptsii, sepR[ii])
+            sep[ii,:,1] = np.interp(pts, ptsii, sepZ[ii])
+        return sep
+
 
     _dcomp = {
               'equilibrium':
-              {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array}},
+              {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array},
+               'sep':{'lstr':['sepR','sepZ'],
+                      'func':_eqSep, 'kargs':{'npts':100}}},
                #'X':{'lstr':['xR','xZ'], 'func':_RZ2array},
-               #'strike':{'lstr':['strikeR','strikeZ'], 'func':_RZ2array},
-               #'sep':{'lstr':['sepR','sepZ'],
-               #       'func':_eqSep,
-               #       'kargs':{'npts':100}}}
+               #'strike':{'lstr':['strikeR','strikeZ'], 'func':_RZ2array}}
 
               'core_sources':
              {'prad1d':{'lstr':['brem1d','line1d'], 'func':_add}}
@@ -219,13 +228,18 @@ class MultiIDSLoader(object):
     _dall_except = {}
     for ids in _lidslos:
         _dall_except[ids] = _lstr
-    _dall_except['equilibrium'] = ['axR','axZ']
+    _dall_except['equilibrium'] = ['axR','axZ','sepR','sepZ']
 
 
 
     # Preset
 
     _dpreset = {
+                'overview':
+                {'wall':None,
+                 'pulse_schedule':None,
+                 'equilibrium':None},
+
                 'plasma2d':
                 {'wall':['domainR','domainZ'],
                  'equilibrium':['time','ax'],
@@ -247,13 +261,14 @@ class MultiIDSLoader(object):
     ###################################
 
 
-    def __init__(self, dids=None, ids=None, occ=None, idd=None,
+    def __init__(self, preset=None, dids=None, ids=None, occ=None, idd=None,
                  shot=None, run=None, refshot=None, refrun=None,
                  user=None, tokamak=None, version=None, get=True, ref=True):
         super(MultiIDSLoader, self).__init__()
 
         # Initialize dicts
         self._init_dict()
+
         # Check and format inputs
         if dids is None:
             self.add_idd(idd=idd,
@@ -262,7 +277,7 @@ class MultiIDSLoader(object):
             lidd = list(self._didd.keys())
             assert len(lidd) <= 1
             idd = lidd[0] if len(lidd) > 0 else None
-            self.add_ids(ids=ids, occ=occ, idd=idd, get=False)
+            self.add_ids(preset=preset, ids=ids, occ=occ, idd=idd, get=False)
         else:
             self.set_dids(dids)
         self._set_fsig()
@@ -273,6 +288,7 @@ class MultiIDSLoader(object):
         self._didd = {}
         self._dids = {}
         self._refidd = None
+        self._preset = None
 
     def set_dids(self, dids=None):
         didd, dids, refidd = self._get_diddids(dids)
@@ -531,8 +547,8 @@ class MultiIDSLoader(object):
     # preset
 
     @classmethod
-    def _preset(cls, obj=None, key=None, return_=False,
-                verb=True, sep='  ', line='-', just='l'):
+    def _getpreset(cls, obj=None, key=None, return_=False,
+                   verb=True, sep='  ', line='-', just='l'):
         if obj is None:
             obj = cls
         if key is None:
@@ -580,8 +596,8 @@ class MultiIDSLoader(object):
         They are useful for use with self.get_data()
 
         """
-        return self._preset(obj=self, key=key, return_=return_, verb=verb,
-                            sep=sep, line=line, just=just)
+        return self._getpreset(obj=self, key=key, return_=return_, verb=verb,
+                               sep=sep, line=line, just=just)
 
     def set_preset(self, dpreset=None):
         """ Set the dictionary of preselections
@@ -903,6 +919,10 @@ class MultiIDSLoader(object):
         if lc[0]or lc[1]:
             if lc[0]:
                 ids = [ids]
+            for ids_ in ids:
+                if not ids_ in self._lidsnames:
+                    msg = "ids %s matched no known imas ids !"%ids_
+                    raise Exception(msg)
             for k in ids:
                 dids[k] = {'ids':None, 'needidd':True, 'idd':idd}
             lids = ids
@@ -957,16 +977,29 @@ class MultiIDSLoader(object):
 
 
 
-    def add_ids(self, ids=None, occ=None, idd=None,
+    def add_ids(self, ids=None, occ=None, idd=None, preset=None,
                 shot=None, run=None, refshot=None, refrun=None,
                 user=None, tokamak=None, version=None,
-                ref=None, isget=None, get=False):
+                ref=None, isget=None, get=None):
         """ Add an ids (or a list of ids)
 
         Optionally specify also a specific idd to which the ids will be linked
         The ids can be provided as such, or by name (str)
 
         """
+
+        if get is None:
+            get = False if preset is None else True
+
+        # preset
+        if preset is not None:
+            if preset not in self._dpreset.keys():
+                msg = "Available preset values are:\n"
+                msg += "    - %s\n"%str(sorted(self._dpreset.keys()))
+                msg += "    - Provided: %s"%str(preset)
+                raise Exception(msg)
+            ids = sorted(self._dpreset[preset].keys())
+        self._preset = preset
 
         # Add idd if relevant
         if hasattr(idd, 'close') or shot is not None:
@@ -988,6 +1021,7 @@ class MultiIDSLoader(object):
             assert idd in self._didd.keys()
 
         # Add ids
+
         if ids is not None:
             dids = self._checkformat_ids(ids, occ=occ, idd=idd, isget=isget)
 
@@ -1421,4 +1455,32 @@ class MultiIDSLoader(object):
                 msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
                 warnings.warn(msg)
                 del dout[sig[ii]]
+        return dout
+
+    def get_data_all(self, dsig=None, stack=True, flatocc=True):
+        dout = dict.fromkeys(self._dids.keys())
+
+        # dsig
+        if dsig is None:
+            if self._preset is not None:
+                dsig = self._dpreset[self._preset]
+            else:
+                dsig = dict.fromkeys(self._dids.keys())
+        else:
+            assert type(dsig) is dict
+
+        lc = [ss for ss in dsig.keys() if ss not in dout.keys()]
+        if len(lc) != 0:
+            msg = "The following ids are asked but not available:\n"
+            msg += "    - %s"%str(lc)
+            raise Exception(msg)
+        assert all([type(v) in [str,list] or v is None for v in dsig.values()])
+
+        # Get data
+        for ids in dout.keys():
+            try:
+                dout[ids] = self.get_data(ids, sig=dsig[ids], stack=stack, flatocc=flatocc)
+            except Exception as err:
+                msg = "Could not get data from %s"%ids
+                warnings.warn(msg)
         return dout
