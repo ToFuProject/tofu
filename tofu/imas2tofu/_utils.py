@@ -69,8 +69,8 @@ class MultiIDSLoader(object):
     # Known short version of signal str
     _dshort = {
                'wall':
-               {'domainR':{'str':'description_2d[0].limiter.unit[0].outline.r'},
-                'domainZ':{'str':'description_2d[0].limiter.unit[0].outline.z'}},
+               {'wallR':{'str':'description_2d[0].limiter.unit[0].outline.r'},
+                'wallZ':{'str':'description_2d[0].limiter.unit[0].outline.z'}},
 
                'pulse_schedule':
                {'t':{'str':'time'}},
@@ -207,6 +207,9 @@ class MultiIDSLoader(object):
 
 
     _dcomp = {
+              'wall':
+              {'wall':{'lstr':['wallR','wallZ'], 'func':_RZ2array}},
+
               'equilibrium':
               {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array},
                'sep':{'lstr':['sepR','sepZ'],
@@ -218,7 +221,7 @@ class MultiIDSLoader(object):
                'strike1':{'lstr':['strike1R','strike1Z'], 'func':_RZ2array}},
 
               'core_sources':
-             {'prad1d':{'lstr':['brem1d','line1d'], 'func':_add}}
+             {'1dprad':{'lstr':['1dbrem','1dline'], 'func':_add}}
             }
 
     _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
@@ -255,14 +258,14 @@ class MultiIDSLoader(object):
 
                 'plasma2d':
                 {'wall':['domainR','domainZ'],
-                 'equilibrium':['time','ax'],
-                 'core_profiles':['time','Te','ne'],
-                 'core_sources':[]},
+                 'equilibrium':['t','ax','sep'],
+                 'core_profiles':['t','1dTe','1dne','1dzeff','1drhotn','1dphi'],
+                 'core_sources':['t','1dprad']},
 
                 'ece':
                 {'wall':['domainR','domainZ'],
                  'ece':None,
-                 'core_profiles':['time','Te','ne']}
+                 'core_profiles':['t','Te','ne']}
                }
 
 
@@ -1515,3 +1518,153 @@ class MultiIDSLoader(object):
                 msg = "Could not get data from %s"%ids
                 warnings.warn(msg)
         return dout
+
+
+
+    #---------------------
+    # Methods for exporting to tofu objects
+    #---------------------
+
+    @staticmethod
+    def _check_shotExp_consistency(didd, lidd, tofustr='shot', imasstr='shot',
+                                   err=True, fallback=0):
+        crit = None
+        for idd in lidd:
+            v0 = didd[idd]
+            if imasstr in v0['params']:
+                if crit is None:
+                    crit = v0['params'][imasstr]
+                elif crit != v0['params'][imasstr]:
+                    ss = '%s : %s'%(idd,str(v0['params'][imasstr]))
+                    msg = "All idd should refer to the same %s !\n"imasstr
+                    msg += "    - " + ss
+                    if err:
+                        raise Exception(msg)
+                    else:
+                        warnings.warn(msg)
+        if crit is None:
+            crit  = fallback
+        return crit
+
+    def _get_lidsidd_shotExp(self, lidsok,
+                             errshot=True, errExp=True):
+        lids = set(lidsok).intersection(self._dids.keys())
+        lidd = set([self._dids[ids]['idd'] for ids in lids])
+
+        # shot (non-identical => error)
+        shot = self._check_shotExp_consistency(self._didd, lidd,
+                                               tofustr='shot', imasstr='shot',
+                                               err=errshot, fallback=0):
+
+        # Exp (non-identical => error)
+        Exp = self._check_shotExp_consistency(self._didd, lidd,
+                                              tofustr='Exp', imasstr='tokamak',
+                                              err=errExp, fallback='Dummy')
+        return lids, lidd, shot, Exp
+
+
+    def to_Config(self, Name=None, plot=True):
+        lidsok = ['wall']
+
+        if Name is None:
+            Name = 'custom'
+
+        # ---------------------------
+        # Preliminary checks on data source consistency
+        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(lidsok, errshot=True,
+                                                          errExp=True)
+        # -------------
+        #   Input dicts
+
+        # config
+        if 'wall' in lids:
+            wall = self._dids['wall']['ids']
+            units = wall.description_2d[0].limiter.unit
+            nunits = len(units)
+            lS = [None for _ in units]
+            kwargs = dict(Exp=Exp, Type='Tor')
+            for ii in range(0,nunits):
+                poly = np.array([units[ii].outline.r, units[ii].outline.z])
+                name = units[ii].name
+                if name == '':
+                    name = 'unit{:02.0f}'.format(ii)
+                if units[ii]:
+                    lS[ii] = tf.geom.Ves(Poly=poly, Name=name, **kwargs)
+                else:
+                    lS[ii] = tf.geom.PFC(Poly=poly, Name=name, **kwargs)
+
+            config = tf.geom.Config(lStruct=lS, Name=Name, **kwargs)
+
+        # Output
+        if plot:
+            lax = config.plot()
+        return config
+
+
+
+
+    def to_Plasma2D(self, Name=None, config=None):
+
+        lidsok = ['wall','equilibrium',
+                  'core_profiles', 'core_sources',
+                  'edge_profiles', 'edge_sources']
+
+        if Name is None:
+            Name = 'custom'
+
+        # ---------------------------
+        # Preliminary checks on data source consistency
+        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(lidsok, errshot=True,
+                                                          errExp=True)
+        # get data
+        dsig = dict.fromkeys(lids)
+        out = self.get_data_all(dsig=dsig)
+
+        # -------------
+        #   Input dicts
+
+        # config
+        if config is None and 'wall' in lids:
+            if 'wall' in dout['wall'].keys():
+                pdomain = tf.geom.PlasmaDomain(Poly=dout['wall']['wall'],
+                                               Exp=Exp, Type='Tor', Name=Name)
+                config = tf.geom.
+
+
+        # dtime
+        dtime = self._dtime
+
+        # dmesh
+        dmesh = {'eq':self._dmesh}
+
+        # d1d
+        d1d, d2d, dradius = {}, {}, {}
+        for k0, v0 in self._dquant.items():
+            for k1, v1 in v0.items():
+                for qq, v2 in v1['dq'].items():
+                    if v2['val'] is None:
+                        continue
+                    quant, units = self._get_quantunitsfromname(qq)
+                    if k1 == '1d':
+                        d1d[k0+'.'+qq] = {'data':v2['val'],
+                                          'quant':quant,
+                                          'units':units,
+                                          'radius':k0,
+                                          'time':k0}
+                        if k0 not in dradius.keys():
+                            dradius[k0] = {'size':v2['val'].shape[-1]}
+                    elif k1 == '2d':
+                        d2d[k0+'.'+qq] = {'data':v2['val'],
+                                          'quant':quant,
+                                          'units':units,
+                                          'mesh':k0,
+                                          'time':k0}
+
+        plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
+                      d1d=d1d, d2d=d2d,
+                      Exp=Exp, shot=shot, Name=Name, config=config)
+
+        # Instanciate Plasma2D
+        if out == object:
+            plasma = tfd.Plasma2D( **plasma )
+        return plasma
