@@ -72,6 +72,9 @@ class MultiIDSLoader(object):
                {'domainR':{'str':'description_2d[0].limiter.unit[0].outline.r'},
                 'domainZ':{'str':'description_2d[0].limiter.unit[0].outline.z'}},
 
+               'pulse_schedule':
+               {'time':{'str':'time'}},
+
                'equilibrium':
                {'time':{'str':'time'},
                 'ip':{'str':'time_slice[time].global_quantities.ip'},
@@ -107,6 +110,7 @@ class MultiIDSLoader(object):
 
                'core_profiles':
                {'time':{'str':'time'},
+                'ip':{'str':'global_quantities.ip'}
                 '1dTe':{'str':'profiles_1d[time].electrons.temperature'},
                 '1dne':{'str':'profiles_1d[time].electrons.density'},
                 '1dzeff':{'str':'profiles_1d[time].zeff'},
@@ -871,7 +875,9 @@ class MultiIDSLoader(object):
             for ids in lids:
                 del self._dids[ids]
 
-    def get_idd(self, idd):
+    def get_idd(self, idd=None):
+        if idd is None and len(self._didd.keys()) == 1:
+            idd = list(self._didd.keys())[0]
         assert idd in self._didd.keys()
         return self._didd[idd]['idd']
 
@@ -1023,7 +1029,9 @@ class MultiIDSLoader(object):
                 self._dids[ids]['isget'] = isgetref[indok]
                 self._dids[ids]['nocc'] = self._dids[ids]['occ'].size
 
-    def get_ids(self, ids, occ=None):
+    def get_ids(self, ids=None, occ=None):
+        if ids is None and len(self._dids.keys()) == 1:
+            ids = list(self._dids.keys())[0]
         assert ids in self._dids.keys()
         if occ is None:
             occ = self._dids[ids]['occ'][0]
