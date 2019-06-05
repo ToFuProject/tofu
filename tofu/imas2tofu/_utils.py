@@ -118,7 +118,9 @@ class MultiIDSLoader(object):
                 '1dphi':{'str':'profiles_1d[time].grid.phi'},
                 '1dpsi':{'str':'profiles_1d[time].grid.psi'},
                 '1drhotn':{'str':'profiles_1d[time].grid.rho_tor_norm'},
-                '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm'}},
+                '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm'},
+                '1dnW':{'str':'profiles_1d[time].ions[identifier.label=W].density'},
+               },
 
                'core_sources':
                {'t':{'str':'time'},
