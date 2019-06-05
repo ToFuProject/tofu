@@ -189,6 +189,7 @@ class MultiIDSLoader(object):
     _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
     _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
     _add = lambda a0, a1: a0 + a1
+    _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
     def _eqSep(sepR, sepZ, npts=100):
         nt = len(sepR)
         assert len(sepZ) == nt
@@ -205,7 +206,8 @@ class MultiIDSLoader(object):
               'equilibrium':
               {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array},
                'sep':{'lstr':['sepR','sepZ'],
-                      'func':_eqSep, 'kargs':{'npts':100}}},
+                      'func':_eqSep, 'kargs':{'npts':100}},
+               '2dB':{'lstr':['2dBT', '2dBR', '2dBZ'], 'func':_eqB}},
                #'X':{'lstr':['xR','xZ'], 'func':_RZ2array},
                #'strike':{'lstr':['strikeR','strikeZ'], 'func':_RZ2array}}
 
@@ -230,7 +232,8 @@ class MultiIDSLoader(object):
     _dall_except = {}
     for ids in _lidslos:
         _dall_except[ids] = _lstr
-    _dall_except['equilibrium'] = ['axR','axZ','sepR','sepZ']
+    _dall_except['equilibrium'] = ['axR','axZ','sepR','sepZ',
+                                   '2dBT','2dBR','2dBZ']
 
 
 
@@ -1284,12 +1287,15 @@ class MultiIDSLoader(object):
 
     @classmethod
     def _get_fsig(cls, sig):
+
+        # break sig in list of elementary nodes
         sig = cls._prepare_sig(sig)
         ls0 = sig.split('.')
         sig = sig.replace('/','.')
         ls0 = [ss.replace('/','.') for ss in ls0]
         ns = len(ls0)
 
+        # For each node, identify type (i.e. [])
         lc = [all([si in ss for si in ['[',']']]) for ss in ls0]
         dcond, seq, nseq, jj = {}, [], 0, 0
         for ii in range(0,ns):
@@ -1324,13 +1330,18 @@ class MultiIDSLoader(object):
             msg += "    - sig: %s"%sig
             raise Exception(msg)
 
+        # Create function for getting signal
         def fsig(obj, indt=None, indch=None, stack=True, dcond=dcond):
             sig = [obj]
             nsig = 1
             for ii in dcond.keys():
+
+                # Standard case (no [])
                 if dcond[ii]['type'] == 0:
                     sig = [ftools.reduce(getattr, [sig[jj]]+dcond[ii]['lstr'])
                             for jj in range(0,nsig)]
+
+                # dependency
                 elif dcond[ii]['type'] == 1:
                     for jj in range(0,nsig):
                         sig[jj] = getattr(sig[jj],dcond[ii]['str'])
@@ -1351,6 +1362,8 @@ class MultiIDSLoader(object):
                             assert nsig == 1
                             sig = [sig[0][ll] for ll in ind]
                             nsig = len(sig)
+
+                # one index to be found
                 else:
                     for jj in range(0,nsig):
                         sig[jj] = getattr(sig[jj], dcond[ii]['str'])
@@ -1362,6 +1375,7 @@ class MultiIDSLoader(object):
                         assert len(ind) == 1
                         sig[jj] = sig[jj][ind[0]]
 
+            # Conditions for stacking / sqeezing sig
             lc = [(stack and nsig>1 and isinstance(sig[0],np.ndarray)
                    and all([ss.shape == sig[0].shape for ss in sig[1:]])),
                   stack and nsig>1 and type(sig[0]) in [int, float, np.int,
