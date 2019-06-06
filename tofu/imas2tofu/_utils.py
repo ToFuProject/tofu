@@ -260,7 +260,9 @@ class MultiIDSLoader(object):
                 {'wall':['domainR','domainZ'],
                  'equilibrium':['t','ax','sep'],
                  'core_profiles':['t','1dTe','1dne','1dzeff','1drhotn','1dphi'],
-                 'core_sources':['t','1dprad']},
+                 'core_sources':['t','1dprad'],
+                 'edge_profiles':['t'],
+                 'edge_sources':['t']},
 
                 'ece':
                 {'wall':['domainR','domainZ'],
@@ -1536,7 +1538,7 @@ class MultiIDSLoader(object):
                     crit = v0['params'][imasstr]
                 elif crit != v0['params'][imasstr]:
                     ss = '%s : %s'%(idd,str(v0['params'][imasstr]))
-                    msg = "All idd should refer to the same %s !\n"imasstr
+                    msg = "All idd should refer to the same %s !\n"%imasstr
                     msg += "    - " + ss
                     if err:
                         raise Exception(msg)
@@ -1554,7 +1556,7 @@ class MultiIDSLoader(object):
         # shot (non-identical => error)
         shot = self._check_shotExp_consistency(self._didd, lidd,
                                                tofustr='shot', imasstr='shot',
-                                               err=errshot, fallback=0):
+                                               err=errshot, fallback=0)
 
         # Exp (non-identical => error)
         Exp = self._check_shotExp_consistency(self._didd, lidd,
@@ -1563,7 +1565,19 @@ class MultiIDSLoader(object):
         return lids, lidd, shot, Exp
 
 
-    def to_Config(self, Name=None, plot=True):
+    @staticmethod
+    def _checkformat_tlim(t, tlim=None):
+        # Extract time indices and vector
+        indt = np.ones((t.size,), dtype=bool)
+        if tlim is not None:
+            indt[(t<tlim[0]) | (t>tlim[1])] = False
+        t = t[indt]
+        indt = np.nonzero(indt)[0]
+        nt = t.size
+        return {'tlim':tlim, 'nt':nt, 't':t, 'indt':indt}
+
+
+    def to_Config(self, Name=None, occ=None, indDescript=0, plot=True):
         lidsok = ['wall']
 
         if Name is None:
@@ -1578,9 +1592,28 @@ class MultiIDSLoader(object):
 
         # config
         if 'wall' in lids:
-            wall = self._dids['wall']['ids']
-            units = wall.description_2d[0].limiter.unit
+            ids = 'wall'
+
+            # occ = np.ndarray of valid int
+            occ = self._checkformat_getdata_occ(occ, ids)
+            assert occ.size == 1, "Please choose one occ only !"
+            occ = occ[0]
+            indoc = np.nonzero(self._dids[ids]['occ'] == occ)[0][0]
+
+            wall = self._dids[ids]['ids'][indoc]
+            units = wall.description_2d[indDescript].limiter.unit
             nunits = len(units)
+
+            if nunits == 0:
+                msg = "There is no limiter unit stored !\n"
+                msg += "The required 2d description is empty:\n"
+                ms = "len(idd.%s[occ=%s].description_2d"%(ids,str(occ))
+                msg += "%s[%s].limiter.unit) = 0"%(ms,str(indDescript))
+                raise Exception(msg)
+
+
+            import tofu.geom as mod
+
             lS = [None for _ in units]
             kwargs = dict(Exp=Exp, Type='Tor')
             for ii in range(0,nunits):
@@ -1588,12 +1621,10 @@ class MultiIDSLoader(object):
                 name = units[ii].name
                 if name == '':
                     name = 'unit{:02.0f}'.format(ii)
-                if units[ii]:
-                    lS[ii] = tf.geom.Ves(Poly=poly, Name=name, **kwargs)
-                else:
-                    lS[ii] = tf.geom.PFC(Poly=poly, Name=name, **kwargs)
+                cls = 'Ves' if (ii == 0 and nunits == 1) or units[ii] else 'PFC'
+                lS[ii] = getattr(mod,cls)(Poly=poly, Name=name, **kwargs)
 
-            config = tf.geom.Config(lStruct=lS, Name=Name, **kwargs)
+            config = mod.Config(lStruct=lS, Name=Name, **kwargs)
 
         # Output
         if plot:
@@ -1603,9 +1634,9 @@ class MultiIDSLoader(object):
 
 
 
-    def to_Plasma2D(self, Name=None, config=None):
+    def to_Plasma2D(self, tlim=None, Name=None, occ=None, config=None, out=object, plot=True):
 
-        lidsok = ['wall','equilibrium',
+        lidsok = ['equilibrium',
                   'core_profiles', 'core_sources',
                   'edge_profiles', 'edge_sources']
 
@@ -1624,15 +1655,18 @@ class MultiIDSLoader(object):
         #   Input dicts
 
         # config
-        if config is None and 'wall' in lids:
-            if 'wall' in dout['wall'].keys():
-                pdomain = tf.geom.PlasmaDomain(Poly=dout['wall']['wall'],
-                                               Exp=Exp, Type='Tor', Name=Name)
-                config = tf.geom.
-
+        if config is None:
+            config = self.to_Config(Name=Name, occ=occ, plot=False)
 
         # dtime
-        dtime = self._dtime
+        dtime = {}
+        for ids in lidsok:
+            out = self.get_data(ids,sig='t')
+            if len(out) == 0 or 't' not in out.keys():
+                continue
+            if out['t'].size == 0 or 0 in out['t'].shape:
+                continue
+            dtime[ids] = self._checkformat_tlim(out['t'], tlim=tlim)
 
         # dmesh
         dmesh = {'eq':self._dmesh}
@@ -1668,3 +1702,18 @@ class MultiIDSLoader(object):
         if out == object:
             plasma = tfd.Plasma2D( **plasma )
         return plasma
+
+
+
+
+
+def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
+                Name=None, occ=0, indDescript=0, plot=True):
+
+    didd = MultiIDSLoader()
+    didd.add_idd(shot=shot, run=run,
+                 user=user, tokamak=tokamak, version=version)
+    didd.add_ids('wall', get=True)
+
+    return didd.to_Config(Name=Name, occ=occ,
+                          indDescript=indDescript, plot=plot)
