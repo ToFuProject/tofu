@@ -4,6 +4,7 @@ import os
 import sys
 import collections
 from abc import ABCMeta, abstractmethod
+import importlib
 import getpass
 import subprocess
 import itertools as itt
@@ -24,6 +25,10 @@ import tofu.pathfile as tfpf
 _sep = '_'
 _dict_lexcept_key = []
 _pyv = int(sys.version[0])
+
+_SAVETYP = '__type__'
+_NSAVETYP = len(_SAVETYP)
+
 
 ###############################################
 #           File searching
@@ -337,7 +342,7 @@ def _save_npzmat_dict(dd):
     err = False
     dnpzmat, dt = {}, {}
     for k in dd.keys():
-        kt = k+'_type'
+        kt = k + _SAVETYP
         dt[kt] = np.asarray([type(dd[k]).__name__])
         if dd[k] is None:
             # save only the type, because:
@@ -363,73 +368,19 @@ def _save_npzmat_dict(dd):
     return dnpzmat
 
 
-
-
-
-
 def _save_npz(dd, pathfileext, compressed=False):
-
     func = np.savez_compressed if compressed else np.savez
-    msg = "How to deal with:"
-    msg += "\n SaveName : {0}".format(dd['dId_dall_SaveName'])
-    msg += "\n Attributes:"
-    err = False
-    dnpz, dt = {}, {}
-    for k in dd.keys():
-        kt = k+'_type'
-        dt[kt] = np.asarray([type(dd[k]).__name__])
-        if dd[k] is None:
-            # save only the type, .mat cannot handle None
-            # None will be recreated at load time
-            #dd[k] = np.asarray([None])
-            pass
-        elif (type(dd[k]) in [int,float,bool,str]
-              or issubclass(dd[k].__class__,np.int)
-              or issubclass(dd[k].__class__,np.float)
-              or issubclass(dd[k].__class__,np.bool_)):
-            dnpz[k] = np.asarray([dd[k]])
-        elif type(dd[k]) in [list,tuple]:
-            dnpz[k] = np.asarray(dd[k])
-        elif type(dd[k]) is np.ndarray:
-            dnpz[k] = dd[k]
-        elif not isinstance(dd[k], np.ndarray):
-            msg += "\n    {0} : {1}".format(k,str(type(dd[k])))
-            err = True
-    if err:
-        raise Exception(msg)
-    dd.update(**dt)
-    func(pathfileext, **dnpz)
+    dsave = _save_npzmat_dict(dd)
+    func(pathfileext, **dsave)
 
 def _save_mat(dd, pathfileext, compressed=False):
     # Create intermediate dict to make sure to get rid of None values
-    msg = "How to deal with:"
-    msg += "\n SaveName : {0}".format(dd['dId_dall_SaveName'])
-    msg += "\n Attributes:"
-    err = False
-    dmat, dt = {}, {}
-    for k in dd.keys():
-        kt = k+'_type'
-        dt[kt] = np.asarray([type(dd[k]).__name__])
-        if dd[k] is None:
-            # save only the type, .mat cannot handle None
-            # None will be recreated at load time
-            pass
-        elif (type(dd[k]) in [int,float,bool,str]
-              or issubclass(dd[k].__class__,np.int)
-              or issubclass(dd[k].__class__,np.float)
-              or issubclass(dd[k].__class__,np.bool_)):
-            dmat[k] = np.asarray([dd[k]])
-        elif type(dd[k]) in [tuple,list]:
-            dmat[k] = np.asarray(dd[k])
-        elif type(dd[k]) is np.ndarray:
-            dmat[k] = dd[k]
-        else:
-            msg += "\n    {0} : {1}".format(k,str(type(dd[k])))
-            err = True
-    if err:
-        raise Exception(msg)
-    dmat.update(**dt)
-    scpio.savemat(pathfileext, dmat, do_compression=compressed, format='5')
+    dsave = _save_npzmat_dict(dd)
+    scpio.savemat(pathfileext, dsave, do_compression=compressed, format='5')
+
+
+
+
 
 ###################################
 #       loading routines
@@ -523,8 +474,9 @@ def load(name, path=None, strip=None, verb=True):
             dd = _load_mat(pfe)
 
         # Recreate from dict
-        exec("import tofu.{0} as mod".format(dd['dId_dall_Mod']))
-        obj = eval("mod.{0}(fromdict=dd)".format(dd['dId_dall_Cls']))
+        mod = importlib.import_module( 'tofu.%s'%dd['dId_dall_Mod'] )
+        cls = getattr( mod, dd['dId_dall_Cls'] )
+        obj = cls(fromdict=dd)
 
     if strip is not None:
         obj.strip(strip=strip)
@@ -536,109 +488,87 @@ def load(name, path=None, strip=None, verb=True):
         print(msg)
     return obj
 
-def _load_npz(pathfileext):
 
-    try:
-        out = np.load(pathfileext, mmap_mode=None)
-    except UnicodeError:
-        out = np.load(pathfileext, mmap_mode=None, encoding='latin1')
-    except Exception as err:
-        raise err
+def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
 
     C = ['dId' in kk for kk in out.keys()]
-    if np.sum(C)<1:
-        msg = "There does not seem to be a dId in {0}".format(pathfileext)
+    if np.sum(C) < 1:
+        msg = "There does not seem to be a dId in {0}".format(pfe)
         msg += "\n    => Is it really a tofu-generated file ?"
         raise Exception(msg)
 
-    lk = [k for k in out.keys() if not k[-5:]=='_type']
-    lkt = [k for k in out.keys() if k[-5:] == '_type']
+    lk = [k for k in out.keys()
+          if (k[-_NSAVETYP:] != _SAVETYP and k not in exclude_keys)]
+    lkt = [k for k in out.keys() if k[-_NSAVETYP:] == _SAVETYP]
     dout = dict.fromkeys(lk)
 
-    msg = "How to deal with:"
-    msg += "\n SaveName : {0}".format(out['dId_dall_SaveName'])
-    msg += "\n Attributes:"
-    err = False
+    err, msgi = False, ""
     for kt in lkt:
-        k = kt[:-5]
-        typ = out[kt]
+        k = kt[:-_NSAVETYP]
+        typ = out[kt][0]
+
         if typ=='NoneType':
             dout[k] = None
-        elif typ in ['int','int64']:
-            dout[k] = int(out[k][0]) if typ=='int' else out[k][0]
-        elif typ in ['float','float64']:
-            dout[k] = float(out[k][0]) if typ=='float' else out[k][0]
-        elif typ in ['bool','bool_']:
-            dout[k] = bool(out[k][0]) if typ=='bool' else out[k][0]
-        elif typ in ['str','str_']:
-            dout[k] = str(out[k][0]) if typ=='str' else out[k][0]
+        elif typ in ['int','int64','float','float64',
+                     'bool','bool_','str','str_']:
+            dout[k] = np.ravel(out[k])[0]
+            if typ == 'float':
+                dout[k] = float(dout[k])
+            elif typ == 'int':
+                dout[k] = int(dout[k])
+            elif typ == 'bool':
+                dout[k] = bool(dout[k])
+            elif typ == 'str':
+                dout[k] = str(dout[k])
         elif typ in ['list','tuple']:
-            dout[k] = out[k].tolist()
+            if mode == 'mat':
+                dout[k] = np.squeeze(out[k],axis=0).tolist()
+            else:
+                dout[k] = out[k].tolist()
             if typ=='tuple':
-                dout[k] = tuple(out[k])
+                dout[k] = tuple(dout[k])
         elif typ=='ndarray':
-            dout[k] = np.array(out[k])
+            if mode == 'mat':
+                dout[k] = np.squeeze(out[k])
+                if dout[k].shape == (0,0):
+                    dout[k] = dout[k].ravel()
+            else:
+                dout[k] = out[k]
         else:
-            msg += "\n    {0} : {1}".format(k,typ)
+            msgi += "\n    {0} : {1}".format(k,typ)
             err = True
     if err:
+        msg = "How to deal with:"
+        msg += "\n SaveName : {0}".format(out['dId_dall_SaveName'][0])
+        msg += "\n Attributes:"
+        msg += msgi
         raise Exception(msg)
 
     return dout
 
 
-def _load_mat(pathfileext):
+
+def _load_npz(pfe):
 
     try:
-        out = scpio.loadmat(pathfileext)
+        out = np.load(pfe, mmap_mode=None)
+    except UnicodeError:
+        out = np.load(pfe, mmap_mode=None, encoding='latin1')
     except Exception as err:
         raise err
 
-    C = ['dId' in kk for kk in out.keys()]
-    if np.sum(C)<1:
-        msg = "There does not seem to be a dId in {0}".format(pathfileext)
-        msg += "\n    => Is it really a tofu-generated file ?"
-        raise Exception(msg)
+    return _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[])
+
+
+def _load_mat(pfe):
+
+    try:
+        out = scpio.loadmat(pfe)
+    except Exception as err:
+        raise err
 
     lsmat = ['__header__', '__globals__', '__version__']
-    lk = [k for k in out.keys()
-          if (k[-5:] != '_type' and k not in lsmat)]
-    lkt = [k for k in out.keys() if k[-5:] == '_type']
-    dout = dict.fromkeys(lk)
-
-    msg = "How to deal with:"
-    msg += "\n SaveName : {0}".format(out['dId_dall_SaveName'])
-    msg += "\n Attributes:"
-    err = False
-    for kt in lkt:
-        k = kt[:-5]
-        typ = out[kt]
-        if typ=='NoneType':
-            dout[k] = None
-        elif typ in ['int','int64']:
-            dout[k] = int(out[k][0]) if typ=='int' else out[k][0]
-        elif typ in ['float','float64']:
-            dout[k] = float(out[k][0]) if typ=='float' else out[k][0]
-        elif typ in ['bool','bool_']:
-            dout[k] = bool(out[k][0]) if typ=='bool' else out[k][0]
-        elif typ in ['str','str_']:
-            dout[k] = str(out[k][0]) if typ=='str' else out[k][0]
-        elif typ in ['list','tuple']:
-            dout[k] = np.sqeeze(out[k]).tolist()
-            if typ=='tuple':
-                dout[k] = tuple(out[k])
-        elif typ=='ndarray':
-            dout[k] = np.squeeze(out[k])
-        else:
-            msg += "\n    {0} : {1}".format(k,typ)
-            err = True
-    if err:
-        raise Exception(msg)
-
-    import ipdb
-    ipdb.set_trace()
-
-    return dout
+    return _get_load_npzmat_dict(out, pfe, mode='mat', exclude_keys=lsmat)
 
 
 #######
