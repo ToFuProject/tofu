@@ -18,7 +18,8 @@ from libc.stdlib cimport malloc, free
 from _basic_geom_tools cimport _VSMALL
 from _basic_geom_tools cimport is_point_in_path
 from _basic_geom_tools cimport compute_inv_and_sign
-cimport vignetting as _ec
+cimport _basic_geom_tools as _bgt
+cimport _vignetting_tools as _ec
 
 # ==============================================================================
 # =  Raytracing basic tools: intersection ray and axis aligned bounding box
@@ -130,9 +131,9 @@ cdef inline void comp_bbox_poly_tor(int nvert,
 
 
 cdef inline void comp_bbox_poly3d(int nvert,
-                                  double* vertx,
-                                  double* verty,
-                                  double* vertz,
+                                  double[::1] vertx,
+                                  double[::1] verty,
+                                  double[::1] vertz,
                                   double[6] bounds) nogil:
     """
     Computes bounding box of a 3d polygon
@@ -1552,9 +1553,9 @@ cdef inline void compute_3d_bboxes(double[:, :, ::1] vignett_poly,
         for ivign in prange(nvign):
             nvert = lnvert[ivign]
             comp_bbox_poly3d(nvert,
-                             &vignett_poly[ivign, 0],
-                             &vignett_poly[ivign, 1],
-                             &vignett_poly[ivign, 2],
+                             vignett_poly[ivign, 0],
+                             vignett_poly[ivign, 1],
+                             vignett_poly[ivign, 2],
                              &lbounds[ivign*6])
     return
 
@@ -1584,24 +1585,24 @@ cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
         for ivign in prange(nvign):
             nvert = lnvert[ivign]
             ltri[ivign] = <int*>malloc((nvert-2)*sizeof(int))
-            _ec.earclipping_poly(vignett, ltri[ivign], nvert)
+            _ec.earclipping_poly(vignett_poly[ivign], ltri[ivign], nvert)
     return
 
 cdef inline bint inter_ray_triangle(const double[3] ray_orig,
                                     const double[3] ray_vdir,
-                                    const double[3] vert0,
-                                    const double[3] vert1,
-                                    const double[3] vert2) nogil:
+                                    const double[::1] vert0,
+                                    const double[::1] vert1,
+                                    const double[::1] vert2) nogil:
     cdef int ii
     cdef double det, invdet, u, v
     cdef double[3] edge1, edge2
     cdef double[3] pvec, tvec, qvec
     #...
     for ii in range(3):
-        edge1 = vert1[ii] - vert0[ii]
-        edge2 = vert2[ii] - vert0[ii]
+        edge1[ii] = vert1[ii] - vert0[ii]
+        edge2[ii] = vert2[ii] - vert0[ii]
     # begin calculating determinant  also used to calculate U parameter
-    _bgt.compute_cross_prod(ray_vdir, edge2)
+    _bgt.compute_cross_prod(ray_vdir, edge2, pvec)
     # if determinant is near zero ray lies in plane of triangle
     det = _bgt.compute_dot_prod(edge1, pvec)
     if Cabs(det) < _VSMALL:
@@ -1647,7 +1648,7 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  int** ltri,
                                  int nvign,
                                  int nlos,
-                                 bint* goes_through) nogil:
+                                 int* goes_through) nogil:
     cdef int ilos, ivign
     cdef int nvert
     cdef bint inter_bbox

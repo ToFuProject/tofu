@@ -1,5 +1,6 @@
 # distutils: language=c++
 from libcpp.vector cimport vector
+cimport _basic_geom_tools as _bgt
 
 cdef inline bint is_reflex(const double[3] u,
                            const double[3] v,

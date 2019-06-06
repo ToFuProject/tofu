@@ -136,6 +136,7 @@ extensions = [ Extension(name="tofu.geom."+gg,
                         extra_link_args=extra_link_args),
               Extension(name="tofu.geom._vignetting_tools",
                         sources=["tofu/geom/_vignetting_tools.pyx"],
+                        language="c++",
                         extra_compile_args=extra_compile_args,
                         extra_link_args=extra_link_args),
               ]
