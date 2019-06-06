@@ -365,7 +365,7 @@ def _save_mat(dd, pathfileext, compressed=False):
     dt = {}
     for k in dd.keys():
         kt = k+'_type'
-        dt[kt] = np.asarray([type(d[k]).__name__])
+        dt[kt] = np.asarray([type(dd[k]).__name__])
         if type(dd[k]) in [int,float,np.int64,np.float64,bool]:
             dmat[k] = np.asarray([dd[k]])
         elif type(dd[k]) in [tuple,list]:
@@ -540,7 +540,7 @@ def _load_npz(pathfileext):
 #   tf.geom.Struct - specific
 #######
 
-def _load_from_txt(name, pfe):
+def _load_from_txt(name, pfe, Name=None, Exp=None):
 
     # Extract class
     lk = name.split('_')
@@ -555,7 +555,7 @@ def _load_from_txt(name, pfe):
 
     # Recreate object
     import tofu.geom as mod
-    obj = eval("mod.%s.from_txt(pfe, Name=Name, Exp=Exp)"%cls)
+    obj = getattr(mod, cls).from_txt(pfe, Name=Name, Exp=Exp)
     return obj
 
 
