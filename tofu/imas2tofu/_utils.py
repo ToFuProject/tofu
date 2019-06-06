@@ -15,6 +15,7 @@ import warnings
 
 # Standard
 import numpy as np
+import matplotlib as mpl
 
 # imas
 import imas
@@ -123,8 +124,10 @@ class MultiIDSLoader(object):
                 '1dpsi':{'str':'profiles_1d[time].grid.psi'},
                 '1drhotn':{'str':'profiles_1d[time].grid.rho_tor_norm'},
                 '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm'},
-                '1dnW':{'str':'profiles_1d[time].ions[identifier.label=W].density'},
-               },
+                '1dnW':{'str':'profiles_1d[time].ions[identifier.label=W].density'}},
+
+               'edge_profiles':
+               {'t':{'str':'time'}},
 
                'core_sources':
                {'t':{'str':'time'},
@@ -1632,20 +1635,57 @@ class MultiIDSLoader(object):
         return config
 
 
+    def _checkformat_Plasma2D_dsig(self, dsig=None):
+        lidsok = ['equilibrium',
+                  'core_profiles', 'core_sources',
+                  'edge_profiles', 'edge_sources']
+        lscom = ['t']
+
+        if dsig is None:
+            dsig = {}
+            for ids in lidsok:
+                dsig[ids] = self._dshort[ids]
+
+        return dsig
 
 
-    def to_Plasma2D(self, tlim=None, Name=None, occ=None, config=None, out=object, plot=True):
+    @staticmethod
+    def _checkformat_tri(nodes, indtri):
+        x = nodes[indtri,0]
+        y = nodes[indtri,1]
+        orient = ((y[:,1]-y[:,0])*(x[:,2]-x[:,1])
+                  - (y[:,2]-y[:,1])*(x[:,1]-x[:,0]))
+
+        indclock = orient > 0.
+        if np.any(indclock):
+            msg = "Some triangles in are not counter-clockwise\n"
+            msg += "  (necessary for matplotlib.tri.Triangulation)\n"
+            msg += "    => %s / %s triangles are re-defined"
+            warnings.warn(msg)
+            indtri[indclock,1], indtri[indclock,2] = (indtri[indclock,2],
+                                                      indtri[indclock,1])
+        return indtri
+
+
+
+    def to_Plasma2D(self, tlim=None, dsig=None,
+                    Name=None, occ=None, config=None, out=object, plot=True):
 
         lidsok = ['equilibrium',
                   'core_profiles', 'core_sources',
                   'edge_profiles', 'edge_sources']
+
+        # dsig
+        dsig = self._checkformat_Plasma2D_dsig(dsig)
+
+        lidsok = set(lidsok).intersection()
 
         if Name is None:
             Name = 'custom'
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(lidsok, errshot=True,
+        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(dsig.keys(), errshot=True,
                                                           errExp=True)
         # get data
         dsig = dict.fromkeys(lids)
@@ -1658,20 +1698,63 @@ class MultiIDSLoader(object):
         if config is None:
             config = self.to_Config(Name=Name, occ=occ, plot=False)
 
-        # dtime
+        # dicts
         dtime = {}
-        for ids in lidsok:
-            out = self.get_data(ids,sig='t')
-            if len(out) == 0 or 't' not in out.keys():
+        d1d, dradius = dict.fromkeys(lids), {}
+        for ids in lids:
+
+            # dtime
+            out = self.get_data(ids, sig='t')
+            if len(out) != 1:
                 continue
             if out['t'].size == 0 or 0 in out['t'].shape:
                 continue
+            nt = out['t'].size
             dtime[ids] = self._checkformat_tlim(out['t'], tlim=tlim)
 
-        # dmesh
-        dmesh = {'eq':self._dmesh}
+            # d1d and dradius
+            lsig = [k for k in dsig[ids] if '1d' in k]
+            out = self.get_data(ids, lsig)
+            if len(out) == 0:
+                continue
+            for ss in out.keys():
+                shape = out[ss].shape
+                assert len(shape) == 2
+                if np.sum(shape) > 0:
+                    assert nt in shape
+                    axist = shape.index(nt)
+                    nr = shape[1-axist]
+                    if ids not in dradius.keys():
+                        dradius[ids] = {'size':nr}
+                    else:
+                        assert nr == dradius[ids]
+                    if axist == 0:
+                        d1d[ids][ss] = out[ss]
+                    else:
+                        d1d[ids][ss] = out[ss].T
 
-        # d1d
+        # TBF
+
+
+        # dmesh
+        dmesh, lsig = {}, ['2dmeshNodes','2dmeshTri']
+        for ids in lids:
+            out = self.get_data(ids, sig=lsig)
+            if len(out) != len(lsig):
+                continue
+            if any([out[ss].size == 0 or 0 in out[ss].shape for ss in lsig]):
+                continue
+            nodes = out['2dmeshNodes']
+            indtri = out['2dmeshTri']
+            indtri = self._checkformat_tri(nodes, indtri)
+            nnodes, nntri = nodes.size/2, indtri.size/3
+            ftype = 'linear' # TBF
+            mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indtri)
+            dmesh[ids] = {'nodes':nodes, 'faces':indtri,
+                          'type':'tri', 'ftype':ftype,
+                          'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
+
+        # d1d, d2d, dradius
         d1d, d2d, dradius = {}, {}, {}
         for k0, v0 in self._dquant.items():
             for k1, v1 in v0.items():
