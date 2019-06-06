@@ -160,7 +160,7 @@ cdef inline double comp_min_hypot(double[::1] xpts, double[::1] ypts,
     return Csqrt(hypot)
 
 # ==============================================================================
-# == VECTOR CALCULUS HELPERS
+# == Vector Calculus Helpers
 # ==============================================================================
 cdef inline void compute_cross_prod(const double[3] vec_a,
                                     const double[3] vec_b,
@@ -174,6 +174,8 @@ cdef inline double compute_dot_prod(const double[3] vec_a,
                                     const double[3] vec_b) nogil:
     return vec_a[0] * vec_b[0] + vec_a[1] * vec_b[1] + vec_a[2] * vec_b[2]
 
+cdef inline double compute_norm(const double[3] vec) nogil:
+    return Csqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2])
 
 cdef inline double compute_g(double s, double m2b2, double rm0sqr,
                              double m0sqr, double b1sqr) nogil:

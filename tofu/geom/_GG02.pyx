@@ -2695,8 +2695,10 @@ def vignetting(double[:, ::1] ray_orig,
     goes_through: (num_vign, num_los) bool array
        Indicates for each vignett if each LOS wents through or not
     """
+    cdef int ii
     cdef int nvign, nlos
     cdef array goes_through
+    cdef int** ltri = NULL
     cdef int* sign_ray = NULL
     cdef double* invr_ray = NULL
     cdef double* loc_org = NULL
@@ -2708,11 +2710,20 @@ def vignetting(double[:, ::1] ray_orig,
     goes_through = clone(array('i'), nlos * nvign, True)
     # -- Preparation -----------------------------------------------------------
     lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
-    compute_3d_bboxes(vignett_poly, &lnvert[0], lbounds, nvign,
-                      num_threads=num_threads)
+    _rt.compute_3d_bboxes(vignett_poly, &lnvert[0], nvign, lbounds,
+                          num_threads=num_threads)
+    ltri = <int**>malloc(sizeof(int*)*nvign)
+    _rt.triangulate_polys(vignett_poly, &lnvert[0], nvign, ltri,
+                          num_threads=num_threads)
     # -- We call core function -------------------------------------------------
-    vignetting_core(ray_orig, ray_vdir, vignett_poly, &lnvert[0], lbounds,
-                    nvign, nlos, &goes_through[0])
+    _rt.vignetting_core(ray_orig, ray_vdir, vignett_poly, &lnvert[0], lbounds,
+                        ltri, nvign, nlos, &goes_through[0])
+    # -- Cleaning up -----------------------------------------------------------
+    free(lbounds)
+    # We have to free each array for each vignett:
+    for ii in range(nvign):
+        free(ltri[ii])
+    free(ltri) # and now we can free the main pointer
 
 
 # ==============================================================================

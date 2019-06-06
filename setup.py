@@ -118,43 +118,28 @@ if sys.version[0]=='3':
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-# Prepare extensions
-# Useful if install from setup.py
-#if '--use-cython' in sys.argv:
-#    USE_CYTHON = True
-#    sys.argv.remove('--use-cython')
-#else:
-#    USE_CYTHON = False
-USE_CYTHON = True
-if USE_CYTHON:
-    print("")
-    print("Using Cython !!!!!!!!!")
-    print("")
-    #TODO try O3 O2 flags
-    if not not_openmp_installed :
-        extra_compile_args=["-O0", "-Wall",  "-fopenmp"]
-        extra_link_args = ['-fopenmp']
-    else:
-        extra_compile_args=["-O0", "-Wall"]
-        extra_link_args = []
-    extensions = [ Extension(name="tofu.geom."+gg,
-                             sources=["tofu/geom/"+gg+".pyx"],
-                             extra_compile_args=extra_compile_args,
-                             extra_link_args=extra_link_args),
-                  Extension(name="tofu.geom._basic_geom_tools",
-                            sources=["tofu/geom/_basic_geom_tools.pyx"],
-                            extra_compile_args=extra_compile_args,
-                            extra_link_args=extra_link_args)
-                  ]
-    extensions = cythonize(extensions, annotate=True)
+
+#  ... Compiling files .........................................................
+if not not_openmp_installed :
+    extra_compile_args=["-O0", "-Wall",  "-fopenmp"]
+    extra_link_args = ['-fopenmp']
 else:
-    print("")
-    print("NOT Using Cython !!!!!!!!!")
-    print("")
-    extensions = [Extension(name="tofu.geom."+gg,
-                            sources=["tofu/geom/"+gg+".cpp"],
-                            language='c++',
-                            include_dirs=['tofu/cpp/'])]
+    extra_compile_args=["-O0", "-Wall"]
+    extra_link_args = []
+extensions = [ Extension(name="tofu.geom."+gg,
+                         sources=["tofu/geom/"+gg+".pyx"],
+                         extra_compile_args=extra_compile_args,
+                         extra_link_args=extra_link_args),
+              Extension(name="tofu.geom._basic_geom_tools",
+                        sources=["tofu/geom/_basic_geom_tools.pyx"],
+                        extra_compile_args=extra_compile_args,
+                        extra_link_args=extra_link_args),
+              Extension(name="tofu.geom._vignetting_tools",
+                        sources=["tofu/geom/_vignetting_tools.pyx"],
+                        extra_compile_args=extra_compile_args,
+                        extra_link_args=extra_link_args),
+              ]
+extensions = cythonize(extensions, annotate=True)
 
 
 setup(

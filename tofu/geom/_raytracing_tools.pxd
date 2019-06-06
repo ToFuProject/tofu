@@ -18,6 +18,7 @@ from libc.stdlib cimport malloc, free
 from _basic_geom_tools cimport _VSMALL
 from _basic_geom_tools cimport is_point_in_path
 from _basic_geom_tools cimport compute_inv_and_sign
+cimport vignetting as _ec
 
 # ==============================================================================
 # =  Raytracing basic tools: intersection ray and axis aligned bounding box
@@ -1435,7 +1436,6 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
 # ==============================================================================
 # =  Raytracing on a Cylinder only KMin and KMax
 # ==============================================================================
-
 cdef inline void raytracing_minmax_struct_lin(int Nl,
                                              double[:,::1] Ds,
                                              double [:,::1] us,
@@ -1537,9 +1537,13 @@ cdef inline void raytracing_minmax_struct_lin(int Nl,
 # ==============================================================================
 cdef inline void compute_3d_bboxes(double[:, :, ::1] vignett_poly,
                                    long* lnvert,
-                                   double* lbounds,
                                    int nvign,
-                                   int num_threads=16):
+                                   double* lbounds,
+                                   int num_threads=16) nogil:
+    """
+    Computes coordinates of bounding boxes of a list of 3d objects in a general
+    space (not related to a tore).
+    """
     cdef int ivign
     cdef int nvert
     # ...
@@ -1555,6 +1559,82 @@ cdef inline void compute_3d_bboxes(double[:, :, ::1] vignett_poly,
     return
 
 
+# ==============================================================================
+# =  Triangulation
+# ==============================================================================
+cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
+                                   long* lnvert,
+                                   int nvign,
+                                   int** ltri,
+                                   int num_threads=16):
+    """
+    Triangulates a list 3d polygon using the earclipping techinque
+    https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
+    Returns
+        ltri: 3*(nvert-2)*nvign :
+            = [{tri_0_0, tri_0_1, ... tri_0_nvert0}, ..., {tri_nvign_0, ...}]
+            where tri_i_j are the 3 indices of the vertex forming a sub-triangle
+            on each vertex (-2) and for each vignett
+    """
+    cdef int ivign
+    cdef int nvert
+    # ...
+    # -- Defining parallel part ------------------------------------------------
+    with nogil, parallel(num_threads=num_threads):
+        for ivign in prange(nvign):
+            nvert = lnvert[ivign]
+            ltri[ivign] = <int*>malloc((nvert-2)*sizeof(int))
+            _ec.earclipping_poly(vignett, ltri[ivign], nvert)
+    return
+
+cdef inline bint inter_ray_triangle(const double[3] ray_orig,
+                                    const double[3] ray_vdir,
+                                    const double[3] vert0,
+                                    const double[3] vert1,
+                                    const double[3] vert2) nogil:
+    cdef int ii
+    cdef double det, invdet, u, v
+    cdef double[3] edge1, edge2
+    cdef double[3] pvec, tvec, qvec
+    #...
+    for ii in range(3):
+        edge1 = vert1[ii] - vert0[ii]
+        edge2 = vert2[ii] - vert0[ii]
+    # begin calculating determinant  also used to calculate U parameter
+    _bgt.compute_cross_prod(ray_vdir, edge2)
+    # if determinant is near zero ray lies in plane of triangle
+    det = _bgt.compute_dot_prod(edge1, pvec)
+    if Cabs(det) < _VSMALL:
+        return False
+    invdet = 1./det
+    # calculate distance from vert to ray origin
+    for ii in range(3):
+        tvec[ii] = ray_orig[ii] - vert0[ii]
+    # calculate U parameter and test bounds
+    u = _bgt.compute_dot_prod(tvec, pvec) * invdet
+    if u < 0. or u > 1.:
+        return False
+    # prepare to test V parameter
+    _bgt.compute_cross_prod(tvec, edge1, qvec)
+    # calculate V parameter and test bounds
+    v = _bgt.compute_dot_prod(ray_vdir, qvec) * invdet
+    if v < 0. or u + v > 1.:
+        return False
+    return True
+
+cdef inline bint inter_ray_poly(const double[3] ray_orig,
+                                const double[3] ray_vdir,
+                                double[:, ::1] vignett,
+                                int nvert,
+                                int* ltri) nogil:
+    cdef int ii
+    for ii in range(nvert-2):
+        if inter_ray_triangle(ray_orig, ray_vdir,
+                              vignett[:,ltri[3*ii]],
+                              vignett[:,ltri[3*ii+1]],
+                              vignett[:,ltri[3*ii+2]]):
+            return True
+    return False
 
 # ==============================================================================
 # =  Vignetting
@@ -1564,9 +1644,10 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  double[:, :, ::1] vignett_poly,
                                  long[::1] lnvert,
                                  double* lbounds,
+                                 int** ltri,
                                  int nvign,
                                  int nlos,
-                                 bint* goes_through):
+                                 bint* goes_through) nogil:
     cdef int ilos, ivign
     cdef int nvert
     cdef bint inter_bbox
@@ -1588,16 +1669,17 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
             for ivign in range(nvign):
                 nvert = lnvert[ivign]
                 # -- We check if intersection with  bounding box ---------------
-                comp_bbox_poly3d(nvert,
-                                &vignett_poly[ivign, 0],
-                                &vignett_poly[ivign, 1],
-                                &vignett_poly[ivign, 2],
-                                bounds)
                 inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
-                                                lbounds,
+                                                lbounds[6*ivign],
                                                 loc_org,
                                                 countin=True)
                 if not inter_bbox:
                     goes_through[ivign*num_los + ilos] = 0 # False
                     continue
                 # -- if none, we continue --------------------------------------
+                goes_through[ivign*num_los + ilos] = inter_ray_poly(loc_org,
+                                                                    loc_dir,
+                                                                    vignett[ivign],
+                                                                    nvert,
+                                                                    ltri[ivign])
+    return

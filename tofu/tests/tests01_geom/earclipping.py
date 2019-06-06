@@ -66,9 +66,7 @@ def compute_angles(lpts):
 
 #@profile
 def is_reflex(u,v):
-    normu = u/norm(u)
-    normv = v/norm(v)
-    nor = cross(normu,normv)
+    nor = cross(u,v)
     return np.sum(nor) >= 0.
 
 #@profile
@@ -79,13 +77,13 @@ def is_reflex_norm(u,v):
 
 #@profile
 def are_reflex(lpts):
-    diff = np.diff(lpts, axis=0)
-    ndiff = [di/norm(di) for di in diff]
+    ndiff = np.diff(lpts, axis=0)
+    # ndiff = [di/norm(di) for di in diff]
     isr0 = is_reflex(lpts[-1]-lpts[0], ndiff[0])
     isr1 = is_reflex(-ndiff[-1], lpts[0]-lpts[-1])
     res = [isr0]
-    for i in range(np.shape(diff)[0]-1):
-        res.append(is_reflex_norm(ndiff[i], -ndiff[i+1]))
+    for i in range(np.shape(ndiff)[0]-1):
+        res.append(is_reflex(ndiff[i], -ndiff[i+1]))
     res.append(isr1)
     return np.array(res)
 
@@ -94,20 +92,16 @@ def get_one_ears(lpts, lref):
     # lpts = [ptsn, pts0, pts1, ..., ptsn-1, ptsn, pts0]
     npts = lpts.shape[0]
     ltris = []
-    for i in range(npts):
+    for i in range(1,npts-1):
         if not lref[i]:
             a_pt_in_tri = False
-            if i+1 == npts:
-                ip1 = 0
-            else:
-                ip1 = i+1
             for j in range(npts):
                 if lref[j] and (j<i-1 or j > i+1):
-                    if is_pt_in_tri(lpts[i-1], lpts[i], lpts[ip1], lpts[j]):
+                    if is_pt_in_tri(lpts[i-1], lpts[i], lpts[i+1], lpts[j]):
                         a_pt_in_tri = True
                         break
             if not a_pt_in_tri:
-                return i, [lpts[i-1], lpts[i], lpts[ip1]]
+                return i, [lpts[i-1], lpts[i], lpts[i+1]]
     assert(False)
     return
 
@@ -121,7 +115,7 @@ def get_all_ears(lpts):
         iear, tri = get_one_ears(lpts, lref)
         ltri.append(tri)
         lpts = np.delete(lpts, iear, axis=0)
-        npts = npts-1
+        npts = npts-1 # TODOOOOOOOO
         if iear == npts:
             is_ref_im1 = lref[iear-1]
             is_ref_ip1 = lref[0]
@@ -203,7 +197,12 @@ def intersect_poly_easy(orig, dire, list_pts):
 
 
 #...........;
-def main_test(x1, list_pts1, list_pts2, plot=False):
+def main_test(x1, x2, list_pts1, list_pts2, plot=False):
+    if np.array_equal(list_pts1[-1], list_pts1[0]):
+        list_pts1 = list_pts1[:-1]
+    if np.array_equal(list_pts2[-1], list_pts2[0]):
+        list_pts2 = list_pts2[:-1]
+    # ...
     num_pts1 = np.size(x1)
     list_tri1 = get_all_ears(list_pts1)
     num_pts2 = np.size(x2)
@@ -453,62 +452,64 @@ def test_star_easy(lpts):
 
 
 if __name__ == '__main__':
-    # # ... First test case ......................................................
-    # x1 = np.r_[2,3,4,5,6,6,  6,5,   4,3.5,3,3.5,4,3.5,3,3.5,2,2,2]
-    # y1 = np.r_[2,1,0,1,2,3.5,5,3.5, 2,2.0,2,2.5,3,3.5,4,3.5,3,2.5,2]
-    # z1 = np.zeros_like(x1)
-    # list_pts1 = np.array([np.r_[xi,yi,zi] for (xi,yi,zi) in zip(x1,y1,z1)])
-    # # ... Second test case .....................................................
-    # x2 = np.r_[0,3.5,5.5,7,8,7, 6,5,3,4, 0]
-    # y2 = np.r_[2.5,0,1.5,1,5,4.5, 6,3,4,8, 2.5]
-    # z2 = np.array([0 if xi < 5. else 1. for xi in x2])
-    # list_pts2 = np.array([np.r_[xi,yi,zi] for (xi,yi,zi) in zip(x2,y2,z2)])
-    # list_pts1 = list_pts2
-    # x1  = x2
-    # # ..
-    # style.use('ggplot')
-    # import timeit
-    # print("easy test case :")
-    # print(timeit.timeit("time_test_easy()",
-    #                     setup="from __main__ import time_test_easy, x1, x2, list_pts1, list_pts2",
-    #                     number=1000))
-    # list_pts1 = list_pts1[:-1]
-    # list_pts2 = list_pts2[:-1]
-    # print("earclipping test case :")
-    # print(timeit.timeit("time_test_earclipping()",
-    #                     setup="from __main__ import time_test_earclipping, x1, x2, list_pts1, list_pts2",
-    #                     number=1000))
-    # #....
-    # main_test(x1, list_pts1, list_pts2)
-    # # print()
-    # # print("easy")
-    # # print()
-    # # main_test_easy()
+    style.use('ggplot')
+    # ... First test case ......................................................
+    x1 = np.r_[2,3,4,5,6,6,  6,5,   4,3.5,3,3.5,4,3.5,3,3.5,2,2,2]
+    y1 = np.r_[2,1,0,1,2,3.5,5,3.5, 2,2.0,2,2.5,3,3.5,4,3.5,3,2.5,2]
+    x1 = np.r_[2,4,6,6,4,3,4,3,2,2]
+    y1 = np.r_[2,0,2,5,2,2,3,4,3,2]
+    z1 = np.zeros_like(x1)
+    print(" NPTS for first coordinates = ", x1.shape)
+    list_pts1 = np.array([np.r_[xi,yi,zi] for (xi,yi,zi) in zip(x1,y1,z1)])
+    # ... Second test case .....................................................
+    x2 = np.r_[0,3.5,5.5,7,8,7, 6,5,3,4, 0]
+    y2 = np.r_[2.5,0,1.5,1,5,4.5, 6,3,4,8, 2.5]
+    z2 = np.array([0 if xi < 5. else 1. for xi in x2])
+    list_pts2 = np.array([np.r_[xi,yi,zi] for (xi,yi,zi) in zip(x2,y2,z2)])
+    print(" NPTS for first coordinates = ", x2.shape)
+    # ..
+    import timeit
+    print("easy test case :")
+    print(timeit.timeit("time_test_easy()",
+                        setup="from __main__ import time_test_easy, x1, x2, list_pts1, list_pts2",
+                        number=1000))
+    list_pts1 = list_pts1[:-1]
+    list_pts2 = list_pts2[:-1]
+    print("earclipping test case :")
+    print(timeit.timeit("time_test_earclipping()",
+                        setup="from __main__ import time_test_earclipping, x1, x2, list_pts1, list_pts2",
+                        number=1000))
+    #....
+    main_test(x1, x2, list_pts1, list_pts2, plot=False)
+    print()
+    print("easy")
+    print()
+    main_test_easy(plot=False)
 
-    from planar import Polygon
-    for i in range(3,12):
-        # star = np.array(Polygon.star(i, 1, 4))
-        # npts = i*2
-        star = np.array(Polygon.regular(i, radius=1))
-        npts = i
-        x = np.zeros(npts+1)
-        y = np.zeros(npts+1)
-        z = np.zeros(npts+1)
-        x[:-1] = star[:,0]
-        y[:-1] = star[:,1]
-        x[-1] = x[0]
-        y[-1] = y[0]
-        lpts = np.array([np.r_[xi,yi,zi] for (xi,yi,zi) in zip(x,y,z)])
-        # ...
-        start1 = time.time()
-        test_star_easy(lpts)
-        end1 = time.time()
-        print("For i =", i, " easy method =", end1 - start1)
-        # ...
-        lpts = lpts[:-1]
-        start2 = time.time()
-        test_star_earclipping(lpts)
-        end2 = time.time()
-        print("For i =", i, " earclipping method =", end2 - start2)
-        print(" * Ear clip won :", end2-start2 <= end1-start1)
-        print()
+    # from planar import Polygon
+    # for i in range(3,12):
+    #     # star = np.array(Polygon.star(i, 1, 4))
+    #     # npts = i*2
+    #     star = np.array(Polygon.regular(i, radius=1))
+    #     npts = i
+    #     x = np.zeros(npts+1)
+    #     y = np.zeros(npts+1)
+    #     z = np.zeros(npts+1)
+    #     x[:-1] = star[:,0]
+    #     y[:-1] = star[:,1]
+    #     x[-1] = x[0]
+    #     y[-1] = y[0]
+    #     lpts = np.array([np.r_[xi,yi,zi] for (xi,yi,zi) in zip(x,y,z)])
+    #     # ...
+    #     start1 = time.time()
+    #     test_star_easy(lpts)
+    #     end1 = time.time()
+    #     print("For i =", i, " easy method =", end1 - start1)
+    #     # ...
+    #     lpts = lpts[:-1]
+    #     start2 = time.time()
+    #     test_star_earclipping(lpts)
+    #     end2 = time.time()
+    #     print("For i =", i, " earclipping method =", end2 - start2)
+    #     print(" * Ear clip won :", end2-start2 <= end1-start1)
+    #     print()

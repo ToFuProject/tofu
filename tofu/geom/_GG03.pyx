@@ -907,8 +907,6 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     return PtsCross, resol, ind_arr, N_arr, Rref_arr, VPolybis
 
 
-
-
 # ==============================================================================
 #
 #                     3D MESHING in TOROIDAL configurations
@@ -2406,7 +2404,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                    dtype=int).reshape(num_los, 3))
 
 
-
 # =============================================================================
 # = Ray tracing when we only want kMin / kMax
 # -   (useful when working with flux surfaces)
@@ -2673,6 +2670,60 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     ind[indok] = k[indok]<kPOut[indok]
     return ind
 
+# ==============================================================================
+#
+#                                 VIGNETTING
+#
+# ==============================================================================
+def vignetting(double[:, ::1] ray_orig,
+               double[:, ::1] ray_vdir,
+               double[:, :, ::1] vignett_poly,
+               long[::1] lnvert,
+               int num_threads=16):
+    """
+    ray_orig : (3, num_los) double array
+       LOS origin points coordinates
+    ray_vdir : (3, num_los) double array
+       LOS normalized direction vector
+    vignett_poly : (num_vign, 3, num_vertex) double array
+       Coordinates of the vertices of the Polygon defining the 3D vignett.
+       POLY CLOSED
+    lnvert : (num_vign) long array
+       Number of vertices for each vignett (without counting the rebound)
+    Returns
+    ======
+    goes_through: (num_vign, num_los) bool array
+       Indicates for each vignett if each LOS wents through or not
+    """
+    cdef int ii
+    cdef int nvign, nlos
+    cdef array goes_through
+    cdef int** ltri = NULL
+    cdef int* sign_ray = NULL
+    cdef double* invr_ray = NULL
+    cdef double* loc_org = NULL
+    cdef double* loc_dir = NULL
+    cdef double* lbounds = NULL
+    # -- Initialization --------------------------------------------------------
+    nvign = vignett_poly.shape[0]
+    nlos = ray_orig.shape[1]
+    goes_through = clone(array('i'), nlos * nvign, True)
+    # -- Preparation -----------------------------------------------------------
+    lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
+    _rt.compute_3d_bboxes(vignett_poly, &lnvert[0], nvign, lbounds,
+                          num_threads=num_threads)
+    ltri = <int**>malloc(sizeof(int*)*nvign)
+    _rt.triangulate_polys(vignett_poly, &lnvert[0], nvign, ltri,
+                          num_threads=num_threads)
+    # -- We call core function -------------------------------------------------
+    _rt.vignetting_core(ray_orig, ray_vdir, vignett_poly, &lnvert[0], lbounds,
+                        ltri, nvign, nlos, &goes_through[0])
+    # -- Cleaning up -----------------------------------------------------------
+    free(lbounds)
+    # We have to free each array for each vignett:
+    for ii in range(nvign):
+        free(ltri[ii])
+    free(ltri) # and now we can free the main pointer
 
 
 # ==============================================================================
