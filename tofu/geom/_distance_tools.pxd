@@ -18,10 +18,10 @@ from libc.math cimport fabs as Cabs
 from libc.math cimport sqrt as Csqrt
 from libc.math cimport NAN as Cnan
 from libc.stdlib cimport malloc, free
-from libc.stdlib cimport malloc, free
 from _basic_geom_tools cimport _VSMALL
 cimport _basic_geom_tools as _bgt
 cimport _sampling_tools as _st
+
 # ==============================================================================
 # == DISTANCE CIRCLE - LOS
 # ==============================================================================

@@ -1824,26 +1824,27 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
 #       Meshing - Surface - Lin
 ########################################################
 
-cdef inline int _check_DLvsLMinMax(double[::1] LMinMax, list DL=None):
+cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
+                                   double[::1] DL=None):
     cdef int inter = 1
     cdef bint dl0_is_not_none
     cdef bint dl1_is_not_none
     if DL is not None:
         dl0_is_not_none = DL[0] is not None
         dl1_is_not_none = DL[1] is not None
-        assert len(DL)==2
-        assert LMinMax[0]<LMinMax[1]
-        if dl0_is_not_none and dl1_is_not_none:
-            assert(DL[0] < DL[1])
+        if DL.shape[0] != 2 or LMinMax[0]>=LMinMax[1]:
+            assert(False)
+        if dl0_is_not_none and dl1_is_not_none and DL[0] >= DL[1]:
+            assert(False)
         if dl0_is_not_none and DL[0]>LMinMax[1]:
             inter = 0
         elif dl1_is_not_none and DL[1]<LMinMax[0]:
             inter = 0
         else:
             if dl0_is_not_none and DL[0]<=LMinMax[0]:
-                DL[0] = None
+                DL[0] = Cnan
             if dl1_is_not_none and DL[1]>=LMinMax[1]:
-                DL[1] = None
+                DL[1] = Cnan
     return inter
 
 
@@ -2697,7 +2698,7 @@ def vignetting(double[:, ::1] ray_orig,
     """
     cdef int ii
     cdef int nvign, nlos
-    cdef array goes_through
+    cdef np.ndarray[bint,ndim=1] goes_through
     cdef int** ltri = NULL
     cdef int* sign_ray = NULL
     cdef double* invr_ray = NULL
@@ -2707,7 +2708,8 @@ def vignetting(double[:, ::1] ray_orig,
     # -- Initialization --------------------------------------------------------
     nvign = vignett_poly.shape[0]
     nlos = ray_orig.shape[1]
-    goes_through = clone(array('i'), nlos * nvign, True)
+    #goes_through = clone(array('i'), nlos * nvign, True)
+    goes_through = np.empty((nlos*nvign), dtype=bool)
     # -- Preparation -----------------------------------------------------------
     lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
     _rt.compute_3d_bboxes(vignett_poly, &lnvert[0], nvign, lbounds,
@@ -2724,6 +2726,7 @@ def vignetting(double[:, ::1] ray_orig,
     for ii in range(nvign):
         free(ltri[ii])
     free(ltri) # and now we can free the main pointer
+    return goes_through
 
 
 # ==============================================================================
@@ -3372,7 +3375,7 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
                                   double circ_radius, double circ_normz,
                                   double[9] results,
                                   bint is_LOS_Mode=False,
-                                  double kOut=np.inf) :
+                                  double kOut=np.inf) nogil:
     cdef double[3] dirv, orig
     cdef double[2] res
     cdef double normu, normu_sqr
@@ -3407,7 +3410,7 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
     cdef double vP0 = PMin2norm - circ_radius
     cdef double vP1 = PMin2     - circ_normz
     cdef double Theta = Catan2(vP1, vP0)
-    cdef double ImpTheta = Theta if Theta>=0 else Theta + np.pi
+    cdef double ImpTheta = Theta if Theta>=0 else Theta + Cpi
     cdef double er2D0 = Ccos(ImpTheta)
     cdef double er2D1 = Csin(ImpTheta)
     cdef double p0 = vP0*er2D0 + vP1*er2D1

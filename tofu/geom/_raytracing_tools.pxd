@@ -256,7 +256,8 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
                 ymax = bounds_min[4]
             # cos_mid = Ccos(half_pi)
             # sin_mid = Csin(half_pi)
-    elif (Cabs(Cabs(lmin) - Cpi) > _VSMALL and Cabs(Cabs(lmax) - Cpi) > _VSMALL):
+    elif (Cabs(Cabs(lmin) - Cpi) > _VSMALL
+          and Cabs(Cabs(lmax) - Cpi) > _VSMALL):
         if lmin >= 0 :
             # lmin and lmax of opposite signs, so lmax < 0.
             # We divide and conquer:
@@ -604,7 +605,8 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         # the last POut encountered
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
                                                         &lbounds[(ind_struct + jj)*6],
-                                                        last_pout, countin=False)
+                                                        last_pout,
+                                                        countin=False)
                         if inter_bbox:
                             continue
                          # Else, we compute the new values
@@ -1138,11 +1140,11 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                                              int[::1] indout_tab,
                                              double EpsPlane,
                                              int ind_struct,
-                                             int ind_lim_struct):
+                                             int ind_lim_struct) nogil:
 
     cdef bint is_in_path
     cdef int ii=0, jj=0
-    cdef double kin, kout, scauVin, q, X, sca
+    cdef double kin, kout, scauVin, q, X, sca, k
     cdef int indin=0, indout=0, Done=0
 
     if ind_struct == 0 and ind_lim_struct == 0 :
@@ -1185,9 +1187,10 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                                     kin = k
                                     indin = jj
                     else:
-                        from warnings import warn
-                        warn("The polygon has double identical points",
-                             Warning)
+                        with gil:
+                            from warnings import warn
+                            warn("The polygon has double identical points",
+                                 Warning)
         # For two faces
         # Only if plane not parallel to line
         if Cabs(us[0,ii])>EpsPlane:
@@ -1448,17 +1451,19 @@ cdef inline void raytracing_minmax_struct_lin(int Nl,
                                              double L0, double L1,
                                              double* kin_tab,
                                              double* kout_tab,
-                                             double EpsPlane):
+                                             double EpsPlane) nogil:
     cdef bint is_in_path
     cdef int ii=0, jj=0
-    cdef double kin, kout, scauVin, q, X, sca
+    cdef double kin, kout, scauVin, q, X, sca, k
     cdef int indin=0, indout=0, Done=0
 
     kin_tab[ii]  = Cnan
     kout_tab[ii] = Cnan
 
     for ii in range(0,Nl):
-        kout, kin, Done = 1.e12, 1e12, 0
+        kout = 1.e12
+        kin  = 1.e12
+        Done = 0
         # For cylinder
         for jj in range(0,Ns):
             scauVin = us[1,ii] * normx_tab[jj] + us[2,ii] * normy_tab[jj]
@@ -1567,7 +1572,7 @@ cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
                                    long* lnvert,
                                    int nvign,
                                    int** ltri,
-                                   int num_threads=16):
+                                   int num_threads=16) nogil:
     """
     Triangulates a list 3d polygon using the earclipping techinque
     https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
@@ -1590,9 +1595,9 @@ cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
 
 cdef inline bint inter_ray_triangle(const double[3] ray_orig,
                                     const double[3] ray_vdir,
-                                    const double[::1] vert0,
-                                    const double[::1] vert1,
-                                    const double[::1] vert2) nogil:
+                                    const double[:] vert0,
+                                    const double[:] vert1,
+                                    const double[:] vert2) nogil:
     cdef int ii
     cdef double det, invdet, u, v
     cdef double[3] edge1, edge2
@@ -1642,13 +1647,14 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
 # ==============================================================================
 cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  double[:, ::1] ray_vdir,
-                                 double[:, :, ::1] vignett_poly,
-                                 long[::1] lnvert,
+                                 double[:, :, ::1] vignett,
+                                 long* lnvert,
                                  double* lbounds,
                                  int** ltri,
                                  int nvign,
                                  int nlos,
-                                 int* goes_through) nogil:
+                                 bint* goes_through,
+                                 int num_threads=16) nogil:
     cdef int ilos, ivign
     cdef int nvert
     cdef bint inter_bbox
@@ -1660,27 +1666,27 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
         invr_ray  = <double*>malloc(sizeof(double) * 3)
         sign_ray  = <int *> malloc(sizeof(int) * 3)
         for ilos in prange(nlos):
-            loc_org[0] = ray_orig[0, ind_los]
-            loc_org[1] = ray_orig[1, ind_los]
-            loc_org[2] = ray_orig[2, ind_los]
-            loc_dir[0] = ray_vdir[0, ind_los]
-            loc_dir[1] = ray_vdir[1, ind_los]
-            loc_dir[2] = ray_vdir[2, ind_los]
+            loc_org[0] = ray_orig[0, ilos]
+            loc_org[1] = ray_orig[1, ilos]
+            loc_org[2] = ray_orig[2, ilos]
+            loc_dir[0] = ray_vdir[0, ilos]
+            loc_dir[1] = ray_vdir[1, ilos]
+            loc_dir[2] = ray_vdir[2, ilos]
             compute_inv_and_sign(loc_dir, sign_ray, invr_ray)
             for ivign in range(nvign):
                 nvert = lnvert[ivign]
                 # -- We check if intersection with  bounding box ---------------
                 inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
-                                                lbounds[6*ivign],
+                                                &lbounds[6*ivign],
                                                 loc_org,
                                                 countin=True)
                 if not inter_bbox:
-                    goes_through[ivign*num_los + ilos] = 0 # False
+                    goes_through[ivign*nlos + ilos] = 0 # False
                     continue
                 # -- if none, we continue --------------------------------------
-                goes_through[ivign*num_los + ilos] = inter_ray_poly(loc_org,
-                                                                    loc_dir,
-                                                                    vignett[ivign],
-                                                                    nvert,
-                                                                    ltri[ivign])
+                goes_through[ivign*nlos + ilos] = inter_ray_poly(loc_org,
+                                                                 loc_dir,
+                                                                 vignett[ivign],
+                                                                 nvert,
+                                                                 ltri[ivign])
     return

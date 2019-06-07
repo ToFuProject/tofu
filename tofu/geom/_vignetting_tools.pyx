@@ -1,5 +1,18 @@
 # distutils: language=c++
+# cython: boundscheck=False
+# cython: wraparound=False
+# cython: cdivision=True
+#
+################################################################################
+# Utility functions for the earclipping techinque for triangulation of a
+# polygon. This is really useful when vignetting, as the computation to know
+# if a ray intersected a polygon, is easier if we check if the polygon is
+# discretized in triangles and then we check if the ray intersected each
+# triangle.
+################################################################################
+cimport cython
 from libcpp.vector cimport vector
+from libc.stdlib cimport malloc, free
 cimport _basic_geom_tools as _bgt
 
 cdef inline bint is_reflex(const double[3] u,
@@ -23,7 +36,7 @@ cdef inline bint is_reflex(const double[3] u,
 
 cdef inline void compute_diff3d(double[:, ::1] orig,
                                 int nvert,
-                                double* diff):
+                                double* diff) nogil:
     cdef int ivert
     for ivert in range(nvert-1):
         diff[ivert*3 + 0] = orig[0,ivert+1] - orig[0,ivert]
@@ -53,12 +66,14 @@ cdef inline void are_points_reflex(double[:,::1] vignett,
     are_reflex[0] = is_reflex(&diff[0], &diff[(nvert-1)*3])
     return
 
-cdef inline void is_pt_in_tri(double[3] v0, double[3] v1, double[3] A,
-                              double[3] point) nogil:
+cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
+                              double Ax, double Ay, double Az,
+                              double px, double py, double pz) nogil:
     """
     Tests if point P is on the triangle A, B, C such that
         v0 = C - A
         v1 = B - A
+    and A = (Ax, Ay, Az) and P = (px, py, pz)
     """
     cdef double[3] v2
     cdef double dot00, dot01, dot02
@@ -66,15 +81,15 @@ cdef inline void is_pt_in_tri(double[3] v0, double[3] v1, double[3] A,
     cdef double invDenom
     cdef double u, v
     # computing vector between A and P
-    v2[0] = point[0] - A[0]
-    v2[1] = point[1] - A[1]
-    v2[2] = point[2] - A[2]
+    v2[0] = px - Ax
+    v2[1] = py - Ay
+    v2[2] = pz - Az
     # compute dot products
-    dot00 = compute_dot_prod(v0, v0)
-    dot01 = compute_dot_prod(v0, v1)
-    dot02 = compute_dot_prod(v0, v2)
-    dot11 = compute_dot_prod(v1, v1)
-    dot12 = compute_dot_prod(v1, v2)
+    dot00 = _bgt.compute_dot_prod(v0, v0)
+    dot01 = _bgt.compute_dot_prod(v0, v1)
+    dot02 = _bgt.compute_dot_prod(v0, v2)
+    dot11 = _bgt.compute_dot_prod(v1, v1)
+    dot12 = _bgt.compute_dot_prod(v1, v2)
     # Compute barycentric coordinates
     invDenom = 1. / (dot00 * dot11 - dot01 * dot01)
     u = (dot11 * dot02 - dot01 * dot12) * invDenom
@@ -115,8 +130,9 @@ cdef inline int get_one_ear(double[:,::1] polygon,
                 # We only test reflex angles:
                 if (wj != -1 and lref[wj] # and wj is not a vertex of triangle
                     and wj != wim1 and wj != wip1 and wj != wi):
-                    if is_pt_in_tri(diff[wi*3], diff[(wim1)*3])
-                                    polygon[:,wi], polygon[:,wj]):
+                    if is_pt_in_tri(&diff[wi*3], &diff[(wim1)*3],
+                                    polygon[0,wi], polygon[1,wi],polygon[2,wi],
+                                    polygon[0,wj], polygon[1,wj], polygon[2,wj]):
                         # We found a point in the triangle, thus is not ear
                         # no need to keep testing....
                         a_pt_in_tri = True
@@ -125,7 +141,8 @@ cdef inline int get_one_ear(double[:,::1] polygon,
             if not a_pt_in_tri:
                 return i# , [lpts[i-1], lpts[i], lpts[ip1]]
     # if we havent returned, either, there was an error somerwhere
-    assert(False)
+    with gil:
+        assert(False)
     return -1
 
 cdef inline void earclipping_poly(double[:,::1] vignett,
@@ -174,10 +191,10 @@ cdef inline void earclipping_poly(double[:,::1] vignett,
         # if an angle is not reflex, then it will stay so, only chage if reflex
         if lref[wim1]:
             if iear >= 2:
-                lref[wim1] = is_reflex(&diff[3*wim1]
+                lref[wim1] = is_reflex(&diff[3*wim1],
                                        &diff[3*working_index[iear-2]])
             else:
-                lref[wim1] = is_reflex(&diff[3*wim1]
+                lref[wim1] = is_reflex(&diff[3*wim1],
                                        &diff[3*working_index[loc_nv-1]])
         if lref[wip1]:
             lref[wip1] = is_reflex(&diff[wip1*3],
@@ -185,7 +202,7 @@ cdef inline void earclipping_poly(double[:,::1] vignett,
         # last but not least update on number of vertices and working indices
         itri = itri + 1
         loc_nv = loc_nv - 1
-        working_index.erase(iear)
+        working_index.erase(working_index.begin()+iear)
     # .. Cleaning up ...........................................................
     free(diff)
     free(lref)
