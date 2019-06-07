@@ -97,19 +97,31 @@ class MultiIDSLoader(object):
                 'sepR':{'str':'time_slice[time].boundary_separatrix.outline.r'},
                 'sepZ':{'str':'time_slice[time].boundary_separatrix.outline.z'},
 
-                '1drhotn':{'str':'time_slice[time].profiles_1d.rho_tor_norm'},
-                '1dphi':{'str':'time_slice[time].profiles_1d.phi'},
-                '1dpsi':{'str':'time_slice[time].profiles_1d.psi'},
-                '1diq':{'str':'time_slice[time].profiles_1d.q'},
-                '1dpe':{'str':'time_slice[time].profiles_1d.pressure'},
-                '1djT':{'str':'time_slice[time].profiles_1d.j_tor'},
+                '1drhotn':{'str':'time_slice[time].profiles_1d.rho_tor_norm',
+                           'quant':'rho', 'units':'adim.'},
+                '1dphi':{'str':'time_slice[time].profiles_1d.phi',
+                         'quant':'B flux', 'units':'Wb'},
+                '1dpsi':{'str':'time_slice[time].profiles_1d.psi',
+                         'quant':'B flux', 'units':'Wb'},
+                '1dq':{'str':'time_slice[time].profiles_1d.q',
+                       'quant':'q', 'units':'adim.'},
+                '1dpe':{'str':'time_slice[time].profiles_1d.pressure',
+                        'quant':'pressure', 'units':'Pa'},
+                '1djT':{'str':'time_slice[time].profiles_1d.j_tor',
+                        'quant':'current dens.', 'units':'A/m^2'},
 
-                '2dphi':{'str':'time_slice[time].ggd[0].phi[0].values'},
-                '2dpsi':{'str':'time_slice[time].ggd[0].psi[0].values'},
-                '2djT':{'str':'time_slice[time].ggd[0].j_tor[0].values'},
-                '2dBR':{'str':'time_slice[time].ggd[0].b_field_r[0].values'},
-                '2dBT':{'str':'time_slice[time].ggd[0].b_field_tor[0].values'},
-                '2dBZ':{'str':'time_slice[time].ggd[0].b_field_z[0].values'},
+                '2dphi':{'str':'time_slice[time].ggd[0].phi[0].values',
+                         'quant':'B flux', 'units':'Wb'},
+                '2dpsi':{'str':'time_slice[time].ggd[0].psi[0].values',
+                         'quant':'B flux', 'units':'Wb'},
+                '2djT':{'str':'time_slice[time].ggd[0].j_tor[0].values',
+                         'quant':'current dens.', 'units':'A/m^2'},
+                '2dBR':{'str':'time_slice[time].ggd[0].b_field_r[0].values',
+                        'quant':'B', 'units':'T'},
+                '2dBT':{'str':'time_slice[time].ggd[0].b_field_tor[0].values',
+                         'quant':'B', 'units':'T'},
+                '2dBZ':{'str':'time_slice[time].ggd[0].b_field_z[0].values',
+                         'quant':'B', 'units':'T'},
                 '2dmeshNodes':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[0].object[].geometry'},
                 '2dmeshTri':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[2].object[].nodes'}},
 
@@ -117,28 +129,40 @@ class MultiIDSLoader(object):
                {'t':{'str':'time'},
                 'ip':{'str':'global_quantities.ip'},
                 'vloop':{'str':'global_quantities.v_loop'},
-                '1dTe':{'str':'profiles_1d[time].electrons.temperature'},
-                '1dne':{'str':'profiles_1d[time].electrons.density'},
-                '1dzeff':{'str':'profiles_1d[time].zeff'},
-                '1dphi':{'str':'profiles_1d[time].grid.phi'},
-                '1dpsi':{'str':'profiles_1d[time].grid.psi'},
-                '1drhotn':{'str':'profiles_1d[time].grid.rho_tor_norm'},
-                '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm'},
-                '1dnW':{'str':'profiles_1d[time].ions[identifier.label=W].density'}},
+
+                '1dTe':{'str':'profiles_1d[time].electrons.temperature',
+                         'quant':'temperature', 'units':'eV'},
+                '1dne':{'str':'profiles_1d[time].electrons.density',
+                         'quant':'density', 'units':'/m^3'},
+                '1dzeff':{'str':'profiles_1d[time].zeff',
+                         'quant':'zeff', 'units':'adim.'},
+                '1dphi':{'str':'profiles_1d[time].grid.phi',
+                         'quant':'B flux', 'units':'Wb'},
+                '1dpsi':{'str':'profiles_1d[time].grid.psi',
+                         'quant':'B flux', 'units':'Wb'},
+                '1drhotn':{'str':'profiles_1d[time].grid.rho_tor_norm',
+                         'quant':'rho', 'units':'adim.'},
+                '1drhopn':{'str':'profiles_1d[time].grid.rho_pol_norm',
+                         'quant':'rho', 'units':'adim.'},
+                '1dnW':{'str':'profiles_1d[time].ions[identifier.label=W].density',
+                         'quant':'density', 'units':'/m^3'}},
 
                'edge_profiles':
                {'t':{'str':'time'}},
 
                'core_sources':
                {'t':{'str':'time'},
-                '1dpsi':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.psi'},
-                '1drhotn':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.rho_tor_norm'},
-                '1dbrem':{'str':"source[identifier.name=brehmstrahlung].profiles_1d[time].electrons.energy"},
-                '1dline':{'str':"source[identifier.name=lineradiation].profiles_1d[time].electrons.energy"}},
+                '1dpsi':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.psi',
+                         'quant':'B flux', 'units':'Wb'},
+                '1drhotn':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.rho_tor_norm',
+                         'quant':'rho', 'units':'Wb'},
+                '1dbrem':{'str':"source[identifier.name=brehmstrahlung].profiles_1d[time].electrons.energy",
+                         'quant':'emissivity vol.', 'units':'W/m^3'},
+                '1dline':{'str':"source[identifier.name=lineradiation].profiles_1d[time].electrons.energy",
+                         'quant':'emissivity vol.', 'units':'W/m^3'}},
 
                'edge_sources':
-               {'t':{'str':'time'},
-                'bla':{'str':'bla'}},
+               {'t':{'str':'time'}},
 
                'magnetics':
                {'t':{'str':'time'},
@@ -284,7 +308,7 @@ class MultiIDSLoader(object):
 
     def __init__(self, preset=None, dids=None, ids=None, occ=None, idd=None,
                  shot=None, run=None, refshot=None, refrun=None,
-                 user=None, tokamak=None, version=None, get=True, ref=True):
+                 user=None, tokamak=None, version=None, get=None, ref=True):
         super(MultiIDSLoader, self).__init__()
 
         # Initialize dicts
@@ -298,9 +322,13 @@ class MultiIDSLoader(object):
             lidd = list(self._didd.keys())
             assert len(lidd) <= 1
             idd = lidd[0] if len(lidd) > 0 else None
+            if get is None and ids is not None:
+                get = True
             self.add_ids(preset=preset, ids=ids, occ=occ, idd=idd, get=False)
         else:
             self.set_dids(dids)
+            if get is None:
+                get = True
         self._set_fsig()
         if get:
             self.open_get_close()
@@ -1639,14 +1667,60 @@ class MultiIDSLoader(object):
         lidsok = ['equilibrium',
                   'core_profiles', 'core_sources',
                   'edge_profiles', 'edge_sources']
-        lscom = ['t']
+        lidsok = set(lidsok).intersection(self._dids.keys())
 
-        if dsig is None:
+        lscom = ['t']
+        lsmesh = ['2dmeshNodes','2dmeshTri']
+
+        lc = [dsig is None,
+              type(dsig) is str,
+              type(dsig) is list,
+              type(dsig) is dict]
+        assert any(lc)
+
+        # Convert to dict
+        if lc[0]:
             dsig = {}
             for ids in lidsok:
-                dsig[ids] = self._dshort[ids]
+                dsig = {ids: sorted(self._dshort[ids].keys()) for ids in lidsok}
+        elif lc[1] or lc[2]:
+            if lc[1]:
+                dsig = [dsig]
+            dsig = {ids: dsig for ids in lidsok}
 
-        return dsig
+        # Check content
+        dout = {}
+        for k0, v0 in dsig.items():
+            if k0 not in lidsok:
+                msg = "Only the following ids are relevant to Plasma2D:\n"
+                msg += "    - %s"%str(lidsok)
+                msg += "  => ids %s from dsig is ignored"%str(k0)
+                warnings.warn(msg)
+                continue
+            lc = [v0 is None, type(v0) is str, type(v0) is list]
+            if not any(lc):
+                msg = "Each value in dsig must be either:\n"
+                msg += "    - None\n"
+                msg += "    - str : a valid shortcut\n"
+                msg += "    - list of str: list of valid shortcuts\n"
+                msg += "You provided:\n"
+                msg += str(dsig)
+                raise Exception(msg)
+            if lc[0]:
+                dsig[k0] = sorted(self._dshort[k0].keys())
+            if lc[1]:
+                dsig[k0] = [dsig[k0]]
+            if not all([ss in self._dshort[k0].keys() for ss in dsig[k0]]):
+                msg = "All requested signals must be valid shortcuts !\n"
+                msg += "    - dsig[%s] = %s"%(k0, str(dsig[k0]))
+                raise Exception(msg)
+
+            # Check presence of minimum
+            assert all([ss in dsig[k0] for ss in lscom])
+            if any(['2d' in ss for ss in dsig.keys()]):
+                assert all([ss in dsig[k0] for ss in lsmesh])
+            dout[k0] = dsig[k0]
+        return dout
 
 
     @staticmethod
@@ -1669,27 +1743,20 @@ class MultiIDSLoader(object):
 
 
     def to_Plasma2D(self, tlim=None, dsig=None,
-                    Name=None, occ=None, config=None, out=object, plot=True):
-
-        lidsok = ['equilibrium',
-                  'core_profiles', 'core_sources',
-                  'edge_profiles', 'edge_sources']
+                    Name=None, occ=None, config=None, out=object):
 
         # dsig
         dsig = self._checkformat_Plasma2D_dsig(dsig)
-
-        lidsok = set(lidsok).intersection()
-
+        lids = sorted(dsig.keys())
         if Name is None:
             Name = 'custom'
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        lids, lidd, shot, Exp = self._get_lidsidd_shotExp(dsig.keys(), errshot=True,
-                                                          errExp=True)
+        _, _, shot, Exp = self._get_lidsidd_shotExp(lids,
+                                                    errshot=True, errExp=True)
         # get data
-        dsig = dict.fromkeys(lids)
-        out = self.get_data_all(dsig=dsig)
+        out_ = self.get_data_all(dsig=dsig)
 
         # -------------
         #   Input dicts
@@ -1700,25 +1767,27 @@ class MultiIDSLoader(object):
 
         # dicts
         dtime = {}
-        d1d, dradius = dict.fromkeys(lids), {}
+        d1d, dradius = {}, {}
+        d2d, dmesh = {}, {}
         for ids in lids:
 
             # dtime
-            out = self.get_data(ids, sig='t')
-            if len(out) != 1:
+            out_ = self.get_data(ids, sig='t')
+            if len(out_) != 1:
                 continue
-            if out['t'].size == 0 or 0 in out['t'].shape:
+            if out_['t'].size == 0 or 0 in out_['t'].shape:
                 continue
-            nt = out['t'].size
-            dtime[ids] = self._checkformat_tlim(out['t'], tlim=tlim)
+            nt = out_['t'].size
+            dtime[ids] = self._checkformat_tlim(out_['t'], tlim=tlim)
 
             # d1d and dradius
             lsig = [k for k in dsig[ids] if '1d' in k]
-            out = self.get_data(ids, lsig)
-            if len(out) == 0:
+            out_ = self.get_data(ids, lsig)
+            if len(out_) == 0:
                 continue
-            for ss in out.keys():
-                shape = out[ss].shape
+
+            for ss in out_.keys():
+                shape = out_[ss].shape
                 assert len(shape) == 2
                 if np.sum(shape) > 0:
                     assert nt in shape
@@ -1727,55 +1796,53 @@ class MultiIDSLoader(object):
                     if ids not in dradius.keys():
                         dradius[ids] = {'size':nr}
                     else:
-                        assert nr == dradius[ids]
-                    if axist == 0:
-                        d1d[ids][ss] = out[ss]
-                    else:
-                        d1d[ids][ss] = out[ss].T
+                        assert nr == dradius[ids]['size']
+                    if axist == 1:
+                        out_[ss] = out_[ss].T
+                    name = ids+'.'+ss[2:]
+                    quant = self._dshort[ids][ss].get('quant', 'unknown')
+                    units = self._dshort[ids][ss].get('units', 'a.u.')
+                    d1d[name] = {'data':out_[ss],
+                                 'quant':quant, 'units':units,
+                                 'radius':ids, 'time':ids}
 
-        # TBF
-
-
-        # dmesh
-        dmesh, lsig = {}, ['2dmeshNodes','2dmeshTri']
-        for ids in lids:
-            out = self.get_data(ids, sig=lsig)
-            if len(out) != len(lsig):
+            # d2d and dmesh
+            lsig = [k for k in dsig[ids] if '2d' in k]
+            lsigmesh = ['2dmeshNodes','2dmeshTri']
+            out_ = self.get_data(ids, sig=lsig)
+            if len(out_) == 0:
                 continue
-            if any([out[ss].size == 0 or 0 in out[ss].shape for ss in lsig]):
+            if not all([ss in out_.keys() for ss in lsigmesh]):
                 continue
-            nodes = out['2dmeshNodes']
-            indtri = out['2dmeshTri']
+
+            npts = None
+            for ss in set(out_.keys()).difference(lsigmesh):
+                shape = out_[ss].shape
+                assert len(shape) == 2
+                if np.sum(shape) > 0:
+                    assert nt in shape
+                    axist = shape.index(nt)
+                    if npts is None:
+                        npts = shape[1-axist]
+                    assert npts == shape[1-axist]
+                    if axist == 1:
+                        out_[ss] = out_[ss].T
+                    name = ids+'.'+ss[2:]
+                    quant = self._dshort[ids][ss].get('quant', 'unknown')
+                    units = self._dshort[ids][ss].get('units', 'a.u.')
+                    d2d[name] = {'data':out_[ss],
+                                 'quant':quant, 'units':units,
+                                 'mesh':ids, 'time':ids}
+
+            nodes = out_['2dmeshNodes']
+            indtri = out_['2dmeshTri']
             indtri = self._checkformat_tri(nodes, indtri)
-            nnodes, nntri = nodes.size/2, indtri.size/3
-            ftype = 'linear' # TBF
+            nnod, ntri = nodes.size/2, indtri.size/3
+            ftype = 'linear' if npts == nnod else 'nearest'
             mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indtri)
             dmesh[ids] = {'nodes':nodes, 'faces':indtri,
                           'type':'tri', 'ftype':ftype,
                           'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
-
-        # d1d, d2d, dradius
-        d1d, d2d, dradius = {}, {}, {}
-        for k0, v0 in self._dquant.items():
-            for k1, v1 in v0.items():
-                for qq, v2 in v1['dq'].items():
-                    if v2['val'] is None:
-                        continue
-                    quant, units = self._get_quantunitsfromname(qq)
-                    if k1 == '1d':
-                        d1d[k0+'.'+qq] = {'data':v2['val'],
-                                          'quant':quant,
-                                          'units':units,
-                                          'radius':k0,
-                                          'time':k0}
-                        if k0 not in dradius.keys():
-                            dradius[k0] = {'size':v2['val'].shape[-1]}
-                    elif k1 == '2d':
-                        d2d[k0+'.'+qq] = {'data':v2['val'],
-                                          'quant':quant,
-                                          'units':units,
-                                          'mesh':k0,
-                                          'time':k0}
 
         plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
                       d1d=d1d, d2d=d2d,
@@ -1783,6 +1850,7 @@ class MultiIDSLoader(object):
 
         # Instanciate Plasma2D
         if out == object:
+            import tofu.data as tfd
             plasma = tfd.Plasma2D( **plasma )
         return plasma
 
@@ -1800,3 +1868,22 @@ def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
 
     return didd.to_Config(Name=Name, occ=occ,
                           indDescript=indDescript, plot=plot)
+
+
+def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
+                  tlim=None, dsig=None, ids=None, config=None,
+                  Name=None, out=object):
+
+    didd = MultiIDSLoader()
+    didd.add_idd(shot=shot, run=run,
+                 user=user, tokamak=tokamak, version=version)
+    if dsig is dict:
+        lids = sorted(dsig.keys())
+    else:
+        if type(ids) not in [str,list]:
+            msg = "Please provide ids !"
+            raise Exception(msg)
+        lids = [ids] if type(ids) is str else ids
+    didd.add_ids(ids=lids, get=True)
+
+    return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, config=config, out=out)
