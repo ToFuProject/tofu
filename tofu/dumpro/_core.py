@@ -34,6 +34,14 @@ except ImportError:
 import computation as _comp
 import plotting as _plot
 
+
+##########################################################
+# Working directory
+##########################################################
+
+
+                  
+
 ##########################################################
 ##########################################################
 #               Video Class
@@ -49,6 +57,8 @@ class Video(object):
     
     Attributes:
     --------------------------------------------
+    __filename = Path of the file along with its name and extension
+    __path = A path to a working directory for storage during processing
     __frame_width = width of the video
     __frame_height = height of the video
     __video_time = time length of the video
@@ -78,6 +88,7 @@ class Video(object):
             msg += "    {}".format(filename)
             print(msg)
         self.__filename = filename
+        self.__path = user_path
         #getting the meta data of the video
         self.__frame_width = int(self.cap.get(3))
         self.__frame_height = int(self.cap.get(4))
@@ -91,6 +102,18 @@ class Video(object):
                           'N_frames' : self.__N_frames,
                           'frame_width' : self.__frame_width,
                           'frame_height' : self.__frame_height}
+    
+##############################################################################
+#   setter for Working Directory
+##############################################################################
+ 
+    def w_dir(self):
+        message = 'Please provide a working directory where files can be stored '
+        message += 'while image processing is being done...\n'
+        message += 'Note:- Please create a separate directory for each video :'
+        #getting user input
+        self.__path = input(message)
+    
 
 #############################################################################
 #     Getters for the class attributes
@@ -127,7 +150,12 @@ class Video(object):
     def fourcc(self):
         """ Returns the four character code of the video"""
         return self.__fourcc
-
+    
+    @property
+    def path(self):
+        """Returns the working directory"""
+        return self.__path
+    
 #############################################################################
 #   Grayscale conversion method
 #############################################################################
@@ -237,19 +265,20 @@ class Video(object):
                                                                verb)
         
         return pixel, meta_data
-    
+
+#############################################################################
+#   displaying a video
+#############################################################################
+    def playvideo(self):
+        """Subroutine for playing a video"""
+        #calling play video function from plotting library
+        _plot.playvideo.play_video(self.__filename)
+
+
     
     def dumpro(self, meta_data = None, path = None, output_name = None, output_type = None, verb = True):
         
-        print('Performing Preprocessing on the Video')
-        print('Performing Grayscale conversion and Noise Removal')
-        
-        gray, meta_data = _comp.colorgray.convertgray(self.__filename, path, output_name, output_type)
-        print('grayscale conversion complete: video stored at: '+str(gray))
-        
-        print('Performing background removal')
-        foreground,meta_data = _comp.background_removal.remove_background(gray, path, output_name, output_type)
-        print('background removal complete: video stored at: '+str(foreground))
+        return None
         
         
 #sig = inspect.signature(_comp.colorgray.convertgray)
