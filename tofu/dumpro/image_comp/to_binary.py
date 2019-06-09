@@ -4,6 +4,7 @@ Created on Sat Jun  8 13:45:58 2019
 
 @author: Arpan Khandelwal
 email: napraarpan@gmail.com
+This subroutine requires opencv3 and higher
 """
 
 # Built-in
@@ -20,13 +21,28 @@ except ImportError:
     
 def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
     """
-    This subroutine applies grayscale conversion to a collection of images
-    The images are read in native form i.e., without any modification.
+    This subroutine converts a collection of images to binary
+    The images are read in grayscale form i.e., in single channel mode
+    For more information consult:
+    
+    1. https://docs.opencv.org/2.4/doc/tutorials/imgproc/threshold/threshold.html
+    2. https://docs.opencv.org/3.4.0/d7/d4d/tutorial_py_thresholding.html
+    
+    Among the parameters present, if used as a part of dumpro, 
+    w_dir, shot_name and meta_data are provided by the image processing 
+    class in the core file.
+    The verb paramenter is used when this subroutine is used independently.
+    Otherwise it is suppressed by the core class.
     
     Parameters
     -----------------------
-    video_file:       mp4,avi
-     input video along with its path passed in as argument
+    im_path:          string
+     input path where the images are stored
+    w_dir:            string
+     A working directory where the proccesed images are stored
+    shot_name:        String
+     The name of the tokomak machine and the shot number. Generally
+     follows the nomenclature followed by the lab
     meta_data:        dictionary
      A dictionary containing all the video meta_data. By default it is None
      But if the user inputs some keys into the dictionary, the code will use 
@@ -34,26 +50,18 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
      required
      meta_data has information on total number of frames, demension, fps and 
      the four character code of the video
-    path:             string
-     Path where the user wants to save the video. By default it take the path 
-     from where the raw video file was loaded
-    output_name:      String
-     Name of the Grayscale converted video. By default it appends to the 
-     name of the original file '_grayscale'
-    output_type:      String
-     Format of output defined by user. By default it uses the format of the 
-     input video
+    disp              boolean
+     to display the frames set equal to True. By default is set to True
     
     Return
     -----------------------
-    pfe:              String
-     Path along with the name and type of video    
+    im_out:              String
+     Path along where the proccessed images are stored  
     meta_data:        dictionary
      A dictionary containing the meta data of the video.
-
     """
     
-    
+    #reading the output directory
     if verb == True:
         print('Creating output directory ...')
     #default output folder name
@@ -62,13 +70,14 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
     if im_out == None:
         im_out = os.path.join(w_dir, folder, '')
         if not os.path.exists(im_out):
+            #creating output directory using w_dir and shotname
             os.mkdir(im_out)
     
     if verb == True:
         print('output directory is : ', im_out,'\n')
     
     #describing an empty list that will later contain all the frames
-    frame_array = []
+    #frame_array = []
     #creating a list of all the files
     files = [f for f in os.listdir(im_path) if os.path.isfile(os.path.join(im_path,f))]    
     
@@ -77,12 +86,16 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
+        print('performing binary conversion...\n')
         print('The following files have been read ...')
-        
+    
+    #looping through the files
     f_count = 1
     for i in range(len(files)):
         #converting to path
         filename = im_path + files[i]
+        if verb == True:
+            print(filename)
         #reading each file to extract its meta_data
         img = cv2.imread(filename,cv2.IMREAD_GRAYSCALE)
         #grayscale conversion
@@ -96,7 +109,7 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
         #providing information to user
         f_count += 1
     
-    frame_array.append(img)
+    #frame_array.append(img)
     
     if verb == True:
         print('Reading meta_data...\n')
@@ -141,7 +154,8 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
         N_frames = meta_data.get('N_frames', len(files))
         if 'N_frames' not in meta_data:
             meta_data['N_frames'] = N_frames
-            
-        
+    
+    if verb == True:
+        print('meta_data is read successfully...\n')
     
     return im_out, meta_data

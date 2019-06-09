@@ -5,7 +5,7 @@ Created on Wed Apr  3 10:48:03 2019
 @author: Arpan Khandelwal
 email: napraarpan@gail.com
 
-input: video_file (The Grayscale converted video)
+input: video_file 
 output: all the frames in video are converted to images
 """
 
@@ -23,7 +23,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
 
-def video2img(video_file, meta_data = None, path = None, image_name = None, image_type = None, verb = True):
+def video2img(video_file, w_dir, meta_data = None, image_name = None, image_type = None, verb = True):
     """Breaks up an input video file into it's constituent frames and 
     saves them as jpg image
     

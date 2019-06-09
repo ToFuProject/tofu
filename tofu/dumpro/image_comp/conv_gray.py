@@ -4,6 +4,8 @@ Created on Sat Jun  8 13:45:58 2019
 
 @author: Arpan Khandelwal
 email: napraarpan@gmail.com
+
+This subroutine requires Opencv3 or higher version
 """
 
 # Built-in
@@ -23,10 +25,21 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
     This subroutine applies grayscale conversion to a collection of images
     The images are read in native form i.e., without any modification.
     
+    Among the parameters present, if used as a part of dumpro, 
+    w_dir, shot_name and meta_data are provided by the image processing 
+    class in the core file.
+    The verb paramenter is used when thsi subroutine is used independently.
+    Otherwise it is suppressed by the core class.
+    
     Parameters
     -----------------------
-    video_file:       mp4,avi
-     input video along with its path passed in as argument
+    im_path:          string
+     input path where the images are stored
+    w_dir:            string
+     A working directory where the proccesed images are stored
+    shot_name:        String
+     The name of the tokomak machine and the shot number. Generally
+     follows the nomenclature followed by the lab
     meta_data:        dictionary
      A dictionary containing all the video meta_data. By default it is None
      But if the user inputs some keys into the dictionary, the code will use 
@@ -34,26 +47,16 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
      required
      meta_data has information on total number of frames, demension, fps and 
      the four character code of the video
-    path:             string
-     Path where the user wants to save the video. By default it take the path 
-     from where the raw video file was loaded
-    output_name:      String
-     Name of the Grayscale converted video. By default it appends to the 
-     name of the original file '_grayscale'
-    output_type:      String
-     Format of output defined by user. By default it uses the format of the 
-     input video
     
     Return
     -----------------------
-    pfe:              String
-     Path along with the name and type of video    
+    im_out:              String
+     Path along where the proccessed images are stored  
     meta_data:        dictionary
      A dictionary containing the meta data of the video.
-
     """
     
-    
+    #the output directory based on w_dir and shot_name
     if verb == True:
         print('Creating output directory ...')
     #default output folder name
@@ -63,26 +66,31 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
         im_out = os.path.join(w_dir, folder, '')
         if not os.path.exists(im_out):
             os.mkdir(im_out)
-    
+    #the output directory shown to user
     if verb == True:
         print('output directory is : ', im_out,'\n')
     
-    #describing an empty list that will later contain all the frames
-    frame_array = []
+    
     #creating a list of all the files
     files = [f for f in os.listdir(im_path) if os.path.isfile(os.path.join(im_path,f))]    
     
     #sorting files according to names using lambda function
+    #-4 is to remove the extension of the images i.e., .jpg
     files.sort(key = lambda x: int(x[5:-4]))
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
+        print('starting grayscale conversion ...\n')
         print('The following files have been read ...')
-        
+    
+    # loop to read through all the images and
+    # apply grayscale conversion to them
     f_count = 1
     for i in range(len(files)):
         #converting to path
         filename = im_path + files[i]
+        if verb == True:
+            print(filename)
         #reading each file to extract its meta_data
         img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
         #grayscale conversion
@@ -96,9 +104,10 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
         #providing information to user
         f_count += 1
     
-    frame_array.append(img)
+    #frame_array.append(img)
     
     if verb == True:
+        print('conversion successfull...\n')
         print('Reading meta_data...\n')
         
     if meta_data == None:
@@ -142,6 +151,7 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
         if 'N_frames' not in meta_data:
             meta_data['N_frames'] = N_frames
             
-        
+    if verb == True:
+        print('meta_data read successfully ...\n')
     
     return im_out, meta_data

@@ -4,6 +4,7 @@ Created on Sat Jun  8 13:45:58 2019
 
 @author: Arpan Khandelwal
 email: napraarpan@gmail.com
+This subroutine requires opencv3 or higher
 """
 
 # Built-in
@@ -18,15 +19,14 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
-def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
+def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp = True, verb = True):
     """
-    This subroutine removes background from a collection of images
-    It follows frame by frame subtraction where the previous frame is 
-    subtracted from the successive frame
+    This subroutine applies denoising to colored images
     The images are read in original form i.e., without any modifications
-    For more information consult:
+    The denoising algorithm follows non local means of denoising. For more 
+    information look at the following resources:
     
-    1. https://docs.opencv.org/3.4/dd/d4d/tutorial_js_image_arithmetics.html
+    1. https://docs.opencv.org/trunk/d5/d69/tutorial_py_non_local_means.html
     
     Among the parameters present, if used as a part of dumpro, 
     w_dir, shot_name and meta_data are provided by the image processing 
@@ -61,16 +61,16 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
      A dictionary containing the meta data of the video.
     """
     
-    #reading the output directory
+    #reading output path
     if verb == True:
         print('Creating output directory ...')
     #default output folder name
-    folder = shot_name + '_frground'
+    folder = shot_name + '_denoise_col'
     #creating the output directory
     if im_out == None:
         im_out = os.path.join(w_dir, folder, '')
         if not os.path.exists(im_out):
-            #creating output directory using w_dir and shot_name
+            #creating the output directory using w_dir and shot_name
             os.mkdir(im_out)
     
     if verb == True:
@@ -86,36 +86,36 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('subtracting background...\n')
-        print('Reading the image files ...\n')
-        print('Files read...\n')
-        
-    #looping through the video
+        print('denoising images...\n')
+        print('The following files have been read ...')
+    
+    #looping through files and applying denoising to them
     f_count = 1
-    for i in range(len(files)-1):
+    for i in range(len(files)):
         #converting to path
-        f_name1 = im_path + files[i]
-        f_name2 = im_path + files[i+1]
+        filename = im_path + files[i]
         if verb == True:
-            print(f_name2)
+            print(filename)
         #reading each file to extract its meta_data
-        img1 = cv2.imread(f_name1,cv2.IMREAD_UNCHANGED)
-        img2 = cv2.imread(f_name2,cv2.IMREAD_UNCHANGED)
-        #performing frame by frame subtraction
-        dst = cv2.subtract(img1, img2)
+        img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
+        #grayscale conversion
+        dst = cv2.fastNlMeansDenoisingColored(img,None,5,21,7)
         #generic name of each image
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
         cv2.imwrite(name, dst)
-        #image meta_data
-        height,width, channels = dst.shape
+        if disp == True:
+            cv2.imshow('denoise', dst)         
+            #Press q on keyboard to exit 
+            if cv2.waitKey(25) & 0xFF == ord('q'): 
+                break
+            
+        height,width = img.shape
         size = (height, width)
         #providing information to user
         f_count += 1
     
-    if verb == True:
-        print('background subtraction successfull...\n')
-    #frame_array.append(dst)
+    #frame_array.append(img)
     
     if verb == True:
         print('Reading meta_data...\n')
@@ -161,7 +161,6 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
         if 'N_frames' not in meta_data:
             meta_data['N_frames'] = N_frames
             
-        if verb == True:
-            print('meta_data read successfully...')
+        
     
     return im_out, meta_data

@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Jun  8 13:45:58 2019
+Created on Mon Jun  3 21:18:45 2019
 
 @author: Arpan Khandelwal
 email: napraarpan@gmail.com
 """
-
 # Built-in
 import os
 
@@ -17,22 +16,22 @@ try:
     import cv2
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
-    
-def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
-    """
-    This subroutine removes background from a collection of images
-    It follows frame by frame subtraction where the previous frame is 
-    subtracted from the successive frame
+
+def crop_video(im_path, w_dir, shot_name, im_out = None, 
+               meta_data = None, verb = True):
+    """This subroutine crops a video and also slices it to return us a 
+    collection of all the frames from our desired time window in our desired region
+    of interest
     The images are read in original form i.e., without any modifications
-    For more information consult:
-    
-    1. https://docs.opencv.org/3.4/dd/d4d/tutorial_js_image_arithmetics.html
     
     Among the parameters present, if used as a part of dumpro, 
     w_dir, shot_name and meta_data are provided by the image processing 
     class in the core file.
     The verb paramenter is used when this subroutine is used independently.
     Otherwise it is suppressed by the core class.
+    
+    The region of interest and the time window of interest is later 
+    gathered from the user during runtime.
     
     Parameters
     -----------------------
@@ -61,65 +60,67 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
      A dictionary containing the meta data of the video.
     """
     
-    #reading the output directory
+    #the output directory based on w_dir and shot_name
     if verb == True:
         print('Creating output directory ...')
     #default output folder name
-    folder = shot_name + '_frground'
+    folder = shot_name + '_grayscale'
     #creating the output directory
     if im_out == None:
         im_out = os.path.join(w_dir, folder, '')
         if not os.path.exists(im_out):
-            #creating output directory using w_dir and shot_name
             os.mkdir(im_out)
-    
+    #the output directory shown to user
     if verb == True:
         print('output directory is : ', im_out,'\n')
-    
-    #describing an empty list that will later contain all the frames
-    #frame_array = []
+        
     #creating a list of all the files
     files = [f for f in os.listdir(im_path) if os.path.isfile(os.path.join(im_path,f))]    
     
     #sorting files according to names using lambda function
+    #-4 is to remove the extension of the images i.e., .jpg
     files.sort(key = lambda x: int(x[5:-4]))
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('subtracting background...\n')
-        print('Reading the image files ...\n')
-        print('Files read...\n')
-        
-    #looping through the video
-    f_count = 1
-    for i in range(len(files)-1):
-        #converting to path
-        f_name1 = im_path + files[i]
-        f_name2 = im_path + files[i+1]
-        if verb == True:
-            print(f_name2)
-        #reading each file to extract its meta_data
-        img1 = cv2.imread(f_name1,cv2.IMREAD_UNCHANGED)
-        img2 = cv2.imread(f_name2,cv2.IMREAD_UNCHANGED)
-        #performing frame by frame subtraction
-        dst = cv2.subtract(img1, img2)
-        #generic name of each image
-        name = im_out + 'frame' + str(f_count) + '.jpg'
-        #writting the output file
-        cv2.imwrite(name, dst)
-        #image meta_data
-        height,width, channels = dst.shape
-        size = (height, width)
-        #providing information to user
-        f_count += 1
+        print('The following files have been read ...')
+
+    user_input = input('Enter the values for cropping :')
+    print(type(user_input))
+    user_input = user_input.split(',')
+#    fw = user_input[0]
+#    fh = user_input[1]
+    lfw = int(user_input[0])
+    ufw = int(user_input[1])
+    lfh = int(user_input[2])
+    ufh = int(user_input[3])
     
-    if verb == True:
-        print('background subtraction successfull...\n')
-    #frame_array.append(dst)
+    frame_width = ufw - lfw
+    frame_height = ufh - lfh
     
-    if verb == True:
-        print('Reading meta_data...\n')
+    print('The total number of frames are :', len(files),'\n')
+    tlim = input('Enter the frames of interest :')
+    tlim = tlim.split(',')
+    start = int(tlim[0])
+    end = int(tlim[1])
+
+    
+    curr_frame = 1
+    print('creating temp file...\n')
+    for i in range(len(files)):
+        filename = im_path + files[i]
+        if curr_frame >= start and curr_frame <= end:
+            if verb == True:
+                print(filename)
+            #reading each file to extract its meta_data
+            img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
+            height, width, layer = img.shape
+            img = img[lfw:ufw, lfh:ufh]
+            name =im_out + 'frame' + str(curr_frame) + '.jpg'
+            cv2.imwrite(name,img)
+        curr_frame += 1
         
+    #meta_data of the collection of images
     if meta_data == None:
         #defining the four character code
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
@@ -161,7 +162,11 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
         if 'N_frames' not in meta_data:
             meta_data['N_frames'] = N_frames
             
-        if verb == True:
-            print('meta_data read successfully...')
+    if verb == True:
+        print('meta_data read successfully ...\n')
+        
+    print('Releasing output...\n')
     
+    cv2.destroyAllWindows()
     return im_out, meta_data
+    
