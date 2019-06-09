@@ -18,7 +18,7 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
-def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
+def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
     """
     This subroutine applies grayscale conversion to a collection of images
     The images are read in native form i.e., without any modification.
@@ -57,7 +57,7 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
     if verb == True:
         print('Creating output directory ...')
     #default output folder name
-    folder = shot_name + '_grayscale'
+    folder = shot_name + '_binary'
     #creating the output directory
     if im_out == None:
         im_out = os.path.join(w_dir, folder, '')
@@ -84,14 +84,14 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
         #converting to path
         filename = im_path + files[i]
         #reading each file to extract its meta_data
-        img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
+        img = cv2.imread(filename,cv2.IMREAD_GRAYSCALE)
         #grayscale conversion
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        ret, out = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
         #generic name of each image
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
-        cv2.imwrite(name, gray)
-        height,width,layer = img.shape
+        cv2.imwrite(name, out)
+        height,width = img.shape
         size = (height, width)
         #providing information to user
         f_count += 1

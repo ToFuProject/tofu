@@ -18,7 +18,7 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
-def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
+def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
     """
     This subroutine applies grayscale conversion to a collection of images
     The images are read in native form i.e., without any modification.
@@ -57,7 +57,7 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
     if verb == True:
         print('Creating output directory ...')
     #default output folder name
-    folder = shot_name + '_grayscale'
+    folder = shot_name + '_frground'
     #creating the output directory
     if im_out == None:
         im_out = os.path.join(w_dir, folder, '')
@@ -80,23 +80,25 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
         print('The following files have been read ...')
         
     f_count = 1
-    for i in range(len(files)):
+    for i in range(len(files)-1):
         #converting to path
-        filename = im_path + files[i]
+        f_name1 = im_path + files[i]
+        f_name2 = im_path + files[i+1]
         #reading each file to extract its meta_data
-        img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
+        img1 = cv2.imread(f_name1,cv2.IMREAD_UNCHANGED)
+        img2 = cv2.imread(f_name2,cv2.IMREAD_UNCHANGED)
         #grayscale conversion
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        dst = cv2.subtract(img1, img2)
         #generic name of each image
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
-        cv2.imwrite(name, gray)
-        height,width,layer = img.shape
+        cv2.imwrite(name, dst)
+        height,width, channels = dst.shape
         size = (height, width)
         #providing information to user
         f_count += 1
     
-    frame_array.append(img)
+    frame_array.append(dst)
     
     if verb == True:
         print('Reading meta_data...\n')
