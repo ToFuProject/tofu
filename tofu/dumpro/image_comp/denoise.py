@@ -156,6 +156,6 @@ def denoise(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
             meta_data['N_frames'] = N_frames
             
     if verb == True:
-        print('meta_data read successfully...\n)
+        print('meta_data read successfully...\n')
     
     return im_out, meta_data
