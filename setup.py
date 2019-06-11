@@ -32,12 +32,10 @@ except:
 import _updateversion as up
 
 if platform.system() == "Darwin":
-    __using_osx__ = True
     # make sure you are using Homebrew's compiler
     os.environ['CC'] = 'gcc-8'
-    os.environ['CXX'] = 'g++'
+    os.environ['CXX'] = 'g++-8'
 else:
-    __using_osx__ = False
     os.environ['CC'] = 'gcc'
     os.environ['CXX'] = 'g++'
 
@@ -81,13 +79,13 @@ class CleanCommand(Clean):
         cython_files = self.find(["*.pyx"])
         cythonized_files = [path.replace(".pyx", ".c") for path in cython_files]
         cythonized_files += [path.replace(".pyx", ".cpp") for path in cython_files]
-        if platform.system() == "Darwin":
-            cythonized_files += [path.replace(".pyx", ".so") for path in cython_files]
+        so_files = self.find(["*.so"])
         # really remove the directories
         # and not only if they are empty
         to_remove = [self.build_base]
         to_remove = self.expand(to_remove)
         to_remove += cythonized_files
+        to_remove += so_files
 
         if not self.dry_run:
             for path in to_remove:
@@ -190,8 +188,8 @@ with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 #  ... Compiling files .........................................................
 if not not_openmp_installed :
-    extra_compile_args=["-O0", "-Wall",  "-fopenmp"]
-    extra_link_args = ['-fopenmp']
+    extra_compile_args=["-O0", "-Wall", "-fopenmp"]
+    extra_link_args = ["-fopenmp"]
 else:
     extra_compile_args=["-O0", "-Wall"]
     extra_link_args = []
