@@ -1677,6 +1677,6 @@ def test22_vignetting():
     ves_poly0[0] = np.asarray(ves_poly00)
     ves_poly0[1] = np.asarray(ves_poly01)
     # .. computing .............................................................
-    out = GG.triangulate_by_earclipping(ves_poly)
+    out = GG.triangulate_by_earclipping(ves_poly0)
     print(out)
     assert(False)

@@ -2681,7 +2681,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 # ==============================================================================
 def triangulate_by_earclipping(double[:,::1] poly):
     cdef int nvert = poly.shape[1]
-    cdef np.ndarray[int,ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
+    cdef np.ndarray[long,ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
     # Calling core function.....................................................
     _vt.earclipping_poly(poly, &ltri[0], nvert)
     return ltri
@@ -2709,7 +2709,7 @@ def vignetting(double[:, ::1] ray_orig,
     cdef int ii
     cdef int nvign, nlos
     cdef np.ndarray[bint,ndim=1] goes_through
-    cdef int** ltri = NULL
+    cdef long** ltri = NULL
     cdef int* sign_ray = NULL
     cdef double* invr_ray = NULL
     cdef double* loc_org = NULL
@@ -2724,7 +2724,7 @@ def vignetting(double[:, ::1] ray_orig,
     lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
     _rt.compute_3d_bboxes(vignett_poly, &lnvert[0], nvign, lbounds,
                           num_threads=num_threads)
-    ltri = <int**>malloc(sizeof(int*)*nvign)
+    ltri = <long**>malloc(sizeof(long*)*nvign)
     _vt.triangulate_polys(vignett_poly, &lnvert[0], nvign, ltri,
                           num_threads=num_threads)
     # -- We call core function -------------------------------------------------
@@ -2806,10 +2806,8 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     sz1_ds = Ds.shape[0]
     sz2_ds = Ds.shape[1]
     num_los = sz2_ds
-    # dLr = clone(array('d'), num_los, False)
-    # los_ind = clone(array('i'), num_los, False)
-    dLr = np.empty((num_los,), dtype=float)
-    los_ind = np.empty((num_los,), dtype=int)
+    dLr = np.zeros((num_los,), dtype=float)
+    los_ind = np.zeros((num_los,), dtype=int)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -2858,7 +2856,9 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
             if imode=='sum':
                 _st.middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
                                       &dLr[0], &los_ind[0])
-                ntmp = np.sum(los_ind)
+                print(los_ind)
+                ntmp = np.sum(los_ind[:1])
+                assert(False)
                 coeff_arr = np.empty((ntmp,), dtype=float)
                 _st.middle_rule_abs_2(num_los, &DLs[0,0], &los_ind[0],
                                       &dLr[0], &coeff_arr[0])

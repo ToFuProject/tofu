@@ -157,7 +157,7 @@ cdef inline int get_one_ear(double[:,::1] polygon,
     return -1
 
 cdef inline void earclipping_poly(double[:,::1] vignett,
-                                  int* ltri,
+                                  long* ltri,
                                   int nvert) nogil:
     """
     Triangulates a polygon by earclipping an edge at a time.
@@ -225,7 +225,7 @@ cdef inline void earclipping_poly(double[:,::1] vignett,
 cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
                                    long* lnvert,
                                    int nvign,
-                                   int** ltri,
+                                   long** ltri,
                                    int num_threads=16) nogil:
     """
     Triangulates a list 3d polygon using the earclipping techinque
@@ -243,7 +243,7 @@ cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
     with nogil, parallel(num_threads=num_threads):
         for ivign in prange(nvign):
             nvert = lnvert[ivign]
-            ltri[ivign] = <int*>malloc((nvert-2)*3*sizeof(int))
+            ltri[ivign] = <long*>malloc((nvert-2)*3*sizeof(int))
             earclipping_poly(vignett_poly[ivign], ltri[ivign], nvert)
     return
 
@@ -251,7 +251,7 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
                                 const double[3] ray_vdir,
                                 double[:, ::1] vignett,
                                 int nvert,
-                                int* ltri) nogil:
+                                long* ltri) nogil:
     cdef int ii
     for ii in range(nvert-2):
         if _rt.inter_ray_triangle(ray_orig, ray_vdir,
@@ -269,7 +269,7 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  double[:, :, ::1] vignett,
                                  long* lnvert,
                                  double* lbounds,
-                                 int** ltri,
+                                 long** ltri,
                                  int nvign,
                                  int nlos,
                                  bint* goes_through,
