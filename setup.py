@@ -35,11 +35,11 @@ if platform.system() == "Darwin":
     __using_osx__ = True
     # make sure you are using Homebrew's compiler
     os.environ['CC'] = 'gcc-8'
-    os.environ['CXX'] = 'gcc-8'
+    os.environ['CXX'] = 'g++'
 else:
     __using_osx__ = False
     os.environ['CC'] = 'gcc'
-    os.environ['CXX'] = 'gcc'
+    os.environ['CXX'] = 'g++'
 
 # ==============================================================================
 class CleanCommand(Clean):

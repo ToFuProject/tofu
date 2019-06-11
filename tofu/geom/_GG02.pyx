@@ -66,7 +66,7 @@ __all__ = ['CoordShift',
            'LOS_isVis_PtFromPts_VesStruct',
            'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
            'LOS_sino','integrate1d',
-           "triangulate_by_earclipping"
+           "triangulate_by_earclipping",
            "vignetting"]
 
 
