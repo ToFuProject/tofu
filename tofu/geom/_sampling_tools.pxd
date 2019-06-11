@@ -129,7 +129,7 @@ cdef inline void second_discretize_line1d_core(double* LMinMax,
 
 
 cdef inline void simple_discretize_line1d(double[2] LMinMax, double dstep,
-					  int mode, double margin,
+                                          int mode, double margin,
                                           double** ldiscret_arr,
                                           double[1] resolution,
                                           long[1] N) nogil:
@@ -349,7 +349,7 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
                                  double* los_resolution,
                                  double* los_coeffs,
                                  long* los_ind,
-                                 int num_threads=16) nogil:
+                                 int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int first_index
     cdef double inv_nraf
@@ -375,7 +375,7 @@ cdef inline void middle_rule_abs_1(int num_los, double resol,
                                    double* los_lims_y,
                                    double* los_resolution,
                                    long* ind_cum,
-                                   int num_threads=16) nogil:
+                                   int num_threads) nogil:
     cdef Py_ssize_t ii
     cdef long num_raf
     cdef long first_index
@@ -399,7 +399,7 @@ cdef inline void middle_rule_abs_2(int num_los,
                                    long* ind_cum,
                                    double* los_resolution,
                                    double* los_coeffs,
-                                   int num_threads=16) nogil:
+                                   int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef long num_raf
     cdef long first_index
@@ -429,7 +429,7 @@ cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
                                      double* los_resolution,
                                      double** los_coeffs,
                                      long* los_ind,
-                                     int num_threads=16) nogil:
+                                     int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -462,7 +462,7 @@ cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
                                      double* los_resolution,
                                      double** los_coeffs,
                                      long* los_ind,
-                                     int num_threads=16) nogil:
+                                     int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -494,7 +494,7 @@ cdef inline void left_rule_rel(int num_los, int num_raf,
                                double* los_lims_y,
                                double* los_resolution,
                                double* los_coeffs,
-                               long* los_ind, int num_threads=16) nogil:
+                               long* los_ind, int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int first_index
     cdef double inv_nraf
@@ -519,7 +519,7 @@ cdef inline void simps_left_rule_abs(int num_los, double resol,
                                      double* los_resolution,
                                      double** los_coeffs,
                                      long* los_ind,
-                                     int num_threads=16) nogil:
+                                     int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -553,7 +553,7 @@ cdef inline void romb_left_rule_abs(int num_los, double resol,
                                     double* los_lims_y,
                                     double* los_resolution,
                                     double** los_coeffs,
-                                    long* los_ind, int num_threads=16) nogil:
+                                    long* los_ind, int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -589,7 +589,7 @@ cdef inline void simps_left_rule_rel_var(int num_los, double* resolutions,
                                          double* los_resolution,
                                          double** los_coeffs,
                                          long* los_ind,
-                                         int num_threads=16) nogil:
+                                         int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -621,7 +621,7 @@ cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
                                          double* los_resolution,
                                          double** los_coeffs,
                                          long* los_ind,
-                                         int num_threads=16) nogil:
+                                         int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -655,7 +655,7 @@ cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
                                         double* los_resolution,
                                         double** los_coeffs,
                                         long* los_ind,
-                                        int num_threads=16) nogil:
+                                        int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
@@ -687,7 +687,7 @@ cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
                                         double* los_resolution,
                                         double** los_coeffs,
                                         long* los_ind,
-                                        int num_threads=16) nogil:
+                                        int num_threads) nogil:
     cdef Py_ssize_t ii, jj
     cdef int num_raf
     cdef int first_index
