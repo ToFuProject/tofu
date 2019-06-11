@@ -26,8 +26,7 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
                                     const double[3] inv_direction,
                                     const double[6] bounds,
                                     const double[3] ds,
-                                    bint countin=False,
-                                    bint debug_plot=False) nogil:
+                                    bint countin) nogil:
     """
     Computes intersection between a ray (LOS) and a axis aligned bounding
     box. It returns True if ray intersects box, else False.
@@ -596,14 +595,14 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
                                                         &lbounds[(ind_struct + jj)*6],
                                                         loc_org,
-                                                        countin=True)
+                                                        True)
                         if not inter_bbox:
                             continue
                         # We check that the bounding box is not "behind"
                         # the last POut encountered
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
                                                         &lbounds[(ind_struct + jj)*6],
-                                                        last_pout, countin=False)
+                                                        last_pout, False)
                         if inter_bbox:
                             continue
                          # Else, we compute the new values
@@ -719,8 +718,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                       const double eps_b, const double eps_pln,
                                       const bint is_in_struct,
                                       double[1] kpin_loc, double[1] kpout_loc,
-                                      int[1] ind_loc, double[3] vperpin,
-                                      bint debug_plot=False) nogil:
+                                      int[1] ind_loc, double[3] vperpin) nogil:
     """
     Computes the entry and exit point of ONE provided LOS/rays for a single
     structure that can be of type "OUT" (is_out_struct=True) or "IN"
