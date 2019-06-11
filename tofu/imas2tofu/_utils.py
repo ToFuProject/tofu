@@ -175,7 +175,8 @@ class MultiIDSLoader(object):
                 'Te': {'str':'channel[chan].t_e.data'},
                 'R': {'str':'channel[chan].position.r.data'},
                 'rhotn':{'str':'channel[chan].position.rho_tor_norm.data'},
-                'tau':{'str':'channel[chan].optical_depth.data'}},
+                'tau':{'str':'channel[chan].optical_depth.data'},
+                'validity_timed': {'str':'channel[chan].t_e.validity_timed'}},
 
                'interferometer':
                {'t':{'str':'time'},
@@ -1789,7 +1790,7 @@ class MultiIDSLoader(object):
 
             # d1d and dradius
             lsig = [k for k in dsig[ids] if '1d' in k]
-            out_ = self.get_data(ids, lsig)
+            out_ = self.get_data(ids, lsig, indt=dtime[ids]['indt'])
             if len(out_) == 0:
                 continue
 
@@ -1816,7 +1817,7 @@ class MultiIDSLoader(object):
             # d2d and dmesh
             lsig = [k for k in dsig[ids] if '2d' in k]
             lsigmesh = ['2dmeshNodes','2dmeshTri']
-            out_ = self.get_data(ids, sig=lsig)
+            out_ = self.get_data(ids, sig=lsig, indt=dtime[ids]['indt'])
             if len(out_) == 0:
                 continue
             if not all([ss in out_.keys() for ss in lsigmesh]):
@@ -1862,7 +1863,8 @@ class MultiIDSLoader(object):
         return plasma
 
 
-    def _checkformat_Diag_dsig(self, ids=None, dsig=None, data=None, geom=None, indch=None):
+    def _checkformat_Diag_dsig(self, ids=None, dsig=None, mainsig=None,
+                               data=None, geom=None, indch=None):
         didsok = {'magnetics': {'data':'DataCam1D',
                                 'geom':False},
                   'ece':{'data':'DataCam1D',
@@ -1877,15 +1879,11 @@ class MultiIDSLoader(object):
                   'bolometer':{'data':'DataCam1D',
                                'geom':'CamLOS1D',
                                'sig':{'t':'t',
-                                      'data':'power',
-                                      'etendue':'etendue',
-                                      'surface':'surface'}},
+                                      'data':'power'}},
                   'soft_x_rays':{'data':'DataCam1D',
                                  'geom':'CamLOS1D',
                                  'sig':{'t':'t',
-                                        'data':'power',
-                                        'etendue':'etendue',
-                                        'surface':'surface'}},
+                                        'data':'power'}},
                   'spectrometer_visible':{'data':'DataCam1DSpectral',
                                           'geom':'CamLOS1D',
                                           'sig':{'t':'t',
@@ -1912,6 +1910,9 @@ class MultiIDSLoader(object):
                 geom = didsok[ids]['geom']
             if dsig is None:
                 dsig = didsok[ids]['sig']
+        if mainsig is not None:
+            assert type(mainsig) is str
+            dsig['data'] = mainsig
 
         # Check data and geom
         import tofu.geom as tfg
@@ -1931,7 +1932,7 @@ class MultiIDSLoader(object):
         # Check signals
         c0 = type(dsig) is dict
         c0 = c0 and 'data' in dsig.keys()
-        ls = ['t','X','lamb','data','los','etendue','surface']
+        ls = ['t','X','lamb','data','los','Etendues','Surfaces']
         c0 = c0 and all([ss in ls for ss in dsig.keys()])
         if not c0:
             msg = "Arg dsig must be a dict with keys:\n"
@@ -1940,20 +1941,26 @@ class MultiIDSLoader(object):
             msg += "    - 'X':       (optional) shortcut to abscissa vector\n"
             msg += "    - 'lamb':    (optional) shortcut to wavelengths\n"
             msg += "    - 'los':     (optional) shortcut to los coordinates\n"
-            msg += "    - 'etendue': (optional) shortcut to etendue\n"
-            msg += "    - 'surface': (optional) shortcut to detector surfaces"
+            msg += "    - 'Etendues': (optional) shortcut to etendue\n"
+            msg += "    - 'Surfaces': (optional) shortcut to detector surfaces"
             raise Exception(msg)
 
+        dout = {}
+        for k, v in dsig.items():
+            if v in self._dshort[ids].keys():
+                dout[k] = v
 
-        return data, geom, dsig
+        return data, geom, dout
 
 
 
-    def to_Diag(self, ids=None, tlim=None, dsig=None, cam=None, indch=None,
-                Name=None, occ=None, config=None, out=object, plot=True):
+    def to_Diag(self, ids=None, dsig=None, mainsig=None, tlim=None, indch=None,
+                Name=None, occ=None, config=None,
+                equilibrium=True, plot=True):
 
         # dsig
-        data, geom, dsig = self._checkformat_Diag_dsig(ids, dsig)
+        data, geom, dsig = self._checkformat_Diag_dsig(ids, dsig,
+                                                       mainsig=mainsig)
         if Name is None:
             Name = 'custom'
 
@@ -1971,35 +1978,88 @@ class MultiIDSLoader(object):
         # cam
         cam = None
         if geom != False:
+            Etendues, Surfaces = None, None
             if config is None:
-                msg = ""
+                msg = "A config must be provided to compute the geometry !"
                 raise Exception(msg)
 
             if 'LOS' in geom:
-                out = self.get_data(ids, 'los_ptsRZPhi')['los_ptsRZPhi']
-                D = out[:,0,:]
-                u = out[:,1::] - D
-                u = u/np.sqrt(npp.sum(u**2, axis=1))[:,None]
+                lk = ['los_ptsRZPhi','etendue','surface']
+                lkok = set(self._dshort[ids].keys())
+                lkok = lkok.union(self._dcomp[ids].keys())
+                lk = set(lk).intersection(lkok)
+                out = self.get_data(ids, sig=list(lk))
+                if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
+                    oo = out['los_ptsRZPhi']
+                    D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
+                                  oo[:,0,0]*np.sin(oo[:,0,2]), oo[:,0,1]])
+                    u = np.array([oo[:,1,0]*np.cos(oo[:,1,2]),
+                                  oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
+                    u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
+                    dgeom = (D,u)
+                if 'etendue' in out.keys() and out['etendue'].size > 0:
+                    Etendues = out['etendue']
+                if 'surface' in out.keys() and out['surface'].size > 0:
+                    Surfaces = out['surface']
 
             import tofu.geom as tfg
-            cam = getattr(tfg, geom)(dgeom=(D,u), config=config,
+            cam = getattr(tfg, geom)(dgeom=dgeom, config=config,
+                                     Etendues=Etendues, Surfaces=Surfaces,
                                      Name=Name, Diag=ids, Exp=Exp)
 
         # data
         lk = sorted(dsig.keys())
-        out = self.get_data(ids, sig=[dsig[k] for k in lk])
+        indt = self._checkformat_tlim(self.get_data(ids, sig='t')['t'],
+                                      tlim=tlim)['indt']
+        out = self.get_data(ids, sig=[dsig[k] for k in lk],
+                            indt=indt, indch=indch)
         for kk in lk:
             if kk in ['data','X','lamb']:
                 dsig[kk] = out[dsig[kk]].T
             else:
                 dsig[kk] = out[dsig[kk]]
+        if 'validity_timed' in self._dshort[ids].keys():
+            inan = self.get_data(ids, sig='validity_timed',
+                                 indt=indt, indch=indch)['validity_timed'].T<0.
+            for kk in set(lk).intersection(['data','X','lamb']):
+                dsig[kk][inan] = np.nan
+
+        # Extra
+        dextra = {}
+        if equilibrium:
+            indt = self._checkformat_tlim(self.get_data('equilibrium',
+                                                        sig='t')['t'],
+                                          tlim=tlim)['indt']
+            out = self.get_data('equilibrium', sig=['t','ip','volume','ax','sep','x0'],
+                                indt=indt)
+            for ss in ['ip','volume']:
+                if out[ss].size == 0:
+                    continue
+                name = 'equilibrium.%s'%ss
+                dextra[name] = {'data':out[ss], 'units':'a.u.',
+                                't':out['t'], 'label':name}
+
+            for ss in ['ax','sep','x0']:
+                if out[ss].size == 0:
+                    continue
+                name = ss.title().replace('0','')
+                if out[ss].ndim == 2:
+                    npts = 1
+                    oo = out[ss]
+                else:
+                    npts = out[ss].shape[1]
+                    oo = np.swapaxes(out[ss], 1,2)
+                dextra[name] = {'data2D':oo, 'units':'a.u.',
+                                't':out['t'], 'label':name, 'nP':npts}
 
         import tofu.data as tfd
+        import ipdb
+        ipdb.set_trace()
         Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
-                                  lCam=cam, **dsig)
+                                  lCam=cam, config=config, dextra=dextra, **dsig)
 
         if plot:
-            Data.plot()
+            Data.plot(draw=True)
         return Data
 
 
@@ -2041,18 +2101,24 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
 
 
 def load_Diag(shot=None, run=None, user=None, tokamak=None, version=None,
-              ids=None, tlim=None, dsig=None, config=None, Name=None, plot=True):
+              ids=None, tlim=None, dsig=None, mainsig=None, indch=None,
+              config=None, occ=None, Name=None,
+              equilibrium=True, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
                  user=user, tokamak=tokamak, version=version)
-    if dsig is dict:
-        lids = sorted(dsig.keys())
-    else:
-        if type(ids) not in [str,list]:
-            msg = "Please provide ids !"
-            raise Exception(msg)
-        lids = [ids] if type(ids) is str else ids
+
+    if type(ids) is not str:
+        msg = "Please provide ids !"
+        raise Exception(msg)
+
+    lids = ['wall',ids]
+    if equilibrium:
+        lids.append('equilibrium')
+
     didd.add_ids(ids=lids, get=True)
 
-    return didd.to_Diag(Name=Name, tlim=tlim, dsig=dsig, config=config, out=out)
+    return didd.to_Diag(ids=ids, Name=Name, tlim=tlim,
+                        dsig=dsig, mainsig=mainsig, indch=indch,
+                        config=config, occ=occ, equilibrium=equilibrium, plot=plot)
