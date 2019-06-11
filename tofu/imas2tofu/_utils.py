@@ -1941,6 +1941,17 @@ class MultiIDSLoader(object):
             raise Exception(msg)
 
 
+        if geom != False:
+            if 'LOS' in geom:
+                out = self.get_data(ids, 'los')
+
+
+
+
+
+
+
+
         # TBF
 
         lidsok = set(lidsok).intersection(self._dids.keys())
