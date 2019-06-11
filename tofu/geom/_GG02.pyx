@@ -33,6 +33,7 @@ cimport _basic_geom_tools as _bgt
 cimport _raytracing_tools as _rt
 cimport _distance_tools as _dt
 cimport _sampling_tools as _st
+cimport _vignetting_tools as _vt
 
 # == Exports ===================================================================
 __all__ = ['CoordShift',
@@ -2676,6 +2677,13 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 #                                 VIGNETTING
 #
 # ==============================================================================
+def triangulate_by_earclipping(double[:,::1] poly):
+    cdef int nvert = poly.shape[1]
+    cdef np.ndarray[int,ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
+    # Calling core function.....................................................
+    _vt.earclipping_poly(poly, &ltri[0], nvert)
+    return ltri
+
 def vignetting(double[:, ::1] ray_orig,
                double[:, ::1] ray_vdir,
                double[:, :, ::1] vignett_poly,
@@ -2715,10 +2723,10 @@ def vignetting(double[:, ::1] ray_orig,
     _rt.compute_3d_bboxes(vignett_poly, &lnvert[0], nvign, lbounds,
                           num_threads=num_threads)
     ltri = <int**>malloc(sizeof(int*)*nvign)
-    _rt.triangulate_polys(vignett_poly, &lnvert[0], nvign, ltri,
+    _vt.triangulate_polys(vignett_poly, &lnvert[0], nvign, ltri,
                           num_threads=num_threads)
     # -- We call core function -------------------------------------------------
-    _rt.vignetting_core(ray_orig, ray_vdir, vignett_poly, &lnvert[0], lbounds,
+    _vt.vignetting_core(ray_orig, ray_vdir, vignett_poly, &lnvert[0], lbounds,
                         ltri, nvign, nlos, &goes_through[0])
     # -- Cleaning up -----------------------------------------------------------
     free(lbounds)

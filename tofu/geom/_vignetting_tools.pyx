@@ -11,13 +11,19 @@
 # triangle.
 ################################################################################
 cimport cython
+from cython.parallel import prange
+from cython.parallel cimport parallel
 from libcpp.vector cimport vector
 from libc.stdlib cimport malloc, free
+cimport _raytracing_tools as _rt
 cimport _basic_geom_tools as _bgt
 
+
+# ==============================================================================
+# =  Basic utilities: is angle reflex, vector np.diff, is point in triangle,...
+# ==============================================================================
 cdef inline bint is_reflex(const double[3] u,
-                           const double[3] v,
-                           const bint not_normed=True) nogil:
+                           const double[3] v) nogil:
     """
     Determines if the angle between U and -V is reflex (angle > pi) or not.
     Warning: note the MINUS in front of V, this was done as this is the only
@@ -98,6 +104,9 @@ cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
     return (u >= 0) and (v >= 0) and (u + v < 1)
 
 
+# ==============================================================================
+# =  Earclipping method: getting one ear of a poly, triangulate poly, ...
+# ==============================================================================
 cdef inline int get_one_ear(double[:,::1] polygon,
                             double* diff,
                             bint* lref,
@@ -131,8 +140,10 @@ cdef inline int get_one_ear(double[:,::1] polygon,
                 if (wj != -1 and lref[wj] # and wj is not a vertex of triangle
                     and wj != wim1 and wj != wip1 and wj != wi):
                     if is_pt_in_tri(&diff[wi*3], &diff[(wim1)*3],
-                                    polygon[0,wi], polygon[1,wi],polygon[2,wi],
-                                    polygon[0,wj], polygon[1,wj], polygon[2,wj]):
+                                    polygon[0,wi], polygon[1,wi],
+                                    polygon[2,wi],
+                                    polygon[0,wj], polygon[1,wj],
+                                    polygon[2,wj]):
                         # We found a point in the triangle, thus is not ear
                         # no need to keep testing....
                         a_pt_in_tri = True
@@ -206,4 +217,95 @@ cdef inline void earclipping_poly(double[:,::1] vignett,
     # .. Cleaning up ...........................................................
     free(diff)
     free(lref)
+    return
+
+# ==============================================================================
+# =  Polygons triangulation and Intersection Ray-Poly
+# ==============================================================================
+cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
+                                   long* lnvert,
+                                   int nvign,
+                                   int** ltri,
+                                   int num_threads=16) nogil:
+    """
+    Triangulates a list 3d polygon using the earclipping techinque
+    https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
+    Returns
+        ltri: 3*(nvert-2)*nvign :
+            = [{tri_0_0, tri_0_1, ... tri_0_nvert0}, ..., {tri_nvign_0, ...}]
+            where tri_i_j are the 3 indices of the vertex forming a sub-triangle
+            on each vertex (-2) and for each vignett
+    """
+    cdef int ivign
+    cdef int nvert
+    # ...
+    # -- Defining parallel part ------------------------------------------------
+    with nogil, parallel(num_threads=num_threads):
+        for ivign in prange(nvign):
+            nvert = lnvert[ivign]
+            ltri[ivign] = <int*>malloc((nvert-2)*3*sizeof(int))
+            earclipping_poly(vignett_poly[ivign], ltri[ivign], nvert)
+    return
+
+cdef inline bint inter_ray_poly(const double[3] ray_orig,
+                                const double[3] ray_vdir,
+                                double[:, ::1] vignett,
+                                int nvert,
+                                int* ltri) nogil:
+    cdef int ii
+    for ii in range(nvert-2):
+        if _rt.inter_ray_triangle(ray_orig, ray_vdir,
+                              vignett[:,ltri[3*ii]],
+                              vignett[:,ltri[3*ii+1]],
+                              vignett[:,ltri[3*ii+2]]):
+            return True
+    return False
+
+# ==============================================================================
+# =  Vignetting
+# ==============================================================================
+cdef inline void vignetting_core(double[:, ::1] ray_orig,
+                                 double[:, ::1] ray_vdir,
+                                 double[:, :, ::1] vignett,
+                                 long* lnvert,
+                                 double* lbounds,
+                                 int** ltri,
+                                 int nvign,
+                                 int nlos,
+                                 bint* goes_through,
+                                 int num_threads=16) nogil:
+    cdef int ilos, ivign
+    cdef int nvert
+    cdef bint inter_bbox
+    # == Defining parallel part ================================================
+    with nogil, parallel(num_threads=num_threads):
+        # We use local arrays for each thread so
+        loc_org   = <double*>malloc(sizeof(double) * 3)
+        loc_dir   = <double*>malloc(sizeof(double) * 3)
+        invr_ray  = <double*>malloc(sizeof(double) * 3)
+        sign_ray  = <int *> malloc(sizeof(int) * 3)
+        for ilos in prange(nlos):
+            loc_org[0] = ray_orig[0, ilos]
+            loc_org[1] = ray_orig[1, ilos]
+            loc_org[2] = ray_orig[2, ilos]
+            loc_dir[0] = ray_vdir[0, ilos]
+            loc_dir[1] = ray_vdir[1, ilos]
+            loc_dir[2] = ray_vdir[2, ilos]
+            _bgt.compute_inv_and_sign(loc_dir, sign_ray, invr_ray)
+            for ivign in range(nvign):
+                nvert = lnvert[ivign]
+                # -- We check if intersection with  bounding box ---------------
+                inter_bbox = _rt.inter_ray_aabb_box(sign_ray, invr_ray,
+                                                    &lbounds[6*ivign],
+                                                    loc_org,
+                                                    countin=True)
+                if not inter_bbox:
+                    goes_through[ivign*nlos + ilos] = 0 # False
+                    continue
+                # -- if none, we continue --------------------------------------
+                goes_through[ivign*nlos + ilos] = inter_ray_poly(loc_org,
+                                                                 loc_dir,
+                                                                 vignett[ivign],
+                                                                 nvert,
+                                                                 ltri[ivign])
     return

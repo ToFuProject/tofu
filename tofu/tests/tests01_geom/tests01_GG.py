@@ -1332,7 +1332,6 @@ def test17_distance_los_to_circle():
 #                       TEST CLOSENESS CIRCLE - LOS
 #
 # ==============================================================================
-
 def test17_is_los_close_to_circle():
     sqrt2 = np.sqrt(2.)
     #...
@@ -1348,7 +1347,7 @@ def test17_is_los_close_to_circle():
     ray_vd2 = np.array([1., -1, 0.])
     res = GG.is_close_los_circle(ray_vd2, ray_or2, radius, circ_z, 0.1)
     assert np.isclose(res, True)
-    # A "yes" case with a intersection...........................................
+    # A "yes" case with a intersection..........................................
     ray_or3 = np.array([0., sqrt2, 0])
     ray_vd3 = np.array([0, -1., 0.])
     res = GG.is_close_los_circle(ray_vd3, ray_or3, radius, circ_z, 0.1)
@@ -1358,15 +1357,15 @@ def test17_is_los_close_to_circle():
     ray_vd4 = np.array([1., 0, 0.])
     res = GG.is_close_los_circle(ray_vd4, ray_or4, radius, circ_z, 0.1)
     assert np.isclose(res, False)
-    # # == Vectorial case ========================================================
-    # # Similar cases but symetric or negative
+    # == Vectorial case ========================================================
+    # Similar cases but symetric or negative
     # A "yes" case with a tangential ray .......................................
     ray_or1 = np.array([sqrt2, 0., 0])
     ray_vd1 = np.array([-1., 1.0, 0.])
     # A "yes" case with a non tangential ray ...................................
     ray_or2 = np.array([sqrt2+0.001, 0., 0])
     ray_vd2 = np.array([-1., 1, 0.])
-    # A "yes" case with a intersection...........................................
+    # A "yes" case with a intersection..........................................
     ray_or3 = np.array([sqrt2, 0., 0])
     ray_vd3 = np.array([-1, 0, 0.])
     # A "no" case with no intersection..........................................
@@ -1664,3 +1663,20 @@ def test21_which_los_closer_vpoly_vec():
                                         ray_orig, ray_vdir,
                                         vessels)
     assert np.allclose(out, [0, 1, 1])
+
+# ==============================================================================
+#
+#                              VIGNETTING
+#
+# ==============================================================================
+def test22_vignetting():
+    # ves 0
+    ves_poly0 = np.zeros((3, 5))
+    ves_poly00 = [4, 5, 5, 4, 4]
+    ves_poly01 = [4, 4, 5, 5, 4]
+    ves_poly0[0] = np.asarray(ves_poly00)
+    ves_poly0[1] = np.asarray(ves_poly01)
+    # .. computing .............................................................
+    out = GG.triangulate_by_earclipping(ves_poly)
+    print(out)
+    assert(False)

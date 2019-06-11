@@ -19,7 +19,6 @@ from _basic_geom_tools cimport _VSMALL
 from _basic_geom_tools cimport is_point_in_path
 from _basic_geom_tools cimport compute_inv_and_sign
 cimport _basic_geom_tools as _bgt
-cimport _vignetting_tools as _ec
 
 # ==============================================================================
 # =  3D Bounding box (not Toroidal)
@@ -1562,95 +1561,4 @@ cdef inline void raytracing_minmax_struct_lin(int Nl,
             kout_tab[ii] = kout
             if kin<kin_tab[ii]:
                 kin_tab[ii] = kin
-    return
-
-# ==============================================================================
-# =  Polygon triangulation and Intersection Ray-Poly
-# ==============================================================================
-cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
-                                   long* lnvert,
-                                   int nvign,
-                                   int** ltri,
-                                   int num_threads=16) nogil:
-    """
-    Triangulates a list 3d polygon using the earclipping techinque
-    https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
-    Returns
-        ltri: 3*(nvert-2)*nvign :
-            = [{tri_0_0, tri_0_1, ... tri_0_nvert0}, ..., {tri_nvign_0, ...}]
-            where tri_i_j are the 3 indices of the vertex forming a sub-triangle
-            on each vertex (-2) and for each vignett
-    """
-    cdef int ivign
-    cdef int nvert
-    # ...
-    # -- Defining parallel part ------------------------------------------------
-    with nogil, parallel(num_threads=num_threads):
-        for ivign in prange(nvign):
-            nvert = lnvert[ivign]
-            ltri[ivign] = <int*>malloc((nvert-2)*sizeof(int))
-            _ec.earclipping_poly(vignett_poly[ivign], ltri[ivign], nvert)
-    return
-
-cdef inline bint inter_ray_poly(const double[3] ray_orig,
-                                const double[3] ray_vdir,
-                                double[:, ::1] vignett,
-                                int nvert,
-                                int* ltri) nogil:
-    cdef int ii
-    for ii in range(nvert-2):
-        if inter_ray_triangle(ray_orig, ray_vdir,
-                              vignett[:,ltri[3*ii]],
-                              vignett[:,ltri[3*ii+1]],
-                              vignett[:,ltri[3*ii+2]]):
-            return True
-    return False
-
-# ==============================================================================
-# =  Vignetting
-# ==============================================================================
-cdef inline void vignetting_core(double[:, ::1] ray_orig,
-                                 double[:, ::1] ray_vdir,
-                                 double[:, :, ::1] vignett,
-                                 long* lnvert,
-                                 double* lbounds,
-                                 int** ltri,
-                                 int nvign,
-                                 int nlos,
-                                 bint* goes_through,
-                                 int num_threads=16) nogil:
-    cdef int ilos, ivign
-    cdef int nvert
-    cdef bint inter_bbox
-    # == Defining parallel part ================================================
-    with nogil, parallel(num_threads=num_threads):
-        # We use local arrays for each thread so
-        loc_org   = <double*>malloc(sizeof(double) * 3)
-        loc_dir   = <double*>malloc(sizeof(double) * 3)
-        invr_ray  = <double*>malloc(sizeof(double) * 3)
-        sign_ray  = <int *> malloc(sizeof(int) * 3)
-        for ilos in prange(nlos):
-            loc_org[0] = ray_orig[0, ilos]
-            loc_org[1] = ray_orig[1, ilos]
-            loc_org[2] = ray_orig[2, ilos]
-            loc_dir[0] = ray_vdir[0, ilos]
-            loc_dir[1] = ray_vdir[1, ilos]
-            loc_dir[2] = ray_vdir[2, ilos]
-            compute_inv_and_sign(loc_dir, sign_ray, invr_ray)
-            for ivign in range(nvign):
-                nvert = lnvert[ivign]
-                # -- We check if intersection with  bounding box ---------------
-                inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
-                                                &lbounds[6*ivign],
-                                                loc_org,
-                                                countin=True)
-                if not inter_bbox:
-                    goes_through[ivign*nlos + ilos] = 0 # False
-                    continue
-                # -- if none, we continue --------------------------------------
-                goes_through[ivign*nlos + ilos] = inter_ray_poly(loc_org,
-                                                                 loc_dir,
-                                                                 vignett[ivign],
-                                                                 nvert,
-                                                                 ltri[ivign])
     return

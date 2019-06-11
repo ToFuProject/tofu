@@ -3,16 +3,103 @@
 See:
 https://github.com/ToFuProject/tofu
 """
-
-import sys
 import os
-import subprocess
+import sys
+import glob
 import shutil
+import logging
 import platform
+import subprocess
 from codecs import open
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
+
+from distutils.command.clean import clean as Clean
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("tofu.setup")
+
+# Always prefer setuptools over distutils
+try:
+    from setuptools import setup, find_packages
+    from setuptools import Extension
+    stp = True
+except:
+    from distutils.core import setup
+    from distutils.extension import Extension
+    stp = False
+import _updateversion as up
+
+if platform.system() == "Darwin":
+    __using_osx__ = True
+    # make sure you are using Homebrew's compiler
+    os.environ['CC'] = 'gcc-8'
+    os.environ['CXX'] = 'gcc-8'
+else:
+    __using_osx__ = False
+    os.environ['CC'] = 'gcc'
+    os.environ['CXX'] = 'gcc'
+
+# ==============================================================================
+class CleanCommand(Clean):
+    description = "Remove build artifacts from the source tree"
+
+    def expand(self, path_list):
+        """Expand a list of path using glob magic.
+        :param list[str] path_list: A list of path which may contains magic
+        :rtype: list[str]
+        :returns: A list of path without magic
+        """
+        path_list2 = []
+        for path in path_list:
+            if glob.has_magic(path):
+                iterator = glob.iglob(path)
+                path_list2.extend(iterator)
+            else:
+                path_list2.append(path)
+        return path_list2
+
+    def find(self, path_list):
+        """Find a file pattern if directories.
+        Could be done using "**/*.c" but it is only supported in Python 3.5.
+        :param list[str] path_list: A list of path which may contains magic
+        :rtype: list[str]
+        :returns: A list of path without magic
+        """
+        import fnmatch
+        path_list2 = []
+        for pattern in path_list:
+            for root, _, filenames in os.walk('.'):
+                for filename in fnmatch.filter(filenames, pattern):
+                    path_list2.append(os.path.join(root, filename))
+        return path_list2
+
+    def run(self):
+        Clean.run(self)
+
+        cython_files = self.find(["*.pyx"])
+        cythonized_files = [path.replace(".pyx", ".c") for path in cython_files]
+        cythonized_files += [path.replace(".pyx", ".cpp") for path in cython_files]
+        if platform.system() == "Darwin":
+            cythonized_files += [path.replace(".pyx", ".so") for path in cython_files]
+        # really remove the directories
+        # and not only if they are empty
+        to_remove = [self.build_base]
+        to_remove = self.expand(to_remove)
+        to_remove += cythonized_files
+
+        if not self.dry_run:
+            for path in to_remove:
+                try:
+                    if os.path.isdir(path):
+                        shutil.rmtree(path)
+                    else:
+                        os.remove(path)
+                    logger.info("removing '%s'", path)
+                except OSError:
+                    pass
+# ==============================================================================
 
 
 # ==============================================================================
@@ -46,27 +133,8 @@ def check_for_openmp(cc_var):
     #clean up
     shutil.rmtree(tmpdir)
     return result
-# ==============================================================================
 
-# Always prefer setuptools over distutils
-try:
-    from setuptools import setup, find_packages
-    from setuptools import Extension
-    stp = True
-except:
-    from distutils.core import setup
-    from distutils.extension import Extension
-    stp = False
-import _updateversion as up
-
-if platform.system() == "Darwin":
-    # make sure you are using Homebrew's compiler
-    os.environ['CC'] = 'gcc-8'
-    os.environ['CXX'] = 'gcc-8'
-else:
-    os.environ['CC'] = 'gcc'
-    os.environ['CXX'] = 'gcc'
-
+# ....... Using function
 not_openmp_installed = check_for_openmp(os.environ['CC'])
 
 # To compile the relevant version
@@ -90,6 +158,7 @@ elif sys.version[0]=='3':
                                           "--abbrev-ref",
                                           "HEAD"]).rstrip().decode()
     extralib = []
+# ==============================================================================
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -142,6 +211,14 @@ extensions = [ Extension(name="tofu.geom."+gg,
               ]
 extensions = cythonize(extensions, annotate=True)
 
+
+# print()
+# build = self.get_finalized_command('build')
+# path = sys.path
+# path.insert(0, os.path.abspath(build.build_lib))
+# env = dict((str(k), str(v)) for k, v in os.environ.items())
+# print(os.pathsep.join([sys.path, env["PYTHONPATH"]]))
+# print(".....right here")
 
 setup(
     name='tofu',
@@ -267,6 +344,7 @@ setup(
     #},
 
     ext_modules = extensions,
-    #cmdclass={'build_ext':build_ext},
+    cmdclass={'build_ext':build_ext,
+              'clean':CleanCommand},
     include_dirs=[np.get_include()],
 )
