@@ -322,9 +322,9 @@ class MultiIDSLoader(object):
             lidd = list(self._didd.keys())
             assert len(lidd) <= 1
             idd = lidd[0] if len(lidd) > 0 else None
-            if get is None and ids is not None:
-                get = True
             self.add_ids(preset=preset, ids=ids, occ=occ, idd=idd, get=False)
+            if get is None and (ids is not None or preset is not None):
+                get = True
         else:
             self.set_dids(dids)
             if get is None:
@@ -699,7 +699,7 @@ class MultiIDSLoader(object):
 
 
     #############
-    # data access
+    # ids getting
 
     def _checkformat_get_idd(self, idd=None):
         lk = self._didd.keys()
@@ -727,7 +727,8 @@ class MultiIDSLoader(object):
         else:
             lids = ids
         lidd = sorted(set([self._dids[ids]['idd'] for ids in lids]))
-        llids = [(idd, [ids for ids in lids if self._dids[ids]['idd'] == idd])
+        llids = [(idd, sorted([ids for ids in lids
+                               if self._dids[ids]['idd'] == idd]))
                 for idd in lidd]
         return llids
 
@@ -777,7 +778,7 @@ class MultiIDSLoader(object):
                         msg += [str(self._didd[llids[ii][0]]['params'][kk])
                                 for kk in self._lidsk]
                     else:
-                        msg += ['""' for _ in self._lidsk]
+                        msg += ['"' for _ in self._lidsk]
                     lmsg.append(msg)
 
         if verb:
@@ -1150,8 +1151,14 @@ class MultiIDSLoader(object):
         # ids
         if len(self._dids) > 0:
             c1 = ['ids', 'idd', 'occ', 'isget']
-            a1 = [[k0, v0['idd'], str(v0['occ']), str(v0['isget'])]
-                  for k0,v0 in self._dids.items()]
+            llids = self._checkformat_get_ids()
+            a1 = []
+            for (k0, lk1) in llids:
+                for ii in range(0,len(lk1)):
+                    idd = k0 if ii == 0 else '"'
+                    a1.append([lk1[ii], idd,
+                               str(self._dids[lk1[ii]]['occ']),
+                               str(self._dids[lk1[ii]]['isget'])])
             a1 = np.array(a1, dtype='U')
         else:
             a1 = []
@@ -1799,7 +1806,7 @@ class MultiIDSLoader(object):
                         assert nr == dradius[ids]['size']
                     if axist == 1:
                         out_[ss] = out_[ss].T
-                    name = ids+'.'+ss[2:]
+                    name = ids+'.'+ss
                     quant = self._dshort[ids][ss].get('quant', 'unknown')
                     units = self._dshort[ids][ss].get('units', 'a.u.')
                     d1d[name] = {'data':out_[ss],
@@ -1827,7 +1834,7 @@ class MultiIDSLoader(object):
                     assert npts == shape[1-axist]
                     if axist == 1:
                         out_[ss] = out_[ss].T
-                    name = ids+'.'+ss[2:]
+                    name = ids+'.'+ss
                     quant = self._dshort[ids][ss].get('quant', 'unknown')
                     units = self._dshort[ids][ss].get('units', 'a.u.')
                     d2d[name] = {'data':out_[ss],
@@ -1853,6 +1860,172 @@ class MultiIDSLoader(object):
             import tofu.data as tfd
             plasma = tfd.Plasma2D( **plasma )
         return plasma
+
+
+    def _checkformat_Diag_dsig(self, ids=None, dsig=None, data=None, geom=None, indch=None):
+        didsok = {'magnetics': {'data':'DataCam1D',
+                                'geom':False},
+                  'ece':{'data':'DataCam1D',
+                         'geom':False,
+                         'sig':{'t':'t',
+                                'X':'R',
+                                'data':'Te'}},
+                  'interferometer':{'data':'DataCam1D',
+                                    'geom':'CamLOS1D',
+                                    'sig':{'t':'t',
+                                           'data':'ne_integ'}},
+                  'bolometer':{'data':'DataCam1D',
+                               'geom':'CamLOS1D',
+                               'sig':{'t':'t',
+                                      'data':'power',
+                                      'etendue':'etendue',
+                                      'surface':'surface'}},
+                  'soft_x_rays':{'data':'DataCam1D',
+                                 'geom':'CamLOS1D',
+                                 'sig':{'t':'t',
+                                        'data':'power',
+                                        'etendue':'etendue',
+                                        'surface':'surface'}},
+                  'spectrometer_visible':{'data':'DataCam1DSpectral',
+                                          'geom':'CamLOS1D',
+                                          'sig':{'t':'t',
+                                                 'lamb':'lamb',
+                                                 'data':'spectra'}},
+                  'bremsstrahlung_visible':{'data':'DataCam1D',
+                                            'geom':'CamLOS1D',
+                                            'sig':{'t':'t',
+                                                   'data':'radiance'}}}
+
+        # Check ids
+        if ids not in didsok.keys():
+            msg = "Requested ids is not pre-tabulated !\n"
+            msg = "  => Be careful with args (dsig, data, geom, indch)"
+            warnings.warn(msg)
+        else:
+            if data is None:
+                data = didsok[ids]['data']
+            if geom is None:
+                geom = didsok[ids]['geom']
+            if dsig is None:
+                dsig = didsok[ids]['sig']
+
+        # Check data and geom
+        import tofu.geom as tfg
+        import tofu.data as tfd
+
+        if data is None:
+            data = 'DataCam1D'
+        ldata = [kk for kk in dir(tfd) if 'DataCam' in kk]
+        if not data in ldata:
+            msg = "Arg data must be in %s"%str(ldata)
+            raise Exception(msg)
+        lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
+        if geom not in [False] + lgeom:
+            msg = "Arg geom must be in %s"%str([False]+lgeom)
+            raise Exception(msg)
+
+        # Check signals
+        c0 = type(dsig) is dict
+        c0 = c0 and 'data' in dsig.keys()
+        ls = ['t','X','lamb','data','los','etendue','surface']
+        c0 = c0 and all([ss in ls for ss in dsig.keys()])
+        if not c0:
+            msg = "Arg dsig must be a dict with keys:\n"
+            msg += "    - 'data' : shortcut to the main data to be loaded\n"
+            msg += "    - 't':       (optional) shortcut to time vector\n"
+            msg += "    - 'X':       (optional) shortcut to abscissa vector\n"
+            msg += "    - 'lamb':    (optional) shortcut to wavelengths\n"
+            msg += "    - 'los':     (optional) shortcut to los coordinates\n"
+            msg += "    - 'etendue': (optional) shortcut to etendue\n"
+            msg += "    - 'surface': (optional) shortcut to detector surfaces"
+            raise Exception(msg)
+
+
+        # TBF
+
+        lidsok = set(lidsok).intersection(self._dids.keys())
+
+        lscom = ['t']
+        lsmesh = ['2dmeshNodes','2dmeshTri']
+
+        lc = [dsig is None,
+              type(dsig) is str,
+              type(dsig) is list,
+              type(dsig) is dict]
+        assert any(lc)
+
+        # Convert to dict
+        if lc[0]:
+            dsig = {}
+            for ids in lidsok:
+                dsig = {ids: sorted(self._dshort[ids].keys()) for ids in lidsok}
+        elif lc[1] or lc[2]:
+            if lc[1]:
+                dsig = [dsig]
+            dsig = {ids: dsig for ids in lidsok}
+
+        # Check content
+        dout = {}
+        for k0, v0 in dsig.items():
+            if k0 not in lidsok:
+                msg = "Only the following ids are relevant to Plasma2D:\n"
+                msg += "    - %s"%str(lidsok)
+                msg += "  => ids %s from dsig is ignored"%str(k0)
+                warnings.warn(msg)
+                continue
+            lc = [v0 is None, type(v0) is str, type(v0) is list]
+            if not any(lc):
+                msg = "Each value in dsig must be either:\n"
+                msg += "    - None\n"
+                msg += "    - str : a valid shortcut\n"
+                msg += "    - list of str: list of valid shortcuts\n"
+                msg += "You provided:\n"
+                msg += str(dsig)
+                raise Exception(msg)
+            if lc[0]:
+                dsig[k0] = sorted(self._dshort[k0].keys())
+            if lc[1]:
+                dsig[k0] = [dsig[k0]]
+            if not all([ss in self._dshort[k0].keys() for ss in dsig[k0]]):
+                msg = "All requested signals must be valid shortcuts !\n"
+                msg += "    - dsig[%s] = %s"%(k0, str(dsig[k0]))
+                raise Exception(msg)
+
+            # Check presence of minimum
+            assert all([ss in dsig[k0] for ss in lscom])
+            if any(['2d' in ss for ss in dsig.keys()]):
+                assert all([ss in dsig[k0] for ss in lsmesh])
+            dout[k0] = dsig[k0]
+        return dout
+
+
+
+    def to_Diag(self, tlim=None, sig=None, cam=None, indch=None,
+                Name=None, occ=None, config=None, out=object):
+
+        # dsig
+        dsig = self._checkformat_Plasma2D_dsig(dsig)
+        lids = sorted(dsig.keys())
+        if Name is None:
+            Name = 'custom'
+
+        # ---------------------------
+        # Preliminary checks on data source consistency
+        _, _, shot, Exp = self._get_lidsidd_shotExp(lids,
+                                                    errshot=True, errExp=True)
+        # get data
+        out_ = self.get_data_all(dsig=dsig)
+
+        # -------------
+        #   Input dicts
+
+        # config
+        if config is None:
+            config = self.to_Config(Name=Name, occ=occ, plot=False)
+
+        # dicts
+
+
 
 
 
