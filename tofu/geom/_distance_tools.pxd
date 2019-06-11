@@ -590,8 +590,8 @@ cdef inline void comp_dist_los_vpoly_vec_core(int num_poly, int nlos,
                                               int algo_type,
                                               double* res_k,
                                               double* res_dist,
-                                              double disc_step=0.1,
-                                              int num_threads=16) nogil:
+                                              double disc_step,
+                                              int num_threads) nogil:
     """
     This function computes the distance (and the associated k) between nlos
     Rays (or LOS) and several `IN` structures (polygons extruded around the axis
@@ -725,8 +725,7 @@ cdef inline void simple_dist_los_vpoly_core(const double[3] ray_orig,
                                             const double eps_vz,
                                             const double eps_a,
                                             const double eps_b,
-                                            double* res_final,
-                                            bint debug=False) nogil:
+                                            double* res_final) nogil:
     """
     This function computes the distance (and the associated k) between a Ray
     (or Line Of Sight) and an `IN` structure (a polygon extruded around the axis
@@ -1063,7 +1062,7 @@ cdef inline void is_close_los_vpoly_vec_core(int num_poly, int nlos,
                                              str algo_type,
                                              double epsilon,
                                              int[::1] are_close,
-                                             int num_threads=16):
+                                             int num_threads):
     """
     This function computes the distance (and the associated k) between nlos
     Rays (or LOS) and several `IN` structures (polygons extruded around the axis
@@ -1168,7 +1167,7 @@ cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
                                                  str ves_type,
                                                  str algo_type,
                                                  int[::1] ind_close_tab,
-                                                 int num_threads=16):
+                                                 int num_threads):
     """
     Params
     ======
@@ -1229,6 +1228,7 @@ cdef inline void which_los_closer_vpoly_vec_core(int num_poly, int nlos,
                                  ves_type,
                                  algo_type,
                                  NULL, dist,
+                                 0.01,
                                  num_threads)
 
     # We use local arrays for each thread so...
@@ -1253,7 +1253,7 @@ cdef inline void which_vpoly_closer_los_vec_core(int num_poly, int nlos,
                                                  str ves_type,
                                                  str algo_type,
                                                  int[::1] ind_close_tab,
-                                                 int num_threads=16):
+                                                 int num_threads):
     """
     Params
     ======

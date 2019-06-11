@@ -292,8 +292,7 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
     for ii in range(nvert):
         temp[0] = vertr[ii]
         temp[1] = vertz[ii]
-        coordshift_simple1d(temp, in_is_cartesian=False, CrossRef=1.,
-                          cos_phi=cos_min, sin_phi=sin_min)
+        coordshift_simple1d(temp, False, 1., cos_min, sin_min)
         # initialization:
         if xmin > temp[0]:
             xmin = temp[0]
@@ -310,8 +309,7 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
         # .....
         temp[0] = vertr[ii]
         temp[1] = vertz[ii]
-        coordshift_simple1d(temp, in_is_cartesian=False, CrossRef=1.,
-                            cos_phi=cos_max, sin_phi=sin_max)
+        coordshift_simple1d(temp, False, 1., cos_max, sin_max)
         if xmin > temp[0]:
             xmin = temp[0]
         if xmax < temp[0]:
@@ -332,9 +330,9 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
     bounds[5] = zmax
     return
 
-cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian=True,
-                                     double CrossRef=0., double cos_phi=0.,
-                                     double sin_phi=0.) nogil:
+cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian,
+                                     double CrossRef, double cos_phi,
+                                     double sin_phi) nogil:
     """
     Similar to coordshift but only pas from 3D cartesian to 3D toroidal
     coordinates or vice-versa.
