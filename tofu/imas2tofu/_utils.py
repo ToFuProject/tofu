@@ -1897,6 +1897,10 @@ class MultiIDSLoader(object):
                                                    'data':'radiance'}}}
 
         # Check ids
+        if ids not in self._dids.keys():
+            msg = "Provided ids should be available as a self.dids.keys() !"
+            raise Exception(msg)
+
         if ids not in didsok.keys():
             msg = "Requested ids is not pre-tabulated !\n"
             msg = "  => Be careful with args (dsig, data, geom, indch)"
@@ -1941,92 +1945,22 @@ class MultiIDSLoader(object):
             raise Exception(msg)
 
 
-        if geom != False:
-            if 'LOS' in geom:
-                out = self.get_data(ids, 'los')
+        return data, geom, dsig
 
 
 
-
-
-
-
-
-        # TBF
-
-        lidsok = set(lidsok).intersection(self._dids.keys())
-
-        lscom = ['t']
-        lsmesh = ['2dmeshNodes','2dmeshTri']
-
-        lc = [dsig is None,
-              type(dsig) is str,
-              type(dsig) is list,
-              type(dsig) is dict]
-        assert any(lc)
-
-        # Convert to dict
-        if lc[0]:
-            dsig = {}
-            for ids in lidsok:
-                dsig = {ids: sorted(self._dshort[ids].keys()) for ids in lidsok}
-        elif lc[1] or lc[2]:
-            if lc[1]:
-                dsig = [dsig]
-            dsig = {ids: dsig for ids in lidsok}
-
-        # Check content
-        dout = {}
-        for k0, v0 in dsig.items():
-            if k0 not in lidsok:
-                msg = "Only the following ids are relevant to Plasma2D:\n"
-                msg += "    - %s"%str(lidsok)
-                msg += "  => ids %s from dsig is ignored"%str(k0)
-                warnings.warn(msg)
-                continue
-            lc = [v0 is None, type(v0) is str, type(v0) is list]
-            if not any(lc):
-                msg = "Each value in dsig must be either:\n"
-                msg += "    - None\n"
-                msg += "    - str : a valid shortcut\n"
-                msg += "    - list of str: list of valid shortcuts\n"
-                msg += "You provided:\n"
-                msg += str(dsig)
-                raise Exception(msg)
-            if lc[0]:
-                dsig[k0] = sorted(self._dshort[k0].keys())
-            if lc[1]:
-                dsig[k0] = [dsig[k0]]
-            if not all([ss in self._dshort[k0].keys() for ss in dsig[k0]]):
-                msg = "All requested signals must be valid shortcuts !\n"
-                msg += "    - dsig[%s] = %s"%(k0, str(dsig[k0]))
-                raise Exception(msg)
-
-            # Check presence of minimum
-            assert all([ss in dsig[k0] for ss in lscom])
-            if any(['2d' in ss for ss in dsig.keys()]):
-                assert all([ss in dsig[k0] for ss in lsmesh])
-            dout[k0] = dsig[k0]
-        return dout
-
-
-
-    def to_Diag(self, tlim=None, sig=None, cam=None, indch=None,
+    def to_Diag(self, ids=None, tlim=None, dsig=None, cam=None, indch=None,
                 Name=None, occ=None, config=None, out=object):
 
         # dsig
-        dsig = self._checkformat_Plasma2D_dsig(dsig)
-        lids = sorted(dsig.keys())
+        data, geom, dsig = self._checkformat_Diag_dsig(ids, dsig)
         if Name is None:
             Name = 'custom'
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        _, _, shot, Exp = self._get_lidsidd_shotExp(lids,
+        _, _, shot, Exp = self._get_lidsidd_shotExp(ids,
                                                     errshot=True, errExp=True)
-        # get data
-        out_ = self.get_data_all(dsig=dsig)
-
         # -------------
         #   Input dicts
 
@@ -2034,7 +1968,35 @@ class MultiIDSLoader(object):
         if config is None:
             config = self.to_Config(Name=Name, occ=occ, plot=False)
 
-        # dicts
+        # cam
+        cam = None
+        if geom != False:
+            if config is None:
+                msg = ""
+                raise Exception(msg)
+
+            if 'LOS' in geom:
+                out = self.get_data(ids, 'los_ptsRZPhi')['los_ptsRZPhi']
+                D = out[:,0,:]
+                u = out[:,1::] - D
+                u = u/np.sqrt(npp.sum(u**2, axis=))[]
+
+            import tofu.geom as tfg
+            cam = getattr(tfg, geom)(dgeom=(D,u), config=config,
+                                     Name=Name, Diag=ids, Exp=Exp)
+
+        # data
+        lk = sig.keys()
+        out = self.get_data(ids, sig=lk)
+        for kk in lk:
+            dsig[kk] = out[kk]
+
+        import tofu.data as tfd
+        Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
+                                  lCam=cam, **dsig)
+
+        return Data
+
 
 
 
