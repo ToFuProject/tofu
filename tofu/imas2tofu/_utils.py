@@ -1950,7 +1950,7 @@ class MultiIDSLoader(object):
 
 
     def to_Diag(self, ids=None, tlim=None, dsig=None, cam=None, indch=None,
-                Name=None, occ=None, config=None, out=object):
+                Name=None, occ=None, config=None, out=object, plot=True):
 
         # dsig
         data, geom, dsig = self._checkformat_Diag_dsig(ids, dsig)
@@ -1979,22 +1979,27 @@ class MultiIDSLoader(object):
                 out = self.get_data(ids, 'los_ptsRZPhi')['los_ptsRZPhi']
                 D = out[:,0,:]
                 u = out[:,1::] - D
-                u = u/np.sqrt(npp.sum(u**2, axis=))[]
+                u = u/np.sqrt(npp.sum(u**2, axis=1))[:,None]
 
             import tofu.geom as tfg
             cam = getattr(tfg, geom)(dgeom=(D,u), config=config,
                                      Name=Name, Diag=ids, Exp=Exp)
 
         # data
-        lk = sig.keys()
-        out = self.get_data(ids, sig=lk)
+        lk = sorted(dsig.keys())
+        out = self.get_data(ids, sig=[dsig[k] for k in lk])
         for kk in lk:
-            dsig[kk] = out[kk]
+            if kk in ['data','X','lamb']:
+                dsig[kk] = out[dsig[kk]].T
+            else:
+                dsig[kk] = out[dsig[kk]]
 
         import tofu.data as tfd
         Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
                                   lCam=cam, **dsig)
 
+        if plot:
+            Data.plot()
         return Data
 
 
@@ -2033,3 +2038,21 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
     didd.add_ids(ids=lids, get=True)
 
     return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, config=config, out=out)
+
+
+def load_Diag(shot=None, run=None, user=None, tokamak=None, version=None,
+              ids=None, tlim=None, dsig=None, config=None, Name=None, plot=True):
+
+    didd = MultiIDSLoader()
+    didd.add_idd(shot=shot, run=run,
+                 user=user, tokamak=tokamak, version=version)
+    if dsig is dict:
+        lids = sorted(dsig.keys())
+    else:
+        if type(ids) not in [str,list]:
+            msg = "Please provide ids !"
+            raise Exception(msg)
+        lids = [ids] if type(ids) is str else ids
+    didd.add_ids(ids=lids, get=True)
+
+    return didd.to_Diag(Name=Name, tlim=tlim, dsig=dsig, config=config, out=out)
