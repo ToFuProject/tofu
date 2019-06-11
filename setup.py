@@ -146,7 +146,7 @@ if USE_CYTHON:
                             extra_compile_args=extra_compile_args,
                             extra_link_args=extra_link_args)
                   ]
-    extensions = cythonize(extensions, annotate=True)
+    extensions = cythonize(extensions)
 else:
     print("")
     print("NOT Using Cython !!!!!!!!!")
