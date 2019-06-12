@@ -99,7 +99,7 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
         cv2.imwrite(name, gray)
-        height,width,layer = img.shape
+        height,width = img.shape[0],img.shape[1]
         size = (height, width)
         #providing information to user
         f_count += 1

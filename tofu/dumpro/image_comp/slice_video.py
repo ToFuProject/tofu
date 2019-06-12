@@ -114,7 +114,7 @@ def crop_video(im_path, w_dir, shot_name, im_out = None,
                 print(filename)
             #reading each file to extract its meta_data
             img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
-            height, width, layer = img.shape
+            height,width = img.shape[0],img.shape[1]
             img = img[lfw:ufw, lfh:ufh]
             name =im_out + 'frame' + str(curr_frame) + '.jpg'
             cv2.imwrite(name,img)

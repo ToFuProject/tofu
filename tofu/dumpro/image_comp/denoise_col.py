@@ -110,7 +110,7 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
 #            if cv2.waitKey(25) & 0xFF == ord('q'): 
 #                break
             
-        height,width,layer = img.shape
+        height,width = img.shape[0],img.shape[1]
         size = (height, width)
         #providing information to user
         f_count += 1

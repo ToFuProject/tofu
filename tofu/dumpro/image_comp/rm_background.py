@@ -108,7 +108,7 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
         #writting the output file
         cv2.imwrite(name, dst)
         #image meta_data
-        height,width = dst.shape
+        height,width = dst.shape[0],dst.shape[1]
         size = (height, width)
         #providing information to user
         f_count += 1
