@@ -2708,7 +2708,7 @@ def vignetting(double[:, ::1] ray_orig,
     """
     cdef int ii
     cdef int nvign, nlos
-    cdef np.ndarray[np.uint8_t,ndim=1] goes_through
+    cdef np.ndarray[np.npy_bool,ndim=1,cast=True] goes_through
     cdef long** ltri = NULL
     cdef int* sign_ray = NULL
     cdef double* invr_ray = NULL
@@ -2735,7 +2735,7 @@ def vignetting(double[:, ::1] ray_orig,
                           num_threads=num_threads)
     # -- We call core function -------------------------------------------------
     _vt.vignetting_core(ray_orig, ray_vdir, data, &lnvert[0], lbounds,
-                        ltri, nvign, nlos, &goes_through[0])
+                        ltri, nvign, nlos, <bint*>&goes_through[0])
     # -- Cleaning up -----------------------------------------------------------
     free(lbounds)
     # We have to free each array for each vignett:
