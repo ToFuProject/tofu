@@ -2967,24 +2967,27 @@ class Rays(utils.ToFuObject):
                         dgeom['pinhole'] = pinhole
 
             # Test if all D are on a common plane or line
-            v0 = dgeom['D'][:,1]-dgeom['D'][:,0]
             va = dgeom['D']-dgeom['D'][:,0:1]
 
             # critetrion of unique D
-            crit = np.sum(va**2) > 1.e-9
-            if not crit:
+            crit = np.sqrt(np.sum(va**2,axis=0))
+            if np.sum(crit) < 1.e-9:
                 return dgeom
 
+            # To avoid ||v0|| = 0
+            ind0 = np.nanargmax(crit)
+            v0 = va[:,ind0]
             v0 = v0/np.linalg.norm(v0)
+            indok = np.nonzero(crit > 1.e-12)[0]
             van = np.full(va.shape, np.nan)
-            van[:,1:] = va[:,1:] / np.sqrt(np.sum(va[:,1:]**2,axis=0))[np.newaxis,:]
+            van[:,indok] = va[:,indok] / crit[None,indok]
             vect2 = ((van[1,:]*v0[2]-van[2,:]*v0[1])**2
                      + (van[2,:]*v0[0]-van[0,:]*v0[2])**2
                      + (van[0,:]*v0[1]-van[1,:]*v0[0])**2)
             # Don't forget that vect2[0] is nan
-            if np.all(vect2[1:]<1.e-9):
+            if np.all(vect2[indok] < 1.e-9):
                 # All D are aligned
-                e1 = van[:,1]
+                e1 = v0
                 x1 = np.sum(va*e1[:,np.newaxis],axis=0)
                 if dgeom['pinhole'] is not None:
                     kref = -np.sum((dgeom['D'][:,0]-dgeom['pinhole'])*e1)
@@ -2994,14 +2997,18 @@ class Rays(utils.ToFuObject):
                     dgeom['dX12'] = {}
                 dgeom['dX12'].update({'e1':e1, 'x1':x1, 'n1':x1.size})
             else:
+
                 ind = np.nanargmax(vect2)
                 v1 = van[:,ind]
                 nn = np.cross(v0,v1)
                 nn = nn/np.linalg.norm(nn)
                 scaabs = np.abs(np.sum(nn[:,np.newaxis]*va,axis=0))
                 if np.all(scaabs<1.e-9):
-                    assert not '1d' in self.__class__.__name__.lower()
-                    # All D are in a common plane perpendicular to n, check
+                    # All D are in a common plane, but not aligned
+                    # If 1d => get out
+                    # If 2d ==> find e1, e2
+                    if '1d' in self.__class__.__name__.lower():
+                        return dgeom
                     # check nIn orientation
                     sca = np.sum(self.u*nn[:,np.newaxis],axis=0)
                     lc = [np.all(sca>=0.), np.all(sca<=0.)]

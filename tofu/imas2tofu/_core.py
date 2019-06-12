@@ -1294,11 +1294,9 @@ class MultiIDSLoader(object):
         msg += "    - int: channel to use (index)\n"
         msg += "    - array of int: channels to use (indices)\n"
         msg += "    - array of bool: channels to use (indices)\n"
-        msg += "    - len>0: collects only non-empty channels"
         lc = [indch is None,
               type(indch) is int,
-              hasattr(indch,'__iter__') and type(indch) is not str,
-              type(indch) is str and indch == 'len>0']
+              hasattr(indch,'__iter__') and type(indch) is not str]
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
@@ -1311,8 +1309,6 @@ class MultiIDSLoader(object):
             if lc[1]:
                 indch = np.nonzero(indch)[0]
             assert np.all((indch>=0) & (indch<nch))
-        elif lc[3]:
-            pass
         return indch
 
     def _checkformat_getdata_indt(self, indt):
@@ -1434,7 +1430,7 @@ class MultiIDSLoader(object):
                         else:
                             ind = dcond[ii]['ind']
 
-                        if ind is None or (type(ind) is str and ind == 'len>0'):
+                        if ind is None:
                             ind = range(0,nb)
                         if nsig > 1:
                             assert type(ind) is not str and len(ind) == 1
@@ -1457,20 +1453,6 @@ class MultiIDSLoader(object):
                                    == dcond[ii]['cond'][1])]
                         assert len(ind) == 1
                         sig[jj] = sig[jj][ind[0]]
-
-            import ipdb
-            ipdb.set_trace()
-
-            # indch = 'len>0'
-            c0 = type(indch) is str and indch == 'len>0' and nsig > 1
-            c0 = c0 and any([('ind' in dcond.keys()
-                              and type(v['ind']) is str
-                              and v['ind'] == 'chan')
-                             for v in dcond.values()])
-            if c0:
-                sig = [ss for ss in sig if len(ss)>0]
-                nsig = len(sig)
-
 
             # Conditions for stacking / sqeezing sig
             lc = [(stack and nsig>1 and isinstance(sig[0],np.ndarray)
@@ -1991,8 +1973,7 @@ class MultiIDSLoader(object):
 
 
     def to_Diag(self, ids=None, dsig=None, mainsig=None, tlim=None,
-                indch='len>0',
-                Name=None, occ=None, config=None,
+                indch=None, Name=None, occ=None, config=None,
                 equilibrium=True, plot=True):
 
         # dsig
@@ -2025,7 +2006,7 @@ class MultiIDSLoader(object):
                 lkok = set(self._dshort[ids].keys())
                 lkok = lkok.union(self._dcomp[ids].keys())
                 lk = set(lk).intersection(lkok)
-                out = self.get_data(ids, sig=list(lk))
+                out = self.get_data(ids, sig=list(lk), indch=indch)
                 if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
                     oo = out['los_ptsRZPhi']
                     D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
@@ -2052,6 +2033,20 @@ class MultiIDSLoader(object):
                             indt=indt, indch=indch)
         for kk in lk:
             if kk in ['data','X','lamb']:
+                if not isinstance(out[dsig[kk]], np.ndarray):
+                    msg = "The following is supposed to be a np.ndarray:\n"
+                    msg += "    - diag:     %s\n"%ids
+                    msg += "    - shortcut: %s\n"%dsig[kk]
+                    msg += "    - used as:  %s input\n"%kk
+                    msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
+                    msg += "  Probable cause: non-uniform shape (vs channels)\n"
+                    msg += "  => shapes :\n    "
+                    ls = ['index %s  shape %s'%(ii,str(out[dsig[kk]][ii].shape))
+                          for ii in range(0,len(out[dsig[kk]]))]
+                    msg += "\n    ".join(ls)
+                    msg += "\n  => Solution: choose indch accordingly !"
+                    raise Exception(msg)
+
                 dsig[kk] = out[dsig[kk]].T
             else:
                 dsig[kk] = out[dsig[kk]]
@@ -2073,7 +2068,13 @@ class MultiIDSLoader(object):
                 if out[ss].size == 0:
                     continue
                 name = 'equilibrium.%s'%ss
-                dextra[name] = {'data':out[ss], 'units':'a.u.',
+                if ss == 'ip':
+                    oo = out[ss] / 1.e6
+                    units = 'MA'
+                else:
+                    oo = out[ss]
+                    units = 'a.u.'
+                dextra[name] = {'data':oo, 'units':units,
                                 't':out['t'], 'label':name}
 
             for ss in ['ax','sep','x0']:
@@ -2090,8 +2091,9 @@ class MultiIDSLoader(object):
                                 't':out['t'], 'label':name, 'nP':npts}
 
         import tofu.data as tfd
+        conf = None if cam is not None else config
         Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
-                                  lCam=cam, config=config, dextra=dextra, **dsig)
+                                  lCam=cam, config=conf, dextra=dextra, **dsig)
 
         if plot:
             Data.plot(draw=True)
