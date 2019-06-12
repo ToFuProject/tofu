@@ -23,7 +23,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
 
-def video2img(video_file, w_dir, meta_data = None, image_name = None, image_type = None, verb = True):
+def video2img(video_file, w_dir, shot_name, meta_data = None, path = None, verb = True):
     """Breaks up an input video file into it's constituent frames and 
     saves them as jpg image
     
@@ -69,7 +69,7 @@ def video2img(video_file, w_dir, meta_data = None, image_name = None, image_type
     if path is None:
         #the directory path is defined.  
         #The last argument is for adding a trailing slash
-        path = os.path.join(drive,path_of_file,'')
+        path = os.path.join(w_dir,shot_name,'')
         #defining the folder inside whch the images will be stored
         path += folder
         path = os.path.join(path,'')
@@ -77,13 +77,6 @@ def video2img(video_file, w_dir, meta_data = None, image_name = None, image_type
         #if not, creates the path
         if not os.path.exists(path):
             os.mkdir(path)
-        
-    #checking for the name of the output file
-    if image_name is None:
-        image_name = 'frame'
-    #checking for the putput format of the video
-    if image_type is None:
-        image_type = '.jpg'
     
     #trying to open the video file
     try:
