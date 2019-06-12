@@ -104,13 +104,13 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
         cv2.imwrite(name, dst)
-        if disp == True:
-            cv2.imshow('denoise', dst)         
-            #Press q on keyboard to exit 
-            if cv2.waitKey(25) & 0xFF == ord('q'): 
-                break
+#        if disp == True:
+#            cv2.imshow('denoise', dst)         
+#            #Press q on keyboard to exit 
+#            if cv2.waitKey(25) & 0xFF == ord('q'): 
+#                break
             
-        height,width = img.shape
+        height,width,layer = img.shape
         size = (height, width)
         #providing information to user
         f_count += 1
