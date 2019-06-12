@@ -329,10 +329,14 @@ class img_dir(object):
     
     def __init__(self, filename):
         if not os.path.exists(filename):
-            jghh
+            msg = 'The path provided is wrong'
+            msg += 'Please provide the correct path'
+            raise Exception(msg)
+        
+
         self.__im_dir = filename
-        self.__w_dir
-        self.__shot_name
+        self.__w_dir = None
+        self.__shot_name = None
         self.__meta_data = {}
     
 
@@ -345,6 +349,9 @@ class img_dir(object):
         
     def get_shot_name(self,shot_name):
         self.__shot_name = shot_name
+        
+    def get_meta_data(self, meta_data):
+        self.__meta_data = meta_data
         
 ####################################################################
 #   setters for attribiutes
@@ -360,11 +367,11 @@ class img_dir(object):
     
     @property
     def shot_name(self):
-        return self._shot_name
+        return self.__shot_name
     
     @property
     def meta_data(self):
-        return self._meta_data
+        return self.__meta_data
     
 ###################################################################
 #   grayscale conversion method
@@ -463,9 +470,59 @@ class img_dir(object):
 #   cluster detection
 #####################################################################
         
-        def det_cluster(self):
+    def det_cluster(self):
+            
+        return None    
+        
+#####################################################################
+#   dumpro
+#####################################################################        
+        
+    def dumpro(self, im_out = None, meta_data = None, verb = True):
+            
+        if meta_data == None:
+            meta_data = self.__meta_data
+
+        denoise, meta_data = _i_comp.denoise_col.denoise_col(self.__im_dir,
+                                                                 self.__w_dir,
+                                                                 self.__shot_name,
+                                                                 im_out,
+                                                                 meta_data,
+                                                                 verb)
+            
+        self.get_meta_data(meta_data)
+
+        gray, meta_data = _i_comp.conv_gray.conv_gray(denoise,
+                                                      self.__w_dir,
+                                                      self.__shot_name,
+                                                      im_out,
+                                                      meta_data,
+                                                      verb)
+            
+        den_gray, meta_data = _i_comp.denoise.denoise(gray,
+                                                      self.__w_dir,
+                                                      self.__shot_name,
+                                                      im_out,
+                                                      meta_data,
+                                                      verb)
+            
+        rmback, meta_data = _i_comp.rm_background.rm_back(den_gray,
+                                                          self.__w_dir,
+                                                          self.__shot_name,
+                                                          im_out,
+                                                          meta_data,
+                                                          verb)
+        
+        binary, meta_data = _i_comp.to_binary.bin_thresh(rmback,
+                                                         self.__w_dir,
+                                                         self.__shot_name,
+                                                         im_out,
+                                                         meta_data,
+                                                         verb)
             
             
+            
+        return None
         
 
 img_dir.to_gray.__doc__ = _i_comp.conv_gray.conv_gray.__doc__
@@ -480,7 +537,7 @@ img_dir.play.__doc__ = _plot.playimages.play_img.__doc__
 #   A class for handling videos and images 
 #####################################################################
 
-class vid_img(video, img_dir):
+class vid_img(Video, img_dir):
     """This is a derived class from both video class and img_dir class.
     This is an intermediate approach, between working completely with videos
     and completely with images.
