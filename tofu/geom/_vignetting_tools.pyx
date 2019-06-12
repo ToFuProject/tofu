@@ -37,7 +37,7 @@ cdef inline bint is_reflex(const double[3] u,
     sumc = 0.0
     for ii in range(3):
         # normally it should be a sum, but it is a minus cause is we have (U,-V)
-        sumc -= ucrossv[ii]
+        sumc = ucrossv[ii]
     return sumc >= 0.
 
 cdef inline void compute_diff3d(double[:, ::1] orig,
@@ -127,7 +127,7 @@ cdef inline int get_one_ear(double[:,::1] polygon,
     cdef bint a_pt_in_tri
     for i in range(1, nvert-1):
         wi = working_index[i]
-        if wi != -1 and not lref[wi]:
+        if not lref[wi]:
             # angle is not reflex
             a_pt_in_tri = False
             # we get some useful values
@@ -137,23 +137,23 @@ cdef inline int get_one_ear(double[:,::1] polygon,
             for j in range(nvert):
                 wj = working_index[j]
                 # We only test reflex angles:
-                if (wj != -1 and lref[wj] # and wj is not a vertex of triangle
-                    and wj != wim1 and wj != wip1 and wj != wi):
-                    if is_pt_in_tri(&diff[wi*3], &diff[(wim1)*3],
-                                    polygon[0,wi], polygon[1,wi],
-                                    polygon[2,wi],
-                                    polygon[0,wj], polygon[1,wj],
-                                    polygon[2,wj]):
-                        # We found a point in the triangle, thus is not ear
-                        # no need to keep testing....
-                        a_pt_in_tri = True
-                        break
+                if (wj != wim1 and wj != wip1
+                    and wj != wi): #if wj is not a vertex of triangle
+                        if is_pt_in_tri(&diff[wi*3], &diff[(wim1)*3],
+                                        polygon[0,wi], polygon[1,wi],
+                                        polygon[2,wi],
+                                        polygon[0,wj], polygon[1,wj],
+                                        polygon[2,wj]):
+                            # We found a point in the triangle, thus is not ear
+                            # no need to keep testing....
+                            a_pt_in_tri = True
+                            break
             # Let's check if there was a point in the triangle....
             if not a_pt_in_tri:
-                return i# , [lpts[i-1], lpts[i], lpts[ip1]]
+                return i # if not, we found an ear
     # if we havent returned, either, there was an error somerwhere
     with gil:
-        assert(False)
+        assert False, "Got here but shouldnt have"
     return -1
 
 cdef inline void earclipping_poly(double[:,::1] vignett,
@@ -214,6 +214,10 @@ cdef inline void earclipping_poly(double[:,::1] vignett,
         itri = itri + 1
         loc_nv = loc_nv - 1
         working_index.erase(working_index.begin()+iear)
+    # we only have three points left, so that is the last triangle:
+    ltri[itri*3]   = working_index[0]
+    ltri[itri*3+1] = working_index[1]
+    ltri[itri*3+2] = working_index[2]
     # .. Cleaning up ...........................................................
     free(diff)
     free(lref)

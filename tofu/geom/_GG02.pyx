@@ -1828,7 +1828,7 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
 ########################################################
 
 cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
-                                   double[::1] DL=None):
+                                   list DL=None):
     cdef int inter = 1
     cdef bint dl0_is_not_none
     cdef bint dl1_is_not_none

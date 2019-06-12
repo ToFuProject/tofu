@@ -1671,9 +1671,9 @@ def test21_which_los_closer_vpoly_vec():
 # ==============================================================================
 def test22_vignetting():
     # ves 0
-    ves_poly0 = np.zeros((3, 5))
-    ves_poly00 = [4, 5, 5, 4, 4]
-    ves_poly01 = [4, 4, 5, 5, 4]
+    ves_poly0 = np.zeros((3, 4))
+    ves_poly00 = [4, 5, 5, 4]
+    ves_poly01 = [4, 4, 5, 5]
     ves_poly0[0] = np.asarray(ves_poly00)
     ves_poly0[1] = np.asarray(ves_poly01)
     # .. computing .............................................................

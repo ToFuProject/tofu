@@ -67,6 +67,7 @@ def compute_angles(lpts):
 #@profile
 def is_reflex(u,v):
     nor = cross(u,v)
+    print("-------------", nor)
     return np.sum(nor) >= 0.
 
 #@profile
@@ -486,6 +487,7 @@ if __name__ == '__main__':
     print()
     main_test_easy(plot=False)
 
+    print("############# ", is_reflex([-1,0,0], [0,1,0]))
     # from planar import Polygon
     # for i in range(3,12):
     #     # star = np.array(Polygon.star(i, 1, 4))
