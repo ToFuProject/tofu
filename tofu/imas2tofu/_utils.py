@@ -175,6 +175,7 @@ class MultiIDSLoader(object):
                 'Te': {'str':'channel[chan].t_e.data'},
                 'R': {'str':'channel[chan].position.r.data'},
                 'rhotn':{'str':'channel[chan].position.rho_tor_norm.data'},
+                'theta':{'str':'channel[chan].position.theta.data'},
                 'tau':{'str':'channel[chan].optical_depth.data'},
                 'validity_timed': {'str':'channel[chan].t_e.validity_timed'}},
 
@@ -232,7 +233,17 @@ class MultiIDSLoader(object):
             sep[ii,:,0] = np.interp(pts, ptsii, sepR[ii])
             sep[ii,:,1] = np.interp(pts, ptsii, sepZ[ii])
         return sep
+    def _eqtheta(axR, axZ, nodes, cocos=11):
+        theta = np.arctan2(nodes[:,0][None,:] - axZ[:,None],
+                           nodes[:,1][None,:] - axR[:,None])
+        if cocos == 1:
+            theta = -theta
+        return theta
 
+    def _rhosign(rho, theta):
+        ind = np.cos(theta) < 0.
+        rho[ind] = -rho[ind]
+        return rho
 
     _dcomp = {
               'wall':
@@ -246,10 +257,15 @@ class MultiIDSLoader(object):
                'x0':{'lstr':['x0R','x0Z'], 'func':_RZ2array},
                'x1':{'lstr':['x1R','x1Z'], 'func':_RZ2array},
                'strike0':{'lstr':['strike0R','strike0Z'], 'func':_RZ2array},
-               'strike1':{'lstr':['strike1R','strike1Z'], 'func':_RZ2array}},
+               'strike1':{'lstr':['strike1R','strike1Z'], 'func':_RZ2array},
+               '2dtheta':{'lstr':['axR','axZ','2dmeshNodes'],
+                          'func':_eqtheta, 'kargs':{'cocos':11}}},
 
               'core_sources':
-             {'1dprad':{'lstr':['1dbrem','1dline'], 'func':_add}}
+             {'1dprad':{'lstr':['1dbrem','1dline'], 'func':_add}},
+
+             'ece':
+             {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign}}
             }
 
     _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
@@ -1932,7 +1948,7 @@ class MultiIDSLoader(object):
         # Check signals
         c0 = type(dsig) is dict
         c0 = c0 and 'data' in dsig.keys()
-        ls = ['t','X','lamb','data','los','Etendues','Surfaces']
+        ls = ['t','X','lamb','data']
         c0 = c0 and all([ss in ls for ss in dsig.keys()])
         if not c0:
             msg = "Arg dsig must be a dict with keys:\n"
@@ -1940,14 +1956,12 @@ class MultiIDSLoader(object):
             msg += "    - 't':       (optional) shortcut to time vector\n"
             msg += "    - 'X':       (optional) shortcut to abscissa vector\n"
             msg += "    - 'lamb':    (optional) shortcut to wavelengths\n"
-            msg += "    - 'los':     (optional) shortcut to los coordinates\n"
-            msg += "    - 'Etendues': (optional) shortcut to etendue\n"
-            msg += "    - 'Surfaces': (optional) shortcut to detector surfaces"
             raise Exception(msg)
 
         dout = {}
+        lok = set(self._dshort[ids].keys()).union(self._dcomp[ids].keys())
         for k, v in dsig.items():
-            if v in self._dshort[ids].keys():
+            if v in lok:
                 dout[k] = v
 
         return data, geom, dout
@@ -2053,8 +2067,6 @@ class MultiIDSLoader(object):
                                 't':out['t'], 'label':name, 'nP':npts}
 
         import tofu.data as tfd
-        import ipdb
-        ipdb.set_trace()
         Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
                                   lCam=cam, config=config, dextra=dextra, **dsig)
 
