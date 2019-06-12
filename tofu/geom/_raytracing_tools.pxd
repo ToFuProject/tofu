@@ -23,7 +23,7 @@ cimport _basic_geom_tools as _bgt
 # ==============================================================================
 # =  3D Bounding box (not Toroidal)
 # ==============================================================================
-cdef inline void compute_3d_bboxes(double[:, :, ::1] vignett_poly,
+cdef inline void compute_3d_bboxes(double** vignett_poly,
                                    long* lnvert,
                                    int nvign,
                                    double* lbounds,
@@ -40,16 +40,16 @@ cdef inline void compute_3d_bboxes(double[:, :, ::1] vignett_poly,
         for ivign in prange(nvign):
             nvert = lnvert[ivign]
             comp_bbox_poly3d(nvert,
-                             vignett_poly[ivign, 0],
-                             vignett_poly[ivign, 1],
-                             vignett_poly[ivign, 2],
+                             &vignett_poly[ivign][0],
+                             &vignett_poly[ivign][1],
+                             &vignett_poly[ivign][2],
                              &lbounds[ivign*6])
     return
 
 cdef inline void comp_bbox_poly3d(int nvert,
-                                  double[::1] vertx,
-                                  double[::1] verty,
-                                  double[::1] vertz,
+                                  double* vertx,
+                                  double* verty,
+                                  double* vertz,
                                   double[6] bounds) nogil:
     """
     Computes bounding box of a 3d polygon
@@ -368,9 +368,9 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
 # ==============================================================================
 cdef inline bint inter_ray_triangle(const double[3] ray_orig,
                                     const double[3] ray_vdir,
-                                    const double[:] vert0,
-                                    const double[:] vert1,
-                                    const double[:] vert2) nogil:
+                                    const double* vert0,
+                                    const double* vert1,
+                                    const double* vert2) nogil:
     cdef int ii
     cdef double det, invdet, u, v
     cdef double[3] edge1, edge2

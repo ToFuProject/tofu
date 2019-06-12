@@ -40,22 +40,21 @@ cdef inline bint is_reflex(const double[3] u,
         sumc = ucrossv[ii]
     return sumc >= 0.
 
-cdef inline void compute_diff3d(double[:, ::1] orig,
+cdef inline void compute_diff3d(double* orig,
                                 int nvert,
                                 double* diff) nogil:
     cdef int ivert
     for ivert in range(nvert-1):
-        diff[ivert*3 + 0] = orig[0,ivert+1] - orig[0,ivert]
-        diff[ivert*3 + 1] = orig[1,ivert+1] - orig[1,ivert]
-        diff[ivert*3 + 2] = orig[2,ivert+1] - orig[2,ivert]
+        diff[ivert*3 + 0] = orig[0*nvert+(ivert+1)] - orig[0*nvert+ivert]
+        diff[ivert*3 + 1] = orig[1*nvert+(ivert+1)] - orig[1*nvert+ivert]
+        diff[ivert*3 + 2] = orig[2*nvert+(ivert+1)] - orig[2*nvert+ivert]
     # doing the last point:
-    diff[3*(nvert-1) + 0] = orig[0,0] - orig[0,nvert-1]
-    diff[3*(nvert-1) + 1] = orig[1,0] - orig[1,nvert-1]
-    diff[3*(nvert-1) + 2] = orig[2,0] - orig[2,nvert-1]
+    diff[3*(nvert-1) + 0] = orig[0*nvert] - orig[0*nvert+(nvert-1)]
+    diff[3*(nvert-1) + 1] = orig[1*nvert] - orig[1*nvert+(nvert-1)]
+    diff[3*(nvert-1) + 2] = orig[2*nvert] - orig[2*nvert+(nvert-1)]
     return
 
-cdef inline void are_points_reflex(double[:,::1] vignett,
-                                   int nvert,
+cdef inline void are_points_reflex(int nvert,
                                    double* diff,
                                    bint* are_reflex) nogil:
     """
@@ -74,11 +73,11 @@ cdef inline void are_points_reflex(double[:,::1] vignett,
 
 cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
                               double Ax, double Ay, double Az,
-                              double px, double py, double pz) nogil:
+                              double px, double py, double pz, bint debug=False) nogil:
     """
     Tests if point P is on the triangle A, B, C such that
         v0 = C - A
-        v1 = B - A
+        v1 = -B + A
     and A = (Ax, Ay, Az) and P = (px, py, pz)
     """
     cdef double[3] v2
@@ -86,32 +85,41 @@ cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
     cdef double dot11, dot12
     cdef double invDenom
     cdef double u, v
+    cdef double denom
     # computing vector between A and P
     v2[0] = px - Ax
     v2[1] = py - Ay
     v2[2] = pz - Az
     # compute dot products
     dot00 = _bgt.compute_dot_prod(v0, v0)
-    dot01 = _bgt.compute_dot_prod(v0, v1)
+    dot01 = -_bgt.compute_dot_prod(v0, v1)
     dot02 = _bgt.compute_dot_prod(v0, v2)
     dot11 = _bgt.compute_dot_prod(v1, v1)
-    dot12 = _bgt.compute_dot_prod(v1, v2)
+    dot12 = -_bgt.compute_dot_prod(v1, v2)
     # Compute barycentric coordinates
-    invDenom = 1. / (dot00 * dot11 - dot01 * dot01)
+    denom = dot00 * dot11 - dot01 * dot01
+    invDenom = 1. / denom
     u = (dot11 * dot02 - dot01 * dot12) * invDenom
     v = (dot00 * dot12 - dot01 * dot02) * invDenom
     # Check if point is in triangle
-    return (u >= 0) and (v >= 0) and (u + v < 1)
+    if debug:
+        with gil:
+            print("  P = ", px, py, pz)
+            print("   A =", Ax, Ay, Az)
+            print("  v0 =", v0[0], v0[1], v0[2])
+            print("  v1 =", v1[0], v1[1], v1[2])
+            print("  u,v = ", u, v)
+    return (u >= 0) and (v >= 0) and (u + v <= 1)
 
 
 # ==============================================================================
 # =  Earclipping method: getting one ear of a poly, triangulate poly, ...
 # ==============================================================================
-cdef inline int get_one_ear(double[:,::1] polygon,
+cdef inline int get_one_ear(double* polygon,
                             double* diff,
                             bint* lref,
                             vector[int] working_index,
-                            int nvert) nogil:
+                            int nvert, int orig_nvert) nogil:
     """
     A polygon's "ear" is defined as a triangle of vert_i-1, vert_i, vert_i+1,
     points on the polygon, where the point vert_i has the following properties:
@@ -119,6 +127,20 @@ cdef inline int get_one_ear(double[:,::1] polygon,
         - None of the other vertices of the polygon are in the triangle formed
           by its two annexing points
           Note: only reflex edges can be on the triangle
+    polygon : (3*nvert) [x0, x1, x2..., x_nvert, y0, y1, ... y_nvert, z0...]
+    diff : (3*nvert) [P1 - P0, P2-P1, ...]
+    lref : (nvert) [is_reflex(P0), is_reflex(P1), ...]
+    working_index : to avoid memory allocation and deallocation, we work with
+        with only ONE vector, that allow us to know which of the orignal
+        orig_nvert vertices is still being used.
+        At the beginning working_index = range(orig_nvert)
+        if we took out ONE ear (vertex), for example vertex ii, then:
+             nvert = orig_nvert - 1
+             working_index = [0,..., ii-1,ii+1,ii+2,...orig_nvert]
+             and the other tabs are also updated:
+                diff = [P1-P0,...., Pii+1 - Pii-1, X, ....]
+                lref = [ .. is_reflex(Pii-1), X, is_reflex(Pii+1),..]
+                where X represents values that will never be used ! 
     """
     cdef int iloc
     cdef int i, j
@@ -136,18 +158,20 @@ cdef inline int get_one_ear(double[:,::1] polygon,
             # We can test if there is another vertex in the 'ear'
             for j in range(nvert):
                 wj = working_index[j]
-                # We only test reflex angles:
-                if (wj != wim1 and wj != wip1
-                    and wj != wi): #if wj is not a vertex of triangle
-                        if is_pt_in_tri(&diff[wi*3], &diff[(wim1)*3],
-                                        polygon[0,wi], polygon[1,wi],
-                                        polygon[2,wi],
-                                        polygon[0,wj], polygon[1,wj],
-                                        polygon[2,wj]):
-                            # We found a point in the triangle, thus is not ear
-                            # no need to keep testing....
-                            a_pt_in_tri = True
-                            break
+                # We only test reflex angles, and points that are not
+                # edges of the triangle
+                if (lref[wj] and wj != wim1 and wj != wip1 and wj != wi):
+                    if is_pt_in_tri(&diff[wi*3], &diff[wim1*3],
+                                    polygon[0*orig_nvert+wi],
+                                    polygon[1*orig_nvert+wi],
+                                    polygon[2*orig_nvert+wi],
+                                    polygon[0*orig_nvert+wj],
+                                    polygon[1*orig_nvert+wj],
+                                    polygon[2*orig_nvert+wj]):
+                        # We found a point in the triangle, thus is not ear
+                        # no need to keep testing....
+                        a_pt_in_tri = True
+                        break
             # Let's check if there was a point in the triangle....
             if not a_pt_in_tri:
                 return i # if not, we found an ear
@@ -156,12 +180,12 @@ cdef inline int get_one_ear(double[:,::1] polygon,
         assert False, "Got here but shouldnt have"
     return -1
 
-cdef inline void earclipping_poly(double[:,::1] vignett,
+cdef inline void earclipping_poly(double* vignett,
                                   long* ltri,
                                   int nvert) nogil:
     """
     Triangulates a polygon by earclipping an edge at a time.
-        vignett : (3,nvert) coordinates of poly
+        vignett : (3*nvert) coordinates of poly
         nvert : number of vertices
     Result
         ltri : (3*(nvert-2)) int array, indices of triangles
@@ -180,13 +204,19 @@ cdef inline void earclipping_poly(double[:,::1] vignett,
     diff = <double*>malloc(3*nvert*sizeof(double))
     lref = <bint*>malloc(nvert*sizeof(bint))
     compute_diff3d(vignett, nvert, diff)
-    are_points_reflex(vignett, nvert, diff, lref)
+    are_points_reflex(nvert, diff, lref)
     # initialization of working index tab:
     for ii in range(nvert):
         working_index.push_back(ii)
     # .. Loop ..................................................................
     while loc_nv > 3:
-        iear = get_one_ear(vignett, diff, lref, working_index, loc_nv)
+        iear = get_one_ear(vignett, diff, lref, working_index, loc_nv, nvert)
+        if iear==-1:
+            with gil:
+                print()
+                print("Got a -1 !!!!")
+                for ii in range(loc_nv):
+                    print(ii, working_index[ii])
         wim1 = working_index[iear-1]
         wi   = working_index[iear]
         wip1 = working_index[iear+1]
@@ -194,9 +224,9 @@ cdef inline void earclipping_poly(double[:,::1] vignett,
         ltri[itri*3+1] = wi
         ltri[itri*3+2] = wip1
         # updates on the "information" arrays:
-        diff[wim1*3]   = vignett[0,wip1] - vignett[0,wim1]
-        diff[wim1*3+1] = vignett[1,wip1] - vignett[1,wim1]
-        diff[wim1*3+2] = vignett[2,wip1] - vignett[2,wim1]
+        diff[wim1*3]   = vignett[0*nvert+wip1] - vignett[0*nvert+wim1]
+        diff[wim1*3+1] = vignett[1*nvert+wip1] - vignett[1*nvert+wim1]
+        diff[wim1*3+2] = vignett[2*nvert+wip1] - vignett[2*nvert+wim1]
         #... theoritically we should get rid of off diff[wip1] as well but
         # we'll just not use it, however we have to update lref
         # if an angle is not reflex, then it will stay so, only chage if reflex
@@ -226,7 +256,7 @@ cdef inline void earclipping_poly(double[:,::1] vignett,
 # ==============================================================================
 # =  Polygons triangulation and Intersection Ray-Poly
 # ==============================================================================
-cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
+cdef inline void triangulate_polys(double** vignett_poly,
                                    long* lnvert,
                                    int nvign,
                                    long** ltri,
@@ -253,15 +283,20 @@ cdef inline void triangulate_polys(double[:, :, ::1] vignett_poly,
 
 cdef inline bint inter_ray_poly(const double[3] ray_orig,
                                 const double[3] ray_vdir,
-                                double[:, ::1] vignett,
+                                double* vignett,
                                 int nvert,
                                 long* ltri) nogil:
-    cdef int ii
+    cdef int ii, jj
+    cdef double[3] pt1
+    cdef double[3] pt2
+    cdef double[3] pt3
+    #...
     for ii in range(nvert-2):
-        if _rt.inter_ray_triangle(ray_orig, ray_vdir,
-                              vignett[:,ltri[3*ii]],
-                              vignett[:,ltri[3*ii+1]],
-                              vignett[:,ltri[3*ii+2]]):
+        for jj in range(3):
+            pt1[jj] = vignett[ltri[3*ii+0] + jj * nvert]
+            pt2[jj] = vignett[ltri[3*ii+1] + jj * nvert]
+            pt3[jj] = vignett[ltri[3*ii+2] + jj * nvert]
+        if _rt.inter_ray_triangle(ray_orig, ray_vdir, pt1, pt2, pt3):
             return True
     return False
 
@@ -270,7 +305,7 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
 # ==============================================================================
 cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  double[:, ::1] ray_vdir,
-                                 double[:, :, ::1] vignett,
+                                 double** vignett,
                                  long* lnvert,
                                  double* lbounds,
                                  long** ltri,

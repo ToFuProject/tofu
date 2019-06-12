@@ -2679,16 +2679,16 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 #                                 VIGNETTING
 #
 # ==============================================================================
-def triangulate_by_earclipping(double[:,::1] poly):
+def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
     cdef int nvert = poly.shape[1]
     cdef np.ndarray[long,ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
     # Calling core function.....................................................
-    _vt.earclipping_poly(poly, &ltri[0], nvert)
+    _vt.earclipping_poly(&poly[0,0], &ltri[0], nvert)
     return ltri
 
 def vignetting(double[:, ::1] ray_orig,
                double[:, ::1] ray_vdir,
-               double[:, :, ::1] vignett_poly,
+               list vignett_poly,
                long[::1] lnvert,
                int num_threads=16):
     """
@@ -2696,7 +2696,7 @@ def vignetting(double[:, ::1] ray_orig,
        LOS origin points coordinates
     ray_vdir : (3, num_los) double array
        LOS normalized direction vector
-    vignett_poly : (num_vign, 3, num_vertex) double array
+    vignett_poly : (num_vign, 3, num_vertex) double list of arrays
        Coordinates of the vertices of the Polygon defining the 3D vignett.
        POLY CLOSED
     lnvert : (num_vign) long array
@@ -2708,27 +2708,33 @@ def vignetting(double[:, ::1] ray_orig,
     """
     cdef int ii
     cdef int nvign, nlos
-    cdef np.ndarray[bint,ndim=1] goes_through
+    cdef np.ndarray[np.uint8_t,ndim=1] goes_through
     cdef long** ltri = NULL
     cdef int* sign_ray = NULL
     cdef double* invr_ray = NULL
     cdef double* loc_org = NULL
     cdef double* loc_dir = NULL
     cdef double* lbounds = NULL
+    cdef double** data = NULL
+    cdef np.ndarray[double, ndim=2, mode="c"] temp
     # -- Initialization --------------------------------------------------------
-    nvign = vignett_poly.shape[0]
+    nvign = len(vignett_poly)
     nlos = ray_orig.shape[1]
-    #goes_through = clone(array('i'), nlos * nvign, True)
     goes_through = np.empty((nlos*nvign), dtype=bool)
+    # re writting vignett_poly to C type:
+    data = <double **> malloc(nvign*sizeof(double *))
+    for ii in range(nvign):
+        temp = vignett_poly[ii]
+        data[ii] = &temp[0,0]
     # -- Preparation -----------------------------------------------------------
     lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
-    _rt.compute_3d_bboxes(vignett_poly, &lnvert[0], nvign, lbounds,
+    _rt.compute_3d_bboxes(data, &lnvert[0], nvign, lbounds,
                           num_threads=num_threads)
     ltri = <long**>malloc(sizeof(long*)*nvign)
-    _vt.triangulate_polys(vignett_poly, &lnvert[0], nvign, ltri,
+    _vt.triangulate_polys(data, &lnvert[0], nvign, ltri,
                           num_threads=num_threads)
     # -- We call core function -------------------------------------------------
-    _vt.vignetting_core(ray_orig, ray_vdir, vignett_poly, &lnvert[0], lbounds,
+    _vt.vignetting_core(ray_orig, ray_vdir, data, &lnvert[0], lbounds,
                         ltri, nvign, nlos, &goes_through[0])
     # -- Cleaning up -----------------------------------------------------------
     free(lbounds)
@@ -2736,6 +2742,7 @@ def vignetting(double[:, ::1] ray_orig,
     for ii in range(nvign):
         free(ltri[ii])
     free(ltri) # and now we can free the main pointer
+    free(data)
     return goes_through
 
 

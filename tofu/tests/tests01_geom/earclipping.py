@@ -40,7 +40,7 @@ def is_pt_in_tri(A, B, C, P):
     v = (dot00 * dot12 - dot01 * dot02) * invDenom
 
     # Check if point is in triangle
-    return (u >= 0) and (v >= 0) and (u + v < 1)
+    return (u >= 0) and (v >= 0) and (u + v <= 1)
 
 def compute_det(u,v):
     nor = cross(u,v)

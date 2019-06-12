@@ -10,36 +10,35 @@
 # discretized in triangles and then we check if the ray intersected each
 # triangle.
 ################################################################################
-cdef  void compute_diff3d(double[:, ::1] orig,
-                                int nvert,
-                                double* diff) nogil
+cdef  void compute_diff3d(double* orig,
+                          int nvert,
+                          double* diff) nogil
 
-cdef  void are_points_reflex(double[:,::1] vignett,
-                                   int nvert,
-                                   double* diff,
-                                   bint* are_reflex) nogil
+cdef  void are_points_reflex(int nvert,
+                             double* diff,
+                             bint* are_reflex) nogil
 
 cdef  bint is_pt_in_tri(double[3] v0, double[3] v1,
                         double ax, double ay, double az,
                         double px, double py, double pz) nogil
 
-cdef  void earclipping_poly(double[:,::1] vignett,
+cdef  void earclipping_poly(double* vignett,
                             long* ltri,
                             int nvert) nogil
 
-cdef void triangulate_polys(double[:, :, ::1] vignett_poly,
-                                   long* lnvert,
-                                   int nvign,
-                                   long** ltri,
-                                   int num_threads=*) nogil
+cdef void triangulate_polys(double** vignett_poly,
+                            long* lnvert,
+                            int nvign,
+                            long** ltri,
+                            int num_threads=*) nogil
 
 cdef void vignetting_core(double[:, ::1] ray_orig,
-                                 double[:, ::1] ray_vdir,
-                                 double[:, :, ::1] vignett,
-                                 long* lnvert,
-                                 double* lbounds,
-                                 long** ltri,
-                                 int nvign,
-                                 int nlos,
-                                 bint* goes_through,
-                                 int num_threads=*) nogil
+                          double[:, ::1] ray_vdir,
+                          double** vignett,
+                          long* lnvert,
+                          double* lbounds,
+                          long** ltri,
+                          int nvign,
+                          int nlos,
+                          bint* goes_through,
+                          int num_threads=*) nogil
