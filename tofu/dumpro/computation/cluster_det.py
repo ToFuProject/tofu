@@ -141,6 +141,11 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
         lfh, ufh = 0, frame_height
     else:
         lfh, ufh = fh
+        
+    if tlim == None:
+        start,stop = 0,(N_frames - 1)
+    else:
+        start,stop = tlim[0],tlim[1]
 
     if verb == True:
         print('Looping over file ...\n')

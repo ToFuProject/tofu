@@ -112,7 +112,6 @@ def crop_video(video_file, meta_data = None, path = None, output_name = None, ou
     user_input = user_input.split(',')
 #    fw = user_input[0]
 #    fh = user_input[1]
-    print(type(fw),type(fh))
     lfw = int(user_input[0])
     ufw = int(user_input[1])
     lfh = int(user_input[2])

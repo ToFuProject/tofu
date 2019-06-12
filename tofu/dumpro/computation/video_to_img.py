@@ -50,9 +50,12 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
      format of the image. By default it is .jpg
      Return
     -----------------------
-    File:            String
+    path:            String
      Path where the images are stored    
-     
+    meta_data:       dictionary
+     disctionary containing the meta_data information
+    folder:          string
+     Tokomak shot name and number
     """
     #splitting the video file into drive and path + file
     drive, path_file = os.path.splitdrive(video_file)
@@ -62,7 +65,7 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
     file = file.split('.')
     
     #checking for the path of the file
-    folder = 'data'
+    folder = file[0]
     if path is None:
         #the directory path is defined.  
         #The last argument is for adding a trailing slash
@@ -158,7 +161,7 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
         print('reading meta_data successfull ...\n')
     
     #Loop Variable    
-    currentFrame = 0
+    currentFrame = 1
     
     if verb == True:
         print("Converting Video to Images ...... Please Wait")
@@ -185,4 +188,4 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
     cap.release()
     cv2.destroyAllWindows()
     
-    return path, meta_data
+    return path, meta_data, folder

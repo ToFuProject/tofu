@@ -62,14 +62,10 @@ def cluster_detection(video_file, path = None, output_name = None, output_type =
     if output_type is None:
         output_type = '.'+file[1]
     try:
-        if not os.path.isfile(video_file):
-            raise Exception
-        cap = cv2.VideoCapture(video_file)
-        
-    except Exception:
-        msg = 'the path or filename is incorrect.'
-        msg += 'PLease verify the path or file name and try again'
-        raise Exception(msg)
+        if os.path.isfile(video_file):
+            cap = cv2.VideoCapture(video_file)
+    except IOError:
+        print("Path or file name incorrect or file does not exist")
         
     #to read the first frame. Returns an error if the videofile has not been loaded correctly
     ret, frame = cap.read()

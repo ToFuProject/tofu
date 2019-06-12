@@ -17,7 +17,7 @@ import cv2
 import numpy as np 
  
 # read and scale down image
-img = cv2.imread('E:/NERD/Python/data4/frame149.jpg', cv2.IMREAD_UNCHANGED)
+img = cv2.imread('E:/NERD/Python/Videos/KSTAR_003723_tv01_frground/frame1041.jpg', cv2.IMREAD_UNCHANGED)
  
 # threshold image
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -38,15 +38,14 @@ for c in contours:
     if M['m00'] != 0:
         cx = int(M['m10']/M['m00'])
         cy = int(M['m01']/M['m00'])
-        print('(',cx,cy,')')
+        center = cx,cy
+        print( center)
     
-    k = cv2.isContourConvex(c)
-    print('is contour :',k)
 #    
 #    # get the bounding rect
-#    x, y, w, h = cv2.boundingRect(c)
-#    # draw a green rectangle to visualize the bounding rect
-#    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+    x, y, w, h = cv2.boundingRect(c)
+    # draw a green rectangle to visualize the bounding rect
+    #cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
  
     # get the min area rect
     rect = cv2.minAreaRect(c)
@@ -54,22 +53,24 @@ for c in contours:
     # convert all coordinates floating point values to int
     box = np.int0(box)
     # draw a red 'nghien' rectangle
-    cv2.drawContours(img, [box], 0, (0, 0, 255))
+    cv2.drawContours(img, [box], 0, (0, 255, 255))
  
-    # finally, get the min enclosing circle
-#    (x, y), radius = cv2.minEnclosingCircle(c)
-#    # convert all values to int
-#    center = (int(x), int(y))
-#    radius = int(radius)
-#    print(center)
+    if M['m00'] == 0:
+        # finally, get the min enclosing circle
+        (x, y), radius = cv2.minEnclosingCircle(c)
+        # convert all values to int
+        center = (int(x), int(y))
+        radius = int(radius)
+        print(center)
     # and draw the circle in blue
 #    img = cv2.circle(img, center, radius, (255, 0, 0), 2)
-    ellipse = cv2.fitEllipse(c)
-    cv2.ellipse(img,ellipse,(0,255,0),2)
+    #ellipse = cv2.fitEllipse(c)
+    #cv2.ellipse(img,ellipse,(0,255,0),2)
+    
  
 print(len(contours))
 print(type(contours))
-cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
+#cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
  
 cv2.imwrite('E:/NERD/Python/test2.jpg', img)
 cv2.destroyAllWindows()
