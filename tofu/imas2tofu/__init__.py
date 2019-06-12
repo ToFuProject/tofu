@@ -16,19 +16,11 @@ except Exception:
     raise Exception(msg)
 
 try:
-    from tofu.imas2tofu._utils import MultiIDSLoader
-    from tofu.imas2tofu._utils import load_Config, load_Plasma2D
-
-    # from tofu.imas2tofu._configloader import load_Config
-    # from tofu.imas2tofu._plasma2Dloader import load_Plasma2D
-    # from tofu.imas2tofu._diagloader import load_Diag
+    from tofu.imas2tofu._core import MultiIDSLoader
+    from tofu.imas2tofu._core import load_Config, load_Plasma2D, load_Diag
 except Exception:
-    from ._utils import MultiIDSLoader
-    from ._utils import load_Config, load_Plasma2D
-
-    # from ._configloader import load_Config
-    # from ._plasma2Dloader import load_Plasma2D
-    # from ._diagloader import load_Diag
+    from ._core import MultiIDSLoader
+    from ._core import load_Config, load_Plasma2D, load_Diag
 
 
-__all__ = ['MultiIDSLoader', 'load_Config','load_Plasma2D']#'load_Diag']
+__all__ = ['MultiIDSLoader', 'load_Config', 'load_Plasma2D', 'load_Diag']
