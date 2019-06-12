@@ -274,7 +274,7 @@ class Video(object):
 #   displaying a video
 #############################################################################
     def playvideo(self):
-        """Subroutine for playing a video"""
+
         #calling play video function from plotting library
         _plot.playvideo.play_video(self.__filename)
 
@@ -296,7 +296,7 @@ Video.applybinary.__doc__ = _comp.binarythreshold.binary_threshold.__doc__
 Video.detectedge.__doc__ = _comp.edge_detection.detect_edge.__doc__
 Video.convert2pixel.__doc__ = _comp.video_to_array.video_to_pixel.__doc__
 Video.convert2image.__doc__ = _comp.video_to_img.video2img.__doc__
-
+Video.playvideo.__doc__ = _plot.playvideo.play_video.__doc__
 
 
 
@@ -451,9 +451,40 @@ class img_dir(object):
                                                       verb)
         return self.__class__(out_path)
 
+#####################################################################
+#   playing of the images
+#####################################################################
+
+    def play(self):
+        
+        _plot.playimages.play_img(self.__im_dir)
+        
+#####################################################################
+#   cluster detection
+#####################################################################
+        
+        def det_cluster(self):
+            
+            
+        
+
 img_dir.to_gray.__doc__ = _i_comp.conv_gray.conv_gray.__doc__
 img_dir.denoise_col.__doc__ = _i_comp.denoise_col.denoise_col.__doc__
 img_dir.denoise_gray.__doc__ = _i_comp.denoise.denoise.__doc__
 img_dir.remove_backgrd.__doc__ = _i_comp.rm_background.rm_back.__doc__
 img_dir.to_bin.__doc__ = _i_comp.to_binary.bin_thresh.__doc__
+img_dir.play.__doc__ = _plot.playimages.play_img.__doc__
+
+#####################################################################
+#####################################################################
+#   A class for handling videos and images 
+#####################################################################
+
+class vid_img(video, img_dir):
+    """This is a derived class from both video class and img_dir class.
+    This is an intermediate approach, between working completely with videos
+    and completely with images.
+    
+    """
+    
   
