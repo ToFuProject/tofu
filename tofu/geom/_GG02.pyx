@@ -2789,7 +2789,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     cdef int sz1_us, sz2_us
     cdef int sz1_dls, sz2_dls
     cdef int N
-    cdef int ntmp
+    cdef long ntmp
     cdef int num_los
     cdef bint dl_is_list
     cdef bint C0, C1
@@ -2856,9 +2856,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
             if imode=='sum':
                 _st.middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
                                       &dLr[0], &los_ind[0])
-                print(los_ind)
-                ntmp = np.sum(los_ind[:1])
-                assert(False)
+                ntmp = np.sum(los_ind)
                 coeff_arr = np.empty((ntmp,), dtype=float)
                 _st.middle_rule_abs_2(num_los, &DLs[0,0], &los_ind[0],
                                       &dLr[0], &coeff_arr[0])
