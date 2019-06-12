@@ -77,7 +77,8 @@ def video2img(video_file, meta_data = None, path = None, image_name = None, imag
         #if not, creates the path
         if not os.path.exists(path):
             os.mkdir(path)
-        
+    else:
+        path = os.path.join(path, folder, '')
     #checking for the name of the output file
     if image_name is None:
         image_name = 'frame'
