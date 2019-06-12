@@ -2784,36 +2784,36 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                 _st.left_rule_rel(num_los, N,
                                   &DLs[0,0], &DLs[1, 0], &dLr[0],
                                   &coeff_arr[0], &los_ind[0],
-                                    num_threads=num_threads)
+                                  num_threads=num_threads)
             elif imode=='romb':
                 N = 2**(int(Cceil(Clog2(N))))
                 coeff_arr = np.empty(((N+1)*num_los,), dtype=float)
                 _st.left_rule_rel(num_los, N,
                                   &DLs[0,0], &DLs[1, 0],
                                   &dLr[0], &coeff_arr[0], &los_ind[0],
-                                    num_threads=num_threads)
+                                  num_threads=num_threads)
             return coeff_arr, dLr, los_ind[:num_los-1]
         else:
             if imode=='sum':
                 _st.middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
                                       &dLr[0], &los_ind[0],
-                                    num_threads=num_threads)
+                                      num_threads=num_threads)
                 ntmp = np.sum(los_ind)
                 coeff_arr = np.empty((ntmp,), dtype=float)
                 _st.middle_rule_abs_2(num_los, &DLs[0,0], &los_ind[0],
                                       &dLr[0], &coeff_arr[0],
-                                    num_threads=num_threads)
+                                      num_threads=num_threads)
                 return coeff_arr, dLr, los_ind[0:num_los-1]
             elif imode=='simps':
                 _st.simps_left_rule_abs(num_los, val_resol,
                                         &DLs[0,0], &DLs[1, 0],
                                         &dLr[0], &los_coeffs, &los_ind[0],
-                                    num_threads=num_threads)
+                                        num_threads=num_threads)
             else:
                 _st.romb_left_rule_abs(num_los, val_resol,
                                        &DLs[0,0], &DLs[1, 0],
                                        &dLr[0], &los_coeffs, &los_ind[0],
-                                    num_threads=num_threads)
+                                       num_threads=num_threads)
     # Case with different resolution for each LOS
     else:
         dl_view=dL
@@ -2822,33 +2822,33 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                 _st.middle_rule_abs_var(num_los, &dl_view[0],
                                         &DLs[0,0], &DLs[1, 0],
                                         &dLr[0], &los_coeffs, &los_ind[0],
-                                    num_threads=num_threads)
+                                        num_threads=num_threads)
             elif imode=='simps':
                 _st.simps_left_rule_abs_var(num_los, &dl_view[0],
                                             &DLs[0,0], &DLs[1, 0],
                                             &dLr[0], &los_coeffs, &los_ind[0],
-                                    num_threads=num_threads)
+                                            num_threads=num_threads)
             else:
                 _st.romb_left_rule_abs_var(num_los, &dl_view[0],
                                            &DLs[0,0], &DLs[1, 0],
                                            &dLr[0], &los_coeffs, &los_ind[0],
-                                    num_threads=num_threads)
+                                           num_threads=num_threads)
         else:
             if imode=='sum':
                 _st.middle_rule_rel_var(num_los, &dl_view[0],
                                         &DLs[0,0], &DLs[1, 0],
                                         &dLr[0], &los_coeffs, &los_ind[0],
-                                    num_threads=num_threads)
+                                        num_threads=num_threads)
             elif imode=='simps':
                 _st.simps_left_rule_rel_var(num_los, &dl_view[0],
                                             &DLs[0,0], &DLs[1, 0],
                                             &dLr[0], &los_coeffs, &los_ind[0],
-                                    num_threads=num_threads)
+                                            num_threads=num_threads)
             else:
                 _st.romb_left_rule_rel_var(num_los, &dl_view[0],
                                            &DLs[0,0], &DLs[1, 0],
                                            &dLr[0], &los_coeffs, &los_ind[0],
-                                    num_threads=num_threads)
+                                           num_threads=num_threads)
     return np.asarray(<double[:los_ind[num_los-1]]> los_coeffs),\
         dLr, los_ind[0:num_los-1]
 

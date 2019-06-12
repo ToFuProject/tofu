@@ -1293,13 +1293,17 @@ class MultiIDSLoader(object):
         msg += "    - None: all channels used\n"
         msg += "    - int: channel to use (index)\n"
         msg += "    - array of int: channels to use (indices)\n"
-        msg += "    - array of bool: channels to use (indices)"
-        lc = [indch is None, type(indch) is int, hasattr(indch,'__iter__')]
+        msg += "    - array of bool: channels to use (indices)\n"
+        msg += "    - len>0: collects only non-empty channels"
+        lc = [indch is None,
+              type(indch) is int,
+              hasattr(indch,'__iter__') and type(indch) is not str,
+              type(indch) is str and indch == 'len>0']
         if not any(lc):
             raise Exception(msg)
         if lc[0]:
             indch = np.arange(0,nch)
-        else:
+        elif lc[1] or lc[2]:
             indch = np.r_[indch].ravel()
             lc = [indch.dtype == np.int, indch.dtype == np.bool]
             if not any(lc):
@@ -1307,6 +1311,8 @@ class MultiIDSLoader(object):
             if lc[1]:
                 indch = np.nonzero(indch)[0]
             assert np.all((indch>=0) & (indch<nch))
+        elif lc[3]:
+            pass
         return indch
 
     def _checkformat_getdata_indt(self, indt):
@@ -1427,10 +1433,12 @@ class MultiIDSLoader(object):
                             ind = indch
                         else:
                             ind = dcond[ii]['ind']
-                        if ind is None:
+
+                        if ind is None or (type(ind) is str and ind == 'len>0'):
                             ind = range(0,nb)
                         if nsig > 1:
-                            assert len(ind) == 1
+                            assert type(ind) is not str and len(ind) == 1
+
                         if len(ind) == 1:
                             sig[jj] = sig[jj][ind[0]]
                         else:
@@ -1449,6 +1457,20 @@ class MultiIDSLoader(object):
                                    == dcond[ii]['cond'][1])]
                         assert len(ind) == 1
                         sig[jj] = sig[jj][ind[0]]
+
+            import ipdb
+            ipdb.set_trace()
+
+            # indch = 'len>0'
+            c0 = type(indch) is str and indch == 'len>0' and nsig > 1
+            c0 = c0 and any([('ind' in dcond.keys()
+                              and type(v['ind']) is str
+                              and v['ind'] == 'chan')
+                             for v in dcond.values()])
+            if c0:
+                sig = [ss for ss in sig if len(ss)>0]
+                nsig = len(sig)
+
 
             # Conditions for stacking / sqeezing sig
             lc = [(stack and nsig>1 and isinstance(sig[0],np.ndarray)
@@ -1968,7 +1990,8 @@ class MultiIDSLoader(object):
 
 
 
-    def to_Diag(self, ids=None, dsig=None, mainsig=None, tlim=None, indch=None,
+    def to_Diag(self, ids=None, dsig=None, mainsig=None, tlim=None,
+                indch='len>0',
                 Name=None, occ=None, config=None,
                 equilibrium=True, plot=True):
 
