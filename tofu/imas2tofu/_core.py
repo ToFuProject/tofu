@@ -170,38 +170,60 @@ class MultiIDSLoader(object):
                 'diamagflux':{'str':'method[0].diamagnetic_flux.data'}},
 
                'ece':
-               {'t':{'str':'time'},
-                'freq':{'str':'channel[chan].frequency.data'},
-                'Te': {'str':'channel[chan].t_e.data'},
-                'R': {'str':'channel[chan].position.r.data'},
-                'rhotn':{'str':'channel[chan].position.rho_tor_norm.data'},
-                'theta':{'str':'channel[chan].position.theta.data'},
-                'tau':{'str':'channel[chan].optical_depth.data'},
+               {'t':{'str':'time',
+                     'quant':'t', 'units':'s'},
+                'freq':{'str':'channel[chan].frequency.data',
+                        'quant':'freq', 'units':'Hz'},
+                'Te': {'str':'channel[chan].t_e.data',
+                       'quant':'Te', 'units':'eV'},
+                'R': {'str':'channel[chan].position.r.data',
+                        'quant':'R', 'units':'m'},
+                'rhotn':{'str':'channel[chan].position.rho_tor_norm.data',
+                        'quant':'rho', 'units':'adim.'},
+                'theta':{'str':'channel[chan].position.theta.data',
+                        'quant':'angle', 'units':'rad.'},
+                'tau':{'str':'channel[chan].optical_depth.data',
+                        'quant':'optical depth', 'units':'adim.'},
                 'validity_timed': {'str':'channel[chan].t_e.validity_timed'}},
 
                'interferometer':
-               {'t':{'str':'time'},
-                'ne_integ':{'str':'channel[chan].n_e_line.data'}},
+               {'t':{'str':'time',
+                     'quant':'t', 'units':'s'},
+                'ne_integ':{'str':'channel[chan].n_e_line.data',
+                            'quant':'ne_integ', 'units':'/m2'}},
 
                'bolometer':
-               {'t':{'str':'time'},
-                'power':{'str':'channel[chan].power.data'},
-                'etendue':{'str':'channel[chan].etendue'}},
+               {'t':{'str':'time',
+                     'quant':'t', 'units':'s'},
+                'power':{'str':'channel[chan].power.data',
+                         'quant':'power', 'units':'W'},
+                'etendue':{'str':'channel[chan].etendue',
+                           'quant':'etendue', 'units':'m2.sr'}},
 
                'soft_x_rays':
-               {'t':{'str':'time'},
-                'power':{'str':'channel[chan].power.data'},
-                'brightness':{'str':'channel[chan].brightness.data'},
-                'etendue':{'str':'channel[chan].etendue'}},
+               {'t':{'str':'time',
+                     'quant':'t', 'units':'s'},
+                'power':{'str':'channel[chan].power.data',
+                         'quant':'power', 'units':'W'},
+                'brightness':{'str':'channel[chan].brightness.data',
+                              'quant':'brightness', 'units':'W/(m2.sr)'},
+                'etendue':{'str':'channel[chan].etendue',
+                           'quant':'etendue', 'units':'m2.sr'}},
 
                'spectrometer_visible':
-               {'t':{'str':'time'},
-                'spectra':{'str':'channel[chan].grating_spectrometer.radiance_spectral.data'},
-                'lamb':{'str':'channel[chan].grating_spectrometer.wavelengths'}},
+               {'t':{'str':'time',
+                     'quant':'t', 'units':'s'},
+                'spectra':{'str':'channel[chan].grating_spectrometer.radiance_spectral.data',
+                           'quant':'radiance_spectral', 'units':'ph/s/(m2.sr)/m'},
+                'lamb':{'str':'channel[chan].grating_spectrometer.wavelengths',
+                        'quant':'wavelength', 'units':'m'}},
 
                'bremsstrahlung_visible':
-               {'t':{'str':'time'},
-                'radiance':{'str':'channel[chan].radiance_spectral.data'}}
+               {'t':{'str':'time',
+                     'quant':'t', 'units':'s'},
+                'radiance':{'str':'channel[chan].radiance_spectral.data',
+                            'quant':'radiance_spectral',
+                            'units':'ph/s/(m2.sr)/m'}},
               }
 
 
@@ -265,7 +287,8 @@ class MultiIDSLoader(object):
              {'1dprad':{'lstr':['1dbrem','1dline'], 'func':_add}},
 
              'ece':
-             {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign}}
+             {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
+                            'units':'adim.'}}
             }
 
     _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
@@ -2027,6 +2050,7 @@ class MultiIDSLoader(object):
 
         # data
         lk = sorted(dsig.keys())
+        dins = dict.fromkeys(lk)
         indt = self._checkformat_tlim(self.get_data(ids, sig='t')['t'],
                                       tlim=tlim)['indt']
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
@@ -2047,14 +2071,23 @@ class MultiIDSLoader(object):
                     msg += "\n  => Solution: choose indch accordingly !"
                     raise Exception(msg)
 
-                dsig[kk] = out[dsig[kk]].T
+                dins[kk] = out[dsig[kk]].T
             else:
-                dsig[kk] = out[dsig[kk]]
+                dins[kk] = out[dsig[kk]]
         if 'validity_timed' in self._dshort[ids].keys():
             inan = self.get_data(ids, sig='validity_timed',
                                  indt=indt, indch=indch)['validity_timed'].T<0.
             for kk in set(lk).intersection(['data','X','lamb']):
-                dsig[kk][inan] = np.nan
+                dins[kk][inan] = np.nan
+
+        # dlabels
+        dins['dlabels'] = dict.fromkeys(lk)
+        for kk in lk:
+            dins['dlabels'][kk] = {'name':dsig[kk]}
+            if dsig[kk] in self._dshort[ids].keys():
+                dins['dlabels'][kk]['units'] = self._dshort[ids][dsig[kk]].get('units', 'a.u.')
+            else:
+                dins['dlabels'][kk]['units'] = self._dcomp[ids][dsig[kk]].get('units', 'a.u.')
 
         # Extra
         dextra = {}
@@ -2093,7 +2126,7 @@ class MultiIDSLoader(object):
         import tofu.data as tfd
         conf = None if cam is not None else config
         Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
-                                  lCam=cam, config=conf, dextra=dextra, **dsig)
+                                  lCam=cam, config=conf, dextra=dextra, **dins)
 
         if plot:
             Data.plot(draw=True)

@@ -1845,8 +1845,21 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         if lData[ii].dextra is not None:
             for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
                 idteq = id(lData[ii].dextra[k]['t'])
+
                 if idteq not in dteq[ii].keys():
+                    # test if any existing t matches values
+                    lidalready = [[k1 for k1,v1 in v0.items()
+                                   if (v1.size == lData[ii].dextra[k]['t'].size
+                                       and np.allclose(v1, lData[ii].dextra[k]['t']))]
+                                  for v0 in dteq.values()]
+                    lidalready = list(set(itt.chain.from_iterable(lidalready)))
+                    assert len(lidalready) in [0,1]
+                    if len(lidalready) == 1:
+                        idteq = lidalready[0]
+
                     dteq[ii][idteq] = lData[ii].dextra[k]['t']
+                idteq = list(dteq[ii])[0]
+
                 dlextra[k][ii] = dict([(kk,v)
                                         for kk,v in lData[ii].dextra[k].items()
                                         if not kk == 't'])
@@ -2169,15 +2182,15 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
                     if kk == 'Sep':
-                        l0, = dax['cross'][0].plot([np.nan],[np.nan],
+                        l0, = dax['cross'][ii].plot([np.nan],[np.nan],
                                                    c=lct[jj], ls=lls[0],
                                                    lw=1.)
                     else:
                         marker = dlextra[kk][ii]['marker']
-                        l0, = dax['cross'][0].plot([np.nan],[np.nan],
-                                                   mec=lct[jj], mfc='None',
-                                                   ls=lls[0],
-                                                   ms=ms, marker=marker)
+                        l0, = dax['cross'][ii].plot([np.nan],[np.nan],
+                                                    mec=lct[jj], mfc='None',
+                                                    ls=lls[0],
+                                                    ms=ms, marker=marker)
                     dobj[l0] = {'dupdate':{'data':{'id':id_,
                                                    'lrid':[idt]}},
                                 'drefid':{idt:jj}}
