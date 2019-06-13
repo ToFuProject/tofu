@@ -64,7 +64,7 @@ def crop_video(im_path, w_dir, shot_name, im_out = None,
     if verb == True:
         print('Creating output directory ...')
     #default output folder name
-    folder = shot_name + '_grayscale'
+    folder = shot_name + '_slice'
     #creating the output directory
     if im_out == None:
         im_out = os.path.join(w_dir, folder, '')

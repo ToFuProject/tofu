@@ -23,7 +23,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
 
-def video2img(video_file, w_dir, shot_name, meta_data = None, path = None, verb = True):
+def video2img(video_file, w_dir, shot_name, meta_data = None, verb = True):
     """Breaks up an input video file into it's constituent frames and 
     saves them as jpg image
     

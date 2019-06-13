@@ -102,7 +102,7 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
         img1 = cv2.imread(f_name1,cv2.IMREAD_UNCHANGED)
         img2 = cv2.imread(f_name2,cv2.IMREAD_UNCHANGED)
         #performing frame by frame subtraction
-        dst = cv2.subtract(img1, img2)
+        dst = cv2.subtract(img2, img1)
         #generic name of each image
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
