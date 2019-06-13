@@ -4469,10 +4469,40 @@ sig = inspect.signature(Rays)
 params = sig.parameters
 
 
+class CamLOS1D(Rays):
 
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
 
+        # Prepare
+        kout = self._dgeom['kOut']
+        indout = self._dgeom['indout']
+        lS = self._dconfig['Config'].lStruct
 
-class CamLOS1D(Rays): pass
+        # ar0
+        col0 = ['nb. los', 'av. length', 'nb. touch']
+        ar0 = [self.nRays,
+               '{:.3f}'.format(np.nanmean(kout)),
+               np.unique(indout[0,:]).size]
+
+        # ar1
+        col1 = ['los index', 'length', 'touch']
+        ar1 = [np.arange(0,self.nRays),
+               np.around(kout, decimals=3).astype('U'),
+               ['%s_%s'%(lS[ii].Id.Cls, lS[ii].Id.Name) for ii in indout[0,:]]]
+
+        for k,v in self._dchans.items():
+            col1.append(k)
+            if v.ndim == 1:
+                ar1.append( v )
+            else:
+                ar1.append( [str(vv) for vv in v] )
+
+        # call base method
+        self._get_summary([ar0, ar1], [col0, col1],
+                          sep=sep, line=line, table_sep=table_sep,
+                          verb=verb, return_=return_)
+
 
 lp = [p for p in params.values() if p.name != 'dX12']
 CamLOS1D.__signature__ = sig.replace(parameters=lp)

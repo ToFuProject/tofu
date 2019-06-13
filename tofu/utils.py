@@ -831,6 +831,91 @@ class ToFuObjectBase(object):
     def _check_InputsGeneric(ld, tab=0):
         return _check_InputsGeneric(ld, tab=tab)
 
+
+    #############################
+    #  charray and summary
+    #############################
+
+
+    @staticmethod
+    def _getcharray(ar, col=None, sep='  ', line='-', just='l', msg=True):
+
+        c0 = ar is None or len(ar) == 0
+        if c0:
+            return ''
+        ar = np.array(ar, dtype='U')
+
+        if ar.ndim == 1:
+            ar = ar.reshape((1,ar.size))
+
+        # Get just len
+        nn = np.char.str_len(ar).max(axis=0)
+        if col is not None:
+            assert len(col) in ar.shape
+            if len(col) != ar.shape[1]:
+                ar = ar.T
+                nn = np.char.str_len(ar).max(axis=0)
+            nn = np.fmax(nn, [len(cc) for cc in col])
+
+        # Apply to array
+        fjust = np.char.ljust if just == 'l' else np.char.rjust
+        out = np.array([sep.join(v) for v in fjust(ar,nn)])
+
+        # Apply to col
+        if col is not None:
+            arcol = np.array([col, [line*n for n in nn]], dtype='U')
+            arcol = np.array([sep.join(v) for v in fjust(arcol,nn)])
+            out = np.append(arcol,out)
+
+        if msg:
+            out = '\n'.join(out)
+        return out
+
+
+    @classmethod
+    def _get_summary(cls, lar, lcol,
+                     sep='  ', line='-', just='l', table_sep=None,
+                     verb=True, return_=False):
+        """ Summary description of the object content as a np.array of str """
+        if table_sep is None:
+            table_sep = '\n\n'
+
+
+        # Out
+        if verb or return_ in [True,'msg']:
+            lmsg = [cls._getcharray(ar, col, sep=sep, line=line, just=just)
+                    for ar, col in zip(*[lar,lcol])]
+            if verb:
+                msg = table_sep.join(lmsg)
+                print(msg)
+
+        if return_ != False:
+            if return_ == True:
+                out = lar, lmsg
+            elif return_ == 'array':
+                out = lar
+            elif return_ == 'msg':
+                out = lmsg
+            else:
+                lok = [False, True, 'msg', 'array']
+                raise Exception("Valid return_ values are: %s"%str(lok))
+            return out
+
+
+    @abstractmethod
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
+        """ Summary description of the object content as a np.array of str """
+        pass
+
+
+
+
+    #############################
+    #  strip and to/from dict
+    #############################
+
+
     def strip(self, strip=0, **kwdargs):
         """ Remove non-essential attributes to save memory / disk usage
 
@@ -997,6 +1082,11 @@ class ToFuObjectBase(object):
                 dsize[k] = np.asarray(v).nbytes
             total += dsize[k]
         return total, dsize
+
+
+    #############################
+    #  operator overloading
+    #############################
 
 
     def __eq__(self, obj, lexcept=[], detail=True, verb=True):
