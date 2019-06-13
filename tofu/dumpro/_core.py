@@ -52,7 +52,7 @@ class Video(object):
     Attributes:
     --------------------------------------------
     __filename = Path of the file along with its name and extension
-    __path = A path to a working directory for storage during processing
+    __w_dir = A path to a working directory for storage during processing
     __frame_width = width of the video
     __frame_height = height of the video
     __video_time = time length of the video
@@ -61,8 +61,23 @@ class Video(object):
     meta_data = dictionary containing total frames, fps and frame size of video
     reshape = dictionary containing the croping and time slicing of the video
 
+    Setters:
+    --------------------------------------------
+    set_w_dir
+    
+    Getters:
+    --------------------------------------------
+    filename
+    resolution
+    N_frames
+    fps
+    fourcc
+    w_dir
+    meta_data
+    
     Methods:
     --------------------------------------------
+    grayscale
     
     """
 
@@ -82,7 +97,7 @@ class Video(object):
             msg += "    {}".format(filename)
             print(msg)
         self.__filename = filename
-        self.__path = user_path
+        self.__w_dir = ''
         #getting the meta data of the video
         self.__frame_width = int(self.cap.get(3))
         self.__frame_height = int(self.cap.get(4))
@@ -91,7 +106,7 @@ class Video(object):
         self.__fourcc = int(self.cap.get(cv2.CAP_PROP_FOURCC))
         #calculating the duration of the video        
         self.__duration = self.__N_frames/self.__fps
-        self.meta_data = {'fps' : self.__fps, 
+        self.__meta_data = {'fps' : self.__fps, 
                           'fourcc' : self.__fourcc, 
                           'N_frames' : self.__N_frames,
                           'frame_width' : self.__frame_width,
@@ -101,12 +116,13 @@ class Video(object):
 #   setter for Working Directory
 ##############################################################################
  
-    def w_dir(self):
+    def set_w_dir(self):
+        """getter function for Working Directory"""
         message = 'Please provide a working directory where files can be stored '
         message += 'while image processing is being done...\n'
         message += 'Note:- Please create a separate directory for each video :'
         #getting user input
-        self.__path = input(message)
+        self.__w_dir = input(message)
     
 
 #############################################################################
@@ -115,13 +131,13 @@ class Video(object):
         
     @property
     def filename(self):
+        """Returns the path containing the video"""
         return self.__filename
     
     
     #defining a getter for the video resolution
     def resolution(self):
         """Returns the size of frame of the video"""
-        
         #getting width and height
         width = self.__frame_width
         height = self.__frame_height
@@ -146,30 +162,30 @@ class Video(object):
         return self.__fourcc
     
     @property
-    def path(self):
+    def w_dir(self):
         """Returns the working directory"""
-        return self.__path
+        return self.__w_dir
+    
+    @property
+    def meta_data(self):
+        """Returns the metadata of the videofile"""
+        return self.__meta_data
     
 #############################################################################
 #   Grayscale conversion method
 #############################################################################
         
     #defining a method for grayscale conversion
-    def grayscale(self, meta_data = None, path = None,
-                  output_name = None, output_type = None, verb = True):
+    def grayscale(self, output_name = None, output_type = None, verb = True):
 
         #gray will contain the video path and meta_data will contain the 
         #size of frames, total number of frames and the fps of the video
-        if path == None:
-            path = self.__path
-        if meta_data == None:
-            meta_data = self.meta_data
         gray, meta_data = _comp.colorgray.convertgray(self.__filename,
-                                                      meta_data,
-                                                      path,
+                                                      self.__meta_data,
+                                                      self.__w_dir,
                                                       output_name,
                                                       output_type,
-                                                      Verb)
+                                                      verb)
         #returning the grayscale converted video as a new instance 
         return self.__class__(gray)
     
@@ -177,17 +193,12 @@ class Video(object):
 #   background removal method
 #############################################################################
 
-    def removebackground(self, meta_data = None, 
-                         path = None,output_name = None, output_type = None, verb = True):
+    def removebackground(self, output_name = None, output_type = None, verb = True):
                
         #applying the background removal operation
-        if path == None:
-            path = self.__path
-        if meta_data == None:
-            meta_data = self.meta_data
         foreground, meta_data = _comp.background_removal.remove_background(self.__filename, 
-                                                                           meta_data, 
-                                                                           path, 
+                                                                           self.__meta_data, 
+                                                                           self.__w_dir, 
                                                                            output_name, 
                                                                            output_type,
                                                                            verb)
@@ -197,17 +208,12 @@ class Video(object):
 #   binary conversion method
 #############################################################################
     
-    def applybinary(self, meta_data = None, path = None,
-                    output_name = None,output_type = None, verb = True):
+    def applybinary(self, output_name = None,output_type = None, verb = True):
         
         #applying the method of binary conversion
-        if path == None:
-            path = self.__path
-        if meta_data == None:
-            meta_data = self.meta_data
         out = _comp.binarythreshold.binary_threshold(self.__filename,
-                                                     meta_data,
-                                                     path,
+                                                     self.__meta_data,
+                                                     self.__w_dir,
                                                      output_name,
                                                      output_type,
                                                      verb)
@@ -218,17 +224,12 @@ class Video(object):
 #   edge detection method
 #############################################################################
 
-    def detectedge(self, meta_data = None, path = None, 
-                   output_name = None, output_type = None, verb = True):
+    def detectedge(self, output_name = None, output_type = None, verb = True):
         
         #applying the edge detection method
-        if path == None:
-            path = self.__path
-        if meta_data == None:
-            meta_data = self.meta_data
         edge, meta_data = _comp.edge_detection.detect_edge(self.__filename,
-                                                           meta_data,
-                                                           path,
+                                                           self.__meta_data,
+                                                           self.__w_dir,
                                                            output_name,
                                                            output_type,
                                                            verb)
@@ -239,16 +240,12 @@ class Video(object):
 #   video to image conversion method
 #############################################################################
     
-    def convert2image(self, meta_date = None, path = None , image_name = None, image_type = None, verb = True):
+    def convert2image(self, image_name = None, image_type = None, verb = True):
         
         #applying the video to image conversion method
-        if path == None:
-            path = self.__path
-        if meta_data == None:
-            meta_data = self.meta_data
         directory, meta_data = _comp.video_to_img.video2img(self.__filename,
-                                                 meta_data,
-                                                 path,
+                                                 self.__meta_data,
+                                                 self.__w_dir,
                                                  image_name,
                                                  image_type,
                                                  verb)
@@ -259,13 +256,11 @@ class Video(object):
 #   video to numpy arraay conversion method
 #############################################################################
 
-    def convert2pixel(self, meta_data = None, verb = True):
+    def convert2pixel(self, verb = True):
         
         #applying the video to array conversion method
-        if meta_data == None:
-            meta_data = self.meta_data
         pixel, meta_data = _comp.video_to_array.video_to_pixel(self.__filename,
-                                                               meta_data,
+                                                               self.__meta_data,
                                                                verb)
         
         return pixel, meta_data
@@ -280,7 +275,7 @@ class Video(object):
 
 
     
-    def dumpro(self, meta_data = None, path = None, output_name = None, output_type = None, verb = True):
+    def dumpro(self, output_name = None, output_type = None, verb = True):
         
         return None
         
@@ -288,8 +283,9 @@ class Video(object):
 #sig = inspect.signature(_comp.colorgray.convertgray)
 #lp = [p for p in sig.parameters.values() if p.name != 'video_file']
 #Video.grayscale.__signature__ = sig.replace(parameters = lp)
-        
-#Applying the docstring of functions to class methods
+#############################################################################
+#   Docstrings for video class methods
+#############################################################################
 Video.grayscale.__doc__ = _comp.colorgray.convertgray.__doc__
 Video.removebackground.__doc__ = _comp.background_removal.remove_background.__doc__
 Video.applybinary.__doc__ = _comp.binarythreshold.binary_threshold.__doc__
@@ -332,29 +328,32 @@ class img_dir(object):
             msg = 'The path provided is wrong'
             msg += 'Please provide the correct path'
             raise Exception(msg)
-        
 
         self.__im_dir = filename
+        files = [f for f in os.listdir(filename) if os.path.isfile(os.path.join(filename,f))]
+        img = cv2.imread(filename+files[0])
         self.__w_dir = None
         self.__shot_name = None
-        self.__meta_data = {}
-    
+        self.__meta_data = {'N_frames' : len(files),
+                            'frame_height': img.shape[0],
+                            'frame_width' : img.shape[1]}
+        self.__reshape = {}
 
 ####################################################################
-#   getters for attributes
+#   setters for attributes
 ####################################################################
     
-    def get_w_dir(self, w_dir):
+    def set_w_dir(self, w_dir):
         self.__w_dir = w_dir
         
-    def get_shot_name(self,shot_name):
+    def set_shot_name(self,shot_name):
         self.__shot_name = shot_name
         
-    def get_meta_data(self, meta_data):
+    def set_meta_data(self, meta_data):
         self.__meta_data = meta_data
         
 ####################################################################
-#   setters for attribiutes
+#   getters for attribiutes
 ####################################################################
 
     @property
@@ -372,6 +371,15 @@ class img_dir(object):
     @property
     def meta_data(self):
         return self.__meta_data
+
+###################################################################
+#   image slicing method
+###################################################################    
+    
+    def crop_im(self, im_out = None, meta_data = None, verb = True):
+        
+        return None
+        
     
 ###################################################################
 #   grayscale conversion method
@@ -541,7 +549,34 @@ class vid_img(Video, img_dir):
     """This is a derived class from both video class and img_dir class.
     This is an intermediate approach, between working completely with videos
     and completely with images.
+    This class was maily created beacause it follows a more computationally 
+    robust way of detecting dust particles.
+    
+    Input:
+    --------------------------------------------
+    filename = video file along with the path
+    
+    Attributes:
+    --------------------------------------------
+    __filename = Path of the file along with its name and extension
+    __w_dir = A path to a working directory for storage during processing
+    __frame_width = width of the video
+    __frame_height = height of the video
+    __video_time = time length of the video
+    __N_frames =  total number of frames in the video
+    __fps = number of frames per second 
+    meta_data = dictionary containing total frames, fps and frame size of video
+    reshape = dictionary containing the croping and time slicing of the video
+
+    Setters:
+    --------------------------------------------
+    
     
     """
+    def __init__(self,filename):
+         Video.__init__(self, filename, verb = True)
+         
     
+    
+        
   
