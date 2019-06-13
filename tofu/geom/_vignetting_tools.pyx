@@ -249,8 +249,25 @@ cdef inline void earclipping_poly(double* vignett,
     ltri[itri*3+1] = working_index[1]
     ltri[itri*3+2] = working_index[2]
     # .. Cleaning up ...........................................................
-    free(diff)
-    free(lref)
+    if not diff == NULL:
+        with gil:
+            print("about to free diff"
+        free(diff)
+        with gil:
+            print("freed diff")
+    else:
+        with gil:
+            print(" couldnt free diff")
+    if not lref == NULL:
+        with gil:
+            print("about to free lref"
+        free(lref)
+        with gil:
+            print("freed lref")
+    else:
+        with gil:
+            print(" couldnt free lref")
+
     return
 
 # ==============================================================================
