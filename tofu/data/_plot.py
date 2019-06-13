@@ -1901,9 +1901,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # conf
     c0 = lData[0]._dgeom['config'] is not None
     if c0:
-        out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
-                                             element='P', dLeg=None, draw=False)
-        dax['cross'][0], dax['hor'][0] = out
+        dax['hor'][0] = lData[0]._dgeom['config'].plot(lax=dax['hor'][0], proj='hor',
+                                                       element='P', dLeg=None, draw=False)
 
     # dextra
     if lData[0].dextra is not None:
@@ -1960,7 +1959,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                          c=cbck, ls='-', lw=1.)
         elif c2 and not lis2D[ii]:
             for jj in range(0,len(lData[ii]._dgeom['lCam'])):
-                    dax['cross'][ii] = cc.plot(lax=dax['cross'][0], proj='cross',
+                    dax['cross'][ii] = cc.plot(lax=dax['cross'][ii], proj='cross',
                                                element='L', Lplot=Lplot,
                                                dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
                                                dLeg=None, draw=False)
