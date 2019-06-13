@@ -1835,7 +1835,7 @@ cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
     if DL is not None:
         dl0_is_not_none = DL[0] is not None
         dl1_is_not_none = DL[1] is not None
-        if DL.shape[0] != 2 or LMinMax[0]>=LMinMax[1]:
+        if len(DL) != 2 or LMinMax[0]>=LMinMax[1]:
             assert(False)
         if dl0_is_not_none and dl1_is_not_none and DL[0] >= DL[1]:
             assert(False)
