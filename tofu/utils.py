@@ -522,7 +522,12 @@ def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
                 dout[k] = str(dout[k])
         elif typ in ['list','tuple']:
             if mode == 'mat':
-                dout[k] = np.squeeze(out[k],axis=0).tolist()
+                if out[k].ndim == 1:
+                    dout[k] = out[k].tolist()
+                else:
+                    dout[k] = np.squeeze(out[k],axis=0).tolist()
+                if type(dout[k][0]) is str:
+                    dout[k] = [kk.strip() for kk in dout[k]]
             else:
                 dout[k] = out[k].tolist()
             if typ=='tuple':
