@@ -2682,8 +2682,15 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
 def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
     cdef int nvert = poly.shape[1]
     cdef np.ndarray[long,ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
+    cdef double* diff = NULL
+    cdef bint* lref = NULL
+    # Initialization ...........................................................
+    diff = <double*>malloc(3*nvert*sizeof(double))
+    lref = <bint*>malloc(nvert*sizeof(bint))
+    _vt.compute_diff3d(&poly[0,0], nvert, diff)
+    _vt.are_points_reflex(nvert, diff, lref)
     # Calling core function.....................................................
-    _vt.earclipping_poly(&poly[0,0], &ltri[0], nvert)
+    _vt.earclipping_poly(&poly[0,0], &ltri[0], diff, lref, nvert)
     return ltri
 
 def vignetting(double[:, ::1] ray_orig,
@@ -2710,18 +2717,15 @@ def vignetting(double[:, ::1] ray_orig,
     cdef int nvign, nlos
     cdef np.ndarray[np.uint8_t,ndim=1,cast=True] goes_through
     cdef long** ltri = NULL
-    cdef int* sign_ray = NULL
-    cdef double* invr_ray = NULL
-    cdef double* loc_org = NULL
-    cdef double* loc_dir = NULL
     cdef double* lbounds = NULL
     cdef double** data = NULL
+    cdef bint* bool_res = NULL
     cdef np.ndarray[double, ndim=2, mode="c"] temp
     # -- Initialization --------------------------------------------------------
     print("IM HERE")
     nvign = len(vignett_poly)
     nlos = ray_orig.shape[1]
-    goes_through = np.empty((nlos*nvign), dtype=bool)
+    goes_through = np.empty((nlos*nvign),dtype=bool)
     # re writting vignett_poly to C type:
     data = <double **> malloc(nvign*sizeof(double *))
     print("initialization of data")
@@ -2738,20 +2742,24 @@ def vignetting(double[:, ::1] ray_orig,
     ltri = <long**>malloc(sizeof(long*)*nvign)
     _vt.triangulate_polys(data, &lnvert[0], nvign, ltri,
                           num_threads=num_threads)
-     print("triangulate polys done")
+    print("triangulate polys done")
     # -- We call core function -------------------------------------------------
-    _vt.vignetting_core(ray_orig, ray_vdir, data, &lnvert[0], lbounds,
-                        ltri, nvign, nlos, <bint*>&goes_through[0])
+    bool_res = <bint*>malloc(nlos*nvign*sizeof(bint))
+    _vt.vignetting_core(ray_orig, ray_vdir, data, &lnvert[0], &lbounds[0],
+                        ltri, nvign, nlos, &bool_res[0])
+    for ii in range(nlos*nvign):
+        goes_through[ii] = bool_res[ii]
     # -- Cleaning up -----------------------------------------------------------
     if not lbounds == NULL:
         free(lbounds)
-    print("lbounds is already freed")
+    else:
+        print("lbounds is already freed")
     # We have to free each array for each vignett:
     for ii in range(nvign):
         if not ltri[ii] == NULL:
             free(ltri[ii])
         else:
-            print("ltri at =", ii, " was NOT null")
+            print("ltri at =", ii, " was null")
     if not ltri == NULL:
         free(ltri) # and now we can free the main pointer
     else:
@@ -3915,6 +3923,8 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
     cdef int num_los = ray_orig.shape[1]
     cdef int ii, ind_vert, ind_los
     cdef double* res_loc = NULL
+    cdef double* loc_org = NULL
+    cdef double* loc_dir = NULL
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
     cdef np.ndarray[double,ndim=1] dist = np.empty((num_los,),dtype=float)

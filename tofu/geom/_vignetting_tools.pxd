@@ -24,13 +24,15 @@ cdef  bint is_pt_in_tri(double[3] v0, double[3] v1,
 
 cdef  void earclipping_poly(double* vignett,
                             long* ltri,
+                            double* diff,
+                            bint* lref,
                             int nvert) nogil
 
-cdef void triangulate_polys(double** vignett_poly,
+cdef int triangulate_polys(double** vignett_poly,
                             long* lnvert,
                             int nvign,
                             long** ltri,
-                            int num_threads=*) nogil
+                            int num_threads=*) nogil except -1
 
 cdef void vignetting_core(double[:, ::1] ray_orig,
                           double[:, ::1] ray_vdir,

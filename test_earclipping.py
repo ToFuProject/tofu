@@ -64,6 +64,8 @@ dire2 = fina2 - orig2
 rays_origin[:,4] = orig2
 rays_direct[:,4] = dire2
 
+print(type(rays_origin), type(rays_direct),
+      type(vignetts), type(lnvert))
 out = GG.vignetting(rays_origin, rays_direct,
                     vignetts, lnvert)
 

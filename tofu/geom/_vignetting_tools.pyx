@@ -182,6 +182,8 @@ cdef inline int get_one_ear(double* polygon,
 
 cdef inline void earclipping_poly(double* vignett,
                                   long* ltri,
+                                  double* diff,
+                                  bint* lref,
                                   int nvert) nogil:
     """
     Triangulates a polygon by earclipping an edge at a time.
@@ -191,8 +193,6 @@ cdef inline void earclipping_poly(double* vignett,
         ltri : (3*(nvert-2)) int array, indices of triangles
     """
     # init...
-    cdef double* diff = NULL
-    cdef bint* lref = NULL
     cdef int loc_nv = nvert
     cdef int itri = 0
     cdef int ii
@@ -201,83 +201,68 @@ cdef inline void earclipping_poly(double* vignett,
     cdef vector[int] working_index
     # .. First computing the edges coodinates .................................
     # .. and checking if the angles defined by the edges are reflex or not.....
-    diff = <double*>malloc(3*nvert*sizeof(double))
-    lref = <bint*>malloc(nvert*sizeof(bint))
-    compute_diff3d(vignett, nvert, diff)
-    are_points_reflex(nvert, diff, lref)
     # initialization of working index tab:
     for ii in range(nvert):
         working_index.push_back(ii)
     # .. Loop ..................................................................
     while loc_nv > 3:
-        iear = get_one_ear(vignett, diff, lref, working_index, loc_nv, nvert)
-        if iear==-1:
-            with gil:
-                print()
-                print("Got a -1 !!!!")
-                for ii in range(loc_nv):
-                    print(ii, working_index[ii])
-        wim1 = working_index[iear-1]
-        wi   = working_index[iear]
-        wip1 = working_index[iear+1]
-        ltri[itri*3]   = wim1
-        ltri[itri*3+1] = wi
-        ltri[itri*3+2] = wip1
-        # updates on the "information" arrays:
-        diff[wim1*3]   = vignett[0*nvert+wip1] - vignett[0*nvert+wim1]
-        diff[wim1*3+1] = vignett[1*nvert+wip1] - vignett[1*nvert+wim1]
-        diff[wim1*3+2] = vignett[2*nvert+wip1] - vignett[2*nvert+wim1]
-        #... theoritically we should get rid of off diff[wip1] as well but
-        # we'll just not use it, however we have to update lref
-        # if an angle is not reflex, then it will stay so, only chage if reflex
-        if lref[wim1]:
-            if iear >= 2:
-                lref[wim1] = is_reflex(&diff[3*wim1],
-                                       &diff[3*working_index[iear-2]])
-            else:
-                lref[wim1] = is_reflex(&diff[3*wim1],
-                                       &diff[3*working_index[loc_nv-1]])
-        if lref[wip1]:
-            lref[wip1] = is_reflex(&diff[wip1*3],
-                                   &diff[wim1*3])
-        # last but not least update on number of vertices and working indices
-        itri = itri + 1
+    #     iear = get_one_ear(vignett, diff, lref, working_index, loc_nv, nvert)
+    #     if iear==-1:
+    #         with gil:
+    #             print()
+    #             print("Got a -1 !!!!")
+    #             for ii in range(loc_nv):
+    #                 print(ii, working_index[ii])
+    #     wim1 = working_index[iear-1]
+    #     wi   = working_index[iear]
+    #     wip1 = working_index[iear+1]
+    #     ltri[itri*3]   = wim1
+    #     ltri[itri*3+1] = wi
+    #     ltri[itri*3+2] = wip1
+    #     # updates on the "information" arrays:
+    #     diff[wim1*3]   = vignett[0*nvert+wip1] - vignett[0*nvert+wim1]
+    #     diff[wim1*3+1] = vignett[1*nvert+wip1] - vignett[1*nvert+wim1]
+    #     diff[wim1*3+2] = vignett[2*nvert+wip1] - vignett[2*nvert+wim1]
+    #     #... theoritically we should get rid of off diff[wip1] as well but
+    #     # we'll just not use it, however we have to update lref
+    #     # if an angle is not reflex, then it will stay so, only chage if reflex
+    #     if lref[wim1]:
+    #         if iear >= 2:
+    #             lref[wim1] = is_reflex(&diff[3*wim1],
+    #                                    &diff[3*working_index[iear-2]])
+    #         else:
+    #             lref[wim1] = is_reflex(&diff[3*wim1],
+    #                                    &diff[3*working_index[loc_nv-1]])
+    #     if lref[wip1]:
+    #         lref[wip1] = is_reflex(&diff[wip1*3],
+    #                                &diff[wim1*3])
+    #     # last but not least update on number of vertices and working indices
+    #     itri = itri + 1
+        with gil:
+            for ii in range(loc_nv):
+                print("   # ii =", ii, " wi =", working_index[ii])
         loc_nv = loc_nv - 1
-        working_index.erase(working_index.begin()+iear)
-    # we only have three points left, so that is the last triangle:
-    ltri[itri*3]   = working_index[0]
-    ltri[itri*3+1] = working_index[1]
-    ltri[itri*3+2] = working_index[2]
-    # .. Cleaning up ...........................................................
-    if not diff == NULL:
-        with gil:
-            print("about to free diff"
-        free(diff)
-        with gil:
-            print("freed diff")
-    else:
-        with gil:
-            print(" couldnt free diff")
-    if not lref == NULL:
-        with gil:
-            print("about to free lref"
-        free(lref)
-        with gil:
-            print("freed lref")
-    else:
-        with gil:
-            print(" couldnt free lref")
-
+        # with gil:
+        #     print("about to erase", itri, loc_nv, nvert)
+        # working_index.erase(working_index.begin())#+iear)
+    #     with gil:
+    #         print("erase done", itri, loc_nv, nvert)
+    # # we only have three points left, so that is the last triangle:
+    # ltri[itri*3]   = working_index[0]
+    # ltri[itri*3+1] = working_index[1]
+    # ltri[itri*3+2] = working_index[2]
+    with gil:
+        print("im returning safely")
     return
 
 # ==============================================================================
 # =  Polygons triangulation and Intersection Ray-Poly
 # ==============================================================================
-cdef inline void triangulate_polys(double** vignett_poly,
+cdef inline int triangulate_polys(double** vignett_poly,
                                    long* lnvert,
                                    int nvign,
                                    long** ltri,
-                                   int num_threads=16) nogil:
+                                   int num_threads=16) nogil except -1:
     """
     Triangulates a list 3d polygon using the earclipping techinque
     https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
@@ -289,14 +274,45 @@ cdef inline void triangulate_polys(double** vignett_poly,
     """
     cdef int ivign
     cdef int nvert
+    cdef double* diff = NULL
+    cdef bint* lref = NULL
     # ...
     # -- Defining parallel part ------------------------------------------------
     with nogil, parallel(num_threads=num_threads):
         for ivign in prange(nvign):
             nvert = lnvert[ivign]
+            diff = <double*>malloc(3*nvert*sizeof(double))
+            lref = <bint*>malloc(nvert*sizeof(bint))
             ltri[ivign] = <long*>malloc((nvert-2)*3*sizeof(int))
-            earclipping_poly(vignett_poly[ivign], ltri[ivign], nvert)
-    return
+            if not diff or not lref or not ltri[ivign]:
+                with gil:
+                    raise MemoryError()
+            try:
+                compute_diff3d(vignett_poly[ivign], nvert, diff)
+                are_points_reflex(nvert, diff, lref)
+                earclipping_poly(&vignett_poly[ivign][0], &ltri[ivign][0],
+                                 &diff[0], &lref[0], nvert)
+            finally:
+               # .. Cleaning up ...........................................................
+               if not diff == NULL:
+                   with gil:
+                       print("about to free diff")
+                   free(diff)
+                   with gil:
+                       print("freed diff")
+               else:
+                   with gil:
+                       print(" couldnt free diff")
+               if not lref == NULL:
+                   with gil:
+                       print("about to free lref")
+                       free(lref)
+                   with gil:
+                       print("freed lref")
+               else:
+                   with gil:
+                       print(" couldnt free lref")
+    return 0
 
 cdef inline bint inter_ray_poly(const double[3] ray_orig,
                                 const double[3] ray_vdir,
@@ -333,6 +349,10 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
     cdef int ilos, ivign
     cdef int nvert
     cdef bint inter_bbox
+    cdef double* loc_org = NULL
+    cdef double* loc_dir = NULL
+    cdef double* invr_ray = NULL
+    cdef int* sign_ray = NULL
     # == Defining parallel part ================================================
     with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so
@@ -356,12 +376,20 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                                     loc_org,
                                                     countin=True)
                 if not inter_bbox:
-                    goes_through[ivign*nlos + ilos] = 0 # False
+                    with gil:
+                        print(ivign*nlos + ilos, nlos*nvign, "putting one after inter bbox")
+                    goes_through[ivign*nlos + ilos] = 1 # False
                     continue
                 # -- if none, we continue --------------------------------------
-                goes_through[ivign*nlos + ilos] = inter_ray_poly(loc_org,
-                                                                 loc_dir,
-                                                                 vignett[ivign],
-                                                                 nvert,
-                                                                 ltri[ivign])
+                with gil:
+                    print(ivign*nlos + ilos, " put 1 instead of inter ray poly")
+                goes_through[ivign*nlos + ilos] = 1# inter_ray_poly(loc_org,
+                                                   #               loc_dir,
+                                                   #               vignett[ivign],
+                                                   #               nvert,
+                                                   #               ltri[ivign])
+        free(loc_org)
+        free(loc_dir)
+        free(invr_ray)
+        free(sign_ray)
     return
