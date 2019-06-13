@@ -206,51 +206,44 @@ cdef inline void earclipping_poly(double* vignett,
         working_index.push_back(ii)
     # .. Loop ..................................................................
     while loc_nv > 3:
-    #     iear = get_one_ear(vignett, diff, lref, working_index, loc_nv, nvert)
-    #     if iear==-1:
-    #         with gil:
-    #             print()
-    #             print("Got a -1 !!!!")
-    #             for ii in range(loc_nv):
-    #                 print(ii, working_index[ii])
-    #     wim1 = working_index[iear-1]
-    #     wi   = working_index[iear]
-    #     wip1 = working_index[iear+1]
-    #     ltri[itri*3]   = wim1
-    #     ltri[itri*3+1] = wi
-    #     ltri[itri*3+2] = wip1
-    #     # updates on the "information" arrays:
-    #     diff[wim1*3]   = vignett[0*nvert+wip1] - vignett[0*nvert+wim1]
-    #     diff[wim1*3+1] = vignett[1*nvert+wip1] - vignett[1*nvert+wim1]
-    #     diff[wim1*3+2] = vignett[2*nvert+wip1] - vignett[2*nvert+wim1]
-    #     #... theoritically we should get rid of off diff[wip1] as well but
-    #     # we'll just not use it, however we have to update lref
-    #     # if an angle is not reflex, then it will stay so, only chage if reflex
-    #     if lref[wim1]:
-    #         if iear >= 2:
-    #             lref[wim1] = is_reflex(&diff[3*wim1],
-    #                                    &diff[3*working_index[iear-2]])
-    #         else:
-    #             lref[wim1] = is_reflex(&diff[3*wim1],
-    #                                    &diff[3*working_index[loc_nv-1]])
-    #     if lref[wip1]:
-    #         lref[wip1] = is_reflex(&diff[wip1*3],
-    #                                &diff[wim1*3])
-    #     # last but not least update on number of vertices and working indices
-    #     itri = itri + 1
-        with gil:
-            for ii in range(loc_nv):
-                print("   # ii =", ii, " wi =", working_index[ii])
+        iear = get_one_ear(vignett, diff, lref, working_index, loc_nv, nvert)
+        if iear==-1:
+            with gil:
+                print()
+                print("Got a -1 !!!!")
+                for ii in range(loc_nv):
+                    print(ii, working_index[ii])
+        wim1 = working_index[iear-1]
+        wi   = working_index[iear]
+        wip1 = working_index[iear+1]
+        ltri[itri*3]   = wim1
+        ltri[itri*3+1] = wi
+        ltri[itri*3+2] = wip1
+        # updates on the "information" arrays:
+        diff[wim1*3]   = vignett[0*nvert+wip1] - vignett[0*nvert+wim1]
+        diff[wim1*3+1] = vignett[1*nvert+wip1] - vignett[1*nvert+wim1]
+        diff[wim1*3+2] = vignett[2*nvert+wip1] - vignett[2*nvert+wim1]
+        #... theoritically we should get rid of off diff[wip1] as well but
+        # we'll just not use it, however we have to update lref
+        # if an angle is not reflex, then it will stay so, only chage if reflex
+        if lref[wim1]:
+            if iear >= 2:
+                lref[wim1] = is_reflex(&diff[3*wim1],
+                                       &diff[3*working_index[iear-2]])
+            else:
+                lref[wim1] = is_reflex(&diff[3*wim1],
+                                       &diff[3*working_index[loc_nv-1]])
+        if lref[wip1]:
+            lref[wip1] = is_reflex(&diff[wip1*3],
+                                   &diff[wim1*3])
+        # last but not least update on number of vertices and working indices
+        itri = itri + 1
         loc_nv = loc_nv - 1
-        # with gil:
-        #     print("about to erase", itri, loc_nv, nvert)
-        # working_index.erase(working_index.begin())#+iear)
-    #     with gil:
-    #         print("erase done", itri, loc_nv, nvert)
-    # # we only have three points left, so that is the last triangle:
-    # ltri[itri*3]   = working_index[0]
-    # ltri[itri*3+1] = working_index[1]
-    # ltri[itri*3+2] = working_index[2]
+        working_index.erase(working_index.begin())#+iear)
+    # we only have three points left, so that is the last triangle:
+    ltri[itri*3]   = working_index[0]
+    ltri[itri*3+1] = working_index[1]
+    ltri[itri*3+2] = working_index[2]
     with gil:
         print("im returning safely")
     return
@@ -354,7 +347,7 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
     cdef double* invr_ray = NULL
     cdef int* sign_ray = NULL
     # == Defining parallel part ================================================
-    with nogil, parallel(num_threads=num_threads):
+    with nogil, parallel(num_threads=1):#num_threads):
         # We use local arrays for each thread so
         loc_org   = <double*>malloc(sizeof(double) * 3)
         loc_dir   = <double*>malloc(sizeof(double) * 3)
@@ -376,8 +369,6 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                                     loc_org,
                                                     countin=True)
                 if not inter_bbox:
-                    with gil:
-                        print(ivign*nlos + ilos, nlos*nvign, "putting one after inter bbox")
                     goes_through[ivign*nlos + ilos] = 1 # False
                     continue
                 # -- if none, we continue --------------------------------------

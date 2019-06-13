@@ -2736,8 +2736,11 @@ def vignetting(double[:, ::1] ray_orig,
     print("data is done")
     # -- Preparation -----------------------------------------------------------
     lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
-    _rt.compute_3d_bboxes(data, &lnvert[0], nvign, lbounds,
+    _rt.compute_3d_bboxes(data, &lnvert[0], nvign, &lbounds[0],
                           num_threads=num_threads)
+    print("====================================================")
+    for ii in range(6*nvign):
+        print(" ii =", ii, lbounds[ii])
     print("compute bboxes done")
     ltri = <long**>malloc(sizeof(long*)*nvign)
     _vt.triangulate_polys(data, &lnvert[0], nvign, ltri,
@@ -2749,7 +2752,6 @@ def vignetting(double[:, ::1] ray_orig,
                         ltri, nvign, nlos, &bool_res[0])
     for ii in range(nlos*nvign):
         goes_through[ii] = bool_res[ii]
-        print("res = ", bool_res[ii])
     # -- Cleaning up -----------------------------------------------------------
     if not lbounds == NULL:
         free(lbounds)

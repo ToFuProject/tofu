@@ -2736,7 +2736,7 @@ def vignetting(double[:, ::1] ray_orig,
     print("data is done")
     # -- Preparation -----------------------------------------------------------
     lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
-    _rt.compute_3d_bboxes(data, &lnvert[0], nvign, lbounds,
+    _rt.compute_3d_bboxes(data, &lnvert[0], nvign, &lbounds[0],
                           num_threads=num_threads)
     print("compute bboxes done")
     ltri = <long**>malloc(sizeof(long*)*nvign)

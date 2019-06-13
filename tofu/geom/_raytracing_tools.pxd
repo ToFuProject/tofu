@@ -40,9 +40,9 @@ cdef inline void compute_3d_bboxes(double** vignett_poly,
         for ivign in prange(nvign):
             nvert = lnvert[ivign]
             comp_bbox_poly3d(nvert,
-                             &vignett_poly[ivign][0],
-                             &vignett_poly[ivign][1],
-                             &vignett_poly[ivign][2],
+                             &vignett_poly[ivign][0*nvert],
+                             &vignett_poly[ivign][1*nvert],
+                             &vignett_poly[ivign][2*nvert],
                              &lbounds[ivign*6])
     return
 
@@ -72,19 +72,19 @@ cdef inline void comp_bbox_poly3d(int nvert,
     cdef double tmp_val
     for ii in range(1, nvert):
         # x....
-        tmp_val = vertx[0]
+        tmp_val = vertx[ii]
         if tmp_val > xmax:
             xmax = tmp_val
         elif tmp_val < xmin :
             xmin = tmp_val
         # y....
-        tmp_val = verty[0]
+        tmp_val = verty[ii]
         if tmp_val > ymax:
             ymax = tmp_val
         elif tmp_val < ymin :
             ymin = tmp_val
         # z....
-        tmp_val = vertz[0]
+        tmp_val = vertz[ii]
         if tmp_val > zmax:
             zmax = tmp_val
         elif tmp_val < zmin :
