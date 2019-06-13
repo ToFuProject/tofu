@@ -69,4 +69,4 @@ print(type(rays_origin), type(rays_direct),
 out = GG.vignetting(rays_origin, rays_direct,
                     vignetts, lnvert)
 
-print(out)
+print("out = ", out)
