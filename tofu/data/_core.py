@@ -19,10 +19,6 @@ import scipy.interpolate as scpinterp
 import matplotlib.pyplot as plt
 from matplotlib.tri import Triangulation as mplTri
 from matplotlib.tri import LinearTriInterpolator as mplTriLinInterp
-try:
-    import pandas as pd
-except Exception:
-    warnings.warn("pandas could not be imported => no get_summary()")
 
 
 # tofu
@@ -2845,60 +2841,39 @@ class Plasma2D(utils.ToFuObject):
     # Methods for showing data
     #---------------------
 
-    def get_summary(self, max_columns=100, width=1000,
-                    verb=True, Return=False):
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
         """ Summary description of the object content as a pandas DataFrame """
         # # Make sure the data is accessible
         # msg = "The data is not accessible because self.strip(2) was used !"
         # assert self._dstrip['strip']<2, msg
 
         # -----------------------
-        # Build the list
-        data = []
-        for k0,v0 in self._dgroup.items():
-            lu = [k0, v0['indref']]
-            data.append(lu)
-
         # Build the pandas DataFrame for ddata
-        col = ['id', 'indref']
-        df0 = pd.DataFrame(data, columns=col)
+        col0 = ['group id', 'indref']
+        ar0 = [(k0, v0['indref']) for k0,v0 in self._dgroup.items()]
 
         # -----------------------
-        # Build the list
-        data = []
-        for k0,v0 in self._dindref.items():
-            lu = [k0, v0['group'], v0['size']]
-            data.append(lu)
-
         # Build the pandas DataFrame for ddata
-        col = ['id', 'group', 'size']
-        df1 = pd.DataFrame(data, columns=col)
+        col1 = ['ref id', 'group', 'size']
+        ar1 = [(k0, v0['group'], v0['size']) for k0,v0 in self._dindref.items()]
 
         # -----------------------
-        # Build the list
-        data = []
+        # Build the pandas DataFrame for ddata
+        col2 = ['data id', 'quant', 'name', 'units', 'shape', 'indref', 'lgroup']
+        ar2 = []
         for k0,v0 in self._ddata.items():
             if type(v0['data']) is np.ndarray:
-                shape = v0['data'].shape
+                shape = str(v0['data'].shape)
             else:
                 shape = v0['data'].__class__.__name__
             lu = [k0, v0['quant'], v0['name'], v0['units'], shape,
-                  v0['indref'], v0['lgroup']]
-            data.append(lu)
+                  str(v0['indref']), str(v0['lgroup'])]
+            ar2.append(lu)
 
-        # Build the pandas DataFrame for ddata
-        col = ['id', 'quant', 'name', 'units', 'shape', 'indref', 'lgroup']
-        df2 = pd.DataFrame(data, columns=col)
-        pd.set_option('display.max_columns',max_columns)
-        pd.set_option('display.width',width)
-
-        if verb:
-            sep = "\n------------\n"
-            print("dgroup", sep, df0, "\n")
-            print("dindref", sep, df1, "\n")
-            print("ddata", sep, df2, "\n")
-        if Return:
-            return df0, df1, df2
+        self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
+                          sep=sep, line=line, table_sep=table_sep,
+                          verb=verb, return_=return_)
 
 
     #---------------------
@@ -3278,11 +3253,16 @@ class Plasma2D(utils.ToFuObject):
             kh = lDat.plot()
         return kh
 
-    def plot_combine(self, lquant, lData, X=None, ref=None,
+    def plot_combine(self, lquant, lData=None, X=None, ref=None,
                      remap=False, res=0.01, interp_space='linear'):
+        """ plot combining several quantities from the Plasma2D itself and
+        optional extra list of Data instances """
         lDat = self.get_Data(lquant, X=X, remap=remap,
                              ref=ref, res=res, interp_space=interp_space)
-        if type(lDat) is list:
-            lData = lDat[1:] + lData
+        if lData is not None:
+            if type(lDat) is list:
+                lData = lDat[1:] + lData
+            else:
+                lData = lDat[1:] + [lData]
         kh = lDat[0].plot_combine(lData)
         return kh

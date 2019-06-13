@@ -1576,7 +1576,6 @@ class MultiIDSLoader(object):
         return dout
 
     def get_data_all(self, dsig=None, stack=True, flatocc=True):
-        dout = dict.fromkeys(self._dids.keys())
 
         # dsig
         if dsig is None:
@@ -1586,6 +1585,7 @@ class MultiIDSLoader(object):
                 dsig = dict.fromkeys(self._dids.keys())
         else:
             assert type(dsig) is dict
+        dout = dict.fromkeys(set(self._dids.keys()).intersection(dsig.keys()))
 
         lc = [ss for ss in dsig.keys() if ss not in dout.keys()]
         if len(lc) != 0:
