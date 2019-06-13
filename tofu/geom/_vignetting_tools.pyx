@@ -177,7 +177,7 @@ cdef inline int get_one_ear(double* polygon,
                 return i # if not, we found an ear
     # if we havent returned, either, there was an error somerwhere
     with gil:
-        assert False, "Got here but shouldnt have"
+        assert False, "Got here but shouldnt have "+str(orig_nvert)+str(nvert)
     return -1
 
 cdef inline void earclipping_poly(double* vignett,
@@ -265,13 +265,13 @@ cdef inline int triangulate_polys(double** vignett_poly,
             where tri_i_j are the 3 indices of the vertex forming a sub-triangle
             on each vertex (-2) and for each vignett
     """
-    cdef int ivign
+    cdef int ivign, ii
     cdef int nvert
     cdef double* diff = NULL
     cdef bint* lref = NULL
     # ...
     # -- Defining parallel part ------------------------------------------------
-    with nogil, parallel(num_threads=num_threads):
+    with nogil, parallel(num_threads=1):#num_threads):
         for ivign in prange(nvign):
             nvert = lnvert[ivign]
             diff = <double*>malloc(3*nvert*sizeof(double))
@@ -281,12 +281,12 @@ cdef inline int triangulate_polys(double** vignett_poly,
                 with gil:
                     raise MemoryError()
             try:
-                compute_diff3d(vignett_poly[ivign], nvert, diff)
-                are_points_reflex(nvert, diff, lref)
-                earclipping_poly(&vignett_poly[ivign][0], &ltri[ivign][0],
+                compute_diff3d(vignett_poly[ivign], nvert, &diff[0])
+                are_points_reflex(nvert, diff, &lref[0])
+                earclipping_poly(vignett_poly[ivign], &ltri[ivign][0],
                                  &diff[0], &lref[0], nvert)
             finally:
-               # .. Cleaning up ...........................................................
+               # .. Cleaning up ................................................
                if not diff == NULL:
                    with gil:
                        print("about to free diff")
@@ -319,9 +319,9 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
     #...
     for ii in range(nvert-2):
         for jj in range(3):
-            pt1[jj] = vignett[ltri[3*ii+0] + jj * nvert]
-            pt2[jj] = vignett[ltri[3*ii+1] + jj * nvert]
-            pt3[jj] = vignett[ltri[3*ii+2] + jj * nvert]
+            pt1[jj] = vignett[ltri[3*ii+0]* nvert + jj ]
+            pt2[jj] = vignett[ltri[3*ii+1]* nvert + jj ]
+            pt3[jj] = vignett[ltri[3*ii+2]* nvert + jj ]
         if _rt.inter_ray_triangle(ray_orig, ray_vdir, pt1, pt2, pt3):
             return True
     return False
