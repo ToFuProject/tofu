@@ -227,9 +227,9 @@ class MultiIDSLoader(object):
         nt = len(sepR)
         assert len(sepZ) == nt
         sep = np.full((nt,npts,2), np.nan)
-        pts = np.arange(0,npts)
+        pts = np.linspace(0,100,npts)
         for ii in range(0,nt):
-            ptsii = np.arange(0,sepR[ii].size)
+            ptsii = np.linspace(0,100,sepR[ii].size)
             sep[ii,:,0] = np.interp(pts, ptsii, sepR[ii])
             sep[ii,:,1] = np.interp(pts, ptsii, sepZ[ii])
         return sep
