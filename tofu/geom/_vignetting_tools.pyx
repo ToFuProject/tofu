@@ -73,7 +73,7 @@ cdef inline void are_points_reflex(int nvert,
 
 cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
                               double Ax, double Ay, double Az,
-                              double px, double py, double pz, bint debug=False) nogil:
+                              double px, double py, double pz) nogil:
     """
     Tests if point P is on the triangle A, B, C such that
         v0 = C - A
@@ -102,13 +102,6 @@ cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
     u = (dot11 * dot02 - dot01 * dot12) * invDenom
     v = (dot00 * dot12 - dot01 * dot02) * invDenom
     # Check if point is in triangle
-    if debug:
-        with gil:
-            print("  P = ", px, py, pz)
-            print("   A =", Ax, Ay, Az)
-            print("  v0 =", v0[0], v0[1], v0[2])
-            print("  v1 =", v1[0], v1[1], v1[2])
-            print("  u,v = ", u, v)
     return (u >= 0) and (v >= 0) and (u + v <= 1)
 
 
@@ -249,7 +242,7 @@ cdef inline int triangulate_polys(double** vignett_poly,
                                    long* lnvert,
                                    int nvign,
                                    long** ltri,
-                                   int num_threads=16) nogil except -1:
+                                   int num_threads) nogil except -1:
     """
     Triangulates a list 3d polygon using the earclipping techinque
     https://www.geometrictools.com/Documentation/TriangulationByEarClipping.pdf
@@ -265,7 +258,7 @@ cdef inline int triangulate_polys(double** vignett_poly,
     cdef bint* lref = NULL
     # ...
     # -- Defining parallel part ------------------------------------------------
-    with nogil, parallel(num_threads=1):#num_threads):
+    with nogil, parallel(num_threads=num_threads):
         for ivign in prange(nvign):
             nvert = lnvert[ivign]
             diff = <double*>malloc(3*nvert*sizeof(double))
@@ -289,7 +282,7 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
                                 const double[3] ray_vdir,
                                 double* vignett,
                                 int nvert,
-                                long* ltri, bint debug=False) nogil:
+                                long* ltri) nogil:
     cdef int ii, jj
     cdef double[3] pt1
     cdef double[3] pt2
@@ -300,7 +293,7 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
             pt1[jj] = vignett[ltri[3*ii+0] + jj * nvert]
             pt2[jj] = vignett[ltri[3*ii+1] + jj * nvert]
             pt3[jj] = vignett[ltri[3*ii+2] + jj * nvert]
-        if _rt.inter_ray_triangle(ray_orig, ray_vdir, pt1, pt2, pt3, debug=debug):
+        if _rt.inter_ray_triangle(ray_orig, ray_vdir, pt1, pt2, pt3):
             return True
     with gil:
         print("false")
@@ -318,9 +311,9 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  int nvign,
                                  int nlos,
                                  bint* goes_through,
-                                 int num_threads=16) nogil:
+                                 int num_threads) nogil:
     cdef int ilos, ivign
-    cdef int ii
+    cdef int jj
     cdef int nvert
     cdef bint inter_bbox
     cdef double* loc_org = NULL
@@ -328,7 +321,7 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
     cdef double* invr_ray = NULL
     cdef int* sign_ray = NULL
     # == Defining parallel part ================================================
-    with nogil, parallel(num_threads=1):#num_threads):
+    with nogil, parallel(num_threads=num_threads):
         # We use local arrays for each thread so
         loc_org   = <double*>malloc(sizeof(double) * 3)
         loc_dir   = <double*>malloc(sizeof(double) * 3)
@@ -342,6 +335,7 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
             loc_dir[1] = ray_vdir[1, ilos]
             loc_dir[2] = ray_vdir[2, ilos]
             _bgt.compute_inv_and_sign(loc_dir, sign_ray, invr_ray)
+            jj = ilos*nvign
             for ivign in range(nvign):
                 nvert = lnvert[ivign]
                 # -- We check if intersection with  bounding box ---------------
@@ -350,18 +344,14 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                                     &loc_org[0],
                                                     countin=True)
                 if not inter_bbox:
-                    with gil:
-                        print("at = ", ivign + ilos*nvign, " put false")
-                    goes_through[ivign + ilos*nvign] = False
+                    goes_through[ivign + jj] = False
                     continue
                 # -- if none, we continue --------------------------------------
-                goes_through[ivign + ilos*nvign] = inter_ray_poly(&loc_org[0],
-                                                                  &loc_dir[0],
-                                                                  vignett[ivign],
-                                                                  nvert,
-                                                                  ltri[ivign], debug=(ivign + ilos*nvign == 2))
-                with gil:
-                    print("at = ", ivign, ilos, ivign + ilos*nvign, " put ", goes_through[ivign + ilos*nvign])
+                goes_through[ivign + jj] = inter_ray_poly(&loc_org[0],
+                                                          &loc_dir[0],
+                                                          vignett[ivign],
+                                                          nvert,
+                                                          ltri[ivign])
 
         free(loc_org)
         free(loc_dir)

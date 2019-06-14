@@ -1845,9 +1845,9 @@ cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
             inter = 0
         else:
             if dl0_is_not_none and DL[0]<=LMinMax[0]:
-                DL[0] = Cnan
+                DL[0] = None
             if dl1_is_not_none and DL[1]>=LMinMax[1]:
-                DL[1] = Cnan
+                DL[1] = None
     return inter
 
 
@@ -2736,11 +2736,11 @@ def vignetting(double[:, ::1] ray_orig,
                           num_threads=num_threads)
     ltri = <long**>malloc(sizeof(long*)*nvign)
     _vt.triangulate_polys(data, &lnvert[0], nvign, ltri,
-                          num_threads=num_threads)
+                          num_threads)
     # -- We call core function -------------------------------------------------
     bool_res = <bint*>malloc(nlos*nvign*sizeof(bint))
     _vt.vignetting_core(ray_orig, ray_vdir, data, &lnvert[0], &lbounds[0],
-                        ltri, nvign, nlos, &bool_res[0])
+                        ltri, nvign, nlos, &bool_res[0],num_threads)
     for ii in range(nlos*nvign):
         goes_through[ii] = bool_res[ii]
     free(bool_res)

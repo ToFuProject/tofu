@@ -721,6 +721,7 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         assert ind.shape==(Pts.shape[1],) and ind.dtype==int and \
             np.all(ind==np.unique(ind)) and np.all(ind>=0)
         assert NL.ndim==1 and NL.size==VPoly.shape[1]-1
+        print(dLr.ndim, type(dLr), dLr.shape, dLr.size, NL.size)
         assert dLr.ndim==1 and dLr.size==NL.size
         assert Rref.ndim==1
         assert all([type(xx) is float for xx in [dXr,dY0r,dZ0r]])
@@ -1761,5 +1762,5 @@ def test23_vignetting():
     out = GG.vignetting(rays_origin, rays_direct,
                         vignetts, lnvert)
 
-    print(out)
-    assert(False)
+    assert np.allclose(out, [False, True, False, False,  True,
+                             True, False, True, False, False])

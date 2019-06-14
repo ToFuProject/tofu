@@ -32,7 +32,7 @@ cdef int triangulate_polys(double** vignett_poly,
                             long* lnvert,
                             int nvign,
                             long** ltri,
-                            int num_threads=*) nogil except -1
+                            int num_threads) nogil except -1
 
 cdef void vignetting_core(double[:, ::1] ray_orig,
                           double[:, ::1] ray_vdir,
@@ -43,4 +43,4 @@ cdef void vignetting_core(double[:, ::1] ray_orig,
                           int nvign,
                           int nlos,
                           bint* goes_through,
-                          int num_threads=*) nogil
+                          int num_threads) nogil
