@@ -23,7 +23,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
 
-def video2img(video_file, w_dir, shot_name, meta_data = None, verb = True):
+def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True):
     """Breaks up an input video file into it's constituent frames and 
     saves them as jpg image
     
@@ -31,30 +31,27 @@ def video2img(video_file, w_dir, shot_name, meta_data = None, verb = True):
     -----------------------
     video_file:      mp4,avi,mpg
      input video passed in as argument
+    w_dir;           string
+     The working directory to provide the output
+    shot_name:       string
+     the name of the tokomak machine followed by the shot number.
+     By default it is none, this code automatically extracts the shot information
+     from the video name.
     meta_data:        dictionary
      A dictionary containing all the video meta_data. By default it is None
      But if the user inputs some keys into the dictionary, the code will use 
      the information from the dictionary and fill in the missing gaps if
      required
      meta_data has information on total number of frames, demension, fps and 
-     the four character code of the video
-    path:            string
-     Path where the user wants to save the images. By it will try to make a 
-     folder in the same directory as the video, by the name data. If it fails 
-     in creating the directory due t permissions, then it will give out an 
-     error.
-    image_name:      string
-     Name of the image file. The frame number will be appended to the name when
-     writting the image file. By default it is 'frame'
-    image_type:      string
-     format of the image. By default it is .jpg
+     the four character code of the video.
+     
      Return
     -----------------------
     path:            String
      Path where the images are stored    
     meta_data:       dictionary
      disctionary containing the meta_data information
-    folder:          string
+    shot_name:          string
      Tokomak shot name and number
     """
     #splitting the video file into drive and path + file
@@ -66,17 +63,20 @@ def video2img(video_file, w_dir, shot_name, meta_data = None, verb = True):
     
     #checking for the path of the file
     folder = file[0]
-    if path is None:
-        #the directory path is defined.  
-        #The last argument is for adding a trailing slash
-        path = os.path.join(w_dir,shot_name,'')
-        #defining the folder inside whch the images will be stored
-        path += folder
-        path = os.path.join(path,'')
-        #checking whether path already exists or not
-        #if not, creates the path
-        if not os.path.exists(path):
-            os.mkdir(path)
+    
+    if shot_name == None:
+        shot_name = folder
+    
+    #the directory path is defined.  
+    #The last argument is for adding a trailing slash
+    path = os.path.join(w_dir,shot_name,'')
+    #defining the folder inside whch the images will be stored
+    path += folder
+    path = os.path.join(path,'')
+    #checking whether path already exists or not
+    #if not, creates the path
+    if not os.path.exists(path):
+        os.mkdir(path)
     
     #trying to open the video file
     try:
@@ -134,7 +134,7 @@ def video2img(video_file, w_dir, shot_name, meta_data = None, verb = True):
         frame_width = meta_data.get('frame_width', int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
         if 'frame_width' not in meta_data:
             meta_data['frame_width'] = frame_width
-        
+        folder
         #describing the frame height
         frame_height = meta_data.get('frame_height', int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         if 'frame_height' not in meta_data:
@@ -169,7 +169,7 @@ def video2img(video_file, w_dir, shot_name, meta_data = None, verb = True):
             # Saves image of the current frame in user defined format 
             #or by default jpg file
             #frame number starts from 0
-            name = path + image_name + str(currentFrame) + image_type
+            name = path + 'frame' + str(currentFrame) + '.jpg'
             print('Converting frame :', currentFrame)
             cv2.imwrite(name, frame)
         else:
@@ -181,4 +181,4 @@ def video2img(video_file, w_dir, shot_name, meta_data = None, verb = True):
     cap.release()
     cv2.destroyAllWindows()
     
-    return path, meta_data, folder
+    return path, meta_data, shot_name
