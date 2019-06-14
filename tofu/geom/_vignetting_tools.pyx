@@ -140,7 +140,7 @@ cdef inline int get_one_ear(double* polygon,
              and the other tabs are also updated:
                 diff = [P1-P0,...., Pii+1 - Pii-1, X, ....]
                 lref = [ .. is_reflex(Pii-1), X, is_reflex(Pii+1),..]
-                where X represents values that will never be used ! 
+                where X represents values that will never be used !
     """
     cdef int iloc
     cdef int i, j
@@ -195,7 +195,7 @@ cdef inline void earclipping_poly(double* vignett,
     # init...
     cdef int loc_nv = nvert
     cdef int itri = 0
-    cdef int ii
+    cdef int ii, jj
     cdef int wi, wim1, wip1
     cdef int iear
     cdef vector[int] working_index
@@ -205,14 +205,9 @@ cdef inline void earclipping_poly(double* vignett,
     for ii in range(nvert):
         working_index.push_back(ii)
     # .. Loop ..................................................................
-    while loc_nv > 3:
-        iear = get_one_ear(vignett, diff, lref, working_index, loc_nv, nvert)
-        if iear==-1:
-            with gil:
-                print()
-                print("Got a -1 !!!!")
-                for ii in range(loc_nv):
-                    print(ii, working_index[ii])
+    for itri in range(nvert-2):
+        iear =  get_one_ear(vignett, &diff[0], &lref[0],
+            working_index, loc_nv, nvert)
         wim1 = working_index[iear-1]
         wi   = working_index[iear]
         wip1 = working_index[iear+1]
@@ -237,7 +232,6 @@ cdef inline void earclipping_poly(double* vignett,
             lref[wip1] = is_reflex(&diff[wip1*3],
                                    &diff[wim1*3])
         # last but not least update on number of vertices and working indices
-        itri = itri + 1
         loc_nv = loc_nv - 1
         working_index.erase(working_index.begin()+iear)
     # we only have three points left, so that is the last triangle:
@@ -276,7 +270,7 @@ cdef inline int triangulate_polys(double** vignett_poly,
             nvert = lnvert[ivign]
             diff = <double*>malloc(3*nvert*sizeof(double))
             lref = <bint*>malloc(nvert*sizeof(bint))
-            ltri[ivign] = <long*>malloc((nvert-2)*3*sizeof(int))
+            ltri[ivign] = <long*>malloc((nvert-2)*3*sizeof(long))
             if not diff or not lref or not ltri[ivign]:
                 with gil:
                     raise MemoryError()
@@ -286,25 +280,9 @@ cdef inline int triangulate_polys(double** vignett_poly,
                 earclipping_poly(vignett_poly[ivign], &ltri[ivign][0],
                                  &diff[0], &lref[0], nvert)
             finally:
-               # .. Cleaning up ................................................
-               if not diff == NULL:
-                   with gil:
-                       print("about to free diff")
-                   free(diff)
-                   with gil:
-                       print("freed diff")
-               else:
-                   with gil:
-                       print(" couldnt free diff")
-               if not lref == NULL:
-                   with gil:
-                       print("about to free lref")
-                       free(lref)
-                   with gil:
-                       print("freed lref")
-               else:
-                   with gil:
-                       print(" couldnt free lref")
+                free(diff)
+                free(lref)
+
     return 0
 
 cdef inline bint inter_ray_poly(const double[3] ray_orig,
@@ -323,7 +301,11 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
             pt2[jj] = vignett[ltri[3*ii+1]* nvert + jj ]
             pt3[jj] = vignett[ltri[3*ii+2]* nvert + jj ]
         if _rt.inter_ray_triangle(ray_orig, ray_vdir, pt1, pt2, pt3):
+            with gil:
+                print("true")
             return True
+    with gil:
+        print("false")
     return False
 
 # ==============================================================================
@@ -369,16 +351,19 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                                     loc_org,
                                                     countin=True)
                 if not inter_bbox:
-                    goes_through[ivign*nlos + ilos] = 1 # False
+                    with gil:
+                        print("at = ", ivign*nlos + ilos, " put false")
+                    goes_through[ivign*nlos + ilos] = False
                     continue
                 # -- if none, we continue --------------------------------------
+                goes_through[ivign*nlos + ilos] = inter_ray_poly(loc_org,
+                                                                 loc_dir,
+                                                                 vignett[ivign],
+                                                                 nvert,
+                                                                 ltri[ivign])
                 with gil:
-                    print(ivign*nlos + ilos, " put 1 instead of inter ray poly")
-                goes_through[ivign*nlos + ilos] = 1# inter_ray_poly(loc_org,
-                                                   #               loc_dir,
-                                                   #               vignett[ivign],
-                                                   #               nvert,
-                                                   #               ltri[ivign])
+                    print("at = ", ivign*nlos + ilos, " put ", goes_through[ivign*nlos + ilos])
+
         free(loc_org)
         free(loc_dir)
         free(invr_ray)

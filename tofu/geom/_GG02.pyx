@@ -2722,52 +2722,35 @@ def vignetting(double[:, ::1] ray_orig,
     cdef bint* bool_res = NULL
     cdef np.ndarray[double, ndim=2, mode="c"] temp
     # -- Initialization --------------------------------------------------------
-    print("IM HERE")
     nvign = len(vignett_poly)
     nlos = ray_orig.shape[1]
     goes_through = np.empty((nlos*nvign),dtype=bool)
     # re writting vignett_poly to C type:
     data = <double **> malloc(nvign*sizeof(double *))
-    print("initialization of data")
     for ii in range(nvign):
         temp = vignett_poly[ii]
         data[ii] = &temp[0,0]
-
-    print("data is done")
     # -- Preparation -----------------------------------------------------------
     lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
     _rt.compute_3d_bboxes(data, &lnvert[0], nvign, &lbounds[0],
                           num_threads=num_threads)
-    print("compute bboxes done")
     ltri = <long**>malloc(sizeof(long*)*nvign)
     _vt.triangulate_polys(data, &lnvert[0], nvign, ltri,
                           num_threads=num_threads)
-    print("triangulate polys done")
     # -- We call core function -------------------------------------------------
     bool_res = <bint*>malloc(nlos*nvign*sizeof(bint))
     _vt.vignetting_core(ray_orig, ray_vdir, data, &lnvert[0], &lbounds[0],
                         ltri, nvign, nlos, &bool_res[0])
     for ii in range(nlos*nvign):
         goes_through[ii] = bool_res[ii]
+    free(bool_res)
     # -- Cleaning up -----------------------------------------------------------
-    if not lbounds == NULL:
-        free(lbounds)
-    else:
-        print("lbounds is already freed")
+    free(lbounds)
     # We have to free each array for each vignett:
     for ii in range(nvign):
-        if not ltri[ii] == NULL:
-            free(ltri[ii])
-        else:
-            print("ltri at =", ii, " was null")
-    if not ltri == NULL:
-        free(ltri) # and now we can free the main pointer
-    else:
-        print("ltri was already freed")
-    if not data == NULL:
-        free(data)
-    else:
-        print("data was already freed")
+        free(ltri[ii])
+    free(ltri) # and now we can free the main pointer
+    free(data)
     return goes_through
 
 
