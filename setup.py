@@ -180,11 +180,9 @@ if sys.version[0]=='3':
     shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'),
                  os.path.join(here,'tofu/geom/_GG03.pyx'))
 
-
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
-
 
 #  ... Compiling files .........................................................
 if not not_openmp_installed :

@@ -2761,7 +2761,7 @@ def vignetting(double[:, ::1] ray_orig,
 # ==============================================================================
 def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                    double[:,::1] DLs, str dmethod='abs',
-                   str method='sum', bint Test=True):
+                   str method='sum', bint Test=True, int num_threads=16):
     """
     Return the sampled line, with the specified method
     'sum' :     return N segments centers
@@ -2853,37 +2853,44 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
             if imode=='sum':
                 coeff_arr = np.empty((N*num_los,), dtype=float)
                 _st.middle_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
-                                    &dLr[0], &coeff_arr[0], &los_ind[0])
+                                    &dLr[0], &coeff_arr[0], &los_ind[0],
+                                    num_threads=num_threads)
             elif imode=='simps':
                 N = N if N%2==0 else N+1
                 coeff_arr = np.empty(((N+1)*num_los,), dtype=float)
                 _st.left_rule_rel(num_los, N,
                                   &DLs[0,0], &DLs[1, 0], &dLr[0],
-                                  &coeff_arr[0], &los_ind[0])
+                                  &coeff_arr[0], &los_ind[0],
+                                  num_threads=num_threads)
             elif imode=='romb':
                 N = 2**(int(Cceil(Clog2(N))))
                 coeff_arr = np.empty(((N+1)*num_los,), dtype=float)
                 _st.left_rule_rel(num_los, N,
                                   &DLs[0,0], &DLs[1, 0],
-                                  &dLr[0], &coeff_arr[0], &los_ind[0])
+                                  &dLr[0], &coeff_arr[0], &los_ind[0],
+                                  num_threads=num_threads)
             return coeff_arr, dLr, los_ind[:num_los-1]
         else:
             if imode=='sum':
                 _st.middle_rule_abs_1(num_los, val_resol, &DLs[0,0], &DLs[1, 0],
-                                      &dLr[0], &los_ind[0])
+                                      &dLr[0], &los_ind[0],
+                                      num_threads=num_threads)
                 ntmp = np.sum(los_ind)
                 coeff_arr = np.empty((ntmp,), dtype=float)
                 _st.middle_rule_abs_2(num_los, &DLs[0,0], &los_ind[0],
-                                      &dLr[0], &coeff_arr[0])
+                                      &dLr[0], &coeff_arr[0],
+                                      num_threads=num_threads)
                 return coeff_arr, dLr, los_ind[0:num_los-1]
             elif imode=='simps':
                 _st.simps_left_rule_abs(num_los, val_resol,
                                         &DLs[0,0], &DLs[1, 0],
-                                        &dLr[0], &los_coeffs, &los_ind[0])
+                                        &dLr[0], &los_coeffs, &los_ind[0],
+                                        num_threads=num_threads)
             else:
                 _st.romb_left_rule_abs(num_los, val_resol,
                                        &DLs[0,0], &DLs[1, 0],
-                                       &dLr[0], &los_coeffs, &los_ind[0])
+                                       &dLr[0], &los_coeffs, &los_ind[0],
+                                       num_threads=num_threads)
     # Case with different resolution for each LOS
     else:
         dl_view=dL
@@ -2891,28 +2898,34 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
             if imode=='sum':
                 _st.middle_rule_abs_var(num_los, &dl_view[0],
                                         &DLs[0,0], &DLs[1, 0],
-                                        &dLr[0], &los_coeffs, &los_ind[0])
+                                        &dLr[0], &los_coeffs, &los_ind[0],
+                                        num_threads=num_threads)
             elif imode=='simps':
                 _st.simps_left_rule_abs_var(num_los, &dl_view[0],
                                             &DLs[0,0], &DLs[1, 0],
-                                            &dLr[0], &los_coeffs, &los_ind[0])
+                                            &dLr[0], &los_coeffs, &los_ind[0],
+                                            num_threads=num_threads)
             else:
                 _st.romb_left_rule_abs_var(num_los, &dl_view[0],
                                            &DLs[0,0], &DLs[1, 0],
-                                           &dLr[0], &los_coeffs, &los_ind[0])
+                                           &dLr[0], &los_coeffs, &los_ind[0],
+                                           num_threads=num_threads)
         else:
             if imode=='sum':
                 _st.middle_rule_rel_var(num_los, &dl_view[0],
                                         &DLs[0,0], &DLs[1, 0],
-                                        &dLr[0], &los_coeffs, &los_ind[0])
+                                        &dLr[0], &los_coeffs, &los_ind[0],
+                                        num_threads=num_threads)
             elif imode=='simps':
                 _st.simps_left_rule_rel_var(num_los, &dl_view[0],
                                             &DLs[0,0], &DLs[1, 0],
-                                            &dLr[0], &los_coeffs, &los_ind[0])
+                                            &dLr[0], &los_coeffs, &los_ind[0],
+                                            num_threads=num_threads)
             else:
                 _st.romb_left_rule_rel_var(num_los, &dl_view[0],
                                            &DLs[0,0], &DLs[1, 0],
-                                           &dLr[0], &los_coeffs, &los_ind[0])
+                                           &dLr[0], &los_coeffs, &los_ind[0],
+                                           num_threads=num_threads)
     return np.asarray(<double[:los_ind[num_los-1]]> los_coeffs),\
         dLr, los_ind[0:num_los-1]
 
@@ -3952,8 +3965,7 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
                                            invuz, crit2,
                                            eps_uz, eps_vz,
                                            eps_a, eps_b,
-                                           res_loc, debug=(ind_los==debug_nlos
-                                                           and debug))
+                                           res_loc)
             kmin[ind_los] = res_loc[0]
             dist[ind_los] = res_loc[1]
         free(loc_org)
@@ -4029,6 +4041,7 @@ def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
                                     ves_num,
                                     algo_num,
                                     &kmin[0], &dist[0],
+                                    0.05,
                                     num_threads)
     return kmin.reshape(nlos, nvpoly),\
         dist.reshape(nlos, nvpoly)
