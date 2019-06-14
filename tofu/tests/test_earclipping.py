@@ -34,8 +34,9 @@ ves_poly2[2] = z2
 vignetts = [ves_poly1, ves_poly2]
 lnvert = np.r_[9, npts]
 # === Ray tabs ====
-rays_origin = np.zeros((3, 5))
-rays_direct = np.zeros((3, 5))
+num_ray = 5
+rays_origin = np.zeros((3, num_ray))
+rays_direct = np.zeros((3, num_ray))
 # -- First ray
 orig = np.r_[3.75, 2.5, -2]
 dire = np.r_[0, 0,  1]
@@ -45,7 +46,7 @@ rays_direct[:,0] = dire
 orig = np.r_[5, 3.1, -2]
 dire = np.r_[0, 0,  1]
 rays_origin[:,1] = orig
-rays_direct[:,2] = dire
+rays_direct[:,1] = dire
 # -- Third ray
 orig = np.r_[0, 0, 5]
 dire = np.r_[4, 1,  -5]/2.

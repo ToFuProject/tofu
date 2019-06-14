@@ -289,7 +289,7 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
                                 const double[3] ray_vdir,
                                 double* vignett,
                                 int nvert,
-                                long* ltri) nogil:
+                                long* ltri, bint debug=False) nogil:
     cdef int ii, jj
     cdef double[3] pt1
     cdef double[3] pt2
@@ -297,12 +297,10 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
     #...
     for ii in range(nvert-2):
         for jj in range(3):
-            pt1[jj] = vignett[ltri[3*ii+0]* nvert + jj ]
-            pt2[jj] = vignett[ltri[3*ii+1]* nvert + jj ]
-            pt3[jj] = vignett[ltri[3*ii+2]* nvert + jj ]
-        if _rt.inter_ray_triangle(ray_orig, ray_vdir, pt1, pt2, pt3):
-            with gil:
-                print("true")
+            pt1[jj] = vignett[ltri[3*ii+0] + jj * nvert]
+            pt2[jj] = vignett[ltri[3*ii+1] + jj * nvert]
+            pt3[jj] = vignett[ltri[3*ii+2] + jj * nvert]
+        if _rt.inter_ray_triangle(ray_orig, ray_vdir, pt1, pt2, pt3, debug=debug):
             return True
     with gil:
         print("false")
@@ -349,21 +347,21 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                 # -- We check if intersection with  bounding box ---------------
                 inter_bbox = _rt.inter_ray_aabb_box(sign_ray, invr_ray,
                                                     &lbounds[6*ivign],
-                                                    loc_org,
+                                                    &loc_org[0],
                                                     countin=True)
                 if not inter_bbox:
                     with gil:
-                        print("at = ", ivign*nlos + ilos, " put false")
-                    goes_through[ivign*nlos + ilos] = False
+                        print("at = ", ivign + ilos*nvign, " put false")
+                    goes_through[ivign + ilos*nvign] = False
                     continue
                 # -- if none, we continue --------------------------------------
-                goes_through[ivign*nlos + ilos] = inter_ray_poly(loc_org,
-                                                                 loc_dir,
-                                                                 vignett[ivign],
-                                                                 nvert,
-                                                                 ltri[ivign])
+                goes_through[ivign + ilos*nvign] = inter_ray_poly(&loc_org[0],
+                                                                  &loc_dir[0],
+                                                                  vignett[ivign],
+                                                                  nvert,
+                                                                  ltri[ivign], debug=(ivign + ilos*nvign == 2))
                 with gil:
-                    print("at = ", ivign*nlos + ilos, " put ", goes_through[ivign*nlos + ilos])
+                    print("at = ", ivign, ilos, ivign + ilos*nvign, " put ", goes_through[ivign + ilos*nvign])
 
         free(loc_org)
         free(loc_dir)

@@ -67,7 +67,6 @@ def compute_angles(lpts):
 #@profile
 def is_reflex(u,v):
     nor = cross(u,v)
-    print("-------------", nor)
     return np.sum(nor) >= 0.
 
 #@profile
@@ -143,7 +142,7 @@ def get_all_ears(lpts):
 
 #@profile
 def intersect_triangle(orig, dire,
-                       vert0, vert1, vert2):
+                       vert0, vert1, vert2,debug=False):
     # https://cadxfem.org/inf/Fast%20MinimumStorage%20RayTriangle%20Intersection.pdf
     small = 10**-6
     edge1 = vert1 - vert0
@@ -152,6 +151,10 @@ def intersect_triangle(orig, dire,
     pvec = cross(dire, edge2)
     # if determinant is near zero ray lies in plane of triangle
     det = dot(edge1, pvec)
+    if debug:
+        print("pvec =", pvec)
+        print("edge1 =", edge1)
+        print("det =", det)
     if abs(det) < small:
         return False
     invdet = 1./det
@@ -170,10 +173,10 @@ def intersect_triangle(orig, dire,
     return True
 
 #@profile
-def intersect_poly(orig, dire, list_pts):
+def intersect_poly(orig, dire, list_pts,debug=False):
     list_tri = get_all_ears(list_pts)
     for tri in list_tri:
-        if intersect_triangle(orig, dire, tri[0], tri[1], tri[2]):
+        if intersect_triangle(orig, dire, tri[0], tri[1], tri[2],debug=debug):
             return True
     return False
 
@@ -217,7 +220,7 @@ def main_test(x1, x2, list_pts1, list_pts2, plot=False):
     print(" Ray intersects p2 =", inter_p2)
     orig = np.r_[5, 3.1, -2]
     dire = np.r_[0, 0,  1]
-    inter_p1 = intersect_poly(orig, dire, list_pts1)
+    inter_p1 = intersect_poly(orig, dire, list_pts1,debug=True)
     print(" Ray intersects p1 =", inter_p1)
     inter_p2 = intersect_poly(orig, dire, list_pts2)
     print(" Ray intersects p2 =", inter_p2)
@@ -469,17 +472,17 @@ if __name__ == '__main__':
     list_pts2 = np.array([np.r_[xi,yi,zi] for (xi,yi,zi) in zip(x2,y2,z2)])
     print(" NPTS for first coordinates = ", x2.shape)
     # ..
-    import timeit
-    print("easy test case :")
-    print(timeit.timeit("time_test_easy()",
-                        setup="from __main__ import time_test_easy, x1, x2, list_pts1, list_pts2",
-                        number=1000))
-    list_pts1 = list_pts1[:-1]
-    list_pts2 = list_pts2[:-1]
-    print("earclipping test case :")
-    print(timeit.timeit("time_test_earclipping()",
-                        setup="from __main__ import time_test_earclipping, x1, x2, list_pts1, list_pts2",
-                        number=1000))
+    # import timeit
+    # print("easy test case :")
+    # print(timeit.timeit("time_test_easy()",
+    #                     setup="from __main__ import time_test_easy, x1, x2, list_pts1, list_pts2",
+    #                     number=1000))
+    # list_pts1 = list_pts1[:-1]
+    # list_pts2 = list_pts2[:-1]
+    # print("earclipping test case :")
+    # print(timeit.timeit("time_test_earclipping()",
+    #                     setup="from __main__ import time_test_earclipping, x1, x2, list_pts1, list_pts2",
+    #                     number=1000))
     #....
     main_test(x1, x2, list_pts1, list_pts2, plot=False)
     print()

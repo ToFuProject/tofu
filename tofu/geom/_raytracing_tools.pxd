@@ -370,7 +370,7 @@ cdef inline bint inter_ray_triangle(const double[3] ray_orig,
                                     const double[3] ray_vdir,
                                     const double* vert0,
                                     const double* vert1,
-                                    const double* vert2) nogil:
+                                    const double* vert2, bint debug=False) nogil:
     cdef int ii
     cdef double det, invdet, u, v
     cdef double[3] edge1, edge2
@@ -383,6 +383,12 @@ cdef inline bint inter_ray_triangle(const double[3] ray_orig,
     _bgt.compute_cross_prod(ray_vdir, edge2, pvec)
     # if determinant is near zero ray lies in plane of triangle
     det = _bgt.compute_dot_prod(edge1, pvec)
+    if debug==True:
+        with gil:
+            print("ray vdir =", ray_vdir[0], ray_vdir[1], ray_vdir[2])
+            print("pvec =", pvec[0], pvec[1], pvec[2])
+            print("edge1 =", edge1[0], edge1[1], edge1[2])
+            print("det =", det)
     if Cabs(det) < _VSMALL:
         return False
     invdet = 1./det
