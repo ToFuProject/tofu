@@ -2943,7 +2943,9 @@ class Rays(utils.ToFuObject):
 
         if n1*n2 != X12.shape[1]:
             msg = "The provided X12 array does not seem to correspond to"
-            msg += "a n1 x n2 2D matrix, even within tolerance"
+            msg += "a n1 x n2 2D matrix, even within tolerance\n"
+            msg += "  n1*n2 = %s x %s = %s\n"%(str(n1),str(n2),str(n1*n2))
+            msg += "  X12.shape = %s"%str(X12.shape)
             raise Exception(msg)
 
         ind1 = np.digitize(X12[0,:], 0.5*(x1[1:]+x1[:-1]))
@@ -2975,10 +2977,19 @@ class Rays(utils.ToFuObject):
             # critetrion of unique D
             crit = np.sqrt(np.sum(va**2,axis=0))
             if np.sum(crit) < 1.e-9:
+                if self._is2D():
+                    msg = "2D camera but dgeom cannot be obtained !\n"
+                    msg += "  crit = %s\n"%str(crit)
+                    msg += "  dgeom = %s"%str(dgeom)
+                    raise Exception(msg)
                 return dgeom
 
             # To avoid ||v0|| = 0
-            ind0 = np.nanargmax(crit)
+            if crit[1] > 1.e-12:
+                # Take first one by default to ensure square grid for CamLOS2D
+                ind0 = 0
+            else:
+                ind0 = np.nanargmax(crit)
             v0 = va[:,ind0]
             v0 = v0/np.linalg.norm(v0)
             indok = np.nonzero(crit > 1.e-12)[0]
