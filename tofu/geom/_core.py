@@ -4503,6 +4503,29 @@ class CamLOS1D(Rays):
                           sep=sep, line=line, table_sep=table_sep,
                           verb=verb, return_=return_)
 
+    def __add__(self, other):
+        if not other.__class__.__name__ == self.__class__.__name__:
+            msg = "Operator defined only for same-class operations !"
+            raise Exception(msg)
+        lc = [self.Id.Exp == other.Id.Exp, self.Id.Diag == other.Id.Diag]
+        if not all(lc):
+            msg = "Operation only valid if objects have identical (Diag, Exp) !"
+            raise Exception(msg)
+        if not self.config == other.config:
+            msg = "Operation only valid if objects have identical config !"
+            raise Exception(msg)
+
+        Name = '%s+%s'%(self.Id.Name, other.Id.Name)
+        D = np.concatenate((self.D,other.D), axis=1)
+        u = np.concatenate((self.u, other.u), axis=1)
+
+        return self.__class__(dgeom=(D,u), config=self.config,
+                              Name=Name, Diag=self.Id.Diag, Exp=self.Id.Exp)
+    def __radd__(self, other):
+        return self.__add__(other)
+
+
+
 
 lp = [p for p in params.values() if p.name != 'dX12']
 CamLOS1D.__signature__ = sig.replace(parameters=lp)
