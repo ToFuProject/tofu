@@ -6,6 +6,7 @@
 *.so
 *.c
 *.nfs*
+tofu/geom/*.html
 
 # Mac stuff
 *.AppleDouble
