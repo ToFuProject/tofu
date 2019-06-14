@@ -2726,7 +2726,10 @@ class Rays(utils.ToFuObject):
             c1 = c0 and all([ss in self._dgeom['dX12'].keys() for ss in ls])
             c2 = c1 and all([self._dgeom['dX12'][ss] is not None for ss in ls])
             if not c2:
-                msg = "dX12 cannot be derived from dgeom (info not known) !"
+                msg = "dX12 is not provided as input (dX12 = None)\n"
+                msg += "  => self._dgeom['dX12'] (computed) used as fallback\n"
+                msg += "    - It should have non-None keys: %s\n"%str(list(ls))
+                msg += "    - it is:\n%s"%str(self._dgeom['dX12'])
                 raise Exception(msg)
             dX12 = {'from':'geom'}
 
@@ -3005,10 +3008,6 @@ class Rays(utils.ToFuObject):
                 scaabs = np.abs(np.sum(nn[:,np.newaxis]*va,axis=0))
                 if np.all(scaabs<1.e-9):
                     # All D are in a common plane, but not aligned
-                    # If 1d => get out
-                    # If 2d ==> find e1, e2
-                    if '1d' in self.__class__.__name__.lower():
-                        return dgeom
                     # check nIn orientation
                     sca = np.sum(self.u*nn[:,np.newaxis],axis=0)
                     lc = [np.all(sca>=0.), np.all(sca<=0.)]
@@ -3025,6 +3024,9 @@ class Rays(utils.ToFuObject):
                     if dgeom['dX12'] is None:
                         dgeom['dX12'] = {}
                     dgeom['dX12'].update({'nIn':nIn, 'e1':e1, 'e2':e2})
+
+                    if not self._is2D():
+                        return dgeom
 
                     # Test binning
                     if dgeom['pinhole'] is not None:
@@ -3043,7 +3045,14 @@ class Rays(utils.ToFuObject):
                         dgeom['isImage'] = True
 
                     except Exception as err:
-                        warnings.warn(str(err))
+                        msg = str(err)
+                        msg += "\n  nIn = %s"%str(nIn)
+                        msg += "\n  e1 = %s"%str(e1)
+                        msg += "\n  e2 = %s"%str(e2)
+                        msg += "\n  k1ref, k2ref = %s, %s"%(str(k1ref),str(k2ref))
+                        msg += "\n  va = %s"%str(va)
+                        msg += "\n  x12 = %s"%str(x12)
+                        warnings.warn(msg)
 
         else:
             if dgeom['case'] in ['F','G']:
