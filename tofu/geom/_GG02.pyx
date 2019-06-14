@@ -2414,11 +2414,11 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
 # =============================================================================
 def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                                 double[:, ::1] ray_vdir,
-                                double[:, :, ::1] ves_poly,
-                                double[:, :, ::1] ves_norm,
+                                list ves_poly,
+                                list ves_norm,
                                 int num_surf,
+                                long[::1] lnvert,
                                 double[::1] ves_lims=None,
-                                long[::1] lnvert=None,
                                 double rmin=-1,
                                 double eps_uz=_SMALL, double eps_a=_VSMALL,
                                 double eps_vz=_VSMALL, double eps_b=_VSMALL,
@@ -2493,6 +2493,8 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     cdef bint are_limited
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
+    cdef double[:,::1] tmp_poly
+    cdef double[:,::1] tmp_norm
 
     # == Testing inputs ========================================================
     if test:
@@ -2522,7 +2524,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
         for ind_surf in range(num_surf):
             # rmin is necessary to avoid looking on the other side of the tok
             if rmin < 0.:
-                rmin = 0.95*min(np.min(ves_poly[ind_surf, 0, ...]),
+                rmin = 0.95*min(np.min(ves_poly[ind_surf][0, ...]),
                                 _bgt.comp_min_hypot(ray_orig[0, ...],
                                                     ray_orig[1, ...],
                                                     num_los))
@@ -2534,6 +2536,8 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                 forbid0, forbidbis = 0, 0
             # Getting size of poly
             npts_poly = lnvert[ind_surf]
+            tmp_poly = ves_poly[ind_surf]
+            tmp_norm = ves_norm[ind_surf]
             # -- Computing intersection between LOS and Vessel -----------------
             _rt.raytracing_minmax_struct_tor(num_los, ray_vdir, ray_orig,
                                              &coeff_inter_out.data.as_doubles[ind_surf*num_los],
@@ -2542,10 +2546,10 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                                              rmin, rmin2, Crit2_base,
                                              npts_poly, lbounds_ves,
                                              are_limited,
-                                             &ves_poly[ind_surf][0][0],
-                                             &ves_poly[ind_surf][1][0],
-                                             &ves_norm[ind_surf][0][0],
-                                             &ves_norm[ind_surf][1][0],
+                                             &tmp_poly[0][0],
+                                             &tmp_poly[1][0],
+                                             &tmp_norm[0][0],
+                                             &tmp_norm[1][0],
                                              eps_uz, eps_vz, eps_a,
                                              eps_b, eps_plane,
                                              num_threads)
@@ -2564,12 +2568,14 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
         for ind_surf in range(num_surf):
             # Getting size of poly
             npts_poly = lnvert[ind_surf]
+            tmp_poly = ves_poly[ind_surf]
+            tmp_norm = ves_norm[ind_surf]
             _rt.raytracing_minmax_struct_lin(num_los, ray_orig, ray_vdir,
                                              npts_poly,
-                                             &ves_poly[ind_surf][0][0],
-                                             &ves_poly[ind_surf][1][0],
-                                             &ves_norm[ind_surf][0][0],
-                                             &ves_norm[ind_surf][1][0],
+                                             &tmp_poly[0][0],
+                                             &tmp_poly[1][0],
+                                             &tmp_norm[0][0],
+                                             &tmp_norm[1][0],
                                              lbounds_ves[0], lbounds_ves[1],
                                              &coeff_inter_out.data.as_doubles[ind_surf*num_los],
                                              &coeff_inter_in.data.as_doubles[ind_surf*num_los],

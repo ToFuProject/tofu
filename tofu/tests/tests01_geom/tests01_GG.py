@@ -976,7 +976,15 @@ def test13_LOS_PInOut():
     assert np.allclose(VperpOut[:,:32], -us[:,:32]) and \
         np.allclose(VperpOut[:,32:],-ErOut)
     assert np.allclose(IOut[2,:], Iout)
-
+    out = GG.LOS_Calc_kMinkMax_VesStruct(Ds, us,
+                                         [VP, VP, VP], [VIn, VIn, VIn], 3,
+                                         np.r_[N, N, N])
+    assert(np.allclose(out[0][:nlos],    kPIn))
+    assert(np.allclose(out[0][nlos:2*nlos], kPIn))
+    assert(np.allclose(out[0][2*nlos:],  kPIn))
+    assert(np.allclose(out[1][:nlos],    kPOut))
+    assert(np.allclose(out[1][nlos:2*nlos], kPOut))
+    assert(np.allclose(out[1][2*nlos:],  kPOut))
     # Toroidal, with Struct
     SL0_or =None
     SL1_or =[np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]]
@@ -1203,7 +1211,6 @@ def test16_dist_los_vpoly():
     ray_orig[1][10] = 0.
     ray_orig[2][10] = 2.5
     ray_vdir[0][10] = 1.
-    print("with new thingy")
     out = GG.comp_dist_los_vpoly(
         np.ascontiguousarray(ray_orig, dtype=np.float64),
         np.ascontiguousarray(ray_vdir, dtype=np.float64),
