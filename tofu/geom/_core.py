@@ -2987,7 +2987,7 @@ class Rays(utils.ToFuObject):
             # To avoid ||v0|| = 0
             if crit[1] > 1.e-12:
                 # Take first one by default to ensure square grid for CamLOS2D
-                ind0 = 0
+                ind0 = 1
             else:
                 ind0 = np.nanargmax(crit)
             v0 = va[:,ind0]
