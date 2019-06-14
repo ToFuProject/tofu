@@ -574,8 +574,8 @@ class vid_img(Video, img_dir):
     """
     def __init__(self,filename):
          Video.__init__(self, filename, verb = True)
-         self.__shot_name = ''
-         self.__im_dir = ''
+         self.__shot_name = None
+         self.__im_dir = None
          
          
     
@@ -592,15 +592,25 @@ class vid_img(Video, img_dir):
         
         return self.__im_dir,self.__shot_name
     
-    def dumpro(self, im_out= None, verb = True):
+    def dumpro(self,tlim, crop, w_dir = None, im_out= None, verb = True):
         """This method performs dust movie processing on the video_file
         It converts the video to image and extracts the shotname and the
         image directory. Then it 
         """
-        w_dir = input('Please provide the working directory')
-        vid_img.set_w_dir(w_dir)
+        drive, path_of_file = os.path.splitdrive(self.__filename)
+        path, file = os.path.split(path_of_file)
+        folder = 'dumpro'
+        path = os.path.join(path,folder,'')
+        if not os.path.exists(path):
+            os.makedirs(path)
         
-        tlim = input()
+        if self.__w_dir == None and w_dir == None:
+            msg = 'Working directory not provided:'
+            msg += 'Creating :'
+            warnings.warn(msg)
+            print(path)
+            vid_img.set_w_dir(path)
+        
         self.__im_dir, self.__shot_name = vid_img.set_im_dir_shotname()
         gray, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir,
                                                       self.__w_dir,
