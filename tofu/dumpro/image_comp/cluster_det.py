@@ -19,6 +19,40 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
 def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
+    """
+    This subroutine detects clusters in a collection binary images
+    The images are read in native form i.e., without any modification.
+    
+    Among the parameters present, if used as a part of dumpro, 
+    w_dir, shot_name and meta_data are provided by the image processing 
+    class in the core file.
+    The verb paramenter is used when thsi subroutine is used independently.
+    Otherwise it is suppressed by the core class.
+    
+    Parameters
+    -----------------------
+    im_path:          string
+     input path where the images are stored
+    w_dir:            string
+     A working directory where the proccesed images are stored
+    shot_name:        String
+     The name of the tokomak machine and the shot number. Generally
+     follows the nomenclature followed by the lab
+    meta_data:        dictionary
+     A dictionary containing all the video meta_data. By default it is None
+     But if the user inputs some keys into the dictionary, the code will use 
+     the information from the dictionary and fill in the missing gaps if
+     required
+     meta_data has information on total number of frames, demension, fps and 
+     the four character code of the video
+    
+    Return
+    -----------------------
+    im_out:              String
+     Path along where the proccessed images are stored  
+    meta_data:        dictionary
+     A dictionary containing the meta data of the video.
+    """
     
     #the output directory based on w_dir and shot_name
     if verb == True:
@@ -45,6 +79,8 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     if verb == True:
         print('starting grayscale conversion ...\n')
         print('The following files have been read ...')
+    centers=[]
+    area = []
     
     # loop to read through all the images and
     # apply grayscale conversion to them
@@ -65,13 +101,16 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
                 cx = int(M['m10']/M['m00'])
                 cy = int(M['m01']/M['m00'])
                 center = cx,cy
+                area = cv2.contourArea(c)
                 
             else:
                 (x, y), radius = cv2.minEnclosingCircle(c)
                 # convert all values to int
                 center = int(x), int(y)
                 radius = int(radius)
-
+                area = 3.14*(radius**2)
+            
+            
         #generic name of each image
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
@@ -83,3 +122,4 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     
     #frame_array.append(img)
 
+    return im_out, meta_data

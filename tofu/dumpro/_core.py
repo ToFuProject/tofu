@@ -97,7 +97,7 @@ class Video(object):
             msg += "    {}".format(filename)
             print(msg)
         self.__filename = filename
-        self.__w_dir = ''
+        self.__w_dir = None
         #getting the meta data of the video
         self.__frame_width = int(self.cap.get(3))
         self.__frame_height = int(self.cap.get(4))
@@ -592,7 +592,7 @@ class vid_img(Video, img_dir):
         
         return self.__im_dir,self.__shot_name
     
-    def dumpro(self,tlim, crop, w_dir = None, im_out= None, verb = True):
+    def dumpro(self,tlim = None, crop = None, w_dir = None, im_out= None, verb = True):
         """This method performs dust movie processing on the video_file
         It converts the video to image and extracts the shotname and the
         image directory. Then it 
@@ -610,6 +610,8 @@ class vid_img(Video, img_dir):
             warnings.warn(msg)
             print(path)
             vid_img.set_w_dir(path)
+            
+        
         
         self.__im_dir, self.__shot_name = vid_img.set_im_dir_shotname()
         gray, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir,
