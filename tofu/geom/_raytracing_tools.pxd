@@ -18,74 +18,88 @@ from libc.stdlib cimport malloc, free
 from _basic_geom_tools cimport _VSMALL
 from _basic_geom_tools cimport is_point_in_path
 from _basic_geom_tools cimport compute_inv_and_sign
+cimport _basic_geom_tools as _bgt
 
 # ==============================================================================
-# =  Raytracing basic tools: intersection ray and axis aligned bounding box
+# =  3D Bounding box (not Toroidal)
 # ==============================================================================
-cdef inline bint inter_ray_aabb_box(const int[3] sign,
-                                    const double[3] inv_direction,
-                                    const double[6] bounds,
-                                    const double[3] ds,
-                                    bint countin) nogil:
+cdef inline void compute_3d_bboxes(double** vignett_poly,
+                                   long* lnvert,
+                                   int nvign,
+                                   double* lbounds,
+                                   int num_threads) nogil:
     """
-    Computes intersection between a ray (LOS) and a axis aligned bounding
-    box. It returns True if ray intersects box, else False.
+    Computes coordinates of bounding boxes of a list of 3d objects in a general
+    space (not related to a tore).
+    """
+    cdef int ivign
+    cdef int nvert
+    # ...
+    # -- Defining parallel part ------------------------------------------------
+    with nogil, parallel(num_threads=num_threads):
+        for ivign in prange(nvign):
+            nvert = lnvert[ivign]
+            comp_bbox_poly3d(nvert,
+                             &vignett_poly[ivign][0*nvert],
+                             &vignett_poly[ivign][1*nvert],
+                             &vignett_poly[ivign][2*nvert],
+                             &lbounds[ivign*6])
+    return
+
+cdef inline void comp_bbox_poly3d(int nvert,
+                                  double* vertx,
+                                  double* verty,
+                                  double* vertz,
+                                  double[6] bounds) nogil:
+    """
+    Computes bounding box of a 3d polygon
     Params
     =====
-       sign : (3) int array
-          Sign of the direction of the ray.
-          If sign[i] = 1, ray_vdir[i] < 0, else sign[i] = 0
-       inv_direction : (3) double array
-          Inverse on each axis of direction of LOS
-       bounds : (6) double array
-          [3d coords of lowerleftback point of bounding box,
-           3d coords of upperrightfront point of bounding box]
-       ds : (3) double array
-          [3d coords of origin of ray]
-    Returns
-    =======
-       True if ray intersects bounding box, else False
+    nvert : integer
+       Number of vertices in the poygon
+    vert : double array
+       Coordinates of the polygon defining the structure in the poloidal plane
+       such that vert[0:3, ii] = (x_i, y_i, z_i) the coordinates of the i-th
+       vertex
+    bounds : (6) double array <INOUT>
+       coordinates of the lowerleftback point and of the upperrightfront point
+       of the bounding box of the polygon
     """
-    cdef double tmin, tmax, tymin, tymax
-    cdef double tzmin, tzmax
-    cdef int t0 = 1000000
-    cdef bint res
-
-    # computing intersection
-    tmin = (bounds[sign[0]*3] - ds[0]) * inv_direction[0]
-    tmax = (bounds[(1-sign[0])*3] - ds[0]) * inv_direction[0]
-    tymin = (bounds[(sign[1])*3 + 1] - ds[1]) * inv_direction[1]
-    tymax = (bounds[(1-sign[1])*3+1] - ds[1]) * inv_direction[1]
-    if ( (tmin > tymax) or (tymin > tmax) ):
-        return 0
-    if (tymin > tmin):
-        tmin = tymin
-    if (tymax < tmax):
-        tmax = tymax
-    if not inv_direction[2] == 1./_VSMALL:
-        tzmin = (bounds[(sign[2])*3+2] - ds[2]) * inv_direction[2]
-        tzmax = (bounds[(1-sign[2])*3+2] - ds[2]) * inv_direction[2]
-    else:
-        tzmin = Cnan
-        tzmax = Cnan
-    if ( (tmin > tzmax) or (tzmin > tmax) ):
-        return 0
-    if (tzmin > tmin):
-        tmin = tzmin
-    if (tzmax < tmax):
-        tmax = tzmax
-    if countin and (tmin < 0.) and (tmax < 0.):
-        return 0
-    elif not countin and tmin < 0:
-        return 0
-
-    res = (tmin < t0) and (tmax > -t0)
-    return  res
+    cdef int ii
+    cdef double xmax=vertx[0], xmin=vertx[0]
+    cdef double ymax=verty[0], ymin=verty[0]
+    cdef double zmax=vertz[0], zmin=vertz[0]
+    cdef double tmp_val
+    for ii in range(1, nvert):
+        # x....
+        tmp_val = vertx[ii]
+        if tmp_val > xmax:
+            xmax = tmp_val
+        elif tmp_val < xmin :
+            xmin = tmp_val
+        # y....
+        tmp_val = verty[ii]
+        if tmp_val > ymax:
+            ymax = tmp_val
+        elif tmp_val < ymin :
+            ymin = tmp_val
+        # z....
+        tmp_val = vertz[ii]
+        if tmp_val > zmax:
+            zmax = tmp_val
+        elif tmp_val < zmin :
+            zmin = tmp_val
+    bounds[0] = xmin
+    bounds[1] = ymin
+    bounds[2] = zmin
+    bounds[3] = xmax
+    bounds[4] = ymax
+    bounds[5] = zmax
+    return
 
 # ==============================================================================
-# =  Computation of Bounding Boxes
+# =  Computation of Bounding Boxes (in toroidal configuration)
 # ==============================================================================
-
 cdef inline void comp_bbox_poly_tor(int nvert,
                                     double* vertr,
                                     double* vertz,
@@ -95,7 +109,7 @@ cdef inline void comp_bbox_poly_tor(int nvert,
     the vertices vert.
     Params
     =====
-        nvert : inter
+        nvert : integer
            Number of vertices in the poygon
         vert : double array
            Coordinates of the polygon defining the structure in the poloidal
@@ -126,58 +140,6 @@ cdef inline void comp_bbox_poly_tor(int nvert,
     bounds[5] = zmax
     return
 
-
-cdef inline void comp_bbox_poly3d(int nvert,
-                                  double* vertx,
-                                  double* verty,
-                                  double* vertz,
-                                  double[6] bounds) nogil:
-    """
-    Computes bounding box of a 3d polygon
-    Params
-    =====
-    nvert : inter
-       Number of vertices in the poygon
-    vert : double array
-       Coordinates of the polygon defining the structure in the poloidal plane
-       such that vert[0:3, ii] = (x_i, y_i, z_i) the coordinates of the i-th
-       vertex
-    bounds : (6) double array <INOUT>
-       coordinates of the lowerleftback point and of the upperrightfront point
-       of the bounding box of the polygon
-    """
-    cdef int ii
-    cdef double xmax=vertx[0], xmin=vertx[0]
-    cdef double ymax=verty[0], ymin=verty[0]
-    cdef double zmax=vertz[0], zmin=vertz[0]
-    cdef double tmp_val
-    for ii in range(1, nvert):
-        # x....
-        tmp_val = vertx[0]
-        if tmp_val > xmax:
-            xmax = tmp_val
-        elif tmp_val < xmin :
-            xmin = tmp_val
-        # y....
-        tmp_val = verty[0]
-        if tmp_val > ymax:
-            ymax = tmp_val
-        elif tmp_val < ymin :
-            ymin = tmp_val
-        # z....
-        tmp_val = vertz[0]
-        if tmp_val > zmax:
-            zmax = tmp_val
-        elif tmp_val < zmin :
-            zmin = tmp_val
-    bounds[0] = xmin
-    bounds[1] = ymin
-    bounds[2] = zmin
-    bounds[3] = xmax
-    bounds[4] = ymax
-    bounds[5] = zmax
-    return
-
 cdef inline void comp_bbox_poly_tor_lim(int nvert,
                                         double* vertr,
                                         double* vertz,
@@ -188,7 +150,7 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
     the vertices vert, and limited to the angles (lmin, lmax)
     Params
     =====
-    nvert : inter
+    nvert : integer
        Number of vertices in the poygon
     vert : double array
        Coordinates of the polygon defining the structure in the poloidal plane
@@ -206,80 +168,45 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
     cdef double xmin=toto, xmax=-toto
     cdef double ymin=toto, ymax=-toto
     cdef double zmin=toto, zmax=-toto
-    cdef double cos_min
-    cdef double sin_min
-    cdef double cos_max
-    cdef double sin_max
-    cdef double cos_mid
-    cdef double sin_mid
+    cdef double cos_min, sin_min
+    cdef double cos_max, sin_max
     cdef double half_pi = 0.5 * Cpi
     cdef double[3] temp
     cdef double[6] bounds_min
+    # ...
     cos_min = Ccos(lmin)
     sin_min = Csin(lmin)
     cos_max = Ccos(lmax)
     sin_max = Csin(lmax)
     if (lmin >= 0.) and (lmax >= 0.):
         if lmax > half_pi and lmin < half_pi:
-            comp_bbox_poly_tor(nvert,
-                               vertr,
-                               vertz,
-                               &bounds_min[0])
+            comp_bbox_poly_tor(nvert, vertr, vertz, &bounds_min[0])
             if ymax < bounds_min[4]:
                 ymax = bounds_min[4]
         elif lmax < half_pi and lmin > half_pi:
-            comp_bbox_poly_tor(nvert,
-                               vertr,
-                               vertz,
-                               &bounds_min[0])
+            comp_bbox_poly_tor(nvert, vertr, vertz, &bounds_min[0])
             if ymin > bounds_min[1]:
                 ymin = bounds_min[1]
     elif (lmin <= 0 and lmax <= 0):
         if lmax < -half_pi and lmin > -half_pi:
-            comp_bbox_poly_tor(nvert,
-                               vertr,
-                               vertz,
-                               &bounds_min[0])
+            comp_bbox_poly_tor(nvert, vertr, vertz, &bounds_min[0])
             if ymin > bounds_min[1]:
                 ymin = bounds_min[1]
-            # cos_mid = Ccos(-half_pi)
-            # sin_mid = Csin(-half_pi)
         elif lmax > -half_pi and lmin < -half_pi:
-            comp_bbox_poly_tor(nvert,
-                               vertr,
-                               vertz,
-                               &bounds_min[0])
+            comp_bbox_poly_tor(nvert, vertr, vertz, &bounds_min[0])
             if ymax < bounds_min[4]:
                 ymax = bounds_min[4]
-            # cos_mid = Ccos(half_pi)
-            # sin_mid = Csin(half_pi)
-    elif (Cabs(Cabs(lmin) - Cpi) > _VSMALL and Cabs(Cabs(lmax) - Cpi) > _VSMALL):
+    elif (Cabs(Cabs(lmin) - Cpi) > _VSMALL
+          and Cabs(Cabs(lmax) - Cpi) > _VSMALL):
         if lmin >= 0 :
-            # lmin and lmax of opposite signs, so lmax < 0.
-            # We divide and conquer:
-            comp_bbox_poly_tor_lim(nvert,
-                                   vertr,
-                                   vertz,
-                                   &bounds[0],
-                                   lmin, Cpi)
-            comp_bbox_poly_tor_lim(nvert,
-                                   vertr,
-                                   vertz,
-                                   &bounds_min[0],
+            # lmin and lmax of opposite signs, so lmax < 0. Divide and conquer:
+            comp_bbox_poly_tor_lim(nvert, vertr, vertz, &bounds[0], lmin, Cpi)
+            comp_bbox_poly_tor_lim(nvert, vertr, vertz, &bounds_min[0],
                                    -Cpi, lmax)
         else:
-            # lmin and lmax of opposite signs, so lmax <= 0.
-            # We divide and conquer:
-            comp_bbox_poly_tor_lim(nvert,
-                                   vertr,
-                                   vertz,
-                                   &bounds[0],
-                                   lmin, -0.0)
-            comp_bbox_poly_tor_lim(nvert,
-                                   vertr,
-                                   vertz,
-                                   &bounds_min[0],
-                                   0.0, lmax)
+            # lmin and lmax of opposite signs, so lmax <= 0. Divide and conquer:
+            comp_bbox_poly_tor_lim(nvert, vertr, vertz, &bounds[0], lmin, -0.0)
+            comp_bbox_poly_tor_lim(nvert, vertr, vertz, &bounds_min[0], 0, lmax)
         # we compute the extremes of the two boxes:
         for ii in range(3):
             if bounds[ii] > bounds_min[ii]:
@@ -288,7 +215,6 @@ cdef inline void comp_bbox_poly_tor_lim(int nvert,
             if bounds[ii] < bounds_min[ii]:
                 bounds[ii] = bounds_min[ii]
         return
-
     for ii in range(nvert):
         temp[0] = vertr[ii]
         temp[1] = vertz[ii]
@@ -371,9 +297,110 @@ cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian,
     return
 
 # ==============================================================================
-# =  Raytrcaing on a Torus
+# =  Raytracing basic tools: intersection ray and axis aligned bounding box
 # ==============================================================================
+cdef inline bint inter_ray_aabb_box(const int[3] sign,
+                                    const double[3] inv_direction,
+                                    const double[6] bounds,
+                                    const double[3] ds,
+                                    bint countin) nogil:
+    """
+    Computes intersection between a ray (LOS) and a axis aligned bounding
+    box. It returns True if ray intersects box, else False.
+    Params
+    =====
+       sign : (3) int array
+          Sign of the direction of the ray.
+          If sign[i] = 1, ray_vdir[i] < 0, else sign[i] = 0
+       inv_direction : (3) double array
+          Inverse on each axis of direction of LOS
+       bounds : (6) double array
+          [3d coords of lowerleftback point of bounding box,
+           3d coords of upperrightfront point of bounding box]
+       ds : (3) double array
+          [3d coords of origin of ray]
+    Returns
+    =======
+       True if ray intersects bounding box, else False
+    """
+    cdef double tmin, tmax, tymin, tymax
+    cdef double tzmin, tzmax
+    cdef int t0 = 1000000
+    cdef bint res
 
+    # computing intersection
+    tmin = (bounds[sign[0]*3] - ds[0]) * inv_direction[0]
+    tmax = (bounds[(1-sign[0])*3] - ds[0]) * inv_direction[0]
+    tymin = (bounds[(sign[1])*3 + 1] - ds[1]) * inv_direction[1]
+    tymax = (bounds[(1-sign[1])*3+1] - ds[1]) * inv_direction[1]
+    if ( (tmin > tymax) or (tymin > tmax) ):
+        return 0
+    if (tymin > tmin):
+        tmin = tymin
+    if (tymax < tmax):
+        tmax = tymax
+    if not inv_direction[2] == 1./_VSMALL:
+        tzmin = (bounds[(sign[2])*3+2] - ds[2]) * inv_direction[2]
+        tzmax = (bounds[(1-sign[2])*3+2] - ds[2]) * inv_direction[2]
+    else:
+        tzmin = Cnan
+        tzmax = Cnan
+    if ( (tmin > tzmax) or (tzmin > tmax) ):
+        return 0
+    if (tzmin > tmin):
+        tmin = tzmin
+    if (tzmax < tmax):
+        tmax = tzmax
+    if countin and (tmin < 0.) and (tmax < 0.):
+        return 0
+    elif not countin and tmin < 0:
+        return 0
+
+    res = (tmin < t0) and (tmax > -t0)
+    return  res
+
+
+# ==============================================================================
+# =  Raytracing basic tools: intersection ray and triangle (in 3d space)
+# ==============================================================================
+cdef inline bint inter_ray_triangle(const double[3] ray_orig,
+                                    const double[3] ray_vdir,
+                                    const double* vert0,
+                                    const double* vert1,
+                                    const double* vert2) nogil:
+    cdef int ii
+    cdef double det, invdet, u, v
+    cdef double[3] edge1, edge2
+    cdef double[3] pvec, tvec, qvec
+    #...
+    for ii in range(3):
+        edge1[ii] = vert1[ii] - vert0[ii]
+        edge2[ii] = vert2[ii] - vert0[ii]
+    # begin calculating determinant  also used to calculate U parameter
+    _bgt.compute_cross_prod(ray_vdir, edge2, pvec)
+    # if determinant is near zero ray lies in plane of triangle
+    det = _bgt.compute_dot_prod(edge1, pvec)
+    if Cabs(det) < _VSMALL:
+        return False
+    invdet = 1./det
+    # calculate distance from vert to ray origin
+    for ii in range(3):
+        tvec[ii] = ray_orig[ii] - vert0[ii]
+    # calculate U parameter and test bounds
+    u = _bgt.compute_dot_prod(tvec, pvec) * invdet
+    if u < 0. or u > 1.:
+        return False
+    # prepare to test V parameter
+    _bgt.compute_cross_prod(tvec, edge1, qvec)
+    # calculate V parameter and test bounds
+    v = _bgt.compute_dot_prod(ray_vdir, qvec) * invdet
+    if v < 0. or u + v > 1.:
+        return False
+    return True
+
+# ==============================================================================
+# =  Raytracing on a Torus
+# ==============================================================================
 cdef inline void raytracing_inout_struct_tor(int num_los,
                                              double[:,::1] ray_vdir,
                                              double[:,::1] ray_orig,
@@ -591,7 +618,8 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         # We test if it is really necessary to compute the inter
                         # ie. we check if the ray intersects the bounding box
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
-                                                        &lbounds[(ind_struct + jj)*6],
+                                                        &lbounds[(ind_struct
+                                                                  + jj)*6],
                                                         loc_org,
                                                         True)
                         if not inter_bbox:
@@ -599,7 +627,8 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                         # We check that the bounding box is not "behind"
                         # the last POut encountered
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
-                                                        &lbounds[(ind_struct + jj)*6],
+                                                        &lbounds[(ind_struct
+                                                                  + jj)*6],
                                                         last_pout, False)
                         if inter_bbox:
                             continue
@@ -609,8 +638,8 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                                    loc_dir,
                                                    &lstruct_polyx[totnvert],
                                                    &lstruct_polyy[totnvert],
-                                                   &lstruct_normx[totnvert - ii],
-                                                   &lstruct_normy[totnvert - ii],
+                                                   &lstruct_normx[totnvert-ii],
+                                                   &lstruct_normy[totnvert-ii],
                                                    nvert-1,
                                                    lim_is_none,
                                                    lim_min, lim_max,
@@ -1115,13 +1144,12 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
                                         and is_in_struct)
 
 # ==============================================================================
-# =  Raytrcaing on a Cylinder (Linear case)
+# =  Raytracing on a Cylinder (Linear case)
 # ==============================================================================
-
 cdef inline void raytracing_inout_struct_lin(int Nl,
                                              double[:,::1] Ds,
                                              double [:,::1] us,
-                                             int Ns, # VIn.shape[1]
+                                             int Ns,
                                              double* polyx_tab,
                                              double* polyy_tab,
                                              double* normx_tab,
@@ -1133,11 +1161,11 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                                              int[::1] indout_tab,
                                              double EpsPlane,
                                              int ind_struct,
-                                             int ind_lim_struct):
+                                             int ind_lim_struct) nogil:
 
     cdef bint is_in_path
     cdef int ii=0, jj=0
-    cdef double kin, kout, scauVin, q, X, sca
+    cdef double kin, kout, scauVin, q, X, sca, k
     cdef int indin=0, indout=0, Done=0
 
     if ind_struct == 0 and ind_lim_struct == 0 :
@@ -1180,9 +1208,10 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                                     kin = k
                                     indin = jj
                     else:
-                        from warnings import warn
-                        warn("The polygon has double identical points",
-                             Warning)
+                        with gil:
+                            from warnings import warn
+                            warn("The polygon has double identical points",
+                                 Warning)
         # For two faces
         # Only if plane not parallel to line
         if Cabs(us[0,ii])>EpsPlane:
@@ -1261,9 +1290,8 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
 
 
 # ==============================================================================
-# =  Raytrcaing on a Torus only KMin and KMax
+# =  Raytracing on a Torus only KMin and KMax
 # ==============================================================================
-
 cdef inline void raytracing_minmax_struct_tor(int num_los,
                                              double[:,::1] ray_vdir,
                                              double[:,::1] ray_orig,
@@ -1298,10 +1326,10 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
        LOS normalized direction vector
     ray_orig : (3, num_los) double array
        LOS origin points coordinates
-    coeff_inter_out : (num_los) double array <INOUT>
+    coeff_inter_out : (num_los*num_surf) double array <INOUT>
        Coefficient of exit (kout) of the last point of intersection for each LOS
        with the global geometry (with ALL structures)
-    coeff_inter_in : (num_los) double array <INOUT>
+    coeff_inter_in : (num_los*num_surf) double array <INOUT>
        Coefficient of entry (kin) of the last point of intersection for each LOS
        with the global geometry (with ALL structures). If intersection at origin
        k = 0, if no intersection k = NAN
@@ -1353,7 +1381,6 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
     cdef int ind_los, ii, jj, kk
     cdef bint lim_is_none
     cdef bint found_new_kout
-    cdef bint inter_bbox
     cdef double[3] dummy
     cdef int[1] silly
     cdef double* kpout_loc = NULL
@@ -1406,8 +1433,8 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
                                                   surf_polyy,
                                                   surf_normx,
                                                   surf_normy,
-                                                  npts_poly,
-                                                  is_limited,
+                                                  npts_poly-1,
+                                                  not is_limited,
                                                   langles[0], langles[1],
                                                   forbidbis,
                                                   upscaDp, upar2,
@@ -1431,9 +1458,8 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
     return
 
 # ==============================================================================
-# =  Raytrcaing on a Cylinder only KMin and KMax
+# =  Raytracing on a Cylinder only KMin and KMax
 # ==============================================================================
-
 cdef inline void raytracing_minmax_struct_lin(int Nl,
                                              double[:,::1] Ds,
                                              double [:,::1] us,
@@ -1445,17 +1471,19 @@ cdef inline void raytracing_minmax_struct_lin(int Nl,
                                              double L0, double L1,
                                              double* kin_tab,
                                              double* kout_tab,
-                                             double EpsPlane):
+                                             double EpsPlane) nogil:
     cdef bint is_in_path
     cdef int ii=0, jj=0
-    cdef double kin, kout, scauVin, q, X, sca
+    cdef double kin, kout, scauVin, q, X, sca, k
     cdef int indin=0, indout=0, Done=0
 
     kin_tab[ii]  = Cnan
     kout_tab[ii] = Cnan
 
     for ii in range(0,Nl):
-        kout, kin, Done = 1.e12, 1e12, 0
+        kout = 1.e12
+        kin  = 1.e12
+        Done = 0
         # For cylinder
         for jj in range(0,Ns):
             scauVin = us[1,ii] * normx_tab[jj] + us[2,ii] * normy_tab[jj]
