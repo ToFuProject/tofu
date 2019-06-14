@@ -473,7 +473,7 @@ def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True,
     cdef double dLr = (LMinMax[1] - LMinMax[0])/N
     # Get desired limits if any
     cdef double[::1] DLc, L
-    cdef long [::1] indL
+    cdef long long [::1] indL
     #cdef np.ndarray[double,ndim=1] indL, L
     cdef double abs0, abs1, A
     cdef int nL0, nL1, Nind, ii, jj
@@ -512,7 +512,7 @@ def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True,
         jj = nL0 + ii
         indL[ii] = jj
         L[ii] = LMinMax[0] + (0.5 + (<double>jj))*dLr
-    return np.asarray(L), dLr, np.asarray(indL), <long>N
+    return np.asarray(L), dLr, np.asarray(indL), <long long>N
 
 
 ########################################################
@@ -528,11 +528,11 @@ def _Ves_meshCross_FromD(double[::1] MinMax1, double[::1] MinMax2, double d1,
                          VPoly=None, double margin=_VSMALL):
     cdef double[::1] X1, X2
     cdef double dX1, dX2
-    cdef long[::1] ind1, ind2
+    cdef long long[::1] ind1, ind2
     cdef int N1, N2, n1, n2, ii, jj, nn
     cdef np.ndarray[double,ndim=2] Pts
     cdef np.ndarray[double,ndim=1] dS
-    cdef np.ndarray[long,ndim=1] ind
+    cdef np.ndarray[long long,ndim=1] ind
 
     X1, d1r, ind1, N1 = _Ves_mesh_dlfromL_cython(MinMax1, d1, D1, Lim=True,
                                                  dLMode=dSMode, margin=margin)
@@ -562,11 +562,11 @@ def _Ves_meshCross_FromD(double[::1] MinMax1, double[::1] MinMax2, double d1,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
-                           double d2, long[::1] ind, str dSMode='abs',
+                           double d2, long long[::1] ind, str dSMode='abs',
                            double margin=_VSMALL):
     cdef double[::1] X1, X2
     cdef double dX1, dX2
-    cdef long[::1] bla
+    cdef long long[::1] bla
     cdef int N1, N2, NP=ind.size, ii, i1, i2
     cdef np.ndarray[double,ndim=2] Pts
     cdef np.ndarray[double,ndim=1] dS
@@ -595,8 +595,8 @@ def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None,
     cdef int ii, jj, nn=0, NP=VPoly.shape[1]
     cdef double[::1] LMinMax, L
     cdef double v0, v1, dlr
-    cdef long[::1] indL
-    cdef np.ndarray[long,ndim=1] N, ind
+    cdef long long[::1] indL
+    cdef np.ndarray[long long,ndim=1] N, ind
     cdef np.ndarray[double,ndim=1] dLr, Rref
     cdef np.ndarray[double,ndim=2] PtsCross
     cdef list LPtsCross=[], LdLr=[], Lind=[], LRref=[], VPolybis=[]
@@ -678,7 +678,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     #cdef double[::1] dPhi, NRZPhi_cum0, indPhi, phi
     cdef double dRr0, dRr, dZr, DPhi0, DPhi1
     cdef double abs0, abs1, phi, indiijj
-    cdef long[::1] indR0, indR, indZ, Phin, NRPhi0
+    cdef long long[::1] indR0, indR, indZ, Phin, NRPhi0
     cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj, nPhi0, nPhi1, zz
     cdef int NP, NRPhi_int, Rratio
     cdef np.ndarray[double,ndim=2] Pts, indI
@@ -722,7 +722,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
                 indR0ii = jj
                 break
             else:
-                nRPhi0 += <long>Cceil(2.*Cpi*R0[jj]/dRPhi)
+                nRPhi0 += <long long>Cceil(2.*Cpi*R0[jj]/dRPhi)
                 NRPhi0[ii] = nRPhi0*NZ
         # Get indices of phi
         # Get the extreme indices of the mesh elements that really need to
@@ -760,7 +760,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     ind = np.empty((NP,))
     dV = np.empty((NP,))
     # Compute Pts, dV and ind
-    # This triple loop is the longest part, it takes ~90% of the CPU time
+    # This triple loop is the long longest part, it takes ~90% of the CPU time
     NP = 0
     if Out.lower()=='(x,y,z)':
         for ii in range(0,Rn):
@@ -815,15 +815,15 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
 @cython.boundscheck(False)
 def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
                                      double[::1] RMinMax, double[::1] ZMinMax,
-                                     long[::1] ind, str Out='(X,Y,Z)',
+                                     long long[::1] ind, str Out='(X,Y,Z)',
                                      double margin=_VSMALL):
     """ Return the desired submesh indicated by the (numerical) indices,
     for the desired resolution (dR,dZ,dRphi)
     """
     cdef double[::1] R, Z, dRPhirRef, dPhir, Ru, dRPhir
     cdef double dRr, dZr, phi
-    cdef long[::1] indR, indZ, NRPhi0, NRPhi
-    cdef long NR, NZ, Rn, Zn, NP=len(ind), Rratio
+    cdef long long[::1] indR, indZ, NRPhi0, NRPhi
+    cdef long long NR, NZ, Rn, Zn, NP=len(ind), Rratio
     cdef int ii=0, jj=0, iiR, iiZ, iiphi
     cdef double[:,::1] Phi
     cdef np.ndarray[double,ndim=2] Pts=np.empty((3,NP))
@@ -842,7 +842,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
     NRPhi, NRPhi0 = np.empty((NR,),dtype=int), np.empty((NR+1,),dtype=int)
     Rratio = int(Cceil(R[NR-1]/R[0]))
     for ii in range(0,NR):
-        NRPhi[ii] = <long>(Cceil(2.*Cpi*R[ii]/dRPhi))
+        NRPhi[ii] = <long long>(Cceil(2.*Cpi*R[ii]/dRPhi))
         dRPhirRef[ii] = 2.*Cpi*R[ii]/<double>(NRPhi[ii])
         dPhir[ii] = 2.*Cpi/<double>(NRPhi[ii])
         if ii==0:
@@ -905,10 +905,10 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
     """
     cdef double[::1] X, Y, Z
     cdef double dXr, dYr, dZr, dV
-    cdef np.ndarray[long,ndim=1] indX, indY, indZ
+    cdef np.ndarray[long long,ndim=1] indX, indY, indZ
     cdef int NX, NY, NZ, Xn, Yn, Zn
     cdef np.ndarray[double,ndim=2] Pts
-    cdef np.ndarray[long,ndim=1] ind
+    cdef np.ndarray[long long,ndim=1] ind
 
     # Get the actual X, Y and Z resolutions and mesh elements
     X, dXr, indX, NX = _Ves_mesh_dlfromL_cython(XMinMax, dX, DX, Lim=True,
@@ -938,7 +938,7 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
 def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
                                      double[::1] XMinMax, double[::1] YMinMax,
                                      double[::1] ZMinMax,
-                                     np.ndarray[long,ndim=1] ind,
+                                     np.ndarray[long long,ndim=1] ind,
                                      double margin=_VSMALL):
     """ Return the desired submesh indicated by the limits (DX,DY,DZ),
     for the desired resolution (dX,dY,dZ)
@@ -946,8 +946,8 @@ def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
 
     cdef np.ndarray[double,ndim=1] X, Y, Z
     cdef double dXr, dYr, dZr, dV
-    cdef long[::1] bla
-    cdef np.ndarray[long,ndim=1] indX, indY, indZ
+    cdef long long[::1] bla
+    cdef np.ndarray[long long,ndim=1] indX, indY, indZ
     cdef int NX, NY, NZ, Xn, Yn, Zn
     cdef np.ndarray[double,ndim=2] Pts
 
@@ -1070,12 +1070,12 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
     cdef double[::1] R, Z, dPhir, NRPhi#, dPhi, NRZPhi_cum0, indPhi, phi
     cdef double dRr0, dRr, dZr, DPhi0, DPhi1, DDPhi, DPhiMinMax
     cdef double abs0, abs1, phi, indiijj
-    cdef long[::1] indR0, indR, indZ, Phin, NRPhi0, Indin
+    cdef long long[::1] indR0, indR, indZ, Phin, NRPhi0, Indin
     cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj0=0, jj, nPhi0, nPhi1
     cdef int zz, NP, NRPhi_int, Rratio, Ln
     cdef np.ndarray[double,ndim=2] Pts, indI, PtsCross, VPbis
     cdef np.ndarray[double,ndim=1] R0, dS, ind, dLr, Rref, dRPhir, iii
-    cdef np.ndarray[long,ndim=1] indL, NL, indok
+    cdef np.ndarray[long long,ndim=1] indL, NL, indok
 
     # Pre-format input
     if PhiMinMax is None:
@@ -1150,7 +1150,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
                     indR0ii = jj0
                     break
                 else:
-                    nRPhi0 += <long>Cceil(DPhiMinMax*R0[jj0]/dRPhi)
+                    nRPhi0 += <long long>Cceil(DPhiMinMax*R0[jj0]/dRPhi)
                     NRPhi0[ii] = nRPhi0
             # Get indices of phi
             # Get the extreme indices of the mesh elements that really need to
@@ -1182,13 +1182,13 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         # Finish counting to get total number of points
         if jj0<=NR0-1:
             for jj0 in range(indR0ii,NR0):
-                nRPhi0 += <long>Cceil(DPhiMinMax*R0[jj0]/dRPhi)
+                nRPhi0 += <long long>Cceil(DPhiMinMax*R0[jj0]/dRPhi)
 
         # Compute Pts, dV and ind
         Pts = np.nan*np.ones((3,NP))
         ind = np.nan*np.ones((NP,))
         dS = np.nan*np.ones((NP,))
-        # This triple loop is the longest part, it takes ~90% of the CPU time
+        # This triple loop is the long longest part, it takes ~90% of the CPU time
         NP = 0
         if Out.lower()=='(x,y,z)':
             for ii in range(0,Ln):
@@ -1233,20 +1233,20 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
-                                     double[:,::1] VPoly, long[::1] ind,
+                                     double[:,::1] VPoly, long long[::1] ind,
                                      double DIn=0., VIn=None, PhiMinMax=None,
                                      str Out='(X,Y,Z)', double margin=_VSMALL):
     """ Return the desired submesh indicated by the (numerical) indices,
     for the desired resolution (dR,dZ,dRphi)
     """
     cdef double[::1] dRPhirRef, dPhir
-    cdef long[::1] indL, NRPhi0, NRPhi
-    cdef long NR, NZ, Rn, Zn, NP=len(ind), Rratio
+    cdef long long[::1] indL, NRPhi0, NRPhi
+    cdef long long NR, NZ, Rn, Zn, NP=len(ind), Rratio
     cdef int ii=0, jj=0, iiL, iiphi, Ln, nn=0, kk=0, nRPhi0
     cdef double[:,::1] Phi
     cdef np.ndarray[double,ndim=2] Pts=np.empty((3,NP)), indI, PtsCross, VPbis
     cdef np.ndarray[double,ndim=1] R0, dS=np.empty((NP,)), dLr, dRPhir, Rref
-    cdef np.ndarray[long,ndim=1] NL
+    cdef np.ndarray[long long,ndim=1] NL
 
     # Pre-format input
     if PhiMinMax is None:
@@ -1272,7 +1272,7 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
     NRPhi, NRPhi0 = np.empty((Ln,),dtype=int), np.empty((Ln,),dtype=int)
     Rratio = int(Cceil(np.max(RrefRef)/np.min(RrefRef)))
     for ii in range(0,Ln):
-        NRPhi[ii] = <long>(Cceil(DPhiMinMax*RrefRef[ii]/dRPhi))
+        NRPhi[ii] = <long long>(Cceil(DPhiMinMax*RrefRef[ii]/dRPhi))
         dRPhirRef[ii] = DPhiMinMax*RrefRef[ii]/<double>(NRPhi[ii])
         dPhir[ii] = DPhiMinMax/<double>(NRPhi[ii])
         if ii==0:
@@ -1316,7 +1316,7 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
                 dLr[iiL] = dLrRef[iiL]
                 Rref[iiL] = RrefRef[iiL]
     return Pts, dS, NL, dLr[dLr>-0.5], Rref[Rref>-0.5], \
-      dRPhir[dRPhir>-0.5], <long>nRPhi0, VPbis
+      dRPhir[dRPhir>-0.5], <long long>nRPhi0, VPbis
 
 
 
@@ -1346,7 +1346,7 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
                                            Catan2(Csin(PhiMinMax[1]),
                                                   Ccos(PhiMinMax[1]))])
     cdef np.ndarray[double, ndim=1] R0, Z0, dsF, dSM, dLr, Rref, dRPhir, dS
-    cdef np.ndarray[long,ndim=1] indR0, indZ0, iind, iindF, indM, NL, ind
+    cdef np.ndarray[long long,ndim=1] indR0, indZ0, iind, iindF, indM, NL, ind
     cdef np.ndarray[double,ndim=2] ptsrz, pts, PtsM, VPbis, Pts
     cdef list LPts=[], LdS=[], Lind=[]
 
@@ -1482,7 +1482,7 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
 @cython.boundscheck(False)
 def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
                                            double dRPhi, double[:,::1] VPoly,
-                                           np.ndarray[long,ndim=1] ind,
+                                           np.ndarray[long long,ndim=1] ind,
                                            double DIn=0., VIn=None,
                                            str Out='(X,Y,Z)',
                                            double margin=_VSMALL):
@@ -1495,7 +1495,7 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
                                            Catan2(Csin(PhiMinMax[1]),
                                                   Ccos(PhiMinMax[1]))])
     cdef np.ndarray[double, ndim=1] R0, Z0, dsF, dSM, dLr, Rref, dRPhir, dS
-    cdef np.ndarray[long,ndim=1] bla, indR0, indZ0, iind, iindF, indM, NL
+    cdef np.ndarray[long long,ndim=1] bla, indR0, indZ0, iind, iindF, indM, NL
     cdef np.ndarray[double,ndim=2] ptsrz, pts, PtsM, VPbis, Pts
     cdef list LPts=[], LdS=[], Lind=[]
 
@@ -1618,7 +1618,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
     cdef int NY0, NZ0, Y0n, Z0n, NX, Xn, Ln, NR0, Inter=1
     cdef np.ndarray[double,ndim=2] Pts, PtsCross, VPbis
     cdef np.ndarray[double,ndim=1] dS, dLr, Rref
-    cdef np.ndarray[long,ndim=1] indX, indY0, indZ0, indL, NL, ind
+    cdef np.ndarray[long long,ndim=1] indX, indY0, indZ0, indL, NL, ind
 
     # Preformat
     # Adjust limits
@@ -1715,7 +1715,7 @@ def _Ves_Smesh_Lin_SubFromD_cython(double[::1] XMinMax, double dL, double dX,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
-                                     double[:,::1] VPoly, np.ndarray[long,ndim=1] ind,
+                                     double[:,::1] VPoly, np.ndarray[long long,ndim=1] ind,
                                      double DIn=0., VIn=None, double margin=_VSMALL):
     " Return the desired surfacic submesh indicated by ind, for the desired resolution (dX,dL) "
     cdef double dXr, dY0r, dZ0r
@@ -1723,7 +1723,7 @@ def _Ves_Smesh_Lin_SubFromInd_cython(double[::1] XMinMax, double dL, double dX,
     cdef list LPts, LdS
     cdef np.ndarray[double,ndim=2] Pts, PtsCross, VPbis
     cdef np.ndarray[double,ndim=1] X, Y0, Z0, dS, dLr, Rref
-    cdef np.ndarray[long,ndim=1] indX, indY0, indZ0, indL, NL, ii
+    cdef np.ndarray[long long,ndim=1] indX, indY0, indZ0, indL, NL, ii
 
     # Get the mesh for the faces
     Y0, dY0r, bla, NY0 = _Ves_mesh_dlfromL_cython(np.array([np.min(VPoly[0,:]),np.max(VPoly[0,:])]), dL, DL=None, Lim=True, margin=margin)
@@ -1811,14 +1811,14 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                               double[:, ::1] ray_vdir,
                               double[:, ::1] ves_poly,
                               double[:, ::1] ves_norm,
-                              long[::1] lstruct_nlim=None,
+                              long long[::1] lstruct_nlim=None,
                               double[::1] ves_lims=None,
                               double[::1] lstruct_polyx=None,
                               double[::1] lstruct_polyy=None,
                               list lstruct_lims=None,
                               double[::1] lstruct_normx=None,
                               double[::1] lstruct_normy=None,
-                              long[::1] lnvert=None,
+                              long long[::1] lnvert=None,
                               int nstruct_tot=0,
                               int nstruct_lim=0,
                               double rmin=-1,
@@ -1904,7 +1904,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     cdef array coeff_inter_out = clone(array('d'), num_los, True)
     cdef array ind_inter_out = clone(array('i'), num_los * 3, True)
     cdef int *llimits = NULL
-    cdef long *lsz_lim = NULL
+    cdef long long *lsz_lim = NULL
     cdef int[1] llim_ves
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
@@ -2021,7 +2021,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
         if nstruct_tot > 0:
             ind_struct = 0
             llimits = <int *>malloc(nstruct_tot * sizeof(int))
-            lsz_lim = <long *>malloc(nstruct_lim * sizeof(long))
+            lsz_lim = <long long *>malloc(nstruct_lim * sizeof(long long))
             for ii in range(nstruct_lim):
                 # For fast accessing
                 len_lim = lstruct_nlim[ii]
@@ -2155,15 +2155,15 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
                                              double[::1] coeff_inter_out,
                                              double[::1] coeff_inter_in,
                                              double[::1] vperp_out,
-                                             long[::1] lstruct_nlim,
+                                             long long[::1] lstruct_nlim,
                                              int[::1] ind_inter_out,
                                              bint forbid0, bint forbidbis,
                                              double rmin, double rmin2,
                                              double crit2_base,
                                              int nstruct_lim,
                                              double* lbounds, double* langles,
-                                             int* lis_limited, long* lnvert,
-                                             long* lsz_lim,
+                                             int* lis_limited, long long* lnvert,
+                                             long long* lsz_lim,
                                              double* lstruct_polyx,
                                              double* lstruct_polyy,
                                              double* lstruct_normx,
@@ -2622,7 +2622,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                                 double[:, :, ::1] ves_norm,
                                 int num_surf,
                                 double[::1] ves_lims=None,
-                                long[::1] lnvert=None,
+                                long long[::1] lnvert=None,
                                 double rmin=-1,
                                 double eps_uz=_SMALL, double eps_a=_VSMALL,
                                 double eps_vz=_VSMALL, double eps_b=_VSMALL,
@@ -2693,7 +2693,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     cdef array coeff_inter_in  = clone(array('d'), num_los * num_surf, True)
     cdef array coeff_inter_out = clone(array('d'), num_los * num_surf, True)
     cdef int *llimits = NULL
-    cdef long *lsz_lim = NULL
+    cdef long long *lsz_lim = NULL
     cdef bint are_limited
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
@@ -3928,7 +3928,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                    RMin=RMin, EpsUz=EpsUz, EpsVz=EpsVz,
                                    EpsA=EpsA, EpsB=EpsB, EpsPlane=EpsPlane)[1]
 
-        # k = coordinate (in m) along the line from D
+        # k = coordinate (in m) along long the line from D
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
         assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
         # Structural optimzation : do everything in one big for loop and only
@@ -4026,7 +4026,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     # Case with unique dL
     if not hasattr(dL,'__iter__'):
         if dLMode=='rel':
-            N = <long>(Cceil(1./dL))
+            N = <long long>(Cceil(1./dL))
             if method=='sum':
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
@@ -4064,7 +4064,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     k[ii] = kk
 
             else:
-                N = 2**(<long>(Cceil(Clog2(<double>N))))
+                N = 2**(<long long>(Cceil(Clog2(<double>N))))
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     dl = (DLs[1,ii]-dl0)/<double>N
@@ -4087,7 +4087,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL))
                     dl = (DLs[1,ii]-dl0)/<double>N
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
@@ -4107,7 +4107,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL))
                     N = N if N%2==0 else N+1
                     dl = (DLs[1,ii]-dl0)/<double>N
                     dLr[ii] = dl
@@ -4128,8 +4128,8 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
-                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = 2**(<long long>(Cceil(Clog2(<double>N))))
                     dl = (DLs[1,ii]-dl0)/<double>N
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
@@ -4150,7 +4150,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
         if dLMode=='rel':
             if method=='sum':
                 for ii in range(0,ND):
-                    N = <long>(Cceil(1./dL[ii]))
+                    N = <long long>(Cceil(1./dL[ii]))
                     dl0 = DLs[0,ii]
                     dl = (DLs[1,ii]-dl0)/<double>N
                     dLr[ii] = dl
@@ -4168,7 +4168,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                     k[ii] = kk
             elif method=='simps':
                 for ii in range(0,ND):
-                    N = <long>(Cceil(1./dL[ii]))
+                    N = <long long>(Cceil(1./dL[ii]))
                     N = N if N%2==0 else N+1
                     dl0 = DLs[0,ii]
                     dl = (DLs[1,ii]-dl0)/<double>N
@@ -4188,8 +4188,8 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
 
             else:
                 for ii in range(0,ND):
-                    N = <long>(Cceil(1./dL[ii]))
-                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    N = <long long>(Cceil(1./dL[ii]))
+                    N = 2**(<long long>(Cceil(Clog2(<double>N))))
                     dl0 = DLs[0,ii]
                     dl = (DLs[1,ii]-dl0)/<double>N
                     dLr[ii] = dl
@@ -4211,7 +4211,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
                     dl = (DLs[1,ii]-dl0)/<double>N
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
@@ -4231,7 +4231,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
                     N = N if N%2==0 else N+1
                     dl = (DLs[1,ii]-dl0)/<double>N
                     dLr[ii] = dl
@@ -4252,8 +4252,8 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
-                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = 2**(<long long>(Cceil(Clog2(<double>N))))
                     dl = (DLs[1,ii]-dl0)/<double>N
                     dLr[ii] = dl
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
@@ -4429,7 +4429,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
     # Case with unique dL
     if not hasattr(dL,'__iter__'):
         if dLMode=='rel':
-            N = <long>(Cceil(1./dL))
+            N = <long long>(Cceil(1./dL))
             if method=='sum':
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
@@ -4465,7 +4465,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                                               x=None,dx=dl,axis=axm)
 
             else:
-                N = 2**(<long>(Cceil(Clog2(<double>N))))
+                N = 2**(<long long>(Cceil(Clog2(<double>N))))
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     dl = (DLs[1,ii]-dl0)/<double>N
@@ -4487,7 +4487,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL))
                     dl = (DLs[1,ii]-dl0)/<double>N
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
@@ -4505,7 +4505,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL))
                     N = N if N%2==0 else N+1
                     dl = (DLs[1,ii]-dl0)/<double>N
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
@@ -4525,8 +4525,8 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL))
-                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL))
+                    N = 2**(<long long>(Cceil(Clog2(<double>N))))
                     dl = (DLs[1,ii]-dl0)/<double>N
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
@@ -4546,7 +4546,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
         if dLMode=='rel':
             if method=='sum':
                 for ii in range(0,ND):
-                    N = <long>(Cceil(1./dL[ii]))
+                    N = <long long>(Cceil(1./dL[ii]))
                     dl0 = DLs[0,ii]
                     dl = (DLs[1,ii]-dl0)/<double>N
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
@@ -4562,7 +4562,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                     sig[:,ii] = np.sum(ff(pts,t=t,**fkwdargs),axis=axm)*dl
             elif method=='simps':
                 for ii in range(0,ND):
-                    N = <long>(Cceil(1./dL[ii]))
+                    N = <long long>(Cceil(1./dL[ii]))
                     N = N if N%2==0 else N+1
                     dl0 = DLs[0,ii]
                     dl = (DLs[1,ii]-dl0)/<double>N
@@ -4581,8 +4581,8 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
 
             else:
                 for ii in range(0,ND):
-                    N = <long>(Cceil(1./dL[ii]))
-                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    N = <long long>(Cceil(1./dL[ii]))
+                    N = 2**(<long long>(Cceil(Clog2(<double>N))))
                     dl0 = DLs[0,ii]
                     dl = (DLs[1,ii]-dl0)/<double>N
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
@@ -4603,7 +4603,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
                     dl = (DLs[1,ii]-dl0)/<double>N
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
@@ -4621,7 +4621,7 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
                     N = N if N%2==0 else N+1
                     dl = (DLs[1,ii]-dl0)/<double>N
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
@@ -4641,8 +4641,8 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
                 for ii in range(0,ND):
                     dl0 = DLs[0,ii]
                     # Compute the number of intervals to satisfy the resolution
-                    N = <long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
-                    N = 2**(<long>(Cceil(Clog2(<double>N))))
+                    N = <long long>(Cceil((DLs[1,ii]-dl0)/dL[ii]))
+                    N = 2**(<long long>(Cceil(Clog2(<double>N))))
                     dl = (DLs[1,ii]-dl0)/<double>N
                     D0, D1, D2 = Ds[0,ii], Ds[1,ii], Ds[2,ii]
                     u0, u1, u2 = us[0,ii], us[1,ii], us[2,ii]
@@ -6978,7 +6978,7 @@ def SLOW_LOS_Calc_PInOut_VesStruct(Ds, dus,
                                                  EpsA=EpsA, EpsB=EpsB,
                                                  EpsPlane=EpsPlane)
 
-        # k = coordinate (in m) along the line from D
+        # k = coordinate (in m) along long the line from D
         kPOut = np.sqrt(np.sum((POut-Ds)**2,axis=0))
         kPIn = np.sqrt(np.sum((PIn-Ds)**2,axis=0))
         assert np.allclose(kPOut,np.sum((POut-Ds)*dus,axis=0),equal_nan=True)
