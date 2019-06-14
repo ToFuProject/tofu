@@ -1858,7 +1858,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                         idteq = lidalready[0]
 
                     dteq[ii][idteq] = lData[ii].dextra[k]['t']
-                idteq = list(dteq[ii])[0]
+                idteq = list(dteq[ii].keys())[0]
 
                 dlextra[k][ii] = dict([(kk,v)
                                         for kk,v in lData[ii].dextra[k].items()
@@ -2028,10 +2028,13 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                           'otherid':lXother[ii], 'indother':lindtX[ii]}
         if lis2D[ii]:
             dref[lidX[ii]]['2d'] = (lx1[ii],lx2[ii])
-    if len(list(dteq[0].items())) == 0:
-        idteq, teq = lidt[0], lt[0]
+
+    for ii in range(0,nDat):
+        if len(list(dteq[ii])) > 0:
+            idteq, teq = list(dteq[ii].items())[0]
+            break
     else:
-        idteq, teq = list(dteq[0].items())[0]
+        idteq, teq = lidt[0], lt[0]
     dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
 
 
@@ -2226,7 +2229,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                         dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
                                                         'lrid':[lidt[ii],lidX[ii]]}},
                                     'drefid':{lidX[ii]:jj, lidt[ii]:ll}}
-
 
     ##################
     # Instanciate KeyHandler
@@ -3476,7 +3478,6 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
                                         ms=ms, mfc='None', zorder=10)
                 dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
                             'drefid':{idX:jj}}
-
 
     # Instanciate KeyHandler
     can = fig.canvas
