@@ -208,14 +208,6 @@ extensions = [ Extension(name="tofu.geom."+gg,
 extensions = cythonize(extensions, annotate=True)
 
 
-# print()
-# build = self.get_finalized_command('build')
-# path = sys.path
-# path.insert(0, os.path.abspath(build.build_lib))
-# env = dict((str(k), str(v)) for k, v in os.environ.items())
-# print(os.pathsep.join([sys.path, env["PYTHONPATH"]]))
-# print(".....right here")
-
 setup(
     name='tofu',
     #version="1.2.27",
