@@ -205,7 +205,7 @@ cdef inline void earclipping_poly(double* vignett,
     for ii in range(nvert):
         working_index.push_back(ii)
     # .. Loop ..................................................................
-    for itri in range(nvert-2):
+    for itri in range(nvert-3):
         iear =  get_one_ear(vignett, &diff[0], &lref[0],
             working_index, loc_nv, nvert)
         wim1 = working_index[iear-1]
@@ -235,11 +235,11 @@ cdef inline void earclipping_poly(double* vignett,
         loc_nv = loc_nv - 1
         working_index.erase(working_index.begin()+iear)
     # we only have three points left, so that is the last triangle:
-    ltri[itri*3]   = working_index[0]
-    ltri[itri*3+1] = working_index[1]
-    ltri[itri*3+2] = working_index[2]
+    ltri[(itri+1)*3]   = working_index[0]
+    ltri[(itri+1)*3+1] = working_index[1]
+    ltri[(itri+1)*3+2] = working_index[2]
     with gil:
-        print("im returning safely")
+        print("im returning safely", itri, working_index[0], working_index[1], working_index[2], working_index.size())
     return
 
 # ==============================================================================
@@ -322,6 +322,7 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
                                  bint* goes_through,
                                  int num_threads=16) nogil:
     cdef int ilos, ivign
+    cdef int ii
     cdef int nvert
     cdef bint inter_bbox
     cdef double* loc_org = NULL
