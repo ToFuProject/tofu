@@ -979,12 +979,14 @@ def test13_LOS_PInOut():
     out = GG.LOS_Calc_kMinkMax_VesStruct(Ds, us,
                                          [VP, VP, VP], [VIn, VIn, VIn], 3,
                                          np.r_[N, N, N])
-    assert(np.allclose(out[0][:nlos],    kPIn))
-    assert(np.allclose(out[0][nlos:2*nlos], kPIn))
-    assert(np.allclose(out[0][2*nlos:],  kPIn))
-    assert(np.allclose(out[1][:nlos],    kPOut))
-    assert(np.allclose(out[1][nlos:2*nlos], kPOut))
-    assert(np.allclose(out[1][2*nlos:],  kPOut))
+    print(out[0], kPIn)
+    print(out[1], kPOut)
+    assert np.allclose(out[0][:nlos],    kPIn)
+    assert np.allclose(out[0][nlos:2*nlos], kPIn)
+    assert np.allclose(out[0][2*nlos:],  kPIn)
+    assert np.allclose(out[1][:nlos],    kPOut)
+    assert np.allclose(out[1][nlos:2*nlos], kPOut)
+    assert np.allclose(out[1][2*nlos:],  kPOut)
     # Toroidal, with Struct
     SL0_or =None
     SL1_or =[np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]]
