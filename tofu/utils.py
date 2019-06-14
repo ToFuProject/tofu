@@ -902,7 +902,6 @@ class ToFuObjectBase(object):
             return out
 
 
-    @abstractmethod
     def get_summary(self, sep='  ', line='-', just='l',
                     table_sep=None, verb=True, return_=False):
         """ Summary description of the object content as a np.array of str """
