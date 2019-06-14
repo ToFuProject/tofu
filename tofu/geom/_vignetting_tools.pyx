@@ -177,7 +177,7 @@ cdef inline int get_one_ear(double* polygon,
                 return i # if not, we found an ear
     # if we havent returned, either, there was an error somerwhere
     with gil:
-        assert False, "Got here but shouldnt have "+str(orig_nvert)+str(nvert)
+        assert False, "Got here but shouldnt have "
     return -1
 
 cdef inline void earclipping_poly(double* vignett,
@@ -239,7 +239,7 @@ cdef inline void earclipping_poly(double* vignett,
         # last but not least update on number of vertices and working indices
         itri = itri + 1
         loc_nv = loc_nv - 1
-        working_index.erase(working_index.begin())#+iear)
+        working_index.erase(working_index.begin()+iear)
     # we only have three points left, so that is the last triangle:
     ltri[itri*3]   = working_index[0]
     ltri[itri*3+1] = working_index[1]
