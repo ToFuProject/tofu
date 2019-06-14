@@ -231,8 +231,6 @@ cdef inline void earclipping_poly(double* vignett,
     ltri[(itri+1)*3]   = working_index[0]
     ltri[(itri+1)*3+1] = working_index[1]
     ltri[(itri+1)*3+2] = working_index[2]
-    with gil:
-        print("im returning safely", itri, working_index[0], working_index[1], working_index[2], working_index.size())
     return
 
 # ==============================================================================
@@ -295,8 +293,6 @@ cdef inline bint inter_ray_poly(const double[3] ray_orig,
             pt3[jj] = vignett[ltri[3*ii+2] + jj * nvert]
         if _rt.inter_ray_triangle(ray_orig, ray_vdir, pt1, pt2, pt3):
             return True
-    with gil:
-        print("false")
     return False
 
 # ==============================================================================
