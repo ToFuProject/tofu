@@ -344,6 +344,10 @@ class img_dir(object):
 ####################################################################
     
     def set_w_dir(self, w_dir):
+        msg = 'The path provided is not correct'
+        msg += 'Please provide the correct path for the working directory'
+        if not os.path.exits(w_dir):
+            raise Exception(msg)
         self.__w_dir = w_dir
         
     def set_shot_name(self,shot_name):
@@ -385,16 +389,13 @@ class img_dir(object):
 #   grayscale conversion method
 ###################################################################
     
-    def to_gray(self, im_out = None, meta_data = None, verb = True):
-        
-        if meta_data == None:
-            meta_data = self.__meta_data
+    def to_gray(self, im_out = None, verb = True):
         
         out_path, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir, 
                                                         self.__w_dir, 
                                                         self.__shot_name, 
                                                         im_out, 
-                                                        meta_data, 
+                                                        self.__meta_data, 
                                                         verb)
         return self.__class__(out_path)
     
@@ -402,16 +403,13 @@ class img_dir(object):
 #   Background removal method
 ####################################################################
     
-    def remove_backgrd(self, im_out = None, meta_data = None, verb = True):
-        
-        if meta_data == None:
-            meta_data = self.__meta_data
+    def remove_backgrd(self, im_out = None, verb = True):
             
         out_path, meta_data = _i_comp.rm_background.rm_back(self.__im_dir,
                                                             self.__w_dir,
                                                             self.__shot_name,
                                                             im_out,
-                                                            meta_data,
+                                                            self.__meta_data,
                                                             verb)
         return self.__class__(out_path)
     
@@ -419,16 +417,13 @@ class img_dir(object):
 #   denoising method for grayscale images
 ####################################################################
         
-    def denoise_gray(self, im_out = None, meta_data = None, verb = True):
-        
-        if meta_data == None:
-            meta_data = self.__meta_data
+    def denoise_gray(self, im_out = None, verb = True):
             
         out_path, meta_data = _i_comp.denoise.denoise(self.__im_dir,
                                                       self.__w_dir,
                                                       self.__shot_name,
                                                       im_out,
-                                                      meta_data,
+                                                      self.__meta_data,
                                                       verb)
         return self.__class__(out_path)
     
@@ -436,16 +431,13 @@ class img_dir(object):
 #  denoising method for color images
 #####################################################################
         
-    def denoise_col(self, im_out = None, meta_data = None, verb = True):
-        
-        if meta_data == None:
-            meta_data = self.__meta_data
-            
+    def denoise_col(self, im_out = None, verb = True):
+
         out_path, meta_data = _i_comp.denoise_col.denoise_col(self.__im_dir,
                                                       self.__w_dir,
                                                       self.__shot_name,
                                                       im_out,
-                                                      meta_data,
+                                                      self.__meta_data,
                                                       verb)
         return self.__class__(out_path)
 
@@ -453,16 +445,13 @@ class img_dir(object):
 #   binary conversion method
 #####################################################################
         
-    def to_bin(self, im_out = None, meta_data = None, verb = True):
-        
-        if meta_data == None:
-            meta_data = self.__meta_data
-            
+    def to_bin(self, im_out = None, verb = True):
+
         out_path, meta_data = _i_comp.to_binary.bin_thresh(self.__im_dir,
                                                       self.__w_dir,
                                                       self.__shot_name,
                                                       im_out,
-                                                      meta_data,
+                                                      self.__meta_data,
                                                       verb)
         return self.__class__(out_path)
 
@@ -486,46 +475,42 @@ class img_dir(object):
 #   dumpro
 #####################################################################        
         
-    def dumpro(self, im_out = None, meta_data = None, verb = True):
-            
-        if meta_data == None:
-            meta_data = self.__meta_data
+    def dumpro(self, im_out = None, verb = True):
+#
+#       denoise, meta_data = _i_comp.denoise_col.denoise_col(self.__im_dir,
+#                                                                 self.__w_dir,
+#                                                                 self.__shot_name,
+#                                                                 im_out,
+#                                                                 meta_data,
+#                                                                 verb)
+#       
 
-        denoise, meta_data = _i_comp.denoise_col.denoise_col(self.__im_dir,
-                                                                 self.__w_dir,
-                                                                 self.__shot_name,
-                                                                 im_out,
-                                                                 meta_data,
-                                                                 verb)
-            
-        self.get_meta_data(meta_data)
-
-        gray, meta_data = _i_comp.conv_gray.conv_gray(denoise,
+        gray, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir,
                                                       self.__w_dir,
                                                       self.__shot_name,
                                                       im_out,
-                                                      meta_data,
+                                                      self.__meta_data,
                                                       verb)
             
         den_gray, meta_data = _i_comp.denoise.denoise(gray,
                                                       self.__w_dir,
                                                       self.__shot_name,
                                                       im_out,
-                                                      meta_data,
+                                                      self.__meta_data,
                                                       verb)
             
         rmback, meta_data = _i_comp.rm_background.rm_back(den_gray,
                                                           self.__w_dir,
                                                           self.__shot_name,
                                                           im_out,
-                                                          meta_data,
+                                                          self.__meta_data,
                                                           verb)
         
         binary, meta_data = _i_comp.to_binary.bin_thresh(rmback,
                                                          self.__w_dir,
                                                          self.__shot_name,
                                                          im_out,
-                                                         meta_data,
+                                                         self.__meta_data,
                                                          verb)
             
             
@@ -570,11 +555,82 @@ class vid_img(Video, img_dir):
 
     Setters:
     --------------------------------------------
+    set_w_dir_shotname
+    set_w_dir
     
+    Getters:
+    --------------------------------------------
+    filename
+    resolution
+    N_frames
+    fps
+    fourcc
+    w_dir
+    meta_data
+    
+    Methods:
+    --------------------------------------------
     
     """
     def __init__(self,filename):
          Video.__init__(self, filename, verb = True)
+         self.__shot_name = ''
+         self.__im_dir = ''
+         
+         
+    
+    
+    def set_im_dir_shotname(self):
+        """Setter for image directory and shotname
+        This function calls the video to image convertor function in image
+        computation package and
+        """
+        self.__im_dir, mt_data ,self.__shot_name = _i_comp.vid2img.video2img(self.__filename,
+                                                                             self.__w_dir, 
+                                                                             None, 
+                                                                             self.__meta_data)
+        
+        return self.__im_dir,self.__shot_name
+    
+    def dumpro(self, im_out= None, verb = True):
+        """This method performs dust movie processing on the video_file
+        It converts the video to image and extracts the shotname and the
+        image directory. Then it 
+        """
+        w_dir = input('Please provide the working directory')
+        vid_img.set_w_dir(w_dir)
+        
+        tlim = input()
+        self.__im_dir, self.__shot_name = vid_img.set_im_dir_shotname()
+        gray, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir,
+                                                      self.__w_dir,
+                                                      self.__shot_name,
+                                                      im_out,
+                                                      self.__meta_data,
+                                                      verb)
+            
+        den_gray, meta_data = _i_comp.denoise.denoise(gray,
+                                                      self.__w_dir,
+                                                      self.__shot_name,
+                                                      im_out,
+                                                      self.__meta_data,
+                                                      verb)
+            
+        rmback, meta_data = _i_comp.rm_background.rm_back(den_gray,
+                                                          self.__w_dir,
+                                                          self.__shot_name,
+                                                          im_out,
+                                                          self.__meta_data,
+                                                          verb)
+        
+        binary, meta_data = _i_comp.to_binary.bin_thresh(rmback,
+                                                         self.__w_dir,
+                                                         self.__shot_name,
+                                                         im_out,
+                                                         self.__meta_data,
+                                                         verb)
+        
+        
          
     
     
