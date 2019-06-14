@@ -1217,6 +1217,21 @@ class Struct(utils.ToFuObject):
 
 
 
+    def save_to_imas(self):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self)
+
+
+
+
+
+
+
+
+
+
+
+
 
 """
 ###############################################################################

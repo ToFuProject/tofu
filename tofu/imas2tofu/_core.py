@@ -2134,9 +2134,10 @@ class MultiIDSLoader(object):
 
 
 
-
-
-
+#############################################################
+#############################################################
+#           Function-oriented interfaces to IdsMultiLoader
+#############################################################
 
 
 def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
@@ -2192,3 +2193,142 @@ def load_Diag(shot=None, run=None, user=None, tokamak=None, version=None,
     return didd.to_Diag(ids=ids, Name=Name, tlim=tlim,
                         dsig=dsig, mainsig=mainsig, indch=indch,
                         config=config, occ=occ, equilibrium=equilibrium, plot=plot)
+
+
+#############################################################
+#############################################################
+#           save_to_imas object-specific functions
+#############################################################
+
+
+def _get_parents2object(cls):
+
+    parents = []
+    while 'object' not in parents:
+        for bb in cls.__bases__:
+            parents.append( bb.__name__ )
+            _get_parents2object(bb)
+
+    return parents
+
+
+def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None, verb=True):
+
+    run_number = '{:04d}'.format(run)
+    ss = ('~' + user + '/public/imasdb/' + tokamak +
+          '/3/0/' + 'ids_' + str(shot) + run_number + '.datafile')
+    shot_file  = os.path.expanduser(ss)
+
+    print(' ')
+    print('shot_file =', shot_file)
+    idd = imas.ids(shot, run)
+    if (os.path.isfile(shot_file)):
+        if verb:
+            print(' ')
+            print('________________> Opening shot pulse file')
+        idd.open_env(user, machine, '3')
+    else:
+        if (user == 'imas_public'):
+            print(' ')
+            print('ERROR IDS file does not exist, the IDS file must be')
+            print('created first for imas_public user')
+            print(' ')
+            raise FileNotFoundError
+        else:
+            if verb:
+                print(' ')
+                print('________________> Creating shot pulse file')
+            idd.create_env(user, machine, '3')
+    return idd
+
+
+def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
+                  occ=None, user=None, tokamak=None, version=None, dryrun=False):
+
+    dfunc = {'Struct':_save_to_imas_Struct}
+
+    cls = obj.__class__
+    parents = _get_parents2object(cls)
+    lc = [k for k,v in dfunc.items() if k in parents]
+    if len(lc) != 1:
+        msg = "save_to_imas() not implemented for class %s !\n"%cls.__name__
+        msg += "Only available for classes and subclasses of:\n"
+        msg += "    - " + "\n    - ".join(dfunc.keys()))
+        raise Exception(msg)
+
+    out = dfunc[lc[0]]( obj )
+    return out
+
+
+def _save_to_imas_Struct( obj,
+                         shot=None, run=None, refshot=None, refrun=None,
+                         occ=None, user=None, tokamak=None, version=None,
+                         dry_run=False, verb=True):
+
+    # Create or open IDS
+    # ------------------
+    idd = _open_create_idd(shot=shot, run=run, refshot=refshot, refrun=refrun,
+                           user=user, tokamak=tokamak, version=version,
+                           verb=verb):
+
+    # Fill in data
+    # ------------------
+    try:
+        # data
+        # --------
+        idd.ece.channel.resize(nchan)
+        tau = 'tau_1keV' in Out['extra'].keys()
+        valid = np.zeros((nt,nchan),dtype=int)
+        for ii in range(0,nchan):
+            idd.ece.channel[ii].name = "{0:02.0f}".format(ii)
+            idd.ece.channel[ii].identifier = ""
+
+        # IDS properties
+        # --------------
+        com = "Processed ECE data (EQUINOX equilibrium + interfero-based ne profile)"
+        idd.ece.ids_properties.comment = com
+        idd.ece.ids_properties.homogeneous_time = 1
+        idd.ece.ids_properties.provider = 'Didier VEZINET, didier.vezinet@cea.fr'
+        idd.ece.ids_properties.creation_date = \
+                          dtm.datetime.today().strftime('%Y%m%d%H%M%S')
+
+        # Code
+        # --------
+        idd.ece.code.name = "diag_ece"
+        idd.ece.code.repository = 'git://repository-irfm.intra.cea.fr/usr/local/git/diag_ece.git'
+        idd.ece.code.version = ece.__version__
+        idd.ece.code.output_flag = np.zeros((nt,),dtype=int)
+        idd.ece.code.parameters = """<crit> {0} </crit>""".format(crit)
+
+    except Exception as err:
+        traceback.print_exc(file=sys.stdout)
+        if len(idd.ece.time) > 0:
+            idd.ece.code.output_flag = -np.ones((nt,),dtype=int)
+        else:
+            idd.ece.code.output_flag.resize(1)
+            idd.ece.code.output_flag[0] = -1
+        raise err
+
+    finally:
+
+        # Put IDS
+        # ------------------
+        if not dry_run:
+            try:
+                idd.ece.put()
+            except Exception as err:
+                msg = str(err)
+                msg += "\n  There was a pb. when putting the ids !"
+                raise Exception(msg)
+            finally:
+                # Close idd
+                idd.close()
+
+        # print info
+        if verb:
+            msg = "  => Saved in "
+            if dry_run:
+                msg += "\n  => Dry run successfull\n"
+                msg += "       (not saved, but whole process tested)"
+            print(msg)
