@@ -34,6 +34,251 @@ except ImportError:
 import computation as _comp
 import image_comp as _i_comp
 import plotting as _plot
+
+
+###################################################################
+###################################################################
+#    For a collection of images
+###################################################################
+
+class img_dir(object):
+    """A class for handeling image processing on a collection of images
+    The input to create class is to pass the path containing all the images
+    inside it.
+    
+    Input:
+    --------------------------------------------
+    filename = path where the images are located
+    
+    Attributes:
+    --------------------------------------------
+    __filename = Path where the images are present
+    __w_dir = Working directory where images can be stored during computation
+    __shot_name = Name of tokomak and the shot number as a single string
+    __meta_data = dictionary containing total frames, fps and frame size of video
+    __reshape = dictionary containing the croping and time slicing of the video
+
+    Methods:
+    --------------------------------------------
+    
+    """
+    
+    def __init__(self, filename):
+        if not os.path.exists(filename):
+            msg = 'The path provided is wrong'
+            msg += 'Please provide the correct path'
+            raise Exception(msg)
+
+        self.__im_dir = filename
+        files = [f for f in os.listdir(filename) if os.path.isfile(os.path.join(filename,f))]
+        img = cv2.imread(filename+files[0])
+        self.__w_dir = None
+        self.__shot_name = None
+        self.__meta_data = {'N_frames' : len(files),
+                            'frame_height': img.shape[0],
+                            'frame_width' : img.shape[1]}
+        self.__reshape = None
+
+####################################################################
+#   setters for attributes
+####################################################################
+    
+    def set_w_dir(self, w_dir):
+        msg = 'The path provided is not correct'
+        msg += 'Please provide the correct path for the working directory'
+        if not os.path.exits(w_dir):
+            raise Exception(msg)
+        self.__w_dir = w_dir
+        
+    def set_shot_name(self,shot_name):
+        self.__shot_name = shot_name
+        
+    def set_meta_data(self, meta_data):
+        self.__meta_data = meta_data
+    
+    def set_reshape(self, reshape):
+        self.__reshape = reshape
+        
+####################################################################
+#   getters for attribiutes
+####################################################################
+
+    @property
+    def im_dir(self):
+        return self.__im_dir
+    
+    @property
+    def w_dir(self):
+        return self.__w_dir
+    
+    @property
+    def shot_name(self):
+        return self.__shot_name
+    
+    @property
+    def meta_data(self):
+        return self.__meta_data
+    
+    @property
+    def resolution(self):
+        height = self.__meta_data.get('frame_height')
+        width = self.__meta_data.get('frame_width')
+        return height,width
+
+###################################################################
+#   image slicing method
+###################################################################    
+    
+    def crop_im(self, tlim, height, width, im_out = None, verb = True):
+        
+        out_path, meta_data, reshape = _i_comp.reshape_image.reshape_image(self.__im_dir,
+                                                                           self.__w_dir,
+                                                                           self.__shot_name,
+                                                                           tlim,
+                                                                           height,
+                                                                           width,
+                                                                           im_out,
+                                                                           self.__meta_data,
+                                                                           verb)
+        
+        return self.__class__(out_path)
+        
+    
+###################################################################
+#   grayscale conversion method
+###################################################################
+    
+    def to_gray(self, im_out = None, verb = True):
+        
+        out_path, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir, 
+                                                        self.__w_dir, 
+                                                        self.__shot_name, 
+                                                        im_out, 
+                                                        self.__meta_data, 
+                                                        verb)
+        return self.__class__(out_path)
+    
+####################################################################
+#   Background removal method
+####################################################################
+    
+    def remove_backgrd(self, im_out = None, verb = True):
+            
+        out_path, meta_data = _i_comp.rm_background.rm_back(self.__im_dir,
+                                                            self.__w_dir,
+                                                            self.__shot_name,
+                                                            im_out,
+                                                            self.__meta_data,
+                                                            verb)
+        return self.__class__(out_path)
+    
+####################################################################
+#   denoising method for grayscale images
+####################################################################
+        
+    def denoise_gray(self, im_out = None, verb = True):
+            
+        out_path, meta_data = _i_comp.denoise.denoise(self.__im_dir,
+                                                      self.__w_dir,
+                                                      self.__shot_name,
+                                                      im_out,
+                                                      self.__meta_data,
+                                                      verb)
+        return self.__class__(out_path)
+    
+#####################################################################
+#  denoising method for color images
+#####################################################################
+        
+    def denoise_col(self, im_out = None, verb = True):
+
+        out_path, meta_data = _i_comp.denoise_col.denoise_col(self.__im_dir,
+                                                      self.__w_dir,
+                                                      self.__shot_name,
+                                                      im_out,
+                                                      self.__meta_data,
+                                                      verb)
+        return self.__class__(out_path)
+
+#####################################################################
+#   binary conversion method
+#####################################################################
+        
+    def to_bin(self, im_out = None, verb = True):
+
+        out_path, meta_data = _i_comp.to_binary.bin_thresh(self.__im_dir,
+                                                      self.__w_dir,
+                                                      self.__shot_name,
+                                                      im_out,
+                                                      self.__meta_data,
+                                                      verb)
+        return self.__class__(out_path)
+
+#####################################################################
+#   playing of the images
+#####################################################################
+
+    def play(self):
+        
+        _plot.playimages.play_img(self.__im_dir)
+        
+#####################################################################
+#   cluster detection
+#####################################################################
+        
+    def det_cluster(self):
+            
+        return None    
+        
+#####################################################################
+#   dumpro
+#####################################################################        
+        
+    def dumpro(self, im_out = None, verb = True):
+        """
+        """
+
+        gray, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir,
+                                                      self.__w_dir,
+                                                      self.__shot_name,
+                                                      im_out,
+                                                      self.__meta_data,
+                                                      verb)
+            
+        den_gray, meta_data = _i_comp.denoise.denoise(gray,
+                                                      self.__w_dir,
+                                                      self.__shot_name,
+                                                      im_out,
+                                                      self.__meta_data,
+                                                      verb)
+            
+        rmback, meta_data = _i_comp.rm_background.rm_back(den_gray,
+                                                          self.__w_dir,
+                                                          self.__shot_name,
+                                                          im_out,
+                                                          self.__meta_data,
+                                                          verb)
+        
+        binary, meta_data = _i_comp.to_binary.bin_thresh(rmback,
+                                                         self.__w_dir,
+                                                         self.__shot_name,
+                                                         im_out,
+                                                         self.__meta_data,
+                                                         verb)
+            
+            
+            
+        return None
+
+#############################################################################
+#   Docstrings for image class methods
+#############################################################################
+img_dir.to_gray.__doc__ = _i_comp.conv_gray.conv_gray.__doc__
+img_dir.denoise_col.__doc__ = _i_comp.denoise_col.denoise_col.__doc__
+img_dir.denoise_gray.__doc__ = _i_comp.denoise.denoise.__doc__
+img_dir.remove_backgrd.__doc__ = _i_comp.rm_background.rm_back.__doc__
+img_dir.to_bin.__doc__ = _i_comp.to_binary.bin_thresh.__doc__
+img_dir.play.__doc__ = _plot.playimages.play_img.__doc__
                   
 
 ##########################################################
@@ -249,8 +494,9 @@ class Video(object):
                                                  image_name,
                                                  image_type,
                                                  verb)
+        
         #returning the directory in which the video is stored
-        return directory, meta_data
+        return img_dir(directory),img_dir(directory).set_meta_data(meta_data)
     
 #############################################################################
 #   video to numpy arraay conversion method
@@ -294,236 +540,6 @@ Video.convert2pixel.__doc__ = _comp.video_to_array.video_to_pixel.__doc__
 Video.convert2image.__doc__ = _comp.video_to_img.video2img.__doc__
 Video.playvideo.__doc__ = _plot.playvideo.play_video.__doc__
 
-
-
-###################################################################
-###################################################################
-#    For a collection of images
-###################################################################
-
-class img_dir(object):
-    """A class for handeling image processing on a collection of images
-    The input to create class is to pass the path containing all the images
-    inside it.
-    
-    Input:
-    --------------------------------------------
-    filename = path where the images are located
-    
-    Attributes:
-    --------------------------------------------
-    __filename = Path where the images are present
-    __w_dir = Working directory where images can be stored during computation
-    __shot_name = Name of tokomak and the shot number as a single string
-    __meta_data = dictionary containing total frames, fps and frame size of video
-    __reshape = dictionary containing the croping and time slicing of the video
-
-    Methods:
-    --------------------------------------------
-    
-    """
-    
-    def __init__(self, filename):
-        if not os.path.exists(filename):
-            msg = 'The path provided is wrong'
-            msg += 'Please provide the correct path'
-            raise Exception(msg)
-
-        self.__im_dir = filename
-        files = [f for f in os.listdir(filename) if os.path.isfile(os.path.join(filename,f))]
-        img = cv2.imread(filename+files[0])
-        self.__w_dir = None
-        self.__shot_name = None
-        self.__meta_data = {'N_frames' : len(files),
-                            'frame_height': img.shape[0],
-                            'frame_width' : img.shape[1]}
-        self.__reshape = {}
-
-####################################################################
-#   setters for attributes
-####################################################################
-    
-    def set_w_dir(self, w_dir):
-        msg = 'The path provided is not correct'
-        msg += 'Please provide the correct path for the working directory'
-        if not os.path.exits(w_dir):
-            raise Exception(msg)
-        self.__w_dir = w_dir
-        
-    def set_shot_name(self,shot_name):
-        self.__shot_name = shot_name
-        
-    def set_meta_data(self, meta_data):
-        self.__meta_data = meta_data
-        
-####################################################################
-#   getters for attribiutes
-####################################################################
-
-    @property
-    def im_dir(self):
-        return self.__im_dir
-    
-    @property
-    def w_dir(self):
-        return self.__w_dir
-    
-    @property
-    def shot_name(self):
-        return self.__shot_name
-    
-    @property
-    def meta_data(self):
-        return self.__meta_data
-
-###################################################################
-#   image slicing method
-###################################################################    
-    
-    def crop_im(self, im_out = None, meta_data = None, verb = True):
-        
-        return None
-        
-    
-###################################################################
-#   grayscale conversion method
-###################################################################
-    
-    def to_gray(self, im_out = None, verb = True):
-        
-        out_path, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir, 
-                                                        self.__w_dir, 
-                                                        self.__shot_name, 
-                                                        im_out, 
-                                                        self.__meta_data, 
-                                                        verb)
-        return self.__class__(out_path)
-    
-####################################################################
-#   Background removal method
-####################################################################
-    
-    def remove_backgrd(self, im_out = None, verb = True):
-            
-        out_path, meta_data = _i_comp.rm_background.rm_back(self.__im_dir,
-                                                            self.__w_dir,
-                                                            self.__shot_name,
-                                                            im_out,
-                                                            self.__meta_data,
-                                                            verb)
-        return self.__class__(out_path)
-    
-####################################################################
-#   denoising method for grayscale images
-####################################################################
-        
-    def denoise_gray(self, im_out = None, verb = True):
-            
-        out_path, meta_data = _i_comp.denoise.denoise(self.__im_dir,
-                                                      self.__w_dir,
-                                                      self.__shot_name,
-                                                      im_out,
-                                                      self.__meta_data,
-                                                      verb)
-        return self.__class__(out_path)
-    
-#####################################################################
-#  denoising method for color images
-#####################################################################
-        
-    def denoise_col(self, im_out = None, verb = True):
-
-        out_path, meta_data = _i_comp.denoise_col.denoise_col(self.__im_dir,
-                                                      self.__w_dir,
-                                                      self.__shot_name,
-                                                      im_out,
-                                                      self.__meta_data,
-                                                      verb)
-        return self.__class__(out_path)
-
-#####################################################################
-#   binary conversion method
-#####################################################################
-        
-    def to_bin(self, im_out = None, verb = True):
-
-        out_path, meta_data = _i_comp.to_binary.bin_thresh(self.__im_dir,
-                                                      self.__w_dir,
-                                                      self.__shot_name,
-                                                      im_out,
-                                                      self.__meta_data,
-                                                      verb)
-        return self.__class__(out_path)
-
-#####################################################################
-#   playing of the images
-#####################################################################
-
-    def play(self):
-        
-        _plot.playimages.play_img(self.__im_dir)
-        
-#####################################################################
-#   cluster detection
-#####################################################################
-        
-    def det_cluster(self):
-            
-        return None    
-        
-#####################################################################
-#   dumpro
-#####################################################################        
-        
-    def dumpro(self, im_out = None, verb = True):
-#
-#       denoise, meta_data = _i_comp.denoise_col.denoise_col(self.__im_dir,
-#                                                                 self.__w_dir,
-#                                                                 self.__shot_name,
-#                                                                 im_out,
-#                                                                 meta_data,
-#                                                                 verb)
-#       
-
-        gray, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir,
-                                                      self.__w_dir,
-                                                      self.__shot_name,
-                                                      im_out,
-                                                      self.__meta_data,
-                                                      verb)
-            
-        den_gray, meta_data = _i_comp.denoise.denoise(gray,
-                                                      self.__w_dir,
-                                                      self.__shot_name,
-                                                      im_out,
-                                                      self.__meta_data,
-                                                      verb)
-            
-        rmback, meta_data = _i_comp.rm_background.rm_back(den_gray,
-                                                          self.__w_dir,
-                                                          self.__shot_name,
-                                                          im_out,
-                                                          self.__meta_data,
-                                                          verb)
-        
-        binary, meta_data = _i_comp.to_binary.bin_thresh(rmback,
-                                                         self.__w_dir,
-                                                         self.__shot_name,
-                                                         im_out,
-                                                         self.__meta_data,
-                                                         verb)
-            
-            
-            
-        return None
-        
-
-img_dir.to_gray.__doc__ = _i_comp.conv_gray.conv_gray.__doc__
-img_dir.denoise_col.__doc__ = _i_comp.denoise_col.denoise_col.__doc__
-img_dir.denoise_gray.__doc__ = _i_comp.denoise.denoise.__doc__
-img_dir.remove_backgrd.__doc__ = _i_comp.rm_background.rm_back.__doc__
-img_dir.to_bin.__doc__ = _i_comp.to_binary.bin_thresh.__doc__
-img_dir.play.__doc__ = _plot.playimages.play_img.__doc__
 
 #####################################################################
 #####################################################################
@@ -592,10 +608,11 @@ class vid_img(Video, img_dir):
         
         return self.__im_dir,self.__shot_name
     
-    def dumpro(self,tlim = None, crop = None, w_dir = None, im_out= None, verb = True):
+    def dumpro(self,tlim = None,height = None, width = None,
+               crop = None, w_dir = None, im_out= None, verb = True):
         """This method performs dust movie processing on the video_file
         It converts the video to image and extracts the shotname and the
-        image directory. Then it 
+        image directory. Then it applies
         """
         drive, path_of_file = os.path.splitdrive(self.__filename)
         path, file = os.path.split(path_of_file)
@@ -641,6 +658,8 @@ class vid_img(Video, img_dir):
                                                          im_out,
                                                          self.__meta_data,
                                                          verb)
+        return None
+    
         
         
          
