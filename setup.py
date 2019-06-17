@@ -3,16 +3,101 @@
 See:
 https://github.com/ToFuProject/tofu
 """
-
-import sys
 import os
-import subprocess
+import sys
+import glob
 import shutil
+import logging
 import platform
+import subprocess
 from codecs import open
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
+
+from distutils.command.clean import clean as Clean
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("tofu.setup")
+
+# Always prefer setuptools over distutils
+try:
+    from setuptools import setup, find_packages
+    from setuptools import Extension
+    stp = True
+except:
+    from distutils.core import setup
+    from distutils.extension import Extension
+    stp = False
+import _updateversion as up
+
+if platform.system() == "Darwin":
+    # make sure you are using Homebrew's compiler
+    os.environ['CC'] = 'gcc-8'
+    os.environ['CXX'] = 'g++-8'
+else:
+    os.environ['CC'] = 'gcc'
+    os.environ['CXX'] = 'g++'
+
+# ==============================================================================
+class CleanCommand(Clean):
+    description = "Remove build artifacts from the source tree"
+
+    def expand(self, path_list):
+        """Expand a list of path using glob magic.
+        :param list[str] path_list: A list of path which may contains magic
+        :rtype: list[str]
+        :returns: A list of path without magic
+        """
+        path_list2 = []
+        for path in path_list:
+            if glob.has_magic(path):
+                iterator = glob.iglob(path)
+                path_list2.extend(iterator)
+            else:
+                path_list2.append(path)
+        return path_list2
+
+    def find(self, path_list):
+        """Find a file pattern if directories.
+        Could be done using "**/*.c" but it is only supported in Python 3.5.
+        :param list[str] path_list: A list of path which may contains magic
+        :rtype: list[str]
+        :returns: A list of path without magic
+        """
+        import fnmatch
+        path_list2 = []
+        for pattern in path_list:
+            for root, _, filenames in os.walk('.'):
+                for filename in fnmatch.filter(filenames, pattern):
+                    path_list2.append(os.path.join(root, filename))
+        return path_list2
+
+    def run(self):
+        Clean.run(self)
+
+        cython_files = self.find(["*.pyx"])
+        cythonized_files = [path.replace(".pyx", ".c") for path in cython_files]
+        cythonized_files += [path.replace(".pyx", ".cpp") for path in cython_files]
+        so_files = self.find(["*.so"])
+        # really remove the directories
+        # and not only if they are empty
+        to_remove = [self.build_base]
+        to_remove = self.expand(to_remove)
+        to_remove += cythonized_files
+        to_remove += so_files
+
+        if not self.dry_run:
+            for path in to_remove:
+                try:
+                    if os.path.isdir(path):
+                        shutil.rmtree(path)
+                    else:
+                        os.remove(path)
+                    logger.info("removing '%s'", path)
+                except OSError:
+                    pass
+# ==============================================================================
 
 
 # ==============================================================================
@@ -46,27 +131,8 @@ def check_for_openmp(cc_var):
     #clean up
     shutil.rmtree(tmpdir)
     return result
-# ==============================================================================
 
-# Always prefer setuptools over distutils
-try:
-    from setuptools import setup, find_packages
-    from setuptools import Extension
-    stp = True
-except:
-    from distutils.core import setup
-    from distutils.extension import Extension
-    stp = False
-import _updateversion as up
-
-if platform.system() == "Darwin":
-    # make sure you are using Homebrew's compiler
-    os.environ['CC'] = 'gcc-8'
-    os.environ['CXX'] = 'gcc-8'
-else:
-    os.environ['CC'] = 'gcc'
-    os.environ['CXX'] = 'gcc'
-
+# ....... Using function
 not_openmp_installed = check_for_openmp(os.environ['CC'])
 
 # To compile the relevant version
@@ -81,6 +147,7 @@ if sys.version[0] == '2':
     extralib = ['funcsigs']
 else:
     extralib = []
+# ==============================================================================
 
 
 
@@ -134,48 +201,32 @@ if sys.version[0]=='3':
     shutil.copy2(os.path.join(_HERE,'tofu/geom/_GG02.pyx'),
                  os.path.join(_HERE,'tofu/geom/_GG03.pyx'))
 
-
 # Get the long description from the README file
 with open(os.path.join(_HERE, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
-# Prepare extensions
-# Useful if install from setup.py
-#if '--use-cython' in sys.argv:
-#    USE_CYTHON = True
-#    sys.argv.remove('--use-cython')
-#else:
-#    USE_CYTHON = False
-USE_CYTHON = True
-if USE_CYTHON:
-    print("")
-    print("Using Cython !!!!!!!!!")
-    print("")
-    #TODO try O3 O2 flags
-    if not not_openmp_installed :
-        extra_compile_args=["-O0", "-Wall",  "-fopenmp"]
-        extra_link_args = ['-fopenmp']
-    else:
-        extra_compile_args=["-O0", "-Wall"]
-        extra_link_args = []
-    extensions = [ Extension(name="tofu.geom."+gg,
-                             sources=["tofu/geom/"+gg+".pyx"],
-                             extra_compile_args=extra_compile_args,
-                             extra_link_args=extra_link_args),
-                  Extension(name="tofu.geom._basic_geom_tools",
-                            sources=["tofu/geom/_basic_geom_tools.pyx"],
-                            extra_compile_args=extra_compile_args,
-                            extra_link_args=extra_link_args)
-                  ]
-    extensions = cythonize(extensions)
+#  ... Compiling files .........................................................
+if not not_openmp_installed :
+    extra_compile_args=["-O0", "-Wall", "-fopenmp"]
+    extra_link_args = ["-fopenmp"]
 else:
-    print("")
-    print("NOT Using Cython !!!!!!!!!")
-    print("")
-    extensions = [Extension(name="tofu.geom."+gg,
-                            sources=["tofu/geom/"+gg+".cpp"],
-                            language='c++',
-                            include_dirs=['tofu/cpp/'])]
+    extra_compile_args=["-O0", "-Wall"]
+    extra_link_args = []
+extensions = [ Extension(name="tofu.geom."+gg,
+                         sources=["tofu/geom/"+gg+".pyx"],
+                         extra_compile_args=extra_compile_args,
+                         extra_link_args=extra_link_args),
+              Extension(name="tofu.geom._basic_geom_tools",
+                        sources=["tofu/geom/_basic_geom_tools.pyx"],
+                        extra_compile_args=extra_compile_args,
+                        extra_link_args=extra_link_args),
+              Extension(name="tofu.geom._vignetting_tools",
+                        sources=["tofu/geom/_vignetting_tools.pyx"],
+                        language="c++",
+                        extra_compile_args=extra_compile_args,
+                        extra_link_args=extra_link_args),
+              ]
+extensions = cythonize(extensions, annotate=True)
 
 
 setup(
@@ -302,6 +353,7 @@ setup(
     #},
 
     ext_modules = extensions,
-    #cmdclass={'build_ext':build_ext},
+    cmdclass={'build_ext':build_ext,
+              'clean':CleanCommand},
     include_dirs=[np.get_include()],
 )

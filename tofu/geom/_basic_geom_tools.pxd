@@ -22,38 +22,43 @@ cdef bint is_point_in_path(const int nvert,
                            const double testy) nogil
 
 cdef  int is_point_in_path_vec(const int nvert,
-                                     const double* vertx,
-                                     const double* verty,
-                                     const int npts,
-                                     const double* testx,
-                                     const double* testy,
-                                     bint* is_in_path) nogil
+                               const double* vertx,
+                               const double* verty,
+                               const int npts,
+                               const double* testx,
+                               const double* testy,
+                               bint* is_in_path) nogil
 
 cdef  void compute_inv_and_sign(const double[3] ray_vdir,
-                                      int[3] sign,
-                                      double[3] inv_direction) nogil
+                                int[3] sign,
+                                double[3] inv_direction) nogil
 
 cdef  array compute_hypot(double[::1] xpts, double[::1] ypts,
-                                int npts=*)
+                          int npts=*)
 
 cdef  double comp_min_hypot(double[::1] xpts, double[::1] ypts,
-                                  int npts=*) nogil
+                            int npts=*) nogil
 
-cdef  void compute_cross_prod(const double[3] vec_a,
-                                    const double[3] vec_b,
-                                    double[3] res) nogil
+# ==============================================================================
+# == Vector Calculus Helpers
+# ==============================================================================
+cdef void compute_cross_prod(const double[3] vec_a,
+                             const double[3] vec_b,
+                             double[3] res) nogil
+
+cdef double compute_norm(const double[3] vec) nogil
 
 cdef  double compute_dot_prod(const double[3] vec_a,
-                                    const double[3] vec_b) nogil
+                              const double[3] vec_b) nogil
 
 cdef  double compute_g(double s, double m2b2, double rm0sqr,
-                             double m0sqr, double b1sqr) nogil
+                       double m0sqr, double b1sqr) nogil
 
 cdef  double compute_bisect(double m2b2, double rm0sqr,
-                                  double m0sqr, double b1sqr,
-                                  double smin, double smax) nogil
+                            double m0sqr, double b1sqr,
+                            double smin, double smax) nogil
 
 cdef  double compute_find(double m2b2, double rm0sqr,
-                                double m0sqr, double b1sqr,
-                                double t0, double t1, double f0, double f1,
-                                int maxIterations, double root) nogil
+                          double m0sqr, double b1sqr,
+                          double t0, double t1, double f0, double f1,
+                          int maxIterations, double root) nogil

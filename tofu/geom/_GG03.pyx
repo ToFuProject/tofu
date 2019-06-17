@@ -33,6 +33,7 @@ cimport _basic_geom_tools as _bgt
 cimport _raytracing_tools as _rt
 cimport _distance_tools as _dt
 cimport _sampling_tools as _st
+cimport _vignetting_tools as _vt
 
 # == Exports ===================================================================
 __all__ = ['CoordShift',
@@ -64,7 +65,9 @@ __all__ = ['CoordShift',
            'SLOW_LOS_Calc_PInOut_VesStruct',
            'LOS_isVis_PtFromPts_VesStruct',
            'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
-           'LOS_sino','integrate1d']
+           'LOS_sino','integrate1d',
+           "triangulate_by_earclipping",
+           "vignetting"]
 
 
 ########################################################
@@ -905,8 +908,6 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     free(ind)
     free(numcells)
     return PtsCross, resol, ind_arr, N_arr, Rref_arr, VPolybis
-
-
 
 
 # ==============================================================================
@@ -1826,17 +1827,18 @@ def _Ves_Smesh_TorStruct_SubFromInd_cython(double[::1] PhiMinMax, double dL,
 #       Meshing - Surface - Lin
 ########################################################
 
-cdef inline int _check_DLvsLMinMax(double[::1] LMinMax, list DL=None):
+cdef inline int _check_DLvsLMinMax(double[::1] LMinMax,
+                                   list DL=None):
     cdef int inter = 1
     cdef bint dl0_is_not_none
     cdef bint dl1_is_not_none
     if DL is not None:
         dl0_is_not_none = DL[0] is not None
         dl1_is_not_none = DL[1] is not None
-        assert len(DL)==2
-        assert LMinMax[0]<LMinMax[1]
-        if dl0_is_not_none and dl1_is_not_none:
-            assert(DL[0] < DL[1])
+        if len(DL) != 2 or LMinMax[0]>=LMinMax[1]:
+            assert(False)
+        if dl0_is_not_none and dl1_is_not_none and DL[0] >= DL[1]:
+            assert(False)
         if dl0_is_not_none and DL[0]>LMinMax[1]:
             inter = 0
         elif dl1_is_not_none and DL[1]<LMinMax[0]:
@@ -2406,18 +2408,17 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                    dtype=int).reshape(num_los, 3))
 
 
-
 # =============================================================================
 # = Ray tracing when we only want kMin / kMax
 # -   (useful when working with flux surfaces)
 # =============================================================================
 def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                                 double[:, ::1] ray_vdir,
-                                double[:, :, ::1] ves_poly,
-                                double[:, :, ::1] ves_norm,
+                                list ves_poly,
+                                list ves_norm,
                                 int num_surf,
+                                long[::1] lnvert,
                                 double[::1] ves_lims=None,
-                                long[::1] lnvert=None,
                                 double rmin=-1,
                                 double eps_uz=_SMALL, double eps_a=_VSMALL,
                                 double eps_vz=_VSMALL, double eps_b=_VSMALL,
@@ -2492,6 +2493,8 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     cdef bint are_limited
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
+    cdef double[:,::1] tmp_poly
+    cdef double[:,::1] tmp_norm
 
     # == Testing inputs ========================================================
     if test:
@@ -2521,7 +2524,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
         for ind_surf in range(num_surf):
             # rmin is necessary to avoid looking on the other side of the tok
             if rmin < 0.:
-                rmin = 0.95*min(np.min(ves_poly[ind_surf, 0, ...]),
+                rmin = 0.95*min(np.min(ves_poly[ind_surf][0, ...]),
                                 _bgt.comp_min_hypot(ray_orig[0, ...],
                                                     ray_orig[1, ...],
                                                     num_los))
@@ -2533,6 +2536,8 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                 forbid0, forbidbis = 0, 0
             # Getting size of poly
             npts_poly = lnvert[ind_surf]
+            tmp_poly = ves_poly[ind_surf]
+            tmp_norm = ves_norm[ind_surf]
             # -- Computing intersection between LOS and Vessel -----------------
             _rt.raytracing_minmax_struct_tor(num_los, ray_vdir, ray_orig,
                                              &coeff_inter_out.data.as_doubles[ind_surf*num_los],
@@ -2541,10 +2546,10 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
                                              rmin, rmin2, Crit2_base,
                                              npts_poly, lbounds_ves,
                                              are_limited,
-                                             &ves_poly[ind_surf][0][0],
-                                             &ves_poly[ind_surf][1][0],
-                                             &ves_norm[ind_surf][0][0],
-                                             &ves_norm[ind_surf][1][0],
+                                             &tmp_poly[0][0],
+                                             &tmp_poly[1][0],
+                                             &tmp_norm[0][0],
+                                             &tmp_norm[1][0],
                                              eps_uz, eps_vz, eps_a,
                                              eps_b, eps_plane,
                                              num_threads)
@@ -2563,12 +2568,14 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
         for ind_surf in range(num_surf):
             # Getting size of poly
             npts_poly = lnvert[ind_surf]
+            tmp_poly = ves_poly[ind_surf]
+            tmp_norm = ves_norm[ind_surf]
             _rt.raytracing_minmax_struct_lin(num_los, ray_orig, ray_vdir,
                                              npts_poly,
-                                             &ves_poly[ind_surf][0][0],
-                                             &ves_poly[ind_surf][1][0],
-                                             &ves_norm[ind_surf][0][0],
-                                             &ves_norm[ind_surf][1][0],
+                                             &tmp_poly[0][0],
+                                             &tmp_poly[1][0],
+                                             &tmp_norm[0][0],
+                                             &tmp_norm[1][0],
                                              lbounds_ves[0], lbounds_ves[1],
                                              &coeff_inter_out.data.as_doubles[ind_surf*num_los],
                                              &coeff_inter_in.data.as_doubles[ind_surf*num_los],
@@ -2673,6 +2680,84 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     ind[indok] = k[indok]<kPOut[indok]
     return ind
 
+# ==============================================================================
+#
+#                                 VIGNETTING
+#
+# ==============================================================================
+def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
+    cdef int nvert = poly.shape[1]
+    cdef np.ndarray[long,ndim=1] ltri = np.empty((nvert-2)*3, dtype=int)
+    cdef double* diff = NULL
+    cdef bint* lref = NULL
+    # Initialization ...........................................................
+    diff = <double*>malloc(3*nvert*sizeof(double))
+    lref = <bint*>malloc(nvert*sizeof(bint))
+    _vt.compute_diff3d(&poly[0,0], nvert, diff)
+    _vt.are_points_reflex(nvert, diff, lref)
+    # Calling core function.....................................................
+    _vt.earclipping_poly(&poly[0,0], &ltri[0], diff, lref, nvert)
+    return ltri
+
+def vignetting(double[:, ::1] ray_orig,
+               double[:, ::1] ray_vdir,
+               list vignett_poly,
+               long[::1] lnvert,
+               int num_threads=16):
+    """
+    ray_orig : (3, num_los) double array
+       LOS origin points coordinates
+    ray_vdir : (3, num_los) double array
+       LOS normalized direction vector
+    vignett_poly : (num_vign, 3, num_vertex) double list of arrays
+       Coordinates of the vertices of the Polygon defining the 3D vignett.
+       POLY CLOSED
+    lnvert : (num_vign) long array
+       Number of vertices for each vignett (without counting the rebound)
+    Returns
+    ======
+    goes_through: (num_vign, num_los) bool array
+       Indicates for each vignett if each LOS wents through or not
+    """
+    cdef int ii
+    cdef int nvign, nlos
+    cdef np.ndarray[np.uint8_t,ndim=1,cast=True] goes_through
+    cdef long** ltri = NULL
+    cdef double* lbounds = NULL
+    cdef double** data = NULL
+    cdef bint* bool_res = NULL
+    cdef np.ndarray[double, ndim=2, mode="c"] temp
+    # -- Initialization --------------------------------------------------------
+    nvign = len(vignett_poly)
+    nlos = ray_orig.shape[1]
+    goes_through = np.empty((nlos*nvign),dtype=bool)
+    # re writting vignett_poly to C type:
+    data = <double **> malloc(nvign*sizeof(double *))
+    for ii in range(nvign):
+        temp = vignett_poly[ii]
+        data[ii] = &temp[0,0]
+    # -- Preparation -----------------------------------------------------------
+    lbounds = <double*>malloc(sizeof(double) * 6 * nvign)
+    _rt.compute_3d_bboxes(data, &lnvert[0], nvign, &lbounds[0],
+                          num_threads=num_threads)
+    ltri = <long**>malloc(sizeof(long*)*nvign)
+    _vt.triangulate_polys(data, &lnvert[0], nvign, ltri,
+                          num_threads)
+    # -- We call core function -------------------------------------------------
+    bool_res = <bint*>malloc(nlos*nvign*sizeof(bint))
+    _vt.vignetting_core(ray_orig, ray_vdir, data, &lnvert[0], &lbounds[0],
+                        ltri, nvign, nlos, &bool_res[0],num_threads)
+    for ii in range(nlos*nvign):
+        goes_through[ii] = bool_res[ii]
+    free(bool_res)
+    # -- Cleaning up -----------------------------------------------------------
+    free(lbounds)
+    # We have to free each array for each vignett:
+    for ii in range(nvign):
+        free(ltri[ii])
+    free(ltri) # and now we can free the main pointer
+    free(data)
+    return goes_through
 
 
 # ==============================================================================
@@ -2725,7 +2810,7 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     cdef int sz1_us, sz2_us
     cdef int sz1_dls, sz2_dls
     cdef int N
-    cdef int ntmp
+    cdef long ntmp
     cdef int num_los
     cdef bint dl_is_list
     cdef bint C0, C1
@@ -2742,10 +2827,8 @@ def LOS_get_sample(double[:,::1] Ds, double[:,::1] us, dL,
     sz1_ds = Ds.shape[0]
     sz2_ds = Ds.shape[1]
     num_los = sz2_ds
-    # dLr = clone(array('d'), num_los, False)
-    # los_ind = clone(array('i'), num_los, False)
-    dLr = np.empty((num_los,), dtype=float)
-    los_ind = np.empty((num_los,), dtype=int)
+    dLr = np.zeros((num_los,), dtype=float)
+    los_ind = np.zeros((num_los,), dtype=int)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -3334,7 +3417,7 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
                                   double circ_radius, double circ_normz,
                                   double[9] results,
                                   bint is_LOS_Mode=False,
-                                  double kOut=np.inf) :
+                                  double kOut=np.inf) nogil:
     cdef double[3] dirv, orig
     cdef double[2] res
     cdef double normu, normu_sqr
@@ -3369,7 +3452,7 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
     cdef double vP0 = PMin2norm - circ_radius
     cdef double vP1 = PMin2     - circ_normz
     cdef double Theta = Catan2(vP1, vP0)
-    cdef double ImpTheta = Theta if Theta>=0 else Theta + np.pi
+    cdef double ImpTheta = Theta if Theta>=0 else Theta + Cpi
     cdef double er2D0 = Ccos(ImpTheta)
     cdef double er2D1 = Csin(ImpTheta)
     cdef double p0 = vP0*er2D0 + vP1*er2D1
@@ -3842,6 +3925,8 @@ def comp_dist_los_vpoly(double[:, ::1] ray_orig,
     cdef int num_los = ray_orig.shape[1]
     cdef int ii, ind_vert, ind_los
     cdef double* res_loc = NULL
+    cdef double* loc_org = NULL
+    cdef double* loc_dir = NULL
     cdef double crit2, invuz,  dpar2, upar2, upscaDp
     cdef double crit2_base = eps_uz * eps_uz /400.
     cdef np.ndarray[double,ndim=1] dist = np.empty((num_los,),dtype=float)
