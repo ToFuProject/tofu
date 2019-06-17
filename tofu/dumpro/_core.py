@@ -63,32 +63,50 @@ class img_dir(object):
     
     """
     
-    def __init__(self, filename):
+    def __init__(self, filename, w_dir = None):
         if not os.path.exists(filename):
             msg = 'The path provided is wrong'
             msg += 'Please provide the correct path'
             raise Exception(msg)
-
+        
         self.__im_dir = filename
         files = [f for f in os.listdir(filename) if os.path.isfile(os.path.join(filename,f))]
         img = cv2.imread(filename+files[0])
-        self.__w_dir = None
+        
+        #working directory
+        if w_dir == None:
+            msg = 'The working directory has not been provided !'
+            msg += 'Falling to default values...\n'
+            warnings.warn(msg)
+            folder = 'dumpro'
+            path = os.path.join(filename, folder, '')
+            if not os.path.exists(path):
+                os.makedirs(path)
+            self.__w_dir = path
+            print('The working directory is :\n')
+            print(self.__w_dir)
+        else:
+            msg = 'The path provided is not correct'
+            msg += 'Please provide the correct path for the working directory'
+            if not os.path.exits(w_dir):
+                raise Exception(msg)
+            self.__w_dir = w_dir
+            print('The working directory is :\n')
+            print(self.__w_dir)
+        
+        #shotname    
         self.__shot_name = None
+        
+        #meta_data
         self.__meta_data = {'N_frames' : len(files),
                             'frame_height': img.shape[0],
                             'frame_width' : img.shape[1]}
+        #reshape dictionary
         self.__reshape = None
 
 ####################################################################
 #   setters for attributes
 ####################################################################
-    
-    def set_w_dir(self, w_dir):
-        msg = 'The path provided is not correct'
-        msg += 'Please provide the correct path for the working directory'
-        if not os.path.exits(w_dir):
-            raise Exception(msg)
-        self.__w_dir = w_dir
         
     def set_shot_name(self,shot_name):
         self.__shot_name = shot_name
@@ -234,41 +252,15 @@ class img_dir(object):
 #   dumpro
 #####################################################################        
         
-    def dumpro(self, im_out = None, verb = True):
-        """
-        """
-
-        gray, meta_data = _i_comp.conv_gray.conv_gray(self.__im_dir,
-                                                      self.__w_dir,
-                                                      self.__shot_name,
-                                                      im_out,
-                                                      self.__meta_data,
-                                                      verb)
-            
-        den_gray, meta_data = _i_comp.denoise.denoise(gray,
-                                                      self.__w_dir,
-                                                      self.__shot_name,
-                                                      im_out,
-                                                      self.__meta_data,
-                                                      verb)
-            
-        rmback, meta_data = _i_comp.rm_background.rm_back(den_gray,
-                                                          self.__w_dir,
-                                                          self.__shot_name,
-                                                          im_out,
-                                                          self.__meta_data,
-                                                          verb)
+    def dumpro(self, tlim = None, hlim = None, wlim = None,
+               im_out = None, verb = True):
         
-        binary, meta_data = _i_comp.to_binary.bin_thresh(rmback,
-                                                         self.__w_dir,
-                                                         self.__shot_name,
-                                                         im_out,
-                                                         self.__meta_data,
-                                                         verb)
-            
-            
-            
+        _i_comp.dumpro_img.dumpro_img(self.__im_dir, self.__w_dir,
+                                      self.__shot_name, tlim, hlim, wlim,
+                                      im_out, self.__meta_data, verb)
+        
         return None
+       
 
 #############################################################################
 #   Docstrings for image class methods
@@ -279,7 +271,7 @@ img_dir.denoise_gray.__doc__ = _i_comp.denoise.denoise.__doc__
 img_dir.remove_backgrd.__doc__ = _i_comp.rm_background.rm_back.__doc__
 img_dir.to_bin.__doc__ = _i_comp.to_binary.bin_thresh.__doc__
 img_dir.play.__doc__ = _plot.playimages.play_img.__doc__
-                  
+img_dir.dumpro.__doc__ = _i_comp.dumpro_img.dumpro_img.__doc__                  
 
 ##########################################################
 ##########################################################
@@ -326,7 +318,7 @@ class Video(object):
     
     """
 
-    def __init__(self, filename, verb=True):
+    def __init__(self, filename, w_dir = None, verb=True):
 
         #checking if the file provided exists or not
         if not os.path.isfile(filename): 
@@ -342,15 +334,39 @@ class Video(object):
             msg += "    {}".format(filename)
             print(msg)
         self.__filename = filename
-        self.__w_dir = None
+        
+        #working directory
+        if w_dir == None:
+            msg = 'The working directory has not been provided !'
+            msg += 'Falling to default values...\n'
+            warnings.warn(msg)
+            folder = 'dumpro'
+            path_of_file, file = os.path.split(filename)
+            path = os.path.join(path_of_file, folder, '')
+            if not os.path.exists(path):
+                os.makedirs(path)
+            self.__w_dir = path
+            print('The working directory is :\n')
+            print(self.__w_dir)
+        else:
+            msg = 'The path provided is not correct'
+            msg += 'Please provide the correct path for the working directory'
+            if not os.path.exits(w_dir):
+                raise Exception(msg)
+            self.__w_dir = w_dir
+            print('The working directory is :\n')
+            print(self.__w_dir)
+            
         #getting the meta data of the video
         self.__frame_width = int(self.cap.get(3))
         self.__frame_height = int(self.cap.get(4))
         self.__N_frames = int(self.cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self.__fps = self.cap.get(cv2.CAP_PROP_FPS)
         self.__fourcc = int(self.cap.get(cv2.CAP_PROP_FOURCC))
+        
         #calculating the duration of the video        
         self.__duration = self.__N_frames/self.__fps
+        #meta_data dictionary
         self.__meta_data = {'fps' : self.__fps, 
                           'fourcc' : self.__fourcc, 
                           'N_frames' : self.__N_frames,
@@ -432,7 +448,7 @@ class Video(object):
                                                       output_type,
                                                       verb)
         #returning the grayscale converted video as a new instance 
-        return self.__class__(gray)
+        return self.__class__(gray, self.__w_dir)
     
 #############################################################################
 #   background removal method
@@ -447,7 +463,7 @@ class Video(object):
                                                                            output_name, 
                                                                            output_type,
                                                                            verb)
-        return self.__class__(foreground)
+        return self.__class__(foreground, self.__w_dir)
     
 #############################################################################
 #   binary conversion method
@@ -463,7 +479,7 @@ class Video(object):
                                                      output_type,
                                                      verb)
         #returning the binary converted video as a new instance
-        return self.__class__(out[0])
+        return self.__class__(out[0], self.__w_dir)
     
 #############################################################################
 #   edge detection method
@@ -479,7 +495,7 @@ class Video(object):
                                                            output_type,
                                                            verb)
         #returns the edge detected video as a new instance
-        return self.__class__(edge)
+        return self.__class__(edge, self.__w_dir)
     
 #############################################################################
 #   video to image conversion method
@@ -496,7 +512,7 @@ class Video(object):
                                                  verb)
         
         #returning the directory in which the video is stored
-        return img_dir(directory),img_dir(directory).set_meta_data(meta_data)
+        return vid_img(directory, self.__w_dir),vid_img(directory).set_meta_data(meta_data)
     
 #############################################################################
 #   video to numpy arraay conversion method
@@ -588,10 +604,11 @@ class vid_img(Video, img_dir):
     --------------------------------------------
     
     """
-    def __init__(self,filename):
-         Video.__init__(self, filename, verb = True)
+    def __init__(self,filename, w_dir = None):
+         Video.__init__(self, filename, w_dir, verb = True)
          self.__shot_name = None
          self.__im_dir = None
+         self.__reshape = None
          
          
     

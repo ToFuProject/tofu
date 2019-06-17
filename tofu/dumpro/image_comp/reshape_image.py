@@ -149,7 +149,6 @@ def reshape_image(im_path, w_dir, shot_name,
                      'N_frames' : N_frames}
     else:
         #describing the four character code      
-
         fourcc = meta_data.get('fourcc', cv2.VideoWriter_fourcc(*'MJPG'))
         if 'fourcc' not in meta_data:
             meta_data['fourcc'] = fourcc
