@@ -2318,7 +2318,8 @@ def _fill_idsproperties(ids, com, tfversion, nt=None):
     ids.code.output_flag = np.zeros((nt,),dtype=int)
     ids.code.parameters = ""
 
-def _put_ids(idd, ids, shotfile, occ=0, err=None, dryrun=False, verb=True):
+def _put_ids(idd, ids, shotfile, occ=0, cls_name=None,
+             err=None, dryrun=False, close=True, verb=True):
     if not dryrun and err is None:
         try:
             ids.put( occ )
@@ -2331,14 +2332,17 @@ def _put_ids(idd, ids, shotfile, occ=0, err=None, dryrun=False, verb=True):
             raise Exception(msg)
         finally:
             # Close idd
-            idd.close()
+            if close:
+                idd.close()
 
     # print info
     if verb:
         if err is not None:
             raise err
         else:
-            msg = "  => Saved in %s"%shotfile
+            if cls_name is None:
+                cls_name = ''
+            msg = "  => %s saved in %s"%(cls_name,shotfile)
             if dryrun:
                 msg += "\n  => Dry run successfull\n"
                 msg += "       (not really saved, but whole process tested)"
@@ -2352,7 +2356,8 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
                   dryrun=False, tfversion=None, verb=True, **kwdargs):
 
     dfunc = {'Struct':_save_to_imas_Struct,
-             'Config':_save_to_imas_Config}
+             'Config':_save_to_imas_Config,
+             'CamLOS1D':_save_to_imas_CamLOS1D}
 
     cls = obj.__class__
     if cls not in dfunc.keys():
@@ -2367,8 +2372,6 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
             raise Exception(msg)
         cls = lc[0]
 
-    if occ is None:
-        occ = 0
     out = dfunc[cls]( obj, shot=shot, run=run, refshot=refshot,
                      refrun=refrun, occ=occ, user=user, tokamak=tokamak,
                      version=version, dryrun=dryrun, tfversion=tfversion,
@@ -2386,6 +2389,8 @@ def _save_to_imas_Struct( obj,
                          dryrun=False, tfversion=None, verb=True,
                          description_2d=0, unit=0):
 
+    if occ is None:
+        occ = 0
     # Create or open IDS
     # ------------------
     idd, shotfile = _open_create_idd(shot=shot, run=run,
@@ -2425,21 +2430,28 @@ def _save_to_imas_Struct( obj,
 
         # Put IDS
         # ------------------
-        _put_ids(idd, idd.wall, shotfile, occ=occ, err=err0, dryrun=dryrun, verb=verb)
+        _put_ids(idd, idd.wall, shotfile, occ=occ,
+                 cls_name='%s_%s'%(obj.Id.Cls,obj.Id.Name),
+                 err=err0, dryrun=dryrun, verb=verb)
 
 
-def _save_to_imas_Config( obj,
+def _save_to_imas_Config( obj, idd=None, shotfile=None,
                          shot=None, run=None, refshot=None, refrun=None,
                          occ=None, user=None, tokamak=None, version=None,
-                         dryrun=False, tfversion=None, verb=True,
+                         dryrun=False, tfversion=None, close=True, verb=True,
                          description_2d=None):
 
+    if occ is None:
+        occ = 0
     # Create or open IDS
     # ------------------
-    idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                     refshot=refshot, refrun=refrun,
-                                     user=user, tokamak=tokamak, version=version,
-                                     verb=verb)
+    if idd is None:
+        idd, shotfile = _open_create_idd(shot=shot, run=run,
+                                         refshot=refshot, refrun=refrun,
+                                         user=user, tokamak=tokamak, version=version,
+                                         verb=verb)
+    assert type(shotfile) is str
+
 
     # Choose description_2d from config
     lS = obj.lStruct
@@ -2497,4 +2509,103 @@ def _save_to_imas_Config( obj,
 
         # Put IDS
         # ------------------
-        _put_ids(idd, idd.wall, shotfile, err=err0, dryrun=dryrun, verb=verb)
+        _put_ids(idd, idd.wall, shotfile, occ=occ, err=err0, dryrun=dryrun,
+                 cls_name='%s_%s'%(obj.Id.Cls,obj.Id.Name),
+                 close=close, verb=verb)
+
+
+def _save_to_imas_CamLOS1D( obj,
+                           shot=None, run=None, refshot=None, refrun=None,
+                           occ=None, user=None, tokamak=None, version=None,
+                           dryrun=False, tfversion=None, verb=True,
+                           ids=None, deep=True,
+                           config_occ=None, config_description_2d=None):
+
+    if occ is None:
+        occ = 0
+    # Create or open IDS
+    # ------------------
+    idd, shotfile = _open_create_idd(shot=shot, run=run,
+                                     refshot=refshot, refrun=refrun,
+                                     user=user, tokamak=tokamak, version=version,
+                                     verb=verb)
+
+    # Check choice of ids
+    c0 = ids in dir(idd)
+    c0 = c0 and hasattr(getattr(idd,ids), 'channel')
+    if not c0:
+        msg = "Please provide a valid value for arg ids:\n"
+        msg += "  => ids should be a valid ids name\n"
+        msg += "  => it should refer to an ids with tha attribute channel"
+        raise Exception(msg)
+
+    # First save dependencies
+    if deep:
+        _save_to_imas_Config(obj.config, idd=idd, shotfile=shotfile,
+                             dryrun=dryrun, verb=verb, close=False,
+                             occ=config_occ,
+                             description_2d=config_description_2d)
+
+    # Choose description_2d from config
+    nch = obj.nRays
+    assert nch > 0
+
+    # Get first / second points
+    D0 = obj.D
+    RZP1 = np.array([np.hypot(D0[0,:],D0[1,:]),
+                     D0[2,:],
+                     np.arctan2(D0[1,:],D0[0,:])])
+    D1 = D0 + obj._dgeom['kOut'][None,:]*obj.u
+    RZP2 = np.array([np.hypot(D1[0,:],D1[1,:]),
+                     D1[2,:],
+                     np.arctan2(D1[1,:],D1[0,:])])
+
+    # Get names
+    lk = obj.dchans.keys()
+    ln = [k for k in lk if k.lower() == 'name']
+    if len(ln) == 1:
+        ln = obj.dchans(ln[0])
+    else:
+        ln = ['ch%s'%str(ii) for ii in range(0,nch)]
+
+
+    # Fill in data
+    # ------------------
+    try:
+        # data
+        # --------
+        ids = getattr(idd,ids)
+        ids.channel.resize( nch )
+        for ii in range(0,nch):
+            ids.channel[ii].line_of_sight.first_point.r = RZP1[0,ii]
+            ids.channel[ii].line_of_sight.first_point.z = RZP1[1,ii]
+            ids.channel[ii].line_of_sight.first_point.phi = RZP1[2,ii]
+            ids.channel[ii].line_of_sight.second_point.r = RZP2[0,ii]
+            ids.channel[ii].line_of_sight.second_point.z = RZP2[1,ii]
+            ids.channel[ii].line_of_sight.second_point.phi = RZP2[2,ii]
+            if obj.Etendues is not None:
+                ids.channel[ii].etendue = obj.Etendues[ii]
+            if obj.Surfaces is not None:
+                ids.channel[ii].detector.surface = obj.Surfaces[ii]
+            ids.channel[ii].name = ln[ii]
+
+
+        # IDS properties
+        # --------------
+        com = "LOS-approximated camera generated:\n"
+        com += "    - from %s"%obj.Id.SaveName
+        com += "    - by tofu %s"%tfversion
+        _fill_idsproperties(idd.wall, com, tfversion)
+        err0 = None
+
+    except Exception as err:
+        _except_ids(idd.wall, nt=None)
+        err0 = err
+
+    finally:
+
+        # Put IDS
+        # ------------------
+        _put_ids(idd, idd.wall, shotfile, occ=occ,
+                 cls_name='%s_%s'%(obj.Id.Cls,obj.Id.Name),
+                 err=err0, dryrun=dryrun, verb=verb)

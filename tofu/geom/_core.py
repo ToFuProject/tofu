@@ -1220,7 +1220,7 @@ class Struct(utils.ToFuObject):
 
     def save_to_imas(self, shot=None, run=None, refshot=None, refrun=None,
                      occ=None, user=None, tokamak=None, version=None,
-                     dryrun=False, verb=True, description_2d=0, unit=0):
+                     dryrun=False, verb=True, description_2d=None, unit=0):
        import tofu.imas2tofu as _tfimas
        _tfimas._save_to_imas(self, tfversion=__version__,
                              shot=shot, run=run, refshot=refshot,
@@ -2388,13 +2388,13 @@ class Config(utils.ToFuObject):
 
 
     def save_to_imas(self, shot=None, run=None, refshot=None, refrun=None,
-                     occ=None, user=None, tokamak=None, version=None,
-                     dryrun=False, verb=True, description_2d=0):
+                     user=None, tokamak=None, version=None, occ=None,
+                     dryrun=False, verb=True, description_2d=None):
        import tofu.imas2tofu as _tfimas
        _tfimas._save_to_imas(self, tfversion=__version__,
                              shot=shot, run=run, refshot=refshot,
                              refrun=refrun, user=user, tokamak=tokamak,
-                             version=version, dryrun=dryrun, verb=verb,
+                             version=version, occ=occ, dryrun=dryrun, verb=verb,
                              description_2d=description_2d)
 
 
@@ -4578,6 +4578,18 @@ class CamLOS1D(Rays):
         return self.__add__(other)
 
 
+    def save_to_imas(self, ids, shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None, occ=None,
+                     dryrun=False, deep=True, verb=True,
+                     config_description_2d=None, config_occ=None):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, occ=occ, dryrun=dryrun, verb=verb,
+                             ids=ids, deep=deep,
+                             config_description_2d=config_description_2d,
+                             config_occ=config_occ)
 
 
 lp = [p for p in params.values() if p.name != 'dX12']
