@@ -54,6 +54,12 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
      Path along where the proccessed images are stored  
     meta_data:        dictionary
      A dictionary containing the meta data of the video.
+    cen_clus:         list
+     A list of lists containing all the centers of clusters in each frame
+    area_clus:        list
+     A list of lists containing the area of all the clusters in each frame
+    t_clusters:       list
+    A list contaning the totaL number of clusters in each frame    
     """
     
     #the output directory based on w_dir and shot_name
@@ -85,7 +91,7 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     #to store the size of each cluster
     area_clus = []
     #to store the contour infomation of each frame
-    contour = []
+    t_clusters = []
     # loop to read through all the images and
     # apply grayscale conversion to them
     f_count = 1
@@ -137,6 +143,7 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
             area_frame.append(area)
         cen_clus.append(cen_frame)
         area_clus.append(area_frame)
+        t_clusters.append(len(contours))
         #drawing contours
         #cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
         #generic name of each image
@@ -202,5 +209,5 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     #frame_array.append(img)
     cv2.destroyAllWindows
     
-    return im_out, meta_data, cen_clus, area_clus
+    return im_out, meta_data, cen_clus, area_clus, t_clusters
 
