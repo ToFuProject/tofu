@@ -79,12 +79,11 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('starting grayscale conversion ...\n')
-        print('The following files have been read ...')
+        print('detecting clusters...\n')
     #to store the barycenter of each cluster
     cen_clus = []
     #to store the size of each cluster
-    area = []
+    area_clus = []
     #to store the contour infomation of each frame
     contour = []
     # loop to read through all the images and
@@ -103,6 +102,7 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
         ret, threshed_img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
         contours, hierarchy = cv2.findContours(threshed_img, cv2.RETR_CCOMP,
                                                cv2.CHAIN_APPROX_SIMPLE)
+        area_frame = []
         cen_frame = []
         #looping over contours
         for c in contours:
@@ -134,7 +134,9 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
                 area = 3.14*(radius**2)
                 
             cen_frame.append(center)
+            area_frame.append(area)
         cen_clus.append(cen_frame)
+        area_clus.append(area_frame)
         #drawing contours
         #cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
         #generic name of each image
@@ -150,8 +152,55 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     stdout.write("\n")
     stdout.flush()
     
+    if verb == True:
+        print('Reading meta_data...')
+        
+    if meta_data == None:
+        #defining the four character code
+        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+        #defining the frame dimensions
+        frame_width = width
+        frame_height = height
+        #defining the fps
+        fps = 25
+        #defining the total number of frames
+        N_frames = len(files)
+        #defining the meta_data dictionary
+        meta_data = {'fps' : fps, 'frame_height' : frame_height, 
+                     'frame_width' : frame_width, 'fourcc' : fourcc,
+                     'N_frames' : N_frames}
+    else:
+        #describing the four character code      
+
+        fourcc = meta_data.get('fourcc', cv2.VideoWriter_fourcc(*'MJPG'))
+        if 'fourcc' not in meta_data:
+            meta_data['fourcc'] = fourcc
+        
+        #describing the frame width
+        frame_width = meta_data.get('frame_width', width)
+        if 'frame_width' not in meta_data:
+            meta_data['frame_width'] = frame_width
+        
+        #describing the frame height
+        frame_height = meta_data.get('frame_height', height)
+        if 'frame_height' not in meta_data:
+            meta_data['frame_height'] = frame_height
+            
+        #describing the speed of the video in frames per second 
+        fps = meta_data.get('fps', 25)
+        if 'fps' not in meta_data:
+            meta_data['fps'] = fps
+
+        #describing the total number of frames in the video
+        N_frames = meta_data.get('N_frames', len(files))
+        if 'N_frames' not in meta_data:
+            meta_data['N_frames'] = N_frames
+            
+    if verb == True:
+        print('meta_data read successfully ...\n')
+    
     #frame_array.append(img)
     cv2.destroyAllWindows
-    return im_out, meta_data, cen_clus
+    
+    return im_out, meta_data, cen_clus, area_clus
 
-im_out, meta_data, cen = det_cluster('E:/NERD/Python/DUMPRO/KSTAR_frground/','E:/NERD/Python/DUMPRO/','Kstar')
