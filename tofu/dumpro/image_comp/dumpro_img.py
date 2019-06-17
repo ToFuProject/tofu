@@ -24,6 +24,8 @@ import denoise_col
 import to_binary
 import rm_background
 import reshape_image
+import cluster_det
+#import plotting as _plot
 
 def dumpro_img(im_path, w_dir, shot_name, tlim = None, 
                hlim = None, wlim = None, im_out = None, 
@@ -80,9 +82,12 @@ def dumpro_img(im_path, w_dir, shot_name, tlim = None,
     back, meta_data = rm_background.rm_back(den_gray, w_dir,shot_name, im_out,
                                             meta_data, verb)
     
-    #conversion to binary form
-    bina, meta_data = to_binary.bin_thresh(back, w_dir, shot_name, im_out,
-                                           meta_data, verb)
+    #detecting clusters
+    clus, meta_data, cen_clus, area_clus = cluster_det.det_cluster(back, w_dir, 
+                                                                   shot_name, 
+                                                                   im_out, 
+                                                                   meta_data, 
+                                                                   verb)
     
     
     return None
