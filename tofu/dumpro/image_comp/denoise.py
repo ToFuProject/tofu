@@ -9,6 +9,8 @@ This subroutine requires opencv3 or higher
 
 # Built-in
 import os
+from sys import stdout
+from time import sleep
 
 # Standard
 import numpy as np
@@ -84,15 +86,16 @@ def denoise(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('Startign denoising...\n')
-        print('The following files have been read ...')
+        print('Startign denoising...')
+        print('The following files have been read ...\n')
         
     f_count = 1
     for i in range(len(files)):
         #converting to path
         filename = im_path + files[i]
         if verb == True:
-            print(filename)
+            stdout.write("\r[%s/%s]" % (f_count, len(files)))
+            stdout.flush()    
         #reading each file to extract its meta_data
         img = cv2.imread(filename,cv2.IMREAD_GRAYSCALE)
         #denoising algorithm
@@ -106,13 +109,17 @@ def denoise(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
         #providing information to user
         f_count += 1
     
+    #dynamic printing
+    stdout.write("\n")
+    stdout.flush()
+    
     #frame_array.append(img)
     if verb == True:
-        print('denoising done...\n')
-        print('output file has been written...\n')
+        print('denoising done...')
+        print('output file has been written...')
     
     if verb == True:
-        print('Reading meta_data...\n')
+        print('Reading meta_data...')
         
     if meta_data == None:
         #defining the four character code

@@ -17,8 +17,9 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
 
-def crop_video(im_path, w_dir, shot_name, im_out = None, 
-               meta_data = None, verb = True):
+def crop_image(im_path, w_dir, shot_name, 
+               tlim = None, height = None, width = None, 
+               im_out = None, meta_data = None, verb = True):
     """This subroutine crops a video and also slices it to return us a 
     collection of all the frames from our desired time window in our desired region
     of interest
@@ -84,7 +85,7 @@ def crop_video(im_path, w_dir, shot_name, im_out = None,
     
     if verb == True:
         print('The following files have been read ...')
-
+    
     user_input = input('Enter the values for cropping :')
     print(type(user_input))
     user_input = user_input.split(',')
@@ -98,13 +99,16 @@ def crop_video(im_path, w_dir, shot_name, im_out = None,
     frame_width = ufw - lfw
     frame_height = ufh - lfh
     
-    print('The total number of frames are :', len(files),'\n')
-    tlim = input('Enter the frames of interest :')
-    tlim = tlim.split(',')
-    start = int(tlim[0])
-    end = int(tlim[1])
-
     
+    #cropping frames based on time frame
+    if tlim == None:
+        start = 1
+        end = len(files)
+    else:
+        start = int(tlim[0])
+        end = int(tlim[1])
+
+    #looping through video file
     curr_frame = 1
     print('creating temp file...\n')
     for i in range(len(files)):
@@ -114,19 +118,29 @@ def crop_video(im_path, w_dir, shot_name, im_out = None,
                 print(filename)
             #reading each file to extract its meta_data
             img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
-            height,width = img.shape[0],img.shape[1]
-            img = img[lfw:ufw, lfh:ufh]
+            frame_height, frame_width = img.shape[0], img.shape[1]
+            
+            #cropping the frame
+            if height == None and width == None:
+                img = img
+            elif height == None and width != None:
+                img = img[width[0]:width[1],:]
+            elif height != None and width == None:
+                img = img[:,height[0]:height[1]]
+            elif height != None and width != None:
+                img = img[width[0]:width[1],height[0]:height[1]]
+                
+            #output name of image
             name =im_out + 'frame' + str(curr_frame) + '.jpg'
+            #writting the output file
             cv2.imwrite(name,img)
+        #incrementing frame counter
         curr_frame += 1
         
     #meta_data of the collection of images
     if meta_data == None:
         #defining the four character code
         fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-        #defining the frame dimensions
-        frame_width = width
-        frame_height = height
         #defining the fps
         fps = 25
         #defining the total number of frames

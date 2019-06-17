@@ -33,8 +33,8 @@ def dumpro_img(im_path, w_dir, shot_name, tlim = None,
     Among the parameters present, if used as a part of dumpro, 
     w_dir, shot_name and meta_data are provided by the image processing 
     class in the core file.
-    The verb paramenter is used when this subroutine is used independently.
-    Otherwise it is suppressed by the core class.
+    The verb paramenter can be used for additional information. It runtime
+    information on processing, intended only to keep the user informed.
     
     Parameters
     ----------------------------------
@@ -60,8 +60,8 @@ def dumpro_img(im_path, w_dir, shot_name, tlim = None,
      the four character code of the video
     
     """
+
     #reshaping images
-    print('Reshaping...\n')
     cropped, meta_data, reshape = reshape_image.reshape_image(im_path, w_dir, 
                                                               shot_name, tlim,
                                                               hlim, wlim,
@@ -69,22 +69,18 @@ def dumpro_img(im_path, w_dir, shot_name, tlim = None,
                                                               meta_data, verb)
     
     #conversion to Grayscale
-    print('Grayscale conversion...\n')
     gray, meta_data = conv_gray.conv_gray(cropped, w_dir, shot_name, im_out,
                                           meta_data, verb)
     
     #denoising images
-    print('denoising...\n ')
     den_gray, meta_data = denoise.denoise(gray, w_dir, shot_name, im_out,
                                           meta_data, verb)
     
     #removing background
-    print('Removing Background...\n')
     back, meta_data = rm_background.rm_back(den_gray, w_dir,shot_name, im_out,
                                             meta_data, verb)
     
     #conversion to binary form
-    print('converting to binary')
     bina, meta_data = to_binary.bin_thresh(back, w_dir, shot_name, im_out,
                                            meta_data, verb)
     

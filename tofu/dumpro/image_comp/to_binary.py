@@ -9,6 +9,8 @@ This subroutine requires opencv3 and higher
 
 # Built-in
 import os
+from sys import stdout
+from time import sleep
 
 # Standard
 import numpy as np
@@ -86,20 +88,22 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('performing binary conversion...\n')
-        print('The following files have been read ...')
+        print('performing binary conversion...')
+        print('Processing files...\n')
     
     #looping through the files
     f_count = 1
     for i in range(len(files)):
         #converting to path
         filename = im_path + files[i]
+        #dynamic printing
         if verb == True:
-            print(filename)
+            stdout.write("\r[%s/%s]" % (f_count, len(files)))
+            stdout.flush()
         #reading each file to extract its meta_data
         img = cv2.imread(filename,cv2.IMREAD_GRAYSCALE)
         #grayscale conversion
-        ret, out = cv2.threshold(img,127,255,cv2.THRESH_BINARY)
+        ret, out = cv2.threshold(img,100,255,cv2.THRESH_BINARY)
         #generic name of each image
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
@@ -108,11 +112,15 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
         size = (height, width)
         #providing information to user
         f_count += 1
+        
+    #dynamic printing
+    stdout.write("\n")
+    stdout.flush()
     
     #frame_array.append(img)
     
     if verb == True:
-        print('Reading meta_data...\n')
+        print('Reading meta_data...')
         
     if meta_data == None:
         #defining the four character code

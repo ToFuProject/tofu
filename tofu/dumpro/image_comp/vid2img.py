@@ -12,6 +12,8 @@ output: all the frames in video are converted to images
 
 #nuilt in
 import os
+from sys import stdout
+from time import sleep
 
 #standard
 import numpy as np
@@ -170,13 +172,19 @@ def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True
             #or by default jpg file
             #frame number starts from 0
             name = path + 'frame' + str(currentFrame) + '.jpg'
-            print('Converting frame :', currentFrame)
+            if verb == True:
+                stdout.write("\r[%s/%s]" % (currentFrame, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))))
+                stdout.flush()    
             cv2.imwrite(name, frame)
         else:
             break
         # To stop duplicate images
         currentFrame += 1
-    print('Total number of frames converted :', currentFrame)    
+    print('Total number of frames converted :', currentFrame)   
+    
+    #dynamic printing
+    stdout.write("\n")
+    stdout.flush()
     # When everything done, release the capture
     cap.release()
     cv2.destroyAllWindows()

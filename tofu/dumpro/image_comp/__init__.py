@@ -12,3 +12,7 @@ from . import slice_video
 from . import to_binary
 #video to image conversion subroutine
 from . import vid2img
+#reshaping images subroutine
+from . import reshape_image
+#dumpro images subroutine
+from . import dumpro_img

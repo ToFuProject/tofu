@@ -9,6 +9,8 @@ This subroutine requires opencv3 or higher
 
 # Built-in
 import os
+from sys import stdout
+from time import sleep
 
 # Standard
 import numpy as np
@@ -86,8 +88,7 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('denoising images...\n')
-        print('The following files have been read ...')
+        print('denoising images...')
     
     #looping through files and applying denoising to them
     f_count = 1
@@ -95,7 +96,8 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
         #converting to path
         filename = im_path + files[i]
         if verb == True:
-            print(filename)
+            stdout.write("\r[%s/%s]" % (f_count, len(files)))
+            stdout.flush()   
         #reading each file to extract its meta_data
         img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
         #grayscale conversion
@@ -115,10 +117,14 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
         #providing information to user
         f_count += 1
     
+    #dynamic printing
+    stdout.write("\n")
+    stdout.flush()
+    
     #frame_array.append(img)
     
     if verb == True:
-        print('Reading meta_data...\n')
+        print('Reading meta_data...')
         
     if meta_data == None:
         #defining the four character code
@@ -160,6 +166,9 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
         N_frames = meta_data.get('N_frames', len(files))
         if 'N_frames' not in meta_data:
             meta_data['N_frames'] = N_frames
+            
+    if verb == True:
+        print('meta_data read successfully...')
             
         
     

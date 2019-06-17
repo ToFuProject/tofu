@@ -7,6 +7,8 @@ email: napraarpan@gmail.com
 """
 # Built-in
 import os
+from sys import stdout
+from time import sleep
 
 # Standard
 import numpy as np
@@ -94,7 +96,7 @@ def reshape_image(im_path, w_dir, shot_name,
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('The following files have been read ...')
+        print('Processing frames ...')
     
     #cropping frames based on time frame
     if tlim == None:
@@ -104,14 +106,21 @@ def reshape_image(im_path, w_dir, shot_name,
         start = int(tlim[0])
         end = int(tlim[1])
 
-    #looping through video file
+    #dynamic printing
+    f_count = 1
+    joblen = (end-start)
+    #looping through the video
     curr_frame = 1
     print('creating temp file...\n')
     for i in range(len(files)):
         filename = im_path + files[i]
+        #slicing video according to the interested frames
         if curr_frame >= start and curr_frame <= end:
+            #dynamic printing
             if verb == True:
-                print(filename)
+                stdout.write("\r[%s/%s]" % (f_count, joblen))
+                stdout.flush()
+            f_count += 1
             #reading each file to extract its meta_data
             img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
             height, width = img.shape[0], img.shape[1]
@@ -132,6 +141,13 @@ def reshape_image(im_path, w_dir, shot_name,
             cv2.imwrite(name,img)
         #incrementing frame counter
         curr_frame += 1
+        
+    #dynamic printing
+    stdout.write("\n")
+    stdout.flush()
+    
+    if verb == True:
+        print('Reading meta_data...')
         
     #meta_data of the collection of images
     if meta_data == None:
@@ -174,12 +190,12 @@ def reshape_image(im_path, w_dir, shot_name,
             meta_data['N_frames'] = N_frames
             
     if verb == True:
-        print('meta_data read successfully ...\n')
+        print('meta_data read successfully ...')
         
-    print('Releasing output...\n')
+    print('Releasing output...')
     
     if verb == True:
-        print('creating reshape dictionary')
+        print('creating reshape dictionary...\n')
     #creating reshape dictionary
     reshape = {'height' : hlim, 'width' : wlim, 'tlim' : tlim}
     

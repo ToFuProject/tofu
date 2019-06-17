@@ -10,6 +10,8 @@ This subroutine requires Opencv3 or higher version
 
 # Built-in
 import os
+from sys import stdout
+from time import sleep
 
 # Standard
 import numpy as np
@@ -80,8 +82,8 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('starting grayscale conversion ...\n')
-        print('The following files have been read ...')
+        print('starting grayscale conversion ...')
+        print('The following files have been read ...\n')
     
     # loop to read through all the images and
     # apply grayscale conversion to them
@@ -90,7 +92,8 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
         #converting to path
         filename = im_path + files[i]
         if verb == True:
-            print(filename)
+            stdout.write("\r[%s/%s]" % (f_count, len(files)))
+            stdout.flush()    
         #reading each file to extract its meta_data
         img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
         #grayscale conversion
@@ -104,11 +107,15 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
         #providing information to user
         f_count += 1
     
+    #dynamic printing
+    stdout.write("\n")
+    stdout.flush()
+    
     #frame_array.append(img)
     
     if verb == True:
-        print('conversion successfull...\n')
-        print('Reading meta_data...\n')
+        print('conversion successfull...')
+        print('Reading meta_data...')
         
     if meta_data == None:
         #defining the four character code

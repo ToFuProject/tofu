@@ -8,6 +8,8 @@ email: napraarpan@gmail.com
 
 # Built-in
 import os
+from sys import stdout
+from time import sleep
 
 # Standard
 import numpy as np
@@ -50,8 +52,6 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
      required
      meta_data has information on total number of frames, demension, fps and 
      the four character code of the video
-    disp              boolean
-     to display the frames set equal to True. By default is set to True
     
     Return
     -----------------------
@@ -88,21 +88,23 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     if verb == True:
         print('subtracting background...\n')
         print('Reading the image files ...\n')
-        print('Files read...\n')
-        
+        print('Files processing...\n')
+    
     #looping through the video
     f_count = 1
     for i in range(len(files)-1):
         #converting to path
         f_name1 = im_path + files[i]
         f_name2 = im_path + files[i+1]
+        #dynamic printing
         if verb == True:
-            print(f_name2)
+            stdout.write("\r[%s/%s]" % (f_count, len(files)))
+            stdout.flush()            
         #reading each file to extract its meta_data
         img1 = cv2.imread(f_name1,cv2.IMREAD_UNCHANGED)
         img2 = cv2.imread(f_name2,cv2.IMREAD_UNCHANGED)
         #performing frame by frame subtraction
-        dst = cv2.subtract(img2, img1)
+        dst = cv2.subtract(img1, img2)
         #generic name of each image
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
@@ -113,6 +115,9 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
         #providing information to user
         f_count += 1
     
+    #dynamic printing
+    stdout.write("\n")
+    stdout.flush()
     if verb == True:
         print('background subtraction successfull...\n')
     #frame_array.append(dst)
