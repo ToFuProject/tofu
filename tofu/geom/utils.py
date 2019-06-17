@@ -621,21 +621,23 @@ _compute_CamLOS2D_pinhole.__doc__ = _comdoc2
 #       Fast creation of config
 ###########################################################
 
-_dconfig = {'A1': {'Exp':'WEST',
+_ExpWest = 'WEST'
+
+_dconfig = {'A1': {'Exp':_ExpWest,
                    'Ves': ['V1']},
             'A2': {'Exp':'ITER',
                    'Ves': ['V0']},
-            'A3': {'Exp':'WEST',
+            'A3': {'Exp':_ExpWest,
                    'PlasmaDomain': ['Sep']},
-            'B1': {'Exp':'WEST',
+            'B1': {'Exp':_ExpWest,
                    'Ves': ['V2'],
                    'PFC': ['BaffleV0', 'DivUpV1', 'DivLowITERV1']},
-            'B2': {'Exp':'WEST',
+            'B2': {'Exp':_ExpWest,
                    'Ves': ['V2'],
                    'PFC': ['BaffleV1', 'DivUpV2', 'DivLowITERV2',
                            'BumperInnerV1', 'BumperOuterV1',
                            'IC1V1', 'IC2V1', 'IC3V1']},
-            'B3': {'Exp':'WEST',
+            'B3': {'Exp':_ExpWest,
                    'Ves': ['V2'],
                    'PFC': ['BaffleV2', 'DivUpV3', 'DivLowITERV3',
                            'BumperInnerV3', 'BumperOuterV3',

@@ -18,9 +18,11 @@ except Exception:
 try:
     from tofu.imas2tofu._core import MultiIDSLoader
     from tofu.imas2tofu._core import load_Config, load_Plasma2D, load_Diag
+    from tofu.imas2tofu._core import _save_to_imas
 except Exception:
     from ._core import MultiIDSLoader
     from ._core import load_Config, load_Plasma2D, load_Diag
+    from ._core import _save_to_imas
 
 
 __all__ = ['MultiIDSLoader', 'load_Config', 'load_Plasma2D', 'load_Diag']

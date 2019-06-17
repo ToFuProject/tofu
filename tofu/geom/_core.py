@@ -31,6 +31,7 @@ except Exception:
 
 
 # ToFu-specific
+from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
 try:
@@ -1217,9 +1218,15 @@ class Struct(utils.ToFuObject):
 
 
 
-    def save_to_imas(self):
+    def save_to_imas(self, shot=None, run=None, refshot=None, refrun=None,
+                     occ=None, user=None, tokamak=None, version=None,
+                     dryrun=False, verb=True, description_2d=0, unit=0):
        import tofu.imas2tofu as _tfimas
-       _tfimas._save_to_imas(self)
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, dryrun=dryrun, verb=verb,
+                             description_2d=description_2d, unit=unit)
 
 
 
@@ -2378,6 +2385,17 @@ class Config(utils.ToFuObject):
                                            dP=dP, dLeg=dLeg, draw=draw,
                                            fs=fs, tit=tit, wintit=wintit, Test=Test)
         return ax
+
+
+    def save_to_imas(self, shot=None, run=None, refshot=None, refrun=None,
+                     occ=None, user=None, tokamak=None, version=None,
+                     dryrun=False, verb=True, description_2d=0):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, dryrun=dryrun, verb=verb,
+                             description_2d=description_2d)
 
 
 

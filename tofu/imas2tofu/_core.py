@@ -8,19 +8,29 @@ Default parameters and input checking
 """
 
 # Built-ins
+import sys
+import os
 import itertools as itt
 import copy
 import functools as ftools
+import getpass
+import inspect
 import warnings
+import traceback
 
 # Standard
 import numpy as np
 import matplotlib as mpl
+import datetime as dtm
 
 # imas
 import imas
 
 
+# public imas user (used for checking if can be saved)
+_IMAS_USER_PUBLIC = 'imas_public'
+
+# Default IMAS parameters (default for loading)
 _IMAS_USER = 'imas_public'
 _IMAS_SHOT = 0
 _IMAS_RUN = 0
@@ -32,6 +42,10 @@ _IMAS_RUNR = -1
 _IMAS_DIDD = {'shot':_IMAS_SHOT, 'run':_IMAS_RUN,
               'refshot':_IMAS_SHOTR, 'refrun':_IMAS_RUNR,
               'user':_IMAS_USER, 'tokamak':_IMAS_TOKAMAK, 'version':_IMAS_VERSION}
+
+# Root tofu path (for saving repo in IDS)
+_ROOT = os.path.abspath(__file__)
+_ROOT = _ROOT[:_ROOT.index('tofu')+len('tofu')]
 
 
 #############################################################
@@ -1631,7 +1645,7 @@ class MultiIDSLoader(object):
         return crit
 
     def _get_lidsidd_shotExp(self, lidsok,
-                             errshot=True, errExp=True):
+                             errshot=True, errExp=True, upper=True):
         lids = set(lidsok).intersection(self._dids.keys())
         lidd = set([self._dids[ids]['idd'] for ids in lids])
 
@@ -1644,6 +1658,8 @@ class MultiIDSLoader(object):
         Exp = self._check_shotExp_consistency(self._didd, lidd,
                                               tofustr='Exp', imasstr='tokamak',
                                               err=errExp, fallback='Dummy')
+        if upper:
+            Exp = Exp.upper()
         return lids, lidd, shot, Exp
 
 
@@ -1662,13 +1678,11 @@ class MultiIDSLoader(object):
     def to_Config(self, Name=None, occ=None, indDescript=0, plot=True):
         lidsok = ['wall']
 
-        if Name is None:
-            Name = 'custom'
-
         # ---------------------------
         # Preliminary checks on data source consistency
         lids, lidd, shot, Exp = self._get_lidsidd_shotExp(lidsok, errshot=True,
-                                                          errExp=True)
+                                                          errExp=True,
+                                                          upper=True)
         # -------------
         #   Input dicts
 
@@ -1693,6 +1707,10 @@ class MultiIDSLoader(object):
                 msg += "%s[%s].limiter.unit) = 0"%(ms,str(indDescript))
                 raise Exception(msg)
 
+            if Name is None:
+                Name = wall.description_2d[indDescript].type.name
+                if Name == '':
+                    Name = 'ImasCustom'
 
             import tofu.geom as mod
 
@@ -1700,11 +1718,28 @@ class MultiIDSLoader(object):
             kwargs = dict(Exp=Exp, Type='Tor')
             for ii in range(0,nunits):
                 poly = np.array([units[ii].outline.r, units[ii].outline.z])
+
+                if units[ii].phi_extensions.size > 0:
+                    pos, extent =  units[ii].phi_extensions.T
+                else:
+                    pos, extent = None, None
                 name = units[ii].name
+                cls = None
                 if name == '':
                     name = 'unit{:02.0f}'.format(ii)
-                cls = 'Ves' if (ii == 0 and nunits == 1) or units[ii] else 'PFC'
-                lS[ii] = getattr(mod,cls)(Poly=poly, Name=name, **kwargs)
+                if '_' in name:
+                    ln = name.split('_')
+                    if len(ln) == 2:
+                        cls, name = ln
+                    else:
+                        name = name.replace('_','')
+                if cls is None:
+                    if ii == nunits-1:
+                        cls = 'Ves'
+                    else:
+                        cls = 'PFC'
+                lS[ii] = getattr(mod,cls)(Poly=poly, pos=pos, extent=extent,
+                                          Name=name, **kwargs)
 
             config = mod.Config(lStruct=lS, Name=Name, **kwargs)
 
@@ -2201,134 +2236,265 @@ def load_Diag(shot=None, run=None, user=None, tokamak=None, version=None,
 #############################################################
 
 
-def _get_parents2object(cls):
-
-    parents = []
-    while 'object' not in parents:
-        for bb in cls.__bases__:
-            parents.append( bb.__name__ )
-            _get_parents2object(bb)
-
-    return parents
-
+#--------------------------------
+#   Generic functions
+#--------------------------------
 
 def _open_create_idd(shot=None, run=None, refshot=None, refrun=None,
                      user=None, tokamak=None, version=None, verb=True):
 
-    run_number = '{:04d}'.format(run)
-    ss = ('~' + user + '/public/imasdb/' + tokamak +
-          '/3/0/' + 'ids_' + str(shot) + run_number + '.datafile')
-    shot_file  = os.path.expanduser(ss)
+    # Check idd inputs and get default values
+    didd = dict(shot=shot, run=run, refshot=refshot, refrun=refrun,
+                user=user, tokamak=tokamak, version=version)
+    for k, v in didd.items():
+        if v is None:
+            didd[k] = _IMAS_DIDD[k]
+    didd['shot'] = int(didd['shot'])
+    didd['run'] = int(didd['run'])
+    assert all([type(didd[ss]) is str for ss in ['user','tokamak','version']])
 
-    print(' ')
-    print('shot_file =', shot_file)
-    idd = imas.ids(shot, run)
-    if (os.path.isfile(shot_file)):
+    # Check existence of database
+    path = os.path.join('~', 'public', 'imasdb', didd['tokamak'], '3', '0')
+    path = os.path.realpath(os.path.expanduser(path))
+
+    if not os.path.exists(path):
+        msg = "IMAS: The required imas ddatabase does not seem to exist:\n"
+        msg += "         - looking for : %s\n"%path
+        if user == getpass.getuser():
+            msg += "       => Maybe run imasdb %s (in shell) ?"%tokamak
+        raise Exception(msg)
+
+    # Check existence of file
+    filen = 'ids_{0}{1:04d}.datafile'.format(didd['shot'], didd['run'])
+    shot_file = os.path.join(path, filen)
+
+    idd = imas.ids(didd['shot'], didd['run'])
+    if os.path.isfile(shot_file):
         if verb:
-            print(' ')
-            print('________________> Opening shot pulse file')
-        idd.open_env(user, machine, '3')
+            msg = "IMAS: opening shotfile %s"%shot_file
+            print(msg)
+        idd.open_env(didd['user'], didd['tokamak'], didd['version'])
     else:
-        if (user == 'imas_public'):
-            print(' ')
-            print('ERROR IDS file does not exist, the IDS file must be')
-            print('created first for imas_public user')
-            print(' ')
-            raise FileNotFoundError
+        if user == _IMAS_USER_PUBLIC:
+            msg = "IMAS: required shotfile does not exist\n"
+            msg += "      Shotfiles with user=%s are public\n"%didd['user']
+            msg += "      They have to be created centrally\n"
+            msg += "       - required shotfile: %s"%shot_file
+            raise Exception(msg)
         else:
             if verb:
-                print(' ')
-                print('________________> Creating shot pulse file')
-            idd.create_env(user, machine, '3')
-    return idd
+                msg = "IMAS: creating shotfile %s"%shot_file
+                print(msg)
+            idd.create_env(didd['user'], didd['tokamak'], didd['version'])
+
+    return idd, shot_file
+
+def _except_ids(ids, nt=None):
+    traceback.print_exc(file=sys.stdout)
+    if len(ids.time) > 0:
+        if nt is None:
+            ids.code.output_flag = -1
+        else:
+            ids.code.output_flag = -np.ones((nt,))
+    else:
+        ids.code.output_flag.resize(1)
+        ids.code.output_flag[0] = -1
+
+
+def _fill_idsproperties(ids, com, tfversion, nt=None):
+    ids.ids_properties.comment = com
+    ids.ids_properties.homogeneous_time = 1
+    ids.ids_properties.provider = getpass.getuser()
+    ids.ids_properties.creation_date = \
+                      dtm.datetime.today().strftime('%Y%m%d%H%M%S')
+
+    # Code
+    # --------
+    ids.code.name = "tofu"
+    ids.code.repository = _ROOT
+    ids.code.version = tfversion
+    if nt is None:
+        nt = 1
+    ids.code.output_flag = np.zeros((nt,),dtype=int)
+    ids.code.parameters = ""
+
+def _put_ids(idd, ids, shotfile, occ=0, err=None, dryrun=False, verb=True):
+    if not dryrun and err is None:
+        try:
+            ids.put( occ )
+        except Exception as err:
+            msg = str(err)
+            msg += "\n  There was a pb. when putting the ids:\n"
+            msg += "    - shotfile: %s\n"%shotfile
+            msg += "    - ids: %s\n"%ids
+            msg += "    - occ: %s\n"%str(occ)
+            raise Exception(msg)
+        finally:
+            # Close idd
+            idd.close()
+
+    # print info
+    if verb:
+        if err is not None:
+            raise err
+        else:
+            msg = "  => Saved in %s"%shotfile
+            if dryrun:
+                msg += "\n  => Dry run successfull\n"
+                msg += "       (not really saved, but whole process tested)"
+        print(msg)
+
+
 
 
 def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
-                  occ=None, user=None, tokamak=None, version=None, dryrun=False):
+                  occ=None, user=None, tokamak=None, version=None,
+                  dryrun=False, tfversion=None, verb=True, **kwdargs):
 
-    dfunc = {'Struct':_save_to_imas_Struct}
+    dfunc = {'Struct':_save_to_imas_Struct,
+             'Config':_save_to_imas_Config}
 
     cls = obj.__class__
-    parents = _get_parents2object(cls)
-    lc = [k for k,v in dfunc.items() if k in parents]
-    if len(lc) != 1:
-        msg = "save_to_imas() not implemented for class %s !\n"%cls.__name__
-        msg += "Only available for classes and subclasses of:\n"
-        msg += "    - " + "\n    - ".join(dfunc.keys()))
-        raise Exception(msg)
+    if cls not in dfunc.keys():
+        parents = [cc.__name__ for cc in inspect.getmro(cls)]
+        lc = [k for k,v in dfunc.items() if k in parents]
+        if len(lc) != 1:
+            msg = "save_to_imas() not implemented for class %s !\n"%cls.__name__
+            msg += "Only available for classes and subclasses of:\n"
+            msg += "    - " + "\n    - ".join(dfunc.keys())
+            msg += "\n  => None / too many were found in parent classes:\n"
+            msg += "    %s"%str(parents)
+            raise Exception(msg)
+        cls = lc[0]
 
-    out = dfunc[lc[0]]( obj )
+    if occ is None:
+        occ = 0
+    out = dfunc[cls]( obj, shot=shot, run=run, refshot=refshot,
+                     refrun=refrun, occ=occ, user=user, tokamak=tokamak,
+                     version=version, dryrun=dryrun, tfversion=tfversion,
+                     verb=verb, **kwdargs)
     return out
 
+
+#--------------------------------
+#   Class-specific functions
+#--------------------------------
 
 def _save_to_imas_Struct( obj,
                          shot=None, run=None, refshot=None, refrun=None,
                          occ=None, user=None, tokamak=None, version=None,
-                         dry_run=False, verb=True):
+                         dryrun=False, tfversion=None, verb=True,
+                         description_2d=0, unit=0):
 
     # Create or open IDS
     # ------------------
-    idd = _open_create_idd(shot=shot, run=run, refshot=refshot, refrun=refrun,
-                           user=user, tokamak=tokamak, version=version,
-                           verb=verb):
+    idd, shotfile = _open_create_idd(shot=shot, run=run,
+                                     refshot=refshot, refrun=refrun,
+                                     user=user, tokamak=tokamak, version=version,
+                                     verb=verb)
 
     # Fill in data
     # ------------------
     try:
         # data
         # --------
-        idd.ece.channel.resize(nchan)
-        tau = 'tau_1keV' in Out['extra'].keys()
-        valid = np.zeros((nt,nchan),dtype=int)
-        for ii in range(0,nchan):
-            idd.ece.channel[ii].name = "{0:02.0f}".format(ii)
-            idd.ece.channel[ii].identifier = ""
+        idd.wall.description_2d.resize( description_2d + 1 )
+        idd.wall.description_2d[description_2d].limiter.unit.resize(1)
+        node = idd.wall.description_2d[description_2d].limiter.unit[0]
+        node.outline.r = obj._dgeom['Poly'][0,:]
+        node.outline.z = obj._dgeom['Poly'][1,:]
+        if obj.noccur > 0:
+            node.phi_extensions = np.array([obj.pos, obj.extent]).T
+        node.closed = True
+        node.name = '%s_%s'%(obj.__class__.__name__, obj.Id.Name)
+
 
         # IDS properties
         # --------------
-        com = "Processed ECE data (EQUINOX equilibrium + interfero-based ne profile)"
-        idd.ece.ids_properties.comment = com
-        idd.ece.ids_properties.homogeneous_time = 1
-        idd.ece.ids_properties.provider = 'Didier VEZINET, didier.vezinet@cea.fr'
-        idd.ece.ids_properties.creation_date = \
-                          dtm.datetime.today().strftime('%Y%m%d%H%M%S')
-
-        # Code
-        # --------
-        idd.ece.code.name = "diag_ece"
-        idd.ece.code.repository = 'git://repository-irfm.intra.cea.fr/usr/local/git/diag_ece.git'
-        idd.ece.code.version = ece.__version__
-        idd.ece.code.output_flag = np.zeros((nt,),dtype=int)
-        idd.ece.code.parameters = """<crit> {0} </crit>""".format(crit)
+        com = "PFC contour generated:\n"
+        com += "    - from %s"%obj.Id.SaveName
+        com += "    - by tofu %s"%tfversion
+        _fill_idsproperties(idd.wall, com, tfversion)
+        err0 = None
 
     except Exception as err:
-        traceback.print_exc(file=sys.stdout)
-        if len(idd.ece.time) > 0:
-            idd.ece.code.output_flag = -np.ones((nt,),dtype=int)
-        else:
-            idd.ece.code.output_flag.resize(1)
-            idd.ece.code.output_flag[0] = -1
-        raise err
+        _except_ids(idd.wall, nt=None)
+        err0 = err
 
     finally:
 
         # Put IDS
         # ------------------
-        if not dry_run:
-            try:
-                idd.ece.put()
-            except Exception as err:
-                msg = str(err)
-                msg += "\n  There was a pb. when putting the ids !"
-                raise Exception(msg)
-            finally:
-                # Close idd
-                idd.close()
+        _put_ids(idd, idd.wall, shotfile, occ=occ, err=err0, dryrun=dryrun, verb=verb)
 
-        # print info
-        if verb:
-            msg = "  => Saved in "
-            if dry_run:
-                msg += "\n  => Dry run successfull\n"
-                msg += "       (not saved, but whole process tested)"
-            print(msg)
+
+def _save_to_imas_Config( obj,
+                         shot=None, run=None, refshot=None, refrun=None,
+                         occ=None, user=None, tokamak=None, version=None,
+                         dryrun=False, tfversion=None, verb=True,
+                         description_2d=None):
+
+    # Create or open IDS
+    # ------------------
+    idd, shotfile = _open_create_idd(shot=shot, run=run,
+                                     refshot=refshot, refrun=refrun,
+                                     user=user, tokamak=tokamak, version=version,
+                                     verb=verb)
+
+    # Choose description_2d from config
+    lS = obj.lStruct
+    lcls = [ss.__class__.__name__ for ss in lS]
+    lclsIn = [cc for cc in lcls if cc in ['Ves','PlasmaDomain']]
+    nS = len(lS)
+
+    if len(lclsIn) != 1:
+        msg = "One StructIn subclass is allowed / necessary !"
+        raise Exception(msg)
+
+    if description_2d is None:
+        if nS == 1 and lcls[0] in ['Ves','PlasmaDomain']:
+            description_2d = 0
+        else:
+            descrption_2d = 2
+    assert description_2d in [0,2]
+
+    # Make sure StructIn is last (IMAS requirement)
+    ind = lcls.index(lclsIn[0])
+    lS[-1], lS[ind] = lS[ind], lS[-1]
+
+
+    # Fill in data
+    # ------------------
+    try:
+        # data
+        # --------
+        idd.wall.description_2d.resize( description_2d + 1 )
+        idd.wall.description_2d[description_2d].type.name = obj.Id.Name
+        idd.wall.description_2d[description_2d].limiter.unit.resize(nS)
+        for ii in range(0,nS):
+            node = idd.wall.description_2d[description_2d].limiter.unit[ii]
+            node.outline.r = lS[ii].Poly_closed[0,:]
+            node.outline.z = lS[ii].Poly_closed[1,:]
+            if lS[ii].noccur > 0:
+                node.phi_extensions = np.array([lS[ii].pos, lS[ii].extent]).T
+            node.closed = True
+            node.name = '%s_%s'%(lS[ii].__class__.__name__, lS[ii].Id.Name)
+
+
+        # IDS properties
+        # --------------
+        com = "PFC contour generated:\n"
+        com += "    - from %s"%obj.Id.SaveName
+        com += "    - by tofu %s"%tfversion
+        _fill_idsproperties(idd.wall, com, tfversion)
+        err0 = None
+
+    except Exception as err:
+        _except_ids(idd.wall, nt=None)
+        err0 = err
+
+    finally:
+
+        # Put IDS
+        # ------------------
+        _put_ids(idd, idd.wall, shotfile, err=err0, dryrun=dryrun, verb=verb)
