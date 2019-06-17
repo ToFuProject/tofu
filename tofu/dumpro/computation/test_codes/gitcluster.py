@@ -14,19 +14,20 @@
 
 
 import cv2
+
 import numpy as np 
  
 # read and scale down image
-img = cv2.imread('E:/NERD/Python/Videos/KSTAR_003723_tv01_frground/frame1041.jpg', cv2.IMREAD_UNCHANGED)
+img = cv2.imread('E:/NERD/Python/DUMPRO/KSTAR_frground/frame437.jpg', cv2.IMREAD_UNCHANGED)
  
 # threshold image
-gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-blur = cv2.GaussianBlur(gray , (11,11),0)
-ret, threshed_img = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+blur = cv2.GaussianBlur(img , (11,11),0)
+ret, threshed_img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
 # find contours and get the external one
 contours, hier = cv2.findContours(threshed_img, cv2.RETR_TREE,
                 cv2.CHAIN_APPROX_SIMPLE)
  
+frame_center=[]
 # with each contour, draw boundingRect in green
 # a minAreaRect in red and
 # a minEnclosingCircle in blue
@@ -40,7 +41,8 @@ for c in contours:
         cy = int(M['m01']/M['m00'])
         center = cx,cy
         print( center)
-    
+        area = cv2.contourArea(c)
+        print(area)
 #    
 #    # get the bounding rect
     x, y, w, h = cv2.boundingRect(c)
@@ -61,13 +63,15 @@ for c in contours:
         # convert all values to int
         center = (int(x), int(y))
         radius = int(radius)
+        area = 3.14*radius*radius
         print(center)
+        print(area)
     # and draw the circle in blue
 #    img = cv2.circle(img, center, radius, (255, 0, 0), 2)
     #ellipse = cv2.fitEllipse(c)
     #cv2.ellipse(img,ellipse,(0,255,0),2)
     
- 
+    frame_center.append(center)
 print(len(contours))
 print(type(contours))
 #cv2.drawContours(img, contours, -1, (255, 255, 0), 1)

@@ -1,23 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu May 30 09:35:40 2019
+Created on Mon Jun 17 00:52:04 2019
 
 @author: napra
 """
-import time
-import sys
 
-toolbar_width = 40
+from sys import stdout
+from time import sleep
 
-# setup toolbar
-sys.stdout.write("[%s]" % (" " * toolbar_width))
-sys.stdout.flush()
-sys.stdout.write("\b" * (toolbar_width+1)) # return to start of line, after '['
+jobLen = 100
+progressReport = 0
 
-for i in xrange(toolbar_width):
-    time.sleep(0.1) # do real work here
-    # update the bar
-    sys.stdout.write("-")
-    sys.stdout.flush()
+while progressReport < jobLen:
+    progressReport += 1
+    stdout.write("\r[%s/%s]" % (progressReport, jobLen))
+    stdout.flush()
+    sleep(0.1)
 
-sys.stdout.write("]\n") # this ends the progress bar
+stdout.write("\n")
+stdout.flush()
