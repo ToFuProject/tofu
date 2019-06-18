@@ -31,6 +31,7 @@ except Exception:
 
 
 # ToFu-specific
+from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
 try:
@@ -1217,6 +1218,27 @@ class Struct(utils.ToFuObject):
 
 
 
+    def save_to_imas(self, shot=None, run=None, refshot=None, refrun=None,
+                     occ=None, user=None, tokamak=None, version=None,
+                     dryrun=False, verb=True, description_2d=None, unit=0):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, dryrun=dryrun, verb=verb,
+                             description_2d=description_2d, unit=unit)
+
+
+
+
+
+
+
+
+
+
+
+
 
 """
 ###############################################################################
@@ -2365,6 +2387,17 @@ class Config(utils.ToFuObject):
         return ax
 
 
+    def save_to_imas(self, shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None, occ=None,
+                     dryrun=False, verb=True, description_2d=None):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, occ=occ, dryrun=dryrun, verb=verb,
+                             description_2d=description_2d)
+
+
 
 """
 ###############################################################################
@@ -2726,7 +2759,10 @@ class Rays(utils.ToFuObject):
             c1 = c0 and all([ss in self._dgeom['dX12'].keys() for ss in ls])
             c2 = c1 and all([self._dgeom['dX12'][ss] is not None for ss in ls])
             if not c2:
-                msg = "dX12 cannot be derived from dgeom (info not known) !"
+                msg = "dX12 is not provided as input (dX12 = None)\n"
+                msg += "  => self._dgeom['dX12'] (computed) used as fallback\n"
+                msg += "    - It should have non-None keys: %s\n"%str(list(ls))
+                msg += "    - it is:\n%s"%str(self._dgeom['dX12'])
                 raise Exception(msg)
             dX12 = {'from':'geom'}
 
@@ -2940,7 +2976,9 @@ class Rays(utils.ToFuObject):
 
         if n1*n2 != X12.shape[1]:
             msg = "The provided X12 array does not seem to correspond to"
-            msg += "a n1 x n2 2D matrix, even within tolerance"
+            msg += "a n1 x n2 2D matrix, even within tolerance\n"
+            msg += "  n1*n2 = %s x %s = %s\n"%(str(n1),str(n2),str(n1*n2))
+            msg += "  X12.shape = %s"%str(X12.shape)
             raise Exception(msg)
 
         ind1 = np.digitize(X12[0,:], 0.5*(x1[1:]+x1[:-1]))
@@ -2967,24 +3005,36 @@ class Rays(utils.ToFuObject):
                         dgeom['pinhole'] = pinhole
 
             # Test if all D are on a common plane or line
-            v0 = dgeom['D'][:,1]-dgeom['D'][:,0]
             va = dgeom['D']-dgeom['D'][:,0:1]
 
             # critetrion of unique D
-            crit = np.sum(va**2) > 1.e-9
-            if not crit:
+            crit = np.sqrt(np.sum(va**2,axis=0))
+            if np.sum(crit) < 1.e-9:
+                if self._is2D():
+                    msg = "2D camera but dgeom cannot be obtained !\n"
+                    msg += "  crit = %s\n"%str(crit)
+                    msg += "  dgeom = %s"%str(dgeom)
+                    raise Exception(msg)
                 return dgeom
 
+            # To avoid ||v0|| = 0
+            if crit[1] > 1.e-12:
+                # Take first one by default to ensure square grid for CamLOS2D
+                ind0 = 1
+            else:
+                ind0 = np.nanargmax(crit)
+            v0 = va[:,ind0]
             v0 = v0/np.linalg.norm(v0)
+            indok = np.nonzero(crit > 1.e-12)[0]
             van = np.full(va.shape, np.nan)
-            van[:,1:] = va[:,1:] / np.sqrt(np.sum(va[:,1:]**2,axis=0))[np.newaxis,:]
+            van[:,indok] = va[:,indok] / crit[None,indok]
             vect2 = ((van[1,:]*v0[2]-van[2,:]*v0[1])**2
                      + (van[2,:]*v0[0]-van[0,:]*v0[2])**2
                      + (van[0,:]*v0[1]-van[1,:]*v0[0])**2)
             # Don't forget that vect2[0] is nan
-            if np.all(vect2[1:]<1.e-9):
+            if np.all(vect2[indok] < 1.e-9):
                 # All D are aligned
-                e1 = van[:,1]
+                e1 = v0
                 x1 = np.sum(va*e1[:,np.newaxis],axis=0)
                 if dgeom['pinhole'] is not None:
                     kref = -np.sum((dgeom['D'][:,0]-dgeom['pinhole'])*e1)
@@ -2994,14 +3044,14 @@ class Rays(utils.ToFuObject):
                     dgeom['dX12'] = {}
                 dgeom['dX12'].update({'e1':e1, 'x1':x1, 'n1':x1.size})
             else:
+
                 ind = np.nanargmax(vect2)
                 v1 = van[:,ind]
                 nn = np.cross(v0,v1)
                 nn = nn/np.linalg.norm(nn)
                 scaabs = np.abs(np.sum(nn[:,np.newaxis]*va,axis=0))
                 if np.all(scaabs<1.e-9):
-                    assert not '1d' in self.__class__.__name__.lower()
-                    # All D are in a common plane perpendicular to n, check
+                    # All D are in a common plane, but not aligned
                     # check nIn orientation
                     sca = np.sum(self.u*nn[:,np.newaxis],axis=0)
                     lc = [np.all(sca>=0.), np.all(sca<=0.)]
@@ -3018,6 +3068,9 @@ class Rays(utils.ToFuObject):
                     if dgeom['dX12'] is None:
                         dgeom['dX12'] = {}
                     dgeom['dX12'].update({'nIn':nIn, 'e1':e1, 'e2':e2})
+
+                    if not self._is2D():
+                        return dgeom
 
                     # Test binning
                     if dgeom['pinhole'] is not None:
@@ -3036,7 +3089,14 @@ class Rays(utils.ToFuObject):
                         dgeom['isImage'] = True
 
                     except Exception as err:
-                        warnings.warn(str(err))
+                        msg = str(err)
+                        msg += "\n  nIn = %s"%str(nIn)
+                        msg += "\n  e1 = %s"%str(e1)
+                        msg += "\n  e2 = %s"%str(e2)
+                        msg += "\n  k1ref, k2ref = %s, %s"%(str(k1ref),str(k2ref))
+                        msg += "\n  va = %s"%str(va)
+                        msg += "\n  x12 = %s"%str(x12)
+                        warnings.warn(msg)
 
         else:
             if dgeom['case'] in ['F','G']:
@@ -4462,10 +4522,75 @@ sig = inspect.signature(Rays)
 params = sig.parameters
 
 
+class CamLOS1D(Rays):
+
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
+
+        # Prepare
+        kout = self._dgeom['kOut']
+        indout = self._dgeom['indout']
+        lS = self._dconfig['Config'].lStruct
+
+        # ar0
+        col0 = ['nb. los', 'av. length', 'nb. touch']
+        ar0 = [self.nRays,
+               '{:.3f}'.format(np.nanmean(kout)),
+               np.unique(indout[0,:]).size]
+
+        # ar1
+        col1 = ['los index', 'length', 'touch']
+        ar1 = [np.arange(0,self.nRays),
+               np.around(kout, decimals=3).astype('U'),
+               ['%s_%s'%(lS[ii].Id.Cls, lS[ii].Id.Name) for ii in indout[0,:]]]
+
+        for k,v in self._dchans.items():
+            col1.append(k)
+            if v.ndim == 1:
+                ar1.append( v )
+            else:
+                ar1.append( [str(vv) for vv in v] )
+
+        # call base method
+        self._get_summary([ar0, ar1], [col0, col1],
+                          sep=sep, line=line, table_sep=table_sep,
+                          verb=verb, return_=return_)
+
+    def __add__(self, other):
+        if not other.__class__.__name__ == self.__class__.__name__:
+            msg = "Operator defined only for same-class operations !"
+            raise Exception(msg)
+        lc = [self.Id.Exp == other.Id.Exp, self.Id.Diag == other.Id.Diag]
+        if not all(lc):
+            msg = "Operation only valid if objects have identical (Diag, Exp) !"
+            raise Exception(msg)
+        if not self.config == other.config:
+            msg = "Operation only valid if objects have identical config !"
+            raise Exception(msg)
+
+        Name = '%s+%s'%(self.Id.Name, other.Id.Name)
+        D = np.concatenate((self.D,other.D), axis=1)
+        u = np.concatenate((self.u, other.u), axis=1)
+
+        return self.__class__(dgeom=(D,u), config=self.config,
+                              Name=Name, Diag=self.Id.Diag, Exp=self.Id.Exp)
+    def __radd__(self, other):
+        return self.__add__(other)
 
 
+    def save_to_imas(self, ids, shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None, occ=None,
+                     dryrun=False, deep=True, verb=True,
+                     config_description_2d=None, config_occ=None):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, occ=occ, dryrun=dryrun, verb=verb,
+                             ids=ids, deep=deep,
+                             config_description_2d=config_description_2d,
+                             config_occ=config_occ)
 
-class CamLOS1D(Rays): pass
 
 lp = [p for p in params.values() if p.name != 'dX12']
 CamLOS1D.__signature__ = sig.replace(parameters=lp)

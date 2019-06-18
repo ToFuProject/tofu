@@ -1845,8 +1845,21 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         if lData[ii].dextra is not None:
             for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
                 idteq = id(lData[ii].dextra[k]['t'])
+
                 if idteq not in dteq[ii].keys():
+                    # test if any existing t matches values
+                    lidalready = [[k1 for k1,v1 in v0.items()
+                                   if (v1.size == lData[ii].dextra[k]['t'].size
+                                       and np.allclose(v1, lData[ii].dextra[k]['t']))]
+                                  for v0 in dteq.values()]
+                    lidalready = list(set(itt.chain.from_iterable(lidalready)))
+                    assert len(lidalready) in [0,1]
+                    if len(lidalready) == 1:
+                        idteq = lidalready[0]
+
                     dteq[ii][idteq] = lData[ii].dextra[k]['t']
+                idteq = list(dteq[ii].keys())[0]
+
                 dlextra[k][ii] = dict([(kk,v)
                                         for kk,v in lData[ii].dextra[k].items()
                                         if not kk == 't'])
@@ -1888,9 +1901,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # conf
     c0 = lData[0]._dgeom['config'] is not None
     if c0:
-        out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
-                                             element='P', dLeg=None, draw=False)
-        dax['cross'][0], dax['hor'][0] = out
+        dax['hor'][0] = lData[0]._dgeom['config'].plot(lax=dax['hor'][0], proj='hor',
+                                                       element='P', dLeg=None, draw=False)
 
     # dextra
     if lData[0].dextra is not None:
@@ -1947,7 +1959,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                          c=cbck, ls='-', lw=1.)
         elif c2 and not lis2D[ii]:
             for jj in range(0,len(lData[ii]._dgeom['lCam'])):
-                    dax['cross'][ii] = cc.plot(lax=dax['cross'][0], proj='cross',
+                    dax['cross'][ii] = cc.plot(lax=dax['cross'][ii], proj='cross',
                                                element='L', Lplot=Lplot,
                                                dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
                                                dLeg=None, draw=False)
@@ -2016,10 +2028,13 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                           'otherid':lXother[ii], 'indother':lindtX[ii]}
         if lis2D[ii]:
             dref[lidX[ii]]['2d'] = (lx1[ii],lx2[ii])
-    if len(list(dteq[0].items())) == 0:
-        idteq, teq = lidt[0], lt[0]
+
+    for ii in range(0,nDat):
+        if len(list(dteq[ii])) > 0:
+            idteq, teq = list(dteq[ii].items())[0]
+            break
     else:
-        idteq, teq = list(dteq[0].items())[0]
+        idteq, teq = lidt[0], lt[0]
     dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
 
 
@@ -2169,15 +2184,15 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
                     if kk == 'Sep':
-                        l0, = dax['cross'][0].plot([np.nan],[np.nan],
+                        l0, = dax['cross'][ii].plot([np.nan],[np.nan],
                                                    c=lct[jj], ls=lls[0],
                                                    lw=1.)
                     else:
                         marker = dlextra[kk][ii]['marker']
-                        l0, = dax['cross'][0].plot([np.nan],[np.nan],
-                                                   mec=lct[jj], mfc='None',
-                                                   ls=lls[0],
-                                                   ms=ms, marker=marker)
+                        l0, = dax['cross'][ii].plot([np.nan],[np.nan],
+                                                    mec=lct[jj], mfc='None',
+                                                    ls=lls[0],
+                                                    ms=ms, marker=marker)
                     dobj[l0] = {'dupdate':{'data':{'id':id_,
                                                    'lrid':[idt]}},
                                 'drefid':{idt:jj}}
@@ -2214,7 +2229,6 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                         dobj[l0] = {'dupdate':{'xdata':{'id':lidX[ii],
                                                         'lrid':[lidt[ii],lidX[ii]]}},
                                     'drefid':{lidX[ii]:jj, lidt[ii]:ll}}
-
 
     ##################
     # Instanciate KeyHandler
@@ -3464,7 +3478,6 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
                                         ms=ms, mfc='None', zorder=10)
                 dobj[l0] = {'dupdate':{'data':{'id':idx12, 'lrid':[idX]}},
                             'drefid':{idX:jj}}
-
 
     # Instanciate KeyHandler
     can = fig.canvas

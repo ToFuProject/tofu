@@ -142,46 +142,67 @@ if sys.version[:3] in ['2.7','3.6','3.7']:
 else:
     raise Exception("Pb. with python version in setup.py file: "+sys.version)
 
-if sys.version[0]=='2':
-    git_branch = subprocess.check_output(["git",
-                                          "rev-parse",
-                                          "--symbolic-full-name",
-                                          "--abbrev-ref",
-                                          "HEAD"]).rstrip()
+
+if sys.version[0] == '2':
     extralib = ['funcsigs']
-elif sys.version[0]=='3':
-    git_branch = subprocess.check_output(["git",
-                                          "rev-parse",
-                                          "--symbolic-full-name",
-                                          "--abbrev-ref",
-                                          "HEAD"]).rstrip().decode()
+else:
     extralib = []
 # ==============================================================================
 
-here = os.path.abspath(os.path.dirname(__file__))
 
-if git_branch == "master" or git_branch == "devel" :
-    version_git = up.updateversion(os.path.join(here,'tofu'))
-else:
-    version_py = os.path.join(here,'tofu')
-    version_py = os.path.join(version_py,"version.py")
-    with open(version_py,'r') as fh:
-        version_git = fh.read().strip().split("=")[-1].replace("'",'')
-    version_git = version_git[1:] if version_git[0].lower()=='v' else version_git
+
+
+_HERE = os.path.abspath(os.path.dirname(__file__))
+
+def get_version_tofu(path=_HERE):
+
+    # Try from git
+    isgit = '.git' in os.listdir(path)
+    if isgit:
+        try:
+            if sys.version[0]=='2':
+                git_branch = subprocess.check_output(["git",
+                                                      "rev-parse",
+                                                      "--symbolic-full-name",
+                                                      "--abbrev-ref",
+                                                      "HEAD"]).rstrip()
+            elif sys.version[0]=='3':
+                git_branch = subprocess.check_output(["git",
+                                                      "rev-parse",
+                                                      "--symbolic-full-name",
+                                                      "--abbrev-ref",
+                                                      "HEAD"]).rstrip().decode()
+            if git_branch in ['master']:
+                version_tofu = up.updateversion(os.path.join(path,'tofu'))
+            else:
+                isgit = False
+        except Exception as err:
+            isgit = False
+
+    if not isgit:
+        version_tofu = os.path.join(path,'tofu')
+        version_tofu = os.path.join(version_tofu,"version.py")
+        with open(version_tofu,'r') as fh:
+            version_tofu = fh.read().strip().split("=")[-1].replace("'",'')
+
+    version_tofu = version_tofu.lower().replace('v','')
+    return version_tofu
+
+version_tofu = get_version_tofu(path=_HERE)
 
 print("")
-print("Version for setup.py : ", version_git)
+print("Version for setup.py : ", version_tofu)
 print("")
 
 
 # Getting relevant compilable files
 if sys.version[0]=='3':
-    #if not '_GG03.pyx' in os.listdir(os.path.join(here,'tofu/geom/')):
-    shutil.copy2(os.path.join(here,'tofu/geom/_GG02.pyx'),
-                 os.path.join(here,'tofu/geom/_GG03.pyx'))
+    #if not '_GG03.pyx' in os.listdir(os.path.join(_HERE,'tofu/geom/')):
+    shutil.copy2(os.path.join(_HERE,'tofu/geom/_GG02.pyx'),
+                 os.path.join(_HERE,'tofu/geom/_GG03.pyx'))
 
 # Get the long description from the README file
-with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
+with open(os.path.join(_HERE, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 #  ... Compiling files .........................................................
@@ -211,7 +232,7 @@ extensions = cythonize(extensions, annotate=True)
 setup(
     name='tofu',
     #version="1.2.27",
-    version="{ver}".format(ver=version_git),
+    version="{ver}".format(ver=version_tofu),
     # Use scm to get code version from git tags
     # cf. https://pypi.python.org/pypi/setuptools_scm
     # Versions should comply with PEP440. For a discussion on single-sourcing

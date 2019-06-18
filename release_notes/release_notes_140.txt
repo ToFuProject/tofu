@@ -1,0 +1,40 @@
+What's new in 1.4.0:
+
+* All structures are now inherited from an abstract class (in tofu.geom) and are either of type:
+    - 'In': there can be plasma inside, they are empty structures (e.g.: Vessel)
+    - 'Out': there is only plasma outside, they are solid blocks (e.g.: PFC)
+
+* The Config (in tofu.geom) class handles all Struct instances and provides an easy way to manipulate / visualize the whoel tokamak
+
+* CamLOS1D and CamLOS2D (standing for 'Camera made of Lines of Sight, arranged in 1D or 2D) are subclasses of the abstract Rays class (in tofu.geom), they:
+    - provide an easy way to handle multiple Rays / LOS
+    - compute their intersections with the Struct instances (i.e.: detect vignetting, entry and exit points...)
+    - plot the LOS in pre-defined interactive figures (plot(), plot_touch() and plot_sinogram() methods)
+    - provide methods for computing :
+        the length of each LOS inside an user-provided polygon (e.g.: separatrix)
+        the distance to a 3D flat circle centered on the tokamak's vertical axis (e.g.magnetic axis)
+        the synthetic signal (i.e: the LOS-integrals of a user-provided scalar 2D or 3D emissivity field), and plot it using a DataCam1D or DataCam2D class
+
+* Many LOS-computing routines have been optimized and parallelized by Laura Mendoza using Cython, in particular but not only:
+    - computation of entry / exit points of each LOS for a large number of PFC  / Struct (~ seconds for 1 million LOS and ~ 100 Struct)
+    - computation of the length of each LOS inside a Polygon (e.g.: separatrix)
+    - computation of the distance to a circle (e.g.: magnetic axis)
+    - computation of distance to closed polygons (e.g.: spearatrix) when the LOS passed outside of it
+
+* DataCam1D and DataCam2D and data-handling classes (in tofu.data), designed to handle data from CamLOS1D or CamLOS2D (i.e.: from 1D or 2D cameras), providing:
+    - data visualization pre-defined interactive matplotlib figures (plot(), plot_compare() and plot_combine() methods)
+    - basic data-treatment methods (time step and channel selection, interpolation, base signal substraction, fft, svd, ...)
+    - spectrogram and svd interactive plotting methods
+
+* DataCam1DSpectral and DataCam2D spectral (tofu.data) provide equivalent classes for handling data with a spectral resolution in addition coming from 1D or 2D cameras
+
+* Plasma2D (tofu.data) provides a class for handling multiple 1D (radial) and 2D (cross-section) plasma quantities profiles (Te, ne, rho, psi, zeff...) and:
+    - provides methods for easy plotting
+    - allows each quantity to depend on its own time and space references
+    - handles triangular meshes
+    - can exports to DataCam1D any 1D profile
+
+* imas2tofu is a new sub-package addressing imas / tofu interacing, it provides in particular:
+    - load_Config() : an easy way to load a Config instance from an ids dict provided by the user (from 'wall' ids)
+    - load_Plasma2D() : an easy way to load a Plasma2D instance from an ids dict provided by the user (from 'equilibrium, core_profile' and 'core_sources' idss)
+    - load_Diag() : an easy way to load a CamLOS1D instance from an ids dict provided by the user (from a diagnostic-specific ids, e.g.: 'bolometer', 'ece'...)
