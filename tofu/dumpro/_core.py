@@ -103,6 +103,12 @@ class img_dir(object):
                             'frame_width' : img.shape[1]}
         #reshape dictionary
         self.__reshape = None
+        #total clusters in each frame
+        self.__t_clus = None
+        #area of each clsuters
+        self.__area_clus = None
+        #centers of each cluster
+        self.__cen_clus = None
 
 ####################################################################
 #   setters for attributes
@@ -372,6 +378,12 @@ class Video(object):
                           'N_frames' : self.__N_frames,
                           'frame_width' : self.__frame_width,
                           'frame_height' : self.__frame_height}
+        #total clusters in each frame
+        self.__t_clus = None
+        #area of each clsuters
+        self.__area_clus = None
+        #centers of each cluster
+        self.__cen_clus = None
     
 ##############################################################################
 #   setter for Working Directory
