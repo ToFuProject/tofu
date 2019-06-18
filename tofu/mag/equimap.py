@@ -11,6 +11,7 @@ import numpy as np
 import os
 import re
 import scipy.interpolate as interpolate
+import warnings
 #import sys
 
 # Local modules
@@ -381,10 +382,46 @@ def interp_quantity(quantity, interp_points, points, time_points, equi, \
             br_ripple, bt_ripple, bz_ripple = mr.mag_ripple(ar_R, ar_Phi, \
                                                  ar_Z, itor_intp_t)
 
+            # Check and correct Br if needed
+            r_ax = equi.time_slice[ind_mid].global_quantities.magnetic_axis.r
+
+            z_mid_ax = \
+              equi.time_slice[ind_mid].global_quantities.magnetic_axis.z \
+                     + 0.5*equi.time_slice[ind_mid].boundary.minor_radius
+
+            ind_p = np.abs((equiDict['r'] - r_ax)**2. \
+                         + (equiDict['z'] - z_mid_ax)**2).argmin()
+
+            if (equiDict['b_field_r'][ind_mid, ind_p] > 0):
+                br_intp *= -1
+                warnings.warn('Correcting b_field_r in b_field_norm, for negative toroidal current COCOS 11')
+
+            # Check and correct Bz if needed
+            r_mid_ax = \
+              equi.time_slice[ind_mid].global_quantities.magnetic_axis.r \
+                     + 0.5*equi.time_slice[ind_mid].boundary.minor_radius
+            z_ax = equi.time_slice[ind_mid].global_quantities.magnetic_axis.z
+
+            ind_p = np.abs((equiDict['r'] - r_mid_ax)**2. \
+                         + (equiDict['z'] - z_ax)**2).argmin()
+
+            if (equiDict['b_field_z'][ind_mid, ind_p] < 0):
+                bz_intp *= -1
+                warnings.warn('Correcting b_field_z in b_field_norm, for negative toroidal current COCOS 11')
+
+            # Check and correct Btor if needed
+            ind_p = np.abs((equiDict['r'] - r_ax)**2. \
+                         + (equiDict['z'] - z_ax)**2).argmin()
+
+            if (equiDict['b_field_tor'][ind_mid, ind_p] > 0):
+                bt_intp *= -1
+                warnings.warn('Correcting b_field_tor in b_field_norm, for negative toroidal field COCOS 11')
+
+            # Value interpolated
             value_interpolated = \
-              np.sqrt((br_intp + br_ripple)**2. \
-                    + (bt_intp + bt_ripple - bt_vac)**2. \
-                    + (bz_intp + bz_ripple)**2.)
+              np.sqrt((br_intp - br_ripple)**2. \
+                    + (np.abs(bt_intp - bt_ripple) - np.abs(bt_vac))**2. \
+                    + (bz_intp - bz_ripple)**2.)
 
             return np.squeeze(value_interpolated)
 
@@ -439,8 +476,9 @@ def interp_quantity(quantity, interp_points, points, time_points, equi, \
                 if (equiDict['b_field_r'][ind_mid, ind_p] > 0):
                     value_interpolated *= -1
                     value_interpolated -= br_ripple
+                    warnings.warn('Correcting b_field_r, for negative toroidal current COCOS 11')
                 else:
-                    value_interpolated += br_ripple
+                    value_interpolated -= br_ripple
 
             elif (quantity == 'b_field_z'):
                 r_mid_ax = \
@@ -452,10 +490,11 @@ def interp_quantity(quantity, interp_points, points, time_points, equi, \
                              + (equiDict['z'] - z_ax)**2).argmin()
 
                 if (equiDict['b_field_z'][ind_mid, ind_p] < 0):
-                    value_interpolated *=  -1
+                    value_interpolated *= -1
                     value_interpolated -= bz_ripple
+                    warnings.warn('Correcting b_field_z, for negative toroidal current COCOS 11')
                 else:
-                    value_interpolated += bz_ripple
+                    value_interpolated -= bz_ripple
 
             elif (quantity == 'b_field_tor'):
                 b0_intp_t = np.interp(ar_time, equi.time[mask], \
@@ -471,10 +510,11 @@ def interp_quantity(quantity, interp_points, points, time_points, equi, \
                              + (equiDict['z'] - z_ax)**2).argmin()
 
                 if (equiDict['b_field_tor'][ind_mid, ind_p] > 0):
-                    value_interpolated *=  -1
+                    value_interpolated *= -1
                     value_interpolated -= (bt_ripple - bt_vac)
+                    warnings.warn('Correcting b_field_tor, for negative toroidal field COCOS 11')
                 else:
-                    value_interpolated += (bt_ripple - bt_vac)
+                    value_interpolated -= (bt_ripple - bt_vac)
             else:
                 print()
                 print('ERROR: not valid quantity input:', quantity)
@@ -602,7 +642,8 @@ def interp_quantity(quantity, interp_points, points, time_points, equi, \
                      + (equiDict['z'] - z_mid_ax)**2).argmin()
 
         if (equiDict['b_field_r'][ind_mid, ind_p] > 0):
-            value_interpolated *=  -1
+            value_interpolated *= -1
+            warnings.warn('Correcting b_field_r, if Ip negative COCOS 11')
 
         return np.squeeze(value_interpolated)
 
@@ -615,7 +656,8 @@ def interp_quantity(quantity, interp_points, points, time_points, equi, \
                      + (equiDict['z'] - z_ax)**2).argmin()
 
         if (equiDict['b_field_z'][ind_mid, ind_p] < 0):
-            value_interpolated *=  -1
+            value_interpolated *= -1
+            warnings.warn('Correcting b_field_z, if Ip negative COCOS 11')
 
         return np.squeeze(value_interpolated)
 
@@ -627,7 +669,8 @@ def interp_quantity(quantity, interp_points, points, time_points, equi, \
                      + (equiDict['z'] - z_ax)**2).argmin()
 
         if (equiDict['b_field_tor'][ind_mid, ind_p] > 0):
-            value_interpolated *=  -1
+            value_interpolated *= -1
+            warnings.warn('Correcting b_field_tor, if b_field_tor negative COCOS 11')
 
         return np.squeeze(value_interpolated)
     else:
