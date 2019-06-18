@@ -53,9 +53,6 @@ def get_distance(clus_center, clus_area, t_clusters):
                         print(dist)
                         #adding to cluster distance list
                         clus_dist.append(dist)
-                        a = input('press c :')
-                        if a == 'c':
-                            continue
     #converting clus_dist to array                    
     clus_dist = np.array(clus_dist)
     #adding up all distances

@@ -25,6 +25,8 @@ import to_binary
 import rm_background
 import reshape_image
 import cluster_det
+import average_area
+import average_distance
 #import plotting as _plot
 
 def dumpro_img(im_path, w_dir, shot_name, tlim = None, 
@@ -83,11 +85,16 @@ def dumpro_img(im_path, w_dir, shot_name, tlim = None,
                                             meta_data, verb)
     
     #detecting clusters
-    clus, meta_data, cen_clus, area_clus = cluster_det.det_cluster(back, w_dir, 
-                                                                   shot_name, 
-                                                                   im_out, 
-                                                                   meta_data, 
-                                                                   verb)
+    clus, meta_data, cen_clus, area_clus, t_clus = cluster_det.det_cluster(back, w_dir, 
+                                                                           shot_name, 
+                                                                           im_out, 
+                                                                           meta_data, 
+                                                                           verb)
+    #getting average area
+    area, avg_area = average_area.get_area(area_clus, t_clus)
+    
+    #getting average distance
+    avg_dist, avg_dist_big = average_distance.get_distance(cen_clus, area_clus, t_clus)
     
     
     return None
