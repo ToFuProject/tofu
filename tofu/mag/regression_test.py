@@ -28,8 +28,8 @@ REF_FILE    = 'reference.npz'
 REF_SHOT    = 54178
 REF_RUN     = 9
 REF_OCC     = 0
-REF_USER    = 'imas_private'
-REF_MACHINE = 'equinox_test_data'
+REF_USER    = 'imas_public'
+REF_MACHINE = 'west'
 # ==================
 
 # Parameters
