@@ -19,7 +19,9 @@ Cf2py depend(RP) n_in
 Cf2py depend(WITOR) k_in
 Cf2py intent(out) brr, bt, bzz
 
-      write(*,*) "Magnetic ripple computation"
+C
+C      write(*,*) "Magnetic ripple computation"
+C
 
       do kk=1,k_in
           do ii=1,n_in
