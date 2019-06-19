@@ -7,6 +7,8 @@
 # Standard python modules
 from __future__ import (unicode_literals, absolute_import,  \
                         print_function, division)
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import axes3d, Axes3D
 import numpy as np
 import os
 #import re
@@ -240,7 +242,7 @@ class MagFieldLines:
         - False => The wall is a simple circular torus with minor radius rw
             centered at (Rc,Zc), thus with major radius Rc.
         - True => check collision with wall boundary given in the Equilibrium
-            mat file 
+            mat file
         '''
         R,Z,P=state
         #if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(89.5)<=P<=np.deg2rad(90.5):
@@ -275,7 +277,7 @@ class MagFieldLines:
 
         # Compute magnetic field for given Phi
         br_ripple, bt_ripple, bz_ripple = mr.mag_ripple(R, Phi, \
-                                                        Z, self.itor_intp_t)
+                                                     Z, self.itor_intp_t)
         # Compute reference vaccuum magnetic field
         self.bt_vac = self.equi.vacuum_toroidal_field.r0*self.b0_intp_t / R
 
@@ -284,3 +286,110 @@ class MagFieldLines:
         bz_intp -= bz_ripple[0]
 
         return br_intp[0], bt_intp[0], bz_intp[0]
+
+    def plot_trace(self, trace):
+        '''
+        Plots a summary of the magnetic field line trace.
+        It contains a graph of the radial, vertical and toroidal corrdinates followed by
+        the vertical projection (w/o and with the wall) and the toroidal projection.
+
+        A black dot represents the starting point of the field line.
+        The end of the trace is indicated by:
+        - a red dot in case of collision with the wall
+        - a black square otherwise
+
+        input:
+            - trace : the magneticl field line data (dictionary)
+        '''
+        sgf=trace['s']
+        rgf=trace['r']
+        zgf=trace['z']
+        pgf=trace['p']
+        xgf=trace['x']
+        ygf=trace['y']
+        colpt=trace['cp']
+        plt.figure(figsize=[12,8])
+        plt.subplot(231)
+        plt.plot(sgf,rgf)
+        plt.grid();plt.ylabel('R [m]');plt.xlabel('s [m]');plt.title('Radial coord.')
+        plt.subplot(232)
+        plt.plot(sgf,zgf)
+        plt.grid();plt.ylabel('Z [m]');plt.xlabel('s [m]');plt.title('Vertical coord.')
+        plt.subplot(233)
+        plt.plot(sgf,np.rad2deg(pgf))
+        plt.grid();plt.ylabel('$\phi$ [deg]');plt.xlabel('s [m]');plt.title('Toroidal coord.')
+        plt.subplot(234)
+        plt.plot(rgf,zgf)
+        plt.plot(rgf[0], zgf[0], marker='o', markersize=3, color="black")
+        if not colpt:
+            plt.plot(rgf[-1],zgf[-1],marker='s',markersize=5,color="black")
+        else:
+            plt.plot(rgf[-1],zgf[-1],marker='o',markersize=5,color="red")
+        plt.axis('equal');plt.xlabel('R [m]');plt.ylabel('Z [m]');plt.title('Vertical projection')
+        plt.grid()
+        plt.subplot(235)
+        plt.plot(rgf,zgf)
+        #plt.plot(rwall,zwall)
+        plt.plot(rgf[0], zgf[0], marker='o', markersize=3, color="black")
+        if not colpt:
+            plt.plot(rgf[-1],zgf[-1],marker='s',markersize=5,color="black")
+        else:
+            plt.plot(rgf[-1],zgf[-1],marker='o',markersize=5,color="red")
+        plt.axis('equal');plt.xlabel('R [m]');plt.ylabel('Z [m]');plt.title('Vertical projection')
+        plt.subplot(236)
+        plt.plot(xgf,ygf)
+        #plt.plot(ra*np.cos(pa),ra*np.sin(pa),'b:')
+        plt.plot(xgf[0], ygf[0], marker='o', markersize=3, color="black")
+        if not colpt:
+            plt.plot(xgf[-1],ygf[-1],marker='s',markersize=5,color="black")
+        else:
+            plt.plot(xgf[-1],ygf[-1],marker='o',markersize=5,color="red")
+        plt.axis('equal');plt.xlabel('x [m]');plt.ylabel('y [m]');plt.title('Toroidal projection')
+        plt.tight_layout()
+        plt.show()
+
+    def plot_trace_3D(self, trace):
+        '''
+        Plots the magnetic field line trace in a 3D projection.
+
+        The outline of the antenna is shown by black solid ines.
+        A black dot represents the starting point of the field line.
+        The end of the trace is indicated by:
+        - a red dot in case of collision with the wall
+        - a black square otherwise
+
+        input:
+            - trace : the magneticl field line data (dictionary)
+        '''
+        sgf=trace['s']
+        rgf=trace['r']
+        zgf=trace['z']
+        pgf=trace['p']
+        xgf=trace['x']
+        ygf=trace['y']
+        colpt=trace['cp']
+        fig=plt.figure(figsize=[10,10])
+        ax = Axes3D(fig)
+        #ax = fig.gca(projection='3d')
+        #ax.set_aspect('equal')
+        ax.plot(xgf,ygf,zgf)
+        #ax.plot(ra[0]*np.cos(pa),ra[0]*np.sin(pa),za[0],'k')
+        #ax.plot(ra*np.cos(pa[0]),ra*np.sin(pa[0]),za,'k')
+        #ax.plot(ra[-1]*np.cos(pa),ra[-1]*np.sin(pa),za[-1],'k')
+        #ax.plot(ra*np.cos(pa[-1]),ra*np.sin(pa[-1]),za,'k')
+        ax.plot(3.5*np.cos(np.linspace(0,2*np.pi,36)),3.5*np.sin(np.linspace(0,2*np.pi,36)),0,'k:')
+        # Used to create the fake bounding box
+        max_range = np.array([xgf.max()-xgf.min(), ygf.max()-ygf.min(), zgf.max()-zgf.min()]).max()
+        Xb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][0].flatten() + 0.5*(xgf.max()+xgf.min())
+        Yb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][1].flatten() + 0.5*(ygf.max()+ygf.min())
+        Zb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][2].flatten() + 0.5*(zgf.max()+zgf.min())
+        # Comment or uncomment following both lines to test the fake bounding box:
+        for xb, yb, zb in zip(Xb, Yb, Zb):
+            ax.plot([xb], [yb], [zb], 'w')
+        ax.plot([xgf[0]],[ygf[0]],[zgf[0]],marker='o',markersize=3,color="black")
+        if not colpt:
+            ax.plot([xgf[-1]],[ygf[-1]],[zgf[-1]],marker='s',markersize=5,color="black")
+        else:
+            ax.plot([xgf[-1]],[ygf[-1]],[zgf[-1]],marker='o',markersize=5,color="red")
+        ax.set_xlabel('x [m]');ax.set_ylabel('y [m]');ax.set_zlabel('z [m]');plt.title('Magnetic field line trace')
+        plt.show()
