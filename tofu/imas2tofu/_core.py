@@ -1945,36 +1945,12 @@ class MultiIDSLoader(object):
         return plasma
 
 
-    def _checkformat_CamLOS1D_dsig(self, ids=None, dsig=None, mainsig=None,
-                               data=None, geom=None, indch=None):
-        didsok = {'magnetics': {'data':'DataCam1D',
-                                'geom':False},
-                  'ece':{'data':'DataCam1D',
-                         'geom':False,
-                         'sig':{'t':'t',
-                                'X':'R',
-                                'data':'Te'}},
-                  'interferometer':{'data':'DataCam1D',
-                                    'geom':'CamLOS1D',
-                                    'sig':{'t':'t',
-                                           'data':'ne_integ'}},
-                  'bolometer':{'data':'DataCam1D',
-                               'geom':'CamLOS1D',
-                               'sig':{'t':'t',
-                                      'data':'power'}},
-                  'soft_x_rays':{'data':'DataCam1D',
-                                 'geom':'CamLOS1D',
-                                 'sig':{'t':'t',
-                                        'data':'power'}},
-                  'spectrometer_visible':{'data':'DataCam1DSpectral',
-                                          'geom':'CamLOS1D',
-                                          'sig':{'t':'t',
-                                                 'lamb':'lamb',
-                                                 'data':'spectra'}},
-                  'bremsstrahlung_visible':{'data':'DataCam1D',
-                                            'geom':'CamLOS1D',
-                                            'sig':{'t':'t',
-                                                   'data':'radiance'}}}
+    def _checkformat_CamLOS1D_dsig(self, ids=None, geom=None, indch=None):
+        didsok = {'interferometer':'CamLOS1D',
+                  'bolometer':'CamLOS1D',
+                  'soft_x_rays':'geom':'CamLOS1D',
+                  'spectrometer_visible':'geom':'CamLOS1D',
+                  'bremsstrahlung_visible':'geom':'CamLOS1D'}
 
         # Check ids
         if ids not in self._dids.keys():
@@ -1986,42 +1962,15 @@ class MultiIDSLoader(object):
             msg = "  => Be careful with args (dsig, data, geom, indch)"
             warnings.warn(msg)
         else:
-            if data is None:
-                data = didsok[ids]['data']
             if geom is None:
-                geom = didsok[ids]['geom']
-            if dsig is None:
-                dsig = didsok[ids]['sig']
-        if mainsig is not None:
-            assert type(mainsig) is str
-            dsig['data'] = mainsig
+                geom = didsok[ids]
 
         # Check data and geom
         import tofu.geom as tfg
-        import tofu.data as tfd
 
-        if data is None:
-            data = 'DataCam1D'
-        ldata = [kk for kk in dir(tfd) if 'DataCam' in kk]
-        if not data in ldata:
-            msg = "Arg data must be in %s"%str(ldata)
-            raise Exception(msg)
         lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
         if geom not in [False] + lgeom:
             msg = "Arg geom must be in %s"%str([False]+lgeom)
-            raise Exception(msg)
-
-        # Check signals
-        c0 = type(dsig) is dict
-        c0 = c0 and 'data' in dsig.keys()
-        ls = ['t','X','lamb','data']
-        c0 = c0 and all([ss in ls for ss in dsig.keys()])
-        if not c0:
-            msg = "Arg dsig must be a dict with keys:\n"
-            msg += "    - 'data' : shortcut to the main data to be loaded\n"
-            msg += "    - 't':       (optional) shortcut to time vector\n"
-            msg += "    - 'X':       (optional) shortcut to abscissa vector\n"
-            msg += "    - 'lamb':    (optional) shortcut to wavelengths\n"
             raise Exception(msg)
 
         dout = {}
@@ -2038,8 +1987,7 @@ class MultiIDSLoader(object):
                     Name=None, occ=None, config=None, plot=True):
 
         # dsig
-        data, geom, dsig = self._checkformat_CamLOS1D_dsig(ids, dsig,
-                                                            mainsig=mainsig)
+        data, geom, dsig = self._checkformat_CamLOS1D_dsig(ids)
         if Name is None:
             Name = 'custom'
 
