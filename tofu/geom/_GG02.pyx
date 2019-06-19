@@ -2592,7 +2592,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                   Lim=None, LSPoly=None, LSLim=None, LSVIn=None,
                                   RMin=None, Forbid=True, EpsUz=_SMALL,
                                   EpsVz=_VSMALL, EpsA=_VSMALL, EpsB=_VSMALL,
-                                  EpsPlane=_VSMALL, VType='Tor', Test=True):
+                                  EpsPlane=_VSMALL, VType='Tor', vis=True, Test=True):
     """ Return an array of bool indices indicating whether each point in pts is
     visible from Pt considering vignetting
     """
@@ -2675,9 +2675,14 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                     if np.any(indout):
                         kPOut[indout] = kpin[indout]
 
-    ind = np.zeros((npts,),dtype=bool)
-    indok = (~np.isnan(k)) & (~np.isnan(kPOut))
-    ind[indok] = k[indok]<kPOut[indok]
+    # Get ind
+    indok = ~(np.isnan(k) | np.isnan(kPOut))
+    if vis:
+        ind = np.zeros((npts,),dtype=bool)
+        ind[indok] = k[indok] < kPOut[indok]
+    else:
+        ind = np.ones((npts,),dtype=bool)
+        ind[indok] = k[indok] > kPOut[indok]
     return ind
 
 # ==============================================================================
