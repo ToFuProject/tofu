@@ -224,7 +224,7 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
     if proj=='all':
         lax[1].autoscale_view()
 
-    if tit is not None:
+    if tit != False:
         lax[0].figure.suptitle(tit)
 
     if not dLeg is None:
@@ -798,7 +798,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
               Leg=None, dL=None, dPtD=_def.LOSMd,
               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
               dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False,
-              draw=True, fs=None, wintit=None, Test=True, ind=None):
+              draw=True, fs=None, wintit=None, tit=None, Test=True, ind=None):
 
     if Test:
         C = GLos.Id.Cls in ['Rays','CamLOS1D','CamLOS2D']
@@ -824,7 +824,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
 
     if element_config != '':
         Lax = GLos.config.plot(lax=Lax, element=element_config,
-                               proj=Proj, indices=False, fs=fs, tit=None,
+                               proj=Proj, indices=False, fs=fs, tit=False,
                                draw=False, dLeg=None, wintit=wintit, Test=Test)
         Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
@@ -1237,7 +1237,7 @@ def _Cam12D_plot_touch_init(fs=None, dmargin=None, fontsize=8,
     elif type(fs) is str and fs.lower()=='a4':
         fs = (8.27,11.69)
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
     if dmargin is None:
         dmargin = {'left':0.03, 'right':0.99,
@@ -1393,7 +1393,8 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
 
     if tit is None:
         tit = r"%s - %s - %s"%(cam.Id.Exp, cam.Id.Diag, cam.Id.Name)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
     # -----------------
     # Plot conf and bck

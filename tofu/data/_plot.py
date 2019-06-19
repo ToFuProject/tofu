@@ -121,6 +121,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
         msg = "Option cmap='touch' will be available in future releases  :-)"
         raise Exception(msg)
 
+
     # ------------------
     # Plot
     if lData[0]._isSpectral():
@@ -262,7 +263,7 @@ def _init_DataCam12D(fs=None, dmargin=None,
     if dmargin is None:
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     # Axes
@@ -511,7 +512,8 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         if lData[0].Id.shot is not None:
             tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
 
     # -----------------
@@ -520,7 +522,9 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     c1 = c0 and lData[0]._dgeom['lCam'] is not None
     if c0:
         out = lData[0]._dgeom['config'].plot(lax=[dax['cross'][0], dax['hor'][0]],
-                                             element='P', dLeg=None, draw=False)
+                                             element='P',
+                                             tit=False, wintit=False,
+                                             dLeg=None, draw=False)
         dax['cross'][0], dax['hor'][0] = out
         if c1 and 'LOS' in lData[0]._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
@@ -542,6 +546,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
+                                  wintit=False, tit=False,
                                   dLeg=None, draw=False)
                     dax['cross'][0], dax['hor'][0] = out
 
@@ -860,7 +865,7 @@ def _init_DataCam12D_spectral(fs=None, dmargin=None,
         dmargin = dict(left=0.05, bottom=0.06, right=0.99, top=0.92,
                        wspace=0.4, hspace=2.)
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     # -------------
@@ -1218,7 +1223,8 @@ def _DataCam12D_plot_spectral(lData, key=None,
         if lData[0].Id.shot is not None:
             tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
 
     # -----------------
@@ -1668,7 +1674,7 @@ def _init_DataCam12D_combine(fs=None, dmargin=None,
     if dmargin is None:
         dmargin = _def.dmargin_combine
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     # Axes
@@ -1884,15 +1890,11 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                    lis2D=lis2D, fldict=fldict)
     fig  = dax['t'][0].figure
     if tit is None:
-        tit = []
-        if lData[0].Id.Exp is not None:
-            tit.append(lData[0].Id.Exp)
-        if lData[0].Id.Diag is not None:
-            tit.append(lData[0].Id.Diag)
-        if lData[0].Id.shot is not None:
-            tit.append(r"{0:05.0f}".format(lData[0].Id.shot))
+        tit = [str(getattr(lData[0].Id,aa)) for aa in ['Exp','Diag','shot']
+               if getattr(lData[0].Id,aa) is not None]
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
 
     # -----------------
@@ -2304,7 +2306,7 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
     if dmargin is None:
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     gs1 = gridspec.GridSpec(6, 5, **dmargin)
@@ -2525,7 +2527,8 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         if Data.Id.shot is not None:
             tit.append(r"{0:05.0f}".format(Data.Id.shot))
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
     # Plot vessel
     c0 = Data._dgeom['config'] is not None
@@ -2955,7 +2958,7 @@ def _init_Data_svd(fs=None, dmargin=None, nD=1,
     if dmargin is None:
         dmargin = _def.dmargin1D
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
 
     # Axes array
@@ -3177,7 +3180,8 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
         if Data.Id.shot is not None:
             tit.append(r"{0:05.0f}".format(Data.Id.shot))
         tit = ' - '.join(tit)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
     ############
     # Plot static

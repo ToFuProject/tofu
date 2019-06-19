@@ -26,6 +26,10 @@ import datetime as dtm
 # imas
 import imas
 
+__all__ = ['MultiIDSLoader',
+           'load_Config', 'load_Plasma2D', 'load_Diag',
+          '_save_to_imas']
+
 
 # public imas user (used for checking if can be saved)
 _IMAS_USER_PUBLIC = 'imas_public'
@@ -1839,7 +1843,7 @@ class MultiIDSLoader(object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        _, _, shot, Exp = self._get_lidsidd_shotExp(lids,
+        _, _, shot, Exp = self._get_lidsidd_shotExp(lids, upper=True,
                                                     errshot=True, errExp=True)
         # get data
         out_ = self.get_data_all(dsig=dsig)
@@ -2042,7 +2046,7 @@ class MultiIDSLoader(object):
 
         # ---------------------------
         # Preliminary checks on data source consistency
-        _, _, shot, Exp = self._get_lidsidd_shotExp(ids,
+        _, _, shot, Exp = self._get_lidsidd_shotExp([ids], upper=True,
                                                     errshot=True, errExp=True)
         # -------------
         #   Input dicts
@@ -2053,6 +2057,7 @@ class MultiIDSLoader(object):
 
         # cam
         cam = None
+        nchMax = len(self._dids[ids]['ids'][0].channel)
         if geom != False:
             Etendues, Surfaces = None, None
             if config is None:
@@ -2082,6 +2087,7 @@ class MultiIDSLoader(object):
             cam = getattr(tfg, geom)(dgeom=dgeom, config=config,
                                      Etendues=Etendues, Surfaces=Surfaces,
                                      Name=Name, Diag=ids, Exp=Exp)
+            cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
         # data
         lk = sorted(dsig.keys())
@@ -2162,6 +2168,8 @@ class MultiIDSLoader(object):
         conf = None if cam is not None else config
         Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
                                   lCam=cam, config=conf, dextra=dextra, **dins)
+
+        Data.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
         if plot:
             Data.plot(draw=True)
@@ -2342,10 +2350,10 @@ def _put_ids(idd, ids, shotfile, occ=0, cls_name=None,
         else:
             if cls_name is None:
                 cls_name = ''
-            msg = "  => %s saved in %s"%(cls_name,shotfile)
             if dryrun:
-                msg += "\n  => Dry run successfull\n"
-                msg += "       (not really saved, but whole process tested)"
+                msg = "  => %s (not put) in %s"%(cls_name,shotfile)
+            else:
+                msg = "  => %s saved (put) in %s"%(cls_name,shotfile)
         print(msg)
 
 
@@ -2357,8 +2365,11 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
 
     dfunc = {'Struct':_save_to_imas_Struct,
              'Config':_save_to_imas_Config,
-             'CamLOS1D':_save_to_imas_CamLOS1D}
+             'CamLOS1D':_save_to_imas_CamLOS1D,
+             'DataCam1D':_save_to_imas_DataCam1D}
 
+
+    # Preliminary check on object class
     cls = obj.__class__
     if cls not in dfunc.keys():
         parents = [cc.__name__ for cc in inspect.getmro(cls)]
@@ -2372,6 +2383,30 @@ def _save_to_imas(obj, shot=None, run=None, refshot=None, refrun=None,
             raise Exception(msg)
         cls = lc[0]
 
+    # Try getting imas info from tofu object
+    if shot is None:
+        try:
+            shot = obj.Id.shot
+        except Exception:
+            msg = "Arg shot must be provided !\n"
+            msg += "  (could not be retrieved from self.Id.shot)"
+            raise Exception(msg)
+    if tokamak is None:
+        try:
+            tokamak = obj.Id.Exp.lower()
+        except Exception:
+            msg = "Arg tokamak must be provided !\n"
+            msg += "  (could not be retrieved from self.Id.Exp.lower())"
+            raise Exception(msg)
+    if cls in ['CamLOS1D', 'DataCam1D'] and kwdargs.get('ids',None) is None:
+        try:
+            kwdargs['ids'] = obj.Id.Diag.lower()
+        except Exception:
+            msg = "Arg ids must be provided !\n"
+            msg += "  (could not be retrieved from self.Id.Diag.lower())"
+            raise Exception(msg)
+
+    # Call relevant function
     out = dfunc[cls]( obj, shot=shot, run=run, refshot=refshot,
                      refrun=refrun, occ=occ, user=user, tokamak=tokamak,
                      version=version, dryrun=dryrun, tfversion=tfversion,
@@ -2514,21 +2549,23 @@ def _save_to_imas_Config( obj, idd=None, shotfile=None,
                  close=close, verb=verb)
 
 
-def _save_to_imas_CamLOS1D( obj,
+def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
                            shot=None, run=None, refshot=None, refrun=None,
                            occ=None, user=None, tokamak=None, version=None,
-                           dryrun=False, tfversion=None, verb=True,
-                           ids=None, deep=True,
+                           dryrun=False, tfversion=None, close=True, verb=True,
+                           ids=None, deep=True, restore_size=False,
                            config_occ=None, config_description_2d=None):
 
     if occ is None:
         occ = 0
     # Create or open IDS
     # ------------------
-    idd, shotfile = _open_create_idd(shot=shot, run=run,
-                                     refshot=refshot, refrun=refrun,
-                                     user=user, tokamak=tokamak, version=version,
-                                     verb=verb)
+    if idd is None:
+        idd, shotfile = _open_create_idd(shot=shot, run=run,
+                                         refshot=refshot, refrun=refrun,
+                                         user=user, tokamak=tokamak, version=version,
+                                         verb=verb)
+    assert type(shotfile) is str
 
     # Check choice of ids
     c0 = ids in dir(idd)
@@ -2536,7 +2573,8 @@ def _save_to_imas_CamLOS1D( obj,
     if not c0:
         msg = "Please provide a valid value for arg ids:\n"
         msg += "  => ids should be a valid ids name\n"
-        msg += "  => it should refer to an ids with tha attribute channel"
+        msg += "  => it should refer to an ids with tha attribute channeli\n"
+        msg += "    - provided: %s"%ids
         raise Exception(msg)
 
     # First save dependencies
@@ -2561,12 +2599,26 @@ def _save_to_imas_CamLOS1D( obj,
                      np.arctan2(D1[1,:],D1[0,:])])
 
     # Get names
-    lk = obj.dchans.keys()
+    lk = obj._dchans.keys()
     ln = [k for k in lk if k.lower() == 'name']
     if len(ln) == 1:
         ln = obj.dchans(ln[0])
     else:
         ln = ['ch%s'%str(ii) for ii in range(0,nch)]
+
+    # Get indices
+    lk = obj._dchans.keys()
+    lind = [k for k in lk if k.lower() in ['ind','index','indices']]
+    if restore_size and len(lind) == 1:
+        lind = obj.dchans(ln[0])
+    else:
+        lind = np.arange(0,nch)
+
+    # Check if info on nMax stored
+    if restore_size and obj.Id.dUSR is not None:
+        nchMax = obj.Id.dUSR.get('imas_nchMax', lind.max()+1)
+    else:
+        nchMax = lind.max()+1
 
 
     # Fill in data
@@ -2575,19 +2627,19 @@ def _save_to_imas_CamLOS1D( obj,
         # data
         # --------
         ids = getattr(idd,ids)
-        ids.channel.resize( nch )
-        for ii in range(0,nch):
-            ids.channel[ii].line_of_sight.first_point.r = RZP1[0,ii]
-            ids.channel[ii].line_of_sight.first_point.z = RZP1[1,ii]
-            ids.channel[ii].line_of_sight.first_point.phi = RZP1[2,ii]
-            ids.channel[ii].line_of_sight.second_point.r = RZP2[0,ii]
-            ids.channel[ii].line_of_sight.second_point.z = RZP2[1,ii]
-            ids.channel[ii].line_of_sight.second_point.phi = RZP2[2,ii]
+        ids.channel.resize( nchMax )
+        for ii in range(0,lind.size):
+            ids.channel[lind[ii]].line_of_sight.first_point.r = RZP1[0,ii]
+            ids.channel[lind[ii]].line_of_sight.first_point.z = RZP1[1,ii]
+            ids.channel[lind[ii]].line_of_sight.first_point.phi = RZP1[2,ii]
+            ids.channel[lind[ii]].line_of_sight.second_point.r = RZP2[0,ii]
+            ids.channel[lind[ii]].line_of_sight.second_point.z = RZP2[1,ii]
+            ids.channel[lind[ii]].line_of_sight.second_point.phi = RZP2[2,ii]
             if obj.Etendues is not None:
-                ids.channel[ii].etendue = obj.Etendues[ii]
+                ids.channel[lind[ii]].etendue = obj.Etendues[ii]
             if obj.Surfaces is not None:
-                ids.channel[ii].detector.surface = obj.Surfaces[ii]
-            ids.channel[ii].name = ln[ii]
+                ids.channel[lind[ii]].detector.surface = obj.Surfaces[ii]
+            ids.channel[lind[ii]].name = ln[ii]
 
 
         # IDS properties
@@ -2603,6 +2655,139 @@ def _save_to_imas_CamLOS1D( obj,
         err0 = err
 
     finally:
+        # Put IDS
+        # ------------------
+        _put_ids(idd, idd.wall, shotfile, occ=occ,
+                 cls_name='%s_%s'%(obj.Id.Cls,obj.Id.Name),
+                 err=err0, dryrun=dryrun, close=close, verb=verb)
+
+
+def _save_to_imas_DataCam1D( obj,
+                            shot=None, run=None, refshot=None, refrun=None,
+                            occ=None, user=None, tokamak=None, version=None,
+                            dryrun=False, tfversion=None, verb=True,
+                            ids=None, deep=True, restore_size=True, forceupdate=False,
+                            path_data=None, path_X=None,
+                            config_occ=None, config_description_2d=None):
+
+    if occ is None:
+        occ = 0
+    # Create or open IDS
+    # ------------------
+    idd, shotfile = _open_create_idd(shot=shot, run=run,
+                                     refshot=refshot, refrun=refrun,
+                                     user=user, tokamak=tokamak, version=version,
+                                     verb=verb)
+
+    # Check choice of ids
+    c0 = ids in dir(idd)
+    c0 = c0 and hasattr(getattr(idd,ids), 'channel')
+    if not c0:
+        msg = "Please provide a valid value for arg ids:\n"
+        msg += "  => ids should be a valid ids name\n"
+        msg += "  => it should refer to an ids with tha attribute channel"
+        raise Exception(msg)
+
+    # Check path_data and path_X
+    if not type(path_data) is str:
+        msg = "path_data is not valid !\n"
+        msg += "path_data must be a (str) valid path to a field in idd.%s"%ids
+        raise Exception(msg)
+    if not ( path_X is None or type(path_X) is str ):
+        msg = "path_X is not valid !\n"
+        msg += "path_X must be a (str) valid path to a field in idd.%s"%ids
+        raise Exception(msg)
+
+    # First save dependencies
+    donersize = False
+    if deep:
+        if obj.config is not None:
+            _save_to_imas_Config(obj.config, idd=idd, shotfile=shotfile,
+                                 dryrun=dryrun, verb=verb, close=False,
+                                 occ=config_occ,
+                                 description_2d=config_description_2d)
+        if obj.lCam is not None:
+            if not len(obj.lCam) == 1:
+                msg = "Geometry can only be saved to imas if unique CamLOS1D !"
+                raise Exception(msg)
+            _save_to_imas_CamLOS1D(obj.lCam[0], idd=idd, shotfile=shotfile,
+                                   ids=ids, restore_size=restore_size,
+                                   dryrun=True, verb=verb, close=False,
+                                   occ=occ, deep=False)
+            doneresize = True
+
+    # Make sure data is up-to-date
+    if forceupdate:
+        obj._ddata['uptodate'] = False
+        obj._set_ddata()
+
+    # Choose description_2d from config
+    nch = obj.nch
+    assert nch > 0
+
+    # Get names
+    lk = obj._dchans.keys()
+    ln = [k for k in lk if k.lower() == 'name']
+    if len(ln) == 1:
+        ln = obj.dchans(ln[0])
+    else:
+        ln = ['ch%s'%str(ii) for ii in range(0,nch)]
+
+    # Get indices
+    lk = obj._dchans.keys()
+    lind = [k for k in lk if k.lower() in ['ind','index','indices']]
+    if restore_size and len(lind) == 1:
+        lind = obj.dchans(ln[0])
+    else:
+        lind = np.arange(0,nch)
+
+    # Check if info on nMax stored
+    if restore_size and obj.Id.dUSR is not None:
+        nchMax = obj.Id.dUSR.get('imas_nchMax', lind.max()+1)
+    else:
+        nchMax = lind.max()+1
+
+    # Fill in data
+    # ------------------
+    try:
+        ids = getattr(idd,ids)
+
+        # time
+        ids.time = obj.t
+
+        # data
+        # --------
+        if not doneresize:
+            ids.channel.resize( nchMax )
+        data, X = obj.data, obj.X
+
+        assert hasattr(ids.channel[lind[ii]], path_data)
+        if path_X is not None:
+            assert hasattr(ids.channel[lind[ii]], path_X)
+
+        for ii in range(0,lind.size):
+            setattr(ids.channel[lind[ii]], path_data, data[:,ii])
+            if path_X is not None:
+                setattr(ids.channel[lind[ii]], path_X, X[:,ii])
+            ids.channel[ii].name = ln[ii]
+
+        # IDS properties
+        # --------------
+        com = "LOS-approximated tofu generated signal:\n"
+        com += "    - from %s\n"%obj.Id.SaveName
+        com += "    - by tofu %s"%tfversion
+        _fill_idsproperties(idd.wall, com, tfversion)
+        err0 = None
+
+    except Exception as err:
+        _except_ids(idd.wall, nt=None)
+        err0 = err
+
+    finally:
+
+
+        import ipdb
+        ipdb.set_trace()
 
         # Put IDS
         # ------------------

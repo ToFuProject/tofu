@@ -22,6 +22,7 @@ from matplotlib.tri import LinearTriInterpolator as mplTriLinInterp
 
 
 # tofu
+from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
 try:
@@ -1900,6 +1901,23 @@ class DataAbstract(utils.ToFuObject):
         return out
 
 
+    def save_to_imas(self, ids=None, shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None, occ=None,
+                     dryrun=False, deep=True, verb=True,
+                     restore_size=True, forceupdate=False,
+                     path_data=None, path_X=None,
+                     config_description_2d=None, config_occ=None):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, occ=occ, dryrun=dryrun, verb=verb,
+                             ids=ids, deep=deep,
+                             restore_size=restore_size,
+                             forceupdate=forceupdate,
+                             path_data=path_data, path_X=path_X,
+                             config_description_2d=config_description_2d,
+                             config_occ=config_occ)
 
 
 

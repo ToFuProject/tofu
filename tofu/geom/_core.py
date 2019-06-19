@@ -2338,7 +2338,7 @@ class Config(utils.ToFuObject):
     def plot(self, lax=None, proj='all', element='P', dLeg=_def.TorLegd,
              indices=False, Lim=None, Nstep=None,
              draw=True, fs=None, wintit=None, tit=None, Test=True):
-        assert tit is None or isinstance(tit,str)
+        assert tit in [None,False] or isinstance(tit,str)
         vis = self.get_visible()
         lStruct, lS = self.lStruct, []
         for ii in range(0,self._dStruct['nObj']):
@@ -2362,7 +2362,7 @@ class Config(utils.ToFuObject):
         msg = "Set the sino params before plotting !"
         msg += "\n    => run self.set_sino(...)"
         assert self.dsino['RefPt'] is not None, msg
-        assert tit is None or isinstance(tit,str)
+        assert tit in [None,False] or isinstance(tit,str)
         # Check uniformity of sinogram parameters
         for ss in self.lStruct:
             msg = "{0} {1} has different".format(ss.Id.Cls, ss.Id.Name)
@@ -4299,7 +4299,7 @@ class Rays(utils.ToFuObject):
              element_config='P', Leg='', dL=None, dPtD=_def.LOSMd,
              dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
              dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False, ind=None,
-             fs=None, wintit=None, draw=True, Test=True):
+             fs=None, tit=None, wintit=None, draw=True, Test=True):
         """ Plot the Rays / LOS, in the chosen projection(s)
 
         Optionnally also plot associated :class:`~tofu.geom.Ves` and Struct
@@ -4380,14 +4380,14 @@ class Rays(utils.ToFuObject):
                                element=element, element_config=element_config, Leg=Leg,
                                dL=dL, dPtD=dPtD, dPtI=dPtI, dPtO=dPtO, dPtR=dPtR,
                                dPtP=dPtP, dLeg=dLeg, multi=multi, ind=ind,
-                               fs=fs, wintit=wintit, draw=draw, Test=Test)
+                               fs=fs, tit=tit, wintit=wintit, draw=draw, Test=Test)
 
 
     def plot_sino(self, ax=None, element=_def.LOSImpElt, Sketch=True,
                   Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Leg=None,
                   dL=_def.LOSMImpd, dVes=_def.TorPFilld, dLeg=_def.TorLegd,
                   ind=None, multi=False,
-                  fs=None, wintit=None, draw=True, Test=True):
+                  fs=None, tit=None, wintit=None, draw=True, Test=True):
         """ Plot the LOS in projection space (sinogram)
 
         Plot the Rays in projection space (cf. sinograms) as points.
@@ -4447,7 +4447,7 @@ class Rays(utils.ToFuObject):
         return _plot.GLOS_plot_Sino(self, Proj='Cross', ax=ax, Elt=element, Leg=Leg,
                                     Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
                                     dL=dL, dVes=dVes, dLeg=dLeg,
-                                    ind=ind, fs=fs, wintit=wintit,
+                                    ind=ind, fs=fs, tit=tit, wintit=wintit,
                                     draw=draw, Test=Test)
 
 
@@ -4578,7 +4578,7 @@ class CamLOS1D(Rays):
         return self.__add__(other)
 
 
-    def save_to_imas(self, ids, shot=None, run=None, refshot=None, refrun=None,
+    def save_to_imas(self, ids=None, shot=None, run=None, refshot=None, refrun=None,
                      user=None, tokamak=None, version=None, occ=None,
                      dryrun=False, deep=True, verb=True,
                      config_description_2d=None, config_occ=None):
