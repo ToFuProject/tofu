@@ -546,6 +546,26 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=Tru
 
 def calc_solidangle_particle(traj, pts, r=1., config=None,
                              approx=True, aniso=False, block=True):
+    """ Compute the solid angle subtended by a particle along a trajectory
+
+    The particle has radius r, and trajectory (array of points) traj
+    It is observed from pts (array of points)
+
+    traj and pts are (3,N) and (3,M) arrays of cartesian coordinates
+
+    approx = True => use approximation
+    aniso = True => return also unit vector of emission
+    block = True consider LOS collisions (with Ves, Struct...)
+
+    if block:
+        config = config used for LOS collisions
+
+    Return:
+    -------
+    sang: np.ndarray
+        (N,M) Array of floats, solid angles
+
+    """
 
 
     ################
@@ -564,6 +584,8 @@ def calc_solidangle_particle(traj, pts, r=1., config=None,
     assert block == (config is not None)
 
     # Check pts, traj and r are array of good shape
+    assert traj.ndim in [1,2]
+    assert pts.ndim in [1,2]
     assert 3 in traj.shape and 3 in pts.shape
     if traj.ndim == 1:
         traj = traj.reshape((3,1))
@@ -591,8 +613,8 @@ def calc_solidangle_particle(traj, pts, r=1., config=None,
     ################
     # Main computation
 
-    # pts2traj vector, with length
-    vect = traj[:,None,:] - pts[:,:,None]
+    # traj2pts vector, with length (3d array (3,N,M))
+    vect = pts[:,None,:] - traj[:,:,None]
     l = np.sqrt(np.sum(vect**2, axis=0))
 
     # If aniso or block, normalize
@@ -608,6 +630,7 @@ def calc_solidangle_particle(traj, pts, r=1., config=None,
     # block
     if block:
         kwdargs = config._get_kwdargs_LOS_isVis()
+        # TODO : modify this function along issue #102
         indnan = _GG.LOS_isVis_PtFromPts_VesStruct(traj[0,:],traj[1,:],traj[2,:],
                                                    pts, k=l, vis=False, **kwdargs)
         sang[indnan] = 0.
@@ -620,3 +643,24 @@ def calc_solidangle_particle(traj, pts, r=1., config=None,
         return sang, vect
     else:
         return sang
+
+
+def calc_solidangle_particle_integ(traj, r=1., config=None,
+                                   approx=True, block=True, res=0.01):
+
+
+    # step0: if block : generate kwdargs from config
+
+    # step 1: sample cross-section
+
+    # step 2: loop on R of  pts of cross-section (parallelize ?)
+        # => fix nb. of phi for the rest of the loop
+
+    # loop of Z
+
+    # step 3: loop phi
+    # Check visibility (if block = True) for each phi (LOS collision)
+    # If visible => compute solid angle
+    # integrate (sum * res) on each phi the solid angle
+
+    # Return sang as (N,nR,nZ) array
