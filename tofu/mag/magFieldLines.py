@@ -72,6 +72,9 @@ class MagFieldLines:
         if (not os.path.isfile(shot_file)):
             raise FileNotFoundError('IMAS file does not exist')
 
+        # Parameters
+        self.wall_ck=False
+
         # Get equilibrium
         idd = imas.ids(shot, run)
         idd.open_env(user, machine, '3')
@@ -203,7 +206,7 @@ class MagFieldLines:
         This is the case for forward integration.
         '''
         R,Z,P=state
-        Br,Bz,Bt=self.eval_B(R,Z,P)
+        Br, Bt, Bz = self.b_field_interp(R, P, Z)
         #Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
         #Bt=self.fBt_t(P,self.ftheta(R,Z),R)
         #Bz=self.fBp_z(R,Z)[0]
@@ -220,7 +223,7 @@ class MagFieldLines:
         This is the case for backward integration.
         '''
         R,Z,P=state
-        Br,Bz,Bt=self.eval_B(R,Z,P)
+        Br, Bt, Bz = self.b_field_interp(R, P, Z)
         #Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
         #Bt=self.fBt_t(P,self.ftheta(R,Z),R)
         #Bz=self.fBp_z(R,Z)[0]
