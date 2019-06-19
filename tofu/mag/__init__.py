@@ -1,7 +1,7 @@
 # vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
 # Also if needed: retab
 '''
-    EQUIMAP
+    Magnetic field lines
 '''
 #from . import tools
 from .equimap import *
