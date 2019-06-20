@@ -220,3 +220,26 @@ cdef inline double compute_find(double m2b2, double rm0sqr,
         return root
     else:
         return root
+
+# ==============================================================================
+# =  Tiling
+# ==============================================================================
+cdef inline void tile_3_to_2d(double v0, double v1, double v2,
+                              int npts,
+                              np.ndarray[double, ndim=2, mode='c'] res) nogil:
+    """
+    This function will probably not be very useful but might be used for
+    inspiration (if indeed faster than using numpy in cython).
+    It creates an array of shape (3, npts) as such :
+        [v0, ... v0]
+        [v1, ... v1]
+        [v2, ... v2]
+    Equivalent to :
+       tab = np.tile(np.r_[v0,v1,v2], (npts,1)).T
+    """
+    cdef int ii
+    for ii in range(npts):
+        res[0,ii] = v0
+        res[1,ii] = v1
+        res[2,ii] = v2
+    return

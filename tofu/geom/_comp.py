@@ -566,8 +566,6 @@ def calc_solidangle_particle(traj, pts, r=1., config=None,
         (N,M) Array of floats, solid angles
 
     """
-
-
     ################
     # Prepare inputs
     traj = np.ascontiguousarray(traj, dtype=float)

@@ -3,41 +3,50 @@
 # cython: cdivision=True
 #
 ################################################################################
-# Utility functions for basic geometry (vector calculus, path, ...)
+# Utility functions for basic geometry :
+#   - vector calculus (cross product, dot product, norm, ...)
+#   - cythonization of matplotlib path functions (is point in a path?)
+#   - cythonization of some numpy functions (hypotenus, tile)
 ################################################################################
 cimport cython
 from cpython.array cimport array, clone
 
 # ==============================================================================
-# =  Geometry global variables
+# ==  Geometry global variables
 # ==============================================================================
 # Values defined in the *.pyx file
 cdef double _VSMALL
 cdef double _SMALL
 
+# ==============================================================================
+# == Redifinition of functions
+# ==============================================================================
 cdef bint is_point_in_path(const int nvert,
                            const double* vertx,
                            const double* verty,
                            const double testx,
                            const double testy) nogil
 
-cdef  int is_point_in_path_vec(const int nvert,
-                               const double* vertx,
-                               const double* verty,
-                               const int npts,
-                               const double* testx,
-                               const double* testy,
-                               bint* is_in_path) nogil
+cdef int is_point_in_path_vec(const int nvert,
+                              const double* vertx,
+                              const double* verty,
+                              const int npts,
+                              const double* testx,
+                              const double* testy,
+                              bint* is_in_path) nogil
 
-cdef  void compute_inv_and_sign(const double[3] ray_vdir,
-                                int[3] sign,
-                                double[3] inv_direction) nogil
+cdef void compute_inv_and_sign(const double[3] ray_vdir,
+                               int[3] sign,
+                               double[3] inv_direction) nogil
 
-cdef  array compute_hypot(double[::1] xpts, double[::1] ypts,
-                          int npts=*)
+cdef array compute_hypot(double[::1] xpts, double[::1] ypts,
+                         int npts=*)
 
-cdef  double comp_min_hypot(double[::1] xpts, double[::1] ypts,
-                            int npts=*) nogil
+cdef double comp_min_hypot(double[::1] xpts, double[::1] ypts,
+                           int npts=*) nogil
+
+cdef void tile_3_to_2d(double v0, double v1, double v2, int npts,
+                       np.ndarray[double, ndim=2, mode='c'] res) nogil
 
 # ==============================================================================
 # == Vector Calculus Helpers
