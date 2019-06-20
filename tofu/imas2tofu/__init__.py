@@ -23,4 +23,5 @@ except Exception as err:
     warnings.warn(msg)
     del msg, err
 
-__all__ = ['MultiIDSLoader', 'load_Config', 'load_Plasma2D', 'load_Diag']
+__all__ = ['MultiIDSLoader', 'load_Config', 'load_Plasma2D',
+           'load_Cam', 'load_Data']

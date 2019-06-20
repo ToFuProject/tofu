@@ -4580,14 +4580,14 @@ class CamLOS1D(Rays):
 
     def save_to_imas(self, ids=None, shot=None, run=None, refshot=None, refrun=None,
                      user=None, tokamak=None, version=None, occ=None,
-                     dryrun=False, deep=True, verb=True,
+                     dryrun=False, deep=True, restore_size=True, verb=True,
                      config_description_2d=None, config_occ=None):
        import tofu.imas2tofu as _tfimas
        _tfimas._save_to_imas(self, tfversion=__version__,
                              shot=shot, run=run, refshot=refshot,
                              refrun=refrun, user=user, tokamak=tokamak,
                              version=version, occ=occ, dryrun=dryrun, verb=verb,
-                             ids=ids, deep=deep,
+                             ids=ids, deep=deep, restore_size=restore_size,
                              config_description_2d=config_description_2d,
                              config_occ=config_occ)
 

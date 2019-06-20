@@ -1400,7 +1400,7 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
     # Plot conf and bck
     if cam.config is not None:
         out = cam.config.plot(lax=[dax['cross'][0], dax['hor'][0]],
-                              element='P', dLeg=None, draw=False)
+                              element='P', tit=False, wintit=False, dLeg=None, draw=False)
         dax['cross'][0], dax['hor'][0] = out
 
     if cam._isLOS():

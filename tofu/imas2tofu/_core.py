@@ -27,7 +27,8 @@ import datetime as dtm
 import imas
 
 __all__ = ['MultiIDSLoader',
-           'load_Config', 'load_Plasma2D', 'load_Diag',
+           'load_Config', 'load_Plasma2D',
+           'load_Cam', 'load_Data',
           '_save_to_imas']
 
 
@@ -1945,12 +1946,12 @@ class MultiIDSLoader(object):
         return plasma
 
 
-    def _checkformat_CamLOS1D_dsig(self, ids=None, geom=None, indch=None):
+    def _checkformat_Cam_geom(self, ids=None, geom=None, indch=None):
         didsok = {'interferometer':'CamLOS1D',
                   'bolometer':'CamLOS1D',
-                  'soft_x_rays':'geom':'CamLOS1D',
-                  'spectrometer_visible':'geom':'CamLOS1D',
-                  'bremsstrahlung_visible':'geom':'CamLOS1D'}
+                  'soft_x_rays':'CamLOS1D',
+                  'spectrometer_visible':'CamLOS1D',
+                  'bremsstrahlung_visible':'CamLOS1D'}
 
         # Check ids
         if ids not in self._dids.keys():
@@ -1973,21 +1974,15 @@ class MultiIDSLoader(object):
             msg = "Arg geom must be in %s"%str([False]+lgeom)
             raise Exception(msg)
 
-        dout = {}
-        lok = set(self._dshort[ids].keys()).union(self._dcomp[ids].keys())
-        for k, v in dsig.items():
-            if v in lok:
-                dout[k] = v
-
-        return data, geom, dout
+        return geom
 
 
 
-    def to_CamLOS1D(self, ids=None, indch=None,
-                    Name=None, occ=None, config=None, plot=True):
+    def to_Cam(self, ids=None, indch=None,
+               Name=None, occ=None, config=None, plot=True):
 
         # dsig
-        data, geom, dsig = self._checkformat_CamLOS1D_dsig(ids)
+        geom = self._checkformat_Cam_geom(ids)
         if Name is None:
             Name = 'custom'
 
@@ -2002,130 +1997,52 @@ class MultiIDSLoader(object):
         if config is None:
             config = self.to_Config(Name=Name, occ=occ, plot=False)
 
+        # dchans
+        if indch is not None:
+            dchans = {'ind':indch}
+        else:
+            dchans = None
+
         # cam
         cam = None
         nchMax = len(self._dids[ids]['ids'][0].channel)
-        if geom != False:
-            Etendues, Surfaces = None, None
-            if config is None:
-                msg = "A config must be provided to compute the geometry !"
-                raise Exception(msg)
+        Etendues, Surfaces = None, None
+        if config is None:
+            msg = "A config must be provided to compute the geometry !"
+            raise Exception(msg)
 
-            if 'LOS' in geom:
-                lk = ['los_ptsRZPhi','etendue','surface']
-                lkok = set(self._dshort[ids].keys())
-                lkok = lkok.union(self._dcomp[ids].keys())
-                lk = set(lk).intersection(lkok)
-                out = self.get_data(ids, sig=list(lk), indch=indch)
-                if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
-                    oo = out['los_ptsRZPhi']
-                    D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
-                                  oo[:,0,0]*np.sin(oo[:,0,2]), oo[:,0,1]])
-                    u = np.array([oo[:,1,0]*np.cos(oo[:,1,2]),
-                                  oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
-                    u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
-                    dgeom = (D,u)
-                if 'etendue' in out.keys() and out['etendue'].size > 0:
-                    Etendues = out['etendue']
-                if 'surface' in out.keys() and out['surface'].size > 0:
-                    Surfaces = out['surface']
+        if 'LOS' in geom:
+            lk = ['los_ptsRZPhi','etendue','surface']
+            lkok = set(self._dshort[ids].keys())
+            lkok = lkok.union(self._dcomp[ids].keys())
+            lk = set(lk).intersection(lkok)
+            out = self.get_data(ids, sig=list(lk), indch=indch)
+            if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
+                oo = out['los_ptsRZPhi']
+                D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
+                              oo[:,0,0]*np.sin(oo[:,0,2]), oo[:,0,1]])
+                u = np.array([oo[:,1,0]*np.cos(oo[:,1,2]),
+                              oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
+                u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
+                dgeom = (D,u)
+            if 'etendue' in out.keys() and out['etendue'].size > 0:
+                Etendues = out['etendue']
+            if 'surface' in out.keys() and out['surface'].size > 0:
+                Surfaces = out['surface']
 
-            import tofu.geom as tfg
-            cam = getattr(tfg, geom)(dgeom=dgeom, config=config,
-                                     Etendues=Etendues, Surfaces=Surfaces,
-                                     Name=Name, Diag=ids, Exp=Exp,
-                                     dchans={'ind':indch})
-            cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
-
-        # data
-        lk = sorted(dsig.keys())
-        dins = dict.fromkeys(lk)
-        indt = self._checkformat_tlim(self.get_data(ids, sig='t')['t'],
-                                      tlim=tlim)['indt']
-        out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                            indt=indt, indch=indch)
-        for kk in lk:
-            if kk in ['data','X','lamb']:
-                if not isinstance(out[dsig[kk]], np.ndarray):
-                    msg = "The following is supposed to be a np.ndarray:\n"
-                    msg += "    - diag:     %s\n"%ids
-                    msg += "    - shortcut: %s\n"%dsig[kk]
-                    msg += "    - used as:  %s input\n"%kk
-                    msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
-                    msg += "  Probable cause: non-uniform shape (vs channels)\n"
-                    msg += "  => shapes :\n    "
-                    ls = ['index %s  shape %s'%(ii,str(out[dsig[kk]][ii].shape))
-                          for ii in range(0,len(out[dsig[kk]]))]
-                    msg += "\n    ".join(ls)
-                    msg += "\n  => Solution: choose indch accordingly !"
-                    raise Exception(msg)
-
-                dins[kk] = out[dsig[kk]].T
-            else:
-                dins[kk] = out[dsig[kk]]
-        if 'validity_timed' in self._dshort[ids].keys():
-            inan = self.get_data(ids, sig='validity_timed',
-                                 indt=indt, indch=indch)['validity_timed'].T<0.
-            for kk in set(lk).intersection(['data','X','lamb']):
-                dins[kk][inan] = np.nan
-
-        # dlabels
-        dins['dlabels'] = dict.fromkeys(lk)
-        for kk in lk:
-            dins['dlabels'][kk] = {'name':dsig[kk]}
-            if dsig[kk] in self._dshort[ids].keys():
-                dins['dlabels'][kk]['units'] = self._dshort[ids][dsig[kk]].get('units', 'a.u.')
-            else:
-                dins['dlabels'][kk]['units'] = self._dcomp[ids][dsig[kk]].get('units', 'a.u.')
-
-        # Extra
-        dextra = {}
-        if equilibrium:
-            indt = self._checkformat_tlim(self.get_data('equilibrium',
-                                                        sig='t')['t'],
-                                          tlim=tlim)['indt']
-            out = self.get_data('equilibrium', sig=['t','ip','volume','ax','sep','x0'],
-                                indt=indt)
-            for ss in ['ip','volume']:
-                if len(out[ss]) == 0:
-                    continue
-                name = 'equilibrium.%s'%ss
-                if ss == 'ip':
-                    oo = out[ss] / 1.e6
-                    units = 'MA'
-                else:
-                    oo = out[ss]
-                    units = 'a.u.'
-                dextra[name] = {'data':oo, 'units':units,
-                                't':out['t'], 'label':name}
-
-            for ss in ['ax','sep','x0']:
-                if len(out[ss]) == 0:
-                    continue
-                name = ss.title().replace('0','')
-                if out[ss].ndim == 2:
-                    npts = 1
-                    oo = out[ss]
-                else:
-                    npts = out[ss].shape[1]
-                    oo = np.swapaxes(out[ss], 1,2)
-                dextra[name] = {'data2D':oo, 'units':'a.u.',
-                                't':out['t'], 'label':name, 'nP':npts}
-
-        import tofu.data as tfd
-        conf = None if cam is not None else config
-        Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
-                                  lCam=cam, config=conf, dextra=dextra,
-                                  dchans={'ind':indch}, **dins)
-
-        Data.Id.set_dUSR( {'imas_nchMax': nchMax} )
+        import tofu.geom as tfg
+        cam = getattr(tfg, geom)(dgeom=dgeom, config=config,
+                                 Etendues=Etendues, Surfaces=Surfaces,
+                                 Name=Name, Diag=ids, Exp=Exp,
+                                 dchans=dchans)
+        cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
         if plot:
-            Data.plot(draw=True)
-        return Data
+            cam.plot_touch(draw=True)
+        return cam
 
 
-    def _checkformat_Diag_dsig(self, ids=None, dsig=None, mainsig=None,
+    def _checkformat_Data_dsig(self, ids=None, dsig=None, mainsig=None,
                                data=None, geom=None, indch=None):
         didsok = {'magnetics': {'data':'DataCam1D',
                                 'geom':False},
@@ -2214,12 +2131,12 @@ class MultiIDSLoader(object):
 
 
 
-    def to_Diag(self, ids=None, dsig=None, mainsig=None, tlim=None,
+    def to_Data(self, ids=None, dsig=None, mainsig=None, tlim=None,
                 indch=None, Name=None, occ=None, config=None,
                 equilibrium=True, plot=True):
 
         # dsig
-        data, geom, dsig = self._checkformat_Diag_dsig(ids, dsig,
+        data, geom, dsig = self._checkformat_Data_dsig(ids, dsig,
                                                        mainsig=mainsig)
         if Name is None:
             Name = 'custom'
@@ -2234,6 +2151,12 @@ class MultiIDSLoader(object):
         # config
         if config is None:
             config = self.to_Config(Name=Name, occ=occ, plot=False)
+
+        # dchans
+        if indch is not None:
+            dchans = {'ind':indch}
+        else:
+            dchans = None
 
         # cam
         cam = None
@@ -2267,7 +2190,7 @@ class MultiIDSLoader(object):
             cam = getattr(tfg, geom)(dgeom=dgeom, config=config,
                                      Etendues=Etendues, Surfaces=Surfaces,
                                      Name=Name, Diag=ids, Exp=Exp,
-                                     dchans={'ind':indch})
+                                     dchans=dchans)
             cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
         # data
@@ -2349,7 +2272,7 @@ class MultiIDSLoader(object):
         conf = None if cam is not None else config
         Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
                                   lCam=cam, config=conf, dextra=dextra,
-                                  dchans={'ind':indch}, **dins)
+                                  dchans=dchans, **dins)
 
         Data.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
@@ -2396,7 +2319,25 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
     return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, config=config, out=out)
 
 
-def load_Diag(shot=None, run=None, user=None, tokamak=None, version=None,
+def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
+             ids=None, indch=None, config=None, occ=None, Name=None, plot=True):
+
+    didd = MultiIDSLoader()
+    didd.add_idd(shot=shot, run=run,
+                 user=user, tokamak=tokamak, version=version)
+
+    if type(ids) is not str:
+        msg = "Please provide ids !"
+        raise Exception(msg)
+
+    lids = ['wall',ids]
+    didd.add_ids(ids=lids, get=True)
+
+    return didd.to_Cam(ids=ids, Name=Name, indch=indch,
+                       config=config, occ=occ, plot=plot)
+
+
+def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
               ids=None, tlim=None, dsig=None, mainsig=None, indch=None,
               config=None, occ=None, Name=None,
               equilibrium=True, plot=True):
@@ -2415,7 +2356,7 @@ def load_Diag(shot=None, run=None, user=None, tokamak=None, version=None,
 
     didd.add_ids(ids=lids, get=True)
 
-    return didd.to_Diag(ids=ids, Name=Name, tlim=tlim,
+    return didd.to_Data(ids=ids, Name=Name, tlim=tlim,
                         dsig=dsig, mainsig=mainsig, indch=indch,
                         config=config, occ=occ, equilibrium=equilibrium, plot=plot)
 
@@ -2790,7 +2731,7 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
 
     # Get indices
     lk = obj._dchans.keys()
-    lind = [k for k in lk if k.lower() in ['ind','index','indices']]
+    lind = [k for k in lk if k.lower() in ['ind', 'indch','index','indices']]
     if restore_size and len(lind) == 1:
         lind = obj.dchans[lind[0]]
     else:
@@ -2802,6 +2743,8 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
     else:
         nchMax = lind.max()+1
 
+    import ipdb
+    ipdb.set_trace()
 
     # Fill in data
     # ------------------
