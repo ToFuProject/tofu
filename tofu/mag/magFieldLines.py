@@ -25,7 +25,10 @@ except ImportError as err:
     print(err)
 
 # Project modules
-import mag_ripple as mr
+try:
+    from tofu.mag.mag_ripple.mag_ripple import mag_ripple
+except Exception:
+    from mag.mag_ripple.mag_ripple import mag_ripple
 #try:
 #    from equimap import interp_quantity
 #except ImportError as err:
@@ -276,7 +279,7 @@ class MagFieldLines:
         bz_intp = self.bz_lin_intp.__call__(interp_points)
 
         # Compute magnetic field for given Phi
-        br_ripple, bt_ripple, bz_ripple = mr.mag_ripple(R, Phi, \
+        br_ripple, bt_ripple, bz_ripple = mag_ripple(R, Phi, \
                                                      Z, self.itor_intp_t)
         # Compute reference vaccuum magnetic field
         self.bt_vac = self.equi.vacuum_toroidal_field.r0*self.b0_intp_t / R
