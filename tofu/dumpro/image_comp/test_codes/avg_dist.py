@@ -32,7 +32,7 @@ def get_distance(clus_center, clus_area, t_clusters):
     #list of all cluster distance
     clus_dist = []
     #looping through all the cluster centers
-    for t in range(len(clus_center)):
+    for t in range(len(clus_center)-1):
         #checking for frames without any clusters
         if clus_center[t] != []:
             #getting cluster in frame t
