@@ -2394,6 +2394,9 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
             msg += "      'edge_profiles', edge_sources]"
             raise Exception(msg)
         lids = [ids] if type(ids) is str else ids
+    if t0 != False and t0 != None:
+        lids.append('pulse_schedule')
+
     didd.add_ids(ids=lids, get=True)
 
     return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, t0=t0, config=config, out=out)
@@ -2435,6 +2438,8 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
     lids = ['wall',ids]
     if equilibrium:
         lids.append('equilibrium')
+    if t0 != False and t0 != None:
+        lids.append('pulse_schedule')
 
     didd.add_ids(ids=lids, get=True)
 

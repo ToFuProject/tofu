@@ -606,7 +606,7 @@ def _load_from_txt(name, pfe, Name=None, Exp=None):
 def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, out='Data', tlim=None, config=None,
                    occ=None, indch=None, indDecription=None, equilibrium=None,
-                   dsig=None, mainsig=None, plot=None):
+                   dsig=None, mainsig=None, t0=None, plot=None):
     try:
         import tofu.imas2tofu as imas2tofu
     except Exception as err:
@@ -630,7 +630,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         out = imas2tofu.load_Plasma2D(shot=shot, run=run, user=user,
                                       tokamak=tokamak, version=version,
                                       Name=Name, occ=occ,
-                                      tlim=tlim, dsig=dsig, ids=ids)
+                                      tlim=tlim, dsig=dsig, ids=ids, t0=t0)
     elif out == 'Cam':
         out = imas2tofu.load_Cam(shot=shot, run=run, user=user,
                                  tokamak=tokamak, version=version,
@@ -642,7 +642,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                   tokamak=tokamak, version=version,
                                   Name=Name, occ=occ,
                                   ids=ids, tlim=tlim, dsig=dsig,
-                                  mainsig=mainsig, indch=indch,
+                                  mainsig=mainsig, indch=indch, t0=t0,
                                   equilibrium=equilibrium, plot=plot)
     return out
 
