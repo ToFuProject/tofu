@@ -261,7 +261,8 @@ class MultiIDSLoader(object):
 
 
     # Computing functions
-    _events = lambda names, t: np.array([(nn,tt) for nn,tt in zip(*[names,t])],
+    _events = lambda names, t: np.array([(nn,tt)
+                                         for nn,tt in zip(*[np.char.strip(names),t])],
                                         dtype=[('name','U%s'%str(np.nanmax(np.char.str_len(np.char.strip(names))))),
                                                ('t',np.float)])
     _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
@@ -1964,10 +1965,21 @@ class MultiIDSLoader(object):
             if type(t0) in [int,float,np.int,np.float]:
                 t0 = float(t0)
             elif type(t0) is str and 'pulse_schedule' in self._dids.keys():
+                t0 = t0.strip()
                 events = self.get_data(ids='pulse_schedule',
                                        sig='events')['events']
-        # TBF
+                if not t0 in events['name']:
+                    msg = "Desired event name (%s) not available!\n"
+                    msg += "    - available events:\n"
+                    msg += str(events['name'])
+                    raise Exception(msg)
+                t0 = events['t'][np.nonzero(events['name'] == t0)[0][0]]
+            else:
+                t0 = False
 
+        if t0 != False:
+            for tt in dtime.keys():
+                dtime[tt]['t'] = dtime[tt]['t'] - t0
 
 
 
@@ -2169,7 +2181,7 @@ class MultiIDSLoader(object):
 
     def to_Data(self, ids=None, dsig=None, mainsig=None, tlim=None,
                 indch=None, Name=None, occ=None, config=None,
-                equilibrium=True, plot=True):
+                equilibrium=True, t0=None, plot=True):
 
         # dsig
         data, geom, dsig = self._checkformat_Data_dsig(ids, dsig,
@@ -2304,6 +2316,32 @@ class MultiIDSLoader(object):
                 dextra[name] = {'data2D':oo, 'units':'a.u.',
                                 't':out['t'], 'label':name, 'nP':npts}
 
+        # t0
+        if t0 != False:
+            if type(t0) in [int,float,np.int,np.float]:
+                t0 = float(t0)
+            elif type(t0) is str and 'pulse_schedule' in self._dids.keys():
+                t0 = t0.strip()
+                events = self.get_data(ids='pulse_schedule',
+                                       sig='events')['events']
+                if not t0 in events['name']:
+                    msg = "Desired event name (%s) not available!\n"
+                    msg += "    - available events:\n"
+                    msg += str(events['name'])
+                    raise Exception(msg)
+                t0 = events['t'][np.nonzero(events['name'] == t0)[0][0]]
+            else:
+                t0 = False
+
+        if t0 != False:
+            if 't' in dins.keys():
+                dins['t'] = dins['t'] - t0
+            for tt in dextra.keys():
+                dextra[tt]['t'] = dextra[tt]['t'] - t0
+
+
+
+
         import tofu.data as tfd
         conf = None if cam is not None else config
         Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
@@ -2339,7 +2377,7 @@ def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
 # occ ?
 def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
                   tlim=None, dsig=None, ids=None, config=None,
-                  Name=None, out=object):
+                  Name=None, t0=None, out=object):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
@@ -2358,7 +2396,7 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
         lids = [ids] if type(ids) is str else ids
     didd.add_ids(ids=lids, get=True)
 
-    return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, config=config, out=out)
+    return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, t0=t0, config=config, out=out)
 
 
 def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
@@ -2383,7 +2421,7 @@ def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
 def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
               ids=None, tlim=None, dsig=None, mainsig=None, indch=None,
               config=None, occ=None, Name=None,
-              equilibrium=True, plot=True):
+              equilibrium=True, t0=None, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
@@ -2400,7 +2438,7 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
 
     didd.add_ids(ids=lids, get=True)
 
-    return didd.to_Data(ids=ids, Name=Name, tlim=tlim,
+    return didd.to_Data(ids=ids, Name=Name, tlim=tlim, t0=t0,
                         dsig=dsig, mainsig=mainsig, indch=indch,
                         config=config, occ=occ, equilibrium=equilibrium, plot=plot)
 

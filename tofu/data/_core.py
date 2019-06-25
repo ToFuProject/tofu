@@ -2593,6 +2593,7 @@ class Plasma2D(utils.ToFuObject):
                               'indref':indref}
 
         # dmesh ref
+        idm = None
         if dmesh is not None:
             for k0 in dmesh.keys():
                 idm = str(id(dmesh[k0]))
@@ -2630,8 +2631,9 @@ class Plasma2D(utils.ToFuObject):
 
         # dgroup
         dgroup = {'time':{'indref':idt},
-                  'radius':{'indref':idr},
-                  'mesh':{'indref':idm}}
+                  'radius':{'indref':idr}}
+        if idm is not None:
+            dgroup['mesh'] = {'indref':idm}
 
         # Complement
         self._complement(dgroup, dindref, ddata)
