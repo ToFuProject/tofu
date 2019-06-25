@@ -599,6 +599,59 @@ def _load_from_txt(name, pfe, Name=None, Exp=None):
     return obj
 
 
+#######
+#   imas
+#######
+
+def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
+                   ids=None, Name=None, out='Data', tlim=None, config=None,
+                   occ=None, indch=None, indDecription=None, equilibrium=None,
+                   dsig=None, mainsig=None, plot=None):
+    try:
+        import tofu.imas2tofu as imas2tofu
+    except Exception as err:
+        msg = str(err)
+        msg += "\n\n module imas2tofu does not seem available\n"
+        msg += "  => imas may not be installed ?"
+        raise Exception(msg)
+
+    lok = ['Config', 'Plasma2D', 'Cam', 'Data']
+    c0 = out in lok
+    if not c0:
+        msg = "Arg out must be in %s"%str(lok)
+        raise Exception(msg)
+
+    if out == 'Config':
+        out = imas2tofu.load_Config(shot=shot, run=run, user=user,
+                                    tokamak=tokamak, version=version,
+                                    Name=Name, occ=occ,
+                                    indDescription=indDescription, plot=plot)
+    elif out == 'Plasma2D':
+        out = imas2tofu.load_Plasma2D(shot=shot, run=run, user=user,
+                                      tokamak=tokamak, version=version,
+                                      Name=Name, occ=occ,
+                                      tlim=tlim, dsig=dsig, ids=ids)
+    elif out == 'Cam':
+        out = imas2tofu.load_Cam(shot=shot, run=run, user=user,
+                                 tokamak=tokamak, version=version,
+                                 Name=Name, occ=occ,
+                                 ids=ids, indch=indch, config=config,
+                                 plot=plot)
+    elif out == "Data":
+        out = imas2tofu.load_Data(shot=shot, run=run, user=user,
+                                  tokamak=tokamak, version=version,
+                                  Name=Name, occ=occ,
+                                  ids=ids, tlim=tlim, dsig=dsig,
+                                  mainsig=mainsig, indch=indch,
+                                  equilibrium=equilibrium, plot=plot)
+    return out
+
+
+
+
+
+
+
 
 #############################################
 #       Generic tofu object

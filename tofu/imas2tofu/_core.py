@@ -93,7 +93,8 @@ class MultiIDSLoader(object):
                 'wallZ':{'str':'description_2d[0].limiter.unit[0].outline.z'}},
 
                'pulse_schedule':
-               {'t':{'str':'time'}},
+               {'events_times':{'str':'event[].time_stamp'},
+                'events_names':{'str':'event[].identifier'}},
 
                'equilibrium':
                {'t':{'str':'time'},
@@ -260,6 +261,9 @@ class MultiIDSLoader(object):
 
 
     # Computing functions
+    _events = lambda names, t: np.array([(nn,tt) for nn,tt in zip(*[names,t])],
+                                        dtype=[('name','U%s'%str(np.nanmax(np.char.str_len(np.char.strip(names))))),
+                                               ('t',np.float)])
     _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
     _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
     _add = lambda a0, a1: a0 + a1
@@ -287,6 +291,9 @@ class MultiIDSLoader(object):
         return rho
 
     _dcomp = {
+              'pulse_schedule':
+              {'events':{'lstr':['events_names','events_times'], 'func':_events}},
+
               'wall':
               {'wall':{'lstr':['wallR','wallZ'], 'func':_RZ2array}},
 
@@ -1121,7 +1128,9 @@ class MultiIDSLoader(object):
 
         if idd is None and ids is not None:
             if self._refidd is None:
-                msg = "idd is None, but the ref idd is not clear:\n"
+                msg = "No idd was provided (and ref idd is not clear) !\n"
+                msg += "Please provide an idd either directly or via \n"
+                msg += "args (shot, user, tokamak...)!\n"
                 msg += "    - %s"%str([(k,v.get('ref',None))
                                        for k,v in self._didd.items()])
                 raise Exception(msg)
@@ -1489,11 +1498,25 @@ class MultiIDSLoader(object):
                     for jj in range(0,nsig):
                         sig[jj] = getattr(sig[jj], dcond[ii]['str'])
                         nb = len(sig[jj])
-                        ind = [ll for ll in range(0,nb)
-                               if (ftools.reduce(getattr,
-                                                 [sig[jj][ll]]+dcond[ii]['cond'][0])
-                                   == dcond[ii]['cond'][1])]
-                        assert len(ind) == 1
+                        typ = type(ftools.reduce(getattr,
+                                                 [sig[jj][0]]+dcond[ii]['cond'][0]))
+                        if typ == str:
+                            ind = [ll for ll in range(0,nb)
+                                   if (ftools.reduce(getattr,
+                                                     [sig[jj][ll]]+dcond[ii]['cond'][0]).strip()
+                                       == dcond[ii]['cond'][1].strip())]
+                        else:
+                            ind = [ll for ll in range(0,nb)
+                                   if (ftools.reduce(getattr,
+                                                     [sig[jj][ll]]+dcond[ii]['cond'][0])
+                                       == dcond[ii]['cond'][1])]
+                        if len(ind) != 1:
+                            msg = "No / several matching signals for:\n"
+                            msg += "    - %s[]%s = %s\n"%(dcond[ii]['str'],
+                                                          dcond[ii]['cond'][0],
+                                                          dcond[ii]['cond'][1])
+                            msg += "    - nb.of matches: %s"%str(len(ind))
+                            raise Exception(msg)
                         sig[jj] = sig[jj][ind[0]]
 
             # Conditions for stacking / sqeezing sig
@@ -2300,6 +2323,7 @@ def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
                           indDescript=indDescript, plot=plot)
 
 
+# occ ?
 def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
                   tlim=None, dsig=None, ids=None, config=None,
                   Name=None, out=object):
@@ -2307,11 +2331,16 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
                  user=user, tokamak=tokamak, version=version)
+
     if dsig is dict:
         lids = sorted(dsig.keys())
     else:
         if type(ids) not in [str,list]:
-            msg = "Please provide ids !"
+            msg = "If dsig not provided => provide an ids to load Plasma2D!\n"
+            msg += "  => Available ids for Plasma2D include:\n"
+            msg += "     ['equilibrium',\n"
+            msg += "      'core_profiles', 'core_sources'\n,"
+            msg += "      'edge_profiles', edge_sources]"
             raise Exception(msg)
         lids = [ids] if type(ids) is str else ids
     didd.add_ids(ids=lids, get=True)
@@ -2327,7 +2356,8 @@ def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
                  user=user, tokamak=tokamak, version=version)
 
     if type(ids) is not str:
-        msg = "Please provide ids !"
+        msg = "Please provide ids to load Cam !\n"
+        msg += "  => Which diagnostic do you wish to load ?"
         raise Exception(msg)
 
     lids = ['wall',ids]
@@ -2347,7 +2377,8 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
                  user=user, tokamak=tokamak, version=version)
 
     if type(ids) is not str:
-        msg = "Please provide ids !"
+        msg = "Please provide ids to load Data !\n"
+        msg += "  => Which diagnostic do you wish to load ?"
         raise Exception(msg)
 
     lids = ['wall',ids]
