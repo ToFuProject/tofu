@@ -41,31 +41,21 @@ class MagFieldLines:
 
     Parameters
     ----------
-    timeRef : one-dimensional float array
-        time data
-    dataRef : one-dimensional float array, same length as timeRef
-        data
-    plateau : string, optional (default='all')
-        Requested plateau for computations (plateau where to apply
-        methods, see methods bellow). One of
+    shot : int
+        Shot number
+    time : float
+        Time of interest
+    run : run number, optional (default=0)
+    occ : occurrence number, optional (default=0)
+    user : user name, optional (default=imas_public)
+    machine : machine name, optional (default=west)
 
-            ``all``
-            Computations on all the plateaus
-
-            ``long``
-            Computations on longer plateau
     Methods
     -------
-    applyFct(timeData, data, [function(s)]) :
-        Apply list of function(s) to input data in the same plateau requested when
-        initialising the class
-
-    Attributes
-    ----------
-    dataPlateau : list of float arrays (length: number of found plateaus)
-        Data array of each plateau
-    dataRef : float array
-        Reference data, input dataRef
+    trace_mline(init_state, direction='FWD')
+        returns trace
+    plot_trace(trace)
+    plot_trace_3D(trace)
     '''
     def __init__(self, shot, time, run=0, occ=0, user='imas_public', machine='west'):
 
@@ -153,7 +143,7 @@ class MagFieldLines:
                                      self.equi.vacuum_toroidal_field.b0[self.mask])
 
 
-    def trace_mline(self,init_state,direction='FWD'):
+    def trace_mline(self, init_state, direction='FWD'):
         '''
         Traces the field line given a starting point.
         Integration step defined by stp and maximum length of the field line
@@ -204,7 +194,7 @@ class MagFieldLines:
                'y':ygf,
                'cp':colpt}
 
-    def mfld3dcylfwd(self,s,state):
+    def mfld3dcylfwd(self, s, state):
         '''
         Returns the right end side of the field line system of equations in
         cyclindrical (R,Z,Phi) coord.
@@ -218,10 +208,10 @@ class MagFieldLines:
         B=np.sqrt(Br*Br+Bz*Bz+Bt*Bt)
         d_R=Br/B
         d_Z=Bz/B
-        d_P=-Bt/B*1/R
+        d_P=Bt/B*1/R
         return [d_R,d_Z,d_P]
 
-    def mfld3dcylrev(self,s,state):
+    def mfld3dcylrev(self, s, state):
         '''
         Returns the right end side of the field line system of equations in
         cyclindrical (R,Z,Phi) coord.
@@ -235,10 +225,10 @@ class MagFieldLines:
         B=np.sqrt(Br*Br+Bz*Bz+Bt*Bt)
         d_R=-Br/B
         d_Z=-Bz/B
-        d_P=Bt/B*1/R
+        d_P=-Bt/B*1/R
         return [d_R,d_Z,d_P]
 
-    def hit_wall_circ(self,s,state):
+    def hit_wall_circ(self, s, state):
         '''
         return 0 when hit wall.
         With wall_ck:
@@ -247,7 +237,7 @@ class MagFieldLines:
         - True => check collision with wall boundary given in the Equilibrium
             mat file
         '''
-        R,Z,P=state
+        R, Z, P=state
         #if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(89.5)<=P<=np.deg2rad(90.5):
         #    return 0
         #if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(179.5)<=P<=np.deg2rad(180.5):
