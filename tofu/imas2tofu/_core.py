@@ -1856,11 +1856,12 @@ class MultiIDSLoader(object):
 
 
 
-    def to_Plasma2D(self, tlim=None, dsig=None,
+    def to_Plasma2D(self, tlim=None, dsig=None, t0=None,
                     Name=None, occ=None, config=None, out=object):
 
         # dsig
         dsig = self._checkformat_Plasma2D_dsig(dsig)
+
         lids = sorted(dsig.keys())
         if Name is None:
             Name = 'custom'
@@ -1957,6 +1958,18 @@ class MultiIDSLoader(object):
             dmesh[ids] = {'nodes':nodes, 'faces':indtri,
                           'type':'tri', 'ftype':ftype,
                           'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
+
+        # t0
+        if t0 != False:
+            if type(t0) in [int,float,np.int,np.float]:
+                t0 = float(t0)
+            elif type(t0) is str and 'pulse_schedule' in self._dids.keys():
+                events = self.get_data(ids='pulse_schedule',
+                                       sig='events')['events']
+        # TBF
+
+
+
 
         plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
                       d1d=d1d, d2d=d2d,
