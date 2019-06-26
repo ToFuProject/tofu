@@ -2517,7 +2517,6 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
     cdef str msg
     cdef int npts=pts.shape[1]
     cdef bint bool1, bool2
-    cdef np.ndarray[double, ndim=2, mode='c'] ray_orig_arr
     cdef np.ndarray[double, ndim=1, mode='c'] ind = np.empty((npts),
                                                              dtype=float)
     # == Testing inputs ========================================================
@@ -2542,15 +2541,10 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                           eps_plane]]), msg
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
-
-    # ... preparing inputs for cython function
-    ray_orig_arr = np.empty((3, npts))
-    _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig_arr)
     # ...
     _rt.is_visible_pt_vec(pt0, pt1, pt2,
                           pts, npts,
                           ves_poly, ves_norm,
-                          ray_orig_array,
                           ind, k, ves_lims,
                           lstruct_nlim,
                           lstruct_polyx, lstruct_polyy,
