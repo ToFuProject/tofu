@@ -1704,8 +1704,10 @@ class MultiIDSLoader(object):
         return {'tlim':tlim, 'nt':nt, 't':t, 'indt':indt}
 
 
-    def to_Config(self, Name=None, occ=None, indDescript=0, plot=True):
+    def to_Config(self, Name=None, occ=None, indDescription=None, plot=True):
         lidsok = ['wall']
+        if indDescription is None:
+            indDescription = 0
 
         # ---------------------------
         # Preliminary checks on data source consistency
@@ -1716,6 +1718,7 @@ class MultiIDSLoader(object):
         #   Input dicts
 
         # config
+        config = None
         if 'wall' in lids:
             ids = 'wall'
 
@@ -1726,20 +1729,20 @@ class MultiIDSLoader(object):
             indoc = np.nonzero(self._dids[ids]['occ'] == occ)[0][0]
 
             wall = self._dids[ids]['ids'][indoc]
-            units = wall.description_2d[indDescript].limiter.unit
+            units = wall.description_2d[indDescription].limiter.unit
             nunits = len(units)
 
             if nunits == 0:
                 msg = "There is no limiter unit stored !\n"
                 msg += "The required 2d description is empty:\n"
                 ms = "len(idd.%s[occ=%s].description_2d"%(ids,str(occ))
-                msg += "%s[%s].limiter.unit) = 0"%(ms,str(indDescript))
+                msg += "%s[%s].limiter.unit) = 0"%(ms,str(indDescription))
                 raise Exception(msg)
 
             if Name is None:
-                Name = wall.description_2d[indDescript].type.name
+                Name = wall.description_2d[indDescription].type.name
                 if Name == '':
-                    Name = 'ImasCustom'
+                    Name = 'imas wall'
 
             import tofu.geom as mod
 
@@ -1858,11 +1861,42 @@ class MultiIDSLoader(object):
 
 
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None,
-                    Name=None, occ=None, config=None, out=object):
+                    Name=None, occ=None, config=None, out=object,
+                    plot=None, plot_sig=None, plot_X=None):
 
         # dsig
         dsig = self._checkformat_Plasma2D_dsig(dsig)
 
+        # plot arguments
+        if plot == True:
+            if plot_sig is None:
+                lsplot = [ss for ss in list(dsig.values())[0]
+                          if ('1d' in ss and ss != 't'
+                              and all([sub not in ss
+                                       for sub in ['rho','psi','phi']]))]
+                if not (len(dsig) == 1 and len(lsplot) == 1):
+                    msg = "Direct plotting only possible if\n"
+                    msg += "sig_plot is provided, or can be derived from:\n"
+                    msg += "    - unique ids: %s"%str(dsig.keys())
+                    msg += "    - unique non-t, non-radius 1d sig: %s"%str(lsplot)
+                    raise Exception(msg)
+                plot_sig = lsplot[0]
+            if type(plot_sig) is str:
+                plot_sig = [plot_sig]
+            if plot_X is None:
+                lsplot = [ss for ss in list(dsig.values())[0]
+                          if ('1d' in ss and ss != 't'
+                              and any([sub in ss
+                                       for sub in ['rho','psi','phi']]))]
+                if not (len(dsig) == 1 and len(lsplot) == 1):
+                    msg = "Direct plotting only possible if\n"
+                    msg += "X_plot is provided, or can be derived from:\n"
+                    msg += "    - unique ids: %s"%str(dsig.keys())
+                    msg += "    - unique non-t, 1d radius: %s"%str(lsplot)
+                    raise Exception(msg)
+                plot_X = lsplot[0]
+
+        # lids
         lids = sorted(dsig.keys())
         if Name is None:
             Name = 'custom'
@@ -1894,11 +1928,12 @@ class MultiIDSLoader(object):
             if out_['t'].size == 0 or 0 in out_['t'].shape:
                 continue
             nt = out_['t'].size
-            dtime[ids] = self._checkformat_tlim(out_['t'], tlim=tlim)
+            namet = '%s.t'%ids
+            dtime[namet] = self._checkformat_tlim(out_['t'], tlim=tlim)
 
             # d1d and dradius
             lsig = [k for k in dsig[ids] if '1d' in k]
-            out_ = self.get_data(ids, lsig, indt=dtime[ids]['indt'])
+            out_ = self.get_data(ids, lsig, indt=dtime[namet]['indt'])
             if len(out_) == 0:
                 continue
 
@@ -1910,9 +1945,10 @@ class MultiIDSLoader(object):
                     axist = shape.index(nt)
                     nr = shape[1-axist]
                     if ids not in dradius.keys():
-                        dradius[ids] = {'size':nr}
+                        namer = '%s.radius'%ids
+                        dradius[namer] = {'size':nr}
                     else:
-                        assert nr == dradius[ids]['size']
+                        assert nr == dradius[namer]['size']
                     if axist == 1:
                         out_[ss] = out_[ss].T
                     name = ids+'.'+ss
@@ -1920,18 +1956,19 @@ class MultiIDSLoader(object):
                     units = self._dshort[ids][ss].get('units', 'a.u.')
                     d1d[name] = {'data':out_[ss],
                                  'quant':quant, 'units':units,
-                                 'radius':ids, 'time':ids}
+                                 'radius':namer, 'time':namet}
 
             # d2d and dmesh
             lsig = [k for k in dsig[ids] if '2d' in k]
             lsigmesh = ['2dmeshNodes','2dmeshTri']
-            out_ = self.get_data(ids, sig=lsig, indt=dtime[ids]['indt'])
+            out_ = self.get_data(ids, sig=lsig, indt=dtime[namet]['indt'])
             if len(out_) == 0:
                 continue
             if not all([ss in out_.keys() for ss in lsigmesh]):
                 continue
 
             npts = None
+            namem = '%s.mesh'%ids
             for ss in set(out_.keys()).difference(lsigmesh):
                 shape = out_[ss].shape
                 assert len(shape) == 2
@@ -1948,7 +1985,7 @@ class MultiIDSLoader(object):
                     units = self._dshort[ids][ss].get('units', 'a.u.')
                     d2d[name] = {'data':out_[ss],
                                  'quant':quant, 'units':units,
-                                 'mesh':ids, 'time':ids}
+                                 'mesh':namem, 'time':namet}
 
             nodes = out_['2dmeshNodes']
             indtri = out_['2dmeshTri']
@@ -1956,9 +1993,9 @@ class MultiIDSLoader(object):
             nnod, ntri = nodes.size/2, indtri.size/3
             ftype = 'linear' if npts == nnod else 'nearest'
             mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indtri)
-            dmesh[ids] = {'nodes':nodes, 'faces':indtri,
-                          'type':'tri', 'ftype':ftype,
-                          'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
+            dmesh[namem] = {'nodes':nodes, 'faces':indtri,
+                            'type':'tri', 'ftype':ftype,
+                            'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
 
         # t0
         if t0 != False:
@@ -1982,15 +2019,20 @@ class MultiIDSLoader(object):
                 dtime[tt]['t'] = dtime[tt]['t'] - t0
 
 
-
         plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
                       d1d=d1d, d2d=d2d,
                       Exp=Exp, shot=shot, Name=Name, config=config)
 
         # Instanciate Plasma2D
-        if out == object:
+        if out == object or plot == True:
             import tofu.data as tfd
             plasma = tfd.Plasma2D( **plasma )
+            if plot == True:
+                if len(plot_sig) == 1:
+                    plasma.plot(plot_sig[0], X=plot_X)
+                else:
+                    plasma.plot_combine(plot_sig, X=plot_X)
+
         return plasma
 
 
@@ -2363,7 +2405,7 @@ class MultiIDSLoader(object):
 
 
 def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
-                Name=None, occ=0, indDescript=0, plot=True):
+                Name=None, occ=0, indDescription=0, plot=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
@@ -2371,13 +2413,14 @@ def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
     didd.add_ids('wall', get=True)
 
     return didd.to_Config(Name=Name, occ=occ,
-                          indDescript=indDescript, plot=plot)
+                          indDescription=indDescription, plot=plot)
 
 
 # occ ?
 def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
-                  tlim=None, dsig=None, ids=None, config=None,
-                  Name=None, t0=None, out=object):
+                  tlim=None, occ=None, dsig=None, ids=None, config=None,
+                  Name=None, t0=None, out=object,
+                  plot=None, plot_sig=None, plot_X=None):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
@@ -2394,12 +2437,15 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
             msg += "      'edge_profiles', edge_sources]"
             raise Exception(msg)
         lids = [ids] if type(ids) is str else ids
+    lids.append('wall')
     if t0 != False and t0 != None:
         lids.append('pulse_schedule')
 
     didd.add_ids(ids=lids, get=True)
 
-    return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, t0=t0, config=config, out=out)
+    return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, t0=t0,
+                            occ=occ, config=config, out=out,
+                            plot=plot, plot_sig=plot_sig, plot_X=plot_X)
 
 
 def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,

@@ -604,9 +604,11 @@ def _load_from_txt(name, pfe, Name=None, Exp=None):
 #######
 
 def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
-                   ids=None, Name=None, out='Data', tlim=None, config=None,
-                   occ=None, indch=None, indDecription=None, equilibrium=None,
-                   dsig=None, mainsig=None, t0=None, plot=None):
+                   ids=None, Name=None, out=None, tlim=None, config=None,
+                   occ=None, indch=None, indDescription=None, equilibrium=None,
+                   dsig=None, mainsig=None, t0=None,
+                   plot=True, plot_sig=None, plot_X=None):
+    # import imas2tofu
     try:
         import tofu.imas2tofu as imas2tofu
     except Exception as err:
@@ -616,11 +618,38 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         raise Exception(msg)
 
     lok = ['Config', 'Plasma2D', 'Cam', 'Data']
-    c0 = out in lok
+    c0 = out is None or out in lok
     if not c0:
         msg = "Arg out must be in %s"%str(lok)
         raise Exception(msg)
 
+    # Prepare
+    if ids == 'wall':
+        assert out in [None,'Config']
+        out = 'Config'
+    if out == 'Config':
+        assert ids in [None,'wall']
+
+    lids = ['equilibrium', 'core_profiles', 'core_sources',
+            'edge_profiles', 'edge_sources']
+    if ids in lids:
+        assert out in [None,'Plasma2D']
+        out = 'Plasma2D'
+    if out == 'Plasma2D':
+        assert ids in lids
+
+    lids = ['ece', 'interferometer', 'bolometer', 'soft_x_rays',
+            'spectrometer_visible', 'bremsstrahlung_visible']
+    if ids in lids:
+        assert out in [None,'Cam','Data']
+        if out is None:
+            out = 'Data'
+    if out in ['Cam','Data']:
+        assert ids in lids
+
+
+
+    # load
     if out == 'Config':
         out = imas2tofu.load_Config(shot=shot, run=run, user=user,
                                     tokamak=tokamak, version=version,
@@ -630,7 +659,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         out = imas2tofu.load_Plasma2D(shot=shot, run=run, user=user,
                                       tokamak=tokamak, version=version,
                                       Name=Name, occ=occ,
-                                      tlim=tlim, dsig=dsig, ids=ids, t0=t0)
+                                      tlim=tlim, dsig=dsig, ids=ids, t0=t0,
+                                      plot=plot, plot_sig=plot_sig,
+                                      plot_X=plot_X, config=config)
     elif out == 'Cam':
         out = imas2tofu.load_Cam(shot=shot, run=run, user=user,
                                  tokamak=tokamak, version=version,
@@ -641,7 +672,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         out = imas2tofu.load_Data(shot=shot, run=run, user=user,
                                   tokamak=tokamak, version=version,
                                   Name=Name, occ=occ,
-                                  ids=ids, tlim=tlim, dsig=dsig,
+                                  ids=ids, tlim=tlim, dsig=dsig, config=config,
                                   mainsig=mainsig, indch=indch, t0=t0,
                                   equilibrium=equilibrium, plot=plot)
     return out
