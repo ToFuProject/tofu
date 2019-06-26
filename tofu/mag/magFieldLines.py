@@ -14,6 +14,7 @@ import os
 #import re
 import scipy.integrate as spode
 import scipy.interpolate as interpolate
+import scipy.spatial
 #import warnings
 #import sys
 
@@ -56,6 +57,21 @@ class MagFieldLines:
         returns trace
     plot_trace(trace)
     plot_trace_3D(trace)
+
+    Examples
+    --------
+    For shot 54095 at time=34
+    Compute linear interpolation B_r, B_tor, B_z at r=2, phi=0, z=0
+    and r, z, phi of magnetic line starting at r=2.7, phi=0, z=0
+    >>> test = MagFieldLines(54095, 34)
+    >>> test.b_field_interp(2, 0, 0)
+    (0.006836488559673934, -4.547017391384852, -0.14305889263210517)
+    >>> test.trace_mline([2.7, 0., 0.])['r'][10]
+    2.700041665466963
+    >>> test.trace_mline([2.7, 0., 0.])['p'][10]
+    -0.0037010956581712776
+    >>> test.trace_mline([2.7, 0., 0.])['z'][10]
+    0.000373472578674799
     '''
     def __init__(self, shot, time, run=0, occ=0, user='imas_public', machine='west'):
 
@@ -109,7 +125,8 @@ class MagFieldLines:
             self.equiDict['b_field_z'][ii]   = equi_space.b_field_z[0].values
             self.equiDict['b_field_tor'][ii] = equi_space.b_field_tor[0].values
 
-        points = np.vstack((self.equiDict['r'], self.equiDict['z'])).transpose()
+        self.points   = np.vstack((self.equiDict['r'], self.equiDict['z'])).transpose()
+        self.delaunay = scipy.spatial.Delaunay(self.points)
 
         # Time interpolation
         f_intp_br = interpolate.interp1d(self.equi.time[self.mask], \
@@ -133,9 +150,9 @@ class MagFieldLines:
         bt_intp_t *= -1
         # !!!!!!!!!!!!!!!!!!!!!
 
-        self.br_lin_intp = interpolate.LinearNDInterpolator(points, br_intp_t)
-        self.bt_lin_intp = interpolate.LinearNDInterpolator(points, bt_intp_t)
-        self.bz_lin_intp = interpolate.LinearNDInterpolator(points, bz_intp_t)
+        self.br_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, br_intp_t)
+        self.bt_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, bt_intp_t)
+        self.bz_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, bz_intp_t)
 
         # Interpolate current
         self.itor_intp_t = np.interp(ar_time, self.t_itor[:, 0], self.itor[:, 0])
@@ -143,7 +160,7 @@ class MagFieldLines:
                                      self.equi.vacuum_toroidal_field.b0[self.mask])
 
 
-    def trace_mline(self, init_state, direction='FWD'):
+    def trace_mline(self, init_state, time=None, direction='FWD'):
         '''
         Traces the field line given a starting point.
         Integration step defined by stp and maximum length of the field line
@@ -165,34 +182,39 @@ class MagFieldLines:
             - cp : collision point with the wall (list)
 
         '''
-        stp=0.001 # step for the integration
-        s=100 # length of the field line
-        ds=np.linspace(0,s,int(s/stp))
-        if direction=='FWD':
-            sol=spode.solve_ivp(self.mfld3dcylfwd,[0,s],init_state,
-                                method='RK23',t_eval=ds,
-                                events=self.hit_wall_circ)
-        elif direction=='REV':
-            sol=spode.solve_ivp(self.mfld3dcylrev,[0,s],init_state,
-                                method='RK23',t_eval=ds,
-                                events=self.hit_wall_circ)
-        sgf=sol.t
-        rgf=sol.y[0]
-        pgf=sol.y[2]
-        xgf=rgf*np.cos(pgf)
-        ygf=rgf*np.sin(pgf)
-        zgf=sol.y[1]
-        if len(sgf)<len(ds):
-            colpt=[rgf[-1],zgf[-1],pgf[-1]]
+
+        stp = 0.001 # step for the integration
+        s   = 100 # length of the field line
+        ds  = np.linspace(0, s, int(s/stp))
+
+        if (time is None):
+            if direction=='FWD':
+                sol=spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
+                                    method='RK23', t_eval=ds,
+                                    events=self.hit_wall_circ)
+            elif direction=='REV':
+                sol=spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
+                                    method='RK23', t_eval=ds,
+                                    events=self.hit_wall_circ)
+            sgf=sol.t
+            rgf=sol.y[0]
+            pgf=sol.y[2]
+            xgf=rgf*np.cos(pgf)
+            ygf=rgf*np.sin(pgf)
+            zgf=sol.y[1]
+            if len(sgf)<len(ds):
+                colpt=[rgf[-1],zgf[-1],pgf[-1]]
+            else:
+                colpt=[]
+            return {'s':sgf,
+                   'r':rgf,
+                   'z':zgf,
+                   'p':pgf,
+                   'x':xgf,
+                   'y':ygf,
+                   'cp':colpt}
         else:
-            colpt=[]
-        return {'s':sgf,
-               'r':rgf,
-               'z':zgf,
-               'p':pgf,
-               'x':xgf,
-               'y':ygf,
-               'cp':colpt}
+            pass
 
     def mfld3dcylfwd(self, s, state):
         '''
@@ -261,6 +283,8 @@ class MagFieldLines:
     hit_wall_circ.terminal=True
 
     def b_field_interp(self, R, Phi, Z, no_ripple=False):
+        ''' Linear interpolation of B vector components at R, Phi, Z positions
+        '''
 
         interp_points = np.vstack((R, Z)).transpose()
 
