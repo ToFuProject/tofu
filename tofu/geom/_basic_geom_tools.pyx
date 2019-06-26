@@ -9,11 +9,10 @@ from libc.math cimport cos as Ccos, sin as Csin
 from libc.math cimport atan2 as Catan2
 from libc.math cimport sqrt as Csqrt
 from libc.math cimport fabs as Cabs
+from libc.math cimport NAN as Cnan
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
-
-
 
 # ==============================================================================
 # =  Point in path
@@ -153,6 +152,15 @@ cdef inline double comp_min_hypot(double[::1] xpts, double[::1] ypts,
             hypot = tmp
     return Csqrt(hypot)
 
+cdef inline double comp_min(double[::1] vec, int npts) nogil:
+    cdef int ii
+    cdef double res = vec[0]
+    for ii in range(1,npts):
+        if vec[ii] < res:
+            res = vec[ii]
+    return res
+
+
 # ==============================================================================
 # == VECTOR CALCULUS HELPERS
 # ==============================================================================
@@ -220,3 +228,85 @@ cdef inline double compute_find(double m2b2, double rm0sqr,
         return root
     else:
         return root
+
+# ==============================================================================
+# =  Tiling
+# ==============================================================================
+cdef inline void tile_3_to_2d(double v0, double v1, double v2,
+                              int npts, double[:,::1] res) nogil:
+    """
+    This function will probably not be very useful but might be used for
+    inspiration (if indeed faster than using numpy in cython).
+    It creates an array of shape (3, npts) as such :
+        [v0, ... v0]
+        [v1, ... v1]
+        [v2, ... v2]
+    Equivalent to :
+       tab = np.tile(np.r_[v0,v1,v2], (npts,1)).T
+    """
+    cdef int ii
+    for ii in range(npts):
+        res[0,ii] = v0
+        res[1,ii] = v1
+        res[2,ii] = v2
+    return
+
+
+# ==============================================================================
+# =  Distance
+# ==============================================================================
+cdef inline void compute_dist_pt_vec(const double pt0, const double pt1,
+                                     const double pt2, int npts,
+                                     const double[:, ::1] vec,
+                                     double* dist) nogil:
+    """
+    Compute the distance between the point P = [pt0, pt1, pt2] and each point
+    Q_i, where vec = {Q_0, Q_1, ..., Q_npts-1}
+    """
+    cdef int ii
+
+    for ii in range(npts):
+        dist[ii] = Csqrt((pt0 - vec[0, ii])*(pt0 - vec[0, ii])
+                         + (pt1 - vec[1, ii])*(pt1 - vec[1, ii])
+                         + (pt2 - vec[2, ii])*(pt2 - vec[2, ii]))
+    return
+
+cdef inline void compute_dist_vec_vec(const double[:, ::1] vec1, const int npts1,
+                                      const double[:, ::1] vec2, const int npts2,
+                                      double[:, ::1] dist) nogil:
+    """
+    Compute the distance between each point P_i and each point
+    Q_i, where vec1 = {P_0, P_1, ..., P_npts1-1} and
+    vec2 = {Q_0, Q_1, ..., Q_npts2-1}
+    """
+    cdef int ii, jj
+
+    for ii in range(npts1):
+        for jj in range(npts2):
+            dist[ii,jj] = Csqrt((vec1[0,ii] - vec2[0, ii])
+                                * (vec1[0,ii] - vec2[0, ii])
+                                + (vec1[1,ii] - vec2[1, ii])
+                                * (vec1[1,ii] - vec2[1, ii])
+                                + (vec1[2,ii] - vec2[2, ii])
+                                * (vec1[2,ii] - vec2[2, ii]))
+    return
+
+cdef inline void compute_diff_div(const double[:, ::1] vec1,
+                                  const double[:, ::1] vec2,
+                                  const double* div,
+                                  const int npts,
+                                  double[:, ::1] res) nogil:
+    """
+    Computes :
+      res = (vec1 - vec2) / div
+    """
+    cdef int ii
+    cdef double invd
+    for ii in range(npts):
+        invd = Cnan
+        if div[ii] != 0. :
+            invd = 1./div[ii]
+        res[0, ii] = (vec1[0,ii] - vec2[0,ii]) * invd
+        res[1, ii] = (vec1[1,ii] - vec2[1,ii]) * invd
+        res[2, ii] = (vec1[2,ii] - vec2[2,ii]) * invd
+    return

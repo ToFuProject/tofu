@@ -566,8 +566,6 @@ def calc_solidangle_particle(traj, pts, r=1., config=None,
         (N,M) Array of floats, solid angles
 
     """
-
-
     ################
     # Prepare inputs
     traj = np.ascontiguousarray(traj, dtype=float)
@@ -631,8 +629,8 @@ def calc_solidangle_particle(traj, pts, r=1., config=None,
     if block:
         kwdargs = config._get_kwdargs_LOS_isVis()
         # TODO : modify this function along issue #102
-        indnan = _GG.LOS_isVis_PtFromPts_VesStruct(traj[0,:],traj[1,:],traj[2,:],
-                                                   pts, k=l, vis=False, **kwdargs)
+        indnan = _GG.LOS_areVis_PtsFromPts_VesStruct(traj, pts, k=l, vis=False,
+                                                     **kwdargs)
         sang[indnan] = 0.
         vect[indnan,:] = np.nan
 
@@ -664,3 +662,4 @@ def calc_solidangle_particle_integ(traj, r=1., config=None,
     # integrate (sum * res) on each phi the solid angle
 
     # Return sang as (N,nR,nZ) array
+    return
