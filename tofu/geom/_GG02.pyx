@@ -3981,6 +3981,13 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
     from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
+    # ==========================================================================
+    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
+        assert False, "The function is only implemented with the simple"\
+            + " algorithm and for toroidal vessels... Sorry!"
+    warn("This function supposes that the polys are nested from inner to outer",
+         Warning)
+    # ==========================================================================
 
     cdef array are_close = clone(array('i'), nvpoly*nlos, True)
     _dt.is_close_los_vpoly_vec_core(nvpoly, nlos,
@@ -3990,8 +3997,6 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
                                 eps_uz, eps_a,
                                 eps_vz, eps_b,
                                 eps_plane,
-                                ves_type,
-                                algo_type,
                                 epsilon,
                                 are_close,
                                 num_threads)
@@ -4044,6 +4049,14 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
+    # ==========================================================================
+    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
+        assert False, "The function is only implemented with the simple"\
+            + " algorithm and for toroidal vessels... Sorry!"
+    warn("This function supposes that the polys are nested from inner to outer",
+         Warning)
+    # ==========================================================================
+
     cdef array ind_close_tab = clone(array('i'), nvpoly, True)
     _dt.which_los_closer_vpoly_vec_core(nvpoly, nlos,
                                     <double*>ray_orig.data,
@@ -4052,8 +4065,6 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
                                     eps_uz, eps_a,
                                     eps_vz, eps_b,
                                     eps_plane,
-                                    ves_type,
-                                    algo_type,
                                     ind_close_tab,
                                     num_threads)
     return np.asarray(ind_close_tab)
@@ -4098,6 +4109,13 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
     from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
+    # ==========================================================================
+    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
+        assert False, "The function is only implemented with the simple"\
+            + " algorithm and for toroidal vessels... Sorry!"
+    warn("This function supposes that the polys are nested from inner to outer",
+         Warning)
+    # ==========================================================================
 
     cdef array ind_close_tab = clone(array('i'), nlos, True)
     _dt.which_vpoly_closer_los_vec_core(nvpoly, nlos,
@@ -4107,8 +4125,6 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
                                     eps_uz, eps_a,
                                     eps_vz, eps_b,
                                     eps_plane,
-                                    ves_type,
-                                    algo_type,
                                     ind_close_tab,
                                     num_threads)
     return np.asarray(ind_close_tab)
