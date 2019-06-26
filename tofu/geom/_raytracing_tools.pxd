@@ -11,9 +11,14 @@ from libc.math cimport cos as Ccos, sin as Csin
 from libc.math cimport atan2 as Catan2
 from libc.math cimport NAN as Cnan
 from libc.math cimport pi as Cpi
+from libc.math cimport isnan as Cisnan
 from cython.parallel import prange
 from cython.parallel cimport parallel
+from cpython.array cimport array, clone
 from libc.stdlib cimport malloc, free
+cimport numpy as np
+import numpy as np
+from cython cimport view
 # importing ToFu functions:
 from _basic_geom_tools cimport _VSMALL
 from _basic_geom_tools cimport is_point_in_path
@@ -1288,7 +1293,6 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                     vperpout_tab[2 + 3 * ii] = normy_tab[indout]
     return
 
-
 cdef inline compute_inout_tot(double[:, ::1] ray_orig,
                               double[:, ::1] ray_vdir,
                               double[:, ::1] ves_poly,
@@ -1303,9 +1307,11 @@ cdef inline compute_inout_tot(double[:, ::1] ray_orig,
                               long[::1] lnvert,
                               int nstruct_tot,
                               int nstruct_lim,
+                              int sz_ves_lims,
+                              double min_poly_r,
                               double rmin,
-                              double eps_uz, double eps_an
-                              double eps_vzn double eps_bn
+                              double eps_uz, double eps_a,
+                              double eps_vz, double eps_b,
                               double eps_plane, str ves_type,
                               bint forbid, int num_threads,
                               double[::1] coeff_inter_out,
@@ -1335,7 +1341,7 @@ cdef inline compute_inout_tot(double[:, ::1] ray_orig,
     # ==========================================================================
     if ves_type == 'tor':
         # .. if there are, we get the limits for the vessel ....................
-        if ves_lims is None or np.size(ves_lims) == 0:
+        if ves_lims is None or sz_ves_lims == 0:
             are_limited = False
             lbounds_ves[0] = 0
             lbounds_ves[1] = 0
@@ -1348,7 +1354,7 @@ cdef inline compute_inout_tot(double[:, ::1] ray_orig,
         # -- Toroidal case -----------------------------------------------------
         # rmin is necessary to avoid looking on the other side of the tokamak
         if rmin < 0.:
-            rmin = 0.95*min(np.min(ves_poly[0, ...]),
+            rmin = 0.95*min(min_poly_r,
                             _bgt.comp_min_hypot(ray_orig[0, ...],
                                                 ray_orig[1, ...],
                                                 num_los))
@@ -1358,21 +1364,20 @@ cdef inline compute_inout_tot(double[:, ::1] ray_orig,
             forbid0, forbidbis = 1, 1
         else:
             forbid0, forbidbis = 0, 0
-
         # -- Computing intersection between LOS and Vessel ---------------------
-        _rt.raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
-                                        coeff_inter_out, coeff_inter_in,
-                                        vperp_out, lstruct_nlim, ind_inter_out,
-                                        forbid0, forbidbis,
-                                        rmin, rmin2, crit2_base,
-                                        npts_poly,  NULL, lbounds_ves,
-                                        llim_ves, NULL, NULL,
-                                        &ves_poly[0][0],
-                                        &ves_poly[1][0],
-                                        &ves_norm[0][0],
-                                        &ves_norm[1][0],
-                                        eps_uz, eps_vz, eps_a, eps_b, eps_plane,
-                                        num_threads, False) # structure is in
+        raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
+                                    coeff_inter_out, coeff_inter_in,
+                                    vperp_out, lstruct_nlim, ind_inter_out,
+                                    forbid0, forbidbis,
+                                    rmin, rmin2, crit2_base,
+                                    npts_poly,  NULL, lbounds_ves,
+                                    llim_ves, NULL, NULL,
+                                    &ves_poly[0][0],
+                                    &ves_poly[1][0],
+                                    &ves_norm[0][0],
+                                    &ves_norm[1][0],
+                                    eps_uz, eps_vz, eps_a, eps_b, eps_plane,
+                                    num_threads, False) # structure is in
 
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
@@ -1408,17 +1413,17 @@ cdef inline compute_inout_tot(double[:, ::1] ray_orig,
                         llimits[ind_struct] = 0 # False : struct is limited
                         lim_min = Catan2(Csin(lim_ves[0]), Ccos(lim_ves[0]))
                         lim_max = Catan2(Csin(lim_ves[1]), Ccos(lim_ves[1]))
-                        _rt.comp_bbox_poly_tor_lim(nvert,
-                                                   &lstruct_polyx[ind_min],
-                                                   &lstruct_polyy[ind_min],
-                                                   &lbounds[ind_struct*6],
-                                                   lim_min, lim_max)
-                    else:
-                        llimits[ind_struct] = 1 # True : is continous
-                        _rt.comp_bbox_poly_tor(nvert,
+                        comp_bbox_poly_tor_lim(nvert,
                                                &lstruct_polyx[ind_min],
                                                &lstruct_polyy[ind_min],
-                                               &lbounds[ind_struct*6])
+                                               &lbounds[ind_struct*6],
+                                               lim_min, lim_max)
+                    else:
+                        llimits[ind_struct] = 1 # True : is continous
+                        comp_bbox_poly_tor(nvert,
+                                           &lstruct_polyx[ind_min],
+                                           &lstruct_polyy[ind_min],
+                                           &lbounds[ind_struct*6])
                         lim_min = 0.
                         lim_max = 0.
                     langles[ind_struct*2] = lim_min
@@ -1427,28 +1432,28 @@ cdef inline compute_inout_tot(double[:, ::1] ray_orig,
             # end loops over structures
 
             # -- Computing intersection between structures and LOS -------------
-            _rt.raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
-                                            coeff_inter_out, coeff_inter_in,
-                                            vperp_out, lstruct_nlim,
-                                            ind_inter_out,
-                                            forbid0, forbidbis,
-                                            rmin, rmin2, crit2_base,
-                                            nstruct_lim,
-                                            lbounds, langles, llimits,
-                                            &lnvert[0], lsz_lim,
-                                            &lstruct_polyx[0],
-                                            &lstruct_polyy[0],
-                                            &lstruct_normx[0]
-                                            , &lstruct_normy[0],
-                                            eps_uz, eps_vz, eps_a,
-                                            eps_b, eps_plane,
-                                            num_threads,
-                                            True) # the structure is "OUT"
+            raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
+                                        coeff_inter_out, coeff_inter_in,
+                                        vperp_out, lstruct_nlim,
+                                        ind_inter_out,
+                                        forbid0, forbidbis,
+                                        rmin, rmin2, crit2_base,
+                                        nstruct_lim,
+                                        lbounds, langles, llimits,
+                                        &lnvert[0], lsz_lim,
+                                        &lstruct_polyx[0],
+                                        &lstruct_polyy[0],
+                                        &lstruct_normx[0],
+                                        &lstruct_normy[0],
+                                        eps_uz, eps_vz, eps_a,
+                                        eps_b, eps_plane,
+                                        num_threads,
+                                        True) # the structure is "OUT"
             free(lsz_lim)
             free(llimits)
     else:
         # .. if there are, we get the limits for the vessel ....................
-        if ves_lims is None  or np.size(ves_lims) == 0:
+        if ves_lims is None  or sz_ves_lims == 0:
             are_limited = False
             lbounds_ves[0] = 0
             lbounds_ves[1] = 0
@@ -1458,13 +1463,13 @@ cdef inline compute_inout_tot(double[:, ::1] ray_orig,
             lbounds_ves[1] = ves_lims[1]
 
         # -- Cylindrical case --------------------------------------------------
-        _rt.raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
-                                        &ves_poly[0][0], &ves_poly[1][0],
-                                        &ves_norm[0][0], &ves_norm[1][0],
-                                        lbounds_ves[0], lbounds_ves[1],
-                                        coeff_inter_in, coeff_inter_out,
-                                        vperp_out, ind_inter_out, eps_plane,
-                                        0, 0) # The vessel is strcuture 0,0
+        raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
+                                    &ves_poly[0][0], &ves_poly[1][0],
+                                    &ves_norm[0][0], &ves_norm[1][0],
+                                    lbounds_ves[0], lbounds_ves[1],
+                                    coeff_inter_in, coeff_inter_out,
+                                    vperp_out, ind_inter_out, eps_plane,
+                                    0, 0) # The vessel is strcuture 0,0
 
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
@@ -1491,23 +1496,21 @@ cdef inline compute_inout_tot(double[:, ::1] ray_orig,
                     if lslim[jj] is not None:
                         lbounds_ves[0] = lslim[jj][0]
                         lbounds_ves[1] = lslim[jj][1]
-                    _rt.raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir,
-                                                    nvert-1,
-                                                    &lstruct_polyx[ind_min],
-                                                    &lstruct_polyy[ind_min],
-                                                    &lstruct_normx[ind_min-ii],
-                                                    &lstruct_normy[ind_min-ii],
-                                                    lbounds_ves[0],
-                                                    lbounds_ves[1],
-                                                    coeff_inter_in,
-                                                    coeff_inter_out,
-                                                    vperp_out, ind_inter_out,
-                                                    eps_plane, ii+1, jj)
-
+                    raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir,
+                                                nvert-1,
+                                                &lstruct_polyx[ind_min],
+                                                &lstruct_polyy[ind_min],
+                                                &lstruct_normx[ind_min-ii],
+                                                &lstruct_normy[ind_min-ii],
+                                                lbounds_ves[0],
+                                                lbounds_ves[1],
+                                                coeff_inter_in,
+                                                coeff_inter_out,
+                                                vperp_out, ind_inter_out,
+                                                eps_plane, ii+1, jj)
     free(lbounds)
     free(langles)
     return
-
 
 
 # ==============================================================================
@@ -1678,6 +1681,7 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
         free(kpout_loc)
     return
 
+
 # ==============================================================================
 # =  Raytracing on a Cylinder only KMin and KMax
 # ==============================================================================
@@ -1777,4 +1781,169 @@ cdef inline void raytracing_minmax_struct_lin(int Nl,
             kout_tab[ii] = kout
             if kin<kin_tab[ii]:
                 kin_tab[ii] = kin
+    return
+
+# ==============================================================================
+# = Checking if points are visible
+# ==============================================================================
+cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
+                                   double[:,::1] pts, int npts,
+                                   double[:, ::1] ves_poly,
+                                   double[:, ::1] ves_norm,
+                                   double[::1] ind,
+                                   double[::1] k,
+                                   double[::1] ves_lims,
+                                   long[::1] lstruct_nlim,
+                                   double[::1] lstruct_polyx,
+                                   double[::1] lstruct_polyy,
+                                   list lstruct_lims,
+                                   double[::1] lstruct_normx,
+                                   double[::1] lstruct_normy,
+                                   long[::1] lnvert,
+                                   int nstruct_tot,
+                                   int nstruct_lim,
+                                   double rmin,
+                                   double eps_uz, double eps_a,
+                                   double eps_vz, double eps_b,
+                                   double eps_plane, str ves_type,
+                                   bint forbid, bint vis,
+                                   bint test, int num_threads) nogil:
+    # cdef array vperp_out = clone(array('d'), npts * 3, True)
+    # cdef array coeff_inter_in  = clone(array('d'), npts, True)
+    # cdef array coeff_inter_out = clone(array('d'), npts, True)
+    # cdef array ind_inter_out = clone(array('i'), npts * 3, True)
+    cdef int sz_ves_lims
+    cdef double min_poly_r
+    cdef double[::1] vperp_out = view.array(shape=(npts*3),
+                                            itemsize=sizeof(double),
+                                            format="d")
+    cdef double[::1] coeff_inter_in = view.array(shape=(npts),
+                                                 itemsize=sizeof(double),
+                                                 format="d")
+    cdef double[::1] coeff_inter_out = view.array(shape=(npts),
+                                                  itemsize=sizeof(double),
+                                                  format="d")
+    cdef int[::1] ind_inter_out = view.array(shape=(npts*3),
+                                             itemsize=sizeof(int),
+                                             format="i")
+    # cdef array ray_vdir_arr =
+    # cdef np.ndarray[double, ndim=2, mode='c'] ray_vdir_arr
+    # cdef np.ndarray[double, ndim=1, mode='c'] dist_arr
+    cdef double* dist_arr
+    cdef double[:,::1] ray_orig = view.array(shape=(3,npts),
+                                             itemsize=sizeof(double),
+                                             format="d")
+    cdef double[:,::1] ray_vdir = view.array(shape=(3,npts),
+                                             itemsize=sizeof(double),
+                                             format="d")
+    # --------------------------------------------------------------------------
+    # Initialization : creation of the rays between points pts and P
+    # TODO: benchmark the two following lines, to check which one is faster
+    # ray_orig_arr = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
+    _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig)
+    if k == None:
+        dist_arr = <double*> malloc(npts*sizeof(double))
+        _bgt.compute_dist_pt_vec(pt0, pt1, pt2, npts, pts, &dist_arr[0])
+        _bgt.compute_diff_div(pts, ray_orig, &dist_arr[0], npts, ray_vdir)
+        free(dist_arr)
+    else:
+        _bgt.compute_diff_div(pts, ray_orig, &k[0], npts, ray_vdir)
+    #ray_vdir_arr = (pts-ray_orig)/k
+    # --------------------------------------------------------------------------
+    sz_ves_lims = np.size(ves_lims)
+    min_poly_r = np.min(ves_poly[0, ...])
+    compute_inout_tot(ray_orig, ray_vdir,
+                      ves_poly, ves_norm,
+                      lstruct_nlim, ves_lims,
+                      lstruct_polyx, lstruct_polyy,
+                      lstruct_lims, lstruct_normx,
+                      lstruct_normy, lnvert,
+                      nstruct_tot, nstruct_lim,
+                      sz_ves_lims, min_poly_r, rmin,
+                      eps_uz, eps_a, eps_vz, eps_b,
+                      eps_plane, ves_type,
+                      forbid, num_threads,
+                      coeff_inter_out, coeff_inter_in, vperp_out,
+                      ind_inter_out)
+
+    # --------------------------------------------------------------------------
+    # TODO: test this with loops and no numpy functions ?
+    # Get ind
+    # indok = ~(np.isnan(k) | np.isnan(coeff_inter_out))
+    # if vis:
+    #     ind = np.zeros((npts,),dtype=bool)
+    #     ind[indok] = k[indok] < coeff_inter_out[indok]
+    # else:
+    #     ind = np.ones((npts,),dtype=bool)
+    #     ind[indok] = k[indok] > coeff_inter_out[indok]
+    is_vis_mask(ind, k, coeff_inter_out, npts, vis)
+    return
+
+cdef inline void is_vis_mask(double[::1] ind, double[::1] k,
+                             double[::1] coeff_inter_out,
+                             int npts,
+                             bint vis):
+    cdef int ii
+    if vis:
+        for ii in range(npts):
+            ind[ii] = 0
+            if k[ii] < coeff_inter_out[ii]:
+                # if not (Cisnan(k[ii]) or Cisnan(coeff_inter_out[ii])):
+                ind[ii] = 1
+    else:
+        for ii in range(npts):
+            ind[ii] = 1
+            if k[ii] > coeff_inter_out[ii]:
+                # if not (Cisnan(k[ii]) or Cisnan(coeff_inter_out[ii])):
+                ind[ii] = 0
+    return
+
+cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
+                                     double[:,::1] pts2, int npts2,
+                                     double[:, ::1] ves_poly,
+                                     double[:, ::1] ves_norm,
+                                     double[:, ::1] ind,
+                                     double[:, ::1] k,
+                                     double[::1] ves_lims,
+                                     long[::1] lstruct_nlim,
+                                     double[::1] lstruct_polyx,
+                                     double[::1] lstruct_polyy,
+                                     list lstruct_lims,
+                                     double[::1] lstruct_normx,
+                                     double[::1] lstruct_normy,
+                                     long[::1] lnvert,
+                                     int nstruct_tot,
+                                     int nstruct_lim,
+                                     double rmin,
+                                     double eps_uz, double eps_a,
+                                     double eps_vz, double eps_b,
+                                     double eps_plane, str ves_type,
+                                     bint forbid, bint vis,
+                                     bint test, int num_threads) nogil:
+    cdef np.ndarray[double, ndim=2, mode='c'] ray_orig_arr
+    cdef np.ndarray[double, ndim=2, mode='c'] ray_vdir_arr
+    cdef np.ndarray[double, ndim=2, mode='c'] dist_arr
+    cdef double[:,::1] ray_orig
+    cdef double[:,::1] ray_vdir
+    cdef int ii
+    # --------------------------------------------------------------------------
+    # if k == None:
+    #     dist_arr = np.empty((npts1, npts2))
+    #     _bgt.compute_dist_vec_vec(pts1, npts1, pts2, npts2, dist_arr)
+    #     k = dist_arr
+    # -- Defining parallel part ------------------------------------------------
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(npts1):
+            is_visible_pt_vec(pts1[0,ii], pts1[1,ii], pts1[2,ii],
+                              pts2, npts2,
+                              ves_poly, ves_norm,
+                              ind[ii,...], None, ves_lims,
+                              lstruct_nlim,
+                              lstruct_polyx, lstruct_polyy,
+                              lstruct_lims,
+                              lstruct_normx, lstruct_normy,
+                              lnvert, nstruct_tot, nstruct_lim,
+                              rmin, eps_uz, eps_a, eps_vz, eps_b,
+                              eps_plane, ves_type,
+                              forbid, vis, test, num_threads)
     return

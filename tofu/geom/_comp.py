@@ -662,3 +662,4 @@ def calc_solidangle_particle_integ(traj, r=1., config=None,
     # integrate (sum * res) on each phi the solid angle
 
     # Return sang as (N,nR,nZ) array
+    return
