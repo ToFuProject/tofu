@@ -2410,8 +2410,8 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
 
 def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     np.ndarray[double, ndim=2,mode='c'] pts2,
-                                    double[:, ::1] ves_poly,
-                                    double[:, ::1] ves_norm,
+                                    double[:, ::1] ves_poly=None,
+                                    double[:, ::1] ves_norm=None,
                                     double[:, ::1] k=None,
                                     double[:, ::1] ray_orig=None,
                                     double[:, ::1] ray_vdir=None,
@@ -2428,13 +2428,14 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     double rmin=-1,
                                     double eps_uz=_SMALL, double eps_a=_VSMALL,
                                     double eps_vz=_VSMALL, double eps_b=_VSMALL,
-                                    double eps_plane=_VSMALL, str ves_type='Tor',
+                                    double eps_plane=_VSMALL,
+                                    str ves_type='tor',
                                     bint forbid=True, bint vis=True,
                                     bint test=True,
                                     int num_threads=16):
     """
     Return an array of booleans indicating whether each point in pts is
-    visible from the point P = [pt0, pt1, pt2] considering vignetting a given 
+    visible from the point P = [pt0, pt1, pt2] considering vignetting a given
     configuration.
         `k` optional argument : distance between points and P
         ray_orig = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
@@ -2448,6 +2449,8 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                                               dtype=float)
     # == Testing inputs ========================================================
     if test:
+        msg = "ves_poly and ves_norm are not optional arguments"
+        assert ves_poly is not None and ves_norm is not None, msg
         bool1 = (ves_poly.shape[0]==2 and ves_norm.shape[0]==2
               and ves_norm.shape[1]==ves_poly.shape[1]-1)
         msg = "Args ves_poly and ves_norm must be of the same shape (2,NS)!"
@@ -2486,8 +2489,8 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
 
 def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                   np.ndarray[double, ndim=2,mode='c'] pts,
-                                  double[:, ::1] ves_poly,
-                                  double[:, ::1] ves_norm,
+                                  double[:, ::1] ves_poly=None,
+                                  double[:, ::1] ves_norm=None,
                                   double[::1] k=None,
                                   double[::1] ves_lims=None,
                                   long[::1] lstruct_nlim=None,
