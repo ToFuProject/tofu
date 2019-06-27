@@ -2990,9 +2990,6 @@ class Rays(utils.ToFuObject):
 
     def _complete_dX12(self, dgeom):
 
-        import ipdb     # DB
-        ipdb.set_trace()# DB
-
         # Test if unique starting point
         if dgeom['case'] in ['A','B','C']:
             # Test if pinhole
@@ -3006,8 +3003,6 @@ class Rays(utils.ToFuObject):
                     if k[0] > 0 and np.allclose(k,k[0], atol=1.e-3, rtol=1.e-6):
                         pinhole = dgeom['D'][:,0] + k[0]*u[:,0]
                         dgeom['pinhole'] = pinhole
-
-            ipdb.set_trace()# DB
 
             # Test if all D are on a common plane or line
             va = dgeom['D']-dgeom['D'][:,0:1]
