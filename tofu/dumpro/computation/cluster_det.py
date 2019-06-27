@@ -48,8 +48,6 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
      start_frame_number,stop_frame_number.
      
     """
-    #getting temporary folder
-    p_temp = tempfile.gettempdir()
 
     #reading the input video
     try:
@@ -246,7 +244,9 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
         print(type(hierarchy))
         for c in contours:
 
- 
+            
+            
+            
             #finally, get the min enclosing circle
             (x, y), radius = cv2.minEnclosingCircle(c)
             #convert all values to int
