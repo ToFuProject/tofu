@@ -406,30 +406,36 @@ cdef inline bint inter_ray_triangle(const double[3] ray_orig,
 # ==============================================================================
 # =  Raytracing on a Torus
 # ==============================================================================
-cdef inline void raytracing_inout_struct_tor(int num_los,
-                                             double[:,::1] ray_vdir,
-                                             double[:,::1] ray_orig,
+cdef inline void raytracing_inout_struct_tor(const int num_los,
+                                             const double[:,::1] ray_vdir,
+                                             const double[:,::1] ray_orig,
                                              double[::1] coeff_inter_out,
                                              double[::1] coeff_inter_in,
                                              double[::1] vperp_out,
-                                             long[::1] lstruct_nlim,
+                                             const long[::1] lstruct_nlim,
                                              int[::1] ind_inter_out,
-                                             bint forbid0, bint forbidbis,
-                                             double rmin, double rmin2,
-                                             double crit2_base,
-                                             int nstruct_lim,
-                                             double* lbounds, double* langles,
-                                             int* lis_limited, long* lnvert,
-                                             long* lsz_lim,
-                                             double* lstruct_polyx,
-                                             double* lstruct_polyy,
-                                             double* lstruct_normx,
-                                             double* lstruct_normy,
-                                             double eps_uz, double eps_vz,
-                                             double eps_a, double eps_b,
-                                             double eps_plane,
-                                             int num_threads,
-                                             bint is_out_struct) nogil:
+                                             const bint forbid0,
+                                             const bint forbidbis_org,
+                                             const double rmin,
+                                             const double rmin2,
+                                             const double crit2_base,
+                                             const int nstruct_lim,
+                                             const double* lbounds,
+                                             const double* langles,
+                                             const int* lis_limited,
+                                             const long* lnvert,
+                                             const long* lsz_lim,
+                                             const double* lstruct_polyx,
+                                             const double* lstruct_polyy,
+                                             const double* lstruct_normx,
+                                             const double* lstruct_normy,
+                                             const double eps_uz,
+                                             const double eps_vz,
+                                             const double eps_a,
+                                             const double eps_b,
+                                             const double eps_plane,
+                                             const int num_threads,
+                                             const bint is_out_struct) nogil:
     """
     Computes the entry and exit point of all provided LOS/rays for a set of
     structures that can be of type "OUT" (is_out_struct=True) or "IN"
@@ -530,6 +536,7 @@ cdef inline void raytracing_inout_struct_tor(int num_los,
     cdef bint lim_is_none
     cdef bint found_new_kout
     cdef bint inter_bbox
+    cdef bint forbidbis = forbidbis_org
     cdef double* last_pout = NULL
     cdef double* kpout_loc = NULL
     cdef double* kpin_loc = NULL
@@ -1151,22 +1158,23 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
 # ==============================================================================
 # =  Raytracing on a Cylinder (Linear case)
 # ==============================================================================
-cdef inline void raytracing_inout_struct_lin(int Nl,
-                                             double[:,::1] Ds,
-                                             double [:,::1] us,
-                                             int Ns,
-                                             double* polyx_tab,
-                                             double* polyy_tab,
-                                             double* normx_tab,
-                                             double* normy_tab,
-                                             double L0, double L1,
+cdef inline void raytracing_inout_struct_lin(const int Nl,
+                                             const double[:,::1] Ds,
+                                             const double [:,::1] us,
+                                             const int Ns,
+                                             const double* polyx_tab,
+                                             const double* polyy_tab,
+                                             const double* normx_tab,
+                                             const double* normy_tab,
+                                             const double L0,
+                                             const double L1,
                                              double[::1] kin_tab,
                                              double[::1] kout_tab,
                                              double[::1] vperpout_tab,
                                              int[::1] indout_tab,
-                                             double EpsPlane,
-                                             int ind_struct,
-                                             int ind_lim_struct) nogil:
+                                             const double EpsPlane,
+                                             const int ind_struct,
+                                             const int ind_lim_struct) nogil:
 
     cdef bint is_in_path
     cdef int ii=0, jj=0
@@ -1293,27 +1301,27 @@ cdef inline void raytracing_inout_struct_lin(int Nl,
                     vperpout_tab[2 + 3 * ii] = normy_tab[indout]
     return
 
-cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
-                              double[:, ::1] ray_vdir,
-                              double[:, ::1] ves_poly,
-                              double[:, ::1] ves_norm,
-                              long[::1] lstruct_nlim,
-                              double[::1] ves_lims,
-                              double[::1] lstruct_polyx,
-                              double[::1] lstruct_polyy,
+cdef inline void compute_inout_tot(const double[:, ::1] ray_orig,
+                              const double[:, ::1] ray_vdir,
+                              const double[:, ::1] ves_poly,
+                              const double[:, ::1] ves_norm,
+                              const long[::1] lstruct_nlim_org,
+                              const double[::1] ves_lims,
+                              const double[::1] lstruct_polyx,
+                              const double[::1] lstruct_polyy,
                               list lstruct_lims,
-                              double[::1] lstruct_normx,
-                              double[::1] lstruct_normy,
-                              long[::1] lnvert,
-                              int nstruct_tot,
-                              int nstruct_lim,
-                              int sz_ves_lims,
-                              double min_poly_r,
-                              double rmin,
-                              double eps_uz, double eps_a,
-                              double eps_vz, double eps_b,
-                              double eps_plane, str ves_type,
-                              bint forbid, int num_threads,
+                              const double[::1] lstruct_normx,
+                              const double[::1] lstruct_normy,
+                              const long[::1] lnvert,
+                              const int nstruct_tot,
+                              const int nstruct_lim,
+                              const int sz_ves_lims,
+                              const double min_poly_r,
+                              const double rmin_org,
+                              const double eps_uz, const double eps_a,
+                              const double eps_vz, const double eps_b,
+                              const double eps_plane, str ves_type,
+                              const bint forbid, const int num_threads,
                               double[::1] coeff_inter_out,
                               double[::1] coeff_inter_in,
                               double[::1] vperp_out,
@@ -1328,6 +1336,7 @@ cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
     cdef double crit2_base = eps_uz * eps_uz /400.
     cdef double lim_min = 0.
     cdef double lim_max = 0.
+    cdef double rmin = rmin_org
     cdef double rmin2 = 0.
     cdef bint forbidbis, forbid0
     cdef double *lbounds = <double *>malloc(nstruct_tot * 6 * sizeof(double))
@@ -1337,6 +1346,7 @@ cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
     cdef int[1] llim_ves
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
+    cdef long[::1] lstruct_nlim = lstruct_nlim_org.copy()
     # ==========================================================================
     if ves_type == 'tor':
         # .. if there are, we get the limits for the vessel ....................
@@ -1377,7 +1387,6 @@ cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
                                     &ves_norm[1][0],
                                     eps_uz, eps_vz, eps_a, eps_b, eps_plane,
                                     num_threads, False) # structure is in
-
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
             ind_struct = 0
@@ -1429,7 +1438,6 @@ cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
                     langles[ind_struct*2 + 1] = lim_max
                     ind_struct = 1 + ind_struct
             # end loops over structures
-
             # -- Computing intersection between structures and LOS -------------
             raytracing_inout_struct_tor(num_los, ray_vdir, ray_orig,
                                         coeff_inter_out, coeff_inter_in,
@@ -1451,6 +1459,7 @@ cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
             free(lsz_lim)
             free(llimits)
     else:
+        # -- Cylindrical case --------------------------------------------------
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None  or sz_ves_lims == 0:
             are_limited = False
@@ -1461,7 +1470,6 @@ cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
             lbounds_ves[0] = ves_lims[0]
             lbounds_ves[1] = ves_lims[1]
 
-        # -- Cylindrical case --------------------------------------------------
         raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
                                     &ves_poly[0][0], &ves_poly[1][0],
                                     &ves_norm[0][0], &ves_norm[1][0],
@@ -1520,7 +1528,7 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
                                              double[:,::1] ray_orig,
                                              double* coeff_inter_out,
                                              double* coeff_inter_in,
-                                             bint forbid0, bint forbidbis,
+                                             bint forbid0, bint forbidbis_org,
                                              double rmin, double rmin2,
                                              double crit2_base,
                                              int npts_poly,
@@ -1604,6 +1612,7 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
     cdef int ind_los, ii, jj, kk
     cdef bint lim_is_none
     cdef bint found_new_kout
+    cdef bint forbidbis = forbidbis_org
     cdef double[3] dummy
     cdef int[1] silly
     cdef double* kpout_loc = NULL
@@ -1828,11 +1837,9 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     if k == None:
         dist_arr = <double*> malloc(npts*sizeof(double))
         _bgt.compute_dist_pt_vec(pt0, pt1, pt2, npts, pts, &dist_arr[0])
-        _bgt.compute_diff_div(pts, ray_orig, &dist_arr[0], npts, ray_vdir)
-        free(dist_arr)
+        _bgt.compute_diff_div(pts, ray_orig, dist_arr, npts, ray_vdir)
     else:
         _bgt.compute_diff_div(pts, ray_orig, &k[0], npts, ray_vdir)
-    #ray_vdir_arr = (pts-ray_orig)/k
     # --------------------------------------------------------------------------
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = np.min(ves_poly[0, ...])
@@ -1849,7 +1856,7 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                       forbid, num_threads,
                       coeff_inter_out, coeff_inter_in, vperp_out,
                       ind_inter_out)
-
+    print(coeff_inter_out[0], coeff_inter_out[1], coeff_inter_out[2])
     # --------------------------------------------------------------------------
     # TODO: test this with loops and no numpy functions ?
     # Get ind
@@ -1860,26 +1867,22 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
     # else:
     #     ind = np.ones((npts,),dtype=bool)
     #     ind[indok] = k[indok] > coeff_inter_out[indok]
-    is_vis_mask(ind, k, coeff_inter_out, npts, vis)
+    if k == None:
+        is_vis_mask(ind, dist_arr, coeff_inter_out, npts, vis)
+        free(dist_arr)
+    else:
+        is_vis_mask(ind, &k[0], coeff_inter_out, npts, vis)
     return
 
-cdef inline void is_vis_mask(double[::1] ind, double[::1] k,
+cdef inline void is_vis_mask(double[::1] ind, double* k,
                              double[::1] coeff_inter_out,
                              int npts,
                              bint vis) nogil:
     cdef int ii
-    if vis:
-        for ii in range(npts):
+    for ii in range(npts):
+        ind[ii] = 1
+        if k[ii] > coeff_inter_out[ii]:
             ind[ii] = 0
-            if k[ii] < coeff_inter_out[ii]:
-                # if not (Cisnan(k[ii]) or Cisnan(coeff_inter_out[ii])):
-                ind[ii] = 1
-    else:
-        for ii in range(npts):
-            ind[ii] = 1
-            if k[ii] > coeff_inter_out[ii]:
-                # if not (Cisnan(k[ii]) or Cisnan(coeff_inter_out[ii])):
-                ind[ii] = 0
     return
 
 cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
@@ -1887,7 +1890,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      double[:, ::1] ves_poly,
                                      double[:, ::1] ves_norm,
                                      double[:, ::1] ind,
-                                     double[:, ::1] k,
+                                     double[::1] k,
                                      double[::1] ves_lims,
                                      long[::1] lstruct_nlim,
                                      double[::1] lstruct_polyx,
@@ -1917,10 +1920,11 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
     #     k = dist_arr
     # -- Defining parallel part ------------------------------------------------
     for ii in range(npts1):
+        print("ii =", ii)
         is_visible_pt_vec(pts1[0,ii], pts1[1,ii], pts1[2,ii],
                           pts2, npts2,
                           ves_poly, ves_norm,
-                          ind[ii,...], None, ves_lims,
+                          ind[ii,...], k, ves_lims,
                           lstruct_nlim,
                           lstruct_polyx, lstruct_polyy,
                           lstruct_lims,

@@ -62,7 +62,8 @@ __all__ = ['CoordShift',
            '_Ves_Smesh_Lin_SubFromInd_cython',
            'LOS_Calc_PInOut_VesStruct',
            "LOS_Calc_kMinkMax_VesStruct",
-           'LOS_isVis_PtFromPts_VesStruct',
+           "LOS_isVis_PtFromPts_VesStruct",
+           "LOS_areVis_PtsFromPts_VesStruct",
            'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
            'LOS_sino','integrate1d',
            "triangulate_by_earclipping",
@@ -2412,7 +2413,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     np.ndarray[double, ndim=2,mode='c'] pts2,
                                     double[:, ::1] ves_poly=None,
                                     double[:, ::1] ves_norm=None,
-                                    double[:, ::1] k=None,
+                                    double[::1] k=None,
                                     double[:, ::1] ray_orig=None,
                                     double[:, ::1] ray_vdir=None,
                                     double[::1] ves_lims=None,
@@ -2455,16 +2456,11 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
               and ves_norm.shape[1]==ves_poly.shape[1]-1)
         msg = "Args ves_poly and ves_norm must be of the same shape (2,NS)!"
         assert bool1, msg
-        bool1 = all([pp is None for pp in [lstruct_polyx, lstruct_polyy,
-                                           lstruct_lims, lstruct_normx,
-                                           lstruct_normy]])
-        bool2 = all([hasattr(pp,'__iter__')
-                  and len(pp)==len(lstruct_polyx)
-                  for pp in [lstruct_polyx, lstruct_polyy, lstruct_lims,
-                             lstruct_normx, lstruct_normy]])
+        bool1 = lstruct_lims is None or len(lstruct_normy) == len(lstruct_normx)
+        bool2 = lstruct_normx is None or len(lstruct_polyx) == len(lstruct_polyy)
         msg = "Args lstruct_polyx, lstruct_polyy, lstruct_lims, lstruct_normx,"\
               + " lstruct_normy, must be None or lists of same len()!"
-        assert bool1 or bool2, msg
+        assert bool1 and bool2, msg
         msg = "[eps_uz,eps_vz,eps_a,eps_b] must be floats < 1.e-4!"
         assert all([ee < 1.e-4 for ee in [eps_uz, eps_a,
                                           eps_vz, eps_b,
@@ -2472,6 +2468,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
 
+    print("npts1 =", npts1, " npts2 =", npts2)
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
                             ves_poly, ves_norm,
@@ -2530,16 +2527,11 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
               and ves_norm.shape[1]==ves_poly.shape[1]-1)
         msg = "Args ves_poly and ves_norm must be of the same shape (2,NS)!"
         assert bool1, msg
-        bool1 = all([pp is None for pp in [lstruct_polyx, lstruct_polyy,
-                                           lstruct_lims, lstruct_normx,
-                                           lstruct_normy]])
-        bool2 = all([hasattr(pp,'__iter__')
-                  and len(pp)==len(lstruct_polyx)
-                  for pp in [lstruct_polyx, lstruct_polyy, lstruct_lims,
-                             lstruct_normx, lstruct_normy]])
+        bool1 = lstruct_lims is None or len(lstruct_normy) == len(lstruct_normx)
+        bool2 = lstruct_normx is None or len(lstruct_polyx) == len(lstruct_polyy)
         msg = "Args lstruct_polyx, lstruct_polyy, lstruct_lims, lstruct_normx,"\
               + " lstruct_normy, must be None or lists of same len()!"
-        assert bool1 or bool2, msg
+        assert bool1 and bool2, msg
         msg = "[eps_uz,eps_vz,eps_a,eps_b] must be floats < 1.e-4!"
         assert all([ee < 1.e-4 for ee in [eps_uz, eps_a,
                                           eps_vz, eps_b,
