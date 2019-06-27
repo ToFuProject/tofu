@@ -1,10 +1,10 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sat Jun  8 13:45:58 2019
+Created on Thu Jun 27 10:47:17 2019
 
 @author: Arpan Khandelwal
 email: napraarpan@gmail.com
-This subroutine requires opencv3 or higher
 """
 
 # Built-in
@@ -21,19 +21,15 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
-def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp = True, verb = True):
+def blur_img(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
     """
-    This subroutine applies denoising to colored images
-    The images are read in original form i.e., without any modifications
-    The denoising algorithm follows non local means of denoising. For more 
-    information look at the following resources:
-    
-    1. https://docs.opencv.org/trunk/d5/d69/tutorial_py_non_local_means.html
+    This subroutine blurs out images removing some of the noise that might have
+    stayed and also any background that might be detected as an object.
     
     Among the parameters present, if used as a part of dumpro, 
     w_dir, shot_name and meta_data are provided by the image processing 
     class in the core file.
-    The verb paramenter is used when this subroutine is used independently.
+    The verb paramenter is used when thsi subroutine is used independently.
     Otherwise it is suppressed by the core class.
     
     Parameters
@@ -52,8 +48,6 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
      required
      meta_data has information on total number of frames, demension, fps and 
      the four character code of the video
-    disp              boolean
-     to display the frames set equal to True. By default is set to True
     
     Return
     -----------------------
@@ -64,57 +58,51 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
     """
     if verb == True:
         print('###########################################')
-        print('Denoising Images')
+        print('Guassian Blur')
         print('###########################################\n')
-    #reading output path
+    #the output directory based on w_dir and shot_name
     if verb == True:
         print('Creating output directory ...')
     #default output folder name
-    folder = shot_name + '_denoise_col'
+    folder = shot_name + '_blur'
     #creating the output directory
     if im_out == None:
         im_out = os.path.join(w_dir, folder, '')
         if not os.path.exists(im_out):
-            #creating the output directory using w_dir and shot_name
             os.mkdir(im_out)
-    
+    #the output directory shown to user
     if verb == True:
         print('output directory is : ', im_out,'\n')
     
-    #describing an empty list that will later contain all the frames
-    #frame_array = []
+    
     #creating a list of all the files
     files = [f for f in os.listdir(im_path) if os.path.isfile(os.path.join(im_path,f))]    
     
     #sorting files according to names using lambda function
+    #-4 is to remove the extension of the images i.e., .jpg
     files.sort(key = lambda x: int(x[5:-4]))
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('denoising images...')
+        print('starting grayscale conversion ...')
     
-    #looping through files and applying denoising to them
+    # loop to read through all the images and
+    # apply grayscale conversion to them
     f_count = 1
     for i in range(len(files)):
         #converting to path
         filename = im_path + files[i]
         if verb == True:
             stdout.write("\r[%s/%s]" % (f_count, len(files)))
-            stdout.flush()   
+            stdout.flush()    
         #reading each file to extract its meta_data
         img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
         #grayscale conversion
-        dst = cv2.fastNlMeansDenoisingColored(img,None,5,21,7)
+        gray = cv2.GaussianBlur(img)
         #generic name of each image
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
-        cv2.imwrite(name, dst)
-#        if disp == True:
-#            cv2.imshow('denoise', dst)         
-#            #Press q on keyboard to exit 
-#            if cv2.waitKey(25) & 0xFF == ord('q'): 
-#                break
-            
+        cv2.imwrite(name, gray)
         height,width = img.shape[0],img.shape[1]
         size = (height, width)
         #providing information to user
@@ -127,6 +115,7 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
     #frame_array.append(img)
     
     if verb == True:
+        print('conversion successfull...')
         print('Reading meta_data...')
         
     if meta_data == None:
@@ -171,8 +160,7 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
             meta_data['N_frames'] = N_frames
             
     if verb == True:
-        print('meta_data read successfully...\n')
-            
-        
+        print('meta_data read successfully ...\n')
     
     return im_out, meta_data
+

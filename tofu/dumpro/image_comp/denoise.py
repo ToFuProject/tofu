@@ -60,7 +60,10 @@ def denoise(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     meta_data:        dictionary
      A dictionary containing the meta data of the video.
     """
-    
+    if verb == True:
+        print('###########################################')
+        print('Denoising Images')
+        print('###########################################\n')
     #reading output directory
     if verb == True:
         print('Creating output directory ...')
@@ -86,8 +89,7 @@ def denoise(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('Startign denoising...')
-        print('The following files have been read ...\n')
+        print('Starting denoising...')
         
     f_count = 1
     for i in range(len(files)):

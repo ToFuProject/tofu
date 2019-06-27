@@ -20,7 +20,8 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
-def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
+def rm_back(im_path, w_dir, shot_name, rate = None,
+            im_out = None, meta_data = None, verb = True):
     """
     This subroutine removes background from a collection of images
     It follows frame by frame subtraction where the previous frame is 
@@ -29,12 +30,15 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     For more information consult:
     
     1. https://docs.opencv.org/3.4/dd/d4d/tutorial_js_image_arithmetics.html
+    2. https://docs.opencv.org/3.1.0/d1/dc5/tutorial_background_subtraction.html
+    3. https://docs.opencv.org/3.3.0/db/d5c/tutorial_py_bg_subtraction.html
     
     Among the parameters present, if used as a part of dumpro, 
-    w_dir, shot_name and meta_data are provided by the image processing 
+    w_dir, shot_name, rate and meta_data are provided by the image processing 
     class in the core file.
     The verb paramenter is used when this subroutine is used independently.
     Otherwise it is suppressed by the core class.
+    
     
     Parameters
     -----------------------
@@ -45,6 +49,13 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     shot_name:        String
      The name of the tokomak machine and the shot number. Generally
      follows the nomenclature followed by the lab
+    rate:             integer
+     if rate = 0 then a guassian mixture based background/foreground 
+     segmentation algorithm is used and if rate = 1 then it is a slow camera 
+     and the method of background removal will be frame by frame subtraction  
+     By default rate is set at zero. Some information loss happens in the frame
+     by frame subtraction is used but we get more false positives for 
+     the guassian based method
     meta_data:        dictionary
      A dictionary containing all the video meta_data. By default it is None
      But if the user inputs some keys into the dictionary, the code will use 
@@ -60,7 +71,12 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     meta_data:        dictionary
      A dictionary containing the meta data of the video.
     """
-    
+    if rate == None:
+        rate = 0
+    if verb == True:
+        print('###########################################')
+        print('Background Removal')
+        print('###########################################\n')
     #reading the output directory
     if verb == True:
         print('Creating output directory ...')
@@ -86,9 +102,12 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('subtracting background...\n')
-        print('Reading the image files ...\n')
-        print('Files processing...\n')
+        print('subtracting background...')
+        print('Reading the image files ...')
+        print('Files processing...')
+    
+    #background subtractor method
+    back = cv2.bgsegm.createBackgroundSubtractorMOG()
     
     #looping through the video
     f_count = 1
@@ -99,12 +118,18 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
         #dynamic printing
         if verb == True:
             stdout.write("\r[%s/%s]" % (f_count, len(files)))
-            stdout.flush()            
-        #reading each file to extract its meta_data
-        img1 = cv2.imread(f_name1,cv2.IMREAD_UNCHANGED)
-        img2 = cv2.imread(f_name2,cv2.IMREAD_UNCHANGED)
-        #performing frame by frame subtraction
-        dst = cv2.subtract(img1, img2)
+            stdout.flush()   
+        if rate == 0:
+            #reading each file to extract its meta_data
+            img1 = cv2.imread(f_name1,cv2.IMREAD_UNCHANGED)
+            #removing backgroud
+            dst = back.apply(img1)
+        elif rate == 1:
+            img1 = cv2.imread(f_name1,cv2.IMREAD_UNCHANGED)
+            img2 = cv2.imread(f_name2,cv2.IMREAD_UNCHANGED)
+            #performing frame by frame subtraction
+            dst = cv2.subtract(img1, img2)
+
         #generic name of each image
         name = im_out + 'frame' + str(f_count) + '.jpg'
         #writting the output file
@@ -119,11 +144,11 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
     stdout.write("\n")
     stdout.flush()
     if verb == True:
-        print('background subtraction successfull...\n')
+        print('background subtraction successfull...')
     #frame_array.append(dst)
     
     if verb == True:
-        print('Reading meta_data...\n')
+        print('Reading meta_data...')
         
     if meta_data == None:
         #defining the four character code
@@ -167,6 +192,6 @@ def rm_back(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = T
             meta_data['N_frames'] = N_frames
             
         if verb == True:
-            print('meta_data read successfully...')
+            print('meta_data read successfully...\n')
     
     return im_out, meta_data

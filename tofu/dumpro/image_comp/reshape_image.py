@@ -72,6 +72,10 @@ def reshape_image(im_path, w_dir, shot_name,
     reshape:          dictionary
      A dictionary containing information of the selected and cropped frames
     """
+    if verb == True:
+        print('###########################################')
+        print('Reshaping Images')
+        print('###########################################\n')
     
     #the output directory based on w_dir and shot_name
     if verb == True:

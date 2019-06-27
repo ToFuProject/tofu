@@ -51,6 +51,7 @@ for c in contours:
  
     # get the min area rect
     rect = cv2.minAreaRect(c)
+    print(rect)
     box = cv2.boxPoints(rect)
     # convert all coordinates floating point values to int
     box = np.int0(box)

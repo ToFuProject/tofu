@@ -62,6 +62,10 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
     meta_data:        dictionary
      A dictionary containing the meta data of the video.
     """
+    if verb == True:
+        print('###########################################')
+        print('Binary Conversion')
+        print('###########################################\n')
     
     #reading the output directory
     if verb == True:
@@ -89,7 +93,6 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
     
     if verb == True:
         print('performing binary conversion...')
-        print('Processing files...\n')
     
     #looping through the files
     f_count = 1

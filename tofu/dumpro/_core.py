@@ -57,10 +57,25 @@ class img_dir(object):
     __shot_name = Name of tokomak and the shot number as a single string
     __meta_data = dictionary containing total frames, fps and frame size of video
     __reshape = dictionary containing the croping and time slicing of the video
-
+    __t_clus = list contaning the total number of clusters in each frame
+    __area_clus = list containing the area of clusters in each frame
+    __cen_clus = list containing the center of clusters in each frame
+    
+    Setters:
+    --------------------------------------------
+    set_shot_name
+    set_meta_data
+    set_reshape
+    
+    Getters:
+    --------------------------------------------
+    im_dir
+    w_dir
+    shot_name
+    resolution
+    
     Methods:
     --------------------------------------------
-    
     """
     
     def __init__(self, filename, w_dir = None):
@@ -109,15 +124,41 @@ class img_dir(object):
         self.__area_clus = None
         #centers of each cluster
         self.__cen_clus = None
+        #cluster information
+        self.__cluster = None
 
 ####################################################################
 #   setters for attributes
 ####################################################################
         
     def set_shot_name(self,shot_name):
+        """Setter for shotname
+        
+        Parameter:
+        ----------------------
+        shot_name:            string
+         A string containing the name of the tokomak and the shot number
+         
+        Return
+        ----------------------
+        self.__shot_name:     string
+         The input is assigned to the class attribute
+        """
         self.__shot_name = shot_name
         
     def set_meta_data(self, meta_data):
+        """Setter for meta_data
+        
+        Parameter:
+        ----------------------
+        meta_data:            dictionary
+         A dictionary containing the meta_data of the images
+         
+        Return
+        ----------------------
+        self.__meta_data:     dictionary
+         The input is assigned to the class attribute
+        """
         self.__meta_data = meta_data
     
     def set_reshape(self, reshape):
@@ -263,7 +304,8 @@ class img_dir(object):
         
         _i_comp.dumpro_img.dumpro_img(self.__im_dir, self.__w_dir,
                                       self.__shot_name, tlim, hlim, wlim,
-                                      im_out, self.__meta_data, verb)
+                                      im_out, self.__meta_data,self.__cen_clus,
+                                      self.__t_clus, self.__area_clus, verb)
         
         return None
        
@@ -384,6 +426,8 @@ class Video(object):
         self.__area_clus = None
         #centers of each cluster
         self.__cen_clus = None
+        #angular orientation of each cluster
+        self.__ang_clus = None
     
 ##############################################################################
 #   setter for Working Directory
@@ -550,6 +594,8 @@ class Video(object):
 
     
     def dumpro(self, output_name = None, output_type = None, verb = True):
+        
+        
         
         return None
         
