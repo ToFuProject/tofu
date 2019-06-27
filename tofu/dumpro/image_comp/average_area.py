@@ -50,9 +50,11 @@ def get_area(clus_area, t_clusters, verb = True):
             #applying a size threshold 
             #area > 60 big cluster, #area < 60 small cluster
             d = c[c>=60]
+            d = d[d<1000]
             #counting the number of big cluster
             t_clus_big += d.shape[0]
             c = c[c<60]
+            c = c[c>0]
             #counting the number of small clusters
             t_clus_small += c.shape[0]
             #adding up all the elements 
