@@ -29,14 +29,15 @@ import average_area
 import average_distance
 #import plotting as _plot
 
-def dumpro_img(im_path, w_dir, shot_name, tlim = None, 
+def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None, 
                hlim = None, wlim = None, im_out = None, 
-               meta_data = None, verb = True):
+               meta_data = None, cen_clus = None, t_clus = None,
+               area_clus = None, ang_clus = None, verb = True):
     """This is the dust movie processing computattion subroutine
     
     Among the parameters present, if used as a part of dumpro, 
-    w_dir, shot_name and meta_data are provided by the image processing 
-    class in the core file.
+    w_dir, shot_name, meta_data, t_clus, area_clus, cen_clus are provided by 
+    the image processing class in the core file.
     The verb paramenter can be used for additional information. It runtime
     information on processing, intended only to keep the user informed.
     
@@ -62,9 +63,16 @@ def dumpro_img(im_path, w_dir, shot_name, tlim = None,
      required
      meta_data has information on total number of frames, demension, fps and 
      the four character code of the video
+    cen_clus:         list
+     Centers of all the clusters in each frame
+    area_clus:        list
+     Area of all the clusters in each frame
+    t_clus:           list
+     Total number of clusters in each frame
     
     """
-
+    if rate == None:
+        rate = 1
     #reshaping images
     cropped, meta_data, reshape = reshape_image.reshape_image(im_path, w_dir, 
                                                               shot_name, tlim,
@@ -81,15 +89,15 @@ def dumpro_img(im_path, w_dir, shot_name, tlim = None,
                                           meta_data, verb)
     
     #removing background
-    back, meta_data = rm_background.rm_back(den_gray, w_dir,shot_name, im_out,
+    back, meta_data = rm_background.rm_back(den_gray, w_dir,shot_name, rate, im_out,
                                             meta_data, verb)
     
     #detecting clusters
-    clus, meta_data, cen_clus, area_clus, t_clus = cluster_det.det_cluster(back, w_dir, 
-                                                                           shot_name, 
-                                                                           im_out, 
-                                                                           meta_data, 
-                                                                           verb)
+    clus, meta_data, cen_clus, area_clus, t_clus, ang_clus = cluster_det.det_cluster(back, w_dir, 
+                                                                                     shot_name, 
+                                                                                     im_out, 
+                                                                                     meta_data, 
+                                                                                     verb)
     #getting average area
     area, avg_area = average_area.get_area(area_clus, t_clus)
     

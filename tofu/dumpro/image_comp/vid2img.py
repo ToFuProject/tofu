@@ -72,9 +72,6 @@ def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True
     #the directory path is defined.  
     #The last argument is for adding a trailing slash
     path = os.path.join(w_dir,shot_name,'')
-    #defining the folder inside whch the images will be stored
-    path += folder
-    path = os.path.join(path,'')
     #checking whether path already exists or not
     #if not, creates the path
     if not os.path.exists(path):
@@ -92,8 +89,8 @@ def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True
         raise Exception(msg)
         
     if verb == True:
-        print('Video reading has been successful ...\n')
-        print('reading destination directory ...\n')
+        print('Video reading has been successful ...')
+        print('reading destination directory ...')
     
     #Creating Directory
     try:
@@ -108,8 +105,8 @@ def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True
         print ('Error: Creating directory of data')
         
     if verb == True:
-        print('destiantion directory reading successfull ...\n')
-        print('reading meta_data ...\n')
+        print('destination directory reading successfull ...')
+        print('reading meta_data ...')
     
     if meta_data == None:
         #defining the four character code
@@ -153,13 +150,13 @@ def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True
             meta_data['N_frames'] = N_frames
     
     if verb == True:
-        print('reading meta_data successfull ...\n')
+        print('reading meta_data successfull ...')
     
     #Loop Variable    
     currentFrame = 1
     
     if verb == True:
-        print("Converting Video to Images ...... Please Wait")
+        print("Converting Video to Images ...... Please Wait \n")
     
     #Looping over the entire video    
     while(cap.isOpened()):
@@ -180,7 +177,7 @@ def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True
             break
         # To stop duplicate images
         currentFrame += 1
-    print('Total number of frames converted :', currentFrame)   
+    print('\n Total number of frames converted :', currentFrame)   
     
     #dynamic printing
     stdout.write("\n")

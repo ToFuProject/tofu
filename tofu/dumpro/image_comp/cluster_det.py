@@ -31,6 +31,9 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     The verb paramenter is used when thsi subroutine is used independently.
     Otherwise it is suppressed by the core class.
     
+    for more information:
+    1. Opencv Contour Features(Rotated Rectrangle)
+    
     Parameters
     -----------------------
     im_path:          string
@@ -61,7 +64,10 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     t_clusters:       list
     A list contaning the totaL number of clusters in each frame    
     """
-    
+    if verb == True:
+        print('###########################################')
+        print('Detecting Clusters')
+        print('###########################################\n')
     #the output directory based on w_dir and shot_name
     if verb == True:
         print('Creating output directory ...')
@@ -85,13 +91,15 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     #looping throuah all the file names in the list and converting them to image path
     
     if verb == True:
-        print('detecting clusters...\n')
+        print('detecting clusters...')
     #to store the barycenter of each cluster
     cen_clus = []
     #to store the size of each cluster
     area_clus = []
     #to store the contour infomation of each frame
     t_clusters = []
+    #to store angle
+    ang_cluster = []
     # loop to read through all the images and
     # apply grayscale conversion to them
     f_count = 1
@@ -105,17 +113,19 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
         #reading each binary image to extract its meta_data
         img = cv2.imread(filename, cv2.IMREAD_UNCHANGED)
         #detecting contours
-        ret, threshed_img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+        ret, threshed_img = cv2.threshold(img, 90, 255, cv2.THRESH_BINARY)
         contours, hierarchy = cv2.findContours(threshed_img, cv2.RETR_CCOMP,
                                                cv2.CHAIN_APPROX_SIMPLE)
         area_frame = []
         cen_frame = []
+        ang_frame = []
         #looping over contours
         for c in contours:
             
             x, y, w, h = cv2.boundingRect(c)
             # get the min area rect
             rect = cv2.minAreaRect(c)
+            angle = rect[2]
             box = cv2.boxPoints(rect)
             # convert all coordinates floating point values to int
             box = np.int0(box)
@@ -136,14 +146,15 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
                 (x, y), radius = cv2.minEnclosingCircle(c)
                 # convert all values to int
                 center = int(x), int(y)
-                radius = int(radius)
-                area = 3.14*(radius**2)
+                area = cv2.contourArea(c)
                 
             cen_frame.append(center)
             area_frame.append(area)
+            ang_frame.append(angle)
         cen_clus.append(cen_frame)
         area_clus.append(area_frame)
         t_clusters.append(len(contours))
+        ang_cluster.append(ang_frame)
         #drawing contours
         #cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
         #generic name of each image
@@ -209,5 +220,5 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb
     #frame_array.append(img)
     cv2.destroyAllWindows
     
-    return im_out, meta_data, cen_clus, area_clus, t_clusters
+    return im_out, meta_data, cen_clus, area_clus, t_clusters, ang_cluster
 

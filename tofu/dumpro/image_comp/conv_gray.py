@@ -57,7 +57,10 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
     meta_data:        dictionary
      A dictionary containing the meta data of the video.
     """
-    
+    if verb == True:
+        print('###########################################')
+        print('Grayscale Conversion')
+        print('###########################################\n')
     #the output directory based on w_dir and shot_name
     if verb == True:
         print('Creating output directory ...')
@@ -83,7 +86,6 @@ def conv_gray(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb =
     
     if verb == True:
         print('starting grayscale conversion ...')
-        print('The following files have been read ...\n')
     
     # loop to read through all the images and
     # apply grayscale conversion to them

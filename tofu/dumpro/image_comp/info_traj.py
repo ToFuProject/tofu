@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Jun 23 17:03:32 2019
-
-@author: napra
-"""
-
-# -*- coding: utf-8 -*-
-"""
 Created on Thu Jun 20 15:09:46 2019
 
 @author: napra
@@ -19,11 +12,7 @@ def info_cluster(t_clus, area_clus, cen_clus, ang_clus, avg_area, avg_dist):
     frame = 2
     #checking each frame
     for i in range(len(t_clus)):
-        print('frame',i)
         #if cluster is present in frame
-        if len(t_clus[i]) == 0:
-            continue
-        
         if t_clus[i] != 0:
             #checking each cluster in frame i
             for j in range(len(cen_clus[i])):
@@ -42,28 +31,37 @@ def info_cluster(t_clus, area_clus, cen_clus, ang_clus, avg_area, avg_dist):
                             prob = (avg_dist - dist)/avg_dist
                         else:
                             prob = (dist - avg_dist)/avg_dist
-                        print(prob)
+                        
+                        
+                        ang1 = abs(ang_clus[i][j])
+                        ang2 = abs(ang_clus[i+1][k])
+                        
+                        ang3 = 180 - ang1
+                        
+                        if ((abs(ang3 - ang2))<30) or ((abs(ang1 - ang2))<30):
+                            prob *= 0.5
+                        else:
+                            prob *= 0.2
+                        
+                        area1 = area_clus[i][j]
+                        area2 = area_clus[i+1][k]
+
+                        area = abs(area1 - area2)
+                        
+                        if area < avg_area:
+                            prob *= 0.5
+                        else:
+                            prob *= 0.2
+                        
                         if prob > max_prob:
                             max_prob = prob
-                            c1 = center1
-                            c2 = center2
-                            print(max_prob,',',c1,',',c2)
-                elif cen_clus[i+1] == []:
-                    max_prob = 0
-                    
-                if max_prob != 0:
-                    if cluster == []:
-                        cluster.append([c1, c2])
-                    else:
-                        for c in cluster:
-                            if c1 not in c:
-                                cluster.append([c1, c2])
-                            elif c1 in c:
-                                c.append(center2)
-                print('cluster',cluster)
-    return cluster
-                                
-
+                        
+                        
+                        
+                        
+                        
+        
+    return None
 
 def get_dist(cen1, cen2):
     x2 = cen2[0]

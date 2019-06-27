@@ -43,35 +43,49 @@ def get_distance(clus_center, clus_area, t_clusters, verb = True):
             stdout.write("\r[%s/%s]" % (t, len(clus_center)-2))
             stdout.flush()    
         #checking for frames without any clusters
-        if clus_center[t] != []:
-            #getting cluster in frame t
-            for i in range(len(clus_center[t])):
-                center1 = clus_center[t][i]
-                #getting cluster in frame t+1
-                for j in range(len(clus_center[t+1])):
-                    if clus_center[t+1] != []:
-                        center2 = clus_center[t+1][j]
-                        #comparing area betweem two clusters
-                        area1 = (clus_area[t][i])
-                        area2 = (clus_area[t+1][j])
-                        #area is zero ignore 
-                        if area1 != 0 and area2 != 0:
-                            diff = abs(area1 - area2)
-                            #difference in area threshold 
-                            if (diff< 0.5):
-                                #calulating distance
-                                x2=((center2[0]-center1[0])**2)
-                                y2=((center2[1]-center1[1])**2)
-                                dist = (x2 + y2)**0.5
-                                #adding to cluster distance list
-                                clus_dist.append(dist)
+        if clus_center[t] == []:
+            continue
+        
+        #getting cluster in frame t
+        for i in range(len(clus_center[t])):
+            area1 = clus_area[t][i]
+                
+            center1 = clus_center[t][i]
+                
+            #getting cluster in frame t+1
+            center2 = np.asarray(clus_center[t+1])
+            ind = area2 > 0.
+            
+            # comparing area betweem two clusters
+            #difference in area threshold
+            ind = ind & (np.abs(area1 - area2) < 0.5)
+            # calulating distance
+            frame_dist[i] = np.hypot(center2[ind,0]-center1[0],center2[ind,1]-center1[1])
+            # adding to cluster distance list
+        
+           
+            
+#            for j in range(len(clus_center[t+1])):
+#                if clus_center[t+1] != []:
+#                    center2 = clus_center[t+1][j]
+#                    #comparing area betweem two clusters
+#                    area2 = (clus_area[t+1][j])
+#                    #area is zero ignore 
+#                    if area1 != 0 and area2 != 0:
+#                        diff = abs(area1 - area2)
+#                        #difference in area threshold 
+#                        if (diff< 0.5):
+#                            dist = np.hypot(center2[0]-center1[0],center2[1]-center1[1])
+#                            #calulating distance
+#                            #adding to cluster distance list
+#                            clus_dist.append(dist)
     #dynamic printing
     stdout.write("\n")
     stdout.flush()
     #converting clus_dist to array                    
     clus_dist = np.array(clus_dist)
     #calculating average distance
-    avg_dist = clus_dist.mean()
+    avg_dist = dist.mean()
     #getting the maximum distance between two clusters
     maxi = clus_dist.max()
     #getting the minimum distance between two clusters

@@ -62,7 +62,10 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
     meta_data:        dictionary
      A dictionary containing the meta data of the video.
     """
-    
+    if verb == True:
+        print('###########################################')
+        print('Denoising Images')
+        print('###########################################\n')
     #reading output path
     if verb == True:
         print('Creating output directory ...')
@@ -168,7 +171,7 @@ def denoise_col(im_path, w_dir, shot_name, im_out = None, meta_data = None, disp
             meta_data['N_frames'] = N_frames
             
     if verb == True:
-        print('meta_data read successfully...')
+        print('meta_data read successfully...\n')
             
         
     

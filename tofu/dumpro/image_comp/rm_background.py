@@ -107,7 +107,7 @@ def rm_back(im_path, w_dir, shot_name, rate = None,
         print('Files processing...')
     
     #background subtractor method
-    back = cv2.bgsegm.createBackgroundSubtractorMOG()
+    back = cv2.bgsegm.createBackgroundSubtractorMOG(10)
     
     #looping through the video
     f_count = 1
