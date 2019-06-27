@@ -231,7 +231,7 @@ class MultiIDSLoader(object):
                            'quant':'etendue', 'units':'m2.sr'}},
 
                'spectrometer_visible':
-               {'t':{'str':'time',
+               {'t':{'str':'channel[chan].grating_spectrometer.radiance_spectral.time',
                      'quant':'t', 'units':'s'},
                 'spectra':{'str':'channel[chan].grating_spectrometer.radiance_spectral.data',
                            'quant':'radiance_spectral', 'units':'ph/s/(m2.sr)/m'},
@@ -2223,7 +2223,7 @@ class MultiIDSLoader(object):
 
     def to_Data(self, ids=None, dsig=None, mainsig=None, tlim=None,
                 indch=None, Name=None, occ=None, config=None,
-                equilibrium=True, t0=None, plot=True):
+                equilibrium=None, t0=None, plot=True):
 
         # dsig
         data, geom, dsig = self._checkformat_Data_dsig(ids, dsig,
@@ -2286,11 +2286,15 @@ class MultiIDSLoader(object):
         # data
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
-        indt = self._checkformat_tlim(self.get_data(ids, sig='t')['t'],
-                                      tlim=tlim)['indt']
+        t = self.get_data(ids, sig='t', indch=indch)['t']
+        if t.ndim == 2:
+            assert np.all(np.isclose(t, t[0:1,:]))
+            t = t[0,:]
+        dins['t'] = t
+        indt = self._checkformat_tlim(t, tlim=tlim)['indt']
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
                             indt=indt, indch=indch)
-        for kk in lk:
+        for kk in set(lk).difference('t'):
             if kk in ['data','X','lamb']:
                 if not isinstance(out[dsig[kk]], np.ndarray):
                     msg = "The following is supposed to be a np.ndarray:\n"
@@ -2326,6 +2330,8 @@ class MultiIDSLoader(object):
 
         # Extra
         dextra = {}
+        if equilibrium is None:
+            equilibrium = 'equilibrium' in self._dids.keys()
         if equilibrium:
             indt = self._checkformat_tlim(self.get_data('equilibrium',
                                                         sig='t')['t'],
@@ -2380,8 +2386,6 @@ class MultiIDSLoader(object):
                 dins['t'] = dins['t'] - t0
             for tt in dextra.keys():
                 dextra[tt]['t'] = dextra[tt]['t'] - t0
-
-
 
 
         import tofu.data as tfd
@@ -2875,9 +2879,6 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
         nchMax = obj.Id.dUSR.get('imas_nchMax', lind.max()+1)
     else:
         nchMax = lind.max()+1
-
-    import ipdb
-    ipdb.set_trace()
 
     # Fill in data
     # ------------------
