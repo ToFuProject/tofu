@@ -2002,6 +2002,7 @@ def get_valf(val, lrids, linds):
     #   => use py2 convention, compatible with both, WRONG !!!
     # Replace *li by li (which is always an array of max 3 elements
     ninds = len(linds)
+
     if type(val) is list:
         assert ninds == 1 and lrids == linds
         func = lambda li, val=val: val[li[0]]

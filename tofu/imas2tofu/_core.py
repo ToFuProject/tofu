@@ -2295,24 +2295,40 @@ class MultiIDSLoader(object):
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
                             indt=indt, indch=indch)
         for kk in set(lk).difference('t'):
-            if kk in ['data','X','lamb']:
-                if not isinstance(out[dsig[kk]], np.ndarray):
-                    msg = "The following is supposed to be a np.ndarray:\n"
-                    msg += "    - diag:     %s\n"%ids
-                    msg += "    - shortcut: %s\n"%dsig[kk]
-                    msg += "    - used as:  %s input\n"%kk
-                    msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
-                    msg += "  Probable cause: non-uniform shape (vs channels)\n"
-                    msg += "  => shapes :\n    "
-                    ls = ['index %s  shape %s'%(ii,str(out[dsig[kk]][ii].shape))
-                          for ii in range(0,len(out[dsig[kk]]))]
-                    msg += "\n    ".join(ls)
-                    msg += "\n  => Solution: choose indch accordingly !"
-                    raise Exception(msg)
+            if not isinstance(out[dsig[kk]], np.ndarray):
+                msg = "The following is supposed to be a np.ndarray:\n"
+                msg += "    - diag:     %s\n"%ids
+                msg += "    - shortcut: %s\n"%dsig[kk]
+                msg += "    - used as:  %s input\n"%kk
+                msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
+                msg += "  Probable cause: non-uniform shape (vs channels)\n"
+                msg += "  => shapes :\n    "
+                ls = ['index %s  shape %s'%(ii,str(out[dsig[kk]][ii].shape))
+                      for ii in range(0,len(out[dsig[kk]]))]
+                msg += "\n    ".join(ls)
+                msg += "\n  => Solution: choose indch accordingly !"
+                raise Exception(msg)
 
-                dins[kk] = out[dsig[kk]].T
-            else:
-                dins[kk] = out[dsig[kk]]
+            # Arrange depending on shape and field
+            if type(out[dsig[kk]]) is not np.ndarray:
+                msg = "BEWARE : non-conform data !"
+                import ipdb
+                ipdb.set_trace()
+                raise Exception(msg)
+
+            if out[dsig[kk]].ndim == 2:
+                if dsig[kk] in ['X','lamb']:
+                    if np.allclose(out[dsig[kk]], out[dsig[kk]][:,0:1]):
+                        dins[kk] = out[dsig[kk]][:,0]
+                    else:
+                        dins[kk] = out[dsig[kk]]
+                else:
+                    dins[kk] = out[dsig[kk]].T
+
+            elif out[dsig[kk]].ndim == 3:
+                assert kk == 'data'
+                dins[kk] = np.swapaxes(out[dsig[kk]].T, 1,2)
+
         if 'validity_timed' in self._dshort[ids].keys():
             inan = self.get_data(ids, sig='validity_timed',
                                  indt=indt, indch=indch)['validity_timed'].T<0.
@@ -2386,7 +2402,6 @@ class MultiIDSLoader(object):
                 dins['t'] = dins['t'] - t0
             for tt in dextra.keys():
                 dextra[tt]['t'] = dextra[tt]['t'] - t0
-
 
         import tofu.data as tfd
         conf = None if cam is not None else config

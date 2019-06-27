@@ -1150,12 +1150,12 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                lData[0].dlabels['lamb']['units'])
 
     llambtype = ['x' if lData[ii].ddata['nnlamb'] == 1 else 'x1'
-              for ii in range(0,nDat)]
-    llambother = [None if lData[ii].ddata['nnlamb'] == 1 else lidt[ii]
-               for ii in range(0,nDat)]
+                 for ii in range(0,nDat)]
+    llambother = [None if lData[ii].ddata['nnlamb'] == 1 else lidX[ii]
+                  for ii in range(0,nDat)]
     lindXlamb = [(None if lData[ii].ddata['nnlamb'] == 1
-               else lData[ii].ddata['indXlamb'])
-              for ii in range(0,nDat)]
+                  else lData[ii].ddata['indXlamb'])
+                 for ii in range(0,nDat)]
     llamb = [dd.lamb for dd in lData]
     lidlamb = [id(lamb) for lamb in llamb]
 
@@ -1186,7 +1186,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     # data sum
     ldataint = [scpinteg.trapz(ldata[ii], x=llamb[ii].ravel(), axis=2)
                 if llambother[ii] is None
-                else np.hstack([scpinteg.trapz(ldata[ii][:,jj,:],
+                else np.vstack([scpinteg.trapz(ldata[ii][:,jj,:],
                                                x=llamb[ii][jj,:],axis=1)
                                 for jj in range(0,nch)]).T
                 for ii in range(0,nDat)]
@@ -1351,7 +1351,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
                              'defid':lidX[0], 'defax':dax['X'][0]}
 
     dgroup['lambda'] = {'nMax':nlbdMax, 'key':'f%s'%str(len(dgroup.keys())+1),
-                        'defid':llamb[0], 'defax':dax['lamb'][0]}
+                        'defid':lidlamb[0], 'defax':dax['lamb'][0]}
 
     # Group info (make dynamic in later versions ?)
     msg = '  '.join(['%s: %s'%(v['key'],k) for k, v in dgroup.items()])
@@ -1363,7 +1363,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
     lref = [(lidt[ii],{'group':'time', 'val':lt[ii], 'inc':inct})
             for ii in range(0,nDat)]
     if dax['X'] is not None:
-        lref += [(lidX[ii],{'group':'channel', 'val':lX[ii], 'inc':incX,
+        lref += [(lidX[ii],{'group':'channel', 'val':lX[ii].ravel(), 'inc':incX,
                             'otherid':lXother[ii], 'indother':lindtX[ii]})
                  for ii in range(0,nDat)]
     lref += [(lidlamb[ii],{'group':'lambda', 'val':llamb[ii], 'inc':inclbd,
@@ -1504,10 +1504,15 @@ def _DataCam12D_plot_spectral(lData, key=None,
             l0 = dax['txtl'][ll].text((0.5+jj)/nlbdMax, 0., r'',
                                       color=lclbd[jj], fontweight='bold',
                                       fontsize=6., ha='center', va='bottom')
-            dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0], 'lrid':[lidlamb[0]],
-                                          'bstr':'{0:%s}'%fmt_l}},
-                        'drefid':{lidlamb[0]:jj}}
-
+            if llambother[ii] is None:
+                dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0], 'lrid':[lidlamb[0]],
+                                              'bstr':'{0:%s}'%fmt_l}},
+                            'drefid':{lidlamb[0]:jj}}
+            else:
+                dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0],
+                                              'lrid':[llambother[ii], lidlamb[0]],
+                                              'bstr':'{0:%s}'%fmt_l}},
+                            'drefid':{llambother[ii]:ll, lidlamb[0]:jj}}
 
     # -------------
     # Data-specific
@@ -1628,24 +1633,11 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                 'drefid':{lidX[ii]:jj, lidlamb[ii]:ll}}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
     ##################
     # Instanciate KeyHandler
     can = fig.canvas
     can.draw()
 
-    # kh = None
     kh = utils.KeyHandler_mpl(can=can,
                               dgroup=dgroup, dref=dref, ddata=ddat,
                               dobj=dobj, dax=dax2, lax_fix=lax_fix,
