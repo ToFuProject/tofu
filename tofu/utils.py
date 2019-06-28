@@ -648,7 +648,8 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if out == 'Plasma2D':
         assert ids in lids
 
-    lids = ['ece', 'interferometer', 'bolometer', 'soft_x_rays',
+    lids = ['ece', 'reflectometer_profile',
+            'interferometer', 'bolometer', 'soft_x_rays',
             'spectrometer_visible', 'bremsstrahlung_visible']
     if ids in lids:
         assert out in [None,'Cam','Data']

@@ -2312,6 +2312,17 @@ class MultiIDSLoader(object):
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
         t = self.get_data(ids, sig='t', indch=indch)['t']
+        if type(t) is list:
+            msg = "The time vector does not seem to be homogeneous !\n"
+            msg += "Please choose indch such that all channels have same t !\n"
+            msg += "Currently:\n"
+            ls = ['index %s t.shape %s'%(ii,str(t[ii].shape))
+                  for ii in range(0,len(t))]
+            msg += "\n    ".join(ls)
+            msg += "\n  => Solution: choose indch accordingly !"
+            raise Exception(msg)
+
+
         if t.ndim == 2:
             assert np.all(np.isclose(t, t[0:1,:]))
             t = t[0,:]
@@ -2328,7 +2339,7 @@ class MultiIDSLoader(object):
                 msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
                 msg += "  Probable cause: non-uniform shape (vs channels)\n"
                 msg += "  => shapes :\n    "
-                ls = ['index %s  shape %s'%(ii,str(out[dsig[kk]][ii].shape))
+                ls = ['index %s  %s.shape %s'%(ii,kk,str(out[dsig[kk]][ii].shape))
                       for ii in range(0,len(out[dsig[kk]]))]
                 msg += "\n    ".join(ls)
                 msg += "\n  => Solution: choose indch accordingly !"
