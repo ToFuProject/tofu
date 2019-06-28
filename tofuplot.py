@@ -36,6 +36,8 @@ _LIDS_DIAG = ['ece', 'reflectometer_profile', 'interferometer',
               'spectrometer_visible']
 _LIDS_PLASMA = ['core_profiles']
 _LIDS = _LIDS_DIAG + _LIDS_PLASMA
+_T0 = 'IGNITRON'
+
 
 ###################################################
 ###################################################
@@ -43,12 +45,26 @@ _LIDS = _LIDS_DIAG + _LIDS_PLASMA
 ###################################################
 
 def call_tfloadimas(shot=None, run=_RUN, user=_USER, tokamak=_TOKAMAK,
-                    ids=None, quantity=None, quant_X=None):
+                    ids=None, quantity=None, quant_X=None, t0=_T0):
 
-    if ids in _LIDS_DIAG:
-        tf.load_from_imas(shot=shot, run=run, user=user, tokamak=tokamak,
-                          ids=ids, plot=True)
+    nids = len(ids)
+    isdiag = [ids_ in _LIDS_DIAG for ids_ in ids]
+    if nids > 1:
+        if not all(isdiag):
+            msg = "Please provide only diagnostics ids:\n"
+            msg += str(_LIDS_DIAG)
+            raise exception(msg)
+
+    if isdiag[0]:
+        if nids == 1:
+            tf.load_from_imas(shot=shot, run=run, user=user, tokamak=tokamak,
+                              ids=ids, t0=t0, plot=True)
+        else:
+
+
     else:
+        print(quantity, type(quantity), len(quantity), [type(qq) for qq in
+                                                        quantity])
         c0 = quantity is None or quant_X is None
         if c0:
             msg = "quantity and quant_X must be provided to plot a plasma profile!"
@@ -60,13 +76,15 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER, tokamak=_TOKAMAK,
             msg = tf.imas2tofu.MultiIDSLoader._shortcuts(ids=ids, verb=False,
                                                          return_=True)
             col = ['ids', 'shortcut', 'long version']
-            msg = obj._getcharray(msg, col)
+            msg = tf.imas2tofu.MultiIDSLoader._getcharray(msg, col)
             msg = """\nArgs quantity and quant_X must be valid tofu shortcuts
             to quantities in ids %s\n\nAvailable shortcuts are:\n"""%ids + msg
+            msg += "\n\nProvided:\n    - quantity: %s"%str(quantity)
+            msg += "    - quant_X: %s"%str(quant_X)
             raise Exception(msg)
 
         tf.load_from_imas(shot=shot, run=run, user=user, tokamak=tokamak,
-                          ids=ids, plot_sig=quantity, plot_X=quant_X, plot=True)
+                          ids=ids, plot_sig=quantity, plot_X=quant_X, t0=t0, plot=True)
     plt.show(block=True)
 
 
@@ -102,11 +120,15 @@ if __name__ == '__main__':
 
     msg = "ids from which to load diagnostics data, can be:\n%s"%repr(_LIDS)
     parser.add_argument('-i', '--ids', type=str, required=True,
-                        help=msg, choices=_LIDS)
+                        help=msg, nargs='+' choices=_LIDS)
     parser.add_argument('-q', '--quantity', type=str, required=False,
-                        help='Desired quantity from the plasma ids', default=None)
+                        help='Desired quantity from the plasma ids',
+                        nargs='+', default=None)
     parser.add_argument('-qX', '--quant_X', type=str, required=False,
-                        help='Quantity from the plasma ids to use for abscissa', default=None)
+                        help='Quantity from the plasma ids to use for abscissa',
+                        nargs='+', default=None)
+    parser.add_argument('-t0', '--t0', type=str, required=False,
+                        help='Reference time event setting t = 0', default=_T0)
 
     args = parser.parse_args()
 

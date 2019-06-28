@@ -624,39 +624,62 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         msg = "Arg out must be in %s"%str(lok)
         raise Exception(msg)
 
+    # Prepare ids
+    assert ids is None or type(ids) in [list,str]
+    if type(ids) is str:
+        ids = [ids]
+    if type(ids) is list:
+        assert all([ids_ is None or type(ids_) is str for ids_ in ids])
+
     # Pre-check ids
     lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
-    if ids not in lidsok:
-        msg = "ids %s matched no known imas ids !\n"%ids
+    lisout = [ids_ for ids_ in ids
+              if (ids_ is not None and ids_ not in lidsok)]
+    if len(lisout) > 0:
+        msg = "ids %s matched no known imas ids !\n"%str(lisout)
         msg += "  => Available imas ids are:\n"
         msg += repr(lidsok)
         raise Exception(msg)
+    nids = len(ids)
 
+    # Prepare out
+    loutok = ['Config','Plasma2D','Cam','Data']
+    c0 = out is None
+    c1 = out in loutok
+    c2 = type(out) is list and all([oo is None or oo in loutok
+                                    for oo in out])
+    assert c0 or c1 or c2
+    if c0:
+        out = [None for _ in ids]
+    elif c1:
+        out = [str(out) for _ in ids]
 
     # Prepare
-    if ids == 'wall':
-        assert out in [None,'Config']
-        out = 'Config'
-    if out == 'Config':
-        assert ids in [None,'wall']
+    lout = [None for _ in ids]
+    for ii in range(0, nids):
+        if ids[ii] == 'wall':
+            assert out[ii] in [None,'Config']
+            out[ii] = 'Config'
+        if out[ii] == 'Config':
+            assert ids|ii] in [None,'wall']
 
-    lids = ['equilibrium', 'core_profiles', 'core_sources',
-            'edge_profiles', 'edge_sources']
-    if ids in lids:
-        assert out in [None,'Plasma2D']
-        out = 'Plasma2D'
-    if out == 'Plasma2D':
-        assert ids in lids
+        lids = ['equilibrium', 'core_profiles', 'core_sources',
+                'edge_profiles', 'edge_sources']
+        if ids in lids:
+            assert out in [None,'Plasma2D']
+            out = 'Plasma2D'
+        if out == 'Plasma2D':
+            assert ids in lids
 
-    lids = ['ece', 'reflectometer_profile',
-            'interferometer', 'bolometer', 'soft_x_rays',
-            'spectrometer_visible', 'bremsstrahlung_visible']
-    if ids in lids:
-        assert out in [None,'Cam','Data']
-        if out is None:
-            out = 'Data'
-    if out in ['Cam','Data']:
-        assert ids in lids
+        lids = ['ece', 'reflectometer_profile',
+                'interferometer', 'bolometer', 'soft_x_rays',
+                'spectrometer_visible', 'bremsstrahlung_visible']
+        if ids in lids:
+            assert out in [None,'Cam','Data']
+            if out is None:
+                out = 'Data'
+        if out in ['Cam','Data']:
+            assert ids in lids
 
 
 
