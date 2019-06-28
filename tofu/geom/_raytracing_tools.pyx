@@ -1841,7 +1841,7 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
         _bgt.compute_diff_div(pts, ray_orig, &k[0], npts, ray_vdir)
     # --------------------------------------------------------------------------
     sz_ves_lims = np.size(ves_lims)
-    min_poly_r = np.min(ves_poly[0, ...])
+    min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts-1)
     compute_inout_tot(ray_orig, ray_vdir,
                       ves_poly, ves_norm,
                       lstruct_nlim, ves_lims,
@@ -1869,10 +1869,9 @@ cdef inline void is_vis_mask(double[::1] ind, double* k,
                              int npts) nogil:
     cdef int ii
     for ii in range(npts):
+        ind[ii] = 1
         if k[ii] > coeff_inter_out[ii]:
             ind[ii] = 0
-        else:
-            ind[ii] = 1
     return
 
 cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
@@ -1903,12 +1902,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
     cdef double[:,::1] ray_orig
     cdef double[:,::1] ray_vdir
     cdef int ii
-    # --------------------------------------------------------------------------
-    # if k == None:
-    #     dist_arr = np.empty((npts1, npts2))
-    #     _bgt.compute_dist_vec_vec(pts1, npts1, pts2, npts2, dist_arr)
-    #     k = dist_arr
-    # -- Defining parallel part ------------------------------------------------
+    # We compute for each point in the polygon
     for ii in range(npts1):
         is_visible_pt_vec(pts1[0,ii], pts1[1,ii], pts1[2,ii],
                           pts2, npts2,
