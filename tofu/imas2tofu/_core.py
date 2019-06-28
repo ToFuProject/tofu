@@ -184,6 +184,18 @@ class MultiIDSLoader(object):
                'edge_sources':
                {'t':{'str':'time'}},
 
+               'lh_antennas':
+               {'t':{'str':'antenna[chan].power_launched.time'},
+                'power':{'str':'antenna[chan].power_launched.data',
+                         'quant':'power', 'units':'W'},
+                'R':{'str':'antenna[chan].position.r.data',
+                     'quant':'R', 'units':'m'}},
+
+               'ic_antennas':
+               {'t':{'str':'antenna[chan].power_launched.time'},
+                'power':{'str':'antenna[chan].power_launched.data',
+                         'quant':'power', 'units':'W'}},
+
                'magnetics':
                {'t':{'str':'time'},
                 'ip':{'str':'method[0].ip.data'},
