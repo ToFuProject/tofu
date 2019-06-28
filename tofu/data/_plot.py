@@ -170,7 +170,7 @@ def Data_plot_combine(lData, key=None, Bck=True, indref=0,
               ntMax=None, nchMax=None, nlbdMax=3,
               inct=[1,10], incX=[1,5], inclbd=[1,10],
               lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
-              fmt_t='06.3f', fmt_X='01.0f',
+              fmt_t='06.3f', fmt_X='01.0f', sharex=False,
               invert=True, Lplot='In', dmarker=None,
               fs=None, dmargin=None, wintit=None, tit=None,
               fontsize=None, labelpad=None, draw=True, connect=True):
@@ -241,7 +241,8 @@ def Data_plot_combine(lData, key=None, Bck=True, indref=0,
                                   fmt_t=fmt_t, fmt_X=fmt_X, labelpad=labelpad,
                                   Lplot=Lplot, invert=invert, dmarker=dmarker,
                                   fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                                  fontsize=fontsize, draw=draw, connect=connect)
+                                  fontsize=fontsize, draw=draw,
+                                  connect=connect, sharex=sharex)
 
     return kh
 
@@ -1675,7 +1676,8 @@ def _DataCam12D_plot_spectral(lData, key=None,
 
 def _init_DataCam12D_combine(fs=None, dmargin=None,
                              fontsize=8,  wintit=_wintit, fldict=None,
-                             nchMax=4, ntMax=1, nDat=1, lis2D=None):
+                             nchMax=4, ntMax=1, nDat=1, lis2D=None,
+                             sharex=False):
     assert nDat<=5, "Cannot display more than 5 Data objects !"
     assert nDat == len(lis2D)
 
@@ -1707,7 +1709,11 @@ def _init_DataCam12D_combine(fs=None, dmargin=None,
             cb.set_xticks([])
             cb.set_xticklabels([])
         else:
-            axp = fig.add_subplot(gs1[ii,2:-1],fc='w', sharey=Laxt[-1])
+            if sharex and ii>1:
+                axp = fig.add_subplot(gs1[ii,2:-1],fc='w',
+                                      sharex=laxp[-1], sharey=Laxt[-1])
+            else:
+                axp = fig.add_subplot(gs1[ii,2:-1],fc='w', sharey=Laxt[-1])
             cb = None
         laxp.append(axp)
         laxc.append(cb)
@@ -1765,7 +1771,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                              inct=[1,10], incX=[1,5], ms=4,
                              cmap=None, vmin=None, vmax=None,
                              vmin_map=None, vmax_map=None,
-                             cmap_map=None, normt_map=False,
+                             cmap_map=None, normt_map=False, sharex=False,
                              fmt_t='06.3f', fmt_X='01.0f', dmarker=_dmarker,
                              fontsize=_fontsize, labelpad=_labelpad,
                              invert=True, draw=True, connect=True, lis2D=None):
@@ -1897,7 +1903,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
     # Format axes
     dax = _init_DataCam12D_combine(fs=fs, dmargin=dmargin, wintit=wintit,
                                    nchMax=nchMax, ntMax=ntMax, nDat=nDat,
-                                   lis2D=lis2D, fldict=fldict)
+                                   lis2D=lis2D, fldict=fldict, sharex=sharex)
     fig  = dax['t'][0].figure
     if tit is None:
         tit = [str(getattr(lData[0].Id,aa)) for aa in ['Exp','Diag','shot']
@@ -2010,9 +2016,12 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 dax['X'][ii].invert_xaxis()
                 dax['X'][ii].invert_yaxis()
         else:
-            dax['X'][ii].set_xlim(lDX[ii])
+            if not sharex:
+                dax['X'][ii].set_xlim(lDX[ii])
             dax['X'][ii].set_xlabel(lXlab[ii], **fldict)
-
+    if sharex:
+        dax['X'][0].set_xlim(np.nanmin(np.array(lDX)[:,0]),
+                             np.nanmax(np.array(lDX)[:,1]))
 
     ##################
     # Interactivity dict

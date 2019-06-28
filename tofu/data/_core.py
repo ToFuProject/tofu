@@ -1662,7 +1662,7 @@ class DataAbstract(utils.ToFuObject):
                   lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
                   fmt_t='06.3f', fmt_X='01.0f',
                   invert=True, Lplot='In', dmarker=None,
-                  fs=None, dmargin=None, wintit=None, tit=None,
+                  fs=None, dmargin=None, wintit=None, tit=None, sharex=False,
                   fontsize=None, labelpad=None, draw=True, connect=True):
         """ Plot several Data instances of different diags
 
@@ -1683,7 +1683,7 @@ class DataAbstract(utils.ToFuObject):
                                      inct=inct, incX=incX,
                                      lls=lls, lct=lct, lcch=lcch, cbck=cbck,
                                      fmt_t=fmt_t, fmt_X=fmt_X,
-                                     invert=invert, Lplot=Lplot,
+                                     invert=invert, Lplot=Lplot, sharex=sharex,
                                      dmarker=dmarker, fs=fs, dmargin=dmargin,
                                      wintit=wintit, tit=tit, fontsize=fontsize,
                                      labelpad=labelpad, draw=draw,
@@ -3274,7 +3274,7 @@ class Plasma2D(utils.ToFuObject):
         return kh
 
     def plot_combine(self, lquant, lData=None, X=None, ref=None,
-                     remap=False, res=0.01, interp_space='linear'):
+                     remap=False, res=0.01, interp_space='linear', sharex=False):
         """ plot combining several quantities from the Plasma2D itself and
         optional extra list of Data instances """
         lDat = self.get_Data(lquant, X=X, remap=remap,
@@ -3284,5 +3284,5 @@ class Plasma2D(utils.ToFuObject):
                 lData = lDat[1:] + lData
             else:
                 lData = lDat[1:] + [lData]
-        kh = lDat[0].plot_combine(lData)
+        kh = lDat[0].plot_combine(lData, sharex=sharex)
         return kh
