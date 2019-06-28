@@ -2524,6 +2524,8 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                                              dtype=float)
     # == Testing inputs ========================================================
     if test:
+        msg = "ves_poly and ves_norm are not optional arguments"
+        assert ves_poly is not None and ves_norm is not None, msg
         bool1 = (ves_poly.shape[0]==2 and ves_norm.shape[0]==2
               and ves_norm.shape[1]==ves_poly.shape[1]-1)
         msg = "Args ves_poly and ves_norm must be of the same shape (2,NS)!"

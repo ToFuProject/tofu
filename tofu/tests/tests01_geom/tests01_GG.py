@@ -832,6 +832,7 @@ def test13_LOS_PInOut():
         VperpOut, IOut= GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn,
                                                      ves_lims=VL,
                                                      ves_type='Lin', test=True)
+    print("kpin =", kPIn)
     assert np.allclose(kPIn,np.concatenate((np.ones((3*N,)),
                                             2.*np.pi*np.ones((8,)) )),
                        equal_nan=True)
@@ -979,8 +980,6 @@ def test13_LOS_PInOut():
     out = GG.LOS_Calc_kMinkMax_VesStruct(Ds, us,
                                          [VP, VP, VP], [VIn, VIn, VIn], 3,
                                          np.r_[N, N, N])
-    print(out[0], kPIn)
-    print(out[1], kPOut)
     assert np.allclose(out[0][:nlos],    kPIn)
     assert np.allclose(out[0][nlos:2*nlos], kPIn)
     assert np.allclose(out[0][2*nlos:],  kPIn)

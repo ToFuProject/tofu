@@ -1151,22 +1151,22 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
 # ==============================================================================
 # =  Raytracing on a Cylinder (Linear case)
 # ==============================================================================
-cdef inline void raytracing_inout_struct_lin(int Nl,
-                                             double[:,::1] Ds,
-                                             double [:,::1] us,
-                                             int Ns,
-                                             double* polyx_tab,
-                                             double* polyy_tab,
-                                             double* normx_tab,
-                                             double* normy_tab,
-                                             double L0, double L1,
+cdef inline void raytracing_inout_struct_lin(const int Nl,
+                                             const double[:,::1] Ds,
+                                             const double [:,::1] us,
+                                             const int Ns,
+                                             const double* polyx_tab,
+                                             const double* polyy_tab,
+                                             const double* normx_tab,
+                                             const double* normy_tab,
+                                             const double L0, const double L1,
                                              double[::1] kin_tab,
                                              double[::1] kout_tab,
                                              double[::1] vperpout_tab,
                                              int[::1] indout_tab,
-                                             double EpsPlane,
-                                             int ind_struct,
-                                             int ind_lim_struct) nogil:
+                                             const double EpsPlane,
+                                             const int ind_struct,
+                                             const int ind_lim_struct) nogil:
 
     cdef bint is_in_path
     cdef int ii=0, jj=0
@@ -1461,6 +1461,7 @@ cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
             lbounds_ves[0] = ves_lims[0]
             lbounds_ves[1] = ves_lims[1]
 
+        print("... here...")
         # -- Cylindrical case --------------------------------------------------
         raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
                                     &ves_poly[0][0], &ves_poly[1][0],
@@ -1469,7 +1470,7 @@ cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
                                     coeff_inter_in, coeff_inter_out,
                                     vperp_out, ind_inter_out, eps_plane,
                                     0, 0) # The vessel is strcuture 0,0
-
+        print(" out of raytracing function =", coeff_inter_in[0])
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
             ind_struct = 0
@@ -1509,6 +1510,7 @@ cdef inline void compute_inout_tot(double[:, ::1] ray_orig,
                                                 eps_plane, ii+1, jj)
     free(lbounds)
     free(langles)
+    print("coeff in inout =", coeff_inter_in[0], coeff_inter_in[1], coeff_inter_in[2])
     return
 
 
