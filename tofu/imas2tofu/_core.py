@@ -206,6 +206,19 @@ class MultiIDSLoader(object):
                         'quant':'optical depth', 'units':'adim.'},
                 'validity_timed': {'str':'channel[chan].t_e.validity_timed'}},
 
+                'reflectometer_profile':
+                {'t':{'str':'time'},
+                 'ne':{'str':'channel[chan].n_e.data',
+                       'quant':'density', 'units':'/m^3'},
+                 'R':{'str':'channel[chan].position.r.data',
+                      'quant':'R', 'units':'m'},
+                 'Z':{'str':'channel[chan].position.z.data',
+                      'quant':'Z', 'units':'m'},
+                 'phi':{'str':'channel[chan].position.phi.data',
+                      'quant':'angle', 'units':'rad'},
+                 'mode':{'str':'mode'},
+                 'sweep':{'str':'sweep_time'}},
+
                'interferometer':
                {'t':{'str':'time',
                      'quant':'t', 'units':'s'},
@@ -248,15 +261,19 @@ class MultiIDSLoader(object):
 
 
     _lidslos = ['interferometer', 'bolometer', 'soft_x_rays',
-                'spectrometer_visible', 'bremsstrahlung_visible']
+                'spectrometer_visible', 'bremsstrahlung_visible',
+                'reflectometer_profile']
     for ids in _lidslos:
         dlos = {}
-        dlos['los_pt1R'] = {'str':'channel[chan].line_of_sight.first_point.r'}
-        dlos['los_pt1Z'] = {'str':'channel[chan].line_of_sight.first_point.z'}
-        dlos['los_pt1Phi'] = {'str':'channel[chan].line_of_sight.first_point.phi'}
-        dlos['los_pt2R'] = {'str':'channel[chan].line_of_sight.second_point.r'}
-        dlos['los_pt2Z'] = {'str':'channel[chan].line_of_sight.second_point.z'}
-        dlos['los_pt2Phi'] = {'str':'channel[chan].line_of_sight.second_point.phi'}
+        strlos = 'line_of_sight'
+        if ids == 'reflectometer_profile':
+            strlos += '_detection'
+        dlos['los_pt1R'] = {'str':'channel[chan].%s.first_point.r'%strlos}
+        dlos['los_pt1Z'] = {'str':'channel[chan].%s.first_point.z'%strlos}
+        dlos['los_pt1Phi'] = {'str':'channel[chan].%s.first_point.phi'%strlos}
+        dlos['los_pt2R'] = {'str':'channel[chan].%s.second_point.r'%strlos}
+        dlos['los_pt2Z'] = {'str':'channel[chan].%s.second_point.z'%strlos}
+        dlos['los_pt2Phi'] = {'str':'channel[chan].%s.second_point.phi'%strlos}
         _dshort[ids].update( dlos )
 
 
@@ -1039,6 +1056,8 @@ class MultiIDSLoader(object):
             for ids_ in ids:
                 if not ids_ in self._lidsnames:
                     msg = "ids %s matched no known imas ids !"%ids_
+                    msg += "  => Available ids are:\n"
+                    msg += repr(self._lidsnames)
                     raise Exception(msg)
             for k in ids:
                 dids[k] = {'ids':None, 'needidd':True, 'idd':idd}
@@ -2133,7 +2152,7 @@ class MultiIDSLoader(object):
 
 
     def _checkformat_Data_dsig(self, ids=None, dsig=None, mainsig=None,
-                               data=None, geom=None, indch=None):
+                               data=None, geom=None):
         didsok = {'magnetics': {'data':'DataCam1D',
                                 'geom':False},
                   'ece':{'data':'DataCam1D',
@@ -2141,6 +2160,11 @@ class MultiIDSLoader(object):
                          'sig':{'t':'t',
                                 'X':'R',
                                 'data':'Te'}},
+                  'reflectometer_profile':{'data':'DataCam1D',
+                                           'geom':False,
+                                           'sig':{'t':'t',
+                                                  'X':'R',
+                                                  'data':'ne'}},
                   'interferometer':{'data':'DataCam1D',
                                     'geom':'CamLOS1D',
                                     'sig':{'t':'t',
@@ -2170,7 +2194,7 @@ class MultiIDSLoader(object):
 
         if ids not in didsok.keys():
             msg = "Requested ids is not pre-tabulated !\n"
-            msg = "  => Be careful with args (dsig, data, geom, indch)"
+            msg = "  => Be careful with args (dsig, data, geom)"
             warnings.warn(msg)
         else:
             if data is None:
@@ -2223,11 +2247,12 @@ class MultiIDSLoader(object):
 
     def to_Data(self, ids=None, dsig=None, mainsig=None, tlim=None,
                 indch=None, Name=None, occ=None, config=None,
-                equilibrium=None, t0=None, plot=True):
+                equilibrium=None, t0=None, data=None, geom=None, plot=True):
 
         # dsig
         data, geom, dsig = self._checkformat_Data_dsig(ids, dsig,
-                                                       mainsig=mainsig)
+                                                       mainsig=mainsig,
+                                                       data=data, geom=geom)
         if Name is None:
             Name = 'custom'
 
@@ -2328,6 +2353,10 @@ class MultiIDSLoader(object):
             elif out[dsig[kk]].ndim == 3:
                 assert kk == 'data'
                 dins[kk] = np.swapaxes(out[dsig[kk]].T, 1,2)
+
+        if ids == 'reflectometer_profile':
+            dins['X'] = np.fliplr(dins['X'])
+            dins['data'] = np.fliplr(dins['data'])
 
         if 'validity_timed' in self._dshort[ids].keys():
             inan = self.get_data(ids, sig='validity_timed',

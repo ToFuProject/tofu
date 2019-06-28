@@ -3275,17 +3275,24 @@ class Rays(utils.ToFuObject):
         ind = np.isnan(kOut) | np.isinf(kOut)
         if np.any(ind):
             kOut[ind] = np.nan
-            msg = "Some LOS have no visibility inside the plasma domain !"
+            msg = "Some LOS have no visibility inside the plasma domain !\n"
+            msg += "Nb. of LOS concerned: %s out of %s\n"%(str(ind.sum()),
+                                                           str(kOut.size))
+            msg += "Indices of LOS ok:\n"
+            msg += repr((~ind).nonzero()[0])
+            msg += "\nIndices of LOS with no visibility:\n"
+            msg += repr(ind.nonzero()[0])
             warnings.warn(msg)
             if plotdebug:
-                PIn = self.D[:,ind] + kIn[np.newaxis,ind]*self.u[:,ind]
-                POut = self.D[:,ind] + kOut[np.newaxis,ind]*self.u[:,ind]
+                PIn = self.D[:,ind] + kIn[None,ind]*self.u[:,ind]
+                POut = self.D[:,ind] + kOut[None,ind]*self.u[:,ind]
                 # To be updated
                 _plot._LOS_calc_InOutPolProj_Debug(self.config,
                                                    self.D[:,ind],
                                                    self.u[:,ind],
                                                    PIn, POut,
-                                                   Lim=[np.pi/4.,7.*np.pi/4],
+                                                   nptstot=kOut.size,
+                                                   Lim=[np.pi/4.,2.*np.pi/4],
                                                    Nstep=50)
 
         # Handle particular cases with kIn > kOut

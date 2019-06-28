@@ -699,34 +699,35 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
 ############################################
 
 def _LOS_calc_InOutPolProj_Debug(config, Ds, us ,PIns, POuts,
-                                 L=3, Lim=None, Nstep=100,
+                                 L=3, nptstot=None, Lim=None, Nstep=100,
                                  fs=None, wintit=_wintit, draw=True):
     # Preformat
     assert Ds.shape==us.shape==PIns.shape==POuts.shape
     if Ds.ndim==1:
         Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         PIns, POuts = PIns.reshape((3,1)), POuts.reshape((3,1))
-    Ps = Ds + L*us
     nP = Ds.shape[1]
-    l0 = np.array([Ds[0,:], Ps[0,:], np.full((nP,),np.nan)]).T.ravel()
-    l1 = np.array([Ds[1,:], Ps[1,:], np.full((nP,),np.nan)]).T.ravel()
-    l2 = np.array([Ds[2,:], Ps[2,:], np.full((nP,),np.nan)]).T.ravel()
+    pts = (Ds[:,:,None]
+           + np.r_[0., L, np.nan][None,None,:]*us[:,:,None]).reshape((3,nP*3))
 
     # Plot
     ax = config.plot(element='P', proj='3d', Lim=Lim, Nstep=Nstep, dLeg=None,
                      fs=fs, wintit=wintit, draw=False)
-    ax.set_title('_LOS_calc_InOutPolProj / Debugging')
-    ax.plot(l0,l1,l2, c='k', lw=1, ls='-')
+    msg = '_LOS_calc_InOutPolProj - Debugging %s / %s pts'%(str(nP),str(nptstot))
+    ax.set_title(msg)
+    ax.plot(pts[0,:], pts[1,:], pts[2,:], c='k', lw=1, ls='-')
     ax.plot(PIns[0,:],PIns[1,:],PIns[2,:], c='b', ls='None', marker='o', label=r"PIn")
     ax.plot(POuts[0,:],POuts[1,:],POuts[2,:], c='r', ls='None', marker='x', label=r"POut")
     #ax.legend(**_def.TorLegd)
     if draw:
         ax.figure.canvas.draw()
 
-    print("")
-    print("Debugging...")
-    print("    D, u = ", Ds, us)
-    print("    PIn, POut = ", PIns, POuts)
+    msg = "\nDebugging %s / %s pts with no visibility:\n"%(str(nP),str(nptstot))
+    msg += "    D = %s\n"%str(Ds)
+    msg += "    u = %s\n"%str(us)
+    msg += "    PIn = %s\n"%str(PIns)
+    msg += "    POut = %s\n"%str(POuts)
+    print(msg)
 
 
 def _get_LLOS_Leg(GLLOS, Leg=None, ind=None, Val=None, Crit='Name', PreExp=None,

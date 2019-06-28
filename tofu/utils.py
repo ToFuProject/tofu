@@ -610,6 +610,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    plot=True, plot_sig=None, plot_X=None):
     # import imas2tofu
     try:
+        import imas
         import tofu.imas2tofu as imas2tofu
     except Exception as err:
         msg = str(err)
@@ -622,6 +623,15 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     if not c0:
         msg = "Arg out must be in %s"%str(lok)
         raise Exception(msg)
+
+    # Pre-check ids
+    lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
+    if ids not in lidsok:
+        msg = "ids %s matched no known imas ids !\n"%ids
+        msg += "  => Available imas ids are:\n"
+        msg += repr(lidsok)
+        raise Exception(msg)
+
 
     # Prepare
     if ids == 'wall':
