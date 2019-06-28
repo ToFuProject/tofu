@@ -2397,6 +2397,76 @@ class Config(utils.ToFuObject):
                              version=version, occ=occ, dryrun=dryrun, verb=verb,
                              description_2d=description_2d)
 
+    def get_kwdargs_LOS_isVis(self):
+        lS = self.lStruct
+        # -- Getting "vessels" or IN structures --------------------------------
+        lSIn = [ss for ss in lS if ss._InOut=='in']
+        if len(lSIn)==0:
+            msg = "self.config must have at least a StructIn subclass !"
+            assert len(lSIn)>0, msg
+        elif len(lSIn)>1:
+            S = lSIn[np.argmin([ss.dgeom['Surf'] for ss in lSIn])]
+        else:
+            S = lSIn[0]
+        # ... and its poly, limts, type, etc.
+        VPoly = S.Poly_closed
+        VVIn =  S.dgeom['VIn']
+        if np.size(np.shape(S.Lim)) > 1 :
+            Lim = np.asarray([S.Lim[0][0], S.Lim[0][1]])
+        else:
+            Lim = S.Lim
+        nLim = S.noccur
+        VType = self.Id.Type
+        # -- Getting OUT structures --------------------------------------------
+        lS = [ss for ss in lS if ss._InOut=='out']
+        lSPolyx, lSVInx = [], []
+        lSPolyy, lSVIny = [], []
+        lSLim, lSnLim = [], []
+        lsnvert = []
+        num_tot_structs = 0
+        num_lim_structs = 0
+        for ss in lS:
+            l = ss.Poly_closed[0]
+            [lSPolyx.append(item) for item in l]
+            l = ss.Poly_closed[1]
+            [lSPolyy.append(item) for item in l]
+            l = ss.dgeom['VIn'][0]
+            [lSVInx.append(item) for item in l]
+            l = ss.dgeom['VIn'][1]
+            [lSVIny.append(item) for item in l]
+            lSLim.append(ss.Lim)
+            lSnLim.append(ss.noccur)
+            if len(lsnvert)==0:
+                lsnvert.append(len(ss.Poly_closed[0]))
+            else:
+                lsnvert.append(len(ss.Poly_closed[0]) + lsnvert[num_lim_structs-1])
+            num_lim_structs += 1
+            if ss.Lim is None or len(ss.Lim) == 0:
+                num_tot_structs += 1
+            else:
+                num_tot_structs += len(ss.Lim)
+        lsnvert = np.asarray(lsnvert, dtype=np.int64)
+        lSPolyx = np.asarray(lSPolyx)
+        lSPolyy = np.asarray(lSPolyy)
+        lSVInx = np.asarray(lSVInx)
+        lSVIny = np.asarray(lSVIny)
+        # Now setting keyword arguments:
+        dkwd = dict(ves_poly=VPoly, ves_norm=VVIn,
+                    ves_lims=Lim,
+                    nstruct_tot=num_tot_structs,
+                    nstruct_lim=num_lim_structs,
+                    lstruct_polyx=lSPolyx,
+                    lstruct_polyy=lSPolyy,
+                    lstruct_lims=lSLim,
+                    lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+                    lstruct_normx=lSVInx,
+                    lstruct_normy=lSVIny,
+                    lnvert=lsnvert,
+                    ves_type=VType,
+                    rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
+                    eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
+        return dkwd
+
 
 
 """

@@ -522,7 +522,9 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=Tru
     elif N==2:
         Vals = ff(Pts, np.tile(-u,(Pts.shape[1],1)).T)
     else:
-        raise ValueError("The function (ff) assessing the emissivity loccaly must take a single positional argument: Pts, a (3,N) np.ndarray of (X,Y,Z) cartesian coordinates !")
+        raise ValueError("The function (ff) assessing the emissivity locally "
+                         + "must take a single positional argument: Pts a (3,N)"
+                         + " np.ndarray of (X,Y,Z) cartesian coordinates !")
 
     Vals[np.isnan(Vals)] = 0.
     if method=='sum':
@@ -607,7 +609,6 @@ def calc_solidangle_particle(traj, pts, r=1., config=None,
     if ntraj < npart:
         traj = np.repeat(traj, npart, axis=1)
 
-
     ################
     # Main computation
 
@@ -629,8 +630,8 @@ def calc_solidangle_particle(traj, pts, r=1., config=None,
     if block:
         kwdargs = config._get_kwdargs_LOS_isVis()
         # TODO : modify this function along issue #102
-        indnan = _GG.LOS_isVis_PtFromPts_VesStruct(traj[0,:],traj[1,:],traj[2,:],
-                                                   pts, k=l, vis=False, **kwdargs)
+        indnan = _GG.LOS_areVis_PtsFromPts_VesStruct(traj, pts, k=l, vis=False,
+                                                     **kwdargs)
         sang[indnan] = 0.
         vect[indnan,:] = np.nan
 

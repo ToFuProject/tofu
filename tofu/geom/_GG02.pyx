@@ -62,7 +62,8 @@ __all__ = ['CoordShift',
            '_Ves_Smesh_Lin_SubFromInd_cython',
            'LOS_Calc_PInOut_VesStruct',
            "LOS_Calc_kMinkMax_VesStruct",
-           'LOS_isVis_PtFromPts_VesStruct',
+           "LOS_isVis_PtFromPts_VesStruct",
+           "LOS_areVis_PtsFromPts_VesStruct",
            'check_ff', 'LOS_get_sample', 'LOS_calc_signal',
            'LOS_sino','integrate1d',
            "triangulate_by_earclipping",
@@ -2132,6 +2133,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
        where k is the index of edge impacted on the j-th sub structure of the
        structure number i. If the LOS impacted the vessel i=j=0
     """
+    cdef str vt_lower = ves_type.lower()
     cdef str error_message
     cdef int sz_ves_lims
     cdef int num_los = ray_orig.shape[1]
@@ -2159,7 +2161,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                                           eps_vz, eps_b,
                                           eps_plane]]), error_message
         error_message = "ves_type must be a str in ['Tor','Lin']!"
-        assert ves_type.lower() in ['tor', 'lin'], error_message
+        assert vt_lower in ['tor', 'lin'], error_message
         error_message = "If you define structures you must define all the "\
                         + "structural variables: \n"\
                         + "    - lstruct_polyx, lstruct_polyy, lstruct_lims,\n"\
@@ -2209,6 +2211,8 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     # ==========================================================================
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = np.min(ves_poly[0, ...])
+    print(".... ves type =" , vt_lower)
+    print("lstruct_nlim =", lstruct_nlim)
     _rt.compute_inout_tot(ray_orig, ray_vdir,
                           ves_poly, ves_norm,
                           lstruct_nlim, ves_lims,
@@ -2218,10 +2222,11 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                           nstruct_tot, nstruct_lim,
                           sz_ves_lims, min_poly_r, rmin,
                           eps_uz, eps_a, eps_vz, eps_b,
-                          eps_plane, ves_type.lower(),
+                          eps_plane, vt_lower,
                           forbid, num_threads,
                           coeff_inter_out, coeff_inter_in, vperp_out,
                           ind_inter_out)
+    print("in GG =", coeff_inter_in[0], coeff_inter_in[1])
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out),\
            np.transpose(np.asarray(vperp_out).reshape(num_los,3)),\
            np.transpose(np.asarray(ind_inter_out,
@@ -2412,7 +2417,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     np.ndarray[double, ndim=2,mode='c'] pts2,
                                     double[:, ::1] ves_poly=None,
                                     double[:, ::1] ves_norm=None,
-                                    double[:, ::1] k=None,
+                                    double[::1] k=None,
                                     double[:, ::1] ray_orig=None,
                                     double[:, ::1] ray_vdir=None,
                                     double[::1] ves_lims=None,
@@ -2455,16 +2460,11 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
               and ves_norm.shape[1]==ves_poly.shape[1]-1)
         msg = "Args ves_poly and ves_norm must be of the same shape (2,NS)!"
         assert bool1, msg
-        bool1 = all([pp is None for pp in [lstruct_polyx, lstruct_polyy,
-                                           lstruct_lims, lstruct_normx,
-                                           lstruct_normy]])
-        bool2 = all([hasattr(pp,'__iter__')
-                  and len(pp)==len(lstruct_polyx)
-                  for pp in [lstruct_polyx, lstruct_polyy, lstruct_lims,
-                             lstruct_normx, lstruct_normy]])
+        bool1 = lstruct_lims is None or len(lstruct_normy) == len(lstruct_normx)
+        bool2 = lstruct_normx is None or len(lstruct_polyx) == len(lstruct_polyy)
         msg = "Args lstruct_polyx, lstruct_polyy, lstruct_lims, lstruct_normx,"\
               + " lstruct_normy, must be None or lists of same len()!"
-        assert bool1 or bool2, msg
+        assert bool1 and bool2, msg
         msg = "[eps_uz,eps_vz,eps_a,eps_b] must be floats < 1.e-4!"
         assert all([ee < 1.e-4 for ee in [eps_uz, eps_a,
                                           eps_vz, eps_b,
@@ -2472,6 +2472,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
 
+    print("npts1 =", npts1, " npts2 =", npts2)
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
                             ves_poly, ves_norm,
@@ -2530,16 +2531,11 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
               and ves_norm.shape[1]==ves_poly.shape[1]-1)
         msg = "Args ves_poly and ves_norm must be of the same shape (2,NS)!"
         assert bool1, msg
-        bool1 = all([pp is None for pp in [lstruct_polyx, lstruct_polyy,
-                                           lstruct_lims, lstruct_normx,
-                                           lstruct_normy]])
-        bool2 = all([hasattr(pp,'__iter__')
-                  and len(pp)==len(lstruct_polyx)
-                  for pp in [lstruct_polyx, lstruct_polyy, lstruct_lims,
-                             lstruct_normx, lstruct_normy]])
+        bool1 = lstruct_lims is None or len(lstruct_normy) == len(lstruct_normx)
+        bool2 = lstruct_normx is None or len(lstruct_polyx) == len(lstruct_polyy)
         msg = "Args lstruct_polyx, lstruct_polyy, lstruct_lims, lstruct_normx,"\
               + " lstruct_normy, must be None or lists of same len()!"
-        assert bool1 or bool2, msg
+        assert bool1 and bool2, msg
         msg = "[eps_uz,eps_vz,eps_a,eps_b] must be floats < 1.e-4!"
         assert all([ee < 1.e-4 for ee in [eps_uz, eps_a,
                                           eps_vz, eps_b,
@@ -3981,6 +3977,13 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
     from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
+    # ==========================================================================
+    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
+        assert False, "The function is only implemented with the simple"\
+            + " algorithm and for toroidal vessels... Sorry!"
+    warn("This function supposes that the polys are nested from inner to outer",
+         Warning)
+    # ==========================================================================
 
     cdef array are_close = clone(array('i'), nvpoly*nlos, True)
     _dt.is_close_los_vpoly_vec_core(nvpoly, nlos,
@@ -3990,8 +3993,6 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
                                 eps_uz, eps_a,
                                 eps_vz, eps_b,
                                 eps_plane,
-                                ves_type,
-                                algo_type,
                                 epsilon,
                                 are_close,
                                 num_threads)
@@ -4044,6 +4045,14 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
+    # ==========================================================================
+    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
+        assert False, "The function is only implemented with the simple"\
+            + " algorithm and for toroidal vessels... Sorry!"
+    warn("This function supposes that the polys are nested from inner to outer",
+         Warning)
+    # ==========================================================================
+
     cdef array ind_close_tab = clone(array('i'), nvpoly, True)
     _dt.which_los_closer_vpoly_vec_core(nvpoly, nlos,
                                     <double*>ray_orig.data,
@@ -4052,8 +4061,6 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
                                     eps_uz, eps_a,
                                     eps_vz, eps_b,
                                     eps_plane,
-                                    ves_type,
-                                    algo_type,
                                     ind_close_tab,
                                     num_threads)
     return np.asarray(ind_close_tab)
@@ -4098,6 +4105,13 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
     from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
+    # ==========================================================================
+    if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
+        assert False, "The function is only implemented with the simple"\
+            + " algorithm and for toroidal vessels... Sorry!"
+    warn("This function supposes that the polys are nested from inner to outer",
+         Warning)
+    # ==========================================================================
 
     cdef array ind_close_tab = clone(array('i'), nlos, True)
     _dt.which_vpoly_closer_los_vec_core(nvpoly, nlos,
@@ -4107,8 +4121,6 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
                                     eps_uz, eps_a,
                                     eps_vz, eps_b,
                                     eps_plane,
-                                    ves_type,
-                                    algo_type,
                                     ind_close_tab,
                                     num_threads)
     return np.asarray(ind_close_tab)

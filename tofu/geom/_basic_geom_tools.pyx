@@ -125,7 +125,7 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
 # ==============================================================================
 # =  Computing Hypothenus
 # =============================================================================
-cdef inline array compute_hypot(double[::1] xpts, double[::1] ypts,
+cdef inline array compute_hypot(const double[::1] xpts, const double[::1] ypts,
                                 int npts=-1):
     cdef int ii
     cdef array hypot
@@ -139,7 +139,8 @@ cdef inline array compute_hypot(double[::1] xpts, double[::1] ypts,
             ptr_hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
     return hypot
 
-cdef inline double comp_min_hypot(double[::1] xpts, double[::1] ypts,
+cdef inline double comp_min_hypot(const double[::1] xpts,
+                                  const double[::1] ypts,
                                   int npts=-1) nogil:
     cdef int ii
     cdef double tmp
