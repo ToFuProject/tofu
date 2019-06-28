@@ -2137,6 +2137,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     cdef str error_message
     cdef int sz_ves_lims
     cdef int num_los = ray_orig.shape[1]
+    cdef int npts_poly = ves_norm.shape[1]
     cdef bint bool1, bool2
     cdef double min_poly_r
     cdef array vperp_out = clone(array('d'), num_los * 3, True)
@@ -2210,8 +2211,9 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
             assert (not bool1 or bool2), error_message
     # ==========================================================================
     sz_ves_lims = np.size(ves_lims)
-    min_poly_r = np.min(ves_poly[0, ...])
-    _rt.compute_inout_tot(ray_orig, ray_vdir,
+    min_poly_r = _bgt.comp_min(ves_poly[0, ...], npts_poly-1)
+    _rt.compute_inout_tot(num_los, npts_poly,
+                          ray_orig, ray_vdir,
                           ves_poly, ves_norm,
                           lstruct_nlim, ves_lims,
                           lstruct_polyx, lstruct_polyy,
