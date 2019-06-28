@@ -2113,7 +2113,7 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     vtype : string
        Type of vessel ("Tor" or "Lin")
     forbid : bool
-       Should we forbid values behind vissible radius ? (see rmin)
+       Should we forbid values behind visible radius ? (see rmin)
     test : bool
        Should we run tests ?
     num_threads : int
@@ -2211,8 +2211,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
     # ==========================================================================
     sz_ves_lims = np.size(ves_lims)
     min_poly_r = np.min(ves_poly[0, ...])
-    print(".... ves type =" , vt_lower)
-    print("lstruct_nlim =", lstruct_nlim)
     _rt.compute_inout_tot(ray_orig, ray_vdir,
                           ves_poly, ves_norm,
                           lstruct_nlim, ves_lims,
@@ -2226,7 +2224,6 @@ def LOS_Calc_PInOut_VesStruct(double[:, ::1] ray_orig,
                           forbid, num_threads,
                           coeff_inter_out, coeff_inter_in, vperp_out,
                           ind_inter_out)
-    print("in GG =", coeff_inter_in[0], coeff_inter_in[1])
     return np.asarray(coeff_inter_in), np.asarray(coeff_inter_out),\
            np.transpose(np.asarray(vperp_out).reshape(num_los,3)),\
            np.transpose(np.asarray(ind_inter_out,
@@ -2280,7 +2277,7 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     vtype : string
        Type of vessel ("Tor" or "Lin")
     forbid : bool
-       Should we forbid values behind vissible radius ? (see rmin)
+       Should we forbid values behind visible radius ? (see rmin)
     test : bool
        Should we run tests ?
     num_threads : int
@@ -2435,7 +2432,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                                     double eps_vz=_VSMALL, double eps_b=_VSMALL,
                                     double eps_plane=_VSMALL,
                                     str ves_type='tor',
-                                    bint forbid=True, bint vis=True,
+                                    bint forbid=True,
                                     bint test=True,
                                     int num_threads=16):
     """
@@ -2472,7 +2469,6 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
         msg = "ves_type must be a str in ['Tor','Lin']!"
         assert ves_type.lower() in ['tor', 'lin'], msg
 
-    print("npts1 =", npts1, " npts2 =", npts2)
     _rt.are_visible_vec_vec(pts1, npts1,
                             pts2, npts2,
                             ves_poly, ves_norm,
@@ -2484,7 +2480,7 @@ def LOS_areVis_PtsFromPts_VesStruct(np.ndarray[double, ndim=2,mode='c'] pts1,
                             lnvert, nstruct_tot, nstruct_lim,
                             rmin, eps_uz, eps_a, eps_vz, eps_b,
                             eps_plane, ves_type.lower(),
-                            forbid, vis, test, num_threads)
+                            forbid, test, num_threads)
     return ind
 
 
@@ -2507,7 +2503,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                                   double eps_uz=_SMALL, double eps_a=_VSMALL,
                                   double eps_vz=_VSMALL, double eps_b=_VSMALL,
                                   double eps_plane=_VSMALL, str ves_type='Tor',
-                                  bint forbid=True, bint vis=True,
+                                  bint forbid=True,
                                   bint test=True,
                                   int num_threads=16):
     """
@@ -2554,7 +2550,7 @@ def LOS_isVis_PtFromPts_VesStruct(double pt0, double pt1, double pt2,
                           lnvert, nstruct_tot, nstruct_lim,
                           rmin, eps_uz, eps_a, eps_vz, eps_b,
                           eps_plane, ves_type.lower(),
-                          forbid, vis, test, num_threads)
+                          forbid, test, num_threads)
     return ind
 
 # ==============================================================================

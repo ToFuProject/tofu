@@ -721,7 +721,6 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         assert ind.shape==(Pts.shape[1],) and ind.dtype==int and \
             np.all(ind==np.unique(ind)) and np.all(ind>=0)
         assert NL.ndim==1 and NL.size==VPoly.shape[1]-1
-        print(dLr.ndim, type(dLr), dLr.shape, dLr.size, NL.size)
         assert dLr.ndim==1 and dLr.size==NL.size
         assert Rref.ndim==1
         assert all([type(xx) is float for xx in [dXr,dY0r,dZ0r]])
@@ -832,7 +831,6 @@ def test13_LOS_PInOut():
         VperpOut, IOut= GG.LOS_Calc_PInOut_VesStruct(Ds, us, VP, VIn,
                                                      ves_lims=VL,
                                                      ves_type='Lin', test=True)
-    print("kpin =", kPIn)
     assert np.allclose(kPIn,np.concatenate((np.ones((3*N,)),
                                             2.*np.pi*np.ones((8,)) )),
                        equal_nan=True)
@@ -1831,8 +1829,7 @@ def test24_is_visible():
                                               lstruct_lims=[SL0,SL1,SL2],
                                               lstruct_normx=lsvinx,
                                               lstruct_normy=lsviny,
-                                              ves_type='Tor', test=True,
-                                              vis=True)
+                                              ves_type='Tor', test=True)
     assert np.allclose(is_vis, [True, True, False])
     distance = np.sqrt(np.sum((others - np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T)**2, axis=0))
     is_vis = GG.LOS_isVis_PtFromPts_VesStruct(pt0, pt1, pt2,
@@ -1850,8 +1847,7 @@ def test24_is_visible():
                                               lstruct_lims=[SL0,SL1,SL2],
                                               lstruct_normx=lsvinx,
                                               lstruct_normy=lsviny,
-                                              ves_type='Tor', test=True,
-                                              vis=True)
+                                              ves_type='Tor', test=True)
     assert np.allclose(is_vis, [True, True, False])
 
     pt_x = np.r_[7, 7.0, 0.0]
@@ -1876,10 +1872,7 @@ def test24_is_visible():
                                               lstruct_lims=[SL0,SL1,SL2],
                                               lstruct_normx=lsvinx,
                                               lstruct_normy=lsviny,
-                                              ves_type='Tor', test=True,
-                                              vis=True)
-    print("===================")
-    print(are_vis.flatten())
+                                              ves_type='Tor', test=True)
     assert np.allclose(are_vis.flatten(), [True, True, False,
                                            True, True, False,
                                            False, False, True])

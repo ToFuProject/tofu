@@ -221,13 +221,12 @@ cdef void is_visible_pt_vec(double pt0, double pt1, double pt2,
                                    double eps_uz, double eps_a,
                                    double eps_vz, double eps_b,
                                    double eps_plane, str ves_type,
-                                   bint forbid, bint vis,
+                                   bint forbid,
                                    bint test, int num_threads)
 
 cdef void is_vis_mask(double[::1] ind, double* k,
                       double[::1] coeff_inter_out,
-                      int npts,
-                      bint vis) nogil
+                      int npts) nogil
 
 cdef void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      double[:,::1] pts2, int npts2,
@@ -249,5 +248,5 @@ cdef void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      double eps_uz, double eps_a,
                                      double eps_vz, double eps_b,
                                      double eps_plane, str ves_type,
-                                     bint forbid, bint vis,
+                                     bint forbid,
                                      bint test, int num_threads)

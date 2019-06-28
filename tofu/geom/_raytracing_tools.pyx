@@ -473,11 +473,11 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
        where k is the index of edge impacted on the j-th sub structure of the
        structure number i. If the LOS impacted the vessel i=j=0
     forbid0 : bool
-       Should we forbid values behind vissible radius ? (see Rmin). If false,
+       Should we forbid values behind visible radius ? (see Rmin). If false,
        will test "hidden" part always, else, it will depend on the LOS and
        on forbidbis.
     forbidbis: bint
-       Should we forbid values behind vissible radius for each LOS ?
+       Should we forbid values behind visible radius for each LOS ?
     rmin : double
        Minimal radius of vessel to take into consideration
     rmin2 : double
@@ -797,7 +797,7 @@ cdef inline bint comp_inter_los_vpoly(const double[3] ray_orig,
        Maximum angle where the structure lives. If the structure
        is toroidally continous then lim_min = 0
     forbidbis: bint
-       Should we forbid values behind vissible radius for each LOS ?
+       Should we forbid values behind visible radius for each LOS ?
     upscaDp: double
        Scalar product between LOS' origin and direction
     upar2 : double
@@ -1326,7 +1326,6 @@ cdef inline void compute_inout_tot(const double[:, ::1] ray_orig,
                               double[::1] coeff_inter_in,
                               double[::1] vperp_out,
                               int[::1] ind_inter_out) :
-    print("in rt function")
     cdef Py_ssize_t ii, jj, kk
     cdef int npts_poly = ves_norm.shape[1]
     cdef int num_los = ray_orig.shape[1]
@@ -1348,10 +1347,8 @@ cdef inline void compute_inout_tot(const double[:, ::1] ray_orig,
     cdef double[2] lbounds_ves
     cdef double[2] lim_ves
     cdef long[::1] lstruct_nlim
-    print(">>> in rt function", ves_type)
     # ==========================================================================
     if ves_type == 'tor':
-        print("is toroidal.........", ves_type)
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None or sz_ves_lims == 0:
             are_limited = False
@@ -1463,7 +1460,6 @@ cdef inline void compute_inout_tot(const double[:, ::1] ray_orig,
             free(lsz_lim)
             free(llimits)
     else:
-        print("is cylindrical")
         # -- Cylindrical case --------------------------------------------------
         # .. if there are, we get the limits for the vessel ....................
         if ves_lims is None  or sz_ves_lims == 0:
@@ -1475,7 +1471,6 @@ cdef inline void compute_inout_tot(const double[:, ::1] ray_orig,
             lbounds_ves[0] = ves_lims[0]
             lbounds_ves[1] = ves_lims[1]
 
-        print("... here...")
         raytracing_inout_struct_lin(num_los, ray_orig, ray_vdir, npts_poly,
                                     &ves_poly[0][0], &ves_poly[1][0],
                                     &ves_norm[0][0], &ves_norm[1][0],
@@ -1483,7 +1478,6 @@ cdef inline void compute_inout_tot(const double[:, ::1] ray_orig,
                                     coeff_inter_in, coeff_inter_out,
                                     vperp_out, ind_inter_out, eps_plane,
                                     0, 0) # The vessel is strcuture 0,0
-        print(" out of raytracing function =", coeff_inter_in[0])
         # -- Treating the structures (if any) ----------------------------------
         if nstruct_tot > 0:
             ind_struct = 0
@@ -1524,7 +1518,6 @@ cdef inline void compute_inout_tot(const double[:, ::1] ray_orig,
                                                 eps_plane, ii+1, jj)
     free(lbounds)
     free(langles)
-    print("coeff in inout =", coeff_inter_in[0], coeff_inter_in[1], coeff_inter_in[2])
     return
 
 
@@ -1573,11 +1566,11 @@ cdef inline void raytracing_minmax_struct_tor(int num_los,
        with the global geometry (with ALL structures). If intersection at origin
        k = 0, if no intersection k = NAN
     forbid0 : bool
-       Should we forbid values behind vissible radius ? (see Rmin). If false,
+       Should we forbid values behind visible radius ? (see Rmin). If false,
        will test "hidden" part always, else, it will depend on the LOS and
        on forbidbis.
     forbidbis: bint
-       Should we forbid values behind vissible radius for each LOS ?
+       Should we forbid values behind visible radius for each LOS ?
     rmin : double
        Minimal radius of vessel to take into consideration
     rmin2 : double
@@ -1822,7 +1815,7 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                                    double eps_uz, double eps_a,
                                    double eps_vz, double eps_b,
                                    double eps_plane, str ves_type,
-                                   bint forbid, bint vis,
+                                   bint forbid,
                                    bint test, int num_threads):
     cdef array vperp_out = clone(array('d'), npts * 3, True)
     cdef array coeff_inter_in  = clone(array('d'), npts, True)
@@ -1839,8 +1832,6 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                                              format="d")
     # --------------------------------------------------------------------------
     # Initialization : creation of the rays between points pts and P
-    # TODO: benchmark the two following lines, to check which one is faster
-    # ray_orig_arr = np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T
     _bgt.tile_3_to_2d(pt0, pt1, pt2, npts, ray_orig)
     if k == None:
         dist_arr = <double*> malloc(npts*sizeof(double))
@@ -1864,33 +1855,24 @@ cdef inline void is_visible_pt_vec(double pt0, double pt1, double pt2,
                       forbid, num_threads,
                       coeff_inter_out, coeff_inter_in, vperp_out,
                       ind_inter_out)
-    print(coeff_inter_out[0], coeff_inter_out[1], coeff_inter_out[2])
     # --------------------------------------------------------------------------
-    # TODO: test this with loops and no numpy functions ?
     # Get ind
-    # indok = ~(np.isnan(k) | np.isnan(coeff_inter_out))
-    # if vis:
-    #     ind = np.zeros((npts,),dtype=bool)
-    #     ind[indok] = k[indok] < coeff_inter_out[indok]
-    # else:
-    #     ind = np.ones((npts,),dtype=bool)
-    #     ind[indok] = k[indok] > coeff_inter_out[indok]
     if k == None:
-        is_vis_mask(ind, dist_arr, coeff_inter_out, npts, vis)
+        is_vis_mask(ind, dist_arr, coeff_inter_out, npts)
         free(dist_arr)
     else:
-        is_vis_mask(ind, &k[0], coeff_inter_out, npts, vis)
+        is_vis_mask(ind, &k[0], coeff_inter_out, npts)
     return
 
 cdef inline void is_vis_mask(double[::1] ind, double* k,
                              double[::1] coeff_inter_out,
-                             int npts,
-                             bint vis) nogil:
+                             int npts) nogil:
     cdef int ii
     for ii in range(npts):
-        ind[ii] = 1
         if k[ii] > coeff_inter_out[ii]:
             ind[ii] = 0
+        else:
+            ind[ii] = 1
     return
 
 cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
@@ -1913,7 +1895,7 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                                      double eps_uz, double eps_a,
                                      double eps_vz, double eps_b,
                                      double eps_plane, str ves_type,
-                                     bint forbid, bint vis,
+                                     bint forbid,
                                      bint test, int num_threads):
     cdef np.ndarray[double, ndim=2, mode='c'] ray_orig_arr
     cdef np.ndarray[double, ndim=2, mode='c'] ray_vdir_arr
@@ -1928,7 +1910,6 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
     #     k = dist_arr
     # -- Defining parallel part ------------------------------------------------
     for ii in range(npts1):
-        print("ii =", ii)
         is_visible_pt_vec(pts1[0,ii], pts1[1,ii], pts1[2,ii],
                           pts2, npts2,
                           ves_poly, ves_norm,
@@ -1940,5 +1921,5 @@ cdef inline void are_visible_vec_vec(double[:, ::1] pts1, int npts1,
                           lnvert, nstruct_tot, nstruct_lim,
                           rmin, eps_uz, eps_a, eps_vz, eps_b,
                           eps_plane, ves_type,
-                          forbid, vis, test, num_threads)
+                          forbid, test, num_threads)
     return
