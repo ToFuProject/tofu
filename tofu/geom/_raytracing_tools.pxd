@@ -46,7 +46,7 @@ cdef bint inter_ray_aabb_box(const int[3] sign,
                              const double[3] inv_direction,
                              const double[6] bounds,
                              const double[3] ds,
-                             bint countin) nogil
+                             const bint countin) nogil
 
 # ==============================================================================
 # =  Raytracing basic tools: intersection ray and triangle (in 3d space)

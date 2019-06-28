@@ -309,7 +309,7 @@ cdef inline bint inter_ray_aabb_box(const int[3] sign,
                                     const double[3] inv_direction,
                                     const double[6] bounds,
                                     const double[3] ds,
-                                    bint countin) nogil:
+                                    const bint countin) nogil:
     """
     Computes intersection between a ray (LOS) and a axis aligned bounding
     box. It returns True if ray intersects box, else False.
@@ -630,6 +630,7 @@ cdef inline void raytracing_inout_struct_tor(const int num_los,
                         lim_is_none = lis_limited[ind_struct+jj] == 1
                         # We test if it is really necessary to compute the inter
                         # ie. we check if the ray intersects the bounding box
+
                         inter_bbox = inter_ray_aabb_box(sign_ray, invr_ray,
                                                         &lbounds[(ind_struct
                                                                   + jj)*6],
