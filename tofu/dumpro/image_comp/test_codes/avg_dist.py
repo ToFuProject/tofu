@@ -45,30 +45,23 @@ def get_distance(clus_center, clus_area, t_clusters, verb = True):
         #checking for frames without any clusters
         if clus_center[t] == []:
             continue
-        
+        frame_dist = []
         #getting cluster in frame t
         for i in range(len(clus_center[t])):
-            
+            #getting the center of ith cluster
             center1 = clus_center[t][i]
-                
-            #getting cluster in frame t+1
+            #getting all the clusters in frame t+1
             center2 = np.asarray(clus_center[t+1])
-            ind = area2 > 0.
-            if not np.any(ind):
-                #area is zero ignore
-                continue
-            
-            # comparing area betweem two clusters
-            #difference in area threshold
-            ind = ind 
-            # calulating distance
-            dist = np.hypot(center2[ind,0]-center1[0],center2[ind,1]-center1[1])
+
+            # calulating distance for each cluster in 
+            dist = np.hypot(center2[:,0]-center1[0],center2[:,1]-center1[1])
+            print(dist)
             # adding to cluster distance list
-            clus_dist.append(dist)
-           
+            frame_dist[i].append(dist)
+        clus_dist[t].append(frame_dist)
             
 #            for j in range(len(clus_center[t+1])):
-#                if clus_center[t+1] != []:
+#                if clus_center[t+1] != []
 #                    center2 = clus_center[t+1][j]
 #                    #comparing area betweem two clusters
 #                    area2 = (clus_area[t+1][j])
@@ -84,19 +77,19 @@ def get_distance(clus_center, clus_area, t_clusters, verb = True):
     #dynamic printing
     stdout.write("\n")
     stdout.flush()
-    #converting clus_dist to array                    
-    clus_dist = np.array(clus_dist)
-    #calculating average distance
-    avg_dist = dist.mean()
-    #getting the maximum distance between two clusters
-    maxi = clus_dist.max()
-    #getting the minimum distance between two clusters
-    mini = clus_dist.min()
-    #calculating standard deviation
-    std_dev = clus_dist.std()
-    avg_dist_big = avg_dist + 2*std_dev
-    if verb == True:
-        print('Average distance calculated...')
+#    #converting clus_dist to array                    
+#    clus_dist = np.array(clus_dist)
+#    #calculating average distance
+#    avg_dist = dist.mean()
+#    #getting the maximum distance between two clusters
+#    maxi = clus_dist.max()
+#    #getting the minimum distance between two clusters
+#    mini = clus_dist.min()
+#    #calculating standard deviation
+#    std_dev = clus_dist.std()
+#    avg_dist_big = avg_dist + 2*std_dev
+#    if verb == True:
+#        print('Average distance calculated...')
                     
-    return avg_dist, avg_dist_big
-
+#    return avg_dist, avg_dist_big
+    return clus_dist
