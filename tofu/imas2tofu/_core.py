@@ -294,50 +294,50 @@ class MultiIDSLoader(object):
                             'units':'ph/s/(m2.sr)/m'}},
               }
 
-    _didsdiag = {'magnetics': {'data':'DataCam1D',
-                               'geom':False,
+    _didsdiag = {'magnetics': {'datacls':'DataCam1D',
+                               'geomcls':False,
                                'sig':{'t':'t',
                                       'data':'bpol_B'}},
-                 'barometry':{'data':'DataCam1D',
-                              'geom':False,
+                 'barometry':{'datacls':'DataCam1D',
+                              'geomcls':False,
                               'sig':{'t':'t',
                                      'data':'p'}},
-                'ece':{'data':'DataCam1D',
-                       'geom':False,
+                'ece':{'datacls':'DataCam1D',
+                       'geomcls':False,
                        'sig':{'t':'t',
                               'X':'R',
                               'data':'Te'}},
-                'reflectometer_profile':{'data':'DataCam1D',
-                                         'geom':False,
+                'reflectometer_profile':{'datacls':'DataCam1D',
+                                         'geomcls':False,
                                          'sig':{'t':'t',
                                                 'X':'R',
                                                 'data':'ne'}},
-                'interferometer':{'data':'DataCam1D',
-                                  'geom':'CamLOS1D',
+                'interferometer':{'datacls':'DataCam1D',
+                                  'geomcls':'CamLOS1D',
                                   'sig':{'t':'t',
                                          'data':'ne_integ'}},
-                'bolometer':{'data':'DataCam1D',
-                             'geom':'CamLOS1D',
+                'bolometer':{'datacls':'DataCam1D',
+                             'geomcls':'CamLOS1D',
                              'sig':{'t':'t',
                                     'data':'power'}},
-                'soft_x_rays':{'data':'DataCam1D',
-                               'geom':'CamLOS1D',
+                'soft_x_rays':{'datacls':'DataCam1D',
+                               'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
                                       'data':'power'}},
-                'spectrometer_visible':{'data':'DataCam1DSpectral',
-                                        'geom':'CamLOS1D',
+                'spectrometer_visible':{'datacls':'DataCam1DSpectral',
+                                        'geomcls':'CamLOS1D',
                                         'sig':{'t':'t',
                                                'lamb':'lamb',
                                                'data':'spectra'}},
-                'bremsstrahlung_visible':{'data':'DataCam1D',
-                                          'geom':'CamLOS1D',
+                'bremsstrahlung_visible':{'datacls':'DataCam1D',
+                                          'geomcls':'CamLOS1D',
                                           'sig':{'t':'t',
                                                  'data':'radiance'}}}
 
     _lidsdiag = sorted(_didsdiag.keys())
     _lidslos = list(_lidsdiag)
     for ids_ in _lidsdiag:
-        if _didsdiag[ids_]['geom'] not in ['CamLOS1D']:
+        if _didsdiag[ids_]['geomcls'] not in ['CamLOS1D']:
             _lidslos.remove(ids_)
 
     _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
@@ -1985,7 +1985,7 @@ class MultiIDSLoader(object):
                     msg += "    - unique ids: %s"%str(dsig.keys())
                     msg += "    - unique non-t, non-radius 1d sig: %s"%str(lsplot)
                     raise Exception(msg)
-                plot_sig = lsplot[0]
+                plot_sig = lsplot
             if type(plot_sig) is str:
                 plot_sig = [plot_sig]
             if plot_X is None:
@@ -1999,7 +1999,9 @@ class MultiIDSLoader(object):
                     msg += "    - unique ids: %s"%str(dsig.keys())
                     msg += "    - unique non-t, 1d radius: %s"%str(lsplot)
                     raise Exception(msg)
-                plot_X = lsplot[0]
+                plot_X = lsplot
+            if type(plot_X) is str:
+                plot_X = [plot_X]
 
         # lids
         lids = sorted(dsig.keys())
@@ -2065,8 +2067,8 @@ class MultiIDSLoader(object):
                     if plot:
                         if ss in plot_sig:
                             plot_sig[plot_sig.index(ss)] = name
-                        if ss == plot_X:
-                            plot_X = name
+                        if ss in plot_X:
+                            plot_X[plot_X.index(ss)] = name
 
             # d2d and dmesh
             lsig = [k for k in dsig[ids] if '2d' in k]
@@ -2139,7 +2141,7 @@ class MultiIDSLoader(object):
             plasma = tfd.Plasma2D( **plasma )
             if plot == True:
                 if len(plot_sig) == 1:
-                    plasma.plot(plot_sig[0], X=plot_X)
+                    plasma.plot(plot_sig[0], X=plot_X[0])
                 else:
                     plasma.plot_combine(plot_sig, X=plot_X)
 
@@ -2242,8 +2244,8 @@ class MultiIDSLoader(object):
         return cam
 
 
-    def _checkformat_Data_dsig(self, ids=None, dsig=None, mainsig=None,
-                               data=None, geom=None):
+    def _checkformat_Data_dsig(self, ids=None, dsig=None, data=None, X=None,
+                               datacls=None, geomcls=None):
 
         # Check ids
         if ids not in self._dids.keys():
@@ -2252,31 +2254,34 @@ class MultiIDSLoader(object):
 
         if ids not in self._lidsdiag:
             msg = "Requested ids is not pre-tabulated !\n"
-            msg = "  => Be careful with args (dsig, data, geom)"
+            msg = "  => Be careful with args (dsig, datacls, geomcls)"
             warnings.warn(msg)
         else:
-            if data is None:
-                data = self._didsdiag[ids]['data']
-            if geom is None:
-                geom = self._didsdiag[ids]['geom']
+            if datacls is None:
+                datacls = self._didsdiag[ids]['datacls']
+            if geomcls is None:
+                geomcls = self._didsdiag[ids]['geomcls']
             if dsig is None:
                 dsig = self._didsdiag[ids]['sig']
-        if mainsig is not None:
-            assert type(mainsig) is str
-            dsig['data'] = mainsig
+        if data is not None:
+            assert type(data) is str
+            dsig['data'] = data
+        if X is not None:
+            assert type(X) is str
+            dsig['X'] = X
 
         # Check data and geom
         import tofu.geom as tfg
         import tofu.data as tfd
 
-        if data is None:
-            data = 'DataCam1D'
+        if datacls is None:
+            datacls = 'DataCam1D'
         ldata = [kk for kk in dir(tfd) if 'DataCam' in kk]
-        if not data in ldata:
-            msg = "Arg data must be in %s"%str(ldata)
+        if not datacls in ldata:
+            msg = "Arg datacls must be in %s"%str(ldata)
             raise Exception(msg)
         lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
-        if geom not in [False] + lgeom:
+        if geomcls not in [False] + lgeom:
             msg = "Arg geom must be in %s"%str([False]+lgeom)
             raise Exception(msg)
 
@@ -2299,18 +2304,19 @@ class MultiIDSLoader(object):
             if v in lok:
                 dout[k] = v
 
-        return data, geom, dout
+        return datacls, geomcls, dout
 
 
 
-    def to_Data(self, ids=None, dsig=None, mainsig=None, tlim=None,
+    def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
                 indch=None, Name=None, occ=None, config=None,
-                equilibrium=None, t0=None, data=None, geom=None, plot=True):
+                equilibrium=None, t0=None, datacls=None, geomcls=None, plot=True):
 
         # dsig
-        data, geom, dsig = self._checkformat_Data_dsig(ids, dsig,
-                                                       mainsig=mainsig,
-                                                       data=data, geom=geom)
+        datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
+                                                             data=data, X=X,
+                                                             datacls=datacls,
+                                                             geomcls=geomcls)
         if Name is None:
             Name = 'custom'
 
@@ -2336,13 +2342,13 @@ class MultiIDSLoader(object):
         indchanstr = self._dshort[ids][dsig['data']]['str'].index('[chan]')
         chanstr = self._dshort[ids][dsig['data']]['str'][:indchanstr]
         nchMax = len(getattr(self._dids[ids]['ids'][0], chanstr))
-        if geom != False:
+        if geomcls != False:
             Etendues, Surfaces = None, None
             if config is None:
                 msg = "A config must be provided to compute the geometry !"
                 raise Exception(msg)
 
-            if 'LOS' in geom:
+            if 'LOS' in geomcls:
                 lk = ['los_ptsRZPhi','etendue','surface']
                 lkok = set(self._dshort[ids].keys())
                 lkok = lkok.union(self._dcomp[ids].keys())
@@ -2362,10 +2368,10 @@ class MultiIDSLoader(object):
                     Surfaces = out['surface']
 
             import tofu.geom as tfg
-            cam = getattr(tfg, geom)(dgeom=dgeom, config=config,
-                                     Etendues=Etendues, Surfaces=Surfaces,
-                                     Name=Name, Diag=ids, Exp=Exp,
-                                     dchans=dchans)
+            cam = getattr(tfg, geomcls)(dgeom=dgeom, config=config,
+                                        Etendues=Etendues, Surfaces=Surfaces,
+                                        Name=Name, Diag=ids, Exp=Exp,
+                                        dchans=dchans)
             cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
         # data
@@ -2505,9 +2511,9 @@ class MultiIDSLoader(object):
 
         import tofu.data as tfd
         conf = None if cam is not None else config
-        Data = getattr(tfd, data)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
-                                  lCam=cam, config=conf, dextra=dextra,
-                                  dchans=dchans, **dins)
+        Data = getattr(tfd, datacls)(Name=Name, Diag=ids, Exp=Exp, shot=shot,
+                                     lCam=cam, config=conf, dextra=dextra,
+                                     dchans=dchans, **dins)
 
         Data.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
@@ -2587,7 +2593,8 @@ def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
 
 
 def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
-              ids=None, tlim=None, dsig=None, mainsig=None, indch=None,
+              ids=None, datacls=None, geomcls=None,
+              tlim=None, dsig=None, data=None, X=None, indch=None,
               config=None, occ=None, Name=None,
               equilibrium=True, t0=None, plot=True):
 
@@ -2609,7 +2616,8 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
     didd.add_ids(ids=lids, get=True)
 
     return didd.to_Data(ids=ids, Name=Name, tlim=tlim, t0=t0,
-                        dsig=dsig, mainsig=mainsig, indch=indch,
+                        datacls=datacls, geomcls=geomcls,
+                        dsig=dsig, data=data, X=X, indch=indch,
                         config=config, occ=occ, equilibrium=equilibrium, plot=plot)
 
 
