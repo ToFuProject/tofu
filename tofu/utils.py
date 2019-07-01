@@ -697,8 +697,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Prepare plot_ and complement ids
     lPla = [ii for ii in range(0,nids) if out[ii] == 'Plasma2D']
+    lCam = [ii for ii in range(0,nids) if out[ii] == 'Cam']
     lDat = [ii for ii in range(0,nids) if out[ii] == 'Data']
-    nPla, nDat = len(lPla), len(lDat)
+    nPla, nCam, nDat = len(lPla), len(lCam), len(lDat)
     if nDat > 1:
         plot_ = False
     else:
@@ -706,9 +707,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
     # Complement ids
     lids = list(ids)
-    if nDat > 0 or nPla > 0:
+    if nDat > 0 or nCam > 0 or nPla > 0:
         lids.append('wall')
-        if t0 not in [None, False]:
+        if t0 not in [None, False] and (nDat > 0 or nPla > 0):
             lids.append('pulse_schedule')
     lids = list(set(lids))
 

@@ -1070,7 +1070,7 @@ def GLOS_plot_Sino(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt,
                    Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
                    Leg=None, dL=_def.LOSMImpd, dVes=_def.TorPFilld,
                    dLeg=_def.TorLegd, ind=None, multi=False,
-                   draw=True, fs=None, wintit=None, Test=True):
+                   draw=True, fs=None, tit=None, wintit=None, Test=True):
     if Test:
         assert Proj in ['Cross','3d'], "Arg Proj must be in ['Pol','3d'] !"
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"

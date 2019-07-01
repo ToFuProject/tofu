@@ -52,7 +52,7 @@ __all__ = ['PlasmaDomain', 'Ves', 'PFC', 'CoilPF', 'CoilCS', 'Config',
 _arrayorder = 'C'
 _Clock = False
 _Type = 'Tor'
-
+_NUM_THREADS = 10
 
 
 
@@ -3945,7 +3945,7 @@ class Rays(utils.ToFuObject):
         return pts
 
     def get_sample(self, res, resMode='abs', DL=None, method='sum', ind=None,
-                  compact=False):
+                   pts=False, compact=True, num_threads=_NUM_THREADS, Test=True):
         """ Return a linear sampling of the LOS
 
         The LOS is sampled into a series a points and segments lengths
@@ -3955,16 +3955,18 @@ class Rays(utils.ToFuObject):
 
         Parameters
         ----------
-        res:     float
+        res:        float
             Desired resolution
-        resMode: str
+        resMode:    str
             Flag indicating res should be understood as:
                 - 'abs':    an absolute distance in meters
                 - 'rel':    a relative distance (fraction of the LOS length)
-        DL:     None / iterable
+        DL:         None / iterable
             The fraction [L1;L2] of the LOS that should be sampled, where
             L1 and L2 are distances from the starting point of the LOS (LOS.D)
-        method: str
+            DL can be an iterable of len()==2 (identical to all los), or a
+            (2,nlos) array
+        method:     str
             Flag indicating which to use for sampling:
                 - 'sum':    the LOS is sampled into N segments of equal length,
                             where N is the smallest int such that:
@@ -3980,15 +3982,30 @@ class Rays(utils.ToFuObject):
                                 * segment length <= resolution(res,resMode)
                                 * N = 2^k + 1
                             The points returned are the egdes of each segment
+        ind:        None / iterable of int
+            indices of the LOS to be sampled
+        pts:        bool
+            Flag indicating whether to return only the abscissa parameter k
+            (False) or the 3D pts coordinates (True)
+        compact:    bool
+            Flag incating whether to retrun the sampled pts of all los in a
+            single concatenated array (True) or splitted into
+            a list of nlos arrays)
 
         Returns
         -------
-        pts:    np.ndarray
-            A (3,NP) array of NP points along the LOS in (X,Y,Z) coordinates
         k:      np.ndarray
-            A (NP,) array of the points distances from the LOS starting point
-        reseff: float
-            The effective resolution (<= res input), as an absolute distance
+            if pts == False:
+                A (npts,) array of the abscissa parameters
+                  (i.e.: points distances from the LOS starting points)
+                In order to get the 3D cartesian coordinates of pts do:
+            if pts == True:
+                A (3,npts) array of the sampled points 3D cartesian coordinates
+        reseff: np.ndarray
+            A (nlos,) array of the effective resolution (<= res input), as an absolute distance
+        ind:    np.ndarray
+            A (nlos-1,) array of integere indices (where to split k to separate
+            the points of each los). e.g.: lk = np.split(k,ind)
 
         """
         ind = self._check_indch(ind)
@@ -4023,15 +4040,15 @@ class Rays(utils.ToFuObject):
 
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Todo : reverse in _GG : make compact default for faster computation !
-        lpts, k, reseff = _GG.LOS_get_sample(Ds, us, res, DL,
-                                             dmethod=resMode, method=method)
-        if compact:
-            pts = np.concatenate(lpts, axis=1)
-            ind = np.array([pt.shape[1] for pt in lpts], dtype=int)
-            ind = np.cumsum(ind)[:-1]
-            return pts, k, reseff, ind
-        else:
-            return lpts, k, reseff
+        k, reseff, ind = _GG.LOS_get_sample(Ds, us, res, DL,
+                                            dmethod=resMode, method=method,
+                                            num_threads=num_threads, Test=Test)
+        if pts:
+            nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+            k = np.repeat(Ds, nbrep, axis=1) + k[None,:]*np.repeat(us, nbrep, axis=1)
+        if not compact:
+            k = np.split(k,ind, axis=-1)
+        return k, reseff, ind
 
     def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None):
 
@@ -4224,10 +4241,10 @@ class Rays(utils.ToFuObject):
         return indok, Ds, us, DL, E
 
 
-    def _calc_sig_postformat(self, sig, Brightness=True, dataname=None, t=None,
-                             E=None, units=None, plot=True,
-                             fs=None, dmargin=None, wintit=None, invert=True,
-                             draw=True, connect=True):
+    def _calc_signal_postformat(self, sig, Brightness=True, dataname=None, t=None,
+                                E=None, units=None, plot=True,
+                                fs=None, dmargin=None, wintit=None, invert=True,
+                                draw=True, connect=True):
         if Brightness is False:
             if dataname is None:
                 dataname = r"LOS-integral x Etendue"
@@ -4304,8 +4321,8 @@ class Rays(utils.ToFuObject):
         """
 
         # Format input
-        indok, Ds, us, DL = self._calc_sig_preformat(ind=ind, out=out,
-                                                     Brightness=Brightness)
+        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, out=out,
+                                                        Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4321,35 +4338,35 @@ class Rays(utils.ToFuObject):
             sig[:,indok] = s
 
         # Format output
-        return self._calc_sig_postformat(sig, Brightness=Brightness,
-                                         dataname=dataname, t=t, E=E,
-                                         units=units, plot=plot,
-                                         fs=fs, dmargin=dmargin, wintit=wintit,
-                                         invert=invert, draw=draw,
-                                         connect=connect)
+        return self._calc_signal_postformat(sig, Brightness=Brightness,
+                                            dataname=dataname, t=t, E=E,
+                                            units=units, plot=plot,
+                                            fs=fs, dmargin=dmargin, wintit=wintit,
+                                            invert=invert, draw=draw,
+                                            connect=connect)
 
 
-    def calc_signal_from_Plasma2D(self, plasma2d, quant=None, Brightness=True,
+    def calc_signal_from_Plasma2D(self, plasma2d, quant=None, t=None, ref=None,
+                                  Brightness=True, interp_t='nearest',
+                                  interp_space='nearest', fill_value=np.nan,
                                   res=0.005, DL=None, resMode='abs', method='sum',
                                   ind=None, out=object, plot=True, dataname=None,
                                   fs=None, dmargin=None, wintit=None, invert=True,
                                   units=None, draw=True, connect=True):
         # Format input
-        indok, Ds, us, DL = self._calc_sig_preformat(ind=ind, out=out,
-                                                     Brightness=Brightness)
+        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, out=out,
+                                                        Brightness=Brightness)
 
         if Ds is None:
             return None
 
         # Get ptsRZ along LOS // Which to choose ???
-        self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
-                        compact=False)
-        pts = _GG.LOS_get_sample(Ds, us, res,
-                                 DL, dmethod=resMode,
-                                 method=method, Test=True, num_threads=16)
+        pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
+                                              compact=True, pts=True)
+        pts = np.array([np.hypot(pts[0,:],pts[1,:]), pts[2,:]])
 
         # Get quantity values at ptsRZ
-        val, t = plasma2d.interp_pts2profile(quant, ptsRZ=None, t=t,
+        val, t = plasma2d.interp_pts2profile(quant, ptsRZ=pts, t=t,
                                              ref=None, interp_t=interp_t,
                                              interp_space=interp_space,
                                              fill_value=fill_value)
@@ -4365,9 +4382,9 @@ class Rays(utils.ToFuObject):
             sig[:,indok] = s
 
         # Format output
-        return self._calc_sig_postformat(sig, Brightness=Brightness,
-                                         dataname=dataname, t=t, E=E,
-                                         units=units, plot=plot,
+        return self._calc_signal_postformat(sig, Brightness=Brightness,
+                                            dataname=dataname, t=t, E=E,
+                                            units=units, plot=plot,
                                          fs=fs, dmargin=dmargin, wintit=wintit,
                                          invert=invert, draw=draw,
                                          connect=connect)
