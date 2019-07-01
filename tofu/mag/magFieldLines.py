@@ -74,6 +74,14 @@ class MagFieldLines:
     -0.0037010956581712776
     >>> test.trace_mline([2.7, 0., 0.])['z'][10]
     0.000373472578674799
+
+    Call method with specific time (t=34 seconds in this case)
+    >>> test.trace_mline([2.7, 0., 0.], 34)[0]['r'][10]
+    2.700041665466963
+    >>> test.trace_mline([2.7, 0., 0.], 34)[0]['p'][10]
+    -0.0037010956581712776
+    >>> test.trace_mline([2.7, 0., 0.], 34)[0]['z'][10]
+    0.000373472578674799
     '''
     def __init__(self, shot, time, run=0, occ=0, user='imas_public', machine='west'):
 
@@ -189,14 +197,14 @@ class MagFieldLines:
         ds  = np.linspace(0, s, int(s/stp))
 
         if (time is None):
-            if direction=='FWD':
-                sol=spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
-                                    method='RK23', t_eval=ds,
-                                    events=self.hit_wall_circ)
-            elif direction=='REV':
-                sol=spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
-                                    method='RK23', t_eval=ds,
-                                    events=self.hit_wall_circ)
+            if (direction=='FWD'):
+                sol = spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
+                                      method='RK23', t_eval=ds,
+                                      events=self.hit_wall_circ)
+            elif (direction=='REV'):
+                sol = spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
+                                      method='RK23', t_eval=ds,
+                                      events=self.hit_wall_circ)
             sgf = sol.t
             rgf = sol.y[0]
             pgf = sol.y[2]
@@ -204,7 +212,7 @@ class MagFieldLines:
             ygf = rgf*np.sin(pgf)
             zgf = sol.y[1]
             if len(sgf)<len(ds):
-                colpt = [rgf[-1],zgf[-1],pgf[-1]]
+                colpt = [rgf[-1], zgf[-1], pgf[-1]]
             else:
                 colpt = []
             return {'s':  sgf,
@@ -217,49 +225,65 @@ class MagFieldLines:
         else:
             ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
 
-            br_intp_t = np.atleast_1d(np.squeeze(self.f_intp_br(ar_time)))
-            bt_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bt(ar_time)))
-            bz_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bz(ar_time)))
+            br_intp_t = np.atleast_2d(np.squeeze(self.f_intp_br(ar_time)))
+            bt_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bt(ar_time)))
+            bz_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bz(ar_time)))
 
             # !!!!!!!!!!!!!!!!!!!!!
             # HARD CODED CORRECTION
             bt_intp_t *= -1
             # !!!!!!!!!!!!!!!!!!!!!
 
-            self.br_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, br_intp_t)
-            self.bt_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, bt_intp_t)
-            self.bz_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, bz_intp_t)
-
             # Interpolate current
-            self.itor_intp_t = np.interp(ar_time, self.t_itor[:, 0], self.itor[:, 0])
-            self.b0_intp_t   = np.interp(ar_time, self.equi.time[self.mask], \
-                                         self.equi.vacuum_toroidal_field.b0[self.mask])
+            itor_intp_t_vect = np.interp(ar_time, self.t_itor[:, 0], \
+                                         self.itor[:, 0])
+            b0_intp_t_vect   = np.interp(ar_time, self.equi.time[self.mask], \
+                                  self.equi.vacuum_toroidal_field.b0[self.mask])
 
-            if direction=='FWD':
-                sol=spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
-                                    method='RK23', t_eval=ds,
-                                    events=self.hit_wall_circ)
-            elif direction=='REV':
-                sol=spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
-                                    method='RK23', t_eval=ds,
-                                    events=self.hit_wall_circ)
-            sgf = sol.t
-            rgf = sol.y[0]
-            pgf = sol.y[2]
-            xgf = rgf*np.cos(pgf)
-            ygf = rgf*np.sin(pgf)
-            zgf = sol.y[1]
-            if len(sgf)<len(ds):
-                colpt = [rgf[-1],zgf[-1],pgf[-1]]
-            else:
-                colpt = []
-            return {'s':  sgf,
-                    'r':  rgf,
-                    'z':  zgf,
-                    'p':  pgf,
-                    'x':  xgf,
-                    'y':  ygf,
-                    'cp': colpt}
+            outMagLine = []
+
+            for ii in range(ar_time.size):
+                self.br_lin_intp = \
+                  interpolate.LinearNDInterpolator(self.delaunay, br_intp_t[ii])
+                self.bt_lin_intp = \
+                  interpolate.LinearNDInterpolator(self.delaunay, bt_intp_t[ii])
+                self.bz_lin_intp = \
+                  interpolate.LinearNDInterpolator(self.delaunay, bz_intp_t[ii])
+
+                # Interpolated current and b0
+                self.itor_intp_t = itor_intp_t_vect[ii]
+                self.b0_intp_t   = b0_intp_t_vect[ii]
+
+                if (direction=='FWD'):
+                    sol = spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
+                                          method='RK23', t_eval=ds,
+                                          events=self.hit_wall_circ)
+                elif (direction=='REV'):
+                    sol = spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
+                                          method='RK23', t_eval=ds,
+                                          events=self.hit_wall_circ)
+                sgf = sol.t
+                rgf = sol.y[0]
+                pgf = sol.y[2]
+                xgf = rgf*np.cos(pgf)
+                ygf = rgf*np.sin(pgf)
+                zgf = sol.y[1]
+
+                if len(sgf)<len(ds):
+                    colpt = [rgf[-1], zgf[-1], pgf[-1]]
+                else:
+                    colpt = []
+
+                outMagLine.append({'s':  sgf, \
+                                   'r':  rgf, \
+                                   'z':  zgf, \
+                                   'p':  pgf, \
+                                   'x':  xgf, \
+                                   'y':  ygf, \
+                                   'cp': colpt, \
+                                   'time': ar_time[ii]})
+
+            return outMagLine
 
     def mfld3dcylfwd(self, s, state):
         '''
