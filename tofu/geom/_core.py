@@ -4165,45 +4165,7 @@ class Rays(utils.ToFuObject):
 
         return kIn, kOut
 
-
-    def calc_signal(self, ff, t=None, ani=None, fkwdargs={}, Brightness=True,
-                    res=0.005, DL=None, resMode='abs', method='sum',
-                    ind=None, out=object, plot=True, dataname=None,
-                    fs=None, dmargin=None, wintit=None, invert=True,
-                    units=None, draw=True, connect=True):
-        """ Return the line-integrated emissivity
-
-        Beware, by default, Brightness=True and it is only a line-integral !
-
-        Indeed, to get the received power, you need an estimate of the Etendue
-        (previously set using self.set_Etendues()) and use Brightness=False.
-
-        Hence, if Brightness=True and if
-        the emissivity is provided in W/m3 (resp. W/m3/sr),
-        => the method returns W/m2 (resp. W/m2/sr)
-        The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,
-
-        The integral can be computed using three different methods:
-            - 'sum':    A numpy.sum() on the local values (x segments lengths)
-            - 'simps':  using :meth:`scipy.integrate.simps`
-            - 'romb':   using :meth:`scipy.integrate.romb`
-
-        Except ff, arguments common to :meth:`~tofu.geom.LOS.get_sample`
-
-        Parameters
-        ----------
-        ff :    callable
-            The user-provided
-
-        Returns
-        -------
-        sig :   np.ndarray
-            The computed signal, a 1d or 2d array depending on whether a time
-            vector was provided.
-        units:  str
-            Units of the result
-
-        """
+    def _calc_signal_preformat(self, ind=None, out=object, Brightness=True):
         msg = "Arg out must be in [object,np.ndarray]"
         assert out in [object,np.ndarray], msg
         assert type(Brightness) is bool, "Arg Brightness must be a bool !"
@@ -4257,17 +4219,15 @@ class Rays(utils.ToFuObject):
                 DL = DL.reshape((2,1))
             Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
             DL = np.ascontiguousarray(DL)
-            # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
-            # Exclude Rays not seeing the plasma
-            s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
-                                    dmethod=resMode, method=method,
-                                    t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
-            if t is None or len(t)==1:
-                sig[indok] = s
-            else:
-                sig[:,indok] = s
+        else:
+            Ds, us, DL = None, None, None
+        return indok, Ds, us, DL, E
 
-        # Format output
+
+    def _calc_sig_postformat(self, sig, Brightness=True, dataname=None, t=None,
+                             E=None, units=None, plot=True,
+                             fs=None, dmargin=None, wintit=None, invert=True,
+                             draw=True, connect=True):
         if Brightness is False:
             if dataname is None:
                 dataname = r"LOS-integral x Etendue"
@@ -4301,6 +4261,118 @@ class Rays(utils.ToFuObject):
             return osig
         else:
             return sig, units
+
+
+
+    def calc_signal(self, ff, t=None, ani=None, fkwdargs={}, Brightness=True,
+                    res=0.005, DL=None, resMode='abs', method='sum',
+                    ind=None, out=object, plot=True, dataname=None,
+                    fs=None, dmargin=None, wintit=None, invert=True,
+                    units=None, draw=True, connect=True):
+        """ Return the line-integrated emissivity
+
+        Beware, by default, Brightness=True and it is only a line-integral !
+
+        Indeed, to get the received power, you need an estimate of the Etendue
+        (previously set using self.set_Etendues()) and use Brightness=False.
+
+        Hence, if Brightness=True and if
+        the emissivity is provided in W/m3 (resp. W/m3/sr),
+        => the method returns W/m2 (resp. W/m2/sr)
+        The line is sampled using :meth:`~tofu.geom.LOS.get_sample`,
+
+        The integral can be computed using three different methods:
+            - 'sum':    A numpy.sum() on the local values (x segments lengths)
+            - 'simps':  using :meth:`scipy.integrate.simps`
+            - 'romb':   using :meth:`scipy.integrate.romb`
+
+        Except ff, arguments common to :meth:`~tofu.geom.LOS.get_sample`
+
+        Parameters
+        ----------
+        ff :    callable
+            The user-provided
+
+        Returns
+        -------
+        sig :   np.ndarray
+            The computed signal, a 1d or 2d array depending on whether a time
+            vector was provided.
+        units:  str
+            Units of the result
+
+        """
+
+        # Format input
+        indok, Ds, us, DL = self._calc_sig_preformat(ind=ind, out=out,
+                                                     Brightness=Brightness)
+
+        if Ds is None:
+            return None
+
+        # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
+        # Exclude Rays not seeing the plasma
+        s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
+                                dmethod=resMode, method=method,
+                                t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
+        if t is None or len(t)==1:
+            sig[indok] = s
+        else:
+            sig[:,indok] = s
+
+        # Format output
+        return self._calc_sig_postformat(sig, Brightness=Brightness,
+                                         dataname=dataname, t=t, E=E,
+                                         units=units, plot=plot,
+                                         fs=fs, dmargin=dmargin, wintit=wintit,
+                                         invert=invert, draw=draw,
+                                         connect=connect)
+
+
+    def calc_signal_from_Plasma2D(self, plasma2d, quant=None, Brightness=True,
+                                  res=0.005, DL=None, resMode='abs', method='sum',
+                                  ind=None, out=object, plot=True, dataname=None,
+                                  fs=None, dmargin=None, wintit=None, invert=True,
+                                  units=None, draw=True, connect=True):
+        # Format input
+        indok, Ds, us, DL = self._calc_sig_preformat(ind=ind, out=out,
+                                                     Brightness=Brightness)
+
+        if Ds is None:
+            return None
+
+        # Get ptsRZ along LOS // Which to choose ???
+        self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
+                        compact=False)
+        pts = _GG.LOS_get_sample(Ds, us, res,
+                                 DL, dmethod=resMode,
+                                 method=method, Test=True, num_threads=16)
+
+        # Get quantity values at ptsRZ
+        val, t = plasma2d.interp_pts2profile(quant, ptsRZ=None, t=t,
+                                             ref=None, interp_t=interp_t,
+                                             interp_space=interp_space,
+                                             fill_value=fill_value)
+        # Integrate
+
+
+        s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
+                                dmethod=resMode, method=method,
+                                t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
+        if t is None or len(t)==1:
+            sig[indok] = s
+        else:
+            sig[:,indok] = s
+
+        # Format output
+        return self._calc_sig_postformat(sig, Brightness=Brightness,
+                                         dataname=dataname, t=t, E=E,
+                                         units=units, plot=plot,
+                                         fs=fs, dmargin=dmargin, wintit=wintit,
+                                         invert=invert, draw=draw,
+                                         connect=connect)
+
+
 
     def plot(self, lax=None, proj='all', Lplot=_def.LOSLplot, element='L',
              element_config='P', Leg='', dL=None, dPtD=_def.LOSMd,
