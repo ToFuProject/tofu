@@ -56,7 +56,9 @@ class MagFieldLines:
     trace_mline(init_state, direction='FWD')
         returns trace
     plot_trace(trace)
+        2D plots of traced magnetic field line
     plot_trace_3D(trace)
+        3D plot of traced magnetic field line
 
     Examples
     --------
@@ -129,21 +131,21 @@ class MagFieldLines:
         self.delaunay = scipy.spatial.Delaunay(self.points)
 
         # Time interpolation
-        f_intp_br = interpolate.interp1d(self.equi.time[self.mask], \
-                      self.equiDict['b_field_r'][self.mask, :], axis=0, \
-                      bounds_error=False)
-        f_intp_bt = interpolate.interp1d(self.equi.time[self.mask], \
-                      self.equiDict['b_field_tor'][self.mask, :], axis=0, \
-                      bounds_error=False)
-        f_intp_bz = interpolate.interp1d(self.equi.time[self.mask], \
-                      self.equiDict['b_field_z'][self.mask, :], axis=0, \
-                      bounds_error=False)
+        self.f_intp_br = interpolate.interp1d(self.equi.time[self.mask], \
+                           self.equiDict['b_field_r'][self.mask, :], axis=0, \
+                           bounds_error=False)
+        self.f_intp_bt = interpolate.interp1d(self.equi.time[self.mask], \
+                           self.equiDict['b_field_tor'][self.mask, :], axis=0, \
+                           bounds_error=False)
+        self.f_intp_bz = interpolate.interp1d(self.equi.time[self.mask], \
+                           self.equiDict['b_field_z'][self.mask, :], axis=0, \
+                           bounds_error=False)
 
         ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
 
-        br_intp_t = np.atleast_1d(np.squeeze(f_intp_br(ar_time)))
-        bt_intp_t = np.atleast_1d(np.squeeze(f_intp_bt(ar_time)))
-        bz_intp_t = np.atleast_1d(np.squeeze(f_intp_bz(ar_time)))
+        br_intp_t = np.atleast_1d(np.squeeze(self.f_intp_br(ar_time)))
+        bt_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bt(ar_time)))
+        bz_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bz(ar_time)))
 
         # !!!!!!!!!!!!!!!!!!!!!
         # HARD CODED CORRECTION
@@ -182,7 +184,6 @@ class MagFieldLines:
             - cp : collision point with the wall (list)
 
         '''
-
         stp = 0.001 # step for the integration
         s   = 100 # length of the field line
         ds  = np.linspace(0, s, int(s/stp))
@@ -196,25 +197,69 @@ class MagFieldLines:
                 sol=spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
                                     method='RK23', t_eval=ds,
                                     events=self.hit_wall_circ)
-            sgf=sol.t
-            rgf=sol.y[0]
-            pgf=sol.y[2]
-            xgf=rgf*np.cos(pgf)
-            ygf=rgf*np.sin(pgf)
-            zgf=sol.y[1]
+            sgf = sol.t
+            rgf = sol.y[0]
+            pgf = sol.y[2]
+            xgf = rgf*np.cos(pgf)
+            ygf = rgf*np.sin(pgf)
+            zgf = sol.y[1]
             if len(sgf)<len(ds):
-                colpt=[rgf[-1],zgf[-1],pgf[-1]]
+                colpt = [rgf[-1],zgf[-1],pgf[-1]]
             else:
-                colpt=[]
-            return {'s':sgf,
-                   'r':rgf,
-                   'z':zgf,
-                   'p':pgf,
-                   'x':xgf,
-                   'y':ygf,
-                   'cp':colpt}
+                colpt = []
+            return {'s':  sgf,
+                    'r':  rgf,
+                    'z':  zgf,
+                    'p':  pgf,
+                    'x':  xgf,
+                    'y':  ygf,
+                    'cp': colpt}
         else:
-            pass
+            ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
+
+            br_intp_t = np.atleast_1d(np.squeeze(self.f_intp_br(ar_time)))
+            bt_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bt(ar_time)))
+            bz_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bz(ar_time)))
+
+            # !!!!!!!!!!!!!!!!!!!!!
+            # HARD CODED CORRECTION
+            bt_intp_t *= -1
+            # !!!!!!!!!!!!!!!!!!!!!
+
+            self.br_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, br_intp_t)
+            self.bt_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, bt_intp_t)
+            self.bz_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, bz_intp_t)
+
+            # Interpolate current
+            self.itor_intp_t = np.interp(ar_time, self.t_itor[:, 0], self.itor[:, 0])
+            self.b0_intp_t   = np.interp(ar_time, self.equi.time[self.mask], \
+                                         self.equi.vacuum_toroidal_field.b0[self.mask])
+
+            if direction=='FWD':
+                sol=spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
+                                    method='RK23', t_eval=ds,
+                                    events=self.hit_wall_circ)
+            elif direction=='REV':
+                sol=spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
+                                    method='RK23', t_eval=ds,
+                                    events=self.hit_wall_circ)
+            sgf = sol.t
+            rgf = sol.y[0]
+            pgf = sol.y[2]
+            xgf = rgf*np.cos(pgf)
+            ygf = rgf*np.sin(pgf)
+            zgf = sol.y[1]
+            if len(sgf)<len(ds):
+                colpt = [rgf[-1],zgf[-1],pgf[-1]]
+            else:
+                colpt = []
+            return {'s':  sgf,
+                    'r':  rgf,
+                    'z':  zgf,
+                    'p':  pgf,
+                    'x':  xgf,
+                    'y':  ygf,
+                    'cp': colpt}
 
     def mfld3dcylfwd(self, s, state):
         '''
@@ -299,7 +344,7 @@ class MagFieldLines:
         self.bt_vac = self.equi.vacuum_toroidal_field.r0*self.b0_intp_t / R
 
         br_intp -= br_ripple[0]
-        bt_intp -= (bt_ripple[0]- self.bt_vac)
+        bt_intp -= (bt_ripple[0] - np.abs(self.bt_vac))
         bz_intp -= bz_ripple[0]
 
         return br_intp[0], bt_intp[0], bz_intp[0]
@@ -318,50 +363,64 @@ class MagFieldLines:
         input:
             - trace : the magneticl field line data (dictionary)
         '''
-        sgf=trace['s']
-        rgf=trace['r']
-        zgf=trace['z']
-        pgf=trace['p']
-        xgf=trace['x']
-        ygf=trace['y']
-        colpt=trace['cp']
+        sgf   = trace['s']
+        rgf   = trace['r']
+        zgf   = trace['z']
+        pgf   = trace['p']
+        xgf   = trace['x']
+        ygf   = trace['y']
+        colpt = trace['cp']
+
         plt.figure(figsize=[12,8])
+
         plt.subplot(231)
-        plt.plot(sgf,rgf)
-        plt.grid();plt.ylabel('R [m]');plt.xlabel('s [m]');plt.title('Radial coord.')
+        plt.plot(sgf, rgf)
+        plt.grid()
+        plt.ylabel('R [m]'); plt.xlabel('s [m]'); plt.title('Radial coord.')
+
         plt.subplot(232)
-        plt.plot(sgf,zgf)
-        plt.grid();plt.ylabel('Z [m]');plt.xlabel('s [m]');plt.title('Vertical coord.')
+        plt.plot(sgf, zgf)
+        plt.grid()
+        plt.ylabel('Z [m]'); plt.xlabel('s [m]'); plt.title('Vertical coord.')
+
         plt.subplot(233)
-        plt.plot(sgf,np.rad2deg(pgf))
-        plt.grid();plt.ylabel('$\phi$ [deg]');plt.xlabel('s [m]');plt.title('Toroidal coord.')
+        plt.plot(sgf, np.rad2deg(pgf))
+        plt.grid()
+        plt.ylabel('$\phi$ [deg]'); plt.xlabel('s [m]'); plt.title('Toroidal coord.')
+
         plt.subplot(234)
-        plt.plot(rgf,zgf)
+        plt.plot(rgf, zgf)
         plt.plot(rgf[0], zgf[0], marker='o', markersize=3, color="black")
         if not colpt:
             plt.plot(rgf[-1],zgf[-1],marker='s',markersize=5,color="black")
         else:
             plt.plot(rgf[-1],zgf[-1],marker='o',markersize=5,color="red")
-        plt.axis('equal');plt.xlabel('R [m]');plt.ylabel('Z [m]');plt.title('Vertical projection')
+        plt.axis('equal'); plt.xlabel('R [m]'); plt.ylabel('Z [m]')
+        plt.title('Vertical projection')
         plt.grid()
+
         plt.subplot(235)
-        plt.plot(rgf,zgf)
+        plt.plot(rgf, zgf)
         #plt.plot(rwall,zwall)
         plt.plot(rgf[0], zgf[0], marker='o', markersize=3, color="black")
         if not colpt:
-            plt.plot(rgf[-1],zgf[-1],marker='s',markersize=5,color="black")
+            plt.plot(rgf[-1], zgf[-1], marker='s', markersize=5, color="black")
         else:
-            plt.plot(rgf[-1],zgf[-1],marker='o',markersize=5,color="red")
-        plt.axis('equal');plt.xlabel('R [m]');plt.ylabel('Z [m]');plt.title('Vertical projection')
+            plt.plot(rgf[-1], zgf[-1], marker='o', markersize=5, color="red")
+        plt.axis('equal'); plt.xlabel('R [m]'); plt.ylabel('Z [m]')
+        plt.title('Vertical projection')
+
         plt.subplot(236)
-        plt.plot(xgf,ygf)
+        plt.plot(xgf, ygf)
         #plt.plot(ra*np.cos(pa),ra*np.sin(pa),'b:')
         plt.plot(xgf[0], ygf[0], marker='o', markersize=3, color="black")
         if not colpt:
-            plt.plot(xgf[-1],ygf[-1],marker='s',markersize=5,color="black")
+            plt.plot(xgf[-1], ygf[-1], marker='s', markersize=5, color="black")
         else:
-            plt.plot(xgf[-1],ygf[-1],marker='o',markersize=5,color="red")
-        plt.axis('equal');plt.xlabel('x [m]');plt.ylabel('y [m]');plt.title('Toroidal projection')
+            plt.plot(xgf[-1], ygf[-1], marker='o', markersize=5, color="red")
+        plt.axis('equal'); plt.xlabel('x [m]'); plt.ylabel('y [m]')
+        plt.title('Toroidal projection')
+
         plt.tight_layout()
         plt.show()
 
@@ -378,23 +437,25 @@ class MagFieldLines:
         input:
             - trace : the magneticl field line data (dictionary)
         '''
-        sgf=trace['s']
-        rgf=trace['r']
-        zgf=trace['z']
-        pgf=trace['p']
-        xgf=trace['x']
-        ygf=trace['y']
-        colpt=trace['cp']
-        fig=plt.figure(figsize=[10,10])
+        sgf   = trace['s']
+        rgf   = trace['r']
+        zgf   = trace['z']
+        pgf   = trace['p']
+        xgf   = trace['x']
+        ygf   = trace['y']
+        colpt = trace['cp']
+
+        fig = plt.figure(figsize=[10, 10])
         ax = Axes3D(fig)
         #ax = fig.gca(projection='3d')
         #ax.set_aspect('equal')
-        ax.plot(xgf,ygf,zgf)
+        ax.plot(xgf, ygf, zgf)
         #ax.plot(ra[0]*np.cos(pa),ra[0]*np.sin(pa),za[0],'k')
         #ax.plot(ra*np.cos(pa[0]),ra*np.sin(pa[0]),za,'k')
         #ax.plot(ra[-1]*np.cos(pa),ra[-1]*np.sin(pa),za[-1],'k')
         #ax.plot(ra*np.cos(pa[-1]),ra*np.sin(pa[-1]),za,'k')
-        ax.plot(3.5*np.cos(np.linspace(0,2*np.pi,36)),3.5*np.sin(np.linspace(0,2*np.pi,36)),0,'k:')
+        ax.plot(3.5*np.cos(np.linspace(0, 2*np.pi, 36)), \
+                3.5*np.sin(np.linspace(0, 2*np.pi, 36)), 0, 'k:')
         # Used to create the fake bounding box
         max_range = np.array([xgf.max()-xgf.min(), ygf.max()-ygf.min(), zgf.max()-zgf.min()]).max()
         Xb = 0.5*max_range*np.mgrid[-1:2:2,-1:2:2,-1:2:2][0].flatten() + 0.5*(xgf.max()+xgf.min())
