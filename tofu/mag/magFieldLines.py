@@ -416,9 +416,9 @@ class MagFieldLines:
         plt.plot(rgf, zgf)
         plt.plot(rgf[0], zgf[0], marker='o', markersize=3, color="black")
         if not colpt:
-            plt.plot(rgf[-1],zgf[-1],marker='s',markersize=5,color="black")
+            plt.plot(rgf[-1], zgf[-1], marker='s', markersize=5, color="black")
         else:
-            plt.plot(rgf[-1],zgf[-1],marker='o',markersize=5,color="red")
+            plt.plot(rgf[-1], zgf[-1], marker='o', markersize=5, color="red")
         plt.axis('equal'); plt.xlabel('R [m]'); plt.ylabel('Z [m]')
         plt.title('Vertical projection')
         plt.grid()
@@ -488,10 +488,11 @@ class MagFieldLines:
         # Comment or uncomment following both lines to test the fake bounding box:
         for xb, yb, zb in zip(Xb, Yb, Zb):
             ax.plot([xb], [yb], [zb], 'w')
-        ax.plot([xgf[0]],[ygf[0]],[zgf[0]],marker='o',markersize=3,color="black")
+        ax.plot([xgf[0]], [ygf[0]], [zgf[0]], marker='o', markersize=3, color="black")
         if not colpt:
-            ax.plot([xgf[-1]],[ygf[-1]],[zgf[-1]],marker='s',markersize=5,color="black")
+            ax.plot([xgf[-1]], [ygf[-1]], [zgf[-1]], marker='s', markersize=5, color="black")
         else:
-            ax.plot([xgf[-1]],[ygf[-1]],[zgf[-1]],marker='o',markersize=5,color="red")
-        ax.set_xlabel('x [m]');ax.set_ylabel('y [m]');ax.set_zlabel('z [m]');plt.title('Magnetic field line trace')
+            ax.plot([xgf[-1]], [ygf[-1]], [zgf[-1]], marker='o', markersize=5, color="red")
+        ax.set_xlabel('x [m]'); ax.set_ylabel('y [m]'); ax.set_zlabel('z [m]')
+        plt.title('Magnetic field line trace')
         plt.show()
