@@ -369,8 +369,8 @@ class MultiIDSLoader(object):
              {'1dprad':{'lstr':['1dbrem','1dline'], 'func':_add}},
 
              'magnetics':
-             {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func'::_RZ2array},
-              'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func'::_RZ2array}},
+             {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func':_RZ2array},
+              'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func':_RZ2array}},
 
              'ece':
              {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,

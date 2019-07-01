@@ -661,7 +661,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
             assert out[ii] in [None,'Config']
             out[ii] = 'Config'
         if out[ii] == 'Config':
-            assert ids|ii] in [None,'wall']
+            assert ids[ii] in [None,'wall']
 
         lids = ['equilibrium', 'core_profiles', 'core_sources',
                 'edge_profiles', 'edge_sources']

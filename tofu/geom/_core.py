@@ -2573,7 +2573,7 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dgeom(sino=True):
-        largs = ['dgeom']
+        largs = ['dgeom', 'Etendues', 'Surfaces']
         if sino:
             lsino = Rays._get_largs_dsino()
             largs += ['sino_{0}'.format(s) for s in lsino]
