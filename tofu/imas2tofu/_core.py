@@ -87,12 +87,6 @@ class MultiIDSLoader(object):
 
     # Known short version of signal str
 
-    _lidslos = ['interferometer', 'bolometer', 'soft_x_rays',
-                'spectrometer_visible', 'bremsstrahlung_visible']
-
-    _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
-                   'edge_profiles', 'edge_sources']
-
     _dshort = {
                'wall':
                {'wallR':{'str':'description_2d[0].limiter.unit[0].outline.r'},
@@ -190,11 +184,6 @@ class MultiIDSLoader(object):
                'edge_sources':
                {'t':{'str':'time'}},
 
-               'barometry':
-               {'t':{'str':'gauge[chan].pressure.time'},
-                'p':{'str':'gauge[chan].pressure.data',
-                     'quant':'pressure?', 'units':'Pa?'}},
-
                'lh_antennas':
                {'t':{'str':'antenna[chan].power_launched.time'},
                 'power':{'str':'antenna[chan].power_launched.data',
@@ -229,6 +218,11 @@ class MultiIDSLoader(object):
                            'quant':'R', 'units':'m'},
                 'floop_Z':{'str':'flux_loop[chan].position.z',
                            'quant':'Z', 'units':'m'}},
+
+               'barometry':
+               {'t':{'str':'gauge[chan].pressure.time'},
+                'p':{'str':'gauge[chan].pressure.data',
+                     'quant':'pressure?', 'units':'Pa?'}},
 
                'ece':
                {'t':{'str':'time',
@@ -299,6 +293,56 @@ class MultiIDSLoader(object):
                             'quant':'radiance_spectral',
                             'units':'ph/s/(m2.sr)/m'}},
               }
+
+    _didsdiag = {'magnetics': {'data':'DataCam1D',
+                               'geom':False,
+                               'sig':{'t':'t',
+                                      'data':'bpol_B'}},
+                 'barometry':{'data':'DataCam1D',
+                              'geom':False,
+                              'sig':{'t':'t',
+                                     'data':'p'}},
+                'ece':{'data':'DataCam1D',
+                       'geom':False,
+                       'sig':{'t':'t',
+                              'X':'R',
+                              'data':'Te'}},
+                'reflectometer_profile':{'data':'DataCam1D',
+                                         'geom':False,
+                                         'sig':{'t':'t',
+                                                'X':'R',
+                                                'data':'ne'}},
+                'interferometer':{'data':'DataCam1D',
+                                  'geom':'CamLOS1D',
+                                  'sig':{'t':'t',
+                                         'data':'ne_integ'}},
+                'bolometer':{'data':'DataCam1D',
+                             'geom':'CamLOS1D',
+                             'sig':{'t':'t',
+                                    'data':'power'}},
+                'soft_x_rays':{'data':'DataCam1D',
+                               'geom':'CamLOS1D',
+                               'sig':{'t':'t',
+                                      'data':'power'}},
+                'spectrometer_visible':{'data':'DataCam1DSpectral',
+                                        'geom':'CamLOS1D',
+                                        'sig':{'t':'t',
+                                               'lamb':'lamb',
+                                               'data':'spectra'}},
+                'bremsstrahlung_visible':{'data':'DataCam1D',
+                                          'geom':'CamLOS1D',
+                                          'sig':{'t':'t',
+                                                 'data':'radiance'}}}
+
+    _lidsdiag = sorted(_didsdiag.keys())
+    _lidslos = list(_lidsdiag)
+    for ids_ in _lidsdiag:
+        if _didsdiag[ids_]['geom'] not in ['CamLOS1D']:
+            _lidslos.remove(ids_)
+
+    _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
+                   'edge_profiles', 'edge_sources']
+
 
 
     for ids in _lidslos:
@@ -424,48 +468,6 @@ class MultiIDSLoader(object):
                }
 
 
-
-    _didsdiag = {'magnetics': {'data':'DataCam1D',
-                               'geom':False,
-                               'sig':{'t':'t',
-                                      'data':'bpol_B'}},
-                 'barometry':{'data':'DataCam1D',
-                              'geom':False,
-                              'sig':{'t':'t',
-                                     'sig':'p'}},
-              'ece':{'data':'DataCam1D',
-                     'geom':False,
-                     'sig':{'t':'t',
-                            'X':'R',
-                            'data':'Te'}},
-              'reflectometer_profile':{'data':'DataCam1D',
-                                       'geom':False,
-                                       'sig':{'t':'t',
-                                              'X':'R',
-                                              'data':'ne'}},
-              'interferometer':{'data':'DataCam1D',
-                                'geom':'CamLOS1D',
-                                'sig':{'t':'t',
-                                       'data':'ne_integ'}},
-              'bolometer':{'data':'DataCam1D',
-                           'geom':'CamLOS1D',
-                           'sig':{'t':'t',
-                                  'data':'power'}},
-              'soft_x_rays':{'data':'DataCam1D',
-                             'geom':'CamLOS1D',
-                             'sig':{'t':'t',
-                                    'data':'power'}},
-              'spectrometer_visible':{'data':'DataCam1DSpectral',
-                                      'geom':'CamLOS1D',
-                                      'sig':{'t':'t',
-                                             'lamb':'lamb',
-                                             'data':'spectra'}},
-              'bremsstrahlung_visible':{'data':'DataCam1D',
-                                        'geom':'CamLOS1D',
-                                        'sig':{'t':'t',
-                                               'data':'radiance'}}}
-
-    _lidsdiag = sorted(_didsdiag.keys())
 
 
     ###################################
@@ -1885,10 +1887,7 @@ class MultiIDSLoader(object):
 
 
     def _checkformat_Plasma2D_dsig(self, dsig=None):
-        lidsok = ['equilibrium',
-                  'core_profiles', 'core_sources',
-                  'edge_profiles', 'edge_sources']
-        lidsok = set(lidsok).intersection(self._dids.keys())
+        lidsok = set(self._lidsplasma).intersection(self._dids.keys())
 
         lscom = ['t']
         lsmesh = ['2dmeshNodes','2dmeshTri']
@@ -2245,58 +2244,23 @@ class MultiIDSLoader(object):
 
     def _checkformat_Data_dsig(self, ids=None, dsig=None, mainsig=None,
                                data=None, geom=None):
-        # didsok = {'magnetics': {'data':'DataCam1D',
-                                # 'geom':False,
-                                # 'sig':{'t':'t',
-                                       # 'data':'bpol_B'}},
-                  # 'ece':{'data':'DataCam1D',
-                         # 'geom':False,
-                         # 'sig':{'t':'t',
-                                # 'X':'R',
-                                # 'data':'Te'}},
-                  # 'reflectometer_profile':{'data':'DataCam1D',
-                                           # 'geom':False,
-                                           # 'sig':{'t':'t',
-                                                  # 'X':'R',
-                                                  # 'data':'ne'}},
-                  # 'interferometer':{'data':'DataCam1D',
-                                    # 'geom':'CamLOS1D',
-                                    # 'sig':{'t':'t',
-                                           # 'data':'ne_integ'}},
-                  # 'bolometer':{'data':'DataCam1D',
-                               # 'geom':'CamLOS1D',
-                               # 'sig':{'t':'t',
-                                      # 'data':'power'}},
-                  # 'soft_x_rays':{'data':'DataCam1D',
-                                 # 'geom':'CamLOS1D',
-                                 # 'sig':{'t':'t',
-                                        # 'data':'power'}},
-                  # 'spectrometer_visible':{'data':'DataCam1DSpectral',
-                                          # 'geom':'CamLOS1D',
-                                          # 'sig':{'t':'t',
-                                                 # 'lamb':'lamb',
-                                                 # 'data':'spectra'}},
-                  # 'bremsstrahlung_visible':{'data':'DataCam1D',
-                                            # 'geom':'CamLOS1D',
-                                            # 'sig':{'t':'t',
-                                                   # 'data':'radiance'}}}
 
         # Check ids
         if ids not in self._dids.keys():
             msg = "Provided ids should be available as a self.dids.keys() !"
             raise Exception(msg)
 
-        if ids not in didsok.keys():
+        if ids not in self._lidsdiag:
             msg = "Requested ids is not pre-tabulated !\n"
             msg = "  => Be careful with args (dsig, data, geom)"
             warnings.warn(msg)
         else:
             if data is None:
-                data = didsok[ids]['data']
+                data = self._didsdiag[ids]['data']
             if geom is None:
-                geom = didsok[ids]['geom']
+                geom = self._didsdiag[ids]['geom']
             if dsig is None:
-                dsig = didsok[ids]['sig']
+                dsig = self._didsdiag[ids]['sig']
         if mainsig is not None:
             assert type(mainsig) is str
             dsig['data'] = mainsig
@@ -2369,7 +2333,9 @@ class MultiIDSLoader(object):
 
         # cam
         cam = None
-        nchMax = len(self._dids[ids]['ids'][0].channel)
+        indchanstr = self._dshort[ids][dsig['data']]['str'].index('[chan]')
+        chanstr = self._dshort[ids][dsig['data']]['str'][:indchanstr]
+        nchMax = len(getattr(self._dids[ids]['ids'][0], chanstr))
         if geom != False:
             Etendues, Surfaces = None, None
             if config is None:
