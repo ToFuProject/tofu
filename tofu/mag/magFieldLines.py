@@ -38,7 +38,7 @@ except Exception:
 
 class MagFieldLines:
     '''
-    Return object with magnetic field lines computed
+    Compute magnetic field lines
 
     Parameters
     ----------
@@ -53,7 +53,7 @@ class MagFieldLines:
 
     Methods
     -------
-    trace_mline(init_state, direction='FWD')
+    trace_mline([[r_1, phi_1, z_1], [r_2, phi_2, z_2], ...], direction='FWD')
         returns trace
     plot_trace(trace)
         2D plots of traced magnetic field line
@@ -81,6 +81,14 @@ class MagFieldLines:
     >>> test.trace_mline([2.7, 0., 0.], 34)[0]['p'][10]
     -0.0037010956581712776
     >>> test.trace_mline([2.7, 0., 0.], 34)[0]['z'][10]
+    0.000373472578674799
+
+    Call method for list of points (2 items and t=34 seconds)
+    >>> test.trace_mline([[2.7, 0., 0.], [2.9, 0., 0.25*np.pi]], 34)[0][0]['r'][10]
+    2.700041665466963
+    >>> test.trace_mline([[2.7, 0., 0.], [2.9, 0., 0.25*np.pi]], 34)[0][0]['p'][10]
+    -0.0037010956581712776
+    >>> test.trace_mline([[2.7, 0., 0.], [2.9, 0., 0.25*np.pi]], 34)[0][0]['z'][10]
     0.000373472578674799
     '''
     def __init__(self, shot, time, run=0, occ=0, user='imas_public', machine='west'):
@@ -170,7 +178,8 @@ class MagFieldLines:
                                      self.equi.vacuum_toroidal_field.b0[self.mask])
 
 
-    def trace_mline(self, init_state, time=None, direction='FWD'):
+    def trace_mline(self, init_state, time=None, direction='FWD', \
+                    length_line=None, stp=None):
         '''
         Traces the field line given a starting point.
         Integration step defined by stp and maximum length of the field line
@@ -178,50 +187,47 @@ class MagFieldLines:
         Collision with the wall stops integration.
 
         input:
-            - init_state : the coordinates of the starting point (list)
+            - init_state [[r_1, phi_1, z_1], ...] :
+                  the coordinates of the starting point (list)
+                  OR list of lists if list of starting points
             - direction : direction of integration 'FWD' forward or 'REV' reverse
               (string)
 
         output:
             returns a dictionary containing:
             - r  : radial coordinate (np.array)
-            - z  : vertical coordinate (np.array)
             - p  : toridal coordinate (np.array)
+            - z  : vertical coordinate (np.array)
             - x  : x coordinate (np.array)
             - y  : y coordinate (np.array)
             - cp : collision point with the wall (list)
 
         '''
-        stp = 0.001 # step for the integration
-        s   = 100 # length of the field line
+        # Step for the integration
+        if (stp is None):
+            stp = 0.001
+
+        # Length of the field line
+        if (length_line is None):
+            s = 100
+        else:
+            s = length_line
+
         ds  = np.linspace(0, s, int(s/stp))
 
         if (time is None):
-            if (direction=='FWD'):
-                sol = spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
-                                      method='RK23', t_eval=ds,
-                                      events=self.hit_wall_circ)
-            elif (direction=='REV'):
-                sol = spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
-                                      method='RK23', t_eval=ds,
-                                      events=self.hit_wall_circ)
-            sgf = sol.t
-            rgf = sol.y[0]
-            pgf = sol.y[2]
-            xgf = rgf*np.cos(pgf)
-            ygf = rgf*np.sin(pgf)
-            zgf = sol.y[1]
-            if len(sgf)<len(ds):
-                colpt = [rgf[-1], zgf[-1], pgf[-1]]
+            if isinstance(init_state[0], list):
+
+                outMagLine = []
+
+                for istate in init_state:
+                    out = self.integrate_solve_ivp(istate, direction, s, ds)
+                    out['init_point'] = istate
+                    outMagLine.append(out)
+
+                return outMagLine
             else:
-                colpt = []
-            return {'s':  sgf,
-                    'r':  rgf,
-                    'z':  zgf,
-                    'p':  pgf,
-                    'x':  xgf,
-                    'y':  ygf,
-                    'cp': colpt}
+                return self.integrate_solve_ivp(init_state, direction, s, ds)
         else:
             ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
 
@@ -254,70 +260,108 @@ class MagFieldLines:
                 self.itor_intp_t = itor_intp_t_vect[ii]
                 self.b0_intp_t   = b0_intp_t_vect[ii]
 
-                if (direction=='FWD'):
-                    sol = spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
-                                          method='RK23', t_eval=ds,
-                                          events=self.hit_wall_circ)
-                elif (direction=='REV'):
-                    sol = spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
-                                          method='RK23', t_eval=ds,
-                                          events=self.hit_wall_circ)
-                sgf = sol.t
-                rgf = sol.y[0]
-                pgf = sol.y[2]
-                xgf = rgf*np.cos(pgf)
-                ygf = rgf*np.sin(pgf)
-                zgf = sol.y[1]
+                if isinstance(init_state[0], list):
 
-                if len(sgf)<len(ds):
-                    colpt = [rgf[-1], zgf[-1], pgf[-1]]
+                    out = []
+
+                    for istate in init_state:
+                        out_prime = self.integrate_solve_ivp(istate, direction, s, ds)
+                        out_prime['init_point'] = istate
+                        out_prime['time']       = ar_time[ii]
+                        # Return list of dict
+                        out.append(out_prime)
                 else:
-                    colpt = []
+                    # Return only dict
+                    out = self.integrate_solve_ivp(init_state, direction, s, ds)
+                    out['time'] = ar_time[ii]
 
-                outMagLine.append({'s':  sgf, \
-                                   'r':  rgf, \
-                                   'z':  zgf, \
-                                   'p':  pgf, \
-                                   'x':  xgf, \
-                                   'y':  ygf, \
-                                   'cp': colpt, \
-                                   'time': ar_time[ii]})
+                outMagLine.append(out)
 
             return outMagLine
+
+    def integrate_solve_ivp(self, init_state, direction, s, ds):
+        '''
+        Integration step defined by stp and maximum length of the field line
+        defined by s.
+        Collision with the wall stops integration.
+
+        input:
+            - init_state [r, phi, z] : the coordinates of the starting point (list)
+            - direction : direction of integration 'FWD' forward or 'REV' reverse
+              (string)
+            - s : field line maximum length
+            - ds : vector of steps
+
+        output:
+            returns a dictionary containing:
+            - r  : radial coordinate (np.array)
+            - p  : toridal coordinate (np.array)
+            - z  : vertical coordinate (np.array)
+            - x  : x coordinate (np.array)
+            - y  : y coordinate (np.array)
+            - cp : collision point with the wall (list)
+        '''
+        if (direction=='FWD'):
+            sol = spode.solve_ivp(self.mfld3dcylfwd, [0, s], init_state,
+                                  method='RK23', t_eval=ds,
+                                  events=self.hit_wall_circ)
+        elif (direction=='REV'):
+            sol = spode.solve_ivp(self.mfld3dcylrev, [0, s], init_state,
+                                  method='RK23', t_eval=ds,
+                                  events=self.hit_wall_circ)
+        sgf = sol.t
+        rgf = sol.y[0]
+        pgf = sol.y[1]
+        xgf = rgf*np.cos(pgf)
+        ygf = rgf*np.sin(pgf)
+        zgf = sol.y[2]
+
+        if len(sgf)<len(ds):
+            colpt = [rgf[-1], pgf[-1], zgf[-1]]
+        else:
+            colpt = []
+
+        return {'s':  sgf,
+                'r':  rgf,
+                'p':  pgf,
+                'z':  zgf,
+                'x':  xgf,
+                'y':  ygf,
+                'cp': colpt}
 
     def mfld3dcylfwd(self, s, state):
         '''
         Returns the right end side of the field line system of equations in
-        cyclindrical (R,Z,Phi) coord.
+        cyclindrical (R, Phi, Z) coord.
         This is the case for forward integration.
         '''
-        R,Z,P=state
+        R, P, Z = state
         Br, Bt, Bz = self.b_field_interp(R, P, Z)
         #Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
         #Bt=self.fBt_t(P,self.ftheta(R,Z),R)
         #Bz=self.fBp_z(R,Z)[0]
-        B=np.sqrt(Br*Br+Bz*Bz+Bt*Bt)
-        d_R=Br/B
-        d_Z=Bz/B
-        d_P=Bt/B*1/R
-        return [d_R,d_Z,d_P]
+        B = np.sqrt(Br*Br + Bz*Bz + Bt*Bt)
+        d_R = Br/B
+        d_P = Bt/B*1/R
+        d_Z = Bz/B
+        return [d_R, d_P, d_Z]
 
     def mfld3dcylrev(self, s, state):
         '''
         Returns the right end side of the field line system of equations in
-        cyclindrical (R,Z,Phi) coord.
+        cyclindrical (R, Phi, Z) coord.
         This is the case for backward integration.
         '''
-        R,Z,P=state
+        R, P, Z = state
         Br, Bt, Bz = self.b_field_interp(R, P, Z)
         #Br=self.fBp_r(R,Z)[0]+self.fBt_r(P,self.ftheta(R,Z),R)
         #Bt=self.fBt_t(P,self.ftheta(R,Z),R)
         #Bz=self.fBp_z(R,Z)[0]
-        B=np.sqrt(Br*Br+Bz*Bz+Bt*Bt)
-        d_R=-Br/B
-        d_Z=-Bz/B
-        d_P=-Bt/B*1/R
-        return [d_R,d_Z,d_P]
+        B = np.sqrt(Br*Br + Bz*Bz + Bt*Bt)
+        d_R = -Br/B
+        d_P = -Bt/B*1/R
+        d_Z = -Bz/B
+        return [d_R, d_P, d_Z]
 
     def hit_wall_circ(self, s, state):
         '''
@@ -328,7 +372,7 @@ class MagFieldLines:
         - True => check collision with wall boundary given in the Equilibrium
             mat file
         '''
-        R, Z, P=state
+        R, P, Z = state
         #if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(89.5)<=P<=np.deg2rad(90.5):
         #    return 0
         #if np.abs(Z)<=0.5 and R>3.01 and np.deg2rad(179.5)<=P<=np.deg2rad(180.5):
