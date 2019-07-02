@@ -137,11 +137,15 @@ class MagFieldLines:
         self.equiDict['b_field_r']   = np.full((len(self.equi.time), NbrPoints), np.nan)
         self.equiDict['b_field_z']   = np.full((len(self.equi.time), NbrPoints), np.nan)
         self.equiDict['b_field_tor'] = np.full((len(self.equi.time), NbrPoints), np.nan)
+        self.equiDict['boundary_r']  = [None]*len(self.equi.time)
+        self.equiDict['boundary_z']  = [None]*len(self.equi.time)
         for ii in range(len(self.equi.time)):
-            equi_space  = self.equi.time_slice[ii].ggd[0]
-            self.equiDict['b_field_r'][ii]   = equi_space.b_field_r[0].values
-            self.equiDict['b_field_z'][ii]   = equi_space.b_field_z[0].values
-            self.equiDict['b_field_tor'][ii] = equi_space.b_field_tor[0].values
+            equi_slice  = self.equi.time_slice[ii]
+            self.equiDict['b_field_r'][ii]   = equi_slice.ggd[0].b_field_r[0].values
+            self.equiDict['b_field_z'][ii]   = equi_slice.ggd[0].b_field_z[0].values
+            self.equiDict['b_field_tor'][ii] = equi_slice.ggd[0].b_field_tor[0].values
+            self.equiDict['boundary_r'][ii]  = equi_slice.boundary.outline.r
+            self.equiDict['boundary_z'][ii]  = equi_slice.boundary.outline.z
 
         self.points   = np.vstack((self.equiDict['r'], self.equiDict['z'])).transpose()
         self.delaunay = scipy.spatial.Delaunay(self.points)
@@ -157,11 +161,11 @@ class MagFieldLines:
                            self.equiDict['b_field_z'][self.mask, :], axis=0, \
                            bounds_error=False)
 
-        ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
+        self.ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
 
-        br_intp_t = np.atleast_1d(np.squeeze(self.f_intp_br(ar_time)))
-        bt_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bt(ar_time)))
-        bz_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bz(ar_time)))
+        br_intp_t = np.atleast_1d(np.squeeze(self.f_intp_br(self.ar_time)))
+        bt_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bt(self.ar_time)))
+        bz_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bz(self.ar_time)))
 
         # !!!!!!!!!!!!!!!!!!!!!
         # HARD CODED CORRECTION
@@ -173,8 +177,8 @@ class MagFieldLines:
         self.bz_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, bz_intp_t)
 
         # Interpolate current
-        self.itor_intp_t = np.interp(ar_time, self.t_itor[:, 0], self.itor[:, 0])
-        self.b0_intp_t   = np.interp(ar_time, self.equi.time[self.mask], \
+        self.itor_intp_t = np.interp(self.ar_time, self.t_itor[:, 0], self.itor[:, 0])
+        self.b0_intp_t   = np.interp(self.ar_time, self.equi.time[self.mask], \
                                      self.equi.vacuum_toroidal_field.b0[self.mask])
 
 
@@ -223,17 +227,21 @@ class MagFieldLines:
                 for istate in init_state:
                     out = self.integrate_solve_ivp(istate, direction, s, ds)
                     out['init_point'] = istate
+                    out['time']       = self.ar_time[0]
                     outMagLine.append(out)
 
                 return outMagLine
             else:
-                return self.integrate_solve_ivp(init_state, direction, s, ds)
+                out = self.integrate_solve_ivp(init_state, direction, s, ds)
+                out['init_point'] = init_state
+                out['time']       = self.ar_time[0]
+                return out
         else:
-            ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
+            self.ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
 
-            br_intp_t = np.atleast_2d(np.squeeze(self.f_intp_br(ar_time)))
-            bt_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bt(ar_time)))
-            bz_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bz(ar_time)))
+            br_intp_t = np.atleast_2d(np.squeeze(self.f_intp_br(self.ar_time)))
+            bt_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bt(self.ar_time)))
+            bz_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bz(self.ar_time)))
 
             # !!!!!!!!!!!!!!!!!!!!!
             # HARD CODED CORRECTION
@@ -241,14 +249,14 @@ class MagFieldLines:
             # !!!!!!!!!!!!!!!!!!!!!
 
             # Interpolate current
-            itor_intp_t_vect = np.interp(ar_time, self.t_itor[:, 0], \
+            itor_intp_t_vect = np.interp(self.ar_time, self.t_itor[:, 0], \
                                          self.itor[:, 0])
-            b0_intp_t_vect   = np.interp(ar_time, self.equi.time[self.mask], \
+            b0_intp_t_vect   = np.interp(self.ar_time, self.equi.time[self.mask], \
                                   self.equi.vacuum_toroidal_field.b0[self.mask])
 
             outMagLine = []
 
-            for ii in range(ar_time.size):
+            for ii in range(self.ar_time.size):
                 self.br_lin_intp = \
                   interpolate.LinearNDInterpolator(self.delaunay, br_intp_t[ii])
                 self.bt_lin_intp = \
@@ -267,13 +275,14 @@ class MagFieldLines:
                     for istate in init_state:
                         out_prime = self.integrate_solve_ivp(istate, direction, s, ds)
                         out_prime['init_point'] = istate
-                        out_prime['time']       = ar_time[ii]
+                        out_prime['time']       = self.ar_time[ii]
                         # Return list of dict
                         out.append(out_prime)
                 else:
                     # Return only dict
                     out = self.integrate_solve_ivp(init_state, direction, s, ds)
-                    out['time'] = ar_time[ii]
+                    out['init_point'] = init_state
+                    out['time']       = self.ar_time[ii]
 
                 outMagLine.append(out)
 
@@ -439,6 +448,8 @@ class MagFieldLines:
         ygf   = trace['y']
         colpt = trace['cp']
 
+        ind_time = np.argmin(np.abs(self.equi.time - trace['time']))
+
         plt.figure(figsize=[12,8])
 
         plt.subplot(231)
@@ -464,6 +475,8 @@ class MagFieldLines:
         else:
             plt.plot(rgf[-1], zgf[-1], marker='o', markersize=5, color="red")
         plt.axis('equal'); plt.xlabel('R [m]'); plt.ylabel('Z [m]')
+        plt.plot(self.equiDict['boundary_r'][ind_time], \
+                 self.equiDict['boundary_z'][ind_time])
         plt.title('Vertical projection')
         plt.grid()
 
