@@ -4182,7 +4182,7 @@ class Rays(utils.ToFuObject):
 
         return kIn, kOut
 
-    def _calc_signal_preformat(self, ind=None, out=object, Brightness=True):
+    def _calc_signal_preformat(self, ind=None, DL=None, out=object, Brightness=True):
         msg = "Arg out must be in [object,np.ndarray]"
         assert out in [object,np.ndarray], msg
         assert type(Brightness) is bool, "Arg Brightness must be a bool !"
@@ -4321,7 +4321,7 @@ class Rays(utils.ToFuObject):
         """
 
         # Format input
-        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, out=out,
+        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, Dl=DL, out=out,
                                                         Brightness=Brightness)
 
         if Ds is None:

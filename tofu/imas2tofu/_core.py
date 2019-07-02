@@ -2035,45 +2035,55 @@ class MultiIDSLoader(object):
             if out_['t'].size == 0 or 0 in out_['t'].shape:
                 continue
             nt = out_['t'].size
-            namet = '%s.t'%ids
-            dtime[namet] = self._checkformat_tlim(out_['t'], tlim=tlim)
+            keyt = '%s.t'%ids
+
+            dtt = self._checkformat_tlim(out_['t'], tlim=tlim)
+            dtime[keyt] = {'data':dtt['t'],
+                           'origin':ids, 'name':'t'}
 
             # d1d and dradius
             lsig = [k for k in dsig[ids] if '1d' in k]
-            out_ = self.get_data(ids, lsig, indt=dtime[namet]['indt'])
+            out_ = self.get_data(ids, lsig, indt=dtt['indt'])
             if len(out_) == 0:
                 continue
 
+            nref, kref = None, None
             for ss in out_.keys():
                 shape = out_[ss].shape
                 assert len(shape) == 2
-                if np.sum(shape) > 0:
-                    assert nt in shape
-                    axist = shape.index(nt)
-                    nr = shape[1-axist]
-                    if ids not in dradius.keys():
-                        namer = '%s.radius'%ids
-                        dradius[namer] = {'size':nr}
-                    else:
-                        assert nr == dradius[namer]['size']
-                    if axist == 1:
-                        out_[ss] = out_[ss].T
-                    name = ids+'.'+ss
-                    quant = self._dshort[ids][ss].get('quant', 'unknown')
-                    units = self._dshort[ids][ss].get('units', 'a.u.')
-                    d1d[name] = {'data':out_[ss],
-                                 'quant':quant, 'units':units,
-                                 'radius':namer, 'time':namet}
-                    if plot:
-                        if ss in plot_sig:
-                            plot_sig[plot_sig.index(ss)] = name
-                        if ss in plot_X:
-                            plot_X[plot_X.index(ss)] = name
+                if 0 in shape or len(shape) == 0:
+                    continue
+
+                assert nt in shape
+                axist = shape.index(nt)
+                nr = shape[1-axist]
+                if axist == 1:
+                    out_[ss] = out_[ss].T
+
+                dim = self._dshort[ids][ss].get('dim', 'unknown')
+                quant = self._dshort[ids][ss].get('quant', 'unknown')
+                units = self._dshort[ids][ss].get('units', 'a.u.')
+                key = '%s.%s'%(ids,ss)
+                if nref is None:
+                    dradius[key] = {'data':out_[ss], 'name':ss,
+                                    'origin':ids, 'dim':dim, 'quant':quant,
+                                    'units':units, 'depend':(keyt,key)}
+                    nref, kref = nr, key
+                else:
+                    assert nr == nref
+                    d1d[key] = {'data':out_[ss], 'name':ss,
+                                'origin':ids, 'dim':dim, 'quant':quant,
+                                'units':units, 'depend':(keyt,kref)}
+                if plot:
+                    if ss in plot_sig:
+                        plot_sig[plot_sig.index(ss)] = key
+                    if ss in plot_X:
+                        plot_X[plot_X.index(ss)] = key
 
             # d2d and dmesh
             lsig = [k for k in dsig[ids] if '2d' in k]
             lsigmesh = ['2dmeshNodes','2dmeshTri']
-            out_ = self.get_data(ids, sig=lsig, indt=dtime[namet]['indt'])
+            out_ = self.get_data(ids, sig=lsig, indt=dtt['indt'])
             if len(out_) == 0:
                 continue
             if not all([ss in out_.keys() for ss in lsigmesh]):
@@ -2092,12 +2102,12 @@ class MultiIDSLoader(object):
                     assert npts == shape[1-axist]
                     if axist == 1:
                         out_[ss] = out_[ss].T
-                    name = ids+'.'+ss
+                    dim = self._dshort[ids][ss].get('dim', 'unknown')
                     quant = self._dshort[ids][ss].get('quant', 'unknown')
                     units = self._dshort[ids][ss].get('units', 'a.u.')
-                    d2d[name] = {'data':out_[ss],
-                                 'quant':quant, 'units':units,
-                                 'mesh':namem, 'time':namet}
+                    d2d[ss] = {'data':out_[ss],
+                               'dim':dim, 'quant':quant, 'units':units,
+                               'origin':ids, 'mesh':namem, 'time':keyt}
 
             nodes = out_['2dmeshNodes']
             indtri = out_['2dmeshTri']
@@ -2105,8 +2115,8 @@ class MultiIDSLoader(object):
             nnod, ntri = nodes.size/2, indtri.size/3
             ftype = 'linear' if npts == nnod else 'nearest'
             mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indtri)
-            dmesh[namem] = {'nodes':nodes, 'faces':indtri,
-                            'type':'tri', 'ftype':ftype,
+            dmesh[namem] = {'nodes':nodes, 'faces':indtri, 'name':namem,
+                            'type':'tri', 'ftype':ftype, 'origin':ids,
                             'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
 
         # t0

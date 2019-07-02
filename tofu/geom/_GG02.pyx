@@ -3328,6 +3328,100 @@ def LOS_calc_signal(ff, double[:,::1] Ds, double[:,::1] us, dL,
 
 
 
+def LOS_calc_signal2(double[:,::1] Ds, double[:,::1] us, dL,
+                     double[:,::1] DLs, str dmethod='abs',
+                     str method='sum', bint ani=False,
+                     fkwdargs={}, str minimize='calls',
+                     bint Test=True, int num_threads=16):
+    """ Compute the synthetic signal, minimizing either function calls or memory
+    """
+    cdef str error_message
+    cdef str dmode = dmethod.lower()
+    cdef str imode = method.lower()
+    cdef str minimize = minimize.lower()
+    cdef int sz1_ds, sz2_ds
+    cdef int sz1_us, sz2_us
+    cdef int sz1_dls, sz2_dls
+    cdef int N
+    cdef long ntmp
+    cdef int num_los
+    cdef bint dl_is_list
+    cdef bint C0, C1
+    cdef double val_resol
+    cdef double[::1] dl_view
+    cdef np.ndarray[double,ndim=1] dLr
+    cdef np.ndarray[double,ndim=1] coeff_arr
+    cdef np.ndarray[long,ndim=1] los_ind
+    cdef long* tmp_arr
+
+
+    cdef double* los_coeffs = NULL
+    # .. Ds shape needed for testing and in algo ...............................
+    sz1_ds = Ds.shape[0]
+    sz2_ds = Ds.shape[1]
+    num_los = sz2_ds
+    dLr = np.zeros((num_los,), dtype=float)
+    los_ind = np.zeros((num_los,), dtype=int)
+    dl_is_list = hasattr(dL, '__iter__')
+    # .. verifying arguments ...................................................
+    if Test:
+        sz1_us = us.shape[0]
+        sz2_us = us.shape[1]
+        sz1_dls = DLs.shape[0]
+        sz2_dls = DLs.shape[1]
+        assert sz1_ds == 3, "Dim 0 of arg Ds should be 3"
+        assert sz1_us == 3, "Dim 0 of arg us should be 3"
+        assert sz1_dls == 2, "Dim 0 of arg DLs should be 2"
+        error_message = "Args Ds, us, DLs should have same dimension 1"
+        assert sz2_ds == sz2_us == sz2_dls, error_message
+        C0 = not dl_is_list and dL > 0.
+        C1 = dl_is_list and len(dL)==sz2_ds and np.all(dL>0.)
+        assert C0 or C1, "Arg dL must be a double or a List, and all dL >0.!"
+        error_message = "Argument dmethod (discretization method) should be in"\
+                        +" ['abs','rel'], for absolute or relative."
+        assert dmode in ['abs','rel'], error_message
+        error_message = "Wrong method of integration." \
+                        + " Options are: ['sum','simps','romb', 'linspace']"
+        assert imode in ['sum','simps','romb','linspace'], error_message
+
+    # Case with unique dL
+    if not dl_is_list:
+        val_resol = dL
+        if dmode=='rel':
+            N = <int> Cceil(1./val_resol)
+            if imode=='sum':
+                coeff_arr = np.empty((N*num_los,), dtype=float)
+                _st.middle_rule_rel(num_los, N, &DLs[0,0], &DLs[1, 0],
+                                    &dLr[0], &coeff_arr[0], &los_ind[0],
+                                    num_threads=num_threads)
+
+    # -----------------------
+    # Minimize function calls
+    if minimize == 'calls':
+        # Discretize all LOS
+        # k, reseff, indpts =
+        # nbrep =
+        # pts =
+        # # Get values
+        # val =
+        # Integrate
+        if nt == 1:
+            pass
+        else:
+            pass
+
+    elif minimize == 'memory':
+        # loop over LOS
+        for ii in range(0,nlos):
+            pass
+            # loop over time
+            for jj in range(0,nt):
+                # get values
+                # integrate
+                pass
+
+
+
 
 
 

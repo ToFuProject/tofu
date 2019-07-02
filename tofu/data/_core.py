@@ -2345,7 +2345,7 @@ class Plasma2D(utils.ToFuObject):
         # super()
         super(Plasma2D,self)._reset()
         self._dgroup = dict.fromkeys(self._get_keys_dgroup())
-        self._dindref = dict.fromkeys(self._get_keys_dindref())
+        self._ddepend = dict.fromkeys(self._get_keys_ddepend())
         self._ddata = dict.fromkeys(self._get_keys_ddata())
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
 
@@ -2377,7 +2377,7 @@ class Plasma2D(utils.ToFuObject):
     ###########
 
     @staticmethod
-    def _get_largs_dindrefdatagroup():
+    def _get_largs_ddependdatagroup():
         largs = ['dtime', 'dradius', 'dmesh', 'd1d', 'd2d']
         return largs
 
@@ -2395,29 +2395,32 @@ class Plasma2D(utils.ToFuObject):
     #---------------------
 
     @staticmethod
-    def _extract_dnd(dnd, k0):
+    def _extract_dnd(dnd, k0,
+                     dim_=None, quant_=None, name_=None,
+                     origin_=None, units_=None):
+        # Set defaults
+        dim_ =   k0 if dim_ is None else dim_
+        quant_ = k0 if quant_ is None else quant_
+        name_ =  k0 if name_ is None else name_
+        origin_ = 'unknown' if origin_ is None else origin_
+        units_ = 'a.u.' if units_ is None else units_
+
+        # Extract
         lk = dnd[k0].keys()
         if type(dnd[k0]) is dict:
             assert 'data' in lk
             data = dnd[k0]['data']
-            if 'units' in lk:
-                units = dnd[k0]['units']
-            else:
-                units = 'a.u.'
-            if 'quant' in lk:
-                quant = dnd[k0]['quant']
-            else:
-                quant = k0
-            if 'name' in lk:
-                name = dnd[k0]['name']
-            else:
-                name = k0
+            dim = dnd[k0].get('dim', dim_)
+            quant = dnd[k0].get('quant', quant_)
+            origin = dnd[k0].get('origin', origin_)
+            name = dnd[k0].get('name', name_)
+            units = dnd[k0].get('units', units_)
         else:
             data = dnd[k0]
-            units = 'a.u.'
-            quant = k0
-            name = k0
-        return data, units, quant, name
+            dim, quant, name = dim_, quant_, name_
+            origin, units = origin_, units_
+        key = '%s.%s'%(origin,name)
+        return data, dim, quant, origin, name, units, key
 
     @staticmethod
     def _checkformat_dtrm(dtime, dradius, dmesh):
@@ -2431,18 +2434,18 @@ class Plasma2D(utils.ToFuObject):
 
         # dtime
         for k0, v0 in dtime.items():
-            c0 = type(k0) is str and 't' in v0.keys()
-            c0 &= v0['t'] is not None
+            c0 = type(k0) is str and 'data' in v0.keys()
+            c0 &= v0['data'] is not None
             try:
-                dtime[k0]['t'] = np.asarray(v0['t']).ravel()
+                dtime[k0]['data'] = np.asarray(v0['data']).ravel()
             except Exception:
                 c0 = False
             if not c0:
                 msg = "Arg dtime must be a dict of nested dict such that:\n"
                 msg += "    - each key is a str (name of the radius)\n"
                 msg += "    - each nested dict has one item ('t',np.ndarray)\n"
-                msg += "e.g.:  dtime = {'t1':{'t':np.array([0,...,10])},\n"
-                msg += "                't2':{'t':np.array([0.1,...5.5])}}"
+                msg += "e.g.:  dtime = {'t1':{'data':np.array([0,...,10])},\n"
+                msg += "                't2':{'data':np.array([0.1,...5.5])}}"
                 raise Exception(msg)
 
         # dradius
@@ -2498,7 +2501,7 @@ class Plasma2D(utils.ToFuObject):
         return lk
 
     @staticmethod
-    def _get_keys_dindref():
+    def _get_keys_ddepend():
         lk = []
         return lk
 
@@ -2521,11 +2524,11 @@ class Plasma2D(utils.ToFuObject):
               config=None, **kwargs):
         kwdargs = locals()
         kwdargs.update(**kwargs)
-        largs = self._get_largs_dindrefdatagroup()
-        kwdindrefdatagroup = self._extract_kwdargs(kwdargs, largs)
+        largs = self._get_largs_ddependdatagroup()
+        kwddependdatagroup = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dgeom()
         kwdgeom = self._extract_kwdargs(kwdargs, largs)
-        self._set_dindrefdatagroup(**kwdindrefdatagroup)
+        self._set_ddependdatagroup(**kwddependdatagroup)
         self.set_dgeom(**kwdgeom)
         self._dstrip['strip'] = 0
 
@@ -2534,118 +2537,176 @@ class Plasma2D(utils.ToFuObject):
     # set dictionaries
     ###########
 
-    def _set_dindrefdatagroup(self, dtime=None, dradius=None, dmesh=None,
+    @staticmethod
+    def _find_lref(shape=None, k0=None, dd=None, ddstr=None,
+                   ddepend=None, lrefname=['t','radius']):
+        if 'depend' in dd[k0].keys():
+            lref = dd[k0]['depend']
+        else:
+            lref = [[kk for kk, vv in ddepend.items()
+                     if vv['size'] == sh] for sh in shape]
+            lref = list(itt.chain.from_iterable(lref))
+            if len(lref) < len(shape):
+                msg = "Some references missing for %s[%s]:\n"%(ddstr,k0)
+                msg += "    - shape: %s\n"%str(shape)
+                msg += "    - lref:  %s"%str(lref)
+                raise Exception(msg)
+            if len(lref) > len(shape):
+                lrn = [rn for rn in lrefname if rn in dd[k0].keys()]
+                lref = [rr for rr in lref if ddepend[rr]['name'] in lrn]
+                if not len(lref) == len(shape):
+                    msg = "Multiple possible references for %s[%s]\n"%(ddstr,k0)
+                    msg += "    - shape: %s\n"%str(shape)
+                    msg += "    - lref:  %s"%str(lref)
+                    raise Exception(msg)
+        return lref
+
+
+
+
+    def _set_ddependdatagroup(self, dtime=None, dradius=None, dmesh=None,
                               d1d=None, d2d=None):
 
         # Check dtime is not None
         out = self._checkformat_dtrm(dtime=dtime, dradius=dradius, dmesh=dmesh)
         dtime, dradius, dmesh = out
 
-        dgroup, dindref, ddata = {}, {}, {}
+        dgroup, ddepend, ddata = {}, {}, {}
+        empty = {}
         # Get indt
         for k0 in dtime.keys():
-            idt = str(id(dtime[k0]))
-            dindref[idt] = {'size':dtime[k0]['t'].size,
-                            'name':k0,
+            out = self._extract_dnd(dtime,k0,
+                                    dim_='time', quant_='t',
+                                    name_=k0, units_='s')[1:]
+            dim, quant, origin, name, units, key = out
+
+            assert key not in ddepend.keys()
+            ddepend[key] = {'size':dtime[k0]['data'].size,
                             'group':'time'}
 
-            ddata[idt] = {'data':dtime[k0]['t'],
-                          'quant':'time', 'name':k0, 'units':'s',
-                          'indref':(idt,)}
+            assert key not in ddata.keys()
+            ddata[key] = {'data':dtime[k0]['data'],
+                          'dim':dim, 'quant':quant, 'name':name,
+                          'origin':origin, 'units':units, 'depend':(key,)}
+            # Update keys
+            for kk, vv in dradius.item():
+                if k0 in vv.get('depend',empty):
+                    dradius[kk]['depend'][vv['depend'].index(k0)] = key
+            for kk, vv in d1d.item():
+                if k0 in vv.get('depend',empty):
+                    d1d[kk]['depend'][vv['depend'].index(k0)] = key
+            for kk, vv in d2d.item():
+                if k0 in vv.get('depend',empty):
+                    d2d[kk]['depend'][vv['depend'].index(k0)] = key
+
 
         # get radius
         for k0, v0 in dradius.items():
-            idr = str(id(v0))
-            dindref[idr] = {'size':v0['size'],
-                            'name':k0,
+            depend = None
+            out = self._extract_dnd(dradius, k0, name_=k0)
+            data, dim, quant, origin, name, units, key = out
+            assert key not in ddepend.keys()
+            if len(dradius[k0].get('depend',[1])) == 1:
+                assert data.ndim == 1
+                size = data.size
+                depend = (key,)
+            else:
+                lkt = [k for k in dtime.keys() if k in dradius[k0]['depend']]
+                assert len(lkt) == 1
+                axist = dradius[k0]['depend'].index(lkt[0])
+                size = data.shape[1-axist]
+            ddepend[key] = {'size':size,
                             'group':'radius'}
+            for kk, vv in d1d.item():
+                if k0 in vv.get('depend',empty):
+                    d1d[kk]['depend'][vv['depend'].index(k0)] = key
+            for kk, vv in d2d.item():
+                if k0 in vv.get('depend',empty):
+                    d2d[kk]['depend'][vv['depend'].index(k0)] = key
+
+            assert key not in ddata.keys()
+            if depend is None:
+                depend = dradius[k0]['depend']
+            lref = self._find_lref(data.shape, k0, dd=dradius,
+                                   ddstr='dradius', ddepend=ddepend,
+                                   lrefname=['t','radius'])
+            ddata[key] = {'data':data,
+                          'dim':dim, 'quant':quant, 'name':name,
+                          'origin':origin, 'units':units, 'depend':depend}
+
 
         # Get d1d
         iddref = None
         if d1d is not None:
             for k0 in d1d.keys():
-                idd = str(id(d1d[k0]))
-                data, units, quant, name = self._extract_dnd(d1d, k0)
 
+                out = self._extract_dnd(d1d,k0)
+                data, dim, quant, origin, name, units, key = out
                 if data is None:
                     msg = "Provided data is None:\n"
                     msg += "    - d1d[%s]"%k0
                     raise Exception(msg)
 
                 # data
-                shape = data.shape
-                lrefrad = [kk for kk, vv in dindref.items()
-                           if (vv['group'] == 'radius'
-                               and vv['size'] == shape[-1]
-                               and vv['name'] == d1d[k0]['radius'])]
-                assert len(lrefrad) == 1
-                if len(shape) == 1:
-                    indref = (lrefrad[0],)
-                else:
-                    kt = [kk for kk,vv in dindref.items()
-                         if (vv['group'] == 'time'
-                             and vv['size'] == shape[0]
-                             and vv['name'] == d1d[k0]['time'])]
-                    assert len(kt) == 1
-                    indref = (kt[0], lrefrad[0])
-                ddata[idd] = {'data':data,
-                              'quant':quant, 'name':name, 'units':units,
-                              'indref':indref}
+                lref = self._find_lref(data.shape, k0, dd=d1d,
+                                       ddstr='d1d', ddepend=ddepend,
+                                       lrefname=['t','radius'])
+                assert key not in ddata.keys()
+                ddata[key] = {'data':data,
+                              'dim':dim, 'quant':quant, 'name':name,
+                              'units':units, 'origin':origin, 'depend':lref}
 
         # dmesh ref
         idm = None
         if dmesh is not None:
             for k0 in dmesh.keys():
-                idm = str(id(dmesh[k0]))
-                dindref[idm] = {'size':dmesh[k0]['size'],
-                                'name':k0,
+                out = self._extract_dnd(dmesh, k0, dim_='mesh')[1:]
+                dim, quant, origin, name, units, key = out
+
+                assert key not in ddepend.keys()
+                ddepend[key] = {'size':dmesh[k0]['size'],
                                 'group':'mesh'}
 
-                ddata[idm] = {'data':dmesh[k0],
-                              'quant':k0, 'name':k0, 'units':'a.u.',
-                              'indref':(idm,)}
+                assert key not in ddata.keys()
+                ddata[key] = {'data':dmesh[k0],
+                              'dim':dim, 'quant':quant, 'name':name,
+                              'units':units, 'origin':origin, 'depend':(key,)}
 
         # d2d
         if d2d is not None:
             for k0 in d2d.keys():
-                idd2 = str(id(d2d[k0]))
-                data, units, quant, name = self._extract_dnd(d2d, k0)
-                shape = data.shape
-                lrefrad = [kk for kk, vv in dindref.items()
-                           if (vv['group'] == 'mesh'
-                               and vv['size'] == shape[-1]
-                               and vv['name'] == d2d[k0]['mesh'])]
-                assert len(lrefrad) == 1
-                if len(shape) == 1:
-                    indref = (lrefrad[0],)
-                else:
-                    kt = [kk for kk,vv in dindref.items()
-                         if (vv['group'] == 'time'
-                             and vv['size'] == shape[0]
-                             and vv['name'] == d2d[k0]['time'])]
-                    assert len(kt) == 1
-                    indref = (kt[0], lrefrad[0])
-                ddata[idd2] = {'data':data,
-                               'quant':quant, 'name':name, 'units':units,
-                               'indref':indref}
+                out = self._extract_dnd(d2d,k0)
+                data, dim, quant, origin, name, units, key = out
+                if data is None:
+                    msg = "Provided data is None:\n"
+                    msg += "    - d1d[%s]"%k0
+                    raise Exception(msg)
+
+                lref = self._find_lref(data.shape, k0, dd=d2d,
+                                       ddstr='d2d', ddepend=ddepend,
+                                       lrefname=['t','mesh'])
+                assert key not in ddata.keys()
+                ddata[key] = {'data':data,
+                               'dim':dim, 'quant':quant, 'name':name,
+                               'units':units, 'origin':origin, 'depend':lref}
 
         # dgroup
-        dgroup = {'time':{'indref':idt},
-                  'radius':{'indref':idr}}
+        dgroup = {'time':{'dref':list(dtime.keys())[0]},
+                  'radius':{'dref':list(dradius.keys()[0])}}
         if idm is not None:
-            dgroup['mesh'] = {'indref':idm}
+            dgroup['mesh'] = {'dref':list(dmesh.keys())[0]}
 
         # Complement
-        self._complement(dgroup, dindref, ddata)
+        self._complement(dgroup, ddepend, ddata)
 
         # Update dict
         self._dgroup = dgroup
-        self._dindref = dindref
+        self._ddepend = ddepend
         self._ddata = ddata
 
 
     @classmethod
-    def _complement(cls, dgroup, dindref, ddata):
+    def _complement(cls, dgroup, ddepend, ddata):
 
         # --------------
         # ddata
@@ -2653,23 +2714,22 @@ class Plasma2D(utils.ToFuObject):
         for id_, vd in ddata.items():
             assert all([kk in vd.keys() for kk in lkstr])
             assert all([type(vd[kk]) is str for kk in lkstr])
-            linind = [ii in dindref.keys() for ii in vd['indref']]
+            linind = [ii in ddepend.keys() for ii in vd['depend']]
             if not all(linind):
-                msg = "In ddata[%s], indref not in dindref.keys():\n"%str(id_)
+                msg = "In ddata[%s], depend not in ddepend.keys():\n"%str(id_)
                 msg += "    - quant: %s\n"%vd['quant']
                 msg += "    - name : %s\n"%vd['name']
                 msg += "    - units : %s\n"%vd['units']
                 if type(vd['data']) is np.ndarray:
                     msg += "    - shape : %s\n"%str(vd['data'].shape)
-                msg += "    - indref : %s\n"%str(vd['indref'])
-                msg += "  dindref.keys() = %s"%str(dindref.keys())
+                msg += "    - depend : %s\n"%str(vd['depend'])
+                msg += "  ddepend.keys() = %s"%str(ddepend.keys())
                 raise Exception(msg)
-            ddata[id_]['lgroup'] = list(set([dindref[ii]['group']
-                                             for ii in vd['indref']]))
-            assert all([ii in dindref.keys() for ii in vd['indref']])
+            ddata[id_]['lgroup'] = [ddepend[ii]['group'] for ii in vd['depend']]
+            assert all([ii in ddepend.keys() for ii in vd['depend']])
             assert 'data' in vd.keys()
             type_ = type(vd['data'])
-            shape = tuple([dindref[ii]['size'] for ii in vd['indref']])
+            shape = tuple([ddepend[ii]['size'] for ii in vd['depend']])
             if len(shape) == 1:
                 c0 = type_ is dict and 'mesh' in ddata[id_]['lgroup']
                 c1 = not c0 and len(vd['data']) == shape[0]
@@ -2677,28 +2737,28 @@ class Plasma2D(utils.ToFuObject):
             else:
                 assert type(vd['data']) is np.ndarray
                 assert vd['data'].shape == shape
-        lni = sorted([(vd['name'],vd['indref']) for vd in ddata.values()])
+        lni = sorted([(vd['name'],vd['depend']) for vd in ddata.values()])
         if not len(set(lni)) == len(lni):
-            msg = "Names / indref tuples for data should be unique !\n"
+            msg = "Names / depend tuples for data should be unique !\n"
             msg += "    - %s"%str(lni)
             raise Exception(msg)
 
         # --------------
-        # dindref
-        for id_ in dindref.keys():
-            dindref[id_]['liddata'] = [kk for kk, vv in ddata.items()
-                                       if id_ in vv['indref']]
-            assert dindref[id_]['group'] in dgroup.keys()
+        # ddepend
+        for id_ in ddepend.keys():
+            ddepend[id_]['liddata'] = [kk for kk, vv in ddata.items()
+                                       if id_ in vv['depend']]
+            assert ddepend[id_]['group'] in dgroup.keys()
 
         # --------------
         # dgroup
         for gg, vg in dgroup.items():
-            lidindref = [id_ for id_, vv in dindref.items() if vv['group'] == gg]
+            liddepend = [id_ for id_, vv in ddepend.items() if vv['group'] == gg]
             liddata = [id_ for id_ in ddata.keys()
-                       if any([id_ in dindref[vref]['liddata']
-                               for vref in lidindref])]
-            assert vg['indref'] in lidindref
-            dgroup[gg]['lidindref'] = lidindref
+                       if any([id_ in ddepend[vref]['liddata']
+                               for vref in liddepend])]
+            assert vg['depend'] in liddepend
+            dgroup[gg]['liddepend'] = liddepend
             dgroup[gg]['liddata'] = liddata
 
 
@@ -2777,14 +2837,14 @@ class Plasma2D(utils.ToFuObject):
 
     def _to_dict(self):
         dout = {'dgroup':{'dict':self._dgroup, 'lexcept':None},
-                'dindref':{'dict':self._dindref, 'lexcept':None},
+                'ddepend':{'dict':self._ddepend, 'lexcept':None},
                 'ddata':{'dict':self._ddata, 'lexcept':None},
                 'dgeom':{'dict':self._dgeom, 'lexcept':None}}
         return dout
 
     def _from_dict(self, fd):
         self._dgroup.update(**fd['dgroup'])
-        self._dindref.update(**fd['dindref'])
+        self._ddepend.update(**fd['ddepend'])
         self._ddata.update(**fd['ddata'])
         self._dgeom.update(**fd['dgeom'])
 
@@ -2797,22 +2857,22 @@ class Plasma2D(utils.ToFuObject):
     def dgroup(self):
         return self._dgroup
     @property
-    def dindref(self):
-        return self._dindref
+    def ddepend(self):
+        return self._ddepend
     @property
     def ddata(self):
         return self._ddata
     @property
     def dtime(self):
-        return dict([(kk, self._ddata[kk]) for kk,vv in self._dindref.items()
+        return dict([(kk, self._ddata[kk]) for kk,vv in self._ddepend.items()
                      if vv['group'] == 'time'])
     @property
     def dradius(self):
-        return dict([(kk, self._ddata[kk]) for kk,vv in self._dindref.items()
+        return dict([(kk, self._ddata[kk]) for kk,vv in self._ddepend.items()
                      if vv['group'] == 'radius'])
     @property
     def dmesh(self):
-        return dict([(kk, self._ddata[kk]) for kk,vv in self._dindref.items()
+        return dict([(kk, self._ddata[kk]) for kk,vv in self._ddepend.items()
                      if vv['group'] == 'mesh'])
     @property
     def config(self):
@@ -2831,7 +2891,7 @@ class Plasma2D(utils.ToFuObject):
         return lq
 
     def _get_liddata(self, quant=None, name=None, units=None,
-                     indref=None, group=None, log='all'):
+                     depend=None, group=None, log='all'):
         assert log in ['all','any']
         lid = np.array(list(self._ddata.keys()))
         ind = np.ones((5,len(lid)),dtype=bool)
@@ -2841,8 +2901,8 @@ class Plasma2D(utils.ToFuObject):
             ind[1,:] = [self._ddata[id_]['name'] == name for id_ in lid]
         if units is not None:
             ind[2,:] = [self._ddata[id_]['units'] == units for id_ in lid]
-        if indref is not None:
-            ind[3,:] = [indref in self._ddata[id_]['indref'] for id_ in lid]
+        if depend is not None:
+            ind[3,:] = [depend in self._ddata[id_]['depend'] for id_ in lid]
         if group is not None:
             ind[4,:] = [group in self._ddata[id_]['lgroup'] for id_ in lid]
 
@@ -2870,25 +2930,27 @@ class Plasma2D(utils.ToFuObject):
 
         # -----------------------
         # Build the pandas DataFrame for ddata
-        col0 = ['group id', 'indref']
-        ar0 = [(k0, v0['indref']) for k0,v0 in self._dgroup.items()]
+        col0 = ['group id', 'depend']
+        ar0 = [(k0, v0['depend']) for k0,v0 in self._dgroup.items()]
 
         # -----------------------
         # Build the pandas DataFrame for ddata
         col1 = ['ref id', 'group', 'size']
-        ar1 = [(k0, v0['group'], v0['size']) for k0,v0 in self._dindref.items()]
+        ar1 = [(k0, v0['group'], v0['size']) for k0,v0 in self._ddepend.items()]
 
         # -----------------------
         # Build the pandas DataFrame for ddata
-        col2 = ['data id', 'quant', 'name', 'units', 'shape', 'indref', 'lgroup']
+        col2 = ['data id', 'dim.', 'quant.',
+                'name', 'units', 'shape', 'depend', 'lgroup']
         ar2 = []
         for k0,v0 in self._ddata.items():
             if type(v0['data']) is np.ndarray:
                 shape = str(v0['data'].shape)
             else:
                 shape = v0['data'].__class__.__name__
-            lu = [k0, v0['quant'], v0['name'], v0['units'], shape,
-                  str(v0['indref']), str(v0['lgroup'])]
+            lu = [k0, v0['dim.'], v0['quant.'], str(v0['origin']),
+                  v0['name'], v0['units'], shape,
+                  str(v0['depend']), str(v0['lgroup'])]
             ar2.append(lu)
 
         self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
@@ -2980,18 +3042,18 @@ class Plasma2D(utils.ToFuObject):
         return idquant, idref1d, idref2d
 
 
-    def _get_indtmult(self, t=None, idquant=None, idref1d=None, idref2d=None):
+    def _get_indtmult(self, idquant=None, idref1d=None, idref2d=None):
 
         # Get time vectors and bins
-        idtq = self._ddata[idquant]['indref'][0]
+        idtq = self._ddata[idquant]['depend'][0]
         tq = self._ddata[idtq]['data']
         if idref1d is not None:
             tbinq = 0.5*(tq[1:]+tq[:-1])
-            idtr1 = self._ddata[idref1d]['indref'][0]
+            idtr1 = self._ddata[idref1d]['depend'][0]
             tr1 = self._ddata[idtr1]['data']
             tbinr1 = 0.5*(tr1[1:]+tr1[:-1])
         if idref2d is not None and idref2d != idref1d:
-            idtr2 = self._ddata[idref2d]['indref'][0]
+            idtr2 = self._ddata[idref2d]['depend'][0]
             tr2 = self._ddata[idtr2]['data']
             tbinr2 = 0.5*(tr2[1:]+tr2[:-1])
 
@@ -3018,6 +3080,11 @@ class Plasma2D(utils.ToFuObject):
         if idref2d is not None:
             indtr2 = np.digitize(tall, tbinr2)
 
+        ntall = tall.size
+        return tall, ntall, indtq, indtr1, indtr2
+
+    def _get_indtu(t=None, tall=None, tbinall=None,
+                   idref1d=None, idref2d=None):
         # Get indt (t with respect to tbinall)
         indt, indtu = None, None
         if t is not None:
@@ -3032,7 +3099,122 @@ class Plasma2D(utils.ToFuObject):
             if idref2d is not None:
                 indtr2 = indtr2[indtu]
         ntall = tall.size
-        return tall, ntall, indt, indtu, indtq, indtr1, indtr2
+        return tall, ntall, indt, indtu
+
+
+    def _get_finterp(self, idquant, idref1d, idref2d,
+                     interp_t='nearest', interp_space='linear',
+                     fill_value=np.nan):
+
+        # Get idmesh
+        if idref1d is None:
+            lidmesh = [qq for qq in self._ddata[idquant]['depend']
+                       if self._ddepend[qq]['group'] == 'mesh']
+        else:
+            lidmesh = [qq for qq in self._ddata[idref2d]['depend']
+                       if self._ddepend[qq]['group'] == 'mesh']
+        assert len(lidmesh) == 1
+        idmesh = lidmesh[0]
+
+        # Get mesh
+        mpltri = self._ddata[idmesh]['data']['mpltri']
+        trifind = mpltri.get_trifinder()
+
+        # Get common time indices
+        if interp_t == 'nearest':
+            out = self._get_indtmult(idquant=idquant,
+                                     idref1d=idref1d, idref2d=idref2d)
+            tall, ntall, indtq, indtr1, indtr2 = out
+
+        # # Prepare output
+
+        # Interpolate
+        # Note : Maybe consider using scipy.LinearNDInterpolator ?
+        vquant = self._ddata[idquant]['data']
+        if idref1d is None:
+
+            def func(pts, t=None, ntall=ntall,
+                     mplTriLinInterp=mplTriLinInterp,
+                     mpltri=mpltri, trifind=trifind,
+                     vquant=vquant, indtq=indtq,
+                     tall=tall, tbinall=tbinall,
+                     idref1d=idref1d, idref2d=idref2d):
+
+                r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                shapeval = list(pts.shape)
+                shapeval[0] = ntall if t is None else t.size
+                val = np.full(tuple(shapeval), np.nan)
+                if t is None:
+                    for ii in range(0,ntall):
+                        val[ii,...] = mplTriLinInterp(mpltri,
+                                                      vquant[indtq[ii],:],
+                                                      trifinder=trifind)(r,z)
+                else:
+                    ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
+                                                         tbinall=tbinall,
+                                                         idref1d=idref1d,
+                                                         idref2d=idref2d)[1:]
+                    for ii in range(0,ntall):
+                        ind = indt == indtu[ii]
+                        val[ind,...] = mplTriLinInterp(mpltri,
+                                                       vquant[indtq[ii],:],
+                                                       trifinder=trifind)(r,z)
+                return val
+
+        else:
+            vr2 = self._ddata[idref2d]['data']
+            vr1 = self._ddata[idref1d]['data']
+
+            def func(pts, t=None, ntall=ntall,
+                     mplTriLinInterp=mplTriLinInterp,
+                     mpltri=mpltri, trifind=trifind,
+                     vquant=vquant, indtq=indtq,
+                     indt=indt, indtu=indtu,
+                     interp_space=interp_space,
+                     fill_value=fill_value,
+                     vr1=vr1, indtr1=indtr1,
+                     vr2=vr2, indtr2=indtr2,
+                     tall=tall, tbinall=tbinall,
+                     idref1d=idref1d, idref2d=idref2d):
+
+                r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                shapeval = list(pts.shape)
+                shapeval[0] = ntall if t is None else t.size
+                val = np.full(tuple(shapeval), np.nan)
+                if t is None:
+                    for ii in range(0,ntall):
+                        # get ref values for mapping
+                        vii = mplTriLinInterp(mpltri,
+                                              vr2[indtr2[ii],:],
+                                              trifinder=trifind)(r,z)
+
+                        # interpolate 1d
+                        val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                         vquant[indtq[ii],:],
+                                                         kind=interp_space,
+                                                         bounds_error=False,
+                                                         fill_value=fill_value)(np.asarray(vii))
+                else:
+                    ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
+                                                         tbinall=tbinall,
+                                                         idref1d=idref1d,
+                                                         idref2d=idref2d)[1:]
+                    for ii in range(0,ntall):
+                        # get ref values for mapping
+                        vii = mplTriLinInterp(mpltri,
+                                              vr2[indtr2[ii],:],
+                                              trifinder=trifind)(r,z)
+
+                        # interpolate 1d
+                        ind = indt == indtu[ii]
+                        val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                          vquant[indtq[ii],:],
+                                                          kind=interp_space,
+                                                          bounds_error=False,
+                                                          fill_value=fill_value)(np.asarray(vii))
+                return val
+
+        return func
 
 
     def _interp_pts2profile(self, ptsRZ,
@@ -3043,11 +3225,11 @@ class Plasma2D(utils.ToFuObject):
 
         # Get idmesh
         if idref1d is None:
-            lidmesh = [qq for qq in self._ddata[idquant]['indref']
-                       if self._dindref[qq]['group'] == 'mesh']
+            lidmesh = [qq for qq in self._ddata[idquant]['depend']
+                       if self._ddepend[qq]['group'] == 'mesh']
         else:
-            lidmesh = [qq for qq in self._ddata[idref2d]['indref']
-                       if self._dindref[qq]['group'] == 'mesh']
+            lidmesh = [qq for qq in self._ddata[idref2d]['depend']
+                       if self._ddepend[qq]['group'] == 'mesh']
         assert len(lidmesh) == 1
         idmesh = lidmesh[0]
 
@@ -3058,9 +3240,13 @@ class Plasma2D(utils.ToFuObject):
 
         # Get common time indices
         if interp_t == 'nearest':
-            out = self._get_indtmult(t=t, idquant=idquant,
+            out = self._get_indtmult(idquant=idquant,
                                      idref1d=idref1d, idref2d=idref2d)
-            tall, ntall, indt, indtu, indtq, indtr1, indtr2 = out
+            tall, ntall, indtq, indtr1, indtr2 = out
+            tall, ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
+                                                       tbinall=tbinall,
+                                                       idref1d=idref1d,
+                                                       idref2d=idref2d)
 
         # Prepare output
         shapeval = list(ptsRZ.shape)
@@ -3114,11 +3300,29 @@ class Plasma2D(utils.ToFuObject):
                                                       bounds_error=False,
                                                       fill_value=fill_value)(np.asarray(vii))
 
-
         # return time
         if t is None:
             t = tall
         return val, t
+
+
+    def get_finterp2d(self, quant, ref=None,
+                      interp_t='nearest', interp_space='linear',
+                      fill_value=np.nan):
+        """ Return the function interpolating (X,Y,Z) pts on a 1d/2d profile
+
+        Can be used as input for tf.geom.CamLOS1D/2D.calc_signal()
+
+        """
+        # Check inputs
+        assert interp_t == 'nearest', "Only 'nearest' available so far!"
+
+        # Check requested quant is available in 2d or 1d
+        idquant, idref1d, idref2d = self._get_quantrefid(quant, ref)
+
+        # Interpolation (including time broadcasting)
+
+
 
 
     def interp_pts2profile(self, quant, ptsRZ=None, t=None, ref=None,
@@ -3238,7 +3442,7 @@ class Plasma2D(utils.ToFuObject):
                 msg = "Only 1d quantities can be turned into tf.data.Data !\n"
                 msg += "    - %s is not a radius-dependent quantity"%qq
                 raise Exception(msg)
-            idt = self._ddata[idq]['indref'][0]
+            idt = self._ddata[idq]['depend'][0]
 
             if type(X) is list:
                 idX = self._get_idXq(X[ii])
