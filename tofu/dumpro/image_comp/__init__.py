@@ -16,3 +16,5 @@ from . import vid2img
 from . import reshape_image
 #dumpro images subroutine
 from . import dumpro_img
+#guassian blur subroutine
+from . import guassian_blur
