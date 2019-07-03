@@ -45,22 +45,23 @@ lstruct_nlim = np.array([0, 2, 1])
 nstruct_lim = 3
 nstruct_tot =1+2+1
 lstruct_nlim=np.asarray([0, 2, 1])
-# First point (in the center of poloidal plane
-pt0 = 7.
-pt1 = 0.
-pt2 = 7.
-# Other points (to check if visible or not)
-# first test point: same point (should be visible), in torus, out torus
-other_x = np.r_[7, 7.,  8.]
-other_y = np.r_[0, 0.1, 8.]
-other_z = np.r_[7, 7.5, 8.]
-npts = len(other_x)
-others = np.zeros((3,3))
-others[0,:] = other_x
-others[1,:] = other_y
-others[2,:] = other_z
 
 def test():
+    # First point (in the center of poloidal plane
+    pt0 = 7.
+    pt1 = 0.
+    pt2 = 7.
+    # Other points (to check if visible or not)
+    # first test point: same point (should be visible), in torus, out torus
+    other_x = np.r_[7, 7.,  8.]
+    other_y = np.r_[0, 0.1, 8.]
+    other_z = np.r_[7, 7.5, 8.]
+    npts = len(other_x)
+    others = np.zeros((3,3))
+    others[0,:] = other_x
+    others[1,:] = other_y
+    others[2,:] = other_z
+
     is_vis = GG.LOS_isVis_PtFromPts_VesStruct(pt0, pt1, pt2,
                                               others,
                                               ves_poly=VP,
@@ -146,8 +147,23 @@ def test():
                                               lstruct_normy=lsviny,
                                               ves_type='Tor', test=True)
 
+def test2():
+    other_x = np.r_[7, 7.,  8.]
+    other_y = np.r_[0, 0.1, 8.]
+    other_z = np.r_[7, 7.5, 8.]
+    npts = len(other_x)
+    others = np.zeros((3,npts))
+    others[0,:] = other_x
+    others[1,:] = other_y
+    others[2,:] = other_z
+    r = np.ones(npts) * 0.1
+    res = GG.Dust_calc_SolidAngle(others, r, others+0.1,
+                                  VPoly=VP, VIn=VIn)
+    print(res)
 
 if __name__=='__main__':
-    from timeit import Timer
-    t = Timer("test()", "from __main__ import test")
-    print(t.timeit(number=10000))
+    # from timeit import Timer
+    # t = Timer("test()", "from __main__ import test")
+    # print(t.timeit(number=10000))
+
+    test2()

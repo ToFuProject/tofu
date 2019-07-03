@@ -39,6 +39,12 @@ cdef void coordshift_simple1d(double[3] pts, bint in_is_cartesian,
                               double CrossRef, double cos_phi,
                               double sin_phi) nogil
 
+cdef void is_inside_vessel(double[:, ::1] pts, double[:, ::1] ves_poly,
+                           double[:,::1] ves_lims, int nlim,
+                           bint is_toroidal, bint in_is_cartesian,
+                           int[3] order,
+                           int[::1] is_inside) nogil
+
 # ==============================================================================
 # =  Raytracing basic tools: intersection ray and axis aligned bounding box
 # ==============================================================================

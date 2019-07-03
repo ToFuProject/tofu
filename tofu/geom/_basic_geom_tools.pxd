@@ -33,7 +33,7 @@ cdef int is_point_in_path_vec(const int nvert,
                               const int npts,
                               const double* testx,
                               const double* testy,
-                              bint* is_in_path) nogil
+                              int* is_in_path) nogil
 
 cdef void compute_inv_and_sign(const double[3] ray_vdir,
                                int[3] sign,

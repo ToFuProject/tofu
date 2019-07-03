@@ -57,7 +57,7 @@ cdef inline int is_point_in_path_vec(const int nvert,
                                      const int npts,
                                      const double* testx,
                                      const double* testy,
-                                     bint* is_in_path) nogil:
+                                     int* is_in_path) nogil:
     """
     Computes if a series of points of coordiates (testx[ii], testy[ii]) is in
     the polygon defined by nvert vertices of coordinates (vertx, verty)

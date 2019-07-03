@@ -22,6 +22,7 @@ from cython cimport view
 # importing ToFu functions:
 from _basic_geom_tools cimport _VSMALL
 from _basic_geom_tools cimport is_point_in_path
+from _basic_geom_tools cimport is_point_in_path_vec
 from _basic_geom_tools cimport compute_inv_and_sign
 cimport _basic_geom_tools as _bgt
 
@@ -301,6 +302,168 @@ cdef inline void coordshift_simple1d(double[3] pts, bint in_is_cartesian,
             pts[1] = r*sin_phi
             pts[2] = z
     return
+
+
+cdef inline void is_inside_vessel(double[:, ::1] pts, double[:, ::1] ves_poly,
+                                  double[:,::1] ves_lims, int nlim,
+                                  bint is_toroidal, bint in_is_cartesian,
+                                  int[3] order,
+                                  int[::1] is_inside) nogil:
+    """
+    check if points are inside given vessel
+    pts : points to check if inside
+    ves_poly : (2, nvert) array defining polygon of the vessel
+    ves_lims : (2, nlim) limits of the vessel, None if contiguous
+    nlim : number of limits
+    is_toroidal : true if vessel is toroidal
+    in_is_cartesian : true if pts coordinates are given in cartesian coordinates
+    order : order where the coordinates are stored, for example :
+              - (x,y,z) => order = (0, 1, 2)
+              - (z,x,y) => order = (1, 2, 0)
+              - (r, z, phi) => order = (0, 1, 2)
+              - (z, r, phi) => order = (1, 0, 2)
+    is_inside : result, array of bools of size npts
+    """
+    cdef int ii, jj
+    cdef int fst
+    cdef int npts = pts.shape[1]
+    cdef int nvert = ves_poly.shape[1]
+    cdef double[3] shift_pts
+    cdef double[2] lims
+    cdef double rii, zii, pii
+    cdef bint in_ves
+    # --------------------------------------------------------------------------
+    if is_toroidal:
+        if ves_lims is None or nlim == 0:
+            if in_is_cartesian:
+                for ii in range(npts):
+                    shift_pts[0] = pts[order[0], ii]
+                    shift_pts[1] = pts[order[1], ii]
+                    shift_pts[2] = pts[order[2], ii]
+                    coordshift_simple1d(shift_pts, in_is_cartesian,
+                                        -1, # we dont care about phi
+                                        -1, -1) # no need for these args
+                    is_inside[ii] = is_point_in_path(nvert,
+                                                     &ves_poly[0][0],
+                                                     &ves_poly[1][0],
+                                                     shift_pts[0], shift_pts[1])
+            else:
+                is_point_in_path_vec(nvert, &ves_poly[0][0], &ves_poly[1][0],
+                                     npts, &pts[order[0]][0], &pts[order[1]][0],
+                                     &is_inside[0])
+        else:
+            # -- There are limits ----------------------------------------------
+            if in_is_cartesian:
+                for jj in range(nlim):
+                    fst = jj * npts
+                    lims[0] = Catan2(Csin(ves_lims[jj][0]),
+                                     Ccos(ves_lims[jj][0]))
+                    lims[1] = Catan2(Csin(ves_lims[jj][1]),
+                                     Ccos(ves_lims[jj][1]))
+                    if lims[0] < lims[1]:
+                        for ii in range(npts):
+                            shift_pts[0] = pts[order[0], ii]
+                            shift_pts[1] = pts[order[1], ii]
+                            shift_pts[2] = pts[order[2], ii]
+                            coordshift_simple1d(shift_pts, in_is_cartesian,
+                                                0, # we need to compute phi
+                                                -1, -1) # no need for these args
+                            in_ves = is_point_in_path(nvert,
+                                                      &ves_poly[0][0],
+                                                      &ves_poly[1][0],
+                                                      shift_pts[0],
+                                                      shift_pts[1])
+                            is_inside[fst + ii] = (in_ves
+                                                   & (shift_pts[2]>=lims[0])
+                                                   & (shift_pts[2]<=lims[1]))
+                    else:
+                        for ii in range(npts):
+                            shift_pts[0] = pts[order[0], ii]
+                            shift_pts[1] = pts[order[1], ii]
+                            shift_pts[2] = pts[order[2], ii]
+                            coordshift_simple1d(shift_pts, in_is_cartesian,
+                                                0, # we need to compute phi
+                                                -1, -1) # no need for these args
+                            in_ves = is_point_in_path(nvert,
+                                                      &ves_poly[0][0],
+                                                      &ves_poly[1][0],
+                                                      shift_pts[0],
+                                                      shift_pts[1])
+                            is_inside[fst + ii] = (in_ves
+                                                   & ((shift_pts[2]>=lims[0])
+                                                      | (shift_pts[2]<=lims[1])))
+            else:
+                # -- in coordinates: polar -------------------------------------
+                for jj in range(nlim):
+                    fst = jj * npts
+                    lims[0] = Catan2(Csin(ves_lims[jj][0]),
+                                     Ccos(ves_lims[jj][0]))
+                    lims[1] = Catan2(Csin(ves_lims[jj][1]),
+                                     Ccos(ves_lims[jj][1]))
+                    if lims[0] < lims[1]:
+                        for ii in range(npts):
+                            rii = pts[order[0],ii]
+                            zii = pts[order[1],ii]
+                            pii = Catan2(Csin(pts[order[2],ii]),
+                                         Ccos(pts[order[2],ii]))
+                            in_ves = is_point_in_path(nvert,
+                                                      &ves_poly[0][0],
+                                                      &ves_poly[1][0],
+                                                      rii, zii)
+                            is_inside[fst + ii] = (in_ves
+                                                   & (pii>=lims[0])
+                                                   & (pii<=lims[1]))
+                    else:
+                        for ii in range(npts):
+                            rii = pts[order[0],ii]
+                            zii = pts[order[1],ii]
+                            pii = Catan2(Csin(pts[order[2],ii]),
+                                         Ccos(pts[order[2],ii]))
+                            in_ves = is_point_in_path(nvert,
+                                                      &ves_poly[0][0],
+                                                      &ves_poly[1][0],
+                                                      rii, zii)
+                            is_inside[fst + ii] = (in_ves
+                                                   & ((pii>=lims[0])
+                                                      | (pii<=lims[1])))
+    else:
+        # -- Cylindrical case --------------------------------------------------
+        if in_is_cartesian:
+            for jj in range(nlim):
+                fst = jj * npts
+                for ii in range(npts):
+                    in_ves = is_point_in_path(nvert,
+                                              &ves_poly[0][0],
+                                              &ves_poly[1][0],
+                                              pts[order[1],ii],
+                                              pts[order[2],ii])
+                    is_inside[fst + ii] = (in_ves
+                                           & (pts[order[0],ii]>=ves_lims[0][0])
+                                           & (pts[order[0],ii]<=ves_lims[0][1]))
+        else:
+            # polar coordinates
+            for jj in range(nlim):
+                fst = jj * npts
+                for ii in range(npts):
+                    shift_pts[0] = pts[order[0], ii]
+                    shift_pts[1] = pts[order[1], ii]
+                    shift_pts[2] = pts[order[2], ii]
+                    coordshift_simple1d(shift_pts, in_is_cartesian,
+                                        0, # we need to compute phi
+                                        -1, -1) # no need for these args
+                    in_ves = is_point_in_path(nvert,
+                                              &ves_poly[0][0],
+                                              &ves_poly[1][0],
+                                              shift_pts[1],
+                                              shift_pts[2])
+                    is_inside[fst + ii] = (in_ves
+                                           & (shift_pts[0]>=ves_lims[0][0])
+                                           & (shift_pts[0]<=ves_lims[0][1]))
+    return
+
+
+
+
 
 # ==============================================================================
 # =  Raytracing basic tools: intersection ray and axis aligned bounding box
