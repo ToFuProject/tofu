@@ -67,12 +67,12 @@ import tofu.pathfile as pathfile
 import tofu.utils as utils
 from tofu.utils import save, load
 import tofu._plot as _plot
-import tofu.geom as geom
+#import tofu.geom as geom
 import tofu.data as data
 #import tofu.dust as dust
+import tofu.dumpro._core as dumpro
 
-
-__all__ = ['pathfile','utils','_plot','geom','data']#,'dust']
+__all__ = ['pathfile','utils','_plot','dumpro','data']#,'dust']
 
 del sys
 
