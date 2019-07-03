@@ -43,20 +43,20 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
     shot_name:        String
      The name of the tokomak machine and the shot number. Generally
      follows the nomenclature followed by the lab
-    meta_data:        dictionary
     
     Return
     -----------------------
-    im_out:              String
+    im_out:           String
      Path along where the proccessed images are stored  
-    meta_data:        dictionary
-     A dictionary containing the meta data of the video.
     cen_clus:         list
      A list of lists containing all the centers of clusters in each frame
     area_clus:        list
      A list of lists containing the area of all the clusters in each frame
-    t_clusters:       list
-    A list contaning the totaL number of clusters in each frame    
+    t_clusters:       array
+     An array contaning the totaL number of clusters in each frame
+    ang_cluster:      list
+     A list containing the angular orientation of each cluster
+    indt:             array
     """
     if verb == True:
         print('###########################################')
@@ -82,24 +82,24 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
     #sorting files according to names using lambda function
     #-4 is to remove the extension of the images i.e., .jpg
     files.sort(key = lambda x: int(x[5:-4]))
-    #looping throuah all the file names in the list and converting them to image path
-    
+    #duration    
     nt = len(files)
+    
     if verb == True:
         print('detecting clusters...')
-    #to store the barycenter of each cluster
-    cen_clus = [ None for _ in range(0,nt)]
+    #to store the centroid of each cluster
+    cen_clus = [None for _ in range(0,nt)]
     #to store the size of each cluster
-    area_clus = [ None for _ in range(0,nt)]
+    area_clus = [None for _ in range(0,nt)]
     #to store the contour infomation of each frame
-    t_clusters = [ None for _ in range(0,nt)]
+    t_clusters = np.zeros((nt,),dtype = int)
     #to store angle
-    ang_cluster = [ None for _ in range(0,nt)]
-    
+    ang_cluster = [None for _ in range(0,nt)]
+    #indices array(True if cluster present or else False)
     indt = np.ones((nt,), dtype = bool)
-    # loop to read through all the images and
-    # apply grayscale conversion to them
-    f_count = 1
+    #looping throuah all the file names in the list
+    #converting them to image path
+    #and applying contour detection algorithm to it
     for tt in range(0,nt):
         #converting to path
         filename = im_path + files[tt]
@@ -113,17 +113,19 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
         ret, threshed_img = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
         contours, hierarchy = cv2.findContours(threshed_img, cv2.RETR_CCOMP,
                                                cv2.CHAIN_APPROX_SIMPLE)
-        
+        #total number of clusters in each frame
         t_clusters[tt] = len(contours)
         if t_clusters[tt] == 0:
             indt[tt] = False
             continue
-        
+        #array for area for each cluster for each frame
         area_frame = np.zeros((t_clusters[tt],),dtype = float)
-        center_frame = np.zeros((t_clusters[tt]),dtype = tuple)
-        angle_frame = np.zeros((t_clusters[tt]),dtype = float)
+        #aray for center for each each cluster for each frame
+        center_frame = np.zeros((t_clusters[tt],2),dtype = int)
+        #array for angular orientation for each cluster for each frame
+        angle_frame = np.zeros((t_clusters[tt],),dtype = float)
         
-        #looping over contours
+        #looping over each contours
         for ii in range(0,t_clusters[tt]):
             c = contours[ii]
             x, y, w, h = cv2.boundingRect(c)
@@ -135,7 +137,6 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
             box = np.int0(box)
             #draw a red 'nghien' rectangle
             cv2.drawContours(img, [box], 0, (255, 255, 255))
-            
             #getting moments
             M = cv2.moments(c)
             #centroid calculation
@@ -144,7 +145,6 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
                 cy = int(M['m01']/M['m00'])
                 center = cx,cy
                 area = cv2.contourArea(c)
-                
             else:
                 #center estimation if m00 == 0
                 (x, y), radius = cv2.minEnclosingCircle(c)
@@ -152,7 +152,7 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
                 center = int(x), int(y)
                 area = cv2.contourArea(c)
             area_frame[ii] = area
-            center_frame[ii] = center
+            center_frame[ii,:] = center
             angle_frame[ii] = angle
             
         area_clus[tt] = area_frame
@@ -161,13 +161,9 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
         #drawing contours
         #cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
         #generic name of each image
-        name = im_out + 'frame' + str(f_count) + '.jpg'
+        name = im_out + 'frame' + str(tt) + '.jpg'
         #writting the output file
         cv2.imwrite(name, img)
-        height,width = img.shape[0],img.shape[1]
-        size = (height, width)
-        #providing information to user
-        f_count += 1
     
     #dynamic printing
     stdout.write("\n")
@@ -175,5 +171,5 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
     
     cv2.destroyAllWindows
     
-    return im_out, cen_clus, area_clus, t_clusters, ang_cluster
+    return im_out, cen_clus, area_clus, t_clusters, ang_cluster, indt
 

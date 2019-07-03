@@ -154,7 +154,6 @@ def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True
     
     #Loop Variable    
     currentFrame = 1
-    
     if verb == True:
         print("Converting Video to Images ...... Please Wait \n")
     
@@ -170,7 +169,7 @@ def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True
             #frame number starts from 0
             name = path + 'frame' + str(currentFrame) + '.jpg'
             if verb == True:
-                stdout.write("\r[%s/%s]" % (currentFrame, int(cap.get(cv2.CAP_PROP_FRAME_COUNT))))
+                stdout.write("\r[%s/%s]" % (currentFrame, meta_data.get('N_frames')))
                 stdout.flush()    
             cv2.imwrite(name, frame)
         else:

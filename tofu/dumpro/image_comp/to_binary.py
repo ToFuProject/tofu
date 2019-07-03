@@ -21,7 +21,7 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
-def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb = True):
+def bin_thresh(im_path, w_dir, shot_name, im_out = None, verb = True):
     """
     This subroutine converts a collection of images to binary
     The images are read in grayscale form i.e., in single channel mode
@@ -31,10 +31,8 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
     2. https://docs.opencv.org/3.4.0/d7/d4d/tutorial_py_thresholding.html
     
     Among the parameters present, if used as a part of dumpro, 
-    w_dir, shot_name and meta_data are provided by the image processing 
+    w_dir and shot_name are provided by the image processing 
     class in the core file.
-    The verb paramenter is used when this subroutine is used independently.
-    Otherwise it is suppressed by the core class.
     
     Parameters
     -----------------------
@@ -45,22 +43,13 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
     shot_name:        String
      The name of the tokomak machine and the shot number. Generally
      follows the nomenclature followed by the lab
-    meta_data:        dictionary
-     A dictionary containing all the video meta_data. By default it is None
-     But if the user inputs some keys into the dictionary, the code will use 
-     the information from the dictionary and fill in the missing gaps if
-     required
-     meta_data has information on total number of frames, demension, fps and 
-     the four character code of the video
     disp              boolean
      to display the frames set equal to True. By default is set to True
     
     Return
     -----------------------
     im_out:              String
-     Path along where the proccessed images are stored  
-    meta_data:        dictionary
-     A dictionary containing the meta data of the video.
+     Path along where the proccessed images are stored
     """
     if verb == True:
         print('###########################################')
@@ -86,7 +75,8 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
     #frame_array = []
     #creating a list of all the files
     files = [f for f in os.listdir(im_path) if os.path.isfile(os.path.join(im_path,f))]    
-    
+    #duration in terms of number of frames
+    duration = len(files)
     #sorting files according to names using lambda function
     files.sort(key = lambda x: int(x[5:-4]))
     #looping throuah all the file names in the list and converting them to image path
@@ -95,78 +85,27 @@ def bin_thresh(im_path, w_dir, shot_name, im_out = None, meta_data = None, verb 
         print('performing binary conversion...')
     
     #looping through the files
-    f_count = 1
-    for i in range(len(files)):
+    for time in range(0, duration):
         #converting to path
-        filename = im_path + files[i]
+        filename = im_path + files[time]
         #dynamic printing
         if verb == True:
-            stdout.write("\r[%s/%s]" % (f_count, len(files)))
+            stdout.write("\r[%s/%s]" % (time, duration))
             stdout.flush()
         #reading each file to extract its meta_data
         img = cv2.imread(filename,cv2.IMREAD_GRAYSCALE)
         #grayscale conversion
         ret, out = cv2.threshold(img,100,255,cv2.THRESH_BINARY)
         #generic name of each image
-        name = im_out + 'frame' + str(f_count) + '.jpg'
+        name = im_out + 'frame' + str(time) + '.jpg'
         #writting the output file
         cv2.imwrite(name, out)
-        height,width = img.shape[0],img.shape[1]
-        size = (height, width)
-        #providing information to user
-        f_count += 1
         
     #dynamic printing
     stdout.write("\n")
     stdout.flush()
     
-    #frame_array.append(img)
-    
     if verb == True:
-        print('Reading meta_data...')
-        
-    if meta_data == None:
-        #defining the four character code
-        fourcc = cv2.VideoWriter_fourcc(*'MJPG')
-        #defining the frame dimensions
-        frame_width = width
-        frame_height = height
-        #defining the fps
-        fps = 25
-        #defining the total number of frames
-        N_frames = len(files)
-        #defining the meta_data dictionary
-        meta_data = {'fps' : fps, 'frame_height' : frame_height, 
-                     'frame_width' : frame_width, 'fourcc' : fourcc,
-                     'N_frames' : N_frames}
-    else:
-        #describing the four character code      
-
-        fourcc = meta_data.get('fourcc', cv2.VideoWriter_fourcc(*'MJPG'))
-        if 'fourcc' not in meta_data:
-            meta_data['fourcc'] = fourcc
-        
-        #describing the frame width
-        frame_width = meta_data.get('frame_width', width)
-        if 'frame_width' not in meta_data:
-            meta_data['frame_width'] = frame_width
-        
-        #describing the frame height
-        frame_height = meta_data.get('frame_height', height)
-        if 'frame_height' not in meta_data:
-            meta_data['frame_height'] = frame_height
-            
-        #describing the speed of the video in frames per second 
-        fps = meta_data.get('fps', 25)
-        if 'fps' not in meta_data:
-            meta_data['fps'] = fps
-
-        #describing the total number of frames in the video
-        N_frames = meta_data.get('N_frames', len(files))
-        if 'N_frames' not in meta_data:
-            meta_data['N_frames'] = N_frames
+        print('binary conversion successful.../n')
     
-    if verb == True:
-        print('meta_data is read successfully...\n')
-    
-    return im_out, meta_data
+    return im_out

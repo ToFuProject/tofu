@@ -18,15 +18,15 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
 # dumpro specific
-import conv_gray
-import denoise
-import denoise_col
-import to_binary
-import rm_background
-import reshape_image
-import cluster_det
-import average_area
-import average_distance
+from . import conv_gray
+from . import denoise
+from . import denoise_col
+from . import to_binary
+from . import rm_background
+from . import reshape_image
+from . import cluster_det
+from . import average_area
+from . import average_distance
 #import plotting as _plot
 
 def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None, 
@@ -36,8 +36,8 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
     """This is the dust movie processing computattion subroutine
     
     Among the parameters present, if used as a part of dumpro, 
-    w_dir, shot_name, meta_data, t_clus, area_clus, cen_clus are provided by 
-    the image processing class in the core file.
+    w_dir, shot_name, t_clus, area_clus, cen_clus are provided by the image 
+    processing class in the core file.
     The verb paramenter can be used for additional information. It runtime
     information on processing, intended only to keep the user informed.
     
@@ -56,13 +56,6 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
      The height and width limits of the frame to select the region of interest
     im_out:           string
      The output path for the images after processing.
-    meta_data:        dictionary
-     A dictionary containing all the video meta_data. By default it is None
-     But if the user inputs some keys into the dictionary, the code will use 
-     the information from the dictionary and fill in the missing gaps if
-     required
-     meta_data has information on total number of frames, demension, fps and 
-     the four character code of the video
     cen_clus:         list
      Centers of all the clusters in each frame
     area_clus:        list
@@ -74,35 +67,31 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
     if rate == None:
         rate = 0
     #reshaping images
-    cropped, meta_data, reshape = reshape_image.reshape_image(im_path, w_dir, 
-                                                              shot_name, tlim,
-                                                              hlim, wlim,
-                                                              im_out, 
-                                                              meta_data, verb)
+    cropped, reshape = reshape_image.reshape_image(im_path, w_dir, 
+                                                   shot_name, tlim,
+                                                   hlim, wlim,
+                                                   im_out, 
+                                                   verb)
     
     #conversion to Grayscale
-    gray, meta_data = conv_gray.conv_gray(cropped, w_dir, shot_name, im_out,
-                                          meta_data, verb)
+    gray = conv_gray.conv_gray(cropped, w_dir, shot_name, im_out, verb)
     
     #denoising images
-    den_gray, meta_data = denoise.denoise(gray, w_dir, shot_name, im_out,
-                                          meta_data, verb)
+    den_gray = denoise.denoise(gray, w_dir, shot_name, im_out, verb)
     
     #removing background
-    back, meta_data = rm_background.rm_back(den_gray, w_dir,shot_name, rate, im_out,
-                                            meta_data, verb)
+    back = rm_background.rm_back(den_gray, w_dir,shot_name, rate, im_out, verb)
     
     #detecting clusters
-    clus, meta_data, cen_clus, area_clus, t_clus, ang_clus = cluster_det.det_cluster(back, w_dir, 
-                                                                                     shot_name, 
-                                                                                     im_out, 
-                                                                                     meta_data, 
-                                                                                     verb)
+    clus, cen_clus, area_clus, t_clus, ang_clus, indt = cluster_det.det_cluster(back, w_dir, 
+                                                                                    shot_name, 
+                                                                                    im_out,
+                                                                                    verb)
     #getting average area
-    avg_area_big, avg_area, t_clus_small, t_clus_big = average_area.get_area(area_clus, t_clus)
+    avg_samll, avg_big, t_clus_small, t_clus_big = average_area.get_area(area_clus, t_clus, indt)
     
     #getting average distance
-    avg_dist, avg_dist_big = average_distance.get_distance(cen_clus, area_clus, t_clus)
+    clus_dist = average_distance.get_distance(cen_clus, area_clus, t_clus, indt)
     
     
     return None
