@@ -12,7 +12,7 @@ from time import sleep
 #standard
 import numpy as np
 
-def get_distance(clus_center, clus_area, t_clusters, verb = True):
+def get_distance(clus_center, clus_area, t_clusters, indt, verb = True):
     """This subroutine calculate the average distance between clusters of one
     frame and the clusters of the next frame.
     
@@ -46,15 +46,14 @@ def get_distance(clus_center, clus_area, t_clusters, verb = True):
             stdout.write("\r[%s/%s]" % (tt, nt-2))
             stdout.flush()    
         #checking for frames without any clusters
-        if t_clusters[tt] == 0 or t_clusters[tt+1] == 0:
+        if indt[tt] == False or indt[tt+1] == False:
             continue
         
         #getting cluster in the current frame
         for ii in range(0,t_clusters[tt]):
             # calulating distance for each cluster in the next frame
-            clust_dist[tt][ii,:] = np.hypot(clus_center[tt+1][:,0]-clus_center[tt][0],
-                                            clus_center[tt+1][:,1]-clus_center[tt][1])
-
+            clust_dist[tt][ii,:] = np.hypot(clus_center[tt+1][:,0]-clus_center[tt][ii,0],
+                                            clus_center[tt+1][:,1]-clus_center[tt][ii,1])
     #dynamic printing
     stdout.write("\n")
     stdout.flush()
