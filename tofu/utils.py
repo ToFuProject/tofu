@@ -607,7 +607,8 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, out=None, tlim=None, config=None,
                    occ=None, indch=None, indDescription=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None,
-                   plot=True, plot_sig=None, plot_X=None, sharex=False):
+                   plot=True, plot_sig=None, plot_X=None, sharex=False,
+                   bck=True):
     # -------------------
     # import imas2tofu
     try:
@@ -724,31 +725,29 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if out[ii] == 'Config':
             out[ii] = multi.to_Config(Name=Name, occ=occ,
                                       indDescription=indDescription, plot=plot)
-        elif out[ii] == 'Cam':
-            out[ii] = multi.to_Cam(ids=ids[ii], Name=Name, indch=indch,
-                                   config=config, occ=occ, plot=plot)
-
 
         elif out[ii] == 'Plasma2D':
             out[ii] = multi.to_Plasma2D(Name=Name, occ=occ,
                                         tlim=tlim, dsig=dsig, ids=ids[ii], t0=t0,
                                         plot=plot, plot_sig=plot_sig,
-                                        plot_X=plot_X, config=config)
+                                        plot_X=plot_X, config=config, bck=bck)
         elif out[ii] == 'Cam':
             out[ii] = multi.to_Cam(Name=Name, occ=occ,
                                    ids=ids[ii], indch=indch, config=config,
                                    plot=plot)
         elif out[ii] == "Data":
+            print('tf.utils', bck)  # DB
             out[ii] = multi.to_Data(Name=Name, occ=occ,
                                     ids=ids[ii], tlim=tlim, dsig=dsig, config=config,
                                     data=data, X=X, indch=indch, t0=t0,
-                                    equilibrium=equilibrium, plot=plot_)
+                                    equilibrium=equilibrium, plot=plot_,
+                                    bck=bck)
 
     # -------------------
     # plot_combine if relevant
     if nDat > 1 and plot == True:
         ld = [out[ii] for ii in lDat[1:]]
-        out[lDat[0]].plot_combine(ld, sharex=sharex)
+        out[lDat[0]].plot_combine(ld, sharex=sharex, bck=bck)
 
     # return
     if nids == 1:

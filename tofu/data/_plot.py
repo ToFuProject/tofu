@@ -41,7 +41,7 @@ _cbck = (0.8,0.8,0.8)
 _dmarker = {'Ax':'o', 'X':'x'}
 
 
-def Data_plot(lData, key=None, Bck=True, indref=0,
+def Data_plot(lData, key=None, bck=True, indref=0,
               cmap=None, ms=4, vmin=None, vmax=None,
               vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
               ntMax=None, nchMax=None, nlbdMax=None,
@@ -134,7 +134,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
 
         kh = _DataCam12D_plot_spectral(lData, key=key,
                                        nchMax=nchMax, ntMax=ntMax, nlbdMax=nlbdMax,
-                                       indref=indref, Bck=Bck, lls=lls,
+                                       indref=indref, bck=bck, lls=lls,
                                        lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
                                        fs=fs, dmargin=dmargin, wintit=wintit,
                                        tit=tit, Lplot=Lplot, ms=ms,
@@ -151,7 +151,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
     else:
         kh = _DataCam12D_plot(lData, nD=nD, key=key, indref=indref,
                               nchMax=nchMax, ntMax=ntMax, inct=inct, incX=incX,
-                              Bck=Bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
+                              bck=bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
                               cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
                               cmap_map=cmap_map, vmin_map=vmin_map,
                               vmax_map=vmax_map, normt_map=normt_map,
@@ -164,7 +164,7 @@ def Data_plot(lData, key=None, Bck=True, indref=0,
 
 
 
-def Data_plot_combine(lData, key=None, Bck=True, indref=0,
+def Data_plot_combine(lData, key=None, bck=True, indref=0,
               cmap=None, ms=4, vmin=None, vmax=None,
               vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
               ntMax=None, nchMax=None, nlbdMax=3,
@@ -234,7 +234,7 @@ def Data_plot_combine(lData, key=None, Bck=True, indref=0,
     # Plot
     kh = _DataCam12D_plot_combine(lData, lis2D=lis2D, key=key, indref=indref,
                                   nchMax=nchMax, ntMax=ntMax, inct=inct, incX=incX,
-                                  Bck=Bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
+                                  bck=bck, lls=lls, lct=lct, lcch=lcch, cbck=cbck,
                                   cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
                                   cmap_map=cmap_map, vmin_map=vmin_map,
                                   vmax_map=vmax_map, normt_map=normt_map,
@@ -339,7 +339,7 @@ def _init_DataCam12D(fs=None, dmargin=None,
 
 
 def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
-                     indref=0, Bck=True, lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
+                     indref=0, bck=True, lls=_lls, lct=_lct, lcch=_lcch, cbck=_cbck,
                      fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
                      inct=[1,10], incX=[1,5], ms=4,
                      cmap=None, vmin=None, vmax=None,
@@ -427,7 +427,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             raise Exception(msg)
 
         x1, x2, indr, extent = lData[0].get_X12plot('imshow')
-        if Bck:
+        if bck:
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
             nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
@@ -546,7 +546,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             for cc in lData[0]._dgeom['lCam']:
                 lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
                 lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-                if Bck and nD == 2:
+                if bck and nD == 2:
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
                     crossbck = np.concatenate(crossbck,axis=1)
@@ -557,7 +557,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
                                          c=cbck, ls='-', lw=1.)
-                elif Bck:
+                elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
@@ -576,7 +576,7 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         lCross, lHor = None, None
 
     # Background (optional)
-    if Bck:
+    if bck:
         if nD == 1:
             if lData[0].ddata['nnch'] == 1:
                 env = [np.nanmin(ldata[0],axis=0), np.nanmax(ldata[0],axis=0)]
@@ -1027,7 +1027,7 @@ def _init_DataCam12D_spectral(fs=None, dmargin=None,
 
 def _DataCam12D_plot_spectral(lData, key=None,
                               nchMax=_nchMax, ntMax=_ntMax, nlbdMax=_nlbdMax,
-                              indref=0, Bck=True, lls=_lls,
+                              indref=0, bck=True, lls=_lls,
                               lct=_lct, lcch=_lcch, lclbd=_lclbd, cbck=_cbck,
                               fs=None, dmargin=None, wintit=_wintit, tit=None, Lplot='In',
                               inct=[1,10], incX=[1,5], inclbd=[1,10], ms=4,
@@ -1117,7 +1117,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
             raise Exception(msg)
 
         x1, x2, indr, extent = lData[0].get_X12plot('imshow')
-        if Bck:
+        if bck:
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
             nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
@@ -1259,7 +1259,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
             for cc in lData[0]._dgeom['lCam']:
                 lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
                 lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-                if Bck and nD == 2:
+                if bck and nD == 2:
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
                     crossbck = np.concatenate(crossbck,axis=1)
@@ -1270,7 +1270,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
                                          c=cbck, ls='-', lw=1.)
-                elif Bck:
+                elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
@@ -1288,7 +1288,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
         lCross, lHor = None, None
 
     # Background (optional)
-    if Bck:
+    if bck:
         if nD == 1:
             if lData[0].ddata['nnch'] == 1 and dax['X'] is not None:
                 env = [np.nanmin(ldataint[0],axis=0), np.nanmax(ldataint[0],axis=0)]
@@ -1764,7 +1764,7 @@ def _init_DataCam12D_combine(fs=None, dmargin=None,
 
 
 def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
-                             indref=0, Bck=True, lls=_lls, lct=_lct,
+                             indref=0, bck=True, lls=_lls, lct=_lct,
                              lcch=_lcch, cbck=_cbck,
                              fs=None, dmargin=None,
                              wintit=_wintit, tit=None, Lplot='In',
@@ -1966,7 +1966,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 llCross[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
                 llHor[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
 
-        if c2 and lis2D[ii] and Bck:
+        if c2 and lis2D[ii] and bck:
             indbck = np.r_[lindr[ii][0,0], lindr[ii][0,-1],
                            lindr[ii][-1,0], lindr[ii][-1,-1]]
             for jj in range(0,len(lData[ii]._dgeom['lCam'])):
@@ -1988,12 +1988,12 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             lidHor[ii] = id(llHor[ii])
 
 
-        # Bck signal
-        if lis2D[ii] and Bck:
+        # bck signal
+        if lis2D[ii] and bck:
             dax['t'][ii+1].fill_between(lt[ii], np.nanmin(ldata[ii],axis=1),
                                         np.nanmax(ldata[ii],axis=1),
                                         facecolor=cbck)
-        elif Bck and not lis2D[ii]:
+        elif bck and not lis2D[ii]:
             if lData[ii].ddata['nnch'] == 1:
                 env = [np.nanmin(ldata[ii],axis=0), np.nanmax(ldata[ii],axis=0)]
                 dax['X'][ii].fill_between(lX[ii].ravel(), env[0], env[1], facecolor=cbck)
@@ -2282,7 +2282,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
 
 def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
-                          key=None, Bck=True, indref=0,
+                          key=None, bck=True, indref=0,
                           cmap_f=None, cmap_img=None, ms=4,
                           vmin=None, vmax=None,
                           normt=False, ntMax=None, nfMax=3,
@@ -2307,7 +2307,7 @@ def Data_plot_spectrogram(Data, tf, f, lpsd, lang, fmax=None,
     kh = _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                   fmax=fmax, key=key, nD=nD,
                                   ntMax=ntMax, nfMax=nfMax,
-                                  Bck=Bck, llsf=lls, lct=lct,
+                                  bck=bck, llsf=lls, lct=lct,
                                   cmap_f=cmap_f, cmap_img=cmap_img,
                                   normt=normt, invert=invert,
                                   vmin=vmin, vmax=vmax, ms=ms,
@@ -2416,7 +2416,7 @@ def _init_Data1D_spectrogram(fs=None, dmargin=None, nD=1,
 def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                              fmax=None, key=None, nD=1,
                              ntMax=_ntMax, nfMax=_nfMax,
-                             Bck=True, llsf=_lls, lct=_lct,
+                             bck=True, llsf=_lls, lct=_lct,
                              inct=[1,10], incX=[1,5], incf=[1,10],
                              fmt_t='06.3f', fmt_X='01.0f', fmt_f='05.2f',
                              cmap_f=None, cmap_img=None,
@@ -2469,7 +2469,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         assert nnch == 1
         assert indtX is None
         x1, x2, indr, extent = Data.get_X12plot('imshow')
-        if Bck:
+        if bck:
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
             nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
@@ -2561,7 +2561,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
             for cc in Data._dgeom['lCam']:
                 lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
                 lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-                if Bck and cc._is2D():
+                if bck and cc._is2D():
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
                     crossbck = np.concatenate(crossbck,axis=1)
@@ -2572,7 +2572,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
                                          c=cbck, ls='-', lw=1.)
-                elif Bck:
+                elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
@@ -2589,7 +2589,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     else:
         lCross, lHor = None, None
 
-    if Bck:
+    if bck:
         if nD == 1:
             if nnch == 1:
                 env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]
@@ -2905,7 +2905,7 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
 
 
 def Data_plot_svd(Data, chronos, s, topos, modes=None,
-                  key=None, Bck=True, Lplot='In',
+                  key=None, bck=True, Lplot='In',
                   cmap=None, vmin=None, vmax=None,
                   cmap_topos=None, vmin_topos=None, vmax_topos=None,
                   ntMax=None, nchMax=None, ms=4,
@@ -2954,7 +2954,7 @@ def Data_plot_svd(Data, chronos, s, topos, modes=None,
     # ------------------
     # Plotting
     kh = _Data_plot_svd(Data, chronos, s, topos, modes=modes,
-                        key=key, Bck=Bck, Lplot=Lplot,
+                        key=key, bck=bck, Lplot=Lplot,
                         cmap=cmap, vmin=vmin, vmax=vmax,
                         cmap_topos=cmap_topos, vmin_topos=vmin_topos,
                         vmax_topos=vmax_topos, nD=nD,
@@ -3072,7 +3072,7 @@ def _init_Data_svd(fs=None, dmargin=None, nD=1,
 
 
 def _Data_plot_svd(Data, chronos, s, topos, modes=None,
-                   key=None, Bck=True, Lplot='In',
+                   key=None, bck=True, Lplot='In',
                    cmap=None, vmin=None, vmax=None,
                    cmap_topos=None, vmin_topos=None, vmax_topos=None,
                    ntMax=None, nchMax=None, ms=4,
@@ -3135,7 +3135,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
         assert nnch == 1
         assert indtX is None
         x1, x2, indr, extent = Data.get_X12plot('imshow')
-        if Bck:
+        if bck:
             indbck = np.r_[indr[0,0], indr[0,-1], indr[-1,0], indr[-1,-1]]
             nan2 = np.full((2,1),np.nan)
         idx12 = id((x1,x2))
@@ -3218,7 +3218,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
             for cc in Data._dgeom['lCam']:
                 lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
                 lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-                if Bck and cc._is2D():
+                if bck and cc._is2D():
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
                     crossbck = np.concatenate(crossbck,axis=1)
@@ -3229,7 +3229,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
                                          c=cbck, ls='-', lw=1.)
                     dax['hor'][0].plot(horbck[0,:], horbck[1,:],
                                          c=cbck, ls='-', lw=1.)
-                elif Bck:
+                elif bck:
                     out = cc.plot(lax=[dax['cross'][0], dax['hor'][0]],
                                   element='L', Lplot=Lplot,
                                   dL={'c':(0.4,0.4,0.4,0.4),'lw':0.5},
@@ -3247,7 +3247,7 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
         lCross, lHor = None, None
 
     # Background
-    if Bck:
+    if bck:
         if nD == 1:
             if nnch == 1:
                 env = [np.nanmin(data,axis=0), np.nanmax(data,axis=0)]

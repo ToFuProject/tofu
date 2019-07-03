@@ -38,7 +38,7 @@ _LIDS_PLASMA = tf.imas2tofu.MultiIDSLoader._lidsplasma
 _LIDS = _LIDS_DIAG + _LIDS_PLASMA
 _T0 = 'IGNITRON'
 _SHAREX = False
-
+_BCK = True
 
 ###################################################
 ###################################################
@@ -48,11 +48,7 @@ _SHAREX = False
 def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION,
                     ids=None, quantity=None, quant_X=None, t0=_T0,
-                    sharex=_SHAREX, indch=None):
-
-    import ipdb
-    ipdb.set_trace()
-
+                    sharex=_SHAREX, indch=None, background=_BCK):
 
     lidspla = [ids_ for ids_ in ids if ids_ in _LIDS_PLASMA]
     if len(lidspla) > 0:
@@ -74,10 +70,15 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
             msg += "    - quant_X: %s"%str(quant_X)
             raise Exception(msg)
 
+    if t0.lower() == 'none':
+        t0 = None
+
+    print('call',background)    # DB
+
     tf.load_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
                       ids=ids, indch=indch, plot_sig=quantity, plot_X=quant_X,
-                      t0=t0, plot=True, sharex=sharex)
+                      t0=t0, plot=True, sharex=sharex, bck=background)
 
     plt.show(block=True)
 
@@ -87,6 +88,16 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
 ###################################################
 #       bash call (main)
 ###################################################
+
+def _str2bool(v):
+    if isinstance(v,bool):
+        return v
+    elif v.lower() in ['yes','true','y','t','1']:
+        return True
+    elif v.lower() in ['no','false','n','f','0']:
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected !')
 
 
 if __name__ == '__main__':
@@ -128,9 +139,12 @@ if __name__ == '__main__':
     parser.add_argument('-ich', '--indch', type=int, required=False,
                         help='indices of channels to be loaded',
                         nargs='+', default=None)
-    parser.add_argument('-sx', '--sharex', type=bool, required=False,
+    parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
-                        default=_SHAREX)
+                        default=_SHAREX, const=True, nargs='?')
+    parser.add_argument('-bck', '--background', type=_str2bool, required=False,
+                        help='Plot data enveloppe as grey background ?',
+                        default=_BCK, const=True, nargs='?')
 
     args = parser.parse_args()
 
