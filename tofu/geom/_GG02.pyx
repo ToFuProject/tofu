@@ -3508,7 +3508,7 @@ def Dust_calc_SolidAngle(pos, r, pts,
         ind = ~_Ves_isInside(pts, VPoly, ves_lims=VLim, ves_type=VType,
                              in_format='(X,Y,Z)', test=Test)
         if LSPoly is not None:
-            for ii in range(0,len(LSPoly)):
+            for ii in range(len(LSPoly)):
                 ind = ind & _Ves_isInside(pts, LSPoly[ii], ves_lims=LSLim[ii],
                                           ves_type=VType, in_format='(X,Y,Z)',
                                           test=Test)
@@ -3527,7 +3527,7 @@ def Dust_calc_SolidAngle(pos, r, pts,
         k = clone(array('d'), nptsok, True)
         k_view = k
         if approx and out_coefonly:
-            for ii in range(0,nt):
+            for ii in range(nt):
                 _bgt.compute_dist_pt_vec(pos[0,ii], pos[1,ii],
                                          pos[2,ii], nptsok,
                                          ptstemp, &k_view[0])
@@ -3543,11 +3543,11 @@ def Dust_calc_SolidAngle(pos, r, pts,
                                                     lstruct_normy=lsnormy,
                                                     forbid=Forbid,
                                                     ves_type=VType, test=Test)
-                for jj in range(0,nptsok):
+                for jj in range(nptsok):
                     if vis[jj]:
                         sang[ii,ind[jj]] = Cpi/k_view[jj]**2
         elif approx:
-            for ii in range(0,nt):
+            for ii in range(nt):
                 _bgt.compute_dist_pt_vec(pos[0,ii], pos[1,ii],
                                          pos[2,ii], nptsok,
                                          ptstemp, &k_view[0])
@@ -3564,12 +3564,12 @@ def Dust_calc_SolidAngle(pos, r, pts,
                                                     forbid=Forbid,
                                                     ves_type=VType, test=Test)
                 pir2 = Cpi*r[ii]**2
-                for jj in range(0,nptsok):
+                for jj in range(nptsok):
                     if vis[jj]:
                         sang[ii,ind[jj]] = pir2/k_view[jj]**2
         else:
             pir2 = 2*Cpi
-            for ii in range(0,nt):
+            for ii in range(nt):
                 _bgt.compute_dist_pt_vec(pos[0,ii], pos[1,ii],
                                          pos[2,ii], nptsok,
                                          ptstemp, &k_view[0])
@@ -3592,24 +3592,24 @@ def Dust_calc_SolidAngle(pos, r, pts,
 
     else:
         if approx and out_coefonly:
-            for ii in range(0,nt):
-                for jj in range(0,npts):
+            for ii in range(nt):
+                for jj in range(npts):
                     dij2 = ((pos[0,ii]-pts[0,jj])**2
                             + (pos[1,ii]-pts[1,jj])**2
                             + (pos[2,ii]-pts[2,jj])**2)
                     sang[ii,jj] = Cpi/dij2
         elif approx:
-            for ii in range(0,nt):
+            for ii in range(nt):
                 pir2 = Cpi*r[ii]**2
-                for jj in range(0,npts):
+                for jj in range(npts):
                     dij2 = ((pos[0,ii]-pts[0,jj])**2
                             + (pos[0,ii]-pts[0,jj])**2
                             + (pos[0,ii]-pts[0,jj])**2)
                     sang[ii,jj] = pir2/dij2
         else:
             pir2 = 2*Cpi
-            for ii in range(0,nt):
-                for jj in range(0,npts):
+            for ii in range(nt):
+                for jj in range(npts):
                     dij2 = ((pos[0,ii]-pts[0,jj])**2
                             + (pos[0,ii]-pts[0,jj])**2
                             + (pos[0,ii]-pts[0,jj])**2)
