@@ -170,7 +170,6 @@ def test04_Ves_isInside(VPoly=VPoly):
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
     ind = GG._Ves_isInside(Pts, VPoly, ves_lims=np.array([[0.,10.]]), nlim=1,
                            ves_type='Lin', in_format='(X,Y,Z)', test=True)
-    print("------", ind)
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,
                                                        False,False,False,False,
                                                        False,False])
@@ -181,11 +180,6 @@ def test04_Ves_isInside(VPoly=VPoly):
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
     ind = GG._Ves_isInside(Pts, VPoly, ves_lims=None, nlim=0, ves_type='Tor',
                            in_format='(Phi,R,Z)', test=True)
-    print(ind.shape, Pts.shape[1])
-    print(ind)
-    print("should be =", [False,True,False,True,
-                          False,False,False,True,
-                          False,False])
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,True,False,True,
                                                        False,False,False,True,
                                                        False,False])
@@ -195,12 +189,10 @@ def test04_Ves_isInside(VPoly=VPoly):
     Pts = np.array([[ 0.,  0., pi2, np.pi, np.pi, np.pi, np.pi, pi2, pi2, pi2],
                     [ 0.,  2.,  0.,    2.,    4.,    2.,    2.,  2.,  0.,  0.],
                     [ 0.,  0.,  0.,    0.,    0.,    2.,   -2.,  0.,  0.,  2.]])
-    print("====================")
     ind = GG._Ves_isInside(Pts, VPoly,
                            ves_lims=np.array([[np.pi/2.,3.*np.pi/2.]]),
                            nlim=1, ves_type='Tor', in_format='(Phi,R,Z)',
                            test=True)
-    print("====================")
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,
                                                        False,False,False,False,
                                                        False,False])
@@ -414,8 +406,6 @@ def test09_Ves_Smesh_Tor(VPoly=VPoly):
             else:
                 assert np.all( (Pts[2,:]>=LDPhi[ii][0]-marg) |
                                (Pts[2,:]<=LDPhi[ii][1]+marg))
-        print("are pts c cont =", Pts.flags.c_contiguous)
-        print("is poly c cont =", VPoly.flags.c_contiguous)
         assert np.all(GG._Ves_isInside(Pts, VPoly, ves_type='Tor',
                                        in_format='(R,Z,Phi)',
                                        ves_lims=None, nlim=0, test=True))
@@ -513,8 +503,6 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
         else:
             assert np.all( (Pts[2,:]>=LPhi[ii][0][0]-marg) |
                           (Pts[2,:]<=LPhi[ii][0][1]+marg))
-        print("are pts c cont =", Pts.flags.c_contiguous)
-        print("is poly c cont =", VPoly.flags.c_contiguous)
         assert np.all(GG._Ves_isInside(Pts, VPoly, ves_type='Tor',
                                        ves_lims=None,
                                        nlim=0, in_format='(R,Z,Phi)', test=True))
@@ -1006,6 +994,7 @@ def test13_LOS_PInOut():
     kmax_res = out[1]
     print("shape kmin, kmax =", np.shape(kmin_res), np.shape(kmax_res))
     print(" and getting until =", 3*nlos)
+    print("kmin_res =", kmin_res[:3], " kpin =", kPIn[:3])
     assert np.allclose(kmin_res[:nlos],    kPIn)
     assert np.allclose(kmin_res[nlos:2*nlos], kPIn)
     assert np.allclose(kmin_res[2*nlos:],  kPIn)

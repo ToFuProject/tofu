@@ -437,13 +437,8 @@ def _Ves_isInside(double[:, ::1] pts, double[:, ::1] ves_poly,
             assert is_cartesian or 'phi' in in_letters, err_msg
     # --------------------------------------------------------------------------
     is_inside = np.zeros(max(nlim,1)*pts.shape[1],dtype=np.int32)
-    print(ves_type, ves_type_low, is_toroidal)
-    print(in_format, in_form_low, is_cartesian)
-    print("order =", order[0], order[1], order[2])
-    print(ves_lims is None, nlim)
     _rt.is_inside_vessel(pts, ves_poly, ves_lims, nlim, is_toroidal,
                          is_cartesian, order, is_inside)
-    print(is_inside)
     if nlim == 0 or nlim==1:
         return is_inside.astype(bool)
     return is_inside.astype(bool).reshape(nlim, pts.shape[1])
@@ -3536,7 +3531,6 @@ def Dust_calc_SolidAngle(pos, r, pts,
                 _bgt.compute_dist_pt_vec(pos[0,ii], pos[1,ii],
                                          pos[2,ii], nptsok,
                                          ptstemp, &k_view[0])
-                print(np.shape(LSPoly))
                 vis = LOS_isVis_PtFromPts_VesStruct(pos[0,ii], pos[1,ii],
                                                     pos[2,ii], ptstemp,
                                                     k=k_view,
