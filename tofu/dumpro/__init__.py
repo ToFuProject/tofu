@@ -1,2 +1,2 @@
 #importing core of dumpro
-from . import _core
+from ._core import *

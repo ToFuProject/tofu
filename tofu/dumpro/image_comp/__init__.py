@@ -1,3 +1,6 @@
+""" This is the image computation package for performing DUMPRO on a 
+collection of images"""
+
 #grayscale conversion subroutine
 from . import conv_gray
 #grayscale images denoising subroutine
@@ -18,3 +21,7 @@ from . import reshape_image
 from . import dumpro_img
 #guassian blur subroutine
 from . import guassian_blur
+#distance calculation subroutine
+from . import get_distance
+#average area calculation subroutine
+from . import average_area

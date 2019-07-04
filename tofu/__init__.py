@@ -70,7 +70,7 @@ import tofu._plot as _plot
 #import tofu.geom as geom
 import tofu.data as data
 #import tofu.dust as dust
-import tofu.dumpro._core as dumpro
+import tofu.dumpro as dumpro
 
 __all__ = ['pathfile','utils','_plot','dumpro','data']#,'dust']
 
