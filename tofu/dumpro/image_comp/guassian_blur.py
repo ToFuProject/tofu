@@ -47,7 +47,7 @@ def blur_img(im_path, w_dir, shot_name, im_out = None, verb = True):
     """
     if verb == True:
         print('###########################################')
-        print('Guassian Blur')
+        print('Smoothing images')
         print('###########################################\n')
     #the output directory based on w_dir and shot_name
     if verb == True:
@@ -87,7 +87,7 @@ def blur_img(im_path, w_dir, shot_name, im_out = None, verb = True):
         #reading each file to extract its meta_data
         img = cv2.imread(filename,cv2.IMREAD_UNCHANGED)
         #guassian blur algorithm from opencv
-        gray = cv2.GaussianBlur(img)
+        gray = cv2.GaussianBlur(img,(11,11),0)
         #generic name of each image
         name = im_out + 'frame' + str(time) + '.jpg'
         #writting the output file

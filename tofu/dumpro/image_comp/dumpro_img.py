@@ -27,6 +27,7 @@ from . import reshape_image
 from . import cluster_det
 from . import average_area
 from . import get_distance
+from . import guassian_blur
 #import plotting as _plot
 
 def dumpro_img(im_path, w_dir, shot_name, infocluster, rate = None, tlim = None, 
@@ -81,8 +82,11 @@ def dumpro_img(im_path, w_dir, shot_name, infocluster, rate = None, tlim = None,
     #removing background
     back = rm_background.rm_back(den_gray, w_dir,shot_name, rate, im_out, verb)
     
+    #Smoothing images
+    blur = guassian_blur.blur_img(back, w_dir, shot_name, im_out, verb)
+    
     #detecting clusters
-    clus, center, area, total, angle, indt = cluster_det.det_cluster(back, w_dir,
+    clus, center, area, total, angle, indt = cluster_det.det_cluster(blur, w_dir,
                                                                      shot_name, 
                                                                      im_out,
                                                                      verb)

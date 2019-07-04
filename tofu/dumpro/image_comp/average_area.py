@@ -44,9 +44,15 @@ def get_area(clus_area, t_cluster, indt, verb = True):
     area_small,area_big,t_clus_small,t_clus_big = get_total_area(clus_area,indt,t_cluster)
     
     #calculating average area
-    avg_area = area_small/t_clus_small
-    avg_area_big = area_big/t_clus_big
-    print(area_small, area_big)
+    if t_clus_small != 0:
+        avg_area = area_small/t_clus_small
+    else: 
+        avg_area = 0
+        
+    if t_clus_big != 0:
+        avg_area_big = area_big/t_clus_big
+    else:
+        avg_area_big = 0
     return avg_area, avg_area_big, t_clus_small, t_clus_big
 
 def get_total_area(area_array, indt, t_cluster):

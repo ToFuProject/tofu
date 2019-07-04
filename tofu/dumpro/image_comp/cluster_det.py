@@ -159,7 +159,7 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
         cen_clus[tt]  = center_frame
         ang_cluster[tt] = angle_frame
         #drawing contours
-        #cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
+        cv2.drawContours(img, contours, -1, (255, 255, 0), 1)
         #generic name of each image
         name = im_out + 'frame' + str(tt) + '.jpg'
         #writting the output file
