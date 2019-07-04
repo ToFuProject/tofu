@@ -2932,9 +2932,17 @@ class Plasma2D(utils.ToFuObject):
     def _get_keyingroup(self, str_, group=None, msgstr=None, raise_=False):
 
         if str_ in self._ddata.keys():
-            return str_, None
+            lg = self._ddata[str_]['lgroup']
+            if group is None or group in lg:
+                return str_, None
+            else:
+                msg = "Required data key does not have matching group:\n"
+                msg += "    - ddata[%s]['lgroup'] = %s"%(str_, lg)
+                msg += "    - Expected group:  %s"%group
+                if raise_:
+                    raise Exception(msg)
 
-        ind, akeys = self._get_ldata(dim=str_, quant=str_, name=_str, units=str_,
+        ind, akeys = self._get_ldata(dim=str_, quant=str_, name=str_, units=str_,
                                      origin=str_, group=group, log='raw',
                                      return_key=False)
         # Remove indref and group
@@ -2955,13 +2963,16 @@ class Plasma2D(utils.ToFuObject):
         else:
             lstr = "[dim,quant,name,units,origin]"
             msg = "No unique match found in %s for %s"%(lstr,str_)
-        if group is not None and indg[indkey] != group:
+        if msg is None and group is not None and indg[indkey] != group:
             lstr = "[dim,quant,name,units,origin]"
             msg = "Unique matches were found in %s for %s\n"%(lstr,str_)
             msg += "  But none belong to the required group %s"%group
 
+        import ipdb         # DB
+        ipdb.set_trace()    # DB
+
         if msg is not None:
-            msg += "\nRequested %s could not be identified !\n"%msgstr
+            msg += "\n\nRequested %s could not be identified !\n"%msgstr
             msg += "Please provide a valid (unique) key / name / quant / dim:\n"
             msg += self.get_summary(verb=False, return_='msg')
             if raise_:
@@ -3015,25 +3026,46 @@ class Plasma2D(utils.ToFuObject):
     #---------------------
 
 
-    def _get_quantrefkeys(self, quant, ref=None):
+    def _get_quantrefkeys(self, qq, ref1d=None, ref2d=None):
 
         # Get relevant lists
-        kquant, msg = self._get_keyingroup(quant, 'mesh')
-        if kquant is not None:
+        import ipdb         # DB
+        ipdb.set_trace()    # DB
+
+        kq, msg = self._get_keyingroup(qq, 'mesh', msgstr='quant', raise_=False)
+        if kq is not None:
             k1d, k2d = None, None
         else:
-            kquant, msg = self._get_keyingroup(quant, 'radius', raise_=True)
-            k1d, msg = self._get_keyingroup(ref, 'radius')
+            kq, msg = self._get_keyingroup(qq, 'radius', msgstr='quant', raise_=True)
+            if ref1d is None and ref2d is None:
+                msg = "quant %s needs refs (1d and 2d) for interpolation\n"%qq
+                msg += "  => ref1d and ref2d cannot be both None !"
+                raise Exception(msg)
+            if ref1d is None:
+                ref1d = ref2d
+            k1d, msg = self._get_keyingroup(ref1d, 'radius',
+                                            msgstr='ref1d', raise_=False)
             if k1d is None:
                 msg += "\n\nInterpolation of %s:\n"
-                msg += "  ref could not be identified among 1d quantities"
+                msg += "  ref1d could not be identified among 1d quantities"
                 raise Exception(msg)
-            k2d, msg = self._get_keyingroup(ref, 'mesh')
+            if ref2d is None:
+                ref2d = ref1d
+            k2d, msg = self._get_keyingroup(ref2d, 'mesh',
+                                            msgstr='ref2d', raise_=False)
             if k2d is None:
                 msg += "\n\nInterpolation of %s:\n"
-                msg += "  ref could not be identified among 2d quantities"
+                msg += "  ref1d could not be identified among 2d quantities"
                 raise Exception(msg)
-        return kquant, k1d, k2d
+
+            q1d, q2d = self._ddata[k1d]['quant'], self._ddata[k2d]['quant']
+            if q1d != q2d:
+                msg = "ref1d and ref2d must be of the same quantity !\n"
+                msg += "    - ref1d (%s):   %s\n"%(ref1d, q1d)
+                msg += "    - ref2d (%s):   %s"%(ref2d, q2d)
+                raise Exception(msg)
+
+        return kq, k1d, k2d
 
 
     def _get_indtmult(self, idquant=None, idref1d=None, idref2d=None):
@@ -3315,6 +3347,12 @@ class Plasma2D(utils.ToFuObject):
         idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref)
 
         # Interpolation (including time broadcasting)
+        import ipdb         # DB
+        ipdb.set_trace()    # DB
+        func = self._get_finterp(idquant, idref1d, idref2d,
+                                 interp_t=interp_t, interp_space=interp_space,
+                                 fill_value=fill_value)
+        return func
 
 
 
