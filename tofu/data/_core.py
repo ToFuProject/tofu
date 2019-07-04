@@ -2946,8 +2946,7 @@ class Plasma2D(utils.ToFuObject):
                                      origin=str_, group=group, log='raw',
                                      return_key=False)
         # Remove indref and group
-        indg = ind[-1,:]
-        ind = ind[:5,:]
+        ind = ind[:5,:] & ind[-1,:]
 
         # Any perfect match ?
         nind = np.sum(ind, axis=1)
@@ -2956,25 +2955,18 @@ class Plasma2D(utils.ToFuObject):
         if sol.size > 0:
             if np.unique(sol).size == 1:
                 indkey = ind[sol[0],:].nonzero()[0]
-                key = akeys[indkey]
+                key = akeys[indkey][0]
             else:
                 lstr = "[dim,quant,name,units,origin]"
                 msg = "Several possible unique matches in %s for %s"(lstr,str_)
         else:
             lstr = "[dim,quant,name,units,origin]"
-            msg = "No unique match found in %s for %s"%(lstr,str_)
-        if msg is None and group is not None and indg[indkey] != group:
-            lstr = "[dim,quant,name,units,origin]"
-            msg = "Unique matches were found in %s for %s\n"%(lstr,str_)
-            msg += "  But none belong to the required group %s"%group
-
-        import ipdb         # DB
-        ipdb.set_trace()    # DB
+            msg = "No unique match in %s for %s in group %s"%(lstr,str_,group)
 
         if msg is not None:
             msg += "\n\nRequested %s could not be identified !\n"%msgstr
             msg += "Please provide a valid (unique) key / name / quant / dim:\n"
-            msg += self.get_summary(verb=False, return_='msg')
+            msg += '\n\n'.join(self.get_summary(verb=False, return_='msg'))
             if raise_:
                 raise Exception(msg)
         return key, msg
@@ -3016,9 +3008,9 @@ class Plasma2D(utils.ToFuObject):
                   str(v0['depend']), str(v0['lgroup'])]
             ar2.append(lu)
 
-        self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
-                          sep=sep, line=line, table_sep=table_sep,
-                          verb=verb, return_=return_)
+        return self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
+                                  sep=sep, line=line, table_sep=table_sep,
+                                  verb=verb, return_=return_)
 
 
     #---------------------
@@ -3029,9 +3021,6 @@ class Plasma2D(utils.ToFuObject):
     def _get_quantrefkeys(self, qq, ref1d=None, ref2d=None):
 
         # Get relevant lists
-        import ipdb         # DB
-        ipdb.set_trace()    # DB
-
         kq, msg = self._get_keyingroup(qq, 'mesh', msgstr='quant', raise_=False)
         if kq is not None:
             k1d, k2d = None, None
@@ -3046,8 +3035,9 @@ class Plasma2D(utils.ToFuObject):
             k1d, msg = self._get_keyingroup(ref1d, 'radius',
                                             msgstr='ref1d', raise_=False)
             if k1d is None:
-                msg += "\n\nInterpolation of %s:\n"
-                msg += "  ref1d could not be identified among 1d quantities"
+                msg += "\n\nInterpolation of %s:\n"%qq
+                msg += "  ref could not be identified among 1d quantities\n"
+                msg += "    - ref1d : %s"%ref1d
                 raise Exception(msg)
             if ref2d is None:
                 ref2d = ref1d
@@ -3055,7 +3045,8 @@ class Plasma2D(utils.ToFuObject):
                                             msgstr='ref2d', raise_=False)
             if k2d is None:
                 msg += "\n\nInterpolation of %s:\n"
-                msg += "  ref1d could not be identified among 2d quantities"
+                msg += "  ref could not be identified among 2d quantities\n"
+                msg += "    - ref2d: %s"%ref2d
                 raise Exception(msg)
 
             q1d, q2d = self._ddata[k1d]['quant'], self._ddata[k2d]['quant']
@@ -3107,7 +3098,7 @@ class Plasma2D(utils.ToFuObject):
             indtr2 = np.digitize(tall, tbinr2)
 
         ntall = tall.size
-        return tall, ntall, indtq, indtr1, indtr2
+        return tall, tbinall, ntall, indtq, indtr1, indtr2
 
     def _get_indtu(t=None, tall=None, tbinall=None,
                    idref1d=None, idref2d=None):
@@ -3150,7 +3141,7 @@ class Plasma2D(utils.ToFuObject):
         if interp_t == 'nearest':
             out = self._get_indtmult(idquant=idquant,
                                      idref1d=idref1d, idref2d=idref2d)
-            tall, ntall, indtq, indtr1, indtr2 = out
+            tall, tbinall, ntall, indtq, indtr1, indtr2 = out
 
         # # Prepare output
 
@@ -3195,11 +3186,8 @@ class Plasma2D(utils.ToFuObject):
                      mplTriLinInterp=mplTriLinInterp,
                      mpltri=mpltri, trifind=trifind,
                      vquant=vquant, indtq=indtq,
-                     indt=indt, indtu=indtu,
-                     interp_space=interp_space,
-                     fill_value=fill_value,
-                     vr1=vr1, indtr1=indtr1,
-                     vr2=vr2, indtr2=indtr2,
+                     interp_space=interp_space, fill_value=fill_value,
+                     vr1=vr1, indtr1=indtr1, vr2=vr2, indtr2=indtr2,
                      tall=tall, tbinall=tbinall,
                      idref1d=idref1d, idref2d=idref2d):
 
@@ -3268,7 +3256,7 @@ class Plasma2D(utils.ToFuObject):
         if interp_t == 'nearest':
             out = self._get_indtmult(idquant=idquant,
                                      idref1d=idref1d, idref2d=idref2d)
-            tall, ntall, indtq, indtr1, indtr2 = out
+            tall, tbinall, ntall, indtq, indtr1, indtr2 = out
             tall, ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
                                                        tbinall=tbinall,
                                                        idref1d=idref1d,
@@ -3347,8 +3335,6 @@ class Plasma2D(utils.ToFuObject):
         idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref)
 
         # Interpolation (including time broadcasting)
-        import ipdb         # DB
-        ipdb.set_trace()    # DB
         func = self._get_finterp(idquant, idref1d, idref2d,
                                  interp_t=interp_t, interp_space=interp_space,
                                  fill_value=fill_value)

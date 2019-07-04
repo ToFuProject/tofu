@@ -3411,7 +3411,7 @@ def LOS_calc_signal2(double[:,::1] Ds, double[:,::1] us, dL,
             pass
 
     elif minimize == 'memory':
-        # loop over LOS
+        # loop over LOS and parallelize
         for ii in range(0,nlos):
             pass
             # loop over time
