@@ -186,6 +186,10 @@ class MultiIDSLoader(object):
 
                'lh_antennas':
                {'t':{'str':'antenna[chan].power_launched.time'},
+                'power0':{'str':'antenna[0].power_launched.data',
+                         'quant':'power', 'units':'W'},
+                'power1':{'str':'antenna[1].power_launched.data',
+                         'quant':'power', 'units':'W'},
                 'power':{'str':'antenna[chan].power_launched.data',
                          'quant':'power', 'units':'W'},
                 'R':{'str':'antenna[chan].position.r.data',
@@ -193,6 +197,10 @@ class MultiIDSLoader(object):
 
                'ic_antennas':
                {'t':{'str':'antenna[chan].power_launched.time'},
+                'power0':{'str':'antenna[0].power_launched.data',
+                         'quant':'power', 'units':'W'},
+                'power1':{'str':'antenna[1].power_launched.data',
+                         'quant':'power', 'units':'W'},
                 'power':{'str':'antenna[chan].power_launched.data',
                          'quant':'power', 'units':'W'}},
 
@@ -261,7 +269,7 @@ class MultiIDSLoader(object):
                             'quant':'ne_integ', 'units':'/m2'}},
 
                'bolometer':
-               {'t':{'str':'time',
+               {'t':{'str':'channel[chan].power.time',
                      'quant':'t', 'units':'s'},
                 'power':{'str':'channel[chan].power.data',
                          'quant':'power', 'units':'W'},
@@ -1085,17 +1093,18 @@ class MultiIDSLoader(object):
         assert ref in [None, True]
         # didd
         didd = self._checkformat_idd(idd=idd,
-                                         shot=shot, run=run,
-                                         refshot=refshot, refrun=refrun,
-                                         user=user, tokamak=tokamak,
-                                         version=version)
+                                     shot=shot, run=run,
+                                     refshot=refshot, refrun=refrun,
+                                      user=user, tokamak=tokamak,
+                                      version=version)
         self._didd.update(didd)
+        name = list(didd.keys())[0]
 
         # ref
         if ref is None:
             ref = self._refidd  is None
         if ref == True and len(didd.keys())>0:
-            self.set_refidd(list(didd.keys())[0])
+            self.set_refidd(name)
         if return_name:
             return name
 
@@ -1420,7 +1429,7 @@ class MultiIDSLoader(object):
                 msg = "Each provided sig must be either:\n"
                 msg += "    - a valid shortcut (cf. self.shortcuts()\n"
                 msg += "    - a valid long version (cf. self.shortcuts)\n"
-                msg += "\n  Provided sig: %s"%str(sig)
+                msg += "\n  Provided sig: %s for ids %s"%(str(sig), ids)
                 raise Exception(msg)
             if c1:
                 comp[ii] = True
@@ -1647,7 +1656,7 @@ class MultiIDSLoader(object):
                 self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
 
     def _get_data(self, ids, sig, occ, comp=False, indt=None, indch=None,
-                  stack=True, flatocc=True):
+                  stack=True, isclose=True, flatocc=True):
 
         # get list of results for occ
         occref = self._dids[ids]['occ']
@@ -1668,12 +1677,21 @@ class MultiIDSLoader(object):
                                                   indt=indt, indch=indch,
                                                   stack=stack )
                    for ii in indoc]
+
+        if isclose:
+            for ii in range(0,len(out)):
+                if type(out[ii]) is np.ndarray and out[ii].ndim == 2:
+                    if np.allclose(out[ii], out[ii][0:1,:]):
+                        out[ii] = out[ii][0,:]
+                    elif np.allclose(out[ii], out[ii][:,0:1]):
+                        out[ii] = out[ii][:,0]
+
         if nocc == 1 and flatocc:
             out = out[0]
         return out
 
     def get_data(self, ids=None, sig=None, occ=None,
-                 indch=None, indt=None, stack=True, flatocc=True):
+                 indch=None, indt=None, stack=True, isclose=None, flatocc=True):
         """ Return a dict of the desired signals extracted from specified ids
 
         If the ids has a field 'channel', indch is used to specify from which
@@ -1712,10 +1730,15 @@ class MultiIDSLoader(object):
 
         dout = dict.fromkeys(sig)
         for ii in range(0,len(sig)):
+            if isclose is None:
+                isclose_ = sig[ii] == 't'
+            else:
+                isclose_ = isclose
             try:
                 dout[sig[ii]] = self._get_data(ids, sig[ii], occ, comp=comp[ii],
                                                indt=indt, indch=indch,
-                                               stack=stack, flatocc=flatocc)
+                                               stack=stack, isclose=isclose_,
+                                               flatocc=flatocc)
             except Exception as err:
                 msg = '\n' + str(err) + '\n'
                 msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
@@ -1723,7 +1746,7 @@ class MultiIDSLoader(object):
                 del dout[sig[ii]]
         return dout
 
-    def get_data_all(self, dsig=None, stack=True, flatocc=True):
+    def get_data_all(self, dsig=None, stack=True, isclose=None, flatocc=True):
 
         # dsig
         if dsig is None:
@@ -1745,7 +1768,8 @@ class MultiIDSLoader(object):
         # Get data
         for ids in dout.keys():
             try:
-                dout[ids] = self.get_data(ids, sig=dsig[ids], stack=stack, flatocc=flatocc)
+                dout[ids] = self.get_data(ids, sig=dsig[ids], stack=stack,
+                                          isclose=isclose, flatocc=flatocc)
             except Exception as err:
                 msg = "Could not get data from %s"%ids
                 warnings.warn(msg)
@@ -1807,6 +1831,39 @@ class MultiIDSLoader(object):
         indt = np.nonzero(indt)[0]
         nt = t.size
         return {'tlim':tlim, 'nt':nt, 't':t, 'indt':indt}
+
+    def _get_t0(self, t0=None):
+        if t0 != False:
+            if type(t0) in [int,float,np.int,np.float]:
+                t0 = float(t0)
+            elif type(t0) is str:
+                t0 = t0.strip()
+                c0 = (len(t0.split('.')) <= 2
+                      and all([ss.isdecimal() for ss in t0.split('.')]))
+                if 'pulse_schedule' in self._dids.keys():
+                    events = self.get_data(ids='pulse_schedule',
+                                           sig='events')['events']
+                    if t0 in events['name']:
+                        t0 = events['t'][np.nonzero(events['name'] == t0)[0][0]]
+                    elif c0:
+                        t0 = float(t0)
+                    else:
+                        msg = "Desired event name (%s) not available!\n"
+                        msg += "    - available events:\n"
+                        msg += str(events['name'])
+                        raise Exception(msg)
+                elif c0:
+                    t0 = float(t0)
+                else:
+                    t0 = False
+            else:
+                t0 = False
+            if t0 == False:
+                msg = "t0 set to False because could not be interpreted !"
+                warnings.warn(msg)
+            if t0 is None:
+                t0 = False
+        return t0
 
 
     def to_Config(self, Name=None, occ=None, indDescription=None, plot=True):
@@ -1960,11 +2017,109 @@ class MultiIDSLoader(object):
                                                       indtri[indclock,1])
         return indtri
 
+    def _get_dextra(self, dextra=None, fordata=False):
+        lc = [dextra == False, dextra is None,
+              type(dextra) is str, type(dextra) is list, type(dextra) is dict]
+        assert any(lc)
+
+        if dextra is False:
+            return None, None
+        elif dextra is None:
+            dextra = {}
+            if 'equilibrium' in self._dids.keys():
+                dextra.update({'equilibrium': ['ip','BT0','ax','sep','t']})
+            if 'core_profiles' in self._dids.keys():
+                dextra.update({'core_profiles': ['ip','vloop','t']})
+            if 'lh_antennas' in self._dids.keys():
+                dextra.update({'lh_antennas': ['power0','power1','t']})
+            if 'ic_antennas' in self._dids.keys():
+                dextra.update({'ic_antennas': ['power0','power1','t']})
+        if type(dextra) is str:
+            dextra = [dextra]
+        if type(dextra) is list:
+            dex = {}
+            for ee in dextra:
+                lids = [ids for ids in self._dids.keys()
+                        if ee in self._dshort[ids].keys()]
+                if len(lids) != 1:
+                    msg = "No / multiple matches:\n"
+                    msg = "extra %s not available from self._dshort"%ee
+                    raise Exception(msg)
+                if lids[0] not in dex.keys():
+                    dex = {lids[0]:[ee]}
+                else:
+                    dex[lids[0]].append(ee)
+            dextra = dex
+
+        if len(dextra) == 0:
+            return None, None
+
+        if fordata:
+            dout = {}
+            for ids, vv in dextra.items():
+                out = self.get_data(ids=ids, sig=vv)
+                for ss in out.keys():
+                    if ss == 't':
+                        continue
+                    if out[ss].size == 0:
+                        continue
+                    if ss in self._dshort[ids].keys():
+                        dd = self._dshort[ids][ss]
+                    else:
+                        dd = self._dcomp[ids][ss]
+                    label = dd.get('quant', 'unknown')
+                    units = dd.get('units', 'a.u.')
+                    key = '%s.%s'%(ids,ss)
+
+                    if 'sep' == ss.split('.')[-1].lower():
+                        out[ss] = np.swapaxes(out[ss], 1,2)
+
+                    datastr = 'data'
+                    if any([ss.split('.')[-1].lower() == s0 for s0 in
+                            ['sep','ax','x']]):
+                        datastr = 'data2D'
+
+                    dout[key] = {'t': out['t'], datastr:out[ss],
+                                 'label':label, 'units':units}
+                return dout
+
+        else:
+            d0d, dt0 = {}, {}
+            for ids, vv in dextra.items():
+                out = self.get_data(ids=ids, sig=vv)
+                keyt = '%s.t'%ids
+                any_ = False
+                for ss in out.keys():
+                    if ss == 't':
+                        continue
+                    if out[ss].size == 0:
+                        continue
+                    if ss in self._dshort[ids].keys():
+                        dd = self._dshort[ids][ss]
+                    else:
+                        dd = self._dcomp[ids][ss]
+                    dim = dd.get('dim', 'unknown')
+                    quant = dd.get('quant', 'unknown')
+                    units = dd.get('units', 'a.u.')
+                    key = '%s.%s'%(ids,ss)
+
+                    if 'sep' == ss.split('.')[-1].lower():
+                        out[ss] = np.swapaxes(out[ss], 1,2)
+
+                    d0d[key] = {'data':out[ss], 'name':ss,
+                                'origin':ids, 'dim':dim, 'quant':quant,
+                                'units':units, 'depend':(keyt,)}
+                    any_ = True
+                if any_:
+                    dt0[keyt] = {'data':out['t'], 'name':'t',
+                                 'origin':ids, 'depend':(keyt,)}
+            return d0d, dt0
+
 
 
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None,
                     Name=None, occ=None, config=None, out=object,
-                    plot=None, plot_sig=None, plot_X=None):
+                    plot=None, plot_sig=None, plot_X=None, bck=True, dextra=None):
 
         # dsig
         dsig = self._checkformat_Plasma2D_dsig(dsig)
@@ -2022,8 +2177,11 @@ class MultiIDSLoader(object):
         if config is None:
             config = self.to_Config(Name=Name, occ=occ, plot=False)
 
+        # dextra
+        d0d, dtime0 = self._get_dextra(dextra)
+
         # dicts
-        dtime = {}
+        dtime = {} if dtime0 is None else dtime0
         d1d, dradius = {}, {}
         d2d, dmesh = {}, {}
         for ids in lids:
@@ -2064,6 +2222,7 @@ class MultiIDSLoader(object):
                 quant = self._dshort[ids][ss].get('quant', 'unknown')
                 units = self._dshort[ids][ss].get('units', 'a.u.')
                 key = '%s.%s'%(ids,ss)
+
                 if nref is None:
                     dradius[key] = {'data':out_[ss], 'name':ss,
                                     'origin':ids, 'dim':dim, 'quant':quant,
@@ -2074,6 +2233,8 @@ class MultiIDSLoader(object):
                     d1d[key] = {'data':out_[ss], 'name':ss,
                                 'origin':ids, 'dim':dim, 'quant':quant,
                                 'units':units, 'depend':(keyt,kref)}
+                    assert out_[ss].shape == (nt,nr)
+
                 if plot:
                     if ss in plot_sig:
                         plot_sig[plot_sig.index(ss)] = key
@@ -2090,7 +2251,7 @@ class MultiIDSLoader(object):
                 continue
 
             npts = None
-            namem = '%s.mesh'%ids
+            keym = '%s.mesh'%ids
             for ss in set(out_.keys()).difference(lsigmesh):
                 shape = out_[ss].shape
                 assert len(shape) == 2
@@ -2102,12 +2263,15 @@ class MultiIDSLoader(object):
                     assert npts == shape[1-axist]
                     if axist == 1:
                         out_[ss] = out_[ss].T
+
                     dim = self._dshort[ids][ss].get('dim', 'unknown')
                     quant = self._dshort[ids][ss].get('quant', 'unknown')
                     units = self._dshort[ids][ss].get('units', 'a.u.')
-                    d2d[ss] = {'data':out_[ss],
-                               'dim':dim, 'quant':quant, 'units':units,
-                               'origin':ids, 'mesh':namem, 'time':keyt}
+                    key = '%s.%s'%(ids,ss)
+
+                    d2d[key] = {'data':out_[ss], 'name':ss,
+                                'dim':dim, 'quant':quant, 'units':units,
+                                'origin':ids, 'depend':(keyt,keym)}
 
             nodes = out_['2dmeshNodes']
             indtri = out_['2dmeshTri']
@@ -2115,34 +2279,21 @@ class MultiIDSLoader(object):
             nnod, ntri = nodes.size/2, indtri.size/3
             ftype = 'linear' if npts == nnod else 'nearest'
             mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indtri)
-            dmesh[namem] = {'nodes':nodes, 'faces':indtri, 'name':namem,
-                            'type':'tri', 'ftype':ftype, 'origin':ids,
-                            'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
+            dmesh[keym] = {'dim':'mesh', 'quant':'mesh', 'units':'a.u.',
+                           'origin':ids, 'depend':(keym,), 'name':'mehtri',
+                           'nodes':nodes, 'faces':indtri,
+                           'type':'tri', 'ftype':ftype,
+                           'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
 
         # t0
-        if t0 != False:
-            if type(t0) in [int,float,np.int,np.float]:
-                t0 = float(t0)
-            elif type(t0) is str and 'pulse_schedule' in self._dids.keys():
-                t0 = t0.strip()
-                events = self.get_data(ids='pulse_schedule',
-                                       sig='events')['events']
-                if not t0 in events['name']:
-                    msg = "Desired event name (%s) not available!\n"
-                    msg += "    - available events:\n"
-                    msg += str(events['name'])
-                    raise Exception(msg)
-                t0 = events['t'][np.nonzero(events['name'] == t0)[0][0]]
-            else:
-                t0 = False
-
+        t0 = self._get_t0(t0)
         if t0 != False:
             for tt in dtime.keys():
-                dtime[tt]['t'] = dtime[tt]['t'] - t0
+                dtime[tt]['data'] = dtime[tt]['data'] - t0
 
 
         plasma = dict(dtime=dtime, dradius=dradius, dmesh=dmesh,
-                      d1d=d1d, d2d=d2d,
+                      d0d=d0d, d1d=d1d, d2d=d2d,
                       Exp=Exp, shot=shot, Name=Name, config=config)
 
         # Instanciate Plasma2D
@@ -2150,10 +2301,7 @@ class MultiIDSLoader(object):
             import tofu.data as tfd
             plasma = tfd.Plasma2D( **plasma )
             if plot == True:
-                if len(plot_sig) == 1:
-                    plasma.plot(plot_sig[0], X=plot_X[0])
-                else:
-                    plasma.plot_combine(plot_sig, X=plot_X)
+                plasma.plot(plot_sig, X=plot_X, bck=bck)
 
         return plasma
 
@@ -2320,7 +2468,8 @@ class MultiIDSLoader(object):
 
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
                 indch=None, Name=None, occ=None, config=None,
-                equilibrium=None, t0=None, datacls=None, geomcls=None, plot=True):
+                dextra=None, t0=None, datacls=None, geomcls=None,
+                plot=True, bck=True):
 
         # dsig
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
@@ -2460,59 +2609,11 @@ class MultiIDSLoader(object):
             else:
                 dins['dlabels'][kk]['units'] = self._dcomp[ids][dsig[kk]].get('units', 'a.u.')
 
-        # Extra
-        dextra = {}
-        if equilibrium is None:
-            equilibrium = 'equilibrium' in self._dids.keys()
-        if equilibrium:
-            indt = self._checkformat_tlim(self.get_data('equilibrium',
-                                                        sig='t')['t'],
-                                          tlim=tlim)['indt']
-            out = self.get_data('equilibrium', sig=['t','ip','volume','ax','sep','x0'],
-                                indt=indt)
-            for ss in ['ip','volume']:
-                if len(out[ss]) == 0:
-                    continue
-                name = 'equilibrium.%s'%ss
-                if ss == 'ip':
-                    oo = out[ss] / 1.e6
-                    units = 'MA'
-                else:
-                    oo = out[ss]
-                    units = 'a.u.'
-                dextra[name] = {'data':oo, 'units':units,
-                                't':out['t'], 'label':name}
-
-            for ss in ['ax','sep','x0']:
-                if len(out[ss]) == 0:
-                    continue
-                name = ss.title().replace('0','')
-                if out[ss].ndim == 2:
-                    npts = 1
-                    oo = out[ss]
-                else:
-                    npts = out[ss].shape[1]
-                    oo = np.swapaxes(out[ss], 1,2)
-                dextra[name] = {'data2D':oo, 'units':'a.u.',
-                                't':out['t'], 'label':name, 'nP':npts}
+        # dextra
+        dextra = self._get_dextra(dextra, fordata=True)
 
         # t0
-        if t0 != False:
-            if type(t0) in [int,float,np.int,np.float]:
-                t0 = float(t0)
-            elif type(t0) is str and 'pulse_schedule' in self._dids.keys():
-                t0 = t0.strip()
-                events = self.get_data(ids='pulse_schedule',
-                                       sig='events')['events']
-                if not t0 in events['name']:
-                    msg = "Desired event name (%s) not available!\n"
-                    msg += "    - available events:\n"
-                    msg += str(events['name'])
-                    raise Exception(msg)
-                t0 = events['t'][np.nonzero(events['name'] == t0)[0][0]]
-            else:
-                t0 = False
-
+        t0 = self._get_t0(t0)
         if t0 != False:
             if 't' in dins.keys():
                 dins['t'] = dins['t'] - t0
@@ -2528,7 +2629,7 @@ class MultiIDSLoader(object):
         Data.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
         if plot:
-            Data.plot(draw=True)
+            Data.plot(draw=True, bck=bck)
         return Data
 
 
@@ -2554,8 +2655,8 @@ def load_Config(shot=None, run=None, user=None, tokamak=None, version=None,
 # occ ?
 def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
                   tlim=None, occ=None, dsig=None, ids=None, config=None,
-                  Name=None, t0=None, out=object,
-                  plot=None, plot_sig=None, plot_X=None):
+                  Name=None, t0=None, out=object, dextra=None,
+                  plot=None, plot_sig=None, plot_X=None, bck=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
@@ -2580,7 +2681,8 @@ def load_Plasma2D(shot=None, run=None, user=None, tokamak=None, version=None,
 
     return didd.to_Plasma2D(Name=Name, tlim=tlim, dsig=dsig, t0=t0,
                             occ=occ, config=config, out=out,
-                            plot=plot, plot_sig=plot_sig, plot_X=plot_X)
+                            plot=plot, plot_sig=plot_sig, plot_X=plot_X,
+                            bck=bcki, dextra=dextra)
 
 
 def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
@@ -2605,8 +2707,8 @@ def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
 def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
               ids=None, datacls=None, geomcls=None,
               tlim=None, dsig=None, data=None, X=None, indch=None,
-              config=None, occ=None, Name=None,
-              equilibrium=True, t0=None, plot=True):
+              config=None, occ=None, Name=None, dextra=None,
+              t0=None, plot=True, bck=True):
 
     didd = MultiIDSLoader()
     didd.add_idd(shot=shot, run=run,
@@ -2618,7 +2720,7 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
         raise Exception(msg)
 
     lids = ['wall',ids]
-    if equilibrium:
+    if dextra is None and plot:
         lids.append('equilibrium')
     if t0 != False and t0 != None:
         lids.append('pulse_schedule')
@@ -2628,7 +2730,8 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
     return didd.to_Data(ids=ids, Name=Name, tlim=tlim, t0=t0,
                         datacls=datacls, geomcls=geomcls,
                         dsig=dsig, data=data, X=X, indch=indch,
-                        config=config, occ=occ, equilibrium=equilibrium, plot=plot)
+                        config=config, occ=occ, dextra=dextra,
+                        plot=plot, bck=bck)
 
 
 #############################################################

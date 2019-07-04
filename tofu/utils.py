@@ -603,10 +603,25 @@ def _load_from_txt(name, pfe, Name=None, Exp=None):
 #   imas
 #######
 
+_DEF_IMAS_PLASMA_SIG = {'core_profiles':{'plot_sig':['1dTe','1dne'],
+                                         'plot_X':['1drhotn'],
+                                         'other':['t']}}
+
+def _get_exception(q, ids, qtype='quantity'):
+    msg = MultiIDSLoader._shortcuts(ids=ids,
+                                    verb=False, return_=True)
+    col = ['ids', 'shortcut', 'long version']
+    msg = MultiIDSLoader._getcharray(msg, col)
+    msg = "\nArgs quantity and quant_X must be valid shortcuts for ids %s"%ids
+    msg += "\n\nAvailable shortcuts are:\n%s"%msg
+    msg += "\n\nProvided:\n    - %s: %s\n"%(qtype,str(qq))
+    raise Exception(msg)
+
+
 def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    ids=None, Name=None, out=None, tlim=None, config=None,
                    occ=None, indch=None, indDescription=None, equilibrium=None,
-                   dsig=None, data=None, X=None, t0=None,
+                   dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None, sharex=False,
                    bck=True):
     # -------------------
@@ -709,10 +724,44 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # Complement ids
     lids = list(ids)
     if nDat > 0 or nCam > 0 or nPla > 0:
-        lids.append('wall')
+        if 'wall' not in lids:
+            lids.append('wall')
+        if nDat > 0 or nPla > 0 and dextra is None:
+            if 'equilibrium' not in lids:
+                lids.append('equilibrium')
         if t0 not in [None, False] and (nDat > 0 or nPla > 0):
-            lids.append('pulse_schedule')
-    lids = list(set(lids))
+            if 'pulse_schedule' not in lids:
+                lids.append('pulse_schedule')
+
+    # -------------------
+    # If plot and plasma, default dsig, plot_sig, plot_X
+    if plot and nPla > 0:
+        if lids[0] in _DEF_IMAS_PLASMA_SIG.keys():
+            if plot_sig is None:
+                plot_sig = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_sig']
+            if plot_X is None:
+                plot_X = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_X']
+            if dsig is None:
+                lsig = (list(plot_sig) + list(plot_X)
+                        + _DEF_IMAS_PLASMA_SIG[lids[0]]['other'])
+                dsig = {lids[0]: lsig}
+
+        if plot_sig is None or plot_X is None:
+            msg = "Trying to plot a plasma profile\n"
+            msg += "Impossible if plot_sig and plot_X not provided!\n"
+            msg += "  (resp. quantity and quant_X if calling from tofuplot)"
+            raise Exception(msg)
+
+        dq = imas2tofu.MultiIDSLoader._dshort[lids[0]]
+        lk = sorted(dq.keys())
+        for qq in plot_sig:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='quantity')
+        for qq in plot_X:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='X')
+
+
 
     # -------------------
     # load
@@ -728,20 +777,19 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         elif out[ii] == 'Plasma2D':
             out[ii] = multi.to_Plasma2D(Name=Name, occ=occ,
-                                        tlim=tlim, dsig=dsig, ids=ids[ii], t0=t0,
+                                        tlim=tlim, dsig=dsig, t0=t0,
                                         plot=plot, plot_sig=plot_sig,
-                                        plot_X=plot_X, config=config, bck=bck)
+                                        dextra=dextra, plot_X=plot_X,
+                                        config=config, bck=bck)
         elif out[ii] == 'Cam':
             out[ii] = multi.to_Cam(Name=Name, occ=occ,
-                                   ids=ids[ii], indch=indch, config=config,
+                                   ids=lids[ii], indch=indch, config=config,
                                    plot=plot)
         elif out[ii] == "Data":
-            print('tf.utils', bck)  # DB
             out[ii] = multi.to_Data(Name=Name, occ=occ,
-                                    ids=ids[ii], tlim=tlim, dsig=dsig, config=config,
+                                    ids=lids[ii], tlim=tlim, dsig=dsig, config=config,
                                     data=data, X=X, indch=indch, t0=t0,
-                                    equilibrium=equilibrium, plot=plot_,
-                                    bck=bck)
+                                    dextra=dextra, plot=plot_, bck=bck)
 
     # -------------------
     # plot_combine if relevant

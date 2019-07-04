@@ -472,7 +472,13 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
     # ---------
     # Extra
-    lkEq = ['Sep','Ax','X']
+    lkex = sorted(set(itt.chain.from_iterable([list(lData[ii].dextra.keys())
+                                               for ii in range(0,nDat)
+                                               if lData[ii].dextra is not
+                                               None])))
+    lkEq = [kk for kk in lkex if any([ss == kk.split('.')[-1].lower()
+                                      for ss in ['ax','sep','x']])]
+    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep'][0]
     lkEqmap = lkEq + ['map']
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
@@ -797,12 +803,12 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
-                    if kk == 'Sep':
+                    if kk == kSep:
                         l0, = dax['cross'][0].plot([np.nan],[np.nan],
                                                    c=lct[jj], ls=lls[ii],
                                                    lw=1.)
                     else:
-                        marker = dlextra[kk][ii]['marker']
+                        marker = dlextra[kk][ii].get('marker', 'o')
                         l0, = dax['cross'][0].plot([np.nan],[np.nan],
                                                    mec=lct[jj], mfc='None', ls=lls[ii],
                                                    ms=ms, marker=marker)
@@ -1198,7 +1204,13 @@ def _DataCam12D_plot_spectral(lData, key=None,
 
     # ---------
     # Extra
-    lkEq = ['Sep','Ax','X']
+    lkex = sorted(set(itt.chain.from_iterable([list(lData[ii].dextra.keys())
+                                               for ii in range(0,nDat)
+                                               if lData[ii].dextra is not
+                                               None])))
+    lkEq = [kk for kk in lkex if any([ss == kk.split('.')[-1].lower()
+                                      for ss in ['ax','sep','x']])]
+    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep'][0]
     lkEqmap = lkEq + ['map']
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
@@ -1557,7 +1569,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
                 for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
-                    if kk == 'Sep':
+                    if kk == kSep:
                         l0, = dax['cross'][0].plot([np.nan],[np.nan],
                                                    c=lct[jj], ls=lls[ii],
                                                    lw=1.)
@@ -1859,7 +1871,13 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
 
     # ---------
     # Extra
-    lkEq = ['Sep','Ax','X']
+    lkex = sorted(set(itt.chain.from_iterable([list(lData[ii].dextra.keys())
+                                               for ii in range(0,nDat)
+                                               if lData[ii].dextra is not
+                                               None])))
+    lkEq = [kk for kk in lkex if any([ss == kk.split('.')[-1].lower()
+                                      for ss in ['ax','sep','x']])]
+    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep'][0]
     lkEqmap = lkEq + ['map']
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
@@ -1887,7 +1905,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                if k != kSep and 'marker' not in dlextra[k][ii].keys():
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"
@@ -2204,7 +2222,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                 for kk in set(lkEq).intersection(lData[ii].dextra.keys()):
                     id_ = dlextra[kk][ii]['id']
                     idt = dlextra[kk][ii]['idt']
-                    if kk == 'Sep':
+                    if kk == kSep:
                         l0, = dax['cross'][ii].plot([np.nan],[np.nan],
                                                    c=lct[jj], ls=lls[0],
                                                    lw=1.)
@@ -2440,7 +2458,6 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
     # Start extracting data
     fldict = dict(fontsize=fontsize, labelpad=labelpad)
     Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
-    lEq = ['Ax','Sep','q1']
 
     # Force update for safety
     ddata = Data.ddata
@@ -3099,7 +3116,6 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
     # Start extracting data
     fldict = dict(fontsize=fontsize, labelpad=labelpad)
     Dt, Dch = [np.inf,-np.inf], [np.inf,-np.inf]
-    lEq = ['Ax','Sep','q1']
 
     # Force update for safety
     ddata = Data.ddata

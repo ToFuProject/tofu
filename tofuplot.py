@@ -45,39 +45,30 @@ _BCK = True
 #       function
 ###################################################
 
+def _get_exception(q, ids, qtype='quantity'):
+    msg = MultiIDSLoader._shortcuts(ids=ids,
+                                    verb=False, return_=True)
+    col = ['ids', 'shortcut', 'long version']
+    msg = MultiIDSLoader._getcharray(msg, col)
+    msg = """\nArgs quantity and quant_X must be valid tofu shortcuts
+    to quantities in ids %s\n\n"""
+    msg += "Available shortcuts are:\n"""%ids + msg
+    msg += "\n\nProvided:\n    - %s: %s\n"%(qtype,str(qq))
+    raise Exception(msg)
+
+
 def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION,
-                    ids=None, quantity=None, quant_X=None, t0=_T0,
+                    ids=None, quantity=None, X=None, t0=_T0,
                     sharex=_SHAREX, indch=None, background=_BCK):
 
     lidspla = [ids_ for ids_ in ids if ids_ in _LIDS_PLASMA]
-    if len(lidspla) > 0:
-        c0 = quantity is None or quant_X is None
-        if c0:
-            msg = "quantity and quant_X must be provided to plot a plasma profile!"
-            raise Exception(msg)
-        dq = MultiIDSLoader._dshort[lidspla[0]]
-        lk = sorted(dq.keys())
-        c1 = quantity not in lk or quant_X not in lk
-        if c1:
-            msg = MultiIDSLoader._shortcuts(ids=lidspla[0],
-                                            verb=False, return_=True)
-            col = ['ids', 'shortcut', 'long version']
-            msg = MultiIDSLoader._getcharray(msg, col)
-            msg = """\nArgs quantity and quant_X must be valid tofu shortcuts
-            to quantities in ids %s\n\nAvailable shortcuts are:\n"""%ids + msg
-            msg += "\n\nProvided:\n    - quantity: %s"%str(quantity)
-            msg += "    - quant_X: %s"%str(quant_X)
-            raise Exception(msg)
-
     if t0.lower() == 'none':
         t0 = None
 
-    print('call',background)    # DB
-
     tf.load_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
-                      ids=ids, indch=indch, plot_sig=quantity, plot_X=quant_X,
+                      ids=ids, indch=indch, plot_sig=quantity, plot_X=X,
                       t0=t0, plot=True, sharex=sharex, bck=background)
 
     plt.show(block=True)
@@ -131,7 +122,7 @@ if __name__ == '__main__':
     parser.add_argument('-q', '--quantity', type=str, required=False,
                         help='Desired quantity from the plasma ids',
                         nargs='+', default=None)
-    parser.add_argument('-qX', '--quant_X', type=str, required=False,
+    parser.add_argument('-X', '--X', type=str, required=False,
                         help='Quantity from the plasma ids to use for abscissa',
                         nargs='+', default=None)
     parser.add_argument('-t0', '--t0', type=str, required=False,
