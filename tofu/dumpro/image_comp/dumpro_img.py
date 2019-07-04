@@ -26,13 +26,12 @@ from . import rm_background
 from . import reshape_image
 from . import cluster_det
 from . import average_area
-from . import average_distance
+from . import get_distance
 #import plotting as _plot
 
-def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None, 
-               hlim = None, wlim = None, im_out = None, 
-               meta_data = None, cen_clus = None, t_clus = None,
-               area_clus = None, ang_clus = None, verb = True):
+def dumpro_img(im_path, w_dir, shot_name, infocluster, rate = None, tlim = None, 
+               hlim = None, wlim = None, im_out = None, meta_data = None, 
+               verb = True):
     """This is the dust movie processing computattion subroutine
     
     Among the parameters present, if used as a part of dumpro, 
@@ -63,7 +62,7 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
     t_clus:           list
      Total number of clusters in each frame
     
-    """
+    """    
     if rate == None:
         rate = 0
     #reshaping images
@@ -83,16 +82,28 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
     back = rm_background.rm_back(den_gray, w_dir,shot_name, rate, im_out, verb)
     
     #detecting clusters
-    clus, cen_clus, area_clus, t_clus, ang_clus, indt = cluster_det.det_cluster(back, w_dir, 
-                                                                                    shot_name, 
-                                                                                    im_out,
-                                                                                    verb)
+    clus, center, area, total, angle, indt = cluster_det.det_cluster(back, w_dir,
+                                                                     shot_name, 
+                                                                     im_out,
+                                                                     verb)
+    
+    infocluster['center'] = center
+    infocluster['area'] = area
+    infocluster['total'] = total
+    infocluster['angle'] = angle
+    infocluster['indt'] = indt
+    
     #getting average area
-    avg_samll, avg_big, t_clus_small, t_clus_big = average_area.get_area(area_clus, t_clus, indt)
+    #differentiates cluster into two parts small and big
+    #return two different averages (one for small clusters and one for big)
+    avg_small, avg_big, t_clus_small, t_clus_big = average_area.get_area(area, total, indt)
+    infocluster['avg_area_small'] = avg_small
+    infocluster['avg_area_big'] = avg_big
     
-    #getting average distance
-    clus_dist = average_distance.get_distance(cen_clus, area_clus, t_clus, indt)
-    
-    
-    return None
+    #getting distances between clusters in the current frame to clusters in 
+    #the next frame
+    clus_dist = get_distance.get_distance(center, area, total, indt)
+    infocluster['distances'] = clus_dist
+
+    return infocluster
 
