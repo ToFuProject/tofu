@@ -342,6 +342,10 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] VPoly,
 # == LOS sampling
 # ==============================================================================
 
+# MAYBE DO AN INLINED NON-PARALLELIZED VERSION OF EACH FOR A SINGLE LOS
+# THEN CALL IT IN PARALLELIZED VERSION FOR _GG.LOS_get_sample()
+# SO SINGLE-LOS VERSION CAN BE USED IN LOS_calc_signal2 with minimize=memory
+
 # -- Quadrature Rules : Middle Rule --------------------------------------------
 cdef inline void middle_rule_rel(int num_los, int num_raf,
                                  double* los_lims_x,
