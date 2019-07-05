@@ -44,8 +44,6 @@ class MagFieldLines:
     ----------
     shot : int
         Shot number
-    time : float
-        Time of interest
     run : run number, optional (default=0)
     occ : occurrence number, optional (default=0)
     user : user name, optional (default=imas_public)
@@ -62,36 +60,32 @@ class MagFieldLines:
 
     Examples
     --------
-    For shot 54095 at time=34
+    For shot 54095
     Compute linear interpolation B_r, B_tor, B_z at r=2, phi=0, z=0
     and r, z, phi of magnetic line starting at r=2.7, phi=0, z=0
-    >>> test = MagFieldLines(54095, 34)
-    >>> test.b_field_interp(2, 0, 0)
-    (0.006836488559673934, -4.547017391384852, -0.14305889263210517)
-    >>> test.trace_mline([2.7, 0., 0.])['r'][10]
-    2.700041665466963
-    >>> test.trace_mline([2.7, 0., 0.])['p'][10]
-    -0.0037010956581712776
-    >>> test.trace_mline([2.7, 0., 0.])['z'][10]
-    0.000373472578674799
+    >>> test = MagFieldLines(54095)
 
     Call method with specific time (t=34 seconds in this case)
-    >>> test.trace_mline([2.7, 0., 0.], 34)[0]['r'][10]
+    >>> test.trace_mline([2.7, 0., 0.], 34)[0][0]['r'][10]
     2.700041665466963
-    >>> test.trace_mline([2.7, 0., 0.], 34)[0]['p'][10]
+    >>> test.trace_mline([2.7, 0., 0.], 34)[0][0]['p'][10]
     -0.0037010956581712776
-    >>> test.trace_mline([2.7, 0., 0.], 34)[0]['z'][10]
+    >>> test.trace_mline([2.7, 0., 0.], 34)[0][0]['z'][10]
     0.000373472578674799
 
     Call method for list of points (2 items and t=34 seconds)
-    >>> test.trace_mline([[2.7, 0., 0.], [2.9, 0., 0.25*np.pi]], 34)[0][0]['r'][10]
+    >>> test.trace_mline([[2.7, 2.8], [0., 0.], [0., 0.1*np.pi]], 34)[0][0]['r'][10]
     2.700041665466963
-    >>> test.trace_mline([[2.7, 0., 0.], [2.9, 0., 0.25*np.pi]], 34)[0][0]['p'][10]
+    >>> test.trace_mline([[2.7, 2.8], [0., 0.], [0., 0.1*np.pi]], 34)[0][0]['p'][10]
     -0.0037010956581712776
-    >>> test.trace_mline([[2.7, 0., 0.], [2.9, 0., 0.25*np.pi]], 34)[0][0]['z'][10]
+    >>> test.trace_mline([[2.7, 2.8], [0., 0.], [0., 0.1*np.pi]], 34)[0][0]['z'][10]
     0.000373472578674799
+
+    For interpolation of B magnetic field
+    >>> test.b_field_interp(2, 0, 0)
+    (0.006836488559673934, -4.547017391384852, -0.14305889263210517)
     '''
-    def __init__(self, shot, time, run=0, occ=0, user='imas_public', machine='west'):
+    def __init__(self, shot, run=0, occ=0, user='imas_public', machine='west'):
 
         # Check if shot exists
         run_number = '{:04d}'.format(run)
@@ -161,28 +155,7 @@ class MagFieldLines:
                            self.equiDict['b_field_z'][self.mask, :], axis=0, \
                            bounds_error=False)
 
-        self.ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
-
-        br_intp_t = np.atleast_1d(np.squeeze(self.f_intp_br(self.ar_time)))
-        bt_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bt(self.ar_time)))
-        bz_intp_t = np.atleast_1d(np.squeeze(self.f_intp_bz(self.ar_time)))
-
-        # !!!!!!!!!!!!!!!!!!!!!
-        # HARD CODED CORRECTION
-        bt_intp_t *= -1
-        # !!!!!!!!!!!!!!!!!!!!!
-
-        self.br_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, br_intp_t)
-        self.bt_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, bt_intp_t)
-        self.bz_lin_intp = interpolate.LinearNDInterpolator(self.delaunay, bz_intp_t)
-
-        # Interpolate current
-        self.itor_intp_t = np.interp(self.ar_time, self.t_itor[:, 0], self.itor[:, 0])
-        self.b0_intp_t   = np.interp(self.ar_time, self.equi.time[self.mask], \
-                                     self.equi.vacuum_toroidal_field.b0[self.mask])
-
-
-    def trace_mline(self, init_state, time=None, direction='FWD', \
+    def trace_mline(self, init_state, time, direction='FWD', \
                     length_line=None, stp=None):
         '''
         Traces the field line given a starting point.
@@ -219,74 +192,54 @@ class MagFieldLines:
 
         ds  = np.linspace(0, s, int(s/stp))
 
-        if (time is None):
-            if isinstance(init_state[0], list):
+        init_state = np.squeeze(np.asarray(init_state))
+        if (init_state.ndim < 2):
+            init_state = init_state[:, np.newaxis]
 
-                outMagLine = []
+        self.ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
 
-                for istate in init_state:
-                    out = self.integrate_solve_ivp(istate, direction, s, ds)
-                    out['init_point'] = istate
-                    out['time']       = self.ar_time[0]
-                    outMagLine.append(out)
+        br_intp_t = np.atleast_2d(np.squeeze(self.f_intp_br(self.ar_time)))
+        bt_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bt(self.ar_time)))
+        bz_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bz(self.ar_time)))
 
-                return outMagLine
-            else:
-                out = self.integrate_solve_ivp(init_state, direction, s, ds)
-                out['init_point'] = init_state
-                out['time']       = self.ar_time[0]
-                return out
-        else:
-            self.ar_time = np.atleast_1d(np.squeeze(np.asarray([time])))
+        # !!!!!!!!!!!!!!!!!!!!!
+        # HARD CODED CORRECTION
+        bt_intp_t *= -1
+        # !!!!!!!!!!!!!!!!!!!!!
 
-            br_intp_t = np.atleast_2d(np.squeeze(self.f_intp_br(self.ar_time)))
-            bt_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bt(self.ar_time)))
-            bz_intp_t = np.atleast_2d(np.squeeze(self.f_intp_bz(self.ar_time)))
+        # Interpolate current
+        itor_intp_t_vect = np.interp(self.ar_time, self.t_itor[:, 0], \
+                                     self.itor[:, 0])
+        b0_intp_t_vect   = np.interp(self.ar_time, self.equi.time[self.mask], \
+                              self.equi.vacuum_toroidal_field.b0[self.mask])
 
-            # !!!!!!!!!!!!!!!!!!!!!
-            # HARD CODED CORRECTION
-            bt_intp_t *= -1
-            # !!!!!!!!!!!!!!!!!!!!!
+        outMagLine = []
 
-            # Interpolate current
-            itor_intp_t_vect = np.interp(self.ar_time, self.t_itor[:, 0], \
-                                         self.itor[:, 0])
-            b0_intp_t_vect   = np.interp(self.ar_time, self.equi.time[self.mask], \
-                                  self.equi.vacuum_toroidal_field.b0[self.mask])
+        for ii in range(self.ar_time.size):
+            self.br_lin_intp = \
+              interpolate.LinearNDInterpolator(self.delaunay, br_intp_t[ii])
+            self.bt_lin_intp = \
+              interpolate.LinearNDInterpolator(self.delaunay, bt_intp_t[ii])
+            self.bz_lin_intp = \
+              interpolate.LinearNDInterpolator(self.delaunay, bz_intp_t[ii])
 
-            outMagLine = []
+            # Interpolated current and b0
+            self.itor_intp_t = itor_intp_t_vect[ii]
+            self.b0_intp_t   = b0_intp_t_vect[ii]
 
-            for ii in range(self.ar_time.size):
-                self.br_lin_intp = \
-                  interpolate.LinearNDInterpolator(self.delaunay, br_intp_t[ii])
-                self.bt_lin_intp = \
-                  interpolate.LinearNDInterpolator(self.delaunay, bt_intp_t[ii])
-                self.bz_lin_intp = \
-                  interpolate.LinearNDInterpolator(self.delaunay, bz_intp_t[ii])
+            out = []
 
-                # Interpolated current and b0
-                self.itor_intp_t = itor_intp_t_vect[ii]
-                self.b0_intp_t   = b0_intp_t_vect[ii]
+            for jj in range(init_state.shape[1]):
+                out_prime = self.integrate_solve_ivp(init_state[:, jj], \
+                                                     direction, s, ds)
+                out_prime['init_point'] = init_state[:, jj]
+                out_prime['time']       = self.ar_time[ii]
+                # Return list of dict
+                out.append(out_prime)
 
-                if isinstance(init_state[0], list):
+            outMagLine.append(out)
 
-                    out = []
-
-                    for istate in init_state:
-                        out_prime = self.integrate_solve_ivp(istate, direction, s, ds)
-                        out_prime['init_point'] = istate
-                        out_prime['time']       = self.ar_time[ii]
-                        # Return list of dict
-                        out.append(out_prime)
-                else:
-                    # Return only dict
-                    out = self.integrate_solve_ivp(init_state, direction, s, ds)
-                    out['init_point'] = init_state
-                    out['time']       = self.ar_time[ii]
-
-                outMagLine.append(out)
-
-            return outMagLine
+        return outMagLine
 
     def integrate_solve_ivp(self, init_state, direction, s, ds):
         '''
