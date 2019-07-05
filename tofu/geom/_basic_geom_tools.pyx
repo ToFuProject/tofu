@@ -57,7 +57,7 @@ cdef inline int is_point_in_path_vec(const int nvert,
                                      const int npts,
                                      const double* testx,
                                      const double* testy,
-                                     bint* is_in_path) nogil:
+                                     int* is_in_path) nogil:
     """
     Computes if a series of points of coordiates (testx[ii], testy[ii]) is in
     the polygon defined by nvert vertices of coordinates (vertx, verty)
@@ -125,7 +125,7 @@ cdef inline void compute_inv_and_sign(const double[3] ray_vdir,
 # ==============================================================================
 # =  Computing Hypothenus
 # =============================================================================
-cdef inline array compute_hypot(double[::1] xpts, double[::1] ypts,
+cdef inline array compute_hypot(const double[::1] xpts, const double[::1] ypts,
                                 int npts=-1):
     cdef int ii
     cdef array hypot
@@ -139,7 +139,8 @@ cdef inline array compute_hypot(double[::1] xpts, double[::1] ypts,
             ptr_hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
     return hypot
 
-cdef inline double comp_min_hypot(double[::1] xpts, double[::1] ypts,
+cdef inline double comp_min_hypot(const double[::1] xpts,
+                                  const double[::1] ypts,
                                   int npts=-1) nogil:
     cdef int ii
     cdef double tmp

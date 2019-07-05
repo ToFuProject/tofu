@@ -712,10 +712,17 @@ class Struct(utils.ToFuObject):
             (N,) array of booleans, True if a point is inside the volume
 
         """
-        ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.Lim,
-                                nLim=self._dgeom['noccur'],
-                                VType=self.Id.Type,
-                                In=In, Test=True)
+        if self._dgeom['noccur'] > 0:
+            ind = _GG._Ves_isInside(pts, self.Poly,
+                                    ves_lims=np.ascontiguousarray(self.Lim),
+                                    nlim=self._dgeom['noccur'],
+                                    ves_type=self.Id.Type,
+                                    in_format=In, test=True)
+        else:
+            ind = _GG._Ves_isInside(pts, self.Poly, ves_lims=None,
+                                    nlim=0,
+                                    ves_type=self.Id.Type,
+                                    in_format=In, test=True)
         return ind
 
 
@@ -2321,12 +2328,20 @@ class Config(utils.ToFuObject):
         ind = np.zeros((self._dStruct['nObj'],nP), dtype=bool)
         lStruct = self.lStruct
         for ii in range(0,self._dStruct['nObj']):
-            indi = _GG._Ves_isInside(pts,
-                                     lStruct[ii].Poly,
-                                     Lim=lStruct[ii].Lim,
-                                     nLim=lStruct[ii].noccur,
-                                     VType=lStruct[ii].Id.Type,
-                                     In=In, Test=True)
+            if lStruct[ii].noccur > 0:
+                indi = _GG._Ves_isInside(np.ascontiguousarray(pts),
+                                        np.ascontiguousarray(lStruct[ii].Poly),
+                                        ves_lims=np.ascontiguousarray(lStruct[ii].Lim),
+                                        nlim=lStruct[ii].noccur,
+                                        ves_type=lStruct[ii].Id.Type,
+                                        in_format=In, test=True)
+            else:
+                indi = _GG._Ves_isInside(np.ascontiguousarray(pts),
+                                        np.ascontiguousarray(lStruct[ii].Poly),
+                                        ves_lims=None,
+                                        nlim=0,
+                                        ves_type=lStruct[ii].Id.Type,
+                                        in_format=In, test=True)
             if lStruct[ii].noccur>1:
                 if log=='any':
                     indi = np.any(indi,axis=0)

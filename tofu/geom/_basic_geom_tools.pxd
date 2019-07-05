@@ -33,16 +33,16 @@ cdef int is_point_in_path_vec(const int nvert,
                               const int npts,
                               const double* testx,
                               const double* testy,
-                              bint* is_in_path) nogil
+                              int* is_in_path) nogil
 
 cdef void compute_inv_and_sign(const double[3] ray_vdir,
                                int[3] sign,
                                double[3] inv_direction) nogil
 
-cdef array compute_hypot(double[::1] xpts, double[::1] ypts,
+cdef array compute_hypot(const double[::1] xpts, const double[::1] ypts,
                          int npts=*)
 
-cdef double comp_min_hypot(double[::1] xpts, double[::1] ypts,
+cdef double comp_min_hypot(const double[::1] xpts, const double[::1] ypts,
                            int npts=*) nogil
 
 cdef double comp_min(double[::1] vec, int npts) nogil
