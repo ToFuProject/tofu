@@ -478,7 +478,13 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                                None])))
     lkEq = [kk for kk in lkex if any([ss == kk.split('.')[-1].lower()
                                       for ss in ['ax','sep','x']])]
-    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep'][0]
+    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep']
+    assert len(kSep) <= 1
+    if len(kSep) == 1:
+        kSep = kSep[0]
+    else:
+        kSep = None
+
     lkEqmap = lkEq + ['map']
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
@@ -1210,7 +1216,12 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                                None])))
     lkEq = [kk for kk in lkex if any([ss == kk.split('.')[-1].lower()
                                       for ss in ['ax','sep','x']])]
-    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep'][0]
+    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep']
+    assert len(kSep) <= 1
+    if len(kSep) == 1:
+        kSep = kSep[0]
+    else:
+        kSep = None
     lkEqmap = lkEq + ['map']
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
@@ -1877,7 +1888,12 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                                None])))
     lkEq = [kk for kk in lkex if any([ss == kk.split('.')[-1].lower()
                                       for ss in ['ax','sep','x']])]
-    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep'][0]
+    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep']
+    assert len(kSep) <= 1
+    if len(kSep) == 1:
+        kSep = kSep[0]
+    else:
+        kSep = None
     lkEqmap = lkEq + ['map']
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])

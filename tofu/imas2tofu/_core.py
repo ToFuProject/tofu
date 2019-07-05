@@ -103,11 +103,14 @@ class MultiIDSLoader(object):
                 'q0':{'str':'time_slice[time].global_quantities.q_axis'},
                 'qmin':{'str':'time_slice[time].global_quantities.q_min.value'},
                 'q95':{'str':'time_slice[time].global_quantities.q_95'},
-                'volume':{'str':'time_slice[time].global_quantities.volume'},
+                'volume':{'str':'time_slice[time].global_quantities.volume',
+                          'dim':'volume', 'quant':'pvol', 'units':'m3'},
                 'BT0':{'str':'time_slice[time].global_quantities.magnetic_axis.b_field_tor',
                        'dim':'B', 'quant':'BT', 'units':'T'},
-                'axR':{'str':'time_slice[time].global_quantities.magnetic_axis.r'},
-                'axZ':{'str':'time_slice[time].global_quantities.magnetic_axis.z'},
+                'axR':{'str':'time_slice[time].global_quantities.magnetic_axis.r',
+                       'dim':'distance', 'quant':'R', 'units':'m'},
+                'axZ':{'str':'time_slice[time].global_quantities.magnetic_axis.z',
+                       'dim':'distance', 'quant':'Z', 'units':'m'},
                 'x0R':{'str':'time_slice[time].boundary.x_point[0].r'},
                 'x0Z':{'str':'time_slice[time].boundary.x_point[0].z'},
                 'x1R':{'str':'time_slice[time].boundary.x_point[1].r'},
@@ -2027,17 +2030,26 @@ class MultiIDSLoader(object):
         assert any(lc)
 
         if dextra is False:
-            return None, None
+            if fordata:
+                return None
+            else:
+                return None, None
+
         elif dextra is None:
             dextra = {}
             if 'equilibrium' in self._dids.keys():
-                dextra.update({'equilibrium': ['ip','BT0','ax','sep','t']})
+                dextra.update({'equilibrium': [('ip','k'), ('BT0','m'),
+                                               ('axR',(0.,0.8,0.)),
+                                               ('axZ',(0.,1.,0.)),
+                                               'ax','sep','t']})
             if 'core_profiles' in self._dids.keys():
                 dextra.update({'core_profiles': ['ip','vloop','t']})
             if 'lh_antennas' in self._dids.keys():
-                dextra.update({'lh_antennas': ['power0','power1','t']})
+                dextra.update({'lh_antennas': [('power0',(0.8,0.,0.)),
+                                               ('power1',(1.,0.,0.)),'t']})
             if 'ic_antennas' in self._dids.keys():
-                dextra.update({'ic_antennas': ['power0','power1','t']})
+                dextra.update({'ic_antennas': [('power0',(0.,0.,0.8)),
+                                               ('power1',(0.,0.,1.)),'t']})
         if type(dextra) is str:
             dextra = [dextra]
         if type(dextra) is list:
@@ -2056,13 +2068,19 @@ class MultiIDSLoader(object):
             dextra = dex
 
         if len(dextra) == 0:
-            return None, None
+            if fordata:
+                return None
+            else:
+                return None, None
 
         if fordata:
             dout = {}
             for ids, vv in dextra.items():
-                out = self.get_data(ids=ids, sig=vv)
-                for ss in out.keys():
+                vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
+                vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
+                out = self.get_data(ids=ids, sig=vs)
+                for ii in range(len(vs)):
+                    ss = vs[ii]
                     if ss == 't':
                         continue
                     if out[ss].size == 0:
@@ -2084,13 +2102,15 @@ class MultiIDSLoader(object):
                         datastr = 'data2D'
 
                     dout[key] = {'t': out['t'], datastr:out[ss],
-                                 'label':label, 'units':units}
-                return dout
+                                 'label':label, 'units':units, 'c':vc[ii]}
+            return dout
 
         else:
             d0d, dt0 = {}, {}
             for ids, vv in dextra.items():
-                out = self.get_data(ids=ids, sig=vv)
+                vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
+                vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
+                out = self.get_data(ids=ids, sig=vs)
                 keyt = '%s.t'%ids
                 any_ = False
                 for ss in out.keys():
@@ -2601,8 +2621,7 @@ class MultiIDSLoader(object):
         if 'validity_timed' in self._dshort[ids].keys():
             inan = self.get_data(ids, sig='validity_timed',
                                  indt=indt, indch=indch)['validity_timed'].T<0.
-            for kk in set(lk).intersection(['data','X','lamb']):
-                dins[kk][inan] = np.nan
+            dins['data'][inan] = np.nan
 
         # dlabels
         dins['dlabels'] = dict.fromkeys(lk)

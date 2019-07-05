@@ -2216,42 +2216,74 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
         if otherid is None:
             assert ref.size == np.max(ref.shape)
             ref = ref.ravel()
-            refb = 0.5*(ref[1:]+ref[:-1])
-            if Type == 'x':
-                def func(val, ind0=None, refb=refb):
-                    return np.digitize([val[0]], refb)[0]
+            if np.any(np.isnan(ref)):
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref):
+                        return np.nanargmin(np.abs(ref-val[0]))
+                else:
+                    def func(val, ind0=None, refb=refb):
+                        return np.nanargmin(np.abs(ref-val[1]))
+
             else:
-                def func(val, ind0=None, refb=refb):
-                    return np.digitize([val[1]], refb)[0]
+                refb = 0.5*(ref[1:]+ref[:-1])
+                if Type == 'x':
+                    def func(val, ind0=None, refb=refb):
+                        return np.digitize([val[0]], refb)[0]
+                else:
+                    def func(val, ind0=None, refb=refb):
+                        return np.digitize([val[1]], refb)[0]
         elif indother is None:
             assert ref.ndim == 2
-            if Type == 'x':
-                def func(val, ind0=None, ref=ref):
-                    refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
-                    return np.digitize([val[0]], refb)[0]
+            if np.any(np.isnan(ref)):
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref):
+                        return np.nanargmin(np.abs(ref[ind0,:]-val[0]))
+                else:
+                    def func(val, ind0=None, ref=ref):
+                        return np.nanargmin(np.abs(ref[:,ind0]-val[1]))
+
             else:
-                def func(val, ind0=None, ref=ref):
-                    refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
-                    return np.digitize([val[1]], refb)[0]
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref):
+                        refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                        return np.digitize([val[0]], refb)[0]
+                else:
+                    def func(val, ind0=None, ref=ref):
+                        refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                        return np.digitize([val[1]], refb)[0]
         else:
             assert ref.ndim == 2
-            if Type == 'x':
-                def func(val, ind0=None, ref=ref, indother=indother):
-                    refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
-                    return np.digitize([val[0]], refb)[0]
+            if np.any(np.isnan(ref)):
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        return np.nanargmin(np.abs(ref[indother[ind0],:] - val[0]))
+                else:
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        return np.nanargmin(np.abs(ref[indother[ind0],:] - val[1]))
             else:
-                def func(val, ind0=None, ref=ref, indother=indother):
-                    refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
-                    return np.digitize([val[1]], refb)[0]
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                        return np.digitize([val[0]], refb)[0]
+                else:
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                        return np.digitize([val[1]], refb)[0]
     else:
         assert type(ref2) is tuple and len(ref2) == 2
         n1, n2 = ref2[0].size, ref2[1].size
-        refb1 = 0.5*(ref2[0][1:]+ref2[0][:-1])
-        refb2 = 0.5*(ref2[1][1:]+ref2[1][:-1])
-        def func(val, ind0=None, refb1=refb1, refb2=refb2, n1=n1, n2=n2):
-            i1 = np.digitize([val[0]], refb1)[0]
-            i2 = np.digitize([val[1]], refb2)[0]
-            return i2*n1 + i1
+        if np.any(np.isnan(ref2)):
+            def func(val, ind0=None, ref2=ref2, n1=n1, n2=n2):
+                i1 = np.nanargmin(np.abs(ref2[0]-val[0]))
+                i2 = np.nanargmin(np.abs(ref2[1]-val[1]))
+                return i2*n1 + i1
+        else:
+            refb1 = 0.5*(ref2[0][1:]+ref2[0][:-1])
+            refb2 = 0.5*(ref2[1][1:]+ref2[1][:-1])
+            def func(val, ind0=None, refb1=refb1, refb2=refb2, n1=n1, n2=n2):
+                i1 = np.digitize([val[0]], refb1)[0]
+                i2 = np.digitize([val[1]], refb2)[0]
+                return i2*n1 + i1
     return func
 
 def get_pos_fromind(ref=None, ref2=None, otherid=None, indother=None):
@@ -2625,6 +2657,7 @@ class KeyHandler_mpl(object):
                                                      otherid = otherid,
                                                      indother = indother)
                     dmovkeys = dax[ax]['dmovkeys'][rid]
+
                     df_ind_key[ax] = get_ind_fromkey(dmovkeys,
                                                      is2d = is2d,
                                                      nn = nn)
@@ -3074,6 +3107,7 @@ class KeyHandler_mpl(object):
             ind = self.dref[refid]['df_ind_key'][ax](movk,
                                                      self.dref[refid]['ind'][ii],
                                                      self.dkeys['alt']['val'])
+
             if self._follow:
                 self.dref[refid]['ind'][ii:] = ind
             else:
