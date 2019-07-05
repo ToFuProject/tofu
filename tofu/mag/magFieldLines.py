@@ -51,11 +51,14 @@ class MagFieldLines:
 
     Methods
     -------
-    trace_mline([[r_1, phi_1, z_1], [r_2, phi_2, z_2], ...], direction='FWD')
-        returns trace
-    plot_trace(trace)
+    trace_mline(init_points_array, time_array, direction='FWD')
+
+    In other words:
+    trace_mline([[r_1, r_2, ...], [phi_1, phi_2, ...], [z_1, z_2, ...]], [t1, t2, ...], direction='FWD')
+        returns list of list of traces with shape (times, init_points)
+    plot_trace(trace[0][0])
         2D plots of traced magnetic field line
-    plot_trace_3D(trace)
+    plot_trace_3D(trace[0][0])
         3D plot of traced magnetic field line
 
     Examples
@@ -164,9 +167,10 @@ class MagFieldLines:
         Collision with the wall stops integration.
 
         input:
-            - init_state [[r_1, phi_1, z_1], ...] :
-                  the coordinates of the starting point (list)
-                  OR list of lists if list of starting points
+            - init_state [[r_1, r_2, ...], [phi_1, phi_2, ...], [z_1, z_2, ...]] :
+                  the coordinates of the starting points (list or numpy array)
+                  OR list of lists OR numpy 2D array
+            - time : array of times requested (list or numpy array)
             - direction : direction of integration 'FWD' forward or 'REV' reverse
               (string)
 
