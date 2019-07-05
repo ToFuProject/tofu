@@ -987,14 +987,12 @@ def test13_LOS_PInOut():
     assert np.allclose(VperpOut[:,:32], -us[:,:32]) and \
         np.allclose(VperpOut[:,32:],-ErOut)
     assert np.allclose(IOut[2,:], Iout)
+    npts_vp = VP.shape[1]
     out = GG.LOS_Calc_kMinkMax_VesStruct(Ds, us,
                                          [VP, VP, VP], [VIn, VIn, VIn], 3,
-                                         np.r_[N, N, N])
+                                         np.r_[npts_vp, npts_vp, npts_vp])
     kmin_res = out[0]
     kmax_res = out[1]
-    print("shape kmin, kmax =", np.shape(kmin_res), np.shape(kmax_res))
-    print(" and getting until =", 3*nlos)
-    print("kmin_res =", kmin_res[:3], " kpin =", kPIn[:3])
     assert np.allclose(kmin_res[:nlos],    kPIn)
     assert np.allclose(kmin_res[nlos:2*nlos], kPIn)
     assert np.allclose(kmin_res[2*nlos:],  kPIn)

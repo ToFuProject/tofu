@@ -327,7 +327,7 @@ cdef inline void is_inside_vessel(double[:, ::1] pts, double[:, ::1] ves_poly,
     cdef int ii, jj
     cdef int fst
     cdef int npts = pts.shape[1]
-    cdef int nvert = ves_poly.shape[1]
+    cdef int nvert = ves_poly.shape[1] - 1
     cdef double[3] shift_pts
     cdef double[2] lims
     cdef double rii, zii, pii
