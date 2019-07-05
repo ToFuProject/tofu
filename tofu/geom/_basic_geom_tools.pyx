@@ -25,11 +25,12 @@ cdef inline bint is_point_in_path(const int nvert,
     """
     Computes if a point of coordiates (testx, testy) is in the polygon defined
     by nvert vertices of coordinates (vertx, verty).
-    WARNING: the poly should be CLOSED
+
+    !! -- WARNING: the poly should be CLOSED and nvert = vpoly.shape[1]-1 -- !!
     Params
     ======
         nvert : int
-           number of vertices in polygon
+           number of DIFFERENT vertices in polygon
         vertx : double array
            x-coordinates of polygon
         verty : double array
