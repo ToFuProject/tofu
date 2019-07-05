@@ -904,7 +904,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
     Return the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (dR,dZ,dRphi)
     """
-    cdef double[::1] R0, R, Z, dRPhir, dPhir, NRPhi
+    cdef double[::1] R0, R, Z, dRPhir, dPhir, NRPhi, hypot
     cdef double dRr0, dRr, dZr, DPhi0, DPhi1
     cdef double abs0, abs1, phi, indiijj
     cdef long[::1] indR0, indR, indZ, Phin, NRPhi0
@@ -1018,19 +1018,20 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
                     NP += 1
     if VPoly is not None:
         if Out.lower()=='(x,y,z)':
-            R = _bgt.compute_hypot(Pts[0,:],Pts[1,:])
-            indin = Path(VPoly.T).contains_points(np.array([R,Pts[2,:]]).T,
+            hypot = _bgt.compute_hypot(Pts[0,:],Pts[1,:])
+            indin = Path(VPoly.T).contains_points(np.array([hypot,Pts[2,:]]).T,
                                                   transform=None, radius=0.0)
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
-            Ru = np.unique(R)
+            Ru = np.unique(hypot)
         else:
             indin = Path(VPoly.T).contains_points(Pts[:-1,:].T, transform=None,
                                                   radius=0.0)
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
             Ru = np.unique(Pts[0,:])
-        if not np.all(Ru==R):
-            dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
-                               if R[ii] in Ru])
+        # TODO : Warning : do we need the following lines ????
+        # if not np.all(Ru==R):
+        #     dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
+        #                        if R[ii] in Ru])
     return Pts, dV, ind.astype(int), dRr, dZr, np.asarray(dRPhir)
 
 
