@@ -193,6 +193,11 @@ def test04_Ves_isInside(VPoly=VPoly):
                            ves_lims=np.array([[np.pi/2.,3.*np.pi/2.]]),
                            nlim=1, ves_type='Tor', in_format='(Phi,R,Z)',
                            test=True)
+    print(ind.shape, Pts.shape)
+    print("got : ", ind)
+    print("expected :", [False,False,False,True,
+                         False,False,False,False,
+                         False,False])
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,
                                                        False,False,False,False,
                                                        False,False])
