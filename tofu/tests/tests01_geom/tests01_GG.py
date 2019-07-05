@@ -170,10 +170,6 @@ def test04_Ves_isInside(VPoly=VPoly):
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
     ind = GG._Ves_isInside(Pts, VPoly, ves_lims=np.array([[0.,10.]]), nlim=1,
                            ves_type='Lin', in_format='(X,Y,Z)', test=True)
-    print("ind =", ind)
-    print("expected =", [False,False,False,True,
-                         False,False,False,False,
-                         False,False])
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,
                                                        False,False,False,False,
                                                        False,False])
@@ -197,11 +193,6 @@ def test04_Ves_isInside(VPoly=VPoly):
                            ves_lims=np.array([[np.pi/2.,3.*np.pi/2.]]),
                            nlim=1, ves_type='Tor', in_format='(Phi,R,Z)',
                            test=True)
-    print(ind.shape, Pts.shape)
-    print("got : ", ind)
-    print("expected :", [False,False,False,True,
-                         False,False,False,False,
-                         False,False])
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,
                                                        False,False,False,False,
                                                        False,False])

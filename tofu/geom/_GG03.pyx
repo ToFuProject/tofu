@@ -1,6 +1,6 @@
-# cython: boundscheck=True
+# cython: boundscheck=False
 # cython: wraparound=False
-# cython: initializedcheck=True
+# cython: initializedcheck=False
 # cython: cdivision=True
 #
 # -- Python libraries imports --------------------------------------------------
@@ -436,7 +436,7 @@ def _Ves_isInside(double[:, ::1] pts, double[:, ::1] ves_poly,
         if is_toroidal and ves_lims is not None:
             assert is_cartesian or 'phi' in in_letters, err_msg
     # --------------------------------------------------------------------------
-    is_inside = np.zeros(max(nlim,1)*pts.shape[1],dtype=np.int32) - 1
+    is_inside = np.zeros(max(nlim,1)*pts.shape[1],dtype=np.int32)
     _rt.is_inside_vessel(pts, ves_poly, ves_lims, nlim, is_toroidal,
                          is_cartesian, order, is_inside)
     if nlim == 0 or nlim==1:
@@ -2301,7 +2301,6 @@ def LOS_Calc_kMinkMax_VesStruct(double[:, ::1] ray_orig,
     cdef double* ptr_coeff_out
 
     # initializations ...
-    coeff_inter_in[0] = -1
     ptr_coeff_in = coeff_inter_in.data.as_doubles
     ptr_coeff_out = coeff_inter_out.data.as_doubles
 
