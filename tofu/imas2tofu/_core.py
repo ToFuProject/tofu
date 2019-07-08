@@ -148,7 +148,7 @@ class MultiIDSLoader(object):
                 '2dBZ':{'str':'time_slice[time].ggd[0].b_field_z[0].values',
                         'dim':'B', 'quant':'BZ', 'units':'T'},
                 '2dmeshNodes':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[0].object[].geometry'},
-                '2dmeshTri':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[2].object[].nodes'}},
+                '2dmeshFaces':{'str':'grids_ggd[0].grid[0].space[0].objects_per_dimension[2].object[].nodes'}},
 
                'core_profiles':
                {'t':{'str':'time'},
@@ -1954,7 +1954,7 @@ class MultiIDSLoader(object):
         lidsok = set(self._lidsplasma).intersection(self._dids.keys())
 
         lscom = ['t']
-        lsmesh = ['2dmeshNodes','2dmeshTri']
+        lsmesh = ['2dmeshNodes','2dmeshFaces']
 
         lc = [dsig is None,
               type(dsig) is str,
@@ -2008,21 +2008,44 @@ class MultiIDSLoader(object):
 
 
     @staticmethod
-    def _checkformat_tri(nodes, indtri):
-        x = nodes[indtri,0]
-        y = nodes[indtri,1]
+    def _checkformat_mesh(nodes, indfaces):
+
+        # Check mesh type
+        if indfaces.shape[1] == 3:
+            meshtype = 'tri'
+        elif indfaces.shape[1] == 4:
+            meshtype = 'quad'
+        else:
+            msg = "Mesh seems to be neither triangular nor quadrilateral\n"
+            msg += "  => unrecognized mesh type, not implemented yet"
+            raise Exception(msg)
+
+        if meshtype == 'quad':
+            # Convert to tri mesh (solution for unstructured meshes)
+            indface = np.empty((indfaces.shape[0]*2,3), dtype=int)
+            indface[::2,:] = indfaces[:,:3]
+            indface[1::2,:] = indfaces[:,2:]
+            indfaces = indface
+            meshtype = 'quadtri'
+            ntri = 2
+        else:
+            ntri = 1
+
+        # Check orinetation
+        x, y = nodes[indfaces,0], nodes[indfaces,1]
         orient = ((y[:,1]-y[:,0])*(x[:,2]-x[:,1])
                   - (y[:,2]-y[:,1])*(x[:,1]-x[:,0]))
 
         indclock = orient > 0.
         if np.any(indclock):
-            msg = "Some triangles in are not counter-clockwise\n"
+            nclock, ntot = indclock.sum(), indfaces.shape[0]
+            msg = "Some triangles not counter-clockwise\n"
             msg += "  (necessary for matplotlib.tri.Triangulation)\n"
-            msg += "    => %s / %s triangles are re-defined"
+            msg += "    => %s/%s triangles reshaped"%(str(nclock),str(ntot))
             warnings.warn(msg)
-            indtri[indclock,1], indtri[indclock,2] = (indtri[indclock,2],
-                                                      indtri[indclock,1])
-        return indtri
+            (indfaces[indclock,1],
+             indfaces[indclock,2]) = indfaces[indclock,2], indfaces[indclock,1]
+        return indfaces, meshtype, ntri
 
     def _get_dextra(self, dextra=None, fordata=False):
         lc = [dextra == False, dextra is None,
@@ -2267,7 +2290,7 @@ class MultiIDSLoader(object):
 
             # d2d and dmesh
             lsig = [k for k in dsig[ids] if '2d' in k]
-            lsigmesh = ['2dmeshNodes','2dmeshTri']
+            lsigmesh = ['2dmeshNodes','2dmeshFaces']
             out_ = self.get_data(ids, sig=lsig, indt=dtt['indt'])
             if len(out_) == 0:
                 continue
@@ -2298,16 +2321,17 @@ class MultiIDSLoader(object):
                                 'origin':ids, 'depend':(keyt,keym)}
 
             nodes = out_['2dmeshNodes']
-            indtri = out_['2dmeshTri']
-            indtri = self._checkformat_tri(nodes, indtri)
-            nnod, ntri = nodes.size/2, indtri.size/3
-            ftype = 'linear' if npts == nnod else 'nearest'
-            mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indtri)
+            indfaces = out_['2dmeshFaces']
+            indfaces, meshtype, ntri = self._checkformat_mesh(nodes, indfaces)
+            nnod, nfaces = nodes.size/2, indfaces.shape[0]
+            assert npts in [nnod, nfaces/ntri]
+            ftype = 1 if npts == nnod else 0
+            mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indfaces)
             dmesh[keym] = {'dim':'mesh', 'quant':'mesh', 'units':'a.u.',
-                           'origin':ids, 'depend':(keym,), 'name':'mehtri',
-                           'nodes':nodes, 'faces':indtri,
-                           'type':'tri', 'ftype':ftype,
-                           'nnodes':nnod,'nfaces':ntri,'mpltri':mpltri}
+                           'origin':ids, 'depend':(keym,), 'name':meshtype,
+                           'nodes':nodes, 'faces':indfaces,
+                           'type':meshtype, 'ntri':ntri, 'ftype':ftype,
+                           'nnodes':nnod,'nfaces':nfaces, 'mpltri':mpltri}
 
         # t0
         t0 = self._get_t0(t0)

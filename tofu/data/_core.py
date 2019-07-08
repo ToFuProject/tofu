@@ -2426,7 +2426,7 @@ class Plasma2D(utils.ToFuObject):
         lkok = ['data', 'dim', 'quant', 'name', 'origin', 'units',
                 'depend']
         lkmeshmax = ['type','ftype','nodes','faces',
-                     'nfaces','nnodes','mpltri', 'size']
+                     'nfaces','nnodes','mpltri','size','ntri']
         lkmeshmin = ['type','ftype','nodes','faces',
                      'nfaces','nnodes']
         dkok = {'dtime': {'max':lkok, 'min':['data'], 'ndim':[1]},
@@ -2486,9 +2486,12 @@ class Plasma2D(utils.ToFuObject):
                                                           dd[dk][k0]['nodes'][:,1],
                                                           dd[dk][k0]['faces'])
                         assert isinstance(dd[dk][k0]['mpltri'], mplTri)
-                        assert dd[dk][k0]['ftype'] == 'linear'  # Only linear interp so far
-                        if dd[dk][k0]['ftype'] == 'linear':
-                            dd[dk][k0]['size'] = dd[dk][k0]['nnodes']
+                        assert dd[dk][k0]['ftype'] in [0,1]
+                        ntri = dd[dk][k0]['ntri']
+                        if dd[dk][k0]['ftype'] == 1:
+                            dd[dk][k0]['size'] = int(dd[dk][k0]['nnodes']/ntri)
+                        else:
+                            dd[dk][k0]['size'] = int(dd[dk][k0]['nfaces']/ntri)
 
         # Check unicity of all keys
         lk = [list(dv.keys()) for dv in dd.values()]
@@ -2736,7 +2739,7 @@ class Plasma2D(utils.ToFuObject):
             shape = tuple([dindref[ii]['size'] for ii in v0['depend']])
 
             # if only one dim => mesh or iterable or unspecified
-            if len(shape) == 1:
+            if len(shape) == 1 or type_ is dict:
                 c0 = type_ is dict and 'mesh' in ddata[k0]['lgroup']
                 c1 = not c0 and len(v0['data']) == shape[0]
                 if not (c0 or c1):
@@ -2965,7 +2968,7 @@ class Plasma2D(utils.ToFuObject):
 
         if msg is not None:
             msg += "\n\nRequested %s could not be identified !\n"%msgstr
-            msg += "Please provide a valid (unique) key / name / quant / dim:\n"
+            msg += "Please provide a valid (unique) key/name/quant/dim:\n\n"
             msg += '\n\n'.join(self.get_summary(verb=False, return_='msg'))
             if raise_:
                 raise Exception(msg)
@@ -3120,7 +3123,7 @@ class Plasma2D(utils.ToFuObject):
 
 
     def _get_finterp(self, idquant, idref1d, idref2d,
-                     interp_t='nearest', interp_space='linear',
+                     interp_t='nearest', interp_space=None,
                      fill_value=np.nan):
 
         # Get idmesh
@@ -3148,180 +3151,168 @@ class Plasma2D(utils.ToFuObject):
         # Interpolate
         # Note : Maybe consider using scipy.LinearNDInterpolator ?
         vquant = self._ddata[idquant]['data']
+        if self._ddata[idmesh]['data']['ntri'] > 1:
+            vquant = np.repeat(vquant,
+                               self._ddata[idmesh]['data']['ntri'], axis=0)
+
+        if interp_space is None:
+            interp_space = self._ddata[idmesh]['data']['ftype']
+
+
         if idref1d is None:
 
-            def func(pts, t=None, ntall=ntall,
-                     mplTriLinInterp=mplTriLinInterp,
-                     mpltri=mpltri, trifind=trifind,
-                     vquant=vquant, indtq=indtq,
-                     tall=tall, tbinall=tbinall,
-                     idref1d=idref1d, idref2d=idref2d):
+            if interp_space == 1:
 
-                r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-                shapeval = list(pts.shape)
-                shapeval[0] = ntall if t is None else t.size
-                val = np.full(tuple(shapeval), np.nan)
-                if t is None:
-                    for ii in range(0,ntall):
-                        val[ii,...] = mplTriLinInterp(mpltri,
-                                                      vquant[indtq[ii],:],
-                                                      trifinder=trifind)(r,z)
-                else:
-                    ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
-                                                         tbinall=tbinall,
-                                                         idref1d=idref1d,
-                                                         idref2d=idref2d)[1:]
-                    for ii in range(0,ntall):
-                        ind = indt == indtu[ii]
-                        val[ind,...] = mplTriLinInterp(mpltri,
-                                                       vquant[indtq[ii],:],
-                                                       trifinder=trifind)(r,z)
-                return val
+                def func(pts, t=None, ntall=ntall,
+                         mplTriLinInterp=mplTriLinInterp,
+                         mpltri=mpltri, trifind=trifind,
+                         vquant=vquant, indtq=indtq,
+                         tall=tall, tbinall=tbinall,
+                         idref1d=idref1d, idref2d=idref2d):
+
+                    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                    shapeval = list(pts.shape)
+                    shapeval[0] = ntall if t is None else t.size
+                    val = np.full(tuple(shapeval), np.nan)
+                    if t is None:
+                        for ii in range(0,ntall):
+                            val[ii,...] = mplTriLinInterp(mpltri,
+                                                          vquant[indtq[ii],:],
+                                                          trifinder=trifind)(r,z)
+                    else:
+                        ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
+                                                             tbinall=tbinall,
+                                                             idref1d=idref1d,
+                                                             idref2d=idref2d)[1:]
+                        for ii in range(0,ntall):
+                            ind = indt == indtu[ii]
+                            val[ind,...] = mplTriLinInterp(mpltri,
+                                                           vquant[indtq[ii],:],
+                                                           trifinder=trifind)(r,z)
+                    return val
+
+            else:
+                def func(pts, t=None, ntall=ntall,
+                         trifind=trifind,
+                         vquant=vquant, indtq=indtq,
+                         tall=tall, tbinall=tbinall,
+                         idref1d=idref1d, idref2d=idref2d):
+
+                    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                    shapeval = list(pts.shape)
+                    shapeval[0] = ntall if t is None else t.size
+                    val = np.full(tuple(shapeval), np.nan)
+
+                    indpts = trifind(r,z)
+                    if t is None:
+                        for ii in range(0,ntall):
+                            val[ii,...] = vquant[indtq[ii],indpts]
+                    else:
+                        ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
+                                                             tbinall=tbinall,
+                                                             idref1d=idref1d,
+                                                             idref2d=idref2d)[1:]
+                        for ii in range(0,ntall):
+                            ind = indt == indtu[ii]
+                            val[ind,...] = vquant[indtq[ii],indpts]
+                    return val
+
 
         else:
             vr2 = self._ddata[idref2d]['data']
             vr1 = self._ddata[idref1d]['data']
 
-            def func(pts, t=None, ntall=ntall,
-                     mplTriLinInterp=mplTriLinInterp,
-                     mpltri=mpltri, trifind=trifind,
-                     vquant=vquant, indtq=indtq,
-                     interp_space=interp_space, fill_value=fill_value,
-                     vr1=vr1, indtr1=indtr1, vr2=vr2, indtr2=indtr2,
-                     tall=tall, tbinall=tbinall,
-                     idref1d=idref1d, idref2d=idref2d):
+            if interp_space == 1:
 
-                r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-                shapeval = list(pts.shape)
-                shapeval[0] = ntall if t is None else t.size
-                val = np.full(tuple(shapeval), np.nan)
-                if t is None:
-                    for ii in range(0,ntall):
-                        # get ref values for mapping
-                        vii = mplTriLinInterp(mpltri,
-                                              vr2[indtr2[ii],:],
-                                              trifinder=trifind)(r,z)
+                def func(pts, t=None, ntall=ntall,
+                         mplTriLinInterp=mplTriLinInterp,
+                         mpltri=mpltri, trifind=trifind,
+                         vquant=vquant, indtq=indtq,
+                         interp_space=interp_space, fill_value=fill_value,
+                         vr1=vr1, indtr1=indtr1, vr2=vr2, indtr2=indtr2,
+                         tall=tall, tbinall=tbinall,
+                         idref1d=idref1d, idref2d=idref2d):
 
-                        # interpolate 1d
-                        val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
-                                                         vquant[indtq[ii],:],
-                                                         kind=interp_space,
-                                                         bounds_error=False,
-                                                         fill_value=fill_value)(np.asarray(vii))
-                else:
-                    ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
-                                                         tbinall=tbinall,
-                                                         idref1d=idref1d,
-                                                         idref2d=idref2d)[1:]
-                    for ii in range(0,ntall):
-                        # get ref values for mapping
-                        vii = mplTriLinInterp(mpltri,
-                                              vr2[indtr2[ii],:],
-                                              trifinder=trifind)(r,z)
+                    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                    shapeval = list(pts.shape)
+                    shapeval[0] = ntall if t is None else t.size
+                    val = np.full(tuple(shapeval), np.nan)
+                    if t is None:
+                        for ii in range(0,ntall):
+                            # get ref values for mapping
+                            vii = mplTriLinInterp(mpltri,
+                                                  vr2[indtr2[ii],:],
+                                                  trifinder=trifind)(r,z)
 
-                        # interpolate 1d
-                        ind = indt == indtu[ii]
-                        val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
-                                                          vquant[indtq[ii],:],
-                                                          kind=interp_space,
-                                                          bounds_error=False,
-                                                          fill_value=fill_value)(np.asarray(vii))
-                return val
+                            # interpolate 1d
+                            val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                             vquant[indtq[ii],:],
+                                                             kind='linear',
+                                                             bounds_error=False,
+                                                             fill_value=fill_value)(np.asarray(vii))
+                    else:
+                        ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
+                                                             tbinall=tbinall,
+                                                             idref1d=idref1d,
+                                                             idref2d=idref2d)[1:]
+                        for ii in range(0,ntall):
+                            # get ref values for mapping
+                            vii = mplTriLinInterp(mpltri,
+                                                  vr2[indtr2[ii],:],
+                                                  trifinder=trifind)(r,z)
+
+                            # interpolate 1d
+                            ind = indt == indtu[ii]
+                            val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                              vquant[indtq[ii],:],
+                                                              kind='linear',
+                                                              bounds_error=False,
+                                                              fill_value=fill_value)(np.asarray(vii))
+                    return val
+
+            else:
+                def func(pts, t=None, ntall=ntall,
+                         trifind=trifind,
+                         vquant=vquant, indtq=indtq,
+                         interp_space=interp_space, fill_value=fill_value,
+                         vr1=vr1, indtr1=indtr1, vr2=vr2, indtr2=indtr2,
+                         tall=tall, tbinall=tbinall,
+                         idref1d=idref1d, idref2d=idref2d):
+
+                    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                    shapeval = list(pts.shape)
+                    shapeval[0] = ntall if t is None else t.size
+                    val = np.full(tuple(shapeval), np.nan)
+                    indpts = trifind(r,z)
+                    if t is None:
+                        for ii in range(0,ntall):
+                            # interpolate 1d
+                            val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                             vquant[indtq[ii],:],
+                                                             kind='linear',
+                                                             bounds_error=False,
+                                                             fill_value=fill_value)(vr2[indtr2[ii],indpts])
+                    else:
+                        ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
+                                                             tbinall=tbinall,
+                                                             idref1d=idref1d,
+                                                             idref2d=idref2d)[1:]
+                        for ii in range(0,ntall):
+                            # interpolate 1d
+                            ind = indt == indtu[ii]
+                            val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                              vquant[indtq[ii],:],
+                                                              kind='linear',
+                                                              bounds_error=False,
+                                                              fill_value=fill_value)(vr2[indtr2[ii],indpt])
+                    return val
 
         return func
 
 
-    def _interp_pts2profile(self, ptsRZ,
-                            idquant, idref1d, idref2d, t=None,
-                            interp_t='nearest',
-                            interp_space='linear',
-                            fill_value=np.nan):
 
-        # Get idmesh
-        if idref1d is None:
-            lidmesh = [qq for qq in self._ddata[idquant]['depend']
-                       if self._dindref[qq]['group'] == 'mesh']
-        else:
-            lidmesh = [qq for qq in self._ddata[idref2d]['depend']
-                       if self._dindref[qq]['group'] == 'mesh']
-        assert len(lidmesh) == 1
-        idmesh = lidmesh[0]
-
-        # Get mesh
-        mpltri = self._ddata[idmesh]['data']['mpltri']
-        trifind = mpltri.get_trifinder()
-        r, z = ptsRZ[0], ptsRZ[1]
-
-        # Get common time indices
-        if interp_t == 'nearest':
-            out = self._get_indtmult(idquant=idquant,
-                                     idref1d=idref1d, idref2d=idref2d)
-            tall, tbinall, ntall, indtq, indtr1, indtr2 = out
-            tall, ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
-                                                       tbinall=tbinall,
-                                                       idref1d=idref1d,
-                                                       idref2d=idref2d)
-
-        # Prepare output
-        shapeval = list(ptsRZ.shape)
-        shapeval[0] = ntall
-        val = np.full(tuple(shapeval), np.nan)
-
-        # Interpolate
-        # Note : Maybe consider using scipy.LinearNDInterpolator ?
-        vquant = self._ddata[idquant]['data']
-        if idref1d is None:
-            if t is None:
-                for ii in range(0,ntall):
-                    val[ii,...] = mplTriLinInterp(mpltri,
-                                                  vquant[indtq[ii],:],
-                                                  trifinder=trifind)(r,z)
-            else:
-                for ii in range(0,ntall):
-                    ind = indt == indtu[ii]
-                    val[ind,...] = mplTriLinInterp(mpltri,
-                                                   vquant[indtq[ii],:],
-                                                   trifinder=trifind)(r,z)
-
-        else:
-            vr2 = self._ddata[idref2d]['data']
-            vr1 = self._ddata[idref1d]['data']
-            if t is None:
-                for ii in range(0,ntall):
-                    # get ref values for mapping
-                    vii = mplTriLinInterp(mpltri,
-                                          vr2[indtr2[ii],:],
-                                          trifinder=trifind)(r,z)
-
-                    # interpolate 1d
-                    val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
-                                                     vquant[indtq[ii],:],
-                                                     kind=interp_space,
-                                                     bounds_error=False,
-                                                     fill_value=fill_value)(np.asarray(vii))
-            else:
-                for ii in range(0,ntall):
-                    # get ref values for mapping
-                    vii = mplTriLinInterp(mpltri,
-                                          vr2[indtr2[ii],:],
-                                          trifinder=trifind)(r,z)
-
-                    # interpolate 1d
-                    ind = indt == indtu[ii]
-                    val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
-                                                      vquant[indtq[ii],:],
-                                                      kind=interp_space,
-                                                      bounds_error=False,
-                                                      fill_value=fill_value)(np.asarray(vii))
-
-        # return time
-        if t is None:
-            t = tall
-        return val, t
-
-
-    def get_finterp2d(self, quant, ref=None,
-                      interp_t='nearest', interp_space='linear',
+    def get_finterp2d(self, quant, ref1d=None, ref2d=None,
+                      interp_t='nearest', interp_space=None,
                       fill_value=np.nan):
         """ Return the function interpolating (X,Y,Z) pts on a 1d/2d profile
 
@@ -3332,7 +3323,7 @@ class Plasma2D(utils.ToFuObject):
         assert interp_t == 'nearest', "Only 'nearest' available so far!"
 
         # Check requested quant is available in 2d or 1d
-        idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref)
+        idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
 
         # Interpolation (including time broadcasting)
         func = self._get_finterp(idquant, idref1d, idref2d,
@@ -3341,10 +3332,9 @@ class Plasma2D(utils.ToFuObject):
         return func
 
 
-
-
-    def interp_pts2profile(self, quant, ptsRZ=None, t=None, ref=None,
-                           interp_t='nearest', interp_space='linear',
+    def interp_pts2profile(self, quant, ptsRZ=None, t=None,
+                           ref1d=None, ref2d=None,
+                           interp_t='nearest', interp_space=None,
                            fill_value=np.nan):
         """ Return the value of the desired profiles_1d quantity
 
@@ -3359,7 +3349,7 @@ class Plasma2D(utils.ToFuObject):
         assert interp_t == 'nearest', "Only 'nearest' available so far!"
 
         # Check requested quant is available in 2d or 1d
-        idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref)
+        idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
 
         # Check the ptsRZ is (2,...) array of floats
         if ptsRZ is None:
@@ -3377,12 +3367,13 @@ class Plasma2D(utils.ToFuObject):
             raise Exception(msg)
 
         # Interpolation (including time broadcasting)
-        val, t = self._interp_pts2profile(ptsRZ, idquant,
-                                          idref1d, idref2d, t=t,
-                                          interp_t=interp_t,
-                                          interp_space=interp_space,
-                                          fill_value=fill_value)
-        return val, t
+        func = self._get_finterp(idquant, idref1d, idref2d,
+                                 interp_t=interp_t, interp_space=interp_space,
+                                 fill_value=fill_value)
+        val = func(pts)
+
+
+        return func(pts)
 
 
     #---------------------
@@ -3428,7 +3419,7 @@ class Plasma2D(utils.ToFuObject):
             dextra = dict(dextra)
         return dextra
 
-    def get_Data(self, lquant, X=None, ref=None,
+    def get_Data(self, lquant, X=None, ref1d=None, ref2d=None,
                  remap=False, res=0.01, interp_space='linear', dextra=None):
 
         try:
@@ -3479,7 +3470,7 @@ class Plasma2D(utils.ToFuObject):
             qq = lquant[ii]
             if remap:
                 # Check requested quant is available in 2d or 1d
-                idq, idrefd1, idref2d = self._get_quantrefkeys(qq, ref)
+                idq, idrefd1, idref2d = self._get_quantrefkeys(qq, ref1d, ref2d)
             else:
                 idq, msg = self._get_keyingroup(qq, 'radius',
                                                 msgstr='quant', raise_=True)
