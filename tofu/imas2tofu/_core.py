@@ -190,8 +190,8 @@ class MultiIDSLoader(object):
 
                'edge_sources':
                {'t':{'str':'time'},
-                '2dmeshNodes':{'str':'grids_ggd[0].space[0].objects_per_dimension[0].object[].geometry'},
-                '2dmeshFaces':{'str':'grids_ggd[0].space[0].objects_per_dimension[2].object[].geometry'}},
+                '2dmeshNodes':{'str':'grid_ggd[0].space[0].objects_per_dimension[0].object[].geometry'},
+                '2dmeshFaces':{'str':'grid_ggd[0].space[0].objects_per_dimension[2].object[].nodes'}},
 
                'lh_antennas':
                {'t':{'str':'antenna[chan].power_launched.time'},
