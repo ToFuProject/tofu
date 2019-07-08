@@ -104,8 +104,8 @@ def _select_ind(v, ref, nRef):
             ind = ind | ((ref>=vv[0]) & (ref<=vv[1]))
         if C3:
             ind = ~ind
-    if ref.ndim==1:
-        ind = ind.squeeze()
+    if ref.ndim == 1:
+        ind = np.atleast_1d(ind.squeeze())
     return ind
 
 
@@ -252,22 +252,23 @@ class DataAbstract(utils.ToFuObject):
                                      lamb=None, indtlamb=None,
                                      indXlamb=None, indtXlamb=None):
         assert data is not None
-        data = np.asarray(data).squeeze()
+        data = np.atleast_1d(np.asarray(data).squeeze())
 
         if t is not None:
-            t = np.asarray(t).squeeze()
+            t = np.atleast_1d(np.asarray(t).squeeze())
         if X is not None:
-            X = np.asarray(X).squeeze()
+            X = np.atleast_1d(np.asarray(X).squeeze())
         if indtX is not None:
-            indtX = np.asarray(indtX, dtype=int).squeeze()
+            indtX = np.atleast_1d(np.asarray(indtX, dtype=int).squeeze())
         if lamb is not None:
-            lamb = np.asarray(lamb).squeeze()
+            lamb = np.atleast_1d(np.asarray(lamb).squeeze())
         if indtlamb is not None:
-            indtlamb = np.asarray(indtlamb, dtype=int).squeeze()
+            indtlamb = np.atleast_1d(np.asarray(indtlamb, dtype=int).squeeze())
         if indXlamb is not None:
-            indXlamb = np.asarray(indXlamb, dtype=int).squeeze()
+            indXlamb = np.atleast_1d(np.asarray(indXlamb, dtype=int).squeeze())
         if indtXlamb is not None:
-            indtXlamb = np.asarray(indtXlamb, dtype=int).squeeze()
+            indtXlamb = np.atleast_1d(np.asarray(indtXlamb,
+                                                 dtype=int).squeeze())
 
         ndim = data.ndim
         assert ndim in [2,3]
@@ -368,11 +369,11 @@ class DataAbstract(utils.ToFuObject):
 
     def _checkformat_inputs_XRef(self, X=None, indtX=None, indXlamb=None):
         if X is not None:
-            X = np.asarray(X).squeeze()
+            X = np.atleast_1d(np.asarray(X).squeeze())
         if indtX is not None:
-            indtX = np.asarray(indtX).squeeze()
+            indtX = np.atleast_1d(np.asarray(indtX).squeeze())
         if indXlamb is not None:
-            indXlamb = np.asarray(indXlamb).squeeze()
+            indXlamb = np.atleast_1d(np.asarray(indXlamb).squeeze())
 
         ndim = self._ddataRef['data'].ndim
         nt, n1 = self._ddataRef['data'].shape[:2]
@@ -2467,7 +2468,7 @@ class Plasma2D(utils.ToFuObject):
                     msg += "    - %s"%str(set(v0.keys()).difference(dkok[dk]['max']))
                     raise Exception(msg)
                 if 'data' in dkok[dk]['min']:
-                    dd[dk][k0]['data'] = np.squeeze(v0['data'])
+                    dd[dk][k0]['data'] = np.atleast_1d(np.squeeze(v0['data']))
                     if dd[dk][k0]['data'].ndim not in dkok[dk]['ndim']:
                         msg = "%s[%s]['data'] has wrong dimensions:\n"%(dk,k0)
                         msg += "    - Expected: %s\n"%str(dkok[dk]['ndim'])

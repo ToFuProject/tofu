@@ -1652,9 +1652,9 @@ class MultiIDSLoader(object):
                    [np.ndarray,list,tuple])]
 
             if lc[0]:
-                sig = np.squeeze(np.stack(sig))
+                sig = np.atleast_1d(np.squeeze(np.stack(sig)))
             elif lc[1] or lc[2]:
-                sig = np.squeeze(sig)
+                sig = np.atleast_1d(np.squeeze(sig))
             return sig
 
         return fsig
@@ -2022,18 +2022,32 @@ class MultiIDSLoader(object):
             msg += "  => unrecognized mesh type, not implemented yet"
             raise Exception(msg)
 
+        # Check indexing !!!
+        indmax = int(np.nanmax(indfaces))
+        if indmax == nodes.shape[0]:
+            indfaces = indfaces - 1
+        elif indmax > nodes.shape[0]:
+            msg = "There seems to be an indexing error\n"
+            msg += "    - np.max(indfaces) = %s"%str(indmax)
+            msg += "    - nodes.shape[0] = %s"%str(nodes.shape[0])
+            raise Exception(msg)
+
+        # Convert to triangular mesh if necessary
         if meshtype == 'quad':
             # Convert to tri mesh (solution for unstructured meshes)
             indface = np.empty((indfaces.shape[0]*2,3), dtype=int)
+
             indface[::2,:] = indfaces[:,:3]
-            indface[1::2,:] = indfaces[:,2:]
+            indface[1::2,:-1] = indfaces[:,2:]
+            indface[1::2,-1] = indfaces[:,0]
             indfaces = indface
             meshtype = 'quadtri'
             ntri = 2
         else:
             ntri = 1
 
-        # Check orinetation
+
+        # Check orientation
         x, y = nodes[indfaces,0], nodes[indfaces,1]
         orient = ((y[:,1]-y[:,0])*(x[:,2]-x[:,1])
                   - (y[:,2]-y[:,1])*(x[:,1]-x[:,0]))
@@ -2237,103 +2251,121 @@ class MultiIDSLoader(object):
 
             # dtime
             out_ = self.get_data(ids, sig='t')
-            if len(out_) != 1:
-                continue
-            if out_['t'].size == 0 or 0 in out_['t'].shape:
-                continue
-            nt = out_['t'].size
-            keyt = '%s.t'%ids
+            lc = [len(out_) == 1, out_['t'].size > 0, 0 not in out_['t'].shape]
+            keyt, nt, indt = None, None, None
+            if all(lc):
+                nt = out_['t'].size
+                keyt = '%s.t'%ids
 
-            dtt = self._checkformat_tlim(out_['t'], tlim=tlim)
-            dtime[keyt] = {'data':dtt['t'],
-                           'origin':ids, 'name':'t'}
+                dtt = self._checkformat_tlim(out_['t'], tlim=tlim)
+                dtime[keyt] = {'data':dtt['t'],
+                               'origin':ids, 'name':'t'}
+                indt = dtt['indt']
 
             # d1d and dradius
             lsig = [k for k in dsig[ids] if '1d' in k]
-            out_ = self.get_data(ids, lsig, indt=dtt['indt'])
-            if len(out_) == 0:
-                continue
+            out_ = self.get_data(ids, lsig, indt=indt)
+            if len(out_) > 0:
+                nref, kref = None, None
+                for ss in out_.keys():
+                    shape = out_[ss].shape
+                    assert len(shape) == 2
+                    if 0 in shape or len(shape) == 0:
+                        continue
 
-            nref, kref = None, None
-            for ss in out_.keys():
-                shape = out_[ss].shape
-                assert len(shape) == 2
-                if 0 in shape or len(shape) == 0:
-                    continue
-
-                assert nt in shape
-                axist = shape.index(nt)
-                nr = shape[1-axist]
-                if axist == 1:
-                    out_[ss] = out_[ss].T
-
-                dim = self._dshort[ids][ss].get('dim', 'unknown')
-                quant = self._dshort[ids][ss].get('quant', 'unknown')
-                units = self._dshort[ids][ss].get('units', 'a.u.')
-                key = '%s.%s'%(ids,ss)
-
-                if nref is None:
-                    dradius[key] = {'data':out_[ss], 'name':ss,
-                                    'origin':ids, 'dim':dim, 'quant':quant,
-                                    'units':units, 'depend':(keyt,key)}
-                    nref, kref = nr, key
-                else:
-                    assert nr == nref
-                    d1d[key] = {'data':out_[ss], 'name':ss,
-                                'origin':ids, 'dim':dim, 'quant':quant,
-                                'units':units, 'depend':(keyt,kref)}
-                    assert out_[ss].shape == (nt,nr)
-
-                if plot:
-                    if ss in plot_sig:
-                        plot_sig[plot_sig.index(ss)] = key
-                    if ss in plot_X:
-                        plot_X[plot_X.index(ss)] = key
-
-            # d2d and dmesh
-            lsig = [k for k in dsig[ids] if '2d' in k]
-            lsigmesh = ['2dmeshNodes','2dmeshFaces']
-            out_ = self.get_data(ids, sig=lsig, indt=dtt['indt'])
-            if len(out_) == 0:
-                continue
-            if not all([ss in out_.keys() for ss in lsigmesh]):
-                continue
-
-            npts = None
-            keym = '%s.mesh'%ids
-            for ss in set(out_.keys()).difference(lsigmesh):
-                shape = out_[ss].shape
-                assert len(shape) == 2
-                if np.sum(shape) > 0:
-                    assert nt in shape
-                    axist = shape.index(nt)
-                    if npts is None:
-                        npts = shape[1-axist]
-                    assert npts == shape[1-axist]
-                    if axist == 1:
-                        out_[ss] = out_[ss].T
+                    if nt is None:
+                        msg = "%s.'t' could not be retrieved\n"%ids
+                        msg += "Assuming 't' is the first dimension of:\n"
+                        msg += "    - %s.%s"%(ids,ss)
+                        warnings.warn(msg)
+                        nt = shape[0]
+                        keyt = '%s.homemade'%ids
+                        dtime[keyt] = {'data':np.arange(0,nt),
+                                       'origin':ids, 'name':'homemade'}
+                    else:
+                        if nt not in shape:
+                            msg = "Inconsistent shape with respect to 't'!\n"
+                            msg += "    - %s.%s.shape = %s"%(ids,ss,str(shape))
+                            msg += "    - One dim should be t.size = %s"%str(nt)
+                            raise Exception(msg)
+                        axist = shape.index(nt)
+                        nr = shape[1-axist]
+                        if axist == 1:
+                            out_[ss] = out_[ss].T
 
                     dim = self._dshort[ids][ss].get('dim', 'unknown')
                     quant = self._dshort[ids][ss].get('quant', 'unknown')
                     units = self._dshort[ids][ss].get('units', 'a.u.')
                     key = '%s.%s'%(ids,ss)
 
-                    d2d[key] = {'data':out_[ss], 'name':ss,
-                                'dim':dim, 'quant':quant, 'units':units,
-                                'origin':ids, 'depend':(keyt,keym)}
+                    if nref is None:
+                        dradius[key] = {'data':out_[ss], 'name':ss,
+                                        'origin':ids, 'dim':dim, 'quant':quant,
+                                        'units':units, 'depend':(keyt,key)}
+                        nref, kref = nr, key
+                    else:
+                        assert nr == nref
+                        d1d[key] = {'data':out_[ss], 'name':ss,
+                                    'origin':ids, 'dim':dim, 'quant':quant,
+                                    'units':units, 'depend':(keyt,kref)}
+                        assert out_[ss].shape == (nt,nr)
 
-            nodes = out_['2dmeshNodes']
-            indfaces = out_['2dmeshFaces']
-            indfaces, meshtype, ntri = self._checkformat_mesh(nodes, indfaces)
-            nnod, nfaces = nodes.size/2, indfaces.shape[0]
-            assert npts in [nnod, nfaces/ntri]
-            ftype = 1 if npts == nnod else 0
-            mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indfaces)
-            dmesh[keym] = {'dim':'mesh', 'quant':'mesh', 'units':'a.u.',
-                           'origin':ids, 'depend':(keym,), 'name':meshtype,
-                           'nodes':nodes, 'faces':indfaces,
-                           'type':meshtype, 'ntri':ntri, 'ftype':ftype,
-                           'nnodes':nnod,'nfaces':nfaces, 'mpltri':mpltri}
+                    if plot:
+                        if ss in plot_sig:
+                            plot_sig[plot_sig.index(ss)] = key
+                        if ss in plot_X:
+                            plot_X[plot_X.index(ss)] = key
+
+            # d2d and dmesh
+            lsig = [k for k in dsig[ids] if '2d' in k]
+            lsigmesh = ['2dmeshNodes','2dmeshFaces']
+            out_ = self.get_data(ids, sig=lsig, indt=indt)
+
+            lc = [len(out_) > 0, all([ss in out_.keys() for ss in lsigmesh])]
+            if all(lc):
+                npts = None
+                keym = '%s.mesh'%ids
+                for ss in set(out_.keys()).difference(lsigmesh):
+                    shape = out_[ss].shape
+                    assert len(shape) == 2
+                    if np.sum(shape) > 0:
+                        assert nt in shape
+                        axist = shape.index(nt)
+                        if npts is None:
+                            npts = shape[1-axist]
+                        assert npts == shape[1-axist]
+                        if axist == 1:
+                            out_[ss] = out_[ss].T
+
+                        dim = self._dshort[ids][ss].get('dim', 'unknown')
+                        quant = self._dshort[ids][ss].get('quant', 'unknown')
+                        units = self._dshort[ids][ss].get('units', 'a.u.')
+                        key = '%s.%s'%(ids,ss)
+
+                        d2d[key] = {'data':out_[ss], 'name':ss,
+                                    'dim':dim, 'quant':quant, 'units':units,
+                                    'origin':ids, 'depend':(keyt,keym)}
+
+                nodes = out_['2dmeshNodes']
+                indfaces = out_['2dmeshFaces']
+                indfaces, meshtype, ntri = self._checkformat_mesh(nodes, indfaces)
+                nnod, nfaces = int(nodes.size/2), indfaces.shape[0]
+                if npts is not None:
+                    if npts not in [nnod, int(nfaces/ntri)]:
+                        msg = "There is an indexing unconsistency:\n"
+                        msg += "    - 2d profiles have npts = %s\n"%str(npts)
+                        msg += "    - mesh has %s nodes\n"%str(nnod)
+                        msg += "               %s faces"%str(int(nfaces/ntri))
+                        raise Exception(msg)
+                    ftype = 1 if npts == nnod else 0
+                else:
+                    ftype = None
+                mpltri = mpl.tri.Triangulation(nodes[:,0], nodes[:,1], indfaces)
+                dmesh[keym] = {'dim':'mesh', 'quant':'mesh', 'units':'a.u.',
+                               'origin':ids, 'depend':(keym,), 'name':meshtype,
+                               'nodes':nodes, 'faces':indfaces,
+                               'type':meshtype, 'ntri':ntri, 'ftype':ftype,
+                               'nnodes':nnod,'nfaces':nfaces, 'mpltri':mpltri}
 
         # t0
         t0 = self._get_t0(t0)
