@@ -191,7 +191,10 @@ class MultiIDSLoader(object):
                'edge_sources':
                {'t':{'str':'time'},
                 '2dmeshNodes':{'str':'grid_ggd[0].space[0].objects_per_dimension[0].object[].geometry'},
-                '2dmeshFaces':{'str':'grid_ggd[0].space[0].objects_per_dimension[2].object[].nodes'}},
+                '2dmeshFaces':{'str':'grid_ggd[0].space[0].objects_per_dimension[2].object[].nodes'},
+                '2dradiation':{'str':'source[13].ggd[0].electrons.energy[0].values',
+                               'dim':'vol. emis.', 'quant':'vol.emis.',
+                               'name':'tot. vol. emis.','units':'W/m^3'}},
 
                'lh_antennas':
                {'t':{'str':'antenna[chan].power_launched.time'},
