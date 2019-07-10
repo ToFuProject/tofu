@@ -60,7 +60,8 @@ def _get_exception(q, ids, qtype='quantity'):
 def call_tfloadimas(shot=None, run=_RUN, user=_USER,
                     tokamak=_TOKAMAK, version=_VERSION,
                     ids=None, quantity=None, X=None, t0=_T0,
-                    sharex=_SHAREX, indch=None, background=_BCK):
+                    sharex=_SHAREX, indch=None, indch_auto=None,
+                    background=_BCK):
 
     lidspla = [ids_ for ids_ in ids if ids_ in _LIDS_PLASMA]
     if t0.lower() == 'none':
@@ -68,7 +69,8 @@ def call_tfloadimas(shot=None, run=_RUN, user=_USER,
 
     tf.load_from_imas(shot=shot, run=run, user=user,
                       tokamak=tokamak, version=version,
-                      ids=ids, indch=indch, plot_sig=quantity, plot_X=X,
+                      ids=ids, indch=indch, indch_auto=indch_auto,
+                      plot_sig=quantity, plot_X=X,
                       t0=t0, plot=True, sharex=sharex, bck=background)
 
     plt.show(block=True)
@@ -130,6 +132,9 @@ if __name__ == '__main__':
     parser.add_argument('-ich', '--indch', type=int, required=False,
                         help='indices of channels to be loaded',
                         nargs='+', default=None)
+    parser.add_argument('-ichauto', '--indch_auto', type=bool, required=False,
+                        help='automatically determine indices of channels to be loaded',
+                        default=True)
     parser.add_argument('-sx', '--sharex', type=_str2bool, required=False,
                         help='Should X axis be shared between diagnostics ids ?',
                         default=_SHAREX, const=True, nargs='?')
