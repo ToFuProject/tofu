@@ -38,7 +38,7 @@ _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 _lclbd = [plt.cm.tab20.colors[ii] for ii in [12,16,18,13,17,19]]
 _lcm = _lclbd
 _cbck = (0.8,0.8,0.8)
-_dmarker = {'Ax':'o', 'X':'x'}
+_dmarker = {'ax':'o', 'x':'x'}
 
 
 def Data_plot(lData, key=None, bck=True, indref=0,
@@ -476,16 +476,21 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                                for ii in range(0,nDat)
                                                if lData[ii].dextra is not
                                                None])))
-    lkEq = [kk for kk in lkex if any([ss == kk.split('.')[-1].lower()
-                                      for ss in ['ax','sep','x']])]
-    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep']
-    assert len(kSep) <= 1
-    if len(kSep) == 1:
-        kSep = kSep[0]
-    else:
-        kSep = None
+    dEq_corres = dict.fromkeys(['ax','sep','x'])
+    for k0 in dEq_corres.keys():
+        lkEq_temp = list(set([kk for kk in lkex
+                              if k0 == kk.split('.')[-1].lower()]))
+        assert len(lkEq_temp) <= 1
+        if len(lkEq_temp) == 1:
+            dEq_corres[k0] = lkEq_temp[0]
+            if k0 in dmarker.keys():
+                dmarker[lkEq_temp[0]] = str(dmarker[k0])
+                del dmarker[k0]
 
+    lkEq = sorted([vv for vv in dEq_corres.values() if vv is not None])
+    kSep = dEq_corres['sep']
     lkEqmap = lkEq + ['map']
+
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
     for ii in range(0,nDat):
@@ -1214,15 +1219,21 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                                for ii in range(0,nDat)
                                                if lData[ii].dextra is not
                                                None])))
-    lkEq = [kk for kk in lkex if any([ss == kk.split('.')[-1].lower()
-                                      for ss in ['ax','sep','x']])]
-    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep']
-    assert len(kSep) <= 1
-    if len(kSep) == 1:
-        kSep = kSep[0]
-    else:
-        kSep = None
+    dEq_corres = dict.fromkeys(['ax','sep','x'])
+    for k0 in dEq_corres.keys():
+        lkEq_temp = list(set([kk for kk in lkex
+                              if k0 == kk.split('.')[-1].lower()]))
+        assert len(lkEq_temp) <= 1
+        if len(lkEq_temp) == 1:
+            dEq_corres[k0] = lkEq_temp[0]
+            if k0 in dmarker.keys():
+                dmarker[lkEq_temp[0]] = str(dmarker[k0])
+                del dmarker[k0]
+
+    lkEq = sorted([vv for vv in dEq_corres.values() if vv is not None])
+    kSep = dEq_corres['sep']
     lkEqmap = lkEq + ['map']
+
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
     for ii in range(0,nDat):
@@ -1886,15 +1897,21 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                                for ii in range(0,nDat)
                                                if lData[ii].dextra is not
                                                None])))
-    lkEq = [kk for kk in lkex if any([ss == kk.split('.')[-1].lower()
-                                      for ss in ['ax','sep','x']])]
-    kSep = [kk for kk in lkEq if kk.split('.')[-1].lower() == 'sep']
-    assert len(kSep) <= 1
-    if len(kSep) == 1:
-        kSep = kSep[0]
-    else:
-        kSep = None
+    dEq_corres = dict.fromkeys(['ax','sep','x'])
+    for k0 in dEq_corres.keys():
+        lkEq_temp = list(set([kk for kk in lkex
+                              if k0 == kk.split('.')[-1].lower()]))
+        assert len(lkEq_temp) <= 1
+        if len(lkEq_temp) == 1:
+            dEq_corres[k0] = lkEq_temp[0]
+            if k0 in dmarker.keys():
+                dmarker[lkEq_temp[0]] = str(dmarker[k0])
+                del dmarker[k0]
+
+    lkEq = sorted([vv for vv in dEq_corres.values() if vv is not None])
+    kSep = dEq_corres['sep']
     lkEqmap = lkEq + ['map']
+
     dlextra = dict([(k,[None for ii in range(0,nDat)]) for k in lkEqmap])
     dteq = dict([(ii,{}) for ii in range(0,nDat)])
     for ii in range(0,nDat):

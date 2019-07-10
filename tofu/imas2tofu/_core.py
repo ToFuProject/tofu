@@ -277,6 +277,14 @@ class MultiIDSLoader(object):
                 'ne_integ':{'str':'channel[chan].n_e_line.data',
                             'dim':'ne_integ', 'quant':'ne_integ', 'units':'/m2'}},
 
+               'polarimeter':
+               {'t':{'str':'time',
+                     'quant':'t', 'units':'s'},
+                'wavelength':{'str':'channel[chan].wavelength',
+                              'dim':'distance', 'quant':'wavelength', 'units':'m'},
+                'fangle':{'str':'channel[chan].faraday_angle.data',
+                          'dim':'angle', 'quant':'faraday angle', 'units':'rad'}},
+
                'bolometer':
                {'t':{'str':'channel[chan].power.time',
                      'quant':'t', 'units':'s'},
@@ -333,6 +341,10 @@ class MultiIDSLoader(object):
                                   'geomcls':'CamLOS1D',
                                   'sig':{'t':'t',
                                          'data':'ne_integ'}},
+                'polarimeter':{'datacls':'DataCam1D',
+                               'geomcls':'CamLOS1D',
+                               'sig':{'t':'t',
+                                      'data':'fangle'}},
                 'bolometer':{'datacls':'DataCam1D',
                              'geomcls':'CamLOS1D',
                              'sig':{'t':'t',
