@@ -2025,7 +2025,7 @@ class MultiIDSLoader(object):
 
 
     @staticmethod
-    def _checkformat_mesh(nodes, indfaces):
+    def _checkformat_mesh(nodes, indfaces, ids=None):
 
         # Check mesh type
         if indfaces.shape[1] == 3:
@@ -2046,6 +2046,35 @@ class MultiIDSLoader(object):
             msg += "    - np.max(indfaces) = %s"%str(indmax)
             msg += "    - nodes.shape[0] = %s"%str(nodes.shape[0])
             raise Exception(msg)
+
+        # Check for duplicates
+        nnodes = nodes.shape[0]
+        nfaces = indfaces.shape[0]
+        nodesu = np.unique(nodes, axis=0)
+        facesu = np.unique(indfaces, axis=0)
+        lc = [nodesu.shape[0] != nnodes,
+              facesu.shape[0] != nfaces]
+        if any(lc):
+            msg = "Non-valid mesh if ids %s:\n"%ids
+            if lc[0]:
+                msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
+                msg += "    - nodes.shape: %s\n"%str(nodes.shape)
+                msg += "    - unique nodes.shape: %s\n"%str(nodesu.shape)
+            if lc[1]:
+                msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
+                msg += "    - faces.shape: %s\n"%str(indfaces.shape)
+                msg += "    - unique faces.shape: %s"%str(facesu.shape)
+            raise Exception(msg)
+
+        # Test for unused nodes
+        facesu = np.unique(indfaces)
+        c0 = np.all(facesu>=0) and facesu.size == nnodes
+        if not c0:
+            indnot = [ii for ii in range(0,nnodes)
+                      if ii not in facesu]
+            msg = "Some nodes not used in mesh of ids %s:\n"%ids
+            msg += "    - unused nodes indices: %s"%str(indnot)
+            warnings.warn(msg)
 
         # Convert to triangular mesh if necessary
         if meshtype == 'quad':
@@ -2283,8 +2312,10 @@ class MultiIDSLoader(object):
             if len(out_) > 0:
                 nref, kref = None, None
                 for ss in out_.keys():
+                    assert out_[ss].ndim in [1,2]
+                    if out_[ss].ndim == 1:
+                        out_[ss] = np.atleast_2d(out_[ss])
                     shape = out_[ss].shape
-                    assert len(shape) == 2
                     if 0 in shape or len(shape) == 0:
                         continue
 
@@ -2341,6 +2372,9 @@ class MultiIDSLoader(object):
                 npts = None
                 keym = '%s.mesh'%ids
                 for ss in set(out_.keys()).difference(lsigmesh):
+                    assert out_[ss].ndim in [1,2]
+                    if out_[ss].ndim == 1:
+                        out_[ss] = np.atleast_2d(out_[ss])
                     shape = out_[ss].shape
                     assert len(shape) == 2
                     if np.sum(shape) > 0:
@@ -2363,7 +2397,8 @@ class MultiIDSLoader(object):
 
                 nodes = out_['2dmeshNodes']
                 indfaces = out_['2dmeshFaces']
-                indfaces, meshtype, ntri = self._checkformat_mesh(nodes, indfaces)
+                indfaces,meshtype,ntri = self._checkformat_mesh(nodes,indfaces,
+                                                                ids=ids)
                 nnod, nfaces = int(nodes.size/2), indfaces.shape[0]
                 if npts is not None:
                     if npts not in [nnod, int(nfaces/ntri)]:
@@ -2631,7 +2666,7 @@ class MultiIDSLoader(object):
             cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
         # -----------------------
-        # data first
+        # data
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
         t = self.get_data(ids, sig='t', indch=indch)['t']
@@ -2667,6 +2702,8 @@ class MultiIDSLoader(object):
             t = t[0,:]
         dins['t'] = t
         indt = self._checkformat_tlim(t, tlim=tlim)['indt']
+
+
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
                             indt=indt, indch=indch)
         for kk in set(lk).difference('t'):
@@ -2708,6 +2745,11 @@ class MultiIDSLoader(object):
                 import ipdb
                 ipdb.set_trace()
                 raise Exception(msg)
+
+            assert out[dsig[kk]].ndim in [1,2,3]
+
+            if out[dsig[kk]].ndim == 1:
+                out[dsig[kk]] = np.atleast_2d(out[dsig[kk]])
 
             if out[dsig[kk]].ndim == 2:
                 if dsig[kk] in ['X','lamb']:
