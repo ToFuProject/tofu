@@ -1213,6 +1213,9 @@ def _DataCam12D_plot_spectral(lData, key=None,
                r"%s"%lData[0].dlabels['data']['units'])
     Dintlab = r"$\int_{\lambda}$%s ($\int_{\lambda}$%s)"%Dintlab
 
+
+
+
     # ---------
     # Extra
     lkex = sorted(set(itt.chain.from_iterable([list(lData[ii].dextra.keys())
@@ -1240,8 +1243,21 @@ def _DataCam12D_plot_spectral(lData, key=None,
         if lData[ii].dextra is not None:
             for k in set(lkEqmap).intersection(lData[ii].dextra.keys()):
                 idteq = id(lData[ii].dextra[k]['t'])
+
                 if idteq not in dteq[ii].keys():
+                    # test if any existing t matches values
+                    lidalready = [[k1 for k1,v1 in v0.items()
+                                   if (v1.size == lData[ii].dextra[k]['t'].size
+                                       and np.allclose(v1, lData[ii].dextra[k]['t']))]
+                                  for v0 in dteq.values()]
+                    lidalready = list(set(itt.chain.from_iterable(lidalready)))
+                    assert len(lidalready) in [0,1]
+                    if len(lidalready) == 1:
+                        idteq = lidalready[0]
+
                     dteq[ii][idteq] = lData[ii].dextra[k]['t']
+                idteq = list(dteq[ii].keys())[0]
+
                 dlextra[k][ii] = dict([(kk,v)
                                         for kk,v in lData[ii].dextra[k].items()
                                         if not kk == 't'])
@@ -1395,23 +1411,26 @@ def _DataCam12D_plot_spectral(lData, key=None,
                              fontsize=6., ha='left', va='top')
 
     # dref
-    lref = [(lidt[ii],{'group':'time', 'val':lt[ii], 'inc':inct})
-            for ii in range(0,nDat)]
-    if dax['X'] is not None:
-        lref += [(lidX[ii],{'group':'channel', 'val':lX[ii].ravel(), 'inc':incX,
-                            'otherid':lXother[ii], 'indother':lindtX[ii]})
-                 for ii in range(0,nDat)]
-    lref += [(lidlamb[ii],{'group':'lambda', 'val':llamb[ii], 'inc':inclbd,
-                           'otherid':llambother[ii], 'indother':lindXlamb[ii]})
-             for ii in range(0,nDat)]
-    llrr = [[(k,v) for k,v in dteq[ii].items()] for ii in range(0,nDat)]
-    llrr = itt.chain.from_iterable(llrr)
-    lref += [(kv[0], {'group':'time', 'val':kv[1], 'inc':inct}) for kv in llrr]
-    dref = dict(lref)
-
-    if nD == 2:
-        for ii in range(0,nDat):
+    dref = {}
+    for ii in range(0,nDat):
+        dref[lidt[ii]] = {'group':'time', 'val':lt[ii], 'inc':inct}
+        dref[lidX[ii]] = {'group':'channel', 'val':lX[ii], 'inc':incX,
+                          'otherid':lXother[ii], 'indother':lindtX[ii]}
+        dref[lidlamb[ii]] = {'group':'lambda', 'val':llamb[ii], 'inc':inclbd,
+                             'otherid':llambother[ii], 'indother':lindXlamb[ii]}
+        if nD == 2:
             dref[lidX[ii]]['2d'] = (x1,x2)
+
+    for ii in range(0,nDat):
+        if len(list(dteq[ii])) > 0:
+            idteq, teq = list(dteq[ii].items())[0]
+            break
+    else:
+        idteq, teq = lidt[0], lt[0]
+    dref[idteq] = {'group':'time', 'val':teq, 'inc':inct}
+
+
+
 
     # ddata
     ddat = dict([(liddata[ii], {'val':ldata[ii],
@@ -1596,7 +1615,7 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                                    c=lct[jj], ls=lls[ii],
                                                    lw=1.)
                     else:
-                        marker = dlextra[kk][ii]['marker']
+                        marker = dlextra[kk][ii].get('marker', 'o')
                         l0, = dax['cross'][0].plot([np.nan],[np.nan],
                                                    mec=lct[jj], mfc='None', ls=lls[ii],
                                                    ms=ms, marker=marker)
@@ -2260,7 +2279,7 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                                    c=lct[jj], ls=lls[0],
                                                    lw=1.)
                     else:
-                        marker = dlextra[kk][ii]['marker']
+                        marker = dlextra[kk][ii].get('marker', 'o')
                         l0, = dax['cross'][ii].plot([np.nan],[np.nan],
                                                     mec=lct[jj], mfc='None',
                                                     ls=lls[0],

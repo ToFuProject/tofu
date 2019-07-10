@@ -623,7 +623,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    occ=None, indch=None, indDescription=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None, sharex=False,
-                   bck=True):
+                   bck=True, indch_auto=True):
     # -------------------
     # import imas2tofu
     try:
@@ -787,8 +787,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                    plot=plot)
         elif out[ii] == "Data":
             out[ii] = multi.to_Data(Name=Name, occ=occ,
-                                    ids=lids[ii], tlim=tlim, dsig=dsig, config=config,
-                                    data=data, X=X, indch=indch, t0=t0,
+                                    ids=lids[ii], tlim=tlim, dsig=dsig,
+                                    config=config, data=data, X=X, indch=indch,
+                                    indch_auto=indch_auto, t0=t0,
                                     dextra=dextra, plot=plot_, bck=bck)
 
     # -------------------
