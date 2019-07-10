@@ -9,7 +9,7 @@ email: napraarpan@gmail.com
 
 #nuilt in
 import os
-import tempfile
+
 #standard
 import numpy as np
 
@@ -20,7 +20,7 @@ except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
 def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None, tlim = None):
-    """ Thius subroutine takes the original video as input, converts it to 
+    """ This subroutine takes the original video as input, converts it to 
     grayscale, perform background subtraction, converts the forground into 
     binary, performs contour detection and draws a bounding circle around
     the contour. It returns the center of this circle as an array
@@ -155,13 +155,17 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
         start, stop = 1, N_frames
     else:
         start,stop = tlim
-    #array to store inforamtion on clusters
-    #stores the number of clusters in each frame
-    t_cluster = np.ndarray(( N_frames), dtype = int)
-    #lists to store information on centers
-    f_center = []
-    t_center = []
-    
+
+    #to store the centroid of each cluster
+    cen_clus = [None for _ in range(0,N_frames)]
+    #to store the size of each cluster
+    area_clus = [None for _ in range(0,N_frames)]
+    #to store the contour infomation of each frame
+    t_clusters = np.zeros((N_frames,),dtype = int)
+    #to store angle
+    ang_cluster = [None for _ in range(0,N_frames)]
+    #indices array(True if cluster present or else False)
+    indt = np.ones((N_frames,), dtype = bool)
     #inistailizing loop variable
     frame_counter = 1
     #looping through the entire video
@@ -183,8 +187,11 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
                 #Press q on keyboard to exit 
                 if cv2.waitKey(25) & 0xFF == ord('q'): 
                     break
-#######################################################################        
-        #conversion to grayscale
+                
+#######################################################################    
+#                   conversion to grayscale                           #
+#######################################################################
+                    
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         #displaying video if user wants to view it
         if user_choice == 'y':
@@ -193,10 +200,17 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
                 #Press q on keyboard to exit 
                 if cv2.waitKey(25) & 0xFF == ord('q'): 
                     break
+                
+#######################################################################    
+#                          denoising                                  #
 #######################################################################
-        #denoising video
+                    
         dst = cv2.fastNlMeansDenoising(gray,None,5,21,7)
-#######################################################################        
+        
+#######################################################################    
+#                   background subtraction                            #
+#######################################################################  
+        
         #applying the background subtraction method
         movie = back.apply(dst)
         #displaying video depending on user choice
@@ -206,7 +220,11 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
                 # Press Q on keyboard to exit 
                 if cv2.waitKey(25) & 0xFF == ord('q'): 
                     break
+                
+#######################################################################    
+#                      Guassian smoothing                             #
 #######################################################################
+        
         #blurring image to remove high frequency noise
         blurred = cv2.GaussianBlur(movie,(11,11),0)
         if user_choice == 'y':
@@ -215,8 +233,11 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
                 # Press Q on keyboard to exit
                 if cv2.waitKey(25) & 0xFF == ord('q'):
                     break
+                
+#######################################################################    
+#                   conversion to binary                              #
 #######################################################################
-        #conversion to binary image
+                    
         ret, threshed_img = cv2.threshold(blurred,
                                           127, 255, cv2.THRESH_BINARY)
         #displaying based on user choice
@@ -226,7 +247,11 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
                 # Press Q on keyboard to  exit 
                 if cv2.waitKey(25) & 0xFF == ord('q'): 
                     break
+                
+#######################################################################    
+#                        edge detection                               #
 #######################################################################        
+        
         edge = cv2.Canny(threshed_img,127,255)
         #displaying based on user choice
         if user_choice == 'y':
@@ -235,33 +260,57 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
                 # Press Q on keyboard to  exit 
                 if cv2.waitKey(25) & 0xFF == ord('q'): 
                     break
-#######################################################################        
+                
+#######################################################################    
+#                   contour detection                                 #
+#######################################################################       
+        
         #finding all the contours in the video
         contours, hierarchy = cv2.findContours(threshed_img,cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)
-        print(len(contours))
-        print(hierarchy)
-        print(type(contours))
-        print(type(hierarchy))
-        for c in contours:
-
+        
+        t_clusters[frame_counter] = len(contours)
+        if t_clusters[frame_counter] == 0:
+            indt[frame_counter] = False
+            continue
+        #array for area for each cluster for each frame
+        area_frame = np.zeros((t_clusters[frame_counter],),dtype = float)
+        #aray for center for each each cluster for each frame
+        center_frame = np.zeros((t_clusters[frame_counter],2),dtype = int)
+        #array for angular orientation for each cluster for each frame
+        angle_frame = np.zeros((t_clusters[frame_counter],),dtype = float)
+        
+        for tt in range(0, t_clusters[frame_counter]):
+            c = contours[tt]
+            x, y, w, h = cv2.boundingRect(c)
+            # get the min area rect
+            rect = cv2.minAreaRect(c)
+            angle = rect[2]
+            box = cv2.boxPoints(rect)
+            # convert all coordinates floating point values to int
+            box = np.int0(box)
+            #draw a red 'nghien' rectangle
+            cv2.drawContours(frame, [box], 0, (255, 255, 255))
+            #getting moments
+            M = cv2.moments(c)
+            #centroid calculation
+            if M['m00'] != 0:
+                cx = int(M['m10']/M['m00'])
+                cy = int(M['m01']/M['m00'])
+                center = cx,cy
+                area = cv2.contourArea(c)
+            else:
+                #center estimation if m00 == 0
+                (x, y), radius = cv2.minEnclosingCircle(c)
+                # convert all values to int
+                center = int(x), int(y)
+                area = cv2.contourArea(c)
+            area_frame[tt] = area
+            center_frame[tt,:] = center
+            angle_frame[tt] = angle
             
-            
-            
-            #finally, get the min enclosing circle
-            (x, y), radius = cv2.minEnclosingCircle(c)
-            #convert all values to int
-            center = (int(x), int(y))
-            radius = int(radius)
-            if ((radius**2) >1 and (radius**2)<2000):
-                #and draw the circle in blue
-                frame = cv2.circle(frame, center, radius, (255, 0, 0), 2)
-               # print(center)
-               # print('area: ', (radius**2))
-            contours = np.asarray(contours)
-            f_center.append(center)
-
-        t_cluster[frame_counter] = len(contours)  
-        t_center.append(f_center)
+        area_clus[frame_counter] = area_frame
+        cen_clus[frame_counter]  = center_frame
+        ang_cluster[frame_counter] = angle_frame
         
         #cv2.drawContours(frame, contours, -1, (255, 255, 0), 1)
         #displaying based on user choice
@@ -271,7 +320,7 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
                 # Press Q on keyboard to  exit 
                 if cv2.waitKey(25) & 0xFF == ord('q'): 
                     break
-        
+
         frame_counter+=1
     # When everything done, release  
     # the video capture object 
@@ -280,4 +329,4 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
     # Closes all the frames 
     cv2.destroyAllWindows()
     
-    return t_cluster, t_center
+    return area_clus, t_clusters, cen_clus, ang_cluster, indt
