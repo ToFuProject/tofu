@@ -2497,7 +2497,7 @@ class Plasma2D(utils.ToFuObject):
                         raise Exception(msg)
 
                     # Test for unused nodes
-                    facesu = np.unique(faces)
+                    facesu = np.unique(facesu)
                     c0 = np.all(facesu>=0) and facesu.size == nnodes
                     if not c0:
                         indnot = [ii for ii in range(0,nnodes)
@@ -2608,9 +2608,14 @@ class Plasma2D(utils.ToFuObject):
                      if vv['size'] == sh and vv['group'] in lrefname]
                     for sh in shape]
             lref = list(itt.chain.from_iterable(lref))
+            if len(lref) < len(shape):
+                msg = "Maybe not enoough references for %s[%s]:\n"%(ddstr,k0)
+                msg += "    - shape: %s\n"%str(shape)
+                msg += "    - lref:  %s"%str(lref)
+                warnings.warn(msg)
 
-        if len(lref) != len(shape):
-            msg = "None / too many references for %s[%s]:\n"%(ddstr,k0)
+        if len(lref) > len(shape):
+            msg = "Too many references for %s[%s]:\n"%(ddstr,k0)
             msg += "    - shape: %s\n"%str(shape)
             msg += "    - lref:  %s"%str(lref)
             raise Exception(msg)
@@ -2657,7 +2662,7 @@ class Plasma2D(utils.ToFuObject):
 
                 # data
                 d0d[k0]['data'] = np.atleast_1d(np.squeeze(d0d[k0]['data']))
-                assert d0d[k0]['data'].ndim == 1
+                assert d0d[k0]['data'].ndim >= 1
 
                 depend = self._find_lref(d0d[k0]['data'].shape, k0, dd=d0d,
                                          ddstr='d0d', dindref=dindref,

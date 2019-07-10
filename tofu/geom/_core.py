@@ -4167,7 +4167,8 @@ class Rays(utils.ToFuObject):
 
         return kIn, kOut
 
-    def _calc_signal_preformat(self, ind=None, DL=None, out=object, Brightness=True):
+    def _calc_signal_preformat(self, ind=None, DL=None, t=None,
+                               out=object, Brightness=True):
         msg = "Arg out must be in [object,np.ndarray]"
         assert out in [object,np.ndarray], msg
         assert type(Brightness) is bool, "Arg Brightness must be a bool !"
@@ -4199,6 +4200,7 @@ class Rays(utils.ToFuObject):
 
         # Preformat Ds, us and Etendue
         Ds, us = self.D[:,ind], self.u[:,ind]
+        E = None
         if Brightness is False:
             E = self.Etendues
             if E.size==self.nRays:
@@ -4223,7 +4225,7 @@ class Rays(utils.ToFuObject):
             DL = np.ascontiguousarray(DL)
         else:
             Ds, us, DL = None, None, None
-        return indok, Ds, us, DL, E
+        return sig, indok, Ds, us, DL, E
 
 
     def _calc_signal_postformat(self, sig, Brightness=True, dataname=None, t=None,
@@ -4306,8 +4308,8 @@ class Rays(utils.ToFuObject):
         """
 
         # Format input
-        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, Dl=DL, out=out,
-                                                        Brightness=Brightness)
+        sig, indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, Dl=DL, out=out,
+                                                             Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4331,7 +4333,8 @@ class Rays(utils.ToFuObject):
                                             connect=connect)
 
 
-    def calc_signal_from_Plasma2D(self, plasma2d, quant=None, t=None, ref=None,
+    def calc_signal_from_Plasma2D(self, plasma2d, quant=None, t=None,
+                                  ref1d=None, ref2d=None,
                                   Brightness=True, interp_t='nearest',
                                   interp_space='nearest', fill_value=np.nan,
                                   res=0.005, DL=None, resMode='abs', method='sum',
@@ -4339,8 +4342,8 @@ class Rays(utils.ToFuObject):
                                   fs=None, dmargin=None, wintit=None, invert=True,
                                   units=None, draw=True, connect=True):
         # Format input
-        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, out=out,
-                                                        Brightness=Brightness)
+        sig, indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, out=out, t=t,
+                                                             Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4349,30 +4352,25 @@ class Rays(utils.ToFuObject):
         pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
                                               compact=True, pts=True)
         pts = np.array([np.hypot(pts[0,:],pts[1,:]), pts[2,:]])
+        indpts = np.concatenate((0,indpts,pts.shape[1]))
 
         # Get quantity values at ptsRZ
         val, t = plasma2d.interp_pts2profile(quant, ptsRZ=pts, t=t,
-                                             ref=None, interp_t=interp_t,
+                                             ref1d=ref1d, ref2d=ref2d,
+                                             interp_t=interp_t,
                                              interp_space=interp_space,
                                              fill_value=fill_value)
         # Integrate
-
-
-        s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
-                                dmethod=resMode, method=method,
-                                t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
-        if t is None or len(t)==1:
-            sig[indok] = s
-        else:
-            sig[:,indok] = s
+        for ii in range(0,self.nRays):
+            sig[:,ii] = np.sum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff
 
         # Format output
         return self._calc_signal_postformat(sig, Brightness=Brightness,
                                             dataname=dataname, t=t, E=E,
                                             units=units, plot=plot,
-                                         fs=fs, dmargin=dmargin, wintit=wintit,
-                                         invert=invert, draw=draw,
-                                         connect=connect)
+                                            fs=fs, dmargin=dmargin, wintit=wintit,
+                                            invert=invert, draw=draw,
+                                            connect=connect)
 
 
 
