@@ -176,7 +176,7 @@ def video2img(video_file, w_dir, shot_name = None, meta_data = None, verb = True
             break
         # To stop duplicate images
         currentFrame += 1
-    print('\n Total number of frames converted :', currentFrame)   
+    print('\nTotal number of frames converted :', currentFrame)   
     
     #dynamic printing
     stdout.write("\n")

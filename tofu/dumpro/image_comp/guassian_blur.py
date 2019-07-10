@@ -98,7 +98,7 @@ def blur_img(im_path, w_dir, shot_name, im_out = None, verb = True):
     stdout.flush()
     
     if verb == True:
-        print('application successful.../n')
+        print('application successful...\n')
         
     return im_out
 

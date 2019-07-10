@@ -137,6 +137,6 @@ def rm_back(im_path, w_dir, shot_name, rate = None,
     stdout.write("\n")
     stdout.flush()
     if verb == True:
-        print('background subtraction successfull.../n')
+        print('background subtraction successfull...\n')
     
     return im_out

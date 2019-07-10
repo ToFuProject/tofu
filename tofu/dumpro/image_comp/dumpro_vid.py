@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Created on Fri Jun 14 21:24:36 2019
+Created on Tue Jul  9 13:20:48 2019
 
 @author: Arpan Khandelwal
-email: napraarpan@gmail.com
+@email: napraarpan@gmail.com
 """
+
 # Built-in
 import os
 
@@ -28,23 +29,23 @@ from . import cluster_det
 from . import average_area
 from . import get_distance
 from . import guassian_blur
-#import plotting as _plot
+from . import vid2img
 
-def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None, 
-               hlim = None, wlim = None, im_out = None, meta_data = None, 
+def dumpro_vid(filename, w_dir, shot_name, rate = None, tlim = None,
+               hlim = None, wlim = None, im_out = None, meta_data = None,
                verb = True):
     """This is the dust movie processing computattion subroutine
     
     Among the parameters present, if used as a part of dumpro, 
-    w_dir, shot_name, t_clus, area_clus, cen_clus are provided by the image 
+    w_dir, shot_name, infocluster are provided by the video 
     processing class in the core file.
     The verb paramenter can be used for additional information. It runtime
     information on processing, intended only to keep the user informed.
     
     Parameters
     ----------------------------------
-    im_path:          string
-     input path where the images are stored
+    filename:         string
+     input path of the video
     w_dir:            string
      A working directory where the proccesed images are stored
     shot_name:        String
@@ -63,18 +64,22 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
     t_clus:           list
      Total number of clusters in each frame
     
-    """  
-    
+    """
     #dictionary to store information on cluster
     infocluster = {}
-    #setting rate for background removal
+    
     if rate == None:
         rate = 0
-    #reshaping images
+        
+    #converting video to image
+    im_path, m_data, s_name = vid2img.video2img(filename, w_dir, shot_name,
+                                                meta_data, verb)
+    
     if (hlim == None and tlim == None and wlim == None):
         cropped = im_path
         reshape = {}
     else:
+        #reshaping images
         cropped, reshape = reshape_image.reshape_image(im_path, w_dir, 
                                                        shot_name, tlim,
                                                        hlim, wlim,
@@ -118,4 +123,3 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
     infocluster['distances'] = clus_dist
 
     return infocluster, reshape
-

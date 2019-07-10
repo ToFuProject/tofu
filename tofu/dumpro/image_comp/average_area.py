@@ -6,9 +6,6 @@ Created on Mon Jun 17 23:12:47 2019
 email: napraarpan@gmail.com
 """
 #built-in
-from sys import stdout
-from time import sleep
-
 import matplotlib.pyplot as plt
 
 #standard
@@ -37,7 +34,7 @@ def get_area(clus_area, t_cluster, indt, verb = True):
      The total number of big clusters
     """
     if verb == True:
-        print('Calculating average area...')
+        print('Calculating average area...\n')
     #differentiating clusters into big and small
     #getting the total number of small and big clusters
     #getting the total area of big and  small clusters

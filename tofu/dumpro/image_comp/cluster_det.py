@@ -168,6 +168,8 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
     #dynamic printing
     stdout.write("\n")
     stdout.flush()
+    if verb == True:
+        print('detection completed...\n')
     
     cv2.destroyAllWindows
     
