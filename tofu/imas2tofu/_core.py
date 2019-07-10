@@ -280,6 +280,14 @@ class MultiIDSLoader(object):
                 'ne_integ':{'str':'channel[chan].n_e_line.data',
                             'dim':'ne_integ', 'quant':'ne_integ', 'units':'/m2'}},
 
+               'polarimeter':
+               {'t':{'str':'time',
+                     'quant':'t', 'units':'s'},
+                'wavelength':{'str':'channel[chan].wavelength',
+                              'dim':'distance', 'quant':'wavelength', 'units':'m'},
+                'fangle':{'str':'channel[chan].faraday_angle.data',
+                          'dim':'angle', 'quant':'faraday angle', 'units':'rad'}},
+
                'bolometer':
                {'t':{'str':'channel[chan].power.time',
                      'quant':'t', 'units':'s'},
@@ -336,6 +344,10 @@ class MultiIDSLoader(object):
                                   'geomcls':'CamLOS1D',
                                   'sig':{'t':'t',
                                          'data':'ne_integ'}},
+                'polarimeter':{'datacls':'DataCam1D',
+                               'geomcls':'CamLOS1D',
+                               'sig':{'t':'t',
+                                      'data':'fangle'}},
                 'bolometer':{'datacls':'DataCam1D',
                              'geomcls':'CamLOS1D',
                              'sig':{'t':'t',
@@ -2552,7 +2564,7 @@ class MultiIDSLoader(object):
 
 
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
-                indch=None, Name=None, occ=None, config=None,
+                indch=None, indch_auto=False, Name=None, occ=None, config=None,
                 dextra=None, t0=None, datacls=None, geomcls=None,
                 plot=True, bck=True):
 
@@ -2618,19 +2630,36 @@ class MultiIDSLoader(object):
                                         dchans=dchans)
             cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
-        # data
+        # -----------------------
+        # data first
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
         t = self.get_data(ids, sig='t', indch=indch)['t']
         if type(t) is list:
-            msg = "The time vector does not seem to be homogeneous !\n"
-            msg += "Please choose indch such that all channels have same t !\n"
-            msg += "Currently:\n"
-            ls = ['index %s t.shape %s'%(ii,str(t[ii].shape))
-                  for ii in range(0,len(t))]
-            msg += "\n    ".join(ls)
-            msg += "\n  => Solution: choose indch accordingly !"
-            raise Exception(msg)
+            if indch_auto and indch is None:
+                ls = [t[ii].shape for ii in range(0,len(t))]
+                lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
+                su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
+                indch = [ii for ii in range(0,len(t)) if ls[ii] == su]
+                t = self.get_data(ids, sig='t', indch=indch)['t']
+                if cam is not None:
+                    cam = cam.get_subset(indch=indch)
+                msg = "indch set automatically for %s\n"%ids
+                msg += "  (due to inhomogenous time shapes)\n"
+                msg += "    - main shape: %s\n"%str(su)
+                msg += "    - nb. chan. selected: %s / %s\n"%(len(indch),len(ls))
+                msg += "    - indch: %s"%str(indch)
+                warnings.warn(msg)
+
+            else:
+                msg = "The time vector does not seem to be homogeneous !\n"
+                msg += "Please choose indch such that all channels have same t !\n"
+                msg += "Currently:\n"
+                ls = ['index %s t.shape %s'%(ii,str(t[ii].shape))
+                      for ii in range(0,len(t))]
+                msg += "\n    ".join(ls)
+                msg += "\n  => Solution: choose indch accordingly !"
+                raise Exception(msg)
 
 
         if t.ndim == 2:
@@ -2642,18 +2671,36 @@ class MultiIDSLoader(object):
                             indt=indt, indch=indch)
         for kk in set(lk).difference('t'):
             if not isinstance(out[dsig[kk]], np.ndarray):
-                msg = "The following is supposed to be a np.ndarray:\n"
-                msg += "    - diag:     %s\n"%ids
-                msg += "    - shortcut: %s\n"%dsig[kk]
-                msg += "    - used as:  %s input\n"%kk
-                msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
-                msg += "  Probable cause: non-uniform shape (vs channels)\n"
-                msg += "  => shapes :\n    "
-                ls = ['index %s  %s.shape %s'%(ii,kk,str(out[dsig[kk]][ii].shape))
-                      for ii in range(0,len(out[dsig[kk]]))]
-                msg += "\n    ".join(ls)
-                msg += "\n  => Solution: choose indch accordingly !"
-                raise Exception(msg)
+                if indch_auto and indch is None:
+                    ls = [out[dsig[kk]][ii].shape
+                          for ii in range(0,len(out[dsig[kk]]))]
+                    lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
+                    su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
+                    indch = [ii for ii in range(0,len(out[dsig[kk]]))
+                             if ls[ii] == su]
+                    out = self.get_data(ids, sig=[dsig[k] for k in lk],
+                                        indt=indt, indch=indch)
+                    if cam is not None:
+                        cam = cam.get_subset(indch=indch)
+                    msg = "indch set automatically for %s\n"%ids
+                    msg += "  (due to inhomogeneous data shapes)\n"
+                    msg += "    - main shape: %s\n"%str(su)
+                    msg += "    - nb. chan. selected: %s / %s\n"%(len(indch),len(ls))
+                    msg += "    - indch: %s"%str(indch)
+                    warnings.warn(msg)
+                else:
+                    msg = "The following is supposed to be a np.ndarray:\n"
+                    msg += "    - diag:     %s\n"%ids
+                    msg += "    - shortcut: %s\n"%dsig[kk]
+                    msg += "    - used as:  %s input\n"%kk
+                    msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
+                    msg += "  Probable cause: non-uniform shape (vs channels)\n"
+                    msg += "  => shapes :\n    "
+                    ls = ['index %s  %s.shape %s'%(ii,kk,str(out[dsig[kk]][ii].shape))
+                          for ii in range(0,len(out[dsig[kk]]))]
+                    msg += "\n    ".join(ls)
+                    msg += "\n  => Solution: choose indch accordingly !"
+                    raise Exception(msg)
 
             # Arrange depending on shape and field
             if type(out[dsig[kk]]) is not np.ndarray:
@@ -2789,7 +2836,7 @@ def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
 
 
 def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
-              ids=None, datacls=None, geomcls=None,
+              ids=None, datacls=None, geomcls=None, indch_auto=True,
               tlim=None, dsig=None, data=None, X=None, indch=None,
               config=None, occ=None, Name=None, dextra=None,
               t0=None, plot=True, bck=True):
@@ -2815,7 +2862,7 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
                         datacls=datacls, geomcls=geomcls,
                         dsig=dsig, data=data, X=X, indch=indch,
                         config=config, occ=occ, dextra=dextra,
-                        plot=plot, bck=bck)
+                        plot=plot, bck=bck, indch_auto=indch_auto)
 
 
 #############################################################

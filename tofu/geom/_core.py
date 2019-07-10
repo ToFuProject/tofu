@@ -3874,55 +3874,40 @@ class Rays(utils.ToFuObject):
             ind = ind.nonzero()[0]
         return ind
 
-    def get_subset(self, indch=None):
+    def get_subset(self, indch=None, Name=None):
+        """ Return an instance which is a sub-set of the camera
+
+        The subset is the same camera but with only the LOS selected by indch
+        It can be assigned a new Name (str), or the same one (True)
+        """
         if indch is None:
             return self
         else:
             indch = self._check_indch(indch)
-            d = self.to_dict()
-            d['dId_dall_Name'] = d['dId_dall_Name']+'-subset'
-            if self.dchans!={} and self.dchans is not None:
-                for k in self.dchans.keys():
-                    C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                    if C0:
-                        if v.ndim==1:
-                            d['dchans_%s'%k] = v[indch]
-                        elif v.ndim==2 and v.shape[1]==self.nRays:
-                            d['dchans_%s'%k] = v[:,indch]
+            dd = self.to_dict()
 
-            # Geom
-            for k in self.dgeom.keys():
-                v = d['dgeom_%s'%k]
-                C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                if C0:
-                    if v.ndim==1:
-                        d['dgeom_%s'%k] = v[indch]
-                    elif v.ndim==2 and v.shape[1]==self.nRays:
-                        d['dgeom_%s'%k] = v[:,indch]
+            # Name
+            assert Name in [None,True] or type(Name) is str
+            if Name == True:
+                pass
+            elif type(Name) is str:
+                dd['dId_dall_Name'] = Name
+            elif Name is None:
+                dd['dId_dall_Name'] = dd['dId_dall_Name']+'-subset'
 
-            # X12
-            if self._is2D():
-                for k in self.dX12.keys():
-                    v = d['dX12_%s'%k]
-                    C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                    if C0:
-                        if v.ndim==1:
-                            d['dX12_%s'%k] = v[indch]
-                        elif v.ndim==2 and v.shape[1]==self.nRays:
-                            d['dX12_%s'%k] = v[:,indch]
-
-            # Sino
-            for k in self.dsino.keys():
-                v = d['dsino_%s'%k]
-                C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                if C0:
-                    if v.ndim==1:
-                        d['dsino_%s'%k] = v[indch]
-                    elif v.ndim==2 and v.shape[1]==self.nRays:
-                        d['dsino_%s'%k] = v[:,indch]
+            # Resize all np.ndarrays
+            for kk in dd.keys():
+                vv = dd[kk]
+                c0 = isinstance(vv,np.ndarray) and self.nRays in vv.shape
+                if c0:
+                    if vv.ndim == 1:
+                        dd[kk] = vv[indch]
+                    elif vv.ndim == 2 and vv.shape[1] == self.nRays:
+                        dd[kk] = vv[:,indch]
+                dd['dgeom_nRays'] = dd['dgeom_D'].shape[1]
 
             # Recreate from dict
-            obj = self.__class__(fromdict=d)
+            obj = self.__class__(fromdict=dd)
         return obj
 
     def _get_plotL(self, Lplot='Tot', proj='All', ind=None, multi=False):
