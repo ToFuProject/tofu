@@ -210,6 +210,16 @@ def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', fs=None, wintit='tofu'
 
 
 
+def _Config_phithetaproj_default():
+
+    fig = plt.figure()
+    ax = fig.add_axes([0.1,0.1,0.8,0.8])
+    return fig, ax
+
+
+
+
+
 #####################################################################
 ########################  LOS class  ################################
 #####################################################################

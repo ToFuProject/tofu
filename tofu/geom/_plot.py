@@ -683,6 +683,52 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
 
 
 
+############################################
+#       Phi Theta Prof dist plotting
+############################################
+
+
+def Config_phithetaproj_dist(config, refpt, dist, indStruct,
+                             cmap=None, vmin=None, vmax=None,
+                             ax=None, fs=None, cbck=(0.8,0.8,0.8,0.8),
+                             tit=None, wintit=None, draw=None):
+    if cmap is None:
+        cmap = 'touch'
+    lS = config.lStruct
+    indsu = np.unique(indStruct)
+
+    # set extent
+    ratio = refpt[0] / np.nanmin(dist)
+    extent = np.pi*np.r_[-ratio, ratio, -1.,1.]
+
+    # set colors
+    vmin = np.nanmin(dist) if vmin is None else vmin
+    vmax = np.nanmax(dist) if vmax is None else vmax
+    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    colshape = (dist.shape[0], dist.shape[1], 4)
+    if cmap == 'touch':
+        cols = np.broadcast_to(mpl.colors.to_rgba(cbck), colshape)
+        cols.setflags(write=1)
+        for ii in indsu:
+            ind = indStruct == ii
+            cols[ind,:] = np.r_[mpl.colors.to_rgba(lS[ii].get_color())][None,None,:]
+    else:
+        cols = np.tile(mpl.colors.to_rgba(cmap), colshape)
+    cols[:,:,-1] = 1.-norm(dist)
+
+    # Plotting
+    if ax is None:
+        fig, ax = _def._Config_phithetaproj_default()
+
+    ax.imshow(cols, extent=extent, aspect='equal',
+              interpolation='nearest', origin='lower', zorder=-1)
+
+
+    if draw:
+        fig.canvas.draw()
+    return ax
+
+
 
 
 
