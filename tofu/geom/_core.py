@@ -878,6 +878,19 @@ class Struct(utils.ToFuObject):
         return pts, dV, ind, reseff
 
 
+    def _get_phithetaproj(self, ax=None):
+
+        # Prepare ax
+        ax = np.atleast_2d(ax)
+        assert ax.ndim == 2
+        assert 2 in ax.shape, str(ax.shape)
+        if ax.shape[1] == 2:
+            ax = ax.T
+
+        out = _comp._Struct_get_phithetaproj(ax, self.Poly, self.Lim)
+        return out
+
+
     def plot(self, lax=None, proj='all', element='PIBsBvV',
              dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
              dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,

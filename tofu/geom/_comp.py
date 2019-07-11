@@ -330,6 +330,29 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
 
 
 
+def _Struct_get_phithetaproj(ax=None, poly=None, lim=None, noccur=0):
+
+    # prepare output
+    nt = ax.shape[0]
+    if lim is None:
+        projphi = np.array([[-np.pi,np.pi]])
+    else:
+        assert noccur >= 1
+        projphi = None
+
+
+
+    projphi = np.full((nt,4), np.nan)
+    projtheta = np.full((nt,4), np.nan)
+    nel = np.zeros((nt,), dtype=int)
+
+    for ii in range(0,nt):
+        pass
+
+
+
+
+
 
 """
 ###############################################################################
