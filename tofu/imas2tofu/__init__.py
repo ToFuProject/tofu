@@ -4,25 +4,26 @@
 The imas-compatibility module of tofu
 
 """
+import warnings
 
 try:
     import imas
+    try:
+        from tofu.imas2tofu._core import MultiIDSLoader
+        from tofu.imas2tofu._core import load_Config
+        from tofu.imas2tofu._core import load_Plasma2D
+        from tofu.imas2tofu._core import load_Diag
+    except Exception:
+        from ._core import MultiIDSLoader
+        from ._core import load_Config
+        from ._core import load_Plasma2D
+        from ._core import load_Diag
 except Exception:
     msg = "IMAS python API issue\n"
     msg += "imas could not be imported into tofu ('import imas' failed):\n"
     msg += "  - it may not be installed (optional dependency)\n"
     msg += "  - or you not have loaded the good working environment\n\n"
     msg += "    => the optional sub-package tofu.imas2tofu is not usable\n"
-    raise Exception(msg)
+    warnings.warn(msg)
 
-try:
-    from tofu.imas2tofu._configloader import load_Config
-    from tofu.imas2tofu._plasma2Dloader import load_Plasma2D
-    from tofu.imas2tofu._diagloader import load_Diag
-except Exception:
-    from ._configloader import load_Config
-    from ._plasma2Dloader import load_Plasma2D
-    from ._diagloader import load_Diag
-
-
-__all__ = ['load_Config','load_Plasma2D','load_Diag']
+__all__ = ['MultiIDSLoader', 'load_Config', 'load_Plasma2D', 'load_Diag']

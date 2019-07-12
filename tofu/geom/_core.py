@@ -31,6 +31,7 @@ except Exception:
 
 
 # ToFu-specific
+from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
 try:
@@ -712,10 +713,17 @@ class Struct(utils.ToFuObject):
             (N,) array of booleans, True if a point is inside the volume
 
         """
-        ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.Lim,
-                                nLim=self._dgeom['noccur'],
-                                VType=self.Id.Type,
-                                In=In, Test=True)
+        if self._dgeom['noccur'] > 0:
+            ind = _GG._Ves_isInside(pts, self.Poly,
+                                    ves_lims=np.ascontiguousarray(self.Lim),
+                                    nlim=self._dgeom['noccur'],
+                                    ves_type=self.Id.Type,
+                                    in_format=In, test=True)
+        else:
+            ind = _GG._Ves_isInside(pts, self.Poly, ves_lims=None,
+                                    nlim=0,
+                                    ves_type=self.Id.Type,
+                                    in_format=In, test=True)
         return ind
 
 
@@ -788,7 +796,7 @@ class Struct(utils.ToFuObject):
                 extent : the extent to be fed to mpl.pyplot.imshow()
 
         """
-        args = [self.Poly, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
+        args = [self.Poly_closed, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, margin=1.e-9, mode=mode)
         out = _comp._Ves_get_sampleCross(*args, **kwdargs)
@@ -1280,6 +1288,27 @@ class Struct(utils.ToFuObject):
                 elif not line:
                     break
         return paramstr
+
+
+
+    def save_to_imas(self, shot=None, run=None, refshot=None, refrun=None,
+                     occ=None, user=None, tokamak=None, version=None,
+                     dryrun=False, verb=True, description_2d=None, unit=0):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, dryrun=dryrun, verb=verb,
+                             description_2d=description_2d, unit=unit)
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2445,12 +2474,20 @@ class Config(utils.ToFuObject):
         ind = np.zeros((self._dStruct['nObj'],nP), dtype=bool)
         lStruct = self.lStruct
         for ii in range(0,self._dStruct['nObj']):
-            indi = _GG._Ves_isInside(pts,
-                                     lStruct[ii].Poly,
-                                     Lim=lStruct[ii].Lim,
-                                     nLim=lStruct[ii].noccur,
-                                     VType=lStruct[ii].Id.Type,
-                                     In=In, Test=True)
+            if lStruct[ii].noccur > 0:
+                indi = _GG._Ves_isInside(np.ascontiguousarray(pts),
+                                        np.ascontiguousarray(lStruct[ii].Poly),
+                                        ves_lims=np.ascontiguousarray(lStruct[ii].Lim),
+                                        nlim=lStruct[ii].noccur,
+                                        ves_type=lStruct[ii].Id.Type,
+                                        in_format=In, test=True)
+            else:
+                indi = _GG._Ves_isInside(np.ascontiguousarray(pts),
+                                        np.ascontiguousarray(lStruct[ii].Poly),
+                                        ves_lims=None,
+                                        nlim=0,
+                                        ves_type=lStruct[ii].Id.Type,
+                                        in_format=In, test=True)
             if lStruct[ii].noccur>1:
                 if log=='any':
                     indi = np.any(indi,axis=0)
@@ -2509,6 +2546,87 @@ class Config(utils.ToFuObject):
                                            dP=dP, dLeg=dLeg, draw=draw,
                                            fs=fs, tit=tit, wintit=wintit, Test=Test)
         return ax
+
+
+    def save_to_imas(self, shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None, occ=None,
+                     dryrun=False, verb=True, description_2d=None):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, occ=occ, dryrun=dryrun, verb=verb,
+                             description_2d=description_2d)
+
+    def get_kwdargs_LOS_isVis(self):
+        lS = self.lStruct
+        # -- Getting "vessels" or IN structures --------------------------------
+        lSIn = [ss for ss in lS if ss._InOut=='in']
+        if len(lSIn)==0:
+            msg = "self.config must have at least a StructIn subclass !"
+            assert len(lSIn)>0, msg
+        elif len(lSIn)>1:
+            S = lSIn[np.argmin([ss.dgeom['Surf'] for ss in lSIn])]
+        else:
+            S = lSIn[0]
+        # ... and its poly, limts, type, etc.
+        VPoly = S.Poly_closed
+        VVIn =  S.dgeom['VIn']
+        if np.size(np.shape(S.Lim)) > 1 :
+            Lim = np.asarray([S.Lim[0][0], S.Lim[0][1]])
+        else:
+            Lim = S.Lim
+        nLim = S.noccur
+        VType = self.Id.Type
+        # -- Getting OUT structures --------------------------------------------
+        lS = [ss for ss in lS if ss._InOut=='out']
+        lSPolyx, lSVInx = [], []
+        lSPolyy, lSVIny = [], []
+        lSLim, lSnLim = [], []
+        lsnvert = []
+        num_tot_structs = 0
+        num_lim_structs = 0
+        for ss in lS:
+            l = ss.Poly_closed[0]
+            [lSPolyx.append(item) for item in l]
+            l = ss.Poly_closed[1]
+            [lSPolyy.append(item) for item in l]
+            l = ss.dgeom['VIn'][0]
+            [lSVInx.append(item) for item in l]
+            l = ss.dgeom['VIn'][1]
+            [lSVIny.append(item) for item in l]
+            lSLim.append(ss.Lim)
+            lSnLim.append(ss.noccur)
+            if len(lsnvert)==0:
+                lsnvert.append(len(ss.Poly_closed[0]))
+            else:
+                lsnvert.append(len(ss.Poly_closed[0]) + lsnvert[num_lim_structs-1])
+            num_lim_structs += 1
+            if ss.Lim is None or len(ss.Lim) == 0:
+                num_tot_structs += 1
+            else:
+                num_tot_structs += len(ss.Lim)
+        lsnvert = np.asarray(lsnvert, dtype=np.int64)
+        lSPolyx = np.asarray(lSPolyx)
+        lSPolyy = np.asarray(lSPolyy)
+        lSVInx = np.asarray(lSVInx)
+        lSVIny = np.asarray(lSVIny)
+        # Now setting keyword arguments:
+        dkwd = dict(ves_poly=VPoly, ves_norm=VVIn,
+                    ves_lims=Lim,
+                    nstruct_tot=num_tot_structs,
+                    nstruct_lim=num_lim_structs,
+                    lstruct_polyx=lSPolyx,
+                    lstruct_polyy=lSPolyy,
+                    lstruct_lims=lSLim,
+                    lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+                    lstruct_normx=lSVInx,
+                    lstruct_normy=lSVIny,
+                    lnvert=lsnvert,
+                    ves_type=VType,
+                    rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
+                    eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
+        return dkwd
 
 
 
@@ -2872,7 +2990,10 @@ class Rays(utils.ToFuObject):
             c1 = c0 and all([ss in self._dgeom['dX12'].keys() for ss in ls])
             c2 = c1 and all([self._dgeom['dX12'][ss] is not None for ss in ls])
             if not c2:
-                msg = "dX12 cannot be derived from dgeom (info not known) !"
+                msg = "dX12 is not provided as input (dX12 = None)\n"
+                msg += "  => self._dgeom['dX12'] (computed) used as fallback\n"
+                msg += "    - It should have non-None keys: %s\n"%str(list(ls))
+                msg += "    - it is:\n%s"%str(self._dgeom['dX12'])
                 raise Exception(msg)
             dX12 = {'from':'geom'}
 
@@ -3086,7 +3207,9 @@ class Rays(utils.ToFuObject):
 
         if n1*n2 != X12.shape[1]:
             msg = "The provided X12 array does not seem to correspond to"
-            msg += "a n1 x n2 2D matrix, even within tolerance"
+            msg += "a n1 x n2 2D matrix, even within tolerance\n"
+            msg += "  n1*n2 = %s x %s = %s\n"%(str(n1),str(n2),str(n1*n2))
+            msg += "  X12.shape = %s"%str(X12.shape)
             raise Exception(msg)
 
         ind1 = np.digitize(X12[0,:], 0.5*(x1[1:]+x1[:-1]))
@@ -3113,24 +3236,36 @@ class Rays(utils.ToFuObject):
                         dgeom['pinhole'] = pinhole
 
             # Test if all D are on a common plane or line
-            v0 = dgeom['D'][:,1]-dgeom['D'][:,0]
             va = dgeom['D']-dgeom['D'][:,0:1]
 
             # critetrion of unique D
-            crit = np.sum(va**2) > 1.e-9
-            if not crit:
+            crit = np.sqrt(np.sum(va**2,axis=0))
+            if np.sum(crit) < 1.e-9:
+                if self._is2D():
+                    msg = "2D camera but dgeom cannot be obtained !\n"
+                    msg += "  crit = %s\n"%str(crit)
+                    msg += "  dgeom = %s"%str(dgeom)
+                    raise Exception(msg)
                 return dgeom
 
+            # To avoid ||v0|| = 0
+            if crit[1] > 1.e-12:
+                # Take first one by default to ensure square grid for CamLOS2D
+                ind0 = 1
+            else:
+                ind0 = np.nanargmax(crit)
+            v0 = va[:,ind0]
             v0 = v0/np.linalg.norm(v0)
+            indok = np.nonzero(crit > 1.e-12)[0]
             van = np.full(va.shape, np.nan)
-            van[:,1:] = va[:,1:] / np.sqrt(np.sum(va[:,1:]**2,axis=0))[np.newaxis,:]
+            van[:,indok] = va[:,indok] / crit[None,indok]
             vect2 = ((van[1,:]*v0[2]-van[2,:]*v0[1])**2
                      + (van[2,:]*v0[0]-van[0,:]*v0[2])**2
                      + (van[0,:]*v0[1]-van[1,:]*v0[0])**2)
             # Don't forget that vect2[0] is nan
-            if np.all(vect2[1:]<1.e-9):
+            if np.all(vect2[indok] < 1.e-9):
                 # All D are aligned
-                e1 = van[:,1]
+                e1 = v0
                 x1 = np.sum(va*e1[:,np.newaxis],axis=0)
                 if dgeom['pinhole'] is not None:
                     kref = -np.sum((dgeom['D'][:,0]-dgeom['pinhole'])*e1)
@@ -3140,14 +3275,14 @@ class Rays(utils.ToFuObject):
                     dgeom['dX12'] = {}
                 dgeom['dX12'].update({'e1':e1, 'x1':x1, 'n1':x1.size})
             else:
+
                 ind = np.nanargmax(vect2)
                 v1 = van[:,ind]
                 nn = np.cross(v0,v1)
                 nn = nn/np.linalg.norm(nn)
                 scaabs = np.abs(np.sum(nn[:,np.newaxis]*va,axis=0))
                 if np.all(scaabs<1.e-9):
-                    assert not '1d' in self.__class__.__name__.lower()
-                    # All D are in a common plane perpendicular to n, check
+                    # All D are in a common plane, but not aligned
                     # check nIn orientation
                     sca = np.sum(self.u*nn[:,np.newaxis],axis=0)
                     lc = [np.all(sca>=0.), np.all(sca<=0.)]
@@ -3164,6 +3299,9 @@ class Rays(utils.ToFuObject):
                     if dgeom['dX12'] is None:
                         dgeom['dX12'] = {}
                     dgeom['dX12'].update({'nIn':nIn, 'e1':e1, 'e2':e2})
+
+                    if not self._is2D():
+                        return dgeom
 
                     # Test binning
                     if dgeom['pinhole'] is not None:
@@ -3182,7 +3320,14 @@ class Rays(utils.ToFuObject):
                         dgeom['isImage'] = True
 
                     except Exception as err:
-                        warnings.warn(str(err))
+                        msg = str(err)
+                        msg += "\n  nIn = %s"%str(nIn)
+                        msg += "\n  e1 = %s"%str(e1)
+                        msg += "\n  e2 = %s"%str(e2)
+                        msg += "\n  k1ref, k2ref = %s, %s"%(str(k1ref),str(k2ref))
+                        msg += "\n  va = %s"%str(va)
+                        msg += "\n  x12 = %s"%str(x12)
+                        warnings.warn(msg)
 
         else:
             if dgeom['case'] in ['F','G']:
@@ -4103,7 +4248,7 @@ class Rays(utils.ToFuObject):
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Todo : reverse in _GG : make compact default for faster computation !
         lpts, k, reseff = _GG.LOS_get_sample(Ds, us, res, DL,
-                                             dLMode=resMode, method=method)
+                                             dmethod=resMode, method=method)
         if compact:
             pts = np.concatenate(lpts, axis=1)
             ind = np.array([pt.shape[1] for pt in lpts], dtype=int)
@@ -4339,7 +4484,7 @@ class Rays(utils.ToFuObject):
             # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
             # Exclude Rays not seeing the plasma
             s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
-                                    dLMode=resMode, method=method,
+                                    dmethod=resMode, method=method,
                                     t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
             if t is None or len(t)==1:
                 sig[indok] = s
@@ -4608,10 +4753,75 @@ sig = inspect.signature(Rays)
 params = sig.parameters
 
 
+class CamLOS1D(Rays):
+
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
+
+        # Prepare
+        kout = self._dgeom['kOut']
+        indout = self._dgeom['indout']
+        lS = self._dconfig['Config'].lStruct
+
+        # ar0
+        col0 = ['nb. los', 'av. length', 'nb. touch']
+        ar0 = [self.nRays,
+               '{:.3f}'.format(np.nanmean(kout)),
+               np.unique(indout[0,:]).size]
+
+        # ar1
+        col1 = ['los index', 'length', 'touch']
+        ar1 = [np.arange(0,self.nRays),
+               np.around(kout, decimals=3).astype('U'),
+               ['%s_%s'%(lS[ii].Id.Cls, lS[ii].Id.Name) for ii in indout[0,:]]]
+
+        for k,v in self._dchans.items():
+            col1.append(k)
+            if v.ndim == 1:
+                ar1.append( v )
+            else:
+                ar1.append( [str(vv) for vv in v] )
+
+        # call base method
+        self._get_summary([ar0, ar1], [col0, col1],
+                          sep=sep, line=line, table_sep=table_sep,
+                          verb=verb, return_=return_)
+
+    def __add__(self, other):
+        if not other.__class__.__name__ == self.__class__.__name__:
+            msg = "Operator defined only for same-class operations !"
+            raise Exception(msg)
+        lc = [self.Id.Exp == other.Id.Exp, self.Id.Diag == other.Id.Diag]
+        if not all(lc):
+            msg = "Operation only valid if objects have identical (Diag, Exp) !"
+            raise Exception(msg)
+        if not self.config == other.config:
+            msg = "Operation only valid if objects have identical config !"
+            raise Exception(msg)
+
+        Name = '%s+%s'%(self.Id.Name, other.Id.Name)
+        D = np.concatenate((self.D,other.D), axis=1)
+        u = np.concatenate((self.u, other.u), axis=1)
+
+        return self.__class__(dgeom=(D,u), config=self.config,
+                              Name=Name, Diag=self.Id.Diag, Exp=self.Id.Exp)
+    def __radd__(self, other):
+        return self.__add__(other)
 
 
+    def save_to_imas(self, ids, shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None, occ=None,
+                     dryrun=False, deep=True, verb=True,
+                     config_description_2d=None, config_occ=None):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, occ=occ, dryrun=dryrun, verb=verb,
+                             ids=ids, deep=deep,
+                             config_description_2d=config_description_2d,
+                             config_occ=config_occ)
 
-class CamLOS1D(Rays): pass
 
 lp = [p for p in params.values() if p.name != 'dX12']
 CamLOS1D.__signature__ = sig.replace(parameters=lp)

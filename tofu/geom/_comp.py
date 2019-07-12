@@ -151,17 +151,26 @@ def _Ves_get_InsideConvexPoly(Poly, P2Min, P2Max, BaryS, RelOff=_def.TorRelOff, 
 
 
 
-def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None, margin=1.e-9):
+def _Ves_get_sampleEdge(VPoly, dL, DS=None, dLMode='abs', DIn=0., VIn=None,
+                        margin=1.e-9):
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     assert type(dL) in types and type(DIn) in types
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
     if DS is None:
         DS = [None,None]
     else:
-        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
-    assert type(dLMode) is str and dLMode.lower() in ['abs','rel'], "Arg dLMode must be in ['abs','rel'] !" 
+        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and
+                                   all([ss is None or type(ss) in types
+                                        for ss in ds])) for ds in DS])
+    assert (type(dLMode) is str and
+            dLMode.lower() in ['abs','rel']), "Arg dLMode must be in ['abs','rel'] !" 
     #assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
-    Pts, dLr, ind, N, Rref, VPolybis = _GG._Ves_Smesh_Cross(VPoly, float(dL), dLMode=dLMode.lower(), D1=DS[0], D2=DS[1], margin=margin, DIn=float(DIn), VIn=VIn)
+    Pts, dLr, ind, N,\
+        Rref, VPolybis = _GG.discretize_vpoly(VPoly, float(dL),
+                                              mode=dLMode.lower(),
+                                              D1=DS[0], D2=DS[1],
+                                              margin=margin,
+                                              DIn=float(DIn), VIn=VIn)
     return Pts, dLr, ind
 
 
@@ -173,24 +182,32 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
     types =[int,float,np.int32,np.int64,np.float32,np.float64]
     c0 = (hasattr(dS,'__iter__') and len(dS)==2
           and all([type(ds) in types for ds in dS]))
-    assert c0 or type(dS) in types, "Arg dS must be a float or a list 2 floats !"
-    dS = [float(dS),float(dS)] if type(dS) in types else [float(dS[0]),float(dS[1])]
+    assert c0 or type(dS) in types, "Arg dS must be a float or a list 2 floats!"
+    dS = [float(dS),float(dS)] if type(dS) in types else [float(dS[0]),
+                                                          float(dS[1])]
     assert DS is None or (hasattr(DS,'__iter__') and len(DS)==2)
     if DS is None:
         DS = [None,None]
     else:
-        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2 and all([ss is None or type(ss) in types for ss in ds])) for ds in DS])
-    assert type(dSMode) is str and dSMode.lower() in ['abs','rel'], "Arg dSMode must be in ['abs','rel'] !"
-    assert ind is None or (type(ind) is np.ndarray and ind.ndim==1 and ind.dtype in ['int32','int64'] and np.all(ind>=0)), "Arg ind must be None or 1D np.ndarray of positive int !"
+        assert all([ds is None or (hasattr(ds,'__iter__') and len(ds)==2
+                                   and all([ss is None or type(ss) in types
+                                            for ss in ds])) for ds in DS])
+    assert type(dSMode) is str and dSMode.lower() in ['abs','rel'],\
+        "Arg dSMode must be in ['abs','rel'] !"
+    assert ind is None or (type(ind) is np.ndarray and ind.ndim==1
+                           and ind.dtype in ['int32','int64']
+                           and np.all(ind>=0)), \
+                           "Arg ind must be None or 1D np.ndarray of positive int !"
 
     MinMax1 = np.array([Min1,Max1])
     MinMax2 = np.array([Min2,Max2])
     if ind is None:
         if mode == 'flat':
-            Pts, dS, ind, d1r, d2r = _GG._Ves_meshCross_FromD(MinMax1, MinMax2,
+            Pts, dS, ind, d1r, d2r = _GG.discretize_segment2d(MinMax1, MinMax2,
                                                               dS[0], dS[1],
-                                                              D1=DS[0], D2=DS[1],
-                                                              dSMode=dSMode,
+                                                              D1=DS[0],
+                                                              D2=DS[1],
+                                                              mode=dSMode,
                                                               VPoly=VPoly,
                                                               margin=margin)
             out = (Pts, dS, ind, (d1r,d2r))
@@ -209,7 +226,6 @@ def _Ves_get_sampleCross(VPoly, Min1, Max1, Min2, Max2, dS,
             pts = np.squeeze([xx1,xx2])
             extent = (x1[0]-d1r/2., x1[-1]+d1r/2., x2[0]-d2r/2., x2[-1]+d2r/2.)
             out = (pts, x1, x2, extent)
-
     else:
         assert mode == 'flat'
         c0 = type(ind) is np.ndarray and ind.ndim==1
@@ -601,7 +617,9 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=Tru
     elif N==2:
         Vals = ff(Pts, np.tile(-u,(Pts.shape[1],1)).T)
     else:
-        raise ValueError("The function (ff) assessing the emissivity loccaly must take a single positional argument: Pts, a (3,N) np.ndarray of (X,Y,Z) cartesian coordinates !")
+        raise ValueError("The function (ff) assessing the emissivity locally "
+                         + "must take a single positional argument: Pts a (3,N)"
+                         + " np.ndarray of (X,Y,Z) cartesian coordinates !")
 
     Vals[np.isnan(Vals)] = 0.
     if method=='sum':
@@ -611,3 +629,133 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=Tru
     elif method=='romb':
         Int = scpintg.romb(Vals, dx=dLr, show=False)
     return Int
+
+
+
+
+"""
+###############################################################################
+###############################################################################
+                        Solid Angle particle
+###############################################################################
+"""
+
+
+def calc_solidangle_particle(traj, pts, r=1., config=None,
+                             approx=True, aniso=False, block=True):
+    """ Compute the solid angle subtended by a particle along a trajectory
+
+    The particle has radius r, and trajectory (array of points) traj
+    It is observed from pts (array of points)
+
+    traj and pts are (3,N) and (3,M) arrays of cartesian coordinates
+
+    approx = True => use approximation
+    aniso = True => return also unit vector of emission
+    block = True consider LOS collisions (with Ves, Struct...)
+
+    if block:
+        config = config used for LOS collisions
+
+    Return:
+    -------
+    sang: np.ndarray
+        (N,M) Array of floats, solid angles
+
+    """
+    ################
+    # Prepare inputs
+    traj = np.ascontiguousarray(traj, dtype=float)
+    pts = np.ascontiguousarray(pts, dtype=float)
+    r = np.r_[r].astype(float).ravel()
+
+    # Check booleans
+    assert type(approx) is bool
+    assert type(aniso) is bool
+    assert type(block) is bool
+
+    # Check config
+    assert config is None or config.__class__.__name__ == 'Config'
+    assert block == (config is not None)
+
+    # Check pts, traj and r are array of good shape
+    assert traj.ndim in [1,2]
+    assert pts.ndim in [1,2]
+    assert 3 in traj.shape and 3 in pts.shape
+    if traj.ndim == 1:
+        traj = traj.reshape((3,1))
+    if traj.shape[0] != 3:
+        traj = traj.T
+    if pts.ndim == 1:
+        pts = pts.reshape((3,1))
+    if pts.shape[0] != 3:
+        pts = pts.T
+
+    # get npart
+    ntraj = traj.shape[1]
+    nr = r.size
+    npts = pts.shape[1]
+
+    npart = max(nr,ntraj)
+    assert nr in [1,npart]
+    assert ntraj in [1,npart]
+    if nr < npart:
+        r = np.full((npart,), r[0])
+    if ntraj < npart:
+        traj = np.repeat(traj, npart, axis=1)
+
+    ################
+    # Main computation
+
+    # traj2pts vector, with length (3d array (3,N,M))
+    vect = pts[:,None,:] - traj[:,:,None]
+    l = np.sqrt(np.sum(vect**2, axis=0))
+
+    # If aniso or block, normalize
+    if aniso or block:
+        vect = vect/l[None,:,:]
+
+    # Solid angle
+    if approx:
+        sang = np.pi*r[None,:]**2/l**2
+    else:
+        sang = 2.*np.pi*(1 - np.sqrt(1.-r**2[None,:]/l**2))
+
+    # block
+    if block:
+        kwdargs = config._get_kwdargs_LOS_isVis()
+        # TODO : modify this function along issue #102
+        indnan = _GG.LOS_areVis_PtsFromPts_VesStruct(traj, pts, k=l, vis=False,
+                                                     **kwdargs)
+        sang[indnan] = 0.
+        vect[indnan,:] = np.nan
+
+    ################
+    # Return
+
+    if aniso:
+        return sang, vect
+    else:
+        return sang
+
+
+def calc_solidangle_particle_integ(traj, r=1., config=None,
+                                   approx=True, block=True, res=0.01):
+
+
+    # step0: if block : generate kwdargs from config
+
+    # step 1: sample cross-section
+
+    # step 2: loop on R of  pts of cross-section (parallelize ?)
+        # => fix nb. of phi for the rest of the loop
+
+    # loop of Z
+
+    # step 3: loop phi
+    # Check visibility (if block = True) for each phi (LOS collision)
+    # If visible => compute solid angle
+    # integrate (sum * res) on each phi the solid angle
+
+    # Return sang as (N,nR,nZ) array
+    return
