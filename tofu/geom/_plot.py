@@ -691,6 +691,7 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
 
 
 def Config_phithetaproj_dist(config, refpt, dist, indStruct,
+                             distonly=False,
                              cmap=None, vmin=None, vmax=None,
                              ax=None, fs=None, cbck=(0.8,0.8,0.8,0.8),
                              tit=None, wintit=None, legend=None, draw=None):
@@ -719,22 +720,26 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
 
 
     # Plotting
-    if ax is None:
-        fig, ax = _def._Config_phithetaproj_default()
+    if not distonly or ax is None:
+        fig, dax = _def._Config_phithetaproj_default()
     if tit is not None:
         fig.suptitle(tit)
 
-    ax.imshow(cols, extent=extent, aspect='equal',
-              interpolation='nearest', origin='lower', zorder=-1)
+    dax['dist'][0].imshow(cols, extent=extent, aspect='equal',
+                          interpolation='nearest', origin='lower', zorder=-1)
+
+    dax['cross'][0], dax['hor'][0] = config.plot(lax=[dax['cross'][0],
+                                                      dax['hor'][0]],
+                                                 draw=False)
 
     # legend proxy
-    if legend != False:
-        handles, labels = ax.get_legend_handles_labels()
-        for ii in indsu:
-            handles.append( mRectangle((0.,0.), 1, 1, fc=lS[ii].get_color()) )
-            labels.append( '%s_%s'%(lS[ii].Id.Cls, lS[ii].Id.Name) )
-        ax.legend(handles, labels, frameon=False,
-                  bbox_to_anchor=(1.01,1.), loc=2, borderaxespad=0.)
+    # if legend != False:
+        # handles, labels = dax['cross'][0].get_legend_handles_labels()
+        # for ii in indsu:
+            # handles.append( mRectangle((0.,0.), 1, 1, fc=lS[ii].get_color()) )
+            # labels.append( '%s_%s'%(lS[ii].Id.Cls, lS[ii].Id.Name) )
+        # dax['cross'][0].legend(handles, labels, frameon=False,
+                               # bbox_to_anchor=(1.01,1.), loc=2, borderaxespad=0.)
 
     if draw:
         fig.canvas.draw()

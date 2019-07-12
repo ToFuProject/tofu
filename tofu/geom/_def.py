@@ -8,6 +8,7 @@ Including in particular computing parameters, dictionnaries and figures
 #matplotlib.interactive(True)
 
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 from matplotlib.path import Path
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -234,8 +235,8 @@ def _Config_phithetaproj_default(fs=None, dmargin=None,
     axCol = "w"
     fs = utils.get_figuresize(fs, fsdef=(12,7))
     if dmargin is None:
-        dmargin = dict(left=0.05, bottom=0.06, right=0.99, top=0.92,
-                       wspace=0.4, hspace=2.)
+        dmargin = dict(left=0.06, bottom=0.06, right=0.97, top=0.95,
+                       wspace=0.8, hspace=0.3)
     fig = plt.figure(facecolor=axCol,figsize=fs)
     if wintit is not None:
         fig.canvas.set_window_title(wintit)
@@ -244,11 +245,31 @@ def _Config_phithetaproj_default(fs=None, dmargin=None,
     # Axes grid
     # -------
 
-    ax = fig.add_axes([0.1,0.1,0.8,0.8])
-    ax.set_xlabel(r'$\phi$ (rad)', **fldict)
-    ax.set_ylabel(r'$\theta$ (rad)', **fldict)
+    gs0 = gridspec.GridSpec(5, 2, **dmargin)
 
-    return fig, ax
+    axt = fig.add_subplot(gs0[0,:], fc='w')
+    axd = fig.add_subplot(gs0[1:3,:], fc='w')
+    axc = fig.add_subplot(gs0[3:,0], fc='w')
+    axh = fig.add_subplot(gs0[3:,1], fc='w')
+
+    axc.set_aspect('equal', adjustable='datalim')
+    axh.set_aspect('equal', adjustable='datalim')
+
+    axt.set_xlabel(r'$s$ (s)', **fldict)
+    axt.set_ylabel(r'$data$ (a.u.)', **fldict)
+    axd.set_xlabel(r'$\phi$ (rad)', **fldict)
+    axd.set_ylabel(r'$\theta$ (rad)', **fldict)
+    axc.set_xlabel(r'$R$ (m)', **fldict)
+    axc.set_ylabel(r'$Z$ (m)', **fldict)
+    axh.set_xlabel(r'$X$ (m)', **fldict)
+    axh.set_ylabel(r'$Y$ (m)', **fldict)
+
+    dax = {'t':[axt],
+           'dist':[axd],
+           'cross':[axc],
+           'hor':[axh]}
+
+    return fig, dax
 
 
 
