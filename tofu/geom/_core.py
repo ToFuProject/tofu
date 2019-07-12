@@ -52,7 +52,8 @@ __all__ = ['PlasmaDomain', 'Ves', 'PFC', 'CoilPF', 'CoilCS', 'Config',
 _arrayorder = 'C'
 _Clock = False
 _Type = 'Tor'
-
+_PHITHETAPROJ_NPHI = 2000
+_PHITHETAPROJ_NTHETA = 1000
 
 
 
@@ -884,6 +885,71 @@ class Struct(utils.ToFuObject):
                       VLim=self.Lim, Out=Out, margin=1.e-9)
         pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
         return pts, dV, ind, reseff
+
+
+    def _get_phithetaproj(self, refpt=None):
+        # Prepare ax
+        if refpt is None:
+            msg = "Please provide refpt (R,Z)"
+            raise Exception(msg)
+        refpt = np.atleast_1d(np.squeeze(refpt))
+        assert refpt.shape == (2,)
+        return _comp._Struct_get_phithetaproj(refpt, self.Poly,
+                                              self.Lim, self.noccur)
+
+    def _get_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None):
+        # Prepare ax
+        if refpt is None:
+            msg = "Please provide refpt (R,Z)"
+            raise Exception(msg)
+        refpt = np.atleast_1d(np.squeeze(refpt))
+        assert refpt.shape == (2,)
+
+        # Prepare theta and phi
+        if theta is None and ntheta is None:
+            nphi = _PHITHETAPROJ_NTHETA
+        lc = [ntheta is None, theta is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either ntheta xor a theta vector !"
+            raise Exception(msg)
+        if theta is None:
+            theta = np.linspace(-np.pi, np.pi, ntheta, endpoint=True)
+
+        if phi is None and nphi is None:
+            nphi = _PHITHETAPROJ_NPHI
+        lc = [nphi is None, phi is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either nphi xor a phi vector !"
+            raise Exception(msg)
+        if phi is None:
+            phi = np.linspace(-np.pi, np.pi, nphi, endpoint=True)
+
+        # Get limits
+        out = _comp._Struct_get_phithetaproj(refpt, self.Poly_closed,
+                                             self.Lim, self.noccur)
+        nDphi, Dphi, nDtheta, Dtheta = out
+
+        # format inputs
+        theta = np.atleast_1d(np.ravel(theta))
+        theta = np.arctan2(np.sin(theta), np.cos(theta))
+        phi = np.atleast_1d(np.ravel(phi))
+        phi = np.arctan2(np.sin(phi), np.cos(phi))
+        ntheta, nphi = theta.size, phi.size
+
+        dist = np.full((ntheta, nphi), np.nan)
+
+        # Get dist
+        dist_theta, indphi = _comp._get_phithetaproj_dist(self.Poly_closed,
+                                                          refpt,
+                                                          Dtheta, nDtheta,
+                                                          Dphi, nDphi,
+                                                          theta, phi,
+                                                          ntheta, nphi,
+                                                          self.noccur)
+        dist[:,indphi] = dist_theta[:,None]
+
+        return dist, nDphi, Dphi, nDtheta, Dtheta
 
 
     def plot(self, lax=None, proj='all', element='PIBsBvV',
@@ -2301,6 +2367,86 @@ class Config(utils.ToFuObject):
         if verb:
             print(df)
         return df
+
+    def _get_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None):
+        # Prepare repf
+        if refpt is None:
+            refpt = self.dsino['RefPt']
+            if refpt is None:
+                msg = "Please provide refpt (R,Z)"
+                raise Exception(msg)
+        refpt = np.atleast_1d(np.squeeze(refpt))
+        assert refpt.shape == (2,)
+
+        # Prepare theta and phi
+        if theta is None and ntheta is None:
+            ntheta = _PHITHETAPROJ_NTHETA
+        lc = [ntheta is None, theta is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either ntheta xor a theta vector !"
+            raise Exception(msg)
+        if theta is None:
+            theta = np.linspace(-np.pi, np.pi, ntheta, endpoint=True)
+
+        if phi is None and nphi is None:
+            nphi = _PHITHETAPROJ_NPHI
+        lc = [nphi is None, phi is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either nphi xor a phi vector !"
+            raise Exception(msg)
+        if phi is None:
+            phi = np.linspace(-np.pi, np.pi, nphi, endpoint=True)
+
+        # format inputs
+        theta = np.atleast_1d(np.ravel(theta))
+        theta = np.arctan2(np.sin(theta), np.cos(theta))
+        phi = np.atleast_1d(np.ravel(phi))
+        phi = np.arctan2(np.sin(phi), np.cos(phi))
+        ntheta, nphi = theta.size, phi.size
+
+        # Get limits
+        lS = self.lStruct
+        dist = np.full((ntheta, nphi), np.inf)
+        indStruct = np.zeros((ntheta, nphi), dtype=int)
+        for ii in range(0,self.nStruct):
+            out = _comp._Struct_get_phithetaproj(refpt, lS[ii].Poly_closed,
+                                                 lS[ii].Lim, lS[ii].noccur)
+            nDphi, Dphi, nDtheta, Dtheta = out
+
+            # Get dist
+            dist_theta, indphi = _comp._get_phithetaproj_dist(lS[ii].Poly_closed,
+                                                              refpt,
+                                                              Dtheta, nDtheta,
+                                                              Dphi, nDphi,
+                                                              theta, phi,
+                                                              ntheta, nphi,
+                                                              lS[ii].noccur)
+            ind = np.zeros((ntheta,nphi), dtype=bool)
+            indok = ~np.isnan(dist_theta)
+            ind[indok,:] = indphi[None,:]
+            ind[ind] = (dist_theta[indok,None]
+                        < dist[indok,:][:,indphi]).ravel()
+            dist[ind] = (np.broadcast_to(dist_theta, (nphi,ntheta)).T)[ind]
+            indStruct[ind] = ii
+
+        dist[np.isinf(dist)] = np.nan
+
+        return dist, indStruct
+
+
+    def plot_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None, cmap=None,
+                               ax=None, fs=None, tit=None, wintit=None,
+                               draw=None):
+        dist, indStruct = self._get_phithetaproj_dist(refpt=refpt, ntheta=ntheta, nphi=nphi,
+                                                      theta=theta, phi=phi)
+        return _plot.Config_phithetaproj_dist(self, refpt, dist, indStruct,
+                                              cmap=cmap, ax=ax, fs=fs,
+                                              tit=tit, wintit=wintit,
+                                              draw=draw)
+
+
 
     def isInside(self, pts, In='(X,Y,Z)', log='any'):
         """ Return a 2D array of bool
