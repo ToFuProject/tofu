@@ -2378,7 +2378,7 @@ class Config(utils.ToFuObject):
 
         # Get limits
         lS = self.lStruct
-        dist = np.full((ntheta, nphi), np.nan)
+        dist = np.full((ntheta, nphi), np.inf)
         indStruct = np.zeros((ntheta, nphi), dtype=int)
         for ii in range(0,self.nStruct):
             out = _comp._Struct_get_phithetaproj(refpt, lS[ii].Poly_closed,
@@ -2393,9 +2393,15 @@ class Config(utils.ToFuObject):
                                                               theta, phi,
                                                               ntheta, nphi,
                                                               lS[ii].noccur)
-            ind = dist_theta[:,None] < dist[:,indphi]
-            dist[:,indphi] = np.fmin(dist[:,indphi], dist_theta[:,None])
-            indStruct[:,indphi][ind] = ii
+            ind = np.zeros((ntheta,nphi), dtype=bool)
+            indok = ~np.isnan(dist_theta)
+            ind[indok,:] = indphi[None,:]
+            ind[ind] = (dist_theta[indok,None]
+                        < dist[indok,:][:,indphi]).ravel()
+            dist[ind] = (np.broadcast_to(dist_theta, (nphi,ntheta)).T)[ind]
+            indStruct[ind] = ii
+
+        dist[np.isinf(dist)] = np.nan
 
         return dist, indStruct
 

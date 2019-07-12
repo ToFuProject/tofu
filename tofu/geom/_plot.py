@@ -8,7 +8,9 @@ import warnings
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon as mPolygon, Wedge as mWedge
+from matplotlib.patches import Polygon as mPolygon
+from matplotlib.patches import Wedge as mWedge
+from matplotlib.patches import  Rectangle as mRectangle
 from matplotlib.axes._axes import Axes
 import matplotlib.gridspec as gridspec
 from mpl_toolkits.mplot3d import Axes3D
@@ -691,7 +693,7 @@ def Plot_Impact_3DPoly(T, Leg="", ax=None, Ang=_def.TorPAng,
 def Config_phithetaproj_dist(config, refpt, dist, indStruct,
                              cmap=None, vmin=None, vmax=None,
                              ax=None, fs=None, cbck=(0.8,0.8,0.8,0.8),
-                             tit=None, wintit=None, draw=None):
+                             tit=None, wintit=None, legend=None, draw=None):
     if cmap is None:
         cmap = 'touch'
     lS = config.lStruct
@@ -707,8 +709,7 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
     norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
     colshape = (dist.shape[0], dist.shape[1], 4)
     if cmap == 'touch':
-        cols = np.broadcast_to(mpl.colors.to_rgba(cbck), colshape)
-        cols.setflags(write=1)
+        cols = np.array(np.broadcast_to(mpl.colors.to_rgba(cbck), colshape))
         for ii in indsu:
             ind = indStruct == ii
             cols[ind,:] = np.r_[mpl.colors.to_rgba(lS[ii].get_color())][None,None,:]
@@ -716,13 +717,24 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
         cols = np.tile(mpl.colors.to_rgba(cmap), colshape)
     cols[:,:,-1] = 1.-norm(dist)
 
+
     # Plotting
     if ax is None:
         fig, ax = _def._Config_phithetaproj_default()
+    if tit is not None:
+        fig.suptitle(tit)
 
     ax.imshow(cols, extent=extent, aspect='equal',
               interpolation='nearest', origin='lower', zorder=-1)
 
+    # legend proxy
+    if legend != False:
+        handles, labels = ax.get_legend_handles_labels()
+        for ii in indsu:
+            handles.append( mRectangle((0.,0.), 1, 1, fc=lS[ii].get_color()) )
+            labels.append( '%s_%s'%(lS[ii].Id.Cls, lS[ii].Id.Name) )
+        ax.legend(handles, labels, frameon=False,
+                  bbox_to_anchor=(1.01,1.), loc=2, borderaxespad=0.)
 
     if draw:
         fig.canvas.draw()

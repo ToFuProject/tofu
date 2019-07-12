@@ -16,6 +16,20 @@ import numpy as np
 import datetime as dtm
 import time as time
 
+# tofu
+try:
+    from tofu.version import __version__
+    import tofu.utils as utils
+except Exception:
+    from tofu.version import __version__
+    from .. import utils as utils
+
+
+__github = 'https://github.com/ToFuProject/tofu/issues'
+_wintit = 'tofu-%s        report issues / requests at %s'%(__version__, __github)
+_fontsize = 8
+_labelpad = 0
+
 
 """
 ###############################################################################
@@ -210,10 +224,30 @@ def Plot_Impact_DefAxes(Proj, Ang='theta', AngUnit='rad', fs=None, wintit='tofu'
 
 
 
-def _Config_phithetaproj_default():
+def _Config_phithetaproj_default(fs=None, dmargin=None,
+                                 fontsize=_fontsize, labelpad=_labelpad,
+                                 wintit=_wintit, ntMax=1):
 
-    fig = plt.figure()
+    fldict = dict(fontsize=fontsize, labelpad=labelpad)
+
+    # Figure
+    axCol = "w"
+    fs = utils.get_figuresize(fs, fsdef=(12,7))
+    if dmargin is None:
+        dmargin = dict(left=0.05, bottom=0.06, right=0.99, top=0.92,
+                       wspace=0.4, hspace=2.)
+    fig = plt.figure(facecolor=axCol,figsize=fs)
+    if wintit is not None:
+        fig.canvas.set_window_title(wintit)
+
+    # -------------
+    # Axes grid
+    # -------
+
     ax = fig.add_axes([0.1,0.1,0.8,0.8])
+    ax.set_xlabel(r'$\phi$ (rad)', **fldict)
+    ax.set_ylabel(r'$\theta$ (rad)', **fldict)
+
     return fig, ax
 
 

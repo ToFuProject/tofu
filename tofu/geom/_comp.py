@@ -371,13 +371,15 @@ def _get_phithetaproj_dist(poly_closed, ax, Dtheta, nDtheta,
     disttheta = np.full((theta.size,), np.nan)
 
     # phi within Dphi
-    indphi = np.zeros((nphi,),dtype=bool)
     if noccur > 0:
+        indphi = np.zeros((nphi,),dtype=bool)
         for ii in range(0,noccur):
             for jj in range(0,nDphi[ii]):
                 indphi |= (phi >= Dphi[ii,jj]) & (phi<= Dphi[ii,jj+1])
-    if not np.any(indphi):
-        return disttheta, indphi
+        if not np.any(indphi):
+            return disttheta, indphi
+    else:
+        indphi = np.ones((nphi,),dtype=bool)
 
     # No theta within Dtheta
     if not np.any(ind):
