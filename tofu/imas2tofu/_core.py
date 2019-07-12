@@ -2162,7 +2162,8 @@ class MultiIDSLoader(object):
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
                 out = self.get_data(ids=ids, sig=vs)
-                for ii in range(len(vs)):
+                inds = [ii for ii in range(0,len(vs)) if vs[ii] in out.keys()]
+                for ii in inds:
                     ss = vs[ii]
                     if ss == 't':
                         continue
@@ -2639,6 +2640,7 @@ class MultiIDSLoader(object):
                 msg = "A config must be provided to compute the geometry !"
                 raise Exception(msg)
 
+            dgeom = None
             if 'LOS' in geomcls:
                 lk = ['los_ptsRZPhi','etendue','surface']
                 lkok = set(self._dshort[ids].keys())
@@ -2653,23 +2655,30 @@ class MultiIDSLoader(object):
                                   oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
                     u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
                     dgeom = (D,u)
-                if 'etendue' in out.keys() and out['etendue'].size > 0:
+                if 'etendue' in out.keys() and len(out['etendue']) > 0:
                     Etendues = out['etendue']
-                if 'surface' in out.keys() and out['surface'].size > 0:
+                if 'surface' in out.keys() and len(out['surface']) > 0:
                     Surfaces = out['surface']
 
-            import tofu.geom as tfg
-            cam = getattr(tfg, geomcls)(dgeom=dgeom, config=config,
-                                        Etendues=Etendues, Surfaces=Surfaces,
-                                        Name=Name, Diag=ids, Exp=Exp,
-                                        dchans=dchans)
-            cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
+            if dgeom is not None:
+                import tofu.geom as tfg
+                cam = getattr(tfg, geomcls)(dgeom=dgeom, config=config,
+                                            Etendues=Etendues, Surfaces=Surfaces,
+                                            Name=Name, Diag=ids, Exp=Exp,
+                                            dchans=dchans)
+                cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
         # -----------------------
         # data
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
         t = self.get_data(ids, sig='t', indch=indch)['t']
+        if len(t) == 0:
+            msg = "The time vector is not available for %s:\n"%ids
+            msg += "    - 't' <=> %s.%s\n"%(ids,self._dshort[ids]['t']['str'])
+            msg += "    - 't' = %s"%str(t)
+            raise Exception(msg)
+
         if type(t) is list:
             if indch_auto and indch is None:
                 ls = [t[ii].shape for ii in range(0,len(t))]

@@ -729,6 +729,10 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if nDat > 0 or nPla > 0 and dextra is None:
             if 'equilibrium' not in lids:
                 lids.append('equilibrium')
+            if 'lh_antennas' not in lids:
+                lids.append('lh_antennas')
+            if 'ic_antennas' not in lids:
+                lids.append('ic_antennas')
         if t0 not in [None, False] and (nDat > 0 or nPla > 0):
             if 'pulse_schedule' not in lids:
                 lids.append('pulse_schedule')
