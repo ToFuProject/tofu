@@ -53,6 +53,8 @@ _arrayorder = 'C'
 _Clock = False
 _Type = 'Tor'
 _NUM_THREADS = 10
+_PHITHETAPROJ_NPHI = 2000
+_PHITHETAPROJ_NTHETA = 1000
 
 
 
@@ -712,10 +714,17 @@ class Struct(utils.ToFuObject):
             (N,) array of booleans, True if a point is inside the volume
 
         """
-        ind = _GG._Ves_isInside(pts, self.Poly, Lim=self.Lim,
-                                nLim=self._dgeom['noccur'],
-                                VType=self.Id.Type,
-                                In=In, Test=True)
+        if self._dgeom['noccur'] > 0:
+            ind = _GG._Ves_isInside(pts, self.Poly,
+                                    ves_lims=np.ascontiguousarray(self.Lim),
+                                    nlim=self._dgeom['noccur'],
+                                    ves_type=self.Id.Type,
+                                    in_format=In, test=True)
+        else:
+            ind = _GG._Ves_isInside(pts, self.Poly, ves_lims=None,
+                                    nlim=0,
+                                    ves_type=self.Id.Type,
+                                    in_format=In, test=True)
         return ind
 
 
@@ -877,6 +886,71 @@ class Struct(utils.ToFuObject):
                       VLim=self.Lim, Out=Out, margin=1.e-9)
         pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
         return pts, dV, ind, reseff
+
+
+    def _get_phithetaproj(self, refpt=None):
+        # Prepare ax
+        if refpt is None:
+            msg = "Please provide refpt (R,Z)"
+            raise Exception(msg)
+        refpt = np.atleast_1d(np.squeeze(refpt))
+        assert refpt.shape == (2,)
+        return _comp._Struct_get_phithetaproj(refpt, self.Poly,
+                                              self.Lim, self.noccur)
+
+    def _get_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None):
+        # Prepare ax
+        if refpt is None:
+            msg = "Please provide refpt (R,Z)"
+            raise Exception(msg)
+        refpt = np.atleast_1d(np.squeeze(refpt))
+        assert refpt.shape == (2,)
+
+        # Prepare theta and phi
+        if theta is None and ntheta is None:
+            nphi = _PHITHETAPROJ_NTHETA
+        lc = [ntheta is None, theta is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either ntheta xor a theta vector !"
+            raise Exception(msg)
+        if theta is None:
+            theta = np.linspace(-np.pi, np.pi, ntheta, endpoint=True)
+
+        if phi is None and nphi is None:
+            nphi = _PHITHETAPROJ_NPHI
+        lc = [nphi is None, phi is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either nphi xor a phi vector !"
+            raise Exception(msg)
+        if phi is None:
+            phi = np.linspace(-np.pi, np.pi, nphi, endpoint=True)
+
+        # Get limits
+        out = _comp._Struct_get_phithetaproj(refpt, self.Poly_closed,
+                                             self.Lim, self.noccur)
+        nDphi, Dphi, nDtheta, Dtheta = out
+
+        # format inputs
+        theta = np.atleast_1d(np.ravel(theta))
+        theta = np.arctan2(np.sin(theta), np.cos(theta))
+        phi = np.atleast_1d(np.ravel(phi))
+        phi = np.arctan2(np.sin(phi), np.cos(phi))
+        ntheta, nphi = theta.size, phi.size
+
+        dist = np.full((ntheta, nphi), np.nan)
+
+        # Get dist
+        dist_theta, indphi = _comp._get_phithetaproj_dist(self.Poly_closed,
+                                                          refpt,
+                                                          Dtheta, nDtheta,
+                                                          Dphi, nDphi,
+                                                          theta, phi,
+                                                          ntheta, nphi,
+                                                          self.noccur)
+        dist[:,indphi] = dist_theta[:,None]
+
+        return dist, nDphi, Dphi, nDtheta, Dtheta
 
 
     def plot(self, lax=None, proj='all', element='PIBsBvV',
@@ -2295,6 +2369,86 @@ class Config(utils.ToFuObject):
             print(df)
         return df
 
+    def _get_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None):
+        # Prepare repf
+        if refpt is None:
+            refpt = self.dsino['RefPt']
+            if refpt is None:
+                msg = "Please provide refpt (R,Z)"
+                raise Exception(msg)
+        refpt = np.atleast_1d(np.squeeze(refpt))
+        assert refpt.shape == (2,)
+
+        # Prepare theta and phi
+        if theta is None and ntheta is None:
+            ntheta = _PHITHETAPROJ_NTHETA
+        lc = [ntheta is None, theta is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either ntheta xor a theta vector !"
+            raise Exception(msg)
+        if theta is None:
+            theta = np.linspace(-np.pi, np.pi, ntheta, endpoint=True)
+
+        if phi is None and nphi is None:
+            nphi = _PHITHETAPROJ_NPHI
+        lc = [nphi is None, phi is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either nphi xor a phi vector !"
+            raise Exception(msg)
+        if phi is None:
+            phi = np.linspace(-np.pi, np.pi, nphi, endpoint=True)
+
+        # format inputs
+        theta = np.atleast_1d(np.ravel(theta))
+        theta = np.arctan2(np.sin(theta), np.cos(theta))
+        phi = np.atleast_1d(np.ravel(phi))
+        phi = np.arctan2(np.sin(phi), np.cos(phi))
+        ntheta, nphi = theta.size, phi.size
+
+        # Get limits
+        lS = self.lStruct
+        dist = np.full((ntheta, nphi), np.inf)
+        indStruct = np.zeros((ntheta, nphi), dtype=int)
+        for ii in range(0,self.nStruct):
+            out = _comp._Struct_get_phithetaproj(refpt, lS[ii].Poly_closed,
+                                                 lS[ii].Lim, lS[ii].noccur)
+            nDphi, Dphi, nDtheta, Dtheta = out
+
+            # Get dist
+            dist_theta, indphi = _comp._get_phithetaproj_dist(lS[ii].Poly_closed,
+                                                              refpt,
+                                                              Dtheta, nDtheta,
+                                                              Dphi, nDphi,
+                                                              theta, phi,
+                                                              ntheta, nphi,
+                                                              lS[ii].noccur)
+            ind = np.zeros((ntheta,nphi), dtype=bool)
+            indok = ~np.isnan(dist_theta)
+            ind[indok,:] = indphi[None,:]
+            ind[ind] = (dist_theta[indok,None]
+                        < dist[indok,:][:,indphi]).ravel()
+            dist[ind] = (np.broadcast_to(dist_theta, (nphi,ntheta)).T)[ind]
+            indStruct[ind] = ii
+
+        dist[np.isinf(dist)] = np.nan
+
+        return dist, indStruct
+
+
+    def plot_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None, cmap=None,
+                               ax=None, fs=None, tit=None, wintit=None,
+                               draw=None):
+        dist, indStruct = self._get_phithetaproj_dist(refpt=refpt, ntheta=ntheta, nphi=nphi,
+                                                      theta=theta, phi=phi)
+        return _plot.Config_phithetaproj_dist(self, refpt, dist, indStruct,
+                                              cmap=cmap, ax=ax, fs=fs,
+                                              tit=tit, wintit=wintit,
+                                              draw=draw)
+
+
+
     def isInside(self, pts, In='(X,Y,Z)', log='any'):
         """ Return a 2D array of bool
 
@@ -2321,12 +2475,20 @@ class Config(utils.ToFuObject):
         ind = np.zeros((self._dStruct['nObj'],nP), dtype=bool)
         lStruct = self.lStruct
         for ii in range(0,self._dStruct['nObj']):
-            indi = _GG._Ves_isInside(pts,
-                                     lStruct[ii].Poly,
-                                     Lim=lStruct[ii].Lim,
-                                     nLim=lStruct[ii].noccur,
-                                     VType=lStruct[ii].Id.Type,
-                                     In=In, Test=True)
+            if lStruct[ii].noccur > 0:
+                indi = _GG._Ves_isInside(np.ascontiguousarray(pts),
+                                        np.ascontiguousarray(lStruct[ii].Poly),
+                                        ves_lims=np.ascontiguousarray(lStruct[ii].Lim),
+                                        nlim=lStruct[ii].noccur,
+                                        ves_type=lStruct[ii].Id.Type,
+                                        in_format=In, test=True)
+            else:
+                indi = _GG._Ves_isInside(np.ascontiguousarray(pts),
+                                        np.ascontiguousarray(lStruct[ii].Poly),
+                                        ves_lims=None,
+                                        nlim=0,
+                                        ves_type=lStruct[ii].Id.Type,
+                                        in_format=In, test=True)
             if lStruct[ii].noccur>1:
                 if log=='any':
                     indi = np.any(indi,axis=0)
@@ -2396,6 +2558,76 @@ class Config(utils.ToFuObject):
                              refrun=refrun, user=user, tokamak=tokamak,
                              version=version, occ=occ, dryrun=dryrun, verb=verb,
                              description_2d=description_2d)
+
+    def get_kwdargs_LOS_isVis(self):
+        lS = self.lStruct
+        # -- Getting "vessels" or IN structures --------------------------------
+        lSIn = [ss for ss in lS if ss._InOut=='in']
+        if len(lSIn)==0:
+            msg = "self.config must have at least a StructIn subclass !"
+            assert len(lSIn)>0, msg
+        elif len(lSIn)>1:
+            S = lSIn[np.argmin([ss.dgeom['Surf'] for ss in lSIn])]
+        else:
+            S = lSIn[0]
+        # ... and its poly, limts, type, etc.
+        VPoly = S.Poly_closed
+        VVIn =  S.dgeom['VIn']
+        if np.size(np.shape(S.Lim)) > 1 :
+            Lim = np.asarray([S.Lim[0][0], S.Lim[0][1]])
+        else:
+            Lim = S.Lim
+        nLim = S.noccur
+        VType = self.Id.Type
+        # -- Getting OUT structures --------------------------------------------
+        lS = [ss for ss in lS if ss._InOut=='out']
+        lSPolyx, lSVInx = [], []
+        lSPolyy, lSVIny = [], []
+        lSLim, lSnLim = [], []
+        lsnvert = []
+        num_tot_structs = 0
+        num_lim_structs = 0
+        for ss in lS:
+            l = ss.Poly_closed[0]
+            [lSPolyx.append(item) for item in l]
+            l = ss.Poly_closed[1]
+            [lSPolyy.append(item) for item in l]
+            l = ss.dgeom['VIn'][0]
+            [lSVInx.append(item) for item in l]
+            l = ss.dgeom['VIn'][1]
+            [lSVIny.append(item) for item in l]
+            lSLim.append(ss.Lim)
+            lSnLim.append(ss.noccur)
+            if len(lsnvert)==0:
+                lsnvert.append(len(ss.Poly_closed[0]))
+            else:
+                lsnvert.append(len(ss.Poly_closed[0]) + lsnvert[num_lim_structs-1])
+            num_lim_structs += 1
+            if ss.Lim is None or len(ss.Lim) == 0:
+                num_tot_structs += 1
+            else:
+                num_tot_structs += len(ss.Lim)
+        lsnvert = np.asarray(lsnvert, dtype=np.int64)
+        lSPolyx = np.asarray(lSPolyx)
+        lSPolyy = np.asarray(lSPolyy)
+        lSVInx = np.asarray(lSVInx)
+        lSVIny = np.asarray(lSVIny)
+        # Now setting keyword arguments:
+        dkwd = dict(ves_poly=VPoly, ves_norm=VVIn,
+                    ves_lims=Lim,
+                    nstruct_tot=num_tot_structs,
+                    nstruct_lim=num_lim_structs,
+                    lstruct_polyx=lSPolyx,
+                    lstruct_polyy=lSPolyy,
+                    lstruct_lims=lSLim,
+                    lstruct_nlim=np.asarray(lSnLim, dtype=np.int64),
+                    lstruct_normx=lSVInx,
+                    lstruct_normy=lSVIny,
+                    lnvert=lsnvert,
+                    ves_type=VType,
+                    rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
+                    eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
+        return dkwd
 
 
 

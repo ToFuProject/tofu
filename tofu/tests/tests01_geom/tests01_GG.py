@@ -168,8 +168,8 @@ def test04_Ves_isInside(VPoly=VPoly):
     Pts = np.array([[-10.,-10.,5.,5.,5.,5., 5.,30.,30.,30.],
                     [  0.,  2.,0.,2.,4.,2., 2., 2., 0., 0.],
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
-    ind = GG._Ves_isInside(Pts, VPoly, Lim=np.array([[0.,10.]]), nLim=1,
-                           VType='Lin', In='(X,Y,Z)', Test=True)
+    ind = GG._Ves_isInside(Pts, VPoly, ves_lims=np.array([[0.,10.]]), nlim=1,
+                           ves_type='Lin', in_format='(X,Y,Z)', test=True)
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,
                                                        False,False,False,False,
                                                        False,False])
@@ -178,8 +178,8 @@ def test04_Ves_isInside(VPoly=VPoly):
     Pts = np.array([[  0.,-10.,5.,5.,5.,5., 5.,30.,30.,30.],
                     [  0.,  2.,0.,2.,4.,2., 2., 2., 0., 0.],
                     [  0.,  0.,0.,0.,0.,2.,-2., 0., 0., 2.]])
-    ind = GG._Ves_isInside(Pts, VPoly, Lim=None, nLim=0, VType='Tor',
-                           In='(Phi,R,Z)', Test=True)
+    ind = GG._Ves_isInside(Pts, VPoly, ves_lims=None, nlim=0, ves_type='Tor',
+                           in_format='(Phi,R,Z)', test=True)
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,True,False,True,
                                                        False,False,False,True,
                                                        False,False])
@@ -189,8 +189,10 @@ def test04_Ves_isInside(VPoly=VPoly):
     Pts = np.array([[ 0.,  0., pi2, np.pi, np.pi, np.pi, np.pi, pi2, pi2, pi2],
                     [ 0.,  2.,  0.,    2.,    4.,    2.,    2.,  2.,  0.,  0.],
                     [ 0.,  0.,  0.,    0.,    0.,    2.,   -2.,  0.,  0.,  2.]])
-    ind = GG._Ves_isInside(Pts, VPoly, Lim=np.array([[np.pi/2.,3.*np.pi/2.]]),
-                           nLim=1, VType='Tor', In='(Phi,R,Z)', Test=True)
+    ind = GG._Ves_isInside(Pts, VPoly,
+                           ves_lims=np.array([[np.pi/2.,3.*np.pi/2.]]),
+                           nlim=1, ves_type='Tor', in_format='(Phi,R,Z)',
+                           test=True)
     assert ind.shape==(Pts.shape[1],) and np.all(ind==[False,False,False,True,
                                                        False,False,False,False,
                                                        False,False])
@@ -404,8 +406,9 @@ def test09_Ves_Smesh_Tor(VPoly=VPoly):
             else:
                 assert np.all( (Pts[2,:]>=LDPhi[ii][0]-marg) |
                                (Pts[2,:]<=LDPhi[ii][1]+marg))
-        assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', In='(R,Z,Phi)',
-                                       Lim=None, nLim=0, Test=True))
+        assert np.all(GG._Ves_isInside(Pts, VPoly, ves_type='Tor',
+                                       in_format='(R,Z,Phi)',
+                                       ves_lims=None, nlim=0, test=True))
         assert dS.shape==(Pts.shape[1],)
         assert all([ind.shape==(Pts.shape[1],), ind.dtype==int,
                     np.unique(ind).size==ind.size, np.all(ind==np.unique(ind)),
@@ -499,9 +502,10 @@ def test10_Ves_Smesh_Tor_PhiMinMax(VPoly=VPoly, plot=True):
                           (Pts[2,:]<=LPhi[ii][0][1]+marg))
         else:
             assert np.all( (Pts[2,:]>=LPhi[ii][0][0]-marg) |
-                           (Pts[2,:]<=LPhi[ii][0][1]+marg))
-        assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', Lim=None,
-                                       nLim=0, In='(R,Z,Phi)', Test=True))
+                          (Pts[2,:]<=LPhi[ii][0][1]+marg))
+        assert np.all(GG._Ves_isInside(Pts, VPoly, ves_type='Tor',
+                                       ves_lims=None,
+                                       nlim=0, in_format='(R,Z,Phi)', test=True))
         assert dS.shape==(Pts.shape[1],)
         assert np.all([ind.shape==(Pts.shape[1],), ind.dtype==int,
                        ind.size==np.unique(ind).size,
@@ -618,11 +622,15 @@ def test11_Ves_Smesh_TorStruct(VPoly=VPoly, plot=True):
             assert np.all( (Pts[2,:]>=LPhi[ii][0][0]-marg) |
                            (Pts[2,:]<=LPhi[ii][0][1]+marg))
         if DIn>=0:
-            assert np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor', Lim=None,
-                                           nLim=0, In='(R,Z,Phi)', Test=True))
+            assert np.all(GG._Ves_isInside(Pts, VPoly, ves_type='Tor',
+                                           ves_lims=None,
+                                           nlim=0, in_format='(R,Z,Phi)',
+                                           test=True))
         else:
-            assert not np.all(GG._Ves_isInside(Pts, VPoly, VType='Tor',
-                                               Lim=None, nLim=0, In='(R,Z,Phi)', Test=True))
+            assert not np.all(GG._Ves_isInside(Pts, VPoly, ves_type='Tor',
+                                               ves_lims=None, nlim=0,
+                                               in_format='(R,Z,Phi)',
+                                               test=True))
         assert dS.shape==(Pts.shape[1],)
         assert np.all([ind.shape==(Pts.shape[1],),
                        ind.dtype==int,
@@ -707,11 +715,15 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         assert np.all(Pts[2,:]>=-np.abs(DIn)) and \
             np.all(Pts[2,:]<=1.+np.abs(DIn))
         if DIn>=0:
-            assert np.all(GG._Ves_isInside(Pts, VPoly, Lim=XMinMax.reshape((1,2)), nLim=1, VType='Lin', In='(X,Y,Z)', Test=True))
+            assert np.all(GG._Ves_isInside(Pts, VPoly,
+                                           vs_lims=XMinMax.reshape((1,2)),
+                                           nlim=1, ves_type='Lin',
+                                           in_format='(X,Y,Z)', test=True))
         else:
             assert not np.all(GG._Ves_isInside(Pts, VPoly,
-                                               Lim=XMinMax.reshape((1,2)),
-                                               nLim=1, VType='Lin', In='(X,Y,Z)', Test=True))
+                                               ves_lims=XMinMax.reshape((1,2)),
+                                               nlim=1, ves_type='Lin',
+                                               in_format='(X,Y,Z)', test=True))
         assert dS.shape==(Pts.shape[1],)
         assert all([ind.shape==(Pts.shape[1],),
                     ind.dtype==int,
@@ -721,7 +733,6 @@ def test12_Ves_Smesh_Lin(VPoly=VPoly):
         assert ind.shape==(Pts.shape[1],) and ind.dtype==int and \
             np.all(ind==np.unique(ind)) and np.all(ind>=0)
         assert NL.ndim==1 and NL.size==VPoly.shape[1]-1
-        print(dLr.ndim, type(dLr), dLr.shape, dLr.size, NL.size)
         assert dLr.ndim==1 and dLr.size==NL.size
         assert Rref.ndim==1
         assert all([type(xx) is float for xx in [dXr,dY0r,dZ0r]])
@@ -976,17 +987,18 @@ def test13_LOS_PInOut():
     assert np.allclose(VperpOut[:,:32], -us[:,:32]) and \
         np.allclose(VperpOut[:,32:],-ErOut)
     assert np.allclose(IOut[2,:], Iout)
+    npts_vp = VP.shape[1]
     out = GG.LOS_Calc_kMinkMax_VesStruct(Ds, us,
                                          [VP, VP, VP], [VIn, VIn, VIn], 3,
-                                         np.r_[N, N, N])
-    print(out[0], kPIn)
-    print(out[1], kPOut)
-    assert np.allclose(out[0][:nlos],    kPIn)
-    assert np.allclose(out[0][nlos:2*nlos], kPIn)
-    assert np.allclose(out[0][2*nlos:],  kPIn)
-    assert np.allclose(out[1][:nlos],    kPOut)
-    assert np.allclose(out[1][nlos:2*nlos], kPOut)
-    assert np.allclose(out[1][2*nlos:],  kPOut)
+                                         np.r_[npts_vp, npts_vp, npts_vp])
+    kmin_res = out[0]
+    kmax_res = out[1]
+    assert np.allclose(kmin_res[:nlos],    kPIn)
+    assert np.allclose(kmin_res[nlos:2*nlos], kPIn)
+    assert np.allclose(kmin_res[2*nlos:],  kPIn)
+    assert np.allclose(kmax_res[:nlos],    kPOut)
+    assert np.allclose(kmax_res[nlos:2*nlos], kPOut)
+    assert np.allclose(kmax_res[2*nlos:],  kPOut)
     # Toroidal, with Struct
     SL0_or =None
     SL1_or =[np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]]
@@ -1773,3 +1785,109 @@ def test23_vignetting():
 
     assert np.allclose(out, [False, True, False, False,  True,
                              True, False, True, False, False])
+
+def test24_is_visible():
+    VP = np.array([[6.,8.,8.,6.,6.],[6.,6.,8.,8.,6.]])
+    VIn = np.array([[0.,-1.,0.,1.],[1.,0.,-1.,0.]])
+    VL = np.array([0.,1.])*2.*np.pi
+    SP0x = [6.,6.5,6.5,6.,6.]
+    SP0y = [6.,6.,6.5,6.5,6.]
+    SP1x = [7.5,8.,8.,7.5,7.5]
+    SP2x = [6.,6.5,6.5,6.,6.]
+    SP1y = [7.5,7.5,8.,8.,7.5]
+    SP2y = [7.5,7.5,8.,8.,7.5]
+    nstruct_lim = 3
+    nstruct_tot =1+2+1
+    lstruct_nlim=np.asarray([1, 2, 1])
+    SL0 = np.asarray([np.array([0.,1.])*2.*np.pi])
+    SL1 = np.asarray([np.array(ss)*2.*np.pi for ss in [[0.,1./3.],[2./3.,1.]]])
+    SL2 = np.asarray([np.array([2./3.,1.])*2.*np.pi])
+    lspolyx = np.asarray(SP0x + SP1x + SP2x)
+    lspolyy = np.asarray(SP0y + SP1y + SP2y)
+    lnvert = np.cumsum(np.ones(nstruct_tot, dtype=np.int64)*5)
+    lsvinx = np.asarray([VIn[0], VIn[0], VIn[0]]).flatten()
+    lsviny = np.asarray([VIn[1], VIn[1], VIn[1]]).flatten()
+    # ...
+    # Toroidal, with Struct
+    SL0 = np.asarray([None])
+    SL1 = np.asarray([np.array(ss)*np.pi for ss in [[0.,0.5],[1.,3./2.]]])
+    SL2 = np.asarray([np.array([0.5,3./2.])*np.pi])
+    lstruct_nlim = np.array([0, 2, 1])
+    nstruct_lim = 3
+    nstruct_tot =1+2+1
+    lstruct_nlim=np.asarray([0, 2, 1])
+    # First point (in the center of poloidal plane
+    pt0 = 7.
+    pt1 = 0.
+    pt2 = 7.
+    # Other points (to check if visible or not)
+    # first test point: same point (should be visible), in torus, out torus
+    other_x = np.r_[7, 7.0, 0.0]
+    other_y = np.r_[0, 0.1, 0.0]
+    other_z = np.r_[7, 7.5, 0.0]
+    npts = len(other_x)
+    others = np.zeros((3,npts))
+    others[0,:] = other_x
+    others[1,:] = other_y
+    others[2,:] = other_z
+    is_vis = GG.LOS_isVis_PtFromPts_VesStruct(pt0, pt1, pt2,
+                                              others,
+                                              ves_poly=VP,
+                                              ves_norm=VIn,
+                                              ves_lims=None,
+                                              nstruct_tot=nstruct_tot,
+                                              nstruct_lim=nstruct_lim,
+                                              lnvert=lnvert,
+                                              lstruct_polyx=lspolyx,
+                                              lstruct_polyy=lspolyy,
+                                              lstruct_nlim=lstruct_nlim,
+                                              lstruct_lims=[SL0,SL1,SL2],
+                                              lstruct_normx=lsvinx,
+                                              lstruct_normy=lsviny,
+                                              ves_type='Tor', test=True)
+    assert np.allclose(is_vis, [True, True, False])
+    distance = np.sqrt(np.sum((others - np.tile(np.r_[pt0,pt1,pt2], (npts,1)).T)**2, axis=0))
+    is_vis = GG.LOS_isVis_PtFromPts_VesStruct(pt0, pt1, pt2,
+                                              others,
+                                              k=distance,
+                                              ves_poly=VP,
+                                              ves_norm=VIn,
+                                              ves_lims=None,
+                                              nstruct_tot=nstruct_tot,
+                                              nstruct_lim=nstruct_lim,
+                                              lnvert=lnvert,
+                                              lstruct_polyx=lspolyx,
+                                              lstruct_polyy=lspolyy,
+                                              lstruct_nlim=lstruct_nlim,
+                                              lstruct_lims=[SL0,SL1,SL2],
+                                              lstruct_normx=lsvinx,
+                                              lstruct_normy=lsviny,
+                                              ves_type='Tor', test=True)
+    assert np.allclose(is_vis, [True, True, False])
+
+    pt_x = np.r_[7, 7.0, 0.0]
+    pt_y = np.r_[0, 0.1, 0.0]
+    pt_z = np.r_[7, 7.5, 0.0]
+    npts2 = len(pt_x)
+    pts2 = np.zeros((3,npts2))
+    pts2[0,:] = pt_x
+    pts2[1,:] = pt_y
+    pts2[2,:] = pt_z
+    are_vis = GG.LOS_areVis_PtsFromPts_VesStruct(pts2,
+                                              others,
+                                              ves_poly=VP,
+                                              ves_norm=VIn,
+                                              ves_lims=None,
+                                              nstruct_tot=nstruct_tot,
+                                              nstruct_lim=nstruct_lim,
+                                              lnvert=lnvert,
+                                              lstruct_polyx=lspolyx,
+                                              lstruct_polyy=lspolyy,
+                                              lstruct_nlim=lstruct_nlim,
+                                              lstruct_lims=[SL0,SL1,SL2],
+                                              lstruct_normx=lsvinx,
+                                              lstruct_normy=lsviny,
+                                              ves_type='Tor', test=True)
+    assert np.allclose(are_vis.flatten(), [True, True, False,
+                                           True, True, False,
+                                           False, False, True])
