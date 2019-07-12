@@ -19,6 +19,7 @@ else:
 # Common
 import numpy as np
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import datetime as dtm
 try:
     import pandas as pd
@@ -2333,6 +2334,26 @@ class Config(utils.ToFuObject):
             col[ii,:] = self._dStruct['dObj'][k0][k1].get_color()
             ii += 1
         return col
+
+    def set_colors_random(self, cmap=plt.cm.Accent):
+        ii = 0
+        ncol = len(cmap.colors)
+        for k in self._dStruct['lorder']:
+            k0, k1 = k.split('_')
+            if self._dStruct['dObj'][k0][k1]._InOut == 'in':
+                col = 'k'
+            elif 'lh' in k1.lower():
+                col = (1.,0.,0.)
+            elif 'ic' in k1.lower():
+                col = (1.,0.5,0.5)
+            elif 'div' in k1.lower():
+                col = (0.,1.,0.)
+            elif 'bump' in k1.lower():
+                col = (0.,0.,1.)
+            else:
+                col = cmap.colors[ii%ncol]
+                ii += 1
+            self._dStruct['dObj'][k0][k1].set_color(col)
 
     def get_summary(self, verb=False, max_columns=100, width=1000):
         """ Summary description of the object content as a pandas DataFrame """
