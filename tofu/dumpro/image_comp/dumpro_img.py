@@ -31,8 +31,8 @@ from . import guassian_blur
 #import plotting as _plot
 
 def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None, 
-               hlim = None, wlim = None, im_out = None, meta_data = None, 
-               verb = True):
+               hlim = None, wlim = None, blur = True, im_out = None, 
+               meta_data = None, verb = True):
     """This is the dust movie processing computattion subroutine
     
     Among the parameters present, if used as a part of dumpro, 
@@ -64,12 +64,22 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
      Total number of clusters in each frame
     
     """  
-    
+    im_dir = {}
     #dictionary to store information on cluster
     infocluster = {}
-    #setting rate for background removal
+    #setting rate for background removal based on fps from the meta_data
     if rate == None:
-        rate = 0
+        if 'fps' in meta_data:
+            fps = meta_data.get('fps')
+            if fps < 10:
+                rate = 1
+            else:
+                rate = 0
+        else:
+            rate = 0
+    #saving path of original image
+    im_dir['original'] = im_path
+    
     #reshaping images
     if (hlim == None and tlim == None and wlim == None):
         cropped = im_path
@@ -80,25 +90,34 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
                                                        hlim, wlim,
                                                        im_out, 
                                                        verb)
+        im_dir['reshape'] = cropped
     
     #conversion to Grayscale
     gray = conv_gray.conv_gray(cropped, w_dir, shot_name, im_out, verb)
+    im_dir['Grayscale'] = gray
     
     #denoising images
     den_gray = denoise.denoise(gray, w_dir, shot_name, im_out, verb)
+    im_dir['denoise_gry'] = den_gray
     
     #removing background
     back = rm_background.rm_back(den_gray, w_dir,shot_name, rate, im_out, verb)
+    im_dir['Foreground'] = back
     
-    #Smoothing images
-    blur = guassian_blur.blur_img(back, w_dir, shot_name, im_out, verb)
-    
+    if blur == True:
+        #Smoothing images
+        blur = guassian_blur.blur_img(back, w_dir, shot_name, im_out, verb)
+        im_dir['Blurred'] = blur
+    else:
+        blur = back
     #detecting clusters
     clus, center, area, total, angle, indt = cluster_det.det_cluster(blur, w_dir,
                                                                      shot_name, 
                                                                      im_out,
                                                                      verb)
-    
+    im_dir['Clusters'] = clus
+
+    #assigning information to infocluster dictionary
     infocluster['center'] = center
     infocluster['area'] = area
     infocluster['total'] = total
@@ -117,5 +136,5 @@ def dumpro_img(im_path, w_dir, shot_name, rate = None, tlim = None,
     clus_dist = get_distance.get_distance(center, area, total, indt)
     infocluster['distances'] = clus_dist
 
-    return infocluster, reshape
+    return infocluster, reshape, im_dir
 
