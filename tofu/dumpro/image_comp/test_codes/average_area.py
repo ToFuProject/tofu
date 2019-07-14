@@ -45,17 +45,24 @@ def get_area(clus_area, t_cluster, indt, verb = True):
     for tt in range(0, N_frames):
         if indt[tt] == False:
             continue
-        area_array = np.append(area_array, area[tt])
+        area_array = np.append(area_array, clus_area[tt])
     
     #calculating the threshold for deviding array into small and big
-    tolerance = area_array.std/10
-    thresh = area_array.mean()+tolerance
+    tolerance = area_array.std()
+    print('The maximum cluster size is :', area_array.max())
+    print('The minimum cluster size is :', area_array.min())
+    print('The threshold has been set to :', tolerance)
+    thresh = (area_array.mean()+tolerance)/10
     
     for tt in range(0,N_frames):
         if indt[tt] == False:
             continue
         size_frame = np.zeros((t_cluster[tt],))
-        
+        for ii in range(0,t_cluster[tt]):
+            if clus_area[tt][ii] > thresh:
+                size_frame[ii] = 1
+        sizetype.append(size_frame)
+    
     area_small,area_big,t_clus_small,t_clus_big = get_total_area(clus_area,indt,t_cluster)
     #calculating average area
     if t_clus_small != 0:
@@ -67,7 +74,7 @@ def get_area(clus_area, t_cluster, indt, verb = True):
         avg_area_big = area_big/t_clus_big
     else:
         avg_area_big = 0
-    return avg_area, avg_area_big, t_clus_small, t_clus_big
+    return avg_area, avg_area_big, t_clus_small, t_clus_big, sizetype
 
 def get_total_area(area_array, indt, t_cluster):
     a_small = 0

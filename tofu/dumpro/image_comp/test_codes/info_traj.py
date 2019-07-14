@@ -17,10 +17,19 @@ def info_cluster(infocluster):
     avg_big = infocluster.get('avg_area_big')
     clust_dist = infocluster.get('distances')
     
+    frame = 3
+    
     duration = len(t_cluster)
-    for frame in range(0, t_cluster):
+    for frame in range(0, duration):
         if indt[frame] == False:
-            continue
+            if frame <3:
+                for tt in range(frame-3, frame+3):
+                    if indt[tt] == False:
+                        continue
+                    else:
+                        
+        
+        
         
         
         
