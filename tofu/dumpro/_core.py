@@ -58,27 +58,43 @@ class Img_dir(object):
     
     Attributes:
     --------------------------------------------
-    __filename = Path where the images are present
-    __w_dir = Working directory where images can be stored during computation
-    __shot_name = Name of tokomak and the shot number as a single string
-    __meta_data = dictionary containing total frames, fps and frame size.
-    __reshape = dictionary containing the croping and time slicing of the frames
+    __filename     = Path where the images are present
+    __w_dir        = Working directory where images can be stored during 
+                     computation
+    __shot_name    = Name of tokomak and the shot number as a single string
+    __meta_data    = dictionary containing total frames, fps and frame size.
+    __reshape      = dictionary containing the croping and time slicing of the
+                     frames
     __infoclusters = dictionary containing cluster information.
+    
     Setters:
     --------------------------------------------
-    set_shot_name
-    set_meta_data
-    set_reshape
+    set_shot_name = Setter for shotname
+    set_meta_data = Setter for meta_data dictioanry
+    set_reshape   = Setter for reshape dictionary
     
     Getters:
     --------------------------------------------
-    im_dir
-    w_dir
-    shot_name
-    resolution
+    im_dir      = Getter for image path
+    w_dir       = Getter for working directory
+    shot_name   = Getter for shotname
+    resolution  = Getter for frame resolution
+    meta_data   = Getter for meta data dictionary
+    rehsape     = Getter for reshape dictiionary
+    infocluster = Getter for infocluster dicitonary  
     
     Methods:
     --------------------------------------------
+    crop_im        = Reshape image method
+    to_gray        = Grayscale conversion method
+    remove_backgrd = Bcakground removal method
+    denoise_gray   = Grayscale image denoising method
+    denoise_col    = Coloured image denoising method
+    to_bin         = Binary image conversion method
+    play           = Play collaction of images as a Video
+    det_cluster    = Cluster detection method
+    dumpro         = Dust Movie processing method
+    
     """
     
     def __init__(self, filename, w_dir = None):
@@ -135,39 +151,22 @@ class Img_dir(object):
 ####################################################################
 #   setters for attributes
 ####################################################################
-        
+    #defining setter for shotname
     def set_shot_name(self,shot_name):
-        """Setter for shotname
-        Parameter:
-        ----------------------
-        shot_name:            string
-         A string containing the name of the tokomak and the shot number
-         
-        Return
-        ----------------------
-        self.__shot_name:     string
-         The input is assigned to the class attribute
-        """
+        """Setter for shotname"""
         self.__shot_name = shot_name
         
+    #defining setter for meta_data
     def set_meta_data(self, meta_data):
-        """Setter for meta_data
-        Parameter:
-        ----------------------
-        meta_data:            dictionary
-         A dictionary containing the meta_data of the images
-         
-        Return
-        ----------------------
-        self.__meta_data:     dictionary
-         The input is assigned to the class attribute
-        """
+        """Setter for meta_data"""
         self.__meta_data = meta_data
-        
+    
+    #defining setter for infocluster
     def set_infocluster(self, infoclusters):
         """Setter for infocluster dictionary"""
         self.__infocluster = infoclusters
-        
+    
+    #defining setter for reshape
     def set_reshape(self, reshape):
         """Setter for reshape dictionary"""
         self.__reshape = reshape
@@ -175,33 +174,39 @@ class Img_dir(object):
 ####################################################################
 #   getters for attribiutes
 ####################################################################
-
+    #defining getter for im_dir
     @property
     def im_dir(self):
         return self.__im_dir
     
+    #defining getter for w_dir
     @property
     def w_dir(self):
         return self.__w_dir
     
+    #defining getter for shotname
     @property
     def shot_name(self):
         return self.__shot_name
     
+    #define getter for meta_data
     @property
     def meta_data(self):
         return self.__meta_data
     
+    #define getter for resolution
     @property
     def resolution(self):
         height = self.__meta_data.get('frame_height')
         width = self.__meta_data.get('frame_width')
         return height,width
     
+    #define getter for reshape dictionary
     @property
     def reshape(self):
         return self.__reshape
     
+    #define getter for infocluster
     @property
     def infoclusters(self):
         return self.__infocluster
@@ -212,9 +217,9 @@ class Img_dir(object):
     
     def crop_im(self, tlim, height, width, im_out = None, verb = True):
         #cropping the images for faster computation
-        out_path, reshape = _i_comp.reshape_image.reshape_image(self.__im_dir,
-                                                                self.__w_dir,
-                                                                self.__shot_name,
+        out_path, reshape = _i_comp.reshape_image.reshape_image(self.im_dir,
+                                                                self.w_dir,
+                                                                self.shot_name,
                                                                 tlim, height,
                                                                 width, im_out, 
                                                                 verb)
@@ -230,9 +235,9 @@ class Img_dir(object):
     
     def to_gray(self, im_out = None, verb = True):
         #grayscale function
-        out_path = _i_comp.conv_gray.conv_gray(self.__im_dir, 
-                                               self.__w_dir, 
-                                               self.__shot_name, im_out, verb)
+        out_path = _i_comp.conv_gray.conv_gray(self.im_dir, 
+                                               self.w_dir, 
+                                               self.shot_name, im_out, verb)
         return self.__class__(out_path)
     
 ####################################################################
@@ -241,9 +246,9 @@ class Img_dir(object):
     
     def remove_backgrd(self, rate = None, im_out = None, verb = True):
         #background removal
-        out_path = _i_comp.rm_background.rm_back(self.__im_dir,
-                                                 self.__w_dir,
-                                                 self.__shot_name,
+        out_path = _i_comp.rm_background.rm_back(self.im_dir,
+                                                 self.w_dir,
+                                                 self.shot_name,
                                                  rate, im_out,
                                                  verb)
         return self.__class__(out_path)
@@ -254,9 +259,9 @@ class Img_dir(object):
         
     def denoise_gray(self, im_out = None, verb = True):
         #denoising grayscale images
-        out_path = _i_comp.denoise.denoise(self.__im_dir,
-                                           self.__w_dir,
-                                           self.__shot_name,
+        out_path = _i_comp.denoise.denoise(self.im_dir,
+                                           self.w_dir,
+                                           self.shot_name,
                                            im_out, verb)
         return self.__class__(out_path)
     
@@ -266,9 +271,9 @@ class Img_dir(object):
         
     def denoise_col(self, im_out = None, verb = True):
         #denoising coloured images
-        out_path = _i_comp.denoise_col.denoise_col(self.__im_dir,
-                                                   self.__w_dir,
-                                                   self.__shot_name,
+        out_path = _i_comp.denoise_col.denoise_col(self.im_dir,
+                                                   self.w_dir,
+                                                   self.shot_name,
                                                    im_out, verb)
         return self.__class__(out_path)
 
@@ -278,9 +283,9 @@ class Img_dir(object):
         
     def to_bin(self, im_out = None, verb = True):
         #converting to binary images
-        out_path = _i_comp.to_binary.bin_thresh(self.__im_dir,
-                                                self.__w_dir,
-                                                self.__shot_name,
+        out_path = _i_comp.to_binary.bin_thresh(self.im_dir,
+                                                self.w_dir,
+                                                self.shot_name,
                                                 im_out, verb)
         return self.__class__(out_path)
 
@@ -298,32 +303,36 @@ class Img_dir(object):
         
     def det_cluster(self, im_out = None, verb = True):
         #cluster detection subroutine        
-        out_path, centers, area, total, angle, indt = _i_comp.cluster_det.det_cluster(self.__im_dir,
-                                                                                      self.__w_dir,
-                                                                                      self.__shot_name,
+        out_path, centers, area, total, angle, indt = _i_comp.cluster_det.det_cluster(self.im_dir,
+                                                                                      self.w_dir,
+                                                                                      self.shot_name,
                                                                                       im_out, verb)
-        self.__infocluster['center'] =  centers
-        self.__infocluster['area'] =  area
-        self.__infocluster['total'] =  total
-        self.__infocluster['angle'] =  angle
-        self.__infocluster['indt'] =  indt
+        infocluster = {}
+        infocluster['center'] =  centers
+        infocluster['area'] =  area
+        infocluster['total'] =  total
+        infocluster['angle'] =  angle
+        infocluster['indt'] =  indt
+        #setting infocluster dictionary
+        self.set_infocluster(infocluster)
         return out_path
         
 #####################################################################
 #   dumpro
 #####################################################################        
         
-    def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None,
+    def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None, blur = True,
                im_out = None, verb = True):
         #performing DUMPRO 
-        infocluster, reshape = _i_comp.dumpro_img.dumpro_img(self.__im_dir, 
-                                                             self.__w_dir,
-                                                             self.__shot_name, 
-                                                             rate, tlim, 
-                                                             hlim, wlim,
-                                                             im_out, verb)
+        infocluster, reshape, im_col = _i_comp.dumpro_img.dumpro_img(self.im_dir, 
+                                                                     self.w_dir,
+                                                                     self.shot_name, 
+                                                                     rate, tlim, 
+                                                                     hlim, wlim, blur,
+                                                                     im_out, verb)
         self.set_infocluster(infocluster)
         self.set_reshape(reshape)
+        
         
         
         
@@ -356,34 +365,43 @@ class Video(object):
     
     Attributes:
     --------------------------------------------
-    __filename = Path of the file along with its name and extension
-    __w_dir = A path to a working directory for storage during processing
-    __frame_width = width of the video
+    __filename     = Path of the file along with its name and extension
+    __w_dir        = A path to a working directory for storage during 
+                     processing
+    __frame_width  = width of the video
     __frame_height = height of the video
-    __video_time = time length of the video
-    __N_frames =  total number of frames in the video
-    __fps = number of frames per second 
-    __meta_data = dictionary containing total frames, fps and frame size of video
-    __reshape = dictionary containing the croping and time slicing of the video
-    __infocluster = dictionary contaning information on the clusters
+    __video_time   = time length of the video
+    __N_frames     =  total number of frames in the video
+    __fps          = number of frames per second 
+    __meta_data    = dictionary containing total frames, fps and frame size of
+                     video
+    __reshape      = dictionary containing the croping and time slicing of the
+                     video
+    __infocluster  = dictionary contaning information on the clusters
 
     Setters:
     --------------------------------------------
-    set_w_dir
+    set_w_dir       = Sets value for w_dir attribute
+    set_reshape     = Sets value for reshape dictionary attribute
+    set_infocluster = Sets value for infocluster dictionary attribute
     
     Getters:
     --------------------------------------------
-    filename
-    resolution
-    N_frames
-    fps
-    fourcc
-    w_dir
-    meta_data
+    filename    = Returns the path of the video
+    shotname    = Returns the shotname of the video
+    resolution  = Returns the resolution of the video
+    N_frames    = Returns the total number of frames of the video 
+    fps         = Returns the frames per second of the video
+    fourcc      = Returns the four character code of the video
+    w_dir       = Returns the working directory of the video
+    meta_data   = Returns the meta data of the video
+    infocluster = Returns the infocluster dictionary of the video
+    reshape     = Returns the rehsape dictionary of the video
     
     Methods:
     --------------------------------------------
     grayscale
+    
     
     """
 
@@ -449,34 +467,36 @@ class Video(object):
         self.__reshape = {}
     
 ##############################################################################
-#   setter for Working Directory
+#   setters for class attributes
 ##############################################################################
  
-    def set_w_dir(self):
-        """getter function for Working Directory"""
-        message = 'Please provide a working directory where files can be stored '
-        message += 'while image processing is being done...\n'
-        message += 'Note:- Please create a separate directory for each video :'
+    def set_w_dir(self, w_dir):
+        """Setter function for Working Directory"""
         #getting user input
-        self.__w_dir = input(message)
+        self.__w_dir = w_dir
     
     def set_reshape(self, reshape):
+        """Setters for reshape dictionary"""
         self.__reshape = reshape
         
     def set_infocluster(self, infocluster):
+        """Setter for infocluster dictionary"""
         self.__infocluster = infocluster
 
 #############################################################################
 #     Getters for the class attributes
 #############################################################################
         
+    #defining a getter for the path of the video file
     @property
     def filename(self):
         """Returns the path containing the video"""
         return self.__filename
     
+    #defining a getter for the shot nomenclature information
     @property
     def shotname(self):
+        """Returns the shotname of the video"""
         return self.__shot_name
     
     
@@ -486,7 +506,7 @@ class Video(object):
         #getting width and height
         width = self.__frame_width
         height = self.__frame_height
-        return (width,height)
+        return (height, width)
     
     #defining a getter for the total number of frames in the video
     @property
@@ -506,26 +526,34 @@ class Video(object):
         """ Returns the four character code of the video"""
         return self.__fourcc
     
+    #defining a getter for working directory
     @property
     def w_dir(self):
         """Returns the working directory"""
         return self.__w_dir
     
+    #defining a getter for meta_data dictionary
     @property
     def meta_data(self):
         """Returns the metadata of the videofile"""
         return self.__meta_data
     
+    #defning a getter for infocluster dictioanry
     @property
     def infocluster(self):
         """Returns the infocluster dictionary"""
         return self.__infocluster
     
+    #defining a getter for reshape dictionary
+    @property
+    def reshape(self):
+        """Returns the reshape dictionary"""
+        return self.__reshape
+    
 #############################################################################
 #   Grayscale conversion method
 #############################################################################
         
-    #defining a method for grayscale conversion
     def grayscale(self, output_name = None, output_type = None, verb = True):
 
         #gray will contain the video path and meta_data will contain the 
@@ -654,11 +682,10 @@ Video.playvideo.__doc__ = _plot.playvideo.play_video.__doc__
 #####################################################################
 
 class Vid_img(Video):
-    """This is a derived class from both video class and img_dir class.
-    This is an intermediate approach, between working completely with videos
-    and completely with images.
-    This class was maily created beacause it follows a more computationally 
-    robust way of detecting dust particles.
+    """This is a derived class from Video class. This is an intermediate 
+    approach, between working completely with videos and completely with
+    images. This class was maily created beacause it follows a more 
+    computationally robust way of detecting dust particles.
     
     Input:
     --------------------------------------------
@@ -666,58 +693,111 @@ class Vid_img(Video):
     
     Attributes:
     --------------------------------------------
-    __filename = Path of the file along with its name and extension
-    __w_dir = A path to a working directory for storage during processing
-    __frame_width = width of the video
-    __frame_height = height of the video
-    __video_time = time length of the video
-    __N_frames =  total number of frames in the video
-    __fps = number of frames per second 
-    meta_data = dictionary containing total frames, fps and frame size of video
-    reshape = dictionary containing the croping and time slicing of the video
-
+    __filename     = Path of the file along with its name and extension
+    __w_dir        = A path to a working directory for storage during
+                     processing
+    __shot_name    = Information on the shot being processed
+    __im_dir       = Dictionary containing path of images created during 
+                     preprocessing 
+    __frame_width  = Width of the video
+    __frame_height = Height of the video
+    __N_frames     =  Total number of frames in the video
+    __fps          = Number of frames per second 
+    __fourcc       = The four character code of the video
+    __meta_data    = Dictionary containing total frames, fps and frame size 
+                     of video
+    __reshape      = Dictionary containing the croping and time slicing 
+                     of the video
+    __infocluster  = Dictionary containing all the information regarding 
+                     clusters
+    
     Setters:
     --------------------------------------------
-    set_w_dir_shotname
-    set_w_dir
+    set_w_dir       = Sets value for w_dir attribute
+    set_reshape     = Sets value for reshape dictionary attribute
+    set_infocluster = Sets value for infocluster dictionary attribute
+    set_im_dir      = Setter for Image directory dictionary
     
     Getters:
     --------------------------------------------
-    filename
-    resolution
-    N_frames
-    fps
-    fourcc
-    w_dir
-    meta_data
+    filename    = Returns the path of the video
+    shotname    = Returns the shotname of the video
+    resolution  = Returns the resolution of the video
+    N_frames    = Returns the total number of frames of the video 
+    fps         = Returns the frames per second of the video
+    fourcc      = Returns the four character code of the video
+    w_dir       = Returns the working directory of the video
+    meta_data   = Returns the meta data of the video
+    infocluster = Returns the infocluster dictionary of the video
+    reshape     = Returns the rehsape dictionary of the video
     
     Methods:
     --------------------------------------------
-    
     """
+    
     def __init__(self, filename, w_dir = None, verb = True):
-         Video.__init__(self, filename, w_dir, verb)
-         self.__shot_name = None
-         self.__im_dir = None      
+        """defining the init from Video class. The only new parameter is the 
+        dictionary im_dir"""
+        Video.__init__(self, filename, w_dir, verb)
+        self.__im_dir = {}
+    
+#############################################################################
+#     Getters for the class attributes
+#############################################################################
+    #setter for im_dir dictionary
+    def set_im_dir(self, imdir):
+        """Setter for im_dir dictionary"""
+        self.__im_dir = imdir
         
-    def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None,
-               im_out = None, verb = True):
+#############################################################################
+#     Getters for the class attributes
+#############################################################################
+    #getter for im_dir dictionary
+    def imdir(self):
+        """Returns im_dir dictionary"""
+        return self.__im_dir
+
+#############################################################################
+#     Video to image converter method
+#############################################################################
+    def vid2img(self):
+        return None
+    
+    #dumpro
+    def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None, 
+               blur = True, im_out = None, verb = True):
         
-        infoclusters, reshape = _i_comp.dumpro_vid.dumpro_vid(self.filename,
-                                                              self.w_dir,
-                                                              self.shotname,
-                                                              rate, tlim, hlim,
-                                                              wlim, im_out, 
-                                                              self.meta_data,
-                                                              verb)
+        infoclus, reshp, im_dir = _i_comp.dumpro_vid.dumpro_vid(self.filename,
+                                                                self.w_dir,
+                                                                self.shotname,
+                                                                rate, tlim,
+                                                                hlim, wlim, 
+                                                                blur, im_out, 
+                                                                self.meta_data,
+                                                                verb)
         #setting infocluster dictionary
-        self.set_infocluster(infoclusters)
-        self.set_reshape(reshape)
+        self.set_infocluster(infoclus)
+        #setting reshape dictionary
+        self.set_reshape(reshp)
+        #setting image dicrectories dictionary
+        self.set_im_dir(im_dir)
+        
+        area = self.infocluster.get('area')
+        t_clus = self.infocluster.get('total')
+        indt = self.infocluster.get('indt')
+        _plot.area_distrib.get_distrib(area, indt, t_clus, self.w_dir, 
+                                       self.shotname)
+        _plot.area_distrib.get_frame_distrib(area, indt, self.w_dir, 
+                                             self.shotname)
         
         return None
     
+    def play_im(self):
+        #play images as a video
+        _plot.playimages.play_img(self.__im_dir)
 
 Vid_img.dumpro.__doc__ = _i_comp.dumpro_vid.dumpro_vid.__doc__
+Vid_img.play_im.__doc__ = _plot.playimages.play_img.__doc__
         
 
 
