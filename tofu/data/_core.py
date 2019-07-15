@@ -1886,7 +1886,7 @@ class DataAbstract(utils.ToFuObject):
             raise Exception(msg)
 
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
-        data = chronos[:,modes] @ (s[None,modes] @ topos[modes,:])
+        data = chronos[:,modes] @ (s[modes,None] * topos[modes,:])
         if out is object:
             data = self.__class__(data=data, t=self.t, X=self.X,
                                   lCam=self.lCam, config=self.config,
