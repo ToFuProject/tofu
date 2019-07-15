@@ -964,7 +964,8 @@ class MultiIDSLoader(object):
 
         docc = {}
         for ii in range(0,len(llids)):
-            docc[ii] = {}
+            docc[ii] = {jj:{'oc':None, 'indok':None}
+                        for jj in range(0,len(llids[ii][1]))}
             for jj in range(0,len(llids[ii][1])):
                 ids = llids[ii][1][jj]
                 occref = self._dids[ids]['occ']
@@ -973,7 +974,9 @@ class MultiIDSLoader(object):
                 else:
                     oc = np.unique(np.r_[occ].astype(int))
                     oc = np.intersect1(oc, occref)
-                docc[ii][jj] = oc
+                docc[ii][jj]['oc'] = oc
+                docc[ii][jj]['indoc'] = np.array([(occref==oc[ll]).nonzero()[0][0]
+                                                  for ll in range(0,len(oc))])
                 if verb:
                     msg = [ids, str(oc)]
                     if jj == 0:
@@ -992,9 +995,8 @@ class MultiIDSLoader(object):
         for ii in range(0,len(llids)):
             for jj in range(0,len(llids[ii][1])):
                 ids = llids[ii][1][jj]
-                occref = self._dids[ids]['occ']
-                indoc = np.array([np.nonzero(occref==docc[ii][jj][ll])[0][0]
-                                  for ll in range(0,len(docc[ii][jj]))]).ravel()
+                oc = docc[ii][jj]['oc']
+                indoc = docc[ii][jj]['indoc']
 
                 # if ids not provided
                 if self._dids[ids]['ids'] is None:
@@ -1329,7 +1331,8 @@ class MultiIDSLoader(object):
             occ = self._dids[ids]['occ'][0]
         else:
             assert occ in self._dids[ids]['occ']
-        return self._dids[ids]['ids'][occ]
+        indoc = np.where(self._dids[ids]['occ'] == occ)[0][0]
+        return self._dids[ids]['ids'][indoc]
 
 
     #---------------------
@@ -1739,19 +1742,21 @@ class MultiIDSLoader(object):
 
         # occ = np.ndarray of valid int
         occ = self._checkformat_getdata_occ(occ, ids)
+        indoc = np.where(self._dids[ids]['occ'] == occ)[0]
 
         # Check all occ have isget = True
-        indok = self._dids[ids]['isget'][occ]
+        indok = self._dids[ids]['isget'][indoc]
         if not np.all(indok):
             msg = "All desired occurences shall have been gotten !\n"
-            msg += "    - occ:   %s\n"%str(occ)
+            msg += "    - desired occ:   %s\n"%str(occ)
+            msg += "    - available occ:   %s\n"%str(self._dids[ids]['occ'])
             msg += "    - isget: %s\n"%str(self._dids[ids]['isget'])
             msg += "  => Try running self.open_get_close()"
             raise Exception(msg)
 
         # check indch if ids has channels
-        if hasattr(self._dids[ids]['ids'][occ[0]], 'channel'):
-            nch = len(getattr(self._dids[ids]['ids'][occ[0]], 'channel'))
+        if hasattr(self._dids[ids]['ids'][indoc[0]], 'channel'):
+            nch = len(getattr(self._dids[ids]['ids'][indoc[0]], 'channel'))
             indch = self._checkformat_getdata_indch(indch, nch)
 
         # ------------------
@@ -2793,6 +2798,12 @@ class MultiIDSLoader(object):
             if fallback_X is None:
                 fallback_X = 1.1*np.nanmax(dins['X'])
             dins['X'][np.isnan(dins['X'])] = fallback_X
+
+
+        # Apply indt if was not done in get_data
+        for kk,vv in dins.items():
+            if (vv.ndim == 2 or kk == 't') and vv.shape[0] > indt.size:
+                dins[kk] = vv[indt,...]
 
         # dlabels
         dins['dlabels'] = dict.fromkeys(lk)

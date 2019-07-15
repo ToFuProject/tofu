@@ -1322,11 +1322,17 @@ class DataAbstract(utils.ToFuObject):
             (nt, nch), nlamb = d.shape, 0
         else:
             nt, nch, nlamb = d.shape
-        assert d.ndim in [2,3]
-        assert t.shape==(nt,)
-        assert X.shape==(nnch, nch)
+        lc = [d.ndim in [2,3], t.shape == (nt,), X.shape == (nnch, nch)]
+        if not all(lc):
+            msg = "Data, X, t shape unconsistency:\n"
+            msg += "    - data.shape: %s\n"%str(d.shape)
+            msg += "    - X.shape:     %s\n"%str(X.shape)
+            msg += "    - (nnch, nch): %s\n"%str((nnch,nch))
+            msg += "    - t.shape: %s\n"%str(t.shape)
+            msg += "    - nt :     %s"%str(nt)
+            raise Exception(msg)
         if lamb is not None:
-            assert lamb.shape==(self._ddataRef['nnlamb'], nlamb)
+            assert lamb.shape == (self._ddataRef['nnlamb'], nlamb)
 
         lout = [d, t, X, lamb, nt, nch, nlamb,
                 indtX, indtlamb, indXlamb, indtXlamb, nnch]
@@ -1851,7 +1857,44 @@ class DataAbstract(utils.ToFuObject):
             msg = "svd not implemented yet for spectral data class"
             raise Exception(msg)
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
-        return u, s, v
+        return chronos, s, topos
+
+
+    def extract_svd(self, modes=None, lapack_driver='gesdd', out=object):
+        """ Extract, as Data object, the filtered signal using selected modes
+
+        The svd (chronos, s, topos) is computed,
+        The selected modes are used to re-construct a filtered signal, using:
+            data = chronos[:,modes] @ (s[None,modes] @ topos[modes,:]
+
+        The result is exported a an array or a Data object on the same class
+        """
+        if self._isSpectral():
+            msg = "svd not implemented yet for spectral data class"
+            raise Exception(msg)
+        msg = None
+        if modes is not None:
+            try:
+                modes = np.r_[modes].astype(int)
+            except Exception as err:
+                msg = str(err)
+        else:
+            msg = "Arg mode cannot be None !"
+        if msg is not None:
+            msg += "\n\nArg modes must a positive int or a list of such!\n"
+            msg += "    - Provided: %s"%str(modes)
+            raise Exception(msg)
+
+        chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+        data = chronos[:,modes] @ (s[None,modes] @ topos[modes,:])
+        if out is object:
+            data = self.__class__(data=data, t=self.t, X=self.X,
+                                  lCam=self.lCam, config=self.config,
+                                  Exp=self.Id.Exp, Diag=self.Id.Diag,
+                                  shot=self.Id.shot,
+                                  Name=self.Id.Name + '-svd%s'%str(modes))
+        return data
+
 
     def plot_svd(self, lapack_driver='gesdd', modes=None, key=None, bck=True,
                  Lplot='In', cmap=None, vmin=None, vmax=None,
