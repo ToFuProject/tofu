@@ -199,22 +199,32 @@ class MultiIDSLoader(object):
                'lh_antennas':
                {'t':{'str':'antenna[chan].power_launched.time'},
                 'power0':{'str':'antenna[0].power_launched.data',
-                          'dim':'power', 'quant':'heating power', 'units':'W'},
+                          'dim':'power', 'quant':'lh power', 'units':'W',
+                          'pos':True},
                 'power1':{'str':'antenna[1].power_launched.data',
-                         'dim':'power', 'quant':'heating power', 'units':'W'},
+                          'dim':'power', 'quant':'lh power', 'units':'W',
+                          'pos':True},
                 'power':{'str':'antenna[chan].power_launched.data',
-                         'dim':'power', 'quant':'heating power', 'units':'W'},
+                         'dim':'power', 'quant':'lh power', 'units':'W',
+                         'pos':True},
                 'R':{'str':'antenna[chan].position.r.data',
                      'dim':'distance', 'quant':'R', 'units':'m'}},
 
                'ic_antennas':
-               {'t':{'str':'antenna[chan].power_launched.time'},
-                'power0':{'str':'antenna[0].power_launched.data',
-                          'dim':'power', 'quant':'heating power', 'units':'W'},
-                'power1':{'str':'antenna[1].power_launched.data',
-                          'dim':'power', 'quant':'heating power', 'units':'W'},
-                'power':{'str':'antenna[chan].power_launched.data',
-                         'dim':'power', 'quant':'heating power', 'units':'W'}},
+               {'t':{'str':'antenna[chan].module[0].power_forward.time'},
+                'power0mod_fwd':{'str':'antenna[0].module[].power_forward.data',
+                                 'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power0mod_reflect':{'str':'antenna[0].module[].power_reflected.data',
+                                     'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power1mod_fwd':{'str':'antenna[1].module[].power_forward.data',
+                                 'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power1mod_reflect':{'str':'antenna[1].module[].power_reflected.data',
+                                     'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power2mod_fwd':{'str':'antenna[2].module[].power_forward.data',
+                                 'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power2mod_reflect':{'str':'antenna[2].module[].power_reflected.data',
+                                     'dim':'power', 'quant':'ic power', 'units':'W'},
+               },
 
                'magnetics':
                {'t':{'str':'time'},
@@ -399,6 +409,7 @@ class MultiIDSLoader(object):
     _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
     _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
     _add = lambda a0, a1: a0 + a1
+    _icmod = lambda al, ar, axis=0: np.sum(al - ar, axis=axis)
     _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
     def _eqSep(sepR, sepZ, npts=100):
         nt = len(sepR)
@@ -448,6 +459,14 @@ class MultiIDSLoader(object):
              {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func':_RZ2array},
               'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func':_RZ2array}},
 
+            'ic_antennas':
+             {'power0': {'lstr':['power0mod_fwd', 'power0mod_reflect'],
+                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
+              'power1': {'lstr':['power1mod_fwd', 'power1mod_reflect'],
+                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
+              'power2': {'lstr':['power2mod_fwd', 'power2mod_reflect'],
+                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True}},
+
              'ece':
              {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
                             'units':'adim.'}}
@@ -475,6 +494,9 @@ class MultiIDSLoader(object):
                                    'x0R','x0Z','x1R','x1Z',
                                    'strike0R','strike0Z', 'strike1R','strike1Z']
     _dall_except['magnetics'] = ['bpol_R', 'bpol_Z', 'floop_R', 'floop_Z']
+    _dall_except['ic_antennas'] = ['power0mod_launched', 'power0mod_reflected',
+                                   'power1mod_launched', 'power1mod_reflected',
+                                   'power2mod_launched', 'power2mod_reflected']
 
 
     # Preset
@@ -1683,7 +1705,7 @@ class MultiIDSLoader(object):
                 self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
 
     def _get_data(self, ids, sig, occ, comp=False, indt=None, indch=None,
-                  stack=True, isclose=True, flatocc=True, nan=True):
+                  stack=True, isclose=True, flatocc=True, nan=True, pos=None):
 
         # get list of results for occ
         occref = self._dids[ids]['occ']
@@ -1694,16 +1716,20 @@ class MultiIDSLoader(object):
             kargs = self._dcomp[ids][sig].get('kargs', {})
             ddata = self.get_data(ids=ids, sig=lstr,
                                   occ=occ, indch=indch, indt=indt,
-                                  stack=stack, flatocc=False, nan=nan)
+                                  stack=stack, flatocc=False, nan=nan, pos=pos)
             out = [self._dcomp[ids][sig]['func']( *[ddata[kk][nn]
                                                    for kk in lstr], **kargs )
                    for nn in range(0,nocc)]
+            if pos is None:
+                pos = self._dcomp[ids][sig].get('pos', False)
 
         else:
             out = [self._dshort[ids][sig]['fsig']( self._dids[ids]['ids'][ii],
                                                   indt=indt, indch=indch,
                                                   stack=stack )
                    for ii in indoc]
+            if pos is None:
+                pos = self._dshort[ids][sig].get('pos', False)
 
         if isclose:
             for ii in range(0,len(out)):
@@ -1717,13 +1743,19 @@ class MultiIDSLoader(object):
                 if type(out[ii]) is np.ndarray and out[ii].dtype == np.float:
                     out[ii][np.abs(out[ii]) > 1.e30] = np.nan
 
+        if pos == True:
+            for ii in range(0,len(out)):
+                if type(out[ii]) is np.ndarray:
+                    out[ii][out[ii] < 0] = np.nan
+
+
         if nocc == 1 and flatocc:
             out = out[0]
         return out
 
     def get_data(self, ids=None, sig=None, occ=None,
                  indch=None, indt=None, stack=True,
-                 isclose=None, flatocc=True, nan=True):
+                 isclose=None, flatocc=True, nan=True, pos=None):
         """ Return a dict of the desired signals extracted from specified ids
 
         If the ids has a field 'channel', indch is used to specify from which
@@ -1772,7 +1804,8 @@ class MultiIDSLoader(object):
                 dout[sig[ii]] = self._get_data(ids, sig[ii], occ, comp=comp[ii],
                                                indt=indt, indch=indch,
                                                stack=stack, isclose=isclose_,
-                                               flatocc=flatocc, nan=nan)
+                                               flatocc=flatocc, nan=nan,
+                                               pos=pos)
             except Exception as err:
                 msg = '\n' + str(err) + '\n'
                 msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
@@ -1781,7 +1814,7 @@ class MultiIDSLoader(object):
         return dout
 
     def get_data_all(self, dsig=None, stack=True,
-                     isclose=None, flatocc=True, nan=True):
+                     isclose=None, flatocc=True, nan=True, pos=None):
 
         # dsig
         if dsig is None:
@@ -1805,7 +1838,7 @@ class MultiIDSLoader(object):
             try:
                 dout[ids] = self.get_data(ids, sig=dsig[ids], stack=stack,
                                           isclose=isclose, flatocc=flatocc,
-                                          nan=nan)
+                                          nan=nan, pos=pos)
             except Exception as err:
                 msg = "Could not get data from %s"%ids
                 warnings.warn(msg)
@@ -2119,7 +2152,7 @@ class MultiIDSLoader(object):
              indfaces[indclock,2]) = indfaces[indclock,2], indfaces[indclock,1]
         return indfaces, meshtype, ntri
 
-    def _get_dextra(self, dextra=None, fordata=False, nan=True):
+    def _get_dextra(self, dextra=None, fordata=False, nan=True, pos=None):
         lc = [dextra == False, dextra is None,
               type(dextra) is str, type(dextra) is list, type(dextra) is dict]
         assert any(lc)
@@ -2144,7 +2177,8 @@ class MultiIDSLoader(object):
                                                ('power1',(1.,0.,0.)),'t']})
             if 'ic_antennas' in self._dids.keys():
                 dextra.update({'ic_antennas': [('power0',(0.,0.,0.8)),
-                                               ('power1',(0.,0.,1.)),'t']})
+                                               ('power1',(0.,0.,1.)),
+                                               ('power2',(0.,0.,0.9)),'t']})
         if type(dextra) is str:
             dextra = [dextra]
         if type(dextra) is list:
@@ -2173,7 +2207,7 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan)
+                out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
                 inds = [ii for ii in range(0,len(vs)) if vs[ii] in out.keys()]
                 for ii in inds:
                     ss = vs[ii]
@@ -2206,7 +2240,7 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan)
+                out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
                 keyt = '%s.t'%ids
                 any_ = False
                 for ss in out.keys():
@@ -2240,7 +2274,7 @@ class MultiIDSLoader(object):
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None,
                     Name=None, occ=None, config=None, out=object,
                     plot=None, plot_sig=None, plot_X=None,
-                    bck=True, dextra=None, nan=True):
+                    bck=True, dextra=None, nan=True, pos=None):
 
         # dsig
         dsig = self._checkformat_Plasma2D_dsig(dsig)
@@ -2322,7 +2356,7 @@ class MultiIDSLoader(object):
 
             # d1d and dradius
             lsig = [k for k in dsig[ids] if '1d' in k]
-            out_ = self.get_data(ids, lsig, indt=indt, nan=nan)
+            out_ = self.get_data(ids, lsig, indt=indt, nan=nan, pos=pos)
             if len(out_) > 0:
                 nref, kref = None, None
                 for ss in out_.keys():
@@ -2379,7 +2413,7 @@ class MultiIDSLoader(object):
             # d2d and dmesh
             lsig = [k for k in dsig[ids] if '2d' in k]
             lsigmesh = ['2dmeshNodes','2dmeshFaces']
-            out_ = self.get_data(ids, sig=lsig, indt=indt, nan=nan)
+            out_ = self.get_data(ids, sig=lsig, indt=indt, nan=nan, pos=pos)
 
             lc = [len(out_) > 0, all([ss in out_.keys() for ss in lsigmesh])]
             if all(lc):
@@ -2485,7 +2519,7 @@ class MultiIDSLoader(object):
 
 
     def to_Cam(self, ids=None, indch=None,
-               Name=None, occ=None, config=None, plot=True, nan=True):
+               Name=None, occ=None, config=None, plot=True, nan=True, pos=None):
 
         # dsig
         geom = self._checkformat_Cam_geom(ids)
@@ -2522,7 +2556,8 @@ class MultiIDSLoader(object):
             lkok = set(self._dshort[ids].keys())
             lkok = lkok.union(self._dcomp[ids].keys())
             lk = set(lk).intersection(lkok)
-            out = self.get_data(ids, sig=list(lk), indch=indch, nan=nan)
+            out = self.get_data(ids, sig=list(lk), indch=indch, nan=nan,
+                                pos=pos)
             if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
                 oo = out['los_ptsRZPhi']
                 D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
@@ -2615,7 +2650,7 @@ class MultiIDSLoader(object):
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
                 indch=None, indch_auto=False, Name=None, occ=None, config=None,
                 dextra=None, t0=None, datacls=None, geomcls=None,
-                plot=True, bck=True, fallback_X=None, nan=True):
+                plot=True, bck=True, fallback_X=None, nan=True, pos=None):
 
         # dsig
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
@@ -2659,7 +2694,8 @@ class MultiIDSLoader(object):
                 lkok = set(self._dshort[ids].keys())
                 lkok = lkok.union(self._dcomp[ids].keys())
                 lk = set(lk).intersection(lkok)
-                out = self.get_data(ids, sig=list(lk), indch=indch, nan=nan)
+                out = self.get_data(ids, sig=list(lk), indch=indch, nan=nani,
+                                    pos=pos)
                 if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
                     oo = out['los_ptsRZPhi']
                     D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
@@ -2727,7 +2763,7 @@ class MultiIDSLoader(object):
 
 
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                            indt=indt, indch=indch, nan=nan)
+                            indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
             if not isinstance(out[dsig[kk]], np.ndarray):
                 if indch_auto and indch is None:
@@ -2738,7 +2774,8 @@ class MultiIDSLoader(object):
                     indch = [ii for ii in range(0,len(out[dsig[kk]]))
                              if ls[ii] == su]
                     out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                                        indt=indt, indch=indch, nan=nan)
+                                        indt=indt, indch=indch, nan=nan,
+                                        pos=pos)
                     if cam is not None:
                         cam = cam.get_subset(indch=indch)
                     msg = "indch set automatically for %s\n"%ids
@@ -2792,9 +2829,9 @@ class MultiIDSLoader(object):
 
         if 'validity_timed' in self._dshort[ids].keys():
             inan = self.get_data(ids, sig='validity_timed',
-                                 indt=indt, indch=indch, nan=nan)['validity_timed'].T<0.
+                                 indt=indt, indch=indch, nan=nan, pos=pos)['validity_timed'].T<0.
             dins['data'][inan] = np.nan
-        if np.any(np.isnan(dins['X'])):
+        if 'X' in dins.keys() and np.any(np.isnan(dins['X'])):
             if fallback_X is None:
                 fallback_X = 1.1*np.nanmax(dins['X'])
             dins['X'][np.isnan(dins['X'])] = fallback_X
