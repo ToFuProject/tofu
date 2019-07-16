@@ -428,6 +428,19 @@ cdef inline void middle_rule_abs_1(int num_los, double resol,
                                      &ind_cum[ii])
     return
 
+cdef inline void middle_rule_abs_2_single(long num_raf,
+                                          double loc_x,
+                                          double loc_resol,
+                                          double* los_coeffs) nogil:
+    # Middle quadrature rule with absolute resolution step
+    # for one LOS
+    # First step of the function, this function should be called
+    # before middle_rule_abs_2, this function computes the coeffs
+    cdef Py_ssize_t jj
+
+    for jj in prange(num_raf):
+        los_coeffs[jj] = loc_x + (0.5 + jj) * loc_resol
+    return
 
 cdef inline void middle_rule_abs_2(int num_los,
                                    double* los_lims_x,
@@ -439,10 +452,9 @@ cdef inline void middle_rule_abs_2(int num_los,
     # for SEVERAL LOS
     # First step of the function, this function should be called
     # before middle_rule_abs_2, this function computes the coeffs
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef long num_raf
     cdef long first_index
-    cdef double seg_length
     cdef double loc_resol
     cdef double loc_x
     # filling tab......
@@ -456,9 +468,8 @@ cdef inline void middle_rule_abs_2(int num_los,
         loc_resol = los_resolution[ii]
         loc_x = los_lims_x[ii]
         with nogil, parallel(num_threads=num_threads):
-            for jj in prange(num_raf):
-                los_coeffs[first_index + jj] = loc_x \
-                  + (0.5 + jj) * loc_resol
+            middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
+                                     &los_coeffs[first_index])
     return
 
 
