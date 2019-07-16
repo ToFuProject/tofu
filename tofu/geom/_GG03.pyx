@@ -3318,7 +3318,7 @@ def LOS_calc_signal2(func, double[:,::1] Ds, double[:,::1] us, dL,
     if minimize == 'calls':
         # Discretize all LOS
         k, reseff, ind = LOS_get_sample(Ds, us, dL, DLs,
-                                        dmethod=resMode, method=method,
+                                        dmethod=dmethod, method=method,
                                         num_threads=num_threads, Test=Test)
         nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[-1]]
 

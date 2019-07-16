@@ -4484,7 +4484,7 @@ class Rays(utils.ToFuObject):
     def _calc_signal_postformat(self, sig, Brightness=True, dataname=None, t=None,
                                 E=None, units=None, plot=True,
                                 fs=None, dmargin=None, wintit=None, invert=True,
-                                draw=True, connect=True):
+                                draw=True, connect=True, out=object):
         if Brightness is False:
             if dataname is None:
                 dataname = r"LOS-integral x Etendue"
@@ -4561,7 +4561,7 @@ class Rays(utils.ToFuObject):
         """
 
         # Format input
-        sig, indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, Dl=DL, out=out,
+        sig, indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, DL=DL, out=out,
                                                              Brightness=Brightness)
 
         if Ds is None:
