@@ -473,6 +473,18 @@ cdef inline void middle_rule_abs_2(int num_los,
     return
 
 
+cdef inline void middle_rule_abs_var_single(int num_raf,
+                                            double loc_resol,
+                                            double los_lims_x,
+                                            double* los_coeffs) nogil:
+    # Middle quadrature rule with absolute variable resolution step
+    # for one LOS
+    cdef Py_ssize_t jj
+    # ...
+    for jj in prange(num_raf):
+        los_coeffs[jj] = los_lims_x + (0.5 + jj) * loc_resol
+    return
+
 cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
                                      double* los_lims_x,
                                      double* los_lims_y,
@@ -482,7 +494,7 @@ cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
                                      int num_threads) nogil:
     # Middle quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int num_raf
     cdef int first_index
     cdef double loc_resol
@@ -503,9 +515,9 @@ cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
                 los_ind[ii] = num_raf + first_index
                 los_coeffs[0] = <double*>realloc(los_coeffs[0],
                                               los_ind[ii] * sizeof(double))
-            for jj in prange(num_raf):
-                los_coeffs[0][first_index + jj] = los_lims_x[ii] \
-                                                  + (0.5 + jj) * loc_resol
+            middle_rule_abs_var_single(num_raf,
+                                       loc_resol,
+                                       los_lims_x[ii], &los_coeffs[0][first_index])
     return
 
 cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
