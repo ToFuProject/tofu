@@ -607,6 +607,19 @@ cdef inline void left_rule_rel(int num_los, int num_raf,
                                  &los_coeffs[first_index])
     return
 
+cdef inline void simps_left_rule_abs_single(int num_raf,
+                                            double loc_resol,
+                                            double los_lims_x,
+                                            double* los_coeffs) nogil:
+    # Simpson left quadrature rule with absolute resolution step
+    # for one LOS
+    cdef Py_ssize_t jj
+    # ...
+    for jj in prange(num_raf + 1):
+        los_coeffs[jj] = los_lims_x + jj * loc_resol
+    return
+
+
 cdef inline void simps_left_rule_abs(int num_los, double resol,
                                      double* los_lims_x,
                                      double* los_lims_y,
@@ -639,10 +652,10 @@ cdef inline void simps_left_rule_abs(int num_los, double resol,
                 los_ind[ii] = num_raf +  1 + first_index
                 los_coeffs[0] = <double*>realloc(los_coeffs[0],
                                                  los_ind[ii] * sizeof(double))
-            for jj in prange(num_raf + 1):
-                los_coeffs[0][first_index + jj] = los_lims_x[ii] \
-                  + jj * loc_resol
+            simps_left_rule_abs_single(num_raf, loc_resol, los_lims_x[ii],
+                                       &los_coeffs[0][first_index])
     return
+
 
 cdef inline void romb_left_rule_abs(int num_los, double resol,
                                     double* los_lims_x,
