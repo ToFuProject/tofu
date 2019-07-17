@@ -3328,14 +3328,17 @@ class Plasma2D(utils.ToFuObject):
                     shapeval = list(pts.shape)
                     shapeval[0] = ntall if t is None else t.size
                     val = np.full(tuple(shapeval), np.nan)
+                    t0tri, t0int = 0., 0.
                     if t is None:
                         for ii in range(0,ntall):
                             # get ref values for mapping
+                            # this is the slowest step (~1.8 s)
                             vii = mplTriLinInterp(mpltri,
                                                   vr2[indtr2[ii],:],
                                                   trifinder=trifind)(r,z)
 
                             # interpolate 1d
+                            # This i reasonable (~0.15 s)
                             val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
                                                              vquant[indtq[ii],:],
                                                              kind='linear',
@@ -3423,7 +3426,7 @@ class Plasma2D(utils.ToFuObject):
         return func
 
 
-    def interp_pts2profile(self, quant, ptsRZ=None, t=None,
+    def interp_pts2profile(self, quant, pts=None, t=None,
                            ref1d=None, ref2d=None,
                            interp_t='nearest', interp_space=None,
                            fill_value=np.nan):
@@ -3442,29 +3445,74 @@ class Plasma2D(utils.ToFuObject):
         # Check requested quant is available in 2d or 1d
         idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
 
-        # Check the ptsRZ is (2,...) array of floats
-        if ptsRZ is None:
+        # Check the pts is (2,...) array of floats
+        if pts is None:
             if idref1d is None:
-                ptsRZ = self.dmesh[idquant]['data']['nodes'].T
+                pts = self.dmesh[idquant]['data']['nodes']
             else:
-                ptsRZ = self.dmesh[idref2]['data']['nodes'].T
+                pts = self.dmesh[idref2]['data']['nodes']
+            pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
 
-        ptsRZ = np.atleast_2d(ptsRZ)
-        if ptsRZ.shape[0] != 2:
-            msg = "ptsRZ must ba np.ndarray of (R,Z) points coordinates\n"
-            msg += "Can be multi-dimensional, but the 1st dimension is (R,Z)\n"
-            msg += "    - Expected shape : (2,...)\n"
-            msg += "    - Provided shape : %s"%str(ptsRZ.shape)
+        pts = np.atleast_2d(pts)
+        if pts.shape[0] != 3:
+            msg = "pts must ba np.ndarray of (X,Y,Z) points coordinates\n"
+            msg += "Can be multi-dimensional, but the 1st dimension is (X,Y,Z)\n"
+            msg += "    - Expected shape : (3,...)\n"
+            msg += "    - Provided shape : %s"%str(pts.shape)
             raise Exception(msg)
 
         # Interpolation (including time broadcasting)
+        # this is the second slowest step (~0.08 s)
         func = self._get_finterp(idquant, idref1d, idref2d,
                                  interp_t=interp_t, interp_space=interp_space,
                                  fill_value=fill_value)
+
+        # This is the slowest step (~1.8 s)
         val = func(pts)
 
-
         return func(pts)
+
+
+    def calc_signal_from_Cam(self, cam, quant=None, t=None,
+                             ref1d=None, ref2d=None,
+                             Brightness=True, interp_t='nearest',
+                             interp_space=None, fill_value=np.nan,
+                             res=0.005, DL=None, resMode='abs', method='sum',
+                             ind=None, out=object, plot=True, dataname=None,
+                             fs=None, dmargin=None, wintit=None, invert=True,
+                             units=None, draw=True, connect=True):
+
+        assert 'Cam' in cam.__class__.__name__
+
+        # Format input
+        sig, indok, Ds, us, DL, E = cam._calc_signal_preformat(ind=ind, out=out, t=t,
+                                                               Brightness=Brightness)
+
+        if Ds is None:
+            return None
+
+        # Get ptsRZ along LOS // Which to choose ???
+        pts, reseff, indpts = cam.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
+                                             compact=True, pts=True)
+        indpts = np.r_[0,indpts,pts.shape[1]]
+
+        # Get quantity values at ptsRZ
+        val = self.interp_pts2profile(quant, pts=pts, t=t,
+                                      ref1d=ref1d, ref2d=ref2d,
+                                      interp_t=interp_t,
+                                      interp_space=interp_space,
+                                      fill_value=fill_value)
+        # Integrate
+        for ii in range(0,self.nRays):
+            sig[:,ii] = np.sum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff
+
+        # Format output
+        return cam._calc_signal_postformat(sig, Brightness=Brightness,
+                                           dataname=dataname, t=t, E=E,
+                                           units=units, plot=plot,
+                                           fs=fs, dmargin=dmargin, wintit=wintit,
+                                           invert=invert, draw=draw,
+                                           connect=connect)
 
 
     #---------------------
@@ -3511,7 +3559,7 @@ class Plasma2D(utils.ToFuObject):
         return dextra
 
     def get_Data(self, lquant, X=None, ref1d=None, ref2d=None,
-                 remap=False, res=0.01, interp_space='linear', dextra=None):
+                 remap=False, res=0.01, interp_space=None, dextra=None):
 
         try:
             import tofu.data as tfd
@@ -3604,7 +3652,7 @@ class Plasma2D(utils.ToFuObject):
     #---------------------
 
     def plot(self, lquant, X=None, ref=None,
-             remap=False, res=0.01, interp_space='linear',
+             remap=False, res=0.01, interp_space=None,
              sharex=False, bck=True):
         lDat = self.get_Data(lquant, X=X, remap=remap,
                              ref=ref, res=res, interp_space=interp_space)
@@ -3615,7 +3663,7 @@ class Plasma2D(utils.ToFuObject):
         return kh
 
     def plot_combine(self, lquant, lData=None, X=None, ref=None,
-                     remap=False, res=0.01, interp_space='linear',
+                     remap=False, res=0.01, interp_space=None,
                      sharex=False, bck=True):
         """ plot combining several quantities from the Plasma2D itself and
         optional extra list of Data instances """

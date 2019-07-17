@@ -4282,7 +4282,7 @@ class Rays(utils.ToFuObject):
                                             dmethod=resMode, method=method,
                                             num_threads=num_threads, Test=Test)
         if pts:
-            nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+            nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[-1]]
             k = np.repeat(Ds, nbrep, axis=1) + k[None,:]*np.repeat(us, nbrep, axis=1)
         if not compact:
             k = np.split(k,ind, axis=-1)
@@ -4462,10 +4462,6 @@ class Rays(utils.ToFuObject):
         # Preformat signal
         if len(ind)==1:
             Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
-        if t is None or len(t)==1:
-            sig = np.full((Ds.shape[1],),np.nan)
-        else:
-            sig = np.full((len(t),Ds.shape[1]),np.nan)
         indok = ~(np.any(np.isnan(DL),axis=0) | np.any(np.isinf(DL),axis=0)
                   | ((DL[1,:]-DL[0,:])<=0.))
 
@@ -4478,11 +4474,11 @@ class Rays(utils.ToFuObject):
             DL = np.ascontiguousarray(DL)
         else:
             Ds, us, DL = None, None, None
-        return sig, indok, Ds, us, DL, E
+        return indok, Ds, us, DL, E
 
 
     def _calc_signal_postformat(self, sig, Brightness=True, dataname=None, t=None,
-                                E=None, units=None, plot=True,
+                                E=None, units=None, plot=True, out=object,
                                 fs=None, dmargin=None, wintit=None, invert=True,
                                 draw=True, connect=True):
         if Brightness is False:
@@ -4511,8 +4507,7 @@ class Rays(utils.ToFuObject):
                 osig = tfd.DataCam1D(**kwdargs)
             if plot:
                 kh = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
-                               plotmethod=plotmethod, invert=invert,
-                               draw=draw, connect=connect)
+                               invert=invert, draw=draw, connect=connect)
 
         if out in [object, 'object']:
             return osig
@@ -4561,8 +4556,8 @@ class Rays(utils.ToFuObject):
         """
 
         # Format input
-        sig, indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, Dl=DL, out=out,
-                                                             Brightness=Brightness)
+        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, Dl=DL, out=out,
+                                                        Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4589,14 +4584,15 @@ class Rays(utils.ToFuObject):
     def calc_signal_from_Plasma2D(self, plasma2d, quant=None, t=None,
                                   ref1d=None, ref2d=None,
                                   Brightness=True, interp_t='nearest',
-                                  interp_space='nearest', fill_value=np.nan,
+                                  interp_space=None, fill_value=np.nan,
                                   res=0.005, DL=None, resMode='abs', method='sum',
                                   ind=None, out=object, plot=True, dataname=None,
                                   fs=None, dmargin=None, wintit=None, invert=True,
                                   units=None, draw=True, connect=True):
+
         # Format input
-        sig, indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, out=out, t=t,
-                                                             Brightness=Brightness)
+        indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, out=out, t=t,
+                                                           Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4604,26 +4600,34 @@ class Rays(utils.ToFuObject):
         # Get ptsRZ along LOS // Which to choose ???
         pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
                                               compact=True, pts=True)
-        pts = np.array([np.hypot(pts[0,:],pts[1,:]), pts[2,:]])
-        indpts = np.concatenate((0,indpts,pts.shape[1]))
+        indpts = np.r_[0,indpts,pts.shape[1]]
 
         # Get quantity values at ptsRZ
-        val, t = plasma2d.interp_pts2profile(quant, ptsRZ=pts, t=t,
-                                             ref1d=ref1d, ref2d=ref2d,
-                                             interp_t=interp_t,
-                                             interp_space=interp_space,
-                                             fill_value=fill_value)
+        # This is the slowest step (~3.8 s with res=0.02 and interferometer)
+        val = plasma2d.interp_pts2profile(quant, pts=pts, t=t,
+                                          ref1d=ref1d, ref2d=ref2d,
+                                          interp_t=interp_t,
+                                          interp_space=interp_space,
+                                          fill_value=fill_value)
+
         # Integrate
+        if val.ndim == 2:
+            sig = np.full((val.shape[0], self.nRays), np.nan)
+        else:
+            sig = np.full((1,self.nRays), np.nan)
+
         for ii in range(0,self.nRays):
-            sig[:,ii] = np.sum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff
+            sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
 
         # Format output
-        return self._calc_signal_postformat(sig, Brightness=Brightness,
+        # this is the secod slowest step (~0.75 s)
+        out  = self._calc_signal_postformat(sig, Brightness=Brightness,
                                             dataname=dataname, t=t, E=E,
-                                            units=units, plot=plot,
+                                            units=units, plot=plot, out=out,
                                             fs=fs, dmargin=dmargin, wintit=wintit,
                                             invert=invert, draw=draw,
                                             connect=connect)
+        return out
 
 
 
