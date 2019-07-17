@@ -567,6 +567,20 @@ cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
     return
 
 # -- Quadrature Rules : Left Rule ----------------------------------------------
+cdef inline void left_rule_rel_single(int num_raf,
+                                      double inv_nraf,
+                                      double loc_x,
+                                      double loc_resol,
+                                      double* los_coeffs) nogil:
+    # Left quadrature rule with relative resolution step
+    # for one LOS
+    cdef Py_ssize_t jj
+    # ...
+    for jj in range(num_raf + 1):
+        los_coeffs[jj] = loc_x + jj * loc_resol
+    return
+
+
 cdef inline void left_rule_rel(int num_los, int num_raf,
                                double* los_lims_x,
                                double* los_lims_y,
@@ -575,7 +589,7 @@ cdef inline void left_rule_rel(int num_los, int num_raf,
                                long* los_ind, int num_threads) nogil:
     # Left quadrature rule with relative resolution step
     # for SEVERAL LOS
-    cdef Py_ssize_t ii, jj
+    cdef Py_ssize_t ii
     cdef int first_index
     cdef double inv_nraf
     cdef double loc_resol
@@ -589,8 +603,8 @@ cdef inline void left_rule_rel(int num_los, int num_raf,
             los_resolution[ii] = loc_resol
             first_index = ii*(num_raf + 1)
             los_ind[ii] = first_index + num_raf + 1
-            for jj in range(num_raf + 1):
-                los_coeffs[first_index + jj] = loc_x + jj * loc_resol
+            left_rule_rel_single(num_raf, inv_nraf, loc_x, loc_resol,
+                                 &los_coeffs[first_index])
     return
 
 cdef inline void simps_left_rule_abs(int num_los, double resol,
