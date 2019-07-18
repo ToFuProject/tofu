@@ -4604,11 +4604,11 @@ class Rays(utils.ToFuObject):
 
         # Get quantity values at ptsRZ
         # This is the slowest step (~3.8 s with res=0.02 and interferometer)
-        val = plasma2d.interp_pts2profile(quant, pts=pts, t=t,
-                                          ref1d=ref1d, ref2d=ref2d,
-                                          interp_t=interp_t,
-                                          interp_space=interp_space,
-                                          fill_value=fill_value)
+        val, t = plasma2d.interp_pts2profile(quant, pts=pts, t=t,
+                                             ref1d=ref1d, ref2d=ref2d,
+                                             interp_t=interp_t,
+                                             interp_space=interp_space,
+                                             fill_value=fill_value)
 
         # Integrate
         if val.ndim == 2:
@@ -4618,6 +4618,7 @@ class Rays(utils.ToFuObject):
 
         for ii in range(0,self.nRays):
             sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
+
 
         # Format output
         # this is the secod slowest step (~0.75 s)

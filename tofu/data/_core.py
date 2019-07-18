@@ -3194,6 +3194,7 @@ class Plasma2D(utils.ToFuObject):
         ntall = tall.size
         return tall, tbinall, ntall, indtq, indtr1, indtr2
 
+    @staticmethod
     def _get_indtu(t=None, tall=None, tbinall=None,
                    idref1d=None, idref2d=None):
         # Get indt (t with respect to tbinall)
@@ -3204,7 +3205,6 @@ class Plasma2D(utils.ToFuObject):
 
             # Update
             tall = tall[indtu]
-            indtq = indtq[indtu]
             if idref1d is not None:
                 indtr1 = indtr1[indtu]
             if idref2d is not None:
@@ -3270,6 +3270,7 @@ class Plasma2D(utils.ToFuObject):
                             val[ii,...] = mplTriLinInterp(mpltri,
                                                           vquant[indtq[ii],:],
                                                           trifinder=trifind)(r,z)
+                        t = tall
                     else:
                         ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
                                                              tbinall=tbinall,
@@ -3280,7 +3281,7 @@ class Plasma2D(utils.ToFuObject):
                             val[ind,...] = mplTriLinInterp(mpltri,
                                                            vquant[indtq[ii],:],
                                                            trifinder=trifind)(r,z)
-                    return val
+                    return val, t
 
             else:
                 def func(pts, t=None, ntall=ntall,
@@ -3298,6 +3299,7 @@ class Plasma2D(utils.ToFuObject):
                     if t is None:
                         for ii in range(0,ntall):
                             val[ii,...] = vquant[indtq[ii],indpts]
+                        t = tall
                     else:
                         ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
                                                              tbinall=tbinall,
@@ -3306,7 +3308,7 @@ class Plasma2D(utils.ToFuObject):
                         for ii in range(0,ntall):
                             ind = indt == indtu[ii]
                             val[ind,...] = vquant[indtq[ii],indpts]
-                    return val
+                    return val, t
 
 
         else:
@@ -3344,6 +3346,7 @@ class Plasma2D(utils.ToFuObject):
                                                              kind='linear',
                                                              bounds_error=False,
                                                              fill_value=fill_value)(np.asarray(vii))
+                        t = tall
                     else:
                         ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
                                                              tbinall=tbinall,
@@ -3362,7 +3365,8 @@ class Plasma2D(utils.ToFuObject):
                                                               kind='linear',
                                                               bounds_error=False,
                                                               fill_value=fill_value)(np.asarray(vii))
-                    return val
+
+                    return val, t
 
             else:
                 def func(pts, t=None, ntall=ntall,
@@ -3386,6 +3390,7 @@ class Plasma2D(utils.ToFuObject):
                                                              kind='linear',
                                                              bounds_error=False,
                                                              fill_value=fill_value)(vr2[indtr2[ii],indpts])
+                        t = tall
                     else:
                         ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
                                                              tbinall=tbinall,
@@ -3399,7 +3404,7 @@ class Plasma2D(utils.ToFuObject):
                                                               kind='linear',
                                                               bounds_error=False,
                                                               fill_value=fill_value)(vr2[indtr2[ii],indpt])
-                    return val
+                    return val, t
 
         return func
 
@@ -3468,9 +3473,8 @@ class Plasma2D(utils.ToFuObject):
                                  fill_value=fill_value)
 
         # This is the slowest step (~1.8 s)
-        val = func(pts)
-
-        return func(pts)
+        val, t = func(pts, t=t)
+        return val, t
 
 
     def calc_signal_from_Cam(self, cam, quant=None, t=None,
@@ -3482,37 +3486,23 @@ class Plasma2D(utils.ToFuObject):
                              fs=None, dmargin=None, wintit=None, invert=True,
                              units=None, draw=True, connect=True):
 
-        assert 'Cam' in cam.__class__.__name__
+        if 'Cam' not in cam.__class__.__name__:
+            msg = "Arg cam must be tofu Camera instance (CamLOS1D, CamLOS2D...)"
+            raise Exception(msg)
 
-        # Format input
-        sig, indok, Ds, us, DL, E = cam._calc_signal_preformat(ind=ind, out=out, t=t,
-                                                               Brightness=Brightness)
-
-        if Ds is None:
-            return None
-
-        # Get ptsRZ along LOS // Which to choose ???
-        pts, reseff, indpts = cam.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
-                                             compact=True, pts=True)
-        indpts = np.r_[0,indpts,pts.shape[1]]
-
-        # Get quantity values at ptsRZ
-        val = self.interp_pts2profile(quant, pts=pts, t=t,
-                                      ref1d=ref1d, ref2d=ref2d,
-                                      interp_t=interp_t,
-                                      interp_space=interp_space,
-                                      fill_value=fill_value)
-        # Integrate
-        for ii in range(0,self.nRays):
-            sig[:,ii] = np.sum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff
-
-        # Format output
-        return cam._calc_signal_postformat(sig, Brightness=Brightness,
-                                           dataname=dataname, t=t, E=E,
-                                           units=units, plot=plot,
-                                           fs=fs, dmargin=dmargin, wintit=wintit,
-                                           invert=invert, draw=draw,
-                                           connect=connect)
+        return cam.calc_signal_from_Plasma2D(self, quant=quant, t=t,
+                                             ref1d=ref1d, ref2d=ref2d,
+                                             Brightness=Brightness,
+                                             interp_t=interp_t,
+                                             interp_space=interp_space,
+                                             fill_value=fill_value, res=res,
+                                             DL=DL, resMode=resMode,
+                                             method=method, ind=ind, out=out,
+                                             pot=plot, dataname=dataname,
+                                             fs=fs, dmargin=dmargin,
+                                             wintit=wintit, invert=intert,
+                                             units=units, draw=draw,
+                                             connect=connect)
 
 
     #---------------------

@@ -105,6 +105,10 @@ class MultiIDSLoader(object):
                 'q95':{'str':'time_slice[time].global_quantities.q_95'},
                 'volume':{'str':'time_slice[time].global_quantities.volume',
                           'dim':'volume', 'quant':'pvol', 'units':'m3'},
+                'psiaxis':{'str':'time_slice[time].global_quantities.psi_axis',
+                           'dim':'B flux', 'quant':'psi', 'units':'Wb'},
+                'psisep':{'str':'time_slice[time].global_quantities.psi_boundary',
+                          'dim':'B flux', 'quant':'psi', 'units':'Wb'},
                 'BT0':{'str':'time_slice[time].global_quantities.magnetic_axis.b_field_tor',
                        'dim':'B', 'quant':'BT', 'units':'T'},
                 'axR':{'str':'time_slice[time].global_quantities.magnetic_axis.r',
@@ -269,7 +273,9 @@ class MultiIDSLoader(object):
                          'dim':'angle', 'quant':'theta', 'units':'rad.'},
                 'tau1keV':{'str':'channel[chan].optical_depth.data',
                            'dim':'optical_depth', 'quant':'tau', 'units':'adim.'},
-                'validity_timed': {'str':'channel[chan].t_e.validity_timed'}},
+                'validity_timed': {'str':'channel[chan].t_e.validity_timed'},
+                'Te0': {'str':'t_e_central.data',
+                        'dim':'temperature', 'quant':'Te', 'units':'eV'}},
 
                 'reflectometer_profile':
                 {'t':{'str':'time'},
@@ -299,12 +305,19 @@ class MultiIDSLoader(object):
                           'dim':'angle', 'quant':'faraday angle', 'units':'rad'}},
 
                'bolometer':
-               {'t':{'str':'channel[chan].power.time',
+               {'tchan':{'str':'channel[chan].power.time',
                      'quant':'t', 'units':'s'},
                 'power':{'str':'channel[chan].power.data',
                          'dim':'power', 'quant':'power radiative', 'units':'W'},
                 'etendue':{'str':'channel[chan].etendue',
-                           'dim':'etendue', 'quant':'etendue', 'units':'m2.sr'}},
+                           'dim':'etendue', 'quant':'etendue',
+                           'units':'m2.sr'},
+                'tpower':{'str':'time','quant':'t', 'units':'s'},
+                'prad':{'str':'power_radiated_total',
+                        'dim':'power', 'quant':'power radiative', 'units':'W'},
+                'pradbulk':{'str':'power_radiated_inside_lcfs',
+                            'dim':'power', 'quant':'power radiative',
+                            'units':'W'}},
 
                'soft_x_rays':
                {'t':{'str':'time',
@@ -343,7 +356,7 @@ class MultiIDSLoader(object):
                 'ece':{'datacls':'DataCam1D',
                        'geomcls':False,
                        'sig':{'t':'t',
-                              'X':'R',
+                              'X':'rhotn_sign',
                               'data':'Te'}},
                 'reflectometer_profile':{'datacls':'DataCam1D',
                                          'geomcls':False,
@@ -360,7 +373,7 @@ class MultiIDSLoader(object):
                                       'data':'fangle'}},
                 'bolometer':{'datacls':'DataCam1D',
                              'geomcls':'CamLOS1D',
-                             'sig':{'t':'t',
+                             'sig':{'t':'tchan',
                                     'data':'power'}},
                 'soft_x_rays':{'datacls':'DataCam1D',
                                'geomcls':'CamLOS1D',
@@ -411,6 +424,13 @@ class MultiIDSLoader(object):
     _add = lambda a0, a1: a0 + a1
     _icmod = lambda al, ar, axis=0: np.sum(al - ar, axis=axis)
     _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
+    def _rhopn1d(psi):
+        return np.sqrt( (psi - psi[:,0:1]) / (psi[:,-1] - psi[:,0])[:,None] )
+    def _rhopn2d(psi, psi0, psisep):
+        return np.sqrt( (psi - psi0[:,None]) / (psisep[:,None] - psi0[:,None]) )
+    def _rhotn2d(phi):
+        return np.sqrt(phi / np.nanmax(phi, axis=1)[:,None])
+
     def _eqSep(sepR, sepZ, npts=100):
         nt = len(sepR)
         assert len(sepZ) == nt
@@ -445,12 +465,22 @@ class MultiIDSLoader(object):
                'sep':{'lstr':['sepR','sepZ'],
                       'func':_eqSep, 'kargs':{'npts':100}},
                '2dB':{'lstr':['2dBT', '2dBR', '2dBZ'], 'func':_eqB},
+               '1drhopn':{'lstr':['1dpsi','psiaxis','psisep'], 'func':_rhopn2d,
+                          'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
+               '2drhopn':{'lstr':['2dpsi','psiaxis','psisep'], 'func':_rhopn2d,
+                          'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
+               '2drhotn':{'lstr':['2dphi'], 'func':_rhotn2d,
+                          'dim':'rho', 'quant':'rhotn', 'units':'adim.'},
                'x0':{'lstr':['x0R','x0Z'], 'func':_RZ2array},
                'x1':{'lstr':['x1R','x1Z'], 'func':_RZ2array},
                'strike0':{'lstr':['strike0R','strike0Z'], 'func':_RZ2array},
                'strike1':{'lstr':['strike1R','strike1Z'], 'func':_RZ2array},
                '2dtheta':{'lstr':['axR','axZ','2dmeshNodes'],
                           'func':_eqtheta, 'kargs':{'cocos':11}}},
+
+              'core_profiles':
+             {'1drhopn':{'lstr':['1dpsi'], 'func':_rhopn1d,
+                         'dim':'rho', 'quant':'rhopn', 'units':'adim.'}},
 
               'core_sources':
              {'1dprad':{'lstr':['1dbrem','1dline'], 'func':_add}},
@@ -2027,8 +2057,9 @@ class MultiIDSLoader(object):
         # Convert to dict
         if lc[0]:
             dsig = {}
-            for ids in lidsok:
-                dsig = {ids: sorted(self._dshort[ids].keys()) for ids in lidsok}
+            dsig = {ids: sorted(set(list(self._dshort[ids].keys())
+                                    + list(self._dcomp[ids].keys())))
+                    for ids in lidsok}
         elif lc[1] or lc[2]:
             if lc[1]:
                 dsig = [dsig]
@@ -2037,6 +2068,8 @@ class MultiIDSLoader(object):
         # Check content
         dout = {}
         for k0, v0 in dsig.items():
+            lkeysok = sorted(set(list(self._dshort[k0].keys())
+                                 + list(self._dcomp[k0].keys())))
             if k0 not in lidsok:
                 msg = "Only the following ids are relevant to Plasma2D:\n"
                 msg += "    - %s"%str(lidsok)
@@ -2053,10 +2086,10 @@ class MultiIDSLoader(object):
                 msg += str(dsig)
                 raise Exception(msg)
             if lc[0]:
-                dsig[k0] = sorted(self._dshort[k0].keys())
+                dsig[k0] = lkeysok
             if lc[1]:
                 dsig[k0] = [dsig[k0]]
-            if not all([ss in self._dshort[k0].keys() for ss in dsig[k0]]):
+            if not all([ss in lkeysok for ss in dsig[k0]]):
                 msg = "All requested signals must be valid shortcuts !\n"
                 msg += "    - dsig[%s] = %s"%(k0, str(dsig[k0]))
                 raise Exception(msg)
@@ -2387,9 +2420,14 @@ class MultiIDSLoader(object):
                         if axist == 1:
                             out_[ss] = out_[ss].T
 
-                    dim = self._dshort[ids][ss].get('dim', 'unknown')
-                    quant = self._dshort[ids][ss].get('quant', 'unknown')
-                    units = self._dshort[ids][ss].get('units', 'a.u.')
+                    if ss in self._dshort[ids].keys():
+                        dim = self._dshort[ids][ss].get('dim', 'unknown')
+                        quant = self._dshort[ids][ss].get('quant', 'unknown')
+                        units = self._dshort[ids][ss].get('units', 'a.u.')
+                    else:
+                        dim = self._dcomp[ids][ss].get('dim', 'unknown')
+                        quant = self._dcomp[ids][ss].get('quant', 'unknown')
+                        units = self._dcomp[ids][ss].get('units', 'a.u.')
                     key = '%s.%s'%(ids,ss)
 
                     if nref is None:
@@ -2434,9 +2472,14 @@ class MultiIDSLoader(object):
                         if axist == 1:
                             out_[ss] = out_[ss].T
 
-                        dim = self._dshort[ids][ss].get('dim', 'unknown')
-                        quant = self._dshort[ids][ss].get('quant', 'unknown')
-                        units = self._dshort[ids][ss].get('units', 'a.u.')
+                        if ss in self._dshort[ids].keys():
+                            dim = self._dshort[ids][ss].get('dim', 'unknown')
+                            quant = self._dshort[ids][ss].get('quant', 'unknown')
+                            units = self._dshort[ids][ss].get('units', 'a.u.')
+                        else:
+                            dim = self._dcomp[ids][ss].get('dim', 'unknown')
+                            quant = self._dcomp[ids][ss].get('quant', 'unknown')
+                            units = self._dcomp[ids][ss].get('units', 'a.u.')
                         key = '%s.%s'%(ids,ss)
 
                         d2d[key] = {'data':out_[ss], 'name':ss,
@@ -2694,7 +2737,7 @@ class MultiIDSLoader(object):
                 lkok = set(self._dshort[ids].keys())
                 lkok = lkok.union(self._dcomp[ids].keys())
                 lk = set(lk).intersection(lkok)
-                out = self.get_data(ids, sig=list(lk), indch=indch, nan=nani,
+                out = self.get_data(ids, sig=list(lk), indch=indch, nan=nan,
                                     pos=pos)
                 if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
                     oo = out['los_ptsRZPhi']
@@ -2721,7 +2764,7 @@ class MultiIDSLoader(object):
         # data
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
-        t = self.get_data(ids, sig='t', indch=indch)['t']
+        t = self.get_data(ids, sig=dsig.get('t', 't'), indch=indch)['t']
         if len(t) == 0:
             msg = "The time vector is not available for %s:\n"%ids
             msg += "    - 't' <=> %s.%s\n"%(ids,self._dshort[ids]['t']['str'])
