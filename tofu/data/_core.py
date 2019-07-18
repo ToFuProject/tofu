@@ -1966,7 +1966,105 @@ class DataAbstract(utils.ToFuObject):
                              config_occ=config_occ)
 
 
+    #----------------------------
+    # Operator overloading section
 
+    @staticmethod
+    def _extract_common_params(obj0, obj1=None):
+        if obj1 is None:
+            dcom = {'Name':obj0.Id.Name+'modified',
+                    'Exp':obj0.Id.Exp, 'Diag':obj0.Id.Diag,
+                    'shot':obj0.Id.shot,
+                    'SavePath':obj0.Id.SavePath,
+                    'dchans':obj0.dchans, 'dlabels':obj0.dlabels,
+                    't':obj0.t, 'X':obj0.X, 'lCam':obj0.lCam}
+        else:
+            ls = ['Name','SavePath', 'Diag', 'Exp', 'shot']
+            dcom = {ss:getattr(obj0.Id,ss) for ss in ls
+                    if getattr(obj0.Id,ss) == getattr(obj1.Id,ss)}
+            if obj0.dchans == obj1.dchans:
+                dcom['dchans'] = obj0.dchans
+            if obj0.dlabels == obj1.dlabels:
+                dcom['dchans'] = obj0.dlabels
+            if np.allclose(obj0.t, obj1.t):
+                dcom['t'] = obj0.t
+            if np.allclose(obj0.X, obj1.X):
+                dcom['X'] = obj0.X
+            if all([c0 == c1 for c0, c1 in zip(obj0.lCam, obj1.lCam)]):
+                dcom['lCam'] = obj0.lCam
+        return dcom
+
+    @staticmethod
+    def _recreatefromoperator(d0, other, opfunc):
+        if type(other) in [int,float,np.int64,np.float64]:
+            data = opfunc(d0.data, other)
+            dcom = self._extractCommonParams(d0)
+
+        elif issubclass(other.__class__, Data):
+            if other.__class__ != d0.__class__:
+                msg = 'Operator overloaded only for same-class instances:\n'
+                msg += "    - provided: %s and %s"%(d0.__class__.__name__,
+                                                    other.__class__.__name__)
+                raise Exception(msg)
+            try:
+                data = opfunc(d0.data, other.data)
+            except Exception as err:
+                msg = str(err)
+                msg += "\n\ndata shapes not matching !"
+                raise Exception(msg)
+
+            dcom = self._extractCommonParams(d0, other)
+        else:
+            msg = "Behaviour not implemented !"
+            raise NotImplementedError(msg)
+
+        return d0.__class__(data=data, **dcom)
+
+
+    def __abs__(self):
+        opfunc = lambda x: np.abs(x)
+        data = self._recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __sub__(self, other):
+        opfunc = lambda x, y: x-y
+        data = self._recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __rsub__(self, other):
+        opfunc = lambda x, y: x-y
+        data = self._recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __add__(self, other):
+        opfunc = lambda x, y: x+y
+        data = self._recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __radd__(self, other):
+        opfunc = lambda x, y: x+y
+        data = self._recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __mul__(self, other):
+        opfunc = lambda x, y: x*y
+        data = self._recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __rmul__(self, other):
+        opfunc = lambda x, y: x*y
+        data = self._recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __truediv__(self, other):
+        opfunc = lambda x, y: x/y
+        data = self._recreatefromoperator(self, other, opfunc)
+        return data
+
+    def __pow__(self, other):
+        opfunc = lambda x, y: x**y
+        data = self._recreatefromoperator(self, other, opfunc)
+        return data
 
 
 
@@ -1995,60 +2093,6 @@ class DataAbstract(utils.ToFuObject):
                 lind = self.indch.split(inds)
                 lC = [cc.get_subset(indch=iind) for iind in lind]
         return lC
-
-
-
-    def __abs__(self):
-        opfunc = lambda x: np.abs(x)
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __sub__(self, other):
-        opfunc = lambda x, y: x-y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __rsub__(self, other):
-        opfunc = lambda x, y: x-y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __add__(self, other):
-        opfunc = lambda x, y: x+y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __radd__(self, other):
-        opfunc = lambda x, y: x+y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __mul__(self, other):
-        opfunc = lambda x, y: x*y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __rmul__(self, other):
-        opfunc = lambda x, y: x*y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __truediv__(self, other):
-        opfunc = lambda x, y: x/y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-    def __pow__(self, other):
-        opfunc = lambda x, y: x**y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
-
-
-
-
-
-
-
 
 
 def _compare_(ls, null=None):
@@ -2159,44 +2203,6 @@ def _extractCommonParams(ld):
     SavePath = _compare_([dd.Id.SavePath for dd in ld])
 
     return t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath
-
-
-
-
-def _recreatefromoperator(d0, other, opfunc):
-    if type(other) in [int,float,np.int64,np.float64]:
-        d = opfunc(d0.data, other)
-
-        #  Fix LCam and dchans
-        #t, LCam, dchans = d0.t, d0._get_LCam(), d0.dchans(d0.indch)
-        out = _extractCommonParams([d0, d0])
-        t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath = out
-
-        #dlabels = d0._dlabels
-        #Id, Exp, shot = d0.Id.Name, d0.Id.Exp, d0.Id.shot
-        #Diag, SavePath = d0.Id.Diag, d0.Id.SavePath
-    elif issubclass(other.__class__, Data):
-        assert other.__class__==d0.__class__, 'Same class is expected !'
-        try:
-            d = opfunc(d0.data, other.data)
-        except Exception as err:
-            print("\n data shapes not matching !")
-            raise err
-        out = _extractCommonParams([d0, other])
-        t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath = out
-    else:
-        raise NotImplementedError
-
-    kwdargs = dict(t=t, dchans=dchans, LCam=LCam, dlabels=dlabels,
-                   Id=Id, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath)
-
-    if '1D' in d0.Id.Cls:
-        data = Data1D(d, **kwdargs)
-    elif '2D' in d0.Id.Cls:
-        data = Data2D(d, **kwdargs)
-    else:
-        data = Data(d, **kwdargs)
-    return data
 
 """
 
