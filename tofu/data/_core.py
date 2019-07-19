@@ -1972,36 +1972,42 @@ class DataAbstract(utils.ToFuObject):
     @staticmethod
     def _extract_common_params(obj0, obj1=None):
         if obj1 is None:
-            dcom = {'Name':obj0.Id.Name+'modified',
-                    'Exp':obj0.Id.Exp, 'Diag':obj0.Id.Diag,
-                    'shot':obj0.Id.shot,
-                    'SavePath':obj0.Id.SavePath,
-                    'dchans':obj0.dchans, 'dlabels':obj0.dlabels,
-                    't':obj0.t, 'X':obj0.X, 'lCam':obj0.lCam}
+            Id = obj0.Id.copy()
+            Id._dall['Name'] += 'modified'
+            dcom = {'Id':Id,
+                    'dchans':obj0._dchans, 'dlabels':obj0.dlabels,
+                    't':obj0.t, 'X':obj0.X,
+                    'lCam':obj0.lCam, 'config':obj0.config,
+                    'dextra':obj0.dextra}
         else:
-            ls = ['Name','SavePath', 'Diag', 'Exp', 'shot']
+            ls = ['SavePath', 'Diag', 'Exp', 'shot']
             dcom = {ss:getattr(obj0.Id,ss) for ss in ls
                     if getattr(obj0.Id,ss) == getattr(obj1.Id,ss)}
-            if obj0.dchans == obj1.dchans:
-                dcom['dchans'] = obj0.dchans
+            if obj0._dchans == obj1._dchans:
+                dcom['dchans'] = obj0._dchans
             if obj0.dlabels == obj1.dlabels:
-                dcom['dchans'] = obj0.dlabels
+                dcom['dlabels'] = obj0.dlabels
+            if obj0.dextra == obj1.dextra:
+                dcom['dextra'] = obj0.dextra
             if np.allclose(obj0.t, obj1.t):
                 dcom['t'] = obj0.t
             if np.allclose(obj0.X, obj1.X):
                 dcom['X'] = obj0.X
-            if all([c0 == c1 for c0, c1 in zip(obj0.lCam, obj1.lCam)]):
-                dcom['lCam'] = obj0.lCam
+            if obj0.lCam is not None and obj1.lCam is not None:
+                if all([c0 == c1 for c0, c1 in zip(obj0.lCam, obj1.lCam)]):
+                    dcom['lCam'] = obj0.lCam
+            if obj0.config == obj1.config:
+                dcom['config'] = obj0.config
         return dcom
 
     @staticmethod
     def _recreatefromoperator(d0, other, opfunc):
         if type(other) in [int,float,np.int64,np.float64]:
             data = opfunc(d0.data, other)
-            dcom = self._extractCommonParams(d0)
+            dcom = d0._extract_common_params(d0)
 
-        elif issubclass(other.__class__, Data):
-            if other.__class__ != d0.__class__:
+        elif issubclass(other.__class__, DataAbstract):
+            if other.__class__.__name__ != d0.__class__.__name__:
                 msg = 'Operator overloaded only for same-class instances:\n'
                 msg += "    - provided: %s and %s"%(d0.__class__.__name__,
                                                     other.__class__.__name__)
@@ -2013,12 +2019,12 @@ class DataAbstract(utils.ToFuObject):
                 msg += "\n\ndata shapes not matching !"
                 raise Exception(msg)
 
-            dcom = self._extractCommonParams(d0, other)
+            dcom = d0._extract_common_params(d0, other)
         else:
             msg = "Behaviour not implemented !"
             raise NotImplementedError(msg)
 
-        return d0.__class__(data=data, **dcom)
+        return d0.__class__(data=data, Name='New', **dcom)
 
 
     def __abs__(self):
@@ -2072,139 +2078,6 @@ class DataAbstract(utils.ToFuObject):
 
 
 
-
-
-
-
-############################################ To be finished
-
-
-"""
-    def _get_LCam(self):
-        if self.geom is None or self.geom['LCam'] is None:
-            lC = None
-        else:
-            if np.all(self.indch):
-                lC = self.geom['LCam']
-            else:
-                import tofu.geom as tfg
-                inds = [self.geom['LCam'][ii].nRays
-                        for ii in range(len(self.geom['LCam']-1))]
-                lind = self.indch.split(inds)
-                lC = [cc.get_subset(indch=iind) for iind in lind]
-        return lC
-
-
-def _compare_(ls, null=None):
-    ind = np.nonzero([ss is not null for ss in ls])[0]
-    if ind.size>0:
-        if all([ls[ind[0]]==ls[ind[ii]] for ii in range(1,len(ind))]):
-            s = ls[ind[0]]
-        else:
-            s = null
-    else:
-        s = null
-    return s
-
-def _compare_dchans(ldch):
-    ind = np.nonzero([dd is not None for dd in ldch])[0]
-    if ind.size>0:
-        All = True
-        dch = ldch[ind[0]]
-        for ii in range(1,len(ind)):
-            if any([not kk in ldch[ind[ii]].keys() for kk in dch.keys()]):
-                All = False
-                break
-            if any([not kk in dch.keys() for kk in ldch[ind[ii]].keys()]):
-                All = False
-                break
-            for kk in dch.keys():
-                if not dch[kk].shape==ldch[ind[ii]][kk].shape:
-                    All = False
-                    break
-                if not dch[kk].dtype==ldch[ind[ii]][kk].dtype:
-                    All = False
-                    break
-                C = all([dch[kk][jj]==ldch[ind[ii]][kk][jj]
-                         for jj in range(len(dch[kk]))])
-                if not C:
-                    All = False
-                    break
-            if All is False:
-                break
-
-        if All is False:
-            dch = None
-    else:
-        dch = None
-    return dch
-
-
-def _compare_lCam(ld, atol=1.e-12):
-    lLC = [dd.geom['LCam'] for dd in ld]
-    ind = np.nonzero([lc is not None for lc in lLC])[0]
-    lC = None
-    if ind.size>0:
-        All = True
-        lD = [np.concatenate(tuple([cc.D for cc in lLC[ind[ii]]]),axis=1)
-              for ii in ind]
-        lu = [np.concatenate(tuple([cc.u for cc in lLC[ind[ii]]]),axis=1)
-              for ii in ind]
-        for ii in range(1,len(ind)):
-            CD = np.any(~np.isclose(lD[0],lD[ii],
-                                    atol=atol, rtol=0., equal_nan=True))
-            Cu = np.any(~np.isclose(lu[0],lu[ii],
-                                    atol=atol, rtol=0., equal_nan=True))
-            Cind = not np.all(ld[ind[0]].indch==ld[ind[ii]].indch)
-            if CD or Cu or Cind:
-                All = False
-                break
-        if All:
-            lC = ld[ind[0]]._get_LCam()
-    return lC
-
-
-
-def _extractCommonParams(ld):
-
-    # data size
-    lnt, lnch = np.array([(dd.data.shape[0],dd.Ref['data'].shape[1]) for dd in ld]).T
-    assert all([lnt[0]==nt for nt in lnt[1:]]), "Different data.shape[0] !"
-    assert all([lnch[0]==nch for nch in lnch[1:]]), "Different data.shape[1] !"
-
-    # Time vector
-    lt = [dd.t for dd in ld]
-    ind = np.nonzero([tt is not None for tt in lt])[0]
-    if ind.size>0:
-        if all([np.allclose(lt[ind[ii]],lt[ind[0]]) for ii in range(len(ind))]):
-            t = lt[ind[0]]
-        else:
-            warnings.warn("\n Beware : the time vectors seem to differ !")
-            t = None
-    else:
-        t = None
-
-    # Channels
-    indch = np.vstack([dd.indch for dd in ld])
-    assert np.all(np.all(indch,axis=0) | np.all(~indch,axis=0)), "Different indch !"
-    LCam = _compare_lCam(ld)
-
-    if LCam is None:
-        dchans = _compare_dchans([dd.dchans() for dd in ld])
-    else:
-        dchans = None
-
-    # dlabels, Id, Exp, shot, Diag, SavePath
-    dlabels = _compare_([dd._dlabels for dd in ld], null={})
-    Id = ' '.join([dd.Id.Name for dd in ld])
-    Exp = _compare_([dd.Id.Exp for dd in ld])
-    shot = _compare_([dd.Id.shot for dd in ld])
-    Diag = _compare_([dd.Id.Diag for dd in ld])
-    SavePath = _compare_([dd.Id.SavePath for dd in ld])
-
-    return t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath
-
-"""
 
 
 

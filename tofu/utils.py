@@ -1211,6 +1211,8 @@ class ToFuObjectBase(object):
         dout = {}
         for k, v in dd.items():
             lexcept_key = v.get('lexcept_key', None)
+            if v['dict'] is None:
+                continue
             try:
                 d = flatten_dict(v['dict'],
                                  parent_key='', sep=sep, deep=deep,

@@ -2619,7 +2619,7 @@ class MultiIDSLoader(object):
                                  Etendues=Etendues, Surfaces=Surfaces,
                                  Name=Name, Diag=ids, Exp=Exp,
                                  dchans=dchans)
-        cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
+        cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
 
         if plot:
             cam.plot_touch(draw=True)
@@ -2758,7 +2758,7 @@ class MultiIDSLoader(object):
                                             Etendues=Etendues, Surfaces=Surfaces,
                                             Name=Name, Diag=ids, Exp=Exp,
                                             dchans=dchans)
-                cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
+                cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
 
         # -----------------------
         # data
@@ -2911,7 +2911,7 @@ class MultiIDSLoader(object):
                                      lCam=cam, config=conf, dextra=dextra,
                                      dchans=dchans, **dins)
 
-        Data.Id.set_dUSR( {'imas_nchMax': nchMax} )
+        Data.Id.set_dUSR( {'imas-nchMax': nchMax} )
 
         if plot:
             Data.plot(draw=True, bck=bck)
@@ -3397,7 +3397,7 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
 
     # Check if info on nMax stored
     if restore_size and obj.Id.dUSR is not None:
-        nchMax = obj.Id.dUSR.get('imas_nchMax', lind.max()+1)
+        nchMax = obj.Id.dUSR.get('imas-nchMax', lind.max()+1)
     else:
         nchMax = lind.max()+1
 
@@ -3523,7 +3523,7 @@ def _save_to_imas_DataCam1D( obj,
 
     # Check if info on nMax stored
     if restore_size and obj.Id.dUSR is not None:
-        nchMax = obj.Id.dUSR.get('imas_nchMax', lind.max()+1)
+        nchMax = obj.Id.dUSR.get('imas-nchMax', lind.max()+1)
     else:
         nchMax = lind.max()+1
 
