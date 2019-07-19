@@ -613,10 +613,13 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             for kk in lk:
                 dd = lData[ii].dextra[kk]
                 if 't' in dd.keys():
-                    co = dd['c'] if 'c' in dd.keys() else 'k'
-                    lab = dd['label'] + ' (%s)'%dd['units'] if ii==0 else None
-                    dax['t'][0].plot(dd['t'], dd['data'],
-                                     ls=lls[ii], lw=1., c=co, label=lab)
+                    try:
+                        co = dd['c'] if 'c' in dd.keys() else 'k'
+                        lab = dd['label'] + ' (%s)'%dd['units'] if ii==0 else None
+                        dax['t'][0].plot(dd['t'], dd['data'],
+                                         ls=lls[ii], lw=1., c=co, label=lab)
+                    except Exception:
+                        pass
 
     dax['t'][0].legend(bbox_to_anchor=(0.,1.01,1.,0.1), loc=3,
                        ncol=4, mode='expand', borderaxespad=0., prop={'size':fontsize})

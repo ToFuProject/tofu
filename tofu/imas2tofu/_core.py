@@ -366,7 +366,12 @@ class MultiIDSLoader(object):
                 'interferometer':{'datacls':'DataCam1D',
                                   'geomcls':'CamLOS1D',
                                   'sig':{'t':'t',
-                                         'data':'ne_integ'}},
+                                         'data':'ne_integ'},
+                                  'synth':{'dsynth':{'quant':('core_profiles','1dne'),
+                                                     'ref1d':('core_profiles','1drhotn'),
+                                                     'ref2d':('equilibrium','2drhotn')},
+                                           'dsig':{'core_profiles':['t'],
+                                                   'equilibrium':['t']}}},
                 'polarimeter':{'datacls':'DataCam1D',
                                'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
@@ -389,16 +394,22 @@ class MultiIDSLoader(object):
                                           'sig':{'t':'t',
                                                  'data':'radiance'}}}
 
-    _lidsdiag = sorted(_didsdiag.keys())
+    _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
+                   'edge_profiles', 'edge_sources']
+
+    _lidsdiag = sorted([kk for kk,vv in _didsdiag.items() if 'sig' in vv.keys()])
+    _lidssynth = sorted([kk for kk,vv in _didsdiag.items() if 'synth' in vv.keys()])
     _lidslos = list(_lidsdiag)
     for ids_ in _lidsdiag:
         if _didsdiag[ids_]['geomcls'] not in ['CamLOS1D']:
             _lidslos.remove(ids_)
 
-    _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
-                   'edge_profiles', 'edge_sources']
-
-
+    for ids_ in _lidssynth:
+        for kk,vv in _didsdiag[ids_]['synth']['dsynth']:
+            if vv[0] not in _didsdiag[ids_]['synth']['dsig'].keys():
+                _didsdiag[ids_]['synth']['dsig'][vv[0]] = {}
+            if vv[1] not in _didsdiag[ids_]['synth']['dsig'][vv[0]]:
+                _didsdiag[ids_]['synth']['dsig'][vv[0]].append(vv[1])
 
     for ids in _lidslos:
         dlos = {}
@@ -2916,6 +2927,99 @@ class MultiIDSLoader(object):
         if plot:
             Data.plot(draw=True, bck=bck)
         return Data
+
+
+    def _get_synth(self, ids, dsig=None, quant=None, ref1d=None, ref2d=None):
+
+        # Check quant, ref1d, ref2d
+        dq = {'quant':quant, 'ref1d':ref1d, 'ref2d':ref2d}
+        for kk,vv in dq.items():
+            if kk == 'quant':
+                assert vv is not None
+            c0 = [vv is None, type(vv) is str, type(vv) in [list,tuple]]
+            assert any(c0)
+            if lc[0]:
+                continue
+            if c0[1]:
+                vv = vv.split('.')
+            assert len(vv) == 2
+            assert vv[0] in self._lidsdiag
+            assert (vv[1] in self._dshort[vv[0]].keys()
+                    or vv[1] in self._dcomp[vv[0]].keys())
+            dq[kk] = vv
+
+        # Check dsig
+        if dsig is None:
+            dsig = self._didsdiag[ids]['synth']['dsig']
+
+        for k0,v0 in dsig.items():
+            if type(v0) is not list:
+                v0 = [v0]
+            c0 = k0 not in self._lidsplasma
+            c0 = c0 and all([type(vv) is str for vv in v0])
+            if not c0:
+                msg = "Arg dsig must be a dict (ids:[shortcut1, shortcut2...])"
+                raise Exception(msg)
+            dsig[k0] = v0
+
+        # Check dsig vs quant/ref1d/ref2d consistency
+        for kk,vv in dq.items():
+            if vv is None:
+                continue
+            if vv[0] not in dsig.keys():
+                dsig[vv[0]] = {}
+            if vv[1] not in dsig[vv[0]]:
+                dsig[vv[0]].append(vv[1])
+            dq[kk] = '%s.%s'%vv
+        return dsig, dq['quant'], dq['ref1d'], dq['ref2d']
+
+
+    def calc_signal(self, ids=None, dsig=None, tlim=None, t=None,
+                    indch=None, indch_auto=False, Name=None,
+                    occ_cam=None, occ_plasma=None, config=None,
+                    dextra=None, t0=None, datacls=None, geomcls=None,
+                    bck=True, fallback_X=None, nan=True, pos=None,
+                    plot=True, plot_compare=None, plot_plasma=None):
+
+        # Get camera
+        cam = self.to_Cam(ids=ids, indch=indch,
+                          Name=None, occ=occ_cam, config=config,
+                          plot=False, nan=True, pos=None)
+
+        # Get relevant parameters
+        dsig, quant, ref1d, ref2d = self._get_synth(ids, dsig,
+                                                    quant, ref1d, ref2d)
+
+        # Get relevant plasma
+        plasma = self.to_Plasma2D(tlim=tlim, dsig=dsig, t0=t0,
+                                  Name=None, occ=occ_plasma, config=cam.config, out=object,
+                                  plot=False, dextra=dextra, nan=True, pos=None)
+
+        # Calculate syntehtic signal
+        sig = cam.calc_from_Plasma2D(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                     res=res, t=t, plot=False)
+        sig._dextra = plasma._dextra
+
+        if ids == 'interferometer':
+            sig = sig*2
+
+        # plot
+        if plot:
+            if plot_compare is None:
+                plot_compare = True
+            if plot_plasma is None:
+                plot_plasma = True
+            if plot_compare:
+                data = self.to_Data(ids)
+                data.plot_compare(sig)
+            else:
+                sig.plot()
+            if plot_plasma:
+                plasma.plot()
+        return sig
+
+
+
 
 
 
