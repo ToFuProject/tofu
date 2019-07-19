@@ -19,7 +19,8 @@ try:
 except ImportError:
     print("Could not find opencv package. Try pip intall opencv-contrib-python")
     
-def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None, tlim = None):
+def cluster_det(video_file, fw = None, fh = None, tlim = None, 
+                user_choice = 'n', meta_data = None, verb = True):
     """ This subroutine takes the original video as input, converts it to 
     grayscale, perform background subtraction, converts the forground into 
     binary, performs contour detection and draws a bounding circle around
@@ -61,7 +62,6 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
         raise Exception(msg)
     
     #providing users for option to displaying videos for comparison
-    user_choice = input('Do you want to perform a side by side comparison of the videos ? [y/n]')
     if user_choice == 'y':
         print('Which videos do you want to view?')
         print('1. Original')
@@ -272,6 +272,7 @@ def cluster_det(video_file, meta_data = None, verb = True, fw = None, fh = None,
         if t_clusters[frame_counter] == 0:
             indt[frame_counter] = False
             continue
+        
         #array for area for each cluster for each frame
         area_frame = np.zeros((t_clusters[frame_counter],),dtype = float)
         #aray for center for each each cluster for each frame

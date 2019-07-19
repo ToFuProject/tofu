@@ -117,7 +117,11 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
         t_clusters[tt] = len(contours)
         if t_clusters[tt] == 0:
             indt[tt] = False
+            name = im_out + 'frame' + str(tt) + '.jpg'
+            #writting the output file
+            cv2.imwrite(name, img)
             continue
+        
         #array for area for each cluster for each frame
         area_frame = np.zeros((t_clusters[tt],),dtype = float)
         #aray for center for each each cluster for each frame
