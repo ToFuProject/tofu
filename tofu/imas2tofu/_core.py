@@ -190,7 +190,7 @@ class MultiIDSLoader(object):
                          'dim':'B flux', 'quant':'psi', 'units':'Wb'},
                 '1drhotn':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.rho_tor_norm',
                            'dim':'rho', 'quant':'rhotn', 'units':'Wb'},
-                '1dbrem':{'str':"source[identifier.name=brehmstrahlung].profiles_1d[time].electrons.energy",
+                '1dbrem':{'str':"source[identifier.name=bremsstrahlung].profiles_1d[time].electrons.energy",
                           'dim':'vol.emis.', 'quant':'brem.', 'units':'W/m^3'},
                 '1dline':{'str':"source[identifier.name=lineradiation].profiles_1d[time].electrons.energy",
                           'dim':'vol. emis.', 'quant':'lines', 'units':'W/m^3'}},
@@ -378,11 +378,21 @@ class MultiIDSLoader(object):
                 'polarimeter':{'datacls':'DataCam1D',
                                'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
-                                      'data':'fangle'}},
+                                      'data':'fangle'},
+                               'synth':{'dsynth':{'quant':'core_profiles.1dne',
+                                                  'ref1d':'core_profiles.1drhotn',
+                                                  'ref2d':'equilibrium.2drhotn'},
+                                        'dsig':{'core_profiles':['t'],
+                                                'equilibrium':['t']}}},
                 'bolometer':{'datacls':'DataCam1D',
                              'geomcls':'CamLOS1D',
                              'sig':{'t':'tchan',
-                                    'data':'power'}},
+                                    'data':'power'},
+                             'synth':{'dsynth':{'quant':'core_sources.1dprad',
+                                                'ref1d':'core_sources.1drhotn',
+                                                'ref2d':'equilibrium.2drhotn'},
+                                      'dsig':{'core_profiles':['t'],
+                                              'equilibrium':['t']}}},
                 'soft_x_rays':{'datacls':'DataCam1D',
                                'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
@@ -395,7 +405,12 @@ class MultiIDSLoader(object):
                 'bremsstrahlung_visible':{'datacls':'DataCam1D',
                                           'geomcls':'CamLOS1D',
                                           'sig':{'t':'t',
-                                                 'data':'radiance'}}}
+                                                 'data':'radiance'},
+                                          'synth':{'dsynth':{'quant':'core_profiles.1dne',
+                                                             'ref1d':'core_profiles.1drhotn',
+                                                             'ref2d':'equilibrium.2drhotn'},
+                                                   'dsig':{'core_profiles':['t'],
+                                                           'equilibrium':['t']}}}}
 
     _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
                    'edge_profiles', 'edge_sources']
@@ -411,8 +426,8 @@ class MultiIDSLoader(object):
         for kk,vv in _didsdiag[ids_]['synth']['dsynth'].items():
             v0, v1 = vv.split('.')
             if v0 not in _didsdiag[ids_]['synth']['dsig'].keys():
-                _didsdiag[ids_]['synth']['dsig'][v0] = {}
-            if v1 not in _didsdiag[ids_]['synth']['dsig'][v0]:
+                _didsdiag[ids_]['synth']['dsig'][v0] = [v1]
+            elif v1 not in _didsdiag[ids_]['synth']['dsig'][v0]:
                 _didsdiag[ids_]['synth']['dsig'][v0].append(v1)
 
     for ids in _lidslos:
@@ -479,7 +494,8 @@ class MultiIDSLoader(object):
               {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array},
                'sep':{'lstr':['sepR','sepZ'],
                       'func':_eqSep, 'kargs':{'npts':100}},
-               '2dB':{'lstr':['2dBT', '2dBR', '2dBZ'], 'func':_eqB},
+               '2dB':{'lstr':['2dBT', '2dBR', '2dBZ'], 'func':_eqB,
+                      'dim':'B', 'quant':'B', 'units':'T'},
                '1drhopn':{'lstr':['1dpsi','psiaxis','psisep'], 'func':_rhopn2d,
                           'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
                '2drhopn':{'lstr':['2dpsi','psiaxis','psisep'], 'func':_rhopn2d,
@@ -498,7 +514,10 @@ class MultiIDSLoader(object):
                          'dim':'rho', 'quant':'rhopn', 'units':'adim.'}},
 
               'core_sources':
-             {'1dprad':{'lstr':['1dbrem','1dline'], 'func':_add}},
+             {'1drhopn':{'lstr':['1dpsi'], 'func':_rhopn1d,
+                         'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
+              '1dprad':{'lstr':['1dbrem','1dline'], 'func':_add,
+                        'dim':'vol. emis.', 'quant':'prad', 'unit':'W/m3'}},
 
              'magnetics':
              {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func':_RZ2array},
@@ -2202,6 +2221,49 @@ class MultiIDSLoader(object):
              indfaces[indclock,2]) = indfaces[indclock,2], indfaces[indclock,1]
         return indfaces, meshtype, ntri
 
+
+    # TBF
+    def inspect_ggd(ids):
+        if ids not in self._dids.keys():
+            msg = "The ggd of ids %s cannot be inspected:\n"%ids
+            msg += "  => please add ids first (self.add_ids())"
+            raise Exception(msg)
+
+        lids = ['equilibrium', 'core_sources', 'edge_sources']
+        if ids not in lids:
+            msg = "The default structure of ggd in ids %s is not known"%ids
+            raise Exception(msg)
+
+        if ids == 'equilibrium':
+            nt = len(grids_ggd)
+            for ii in range(nt):
+                nggd = len(grids_ggd[ii])
+                for jj in range(0,ngrid):
+                    ggd = grids_ggd[ii].grid[jj]
+                    gtype = ggd.identifier.name
+                    nspace = len(ggd.space)
+                    for ll in range(0,nspace):
+                        npts = ggd.space[ll].objects_per_dimension[0].object[0]
+
+
+
+
+
+
+
+
+
+
+
+    # TBF
+    def get_mesh_from_ggd(path_to_ggd, ggdindex=0):
+        pass
+
+
+
+
+
+
     def _get_dextra(self, dextra=None, fordata=False, nan=True, pos=None):
         lc = [dextra == False, dextra is None,
               type(dextra) is str, type(dextra) is list, type(dextra) is dict]
@@ -3013,7 +3075,9 @@ class MultiIDSLoader(object):
         sig._dextra = plasma.get_dextra(dextra)
 
         if ids == 'interferometer':
-            sig = sig*2
+            sig = 2.*sig
+        elif ids == 'polarimeter':
+            sig = 2.*sig
 
         # plot
         if plot:
