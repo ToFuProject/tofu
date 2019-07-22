@@ -662,6 +662,11 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     nids = len(ids)
 
     # -------------------
+    # Prepare shot
+    shot = np.r_[shot].astype(int)
+    nshot = shot.size
+
+    # -------------------
     # Prepare out
     loutok = ['Config','Plasma2D','Cam','Data']
     c0 = out is None
@@ -709,6 +714,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if out[ii] in ['Cam','Data']:
             assert ids[ii] in lids
 
+    dout = {shot[jj]: [oo for oo in  out] for jj in range(0,nshot)}
 
     # -------------------
     # Prepare plot_ and complement ids
@@ -720,6 +726,22 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         plot_ = False
     else:
         plot_ = plot
+
+
+    # Check conformity nshot / nDat
+    lc = [nshot >= 1, nDat >= 1]
+    if plot and all(lc):
+        msg = "Cannot plot several diags for several shots!\n"
+        msg += "  => Please select either several diags (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+    lc = [nshot >= 1, nPla >= 1]
+    if plot and all(lc):
+        msg = "Cannot plot several plasma profles for several shots!\n"
+        msg += "  => Please select either several profiles (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+
 
     # Complement ids
     lids = list(ids)
@@ -769,42 +791,50 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
     # -------------------
     # load
-    multi = imas2tofu.MultiIDSLoader(shot=shot, run=run, user=user,
-                                     tokamak=tokamak, version=version,
-                                     ids=lids)
+    for ss in shot:
+        multi = imas2tofu.MultiIDSLoader(shot=shot[ii], run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids=lids)
 
-    # export to instances
-    for ii in range(0,nids):
-        if out[ii] == 'Config':
-            out[ii] = multi.to_Config(Name=Name, occ=occ,
-                                      indDescription=indDescription, plot=plot)
+        # export to instances
+        for ii in range(0,nids):
+            if out[ii] == 'Config':
+                dout[ss][ii] = multi.to_Config(Name=Name, occ=occ,
+                                               indDescription=indDescription,
+                                               plot=plot)
 
-        elif out[ii] == 'Plasma2D':
-            out[ii] = multi.to_Plasma2D(Name=Name, occ=occ,
-                                        tlim=tlim, dsig=dsig, t0=t0,
-                                        plot=plot, plot_sig=plot_sig,
-                                        dextra=dextra, plot_X=plot_X,
-                                        config=config, bck=bck)
-        elif out[ii] == 'Cam':
-            out[ii] = multi.to_Cam(Name=Name, occ=occ,
-                                   ids=lids[ii], indch=indch, config=config,
-                                   plot=plot)
-        elif out[ii] == "Data":
-            out[ii] = multi.to_Data(Name=Name, occ=occ,
-                                    ids=lids[ii], tlim=tlim, dsig=dsig,
-                                    config=config, data=data, X=X, indch=indch,
-                                    indch_auto=indch_auto, t0=t0,
-                                    dextra=dextra, plot=plot_, bck=bck)
+            elif out[ii] == 'Plasma2D':
+                dout[ss][ii] = multi.to_Plasma2D(Name=Name, occ=occ,
+                                                 tlim=tlim, dsig=dsig, t0=t0,
+                                                 plot=plot, plot_sig=plot_sig,
+                                                 dextra=dextra, plot_X=plot_X,
+                                                 config=config, bck=bck)
+            elif out[ii] == 'Cam':
+                dout[ss][ii] = multi.to_Cam(Name=Name, occ=occ,
+                                            ids=lids[ii], indch=indch, config=config,
+                                            plot=plot)
+            elif out[ii] == "Data":
+                dout[ss][ii] = multi.to_Data(Name=Name, occ=occ,
+                                             ids=lids[ii], tlim=tlim, dsig=dsig,
+                                             config=config, data=data, X=X, indch=indch,
+                                             indch_auto=indch_auto, t0=t0,
+                                             dextra=dextra, plot=plot_, bck=bck)
 
     # -------------------
     # plot_combine if relevant
-    if nDat > 1 and plot == True:
-        ld = [out[ii] for ii in lDat[1:]]
-        out[lDat[0]].plot_combine(ld, sharex=sharex, bck=bck)
+    if plot == True:
+        if nshot == 1 and nDat == 1:
+            dout[shot[0]]['Data'][0].plot(bck=bck)
+        elif nshot > 1 and nDat == 1:
+            ld = [dout[ss]['Data'][0] for ss in shot[1:]]
+            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck)
+        elif nshot == 1 and nDat > 1:
+            ld = dout[shot[0]]['Data'][1:]
+            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex, bck=bck)
 
     # return
-    if nids == 1:
-        out = out[0]
+    if nshot == 1 and nDat == 1:
+        out = out[shot[0]]['Data'][0]
     return out
 
 
