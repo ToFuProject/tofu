@@ -24,7 +24,10 @@ import matplotlib as mpl
 import datetime as dtm
 
 # imas
-import imas
+try:
+    import imas
+except Exception as err:
+    raise Exception('imas not available')
 
 __all__ = ['MultiIDSLoader',
            'load_Config', 'load_Plasma2D',
