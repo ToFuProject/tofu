@@ -370,9 +370,9 @@ class MultiIDSLoader(object):
                                   'geomcls':'CamLOS1D',
                                   'sig':{'t':'t',
                                          'data':'ne_integ'},
-                                  'synth':{'dsynth':{'quant':('core_profiles','1dne'),
-                                                     'ref1d':('core_profiles','1drhotn'),
-                                                     'ref2d':('equilibrium','2drhotn')},
+                                  'synth':{'dsynth':{'quant':'core_profiles.1dne',
+                                                     'ref1d':'core_profiles.1drhotn',
+                                                     'ref2d':'equilibrium.2drhotn'},
                                            'dsig':{'core_profiles':['t'],
                                                    'equilibrium':['t']}}},
                 'polarimeter':{'datacls':'DataCam1D',
@@ -408,11 +408,12 @@ class MultiIDSLoader(object):
             _lidslos.remove(ids_)
 
     for ids_ in _lidssynth:
-        for kk,vv in _didsdiag[ids_]['synth']['dsynth']:
-            if vv[0] not in _didsdiag[ids_]['synth']['dsig'].keys():
-                _didsdiag[ids_]['synth']['dsig'][vv[0]] = {}
-            if vv[1] not in _didsdiag[ids_]['synth']['dsig'][vv[0]]:
-                _didsdiag[ids_]['synth']['dsig'][vv[0]].append(vv[1])
+        for kk,vv in _didsdiag[ids_]['synth']['dsynth'].items():
+            v0, v1 = vv.split('.')
+            if v0 not in _didsdiag[ids_]['synth']['dsig'].keys():
+                _didsdiag[ids_]['synth']['dsig'][v0] = {}
+            if v1 not in _didsdiag[ids_]['synth']['dsig'][v0]:
+                _didsdiag[ids_]['synth']['dsig'][v0].append(v1)
 
     for ids in _lidslos:
         dlos = {}
@@ -2110,8 +2111,10 @@ class MultiIDSLoader(object):
 
             # Check presence of minimum
             assert all([ss in dsig[k0] for ss in lscom])
-            if any(['2d' in ss for ss in dsig.keys()]):
-                assert all([ss in dsig[k0] for ss in lsmesh])
+            if any(['2d' in ss for ss in dsig[k0]]):
+                for ss in lsmesh:
+                    if ss not in dsig[k0]:
+                        dsig[k0].append(ss)
             dout[k0] = dsig[k0]
         return dout
 
@@ -2937,16 +2940,15 @@ class MultiIDSLoader(object):
         # Check quant, ref1d, ref2d
         dq = {'quant':quant, 'ref1d':ref1d, 'ref2d':ref2d}
         for kk,vv in dq.items():
-            if kk == 'quant':
-                assert vv is not None
-            c0 = [vv is None, type(vv) is str, type(vv) in [list,tuple]]
-            assert any(c0)
+            lc = [vv is None, type(vv) is str, type(vv) in [list,tuple]]
+            assert any(lc)
             if lc[0]:
-                continue
-            if c0[1]:
+                vv = self._didsdiag[ids]['synth']['dsynth'].get(kk, None)
+                vv = vv.split('.')
+            if lc[1]:
                 vv = vv.split('.')
             assert len(vv) == 2
-            assert vv[0] in self._lidsdiag
+            assert vv[0] in self._lidsplasma
             assert (vv[1] in self._dshort[vv[0]].keys()
                     or vv[1] in self._dcomp[vv[0]].keys())
             dq[kk] = vv
@@ -2958,7 +2960,7 @@ class MultiIDSLoader(object):
         for k0,v0 in dsig.items():
             if type(v0) is not list:
                 v0 = [v0]
-            c0 = k0 not in self._lidsplasma
+            c0 = k0 in self._lidsplasma
             c0 = c0 and all([type(vv) is str for vv in v0])
             if not c0:
                 msg = "Arg dsig must be a dict (ids:[shortcut1, shortcut2...])"
@@ -2973,11 +2975,16 @@ class MultiIDSLoader(object):
                 dsig[vv[0]] = {}
             if vv[1] not in dsig[vv[0]]:
                 dsig[vv[0]].append(vv[1])
-            dq[kk] = '%s.%s'%vv
+            dq[kk] = '%s.%s'%tuple(vv)
+
+        if dq['quant'] is None:
+            msg = "quant is not specified !"
+            raise Exception(msg)
         return dsig, dq['quant'], dq['ref1d'], dq['ref2d']
 
 
-    def calc_signal(self, ids=None, dsig=None, tlim=None, t=None,
+    def calc_signal(self, ids=None, dsig=None, tlim=None, t=None, res=None,
+                    quant=None, ref1d=None, ref2d=None,
                     indch=None, indch_auto=False, Name=None,
                     occ_cam=None, occ_plasma=None, config=None,
                     dextra=None, t0=None, datacls=None, geomcls=None,
@@ -2999,9 +3006,11 @@ class MultiIDSLoader(object):
                                   plot=False, dextra=dextra, nan=True, pos=None)
 
         # Calculate syntehtic signal
-        sig = cam.calc_from_Plasma2D(quant=quant, ref1d=ref1d, ref2d=ref2d,
-                                     res=res, t=t, plot=False)
-        sig._dextra = plasma._dextra
+        sig = cam.calc_signal_from_Plasma2D(plasma,
+                                            quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                            res=res, t=t, plot=False)
+
+        sig._dextra = plasma.get_dextra(dextra)
 
         if ids == 'interferometer':
             sig = sig*2
@@ -3013,12 +3022,13 @@ class MultiIDSLoader(object):
             if plot_plasma is None:
                 plot_plasma = True
             if plot_compare:
-                data = self.to_Data(ids)
+                data = self.to_Data(ids, indch=indch, plot=False)
+                sig._dlabels = data.dlabels
                 data.plot_compare(sig)
             else:
                 sig.plot()
-            if plot_plasma:
-                plasma.plot()
+            if plot_plasma and '1d' in quant:
+                plasma.plot(quant, X=ref1d)
         return sig
 
 

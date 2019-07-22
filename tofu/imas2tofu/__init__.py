@@ -8,12 +8,11 @@ import warnings
 import traceback
 
 try:
-    import imas
     try:
         from tofu.imas2tofu._core import *
     except Exception:
         from ._core import *
-    del imas, warnings, sys
+    del warnings
 except Exception as err:
     if str(err) == 'imas not available':
         msg += "\n\nIMAS python API issue\n"

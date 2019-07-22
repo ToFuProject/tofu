@@ -56,7 +56,7 @@ _Type = 'Tor'
 _NUM_THREADS = 10
 _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
-
+_RES = 0.005
 
 
 """
@@ -768,19 +768,21 @@ class Struct(utils.ToFuObject):
                                                Spline=Spline, Splprms=Splprms,
                                                NP=NP, Plot=Plot, Test=Test)
 
-    def get_sampleEdge(self, res, DS=None, resMode='abs', offsetIn=0.):
+    def get_sampleEdge(self, res=None, DS=None, resMode='abs', offsetIn=0.):
         """ Sample the polygon edges, with resolution res
 
         Sample each segment of the 2D polygon
         Sampling can be limited to a subdomain defined by DS
         """
+        if res is None:
+            res = _RES
         pts, dlr, ind = _comp._Ves_get_sampleEdge(self.Poly, res, DS=DS,
                                                   dLMode=resMode, DIn=offsetIn,
                                                   VIn=self.dgeom['VIn'],
                                                   margin=1.e-9)
         return pts, dlr, ind
 
-    def get_sampleCross(self, res, DS=None, resMode='abs', ind=None, mode='flat'):
+    def get_sampleCross(self, res=None, DS=None, resMode='abs', ind=None, mode='flat'):
         """ Sample, with resolution res, the 2D cross-section
 
         The sampling domain can be limited by DS or ind
@@ -798,13 +800,15 @@ class Struct(utils.ToFuObject):
                 extent : the extent to be fed to mpl.pyplot.imshow()
 
         """
+        if res is None:
+            res = _RES
         args = [self.Poly_closed, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, margin=1.e-9, mode=mode)
         out = _comp._Ves_get_sampleCross(*args, **kwdargs)
         return out
 
-    def get_sampleS(self, res, DS=None, resMode='abs',
+    def get_sampleS(self, res=None, DS=None, resMode='abs',
                     ind=None, offsetIn=0., Out='(X,Y,Z)', Ind=None):
         """ Sample, with resolution res, the surface defined by DS or ind
 
@@ -868,6 +872,8 @@ class Struct(utils.ToFuObject):
         """
         if Ind is not None:
             assert self.dgeom['Multi']
+        if res is None:
+            res = _RES
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, DIn=offsetIn,
                        VIn=self.dgeom['VIn'], VType=self.Id.Type,
                        VLim=np.ascontiguousarray(self.Lim), nVLim=self.noccur,
@@ -4182,7 +4188,7 @@ class Rays(utils.ToFuObject):
             pts = None
         return pts
 
-    def get_sample(self, res, resMode='abs', DL=None, method='sum', ind=None,
+    def get_sample(self, res=None, resMode='abs', DL=None, method='sum', ind=None,
                    pts=False, compact=True, num_threads=_NUM_THREADS, Test=True):
         """ Return a linear sampling of the LOS
 
@@ -4246,6 +4252,8 @@ class Rays(utils.ToFuObject):
             the points of each los). e.g.: lk = np.split(k,ind)
 
         """
+        if res is None:
+            res = _RES
         ind = self._check_indch(ind)
         # preload k
         kIn = self.kIn
@@ -4517,7 +4525,7 @@ class Rays(utils.ToFuObject):
 
 
     def calc_signal(self, ff, t=None, ani=None, fkwdargs={}, Brightness=True,
-                    res=0.005, DL=None, resMode='abs', method='sum',
+                    res=None, DL=None, resMode='abs', method='sum',
                     ind=None, out=object, plot=True, dataname=None,
                     fs=None, dmargin=None, wintit=None, invert=True,
                     units=None, draw=True, connect=True):
@@ -4561,6 +4569,8 @@ class Rays(utils.ToFuObject):
 
         if Ds is None:
             return None
+        if res is None:
+            res = _RES
 
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
@@ -4585,7 +4595,7 @@ class Rays(utils.ToFuObject):
                                   ref1d=None, ref2d=None,
                                   Brightness=True, interp_t='nearest',
                                   interp_space=None, fill_value=np.nan,
-                                  res=0.005, DL=None, resMode='abs', method='sum',
+                                  res=None, DL=None, resMode='abs', method='sum',
                                   ind=None, out=object, plot=True, dataname=None,
                                   fs=None, dmargin=None, wintit=None, invert=True,
                                   units=None, draw=True, connect=True):
@@ -4596,6 +4606,8 @@ class Rays(utils.ToFuObject):
 
         if Ds is None:
             return None
+        if res is None:
+            res = _RES
 
         # Get ptsRZ along LOS // Which to choose ???
         pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,

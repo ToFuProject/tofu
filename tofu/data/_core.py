@@ -1979,6 +1979,8 @@ class DataAbstract(utils.ToFuObject):
                     't':obj0.t, 'X':obj0.X,
                     'lCam':obj0.lCam, 'config':obj0.config,
                     'dextra':obj0.dextra}
+            if dcom['lCam'] is not None:
+                dcom['config'] = None
         else:
             ls = ['SavePath', 'Diag', 'Exp', 'shot']
             dcom = {ss:getattr(obj0.Id,ss) for ss in ls
@@ -3520,24 +3522,28 @@ class Plasma2D(utils.ToFuObject):
     # Methods for plotting data
     #---------------------
 
-    def plot(self, lquant, X=None, ref=None,
+    def plot(self, lquant, X=None,
+             ref1d=None, ref2d=None,
              remap=False, res=0.01, interp_space=None,
              sharex=False, bck=True):
         lDat = self.get_Data(lquant, X=X, remap=remap,
-                             ref=ref, res=res, interp_space=interp_space)
+                             ref1d=ref1d, ref2d=ref2d,
+                             res=res, interp_space=interp_space)
         if type(lDat) is list:
             kh = lDat[0].plot_combine(lDat[1:], sharex=sharex, bck=bck)
         else:
             kh = lDat.plot(bck=bck)
         return kh
 
-    def plot_combine(self, lquant, lData=None, X=None, ref=None,
+    def plot_combine(self, lquant, lData=None, X=None,
+                     ref1d=None, ref2d=None,
                      remap=False, res=0.01, interp_space=None,
                      sharex=False, bck=True):
         """ plot combining several quantities from the Plasma2D itself and
         optional extra list of Data instances """
         lDat = self.get_Data(lquant, X=X, remap=remap,
-                             ref=ref, res=res, interp_space=interp_space)
+                             ref1d=ref1d, ref2d=ref2d,
+                             res=res, interp_space=interp_space)
         if lData is not None:
             if type(lDat) is list:
                 lData = lDat[1:] + lData
