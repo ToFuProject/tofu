@@ -623,7 +623,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    occ=None, indch=None, indDescription=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None, sharex=False,
-                   bck=True):
+                   bck=True, indch_auto=True):
     # -------------------
     # import imas2tofu
     try:
@@ -729,6 +729,10 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if nDat > 0 or nPla > 0 and dextra is None:
             if 'equilibrium' not in lids:
                 lids.append('equilibrium')
+            if 'lh_antennas' not in lids:
+                lids.append('lh_antennas')
+            if 'ic_antennas' not in lids:
+                lids.append('ic_antennas')
         if t0 not in [None, False] and (nDat > 0 or nPla > 0):
             if 'pulse_schedule' not in lids:
                 lids.append('pulse_schedule')
@@ -787,8 +791,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                                    plot=plot)
         elif out[ii] == "Data":
             out[ii] = multi.to_Data(Name=Name, occ=occ,
-                                    ids=lids[ii], tlim=tlim, dsig=dsig, config=config,
-                                    data=data, X=X, indch=indch, t0=t0,
+                                    ids=lids[ii], tlim=tlim, dsig=dsig,
+                                    config=config, data=data, X=X, indch=indch,
+                                    indch_auto=indch_auto, t0=t0,
                                     dextra=dextra, plot=plot_, bck=bck)
 
     # -------------------

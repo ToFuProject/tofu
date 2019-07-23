@@ -1322,11 +1322,17 @@ class DataAbstract(utils.ToFuObject):
             (nt, nch), nlamb = d.shape, 0
         else:
             nt, nch, nlamb = d.shape
-        assert d.ndim in [2,3]
-        assert t.shape==(nt,)
-        assert X.shape==(nnch, nch)
+        lc = [d.ndim in [2,3], t.shape == (nt,), X.shape == (nnch, nch)]
+        if not all(lc):
+            msg = "Data, X, t shape unconsistency:\n"
+            msg += "    - data.shape: %s\n"%str(d.shape)
+            msg += "    - X.shape:     %s\n"%str(X.shape)
+            msg += "    - (nnch, nch): %s\n"%str((nnch,nch))
+            msg += "    - t.shape: %s\n"%str(t.shape)
+            msg += "    - nt :     %s"%str(nt)
+            raise Exception(msg)
         if lamb is not None:
-            assert lamb.shape==(self._ddataRef['nnlamb'], nlamb)
+            assert lamb.shape == (self._ddataRef['nnlamb'], nlamb)
 
         lout = [d, t, X, lamb, nt, nch, nlamb,
                 indtX, indtlamb, indXlamb, indtXlamb, nnch]
@@ -1851,7 +1857,44 @@ class DataAbstract(utils.ToFuObject):
             msg = "svd not implemented yet for spectral data class"
             raise Exception(msg)
         chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
-        return u, s, v
+        return chronos, s, topos
+
+
+    def extract_svd(self, modes=None, lapack_driver='gesdd', out=object):
+        """ Extract, as Data object, the filtered signal using selected modes
+
+        The svd (chronos, s, topos) is computed,
+        The selected modes are used to re-construct a filtered signal, using:
+            data = chronos[:,modes] @ (s[None,modes] @ topos[modes,:]
+
+        The result is exported a an array or a Data object on the same class
+        """
+        if self._isSpectral():
+            msg = "svd not implemented yet for spectral data class"
+            raise Exception(msg)
+        msg = None
+        if modes is not None:
+            try:
+                modes = np.r_[modes].astype(int)
+            except Exception as err:
+                msg = str(err)
+        else:
+            msg = "Arg mode cannot be None !"
+        if msg is not None:
+            msg += "\n\nArg modes must a positive int or a list of such!\n"
+            msg += "    - Provided: %s"%str(modes)
+            raise Exception(msg)
+
+        chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+        data = chronos[:,modes] @ (s[modes,None] * topos[modes,:])
+        if out is object:
+            data = self.__class__(data=data, t=self.t, X=self.X,
+                                  lCam=self.lCam, config=self.config,
+                                  Exp=self.Id.Exp, Diag=self.Id.Diag,
+                                  shot=self.Id.shot,
+                                  Name=self.Id.Name + '-svd%s'%str(modes))
+        return data
+
 
     def plot_svd(self, lapack_driver='gesdd', modes=None, key=None, bck=True,
                  Lplot='In', cmap=None, vmin=None, vmax=None,
@@ -2428,8 +2471,7 @@ class Plasma2D(utils.ToFuObject):
                 'depend']
         lkmeshmax = ['type','ftype','nodes','faces',
                      'nfaces','nnodes','mpltri','size','ntri']
-        lkmeshmin = ['type','ftype','nodes','faces',
-                     'nfaces','nnodes']
+        lkmeshmin = ['type','ftype','nodes','faces']
         dkok = {'dtime': {'max':lkok, 'min':['data'], 'ndim':[1]},
                 'dradius':{'max':lkok, 'min':['data'], 'ndim':[1,2]},
                 'd0d':{'max':lkok, 'min':['data'], 'ndim':[1,2,3]},
@@ -2477,10 +2519,46 @@ class Plasma2D(utils.ToFuObject):
                 if dk == 'dmesh':
                     dd[dk][k0]['nodes'] = np.atleast_2d(v0['nodes']).astype(float)
                     dd[dk][k0]['faces'] = np.atleast_2d(v0['faces']).astype(int)
+                    nnodes = dd[dk][k0]['nodes'].shape[0]
+                    nfaces = dd[dk][k0]['faces'].shape[0]
+
+                    # Test for duplicates
+                    nodesu = np.unique(dd[dk][k0]['nodes'], axis=0)
+                    facesu = np.unique(dd[dk][k0]['faces'], axis=0)
+                    lc = [nodesu.shape[0] != nnodes,
+                          facesu.shape[0] != nfaces]
+                    if any(lc):
+                        msg = "Non-valid mesh %s[%s]:\n"%(dk,k0)
+                        if lc[0]:
+                            msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
+                            msg += "    - nodes.shape: %s\n"%str(dd[dk][k0]['nodes'].shape)
+                            msg += "    - unique nodes.shape: %s\n"%str(nodesu.shape)
+                        if lc[1]:
+                            msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
+                            msg += "    - faces.shape: %s\n"%str(dd[dk][k0]['faces'].shape)
+                            msg += "    - unique faces.shape: %s"%str(facesu.shape)
+                        raise Exception(msg)
+
+                    # Test for unused nodes
+                    facesu = np.unique(facesu)
+                    c0 = np.all(facesu>=0) and facesu.size == nnodes
+                    if not c0:
+                        indnot = [ii for ii in range(0,nnodes)
+                                  if ii not in facesu]
+                        msg = "Some nodes not used in mesh %s[%s]:\n"(dk,k0)
+                        msg += "    - unused nodes indices: %s"%str(indnot)
+                        warnings.warn(msg)
+
+
+                    dd[dk][k0]['nnodes'] = dd[dk][k0].get('nnodes', nnodes)
+                    dd[dk][k0]['nfaces'] = dd[dk][k0].get('nfaces', nfaces)
+
                     assert dd[dk][k0]['nodes'].shape == (v0['nnodes'],2)
                     assert np.max(dd[dk][k0]['faces']) < v0['nnodes']
-                    assert v0['type'] == 'tri'  # Only triangular meshes so far
-                    if v0['type'] == 'tri':
+                    # Only triangular meshes so far
+                    assert v0['type'] in ['tri', 'quadtri'], v0['type']
+
+                    if 'tri' in v0['type']:
                         assert dd[dk][k0]['faces'].shape == (v0['nfaces'],3)
                         if v0.get('mpltri', None) is None:
                             dd[dk][k0]['mpltri'] = mplTri(dd[dk][k0]['nodes'][:,0],
@@ -2490,7 +2568,7 @@ class Plasma2D(utils.ToFuObject):
                         assert dd[dk][k0]['ftype'] in [0,1]
                         ntri = dd[dk][k0]['ntri']
                         if dd[dk][k0]['ftype'] == 1:
-                            dd[dk][k0]['size'] = int(dd[dk][k0]['nnodes']/ntri)
+                            dd[dk][k0]['size'] = dd[dk][k0]['nnodes']
                         else:
                             dd[dk][k0]['size'] = int(dd[dk][k0]['nfaces']/ntri)
 
@@ -2570,22 +2648,20 @@ class Plasma2D(utils.ToFuObject):
             lref = dd[k0]['depend']
         else:
             lref = [[kk for kk, vv in dindref.items()
-                     if vv['size'] == sh] for sh in shape]
+                     if vv['size'] == sh and vv['group'] in lrefname]
+                    for sh in shape]
             lref = list(itt.chain.from_iterable(lref))
             if len(lref) < len(shape):
-                msg = "Some references missing for %s[%s]:\n"%(ddstr,k0)
+                msg = "Maybe not enoough references for %s[%s]:\n"%(ddstr,k0)
                 msg += "    - shape: %s\n"%str(shape)
                 msg += "    - lref:  %s"%str(lref)
-                raise Exception(msg)
-            if len(lref) > len(shape):
-                lrn = [rn for rn in lrefname if rn in dd[k0].keys()]
-                lref = [rr for rr in lref if dindref[rr]['name'] in lrn]
-                if not len(lref) == len(shape):
-                    msg = "Multiple possible references for %s[%s]\n"%(ddstr,k0)
-                    msg += "    - shape: %s\n"%str(shape)
-                    msg += "    - lref:  %s"%str(lref)
-                    raise Exception(msg)
-        assert len(lref) <= len(shape)
+                warnings.warn(msg)
+
+        if len(lref) > len(shape):
+            msg = "Too many references for %s[%s]:\n"%(ddstr,k0)
+            msg += "    - shape: %s\n"%str(shape)
+            msg += "    - lref:  %s"%str(lref)
+            raise Exception(msg)
         return lref
 
 
@@ -2610,6 +2686,9 @@ class Plasma2D(utils.ToFuObject):
                 dim, quant, origin, name, units = out
 
                 assert k0 not in dindref.keys()
+                dtime[k0]['data'] = np.atleast_1d(np.squeeze(dtime[k0]['data']))
+                assert dtime[k0]['data'].ndim == 1
+
                 dindref[k0] = {'size':dtime[k0]['data'].size,
                                'group':'time'}
 
@@ -2625,6 +2704,9 @@ class Plasma2D(utils.ToFuObject):
                 dim, quant, origin, name, units = out
 
                 # data
+                d0d[k0]['data'] = np.atleast_1d(np.squeeze(d0d[k0]['data']))
+                assert d0d[k0]['data'].ndim >= 1
+
                 depend = self._find_lref(d0d[k0]['data'].shape, k0, dd=d0d,
                                          ddstr='d0d', dindref=dindref,
                                          lrefname=['t'])
@@ -2640,7 +2722,9 @@ class Plasma2D(utils.ToFuObject):
                 out = self._extract_dnd(dradius, k0, name_=k0)
                 dim, quant, origin, name, units = out
                 assert k0 not in dindref.keys()
-                data = dradius[k0]['data']
+                data = np.atleast_1d(np.squeeze(dradius[k0]['data']))
+                assert data.ndim in [1,2]
+
                 if len(dradius[k0].get('depend',[1])) == 1:
                     assert data.ndim == 1
                     size = data.size
@@ -2666,6 +2750,9 @@ class Plasma2D(utils.ToFuObject):
             for k0 in d1d.keys():
                 out = self._extract_dnd(d1d,k0)
                 dim, quant, origin, name, units = out
+
+                d1d[k0]['data'] = np.atleast_2d(np.squeeze(d1d[k0]['data']))
+                assert d1d[k0]['data'].ndim == 2
 
                 # data
                 depend = self._find_lref(d1d[k0]['data'].shape, k0, dd=d1d,
@@ -2696,6 +2783,9 @@ class Plasma2D(utils.ToFuObject):
             for k0 in d2d.keys():
                 out = self._extract_dnd(d2d,k0)
                 dim, quant, origin, name, units = out
+
+                d2d[k0]['data'] = np.atleast_2d(np.squeeze(d2d[k0]['data']))
+                assert d2d[k0]['data'].ndim == 2
 
                 depend = self._find_lref(d2d[k0]['data'].shape, k0, dd=d2d,
                                          ddstr='d2d', dindref=dindref,

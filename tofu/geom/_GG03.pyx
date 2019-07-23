@@ -3274,7 +3274,7 @@ def LOS_calc_signal2(func, double[:,::1] Ds, double[:,::1] us, dL,
 
 
     cdef double* los_coeffs = NULL
-    cdef unsigned int nt, axm, ii, jj, N, ND = Ds.shape[1]
+    cdef unsigned int nt=0, axm, ii, jj, N, ND = Ds.shape[1]
     cdef np.ndarray[double,ndim=2] sig = np.empty((nt,ND),dtype=float)
     # .. Ds shape needed for testing and in algo ...............................
     sz1_ds = Ds.shape[0]
@@ -3341,6 +3341,7 @@ def LOS_calc_signal2(func, double[:,::1] Ds, double[:,::1] us, dL,
                 sig[:,ii] = scpintg.simps(val[:,indbis[ii]:indbis[ii+1]],
                                           x=None, dx=reseff[ii], axis=-1)
         else:
+            axm = 1
             for ii in range(0,ND):
                 sig[:,ii] = scpintg.romb(val[:,indbis[ii]:indbis[ii+1]],
                                          dx=reseff[ii], axis=axm, show=False)

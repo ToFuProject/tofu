@@ -19,6 +19,7 @@ else:
 # Common
 import numpy as np
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import datetime as dtm
 try:
     import pandas as pd
@@ -53,6 +54,8 @@ _arrayorder = 'C'
 _Clock = False
 _Type = 'Tor'
 _NUM_THREADS = 10
+_PHITHETAPROJ_NPHI = 2000
+_PHITHETAPROJ_NTHETA = 1000
 
 
 
@@ -884,6 +887,71 @@ class Struct(utils.ToFuObject):
                       VLim=self.Lim, Out=Out, margin=1.e-9)
         pts, dV, ind, reseff = _comp._Ves_get_sampleV(*args, **kwdargs)
         return pts, dV, ind, reseff
+
+
+    def _get_phithetaproj(self, refpt=None):
+        # Prepare ax
+        if refpt is None:
+            msg = "Please provide refpt (R,Z)"
+            raise Exception(msg)
+        refpt = np.atleast_1d(np.squeeze(refpt))
+        assert refpt.shape == (2,)
+        return _comp._Struct_get_phithetaproj(refpt, self.Poly,
+                                              self.Lim, self.noccur)
+
+    def _get_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None):
+        # Prepare ax
+        if refpt is None:
+            msg = "Please provide refpt (R,Z)"
+            raise Exception(msg)
+        refpt = np.atleast_1d(np.squeeze(refpt))
+        assert refpt.shape == (2,)
+
+        # Prepare theta and phi
+        if theta is None and ntheta is None:
+            nphi = _PHITHETAPROJ_NTHETA
+        lc = [ntheta is None, theta is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either ntheta xor a theta vector !"
+            raise Exception(msg)
+        if theta is None:
+            theta = np.linspace(-np.pi, np.pi, ntheta, endpoint=True)
+
+        if phi is None and nphi is None:
+            nphi = _PHITHETAPROJ_NPHI
+        lc = [nphi is None, phi is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either nphi xor a phi vector !"
+            raise Exception(msg)
+        if phi is None:
+            phi = np.linspace(-np.pi, np.pi, nphi, endpoint=True)
+
+        # Get limits
+        out = _comp._Struct_get_phithetaproj(refpt, self.Poly_closed,
+                                             self.Lim, self.noccur)
+        nDphi, Dphi, nDtheta, Dtheta = out
+
+        # format inputs
+        theta = np.atleast_1d(np.ravel(theta))
+        theta = np.arctan2(np.sin(theta), np.cos(theta))
+        phi = np.atleast_1d(np.ravel(phi))
+        phi = np.arctan2(np.sin(phi), np.cos(phi))
+        ntheta, nphi = theta.size, phi.size
+
+        dist = np.full((ntheta, nphi), np.nan)
+
+        # Get dist
+        dist_theta, indphi = _comp._get_phithetaproj_dist(self.Poly_closed,
+                                                          refpt,
+                                                          Dtheta, nDtheta,
+                                                          Dphi, nDphi,
+                                                          theta, phi,
+                                                          ntheta, nphi,
+                                                          self.noccur)
+        dist[:,indphi] = dist_theta[:,None]
+
+        return dist, nDphi, Dphi, nDtheta, Dtheta
 
 
     def plot(self, lax=None, proj='all', element='PIBsBvV',
@@ -2267,6 +2335,26 @@ class Config(utils.ToFuObject):
             ii += 1
         return col
 
+    def set_colors_random(self, cmap=plt.cm.Accent):
+        ii = 0
+        ncol = len(cmap.colors)
+        for k in self._dStruct['lorder']:
+            k0, k1 = k.split('_')
+            if self._dStruct['dObj'][k0][k1]._InOut == 'in':
+                col = 'k'
+            elif 'lh' in k1.lower():
+                col = (1.,0.,0.)
+            elif 'ic' in k1.lower():
+                col = (1.,0.5,0.5)
+            elif 'div' in k1.lower():
+                col = (0.,1.,0.)
+            elif 'bump' in k1.lower():
+                col = (0.,0.,1.)
+            else:
+                col = cmap.colors[ii%ncol]
+                ii += 1
+            self._dStruct['dObj'][k0][k1].set_color(col)
+
     def get_summary(self, verb=False, max_columns=100, width=1000):
         """ Summary description of the object content as a pandas DataFrame """
         # Make sure the data is accessible
@@ -2301,6 +2389,86 @@ class Config(utils.ToFuObject):
         if verb:
             print(df)
         return df
+
+    def _get_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None):
+        # Prepare repf
+        if refpt is None:
+            refpt = self.dsino['RefPt']
+            if refpt is None:
+                msg = "Please provide refpt (R,Z)"
+                raise Exception(msg)
+        refpt = np.atleast_1d(np.squeeze(refpt))
+        assert refpt.shape == (2,)
+
+        # Prepare theta and phi
+        if theta is None and ntheta is None:
+            ntheta = _PHITHETAPROJ_NTHETA
+        lc = [ntheta is None, theta is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either ntheta xor a theta vector !"
+            raise Exception(msg)
+        if theta is None:
+            theta = np.linspace(-np.pi, np.pi, ntheta, endpoint=True)
+
+        if phi is None and nphi is None:
+            nphi = _PHITHETAPROJ_NPHI
+        lc = [nphi is None, phi is None]
+        if np.sum(lc) != 1:
+            msg = "Please provide either nphi xor a phi vector !"
+            raise Exception(msg)
+        if phi is None:
+            phi = np.linspace(-np.pi, np.pi, nphi, endpoint=True)
+
+        # format inputs
+        theta = np.atleast_1d(np.ravel(theta))
+        theta = np.arctan2(np.sin(theta), np.cos(theta))
+        phi = np.atleast_1d(np.ravel(phi))
+        phi = np.arctan2(np.sin(phi), np.cos(phi))
+        ntheta, nphi = theta.size, phi.size
+
+        # Get limits
+        lS = self.lStruct
+        dist = np.full((ntheta, nphi), np.inf)
+        indStruct = np.zeros((ntheta, nphi), dtype=int)
+        for ii in range(0,self.nStruct):
+            out = _comp._Struct_get_phithetaproj(refpt, lS[ii].Poly_closed,
+                                                 lS[ii].Lim, lS[ii].noccur)
+            nDphi, Dphi, nDtheta, Dtheta = out
+
+            # Get dist
+            dist_theta, indphi = _comp._get_phithetaproj_dist(lS[ii].Poly_closed,
+                                                              refpt,
+                                                              Dtheta, nDtheta,
+                                                              Dphi, nDphi,
+                                                              theta, phi,
+                                                              ntheta, nphi,
+                                                              lS[ii].noccur)
+            ind = np.zeros((ntheta,nphi), dtype=bool)
+            indok = ~np.isnan(dist_theta)
+            ind[indok,:] = indphi[None,:]
+            ind[ind] = (dist_theta[indok,None]
+                        < dist[indok,:][:,indphi]).ravel()
+            dist[ind] = (np.broadcast_to(dist_theta, (nphi,ntheta)).T)[ind]
+            indStruct[ind] = ii
+
+        dist[np.isinf(dist)] = np.nan
+
+        return dist, indStruct
+
+
+    def plot_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
+                               theta=None, phi=None, cmap=None,
+                               ax=None, fs=None, tit=None, wintit=None,
+                               draw=None):
+        dist, indStruct = self._get_phithetaproj_dist(refpt=refpt, ntheta=ntheta, nphi=nphi,
+                                                      theta=theta, phi=phi)
+        return _plot.Config_phithetaproj_dist(self, refpt, dist, indStruct,
+                                              cmap=cmap, ax=ax, fs=fs,
+                                              tit=tit, wintit=wintit,
+                                              draw=draw)
+
+
 
     def isInside(self, pts, In='(X,Y,Z)', log='any'):
         """ Return a 2D array of bool
@@ -3959,55 +4127,40 @@ class Rays(utils.ToFuObject):
             ind = ind.nonzero()[0]
         return ind
 
-    def get_subset(self, indch=None):
+    def get_subset(self, indch=None, Name=None):
+        """ Return an instance which is a sub-set of the camera
+
+        The subset is the same camera but with only the LOS selected by indch
+        It can be assigned a new Name (str), or the same one (True)
+        """
         if indch is None:
             return self
         else:
             indch = self._check_indch(indch)
-            d = self.to_dict()
-            d['dId_dall_Name'] = d['dId_dall_Name']+'-subset'
-            if self.dchans!={} and self.dchans is not None:
-                for k in self.dchans.keys():
-                    C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                    if C0:
-                        if v.ndim==1:
-                            d['dchans_%s'%k] = v[indch]
-                        elif v.ndim==2 and v.shape[1]==self.nRays:
-                            d['dchans_%s'%k] = v[:,indch]
+            dd = self.to_dict()
 
-            # Geom
-            for k in self.dgeom.keys():
-                v = d['dgeom_%s'%k]
-                C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                if C0:
-                    if v.ndim==1:
-                        d['dgeom_%s'%k] = v[indch]
-                    elif v.ndim==2 and v.shape[1]==self.nRays:
-                        d['dgeom_%s'%k] = v[:,indch]
+            # Name
+            assert Name in [None,True] or type(Name) is str
+            if Name == True:
+                pass
+            elif type(Name) is str:
+                dd['dId_dall_Name'] = Name
+            elif Name is None:
+                dd['dId_dall_Name'] = dd['dId_dall_Name']+'-subset'
 
-            # X12
-            if self._is2D():
-                for k in self.dX12.keys():
-                    v = d['dX12_%s'%k]
-                    C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                    if C0:
-                        if v.ndim==1:
-                            d['dX12_%s'%k] = v[indch]
-                        elif v.ndim==2 and v.shape[1]==self.nRays:
-                            d['dX12_%s'%k] = v[:,indch]
-
-            # Sino
-            for k in self.dsino.keys():
-                v = d['dsino_%s'%k]
-                C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                if C0:
-                    if v.ndim==1:
-                        d['dsino_%s'%k] = v[indch]
-                    elif v.ndim==2 and v.shape[1]==self.nRays:
-                        d['dsino_%s'%k] = v[:,indch]
+            # Resize all np.ndarrays
+            for kk in dd.keys():
+                vv = dd[kk]
+                c0 = isinstance(vv,np.ndarray) and self.nRays in vv.shape
+                if c0:
+                    if vv.ndim == 1:
+                        dd[kk] = vv[indch]
+                    elif vv.ndim == 2 and vv.shape[1] == self.nRays:
+                        dd[kk] = vv[:,indch]
+                dd['dgeom_nRays'] = dd['dgeom_D'].shape[1]
 
             # Recreate from dict
-            obj = self.__class__(fromdict=d)
+            obj = self.__class__(fromdict=dd)
         return obj
 
     def _get_plotL(self, Lplot='Tot', proj='All', ind=None, multi=False):
@@ -4267,7 +4420,8 @@ class Rays(utils.ToFuObject):
 
         return kIn, kOut
 
-    def _calc_signal_preformat(self, ind=None, DL=None, out=object, Brightness=True):
+    def _calc_signal_preformat(self, ind=None, DL=None, t=None,
+                               out=object, Brightness=True):
         msg = "Arg out must be in [object,np.ndarray]"
         assert out in [object,np.ndarray], msg
         assert type(Brightness) is bool, "Arg Brightness must be a bool !"
@@ -4299,6 +4453,7 @@ class Rays(utils.ToFuObject):
 
         # Preformat Ds, us and Etendue
         Ds, us = self.D[:,ind], self.u[:,ind]
+        E = None
         if Brightness is False:
             E = self.Etendues
             if E.size==self.nRays:
@@ -4323,13 +4478,13 @@ class Rays(utils.ToFuObject):
             DL = np.ascontiguousarray(DL)
         else:
             Ds, us, DL = None, None, None
-        return indok, Ds, us, DL, E
+        return sig, indok, Ds, us, DL, E
 
 
     def _calc_signal_postformat(self, sig, Brightness=True, dataname=None, t=None,
                                 E=None, units=None, plot=True,
                                 fs=None, dmargin=None, wintit=None, invert=True,
-                                draw=True, connect=True):
+                                draw=True, connect=True, out=object):
         if Brightness is False:
             if dataname is None:
                 dataname = r"LOS-integral x Etendue"
@@ -4406,8 +4561,8 @@ class Rays(utils.ToFuObject):
         """
 
         # Format input
-        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, DL=DL, out=out,
-                                                        Brightness=Brightness)
+        sig, indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, DL=DL, out=out,
+                                                             Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4431,7 +4586,8 @@ class Rays(utils.ToFuObject):
                                             connect=connect)
 
 
-    def calc_signal_from_Plasma2D(self, plasma2d, quant=None, t=None, ref=None,
+    def calc_signal_from_Plasma2D(self, plasma2d, quant=None, t=None,
+                                  ref1d=None, ref2d=None,
                                   Brightness=True, interp_t='nearest',
                                   interp_space='nearest', fill_value=np.nan,
                                   res=0.005, DL=None, resMode='abs', method='sum',
@@ -4439,8 +4595,8 @@ class Rays(utils.ToFuObject):
                                   fs=None, dmargin=None, wintit=None, invert=True,
                                   units=None, draw=True, connect=True):
         # Format input
-        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, out=out,
-                                                        Brightness=Brightness)
+        sig, indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, out=out, t=t,
+                                                             Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4449,30 +4605,25 @@ class Rays(utils.ToFuObject):
         pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
                                               compact=True, pts=True)
         pts = np.array([np.hypot(pts[0,:],pts[1,:]), pts[2,:]])
+        indpts = np.concatenate((0,indpts,pts.shape[1]))
 
         # Get quantity values at ptsRZ
         val, t = plasma2d.interp_pts2profile(quant, ptsRZ=pts, t=t,
-                                             ref=None, interp_t=interp_t,
+                                             ref1d=ref1d, ref2d=ref2d,
+                                             interp_t=interp_t,
                                              interp_space=interp_space,
                                              fill_value=fill_value)
         # Integrate
-
-
-        s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
-                                dmethod=resMode, method=method,
-                                t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
-        if t is None or len(t)==1:
-            sig[indok] = s
-        else:
-            sig[:,indok] = s
+        for ii in range(0,self.nRays):
+            sig[:,ii] = np.sum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff
 
         # Format output
         return self._calc_signal_postformat(sig, Brightness=Brightness,
                                             dataname=dataname, t=t, E=E,
                                             units=units, plot=plot,
-                                         fs=fs, dmargin=dmargin, wintit=wintit,
-                                         invert=invert, draw=draw,
-                                         connect=connect)
+                                            fs=fs, dmargin=dmargin, wintit=wintit,
+                                            invert=invert, draw=draw,
+                                            connect=connect)
 
 
 

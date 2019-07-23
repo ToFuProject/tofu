@@ -191,7 +191,10 @@ class MultiIDSLoader(object):
                'edge_sources':
                {'t':{'str':'time'},
                 '2dmeshNodes':{'str':'grid_ggd[0].space[0].objects_per_dimension[0].object[].geometry'},
-                '2dmeshFaces':{'str':'grid_ggd[0].space[0].objects_per_dimension[2].object[].nodes'}},
+                '2dmeshFaces':{'str':'grid_ggd[0].space[0].objects_per_dimension[2].object[].nodes'},
+                '2dradiation':{'str':'source[13].ggd[0].electrons.energy[0].values',
+                               'dim':'vol. emis.', 'quant':'vol.emis.',
+                               'name':'tot. vol. emis.','units':'W/m^3'}},
 
                'lh_antennas':
                {'t':{'str':'antenna[chan].power_launched.time'},
@@ -277,6 +280,14 @@ class MultiIDSLoader(object):
                 'ne_integ':{'str':'channel[chan].n_e_line.data',
                             'dim':'ne_integ', 'quant':'ne_integ', 'units':'/m2'}},
 
+               'polarimeter':
+               {'t':{'str':'time',
+                     'quant':'t', 'units':'s'},
+                'wavelength':{'str':'channel[chan].wavelength',
+                              'dim':'distance', 'quant':'wavelength', 'units':'m'},
+                'fangle':{'str':'channel[chan].faraday_angle.data',
+                          'dim':'angle', 'quant':'faraday angle', 'units':'rad'}},
+
                'bolometer':
                {'t':{'str':'channel[chan].power.time',
                      'quant':'t', 'units':'s'},
@@ -333,6 +344,10 @@ class MultiIDSLoader(object):
                                   'geomcls':'CamLOS1D',
                                   'sig':{'t':'t',
                                          'data':'ne_integ'}},
+                'polarimeter':{'datacls':'DataCam1D',
+                               'geomcls':'CamLOS1D',
+                               'sig':{'t':'t',
+                                      'data':'fangle'}},
                 'bolometer':{'datacls':'DataCam1D',
                              'geomcls':'CamLOS1D',
                              'sig':{'t':'t',
@@ -949,7 +964,8 @@ class MultiIDSLoader(object):
 
         docc = {}
         for ii in range(0,len(llids)):
-            docc[ii] = {}
+            docc[ii] = {jj:{'oc':None, 'indok':None}
+                        for jj in range(0,len(llids[ii][1]))}
             for jj in range(0,len(llids[ii][1])):
                 ids = llids[ii][1][jj]
                 occref = self._dids[ids]['occ']
@@ -958,7 +974,9 @@ class MultiIDSLoader(object):
                 else:
                     oc = np.unique(np.r_[occ].astype(int))
                     oc = np.intersect1(oc, occref)
-                docc[ii][jj] = oc
+                docc[ii][jj]['oc'] = oc
+                docc[ii][jj]['indoc'] = np.array([(occref==oc[ll]).nonzero()[0][0]
+                                                  for ll in range(0,len(oc))])
                 if verb:
                     msg = [ids, str(oc)]
                     if jj == 0:
@@ -977,9 +995,8 @@ class MultiIDSLoader(object):
         for ii in range(0,len(llids)):
             for jj in range(0,len(llids[ii][1])):
                 ids = llids[ii][1][jj]
-                occref = self._dids[ids]['occ']
-                indoc = np.array([np.nonzero(occref==docc[ii][jj][ll])[0][0]
-                                  for ll in range(0,len(docc[ii][jj]))]).ravel()
+                oc = docc[ii][jj]['oc']
+                indoc = docc[ii][jj]['indoc']
 
                 # if ids not provided
                 if self._dids[ids]['ids'] is None:
@@ -1314,7 +1331,8 @@ class MultiIDSLoader(object):
             occ = self._dids[ids]['occ'][0]
         else:
             assert occ in self._dids[ids]['occ']
-        return self._dids[ids]['ids'][occ]
+        indoc = np.where(self._dids[ids]['occ'] == occ)[0][0]
+        return self._dids[ids]['ids'][indoc]
 
 
     #---------------------
@@ -1665,7 +1683,7 @@ class MultiIDSLoader(object):
                 self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
 
     def _get_data(self, ids, sig, occ, comp=False, indt=None, indch=None,
-                  stack=True, isclose=True, flatocc=True):
+                  stack=True, isclose=True, flatocc=True, nan=True):
 
         # get list of results for occ
         occref = self._dids[ids]['occ']
@@ -1676,7 +1694,7 @@ class MultiIDSLoader(object):
             kargs = self._dcomp[ids][sig].get('kargs', {})
             ddata = self.get_data(ids=ids, sig=lstr,
                                   occ=occ, indch=indch, indt=indt,
-                                  stack=stack, flatocc=False)
+                                  stack=stack, flatocc=False, nan=nan)
             out = [self._dcomp[ids][sig]['func']( *[ddata[kk][nn]
                                                    for kk in lstr], **kargs )
                    for nn in range(0,nocc)]
@@ -1694,13 +1712,18 @@ class MultiIDSLoader(object):
                         out[ii] = out[ii][0,:]
                     elif np.allclose(out[ii], out[ii][:,0:1]):
                         out[ii] = out[ii][:,0]
+        if nan:
+            for ii in range(0,len(out)):
+                if type(out[ii]) is np.ndarray and out[ii].dtype == np.float:
+                    out[ii][np.abs(out[ii]) > 1.e30] = np.nan
 
         if nocc == 1 and flatocc:
             out = out[0]
         return out
 
     def get_data(self, ids=None, sig=None, occ=None,
-                 indch=None, indt=None, stack=True, isclose=None, flatocc=True):
+                 indch=None, indt=None, stack=True,
+                 isclose=None, flatocc=True, nan=True):
         """ Return a dict of the desired signals extracted from specified ids
 
         If the ids has a field 'channel', indch is used to specify from which
@@ -1719,19 +1742,21 @@ class MultiIDSLoader(object):
 
         # occ = np.ndarray of valid int
         occ = self._checkformat_getdata_occ(occ, ids)
+        indoc = np.where(self._dids[ids]['occ'] == occ)[0]
 
         # Check all occ have isget = True
-        indok = self._dids[ids]['isget'][occ]
+        indok = self._dids[ids]['isget'][indoc]
         if not np.all(indok):
             msg = "All desired occurences shall have been gotten !\n"
-            msg += "    - occ:   %s\n"%str(occ)
+            msg += "    - desired occ:   %s\n"%str(occ)
+            msg += "    - available occ:   %s\n"%str(self._dids[ids]['occ'])
             msg += "    - isget: %s\n"%str(self._dids[ids]['isget'])
             msg += "  => Try running self.open_get_close()"
             raise Exception(msg)
 
         # check indch if ids has channels
-        if hasattr(self._dids[ids]['ids'][occ[0]], 'channel'):
-            nch = len(getattr(self._dids[ids]['ids'][occ[0]], 'channel'))
+        if hasattr(self._dids[ids]['ids'][indoc[0]], 'channel'):
+            nch = len(getattr(self._dids[ids]['ids'][indoc[0]], 'channel'))
             indch = self._checkformat_getdata_indch(indch, nch)
 
         # ------------------
@@ -1747,7 +1772,7 @@ class MultiIDSLoader(object):
                 dout[sig[ii]] = self._get_data(ids, sig[ii], occ, comp=comp[ii],
                                                indt=indt, indch=indch,
                                                stack=stack, isclose=isclose_,
-                                               flatocc=flatocc)
+                                               flatocc=flatocc, nan=nan)
             except Exception as err:
                 msg = '\n' + str(err) + '\n'
                 msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
@@ -1755,7 +1780,8 @@ class MultiIDSLoader(object):
                 del dout[sig[ii]]
         return dout
 
-    def get_data_all(self, dsig=None, stack=True, isclose=None, flatocc=True):
+    def get_data_all(self, dsig=None, stack=True,
+                     isclose=None, flatocc=True, nan=True):
 
         # dsig
         if dsig is None:
@@ -1778,7 +1804,8 @@ class MultiIDSLoader(object):
         for ids in dout.keys():
             try:
                 dout[ids] = self.get_data(ids, sig=dsig[ids], stack=stack,
-                                          isclose=isclose, flatocc=flatocc)
+                                          isclose=isclose, flatocc=flatocc,
+                                          nan=nan)
             except Exception as err:
                 msg = "Could not get data from %s"%ids
                 warnings.warn(msg)
@@ -1842,7 +1869,9 @@ class MultiIDSLoader(object):
         return {'tlim':tlim, 'nt':nt, 't':t, 'indt':indt}
 
     def _get_t0(self, t0=None):
-        if t0 != False:
+        if t0 is None:
+            t0 = False
+        elif t0 != False:
             if type(t0) in [int,float,np.int,np.float]:
                 t0 = float(t0)
             elif type(t0) is str:
@@ -1870,8 +1899,6 @@ class MultiIDSLoader(object):
             if t0 == False:
                 msg = "t0 set to False because could not be interpreted !"
                 warnings.warn(msg)
-            if t0 is None:
-                t0 = False
         return t0
 
 
@@ -2010,7 +2037,7 @@ class MultiIDSLoader(object):
 
 
     @staticmethod
-    def _checkformat_mesh(nodes, indfaces):
+    def _checkformat_mesh(nodes, indfaces, ids=None):
 
         # Check mesh type
         if indfaces.shape[1] == 3:
@@ -2031,6 +2058,35 @@ class MultiIDSLoader(object):
             msg += "    - np.max(indfaces) = %s"%str(indmax)
             msg += "    - nodes.shape[0] = %s"%str(nodes.shape[0])
             raise Exception(msg)
+
+        # Check for duplicates
+        nnodes = nodes.shape[0]
+        nfaces = indfaces.shape[0]
+        nodesu = np.unique(nodes, axis=0)
+        facesu = np.unique(indfaces, axis=0)
+        lc = [nodesu.shape[0] != nnodes,
+              facesu.shape[0] != nfaces]
+        if any(lc):
+            msg = "Non-valid mesh if ids %s:\n"%ids
+            if lc[0]:
+                msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
+                msg += "    - nodes.shape: %s\n"%str(nodes.shape)
+                msg += "    - unique nodes.shape: %s\n"%str(nodesu.shape)
+            if lc[1]:
+                msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
+                msg += "    - faces.shape: %s\n"%str(indfaces.shape)
+                msg += "    - unique faces.shape: %s"%str(facesu.shape)
+            raise Exception(msg)
+
+        # Test for unused nodes
+        facesu = np.unique(indfaces)
+        c0 = np.all(facesu>=0) and facesu.size == nnodes
+        if not c0:
+            indnot = [ii for ii in range(0,nnodes)
+                      if ii not in facesu]
+            msg = "Some nodes not used in mesh of ids %s:\n"%ids
+            msg += "    - unused nodes indices: %s"%str(indnot)
+            warnings.warn(msg)
 
         # Convert to triangular mesh if necessary
         if meshtype == 'quad':
@@ -2063,7 +2119,7 @@ class MultiIDSLoader(object):
              indfaces[indclock,2]) = indfaces[indclock,2], indfaces[indclock,1]
         return indfaces, meshtype, ntri
 
-    def _get_dextra(self, dextra=None, fordata=False):
+    def _get_dextra(self, dextra=None, fordata=False, nan=True):
         lc = [dextra == False, dextra is None,
               type(dextra) is str, type(dextra) is list, type(dextra) is dict]
         assert any(lc)
@@ -2117,8 +2173,9 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs)
-                for ii in range(len(vs)):
+                out = self.get_data(ids=ids, sig=vs, nan=nan)
+                inds = [ii for ii in range(0,len(vs)) if vs[ii] in out.keys()]
+                for ii in inds:
                     ss = vs[ii]
                     if ss == 't':
                         continue
@@ -2149,7 +2206,7 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs)
+                out = self.get_data(ids=ids, sig=vs, nan=nan)
                 keyt = '%s.t'%ids
                 any_ = False
                 for ss in out.keys():
@@ -2182,7 +2239,8 @@ class MultiIDSLoader(object):
 
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None,
                     Name=None, occ=None, config=None, out=object,
-                    plot=None, plot_sig=None, plot_X=None, bck=True, dextra=None):
+                    plot=None, plot_sig=None, plot_X=None,
+                    bck=True, dextra=None, nan=True):
 
         # dsig
         dsig = self._checkformat_Plasma2D_dsig(dsig)
@@ -2264,12 +2322,14 @@ class MultiIDSLoader(object):
 
             # d1d and dradius
             lsig = [k for k in dsig[ids] if '1d' in k]
-            out_ = self.get_data(ids, lsig, indt=indt)
+            out_ = self.get_data(ids, lsig, indt=indt, nan=nan)
             if len(out_) > 0:
                 nref, kref = None, None
                 for ss in out_.keys():
+                    assert out_[ss].ndim in [1,2]
+                    if out_[ss].ndim == 1:
+                        out_[ss] = np.atleast_2d(out_[ss])
                     shape = out_[ss].shape
-                    assert len(shape) == 2
                     if 0 in shape or len(shape) == 0:
                         continue
 
@@ -2319,13 +2379,16 @@ class MultiIDSLoader(object):
             # d2d and dmesh
             lsig = [k for k in dsig[ids] if '2d' in k]
             lsigmesh = ['2dmeshNodes','2dmeshFaces']
-            out_ = self.get_data(ids, sig=lsig, indt=indt)
+            out_ = self.get_data(ids, sig=lsig, indt=indt, nan=nan)
 
             lc = [len(out_) > 0, all([ss in out_.keys() for ss in lsigmesh])]
             if all(lc):
                 npts = None
                 keym = '%s.mesh'%ids
                 for ss in set(out_.keys()).difference(lsigmesh):
+                    assert out_[ss].ndim in [1,2]
+                    if out_[ss].ndim == 1:
+                        out_[ss] = np.atleast_2d(out_[ss])
                     shape = out_[ss].shape
                     assert len(shape) == 2
                     if np.sum(shape) > 0:
@@ -2348,7 +2411,8 @@ class MultiIDSLoader(object):
 
                 nodes = out_['2dmeshNodes']
                 indfaces = out_['2dmeshFaces']
-                indfaces, meshtype, ntri = self._checkformat_mesh(nodes, indfaces)
+                indfaces,meshtype,ntri = self._checkformat_mesh(nodes,indfaces,
+                                                                ids=ids)
                 nnod, nfaces = int(nodes.size/2), indfaces.shape[0]
                 if npts is not None:
                     if npts not in [nnod, int(nfaces/ntri)]:
@@ -2421,7 +2485,7 @@ class MultiIDSLoader(object):
 
 
     def to_Cam(self, ids=None, indch=None,
-               Name=None, occ=None, config=None, plot=True):
+               Name=None, occ=None, config=None, plot=True, nan=True):
 
         # dsig
         geom = self._checkformat_Cam_geom(ids)
@@ -2458,7 +2522,7 @@ class MultiIDSLoader(object):
             lkok = set(self._dshort[ids].keys())
             lkok = lkok.union(self._dcomp[ids].keys())
             lk = set(lk).intersection(lkok)
-            out = self.get_data(ids, sig=list(lk), indch=indch)
+            out = self.get_data(ids, sig=list(lk), indch=indch, nan=nan)
             if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
                 oo = out['los_ptsRZPhi']
                 D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
@@ -2549,9 +2613,9 @@ class MultiIDSLoader(object):
 
 
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
-                indch=None, Name=None, occ=None, config=None,
+                indch=None, indch_auto=False, Name=None, occ=None, config=None,
                 dextra=None, t0=None, datacls=None, geomcls=None,
-                plot=True, bck=True):
+                plot=True, bck=True, fallback_X=None, nan=True):
 
         # dsig
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
@@ -2589,12 +2653,13 @@ class MultiIDSLoader(object):
                 msg = "A config must be provided to compute the geometry !"
                 raise Exception(msg)
 
+            dgeom = None
             if 'LOS' in geomcls:
                 lk = ['los_ptsRZPhi','etendue','surface']
                 lkok = set(self._dshort[ids].keys())
                 lkok = lkok.union(self._dcomp[ids].keys())
                 lk = set(lk).intersection(lkok)
-                out = self.get_data(ids, sig=list(lk), indch=indch)
+                out = self.get_data(ids, sig=list(lk), indch=indch, nan=nan)
                 if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
                     oo = out['los_ptsRZPhi']
                     D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
@@ -2603,31 +2668,55 @@ class MultiIDSLoader(object):
                                   oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
                     u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
                     dgeom = (D,u)
-                if 'etendue' in out.keys() and out['etendue'].size > 0:
+                if 'etendue' in out.keys() and len(out['etendue']) > 0:
                     Etendues = out['etendue']
-                if 'surface' in out.keys() and out['surface'].size > 0:
+                if 'surface' in out.keys() and len(out['surface']) > 0:
                     Surfaces = out['surface']
 
-            import tofu.geom as tfg
-            cam = getattr(tfg, geomcls)(dgeom=dgeom, config=config,
-                                        Etendues=Etendues, Surfaces=Surfaces,
-                                        Name=Name, Diag=ids, Exp=Exp,
-                                        dchans=dchans)
-            cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
+            if dgeom is not None:
+                import tofu.geom as tfg
+                cam = getattr(tfg, geomcls)(dgeom=dgeom, config=config,
+                                            Etendues=Etendues, Surfaces=Surfaces,
+                                            Name=Name, Diag=ids, Exp=Exp,
+                                            dchans=dchans)
+                cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
 
+        # -----------------------
         # data
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
         t = self.get_data(ids, sig='t', indch=indch)['t']
-        if type(t) is list:
-            msg = "The time vector does not seem to be homogeneous !\n"
-            msg += "Please choose indch such that all channels have same t !\n"
-            msg += "Currently:\n"
-            ls = ['index %s t.shape %s'%(ii,str(t[ii].shape))
-                  for ii in range(0,len(t))]
-            msg += "\n    ".join(ls)
-            msg += "\n  => Solution: choose indch accordingly !"
+        if len(t) == 0:
+            msg = "The time vector is not available for %s:\n"%ids
+            msg += "    - 't' <=> %s.%s\n"%(ids,self._dshort[ids]['t']['str'])
+            msg += "    - 't' = %s"%str(t)
             raise Exception(msg)
+
+        if type(t) is list:
+            if indch_auto and indch is None:
+                ls = [t[ii].shape for ii in range(0,len(t))]
+                lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
+                su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
+                indch = [ii for ii in range(0,len(t)) if ls[ii] == su]
+                t = self.get_data(ids, sig='t', indch=indch)['t']
+                if cam is not None:
+                    cam = cam.get_subset(indch=indch)
+                msg = "indch set automatically for %s\n"%ids
+                msg += "  (due to inhomogenous time shapes)\n"
+                msg += "    - main shape: %s\n"%str(su)
+                msg += "    - nb. chan. selected: %s / %s\n"%(len(indch),len(ls))
+                msg += "    - indch: %s"%str(indch)
+                warnings.warn(msg)
+
+            else:
+                msg = "The time vector does not seem to be homogeneous !\n"
+                msg += "Please choose indch such that all channels have same t !\n"
+                msg += "Currently:\n"
+                ls = ['index %s t.shape %s'%(ii,str(t[ii].shape))
+                      for ii in range(0,len(t))]
+                msg += "\n    ".join(ls)
+                msg += "\n  => Solution: choose indch accordingly !"
+                raise Exception(msg)
 
 
         if t.ndim == 2:
@@ -2635,22 +2724,42 @@ class MultiIDSLoader(object):
             t = t[0,:]
         dins['t'] = t
         indt = self._checkformat_tlim(t, tlim=tlim)['indt']
+
+
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                            indt=indt, indch=indch)
+                            indt=indt, indch=indch, nan=nan)
         for kk in set(lk).difference('t'):
             if not isinstance(out[dsig[kk]], np.ndarray):
-                msg = "The following is supposed to be a np.ndarray:\n"
-                msg += "    - diag:     %s\n"%ids
-                msg += "    - shortcut: %s\n"%dsig[kk]
-                msg += "    - used as:  %s input\n"%kk
-                msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
-                msg += "  Probable cause: non-uniform shape (vs channels)\n"
-                msg += "  => shapes :\n    "
-                ls = ['index %s  %s.shape %s'%(ii,kk,str(out[dsig[kk]][ii].shape))
-                      for ii in range(0,len(out[dsig[kk]]))]
-                msg += "\n    ".join(ls)
-                msg += "\n  => Solution: choose indch accordingly !"
-                raise Exception(msg)
+                if indch_auto and indch is None:
+                    ls = [out[dsig[kk]][ii].shape
+                          for ii in range(0,len(out[dsig[kk]]))]
+                    lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
+                    su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
+                    indch = [ii for ii in range(0,len(out[dsig[kk]]))
+                             if ls[ii] == su]
+                    out = self.get_data(ids, sig=[dsig[k] for k in lk],
+                                        indt=indt, indch=indch, nan=nan)
+                    if cam is not None:
+                        cam = cam.get_subset(indch=indch)
+                    msg = "indch set automatically for %s\n"%ids
+                    msg += "  (due to inhomogeneous data shapes)\n"
+                    msg += "    - main shape: %s\n"%str(su)
+                    msg += "    - nb. chan. selected: %s / %s\n"%(len(indch),len(ls))
+                    msg += "    - indch: %s"%str(indch)
+                    warnings.warn(msg)
+                else:
+                    msg = "The following is supposed to be a np.ndarray:\n"
+                    msg += "    - diag:     %s\n"%ids
+                    msg += "    - shortcut: %s\n"%dsig[kk]
+                    msg += "    - used as:  %s input\n"%kk
+                    msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
+                    msg += "  Probable cause: non-uniform shape (vs channels)\n"
+                    msg += "  => shapes :\n    "
+                    ls = ['index %s  %s.shape %s'%(ii,kk,str(out[dsig[kk]][ii].shape))
+                          for ii in range(0,len(out[dsig[kk]]))]
+                    msg += "\n    ".join(ls)
+                    msg += "\n  => Solution: choose indch accordingly !"
+                    raise Exception(msg)
 
             # Arrange depending on shape and field
             if type(out[dsig[kk]]) is not np.ndarray:
@@ -2658,6 +2767,11 @@ class MultiIDSLoader(object):
                 import ipdb
                 ipdb.set_trace()
                 raise Exception(msg)
+
+            assert out[dsig[kk]].ndim in [1,2,3]
+
+            if out[dsig[kk]].ndim == 1:
+                out[dsig[kk]] = np.atleast_2d(out[dsig[kk]])
 
             if out[dsig[kk]].ndim == 2:
                 if dsig[kk] in ['X','lamb']:
@@ -2678,8 +2792,18 @@ class MultiIDSLoader(object):
 
         if 'validity_timed' in self._dshort[ids].keys():
             inan = self.get_data(ids, sig='validity_timed',
-                                 indt=indt, indch=indch)['validity_timed'].T<0.
+                                 indt=indt, indch=indch, nan=nan)['validity_timed'].T<0.
             dins['data'][inan] = np.nan
+        if np.any(np.isnan(dins['X'])):
+            if fallback_X is None:
+                fallback_X = 1.1*np.nanmax(dins['X'])
+            dins['X'][np.isnan(dins['X'])] = fallback_X
+
+
+        # Apply indt if was not done in get_data
+        for kk,vv in dins.items():
+            if (vv.ndim == 2 or kk == 't') and vv.shape[0] > indt.size:
+                dins[kk] = vv[indt,...]
 
         # dlabels
         dins['dlabels'] = dict.fromkeys(lk)
@@ -2786,7 +2910,7 @@ def load_Cam(shot=None, run=None, user=None, tokamak=None, version=None,
 
 
 def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
-              ids=None, datacls=None, geomcls=None,
+              ids=None, datacls=None, geomcls=None, indch_auto=True,
               tlim=None, dsig=None, data=None, X=None, indch=None,
               config=None, occ=None, Name=None, dextra=None,
               t0=None, plot=True, bck=True):
@@ -2812,7 +2936,7 @@ def load_Data(shot=None, run=None, user=None, tokamak=None, version=None,
                         datacls=datacls, geomcls=geomcls,
                         dsig=dsig, data=data, X=X, indch=indch,
                         config=config, occ=occ, dextra=dextra,
-                        plot=plot, bck=bck)
+                        plot=plot, bck=bck, indch_auto=indch_auto)
 
 
 #############################################################

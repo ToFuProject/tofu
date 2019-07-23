@@ -346,6 +346,101 @@ def _Ves_get_sampleS(VPoly, Min1, Max1, Min2, Max2, dS,
 
 
 
+# ------------------------------------------------------------
+#   phi / theta projections for magfieldlines
+
+def _Struct_get_phithetaproj(ax=None, poly_closed=None, lim=None, noccur=0):
+
+    # phi = toroidal angle
+    if noccur == 0:
+        Dphi = np.array([[-np.pi,np.pi]])
+        nphi = np.r_[1]
+    else:
+        assert lim.ndim == 2, str(lim)
+        nphi = np.ones((noccur,),dtype=int)
+        ind = (lim[:,0] > lim[:,1]).nonzero()[0]
+        Dphi = np.concatenate((lim, np.full((noccur,2),np.nan)), axis=1)
+        if ind.size > 0:
+            for ii in ind:
+                Dphi[ii,:] = [lim[ii,0], np.pi, -np.pi, lim[ii,1]]
+                nphi[ii] = 2
+
+    # theta = poloidal angle
+    Dtheta = np.arctan2(poly_closed[1,:]-ax[1], poly_closed[0,:]-ax[0])
+    Dtheta = np.r_[np.min(Dtheta), np.max(Dtheta)]
+    if Dtheta[0] > Dtheta[1]:
+        ntheta = 2
+        Dtheta = [Dtheta[0],np.pi, -np.pi, Dtheta[1]]
+    else:
+        ntheta = 1
+
+    return nphi, Dphi, ntheta, Dtheta
+
+def _get_phithetaproj_dist(poly_closed, ax, Dtheta, nDtheta,
+                           Dphi, nDphi, theta, phi, ntheta, nphi, noccur):
+
+    if nDtheta == 1:
+        ind = (theta >= Dtheta[0]) & (theta <= Dtheta[1])
+    else:
+        ind = (theta >= Dtheta[0]) | (theta <= Dtheta[1])
+
+    disttheta = np.full((theta.size,), np.nan)
+
+    # phi within Dphi
+    if noccur > 0:
+        indphi = np.zeros((nphi,),dtype=bool)
+        for ii in range(0,noccur):
+            for jj in range(0,nDphi[ii]):
+                indphi |= (phi >= Dphi[ii,jj]) & (phi<= Dphi[ii,jj+1])
+        if not np.any(indphi):
+            return disttheta, indphi
+    else:
+        indphi = np.ones((nphi,),dtype=bool)
+
+    # No theta within Dtheta
+    if not np.any(ind):
+        return disttheta, indphi
+
+    # Check for non-parallel AB / u pairs
+    u = np.array([np.cos(theta), np.sin(theta)])
+    AB = np.diff(poly_closed, axis=1)
+    detABu = AB[0,:,None]*u[1,None,:] - AB[1,:,None]*u[0,None,:]
+    inddet = ind[None,:] & (np.abs(detABu) > 1.e-9)
+    if not np.any(inddet):
+        return disttheta, indphi
+
+    nseg = poly_closed.shape[1]-1
+    k = np.full((nseg, ntheta), np.nan)
+
+    OA = poly_closed[:,:-1] - ax[:,None]
+    detOAu = (OA[0,:,None]*u[1,None,:] - OA[1,:,None]*u[0,None,:])[inddet]
+    ss = - detOAu / detABu[inddet]
+    inds = (ss >= 0.) & (ss < 1.)
+    inddet[inddet] = inds
+
+    if not np.any(inds):
+        return disttheta, indphi
+
+    scaOAu = (OA[0,:,None]*u[0,None,:] + OA[1,:,None]*u[1,None,:])[inddet]
+    scaABu = (AB[0,:,None]*u[0,None,:] + AB[1,:,None]*u[1,None,:])[inddet]
+    k[inddet] =   scaOAu + ss[inds]*scaABu
+    indk = k[inddet] > 0.
+    inddet[inddet] = indk
+
+    if not np.any(indk):
+        return disttheta, indphi
+
+    k[~inddet] = np.nan
+    indok = np.any(inddet, axis=0)
+    disttheta[indok] = np.nanmin(k[:,indok], axis=0)
+
+    return disttheta, indphi
+
+
+
+
+
+
 
 """
 ###############################################################################
