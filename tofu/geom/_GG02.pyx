@@ -2620,7 +2620,7 @@ def vignetting(double[:, ::1] ray_orig,
 #                                  LOS SAMPLING
 #
 # ==============================================================================
-def LOS_get_sample(in num_los, dL, double[:,::1] DLs, str dmethod='abs',
+def LOS_get_sample(int num_los, dL, double[:,::1] DLs, str dmethod='abs',
                    str method='sum', bint Test=True, int num_threads=16):
     """
     Return the sampled line, with the specified method
@@ -2877,11 +2877,11 @@ def integrate1d(y, double dx, t=None, str method='sum'):
     return s
 
 
-def LOS_calc_signal2(func, double[:,::1] Ds, double[:,::1] us, dL,
-                     double[:,::1] DLs, str dmethod='abs',
-                     str method='sum', bint ani=False,
-                     time=None, fkwdargs={}, str minimize='calls',
-                     bint Test=True, int num_threads=16):
+def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
+                    double[:,::1] DLs, str dmethod='abs',
+                    str method='sum', bint ani=False,
+                    time=None, fkwdargs={}, str minimize='calls',
+                    bint Test=True, int num_threads=16):
     """ Compute the synthetic signal, minimizing either function calls or memory
     TODO: since we are working in cython... the least is to give "func" 's signature
     """
@@ -2894,10 +2894,10 @@ def LOS_calc_signal2(func, double[:,::1] Ds, double[:,::1] us, dL,
     cdef int sz1_dls, sz2_dls
     cdef int n_imode, n_dmode
     cdef int sz_coeff
-    cdef int num_los
     cdef bint dl_is_list
     cdef bint C0, C1
     cdef double** los_coeffs = NULL
+    cdef unsigned int num_los
     cdef unsigned int nt=0, axm, ii, jj
     cdef np.ndarray[double,ndim=2] usbis, dsbis, ksbis
     cdef np.ndarray[double,ndim=2] sig
@@ -2985,96 +2985,205 @@ def LOS_calc_signal2(func, double[:,::1] Ds, double[:,::1] us, dL,
     elif minim == 'memory':
         # loop over LOS and parallelize
         if dl_is_list and ani:
-            for ii in range(num_los):
-                los_coeffs = <double**>malloc(sizeof(double*))
-                sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
-                                                     dL[ii], n_dmode, n_imode,
-                                                     &loc_eff_res[0],
-                                                     &los_coeffs[0])
-                dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                # loop over time for calling and integrating
-                for jj in range(nt):
-                    val = func(dsbis + ksbis * usbis,
-                               t=ltime[jj], vect=-usbis, **fkwdargs)
-                    if n_imode==0:
+            if n_imode == 0:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL[ii],
+                                                         n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[jj], vect=-usbis, **fkwdargs)
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
-                    elif n_imode==1:
+            elif n_imode == 1:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL[ii],
+                                                         n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[jj], vect=-usbis, **fkwdargs)
                         sig[jj, ii] = scpintg.simps(val, x=None,
-                                                   dx=loc_eff_res[0])
-                    elif n_imode==2:
+                                                    dx=loc_eff_res[0])
+            elif n_imode == 2:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL[ii],
+                                                         n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[jj], vect=-usbis, **fkwdargs)
                         sig[jj, ii] = scpintg.romb(val, show=False,
                                                    dx=loc_eff_res[0])
         elif dl_is_list and not ani:
-            for ii in range(num_los):
-                los_coeffs = <double**>malloc(sizeof(double*))
-                sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
-                                                     dL[ii], n_dmode, n_imode,
-                                                     &loc_eff_res[0],
-                                                     &los_coeffs[0])
-                dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                # loop over time for calling and integrating
-                for jj in range(nt):
-                    val = func(dsbis + ksbis * usbis,
-                               t=ltime[jj], **fkwdargs)
-                    if n_imode==0:
+            if n_imode == 0:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL[ii],
+                                                         n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[jj], **fkwdargs)
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
-                    elif n_imode==1:
+            elif n_imode == 1:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL[ii], n_dmode,
+                                                         n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[jj], **fkwdargs)
                         sig[jj, ii] = scpintg.simps(val, x=None,
-                                                   dx=loc_eff_res[0])
-                    elif n_imode==2:
+                                                    dx=loc_eff_res[0])
+            elif n_imode == 2:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL[ii], n_dmode,
+                                                         n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[jj], **fkwdargs)
                         sig[jj, ii] = scpintg.romb(val, show=False,
                                                    dx=loc_eff_res[0])
         elif ani:
             # dl is not a list: constant resolution
-            for ii in range(num_los):
-                los_coeffs = <double**>malloc(sizeof(double*))
-                sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
-                                                     dL, n_dmode, n_imode,
-                                                     &loc_eff_res[0],
-                                                     &los_coeffs[0])
-                dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                # loop over time for calling and integrating
-                for jj in range(nt):
-                    val = func(dsbis + ksbis * usbis,
-                               t=ltime[0], vect=-usbis,**fkwdargs)
-                    if n_imode==0:
+            if n_imode==0:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL, n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[0], vect=-usbis,**fkwdargs)
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
-                    elif n_imode==1:
+            elif n_imode==1:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL, n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[0], vect=-usbis,**fkwdargs)
                         sig[jj, ii] = scpintg.simps(val, x=None,
-                                                   dx=loc_eff_res[0])
-                    elif n_imode==2:
+                                                    dx=loc_eff_res[0])
+            elif n_imode==2:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL, n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[0], vect=-usbis,**fkwdargs)
                         sig[jj, ii] = scpintg.romb(val, show=False,
                                                    dx=loc_eff_res[0])
         elif not ani:
             # dl is not a list: constant resolution
-            for ii in range(num_los):
-                los_coeffs = <double**>malloc(sizeof(double*))
-                sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
-                                                     dL, n_dmode, n_imode,
-                                                     &loc_eff_res[0],
-                                                     &los_coeffs[0])
-                dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                # loop over time for calling and integrating
-                for jj in range(nt):
-                    val = func(dsbis + ksbis * usbis,
-                               t=ltime[0], **fkwdargs)
-                    if n_imode==0:
+            if n_imode==0:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL, n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[0], **fkwdargs)
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
-                    elif n_imode==1:
+            elif n_imode==1:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL, n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[0], **fkwdargs)
                         sig[jj, ii] = scpintg.simps(val, x=None,
-                                                   dx=loc_eff_res[0])
-                    elif n_imode==2:
+                                                    dx=loc_eff_res[0])
+            elif n_imode==2:
+                for ii in range(num_los):
+                    los_coeffs = <double**>malloc(sizeof(double*))
+                    sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
+                                                         dL, n_dmode, n_imode,
+                                                         &loc_eff_res[0],
+                                                         &los_coeffs[0])
+                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    # loop over time for calling and integrating
+                    for jj in range(nt):
+                        val = func(dsbis + ksbis * usbis,
+                                   t=ltime[0], **fkwdargs)
                         sig[jj, ii] = scpintg.romb(val, show=False,
                                                    dx=loc_eff_res[0])
-
     # -----------------------
     # Minimize memory and calls (compromise): loop everything, starting with LOS
     # call func only once for each los (treat all times)
