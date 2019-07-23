@@ -29,10 +29,12 @@ try:
     import tofu.data._comp as _comp
     import tofu.data._plot as _plot
     import tofu.data._def as _def
+    import tofu.data._physics as _physics
 except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
     from . import _def as _def
+    from . import _physics as _physics
 
 __all__ = ['DataCam1D','DataCam2D',
            'DataCam1DSpectral','DataCam2DSpectral',
@@ -2987,6 +2989,65 @@ class Plasma2D(utils.ToFuObject):
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
 
+
+    #---------------------
+    # Methods for computing plasma quantities
+    #---------------------
+
+    def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None):
+        """ Return the bremsstrahlun spectral radiance at lamb
+
+        The plasma conditions are set by:
+            - Te   (eV)
+            - ne   (/m3)
+            - zeff (adim.)
+
+        The wavelength is set by the diagnostics
+            - lamb (m)
+
+        The vol. spectral emis. is returned in ph / (s.m3.sr.m)
+
+        The computation requires an intermediate : gff(Te, zeff)
+        """
+        dins = {'Te':{'val':Te, 'shape':None},
+                'ne':{'val':ne, 'shape':None},
+                'zeff':{'val':zeff, 'shape':None},
+                'lamb':{'val':lamb, 'shape':None}}
+        shape = None
+        for k in dins.keys():
+            if type(dins[k]['val']) is str:
+                assert dins[k]['val'] in self._ddata.keys()
+                dins[k]['val'] = self._ddata[dins[k]['val']]
+            else:
+                dins[k]['val'] = np.asarray(dins[k]['val'], dtype=float)
+            dins[k]['shape'] = dins[k]['val'].shape
+            if shape is None:
+                shape = dins[k]['shape']
+            if dins[k]['shape'] != shape:
+                if dins[k]['val'].ndim > len(shape):
+                    shape = dins[k]['shape']
+
+        # Check shape consistency for broadcasting
+        assert len(shape) in [1,2]
+        if len(shape) == 1:
+            assert all([v['shape'][0] in [1,shape[0]] for v in dins.values()])
+        elif len(shape) == 2:
+            for k in dins.keys():
+                if len(dins[k]['shape']) == 1:
+                    assert dins[k]['shape'][0] in [1]+list(shape)
+                    if dins[k]['shape'][0] == 1:
+                        dins[k]['val'] = dins[k]['val'][None,:]
+                    elif dins[k]['shape'][0] == shape[0]:
+                        dins[k]['val'] = dins[k]['val'][:,None]
+                    else:
+                        dins[k]['val'] = dins[k]['val'][None,:]
+                else:
+                    assert dins[k]['shape'] == shape
+
+        import ipdb         # DB
+        ipdb.set_trace()    # DB
+
+        return _physics.compute_bremzeff(dins['Te'], dins['ne'], dins['zeff'], lamb)
 
     #---------------------
     # Methods for interpolation

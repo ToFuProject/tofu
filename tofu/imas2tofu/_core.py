@@ -483,6 +483,7 @@ class MultiIDSLoader(object):
         rho[ind] = -rho[ind]
         return rho
 
+
     _dcomp = {
               'pulse_schedule':
               {'events':{'lstr':['events_names','events_times'], 'func':_events}},
@@ -2608,35 +2609,30 @@ class MultiIDSLoader(object):
         return plasma
 
 
-    def _checkformat_Cam_geom(self, ids=None, geom=None, indch=None):
-        didsok = {'interferometer':'CamLOS1D',
-                  'bolometer':'CamLOS1D',
-                  'soft_x_rays':'CamLOS1D',
-                  'spectrometer_visible':'CamLOS1D',
-                  'bremsstrahlung_visible':'CamLOS1D'}
+    def _checkformat_Cam_geom(self, ids=None, geomcls=None, indch=None):
 
         # Check ids
         if ids not in self._dids.keys():
             msg = "Provided ids should be available as a self.dids.keys() !"
             raise Exception(msg)
 
-        if ids not in didsok.keys():
+        if ids not in self._lidsdiag:
             msg = "Requested ids is not pre-tabulated !\n"
-            msg = "  => Be careful with args (dsig, data, geom, indch)"
+            msg = "  => Be careful with args (geomcls, indch)"
             warnings.warn(msg)
         else:
-            if geom is None:
-                geom = didsok[ids]
+            if geomcls is None:
+                geomcls = self._didsdiag[ids]['geomcls']
 
         # Check data and geom
         import tofu.geom as tfg
 
         lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
-        if geom not in [False] + lgeom:
-            msg = "Arg geom must be in %s"%str([False]+lgeom)
+        if geomcls not in [False] + lgeom:
+            msg = "Arg geomcls must be in %s"%str([False]+lgeom)
             raise Exception(msg)
 
-        return geom
+        return geomcls
 
     def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
         Etendues, Surfaces = None, None
@@ -3126,6 +3122,10 @@ class MultiIDSLoader(object):
         plasma = self.to_Plasma2D(tlim=tlim, dsig=dsig, t0=t0,
                                   Name=None, occ=occ_plasma, config=cam.config, out=object,
                                   plot=False, dextra=dextra, nan=True, pos=None)
+
+        # Intermediate computation if necessary
+        if ids == 'polarimeter':
+            pass
 
         # Calculate syntehtic signal
         sig = cam.calc_signal_from_Plasma2D(plasma,
