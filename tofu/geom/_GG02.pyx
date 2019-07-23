@@ -2620,8 +2620,7 @@ def vignetting(double[:, ::1] ray_orig,
 #                                  LOS SAMPLING
 #
 # ==============================================================================
-def LOS_get_sample(double[:,::1] ray_orig, double[:,::1] ray_vdir, dL,
-                   double[:,::1] DLs, str dmethod='abs',
+def LOS_get_sample(in num_los, dL, double[:,::1] DLs, str dmethod='abs',
                    str method='sum', bint Test=True, int num_threads=16):
     """
     Return the sampled line, with the specified method
@@ -2632,10 +2631,6 @@ def LOS_get_sample(double[:,::1] ray_orig, double[:,::1] ray_vdir, dL,
       or relative ('rel')
     Params
     ======
-    ray_vdir: (3, num_los) double array
-        rays director vectors such that P \in Ray iff P(t) = D + t*u
-    ray_orig: (3, num_los) double array
-        rays origins coordinates O such that P \in Ray iff P(t) = D + t*u
     dL: double or list of doubles
         If dL is a single double: discretization step for all LOS.
         Else dL should be a list of size num_los with the discretization
@@ -2659,12 +2654,9 @@ def LOS_get_sample(double[:,::1] ray_orig, double[:,::1] ray_vdir, dL,
     cdef str error_message
     cdef str dmode = dmethod.lower()
     cdef str imode = method.lower()
-    cdef int sz1_ds, sz2_ds
-    cdef int sz1_us, sz2_us
     cdef int sz1_dls, sz2_dls
     cdef int N
     cdef long ntmp
-    cdef int num_los
     cdef bint dl_is_list
     cdef bint bool1, bool2
     cdef double val_resol
@@ -2675,25 +2667,18 @@ def LOS_get_sample(double[:,::1] ray_orig, double[:,::1] ray_vdir, dL,
     cdef long* tmp_arr
     cdef double* los_coeffs = NULL
     # .. ray_orig shape needed for testing and in algo .........................
-    sz1_ds = ray_orig.shape[0]
-    sz2_ds = ray_orig.shape[1]
-    num_los = sz2_ds
     dLr = np.zeros((num_los,), dtype=float)
     los_ind = np.zeros((num_los,), dtype=int)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
-        sz1_us = ray_vdir.shape[0]
-        sz2_us = ray_vdir.shape[1]
         sz1_dls = DLs.shape[0]
         sz2_dls = DLs.shape[1]
-        assert sz1_ds == 3, "Dim 0 of arg ray_orig should be 3"
-        assert sz1_us == 3, "Dim 0 of arg ray_vdir should be 3"
         assert sz1_dls == 2, "Dim 0 of arg DLs should be 2"
-        error_message = "Args ray_orig, ray_vdir, DLs should have same dim 1"
-        assert sz2_ds == sz2_us == sz2_dls, error_message
+        error_message = "Args DLs should have dim 1 = num_los"
+        assert num_los == sz2_dls, error_message
         bool1 = not dl_is_list and dL > 0.
-        bool2 = dl_is_list and len(dL)==sz2_ds and np.all(dL>0.)
+        bool2 = dl_is_list and len(dL)==num_los and np.all(dL>0.)
         assert bool1 or bool2, "Arg dL must be a double or a List, and dL >0.!"
         error_message = "Argument dmethod (discretization method) should be in"\
                         +" ['abs','rel'], for absolute or relative."
@@ -2967,7 +2952,7 @@ def LOS_calc_signal2(func, double[:,::1] Ds, double[:,::1] us, dL,
     # Minimize function calls: sample (vect), call (once) and integrate
     if minim == 'calls':
         # Discretize all LOS
-        k, reseff, ind = LOS_get_sample(Ds, us, dL, DLs,
+        k, reseff, ind = LOS_get_sample(num_los, dL, DLs,
                                         dmethod=dmode, method=imode,
                                         num_threads=num_threads, Test=Test)
         nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[-1]]
