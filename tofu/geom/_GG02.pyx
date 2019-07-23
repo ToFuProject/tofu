@@ -2673,30 +2673,104 @@ cdef inline void all_rules(dmode, imode, val_resol, N,
 
 
 # TO BE USED IN LOS_calc_signal2 FOR MEMORY MINIMIZATION ?
-cdef inline np.ndarray LOS_get_sample_single(D, u, resol, method, mode):
-    return np.array([])
-    # call _st.all_rules ?
-    # and return k array + scalar effective resolution
+cdef inline void LOS_get_sample_single(double[::1] ray_orig,
+                                       double[::1] ray_vdir,
+                                       double los_kmin, double los_kmax,
+                                       double resol, int imethod, int imode,
+                                       double[1] eff_res, double** coeffs):
+    """
+    Sampling line of sight of origin ray_orig, direction vector ray_vdir,
+    with discretization step resol, using the discretization method imethod,
+    and the quadrature rule imode. los_kmin defines the first limit of the LOS
+    Out parameters
+    --------------
+    eff_res : effective resolution used
+    coeffs : 'k' coefficients on ray.
+
+    The different type of discretizations and quadratures:
+    imethod
+    =======
+      - 0 : the discretization step given is absolute ('abs')
+      - 1 : the discretization step given is relative ('rel')
+    imode
+    =====
+      - 0 : 'sum' quadrature, using the N segment centers
+      - 1 : 'simps' return N+1 egdes, N even (for scipy.integrate.simps)
+      - 2 : 'romb' return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
+    """
+    cdef int nraf
+    cdef long[1] ind_cum
+    cdef double invnraf
+    cdef double invresol
+    cdef double seg_length
+    # ...
+    if imethod == 1:
+        # discretization step is relative
+        nraf = <int> Cceil(1./resol)
+        if imode==0:
+            # 'sum' quad
+            coeffs[0] = <double*>malloc(nraf*sizeof(double))
+            eff_res[0] = (los_kmax - los_kmin)/resol
+            _st.middle_rule_rel_single(nraf, los_kmin, eff_res[0],
+                                       &coeffs[0][0])
+        elif imode==1:
+            # 'simps' quad
+            nraf = nraf if nraf%2==0 else nraf+1
+            invnraf = 1./nraf
+            coeffs[0] = <double*>malloc((nraf + 1)*sizeof(double))
+            eff_res[0] = (los_kmax - los_kmin)*invnraf
+            _st.left_rule_rel_single(nraf, invnraf, los_kmin,
+                                     eff_res[0], &coeffs[0][0])
+        elif imode==2:
+            # 'romb' quad
+            nraf = 2**(int(Cceil(Clog2(nraf))))
+            invnraf = 1./nraf
+            coeffs[0] = <double*>malloc((nraf + 1)*sizeof(double))
+            eff_res[0] = (los_kmax - los_kmin)*invnraf
+            _st.left_rule_rel_single(nraf, invnraf, los_kmin,
+                                     eff_res[0], &coeffs[0][0])
+    else:
+        # discretization step is absolute, imethod==0
+        if imode==0:
+            # 'sum' quad
+            invresol = 1./resol
+            _st.middle_rule_abs_1_single(invresol, los_kmin, los_kmax,
+                                         &eff_res[0], &ind_cum[0])
+            coeffs[0] = <double*>malloc((ind_cum[0])*sizeof(double))
+            _st.middle_rule_abs_2_single(ind_cum[0], los_kmin, eff_res[0],
+                                         &coeffs[0][0])
+        elif imode==1:
+            # 'simps' quad
+            seg_length = los_kmax - los_kmin
+            nraf = <int>(Cceil(seg_length/resol))
+            nraf = nraf if nraf%2==0 else nraf+1
+            eff_res[0] = seg_length / nraf
+            _st.simps_left_rule_abs_single(nraf, eff_res[0],
+                                           los_kmin, &coeffs[0][0])
+        elif imode==2:
+            # 'romb' quad
+            seg_length = los_kmax - los_kmin
+            nraf = <int>(Cceil(seg_length/resol))
+            nraf = 2**(<int>(Cceil(Clog2(nraf))))
+            eff_res[0] = seg_length / nraf
+            _st.romb_left_rule_abs_single(nraf, eff_res[0], los_kmin,
+                                          &coeffs[0][0])
+    return
 
 
-
-#
-#       TO BE MODIFIED TO RELY ON INLINED single-LOS routine _st.all_rules ?
-#
-def LOS_get_sample(double[:,::1] ray_orig, double[:,::1] us, dL,
+def LOS_get_sample(double[:,::1] ray_orig, double[:,::1] ray_vdir, dL,
                    double[:,::1] DLs, str dmethod='abs',
                    str method='sum', bint Test=True, int num_threads=16):
     """
     Return the sampled line, with the specified method
-    'sum' :     return N segments centers
-    'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
-    'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
-    The dmethod defines if the discretization step given is absolute ('abs')
-    or relative ('rel')
-
+    -   'sum' :     return N segments centers
+    -   'simps':    return N+1 egdes, N even (for scipy.integrate.simps)
+    -   'romb' :    return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
+      The dmethod defines if the discretization step given is absolute ('abs')
+      or relative ('rel')
     Params
     ======
-    us: (3, num_los) double array
+    ray_vdir: (3, num_los) double array
         rays director vectors such that P \in Ray iff P(t) = D + t*u
     ray_orig: (3, num_los) double array
         rays origins coordinates O such that P \in Ray iff P(t) = D + t*u
@@ -2713,12 +2787,11 @@ def LOS_get_sample(double[:,::1] ray_orig, double[:,::1] us, dL,
     Test: bool
         to indicate if tests should be done or not
 
-
     How to recompute Points coordinates from results
     -------
     k, res, lind = Los_get_sample(...)
     nbrepet = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
-    kus = k * np.repeat(us, nbrepet, axis=1)
+    kus = k * np.repeat(ray_vdir, nbrepet, axis=1)
     Pts = np.repeat(ray_orig, nbrepet, axis=1) + kus
     """
     cdef str error_message
@@ -2748,14 +2821,14 @@ def LOS_get_sample(double[:,::1] ray_orig, double[:,::1] us, dL,
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
-        sz1_us = us.shape[0]
-        sz2_us = us.shape[1]
+        sz1_us = ray_vdir.shape[0]
+        sz2_us = ray_vdir.shape[1]
         sz1_dls = DLs.shape[0]
         sz2_dls = DLs.shape[1]
         assert sz1_ds == 3, "Dim 0 of arg ray_orig should be 3"
-        assert sz1_us == 3, "Dim 0 of arg us should be 3"
+        assert sz1_us == 3, "Dim 0 of arg ray_vdir should be 3"
         assert sz1_dls == 2, "Dim 0 of arg DLs should be 2"
-        error_message = "Args ray_orig, us, DLs should have same dimension 1"
+        error_message = "Args ray_orig, ray_vdir, DLs should have same dimension 1"
         assert sz2_ds == sz2_us == sz2_dls, error_message
         bool1 = not dl_is_list and dL > 0.
         bool2 = dl_is_list and len(dL)==sz2_ds and np.all(dL>0.)
