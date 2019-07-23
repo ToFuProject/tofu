@@ -640,7 +640,8 @@ cdef inline void simps_left_rule_abs(int num_los, double resol,
         with nogil, parallel(num_threads=num_threads):
             seg_length = los_kmax[ii] - los_kmin[ii]
             num_raf = <int>(Cceil(seg_length*inv_resol))
-            num_raf = num_raf if num_raf%2==0 else num_raf+1
+            if num_raf%2==1:
+                num_raf = num_raf + 1
             loc_resol = seg_length / num_raf
             los_resolution[ii] = loc_resol
             if ii == 0:
@@ -667,7 +668,6 @@ cdef inline void romb_left_rule_abs_single(int num_raf,
     for jj in prange(num_raf + 1):
         los_coeffs[jj] = los_kmin + jj * loc_resol
     return
-
 
 cdef inline void romb_left_rule_abs(int num_los, double resol,
                                     double* los_kmin,
@@ -734,7 +734,8 @@ cdef inline void simps_left_rule_rel_var(int num_los, double* resolutions,
     for ii in range(num_los):
         with nogil, parallel(num_threads=num_threads):
             num_raf = <int>(Cceil(1./resolutions[ii]))
-            num_raf = num_raf if num_raf%2==0 else num_raf+1
+            if num_raf%2==1:
+                num_raf = num_raf+1
             loc_resol = 1. / num_raf
             los_resolution[ii] = loc_resol
             if ii == 0:
@@ -783,7 +784,8 @@ cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
         with nogil, parallel(num_threads=num_threads):
             seg_length = los_kmax[ii] - los_kmin[ii]
             num_raf = <int>(Cceil(seg_length/resolutions[ii]))
-            num_raf = num_raf if num_raf%2==0 else num_raf+1
+            if num_raf%2==1:
+                num_raf = num_raf+1
             loc_resol = seg_length / num_raf
             los_resolution[ii] = loc_resol
             if ii == 0:
@@ -894,3 +896,119 @@ cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
             romb_left_rule_abs_var_single(num_raf, loc_resol, los_kmin[ii],
                                           &los_coeffs[0][first_index])
     return
+
+# -- Get number of integration mode --------------------------------------------
+cdef inline int get_nb_imode(str imode) :
+    # gil required...........
+    if imode == 'sum':
+        return 0
+    if imode == 'simps':
+        return 1
+    if imode == 'romb':
+        return 2
+    return -1
+
+cdef inline int get_nb_dmode(str dmode) :
+    # gil required...........
+    if dmode == 'rel':
+        return 1
+    return 0 # absolute
+
+
+# ==============================================================================
+# == LOS sampling Algorithm for a SINGLE LOS
+# ==============================================================================
+cdef inline int LOS_get_sample_single(double los_kmin, double los_kmax,
+                                      double resol, int n_dmode, int n_imode,
+                                      double[1] eff_res,
+                                      double** coeffs) nogil:
+    """
+    Sampling line of sight of origin ray_orig, direction vector ray_vdir,
+    with discretization step resol, using the discretization method n_dmode,
+    and the quadrature rule n_imode. los_kmin defines the first limit of the LOS
+    Out parameters
+    --------------
+    eff_res : effective resolution used
+    coeffs : 'k' coefficients on ray.
+    Returns
+    =======
+       size of elements in coeffs[0]
+    The different type of discretizations and quadratures:
+    n_dmode
+    =======
+      - 0 : the discretization step given is absolute ('abs')
+      - 1 : the discretization step given is relative ('rel')
+    n_imode
+    =====
+      - 0 : 'sum' quadrature, using the N segment centers
+      - 1 : 'simps' return N+1 egdes, N even (for scipy.integrate.simps)
+      - 2 : 'romb' return N+1 edges, N+1 = 2**k+1 (for scipy.integrate.romb)
+    """
+    cdef int nraf
+    cdef long[1] ind_cum
+    cdef double invnraf
+    cdef double invresol
+    cdef double seg_length
+    # ...
+    if n_dmode == 1:
+        # discretization step is relative
+        nraf = <int> Cceil(1./resol)
+        if n_imode==0:
+            # 'sum' quad
+            coeffs[0] = <double*>malloc(nraf*sizeof(double))
+            eff_res[0] = (los_kmax - los_kmin)/resol
+            middle_rule_rel_single(nraf, los_kmin, eff_res[0],
+                                   &coeffs[0][0])
+            return nraf
+        elif n_imode==1:
+            # 'simps' quad
+            if nraf%2==1:
+                nraf = nraf+1
+            invnraf = 1./nraf
+            coeffs[0] = <double*>malloc((nraf + 1)*sizeof(double))
+            eff_res[0] = (los_kmax - los_kmin)*invnraf
+            left_rule_rel_single(nraf, invnraf, los_kmin,
+                                 eff_res[0], &coeffs[0][0])
+            return nraf + 1
+        elif n_imode==2:
+            # 'romb' quad
+            nraf = 2**(<int>(Cceil(Clog2(nraf))))
+            invnraf = 1./nraf
+            coeffs[0] = <double*>malloc((nraf + 1)*sizeof(double))
+            eff_res[0] = (los_kmax - los_kmin)*invnraf
+            left_rule_rel_single(nraf, invnraf, los_kmin,
+                                 eff_res[0], &coeffs[0][0])
+            return nraf + 1
+    else:
+        # discretization step is absolute, n_dmode==0
+        if n_imode==0:
+            # 'sum' quad
+            invresol = 1./resol
+            middle_rule_abs_1_single(invresol, los_kmin, los_kmax,
+                                         &eff_res[0], &ind_cum[0])
+            coeffs[0] = <double*>malloc((ind_cum[0])*sizeof(double))
+            middle_rule_abs_2_single(ind_cum[0], los_kmin, eff_res[0],
+                                     &coeffs[0][0])
+            return ind_cum[0]
+        elif n_imode==1:
+            # 'simps' quad
+            seg_length = los_kmax - los_kmin
+            nraf = <int>(Cceil(seg_length/resol))
+            if nraf%2==1:
+                nraf = nraf+1
+            eff_res[0] = seg_length / nraf
+            coeffs[0] = <double*>malloc((nraf+1)*sizeof(double))
+            simps_left_rule_abs_single(nraf, eff_res[0],
+                                       los_kmin, &coeffs[0][0])
+            return nraf + 1
+        elif n_imode==2:
+            # 'romb' quad
+            seg_length = los_kmax - los_kmin
+            nraf = <int>(Cceil(seg_length/resol))
+            nraf = 2**(<int>(Cceil(Clog2(nraf))))
+            eff_res[0] = seg_length / nraf
+            coeffs[0] = <double*>malloc((nraf+1)*sizeof(double))
+            romb_left_rule_abs_single(nraf, eff_res[0], los_kmin,
+                                      &coeffs[0][0])
+            return nraf + 1
+    return -1

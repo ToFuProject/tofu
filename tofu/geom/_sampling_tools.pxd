@@ -65,10 +65,6 @@ cdef void simple_discretize_vpoly_core(double[:, ::1] VPoly,
 # == LOS sampling
 # ==============================================================================
 
-# MAYBE DO AN INLINED NON-PARALLELIZED VERSION OF EACH FOR A SINGLE LOS
-# THEN CALL IT IN PARALLELIZED VERSION FOR _GG.LOS_get_sample()
-# SO SINGLE-LOS VERSION CAN BE USED IN LOS_calc_signal2 with minimize=memory
-
 # -- Quadrature Rules : Middle Rule --------------------------------------------
 cdef void middle_rule_rel_single(int num_raf,
                                  double los_kmin,
@@ -194,3 +190,12 @@ cdef void romb_left_rule_abs_var(int num_los, double* resolutions,
                                  double** los_coeffs,
                                  long* los_ind,
                                  int num_threads) nogil
+
+# -- LOS sampling for a single ray ---------------------------------------------
+cdef int get_nb_imode(str imode)
+
+cdef int get_nb_dmode(str dmode)
+
+cdef int LOS_get_sample_single(double los_kmin, double los_kmax,
+                               double resol, int imethod, int imode,
+                               double[1] eff_res, double** coeffs) nogil
