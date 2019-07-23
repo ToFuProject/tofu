@@ -2945,7 +2945,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
         # TODO : WHAT HAPPENS IF TIME = None ?
     else:
         nt = len(t)
-        ltime = np.asarray(t)
+        ltime = np.asarray(t,dtype=float)
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
@@ -2958,6 +2958,9 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                                         num_threads=num_threads, Test=Test)
         nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[-1]]
         # get pts and values
+        print("ind =",ind)
+        print("nbrep =", nbrep)
+        print("us =", np.shape(us))
         usbis = np.repeat(us, nbrep, axis=1)
         if ani:
             val = func(np.repeat(Ds, nbrep, axis=1) + k[None,:]*usbis,
