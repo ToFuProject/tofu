@@ -4571,7 +4571,7 @@ class Rays(utils.ToFuObject):
         # Exclude Rays not seeing the plasma
         s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
                                 dmethod=resMode, method=method,
-                                t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
+                                t=t, ani=ani, fkwdargs=fkwdargs, Test=True)
         if t is None or len(t)==1:
             sig[indok] = s
         else:
