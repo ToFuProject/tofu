@@ -39,7 +39,104 @@ from . import image_comp as _i_comp
 from . import plotting as _plot
 
 
-__all__ = ['Img_dir', 'Video', 'Vid_img']
+__all__ = ['Img_dir', 'Video', 'Vid_img', 'Cluster']
+
+
+###################################################################
+###################################################################
+#    Class for cluster
+###################################################################
+
+class Cluster(object):
+    """This class stores information of each cluster and assigns each cluster
+    a unique id. This Id is provided when a cluster is assigned as a parent or
+    child
+    Input:
+    --------------------------------------------
+    num:          integer
+     cluster number in the current frame
+    frame:        integer
+     frame in which the cluster is present
+    center:       tuple
+     position of the cluster in the current frame
+    angle:        float
+     the orientation of the cluster
+    area:         float
+     the pixel size of the cluster
+    parent:       tuple
+     id number of the parent of the cluster. If value is zero, the this is the
+     start of the trajectory.
+    child:        tuple
+     id number of the child. If value is zeroi then this is the end of the 
+     trajectory
+    
+    Attributes:
+    --------------------------------------------
+    __id     = id of the cluster
+    __frame  = frame number of the cluster
+    __center = position of the cluster in the current frame
+    __angle  = orientation of the cluster in the current frame
+    __area   = pixel area of the cluster
+    __parent = id of the parent of the cluster
+    __child  = id of the child of the cluster
+
+    Getters:
+    --------------------------------------------
+    get_id = Returns the id of the cluster
+    frame  = frame number of the cluster
+    center = position of the cluster in the current frame
+    angle  = orientation of the cluster in the current frame
+    area   = pixel area of the cluster
+    parent = id of the parent of the cluster
+    child  = id of the child of the cluster
+    
+    Methods:
+    --------------------------------------------
+    """
+    
+    def __init__(self, num, frame, center, angle, area, parent = 0, child = 0):
+        self.__id = frame,num
+        self.__frame = frame
+        self.__center = center
+        self.__angle = angle
+        self.__area = area
+        self.__parent = parent
+        self.__child = child
+    
+    @property
+    def get_id(self):
+        """Returns the of the cluster"""
+        return self.__id
+       
+    @property
+    def frame(self):
+        """Returns the frame number of the cluster"""
+        return self.__frame
+    
+    @property
+    def center(self):
+        """Returns the position of the cluster"""
+        return self.__center
+    
+    @property
+    def angle(self):
+        """Returns the angle of orientation of the cluster"""
+        return self.__angle
+    
+    @property
+    def area(self):
+        """Returns the pixel area of the cluster"""
+        return self.__area
+    
+    @property
+    def parent(self):
+        """Returns the parent id of the cluster"""
+        return self.__parent
+    
+    @property
+    def child(self):
+        """Returns the child id of the cluster"""
+        return self.__child
 
 
 ###################################################################
@@ -801,7 +898,8 @@ Vid_img.play_im.__doc__ = _plot.playimages.play_img.__doc__
         
 
 
-        
+    
+    
          
     
     
