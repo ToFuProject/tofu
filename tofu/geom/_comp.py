@@ -522,7 +522,9 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=Tru
     elif N==2:
         Vals = ff(Pts, np.tile(-u,(Pts.shape[1],1)).T)
     else:
-        raise ValueError("The function (ff) assessing the emissivity loccaly must take a single positional argument: Pts, a (3,N) np.ndarray of (X,Y,Z) cartesian coordinates !")
+        raise ValueError("The function (ff) assessing the emissivity locally "
+                         + "must take a single positional argument: Pts a (3,N)"
+                         + " np.ndarray of (X,Y,Z) cartesian coordinates !")
 
     Vals[np.isnan(Vals)] = 0.
     if method=='sum':
@@ -532,3 +534,133 @@ def LOS_calc_signal(ff, D, u, dL, DL=None, dLMode='abs', method='romb', Test=Tru
     elif method=='romb':
         Int = scpintg.romb(Vals, dx=dLr, show=False)
     return Int
+
+
+
+
+"""
+###############################################################################
+###############################################################################
+                        Solid Angle particle
+###############################################################################
+"""
+
+
+def calc_solidangle_particle(traj, pts, r=1., config=None,
+                             approx=True, aniso=False, block=True):
+    """ Compute the solid angle subtended by a particle along a trajectory
+
+    The particle has radius r, and trajectory (array of points) traj
+    It is observed from pts (array of points)
+
+    traj and pts are (3,N) and (3,M) arrays of cartesian coordinates
+
+    approx = True => use approximation
+    aniso = True => return also unit vector of emission
+    block = True consider LOS collisions (with Ves, Struct...)
+
+    if block:
+        config = config used for LOS collisions
+
+    Return:
+    -------
+    sang: np.ndarray
+        (N,M) Array of floats, solid angles
+
+    """
+    ################
+    # Prepare inputs
+    traj = np.ascontiguousarray(traj, dtype=float)
+    pts = np.ascontiguousarray(pts, dtype=float)
+    r = np.r_[r].astype(float).ravel()
+
+    # Check booleans
+    assert type(approx) is bool
+    assert type(aniso) is bool
+    assert type(block) is bool
+
+    # Check config
+    assert config is None or config.__class__.__name__ == 'Config'
+    assert block == (config is not None)
+
+    # Check pts, traj and r are array of good shape
+    assert traj.ndim in [1,2]
+    assert pts.ndim in [1,2]
+    assert 3 in traj.shape and 3 in pts.shape
+    if traj.ndim == 1:
+        traj = traj.reshape((3,1))
+    if traj.shape[0] != 3:
+        traj = traj.T
+    if pts.ndim == 1:
+        pts = pts.reshape((3,1))
+    if pts.shape[0] != 3:
+        pts = pts.T
+
+    # get npart
+    ntraj = traj.shape[1]
+    nr = r.size
+    npts = pts.shape[1]
+
+    npart = max(nr,ntraj)
+    assert nr in [1,npart]
+    assert ntraj in [1,npart]
+    if nr < npart:
+        r = np.full((npart,), r[0])
+    if ntraj < npart:
+        traj = np.repeat(traj, npart, axis=1)
+
+    ################
+    # Main computation
+
+    # traj2pts vector, with length (3d array (3,N,M))
+    vect = pts[:,None,:] - traj[:,:,None]
+    l = np.sqrt(np.sum(vect**2, axis=0))
+
+    # If aniso or block, normalize
+    if aniso or block:
+        vect = vect/l[None,:,:]
+
+    # Solid angle
+    if approx:
+        sang = np.pi*r[None,:]**2/l**2
+    else:
+        sang = 2.*np.pi*(1 - np.sqrt(1.-r**2[None,:]/l**2))
+
+    # block
+    if block:
+        kwdargs = config._get_kwdargs_LOS_isVis()
+        # TODO : modify this function along issue #102
+        indnan = _GG.LOS_areVis_PtsFromPts_VesStruct(traj, pts, k=l, vis=False,
+                                                     **kwdargs)
+        sang[indnan] = 0.
+        vect[indnan,:] = np.nan
+
+    ################
+    # Return
+
+    if aniso:
+        return sang, vect
+    else:
+        return sang
+
+
+def calc_solidangle_particle_integ(traj, r=1., config=None,
+                                   approx=True, block=True, res=0.01):
+
+
+    # step0: if block : generate kwdargs from config
+
+    # step 1: sample cross-section
+
+    # step 2: loop on R of  pts of cross-section (parallelize ?)
+        # => fix nb. of phi for the rest of the loop
+
+    # loop of Z
+
+    # step 3: loop phi
+    # Check visibility (if block = True) for each phi (LOS collision)
+    # If visible => compute solid angle
+    # integrate (sum * res) on each phi the solid angle
+
+    # Return sang as (N,nR,nZ) array
+    return
