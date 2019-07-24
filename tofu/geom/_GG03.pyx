@@ -2955,19 +2955,16 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
         k, reseff, ind = LOS_get_sample(num_los, dL, DLs,
                                         dmethod=dmode, method=imode,
                                         num_threads=num_threads, Test=Test)
-        nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[-1]]
+        nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[num_los-2]]
         # get pts and values
         usbis = np.repeat(us, nbrep, axis=1)
         if ani:
             val = func(np.repeat(Ds, nbrep, axis=1) + k[None,:]*usbis,
                        t=t, vect=-usbis, **fkwdargs)
         else:
-            print(np.repeat(Ds,nbrep,axis=1).shape)
-            print(k.shape[0])
-            print(usbis.shape[0], usbis.shape[1])
             val = func(np.repeat(Ds,nbrep,axis=1) + k[None,:]*usbis,
                        t=t, **fkwdargs)
-        indbis = np.concatenate([0],ind,[k.size])
+        indbis = np.concatenate(([0],ind,[k.size]))
         # Integrate
         if method=='sum':
             for ii in range(num_los):
