@@ -67,7 +67,11 @@ else:
     os.environ['CC'] = 'gcc'
     os.environ['CXX'] = 'gcc'
 
-not_openmp_installed = check_for_openmp(os.environ['CC'])
+if platform.system() == 'Windows':
+    # The openmp compiler test is not designed to run under Windows, so we skip it
+    not_openmp_installed = True
+else:
+    not_openmp_installed = check_for_openmp(os.environ['CC'])
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6','3.7']:

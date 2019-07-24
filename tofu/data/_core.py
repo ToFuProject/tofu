@@ -50,7 +50,7 @@ def _format_ind(ind=None, n=None):
     if ind is None:
         ind = np.ones((n,),dtype=bool)
     else:
-        lInt = [int,np.int64]
+        lInt = [int, np.int32, np.int64]
         if type(ind) in lInt:
             ii = np.zeros((n,),dtype=bool)
             ii[int(ii)] = True

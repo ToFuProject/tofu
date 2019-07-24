@@ -3660,7 +3660,7 @@ class Rays(utils.ToFuObject):
         if ind is not None:
             ind = np.asarray(ind)
             assert ind.ndim==1
-            assert ind.dtype in [np.int64,np.bool_]
+            assert ind.dtype in [np.int32, np.int64,np.bool_]
             if ind.dtype == np.bool_:
                 assert ind.size==self.nRays
                 if out is int:

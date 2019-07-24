@@ -36,7 +36,7 @@ _lok = np.array([_lok, _lok+10])
 
 _here = os.path.abspath(__file__)
 _root = _here[:_here.rfind('/tofu')]
-_path_testcases = os.path.join(_root,'tofu/geom/inputs')
+_path_testcases = os.path.join(os.path.split(_here)[0], 'inputs')
 
 ###########################################################
 #       COCOS

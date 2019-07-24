@@ -506,7 +506,7 @@ def _Ves_mesh_dlfromL_cython(double[::1] LMinMax, double dL, DL=None, Lim=True,
         nL1 = int(Cfloor((DLc[1] - LMinMax[0])/dLr))
     # Get the corresponding indices
     Nind = nL1 + 1 - nL0
-    indL = np.empty((Nind,),dtype=np.long)#np.linspace(nL0,nL1,Nind,endpoint=True)
+    indL = np.empty((Nind,),dtype=np.longlong)#np.linspace(nL0,nL1,Nind,endpoint=True)
     L = np.empty((Nind,))
     for ii in range(0, Nind):
         jj = nL0 + ii
@@ -542,7 +542,7 @@ def _Ves_meshCross_FromD(double[::1] MinMax1, double[::1] MinMax2, double d1,
 
     Pts = np.empty((2,n1*n2))
     dS = d1r*d2r*np.ones((n1*n2,))
-    ind = np.empty((n1*n2,),dtype=np.long)
+    ind = np.empty((n1*n2,),dtype=np.longlong)
     for ii in range(0,n2):
         for jj in range(0,n1):
             nn = jj+n1*ii
@@ -602,7 +602,7 @@ def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None,
     cdef list LPtsCross=[], LdLr=[], Lind=[], LRref=[], VPolybis=[]
 
     LMinMax = np.array([0.,1.],dtype=float)
-    N = np.empty((NP-1,),dtype=np.long)
+    N = np.empty((NP-1,),dtype=np.longlong)
     if DIn==0.:
         for ii in range(0,NP-1):
             v0, v1 = VPoly[0,ii+1]-VPoly[0,ii], VPoly[1,ii+1]-VPoly[1,ii]
@@ -645,7 +645,7 @@ def _Ves_Smesh_Cross(double[:,::1] VPoly, double dL, str dLMode='abs', D1=None,
         VPolybis.append((VPoly[0,0],VPoly[1,0]))
 
     PtsCross, dLr, ind, Rref = np.array(LPtsCross).T, np.array(LdLr), \
-      np.array(Lind,dtype=np.long), np.array(LRref)
+      np.array(Lind,dtype=np.longlong), np.array(LRref)
     if D1 is not None:
         indin = (PtsCross[0,:]>=D1[0]) & (PtsCross[0,:]<=D1[1])
         PtsCross = PtsCross[:,indin]
@@ -703,9 +703,9 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
         DPhi1 = Catan2(Csin(DPhi[1]), Ccos(DPhi[1]))
 
     dRPhir, dPhir = np.empty((Rn,)), np.empty((Rn,))
-    Phin = np.empty((Rn,),dtype=np.long)
+    Phin = np.empty((Rn,),dtype=np.longlong)
     NRPhi = np.empty((Rn,))
-    NRPhi0 = np.zeros((Rn,),dtype=np.long)
+    NRPhi0 = np.zeros((Rn,),dtype=np.longlong)
     nRPhi0, indR0ii = 0, 0
     NP, NPhimax = 0, 0
     Rratio = int(Cceil(R[Rn-1]/R[0]))
@@ -805,7 +805,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
         if not np.all(Ru==R):
             dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
                                if R[ii] in Ru])
-    return Pts, dV, ind.astype(int), dRr, dZr, np.asarray(dRPhir)
+    return Pts, dV, ind.astype(np.longlong), dRr, dZr, np.asarray(dRPhir)
 
 
 
@@ -815,7 +815,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
 @cython.boundscheck(False)
 def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
                                      double[::1] RMinMax, double[::1] ZMinMax,
-                                     long long[::1] ind, str Out='(X,Y,Z)',
+                                     long[::1] ind, str Out='(X,Y,Z)',
                                      double margin=_VSMALL):
     """ Return the desired submesh indicated by the (numerical) indices,
     for the desired resolution (dR,dZ,dRphi)
@@ -839,7 +839,7 @@ def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
     # Number of Phi per R
     dRPhirRef, dPhir = np.empty((NR,)), np.empty((NR,))
     Ru, dRPhir = np.zeros((NR,)), np.nan*np.ones((NR,))
-    NRPhi, NRPhi0 = np.empty((NR,),dtype=np.long), np.empty((NR+1,),dtype=np.long)
+    NRPhi, NRPhi0 = np.empty((NR,),dtype=np.longlong), np.empty((NR+1,),dtype=np.longlong)
     Rratio = int(Cceil(R[NR-1]/R[0]))
     for ii in range(0,NR):
         NRPhi[ii] = <long long>(Cceil(2.*Cpi*R[ii]/dRPhi))
@@ -932,13 +932,13 @@ def _Ves_Vmesh_Lin_SubFromD_cython(double dX, double dY, double dZ,
                                               radius=0.0)
         Pts, ind = Pts[:,indin], ind[indin]
 
-    return Pts, dV, ind.astype(int), dXr, dYr, dZr
+    return Pts, dV, ind.astype(np.longlong), dXr, dYr, dZr
 
 
 def _Ves_Vmesh_Lin_SubFromInd_cython(double dX, double dY, double dZ,
                                      double[::1] XMinMax, double[::1] YMinMax,
                                      double[::1] ZMinMax,
-                                     np.ndarray[long long,ndim=1] ind,
+                                     np.ndarray[long,ndim=1] ind,
                                      double margin=_VSMALL):
     """ Return the desired submesh indicated by the limits (DX,DY,DZ),
     for the desired resolution (dX,dY,dZ)
@@ -1130,9 +1130,9 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         Indin = indin.nonzero()[0]
 
         dRPhir, dPhir = np.empty((Ln,)), np.empty((Ln,))
-        Phin = np.zeros((Ln,),dtype=np.long)
+        Phin = np.zeros((Ln,),dtype=np.longlong)
         NRPhi = np.empty((Ln,))
-        NRPhi0 = np.zeros((Ln,),dtype=np.long)
+        NRPhi0 = np.zeros((Ln,),dtype=np.longlong)
         nRPhi0, indR0ii = 0, 0
         NP, NPhimax = 0, 0
         Rratio = int(Cceil(np.max(Rref)/np.min(Rref)))
@@ -1225,7 +1225,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
         Pts, dS, ind, NL, Rref, dRPhir, nRPhi0 = np.ones((3,0)), np.ones((0,)),\
           np.ones((0,)), np.nan*np.ones((VPoly.shape[1]-1,)),\
           np.ones((0,)), np.ones((0,)), 0
-    return Pts, dS, ind.astype(int), NL, dLr, Rref, dRPhir, nRPhi0, VPbis
+    return Pts, dS, ind.astype(np.longlong), NL, dLr, Rref, dRPhir, nRPhi0, VPbis
 
 
 
@@ -1269,7 +1269,7 @@ def _Ves_Smesh_Tor_SubFromInd_cython(double dL, double dRPhi,
     # Number of Phi per R
     dRPhirRef, dPhir, dRPhir = np.empty((Ln,)), np.empty((Ln,)), -np.ones((Ln,))
     dLr, Rref = -np.ones((Ln,)), -np.ones((Ln,))
-    NRPhi, NRPhi0 = np.empty((Ln,),dtype=np.long), np.empty((Ln,),dtype=np.long)
+    NRPhi, NRPhi0 = np.empty((Ln,),dtype=np.longlong), np.empty((Ln,),dtype=np.longlong)
     Rratio = int(Cceil(np.max(RrefRef)/np.min(RrefRef)))
     for ii in range(0,Ln):
         NRPhi[ii] = <long long>(Cceil(DPhiMinMax*RrefRef[ii]/dRPhi))
@@ -1463,7 +1463,7 @@ def _Ves_Smesh_TorStruct_SubFromD_cython(double[::1] PhiMinMax, double dL,
             dS = LdS[0]
         else:
             Pts = np.concatenate(tuple(LPts),axis=1)
-            ind = np.concatenate(tuple(Lind)).astype(int)
+            ind = np.concatenate(tuple(Lind)).astype(np.longlong)
             dS = np.concatenate(tuple(LdS))
 
     else:
