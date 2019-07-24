@@ -842,7 +842,7 @@ class Test03_Rays(object):
             if t is not None:
                 E = E[np.newaxis,:]*t
             return E
-        def ffT(Pts, t=None, Vect=None):
+        def ffT(Pts, t=None, vect=None):
             E = np.exp(-(np.hypot(Pts[0,:],Pts[1,:])-2.4)**2/0.1
                        - Pts[2,:]**2/0.1)
             if Vect is not None:
