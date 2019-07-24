@@ -2992,6 +2992,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             if n_imode == 0:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii],
                                                          n_dmode, n_imode,
@@ -3008,6 +3009,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode == 1:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii],
                                                          n_dmode, n_imode,
@@ -3025,6 +3027,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode == 2:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii],
                                                          n_dmode, n_imode,
@@ -3043,6 +3046,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             if n_imode == 0:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii],
                                                          n_dmode, n_imode,
@@ -3059,6 +3063,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode == 1:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii], n_dmode,
                                                          n_imode,
@@ -3076,6 +3081,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode == 2:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii], n_dmode,
                                                          n_imode,
@@ -3095,6 +3101,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             if n_imode==0:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3110,6 +3117,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode==1:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3126,6 +3134,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode==2:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3144,6 +3153,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             if n_imode==0:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3159,6 +3169,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode==1:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3175,6 +3186,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode==2:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3198,6 +3210,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             if n_imode == 0:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii],
                                                          n_dmode, n_imode,
@@ -3214,6 +3227,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode == 1:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii],
                                                          n_dmode, n_imode,
@@ -3231,6 +3245,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode == 2:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii],
                                                          n_dmode, n_imode,
@@ -3249,6 +3264,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             if n_imode == 0:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii],
                                                          n_dmode, n_imode,
@@ -3265,6 +3281,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode == 1:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii], n_dmode,
                                                          n_imode,
@@ -3282,6 +3299,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode == 2:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL[ii], n_dmode,
                                                          n_imode,
@@ -3301,6 +3319,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             if n_imode==0:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3316,6 +3335,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode==1:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3332,6 +3352,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode==2:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3350,6 +3371,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             if n_imode==0:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3365,6 +3387,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode==1:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3381,6 +3404,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             elif n_imode==2:
                 for ii in range(num_los):
                     los_coeffs = <double**>malloc(sizeof(double*))
+                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(DLs[0,0], DLs[1,0],
                                                          dL, n_dmode, n_imode,
                                                          &loc_eff_res[0],

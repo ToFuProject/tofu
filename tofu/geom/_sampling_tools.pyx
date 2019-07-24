@@ -310,7 +310,6 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] VPoly,
     cdef double[2] LMinMax
     cdef long[1] numcells
     cdef double* ldiscret = NULL
-    cdef long* lindex = NULL
     #.. initialization..........................................................
     LMinMax[0] = 0.
     #.. Filling arrays..........................................................
