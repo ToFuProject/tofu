@@ -865,9 +865,6 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                 'drefid':{lidX[0]:jj}}
 
 
-    import ipdb         # DB
-    ipdb.set_trace()    # DB
-
     ##################
     # Instanciate KeyHandler
     can = fig.canvas

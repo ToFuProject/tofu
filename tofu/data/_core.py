@@ -2334,12 +2334,22 @@ class Plasma2D(utils.ToFuObject):
         origin_ = 'unknown' if origin_ is None else origin_
         units_ = 'a.u.' if units_ is None else units_
 
-        # Extract
-        dim = dnd[k0].get('dim', dim_)
-        quant = dnd[k0].get('quant', quant_)
-        origin = dnd[k0].get('origin', origin_)
-        name = dnd[k0].get('name', name_)
-        units = dnd[k0].get('units', units_)
+        # Extrac
+        dim = dnd[k0].get('dim', None)
+        if dim is None:
+            dim = dim_
+        quant = dnd[k0].get('quant', None)
+        if quant is None:
+            quant = quant_
+        origin = dnd[k0].get('origin', None)
+        if origin is None:
+            origin = origin_
+        name = dnd[k0].get('name', None)
+        if name is None:
+            name = name_
+        units = dnd[k0].get('units', None)
+        if units is None:
+            units = units_
         return dim, quant, origin, name, units
 
     @staticmethod
@@ -2687,34 +2697,34 @@ class Plasma2D(utils.ToFuObject):
         if len(dmesh) > 0:
             dgroup['mesh'] = {'dref':list(dmesh.keys())[0]}
 
-        # Complement
-        self._complement(dgroup, dindref, ddata)
-
         # Update dict
         self._dgroup = dgroup
         self._dindref = dindref
         self._ddata = ddata
+        # Complement
+        self._complement()
 
 
-    @classmethod
-    def _complement(cls, dgroup, dindref, ddata):
+
+    def _complement(self):
 
         # --------------
         # ddata
-        for k0, v0 in ddata.items():
-            lindout = [ii for ii in v0['depend'] if ii not in dindref.keys()]
+        for k0, v0 in self.ddata.items():
+            lindout = [ii for ii in v0['depend'] if ii not in self.dindref.keys()]
             if not len(lindout) == 0:
                 msg = "ddata[%s]['depend'] has keys not in dindref:\n"%k0
                 msg += "    - " + "\n    - ".join(lindout)
                 raise Exception(msg)
 
-            ddata[k0]['lgroup'] = [dindref[ii]['group'] for ii in v0['depend']]
+            self.ddata[k0]['lgroup'] = [self.dindref[ii]['group']
+                                        for ii in v0['depend']]
             type_ = type(v0['data'])
-            shape = tuple([dindref[ii]['size'] for ii in v0['depend']])
+            shape = tuple([self.dindref[ii]['size'] for ii in v0['depend']])
 
             # if only one dim => mesh or iterable or unspecified
             if len(shape) == 1 or type_ is dict:
-                c0 = type_ is dict and 'mesh' in ddata[k0]['lgroup']
+                c0 = type_ is dict and 'mesh' in self.ddata[k0]['lgroup']
                 c1 = not c0 and len(v0['data']) == shape[0]
                 if not (c0 or c1):
                     msg = k0+'\n'
@@ -2726,21 +2736,22 @@ class Plasma2D(utils.ToFuObject):
 
         # --------------
         # dindref
-        for k0 in dindref.keys():
-            dindref[k0]['ldata'] = [kk for kk, vv in ddata.items()
+        for k0 in self.dindref.keys():
+            self.dindref[k0]['ldata'] = [kk for kk, vv in self.ddata.items()
                                     if k0 in vv['depend']]
-            assert dindref[k0]['group'] in dgroup.keys()
+            assert self.dindref[k0]['group'] in self.dgroup.keys()
 
         # --------------
         # dgroup
-        for gg, vg in dgroup.items():
-            lindref = [id_ for id_, vv in dindref.items() if vv['group'] == gg]
-            ldata = [id_ for id_ in ddata.keys()
-                     if any([id_ in dindref[vref]['ldata']
+        for gg, vg in self.dgroup.items():
+            lindref = [id_ for id_,vv in self.dindref.items()
+                       if vv['group'] == gg]
+            ldata = [id_ for id_ in self.ddata.keys()
+                     if any([id_ in self.dindref[vref]['ldata']
                              for vref in lindref])]
             #assert vg['depend'] in lidindref
-            dgroup[gg]['lindref'] = lindref
-            dgroup[gg]['ldata'] = ldata
+            self.dgroup[gg]['lindref'] = lindref
+            self.dgroup[gg]['ldata'] = ldata
 
 
     def set_dgeom(self, config=None):
@@ -2991,8 +3002,12 @@ class Plasma2D(utils.ToFuObject):
 
 
     #---------------------
-    # Methods for computing plasma quantities
+    # Methods for computing additional plasma quantities
     #---------------------
+
+    def get_multiple_dependecies(lq):
+        pass
+
 
     def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None):
         """ Return the bremsstrahlun spectral radiance at lamb
@@ -3017,9 +3032,9 @@ class Plasma2D(utils.ToFuObject):
         for k in dins.keys():
             if type(dins[k]['val']) is str:
                 assert dins[k]['val'] in self._ddata.keys()
-                dins[k]['val'] = self._ddata[dins[k]['val']]
+                dins[k]['val'] = self._ddata[dins[k]['val']]['data']
             else:
-                dins[k]['val'] = np.asarray(dins[k]['val'], dtype=float)
+                dins[k]['val'] = np.atleast_1d(dins[k]['val'])
             dins[k]['shape'] = dins[k]['val'].shape
             if shape is None:
                 shape = dins[k]['shape']
@@ -3030,7 +3045,12 @@ class Plasma2D(utils.ToFuObject):
         # Check shape consistency for broadcasting
         assert len(shape) in [1,2]
         if len(shape) == 1:
-            assert all([v['shape'][0] in [1,shape[0]] for v in dins.values()])
+            for k in dins.keys():
+                assert dins[k]['shape'][0] in [1,shape[0]]
+                if dins[k]['shape'][0] < shape[0]:
+                    dins[k]['val'] = np.full((shape[0],), dins[k]['val'][0])
+                    dins[k]['shape'] = dins[k]['val'].shape
+
         elif len(shape) == 2:
             for k in dins.keys():
                 if len(dins[k]['shape']) == 1:
@@ -3043,11 +3063,68 @@ class Plasma2D(utils.ToFuObject):
                         dins[k]['val'] = dins[k]['val'][None,:]
                 else:
                     assert dins[k]['shape'] == shape
+                dins[k]['shape'] = dins[k]['val'].shape
 
-        import ipdb         # DB
-        ipdb.set_trace()    # DB
+        return _physics.compute_bremzeff(dins['Te']['val'], dins['ne']['val'],
+                                         dins['zeff']['val'], dins['lamb']['val'])
 
-        return _physics.compute_bremzeff(dins['Te'], dins['ne'], dins['zeff'], lamb)
+
+
+    def add_ref(key=None, data=None, group=None,
+                dim=None, quant=None, units=None):
+        """ Add a reference """
+        assert type(key) is str and key not in self._ddata.keys()
+        assert type(data) in [np.ndarray, dict]
+        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
+                                 'units':units, 'origin':origin}}, key)
+        dim, quant, origin, name, units = out
+        assert group in self._dgroup.keys()
+        if type(data) is np.ndarray:
+            size = data.shape[0]
+        else:
+            assert data['ftype'] in [0,1]
+            size = data['nnodes'] if data['ftype'] == 1 else data['nfaces']
+
+        self._dindref[key] = {'group':group, 'size':size, 'ldata':[key]}
+
+        self._ddata[key] = {'data':data,
+                            'dim':dim, 'quant':quant, 'units':units,
+                            'origin':origin, 'name':name,
+                            'depend':(key,), 'lgroup':[group]}
+        self._complement()
+
+    def add_quantity(self, key=None, data=None, depend=None,
+                     dim=None, quant=None, units=None,
+                     origin=None, name=None):
+        """ Add a quantity """
+        c0 = type(key) is str and key not in self._ddata.keys()
+        if not c0:
+            msg = "key must be a str not already in self.ddata.keys()!\n"
+            msg += "    - Provided: %s"%str(key)
+            raise Exception(msg)
+        if type(data) not in [np.ndarray, dict]:
+            msg = "data must be either:\n"
+            msg += "    - np.ndarray\n"
+            msg += "    - dict (mesh)\n"
+            msg += "\n    Provided: %s"%str(type(data))
+            raise Exception(msg)
+        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
+                                 'units':units, 'origin':origin}}, key)
+        dim, quant, origin, name, units = out
+        assert type(depend) in [list,str,tuple]
+        if type(depend) is str:
+            depend = (depend,)
+        for ii in range(0,len(depend)):
+            assert depend[ii] in self._dindref.keys()
+        lgroup = [self._dindref[dd]['group'] for dd in depend]
+        self._ddata[key] = {'data':data,
+                            'dim':dim, 'quant':quant, 'units':units,
+                            'origin':origin, 'name':name,
+                            'depend':tuple(depend), 'lgroup':lgroup}
+        self._complement()
+
+
+
 
     #---------------------
     # Methods for interpolation

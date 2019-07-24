@@ -261,6 +261,11 @@ class MultiIDSLoader(object):
                 'p':{'str':'gauge[chan].pressure.data',
                      'dim':'pressure', 'quant':'p', 'units':'Pa?'}},
 
+               'neutron_diagnostic':
+               {'t':{'str':'time', 'units':'s'},
+                'flux_total':{'str':'synthetic_signals.total_neutron_flux',
+                              'dim':'particle flux', 'quant':'particle flux', 'units':'Hz'}},
+
                'ece':
                {'t':{'str':'time',
                      'quant':'t', 'units':'s'},
@@ -302,8 +307,8 @@ class MultiIDSLoader(object):
                'polarimeter':
                {'t':{'str':'time',
                      'quant':'t', 'units':'s'},
-                'wavelength':{'str':'channel[chan].wavelength',
-                              'dim':'distance', 'quant':'wavelength', 'units':'m'},
+                'lamb':{'str':'channel[chan].wavelength',
+                        'dim':'distance', 'quant':'wavelength', 'units':'m'},
                 'fangle':{'str':'channel[chan].faraday_angle.data',
                           'dim':'angle', 'quant':'faraday angle', 'units':'rad'}},
 
@@ -345,7 +350,9 @@ class MultiIDSLoader(object):
                      'quant':'t', 'units':'s'},
                 'radiance':{'str':'channel[chan].radiance_spectral.data',
                             'dim':'radiance_spectral', 'quant':'radiance_spectral',
-                            'units':'ph/s/(m2.sr)/m'}},
+                            'units':'ph/s/(m2.sr)/m'},
+                'lamb_up': {'str':'channel[chan].filter.wavelength_upper'},
+                'lamb_lo': {'str':'channel[chan].filter.wavelength_lower'}},
               }
 
     _didsdiag = {'magnetics': {'datacls':'DataCam1D',
@@ -361,6 +368,10 @@ class MultiIDSLoader(object):
                        'sig':{'t':'t',
                               'X':'rhotn_sign',
                               'data':'Te'}},
+                'neutron_diagnostic':{'datacls':'DataCam1D',
+                                      'geomcls':False,
+                                      'sig':{'t':'t',
+                                             'data':'flux_total'}},
                 'reflectometer_profile':{'datacls':'DataCam1D',
                                          'geomcls':False,
                                          'sig':{'t':'t',
@@ -374,7 +385,8 @@ class MultiIDSLoader(object):
                                                      'ref1d':'core_profiles.1drhotn',
                                                      'ref2d':'equilibrium.2drhotn'},
                                            'dsig':{'core_profiles':['t'],
-                                                   'equilibrium':['t']}}},
+                                                   'equilibrium':['t']},
+                                           'Brightness':True}},
                 'polarimeter':{'datacls':'DataCam1D',
                                'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
@@ -383,7 +395,8 @@ class MultiIDSLoader(object):
                                                   'ref1d':'core_profiles.1drhotn',
                                                   'ref2d':'equilibrium.2drhotn'},
                                         'dsig':{'core_profiles':['t'],
-                                                'equilibrium':['t']}}},
+                                                'equilibrium':['t']},
+                                        'Brightness':True}},
                 'bolometer':{'datacls':'DataCam1D',
                              'geomcls':'CamLOS1D',
                              'sig':{'t':'tchan',
@@ -392,7 +405,8 @@ class MultiIDSLoader(object):
                                                 'ref1d':'core_sources.1drhotn',
                                                 'ref2d':'equilibrium.2drhotn'},
                                       'dsig':{'core_profiles':['t'],
-                                              'equilibrium':['t']}}},
+                                              'equilibrium':['t']},
+                                      'Brightness':False}},
                 'soft_x_rays':{'datacls':'DataCam1D',
                                'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
@@ -406,11 +420,14 @@ class MultiIDSLoader(object):
                                           'geomcls':'CamLOS1D',
                                           'sig':{'t':'t',
                                                  'data':'radiance'},
-                                          'synth':{'dsynth':{'quant':'core_profiles.1dne',
+                                          'synth':{'dsynth':{'quant':['core_profiles.1dTe',
+                                                                      'core_profiles.1dne',
+                                                                      'core_profiles.1dzeff'],
                                                              'ref1d':'core_profiles.1drhotn',
                                                              'ref2d':'equilibrium.2drhotn'},
                                                    'dsig':{'core_profiles':['t'],
-                                                           'equilibrium':['t']}}}}
+                                                           'equilibrium':['t']},
+                                                   'Brightness':True}}}
 
     _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
                    'edge_profiles', 'edge_sources']
@@ -424,11 +441,15 @@ class MultiIDSLoader(object):
 
     for ids_ in _lidssynth:
         for kk,vv in _didsdiag[ids_]['synth']['dsynth'].items():
-            v0, v1 = vv.split('.')
-            if v0 not in _didsdiag[ids_]['synth']['dsig'].keys():
-                _didsdiag[ids_]['synth']['dsig'][v0] = [v1]
-            elif v1 not in _didsdiag[ids_]['synth']['dsig'][v0]:
-                _didsdiag[ids_]['synth']['dsig'][v0].append(v1)
+            if type(vv) is str:
+                vv = [vv]
+            for ii in range(0,len(vv)):
+                v0, v1 = vv[ii].split('.')
+                if v0 not in _didsdiag[ids_]['synth']['dsig'].keys():
+                    _didsdiag[ids_]['synth']['dsig'][v0] = [v1]
+                elif v1 not in _didsdiag[ids_]['synth']['dsig'][v0]:
+                    _didsdiag[ids_]['synth']['dsig'][v0].append(v1)
+            _didsdiag[ids_]['synth']['dsynth'][kk] = vv
 
     for ids in _lidslos:
         dlos = {}
@@ -534,7 +555,11 @@ class MultiIDSLoader(object):
 
              'ece':
              {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
-                            'units':'adim.'}}
+                            'units':'adim.'}},
+
+             'bremsstrahlung_visible':
+             {'lamb':{'lstr':['lamb_up','lamb_lo'], 'func':np.mean,
+                      'dim':'distance', 'quantity':'wavelength', 'units':'m'}}
             }
 
     _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
@@ -3061,15 +3086,16 @@ class MultiIDSLoader(object):
             lc = [vv is None, type(vv) is str, type(vv) in [list,tuple]]
             assert any(lc)
             if lc[0]:
-                vv = self._didsdiag[ids]['synth']['dsynth'].get(kk, None)
-                vv = vv.split('.')
+                dq[kk] = self._didsdiag[ids]['synth']['dsynth'][kk]
             if lc[1]:
-                vv = vv.split('.')
-            assert len(vv) == 2
-            assert vv[0] in self._lidsplasma
-            assert (vv[1] in self._dshort[vv[0]].keys()
-                    or vv[1] in self._dcomp[vv[0]].keys())
-            dq[kk] = vv
+                dq[kk] = [dq[kk]]
+            for ii in range(0,len(dq[kk])):
+                v1 = tuple(dq[kk][ii].split('.'))
+                assert len(v1) == 2
+                assert v1[0] in self._lidsplasma
+                assert (v1[1] in self._dshort[v1[0]].keys()
+                        or v1[1] in self._dcomp[v1[0]].keys())
+                dq[kk][ii] = v1
 
         # Check dsig
         if dsig is None:
@@ -3089,11 +3115,12 @@ class MultiIDSLoader(object):
         for kk,vv in dq.items():
             if vv is None:
                 continue
-            if vv[0] not in dsig.keys():
-                dsig[vv[0]] = {}
-            if vv[1] not in dsig[vv[0]]:
-                dsig[vv[0]].append(vv[1])
-            dq[kk] = '%s.%s'%tuple(vv)
+            for ii in range(0,len(vv)):
+                if vv[ii][0] not in dsig.keys():
+                    dsig[vv[ii][0]] = []
+                if vv[ii][1] not in dsig[vv[ii][0]]:
+                    dsig[vv[ii][0]].append(vv[ii][1])
+                dq[kk][ii] = '%s.%s'%tuple(vv[ii])
 
         if dq['quant'] is None:
             msg = "quant is not specified !"
@@ -3102,7 +3129,7 @@ class MultiIDSLoader(object):
 
 
     def calc_signal(self, ids=None, dsig=None, tlim=None, t=None, res=None,
-                    quant=None, ref1d=None, ref2d=None,
+                    quant=None, ref1d=None, ref2d=None, Brightness=None,
                     indch=None, indch_auto=False, Name=None,
                     occ_cam=None, occ_plasma=None, config=None,
                     dextra=None, t0=None, datacls=None, geomcls=None,
@@ -3124,13 +3151,46 @@ class MultiIDSLoader(object):
                                   plot=False, dextra=dextra, nan=True, pos=None)
 
         # Intermediate computation if necessary
-        if ids == 'polarimeter':
-            pass
+        if ids == 'bremsstrahlung_visible':
+            try:
+                lamb = self.get_data(ids, sig='lamb')['lamb']
+            except Exception as err:
+                lamb = 5238.e-10
+                msg = "bremsstrahlung_visible.lamb could not be retrived!\n"
+                msg += "  => fallback to lamb = 5338.e-10 m (WEST case)"
+                warnings.warn(msg)
+            out = plasma.compute_bremzeff(Te='core_profiles.1dTe',
+                                          ne='core_profiles.1dne',
+                                          zeff='core_profiles.1dzeff',
+                                          lamb=lamb)
+            brem, units = out
+            plasma.add_quantity(key='core_profiles.1dbrem', data=brem,
+                                depend=('core_profiles.t','core_profiles.1dTe'),
+                                dim=None, quant=None, name=None,
+                                origin='f(core_profiles, polarimeter)',
+                                units=units)
+            quant = ['core_profiles.1dbrem']
+
+        elif ids == 'polarimeter':
+            lamb = self.get_data(ids, sig='lamb')['lamb']
+            ne = None
+            out = plasma.compute_fangle(B='equilibrium.Bv',
+                                        ne='core_profiles.1dne')
+
+        assert all([qq is None or len(qq) == 1 for qq in [quant,ref1d,ref2d]])
+        assert quant is not None
+        quant = quant[0]
+        if ref1d is not None:
+            ref1d = ref1d[0]
+        if ref2d is not None:
+            ref2d = ref2d[0]
 
         # Calculate syntehtic signal
+        if Brightness is None:
+            Brightness = self._didsdiag[ids]['synth'].get('Brightness', None)
         sig = cam.calc_signal_from_Plasma2D(plasma,
                                             quant=quant, ref1d=ref1d, ref2d=ref2d,
-                                            res=res, t=t, plot=False)
+                                            res=res, t=t, Brightness=Brightness, plot=False)
 
         sig._dextra = plasma.get_dextra(dextra)
 
