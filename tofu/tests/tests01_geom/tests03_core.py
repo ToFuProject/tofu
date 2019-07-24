@@ -832,24 +832,24 @@ class Test03_Rays(object):
 
 
     def test10_calc_signal(self):
-        def ffL(Pts, t=None, Vect=None):
+        def ffL(Pts, t=None, vect=None):
             E = np.exp(-(Pts[1,:]-2.4)**2/0.1 - Pts[2,:]**2/0.1)
-            if Vect is not None:
-                if np.asarray(Vect).ndim==2:
-                    E = E*Vect[0,:]
+            if vect is not None:
+                if np.asarray(vect).ndim==2:
+                    E = E*vect[0,:]
                 else:
-                    E = E*Vect[0]
+                    E = E*vect[0]
             if t is not None:
                 E = E[np.newaxis,:]*t
             return E
         def ffT(Pts, t=None, vect=None):
             E = np.exp(-(np.hypot(Pts[0,:],Pts[1,:])-2.4)**2/0.1
                        - Pts[2,:]**2/0.1)
-            if Vect is not None:
-                if np.asarray(Vect).ndim==2:
-                    E = E*Vect[0,:]
+            if vect is not None:
+                if np.asarray(vect).ndim==2:
+                    E = E*vect[0,:]
                 else:
-                    E = E*Vect[0]
+                    E = E*vect[0]
             if t is not None:
                 E = E[np.newaxis,:]*t
             return E
