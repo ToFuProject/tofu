@@ -4278,15 +4278,16 @@ class Rays(utils.ToFuObject):
 
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Todo : reverse in _GG : make compact default for faster computation !
-        k, reseff, ind = _GG.LOS_get_sample(Ds, us, res, DL,
+        nlos = Ds.shape[1]
+        k, reseff, lind = _GG.LOS_get_sample(nlos, res, DL,
                                             dmethod=resMode, method=method,
                                             num_threads=num_threads, Test=Test)
         if pts:
             nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
             k = np.repeat(Ds, nbrep, axis=1) + k[None,:]*np.repeat(us, nbrep, axis=1)
         if not compact:
-            k = np.split(k,ind, axis=-1)
-        return k, reseff, ind
+            k = np.split(k, lind, axis=-1)
+        return k, reseff, lind
 
     def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None):
 
