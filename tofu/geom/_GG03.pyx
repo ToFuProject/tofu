@@ -2911,7 +2911,6 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
     num_los = sz2_ds
     dLr = np.zeros((num_los,), dtype=float)
     los_ind = np.zeros((num_los,), dtype=int)
-    sig = np.empty((nt,num_los),dtype=float)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -2948,6 +2947,8 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
+    # Initialization result
+    sig = np.empty((nt,num_los),dtype=float)
     # --------------------------------------------------------------------------
     # Minimize function calls: sample (vect), call (once) and integrate
     if minim == 'calls':
