@@ -4576,9 +4576,11 @@ class Rays(utils.ToFuObject):
                                 t=t, ani=ani, fkwdargs=fkwdargs, Test=True)
         if t is None or len(t)==1:
             sig[indok] = s
+            sig = sig.reshape((1,len(sig)))
         else:
             sig[:,indok] = s
 
+        print("ndim sig =", sig.ndim)
         # Format output
         return self._calc_signal_postformat(sig, Brightness=Brightness,
                                             dataname=dataname, t=t, E=E,
