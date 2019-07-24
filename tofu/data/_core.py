@@ -3070,8 +3070,8 @@ class Plasma2D(utils.ToFuObject):
 
 
 
-    def add_ref(key=None, data=None, group=None,
-                dim=None, quant=None, units=None):
+    def add_ref(self, key=None, data=None, group=None,
+                dim=None, quant=None, units=None, origin=None, name=None):
         """ Add a reference """
         assert type(key) is str and key not in self._ddata.keys()
         assert type(data) in [np.ndarray, dict]
@@ -3472,9 +3472,12 @@ class Plasma2D(utils.ToFuObject):
         # Check the pts is (2,...) array of floats
         if pts is None:
             if idref1d is None:
-                pts = self.dmesh[idquant]['data']['nodes']
+                idmesh = [id_ for id_ in self._ddata[idquant]['depend']
+                          if self._dindref[id_]['group'] == 'mesh'][0]
             else:
-                pts = self.dmesh[idref2]['data']['nodes']
+                idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
+                          if self._dindref[id_]['group'] == 'mesh'][0]
+            pts = self.dmesh[idmesh]['data']['nodes']
             pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
 
         pts = np.atleast_2d(pts)

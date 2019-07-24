@@ -3163,19 +3163,42 @@ class MultiIDSLoader(object):
                                           ne='core_profiles.1dne',
                                           zeff='core_profiles.1dzeff',
                                           lamb=lamb)
-            brem, units = out
-            plasma.add_quantity(key='core_profiles.1dbrem', data=brem,
-                                depend=('core_profiles.t','core_profiles.1dTe'),
-                                dim=None, quant=None, name=None,
-                                origin='f(core_profiles, polarimeter)',
-                                units=units)
+            quant, units = out
+            origin = 'f(core_profiles, bremsstrahlung_visible)'
+            depend = ('core_profiles.t','core_profiles.1dTe')
+            plasma.add_quantity(key='core_profiles.1dbrem', data=quant,
+                                depend=depend, origin=origin, units=units,
+                                dim=None, quant=None, name=None)
             quant = ['core_profiles.1dbrem']
 
         elif ids == 'polarimeter':
             lamb = self.get_data(ids, sig='lamb')['lamb']
-            ne = None
-            out = plasma.compute_fangle(B='equilibrium.Bv',
-                                        ne='core_profiles.1dne')
+            # Add necessary 2dne (and time reference)
+            ne2d, tne2d = plasma.interp_pts2profile(quant='core_profiles.1dne',
+                                                    ref1d='core_profiles.1drhotn',
+                                                    ref2d='equilibrium.2drhotn')
+            origin = 'f(equilibrium, core_profiles)'
+            plasma.add_ref(key='t_2dne', data=tne2d, group='time',
+                           origin=origin, units='s',
+                           dim='t', quant='t', name='t_ne2d')
+
+            origin = 'f(equilibrium, core_profiles)'
+            depend = ('t_ne2d','equilibrium.mesh')
+            plasma.add_quantity(key='2dne', data=ne2d,
+                                depend=depend, origin=origin, units=r'/m3',
+                                dim='density', quant='ne', name='ne2d')
+
+            # Add fanglev
+            out = plasma.compute_fangle_vector(Bv='equilibrium.2dBv',
+                                               ne='core_profiles.1dne',
+                                               lamb=lamb)
+            quant, units = out
+            origin = 'f(equilibrium, core_profiles, polarimeter)'
+            depend = ('equilibrium.Bv','core_profiles.1dne')
+            plasma.add_quantity(key='2dfanglev', data=brem,
+                                depend=depend, origin=origin, units=units,
+                                dim=None, quant=None, name=None)
+            quant = ['2dfanglev']
 
         assert all([qq is None or len(qq) == 1 for qq in [quant,ref1d,ref2d]])
         assert quant is not None
