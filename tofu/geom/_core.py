@@ -4563,7 +4563,8 @@ class Rays(utils.ToFuObject):
 
         # Format input
         sig, indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, DL=DL, out=out,
-                                                             Brightness=Brightness)
+                                                                t=t,
+                                                                Brightness=Brightness)
 
         if Ds is None:
             return None
