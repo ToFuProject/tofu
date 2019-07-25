@@ -836,6 +836,7 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     cdef long* ind = NULL
     cdef long* numcells = NULL
     cdef np.ndarray[double,ndim=2] PtsCross, VPolybis
+    cdef np.ndarray[double,ndim=1] PtsCrossX, PtsCrossY
     cdef np.ndarray[double,ndim=1] Rref_arr, resol
     cdef np.ndarray[long,ndim=1] ind_arr, N_arr
     cdef np.ndarray[long,ndim=1] ind_in
@@ -860,8 +861,10 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
                             &sz_vb[0], &sz_ot[0], NP)
     assert not ((XCross == NULL) or (YCross == NULL)
                 or (XPolybis == NULL) or (YPolybis == NULL))
-    PtsCross = np.array([<double[:sz_ot[0]]> XCross,
-                           <double[:sz_ot[0]]> YCross])
+    PtsCrossX = np.array(<double[:sz_ot[0]]> XCross)
+    PtsCrossY = np.array(<double[:sz_ot[0]]> YCross)
+    PtsCross = np.array([PtsCrossX,PtsCrossY])
+
     VPolybis = np.array([<double[:sz_vb[0]]> XPolybis,
                            <double[:sz_vb[0]]> YPolybis])
     resol = np.array(<double[:sz_ot[0]]> resolution)
@@ -3419,7 +3422,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
         if los_coeffs[0] != NULL:
             free(los_coeffs[0])
         free(los_coeffs)
-    return
+    return sig
 
 
 

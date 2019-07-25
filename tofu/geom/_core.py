@@ -4490,10 +4490,6 @@ class Rays(utils.ToFuObject):
 
         # Preformat Ds, us and Etendue
         Ds, us = self.D[:,ind], self.u[:,ind]
-        if t is None or len(t)==1:
-            sig = np.full((Ds.shape[1],),np.nan)
-        else:
-            sig = np.full((len(t),Ds.shape[1]),np.nan)
         E = None
         if Brightness is False:
             E = self.Etendues
@@ -4515,7 +4511,7 @@ class Rays(utils.ToFuObject):
             DL = np.ascontiguousarray(DL)
         else:
             Ds, us, DL = None, None, None
-        return sig, indok, Ds, us, DL, E
+        return indok, Ds, us, DL, E
 
 
     def _calc_signal_postformat(self, sig, Brightness=True, dataname=None, t=None,
@@ -4597,7 +4593,8 @@ class Rays(utils.ToFuObject):
         """
 
         # Format input
-        sig, indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, DL=DL,
+
+        indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, DL=DL,
                                                                 out=out,
                                                                 Brightness=Brightness)
 
@@ -4611,7 +4608,13 @@ class Rays(utils.ToFuObject):
         s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
                                 dmethod=resMode, method=method,
                                 t=t, ani=ani, fkwdargs=fkwdargs, Test=True)
-        print(sig.shape)
+
+        # Integrate
+        if s.ndim == 2:
+            sig = np.full((s.shape[0], self.nRays), np.nan)
+        else:
+            sig = np.full((1,self.nRays), np.nan)
+
         if t is None or len(t)==1:
             sig[indok] = s
             sig = sig.reshape((1,len(sig)))
