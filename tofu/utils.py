@@ -683,7 +683,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         if init is None:
             init = [[2.9],[0.],[0.]]
 
-        if True:
+        if False:
             multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
                                              tokamak=tokamak, version=version,
                                              ids='wall')
