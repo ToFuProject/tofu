@@ -5,21 +5,24 @@ The imas-compatibility module of tofu
 
 """
 import warnings
+import traceback
 
 try:
-    import imas
     try:
         from tofu.imas2tofu._core import *
     except Exception:
         from ._core import *
-    del imas, warnings
+    del warnings
 except Exception as err:
-    msg = str(err)
-    msg += "\n\nIMAS python API issue\n"
-    msg += "imas could not be imported into tofu ('import imas' failed):\n"
-    msg += "  - it may not be installed (optional dependency)\n"
-    msg += "  - or you not have loaded the good working environment\n\n"
-    msg += "    => the optional sub-package tofu.imas2tofu is not usable\n"
+    if str(err) == 'imas not available':
+        msg += "\n\nIMAS python API issue\n"
+        msg += "imas could not be imported into tofu ('import imas' failed):\n"
+        msg += "  - it may not be installed (optional dependency)\n"
+        msg += "  - or you not have loaded the good working environment\n\n"
+        msg += "    => the optional sub-package tofu.imas2tofu is not usable\n"
+    else:
+        msg = str(traceback.format_exc())
+        msg += "\n\n    => the optional sub-package tofu.imas2tofu is not usable\n"
     warnings.warn(msg)
     del msg, err
 

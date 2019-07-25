@@ -24,7 +24,10 @@ import matplotlib as mpl
 import datetime as dtm
 
 # imas
-import imas
+try:
+    import imas
+except Exception as err:
+    raise Exception('imas not available')
 
 __all__ = ['MultiIDSLoader',
            'load_Config', 'load_Plasma2D',
@@ -105,6 +108,10 @@ class MultiIDSLoader(object):
                 'q95':{'str':'time_slice[time].global_quantities.q_95'},
                 'volume':{'str':'time_slice[time].global_quantities.volume',
                           'dim':'volume', 'quant':'pvol', 'units':'m3'},
+                'psiaxis':{'str':'time_slice[time].global_quantities.psi_axis',
+                           'dim':'B flux', 'quant':'psi', 'units':'Wb'},
+                'psisep':{'str':'time_slice[time].global_quantities.psi_boundary',
+                          'dim':'B flux', 'quant':'psi', 'units':'Wb'},
                 'BT0':{'str':'time_slice[time].global_quantities.magnetic_axis.b_field_tor',
                        'dim':'B', 'quant':'BT', 'units':'T'},
                 'axR':{'str':'time_slice[time].global_quantities.magnetic_axis.r',
@@ -183,7 +190,7 @@ class MultiIDSLoader(object):
                          'dim':'B flux', 'quant':'psi', 'units':'Wb'},
                 '1drhotn':{'str':'source[identifier.name=lineradiation].profiles_1d[time].grid.rho_tor_norm',
                            'dim':'rho', 'quant':'rhotn', 'units':'Wb'},
-                '1dbrem':{'str':"source[identifier.name=brehmstrahlung].profiles_1d[time].electrons.energy",
+                '1dbrem':{'str':"source[identifier.name=bremsstrahlung].profiles_1d[time].electrons.energy",
                           'dim':'vol.emis.', 'quant':'brem.', 'units':'W/m^3'},
                 '1dline':{'str':"source[identifier.name=lineradiation].profiles_1d[time].electrons.energy",
                           'dim':'vol. emis.', 'quant':'lines', 'units':'W/m^3'}},
@@ -199,22 +206,32 @@ class MultiIDSLoader(object):
                'lh_antennas':
                {'t':{'str':'antenna[chan].power_launched.time'},
                 'power0':{'str':'antenna[0].power_launched.data',
-                          'dim':'power', 'quant':'heating power', 'units':'W'},
+                          'dim':'power', 'quant':'lh power', 'units':'W',
+                          'pos':True},
                 'power1':{'str':'antenna[1].power_launched.data',
-                         'dim':'power', 'quant':'heating power', 'units':'W'},
+                          'dim':'power', 'quant':'lh power', 'units':'W',
+                          'pos':True},
                 'power':{'str':'antenna[chan].power_launched.data',
-                         'dim':'power', 'quant':'heating power', 'units':'W'},
+                         'dim':'power', 'quant':'lh power', 'units':'W',
+                         'pos':True},
                 'R':{'str':'antenna[chan].position.r.data',
                      'dim':'distance', 'quant':'R', 'units':'m'}},
 
                'ic_antennas':
-               {'t':{'str':'antenna[chan].power_launched.time'},
-                'power0':{'str':'antenna[0].power_launched.data',
-                          'dim':'power', 'quant':'heating power', 'units':'W'},
-                'power1':{'str':'antenna[1].power_launched.data',
-                          'dim':'power', 'quant':'heating power', 'units':'W'},
-                'power':{'str':'antenna[chan].power_launched.data',
-                         'dim':'power', 'quant':'heating power', 'units':'W'}},
+               {'t':{'str':'antenna[chan].module[0].power_forward.time'},
+                'power0mod_fwd':{'str':'antenna[0].module[].power_forward.data',
+                                 'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power0mod_reflect':{'str':'antenna[0].module[].power_reflected.data',
+                                     'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power1mod_fwd':{'str':'antenna[1].module[].power_forward.data',
+                                 'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power1mod_reflect':{'str':'antenna[1].module[].power_reflected.data',
+                                     'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power2mod_fwd':{'str':'antenna[2].module[].power_forward.data',
+                                 'dim':'power', 'quant':'ic power', 'units':'W'},
+                'power2mod_reflect':{'str':'antenna[2].module[].power_reflected.data',
+                                     'dim':'power', 'quant':'ic power', 'units':'W'},
+               },
 
                'magnetics':
                {'t':{'str':'time'},
@@ -244,6 +261,11 @@ class MultiIDSLoader(object):
                 'p':{'str':'gauge[chan].pressure.data',
                      'dim':'pressure', 'quant':'p', 'units':'Pa?'}},
 
+               'neutron_diagnostic':
+               {'t':{'str':'time', 'units':'s'},
+                'flux_total':{'str':'synthetic_signals.total_neutron_flux',
+                              'dim':'particle flux', 'quant':'particle flux', 'units':'Hz'}},
+
                'ece':
                {'t':{'str':'time',
                      'quant':'t', 'units':'s'},
@@ -259,7 +281,9 @@ class MultiIDSLoader(object):
                          'dim':'angle', 'quant':'theta', 'units':'rad.'},
                 'tau1keV':{'str':'channel[chan].optical_depth.data',
                            'dim':'optical_depth', 'quant':'tau', 'units':'adim.'},
-                'validity_timed': {'str':'channel[chan].t_e.validity_timed'}},
+                'validity_timed': {'str':'channel[chan].t_e.validity_timed'},
+                'Te0': {'str':'t_e_central.data',
+                        'dim':'temperature', 'quant':'Te', 'units':'eV'}},
 
                 'reflectometer_profile':
                 {'t':{'str':'time'},
@@ -283,18 +307,25 @@ class MultiIDSLoader(object):
                'polarimeter':
                {'t':{'str':'time',
                      'quant':'t', 'units':'s'},
-                'wavelength':{'str':'channel[chan].wavelength',
-                              'dim':'distance', 'quant':'wavelength', 'units':'m'},
+                'lamb':{'str':'channel[chan].wavelength',
+                        'dim':'distance', 'quant':'wavelength', 'units':'m'},
                 'fangle':{'str':'channel[chan].faraday_angle.data',
                           'dim':'angle', 'quant':'faraday angle', 'units':'rad'}},
 
                'bolometer':
-               {'t':{'str':'channel[chan].power.time',
+               {'tchan':{'str':'channel[chan].power.time',
                      'quant':'t', 'units':'s'},
                 'power':{'str':'channel[chan].power.data',
                          'dim':'power', 'quant':'power radiative', 'units':'W'},
                 'etendue':{'str':'channel[chan].etendue',
-                           'dim':'etendue', 'quant':'etendue', 'units':'m2.sr'}},
+                           'dim':'etendue', 'quant':'etendue',
+                           'units':'m2.sr'},
+                'tpower':{'str':'time','quant':'t', 'units':'s'},
+                'prad':{'str':'power_radiated_total',
+                        'dim':'power', 'quant':'power radiative', 'units':'W'},
+                'pradbulk':{'str':'power_radiated_inside_lcfs',
+                            'dim':'power', 'quant':'power radiative',
+                            'units':'W'}},
 
                'soft_x_rays':
                {'t':{'str':'time',
@@ -319,7 +350,9 @@ class MultiIDSLoader(object):
                      'quant':'t', 'units':'s'},
                 'radiance':{'str':'channel[chan].radiance_spectral.data',
                             'dim':'radiance_spectral', 'quant':'radiance_spectral',
-                            'units':'ph/s/(m2.sr)/m'}},
+                            'units':'ph/s/(m2.sr)/m'},
+                'lamb_up': {'str':'channel[chan].filter.wavelength_upper'},
+                'lamb_lo': {'str':'channel[chan].filter.wavelength_lower'}},
               }
 
     _didsdiag = {'magnetics': {'datacls':'DataCam1D',
@@ -333,8 +366,12 @@ class MultiIDSLoader(object):
                 'ece':{'datacls':'DataCam1D',
                        'geomcls':False,
                        'sig':{'t':'t',
-                              'X':'R',
+                              'X':'rhotn_sign',
                               'data':'Te'}},
+                'neutron_diagnostic':{'datacls':'DataCam1D',
+                                      'geomcls':False,
+                                      'sig':{'t':'t',
+                                             'data':'flux_total'}},
                 'reflectometer_profile':{'datacls':'DataCam1D',
                                          'geomcls':False,
                                          'sig':{'t':'t',
@@ -343,15 +380,33 @@ class MultiIDSLoader(object):
                 'interferometer':{'datacls':'DataCam1D',
                                   'geomcls':'CamLOS1D',
                                   'sig':{'t':'t',
-                                         'data':'ne_integ'}},
+                                         'data':'ne_integ'},
+                                  'synth':{'dsynth':{'quant':'core_profiles.1dne',
+                                                     'ref1d':'core_profiles.1drhotn',
+                                                     'ref2d':'equilibrium.2drhotn'},
+                                           'dsig':{'core_profiles':['t'],
+                                                   'equilibrium':['t']},
+                                           'Brightness':True}},
                 'polarimeter':{'datacls':'DataCam1D',
                                'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
-                                      'data':'fangle'}},
+                                      'data':'fangle'},
+                               'synth':{'dsynth':{'quant':'core_profiles.1dne',
+                                                  'ref1d':'core_profiles.1drhotn',
+                                                  'ref2d':'equilibrium.2drhotn'},
+                                        'dsig':{'core_profiles':['t'],
+                                                'equilibrium':['t']},
+                                        'Brightness':True}},
                 'bolometer':{'datacls':'DataCam1D',
                              'geomcls':'CamLOS1D',
-                             'sig':{'t':'t',
-                                    'data':'power'}},
+                             'sig':{'t':'tchan',
+                                    'data':'power'},
+                             'synth':{'dsynth':{'quant':'core_sources.1dprad',
+                                                'ref1d':'core_sources.1drhotn',
+                                                'ref2d':'equilibrium.2drhotn'},
+                                      'dsig':{'core_profiles':['t'],
+                                              'equilibrium':['t']},
+                                      'Brightness':False}},
                 'soft_x_rays':{'datacls':'DataCam1D',
                                'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
@@ -364,18 +419,37 @@ class MultiIDSLoader(object):
                 'bremsstrahlung_visible':{'datacls':'DataCam1D',
                                           'geomcls':'CamLOS1D',
                                           'sig':{'t':'t',
-                                                 'data':'radiance'}}}
+                                                 'data':'radiance'},
+                                          'synth':{'dsynth':{'quant':['core_profiles.1dTe',
+                                                                      'core_profiles.1dne',
+                                                                      'core_profiles.1dzeff'],
+                                                             'ref1d':'core_profiles.1drhotn',
+                                                             'ref2d':'equilibrium.2drhotn'},
+                                                   'dsig':{'core_profiles':['t'],
+                                                           'equilibrium':['t']},
+                                                   'Brightness':True}}}
 
-    _lidsdiag = sorted(_didsdiag.keys())
+    _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
+                   'edge_profiles', 'edge_sources']
+
+    _lidsdiag = sorted([kk for kk,vv in _didsdiag.items() if 'sig' in vv.keys()])
+    _lidssynth = sorted([kk for kk,vv in _didsdiag.items() if 'synth' in vv.keys()])
     _lidslos = list(_lidsdiag)
     for ids_ in _lidsdiag:
         if _didsdiag[ids_]['geomcls'] not in ['CamLOS1D']:
             _lidslos.remove(ids_)
 
-    _lidsplasma = ['equilibrium', 'core_profiles', 'core_sources',
-                   'edge_profiles', 'edge_sources']
-
-
+    for ids_ in _lidssynth:
+        for kk,vv in _didsdiag[ids_]['synth']['dsynth'].items():
+            if type(vv) is str:
+                vv = [vv]
+            for ii in range(0,len(vv)):
+                v0, v1 = vv[ii].split('.')
+                if v0 not in _didsdiag[ids_]['synth']['dsig'].keys():
+                    _didsdiag[ids_]['synth']['dsig'][v0] = [v1]
+                elif v1 not in _didsdiag[ids_]['synth']['dsig'][v0]:
+                    _didsdiag[ids_]['synth']['dsig'][v0].append(v1)
+            _didsdiag[ids_]['synth']['dsynth'][kk] = vv
 
     for ids in _lidslos:
         dlos = {}
@@ -399,7 +473,15 @@ class MultiIDSLoader(object):
     _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
     _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
     _add = lambda a0, a1: a0 + a1
+    _icmod = lambda al, ar, axis=0: np.sum(al - ar, axis=axis)
     _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
+    def _rhopn1d(psi):
+        return np.sqrt( (psi - psi[:,0:1]) / (psi[:,-1] - psi[:,0])[:,None] )
+    def _rhopn2d(psi, psi0, psisep):
+        return np.sqrt( (psi - psi0[:,None]) / (psisep[:,None] - psi0[:,None]) )
+    def _rhotn2d(phi):
+        return np.sqrt(phi / np.nanmax(phi, axis=1)[:,None])
+
     def _eqSep(sepR, sepZ, npts=100):
         nt = len(sepR)
         assert len(sepZ) == nt
@@ -422,6 +504,7 @@ class MultiIDSLoader(object):
         rho[ind] = -rho[ind]
         return rho
 
+
     _dcomp = {
               'pulse_schedule':
               {'events':{'lstr':['events_names','events_times'], 'func':_events}},
@@ -433,7 +516,14 @@ class MultiIDSLoader(object):
               {'ax':{'lstr':['axR','axZ'], 'func':_RZ2array},
                'sep':{'lstr':['sepR','sepZ'],
                       'func':_eqSep, 'kargs':{'npts':100}},
-               '2dB':{'lstr':['2dBT', '2dBR', '2dBZ'], 'func':_eqB},
+               '2dB':{'lstr':['2dBT', '2dBR', '2dBZ'], 'func':_eqB,
+                      'dim':'B', 'quant':'B', 'units':'T'},
+               '1drhopn':{'lstr':['1dpsi','psiaxis','psisep'], 'func':_rhopn2d,
+                          'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
+               '2drhopn':{'lstr':['2dpsi','psiaxis','psisep'], 'func':_rhopn2d,
+                          'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
+               '2drhotn':{'lstr':['2dphi'], 'func':_rhotn2d,
+                          'dim':'rho', 'quant':'rhotn', 'units':'adim.'},
                'x0':{'lstr':['x0R','x0Z'], 'func':_RZ2array},
                'x1':{'lstr':['x1R','x1Z'], 'func':_RZ2array},
                'strike0':{'lstr':['strike0R','strike0Z'], 'func':_RZ2array},
@@ -441,16 +531,35 @@ class MultiIDSLoader(object):
                '2dtheta':{'lstr':['axR','axZ','2dmeshNodes'],
                           'func':_eqtheta, 'kargs':{'cocos':11}}},
 
+              'core_profiles':
+             {'1drhopn':{'lstr':['1dpsi'], 'func':_rhopn1d,
+                         'dim':'rho', 'quant':'rhopn', 'units':'adim.'}},
+
               'core_sources':
-             {'1dprad':{'lstr':['1dbrem','1dline'], 'func':_add}},
+             {'1drhopn':{'lstr':['1dpsi'], 'func':_rhopn1d,
+                         'dim':'rho', 'quant':'rhopn', 'units':'adim.'},
+              '1dprad':{'lstr':['1dbrem','1dline'], 'func':_add,
+                        'dim':'vol. emis.', 'quant':'prad', 'unit':'W/m3'}},
 
              'magnetics':
              {'bpol_pos':{'lstr':['bpol_R', 'bpol_Z'], 'func':_RZ2array},
               'floop_pos':{'lstr':['floop_R', 'floop_Z'], 'func':_RZ2array}},
 
+            'ic_antennas':
+             {'power0': {'lstr':['power0mod_fwd', 'power0mod_reflect'],
+                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
+              'power1': {'lstr':['power1mod_fwd', 'power1mod_reflect'],
+                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True},
+              'power2': {'lstr':['power2mod_fwd', 'power2mod_reflect'],
+                         'func': _icmod, 'kargs':{'axis':0}, 'pos':True}},
+
              'ece':
              {'rhotn_sign':{'lstr':['rhotn','theta'], 'func':_rhosign,
-                            'units':'adim.'}}
+                            'units':'adim.'}},
+
+             'bremsstrahlung_visible':
+             {'lamb':{'lstr':['lamb_up','lamb_lo'], 'func':np.mean,
+                      'dim':'distance', 'quantity':'wavelength', 'units':'m'}}
             }
 
     _lstr = ['los_pt1R', 'los_pt1Z', 'los_pt1Phi',
@@ -475,6 +584,9 @@ class MultiIDSLoader(object):
                                    'x0R','x0Z','x1R','x1Z',
                                    'strike0R','strike0Z', 'strike1R','strike1Z']
     _dall_except['magnetics'] = ['bpol_R', 'bpol_Z', 'floop_R', 'floop_Z']
+    _dall_except['ic_antennas'] = ['power0mod_launched', 'power0mod_reflected',
+                                   'power1mod_launched', 'power1mod_reflected',
+                                   'power2mod_launched', 'power2mod_reflected']
 
 
     # Preset
@@ -1066,7 +1178,7 @@ class MultiIDSLoader(object):
             defidd = cls._defidd
 
         if lc[0]:
-            assert type(shot) in [int,np.int]
+            assert type(shot) in [int,np.int_]
             params = dict(shot=int(shot), run=run, refshot=refshot, refrun=refrun,
                           user=user, tokamak=tokamak, version=version)
             for kk,vv in defidd.items():
@@ -1683,7 +1795,7 @@ class MultiIDSLoader(object):
                 self._dshort[ids][k]['fsig'] = self._get_fsig(v['str'])
 
     def _get_data(self, ids, sig, occ, comp=False, indt=None, indch=None,
-                  stack=True, isclose=True, flatocc=True, nan=True):
+                  stack=True, isclose=True, flatocc=True, nan=True, pos=None):
 
         # get list of results for occ
         occref = self._dids[ids]['occ']
@@ -1694,16 +1806,20 @@ class MultiIDSLoader(object):
             kargs = self._dcomp[ids][sig].get('kargs', {})
             ddata = self.get_data(ids=ids, sig=lstr,
                                   occ=occ, indch=indch, indt=indt,
-                                  stack=stack, flatocc=False, nan=nan)
+                                  stack=stack, flatocc=False, nan=nan, pos=pos)
             out = [self._dcomp[ids][sig]['func']( *[ddata[kk][nn]
                                                    for kk in lstr], **kargs )
                    for nn in range(0,nocc)]
+            if pos is None:
+                pos = self._dcomp[ids][sig].get('pos', False)
 
         else:
             out = [self._dshort[ids][sig]['fsig']( self._dids[ids]['ids'][ii],
                                                   indt=indt, indch=indch,
                                                   stack=stack )
                    for ii in indoc]
+            if pos is None:
+                pos = self._dshort[ids][sig].get('pos', False)
 
         if isclose:
             for ii in range(0,len(out)):
@@ -1717,13 +1833,19 @@ class MultiIDSLoader(object):
                 if type(out[ii]) is np.ndarray and out[ii].dtype == np.float:
                     out[ii][np.abs(out[ii]) > 1.e30] = np.nan
 
+        if pos == True:
+            for ii in range(0,len(out)):
+                if type(out[ii]) is np.ndarray:
+                    out[ii][out[ii] < 0] = np.nan
+
+
         if nocc == 1 and flatocc:
             out = out[0]
         return out
 
     def get_data(self, ids=None, sig=None, occ=None,
                  indch=None, indt=None, stack=True,
-                 isclose=None, flatocc=True, nan=True):
+                 isclose=None, flatocc=True, nan=True, pos=None):
         """ Return a dict of the desired signals extracted from specified ids
 
         If the ids has a field 'channel', indch is used to specify from which
@@ -1772,7 +1894,8 @@ class MultiIDSLoader(object):
                 dout[sig[ii]] = self._get_data(ids, sig[ii], occ, comp=comp[ii],
                                                indt=indt, indch=indch,
                                                stack=stack, isclose=isclose_,
-                                               flatocc=flatocc, nan=nan)
+                                               flatocc=flatocc, nan=nan,
+                                               pos=pos)
             except Exception as err:
                 msg = '\n' + str(err) + '\n'
                 msg += '\tIn ids %s, signal %s not loaded !'%(ids,sig[ii])
@@ -1781,7 +1904,7 @@ class MultiIDSLoader(object):
         return dout
 
     def get_data_all(self, dsig=None, stack=True,
-                     isclose=None, flatocc=True, nan=True):
+                     isclose=None, flatocc=True, nan=True, pos=None):
 
         # dsig
         if dsig is None:
@@ -1805,7 +1928,7 @@ class MultiIDSLoader(object):
             try:
                 dout[ids] = self.get_data(ids, sig=dsig[ids], stack=stack,
                                           isclose=isclose, flatocc=flatocc,
-                                          nan=nan)
+                                          nan=nan, pos=pos)
             except Exception as err:
                 msg = "Could not get data from %s"%ids
                 warnings.warn(msg)
@@ -1994,8 +2117,9 @@ class MultiIDSLoader(object):
         # Convert to dict
         if lc[0]:
             dsig = {}
-            for ids in lidsok:
-                dsig = {ids: sorted(self._dshort[ids].keys()) for ids in lidsok}
+            dsig = {ids: sorted(set(list(self._dshort[ids].keys())
+                                    + list(self._dcomp[ids].keys())))
+                    for ids in lidsok}
         elif lc[1] or lc[2]:
             if lc[1]:
                 dsig = [dsig]
@@ -2004,6 +2128,8 @@ class MultiIDSLoader(object):
         # Check content
         dout = {}
         for k0, v0 in dsig.items():
+            lkeysok = sorted(set(list(self._dshort[k0].keys())
+                                 + list(self._dcomp[k0].keys())))
             if k0 not in lidsok:
                 msg = "Only the following ids are relevant to Plasma2D:\n"
                 msg += "    - %s"%str(lidsok)
@@ -2020,18 +2146,20 @@ class MultiIDSLoader(object):
                 msg += str(dsig)
                 raise Exception(msg)
             if lc[0]:
-                dsig[k0] = sorted(self._dshort[k0].keys())
+                dsig[k0] = lkeysok
             if lc[1]:
                 dsig[k0] = [dsig[k0]]
-            if not all([ss in self._dshort[k0].keys() for ss in dsig[k0]]):
+            if not all([ss in lkeysok for ss in dsig[k0]]):
                 msg = "All requested signals must be valid shortcuts !\n"
                 msg += "    - dsig[%s] = %s"%(k0, str(dsig[k0]))
                 raise Exception(msg)
 
             # Check presence of minimum
             assert all([ss in dsig[k0] for ss in lscom])
-            if any(['2d' in ss for ss in dsig.keys()]):
-                assert all([ss in dsig[k0] for ss in lsmesh])
+            if any(['2d' in ss for ss in dsig[k0]]):
+                for ss in lsmesh:
+                    if ss not in dsig[k0]:
+                        dsig[k0].append(ss)
             dout[k0] = dsig[k0]
         return dout
 
@@ -2119,7 +2247,50 @@ class MultiIDSLoader(object):
              indfaces[indclock,2]) = indfaces[indclock,2], indfaces[indclock,1]
         return indfaces, meshtype, ntri
 
-    def _get_dextra(self, dextra=None, fordata=False, nan=True):
+
+    # TBF
+    def inspect_ggd(ids):
+        if ids not in self._dids.keys():
+            msg = "The ggd of ids %s cannot be inspected:\n"%ids
+            msg += "  => please add ids first (self.add_ids())"
+            raise Exception(msg)
+
+        lids = ['equilibrium', 'core_sources', 'edge_sources']
+        if ids not in lids:
+            msg = "The default structure of ggd in ids %s is not known"%ids
+            raise Exception(msg)
+
+        if ids == 'equilibrium':
+            nt = len(grids_ggd)
+            for ii in range(nt):
+                nggd = len(grids_ggd[ii])
+                for jj in range(0,ngrid):
+                    ggd = grids_ggd[ii].grid[jj]
+                    gtype = ggd.identifier.name
+                    nspace = len(ggd.space)
+                    for ll in range(0,nspace):
+                        npts = ggd.space[ll].objects_per_dimension[0].object[0]
+
+
+
+
+
+
+
+
+
+
+
+    # TBF
+    def get_mesh_from_ggd(path_to_ggd, ggdindex=0):
+        pass
+
+
+
+
+
+
+    def _get_dextra(self, dextra=None, fordata=False, nan=True, pos=None):
         lc = [dextra == False, dextra is None,
               type(dextra) is str, type(dextra) is list, type(dextra) is dict]
         assert any(lc)
@@ -2144,7 +2315,8 @@ class MultiIDSLoader(object):
                                                ('power1',(1.,0.,0.)),'t']})
             if 'ic_antennas' in self._dids.keys():
                 dextra.update({'ic_antennas': [('power0',(0.,0.,0.8)),
-                                               ('power1',(0.,0.,1.)),'t']})
+                                               ('power1',(0.,0.,1.)),
+                                               ('power2',(0.,0.,0.9)),'t']})
         if type(dextra) is str:
             dextra = [dextra]
         if type(dextra) is list:
@@ -2173,7 +2345,7 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan)
+                out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
                 inds = [ii for ii in range(0,len(vs)) if vs[ii] in out.keys()]
                 for ii in inds:
                     ss = vs[ii]
@@ -2206,7 +2378,7 @@ class MultiIDSLoader(object):
             for ids, vv in dextra.items():
                 vs = [vvv if type(vvv) is str else vvv[0] for vvv in vv]
                 vc = ['k' if type(vvv) is str else vvv[1] for vvv in vv]
-                out = self.get_data(ids=ids, sig=vs, nan=nan)
+                out = self.get_data(ids=ids, sig=vs, nan=nan, pos=pos)
                 keyt = '%s.t'%ids
                 any_ = False
                 for ss in out.keys():
@@ -2240,7 +2412,7 @@ class MultiIDSLoader(object):
     def to_Plasma2D(self, tlim=None, dsig=None, t0=None,
                     Name=None, occ=None, config=None, out=object,
                     plot=None, plot_sig=None, plot_X=None,
-                    bck=True, dextra=None, nan=True):
+                    bck=True, dextra=None, nan=True, pos=None):
 
         # dsig
         dsig = self._checkformat_Plasma2D_dsig(dsig)
@@ -2322,7 +2494,7 @@ class MultiIDSLoader(object):
 
             # d1d and dradius
             lsig = [k for k in dsig[ids] if '1d' in k]
-            out_ = self.get_data(ids, lsig, indt=indt, nan=nan)
+            out_ = self.get_data(ids, lsig, indt=indt, nan=nan, pos=pos)
             if len(out_) > 0:
                 nref, kref = None, None
                 for ss in out_.keys():
@@ -2353,9 +2525,14 @@ class MultiIDSLoader(object):
                         if axist == 1:
                             out_[ss] = out_[ss].T
 
-                    dim = self._dshort[ids][ss].get('dim', 'unknown')
-                    quant = self._dshort[ids][ss].get('quant', 'unknown')
-                    units = self._dshort[ids][ss].get('units', 'a.u.')
+                    if ss in self._dshort[ids].keys():
+                        dim = self._dshort[ids][ss].get('dim', 'unknown')
+                        quant = self._dshort[ids][ss].get('quant', 'unknown')
+                        units = self._dshort[ids][ss].get('units', 'a.u.')
+                    else:
+                        dim = self._dcomp[ids][ss].get('dim', 'unknown')
+                        quant = self._dcomp[ids][ss].get('quant', 'unknown')
+                        units = self._dcomp[ids][ss].get('units', 'a.u.')
                     key = '%s.%s'%(ids,ss)
 
                     if nref is None:
@@ -2379,7 +2556,7 @@ class MultiIDSLoader(object):
             # d2d and dmesh
             lsig = [k for k in dsig[ids] if '2d' in k]
             lsigmesh = ['2dmeshNodes','2dmeshFaces']
-            out_ = self.get_data(ids, sig=lsig, indt=indt, nan=nan)
+            out_ = self.get_data(ids, sig=lsig, indt=indt, nan=nan, pos=pos)
 
             lc = [len(out_) > 0, all([ss in out_.keys() for ss in lsigmesh])]
             if all(lc):
@@ -2400,9 +2577,14 @@ class MultiIDSLoader(object):
                         if axist == 1:
                             out_[ss] = out_[ss].T
 
-                        dim = self._dshort[ids][ss].get('dim', 'unknown')
-                        quant = self._dshort[ids][ss].get('quant', 'unknown')
-                        units = self._dshort[ids][ss].get('units', 'a.u.')
+                        if ss in self._dshort[ids].keys():
+                            dim = self._dshort[ids][ss].get('dim', 'unknown')
+                            quant = self._dshort[ids][ss].get('quant', 'unknown')
+                            units = self._dshort[ids][ss].get('units', 'a.u.')
+                        else:
+                            dim = self._dcomp[ids][ss].get('dim', 'unknown')
+                            quant = self._dcomp[ids][ss].get('quant', 'unknown')
+                            units = self._dcomp[ids][ss].get('units', 'a.u.')
                         key = '%s.%s'%(ids,ss)
 
                         d2d[key] = {'data':out_[ss], 'name':ss,
@@ -2452,40 +2634,54 @@ class MultiIDSLoader(object):
         return plasma
 
 
-    def _checkformat_Cam_geom(self, ids=None, geom=None, indch=None):
-        didsok = {'interferometer':'CamLOS1D',
-                  'bolometer':'CamLOS1D',
-                  'soft_x_rays':'CamLOS1D',
-                  'spectrometer_visible':'CamLOS1D',
-                  'bremsstrahlung_visible':'CamLOS1D'}
+    def _checkformat_Cam_geom(self, ids=None, geomcls=None, indch=None):
 
         # Check ids
         if ids not in self._dids.keys():
             msg = "Provided ids should be available as a self.dids.keys() !"
             raise Exception(msg)
 
-        if ids not in didsok.keys():
+        if ids not in self._lidsdiag:
             msg = "Requested ids is not pre-tabulated !\n"
-            msg = "  => Be careful with args (dsig, data, geom, indch)"
+            msg = "  => Be careful with args (geomcls, indch)"
             warnings.warn(msg)
         else:
-            if geom is None:
-                geom = didsok[ids]
+            if geomcls is None:
+                geomcls = self._didsdiag[ids]['geomcls']
 
         # Check data and geom
         import tofu.geom as tfg
 
         lgeom = [kk for kk in dir(tfg) if 'Cam' in kk]
-        if geom not in [False] + lgeom:
-            msg = "Arg geom must be in %s"%str([False]+lgeom)
+        if geomcls not in [False] + lgeom:
+            msg = "Arg geomcls must be in %s"%str([False]+lgeom)
             raise Exception(msg)
 
-        return geom
+        return geomcls
+
+    def _to_Cam_Du(self, ids, lk, indch, nan=None, pos=None):
+        Etendues, Surfaces = None, None
+        out = self.get_data(ids, sig=list(lk), indch=indch,
+                            nan=nan, pos=pos)
+        if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size > 0:
+            oo = out['los_ptsRZPhi']
+            D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
+                          oo[:,0,0]*np.sin(oo[:,0,2]), oo[:,0,1]])
+            u = np.array([oo[:,1,0]*np.cos(oo[:,1,2]),
+                          oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
+            u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
+            dgeom = (D,u)
+
+        if 'etendue' in out.keys() and len(out['etendue']) > 0:
+            Etendues = out['etendue']
+        if 'surface' in out.keys() and len(out['surface']) > 0:
+            Surfaces = out['surface']
+        return dgeom, Etendues, Surfaces
 
 
 
-    def to_Cam(self, ids=None, indch=None,
-               Name=None, occ=None, config=None, plot=True, nan=True):
+    def to_Cam(self, ids=None, indch=None, indch_auto=False,
+               Name=None, occ=None, config=None, plot=True, nan=True, pos=None):
 
         # dsig
         geom = self._checkformat_Cam_geom(ids)
@@ -2521,27 +2717,39 @@ class MultiIDSLoader(object):
             lk = ['los_ptsRZPhi','etendue','surface']
             lkok = set(self._dshort[ids].keys())
             lkok = lkok.union(self._dcomp[ids].keys())
-            lk = set(lk).intersection(lkok)
-            out = self.get_data(ids, sig=list(lk), indch=indch, nan=nan)
-            if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
-                oo = out['los_ptsRZPhi']
-                D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
-                              oo[:,0,0]*np.sin(oo[:,0,2]), oo[:,0,1]])
-                u = np.array([oo[:,1,0]*np.cos(oo[:,1,2]),
-                              oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
-                u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
-                dgeom = (D,u)
-            if 'etendue' in out.keys() and out['etendue'].size > 0:
-                Etendues = out['etendue']
-            if 'surface' in out.keys() and out['surface'].size > 0:
-                Surfaces = out['surface']
+            lk = list(set(lk).intersection(lkok))
+            dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
+                                                        nan=nan, pos=pos)
+
+            indnan = np.logical_or(np.any(np.isnan(dgeom[0]),axis=0),
+                                   np.any(np.isnan(dgeom[1]),axis=0))
+            if np.any(indnan) and not np.all(indnan):
+                indch_sug = (~indnan).nonzero()[0]
+                if indch_auto != True:
+                    dmsg = {True: 'not available', False:'ok'}
+                    msg = "The geometry of all channels is not available !\n"
+                    msg += "Please choose indch to get all channels geomery !\n"
+                    msg += "Currently:\n"
+                    ls = ['index %s los %s'%(ii,dmsg[indnan[ii]])
+                          for ii in range(0,dgeom[0].shape[1])]
+                    msg += "\n    ".join(ls)
+                    msg += "\n\n  => Solution: choose indch accordingly !"
+                    raise Exception(msg)
+                else:
+                    indch = indch_sug
+                    dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
+                                                                nan=nan, pos=pos)
+                    msg = "Geometry missing for some los !\n"
+                    msg += "  => indch automatically set to:\n"
+                    msg += "  %s"%str(indch)
+                    warnings.warn(msg)
 
         import tofu.geom as tfg
         cam = getattr(tfg, geom)(dgeom=dgeom, config=config,
                                  Etendues=Etendues, Surfaces=Surfaces,
                                  Name=Name, Diag=ids, Exp=Exp,
                                  dchans=dchans)
-        cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
+        cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
 
         if plot:
             cam.plot_touch(draw=True)
@@ -2615,7 +2823,7 @@ class MultiIDSLoader(object):
     def to_Data(self, ids=None, dsig=None, data=None, X=None, tlim=None,
                 indch=None, indch_auto=False, Name=None, occ=None, config=None,
                 dextra=None, t0=None, datacls=None, geomcls=None,
-                plot=True, bck=True, fallback_X=None, nan=True):
+                plot=True, bck=True, fallback_X=None, nan=True, pos=None):
 
         # dsig
         datacls, geomcls, dsig = self._checkformat_Data_dsig(ids, dsig,
@@ -2658,20 +2866,35 @@ class MultiIDSLoader(object):
                 lk = ['los_ptsRZPhi','etendue','surface']
                 lkok = set(self._dshort[ids].keys())
                 lkok = lkok.union(self._dcomp[ids].keys())
-                lk = set(lk).intersection(lkok)
-                out = self.get_data(ids, sig=list(lk), indch=indch, nan=nan)
-                if 'los_ptsRZPhi' in out.keys() and out['los_ptsRZPhi'].size>0:
-                    oo = out['los_ptsRZPhi']
-                    D = np.array([oo[:,0,0]*np.cos(oo[:,0,2]),
-                                  oo[:,0,0]*np.sin(oo[:,0,2]), oo[:,0,1]])
-                    u = np.array([oo[:,1,0]*np.cos(oo[:,1,2]),
-                                  oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
-                    u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
-                    dgeom = (D,u)
-                if 'etendue' in out.keys() and len(out['etendue']) > 0:
-                    Etendues = out['etendue']
-                if 'surface' in out.keys() and len(out['surface']) > 0:
-                    Surfaces = out['surface']
+                lk = list(set(lk).intersection(lkok))
+                dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
+                                                            nan=nan, pos=pos)
+
+                indnan = np.logical_or(np.any(np.isnan(dgeom[0]),axis=0),
+                                       np.any(np.isnan(dgeom[1]),axis=0))
+                if np.any(indnan) and not np.all(indnan):
+                    indch_sug = (~indnan).nonzero()[0]
+                    if indch_auto != True:
+                        dmsg = {True: 'not available', False:'ok'}
+                        msg = "The geometry of all channels is not available !\n"
+                        msg += "Please de-activate geometry loading (geomcls=False)\n"
+                        msg += "  or choose indch to get all channels geometry !\n"
+                        msg += "Currently:\n"
+                        ls = ['index %s los %s'%(ii,dmsg[indnan[ii]])
+                              for ii in range(0,dgeom[0].shape[1])]
+                        msg += "\n    ".join(ls)
+                        msg += "\n\n  => Solution: choose indch accordingly !"
+                        msg += "     Suggested indch (los %s):\n"%dmsg[True]
+                        msg += "     %s"%str(indch_sug)
+                        raise Exception(msg)
+                    else:
+                        indch = indch_sug
+                        dgeom, Etendues, Surfaces = self._to_Cam_Du(ids, lk, indch,
+                                                                    nan=nan, pos=pos)
+                        msg = "Geometry missing for some los !\n"
+                        msg += "  => indch automatically set to:\n"
+                        msg += "  %s"%str(indch)
+                        warnings.warn(msg)
 
             if dgeom is not None:
                 import tofu.geom as tfg
@@ -2679,13 +2902,13 @@ class MultiIDSLoader(object):
                                             Etendues=Etendues, Surfaces=Surfaces,
                                             Name=Name, Diag=ids, Exp=Exp,
                                             dchans=dchans)
-                cam.Id.set_dUSR( {'imas_nchMax': nchMax} )
+                cam.Id.set_dUSR( {'imas-nchMax': nchMax} )
 
         # -----------------------
         # data
         lk = sorted(dsig.keys())
         dins = dict.fromkeys(lk)
-        t = self.get_data(ids, sig='t', indch=indch)['t']
+        t = self.get_data(ids, sig=dsig.get('t', 't'), indch=indch)['t']
         if len(t) == 0:
             msg = "The time vector is not available for %s:\n"%ids
             msg += "    - 't' <=> %s.%s\n"%(ids,self._dshort[ids]['t']['str'])
@@ -2693,18 +2916,22 @@ class MultiIDSLoader(object):
             raise Exception(msg)
 
         if type(t) is list:
-            if indch_auto and indch is None:
+            if indch_auto == True:
                 ls = [t[ii].shape for ii in range(0,len(t))]
                 lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
                 su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-                indch = [ii for ii in range(0,len(t)) if ls[ii] == su]
+                if indch is None:
+                    indch = [ii for ii in range(0,len(t)) if ls[ii] == su]
+                else:
+                    indchcam = [ii for ii in range(0,len(t)) if ls[ii] == su]
+                    indch = [indch[ii] for ii in range(0,len(t)) if ls[ii] == su]
                 t = self.get_data(ids, sig='t', indch=indch)['t']
                 if cam is not None:
-                    cam = cam.get_subset(indch=indch)
+                    cam = cam.get_subset(indch=indchcam)
                 msg = "indch set automatically for %s\n"%ids
                 msg += "  (due to inhomogenous time shapes)\n"
                 msg += "    - main shape: %s\n"%str(su)
-                msg += "    - nb. chan. selected: %s / %s\n"%(len(indch),len(ls))
+                msg += "    - nb. chan. selected: %s\n"%len(indch)
                 msg += "    - indch: %s"%str(indch)
                 warnings.warn(msg)
 
@@ -2712,8 +2939,12 @@ class MultiIDSLoader(object):
                 msg = "The time vector does not seem to be homogeneous !\n"
                 msg += "Please choose indch such that all channels have same t !\n"
                 msg += "Currently:\n"
-                ls = ['index %s t.shape %s'%(ii,str(t[ii].shape))
-                      for ii in range(0,len(t))]
+                if indch is None:
+                    ls = ['index %s t.shape %s'%(ii,str(t[ii].shape))
+                          for ii in range(0,len(t))]
+                else:
+                    ls = ['index %s t.shape %s'%(indch[ii],str(t[ii].shape))
+                          for ii in range(0,len(t))]
                 msg += "\n    ".join(ls)
                 msg += "\n  => Solution: choose indch accordingly !"
                 raise Exception(msg)
@@ -2727,24 +2958,29 @@ class MultiIDSLoader(object):
 
 
         out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                            indt=indt, indch=indch, nan=nan)
+                            indt=indt, indch=indch, nan=nan, pos=pos)
         for kk in set(lk).difference('t'):
             if not isinstance(out[dsig[kk]], np.ndarray):
-                if indch_auto and indch is None:
+                if indch_auto:
                     ls = [out[dsig[kk]][ii].shape
                           for ii in range(0,len(out[dsig[kk]]))]
                     lsu = list(set([ssu for ssu in ls if 0 not in ssu]))
                     su = lsu[np.argmax([ls.count(ssu) for ssu in lsu])]
-                    indch = [ii for ii in range(0,len(out[dsig[kk]]))
-                             if ls[ii] == su]
+                    if indch is None:
+                        indch = [ii for ii in range(0,len(out[dsig[kk]]))
+                                 if ls[ii] == su]
+                    else:
+                        indch = [indch[ii] for ii in range(0,len(out[dsig[kk]]))
+                                 if ls[ii] == su]
                     out = self.get_data(ids, sig=[dsig[k] for k in lk],
-                                        indt=indt, indch=indch, nan=nan)
+                                        indt=indt, indch=indch, nan=nan,
+                                        pos=pos)
                     if cam is not None:
                         cam = cam.get_subset(indch=indch)
                     msg = "indch set automatically for %s\n"%ids
                     msg += "  (due to inhomogeneous data shapes)\n"
                     msg += "    - main shape: %s\n"%str(su)
-                    msg += "    - nb. chan. selected: %s / %s\n"%(len(indch),len(ls))
+                    msg += "    - nb. chan. selected: %s\n"%len(indch)
                     msg += "    - indch: %s"%str(indch)
                     warnings.warn(msg)
                 else:
@@ -2755,8 +2991,12 @@ class MultiIDSLoader(object):
                     msg += "  Observed type: %s\n"%str(type(out[dsig[kk]]))
                     msg += "  Probable cause: non-uniform shape (vs channels)\n"
                     msg += "  => shapes :\n    "
-                    ls = ['index %s  %s.shape %s'%(ii,kk,str(out[dsig[kk]][ii].shape))
-                          for ii in range(0,len(out[dsig[kk]]))]
+                    if indch is None:
+                        ls = ['index %s  %s.shape %s'%(ii,kk,str(out[dsig[kk]][ii].shape))
+                              for ii in range(0,len(out[dsig[kk]]))]
+                    else:
+                        ls = ['index %s  %s.shape %s'%(indch[ii],kk,str(out[dsig[kk]][ii].shape))
+                              for ii in range(0,len(out[dsig[kk]]))]
                     msg += "\n    ".join(ls)
                     msg += "\n  => Solution: choose indch accordingly !"
                     raise Exception(msg)
@@ -2792,9 +3032,9 @@ class MultiIDSLoader(object):
 
         if 'validity_timed' in self._dshort[ids].keys():
             inan = self.get_data(ids, sig='validity_timed',
-                                 indt=indt, indch=indch, nan=nan)['validity_timed'].T<0.
+                                 indt=indt, indch=indch, nan=nan, pos=pos)['validity_timed'].T<0.
             dins['data'][inan] = np.nan
-        if np.any(np.isnan(dins['X'])):
+        if 'X' in dins.keys() and np.any(np.isnan(dins['X'])):
             if fallback_X is None:
                 fallback_X = 1.1*np.nanmax(dins['X'])
             dins['X'][np.isnan(dins['X'])] = fallback_X
@@ -2831,11 +3071,175 @@ class MultiIDSLoader(object):
                                      lCam=cam, config=conf, dextra=dextra,
                                      dchans=dchans, **dins)
 
-        Data.Id.set_dUSR( {'imas_nchMax': nchMax} )
+        Data.Id.set_dUSR( {'imas-nchMax': nchMax} )
 
         if plot:
             Data.plot(draw=True, bck=bck)
         return Data
+
+
+    def _get_synth(self, ids, dsig=None, quant=None, ref1d=None, ref2d=None):
+
+        # Check quant, ref1d, ref2d
+        dq = {'quant':quant, 'ref1d':ref1d, 'ref2d':ref2d}
+        for kk,vv in dq.items():
+            lc = [vv is None, type(vv) is str, type(vv) in [list,tuple]]
+            assert any(lc)
+            if lc[0]:
+                dq[kk] = self._didsdiag[ids]['synth']['dsynth'][kk]
+            if lc[1]:
+                dq[kk] = [dq[kk]]
+            for ii in range(0,len(dq[kk])):
+                v1 = tuple(dq[kk][ii].split('.'))
+                assert len(v1) == 2
+                assert v1[0] in self._lidsplasma
+                assert (v1[1] in self._dshort[v1[0]].keys()
+                        or v1[1] in self._dcomp[v1[0]].keys())
+                dq[kk][ii] = v1
+
+        # Check dsig
+        if dsig is None:
+            dsig = self._didsdiag[ids]['synth']['dsig']
+
+        for k0,v0 in dsig.items():
+            if type(v0) is not list:
+                v0 = [v0]
+            c0 = k0 in self._lidsplasma
+            c0 = c0 and all([type(vv) is str for vv in v0])
+            if not c0:
+                msg = "Arg dsig must be a dict (ids:[shortcut1, shortcut2...])"
+                raise Exception(msg)
+            dsig[k0] = v0
+
+        # Check dsig vs quant/ref1d/ref2d consistency
+        for kk,vv in dq.items():
+            if vv is None:
+                continue
+            for ii in range(0,len(vv)):
+                if vv[ii][0] not in dsig.keys():
+                    dsig[vv[ii][0]] = []
+                if vv[ii][1] not in dsig[vv[ii][0]]:
+                    dsig[vv[ii][0]].append(vv[ii][1])
+                dq[kk][ii] = '%s.%s'%tuple(vv[ii])
+
+        if dq['quant'] is None:
+            msg = "quant is not specified !"
+            raise Exception(msg)
+        return dsig, dq['quant'], dq['ref1d'], dq['ref2d']
+
+
+    def calc_signal(self, ids=None, dsig=None, tlim=None, t=None, res=None,
+                    quant=None, ref1d=None, ref2d=None, Brightness=None,
+                    indch=None, indch_auto=False, Name=None,
+                    occ_cam=None, occ_plasma=None, config=None,
+                    dextra=None, t0=None, datacls=None, geomcls=None,
+                    bck=True, fallback_X=None, nan=True, pos=None,
+                    plot=True, plot_compare=None, plot_plasma=None):
+
+        # Get camera
+        cam = self.to_Cam(ids=ids, indch=indch,
+                          Name=None, occ=occ_cam, config=config,
+                          plot=False, nan=True, pos=None)
+
+        # Get relevant parameters
+        dsig, quant, ref1d, ref2d = self._get_synth(ids, dsig,
+                                                    quant, ref1d, ref2d)
+
+        # Get relevant plasma
+        plasma = self.to_Plasma2D(tlim=tlim, dsig=dsig, t0=t0,
+                                  Name=None, occ=occ_plasma, config=cam.config, out=object,
+                                  plot=False, dextra=dextra, nan=True, pos=None)
+
+        # Intermediate computation if necessary
+        if ids == 'bremsstrahlung_visible':
+            try:
+                lamb = self.get_data(ids, sig='lamb')['lamb']
+            except Exception as err:
+                lamb = 5238.e-10
+                msg = "bremsstrahlung_visible.lamb could not be retrived!\n"
+                msg += "  => fallback to lamb = 5338.e-10 m (WEST case)"
+                warnings.warn(msg)
+            out = plasma.compute_bremzeff(Te='core_profiles.1dTe',
+                                          ne='core_profiles.1dne',
+                                          zeff='core_profiles.1dzeff',
+                                          lamb=lamb)
+            quant, units = out
+            origin = 'f(core_profiles, bremsstrahlung_visible)'
+            depend = ('core_profiles.t','core_profiles.1dTe')
+            plasma.add_quantity(key='core_profiles.1dbrem', data=quant,
+                                depend=depend, origin=origin, units=units,
+                                dim=None, quant=None, name=None)
+            quant = ['core_profiles.1dbrem']
+
+        elif ids == 'polarimeter':
+            lamb = self.get_data(ids, sig='lamb')['lamb']
+            # Add necessary 2dne (and time reference)
+            ne2d, tne2d = plasma.interp_pts2profile(quant='core_profiles.1dne',
+                                                    ref1d='core_profiles.1drhotn',
+                                                    ref2d='equilibrium.2drhotn')
+            origin = 'f(equilibrium, core_profiles)'
+            plasma.add_ref(key='t_2dne', data=tne2d, group='time',
+                           origin=origin, units='s',
+                           dim='t', quant='t', name='t_ne2d')
+
+            origin = 'f(equilibrium, core_profiles)'
+            depend = ('t_ne2d','equilibrium.mesh')
+            plasma.add_quantity(key='2dne', data=ne2d,
+                                depend=depend, origin=origin, units=r'/m3',
+                                dim='density', quant='ne', name='ne2d')
+
+            # Add fanglev
+            out = plasma.compute_fangle_vector(Bv='equilibrium.2dBv',
+                                               ne='core_profiles.1dne',
+                                               lamb=lamb)
+            quant, units = out
+            origin = 'f(equilibrium, core_profiles, polarimeter)'
+            depend = ('equilibrium.Bv','core_profiles.1dne')
+            plasma.add_quantity(key='2dfanglev', data=brem,
+                                depend=depend, origin=origin, units=units,
+                                dim=None, quant=None, name=None)
+            quant = ['2dfanglev']
+
+        assert all([qq is None or len(qq) == 1 for qq in [quant,ref1d,ref2d]])
+        assert quant is not None
+        quant = quant[0]
+        if ref1d is not None:
+            ref1d = ref1d[0]
+        if ref2d is not None:
+            ref2d = ref2d[0]
+
+        # Calculate syntehtic signal
+        if Brightness is None:
+            Brightness = self._didsdiag[ids]['synth'].get('Brightness', None)
+        sig = cam.calc_signal_from_Plasma2D(plasma,
+                                            quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                            res=res, t=t, Brightness=Brightness, plot=False)
+
+        sig._dextra = plasma.get_dextra(dextra)
+
+        if ids == 'interferometer':
+            sig = 2.*sig
+        elif ids == 'polarimeter':
+            sig = 2.*sig
+
+        # plot
+        if plot:
+            if plot_compare is None:
+                plot_compare = True
+            if plot_plasma is None:
+                plot_plasma = True
+            if plot_compare:
+                data = self.to_Data(ids, indch=indch, plot=False)
+                sig._dlabels = data.dlabels
+                data.plot_compare(sig)
+            else:
+                sig.plot()
+            if plot_plasma and '1d' in quant:
+                plasma.plot(quant, X=ref1d)
+        return sig
+
+
+
 
 
 
@@ -3317,7 +3721,7 @@ def _save_to_imas_CamLOS1D( obj, idd=None, shotfile=None,
 
     # Check if info on nMax stored
     if restore_size and obj.Id.dUSR is not None:
-        nchMax = obj.Id.dUSR.get('imas_nchMax', lind.max()+1)
+        nchMax = obj.Id.dUSR.get('imas-nchMax', lind.max()+1)
     else:
         nchMax = lind.max()+1
 
@@ -3443,7 +3847,7 @@ def _save_to_imas_DataCam1D( obj,
 
     # Check if info on nMax stored
     if restore_size and obj.Id.dUSR is not None:
-        nchMax = obj.Id.dUSR.get('imas_nchMax', lind.max()+1)
+        nchMax = obj.Id.dUSR.get('imas-nchMax', lind.max()+1)
     else:
         nchMax = lind.max()+1
 

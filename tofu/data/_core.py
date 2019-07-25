@@ -29,10 +29,12 @@ try:
     import tofu.data._comp as _comp
     import tofu.data._plot as _plot
     import tofu.data._def as _def
+    import tofu.data._physics as _physics
 except Exception:
     from . import _comp as _comp
     from . import _plot as _plot
     from . import _def as _def
+    from . import _physics as _physics
 
 __all__ = ['DataCam1D','DataCam2D',
            'DataCam1DSpectral','DataCam2DSpectral',
@@ -1966,81 +1968,112 @@ class DataAbstract(utils.ToFuObject):
                              config_occ=config_occ)
 
 
+    #----------------------------
+    # Operator overloading section
 
-
-
-
-
-
-
-
-
-
-
-
-############################################ To be finished
-
-
-"""
-    def _get_LCam(self):
-        if self.geom is None or self.geom['LCam'] is None:
-            lC = None
+    @staticmethod
+    def _extract_common_params(obj0, obj1=None):
+        if obj1 is None:
+            Id = obj0.Id.copy()
+            Id._dall['Name'] += 'modified'
+            dcom = {'Id':Id,
+                    'dchans':obj0._dchans, 'dlabels':obj0.dlabels,
+                    't':obj0.t, 'X':obj0.X,
+                    'lCam':obj0.lCam, 'config':obj0.config,
+                    'dextra':obj0.dextra}
+            if dcom['lCam'] is not None:
+                dcom['config'] = None
         else:
-            if np.all(self.indch):
-                lC = self.geom['LCam']
-            else:
-                import tofu.geom as tfg
-                inds = [self.geom['LCam'][ii].nRays
-                        for ii in range(len(self.geom['LCam']-1))]
-                lind = self.indch.split(inds)
-                lC = [cc.get_subset(indch=iind) for iind in lind]
-        return lC
+            ls = ['SavePath', 'Diag', 'Exp', 'shot']
+            dcom = {ss:getattr(obj0.Id,ss) for ss in ls
+                    if getattr(obj0.Id,ss) == getattr(obj1.Id,ss)}
+            if obj0._dchans == obj1._dchans:
+                dcom['dchans'] = obj0._dchans
+            if obj0.dlabels == obj1.dlabels:
+                dcom['dlabels'] = obj0.dlabels
+            if obj0.dextra == obj1.dextra:
+                dcom['dextra'] = obj0.dextra
+            if np.allclose(obj0.t, obj1.t):
+                dcom['t'] = obj0.t
+            if np.allclose(obj0.X, obj1.X):
+                dcom['X'] = obj0.X
+            if obj0.lCam is not None and obj1.lCam is not None:
+                if all([c0 == c1 for c0, c1 in zip(obj0.lCam, obj1.lCam)]):
+                    dcom['lCam'] = obj0.lCam
+            if obj0.config == obj1.config:
+                dcom['config'] = obj0.config
+        return dcom
 
+    @staticmethod
+    def _recreatefromoperator(d0, other, opfunc):
+        if type(other) in [int,float,np.int64,np.float64]:
+            data = opfunc(d0.data, other)
+            dcom = d0._extract_common_params(d0)
+
+        elif issubclass(other.__class__, DataAbstract):
+            if other.__class__.__name__ != d0.__class__.__name__:
+                msg = 'Operator overloaded only for same-class instances:\n'
+                msg += "    - provided: %s and %s"%(d0.__class__.__name__,
+                                                    other.__class__.__name__)
+                raise Exception(msg)
+            try:
+                data = opfunc(d0.data, other.data)
+            except Exception as err:
+                msg = str(err)
+                msg += "\n\ndata shapes not matching !"
+                raise Exception(msg)
+
+            dcom = d0._extract_common_params(d0, other)
+        else:
+            msg = "Behaviour not implemented !"
+            raise NotImplementedError(msg)
+
+        return d0.__class__(data=data, Name='New', **dcom)
 
 
     def __abs__(self):
         opfunc = lambda x: np.abs(x)
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __sub__(self, other):
         opfunc = lambda x, y: x-y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __rsub__(self, other):
         opfunc = lambda x, y: x-y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __add__(self, other):
         opfunc = lambda x, y: x+y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __radd__(self, other):
         opfunc = lambda x, y: x+y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __mul__(self, other):
         opfunc = lambda x, y: x*y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __rmul__(self, other):
         opfunc = lambda x, y: x*y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __truediv__(self, other):
         opfunc = lambda x, y: x/y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __pow__(self, other):
         opfunc = lambda x, y: x**y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
 
@@ -2049,156 +2082,6 @@ class DataAbstract(utils.ToFuObject):
 
 
 
-
-
-def _compare_(ls, null=None):
-    ind = np.nonzero([ss is not null for ss in ls])[0]
-    if ind.size>0:
-        if all([ls[ind[0]]==ls[ind[ii]] for ii in range(1,len(ind))]):
-            s = ls[ind[0]]
-        else:
-            s = null
-    else:
-        s = null
-    return s
-
-def _compare_dchans(ldch):
-    ind = np.nonzero([dd is not None for dd in ldch])[0]
-    if ind.size>0:
-        All = True
-        dch = ldch[ind[0]]
-        for ii in range(1,len(ind)):
-            if any([not kk in ldch[ind[ii]].keys() for kk in dch.keys()]):
-                All = False
-                break
-            if any([not kk in dch.keys() for kk in ldch[ind[ii]].keys()]):
-                All = False
-                break
-            for kk in dch.keys():
-                if not dch[kk].shape==ldch[ind[ii]][kk].shape:
-                    All = False
-                    break
-                if not dch[kk].dtype==ldch[ind[ii]][kk].dtype:
-                    All = False
-                    break
-                C = all([dch[kk][jj]==ldch[ind[ii]][kk][jj]
-                         for jj in range(len(dch[kk]))])
-                if not C:
-                    All = False
-                    break
-            if All is False:
-                break
-
-        if All is False:
-            dch = None
-    else:
-        dch = None
-    return dch
-
-
-def _compare_lCam(ld, atol=1.e-12):
-    lLC = [dd.geom['LCam'] for dd in ld]
-    ind = np.nonzero([lc is not None for lc in lLC])[0]
-    lC = None
-    if ind.size>0:
-        All = True
-        lD = [np.concatenate(tuple([cc.D for cc in lLC[ind[ii]]]),axis=1)
-              for ii in ind]
-        lu = [np.concatenate(tuple([cc.u for cc in lLC[ind[ii]]]),axis=1)
-              for ii in ind]
-        for ii in range(1,len(ind)):
-            CD = np.any(~np.isclose(lD[0],lD[ii],
-                                    atol=atol, rtol=0., equal_nan=True))
-            Cu = np.any(~np.isclose(lu[0],lu[ii],
-                                    atol=atol, rtol=0., equal_nan=True))
-            Cind = not np.all(ld[ind[0]].indch==ld[ind[ii]].indch)
-            if CD or Cu or Cind:
-                All = False
-                break
-        if All:
-            lC = ld[ind[0]]._get_LCam()
-    return lC
-
-
-
-def _extractCommonParams(ld):
-
-    # data size
-    lnt, lnch = np.array([(dd.data.shape[0],dd.Ref['data'].shape[1]) for dd in ld]).T
-    assert all([lnt[0]==nt for nt in lnt[1:]]), "Different data.shape[0] !"
-    assert all([lnch[0]==nch for nch in lnch[1:]]), "Different data.shape[1] !"
-
-    # Time vector
-    lt = [dd.t for dd in ld]
-    ind = np.nonzero([tt is not None for tt in lt])[0]
-    if ind.size>0:
-        if all([np.allclose(lt[ind[ii]],lt[ind[0]]) for ii in range(len(ind))]):
-            t = lt[ind[0]]
-        else:
-            warnings.warn("\n Beware : the time vectors seem to differ !")
-            t = None
-    else:
-        t = None
-
-    # Channels
-    indch = np.vstack([dd.indch for dd in ld])
-    assert np.all(np.all(indch,axis=0) | np.all(~indch,axis=0)), "Different indch !"
-    LCam = _compare_lCam(ld)
-
-    if LCam is None:
-        dchans = _compare_dchans([dd.dchans() for dd in ld])
-    else:
-        dchans = None
-
-    # dlabels, Id, Exp, shot, Diag, SavePath
-    dlabels = _compare_([dd._dlabels for dd in ld], null={})
-    Id = ' '.join([dd.Id.Name for dd in ld])
-    Exp = _compare_([dd.Id.Exp for dd in ld])
-    shot = _compare_([dd.Id.shot for dd in ld])
-    Diag = _compare_([dd.Id.Diag for dd in ld])
-    SavePath = _compare_([dd.Id.SavePath for dd in ld])
-
-    return t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath
-
-
-
-
-def _recreatefromoperator(d0, other, opfunc):
-    if type(other) in [int,float,np.int64,np.float64]:
-        d = opfunc(d0.data, other)
-
-        #  Fix LCam and dchans
-        #t, LCam, dchans = d0.t, d0._get_LCam(), d0.dchans(d0.indch)
-        out = _extractCommonParams([d0, d0])
-        t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath = out
-
-        #dlabels = d0._dlabels
-        #Id, Exp, shot = d0.Id.Name, d0.Id.Exp, d0.Id.shot
-        #Diag, SavePath = d0.Id.Diag, d0.Id.SavePath
-    elif issubclass(other.__class__, Data):
-        assert other.__class__==d0.__class__, 'Same class is expected !'
-        try:
-            d = opfunc(d0.data, other.data)
-        except Exception as err:
-            print("\n data shapes not matching !")
-            raise err
-        out = _extractCommonParams([d0, other])
-        t, LCam, dchans, dlabels, Id, Exp, shot, Diag, SavePath = out
-    else:
-        raise NotImplementedError
-
-    kwdargs = dict(t=t, dchans=dchans, LCam=LCam, dlabels=dlabels,
-                   Id=Id, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath)
-
-    if '1D' in d0.Id.Cls:
-        data = Data1D(d, **kwdargs)
-    elif '2D' in d0.Id.Cls:
-        data = Data2D(d, **kwdargs)
-    else:
-        data = Data(d, **kwdargs)
-    return data
-
-"""
 
 
 
@@ -2451,12 +2334,22 @@ class Plasma2D(utils.ToFuObject):
         origin_ = 'unknown' if origin_ is None else origin_
         units_ = 'a.u.' if units_ is None else units_
 
-        # Extract
-        dim = dnd[k0].get('dim', dim_)
-        quant = dnd[k0].get('quant', quant_)
-        origin = dnd[k0].get('origin', origin_)
-        name = dnd[k0].get('name', name_)
-        units = dnd[k0].get('units', units_)
+        # Extrac
+        dim = dnd[k0].get('dim', None)
+        if dim is None:
+            dim = dim_
+        quant = dnd[k0].get('quant', None)
+        if quant is None:
+            quant = quant_
+        origin = dnd[k0].get('origin', None)
+        if origin is None:
+            origin = origin_
+        name = dnd[k0].get('name', None)
+        if name is None:
+            name = name_
+        units = dnd[k0].get('units', None)
+        if units is None:
+            units = units_
         return dim, quant, origin, name, units
 
     @staticmethod
@@ -2804,34 +2697,34 @@ class Plasma2D(utils.ToFuObject):
         if len(dmesh) > 0:
             dgroup['mesh'] = {'dref':list(dmesh.keys())[0]}
 
-        # Complement
-        self._complement(dgroup, dindref, ddata)
-
         # Update dict
         self._dgroup = dgroup
         self._dindref = dindref
         self._ddata = ddata
+        # Complement
+        self._complement()
 
 
-    @classmethod
-    def _complement(cls, dgroup, dindref, ddata):
+
+    def _complement(self):
 
         # --------------
         # ddata
-        for k0, v0 in ddata.items():
-            lindout = [ii for ii in v0['depend'] if ii not in dindref.keys()]
+        for k0, v0 in self.ddata.items():
+            lindout = [ii for ii in v0['depend'] if ii not in self.dindref.keys()]
             if not len(lindout) == 0:
                 msg = "ddata[%s]['depend'] has keys not in dindref:\n"%k0
                 msg += "    - " + "\n    - ".join(lindout)
                 raise Exception(msg)
 
-            ddata[k0]['lgroup'] = [dindref[ii]['group'] for ii in v0['depend']]
+            self.ddata[k0]['lgroup'] = [self.dindref[ii]['group']
+                                        for ii in v0['depend']]
             type_ = type(v0['data'])
-            shape = tuple([dindref[ii]['size'] for ii in v0['depend']])
+            shape = tuple([self.dindref[ii]['size'] for ii in v0['depend']])
 
             # if only one dim => mesh or iterable or unspecified
             if len(shape) == 1 or type_ is dict:
-                c0 = type_ is dict and 'mesh' in ddata[k0]['lgroup']
+                c0 = type_ is dict and 'mesh' in self.ddata[k0]['lgroup']
                 c1 = not c0 and len(v0['data']) == shape[0]
                 if not (c0 or c1):
                     msg = k0+'\n'
@@ -2843,21 +2736,22 @@ class Plasma2D(utils.ToFuObject):
 
         # --------------
         # dindref
-        for k0 in dindref.keys():
-            dindref[k0]['ldata'] = [kk for kk, vv in ddata.items()
+        for k0 in self.dindref.keys():
+            self.dindref[k0]['ldata'] = [kk for kk, vv in self.ddata.items()
                                     if k0 in vv['depend']]
-            assert dindref[k0]['group'] in dgroup.keys()
+            assert self.dindref[k0]['group'] in self.dgroup.keys()
 
         # --------------
         # dgroup
-        for gg, vg in dgroup.items():
-            lindref = [id_ for id_, vv in dindref.items() if vv['group'] == gg]
-            ldata = [id_ for id_ in ddata.keys()
-                     if any([id_ in dindref[vref]['ldata']
+        for gg, vg in self.dgroup.items():
+            lindref = [id_ for id_,vv in self.dindref.items()
+                       if vv['group'] == gg]
+            ldata = [id_ for id_ in self.ddata.keys()
+                     if any([id_ in self.dindref[vref]['ldata']
                              for vref in lindref])]
             #assert vg['depend'] in lidindref
-            dgroup[gg]['lindref'] = lindref
-            dgroup[gg]['ldata'] = ldata
+            self.dgroup[gg]['lindref'] = lindref
+            self.dgroup[gg]['ldata'] = ldata
 
 
     def set_dgeom(self, config=None):
@@ -3108,6 +3002,131 @@ class Plasma2D(utils.ToFuObject):
 
 
     #---------------------
+    # Methods for computing additional plasma quantities
+    #---------------------
+
+    def get_multiple_dependecies(lq):
+        pass
+
+
+    def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None):
+        """ Return the bremsstrahlun spectral radiance at lamb
+
+        The plasma conditions are set by:
+            - Te   (eV)
+            - ne   (/m3)
+            - zeff (adim.)
+
+        The wavelength is set by the diagnostics
+            - lamb (m)
+
+        The vol. spectral emis. is returned in ph / (s.m3.sr.m)
+
+        The computation requires an intermediate : gff(Te, zeff)
+        """
+        dins = {'Te':{'val':Te, 'shape':None},
+                'ne':{'val':ne, 'shape':None},
+                'zeff':{'val':zeff, 'shape':None},
+                'lamb':{'val':lamb, 'shape':None}}
+        shape = None
+        for k in dins.keys():
+            if type(dins[k]['val']) is str:
+                assert dins[k]['val'] in self._ddata.keys()
+                dins[k]['val'] = self._ddata[dins[k]['val']]['data']
+            else:
+                dins[k]['val'] = np.atleast_1d(dins[k]['val'])
+            dins[k]['shape'] = dins[k]['val'].shape
+            if shape is None:
+                shape = dins[k]['shape']
+            if dins[k]['shape'] != shape:
+                if dins[k]['val'].ndim > len(shape):
+                    shape = dins[k]['shape']
+
+        # Check shape consistency for broadcasting
+        assert len(shape) in [1,2]
+        if len(shape) == 1:
+            for k in dins.keys():
+                assert dins[k]['shape'][0] in [1,shape[0]]
+                if dins[k]['shape'][0] < shape[0]:
+                    dins[k]['val'] = np.full((shape[0],), dins[k]['val'][0])
+                    dins[k]['shape'] = dins[k]['val'].shape
+
+        elif len(shape) == 2:
+            for k in dins.keys():
+                if len(dins[k]['shape']) == 1:
+                    assert dins[k]['shape'][0] in [1]+list(shape)
+                    if dins[k]['shape'][0] == 1:
+                        dins[k]['val'] = dins[k]['val'][None,:]
+                    elif dins[k]['shape'][0] == shape[0]:
+                        dins[k]['val'] = dins[k]['val'][:,None]
+                    else:
+                        dins[k]['val'] = dins[k]['val'][None,:]
+                else:
+                    assert dins[k]['shape'] == shape
+                dins[k]['shape'] = dins[k]['val'].shape
+
+        return _physics.compute_bremzeff(dins['Te']['val'], dins['ne']['val'],
+                                         dins['zeff']['val'], dins['lamb']['val'])
+
+
+
+    def add_ref(self, key=None, data=None, group=None,
+                dim=None, quant=None, units=None, origin=None, name=None):
+        """ Add a reference """
+        assert type(key) is str and key not in self._ddata.keys()
+        assert type(data) in [np.ndarray, dict]
+        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
+                                 'units':units, 'origin':origin}}, key)
+        dim, quant, origin, name, units = out
+        assert group in self._dgroup.keys()
+        if type(data) is np.ndarray:
+            size = data.shape[0]
+        else:
+            assert data['ftype'] in [0,1]
+            size = data['nnodes'] if data['ftype'] == 1 else data['nfaces']
+
+        self._dindref[key] = {'group':group, 'size':size, 'ldata':[key]}
+
+        self._ddata[key] = {'data':data,
+                            'dim':dim, 'quant':quant, 'units':units,
+                            'origin':origin, 'name':name,
+                            'depend':(key,), 'lgroup':[group]}
+        self._complement()
+
+    def add_quantity(self, key=None, data=None, depend=None,
+                     dim=None, quant=None, units=None,
+                     origin=None, name=None):
+        """ Add a quantity """
+        c0 = type(key) is str and key not in self._ddata.keys()
+        if not c0:
+            msg = "key must be a str not already in self.ddata.keys()!\n"
+            msg += "    - Provided: %s"%str(key)
+            raise Exception(msg)
+        if type(data) not in [np.ndarray, dict]:
+            msg = "data must be either:\n"
+            msg += "    - np.ndarray\n"
+            msg += "    - dict (mesh)\n"
+            msg += "\n    Provided: %s"%str(type(data))
+            raise Exception(msg)
+        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
+                                 'units':units, 'origin':origin}}, key)
+        dim, quant, origin, name, units = out
+        assert type(depend) in [list,str,tuple]
+        if type(depend) is str:
+            depend = (depend,)
+        for ii in range(0,len(depend)):
+            assert depend[ii] in self._dindref.keys()
+        lgroup = [self._dindref[dd]['group'] for dd in depend]
+        self._ddata[key] = {'data':data,
+                            'dim':dim, 'quant':quant, 'units':units,
+                            'origin':origin, 'name':name,
+                            'depend':tuple(depend), 'lgroup':lgroup}
+        self._complement()
+
+
+
+
+    #---------------------
     # Methods for interpolation
     #---------------------
 
@@ -3194,6 +3213,7 @@ class Plasma2D(utils.ToFuObject):
         ntall = tall.size
         return tall, tbinall, ntall, indtq, indtr1, indtr2
 
+    @staticmethod
     def _get_indtu(t=None, tall=None, tbinall=None,
                    idref1d=None, idref2d=None):
         # Get indt (t with respect to tbinall)
@@ -3204,7 +3224,6 @@ class Plasma2D(utils.ToFuObject):
 
             # Update
             tall = tall[indtu]
-            indtq = indtq[indtu]
             if idref1d is not None:
                 indtr1 = indtr1[indtu]
             if idref2d is not None:
@@ -3270,6 +3289,7 @@ class Plasma2D(utils.ToFuObject):
                             val[ii,...] = mplTriLinInterp(mpltri,
                                                           vquant[indtq[ii],:],
                                                           trifinder=trifind)(r,z)
+                        t = tall
                     else:
                         ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
                                                              tbinall=tbinall,
@@ -3280,7 +3300,7 @@ class Plasma2D(utils.ToFuObject):
                             val[ind,...] = mplTriLinInterp(mpltri,
                                                            vquant[indtq[ii],:],
                                                            trifinder=trifind)(r,z)
-                    return val
+                    return val, t
 
             else:
                 def func(pts, t=None, ntall=ntall,
@@ -3298,6 +3318,7 @@ class Plasma2D(utils.ToFuObject):
                     if t is None:
                         for ii in range(0,ntall):
                             val[ii,...] = vquant[indtq[ii],indpts]
+                        t = tall
                     else:
                         ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
                                                              tbinall=tbinall,
@@ -3306,7 +3327,7 @@ class Plasma2D(utils.ToFuObject):
                         for ii in range(0,ntall):
                             ind = indt == indtu[ii]
                             val[ind,...] = vquant[indtq[ii],indpts]
-                    return val
+                    return val, t
 
 
         else:
@@ -3328,19 +3349,23 @@ class Plasma2D(utils.ToFuObject):
                     shapeval = list(pts.shape)
                     shapeval[0] = ntall if t is None else t.size
                     val = np.full(tuple(shapeval), np.nan)
+                    t0tri, t0int = 0., 0.
                     if t is None:
                         for ii in range(0,ntall):
                             # get ref values for mapping
+                            # this is the slowest step (~1.8 s)
                             vii = mplTriLinInterp(mpltri,
                                                   vr2[indtr2[ii],:],
                                                   trifinder=trifind)(r,z)
 
                             # interpolate 1d
+                            # This i reasonable (~0.15 s)
                             val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
                                                              vquant[indtq[ii],:],
                                                              kind='linear',
                                                              bounds_error=False,
                                                              fill_value=fill_value)(np.asarray(vii))
+                        t = tall
                     else:
                         ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
                                                              tbinall=tbinall,
@@ -3359,7 +3384,8 @@ class Plasma2D(utils.ToFuObject):
                                                               kind='linear',
                                                               bounds_error=False,
                                                               fill_value=fill_value)(np.asarray(vii))
-                    return val
+
+                    return val, t
 
             else:
                 def func(pts, t=None, ntall=ntall,
@@ -3383,6 +3409,7 @@ class Plasma2D(utils.ToFuObject):
                                                              kind='linear',
                                                              bounds_error=False,
                                                              fill_value=fill_value)(vr2[indtr2[ii],indpts])
+                        t = tall
                     else:
                         ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
                                                              tbinall=tbinall,
@@ -3396,7 +3423,7 @@ class Plasma2D(utils.ToFuObject):
                                                               kind='linear',
                                                               bounds_error=False,
                                                               fill_value=fill_value)(vr2[indtr2[ii],indpt])
-                    return val
+                    return val, t
 
         return func
 
@@ -3423,7 +3450,7 @@ class Plasma2D(utils.ToFuObject):
         return func
 
 
-    def interp_pts2profile(self, quant, ptsRZ=None, t=None,
+    def interp_pts2profile(self, quant, pts=None, t=None,
                            ref1d=None, ref2d=None,
                            interp_t='nearest', interp_space=None,
                            fill_value=np.nan):
@@ -3442,29 +3469,62 @@ class Plasma2D(utils.ToFuObject):
         # Check requested quant is available in 2d or 1d
         idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
 
-        # Check the ptsRZ is (2,...) array of floats
-        if ptsRZ is None:
+        # Check the pts is (2,...) array of floats
+        if pts is None:
             if idref1d is None:
-                ptsRZ = self.dmesh[idquant]['data']['nodes'].T
+                idmesh = [id_ for id_ in self._ddata[idquant]['depend']
+                          if self._dindref[id_]['group'] == 'mesh'][0]
             else:
-                ptsRZ = self.dmesh[idref2]['data']['nodes'].T
+                idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
+                          if self._dindref[id_]['group'] == 'mesh'][0]
+            pts = self.dmesh[idmesh]['data']['nodes']
+            pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
 
-        ptsRZ = np.atleast_2d(ptsRZ)
-        if ptsRZ.shape[0] != 2:
-            msg = "ptsRZ must ba np.ndarray of (R,Z) points coordinates\n"
-            msg += "Can be multi-dimensional, but the 1st dimension is (R,Z)\n"
-            msg += "    - Expected shape : (2,...)\n"
-            msg += "    - Provided shape : %s"%str(ptsRZ.shape)
+        pts = np.atleast_2d(pts)
+        if pts.shape[0] != 3:
+            msg = "pts must ba np.ndarray of (X,Y,Z) points coordinates\n"
+            msg += "Can be multi-dimensional, but the 1st dimension is (X,Y,Z)\n"
+            msg += "    - Expected shape : (3,...)\n"
+            msg += "    - Provided shape : %s"%str(pts.shape)
             raise Exception(msg)
 
         # Interpolation (including time broadcasting)
+        # this is the second slowest step (~0.08 s)
         func = self._get_finterp(idquant, idref1d, idref2d,
                                  interp_t=interp_t, interp_space=interp_space,
                                  fill_value=fill_value)
-        val = func(pts)
+
+        # This is the slowest step (~1.8 s)
+        val, t = func(pts, t=t)
+        return val, t
 
 
-        return func(pts)
+    def calc_signal_from_Cam(self, cam, quant=None, t=None,
+                             ref1d=None, ref2d=None,
+                             Brightness=True, interp_t='nearest',
+                             interp_space=None, fill_value=np.nan,
+                             res=0.005, DL=None, resMode='abs', method='sum',
+                             ind=None, out=object, plot=True, dataname=None,
+                             fs=None, dmargin=None, wintit=None, invert=True,
+                             units=None, draw=True, connect=True):
+
+        if 'Cam' not in cam.__class__.__name__:
+            msg = "Arg cam must be tofu Camera instance (CamLOS1D, CamLOS2D...)"
+            raise Exception(msg)
+
+        return cam.calc_signal_from_Plasma2D(self, quant=quant, t=t,
+                                             ref1d=ref1d, ref2d=ref2d,
+                                             Brightness=Brightness,
+                                             interp_t=interp_t,
+                                             interp_space=interp_space,
+                                             fill_value=fill_value, res=res,
+                                             DL=DL, resMode=resMode,
+                                             method=method, ind=ind, out=out,
+                                             pot=plot, dataname=dataname,
+                                             fs=fs, dmargin=dmargin,
+                                             wintit=wintit, invert=intert,
+                                             units=units, draw=draw,
+                                             connect=connect)
 
 
     #---------------------
@@ -3511,7 +3571,7 @@ class Plasma2D(utils.ToFuObject):
         return dextra
 
     def get_Data(self, lquant, X=None, ref1d=None, ref2d=None,
-                 remap=False, res=0.01, interp_space='linear', dextra=None):
+                 remap=False, res=0.01, interp_space=None, dextra=None):
 
         try:
             import tofu.data as tfd
@@ -3603,24 +3663,28 @@ class Plasma2D(utils.ToFuObject):
     # Methods for plotting data
     #---------------------
 
-    def plot(self, lquant, X=None, ref=None,
-             remap=False, res=0.01, interp_space='linear',
+    def plot(self, lquant, X=None,
+             ref1d=None, ref2d=None,
+             remap=False, res=0.01, interp_space=None,
              sharex=False, bck=True):
         lDat = self.get_Data(lquant, X=X, remap=remap,
-                             ref=ref, res=res, interp_space=interp_space)
+                             ref1d=ref1d, ref2d=ref2d,
+                             res=res, interp_space=interp_space)
         if type(lDat) is list:
             kh = lDat[0].plot_combine(lDat[1:], sharex=sharex, bck=bck)
         else:
             kh = lDat.plot(bck=bck)
         return kh
 
-    def plot_combine(self, lquant, lData=None, X=None, ref=None,
-                     remap=False, res=0.01, interp_space='linear',
+    def plot_combine(self, lquant, lData=None, X=None,
+                     ref1d=None, ref2d=None,
+                     remap=False, res=0.01, interp_space=None,
                      sharex=False, bck=True):
         """ plot combining several quantities from the Plasma2D itself and
         optional extra list of Data instances """
         lDat = self.get_Data(lquant, X=X, remap=remap,
-                             ref=ref, res=res, interp_space=interp_space)
+                             ref1d=ref1d, ref2d=ref2d,
+                             res=res, interp_space=interp_space)
         if lData is not None:
             if type(lDat) is list:
                 lData = lDat[1:] + lData
