@@ -4314,15 +4314,16 @@ class Rays(utils.ToFuObject):
 
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Todo : reverse in _GG : make compact default for faster computation !
-        k, reseff, ind = _GG.LOS_get_sample(Ds, us, res, DL,
+        nlos = Ds.shape[1]
+        k, reseff, lind = _GG.LOS_get_sample(nlos, res, DL,
                                             dmethod=resMode, method=method,
                                             num_threads=num_threads, Test=Test)
         if pts:
             nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[-1]]
             k = np.repeat(Ds, nbrep, axis=1) + k[None,:]*np.repeat(us, nbrep, axis=1)
         if not compact:
-            k = np.split(k,ind, axis=-1)
-        return k, reseff, ind
+            k = np.split(k, lind, axis=-1)
+        return k, reseff, lind
 
     def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None):
 
@@ -4592,7 +4593,7 @@ class Rays(utils.ToFuObject):
         """
 
         # Format input
-        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, Dl=DL, out=out,
+        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, DL=DL, out=out,
                                                         Brightness=Brightness)
 
         if Ds is None:
@@ -4604,9 +4605,10 @@ class Rays(utils.ToFuObject):
         # Exclude Rays not seeing the plasma
         s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
                                 dmethod=resMode, method=method,
-                                t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
+                                t=t, ani=ani, fkwdargs=fkwdargs, Test=True)
         if t is None or len(t)==1:
             sig[indok] = s
+            sig = sig.reshape((1,len(sig)))
         else:
             sig[:,indok] = s
 
