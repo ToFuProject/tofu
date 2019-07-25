@@ -4489,7 +4489,7 @@ class Rays(utils.ToFuObject):
     def _calc_signal_postformat(self, sig, Brightness=True, dataname=None, t=None,
                                 E=None, units=None, plot=True, out=object,
                                 fs=None, dmargin=None, wintit=None, invert=True,
-                                draw=True, connect=True, out=object):
+                                draw=True, connect=True):
         if Brightness is False:
             if dataname is None:
                 dataname = r"LOS-integral x Etendue"
