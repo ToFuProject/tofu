@@ -25,6 +25,7 @@ from libc.math cimport floor as Cfloor, round as Cround, log2 as Clog2
 from libc.math cimport cos as Ccos, acos as Cacos, sin as Csin, asin as Casin
 from libc.math cimport atan2 as Catan2, pi as Cpi
 from libc.math cimport NAN as Cnan
+from libc.math cimport INFINITY as Cinf
 from libc.math cimport isnan as Cisnan
 from libc.stdlib cimport malloc, free
 # -- ToFu library imports ------------------------------------------------------
@@ -3415,6 +3416,10 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     for jj in range(nt):
                         sig[jj, ii] = scpintg.romb(val, show=False, axis=-1,
                                                    dx=loc_eff_res[0])
+    if los_coeffs[0] != NULL:
+        free(los_coeffs[0])
+    if los_coeffs != NULL:
+        free(los_coeffs)
     return
 
 
@@ -3477,7 +3482,8 @@ def LOS_sino_findRootkPMin_Tor(double uParN, double uN, double Sca, double RZ0,
 
 
 cdef LOS_sino_Tor(double D0, double D1, double D2, double u0, double u1,
-                  double u2, double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
+                  double u2, double RZ0, double RZ1, str Mode='LOS', double
+                  kOut=Cinf):
 
     cdef double    uN = Csqrt(u0**2+u1**2+u2**2), uParN = Csqrt(u0**2+u1**2), DParN = Csqrt(D0**2+D1**2)
     cdef double    Sca = u0*D0+u1*D1+u2*D2, ScaP = u0*D0+u1*D1
@@ -3507,7 +3513,7 @@ cdef inline void NEW_LOS_sino_Tor(double orig0, double orig1, double orig2,
                                   double circ_radius, double circ_normz,
                                   double[9] results,
                                   bint is_LOS_Mode=False,
-                                  double kOut=np.inf) nogil:
+                                  double kOut=Cinf) nogil:
     cdef double[3] dirv, orig
     cdef double[2] res
     cdef double normu, normu_sqr
@@ -3648,7 +3654,8 @@ cdef inline void NEW_los_sino_tor_vec(int num_los,
 
 
 
-cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double u2, double RZ0, double RZ1, str Mode='LOS', double kOut=np.inf):
+cdef LOS_sino_Lin(double D0, double D1, double D2, double u0, double u1, double
+                  u2, double RZ0, double RZ1, str Mode='LOS', double kOut=Cinf):
     cdef double    kPMin
     if u0**2==1.:
         kPMin = 0.
