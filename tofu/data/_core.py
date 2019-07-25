@@ -3000,17 +3000,72 @@ class Plasma2D(utils.ToFuObject):
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
 
+    #---------------------
+    # Methods for adding ref / quantities
+    #---------------------
+
+    def add_ref(self, key=None, data=None, group=None,
+                dim=None, quant=None, units=None, origin=None, name=None):
+        """ Add a reference """
+        assert type(key) is str and key not in self._ddata.keys()
+        assert type(data) in [np.ndarray, dict]
+        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
+                                 'units':units, 'origin':origin}}, key)
+        dim, quant, origin, name, units = out
+        assert group in self._dgroup.keys()
+        if type(data) is np.ndarray:
+            size = data.shape[0]
+        else:
+            assert data['ftype'] in [0,1]
+            size = data['nnodes'] if data['ftype'] == 1 else data['nfaces']
+
+        self._dindref[key] = {'group':group, 'size':size, 'ldata':[key]}
+
+        self._ddata[key] = {'data':data,
+                            'dim':dim, 'quant':quant, 'units':units,
+                            'origin':origin, 'name':name,
+                            'depend':(key,), 'lgroup':[group]}
+        self._complement()
+
+    def add_quantity(self, key=None, data=None, depend=None,
+                     dim=None, quant=None, units=None,
+                     origin=None, name=None):
+        """ Add a quantity """
+        c0 = type(key) is str and key not in self._ddata.keys()
+        if not c0:
+            msg = "key must be a str not already in self.ddata.keys()!\n"
+            msg += "    - Provided: %s"%str(key)
+            raise Exception(msg)
+        if type(data) not in [np.ndarray, dict]:
+            msg = "data must be either:\n"
+            msg += "    - np.ndarray\n"
+            msg += "    - dict (mesh)\n"
+            msg += "\n    Provided: %s"%str(type(data))
+            raise Exception(msg)
+        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
+                                 'units':units, 'origin':origin}}, key)
+        dim, quant, origin, name, units = out
+        assert type(depend) in [list,str,tuple]
+        if type(depend) is str:
+            depend = (depend,)
+        for ii in range(0,len(depend)):
+            assert depend[ii] in self._dindref.keys()
+        lgroup = [self._dindref[dd]['group'] for dd in depend]
+        self._ddata[key] = {'data':data,
+                            'dim':dim, 'quant':quant, 'units':units,
+                            'origin':origin, 'name':name,
+                            'depend':tuple(depend), 'lgroup':lgroup}
+        self._complement()
+
+
 
     #---------------------
     # Methods for computing additional plasma quantities
     #---------------------
 
-    def get_multiple_dependecies(lq):
-        pass
-
 
     def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None):
-        """ Return the bremsstrahlun spectral radiance at lamb
+        """ Return the bremsstrahlung spectral radiance at lamb
 
         The plasma conditions are set by:
             - Te   (eV)
@@ -3069,59 +3124,21 @@ class Plasma2D(utils.ToFuObject):
                                          dins['zeff']['val'], dins['lamb']['val'])
 
 
+    def compute_fanglev(self, Bv=None, ne=None, lamb=None):
+        """ Return the vector faraday angle at lamb
 
-    def add_ref(self, key=None, data=None, group=None,
-                dim=None, quant=None, units=None, origin=None, name=None):
-        """ Add a reference """
-        assert type(key) is str and key not in self._ddata.keys()
-        assert type(data) in [np.ndarray, dict]
-        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
-                                 'units':units, 'origin':origin}}, key)
-        dim, quant, origin, name, units = out
-        assert group in self._dgroup.keys()
-        if type(data) is np.ndarray:
-            size = data.shape[0]
-        else:
-            assert data['ftype'] in [0,1]
-            size = data['nnodes'] if data['ftype'] == 1 else data['nfaces']
+        The plasma conditions are set by:
+            - Bv   (T) , (3,N) array of 3 (R,Z,Phi) components
+            - ne   (/m3)
 
-        self._dindref[key] = {'group':group, 'size':size, 'ldata':[key]}
+        The wavelength is set by the diagnostics
+            - lamb (m)
 
-        self._ddata[key] = {'data':data,
-                            'dim':dim, 'quant':quant, 'units':units,
-                            'origin':origin, 'name':name,
-                            'depend':(key,), 'lgroup':[group]}
-        self._complement()
-
-    def add_quantity(self, key=None, data=None, depend=None,
-                     dim=None, quant=None, units=None,
-                     origin=None, name=None):
-        """ Add a quantity """
-        c0 = type(key) is str and key not in self._ddata.keys()
-        if not c0:
-            msg = "key must be a str not already in self.ddata.keys()!\n"
-            msg += "    - Provided: %s"%str(key)
-            raise Exception(msg)
-        if type(data) not in [np.ndarray, dict]:
-            msg = "data must be either:\n"
-            msg += "    - np.ndarray\n"
-            msg += "    - dict (mesh)\n"
-            msg += "\n    Provided: %s"%str(type(data))
-            raise Exception(msg)
-        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
-                                 'units':units, 'origin':origin}}, key)
-        dim, quant, origin, name, units = out
-        assert type(depend) in [list,str,tuple]
-        if type(depend) is str:
-            depend = (depend,)
-        for ii in range(0,len(depend)):
-            assert depend[ii] in self._dindref.keys()
-        lgroup = [self._dindref[dd]['group'] for dd in depend]
-        self._ddata[key] = {'data':data,
-                            'dim':dim, 'quant':quant, 'units':units,
-                            'origin':origin, 'name':name,
-                            'depend':tuple(depend), 'lgroup':lgroup}
-        self._complement()
+        The vector faraday angle is returned in T / m
+        """
+        dins = {'Bv':{'val':Bv, 'shape':None},
+                'ne':{'val':ne, 'shape':None},
+                'lamb':{'val':lamb, 'shape':None}}
 
 
 
