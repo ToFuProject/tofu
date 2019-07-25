@@ -4584,7 +4584,6 @@ class Rays(utils.ToFuObject):
         else:
             sig[:,indok] = s
 
-        print("ndim sig =", sig.ndim)
         # Format output
         return self._calc_signal_postformat(sig, Brightness=Brightness,
                                             dataname=dataname, t=t, E=E,
