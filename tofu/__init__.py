@@ -70,6 +70,8 @@ from tofu.utils import save, load, load_from_imas
 import tofu._plot as _plot
 import tofu.geom as geom
 import tofu.data as data
+import tofu.mag as mag
+
 
 ok = True
 try:
@@ -80,7 +82,7 @@ except Exception as err:
 #import tofu.dust as dust
 
 
-__all__ = ['pathfile','utils','_plot','geom','data']
+__all__ = ['pathfile','utils','_plot','geom','data','mag']
 if ok:
     __all__.append('imas2tofu')
 

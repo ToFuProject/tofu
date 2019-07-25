@@ -35,6 +35,7 @@ except Exception:
 #except ImportError as err:
 #    print(err)
 
+__all__ = ['MagFieldLines']
 
 class MagFieldLines:
     '''

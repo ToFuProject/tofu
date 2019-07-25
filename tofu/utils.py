@@ -623,7 +623,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    occ=None, indch=None, indDescription=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None, sharex=False,
-                   bck=True, indch_auto=True, t=None):
+                   bck=True, indch_auto=True, t=None, init=None):
     # -------------------
     # import imas2tofu
     try:
@@ -652,7 +652,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Pre-check ids
     lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
-    lidscustom = ['magfieldline']
+    lidscustom = ['magfieldlines']
     lidsout = [ids_ for ids_ in ids
                if (ids_ is not None and ids_ not in lidsok+lidscustom)]
     if len(lidsout) > 0:
@@ -673,12 +673,49 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
     # -------------------
     # Call magfieldline if relevant
-    if ids == ['magfieldline']:
+    if ids == ['magfieldlines']:
         assert shot.size == 1
-        multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
-                                         tokamak=tokamak, version=version,
-                                         ids='wall')
-        config = multi.to_Config()
+        import tofu.mag as tfm
+        plot = True
+        if t is None:
+            t = np.r_[38]
+        t = np.atleast_1d(t).ravel()
+        if init is None:
+            init = [[2.9],[0.],[0.]]
+
+        if True:
+            multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
+                                             tokamak=tokamak, version=version,
+                                             ids='wall')
+            config = multi.to_Config(plot=False)
+        else:
+            import tofu.geom as tfg
+            config = tfg.utils.create_config('B2')
+        if config.nStruct > 1:
+            config.set_colors_random()
+        trace = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
+                                                       direction='FWD',
+                                                       length_line=None,
+                                                       stp=None)
+        refpt = np.r_[2.4,0.]
+        dax = config.plot_phithetaproj_dist(refpt)
+        for ii in range(0,len(trace)):
+            for jj in range(0,len(trace[ii])):
+                lab = r't = %s s'%str(t[ii])
+                phi = np.arctan2(np.sin(trace[ii][jj]['p']), np.cos(trace[ii][jj]['p']))
+                theta = np.arctan2(trace[ii][jj]['z']-refpt[1], trace[ii][jj]['r']-refpt[0])
+                # insert nans for clean periodicity
+                indnan = ((np.abs(np.diff(phi)) > np.pi)
+                          | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
+                dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
+                                    np.insert(theta, indnan, np.nan),
+                                    label=lab)
+                dax['cross'][0].plot(trace[ii][jj]['r'], trace[ii][jj]['z'],
+                                     label=lab)
+                x = trace[ii][jj]['r']*np.cos(trace[ii][jj]['p'])
+                y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
+                dax['hor'][0].plot(x, y, label=lab)
+        return dax
 
 
     # -------------------

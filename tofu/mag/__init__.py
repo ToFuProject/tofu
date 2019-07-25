@@ -3,3 +3,7 @@
 '''
     Magnetic field lines
 '''
+
+from .magFieldLines import *
+
+del magFieldLines, mag_ripple
