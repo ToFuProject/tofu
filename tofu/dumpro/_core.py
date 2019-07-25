@@ -244,6 +244,7 @@ class Img_dir(object):
         #information on the total number of clusters in each frame, their area,
         #centers, distances between clusters in two adjascent frames, and index
         self.__infocluster = {}
+        self.__c_id = None
 
 ####################################################################
 #   setters for attributes
@@ -267,6 +268,10 @@ class Img_dir(object):
     def set_reshape(self, reshape):
         """Setter for reshape dictionary"""
         self.__reshape = reshape
+        
+    def set_c_id(self, c_id):
+        """Setter for list of cluster objects"""
+        self.__c_id = c_id
         
 ####################################################################
 #   getters for attribiutes
@@ -307,6 +312,10 @@ class Img_dir(object):
     @property
     def infoclusters(self):
         return self.__infocluster
+    
+    @property
+    def c_id(self):
+        return self.__c_id
 
 ###################################################################
 #   image slicing method
@@ -562,6 +571,7 @@ class Video(object):
         
         self.__infocluster = {}
         self.__reshape = {}
+        self.__c_id = {}
     
 ##############################################################################
 #   setters for class attributes
@@ -579,6 +589,10 @@ class Video(object):
     def set_infocluster(self, infocluster):
         """Setter for infocluster dictionary"""
         self.__infocluster = infocluster
+ 
+    def set_c_id(self, c_id):
+        """Setter for list of cluster objects"""
+        self.__c_id = c_id
 
 #############################################################################
 #     Getters for the class attributes
@@ -646,6 +660,11 @@ class Video(object):
     def reshape(self):
         """Returns the reshape dictionary"""
         return self.__reshape
+    
+    @property
+    def c_id(self):
+        """Returns the cluster id list"""
+        return self.__c_id
     
 #############################################################################
 #   Grayscale conversion method
@@ -837,7 +856,7 @@ class Vid_img(Video):
         dictionary im_dir"""
         Video.__init__(self, filename, w_dir, verb)
         self.__im_dir = {}
-    
+
 #############################################################################
 #     Getters for the class attributes
 #############################################################################
@@ -886,6 +905,10 @@ class Vid_img(Video):
                                        self.shotname)
         _plot.area_distrib.get_frame_distrib(area, indt, self.w_dir, 
                                              self.shotname)
+        
+        c_id = _i_comp.get_id.get_id(self.infocluster, Cluster)
+        
+        self.set_c_id(c_id)
         
         return None
     
