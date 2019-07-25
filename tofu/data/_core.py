@@ -256,6 +256,8 @@ class DataAbstract(utils.ToFuObject):
         assert data is not None
         data = np.atleast_1d(np.asarray(data).squeeze())
 
+        if data.ndim == 1:
+            data = data.reshape((1,data.size))
         if t is not None:
             t = np.atleast_1d(np.asarray(t).squeeze())
         if X is not None:

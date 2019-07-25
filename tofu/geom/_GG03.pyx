@@ -3415,6 +3415,10 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     for jj in range(nt):
                         sig[jj, ii] = scpintg.romb(val, show=False, axis=-1,
                                                    dx=loc_eff_res[0])
+    if los_coeffs[0] != NULL:
+        free(los_coeffs[0])
+    if los_coeffs != NULL:
+        free(los_coeffs)
     return
 
 
