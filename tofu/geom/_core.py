@@ -2524,6 +2524,34 @@ class Config(utils.ToFuObject):
             ind[ii,:] = indi
         return ind
 
+
+    # TBF
+    def fdistfromwall(self, r, z, phi):
+        """ Return a callable (function) for detecting trajectory collisions with wall
+
+        The function is continuous wrt time and space
+        It takes into account all Struct in Config, including non-axisymmetric
+        ones
+
+        It is desined for iterative root-finding algorithms and is thus called
+        for a unique position
+
+        """
+        isin = [ss._InOut == 'in' for ss in self.lStruct]
+        inside = self.isInside(np.r_[r,z,phi], In='(R,Z,Phi)', log='any')
+
+        distRZ, indStruct = self._get_phithetaproj_dist(refpt=np.r_[r,z],
+                                                        ntheta=ntheta, nphi=nphi,
+                                                        theta=theta, phi=phi)
+        lSlim = [ss for ss in self.lStruct if ss.noccur > 0]
+        distPhi = r*np.min([np.min(np.abs(phi - ss.Lim)) for ss in lSlim])
+        if inside:
+            return min(distRZ,distPhi)
+        else:
+            return -min(distRZ,distPhi)
+
+
+
     def plot(self, lax=None, proj='all', element='P', dLeg=_def.TorLegd,
              indices=False, Lim=None, Nstep=None,
              draw=True, fs=None, wintit=None, tit=None, Test=True):
