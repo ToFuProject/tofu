@@ -70,12 +70,12 @@ from tofu.utils import save, load, load_from_imas
 import tofu._plot as _plot
 import tofu.geom as geom
 import tofu.data as data
-import tofu.mag as mag
 
 
 ok = True
 try:
     import tofu.imas2tofu as imas2tofu
+    import tofu.mag as mag
 except Exception as err:
     warnings.warn(str(err))
     ok = False
@@ -85,6 +85,7 @@ except Exception as err:
 __all__ = ['pathfile','utils','_plot','geom','data','mag']
 if ok:
     __all__.append('imas2tofu')
+    __all__.append('mag')
 
 
 del sys, warnings, ok

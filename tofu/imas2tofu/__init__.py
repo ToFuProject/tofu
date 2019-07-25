@@ -12,7 +12,7 @@ try:
         from tofu.imas2tofu._core import *
     except Exception:
         from ._core import *
-    del warnings
+    del warnings, traceback
 except Exception as err:
     if str(err) == 'imas not available':
         msg += "\n\nIMAS python API issue\n"
