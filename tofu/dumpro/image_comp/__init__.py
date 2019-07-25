@@ -27,3 +27,5 @@ from . import get_distance
 from . import average_area
 #dumpro video subroutine
 from . import dumpro_vid
+#assign id to each cluster
+from . import get_id
