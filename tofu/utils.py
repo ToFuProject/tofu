@@ -623,7 +623,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
                    occ=None, indch=None, indDescription=None, equilibrium=None,
                    dsig=None, data=None, X=None, t0=None, dextra=None,
                    plot=True, plot_sig=None, plot_X=None, sharex=False,
-                   bck=True, indch_auto=True):
+                   bck=True, indch_auto=True, t=None):
     # -------------------
     # import imas2tofu
     try:
@@ -652,8 +652,9 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Pre-check ids
     lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
+    lidscustom = ['magfieldline']
     lidsout = [ids_ for ids_ in ids
-               if (ids_ is not None and ids_ not in lidsok)]
+               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
     if len(lidsout) > 0:
         msg = "ids %s matched no known imas ids !\n"%str(lidsout)
         msg += "  => Available imas ids are:\n"
@@ -661,10 +662,24 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         raise Exception(msg)
     nids = len(ids)
 
+    if nids > 1:
+        assert not any([ids_ in ids for ids_ in lidscustom])
+
+
     # -------------------
     # Prepare shot
     shot = np.r_[shot].astype(int)
     nshot = shot.size
+
+    # -------------------
+    # Call magfieldline if relevant
+    if ids == ['magfieldline']:
+        assert shot.size == 1
+        multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids='wall')
+        config = multi.to_Config()
+
 
     # -------------------
     # Prepare out
@@ -690,6 +705,7 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
     # -------------------
     # Prepare
     for ii in range(0, nids):
+
         # Config
         if ids[ii] == 'wall':
             assert out[ii] in [None,'Config']
