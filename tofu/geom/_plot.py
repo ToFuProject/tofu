@@ -702,7 +702,7 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
 
     # set extent
     ratio = refpt[0] / np.nanmin(dist)
-    extent = np.pi*np.r_[-ratio, ratio, -1.,1.]
+    extent = np.pi*np.r_[-1., 1., -1.,1.]
 
     # set colors
     vmin = np.nanmin(dist) if vmin is None else vmin
@@ -725,12 +725,17 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
     if tit is not None:
         fig.suptitle(tit)
 
-    dax['dist'][0].imshow(cols, extent=extent, aspect='equal',
+    dax['dist'][0].imshow(cols, extent=extent, aspect='auto',
                           interpolation='nearest', origin='lower', zorder=-1)
 
     dax['cross'][0], dax['hor'][0] = config.plot(lax=[dax['cross'][0],
                                                       dax['hor'][0]],
                                                  draw=False)
+    dax['dist'][0].set_xlim(np.pi*np.r_[-1.,1.])
+    dax['dist'][0].set_ylim(np.pi*np.r_[-1.,1.])
+    dax['dist'][0].set_aspect(aspect=1./ratio)
+
+
 
     # legend proxy
     # if legend != False:
@@ -743,7 +748,7 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
 
     if draw:
         fig.canvas.draw()
-    return ax
+    return dax
 
 
 
