@@ -4616,8 +4616,10 @@ class Rays(utils.ToFuObject):
             sig = np.full((1,self.nRays), np.nan)
 
         if t is None or len(t)==1:
-            sig[indok] = s
-            sig = sig.reshape((1,len(sig)))
+            print(sig.shape)
+            print(indok.shape)
+            sig = sig.reshape((1,s.shape[1]))
+            sig[0,indok] = s
         else:
             sig[:,indok] = s
 
