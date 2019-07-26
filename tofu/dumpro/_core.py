@@ -571,7 +571,7 @@ class Video(object):
         
         self.__infocluster = {}
         self.__reshape = {}
-        self.__c_id = {}
+        self.__c_id = None
     
 ##############################################################################
 #   setters for class attributes

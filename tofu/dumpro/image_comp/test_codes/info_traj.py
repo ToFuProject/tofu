@@ -32,13 +32,19 @@ def info_cluster(infocluster):
             if indt[frame-1] != False and frame != 0:
                 #get total number of clusters in previous frame
                 tot_prev = t_cluster[frame-1]
+                #get total number of clusters in current frame
                 tot_curr = t_cluster[frame]
+                
                 #looping over each cluster
                 for c1 in range(0, tot_prev):
-                    cen = center[frame-1][c1]
+                    if traj = {}:
+                        traj[frame-1,c1,]
+                    listofkeys = ()
+                    listofitems = traj.items()
+                    cen1 = center[frame-1][c1]
+                    
+                    
                     for c2 in range(0, tot_curr):
-                        cen = center[frame][c2]
-                        d = clust_dist[frame-1][c1][c2]
-                        ifsteq,
-   cen
+                        cen2 = center[frame][c2]
+                        
                         

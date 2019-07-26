@@ -49,10 +49,9 @@ def get_id(infocluster, Cluster):
         if indt[tt] == False:
             continue
         nt = total[tt]
-        frame_clus = np.zeros((nt,))
+        frame_clus = [None for _ in range(0,nt)]
         for ii in range(0, nt):
-            tt,ii = Cluster(ii,tt,center[tt][ii], angle[tt][ii], area[tt][ii])
-            frame_clus[ii] = tt,ii
+            frame_clus[ii] = Cluster(ii,tt,center[tt][ii], angle[tt][ii], area[tt][ii])
         clus_list[tt] = frame_clus
     
     return clus_list
