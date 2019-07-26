@@ -4593,8 +4593,10 @@ class Rays(utils.ToFuObject):
         """
 
         # Format input
-        indok, Ds, us, DL = self._calc_signal_preformat(ind=ind, DL=DL, out=out,
-                                                        Brightness=Brightness)
+
+        indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, DL=DL,
+                                                                out=out,
+                                                                Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4606,6 +4608,13 @@ class Rays(utils.ToFuObject):
         s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
                                 dmethod=resMode, method=method,
                                 t=t, ani=ani, fkwdargs=fkwdargs, Test=True)
+
+        # Integrate
+        if s.ndim == 2:
+            sig = np.full((s.shape[0], self.nRays), np.nan)
+        else:
+            sig = np.full((1,self.nRays), np.nan)
+
         if t is None or len(t)==1:
             sig[indok] = s
             sig = sig.reshape((1,len(sig)))

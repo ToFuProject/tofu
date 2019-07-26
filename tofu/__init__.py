@@ -75,10 +75,14 @@ import tofu.data as data
 ok = True
 try:
     import tofu.imas2tofu as imas2tofu
-    import tofu.mag as mag
 except Exception as err:
     warnings.warn(str(err))
     ok = False
+
+# Can only be imported if we found IMAS
+if ok:
+    import tofu.mag as mag
+
 #import tofu.dust as dust
 
 

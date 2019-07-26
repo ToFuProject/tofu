@@ -8,6 +8,7 @@ import warnings
 import traceback
 
 try:
+    import imas
     try:
         from tofu.mag.magFieldLines import *
     except Exception:
@@ -15,6 +16,7 @@ try:
     del warnings, traceback, magFieldLines, mag_ripple
 except Exception as err:
     if str(err) == 'imas not available':
+        msg = ""
         msg += "\n\nIMAS python API issue\n"
         msg += "imas could not be imported into tofu ('import imas' failed):\n"
         msg += "  - it may not be installed (optional dependency)\n"
