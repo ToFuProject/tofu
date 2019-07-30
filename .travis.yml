@@ -11,8 +11,11 @@ dist: trusty
 # setup container matrix
 matrix:
   include:
-   - name: Test
+   - name: Python 3.6 on Trusty
      python: 3.6
+     dist: trusty
+   - name: Python 2.7 on Trusty
+     python; 2.7
      dist: trusty
 #     - name: "Python 3.6 on Xenial Linux"
 #       python: 3.6           # this works for Linux but is ignored on macOS or Windows
