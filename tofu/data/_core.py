@@ -18,7 +18,6 @@ import numpy as np
 import scipy.interpolate as scpinterp
 import matplotlib.pyplot as plt
 from matplotlib.tri import Triangulation as mplTri
-from matplotlib.tri import LinearTriInterpolator as mplTriLinInterp
 
 
 # tofu
@@ -3066,33 +3065,66 @@ class Plasma2D(utils.ToFuObject):
     #---------------------
 
 
-    def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None):
-        """ Return the bremsstrahlung spectral radiance at lamb
-
-        The plasma conditions are set by:
-            - Te   (eV)
-            - ne   (/m3)
-            - zeff (adim.)
-
-        The wavelength is set by the diagnostics
-            - lamb (m)
-
-        The vol. spectral emis. is returned in ph / (s.m3.sr.m)
-
-        The computation requires an intermediate : gff(Te, zeff)
-        """
-        dins = {'Te':{'val':Te, 'shape':None},
-                'ne':{'val':ne, 'shape':None},
-                'zeff':{'val':zeff, 'shape':None},
-                'lamb':{'val':lamb, 'shape':None}}
-        shape = None
+    def _fill_dins(self, dins):
         for k in dins.keys():
             if type(dins[k]['val']) is str:
                 assert dins[k]['val'] in self._ddata.keys()
-                dins[k]['val'] = self._ddata[dins[k]['val']]['data']
+                dins[k] = {'key': dins[k]['val'],
+                           'val': self._ddata[dins[k]['val']]['data']}
             else:
+                dins[k]['key'] = None
                 dins[k]['val'] = np.atleast_1d(dins[k]['val'])
             dins[k]['shape'] = dins[k]['val'].shape
+        lc = [vv['key'] is None for vv in dins.values()]
+        if not all(lc) or not any(lc):
+            msg = "Please provide either (xor):\n"
+            msg += "    - only registered data keys\n"
+            msg += "    - only np.ndarrays\n"
+            msg += "\n    - Provided: %s"%str(dins)
+            raise Exception(msg)
+        return dins
+
+    def interp_multi_on_common_t(self, dq,
+                                 t=None, interp_t='nearest'):
+
+        # If np.ndarrays => t is None
+        if list(dq.values())[0]['key'] is None:
+            return dq, None
+
+        # Else => check uniformity of t, interp if necessary
+        tn, ltu = self.get_tcommon([vv['key'] for vv in dq.values()])
+        if t is None:
+            t = self._ddata[tn]['data']
+            if len(ltu) > 1 and interp_t == 'nearest':
+                for tt in ltu:
+                    if tt == tn:
+                        continue
+                    tbin = 0.5*(self._ddata[tt]['data'][1:]
+                                + self._ddata[tt]['data'][:-1])
+                    indt = np.digitize(t, tbin)
+                    for qq in dq.keys():
+                        if tt in self._ddata[dq[qq]['key']]['depend']:
+                            dq[qq]['val'] = dq[qq]['val'][indt,:]
+            elif len(ltu) > 1 and interp_t == 'linear':
+                for tt in ltu:
+                    if tt == tn:
+                        continue
+                    for qq in dq.keys():
+                        if tt not in self._ddata[qq]['depend']:
+                            continue
+                        dq[qq]['val'] = scpinterp.interp1d(t,
+                                                           self._ddata[tt]['data'],
+                                                           dq[qq]['val'],
+                                                           axis=0,
+                                                           kind='linear')
+        else:
+            raise NotImplementedError
+        return dq, t
+
+    @staticmethod
+    def _checkformat_shapes(dins):
+        shape = None
+        for k in dins.keys():
             if shape is None:
                 shape = dins[k]['shape']
             if dins[k]['shape'] != shape:
@@ -3121,27 +3153,69 @@ class Plasma2D(utils.ToFuObject):
                 else:
                     assert dins[k]['shape'] == shape
                 dins[k]['shape'] = dins[k]['val'].shape
-
-        return _physics.compute_bremzeff(dins['Te']['val'], dins['ne']['val'],
-                                         dins['zeff']['val'], dins['lamb']['val'])
+        return dins
 
 
-    def compute_fanglev(self, Bv=None, ne=None, lamb=None):
+
+    def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None, t=None):
+        """ Return the bremsstrahlung spectral radiance at lamb
+
+        The plasma conditions are set by:
+            - Te   (eV)
+            - ne   (/m3)
+            - zeff (adim.)
+
+        The wavelength is set by the diagnostics
+            - lamb (m)
+
+        The vol. spectral emis. is returned in ph / (s.m3.sr.m)
+
+        The computation requires an intermediate : gff(Te, zeff)
+        """
+        dins = {'Te':{'val':Te},
+                'ne':{'val':ne},
+                'zeff':{'val':zeff}}
+        dins = self._fill_dins(dins)
+        dins, t = self.interp_multi_on_common_t(dins, t=t)
+        lamb = np.atleast_1d(lamb)
+        dins['lamb'] = {'val':lamb, 'shape':lamb.shape}
+        dins = self._checkformat_shapes(dins)
+        val, units = _physics.compute_bremzeff(dins['Te']['val'],
+                                               dins['ne']['val'],
+                                               dins['zeff']['val'],
+                                               dins['lamb']['val'])
+        return val, t, units
+
+    def compute_fanglev(self, BR=None, BPhi=None, BZ=None,
+                        ne=None, lamb=None, t=None):
         """ Return the vector faraday angle at lamb
 
         The plasma conditions are set by:
-            - Bv   (T) , (3,N) array of 3 (R,Z,Phi) components
-            - ne   (/m3)
+            - BR    (T) , array of R component of B
+            - BRPhi (T) , array of phi component of B
+            - BZ    (T) , array of Z component of B
+            - ne    (/m3)
 
         The wavelength is set by the diagnostics
             - lamb (m)
 
         The vector faraday angle is returned in T / m
         """
-        dins = {'Bv':{'val':Bv, 'shape':None},
-                'ne':{'val':ne, 'shape':None},
-                'lamb':{'val':lamb, 'shape':None}}
-
+        dins = {'BR':{'val':BR},
+                'BPhi':{'val':BPhi},
+                'BZ':{'val':BZ},
+                'ne':{'val':ne}}
+        dins = self._fill_dins(dins)
+        dins, t = self.interp_multi_on_common_t(dins, t=t)
+        lamb = np.atleast_1d(lamb)
+        dins['lamb'] = {'val':lamb, 'shape':lamb.shape}
+        dins = self._checkformat_shapes(dins)
+        val, units = _physics.compute_fangle(BR=dins['BR']['val'],
+                                             BPhi=dins['BPhi']['val'],
+                                             BZ=dins['BZ']['val'],
+                                             ne=dins['ne']['val'],
+                                             lamb=dins['lamb']['val'])
+        return val, t, units
 
 
 
@@ -3250,10 +3324,37 @@ class Plasma2D(utils.ToFuObject):
         ntall = tall.size
         return tall, ntall, indt, indtu
 
+    def get_tcommon(self, lq, prefer='finer'):
+        """ Check if common t, else choose according to prefer
 
-    def _get_finterp(self, idquant, idref1d, idref2d,
+        By default, prefer the finer time resolution
+
+        """
+        if type(lq) is str:
+            lq = [lq]
+        t = []
+        for qq in lq:
+            ltr = [kk for kk in self._ddata[qq]['depend']
+                   if self._dindref[kk]['group'] == 'time']
+            assert len(ltr) <= 1
+            if len(ltr) > 0 and ltr[0] not in t:
+                t.append(ltr[0])
+        assert len(t) >= 1
+        if len(t) > 1:
+            dt = [np.nanmean(np.diff(self._ddata[tt]['data'])) for tt in t]
+            if prefer == 'finer':
+                ind = np.argmin(dt)
+            else:
+                ind = np.argmax(dt)
+        else:
+            ind = 0
+        return t[ind], t
+
+    def _get_finterp(self,
+                     idquant=None, idref1d=None, idref2d=None,
+                     idq2dR=None, idq2dPhi=None, idq2dZ=None,
                      interp_t='nearest', interp_space=None,
-                     fill_value=np.nan):
+                     fill_value=np.nan, ani=False, Type=None):
 
         # Get idmesh
         if idref1d is None:
@@ -3287,192 +3388,95 @@ class Plasma2D(utils.ToFuObject):
         if interp_space is None:
             interp_space = self._ddata[idmesh]['data']['ftype']
 
-
-        if idref1d is None:
-
-            if interp_space == 1:
-
-                def func(pts, t=None, ntall=ntall,
-                         mplTriLinInterp=mplTriLinInterp,
-                         mpltri=mpltri, trifind=trifind,
-                         vquant=vquant, indtq=indtq,
-                         tall=tall, tbinall=tbinall,
-                         idref1d=idref1d, idref2d=idref2d):
-
-                    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-                    shapeval = list(pts.shape)
-                    shapeval[0] = ntall if t is None else t.size
-                    val = np.full(tuple(shapeval), np.nan)
-                    if t is None:
-                        for ii in range(0,ntall):
-                            val[ii,...] = mplTriLinInterp(mpltri,
-                                                          vquant[indtq[ii],:],
-                                                          trifinder=trifind)(r,z)
-                        t = tall
-                    else:
-                        ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
-                                                             tbinall=tbinall,
-                                                             idref1d=idref1d,
-                                                             idref2d=idref2d)[1:]
-                        for ii in range(0,ntall):
-                            ind = indt == indtu[ii]
-                            val[ind,...] = mplTriLinInterp(mpltri,
-                                                           vquant[indtq[ii],:],
-                                                           trifinder=trifind)(r,z)
-                    return val, t
-
-            else:
-                def func(pts, t=None, ntall=ntall,
-                         trifind=trifind,
-                         vquant=vquant, indtq=indtq,
-                         tall=tall, tbinall=tbinall,
-                         idref1d=idref1d, idref2d=idref2d):
-
-                    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-                    shapeval = list(pts.shape)
-                    shapeval[0] = ntall if t is None else t.size
-                    val = np.full(tuple(shapeval), np.nan)
-
-                    indpts = trifind(r,z)
-                    if t is None:
-                        for ii in range(0,ntall):
-                            val[ii,...] = vquant[indtq[ii],indpts]
-                        t = tall
-                    else:
-                        ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
-                                                             tbinall=tbinall,
-                                                             idref1d=idref1d,
-                                                             idref2d=idref2d)[1:]
-                        for ii in range(0,ntall):
-                            ind = indt == indtu[ii]
-                            val[ind,...] = vquant[indtq[ii],indpts]
-                    return val, t
-
-
+        # get interpolation function
+        if ani:
+            # Assuming same mesh and time vector for all 3 components
+            func = _comp.get_finterp_ani(self, idq2dR, idq2dPhi, idq2dZ,
+                                         interp_t=interp_t,
+                                         interp_space=interp_space,
+                                         fill_value=fill_value,
+                                         idmesh=idmesh, vq2dR=vqd2R,
+                                         vq2dZ=vq2dZ, vq2dPhi=vq2dPhi,
+                                         indtq=indtq, trifind=trifind,
+                                         Type=Type, mpltri=mpltri)
         else:
-            vr2 = self._ddata[idref2d]['data']
-            vr1 = self._ddata[idref1d]['data']
+            func = _comp.get_finterp_isotropic(self, idquant, idref1d, idref2d,
+                                               interp_t=interp_t,
+                                               interp_space=interp_space,
+                                               fill_value=fill_value,
+                                               idmesh=idmesh, vquant=vquant,
+                                               tall=tall, tbinall=tbinall,
+                                               ntall=ntall, mpltri=mpltri,
+                                               indtq=indtq, indtr1=indtr1,
+                                               indtr2=indtr2, trifind=trifind)
 
-            if interp_space == 1:
-
-                def func(pts, t=None, ntall=ntall,
-                         mplTriLinInterp=mplTriLinInterp,
-                         mpltri=mpltri, trifind=trifind,
-                         vquant=vquant, indtq=indtq,
-                         interp_space=interp_space, fill_value=fill_value,
-                         vr1=vr1, indtr1=indtr1, vr2=vr2, indtr2=indtr2,
-                         tall=tall, tbinall=tbinall,
-                         idref1d=idref1d, idref2d=idref2d):
-
-                    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-                    shapeval = list(pts.shape)
-                    shapeval[0] = ntall if t is None else t.size
-                    val = np.full(tuple(shapeval), np.nan)
-                    t0tri, t0int = 0., 0.
-                    if t is None:
-                        for ii in range(0,ntall):
-                            # get ref values for mapping
-                            # this is the slowest step (~1.8 s)
-                            vii = mplTriLinInterp(mpltri,
-                                                  vr2[indtr2[ii],:],
-                                                  trifinder=trifind)(r,z)
-
-                            # interpolate 1d
-                            # This i reasonable (~0.15 s)
-                            val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
-                                                             vquant[indtq[ii],:],
-                                                             kind='linear',
-                                                             bounds_error=False,
-                                                             fill_value=fill_value)(np.asarray(vii))
-                        t = tall
-                    else:
-                        ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
-                                                             tbinall=tbinall,
-                                                             idref1d=idref1d,
-                                                             idref2d=idref2d)[1:]
-                        for ii in range(0,ntall):
-                            # get ref values for mapping
-                            vii = mplTriLinInterp(mpltri,
-                                                  vr2[indtr2[ii],:],
-                                                  trifinder=trifind)(r,z)
-
-                            # interpolate 1d
-                            ind = indt == indtu[ii]
-                            val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
-                                                              vquant[indtq[ii],:],
-                                                              kind='linear',
-                                                              bounds_error=False,
-                                                              fill_value=fill_value)(np.asarray(vii))
-
-                    return val, t
-
-            else:
-                def func(pts, t=None, ntall=ntall,
-                         trifind=trifind,
-                         vquant=vquant, indtq=indtq,
-                         interp_space=interp_space, fill_value=fill_value,
-                         vr1=vr1, indtr1=indtr1, vr2=vr2, indtr2=indtr2,
-                         tall=tall, tbinall=tbinall,
-                         idref1d=idref1d, idref2d=idref2d):
-
-                    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-                    shapeval = list(pts.shape)
-                    shapeval[0] = ntall if t is None else t.size
-                    val = np.full(tuple(shapeval), np.nan)
-                    indpts = trifind(r,z)
-                    if t is None:
-                        for ii in range(0,ntall):
-                            # interpolate 1d
-                            val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
-                                                             vquant[indtq[ii],:],
-                                                             kind='linear',
-                                                             bounds_error=False,
-                                                             fill_value=fill_value)(vr2[indtr2[ii],indpts])
-                        t = tall
-                    else:
-                        ntall, indt, indtu = self._get_indtu(t=t, tall=tall,
-                                                             tbinall=tbinall,
-                                                             idref1d=idref1d,
-                                                             idref2d=idref2d)[1:]
-                        for ii in range(0,ntall):
-                            # interpolate 1d
-                            ind = indt == indtu[ii]
-                            val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
-                                                              vquant[indtq[ii],:],
-                                                              kind='linear',
-                                                              bounds_error=False,
-                                                              fill_value=fill_value)(vr2[indtr2[ii],indpt])
-                    return val, t
 
         return func
 
 
+    def _checkformat_qr12RPZ(self, quant=None, ref1d=None, ref2d=None,
+                             q2dR=None, q2dPhi=None, q2dZ=None):
+        lc0 = [quant is None, ref1d is None, ref2d is None]
+        lc1 = [q2dR is None, q2dPhi is None, q2dZ is None]
+        if np.sum([all(lc0), all(lc1)]) != 1:
+            msg = "Please provide either (xor):\n"
+            msg += "    - a scalar field (isotropic emissivity):\n"
+            msg += "        quant : scalar quantity to interpolate\n"
+            msg += "                if quant is 1d, intermediate reference\n"
+            msg += "                fields are necessary for 2d interpolation\n"
+            msg += "        ref1d : 1d reference field on which to interpolate\n"
+            msg += "        ref2d : 2d reference field on which to interpolate\n"
+            msg += "    - a vector (R,Phi,Z) field (anisotropic emissivity):\n"
+            msg += "        q2dR :  R component of the vector field\n"
+            msg += "        q2dPhi: R component of the vector field\n"
+            msg += "        q2dZ :  Z component of the vector field\n"
+            msg += "        => all components have teh same time and mesh !\n"
+            raise Exception(msg)
 
-    def get_finterp2d(self, quant, ref1d=None, ref2d=None,
+        # Check requested quant is available in 2d or 1d
+        if all(lc1):
+            idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
+            idq2dR, idq2dPhi, idq2dZ = None, None, None
+            ani = False
+        else:
+            idq2dR, idq2dPhi, idq2dZ = self._get_quantrefkeys(q2dR,
+                                                              q2dPhi, q2dZ)
+            idquant, idref1d, idref2d = None, None, None
+            ani = True
+        return idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani
+
+
+    def get_finterp2d(self, quant=None, ref1d=None, ref2d=None,
+                      q2dR=None, q2dPhi=None, q2dZ=None,
                       interp_t='nearest', interp_space=None,
-                      fill_value=np.nan):
+                      fill_value=np.nan, Type=None):
         """ Return the function interpolating (X,Y,Z) pts on a 1d/2d profile
 
         Can be used as input for tf.geom.CamLOS1D/2D.calc_signal()
 
         """
         # Check inputs
-        assert interp_t == 'nearest', "Only 'nearest' available so far!"
+        msg = "Only 'nearest' available so far for interp_t!"
+        assert interp_t == 'nearest', msg
+        out = self._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                        q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ)
+        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = out
 
-        # Check requested quant is available in 2d or 1d
-        idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
 
         # Interpolation (including time broadcasting)
-        func = self._get_finterp(idquant, idref1d, idref2d,
+        func = self._get_finterp(idquant=idquant, idref1d=idref1d,
+                                 idref2d=idref2d, idq2dR=idq2dR,
+                                 idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
                                  interp_t=interp_t, interp_space=interp_space,
-                                 fill_value=fill_value)
+                                 fill_value=fill_value, ani=ani, Type=Type)
         return func
 
 
-    def interp_pts2profile(self, quant, pts=None, t=None,
-                           ref1d=None, ref2d=None,
+    def interp_pts2profile(self, pts=None, t=None,
+                           quant=None, ref1d=None, ref2d=None,
+                           q2dR=None, q2dPhi=None, q2dZ=None,
                            interp_t='nearest', interp_space=None,
-                           fill_value=np.nan):
+                           fill_value=np.nan, Type=None):
         """ Return the value of the desired profiles_1d quantity
 
         For the desired inputs points (pts):
@@ -3483,43 +3487,59 @@ class Plasma2D(utils.ToFuObject):
 
         """
         # Check inputs
-        assert interp_t == 'nearest', "Only 'nearest' available so far!"
+        msg = "Only 'nearest' available so far for interp_t!"
+        assert interp_t == 'nearest', msg
 
         # Check requested quant is available in 2d or 1d
-        idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
+        out = self._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                        q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ)
+        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = out
 
         # Check the pts is (2,...) array of floats
         if pts is None:
-            if idref1d is None:
-                idmesh = [id_ for id_ in self._ddata[idquant]['depend']
+            if ani:
+                idmesh = [id_ for id_ in self._ddata[idq2dR]['depend']
                           if self._dindref[id_]['group'] == 'mesh'][0]
             else:
-                idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
-                          if self._dindref[id_]['group'] == 'mesh'][0]
+                if idref1d is None:
+                    idmesh = [id_ for id_ in self._ddata[idquant]['depend']
+                              if self._dindref[id_]['group'] == 'mesh'][0]
+                else:
+                    idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
+                              if self._dindref[id_]['group'] == 'mesh'][0]
             pts = self.dmesh[idmesh]['data']['nodes']
             pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
 
         pts = np.atleast_2d(pts)
         if pts.shape[0] != 3:
-            msg = "pts must ba np.ndarray of (X,Y,Z) points coordinates\n"
+            msg = "pts must be np.ndarray of (X,Y,Z) points coordinates\n"
             msg += "Can be multi-dimensional, but the 1st dimension is (X,Y,Z)\n"
             msg += "    - Expected shape : (3,...)\n"
             msg += "    - Provided shape : %s"%str(pts.shape)
             raise Exception(msg)
 
+        # Check t
+        lc = [t is None, type(t) is str, type(t) is np.ndarray]
+        assert any(lc)
+        if lc[1]:
+            assert t in self._ddata.keys()
+            t = self._ddata[t]['data']
+
         # Interpolation (including time broadcasting)
         # this is the second slowest step (~0.08 s)
-        func = self._get_finterp(idquant, idref1d, idref2d,
+        func = self._get_finterp(idquant=idquant, idref1d=idref1d, idref2d=idref2d,
+                                 idq2dR=idq2dR, idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
                                  interp_t=interp_t, interp_space=interp_space,
-                                 fill_value=fill_value)
+                                 fill_value=fill_value, ani=ani, Type=Type)
 
         # This is the slowest step (~1.8 s)
         val, t = func(pts, t=t)
         return val, t
 
 
-    def calc_signal_from_Cam(self, cam, quant=None, t=None,
-                             ref1d=None, ref2d=None,
+    def calc_signal_from_Cam(self, cam, t=None,
+                             quant=None, ref1d=None, ref2d=None,
+                             q2dR=None, q2dPhi=None, q2dZ=None,
                              Brightness=True, interp_t='nearest',
                              interp_space=None, fill_value=np.nan,
                              res=0.005, DL=None, resMode='abs', method='sum',
@@ -3531,8 +3551,10 @@ class Plasma2D(utils.ToFuObject):
             msg = "Arg cam must be tofu Camera instance (CamLOS1D, CamLOS2D...)"
             raise Exception(msg)
 
-        return cam.calc_signal_from_Plasma2D(self, quant=quant, t=t,
-                                             ref1d=ref1d, ref2d=ref2d,
+        return cam.calc_signal_from_Plasma2D(self, t=t,
+                                             quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                             q2dR=q2dR, q2dPhi=q2dPhi,
+                                             q2dZ=q2dZ,
                                              Brightness=Brightness,
                                              interp_t=interp_t,
                                              interp_space=interp_space,

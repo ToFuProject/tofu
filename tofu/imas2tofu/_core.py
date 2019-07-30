@@ -391,9 +391,12 @@ class MultiIDSLoader(object):
                                'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
                                       'data':'fangle'},
-                               'synth':{'dsynth':{'quant':'core_profiles.1dne',
-                                                  'ref1d':'core_profiles.1drhotn',
-                                                  'ref2d':'equilibrium.2drhotn'},
+                               'synth':{'dsynth':{'fargs':['core_profiles.1dne',
+                                                          'equilibrium.2dBR',
+                                                          'equilibrium.2dBT',
+                                                          'equilibrium.2dBZ',
+                                                          'core_profiles.1drhotn',
+                                                          'equilibrium.2drhotn']},
                                         'dsig':{'core_profiles':['t'],
                                                 'equilibrium':['t']},
                                         'Brightness':True}},
@@ -2671,6 +2674,8 @@ class MultiIDSLoader(object):
                           oo[:,1,0]*np.sin(oo[:,1,2]), oo[:,1,1]])
             u = (u-D) / np.sqrt(np.sum((u-D)**2, axis=0))[None,:]
             dgeom = (D,u)
+        else:
+            dgeom = None
 
         if 'etendue' in out.keys() and len(out['etendue']) > 0:
             Etendues = out['etendue']
@@ -3078,24 +3083,28 @@ class MultiIDSLoader(object):
         return Data
 
 
-    def _get_synth(self, ids, dsig=None, quant=None, ref1d=None, ref2d=None):
+    def _get_synth(self, ids, dsig=None,
+                   quant=None, ref1d=None, ref2d=None,
+                   q2dR=None, q2dPhi=None, q2dZ=None):
 
         # Check quant, ref1d, ref2d
-        dq = {'quant':quant, 'ref1d':ref1d, 'ref2d':ref2d}
+        dq = {'quant':quant, 'ref1d':ref1d, 'ref2d':ref2d,
+              'q2dR':q2dR, 'q2dPhi':q2dPhi, 'q2dZ':q2dZ}
         for kk,vv in dq.items():
             lc = [vv is None, type(vv) is str, type(vv) in [list,tuple]]
             assert any(lc)
             if lc[0]:
-                dq[kk] = self._didsdiag[ids]['synth']['dsynth'][kk]
-            if lc[1]:
+                dq[kk] = self._didsdiag[ids]['synth']['dsynth'].get(kk, None)
+            if type(dq[kk]) is str:
                 dq[kk] = [dq[kk]]
-            for ii in range(0,len(dq[kk])):
-                v1 = tuple(dq[kk][ii].split('.'))
-                assert len(v1) == 2
-                assert v1[0] in self._lidsplasma
-                assert (v1[1] in self._dshort[v1[0]].keys()
-                        or v1[1] in self._dcomp[v1[0]].keys())
-                dq[kk][ii] = v1
+            if dq[kk] is not None:
+                for ii in range(0,len(dq[kk])):
+                    v1 = tuple(dq[kk][ii].split('.'))
+                    assert len(v1) == 2
+                    assert v1[0] in self._lidsplasma
+                    assert (v1[1] in self._dshort[v1[0]].keys()
+                            or v1[1] in self._dcomp[v1[0]].keys())
+                    dq[kk][ii] = v1
 
         # Check dsig
         if dsig is None:
@@ -3122,14 +3131,23 @@ class MultiIDSLoader(object):
                     dsig[vv[ii][0]].append(vv[ii][1])
                 dq[kk][ii] = '%s.%s'%tuple(vv[ii])
 
-        if dq['quant'] is None:
-            msg = "quant is not specified !"
+        lq = self._didsdiag[ids]['synth']['dsynth'].get('fargs', None)
+        if lq is not None:
+            for qq in lq:
+                q01 = qq.split('.')
+                assert len(q01) == 2
+                dsig[q01[0]] = q01[1]
+
+        if dq['quant'] is None and dq['q2dR'] is None and lq is None:
+            msg = "both quant and q2dR are not specified !"
             raise Exception(msg)
-        return dsig, dq['quant'], dq['ref1d'], dq['ref2d']
+        return dsig, dq, lq
 
 
     def calc_signal(self, ids=None, dsig=None, tlim=None, t=None, res=None,
-                    quant=None, ref1d=None, ref2d=None, Brightness=None,
+                    quant=None, ref1d=None, ref2d=None,
+                    q2dR=None, q2dPhi=None, q2dZ=None,
+                    Brightness=None,
                     indch=None, indch_auto=False, Name=None,
                     occ_cam=None, occ_plasma=None, config=None,
                     dextra=None, t0=None, datacls=None, geomcls=None,
@@ -3142,8 +3160,8 @@ class MultiIDSLoader(object):
                           plot=False, nan=True, pos=None)
 
         # Get relevant parameters
-        dsig, quant, ref1d, ref2d = self._get_synth(ids, dsig,
-                                                    quant, ref1d, ref2d)
+        dsig, dq, lq = self._get_synth(ids, dsig, quant, ref1d, ref2d,
+                                       q2dR, q2dPhi, q2dZ)
 
         # Get relevant plasma
         plasma = self.to_Plasma2D(tlim=tlim, dsig=dsig, t0=t0,
@@ -3151,6 +3169,7 @@ class MultiIDSLoader(object):
                                   plot=False, dextra=dextra, nan=True, pos=None)
 
         # Intermediate computation if necessary
+        ani = False
         if ids == 'bremsstrahlung_visible':
             try:
                 lamb = self.get_data(ids, sig='lamb')['lamb']
@@ -3163,57 +3182,79 @@ class MultiIDSLoader(object):
                                           ne='core_profiles.1dne',
                                           zeff='core_profiles.1dzeff',
                                           lamb=lamb)
-            quant, units = out
+            quant, _, units = out
             origin = 'f(core_profiles, bremsstrahlung_visible)'
             depend = ('core_profiles.t','core_profiles.1dTe')
             plasma.add_quantity(key='core_profiles.1dbrem', data=quant,
                                 depend=depend, origin=origin, units=units,
                                 dim=None, quant=None, name=None)
-            quant = ['core_profiles.1dbrem']
+            dq['quant'] = ['core_profiles.1dbrem']
 
         elif ids == 'polarimeter':
             lamb = self.get_data(ids, sig='lamb')['lamb']
+
+            # Get time reference
+            tref, ltu = plasma.get_tcommon(lq)
+
+            import ipdb         # DB
+            ipdb.set_trace()    # DB
+
             # Add necessary 2dne (and time reference)
             ne2d, tne2d = plasma.interp_pts2profile(quant='core_profiles.1dne',
                                                     ref1d='core_profiles.1drhotn',
-                                                    ref2d='equilibrium.2drhotn')
+                                                    ref2d='equilibrium.2drhotn',
+                                                    t=tref, interp_t='nearest')
             origin = 'f(equilibrium, core_profiles)'
-            plasma.add_ref(key='t_2dne', data=tne2d, group='time',
-                           origin=origin, units='s',
-                           dim='t', quant='t', name='t_ne2d')
-
-            origin = 'f(equilibrium, core_profiles)'
-            depend = ('t_ne2d','equilibrium.mesh')
+            depend = (tref, 'equilibrium.mesh')
             plasma.add_quantity(key='2dne', data=ne2d,
                                 depend=depend, origin=origin, units=r'/m3',
-                                dim='density', quant='ne', name='ne2d')
+                                dim='density', quant='ne', name='2dne')
+
+            import ipdb         # DB
+            ipdb.set_trace()    # DB
 
             # Add fanglev
-            out = plasma.compute_fangle_vector(Bv='equilibrium.2dBv',
-                                               ne='core_profiles.1dne',
-                                               lamb=lamb)
-            quant, units = out
+            out = plasma.compute_fanglev(BR='equilibrium.2dBR',
+                                         BPhi='equilibrium.2dBT',
+                                         BZ='equilibrium.2dBZ',
+                                         ne='2dne', lamb=lamb)
+            fangleRPZ, tfang, units = out
+
+            import ipdb         # DB
+            ipdb.set_trace()    # DB
+
             origin = 'f(equilibrium, core_profiles, polarimeter)'
-            depend = ('equilibrium.Bv','core_profiles.1dne')
-            plasma.add_quantity(key='2dfanglev', data=brem,
+            depend = ('t_2dfanglev','equilibrium.mesh')
+            plasma.add_quantity(key='2dfangleR', data=data[0,:],
                                 depend=depend, origin=origin, units=units,
                                 dim=None, quant=None, name=None)
-            quant = ['2dfanglev']
+            plasma.add_quantity(key='2dfanglePhi', data=data[1,:],
+                                depend=depend, origin=origin, units=units,
+                                dim=None, quant=None, name=None)
+            plasma.add_quantity(key='2dfangleZ', data=data[2,:],
+                                depend=depend, origin=origin, units=units,
+                                dim=None, quant=None, name=None)
+            dq['q2dR'] = ['2dfangleR']
+            dq['q2dPhi'] = ['2dfanglePhi']
+            dq['q2dZ'] = ['2dfangleZ']
+            ani = True
 
-        assert all([qq is None or len(qq) == 1 for qq in [quant,ref1d,ref2d]])
-        assert quant is not None
-        quant = quant[0]
-        if ref1d is not None:
-            ref1d = ref1d[0]
-        if ref2d is not None:
-            ref2d = ref2d[0]
+        for kk,vv in dq.items():
+            c0 = [vv is None,
+                  type(vv) is list and len(vv) == 1 and type(vv[0]) is str]
+            if not any(c0):
+                msg = "All in dq must be None or list of 1 string !\n"
+                msg += "    - Provided: dq[%s] = %s"%(kk,str(vv))
+                raise Exception(msg)
+            if vv is not None:
+                dq[kk] = vv[0]
 
-        # Calculate syntehtic signal
+        # Calculate synthetic signal
         if Brightness is None:
             Brightness = self._didsdiag[ids]['synth'].get('Brightness', None)
-        sig = cam.calc_signal_from_Plasma2D(plasma,
-                                            quant=quant, ref1d=ref1d, ref2d=ref2d,
-                                            res=res, t=t, Brightness=Brightness, plot=False)
+        sig = cam.calc_signal_from_Plasma2D(plasma, res=res, t=t,
+                                            Brightness=Brightness,
+                                            plot=False, **dq)
 
         sig._dextra = plasma.get_dextra(dextra)
 
@@ -3234,8 +3275,8 @@ class MultiIDSLoader(object):
                 data.plot_compare(sig)
             else:
                 sig.plot()
-            if plot_plasma and '1d' in quant:
-                plasma.plot(quant, X=ref1d)
+            if plot_plasma and dq['quant'] is not None and '1d' in dq['quant']:
+                plasma.plot(dq['quant'], X=dq['ref1d'])
         return sig
 
 
