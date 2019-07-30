@@ -2,48 +2,24 @@ language: python
 python:
 - '2.7'
 - '3.6'
-#- '3.7-dev'
-
 git:
   depth: 200
 sudo: required
-dist: trusty
-# setup container matrix
-matrix:
-  include:
-   - name: Python 3.6 on Trusty
-     python: 3.6
-     dist: trusty
-   - name: Python 2.7 on Trusty
-     python: 2.7
-     dist: trusty
-   - name: Python 3.6 on Ubuntu 16.04
-     os: linux
-     python: 3.6
-     services: docker
-     env: SH=bash SH_VERSION=buildin CONTAINER=ubuntu:16.04
-    # - name: Python 2.7 on Ubuntu 14.04
-    #   env: OS='ubutu:14.04'
-    #   python: 2.7           # this works for Linux but is ignored on macOS or Windows
-    # - name: Python 3.6 on Ubuntu 14.04
-    #   env: OS='ubutu:14.04'
-    #   python: 3.6           # this works for Linux but is ignored on macOS or Windows
-#     - name: "Python 3.6 on Xenial Linux"
-#       python: 3.6           # this works for Linux but is ignored on macOS or Windows
-#       dist: xenial          # required for Python >= 3.6
-#     - name: "Python 3.6 on CentOS"
-#       python: 3.6
-#       env: OS='centos:6'
-#     - name: "Python 3.7.2 on macOS"
-#       os: osx
-#       osx_image: xcode10.2  # Python 3.7.2 running on macOS 10.14.3
-#       language: shell       # 'language: python' is an error on Travis CI macOS
-#     - name: "Python 3.7.3 on Windows"
-#       os: windows           # Windows 10.0.17134 N/A Build 17134
-#       language: shell       # 'language: python' is an error on Travis CI Windows
-# #...
+
+env:
+  #matrix:
+  - OS_TYPE=centos OS_VERSION=6 ANSIBLE_VERSION=1.9.2
+
+services:
+  - docker
+
 before_install:
   - sudo apt-get update
+  - sudo apt-get upgrade lxc-docker
+  - echo 'DOCKER_OPTS="-H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock -s devicemapper"' | sudo tee /etc/default/docker > /dev/null
+  - sudo service docker restart
+  - sleep 5
+  - sudo docker pull weldpua2008/docker-ansible:${OS_TYPE}${OS_VERSION}_v${ANSIBLE_VERSION}
   - ldd --version
   - gcc --version
   - export START=$(pwd)
@@ -73,7 +49,10 @@ install:
 - conda build conda_recipe
 - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
 - conda install tofu --use-local
+
+
 script:
+ - sudo docker run --rm=true -v `pwd`:/ansible-apache:rw weldpua2008/docker-ansible:${OS_TYPE}${OS_VERSION}_v${ANSIBLE_VERSION} /bin/bash -c "/ansible-apache/tests/test-in-docker-image.sh ${OS_TYPE} ${OS_VERSION} ${ANSIBLE_VERSION}"
 - cd $HOME
 - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage
   --cover-package=tofu
@@ -81,23 +60,3 @@ after_success:
 - codecov
 - chmod +x $START/anaconda_upload.sh
 - echo $TRAVIS_TAG
-before_deploy:
-- ls $START
-- cd $START
-deploy:
-  - provider: script
-    user: "ToFuProject"
-    script: $START/anaconda_upload.sh
-    on:
-      tags: true
-      all_branches: true
-    skip_cleanup: true
-  - provider: pypi
-    user: "Didou09"
-    distributions: "sdist"
-    skip_cleanup: true
-    on:
-      tags: true
-      all_branches: true
-    password:
-      secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
