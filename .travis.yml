@@ -11,8 +11,27 @@ dist: trusty
 # setup container matrix
 matrix:
   include:
-    - env: OS='ubuntu:14.04'
-    - env: OS='centos:6'
+    - name: "Python 3.6 on Xenial Linux"
+      python: 3.6           # this works for Linux but is ignored on macOS or Windows
+      dist: xenial          # required for Python >= 3.6
+    - name: "Python 2.7 on Ubuntu 14.04"
+      env: OS='ubutu:14.04'
+      python: 2.7           # this works for Linux but is ignored on macOS or Windows
+      dist: xenial          # required for Python >= 3.6
+   - name: "Python 3.6 on Ubuntu 14.04"
+      env: OS='ubutu:14.04'
+      python: 3.6           # this works for Linux but is ignored on macOS or Windows
+      dist: xenial          # required for Python >= 3.6
+    - name: "Python 3.6 on CentOS"
+      python: 3.6
+      env: OS='centos:6'
+    - name: "Python 3.7.2 on macOS"
+      os: osx
+      osx_image: xcode10.2  # Python 3.7.2 running on macOS 10.14.3
+      language: shell       # 'language: python' is an error on Travis CI macOS
+    - name: "Python 3.7.3 on Windows"
+      os: windows           # Windows 10.0.17134 N/A Build 17134
+      language: shell       # 'language: python' is an error on Travis CI Windows
 #...
 before_install:
   - sudo apt-get update
