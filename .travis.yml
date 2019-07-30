@@ -7,7 +7,6 @@ git:
 sudo: required
 
 env:
-  #matrix:
   - OS_TYPE=centos OS_VERSION=6 ANSIBLE_VERSION=1.9.2
 
 services:
