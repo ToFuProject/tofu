@@ -1,4 +1,5 @@
 # cython: boundscheck=False
+# cython: initializedcheck=True
 # cython: wraparound=False
 # cython: cdivision=True
 #
@@ -802,9 +803,10 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double dR, double dZ, double dRPhi,
                                                   radius=0.0)
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
             Ru = np.unique(Pts[0,:])
-        if not np.all(Ru==R):
-            dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
-                               if R[ii] in Ru])
+        # TODO : Warning : do we need the following lines ????
+        # if not np.all(Ru==R):
+        #     dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
+        #                        if R[ii] in Ru])
     return Pts, dV, ind.astype(int), dRr, dZr, np.asarray(dRPhir)
 
 
