@@ -8,6 +8,12 @@ git:
   depth: 200
 sudo: required
 dist: trusty
+# setup container matrix
+matrix:
+  include:
+    - env: OS='ubuntu:14.04'
+    - env: OS='centos:6'
+#...
 before_install:
   - sudo apt-get update
   - ldd --version
