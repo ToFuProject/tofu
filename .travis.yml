@@ -7,7 +7,9 @@ git:
 sudo: required
 
 env:
-  - OS_TYPE=centos OS_VERSION=6 ANSIBLE_VERSION=1.9.2
+  - OS_TYPE=centos
+  - OS_VERSION=6
+  - ANSIBLE_VERSION=1.9.2
 
 services:
   - docker
