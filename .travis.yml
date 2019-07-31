@@ -44,6 +44,8 @@ install:
 - if [[ "$TRAVIS_PYTHON_VERSION" == "3.7-dev" ]]; then export THIS_PY_VERSION="3.7";
   else THIS_PY_VERSION=$TRAVIS_PYTHON_VERSION;
   fi
+- echo $THIS_PY_VERSION
+- uname -a
 - conda install -q python=$THIS_PY_VERSION conda-build anaconda-client nose
   nose-timer coverage codecov
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
