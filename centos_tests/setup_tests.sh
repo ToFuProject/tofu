@@ -8,7 +8,7 @@ el_version=$1
  # Run tests in Container
 if [ "$el_version" = "6" ]; then
 
-sudo docker run --rm=true -v `pwd`:/htcondor-ce:rw centos:centos${OS_VERSION} /bin/bash -c "bash -xe /htcondor-ce/tests/test_inside_docker.sh ${OS_VERSION}"
+sudo docker run --rm=true -v `pwd`:/htcondor-ce:rw centos:centos${OS_VERSION} /bin/bash -c "bash -xe ./tests/test_inside_docker.sh ${OS_VERSION}"
 
 elif [ "$el_version" = "7" ]; then
 
