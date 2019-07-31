@@ -40,6 +40,11 @@ install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
+  - conda config --set always_yes yes --set changeps1 no
+  - conda install conda-build
+  - conda update -q conda
+  - conda update -n root conda-build
+  - conda config --set anaconda_upload no
   - conda config --append channels conda-forge
   - conda config --append channels tofuproject
   - conda info -a
