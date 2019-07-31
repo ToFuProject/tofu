@@ -23,6 +23,7 @@ before_install:
   - sudo service docker restart
   - sleep 5
   - sudo docker pull centos:centos${OS_VERSION}
+  - cat /etc/lsb-release
   - ldd --version
   - gcc --version
 
@@ -46,6 +47,7 @@ install:
   fi
 - echo $THIS_PY_VERSION
 - uname -a
+- cat /etc/lsb-release
 - conda install -q python=$THIS_PY_VERSION conda-build anaconda-client nose
   nose-timer coverage codecov
 - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
@@ -57,5 +59,6 @@ install:
 
 script:
  # Run tests in Container
+ - cat /etc/lsb-release
  - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage
   --cover-package=tofu
