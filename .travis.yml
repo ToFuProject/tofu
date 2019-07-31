@@ -4,15 +4,13 @@ python:
 - '2.7'
 - '3.6'
 
-git:
-  depth: 200
-
 sudo: required
-
 env:
   matrix:
-  - OS_TYPE=centos OS_VERSION=6
-  - OS_TYPE=centos OS_VERSION=7
+  - OS_TYPE=centos OS_VERSION=6 BUILD_ENV=uw_build
+  - OS_TYPE=centos OS_VERSION=7 BUILD_ENV=uw_build
+  - OS_TYPE=centos OS_VERSION=6 BUILD_ENV=osg
+  - OS_TYPE=centos OS_VERSION=7 BUILD_ENV=osg
 
 services:
   - docker
@@ -26,4 +24,4 @@ before_install:
 
 script:
  # Run tests in Container
-- centos_tests/setup_tests.sh ${OS_VERSION}
+- sudo centos_tests/setup_tests.sh ${OS_VERSION}
