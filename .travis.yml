@@ -61,8 +61,10 @@ install:
 
 script:
   - cd $HOME
+  - uname -a
+  - lsb_release -a
+  - cat /etc/lsb-release
   - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
 
 notifications:
   email: false
-  webhooks: https://galaxy.ansible.com/api/v1/notifications/
