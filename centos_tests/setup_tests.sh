@@ -8,15 +8,16 @@ el_version=$1
  # Run tests in Container
 if [ "$el_version" = "6" ]; then
 
-sudo docker run --rm=true -v `pwd`:/htcondor-ce:rw centos:centos${OS_VERSION} /bin/bash -c "bash -xe ./tests/test_inside_docker.sh ${OS_VERSION}"
+    echo "TESTING SOMETHING HERE............."
+    sudo docker run --rm=true -v `pwd`:/tofu:rw centos:centos${OS_VERSION} /bin/bash -c "bash -xe /tofu/tests/test_inside_docker.sh ${OS_VERSION}"
 
 elif [ "$el_version" = "7" ]; then
 
-docker run --privileged -d -ti -e "container=docker"  -v /sys/fs/cgroup:/sys/fs/cgroup -v `pwd`:/htcondor-ce:rw  centos:centos${OS_VERSION}   /usr/sbin/init
+docker run --privileged -d -ti -e "container=docker"  -v /sys/fs/cgroup:/sys/fs/cgroup -v `pwd`:/tofu:rw  centos:centos${OS_VERSION}   /usr/sbin/init
 DOCKER_CONTAINER_ID=$(docker ps | grep centos | awk '{print $1}')
 docker logs $DOCKER_CONTAINER_ID
-docker exec -ti $DOCKER_CONTAINER_ID /bin/bash -xec "bash -xe /htcondor-ce/tests/test_inside_docker.sh ${OS_VERSION};
-  echo -ne \"------\nEND HTCONDOR-CE TESTS\n\";"
+docker exec -ti $DOCKER_CONTAINER_ID /bin/bash -xec "bash -xe /tofu/tests/test_inside_docker.sh ${OS_VERSION};
+  echo -ne \"------\nEND TOFU TESTS\n\";"
 docker ps -a
 docker stop $DOCKER_CONTAINER_ID
 docker rm -v $DOCKER_CONTAINER_ID

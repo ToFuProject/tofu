@@ -1,16 +1,13 @@
 language: python
 
 python:
-- '2.7'
 - '3.6'
 
 sudo: required
 env:
   matrix:
   - OS_TYPE=centos OS_VERSION=6 BUILD_ENV=uw_build
-  - OS_TYPE=centos OS_VERSION=7 BUILD_ENV=uw_build
   - OS_TYPE=centos OS_VERSION=6 BUILD_ENV=osg
-  - OS_TYPE=centos OS_VERSION=7 BUILD_ENV=osg
 
 services:
   - docker
