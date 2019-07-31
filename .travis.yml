@@ -55,6 +55,9 @@ install:
   - conda build conda_recipe
   - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
   - conda install tofu --use-local
+  - echo $PWD
+  - ls
+  - ls tofu/geom/*
 
 script:
   - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
