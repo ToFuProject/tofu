@@ -24,4 +24,5 @@ before_install:
 
 script:
  # Run tests in Container
-- sudo centos_tests/setup_tests.sh ${OS_VERSION}
+- chmod +x ./centos_tests/setup_tests.sh
+- ./centos_tests/setup_tests.sh ${OS_VERSION}
