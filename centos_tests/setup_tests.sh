@@ -11,8 +11,8 @@ if [ "$el_version" = "6" ]; then
     echo "TESTING SOMETHING HERE............."
     ls
     echo $PWD
-    
-    sudo docker run --rm=true -v `pwd`:/tofu:rw centos:centos${OS_VERSION} /bin/bash -c "bash -xe tofu/tests/test_inside_docker.sh ${OS_VERSION}"
+
+    sudo docker run --rm=true -v `pwd`:/tofu:rw centos:centos${OS_VERSION} /bin/bash -c "bash -xe $PWD/tofu/tests/test_inside_docker.sh ${OS_VERSION}"
 
 elif [ "$el_version" = "7" ]; then
 
