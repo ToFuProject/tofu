@@ -1,4 +1,5 @@
 language: python
+
 python:
 - '2.7'
 - '3.6'
@@ -53,7 +54,7 @@ install:
 
 
 script:
- - sudo docker run --rm=true -v `pwd`:/ansible-apache:rw weldpua2008/docker-ansible:${OS_TYPE}${OS_VERSION}_v${ANSIBLE_VERSION} /bin/bash -c "/ansible-apache/tests/test-in-docker-image.sh ${OS_TYPE} ${OS_VERSION} ${ANSIBLE_VERSION}"
+- sudo docker run --rm=true -v `pwd`:/ansible-apache:rw weldpua2008/docker-ansible:${OS_TYPE}${OS_VERSION}_v${ANSIBLE_VERSION} /bin/bash -c "/ansible-apache/tests/test-in-docker-image.sh ${OS_TYPE} ${OS_VERSION} ${ANSIBLE_VERSION}"
 - cd $HOME
 - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage
   --cover-package=tofu
