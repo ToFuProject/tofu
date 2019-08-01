@@ -1,25 +1,72 @@
+;; This buffer is for text that is not saved, and for Lisp evaluation.
+;; To create a file, visit it with C-x C-f and enter text in its buffer.
+
 language: python
-
 python:
+- '2.7'
 - '3.6'
+#- '3.7-dev'
 
+git:
+  depth: 200
 sudo: required
-env:
-  matrix:
-  - OS_TYPE=centos OS_VERSION=6 BUILD_ENV=uw_build
-  - OS_TYPE=centos OS_VERSION=6 BUILD_ENV=osg
-
-services:
-  - docker
-
+dist: trusty
 before_install:
   - sudo apt-get update
-  - echo 'DOCKER_OPTS="-H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock -s devicemapper"' | sudo tee /etc/default/docker > /dev/null
-  - sudo service docker restart
-  - sleep 5
-  - sudo docker pull centos:centos${OS_VERSION}
-
+  - ldd --version
+  - gcc --version
+  - export START=$(pwd)
+install:
+- if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh
+  -O miniconda.sh; export VADD="py27"; else wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  -O miniconda.sh; export VADD="py36";  fi
+- bash miniconda.sh -b -p $HOME/miniconda
+- export PATH="$HOME/miniconda/bin:$PATH"
+- hash -r
+- conda config --set always_yes yes --set changeps1 no
+- conda install conda-build
+- conda update -q conda
+- conda update -n root conda-build
+- conda config --set anaconda_upload no
+- conda config --append channels conda-forge
+- conda config --append channels tofuproject
+- conda info -a
+- if [[ "$TRAVIS_PYTHON_VERSION" == "3.7-dev" ]]; then export THIS_PY_VERSION="3.7";
+  else THIS_PY_VERSION=$TRAVIS_PYTHON_VERSION;
+  fi
+- conda install -q python=$THIS_PY_VERSION conda-build anaconda-client nose
+  nose-timer coverage codecov
+- export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
+- export VERSION=$(echo $REV | tr - .)
+- echo $REV
+- conda build conda_recipe
+- export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
+- conda install tofu --use-local
 script:
- # Run tests in Container
-- chmod +x ./centos_tests/setup_tests.sh
-- ./centos_tests/setup_tests.sh ${OS_VERSION}
+- cd $HOME
+- nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage
+  --cover-package=tofu
+after_success:
+- codecov
+- chmod +x $START/anaconda_upload.sh
+- echo $TRAVIS_TAG
+before_deploy:
+- ls $START
+- cd $START
+deploy:
+  - provider: script
+    user: "ToFuProject"
+    script: $START/anaconda_upload.sh
+    on:
+      tags: true
+      all_branches: true
+    skip_cleanup: true
+  - provider: pypi
+    user: "Didou09"
+    distributions: "sdist"
+    skip_cleanup: true
+    on:
+      tags: true
+      all_branches: true
+    password:
+      secure: JNEDTDJVx/2fXNfHntNQ99iDRNuQ4uB3y+DBWVIBycCT95+UCb36YPtKzmruEk/UUS29Xgq4IYCGdfCSWE9smKqG8tV1PcHiw705m+AzcpKy77YtzbVECFBxqY4W36O2pHrkwEUzP/7acjFwNsnUFzArqEzsBJ+KdLaa4OPHJXCh30GA0GyqlrXYbBKG+DA9hX5vtsGo4C6w9noALYF3fS7pKPiI6ipKFnAlzGgHQ7Ke0uQME8N3IAFhmh+Z5xMtIIDWxlnqv+KszdG4DIaGV/W6NIJNAbRhzkqUd+Chu6LoPAd/XkHDTeirR/MBkNUc5UcRJxRnP9rUTRo1gCO/buTYuNRgFkMvqhV5a033+x9edWgtUiKNJIMPLXOxe0RJvc5GWji+Co77HtHxRmGRM2rnYqWMtZeYZlFbUdvHu/8jf0d6I8jyUgAoJYdlMA2u/ipENP3S6by4epE9qycUPXiIVh6r3DZbf3vPTMFvTZYAjBrA0NOzihv1xgcXwemmNUFOQSpe0io4UcFxtS9lLMo+30UMQjCHSnbEVM3zSlZmbMOKpkVOlKlt8Lz5NxwVgWtu9FuW2pGukLtE8AWbqvY9urXAPZCQqZlOIklIjJQIqOITnuw9LEV09cgvPHXfdvNni3ldbMlIQ89zryM6dYvhYryTiEZGK4JDR3wAKJA=
