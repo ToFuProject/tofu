@@ -1,70 +1,25 @@
 language: python
-python: "3.6"
-env:
-  - IMAGE=ubuntu TAG=trusty
-  - IMAGE=centos TAG=7
-  - IMAGE=centos TAG=6
 
-cache: pip
+python:
+- '3.6'
 
-dist: trusty
 sudo: required
+env:
+  matrix:
+  - OS_TYPE=centos OS_VERSION=6 BUILD_ENV=uw_build
+  - OS_TYPE=centos OS_VERSION=6 BUILD_ENV=osg
+
+services:
+  - docker
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get install -y python-pip
-  - sudo apt-get install -y apt-transport-https ca-certificates
-  - sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D
-  - echo 'deb https://apt.dockerproject.org/repo ubuntu-trusty main' | sudo tee /etc/apt/sources.list.d/docker.list
-  - sudo apt-get update
-  - sudo apt-get install -o Dpkg::Options::="--force-confdef" -y docker-engine
-  - docker version
-  - docker pull $IMAGE:$TAG
-  - docker run --name test -di $IMAGE:$TAG /bin/sh
-  - |
-    if [ ${IMAGE} = "ubuntu" ] || [ ${IMAGE} = "debian" ]; then
-      docker exec test apt-get update
-      docker exec test apt-get install -y python ca-certificates
-    fi
-  - |
-    if [ ${IMAGE} = "centos" ]; then
-      docker exec test yum makecache
-      docker exec test yum install -y python ca-certificates
-    fi
-  - |
-    if [ ${IMAGE} = "fedora" ]; then
-      docker exec test dnf makecache
-      docker exec test dnf install -y python ca-certificates python2-dnf
-    fi
-install:
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
-  - conda config --set always_yes yes --set changeps1 no
-  - conda install conda-build
-  - conda update -q conda
-  - conda update -n root conda-build
-  - conda config --set anaconda_upload no
-  - conda config --append channels conda-forge
-  - conda config --append channels tofuproject
-  - conda info -a
-  - conda install -q python=3.6 conda-build anaconda-client nose nose-timer coverage codecov
-  - export REV=$(python -c "import _updateversion as up; out=up.updateversion(); print(out)")
-  - export VERSION=$(echo $REV | tr - .)
-  - echo $REV
-  - conda build conda_recipe
-  - export PKG_DIR=$HOME/miniconda/conda-bld/linux-64/
-  - conda install tofu --use-local
-  - echo $PWD
-  - ls
-  - ls tofu/geom/*
+  - echo 'DOCKER_OPTS="-H tcp://127.0.0.1:2375 -H unix:///var/run/docker.sock -s devicemapper"' | sudo tee /etc/default/docker > /dev/null
+  - sudo service docker restart
+  - sleep 5
+  - sudo docker pull centos:centos${OS_VERSION}
 
 script:
-  - cd $HOME
-  - uname -a
-  - lsb_release -a
-  - cat /etc/lsb-release
-  - nosetests tofu.tests --nocapture -v --with-id --with-timer --with-coverage --cover-package=tofu
-
-notifications:
-  email: false
+ # Run tests in Container
+- chmod +x ./centos_tests/setup_tests.sh
+- ./centos_tests/setup_tests.sh ${OS_VERSION}
