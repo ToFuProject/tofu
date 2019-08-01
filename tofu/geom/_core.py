@@ -4547,7 +4547,7 @@ class Rays(utils.ToFuObject):
                                invert=invert, draw=draw, connect=connect)
 
         if out in [object, 'object']:
-            return osig
+            return osig, units
         else:
             return sig, units
 
@@ -4616,15 +4616,14 @@ class Rays(utils.ToFuObject):
             sig = np.full((1,self.nRays), np.nan)
 
         if t is None or len(t)==1:
-            sig[indok] = s
-            sig = sig.reshape((1,len(sig)))
+            sig[0,indok] = s
         else:
             sig[:,indok] = s
 
         # Format output
         return self._calc_signal_postformat(sig, Brightness=Brightness,
                                             dataname=dataname, t=t, E=E,
-                                            units=units, plot=plot,
+                                            units=units, plot=plot, out=out,
                                             fs=fs, dmargin=dmargin, wintit=wintit,
                                             invert=invert, draw=draw,
                                             connect=connect)
