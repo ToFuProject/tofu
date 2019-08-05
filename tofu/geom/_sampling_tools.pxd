@@ -160,3 +160,8 @@ cdef void romb_left_rule_abs_var(int num_los, double* resolutions,
                                         double** los_coeffs,
                                         long* los_ind,
                                         int num_threads) nogil
+
+# -- LOS sampling for a single ray ---------------------------------------------
+cdef int get_nb_imode(str imode)
+
+cdef int get_nb_dmode(str dmode)

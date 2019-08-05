@@ -68,7 +68,7 @@ cdef inline void first_discretize_line1d_core(double* LMinMax,
     cdef double[2] desired_limits
 
     # .. Computing "real" discretization step, depending on `mode`..............
-    if mode == 1: # absolute
+    if mode == 0: # absolute
         num_cells[0] = <int>Cceil((LMinMax[1] - LMinMax[0])/dstep)
     else: # relative
         num_cells[0] = <int>Cceil(1./dstep)
@@ -144,7 +144,7 @@ cdef inline void simple_discretize_line1d(double[2] LMinMax, double dstep,
     cdef double resol
     cdef double first = LMinMax[0]
 
-    if mode == 1: # absolute
+    if mode == 0: # absolute
         numcells = <int>Cceil((LMinMax[1] - first)/dstep)
     else: # relative
         num_cells = <int>Cceil(1./dstep)
@@ -736,3 +736,22 @@ cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
                 los_coeffs[0][first_index + jj] = los_lims_x[ii] \
                   + jj * loc_resol
     return
+
+# -- Get number of integration mode --------------------------------------------
+cdef inline int get_nb_imode(str imode) :
+    # gil required...........
+    if imode == 'sum':
+        return 0
+    if imode == 'simps':
+        return 1
+    if imode == 'romb':
+        return 2
+    return -1
+
+cdef inline int get_nb_dmode(str dmode) :
+    # gil required...........
+    if dmode == 'rel':
+        return 1
+    if dmode == 'abs':
+        return 0
+    return -1
