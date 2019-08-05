@@ -10,9 +10,11 @@ from libc.math cimport atan2 as Catan2
 from libc.math cimport sqrt as Csqrt
 from libc.math cimport fabs as Cabs
 from libc.math cimport NAN as Cnan
+from libc.math cimport pi as Cpi
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
+cdef double _TWOPI = 2.0 * Cpi
 
 # ==============================================================================
 # =  Point in path

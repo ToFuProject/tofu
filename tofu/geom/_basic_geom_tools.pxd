@@ -17,6 +17,7 @@ from cpython.array cimport array, clone
 # Values defined in the *.pyx file
 cdef double _VSMALL
 cdef double _SMALL
+cdef double _TWOPI
 
 # ==============================================================================
 # == Redifinition of functions
