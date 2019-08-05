@@ -447,6 +447,42 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
                        DL=None, bint Lim=True,
                        str mode='abs', double margin=_VSMALL):
     """
+    Discretize a 1D segment LMin-LMax. If `mode` is "abs" (absolute), then the
+    segment will be discretized in cells each of size `dstep`. Else, if `mode`
+    is "rel" (relative), the meshing step is relative to the segments norm (ie.
+    the actual discretization step will be (LMax - LMin)/dstep).
+    It is possible to only one to discretize the segment on a sub-domain. If so,
+    the sub-domain limits are given in DL.
+    Parameters
+    ==========
+    LMinMax : (2)-double array
+        Gives the limits LMin and LMax of the segment. LMinMax = [LMin, LMax]
+    dstep: double
+        Step of discretization, can be absolute (default) or relative
+    DL : (optional) (2)-double array
+        Sub domain of discretization. If not None and if Lim, LMinMax = DL
+        (can be only on one limit and can be bigger or smaller than original).
+        Actual desired limits
+    Lim : (optional) bool
+        Indicated if the subdomain should be taken into account
+    mode : (optional) string
+        If `mode` is "abs" (absolute), then the
+        segment will be discretized in cells each of size `dstep`. Else,
+        if "rel" (relative), the meshing step is relative to the segments norm
+        (the actual discretization step will be (LMax - LMin)/dstep).
+    margin : (optional) double
+        Margin value for cell length
+    Returns
+    =======
+    ldiscret: double array
+        array of the discretized coordinates on the segment of desired limits
+    resolution: double
+        step of discretization
+    lindex: int array
+        array of the indices corresponding to ldiscret with respects to the
+        original segment LMinMax (if no DL, from 0 to N-1)
+    N : int64
+        Number of points on LMinMax segment
     """
     cdef str err_mess
     cdef int mode_num
@@ -457,6 +493,7 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     cdef double* ldiscret = NULL
     cdef long* lindex = NULL
     cdef str mode_low = mode.lower()
+    # ...
     mode_num = _st.get_nb_dmode(mode_low)
     # .. Testing ...............................................................
     err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
@@ -558,20 +595,14 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef np.ndarray[double,ndim=2] ldiscr
     cdef np.ndarray[double,ndim=1] lresol
     cdef np.ndarray[long,ndim=1] lindex
+    # ...
+    mode_num = _st.get_nb_dmode(mode_low)
     # .. Testing ...............................................................
     err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
-    assert (mode_low == 'abs') or (mode_low == 'rel'), err_mess
+    assert mode_num >= 0, err_mess
     # .. Treating subdomains and Limits ........................................
     _st.cythonize_subdomain_dl(D1, dl1_array)
     _st.cythonize_subdomain_dl(D2, dl2_array)
-    if mode_low == 'abs':
-        mode_num = 1
-    elif mode_low == 'rel':
-        mode_num = 2
-    else:
-        # should never reach this point
-        mode_num = -1
-        assert(False)
     # .. Discretizing on the first direction ...................................
     nind1 = _st.discretize_line1d_core(&LMinMax1[0], dstep1, dl1_array,
                                        True, mode_num, margin,
@@ -663,20 +694,14 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     cdef long* dummy = NULL
     cdef str mode_low = dSMode.lower()
     cdef int mode_num
+    # ...
+    mode_num = _st.get_nb_dmode(mode_low)
     # .. Testing ...............................................................
-    assert (mode_low == 'abs') or (mode_low == 'rel'), "Mode has to be " +\
-        "'abs' (absolute) or 'rel' (relative)"
+    err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
+    assert mode_num >= 0, err_mess
     #.. preparing inputs........................................................
     dl_array[0] = Cnan
     dl_array[1] = Cnan
-    if mode_low == 'abs':
-        mode_num = 1
-    elif mode_low == 'rel':
-        mode_num = 2
-    else:
-        # should never reach this point
-        mode_num = -1
-        assert(False)
     #.. calling cython function.................................................
     _st.discretize_line1d_core(&MinMax1[0], d1, dl_array, True, mode_num,
                                margin, &X1, &resolution[0], &dummy,
@@ -823,28 +848,37 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double dRPhi,
     cdef int NP, NRPhi_int, Rratio
     cdef np.ndarray[double,ndim=2] Pts, indI
     cdef np.ndarray[double,ndim=1] iii, dV, ind
-    cdef double[2] limitless_dl
-    cdef double[1] res_r0
-    cdef long[1] ncells_r0
+    cdef double[2] limits_dl
+    cdef double[1] reso_r0, reso_r, reso_z
+    cdef long[1] ncells_r0, ncells_r, ncells_z
     cdef double* disc_r0 = NULL
-    cdef long* lindex_r0 = NULL
-    cdef int sz_r0d
+    cdef double* disc_r  = NULL
+    cdef double* disc_z  = NULL
+    cdef long* lindex = NULL
+    cdef long* lindex_z = NULL
+    cdef int sz_r0d, sz_r, sz_z
     # Get the actual R and Z resolutions and mesh elements
-    # First we discretize R without limits:
-    _st.cythonize_subdomain_dl(None, limitless_dl)
-    sz_r0d = _st.discretize_line1d_core(&RMinMax[0], rstep, limitless_dl,
+    # .. First we discretize R without limits ..................................
+    _st.cythonize_subdomain_dl(None, limits_dl) # no limits
+    sz_r0d = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
                                         True, 0, # discretize in absolute mode
-                                        margin, &disc_r0, res_r0, &lindex_r0,
+                                        margin, &disc_r0, reso_r0, &lindex,
                                         ncells_r0)
-    # getting rid of things we dont need
-    free(lindex_r0)
-    R, dRr, indR, NR = discretize_line1d(RMinMax, rstep, DR, Lim=True,
-                                          margin=margin)
-    Z, dZr, indZ, NZ = discretize_line1d(ZMinMax, zstep, DZ, Lim=True,
-                                          margin=margin)
-    Rn = len(R)
-    Zn = len(Z)
-
+    free(lindex) # getting rid of things we dont need
+    lindex = NULL
+    # .. Now the actual R limited  .............................................
+    _st.cythonize_subdomain_dl(DR, limits_dl) # no limits
+    sz_r = _st.discretize_line1d_core(&RMinMax[0], rstep, limits_dl,
+                                      True, 0, # discretize in absolute mode
+                                      margin, &disc_r, reso_r, &lindex,
+                                      ncells_r)
+    free(lindex) # getting rid of things we dont need
+    # .. Now Z .................................................................
+    _st.cythonize_subdomain_dl(DZ, limits_dl) # no limits
+    sz_z = _st.discretize_line1d_core(&ZMinMax[0], zstep, limits_dl,
+                                      True, 0, # discretize in absolute mode
+                                      margin, &disc_z, reso_z, &lindex_z,
+                                      ncells_z)
     # Get the limits if any (and make sure to replace them in the proper
     # quadrants)
     if DPhi is None:
@@ -853,27 +887,27 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double dRPhi,
         DPhi0 = Catan2(Csin(DPhi[0]), Ccos(DPhi[0]))
         DPhi1 = Catan2(Csin(DPhi[1]), Ccos(DPhi[1]))
 
-    dRPhir, dPhir = np.empty((Rn,)), np.empty((Rn,))
-    Phin = np.empty((Rn,),dtype=int)
-    NRPhi = np.empty((Rn,))
-    NRPhi0 = np.zeros((Rn,),dtype=int)
+    dRPhir, dPhir = np.empty((sz_r,)), np.empty((sz_r,))
+    Phin = np.empty((sz_r,),dtype=int)
+    NRPhi = np.empty((sz_r,))
+    NRPhi0 = np.zeros((sz_r,),dtype=int)
     nRPhi0, indR0ii = 0, 0
     NP, NPhimax = 0, 0
-    Rratio = int(Cceil(R[Rn-1]/R[0]))
-    for ii in range(0,Rn):
+    Rratio = int(Cceil(disc_r[sz_r-1]/disc_r[0]))
+    for ii in range(0,sz_r):
         # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
-        NRPhi[ii] = Cceil(2.*Cpi*R[ii]/dRPhi)
+        NRPhi[ii] = Cceil(2.*Cpi*disc_r[ii]/dRPhi)
         NRPhi_int = int(NRPhi[ii])
         dPhir[ii] = 2.*Cpi/NRPhi[ii]
-        dRPhir[ii] = dPhir[ii]*R[ii]
+        dRPhir[ii] = dPhir[ii]*disc_r[ii]
         # Get index and cumulated indices from background
         for jj in range(indR0ii, ncells_r0[0]):
-            if disc_r0[jj]==R[ii]:
+            if disc_r0[jj]==disc_r[ii]:
                 indR0ii = jj
                 break
             else:
                 nRPhi0 += <long>Cceil(2.*Cpi*disc_r0[jj]/dRPhi)
-                NRPhi0[ii] = nRPhi0*NZ
+                NRPhi0[ii] = nRPhi0*ncells_z[0]
         # Get indices of phi
         # Get the extreme indices of the mesh elements that really need to
         # be created within those limits
@@ -892,19 +926,19 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double dRPhi,
             #indI.append(list(range(nPhi0,nPhi1+1)))
             Phin[ii] = nPhi1+1-nPhi0
             if ii==0:
-                indI = np.nan*np.ones((Rn,Phin[ii]*Rratio+1))
+                indI = np.nan*np.ones((sz_r,Phin[ii]*Rratio+1))
             for jj in range(0,Phin[ii]):
                 indI[ii,jj] = <double>( nPhi0+jj )
         else:
             #indI.append(list(range(nPhi0,NRPhi_int)+list(range(0,nPhi1+1))))
             Phin[ii] = nPhi1+1+NRPhi_int-nPhi0
             if ii==0:
-                indI = np.nan*np.ones((Rn,Phin[ii]*Rratio+1))
+                indI = np.nan*np.ones((sz_r,Phin[ii]*Rratio+1))
             for jj in range(0,NRPhi_int-nPhi0):
                 indI[ii,jj] = <double>( nPhi0+jj )
             for jj in range(NRPhi_int-nPhi0,Phin[ii]):
                 indI[ii,jj] = <double>( jj- (NRPhi_int-nPhi0) )
-        NP += Zn*Phin[ii]
+        NP += sz_z*Phin[ii]
     Pts = np.empty((3,NP))
     ind = np.empty((NP,))
     dV = np.empty((NP,))
@@ -912,31 +946,31 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double dRPhi,
     # This triple loop is the longest part, it takes ~90% of the CPU time
     NP = 0
     if Out.lower()=='(x,y,z)':
-        for ii in range(0,Rn):
+        for ii in range(0,sz_r):
             # To make sure the indices are in increasing order
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
-            for zz in range(0,Zn):
+            for zz in range(0,sz_z):
                 for jj in range(0,Phin[ii]):
                     indiijj = iii[jj]
                     phi = -Cpi + (0.5+indiijj)*dPhir[ii]
-                    Pts[0,NP] = R[ii]*Ccos(phi)
-                    Pts[1,NP] = R[ii]*Csin(phi)
-                    Pts[2,NP] = Z[zz]
-                    ind[NP] = NRPhi0[ii] + indZ[zz]*NRPhi[ii] + indiijj
-                    dV[NP] = dRr*dZr*dRPhir[ii]
+                    Pts[0,NP] = disc_r[ii]*Ccos(phi)
+                    Pts[1,NP] = disc_r[ii]*Csin(phi)
+                    Pts[2,NP] = disc_z[zz]
+                    ind[NP] = NRPhi0[ii] + lindex_z[zz]*NRPhi[ii] + indiijj
+                    dV[NP] = reso_r[0]*reso_z[0]*dRPhir[ii]
                     NP += 1
     else:
-        for ii in range(0,Rn):
+        for ii in range(0,sz_r):
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
             #assert iii.size==Phin[ii] and np.all(np.unique(iii)==iii)
-            for zz in range(0,Zn):
+            for zz in range(0,sz_z):
                 for jj in range(0,Phin[ii]):
                     indiijj = iii[jj] #indI[ii,iii[jj]]
-                    Pts[0,NP] = R[ii]
-                    Pts[1,NP] = Z[zz]
+                    Pts[0,NP] = disc_r[ii]
+                    Pts[1,NP] = disc_z[zz]
                     Pts[2,NP] = -Cpi + (0.5+indiijj)*dPhir[ii]
-                    ind[NP] = NRPhi0[ii] + indZ[zz]*NRPhi[ii] + indiijj
-                    dV[NP] = dRr*dZr*dRPhir[ii]
+                    ind[NP] = NRPhi0[ii] + lindex_z[zz]*NRPhi[ii] + indiijj
+                    dV[NP] = reso_r[0]*reso_z[0]*dRPhir[ii]
                     NP += 1
     if VPoly is not None:
         if Out.lower()=='(x,y,z)':
@@ -951,12 +985,15 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double dRPhi,
             Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
             Ru = np.unique(Pts[0,:])
         # TODO : Warning : do we need the following lines ????
-        # if not np.all(Ru==R):
-        #     dRPhir = np.array([dRPhir[ii] for ii in range(0,len(R)) \
-        #                        if R[ii] in Ru])
+        # if not np.all(Ru==disc_r):
+        #     dRPhir = np.array([dRPhir[ii] for ii in range(0,len(disc_r)) \
+        #                        if disc_r[ii] in Ru])
 
     free(disc_r0)
-    return Pts, dV, ind.astype(int), dRr, dZr, np.asarray(dRPhir)
+    free(disc_r)
+    free(disc_z)
+    free(lindex_z)
+    return Pts, dV, ind.astype(int), reso_r[0], reso_z[0], np.asarray(dRPhir)
 
 
 def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
