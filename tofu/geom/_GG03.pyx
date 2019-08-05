@@ -191,7 +191,6 @@ def CoordShift(Pts, In='(X,Y,Z)', Out='(R,Z)', CrossRef=None):
 @cython.boundscheck(False)
 def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     """ Assuming 2D closed Poly !
-    TODO @LM :
     http://www.faqs.org/faqs/graphics/algorithms-faq/
     A slightly faster method is based on the observation that it isn't
     necessary to compute the area.  Find the lowest vertex (or, if
@@ -293,17 +292,12 @@ def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
         poly = poly[:,:-1]
     if layout.lower()=='(n,cc)':
         poly = poly.T
-        # TODO : @LM @DV > seems strange to me that we order all polys
-        # in order "(cc,n)" and just last minute we look at what's actually
-        # asked
-        # >> ok
     poly = np.ascontiguousarray(poly) if order.lower()=='c' \
            else np.asfortranarray(poly)
     return poly
 
 
 def Poly_VolAngTor(np.ndarray[double,ndim=2,mode='c'] Poly):
-    # TODO : @LM > to check the formulas can they be optimized ?
     cdef np.ndarray[double,ndim=1] Ri0 = Poly[0,:-1], Ri1 = Poly[0,1:]
     cdef np.ndarray[double,ndim=1] Zi0 = Poly[1,:-1], Zi1 = Poly[1,1:]
     cdef double V   =  np.sum((Ri0*Zi1 - Zi0*Ri1) * (Ri0+Ri1)) / 6.
@@ -505,18 +499,7 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
     assert mode_is_abs or mode_is_rel, err_mess
     # .. preparing inputs.......................................................
-    if DL is None:
-        dl_array[0] = Cnan
-        dl_array[1] = Cnan
-    else:
-        if DL[0] is None:
-            dl_array[0] = Cnan
-        else:
-            dl_array[0] = DL[0]
-        if DL[1] is None:
-            dl_array[1] = Cnan
-        else:
-            dl_array[1] = DL[1]
+    _st.cythonize_subdomain_dl(DL, dl_array) # dl_array is initialized
     if mode_is_abs:
         mode_num = 1
     elif mode_is_rel:
@@ -2554,11 +2537,9 @@ def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
     _vt.earclipping_poly(&poly[0,0], &ltri[0], diff, lref, nvert)
     return ltri
 
-def vignetting(double[:, ::1] ray_orig,
-               double[:, ::1] ray_vdir,
-               list vignett_poly,
-               long[::1] lnvert,
-               int num_threads=16):
+
+def vignetting(double[:, ::1] ray_orig, double[:, ::1] ray_vdir,
+               list vignett_poly, long[::1] lnvert, int num_threads=16):
     """
     ray_orig : (3, num_los) double array
        LOS origin points coordinates

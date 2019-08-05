@@ -52,13 +52,13 @@ x	2/ Calculer, pour N polygones, et lorsque les lignes de visÃ©e ne les
                     indiquant la LOS pourlequel le poly est le plus proche. (min(distance) mais
                     pour laquelle la LOS ne passe pas à l'intérieur).
 
->	2.1/ Ask Didier (vignetting algo ?)
+x	2.1/ Ask Didier (vignetting algo ?)
 	> In : (list los_orig, list los_dirc, list contour3d, ncontour, list nvert...)
 	> Out : (list bool[ncontour * nlos])
 	> contour 'simple' 3d = sans recoupe.
 	>  1. bbox - los
 	   triangulation du polygon
-
+x
 	3/ Calculer, pour N points de l'espace (~10-100) s'il sont visibles par
 	M autres points (~10^4-10^6), dans une configuration donnÃ©e (ex.: des
 	points le long d'une trajectoire dans la chambre Ã  vide, on veut savoir

@@ -162,6 +162,28 @@ cdef inline void simple_discretize_line1d(double[2] LMinMax, double dstep,
         ldiscret_arr[0][ii] = first + resol * ii
     return
 
+# --- Utility function for discretizing line ---
+cdef inline void cythonize_subdomain_dl(DL, double[2] dl_array):
+    # All functions to discretize a line need to get a subdomain of
+    # discretization which can be None for both extremities or only
+    # one or none. However cython doesn't work too well with parameters
+    # that can be an array, a list, none, etc. So this functions will convert
+    # this obscure parameter to something more 'cythonic'
+    if DL is None:
+        dl_array[0] = Cnan
+        dl_array[1] = Cnan
+    else:
+        if DL[0] is None:
+            dl_array[0] = Cnan
+        else:
+            dl_array[0] = DL[0]
+        if DL[1] is None:
+            dl_array[1] = Cnan
+        else:
+            dl_array[1] = DL[1]
+    return
+
+
 # ==============================================================================
 # =  Vessel's poloidal cut discretization
 # ==============================================================================
