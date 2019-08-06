@@ -33,13 +33,11 @@ import _updateversion as up
 
 if platform.system() == "Darwin":
     # make sure you are using Homebrew's compiler
-    os.environ['CC'] = 'clang'
-    os.environ['CXX'] = 'clang++'
-    cpp_compile_args = ['-g', '-std=c++11', '-stdlib=libstdc++']
+    os.environ['CC'] = 'gcc-8'
+    os.environ['CXX'] = 'g++-8'
 else:
     os.environ['CC'] = 'gcc'
     os.environ['CXX'] = 'g++'
-    cpp_compile_args = ['-g', '-std=c++11']
 
 # ==============================================================================
 class CleanCommand(Clean):
@@ -214,7 +212,6 @@ if not not_openmp_installed :
 else:
     extra_compile_args=["-O0", "-Wall"]
     extra_link_args = []
-
 extensions = [ Extension(name="tofu.geom."+gg,
                          sources=["tofu/geom/"+gg+".pyx"],
                          extra_compile_args=extra_compile_args,
@@ -237,9 +234,9 @@ extensions = [ Extension(name="tofu.geom."+gg,
                         extra_link_args=extra_link_args),
               Extension(name="tofu.geom._vignetting_tools",
                         sources=["tofu/geom/_vignetting_tools.pyx"],
-                        language='c++',
+                        language="c++",
                         extra_compile_args=extra_compile_args,
-                        extra_link_args=cpp_compile_args),
+                        extra_link_args=extra_link_args),
               ]
 extensions = cythonize(extensions, annotate=True)
 
