@@ -517,7 +517,8 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                if (k in [dEq_corres['x'],dEq_corres['ax']]
+                    and 'marker' not in dlextra[k][ii].keys()):
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"
@@ -1266,7 +1267,8 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                if (k in [dEq_corres['ax'],dEq_corres['x']]
+                    and 'marker' not in dlextra[k][ii].keys()):
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"
@@ -1960,7 +1962,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k != kSep and 'marker' not in dlextra[k][ii].keys():
+                if (k in [dEq_corres['ax'], dEq_corres['x']]
+                    and 'marker' not in dlextra[k][ii].keys()):
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"
