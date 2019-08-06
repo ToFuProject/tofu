@@ -3252,9 +3252,9 @@ class MultiIDSLoader(object):
         # Calculate synthetic signal
         if Brightness is None:
             Brightness = self._didsdiag[ids]['synth'].get('Brightness', None)
-        sig = cam.calc_signal_from_Plasma2D(plasma, res=res, t=t,
-                                            Brightness=Brightness,
-                                            plot=False, **dq)
+        sig, units = cam.calc_signal_from_Plasma2D(plasma, res=res, t=t,
+                                                   Brightness=Brightness,
+                                                   plot=False, **dq)
 
         sig._dextra = plasma.get_dextra(dextra)
 
