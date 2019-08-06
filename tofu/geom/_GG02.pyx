@@ -841,22 +841,32 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     Return the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (rstep,zstep,dRphi)
     """
-    cdef double[::1] R, Z, dRPhir, dPhir, hypot
+    cdef np.ndarray[double, ndim=1] disc_r_on_phi_arr
+    cdef double[::1] R, Z, disc_r_on_phi, dPhir, hypot
     cdef double dRr, dZr, min_phi, max_phi
     cdef double abs0, abs1, phi, indiijj
-    cdef double inv_phistep
-    cdef long[::1] indR0, indR, indZ, Phin, NRPhi0
-    cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj, nPhi0, nPhi1, zz
+    cdef double inv_drphi
+    cdef double twopi_over_dphi
+    cdef long zrphi
+    cdef long[::1] indR0, indR, indZ, Phin
+    cdef int ind_loc_r0
+    cdef int NR0, NR, NZ, Rn, Zn, ncells_rphi0, ii, jj, nPhi0, nPhi1, zz
     cdef int NP, loc_nc_rphi, r_ratio
     cdef np.ndarray[double,ndim=2] Pts, indI
-    cdef np.ndarray[double,ndim=1] iii, dV, ind
+    cdef np.ndarray[double,ndim=1] iii, dV
+    cdef np.ndarray[long,ndim=1] ind
+    cdef double[:, ::1] pts_mv
+    cdef double[::1] dv_mv
+    cdef long[::1] ind_mv
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef long[1] ncells_r0, ncells_r, ncells_z
     cdef double* disc_r0 = NULL
     cdef double* disc_r  = NULL
     cdef double* disc_z  = NULL
-    cdef double* ncells_rphi = NULL
+    cdef double* step_rphi   = NULL
+    cdef long* ncells_rphi = NULL
+    cdef long* tot_nc_plane = NULL
     cdef long* lindex = NULL
     cdef long* lindex_z = NULL
     cdef int sz_r0d, sz_r, sz_z
@@ -882,8 +892,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                                       True, 0, # discretize in absolute mode
                                       margin, &disc_z, reso_z, &lindex_z,
                                       ncells_z)
-    # Get the limits if any (and make sure to replace them in the proper
-    # quadrants)
+    # .. Preparing for phi: get the limits if any and make sure to replace them
+    # .. in the proper quadrants ...............................................
     if DPhi is None:
         min_phi = -Cpi
         max_phi = Cpi
@@ -892,47 +902,52 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         min_phi = Catan2(Csin(min_phi), Ccos(min_phi))
         max_phi = DPhi[1] # to avoid conversions
         max_phi = Catan2(Csin(max_phi), Ccos(max_phi))
-
-    ncells_rphi  = <double*>malloc(sz_r*sizeof(double))
-    dRPhir = np.empty((sz_r,))
-    dPhir  = np.empty((sz_r,))
+    abs0 = Cabs(min_phi + Cpi)
+    # .. Initialization ........................................................
+    ncells_rphi = <long*>malloc(sz_r*sizeof(long))
+    step_rphi   = <double*>malloc(sz_r*sizeof(double))
+    tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
+    disc_r_on_phi_arr = np.empty((sz_r,)) # we create the numpy array
+    disc_r_on_phi = disc_r_on_phi_arr # and its associated memoryview
     Phin   = np.empty((sz_r,), dtype=int)
-    NRPhi0 = np.zeros((sz_r,), dtype=int)
-    nRPhi0 = 0
-    indR0ii = 0
+    # .. Initialization Variables ..............................................
+    ncells_rphi0 = 0
+    ind_loc_r0 = 0
     NPhimax = 0
     NP = 0
     r_ratio = <int>(Cceil(disc_r[sz_r - 1] / disc_r[0]))
-    inv_phistep = 1. / phistep
+    twopi_over_dphi = _TWOPI / phistep
+    #
+    # .. Discretizing Phi (with respect to the corresponding radius R) .........
     for ii in range(sz_r):
         # Get the actual RPhi resolution and Phi mesh elements (! depends on R!)
-        ncells_rphi[ii] = Cceil(_TWOPI * disc_r[ii] * inv_phistep)
-        loc_nc_rphi = int(ncells_rphi[ii])
-        dPhir[ii] = _TWOPI/ncells_rphi[ii]
-        dRPhir[ii] = dPhir[ii]*disc_r[ii]
+        ncells_rphi[ii] = <int>Cceil(twopi_over_dphi * disc_r[ii])
+        loc_nc_rphi = ncells_rphi[ii]
+        step_rphi[ii] = _TWOPI / ncells_rphi[ii]
+        inv_drphi = 1. / step_rphi[ii]
+        disc_r_on_phi[ii] = step_rphi[ii] * disc_r[ii]
         # Get index and cumulated indices from background
-        for jj in range(indR0ii, ncells_r0[0]):
+        for jj in range(ind_loc_r0, ncells_r0[0]):
             if disc_r0[jj]==disc_r[ii]:
-                indR0ii = jj
+                ind_loc_r0 = jj
                 break
             else:
-                nRPhi0 += <long>Cceil(_TWOPI*disc_r0[jj] * inv_phistep)
-                NRPhi0[ii] = nRPhi0*ncells_z[0]
+                ncells_rphi0 += <long>Cceil(twopi_over_dphi * disc_r0[jj])
+                tot_nc_plane[ii] = ncells_rphi0 * ncells_z[0]
         # Get indices of phi
         # Get the extreme indices of the mesh elements that really need to
         # be created within those limits
-        abs0 = Cabs(min_phi+Cpi)
-        if abs0-dPhir[ii]*Cfloor(abs0/dPhir[ii]) < margin*dPhir[ii]:
-            nPhi0 = int(Cround((min_phi+Cpi)/dPhir[ii]))
+        if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin*step_rphi[ii]:
+            nPhi0 = int(Cround((min_phi + Cpi) * inv_drphi))
         else:
-            nPhi0 = int(Cfloor((min_phi+Cpi)/dPhir[ii]))
-        abs1 = Cabs(max_phi+Cpi)
-        if abs1-dPhir[ii]*Cfloor(abs1/dPhir[ii]) < margin*dPhir[ii]:
-            nPhi1 = int(Cround((max_phi+Cpi)/dPhir[ii])-1)
+            nPhi0 = int(Cfloor((min_phi + Cpi) * inv_drphi))
+        abs1 = Cabs(max_phi + Cpi)
+        if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin*step_rphi[ii]:
+            nPhi1 = int(Cround((max_phi+Cpi) * inv_drphi)-1)
         else:
-            nPhi1 = int(Cfloor((max_phi+Cpi)/dPhir[ii]))
+            nPhi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
 
-        if min_phi<max_phi:
+        if min_phi < max_phi:
             #indI.append(list(range(nPhi0,nPhi1+1)))
             Phin[ii] = nPhi1+1-nPhi0
             if ii==0:
@@ -948,10 +963,13 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                 indI[ii,jj] = <double>( nPhi0+jj )
             for jj in range(loc_nc_rphi-nPhi0,Phin[ii]):
                 indI[ii,jj] = <double>( jj- (loc_nc_rphi-nPhi0) )
-        NP += sz_z*Phin[ii]
+        NP += sz_z * Phin[ii]
     Pts = np.empty((3,NP))
-    ind = np.empty((NP,))
-    dV = np.empty((NP,))
+    ind = np.empty((NP,), dtype=int)
+    dV  = np.empty((NP,))
+    pts_mv = Pts
+    ind_mv = ind
+    dv_mv  = dV
     # Compute Pts, dV and ind
     # This triple loop is the longest part, it takes ~90% of the CPU time
     NP = 0
@@ -960,51 +978,59 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             # To make sure the indices are in increasing order
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
             for zz in range(0,sz_z):
+                zrphi = lindex_z[zz] * ncells_rphi[ii]
                 for jj in range(0,Phin[ii]):
                     indiijj = iii[jj]
-                    phi = -Cpi + (0.5+indiijj)*dPhir[ii]
-                    Pts[0,NP] = disc_r[ii]*Ccos(phi)
-                    Pts[1,NP] = disc_r[ii]*Csin(phi)
-                    Pts[2,NP] = disc_z[zz]
-                    ind[NP] = NRPhi0[ii] + lindex_z[zz]*ncells_rphi[ii] + indiijj
-                    dV[NP] = reso_r[0]*reso_z[0]*dRPhir[ii]
+                    phi = -Cpi + (0.5+indiijj)*step_rphi[ii]
+                    pts_mv[0,NP] = disc_r[ii]*Ccos(phi)
+                    pts_mv[1,NP] = disc_r[ii]*Csin(phi)
+                    pts_mv[2,NP] = disc_z[zz]
+                    ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
+                    dv_mv[NP] = reso_r[0]*reso_z[0]*disc_r_on_phi[ii]
                     NP += 1
     else:
         for ii in range(0,sz_r):
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
             #assert iii.size==Phin[ii] and np.all(np.unique(iii)==iii)
             for zz in range(0,sz_z):
+                zrphi = lindex_z[zz] * ncells_rphi[ii]
                 for jj in range(0,Phin[ii]):
                     indiijj = iii[jj] #indI[ii,iii[jj]]
-                    Pts[0,NP] = disc_r[ii]
-                    Pts[1,NP] = disc_z[zz]
-                    Pts[2,NP] = -Cpi + (0.5+indiijj)*dPhir[ii]
-                    ind[NP] = NRPhi0[ii] + lindex_z[zz]*ncells_rphi[ii] + indiijj
-                    dV[NP] = reso_r[0]*reso_z[0]*dRPhir[ii]
+                    pts_mv[0,NP] = disc_r[ii]
+                    pts_mv[1,NP] = disc_z[zz]
+                    pts_mv[2,NP] = -Cpi + (0.5+indiijj)*step_rphi[ii]
+                    ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
+                    dv_mv[NP] = reso_r[0]*reso_z[0]*disc_r_on_phi[ii]
                     NP += 1
     if VPoly is not None:
         if Out.lower()=='(x,y,z)':
-            hypot = _bgt.compute_hypot(Pts[0,:],Pts[1,:])
-            indin = Path(VPoly.T).contains_points(np.array([hypot,Pts[2,:]]).T,
+            hypot = _bgt.compute_hypot(pts_mv[0,:],pts_mv[1,:])
+            indin = Path(VPoly.T).contains_points(np.array([hypot,pts_mv[2,:]]).T,
                                                   transform=None, radius=0.0)
-            Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
+            Pts = Pts[:,indin]
+            dv_mv = dV[indin]
+            ind_mv = ind[indin]
             Ru = np.unique(hypot)
         else:
-            indin = Path(VPoly.T).contains_points(Pts[:-1,:].T, transform=None,
+            indin = Path(VPoly.T).contains_points(pts_mv[:-1,:].T, transform=None,
                                                   radius=0.0)
-            Pts, dV, ind = Pts[:,indin], dV[indin], ind[indin]
+            Pts = Pts[:,indin]
+            dv_mv = dV[indin]
+            ind_mv = ind[indin]
             Ru = np.unique(Pts[0,:])
         # TODO : Warning : do we need the following lines ????
         # if not np.all(Ru==disc_r):
-        #     dRPhir = np.array([dRPhir[ii] for ii in range(0,len(disc_r)) \
+        #     disc_r_on_phi = np.array([disc_r_on_phi[ii] for ii in range(0,len(disc_r)) \
         #                        if disc_r[ii] in Ru])
 
-    free(disc_r0)
     free(disc_r)
     free(disc_z)
+    free(disc_r0)
     free(lindex_z)
+    free(step_rphi)
     free(ncells_rphi)
-    return Pts, dV, ind.astype(int), reso_r[0], reso_z[0], np.asarray(dRPhir)
+    free(tot_nc_plane)
+    return Pts, dV, ind, reso_r[0], reso_z[0], disc_r_on_phi_arr
 
 
 def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
