@@ -2387,7 +2387,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
     else:
         assert type(ref2) is tuple and len(ref2) == 2
         n1, n2 = ref2[0].size, ref2[1].size
-        if np.any(np.isnan(ref2)):
+        if any([np.any(np.isnan(rr)) for rr in ref2]):
             def func(val, ind0=None, ref2=ref2, n1=n1, n2=n2):
                 i1 = np.nanargmin(np.abs(ref2[0]-val[0]))
                 i2 = np.nanargmin(np.abs(ref2[1]-val[1]))

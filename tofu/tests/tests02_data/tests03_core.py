@@ -383,13 +383,7 @@ class Test01_DataCam12D(object):
 
     def test19_plot_svd(self):
         for oo in self.lobj:
-            print(oo)
-            try:
-                kh = oo.plot_svd()
-            except Exception:
-                import ipdb         # DB
-                ipdb.set_trace()    # DB
-                pass
+            kh = oo.plot_svd()
         plt.close('all')
 
     def test20_copy_equal(self):
