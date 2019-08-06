@@ -28,8 +28,6 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
     Among the parameters present, if used as a part of dumpro, 
     w_dir and shot_name are provided by the image processing 
     class in the core file.
-    The verb paramenter is used when thsi subroutine is used independently.
-    Otherwise it is suppressed by the core class.
     
     for more information:
     1. Opencv Contour Features(Rotated Rectrangle)
@@ -57,6 +55,8 @@ def det_cluster(im_path, w_dir, shot_name, im_out = None, verb = True):
     ang_cluster:      list
      A list containing the angular orientation of each cluster
     indt:             array
+     An array map of the film containing True if cluster present in frame or 
+     else False
     """
     if verb == True:
         print('###########################################')

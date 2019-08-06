@@ -21,6 +21,10 @@ def get_area(clus_area, t_cluster, indt, verb = True):
     --------------------------
     clus_area          list
      A list containing the area of all the clusters
+    t_cluster          array
+     An array containing the total number of cluster in each frame
+    indt               array
+     An array containing True if cluster in present in frame or else False
      
     Return:
     --------------------------

@@ -11,7 +11,7 @@ email: napraarpan@gmail.com
 import numpy as np
 
 def get_distance(clus_center, clus_area, t_clusters, indt, verb = True):
-    """This subroutine calculate the average distance between clusters of one
+    """This subroutine calculate the distance between clusters of one
     frame and the clusters of the next frame.
     
     Parameters:

@@ -57,13 +57,21 @@ def dumpro_vid(filename, w_dir, shot_name, rate = None, tlim = None,
      The height and width limits of the frame to select the region of interest
     im_out:           string
      The output path for the images after processing.
-    cen_clus:         list
-     Centers of all the clusters in each frame
-    area_clus:        list
-     Area of all the clusters in each frame
-    t_clus:           list
-     Total number of clusters in each frame
+    blur:             boolean
+     if True, will use the smoothening subroutine
+    meta_data:        dictionary
+     A dictionary containing meta_data of the film
     
+    Returns
+    ----------------------------------
+    infocluster:     dictionary
+     A dictionary containing all the information available on clusters present
+     in a frame
+    reshape:         dictionary
+     A dictionary containing information on the reshaping of the frames
+    imdir:           dictioanry
+     A dictionary containing path of all the different images created during
+     runtime  
     """
     #dictionary to store information on cluster
     infocluster = {}
