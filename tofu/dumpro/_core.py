@@ -868,7 +868,7 @@ class Vid_img(Video):
 #############################################################################
 #     Getters for the class attributes
 #############################################################################
-    #getter for im_dir dictionary
+    @property
     def imdir(self):
         """Returns im_dir dictionary"""
         return self.__im_dir
