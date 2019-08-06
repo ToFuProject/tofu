@@ -14,7 +14,7 @@ c
       double precision RP(n_in), PHIP(n_in), ZP(n_in)
       double precision WITOR(k_in)
 
-Cf2py intent(in) RP, PHIP, ZP, WITOR 
+Cf2py intent(in) RP, PHIP, ZP, WITOR
 Cf2py depend(RP) n_in
 Cf2py depend(WITOR) k_in
 Cf2py intent(out) brr, bt, bzz

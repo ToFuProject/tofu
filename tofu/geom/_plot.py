@@ -226,7 +226,7 @@ def Struct_plot(lS, lax=None, proj='all', element=None, dP=None,
     if proj=='all':
         lax[1].autoscale_view()
 
-    if tit is not None:
+    if tit != False:
         lax[0].figure.suptitle(tit)
 
     if not dLeg is None:
@@ -702,7 +702,7 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
 
     # set extent
     ratio = refpt[0] / np.nanmin(dist)
-    extent = np.pi*np.r_[-ratio, ratio, -1.,1.]
+    extent = np.pi*np.r_[-1., 1., -1.,1.]
 
     # set colors
     vmin = np.nanmin(dist) if vmin is None else vmin
@@ -725,12 +725,17 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
     if tit is not None:
         fig.suptitle(tit)
 
-    dax['dist'][0].imshow(cols, extent=extent, aspect='equal',
+    dax['dist'][0].imshow(cols, extent=extent, aspect='auto',
                           interpolation='nearest', origin='lower', zorder=-1)
 
     dax['cross'][0], dax['hor'][0] = config.plot(lax=[dax['cross'][0],
                                                       dax['hor'][0]],
                                                  draw=False)
+    dax['dist'][0].set_xlim(np.pi*np.r_[-1.,1.])
+    dax['dist'][0].set_ylim(np.pi*np.r_[-1.,1.])
+    dax['dist'][0].set_aspect(aspect=1./ratio)
+
+
 
     # legend proxy
     # if legend != False:
@@ -743,7 +748,7 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
 
     if draw:
         fig.canvas.draw()
-    return ax
+    return dax
 
 
 
@@ -762,34 +767,35 @@ def Config_phithetaproj_dist(config, refpt, dist, indStruct,
 ############################################
 
 def _LOS_calc_InOutPolProj_Debug(config, Ds, us ,PIns, POuts,
-                                 L=3, Lim=None, Nstep=100,
+                                 L=3, nptstot=None, Lim=None, Nstep=100,
                                  fs=None, wintit=_wintit, draw=True):
     # Preformat
     assert Ds.shape==us.shape==PIns.shape==POuts.shape
     if Ds.ndim==1:
         Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
         PIns, POuts = PIns.reshape((3,1)), POuts.reshape((3,1))
-    Ps = Ds + L*us
     nP = Ds.shape[1]
-    l0 = np.array([Ds[0,:], Ps[0,:], np.full((nP,),np.nan)]).T.ravel()
-    l1 = np.array([Ds[1,:], Ps[1,:], np.full((nP,),np.nan)]).T.ravel()
-    l2 = np.array([Ds[2,:], Ps[2,:], np.full((nP,),np.nan)]).T.ravel()
+    pts = (Ds[:,:,None]
+           + np.r_[0., L, np.nan][None,None,:]*us[:,:,None]).reshape((3,nP*3))
 
     # Plot
     ax = config.plot(element='P', proj='3d', Lim=Lim, Nstep=Nstep, dLeg=None,
                      fs=fs, wintit=wintit, draw=False)
-    ax.set_title('_LOS_calc_InOutPolProj / Debugging')
-    ax.plot(l0,l1,l2, c='k', lw=1, ls='-')
+    msg = '_LOS_calc_InOutPolProj - Debugging %s / %s pts'%(str(nP),str(nptstot))
+    ax.set_title(msg)
+    ax.plot(pts[0,:], pts[1,:], pts[2,:], c='k', lw=1, ls='-')
     ax.plot(PIns[0,:],PIns[1,:],PIns[2,:], c='b', ls='None', marker='o', label=r"PIn")
     ax.plot(POuts[0,:],POuts[1,:],POuts[2,:], c='r', ls='None', marker='x', label=r"POut")
     #ax.legend(**_def.TorLegd)
     if draw:
         ax.figure.canvas.draw()
 
-    print("")
-    print("Debugging...")
-    print("    D, u = ", Ds, us)
-    print("    PIn, POut = ", PIns, POuts)
+    msg = "\nDebugging %s / %s pts with no visibility:\n"%(str(nP),str(nptstot))
+    msg += "    D = %s\n"%str(Ds)
+    msg += "    u = %s\n"%str(us)
+    msg += "    PIn = %s\n"%str(PIns)
+    msg += "    POut = %s\n"%str(POuts)
+    print(msg)
 
 
 def _get_LLOS_Leg(GLLOS, Leg=None, ind=None, Val=None, Crit='Name', PreExp=None,
@@ -861,7 +867,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
               Leg=None, dL=None, dPtD=_def.LOSMd,
               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
               dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False,
-              draw=True, fs=None, wintit=None, Test=True, ind=None):
+              draw=True, fs=None, wintit=None, tit=None, Test=True, ind=None):
 
     if Test:
         C = GLos.Id.Cls in ['Rays','CamLOS1D','CamLOS2D']
@@ -887,7 +893,7 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
 
     if element_config != '':
         Lax = GLos.config.plot(lax=Lax, element=element_config,
-                               proj=Proj, indices=False, fs=fs, tit=None,
+                               proj=Proj, indices=False, fs=fs, tit=False,
                                draw=False, dLeg=None, wintit=wintit, Test=Test)
         Lax, C0, C1, C2 = _check_Lax(Lax, n=2)
 
@@ -1132,7 +1138,7 @@ def GLOS_plot_Sino(GLos, Proj='Cross', ax=None, Elt=_def.LOSImpElt,
                    Sketch=True, Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit,
                    Leg=None, dL=_def.LOSMImpd, dVes=_def.TorPFilld,
                    dLeg=_def.TorLegd, ind=None, multi=False,
-                   draw=True, fs=None, wintit=None, Test=True):
+                   draw=True, fs=None, tit=None, wintit=None, Test=True):
     if Test:
         assert Proj in ['Cross','3d'], "Arg Proj must be in ['Pol','3d'] !"
         assert Ang in ['theta','xi'], "Arg Ang must be in ['theta','xi'] !"
@@ -1300,7 +1306,7 @@ def _Cam12D_plot_touch_init(fs=None, dmargin=None, fontsize=8,
     elif type(fs) is str and fs.lower()=='a4':
         fs = (8.27,11.69)
     fig = plt.figure(facecolor=axCol,figsize=fs)
-    if wintit is not None:
+    if wintit != False:
         fig.canvas.set_window_title(wintit)
     if dmargin is None:
         dmargin = {'left':0.03, 'right':0.99,
@@ -1456,13 +1462,14 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
 
     if tit is None:
         tit = r"%s - %s - %s"%(cam.Id.Exp, cam.Id.Diag, cam.Id.Name)
-    fig.suptitle(tit)
+    if tit != False:
+        fig.suptitle(tit)
 
     # -----------------
     # Plot conf and bck
     if cam.config is not None:
         out = cam.config.plot(lax=[dax['cross'][0], dax['hor'][0]],
-                              element='P', dLeg=None, draw=False)
+                              element='P', tit=False, wintit=False, dLeg=None, draw=False)
         dax['cross'][0], dax['hor'][0] = out
 
     if cam._isLOS():

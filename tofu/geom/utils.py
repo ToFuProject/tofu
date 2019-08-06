@@ -693,7 +693,7 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
                   Lim=None, Bump_posextent=[np.pi/4., np.pi/4],
                   R=2.4, r=1., elong=0., Dshape=0.,
                   divlow=True, divup=True, nP=200,
-                  out='object', SavePath='./'):
+                  out='object', SavePath='./', path=_path_testcases):
     """ Create easily a tofu.geom.Config object
 
     In tofu, a Config (short for geometrical configuration) refers to the 3D
@@ -748,7 +748,7 @@ def create_config(case=None, Exp='Dummy', Type='Tor',
     """
 
     if case is not None:
-        conf = _create_config_testcase(config=case, out=out)
+        conf = _create_config_testcase(config=case, out=out, path=path)
     else:
         poly, pbump, pbaffle = _compute_VesPoly(R=R, r=r, elong=elong, Dshape=Dshape,
                                                 divlow=divlow, divup=divup, nP=nP)

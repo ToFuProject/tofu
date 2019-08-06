@@ -19,6 +19,7 @@ else:
 # Common
 import numpy as np
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import datetime as dtm
 try:
     import pandas as pd
@@ -52,9 +53,10 @@ __all__ = ['PlasmaDomain', 'Ves', 'PFC', 'CoilPF', 'CoilCS', 'Config',
 _arrayorder = 'C'
 _Clock = False
 _Type = 'Tor'
+_NUM_THREADS = 10
 _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
-
+_RES = 0.005
 
 
 """
@@ -766,19 +768,21 @@ class Struct(utils.ToFuObject):
                                                Spline=Spline, Splprms=Splprms,
                                                NP=NP, Plot=Plot, Test=Test)
 
-    def get_sampleEdge(self, res, DS=None, resMode='abs', offsetIn=0.):
+    def get_sampleEdge(self, res=None, DS=None, resMode='abs', offsetIn=0.):
         """ Sample the polygon edges, with resolution res
 
         Sample each segment of the 2D polygon
         Sampling can be limited to a subdomain defined by DS
         """
+        if res is None:
+            res = _RES
         pts, dlr, ind = _comp._Ves_get_sampleEdge(self.Poly, res, DS=DS,
                                                   dLMode=resMode, DIn=offsetIn,
                                                   VIn=self.dgeom['VIn'],
                                                   margin=1.e-9)
         return pts, dlr, ind
 
-    def get_sampleCross(self, res, DS=None, resMode='abs', ind=None, mode='flat'):
+    def get_sampleCross(self, res=None, DS=None, resMode='abs', ind=None, mode='flat'):
         """ Sample, with resolution res, the 2D cross-section
 
         The sampling domain can be limited by DS or ind
@@ -796,13 +800,15 @@ class Struct(utils.ToFuObject):
                 extent : the extent to be fed to mpl.pyplot.imshow()
 
         """
+        if res is None:
+            res = _RES
         args = [self.Poly_closed, self.dgeom['P1Min'][0], self.dgeom['P1Max'][0],
                 self.dgeom['P2Min'][1], self.dgeom['P2Max'][1], res]
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, margin=1.e-9, mode=mode)
         out = _comp._Ves_get_sampleCross(*args, **kwdargs)
         return out
 
-    def get_sampleS(self, res, DS=None, resMode='abs',
+    def get_sampleS(self, res=None, DS=None, resMode='abs',
                     ind=None, offsetIn=0., Out='(X,Y,Z)', Ind=None):
         """ Sample, with resolution res, the surface defined by DS or ind
 
@@ -866,6 +872,8 @@ class Struct(utils.ToFuObject):
         """
         if Ind is not None:
             assert self.dgeom['Multi']
+        if res is None:
+            res = _RES
         kwdargs = dict(DS=DS, dSMode=resMode, ind=ind, DIn=offsetIn,
                        VIn=self.dgeom['VIn'], VType=self.Id.Type,
                        VLim=np.ascontiguousarray(self.Lim), nVLim=self.noccur,
@@ -2333,6 +2341,26 @@ class Config(utils.ToFuObject):
             ii += 1
         return col
 
+    def set_colors_random(self, cmap=plt.cm.Accent):
+        ii = 0
+        ncol = len(cmap.colors)
+        for k in self._dStruct['lorder']:
+            k0, k1 = k.split('_')
+            if self._dStruct['dObj'][k0][k1]._InOut == 'in':
+                col = 'k'
+            elif 'lh' in k1.lower():
+                col = (1.,0.,0.)
+            elif 'ic' in k1.lower():
+                col = (1.,0.5,0.5)
+            elif 'div' in k1.lower():
+                col = (0.,1.,0.)
+            elif 'bump' in k1.lower():
+                col = (0.,0.,1.)
+            else:
+                col = cmap.colors[ii%ncol]
+                ii += 1
+            self._dStruct['dObj'][k0][k1].set_color(col)
+
     def get_summary(self, verb=False, max_columns=100, width=1000):
         """ Summary description of the object content as a pandas DataFrame """
         # Make sure the data is accessible
@@ -2496,10 +2524,38 @@ class Config(utils.ToFuObject):
             ind[ii,:] = indi
         return ind
 
+
+    # TBF
+    def fdistfromwall(self, r, z, phi):
+        """ Return a callable (function) for detecting trajectory collisions with wall
+
+        The function is continuous wrt time and space
+        It takes into account all Struct in Config, including non-axisymmetric
+        ones
+
+        It is desined for iterative root-finding algorithms and is thus called
+        for a unique position
+
+        """
+        isin = [ss._InOut == 'in' for ss in self.lStruct]
+        inside = self.isInside(np.r_[r,z,phi], In='(R,Z,Phi)', log='any')
+
+        distRZ, indStruct = self._get_phithetaproj_dist(refpt=np.r_[r,z],
+                                                        ntheta=ntheta, nphi=nphi,
+                                                        theta=theta, phi=phi)
+        lSlim = [ss for ss in self.lStruct if ss.noccur > 0]
+        distPhi = r*np.min([np.min(np.abs(phi - ss.Lim)) for ss in lSlim])
+        if inside:
+            return min(distRZ,distPhi)
+        else:
+            return -min(distRZ,distPhi)
+
+
+
     def plot(self, lax=None, proj='all', element='P', dLeg=_def.TorLegd,
              indices=False, Lim=None, Nstep=None,
              draw=True, fs=None, wintit=None, tit=None, Test=True):
-        assert tit is None or isinstance(tit,str)
+        assert tit in [None,False] or isinstance(tit,str)
         vis = self.get_visible()
         lStruct, lS = self.lStruct, []
         for ii in range(0,self._dStruct['nObj']):
@@ -2523,7 +2579,7 @@ class Config(utils.ToFuObject):
         msg = "Set the sino params before plotting !"
         msg += "\n    => run self.set_sino(...)"
         assert self.dsino['RefPt'] is not None, msg
-        assert tit is None or isinstance(tit,str)
+        assert tit in [None,False] or isinstance(tit,str)
         # Check uniformity of sinogram parameters
         for ss in self.lStruct:
             msg = "{0} {1} has different".format(ss.Id.Cls, ss.Id.Name)
@@ -2804,7 +2860,7 @@ class Rays(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dgeom(sino=True):
-        largs = ['dgeom']
+        largs = ['dgeom', 'Etendues', 'Surfaces']
         if sino:
             lsino = Rays._get_largs_dsino()
             largs += ['sino_{0}'.format(s) for s in lsino]
@@ -3229,10 +3285,10 @@ class Rays(utils.ToFuObject):
                 sca2 = np.sum(dgeom['u'][:,1:]*u,axis=0)**2
                 if np.all(sca2 < 1.-1.e-9):
                     DDb = dgeom['D'][:,1:]-dgeom['D'][:,0:1]
-                    k = np.sum(DDb*(u + np.sqrt(sca2)*dgeom['u'][:,1:]),axis=0)
+                    k = np.sum(DDb*(u - np.sqrt(sca2)*dgeom['u'][:,1:]),axis=0)
                     k = k / (1.-sca2)
-                    if k[0] > 0 and np.all(k[1:]-k[0]<1.e-9):
-                        pinhole = dgeom['D'][:,0] + k[0]*u
+                    if k[0] > 0 and np.allclose(k,k[0], atol=1.e-3, rtol=1.e-6):
+                        pinhole = dgeom['D'][:,0] + k[0]*u[:,0]
                         dgeom['pinhole'] = pinhole
 
             # Test if all D are on a common plane or line
@@ -3506,17 +3562,24 @@ class Rays(utils.ToFuObject):
         ind = np.isnan(kOut) | np.isinf(kOut)
         if np.any(ind):
             kOut[ind] = np.nan
-            msg = "Some LOS have no visibility inside the plasma domain !"
+            msg = "Some LOS have no visibility inside the plasma domain !\n"
+            msg += "Nb. of LOS concerned: %s out of %s\n"%(str(ind.sum()),
+                                                           str(kOut.size))
+            msg += "Indices of LOS ok:\n"
+            msg += repr((~ind).nonzero()[0])
+            msg += "\nIndices of LOS with no visibility:\n"
+            msg += repr(ind.nonzero()[0])
             warnings.warn(msg)
             if plotdebug:
-                PIn = self.D[:,ind] + kIn[np.newaxis,ind]*self.u[:,ind]
-                POut = self.D[:,ind] + kOut[np.newaxis,ind]*self.u[:,ind]
+                PIn = self.D[:,ind] + kIn[None,ind]*self.u[:,ind]
+                POut = self.D[:,ind] + kOut[None,ind]*self.u[:,ind]
                 # To be updated
                 _plot._LOS_calc_InOutPolProj_Debug(self.config,
                                                    self.D[:,ind],
                                                    self.u[:,ind],
                                                    PIn, POut,
-                                                   Lim=[np.pi/4.,7.*np.pi/4],
+                                                   nptstot=kOut.size,
+                                                   Lim=[np.pi/4.,2.*np.pi/4],
                                                    Nstep=50)
 
         # Handle particular cases with kIn > kOut
@@ -4098,55 +4161,40 @@ class Rays(utils.ToFuObject):
             ind = ind.nonzero()[0]
         return ind
 
-    def get_subset(self, indch=None):
+    def get_subset(self, indch=None, Name=None):
+        """ Return an instance which is a sub-set of the camera
+
+        The subset is the same camera but with only the LOS selected by indch
+        It can be assigned a new Name (str), or the same one (True)
+        """
         if indch is None:
             return self
         else:
             indch = self._check_indch(indch)
-            d = self.to_dict()
-            d['dId_dall_Name'] = d['dId_dall_Name']+'-subset'
-            if self.dchans!={} and self.dchans is not None:
-                for k in self.dchans.keys():
-                    C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                    if C0:
-                        if v.ndim==1:
-                            d['dchans_%s'%k] = v[indch]
-                        elif v.ndim==2 and v.shape[1]==self.nRays:
-                            d['dchans_%s'%k] = v[:,indch]
+            dd = self.to_dict()
 
-            # Geom
-            for k in self.dgeom.keys():
-                v = d['dgeom_%s'%k]
-                C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                if C0:
-                    if v.ndim==1:
-                        d['dgeom_%s'%k] = v[indch]
-                    elif v.ndim==2 and v.shape[1]==self.nRays:
-                        d['dgeom_%s'%k] = v[:,indch]
+            # Name
+            assert Name in [None,True] or type(Name) is str
+            if Name == True:
+                pass
+            elif type(Name) is str:
+                dd['dId_dall_Name'] = Name
+            elif Name is None:
+                dd['dId_dall_Name'] = dd['dId_dall_Name']+'-subset'
 
-            # X12
-            if self._is2D():
-                for k in self.dX12.keys():
-                    v = d['dX12_%s'%k]
-                    C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                    if C0:
-                        if v.ndim==1:
-                            d['dX12_%s'%k] = v[indch]
-                        elif v.ndim==2 and v.shape[1]==self.nRays:
-                            d['dX12_%s'%k] = v[:,indch]
-
-            # Sino
-            for k in self.dsino.keys():
-                v = d['dsino_%s'%k]
-                C0 = isinstance(v,np.ndarray) and self.nRays in v.shape
-                if C0:
-                    if v.ndim==1:
-                        d['dsino_%s'%k] = v[indch]
-                    elif v.ndim==2 and v.shape[1]==self.nRays:
-                        d['dsino_%s'%k] = v[:,indch]
+            # Resize all np.ndarrays
+            for kk in dd.keys():
+                vv = dd[kk]
+                c0 = isinstance(vv,np.ndarray) and self.nRays in vv.shape
+                if c0:
+                    if vv.ndim == 1:
+                        dd[kk] = vv[indch]
+                    elif vv.ndim == 2 and vv.shape[1] == self.nRays:
+                        dd[kk] = vv[:,indch]
+                dd['dgeom_nRays'] = dd['dgeom_D'].shape[1]
 
             # Recreate from dict
-            obj = self.__class__(fromdict=d)
+            obj = self.__class__(fromdict=dd)
         return obj
 
     def _get_plotL(self, Lplot='Tot', proj='All', ind=None, multi=False):
@@ -4168,8 +4216,8 @@ class Rays(utils.ToFuObject):
             pts = None
         return pts
 
-    def get_sample(self, res, resMode='abs', DL=None, method='sum', ind=None,
-                  compact=False):
+    def get_sample(self, res=None, resMode='abs', DL=None, method='sum', ind=None,
+                   pts=False, compact=True, num_threads=_NUM_THREADS, Test=True):
         """ Return a linear sampling of the LOS
 
         The LOS is sampled into a series a points and segments lengths
@@ -4179,16 +4227,18 @@ class Rays(utils.ToFuObject):
 
         Parameters
         ----------
-        res:     float
+        res:        float
             Desired resolution
-        resMode: str
+        resMode:    str
             Flag indicating res should be understood as:
                 - 'abs':    an absolute distance in meters
                 - 'rel':    a relative distance (fraction of the LOS length)
-        DL:     None / iterable
+        DL:         None / iterable
             The fraction [L1;L2] of the LOS that should be sampled, where
             L1 and L2 are distances from the starting point of the LOS (LOS.D)
-        method: str
+            DL can be an iterable of len()==2 (identical to all los), or a
+            (2,nlos) array
+        method:     str
             Flag indicating which to use for sampling:
                 - 'sum':    the LOS is sampled into N segments of equal length,
                             where N is the smallest int such that:
@@ -4204,17 +4254,34 @@ class Rays(utils.ToFuObject):
                                 * segment length <= resolution(res,resMode)
                                 * N = 2^k + 1
                             The points returned are the egdes of each segment
+        ind:        None / iterable of int
+            indices of the LOS to be sampled
+        pts:        bool
+            Flag indicating whether to return only the abscissa parameter k
+            (False) or the 3D pts coordinates (True)
+        compact:    bool
+            Flag incating whether to retrun the sampled pts of all los in a
+            single concatenated array (True) or splitted into
+            a list of nlos arrays)
 
         Returns
         -------
-        pts:    np.ndarray
-            A (3,NP) array of NP points along the LOS in (X,Y,Z) coordinates
         k:      np.ndarray
-            A (NP,) array of the points distances from the LOS starting point
-        reseff: float
-            The effective resolution (<= res input), as an absolute distance
+            if pts == False:
+                A (npts,) array of the abscissa parameters
+                  (i.e.: points distances from the LOS starting points)
+                In order to get the 3D cartesian coordinates of pts do:
+            if pts == True:
+                A (3,npts) array of the sampled points 3D cartesian coordinates
+        reseff: np.ndarray
+            A (nlos,) array of the effective resolution (<= res input), as an absolute distance
+        ind:    np.ndarray
+            A (nlos-1,) array of integere indices (where to split k to separate
+            the points of each los). e.g.: lk = np.split(k,ind)
 
         """
+        if res is None:
+            res = _RES
         ind = self._check_indch(ind)
         # preload k
         kIn = self.kIn
@@ -4247,15 +4314,16 @@ class Rays(utils.ToFuObject):
 
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Todo : reverse in _GG : make compact default for faster computation !
-        lpts, k, reseff = _GG.LOS_get_sample(Ds, us, res, DL,
-                                             dmethod=resMode, method=method)
-        if compact:
-            pts = np.concatenate(lpts, axis=1)
-            ind = np.array([pt.shape[1] for pt in lpts], dtype=int)
-            ind = np.cumsum(ind)[:-1]
-            return pts, k, reseff, ind
-        else:
-            return lpts, k, reseff
+        nlos = Ds.shape[1]
+        k, reseff, lind = _GG.LOS_get_sample(nlos, res, DL,
+                                            dmethod=resMode, method=method,
+                                            num_threads=num_threads, Test=Test)
+        if pts:
+            nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+            k = np.repeat(Ds, nbrep, axis=1) + k[None,:]*np.repeat(us, nbrep, axis=1)
+        if not compact:
+            k = np.split(k, lind, axis=-1)
+        return k, reseff, lind
 
     def _kInOut_IsoFlux_inputs(self, lPoly, lVIn=None):
 
@@ -4389,9 +4457,104 @@ class Rays(utils.ToFuObject):
 
         return kIn, kOut
 
+    def _calc_signal_preformat(self, ind=None, DL=None, t=None,
+                               out=object, Brightness=True):
+        msg = "Arg out must be in [object,np.ndarray]"
+        assert out in [object,np.ndarray], msg
+        assert type(Brightness) is bool, "Arg Brightness must be a bool !"
+        if Brightness is False and self.Etendues is None:
+            msg = "Etendue must be set if Brightness is False !"
+            raise Exception(msg)
+
+        # Preformat ind
+        ind = self._check_indch(ind)
+        # Preformat DL
+        kIn, kOut = self.kIn, self.kOut
+        if DL is None:
+            DL = np.array([kIn[ind], kOut[ind]])
+        elif np.asarray(DL).size==2:
+            DL = np.tile(np.asarray(DL).ravel()[:,np.newaxis],len(ind))
+        DL = np.ascontiguousarray(DL).astype(float)
+        assert type(DL) is np.ndarray and DL.ndim==2
+        assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
+
+        # check limits
+        ii = DL[0,:] < kIn[ind]
+        DL[0,ii] = kIn[ind][ii]
+        ii[:] = DL[0,:] >= kOut[ind]
+        DL[0,ii] = kOut[ind][ii]
+        ii[:] = DL[1,:] > kOut[ind]
+        DL[1,ii] = kOut[ind][ii]
+        ii[:] = DL[1,:] <= kIn[ind]
+        DL[1,ii] = kIn[ind][ii]
+
+        # Preformat Ds, us and Etendue
+        Ds, us = self.D[:,ind], self.u[:,ind]
+        E = None
+        if Brightness is False:
+            E = self.Etendues
+            if E.size==self.nRays:
+                E = E[ind]
+
+        # Preformat signal
+        if len(ind)==1:
+            Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
+        indok = ~(np.any(np.isnan(DL),axis=0) | np.any(np.isinf(DL),axis=0)
+                  | ((DL[1,:]-DL[0,:])<=0.))
+
+        if np.any(indok):
+            Ds, us, DL = Ds[:,indok], us[:,indok], DL[:,indok]
+            if indok.sum()==1:
+                Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
+                DL = DL.reshape((2,1))
+            Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
+            DL = np.ascontiguousarray(DL)
+        else:
+            Ds, us, DL = None, None, None
+        return indok, Ds, us, DL, E
+
+
+    def _calc_signal_postformat(self, sig, Brightness=True, dataname=None, t=None,
+                                E=None, units=None, plot=True, out=object,
+                                fs=None, dmargin=None, wintit=None, invert=True,
+                                draw=True, connect=True):
+        if Brightness is False:
+            if dataname is None:
+                dataname = r"LOS-integral x Etendue"
+            if t is None or len(t)==1 or E.size==1:
+                sig = sig*E
+            else:
+                sig = sig*E[np.newaxis,:]
+            if units is None:
+                units = r"origin x $m^3.sr$"
+        else:
+            if dataname is None:
+                dataname = r"LOS-integral"
+            if units is None:
+                units = r"origin x m"
+
+        if plot or out in [object,'object']:
+            kwdargs = dict(data=sig, t=t, lCam=self, Name=self.Id.Name,
+                           dlabels={'data':{'units':units, 'name':dataname}},
+                           Exp=self.Id.Exp, Diag=self.Id.Diag)
+            import tofu.data as tfd
+            if self._is2D():
+                osig = tfd.DataCam2D(**kwdargs)
+            else:
+                osig = tfd.DataCam1D(**kwdargs)
+            if plot:
+                kh = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
+                               invert=invert, draw=draw, connect=connect)
+
+        if out in [object, 'object']:
+            return osig, units
+        else:
+            return sig, units
+
+
 
     def calc_signal(self, ff, t=None, ani=None, fkwdargs={}, Brightness=True,
-                    res=0.005, DL=None, resMode='abs', method='sum',
+                    res=None, DL=None, resMode='abs', method='sum',
                     ind=None, out=object, plot=True, dataname=None,
                     fs=None, dmargin=None, wintit=None, invert=True,
                     units=None, draw=True, connect=True):
@@ -4428,109 +4591,104 @@ class Rays(utils.ToFuObject):
             Units of the result
 
         """
-        msg = "Arg out must be in [object,np.ndarray]"
-        assert out in [object,np.ndarray], msg
-        assert type(Brightness) is bool, "Arg Brightness must be a bool !"
-        if Brightness is False and self.Etendues is None:
-            msg = "Etendue must be set if Brightness is False !"
-            raise Exception(msg)
 
-        # Preformat ind
-        ind = self._check_indch(ind)
-        # Preformat DL
-        kIn, kOut = self.kIn, self.kOut
-        if DL is None:
-            DL = np.array([kIn[ind], kOut[ind]])
-        elif np.asarray(DL).size==2:
-            DL = np.tile(np.asarray(DL).ravel()[:,np.newaxis],len(ind))
-        DL = np.ascontiguousarray(DL).astype(float)
-        assert type(DL) is np.ndarray and DL.ndim==2
-        assert DL.shape==(2,len(ind)), "Arg DL has wrong shape !"
+        # Format input
 
-        # check limits
-        ii = DL[0,:] < kIn[ind]
-        DL[0,ii] = kIn[ind][ii]
-        ii[:] = DL[0,:] >= kOut[ind]
-        DL[0,ii] = kOut[ind][ii]
-        ii[:] = DL[1,:] > kOut[ind]
-        DL[1,ii] = kOut[ind][ii]
-        ii[:] = DL[1,:] <= kIn[ind]
-        DL[1,ii] = kIn[ind][ii]
+        indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, DL=DL,
+                                                                out=out,
+                                                                Brightness=Brightness)
 
-        # Preformat Ds, us and Etendue
-        Ds, us = self.D[:,ind], self.u[:,ind]
-        if Brightness is False:
-            E = self.Etendues
-            if E.size==self.nRays:
-                E = E[ind]
+        if Ds is None:
+            return None
+        if res is None:
+            res = _RES
 
-        # Preformat signal
-        if len(ind)==1:
-            Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
-        if t is None or len(t)==1:
-            sig = np.full((Ds.shape[1],),np.nan)
+        # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
+        # Exclude Rays not seeing the plasma
+        s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
+                                dmethod=resMode, method=method,
+                                t=t, ani=ani, fkwdargs=fkwdargs, Test=True)
+
+        # Integrate
+        if s.ndim == 2:
+            sig = np.full((s.shape[0], self.nRays), np.nan)
         else:
-            sig = np.full((len(t),Ds.shape[1]),np.nan)
-        indok = ~(np.any(np.isnan(DL),axis=0) | np.any(np.isinf(DL),axis=0)
-                  | ((DL[1,:]-DL[0,:])<=0.))
+            sig = np.full((1,self.nRays), np.nan)
 
-        if np.any(indok):
-            Ds, us, DL = Ds[:,indok], us[:,indok], DL[:,indok]
-            if indok.sum()==1:
-                Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
-                DL = DL.reshape((2,1))
-            Ds, us = np.ascontiguousarray(Ds), np.ascontiguousarray(us)
-            DL = np.ascontiguousarray(DL)
-            # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
-            # Exclude Rays not seeing the plasma
-            s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
-                                    dmethod=resMode, method=method,
-                                    t=t, Ani=ani, fkwdargs=fkwdargs, Test=True)
-            if t is None or len(t)==1:
-                sig[indok] = s
-            else:
-                sig[:,indok] = s
+        if t is None or len(t)==1:
+            sig[0,indok] = s
+        else:
+            sig[:,indok] = s
 
         # Format output
-        if Brightness is False:
-            if dataname is None:
-                dataname = r"LOS-integral x Etendue"
-            if t is None or len(t)==1 or E.size==1:
-                sig = sig*E
-            else:
-                sig = sig*E[np.newaxis,:]
-            if units is None:
-                units = r"origin x $m^3.sr$"
-        else:
-            if dataname is None:
-                dataname = r"LOS-integral"
-            if units is None:
-                units = r"origin x m"
+        return self._calc_signal_postformat(sig, Brightness=Brightness,
+                                            dataname=dataname, t=t, E=E,
+                                            units=units, plot=plot, out=out,
+                                            fs=fs, dmargin=dmargin, wintit=wintit,
+                                            invert=invert, draw=draw,
+                                            connect=connect)
 
-        if plot or out in [object,'object']:
-            kwdargs = dict(data=sig, t=t, lCam=self, Name=self.Id.Name,
-                           dlabels={'data':{'units':units, 'name':dataname}},
-                           Exp=self.Id.Exp, Diag=self.Id.Diag)
-            import tofu.data as tfd
-            if self._is2D():
-                osig = tfd.DataCam2D(**kwdargs)
-            else:
-                osig = tfd.DataCam1D(**kwdargs)
-            if plot:
-                kh = osig.plot(fs=fs, dmargin=dmargin, wintit=wintit,
-                               plotmethod=plotmethod, invert=invert,
-                               draw=draw, connect=connect)
 
-        if out in [object, 'object']:
-            return osig
+    def calc_signal_from_Plasma2D(self, plasma2d, t=None,
+                                  quant=None, ref1d=None, ref2d=None,
+                                  q2dR=None, q2dPhi=None, q2dZ=None, Type=None,
+                                  Brightness=True, interp_t='nearest',
+                                  interp_space=None, fill_value=np.nan,
+                                  res=None, DL=None, resMode='abs', method='sum',
+                                  ind=None, out=object, plot=True, dataname=None,
+                                  fs=None, dmargin=None, wintit=None, invert=True,
+                                  units=None, draw=True, connect=True):
+
+        # Format input
+        indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, out=out, t=t,
+                                                           Brightness=Brightness)
+
+        if Ds is None:
+            return None
+        if res is None:
+            res = _RES
+
+        # Get ptsRZ along LOS // Which to choose ???
+        pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
+                                              compact=True, pts=True)
+        indpts = np.r_[0,indpts,pts.shape[1]]
+
+        # Get quantity values at ptsRZ
+        # This is the slowest step (~3.8 s with res=0.02 and interferometer)
+        val, t = plasma2d.interp_pts2profile(pts=pts, t=t,
+                                             quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                             q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
+                                             interp_t=interp_t, Type=Type,
+                                             interp_space=interp_space,
+                                             fill_value=fill_value)
+
+        # Integrate
+        if val.ndim == 2:
+            sig = np.full((val.shape[0], self.nRays), np.nan)
         else:
-            return sig, units
+            sig = np.full((1,self.nRays), np.nan)
+
+        for ii in range(0,self.nRays):
+            sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
+
+
+        # Format output
+        # this is the secod slowest step (~0.75 s)
+        out  = self._calc_signal_postformat(sig, Brightness=Brightness,
+                                            dataname=dataname, t=t, E=E,
+                                            units=units, plot=plot, out=out,
+                                            fs=fs, dmargin=dmargin, wintit=wintit,
+                                            invert=invert, draw=draw,
+                                            connect=connect)
+        return out
+
+
 
     def plot(self, lax=None, proj='all', Lplot=_def.LOSLplot, element='L',
              element_config='P', Leg='', dL=None, dPtD=_def.LOSMd,
              dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
              dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False, ind=None,
-             fs=None, wintit=None, draw=True, Test=True):
+             fs=None, tit=None, wintit=None, draw=True, Test=True):
         """ Plot the Rays / LOS, in the chosen projection(s)
 
         Optionnally also plot associated :class:`~tofu.geom.Ves` and Struct
@@ -4611,14 +4769,14 @@ class Rays(utils.ToFuObject):
                                element=element, element_config=element_config, Leg=Leg,
                                dL=dL, dPtD=dPtD, dPtI=dPtI, dPtO=dPtO, dPtR=dPtR,
                                dPtP=dPtP, dLeg=dLeg, multi=multi, ind=ind,
-                               fs=fs, wintit=wintit, draw=draw, Test=Test)
+                               fs=fs, tit=tit, wintit=wintit, draw=draw, Test=Test)
 
 
     def plot_sino(self, ax=None, element=_def.LOSImpElt, Sketch=True,
                   Ang=_def.LOSImpAng, AngUnit=_def.LOSImpAngUnit, Leg=None,
                   dL=_def.LOSMImpd, dVes=_def.TorPFilld, dLeg=_def.TorLegd,
                   ind=None, multi=False,
-                  fs=None, wintit=None, draw=True, Test=True):
+                  fs=None, tit=None, wintit=None, draw=True, Test=True):
         """ Plot the LOS in projection space (sinogram)
 
         Plot the Rays in projection space (cf. sinograms) as points.
@@ -4678,7 +4836,7 @@ class Rays(utils.ToFuObject):
         return _plot.GLOS_plot_Sino(self, Proj='Cross', ax=ax, Elt=element, Leg=Leg,
                                     Sketch=Sketch, Ang=Ang, AngUnit=AngUnit,
                                     dL=dL, dVes=dVes, dLeg=dLeg,
-                                    ind=ind, fs=fs, wintit=wintit,
+                                    ind=ind, fs=fs, tit=tit, wintit=wintit,
                                     draw=draw, Test=Test)
 
 
@@ -4809,16 +4967,16 @@ class CamLOS1D(Rays):
         return self.__add__(other)
 
 
-    def save_to_imas(self, ids, shot=None, run=None, refshot=None, refrun=None,
+    def save_to_imas(self, ids=None, shot=None, run=None, refshot=None, refrun=None,
                      user=None, tokamak=None, version=None, occ=None,
-                     dryrun=False, deep=True, verb=True,
+                     dryrun=False, deep=True, restore_size=True, verb=True,
                      config_description_2d=None, config_occ=None):
        import tofu.imas2tofu as _tfimas
        _tfimas._save_to_imas(self, tfversion=__version__,
                              shot=shot, run=run, refshot=refshot,
                              refrun=refrun, user=user, tokamak=tokamak,
                              version=version, occ=occ, dryrun=dryrun, verb=verb,
-                             ids=ids, deep=deep,
+                             ids=ids, deep=deep, restore_size=restore_size,
                              config_description_2d=config_description_2d,
                              config_occ=config_occ)
 

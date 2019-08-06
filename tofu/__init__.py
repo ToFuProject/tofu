@@ -66,10 +66,11 @@ if not 'matplotlib.pyplot' in sys.modules:
 
 import tofu.pathfile as pathfile
 import tofu.utils as utils
-from tofu.utils import save, load
+from tofu.utils import save, load, load_from_imas
 import tofu._plot as _plot
 import tofu.geom as geom
 import tofu.data as data
+
 
 ok = True
 try:
@@ -77,12 +78,18 @@ try:
 except Exception as err:
     warnings.warn(str(err))
     ok = False
+
+# Can only be imported if we found IMAS
+if ok:
+    import tofu.mag as mag
+
 #import tofu.dust as dust
 
 
-__all__ = ['pathfile','utils','_plot','geom','data']
+__all__ = ['pathfile','utils','_plot','geom','data','mag']
 if ok:
     __all__.append('imas2tofu')
+    __all__.append('mag')
 
 
 del sys, warnings, ok
