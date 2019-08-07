@@ -3250,15 +3250,16 @@ class Plasma2D(utils.ToFuObject):
                                                             fill_value=fill_value)
 
         else:
+            lk = [v['val'] for v in dk0.values()]
             if type(t) is np.ndarray:
-                dout, tref =  self._interp_on_common_time(dk0.keys(), choose=choose,
+                dout, tref =  self._interp_on_common_time(lk, choose=choose,
                                                        t=t, interp_t=interp_t,
                                                        fill_value=fill_value)
                 dout1, _   = self._interp_on_common_time_arrays(dk1, choose=choose,
                                                               t=t, interp_t=interp_t,
                                                               fill_value=fill_value)
             else:
-                dout0, dtu0, tref0 = self.get_time_common(dk0.keys(),
+                dout0, dtu0, tref0 = self.get_time_common(lk,
                                                           choose=choose)
                 dout1, dtu1, tref1 = self._get_time_common_arrays(dk1,
                                                                   choose=choose)
@@ -3288,7 +3289,7 @@ class Plasma2D(utils.ToFuObject):
                         else:
                             t0, t1, tref = t1, tref1, tref1
 
-                dout, tref =  self._interp_on_common_time(dk0.keys(), choose=choose,
+                dout, tref =  self._interp_on_common_time(lk, choose=choose,
                                                           t=t0, interp_t=interp_t,
                                                           fill_value=fill_value)
                 dout = {kk:{'val':dout[vv['val']]['val'],
@@ -3340,7 +3341,7 @@ class Plasma2D(utils.ToFuObject):
         elif len(shape) == 2:
             for k in dins.keys():
                 if len(dins[k]['shape']) == 1:
-                    assert dins[k]['shape'][0] in [1]+list(shape)
+                    assert dins[k]['shape'][0] in [1]+list(shape), dins[k]['shape']
                     if dins[k]['shape'][0] == 1:
                         dins[k]['val'] = dins[k]['val'][None,:]
                     elif dins[k]['shape'][0] == shape[0]:
@@ -3356,7 +3357,7 @@ class Plasma2D(utils.ToFuObject):
 
     def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None,
                          tTe=None, tne=None, tzeff=None, t=None,
-                         interp_t='zero'):
+                         interp_t=None):
         """ Return the bremsstrahlung spectral radiance at lamb
 
         The plasma conditions are set by:
@@ -3392,7 +3393,8 @@ class Plasma2D(utils.ToFuObject):
         return val, t, units
 
     def compute_fanglev(self, BR=None, BPhi=None, BZ=None,
-                        ne=None, lamb=None, t=None):
+                        ne=None, lamb=None, t=None, interp_t=None,
+                        tBR=None, tBPhi=None, tBZ=None, tne=None):
         """ Return the vector faraday angle at lamb
 
         The plasma conditions are set by:
@@ -3406,10 +3408,10 @@ class Plasma2D(utils.ToFuObject):
 
         The vector faraday angle is returned in T / m
         """
-        dins = {'BR':{'val':BR},
-                'BPhi':{'val':BPhi},
-                'BZ':{'val':BZ},
-                'ne':{'val':ne}}
+        dins = {'BR':  {'val':BR,   't':tBR},
+                'BPhi':{'val':BPhi, 't':tBPhi},
+                'BZ':  {'val':BZ,   't':tBZ},
+                'ne':  {'val':ne,   't':tne}}
         dins = self._fill_dins(dins)
         dins, t = self.interp_t(dins, t=t, interp_t=interp_t)
         lamb = np.atleast_1d(lamb)
@@ -3514,7 +3516,8 @@ class Plasma2D(utils.ToFuObject):
 
     @staticmethod
     def _get_indtu(t=None, tall=None, tbinall=None,
-                   idref1d=None, idref2d=None):
+                   idref1d=None, idref2d=None,
+                   indtr1=None, indtr2=None):
         # Get indt (t with respect to tbinall)
         indt, indtu = None, None
         if t is not None:
@@ -3524,11 +3527,13 @@ class Plasma2D(utils.ToFuObject):
             # Update
             tall = tall[indtu]
             if idref1d is not None:
+                assert indtr1 is not None
                 indtr1 = indtr1[indtu]
             if idref2d is not None:
+                assert indtr2 is not None
                 indtr2 = indtr2[indtu]
         ntall = tall.size
-        return tall, ntall, indt, indtu
+        return tall, ntall, indt, indtu, indtr1, indtr2
 
     def get_tcommon(self, lq, prefer='finer'):
         """ Check if common t, else choose according to prefer
@@ -3654,7 +3659,7 @@ class Plasma2D(utils.ToFuObject):
 
     def get_finterp2d(self, quant=None, ref1d=None, ref2d=None,
                       q2dR=None, q2dPhi=None, q2dZ=None,
-                      interp_t='nearest', interp_space=None,
+                      interp_t=None, interp_space=None,
                       fill_value=np.nan, Type=None):
         """ Return the function interpolating (X,Y,Z) pts on a 1d/2d profile
 
@@ -3681,7 +3686,7 @@ class Plasma2D(utils.ToFuObject):
     def interp_pts2profile(self, pts=None, t=None,
                            quant=None, ref1d=None, ref2d=None,
                            q2dR=None, q2dPhi=None, q2dZ=None,
-                           interp_t='nearest', interp_space=None,
+                           interp_t=None, interp_space=None,
                            fill_value=np.nan, Type=None):
         """ Return the value of the desired profiles_1d quantity
 
@@ -3693,8 +3698,8 @@ class Plasma2D(utils.ToFuObject):
 
         """
         # Check inputs
-        msg = "Only 'nearest' available so far for interp_t!"
-        assert interp_t == 'nearest', msg
+        # msg = "Only 'nearest' available so far for interp_t!"
+        # assert interp_t == 'nearest', msg
 
         # Check requested quant is available in 2d or 1d
         out = self._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
@@ -3746,7 +3751,7 @@ class Plasma2D(utils.ToFuObject):
     def calc_signal_from_Cam(self, cam, t=None,
                              quant=None, ref1d=None, ref2d=None,
                              q2dR=None, q2dPhi=None, q2dZ=None,
-                             Brightness=True, interp_t='nearest',
+                             Brightness=True, interp_t=None,
                              interp_space=None, fill_value=np.nan,
                              res=0.005, DL=None, resMode='abs', method='sum',
                              ind=None, out=object, plot=True, dataname=None,

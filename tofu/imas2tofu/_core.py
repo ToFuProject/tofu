@@ -392,11 +392,11 @@ class MultiIDSLoader(object):
                                'sig':{'t':'t',
                                       'data':'fangle'},
                                'synth':{'dsynth':{'fargs':['core_profiles.1dne',
-                                                          'equilibrium.2dBR',
-                                                          'equilibrium.2dBT',
-                                                          'equilibrium.2dBZ',
-                                                          'core_profiles.1drhotn',
-                                                          'equilibrium.2drhotn']},
+                                                           'equilibrium.2dBR',
+                                                           'equilibrium.2dBT',
+                                                           'equilibrium.2dBZ',
+                                                           'core_profiles.1drhotn',
+                                                           'equilibrium.2drhotn']},
                                         'dsig':{'core_profiles':['t'],
                                                 'equilibrium':['t']},
                                         'Brightness':True}},
@@ -3136,7 +3136,10 @@ class MultiIDSLoader(object):
             for qq in lq:
                 q01 = qq.split('.')
                 assert len(q01) == 2
-                dsig[q01[0]] = q01[1]
+                if q01[0] not in dsig.keys():
+                    dsig[q01[0]] = [q01[1]]
+                else:
+                    dsig[q01[0]].append(q01[1])
 
         if dq['quant'] is None and dq['q2dR'] is None and lq is None:
             msg = "both quant and q2dR are not specified !"
@@ -3147,7 +3150,7 @@ class MultiIDSLoader(object):
     def calc_signal(self, ids=None, dsig=None, tlim=None, t=None, res=None,
                     quant=None, ref1d=None, ref2d=None,
                     q2dR=None, q2dPhi=None, q2dZ=None,
-                    Brightness=None,
+                    Brightness=None, interp_t=None,
                     indch=None, indch_auto=False, Name=None,
                     occ_cam=None, occ_plasma=None, config=None,
                     dextra=None, t0=None, datacls=None, geomcls=None,
@@ -3194,22 +3197,15 @@ class MultiIDSLoader(object):
             lamb = self.get_data(ids, sig='lamb')['lamb']
 
             # Get time reference
-            tref, ltu = plasma.get_tcommon(lq)
-
-            import ipdb         # DB
-            ipdb.set_trace()    # DB
+            doutt, dtut, tref = plasma.get_time_common(lq)
+            if t is None:
+                t = tref
 
             # Add necessary 2dne (and time reference)
             ne2d, tne2d = plasma.interp_pts2profile(quant='core_profiles.1dne',
                                                     ref1d='core_profiles.1drhotn',
                                                     ref2d='equilibrium.2drhotn',
-                                                    t=tref, interp_t='nearest')
-            origin = 'f(equilibrium, core_profiles)'
-            depend = (tref, 'equilibrium.mesh')
-            plasma.add_quantity(key='2dne', data=ne2d,
-                                depend=depend, origin=origin, units=r'/m3',
-                                dim='density', quant='ne', name='2dne')
-
+                                                    t=t, interp_t='nearest')
             import ipdb         # DB
             ipdb.set_trace()    # DB
 
@@ -3217,7 +3213,7 @@ class MultiIDSLoader(object):
             out = plasma.compute_fanglev(BR='equilibrium.2dBR',
                                          BPhi='equilibrium.2dBT',
                                          BZ='equilibrium.2dBZ',
-                                         ne='2dne', lamb=lamb)
+                                         ne=ne2d, tne=tne2d, lamb=lamb)
             fangleRPZ, tfang, units = out
 
             import ipdb         # DB
