@@ -103,6 +103,15 @@ class Cluster(object):
         self.__parent = parent
         self.__child = child
     
+    def set_child(self,child):
+        if self.__child == 0:
+            self.__child = [child]
+        else:
+            self.__child.append(child)
+    
+    def set_parent(self,parent):
+        self.__parent = parent
+    
     @property
     def get_id(self):
         """Returns the of the cluster"""
