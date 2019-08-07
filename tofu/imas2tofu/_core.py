@@ -3194,7 +3194,7 @@ class MultiIDSLoader(object):
             dq['quant'] = ['core_profiles.1dbrem']
 
         elif ids == 'polarimeter':
-            lamb = self.get_data(ids, sig='lamb')['lamb']
+            lamb = self.get_data(ids, sig='lamb')['lamb'][0]
 
             # Get time reference
             doutt, dtut, tref = plasma.get_time_common(lq)
@@ -3206,9 +3206,6 @@ class MultiIDSLoader(object):
                                                     ref1d='core_profiles.1drhotn',
                                                     ref2d='equilibrium.2drhotn',
                                                     t=t, interp_t='nearest')
-            import ipdb         # DB
-            ipdb.set_trace()    # DB
-
             # Add fanglev
             out = plasma.compute_fanglev(BR='equilibrium.2dBR',
                                          BPhi='equilibrium.2dBT',
@@ -3216,18 +3213,18 @@ class MultiIDSLoader(object):
                                          ne=ne2d, tne=tne2d, lamb=lamb)
             fangleRPZ, tfang, units = out
 
-            import ipdb         # DB
-            ipdb.set_trace()    # DB
+            plasma.add_ref(key='tfangleRPZ', data=tfang, group='time')
 
             origin = 'f(equilibrium, core_profiles, polarimeter)'
-            depend = ('t_2dfanglev','equilibrium.mesh')
-            plasma.add_quantity(key='2dfangleR', data=data[0,:],
+            depend = ('tfangleRPZ','equilibrium.mesh')
+
+            plasma.add_quantity(key='2dfangleR', data=fangleRPZ[0,:],
                                 depend=depend, origin=origin, units=units,
                                 dim=None, quant=None, name=None)
-            plasma.add_quantity(key='2dfanglePhi', data=data[1,:],
+            plasma.add_quantity(key='2dfanglePhi', data=fangleRPZ[1,:],
                                 depend=depend, origin=origin, units=units,
                                 dim=None, quant=None, name=None)
-            plasma.add_quantity(key='2dfangleZ', data=data[2,:],
+            plasma.add_quantity(key='2dfangleZ', data=fangleRPZ[2,:],
                                 depend=depend, origin=origin, units=units,
                                 dim=None, quant=None, name=None)
             dq['q2dR'] = ['2dfangleR']

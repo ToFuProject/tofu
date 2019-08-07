@@ -3341,7 +3341,11 @@ class Plasma2D(utils.ToFuObject):
         elif len(shape) == 2:
             for k in dins.keys():
                 if len(dins[k]['shape']) == 1:
-                    assert dins[k]['shape'][0] in [1]+list(shape), dins[k]['shape']
+                    if dins[k]['shape'][0] not in [1]+list(shape):
+                        msg = "Non-conform shape for dins[%s]:\n"%k
+                        msg += "    - Expected: (%s,...) or (1,)\n"%str(shape[0])
+                        msg += "    - Provided: %s"%str(dins[k]['shape'])
+                        raise Exception(msg)
                     if dins[k]['shape'][0] == 1:
                         dins[k]['val'] = dins[k]['val'][None,:]
                     elif dins[k]['shape'][0] == shape[0]:
@@ -3478,8 +3482,8 @@ class Plasma2D(utils.ToFuObject):
         # Get time vectors and bins
         idtq = self._ddata[idquant]['depend'][0]
         tq = self._ddata[idtq]['data']
+        tbinq = 0.5*(tq[1:]+tq[:-1])
         if idref1d is not None:
-            tbinq = 0.5*(tq[1:]+tq[:-1])
             idtr1 = self._ddata[idref1d]['depend'][0]
             tr1 = self._ddata[idtr1]['data']
             tbinr1 = 0.5*(tr1[1:]+tr1[:-1])
@@ -3568,11 +3572,16 @@ class Plasma2D(utils.ToFuObject):
                      fill_value=np.nan, ani=False, Type=None):
 
         # Get idmesh
-        if idref1d is None:
-            lidmesh = [qq for qq in self._ddata[idquant]['depend']
-                       if self._dindref[qq]['group'] == 'mesh']
+        if idquant is not None:
+            if idref1d is None:
+                lidmesh = [qq for qq in self._ddata[idquant]['depend']
+                           if self._dindref[qq]['group'] == 'mesh']
+            else:
+                lidmesh = [qq for qq in self._ddata[idref2d]['depend']
+                           if self._dindref[qq]['group'] == 'mesh']
         else:
-            lidmesh = [qq for qq in self._ddata[idref2d]['depend']
+            assert idq2dR is not None
+            lidmesh = [qq for qq in self._ddata[idq2dR]['depend']
                        if self._dindref[qq]['group'] == 'mesh']
         assert len(lidmesh) == 1
         idmesh = lidmesh[0]
@@ -3583,18 +3592,26 @@ class Plasma2D(utils.ToFuObject):
 
         # Get common time indices
         if interp_t == 'nearest':
-            out = self._get_indtmult(idquant=idquant,
-                                     idref1d=idref1d, idref2d=idref2d)
-            tall, tbinall, ntall, indtq, indtr1, indtr2 = out
+            if idquant is not None:
+                out = self._get_indtmult(idquant=idquant,
+                                         idref1d=idref1d, idref2d=idref2d)
+                tall, tbinall, ntall, indtq, indtr1, indtr2 = out
+            else:
+                indtq = self._get_indtmult(idquant=idq2dR)[3]
 
         # # Prepare output
 
         # Interpolate
         # Note : Maybe consider using scipy.LinearNDInterpolator ?
-        vquant = self._ddata[idquant]['data']
-        if self._ddata[idmesh]['data']['ntri'] > 1:
-            vquant = np.repeat(vquant,
-                               self._ddata[idmesh]['data']['ntri'], axis=0)
+        if idquant is not None:
+            vquant = self._ddata[idquant]['data']
+            if self._ddata[idmesh]['data']['ntri'] > 1:
+                vquant = np.repeat(vquant,
+                                   self._ddata[idmesh]['data']['ntri'], axis=0)
+        else:
+            vq2dR   = self._ddata[idq2dR]['data']
+            vq2dPhi = self._ddata[idq2dPhi]['data']
+            vq2dZ   = self._ddata[idq2dZ]['data']
 
         if interp_space is None:
             interp_space = self._ddata[idmesh]['data']['ftype']
@@ -3606,7 +3623,7 @@ class Plasma2D(utils.ToFuObject):
                                          interp_t=interp_t,
                                          interp_space=interp_space,
                                          fill_value=fill_value,
-                                         idmesh=idmesh, vq2dR=vqd2R,
+                                         idmesh=idmesh, vq2dR=vq2dR,
                                          vq2dZ=vq2dZ, vq2dPhi=vq2dPhi,
                                          indtq=indtq, trifind=trifind,
                                          Type=Type, mpltri=mpltri)
@@ -3650,8 +3667,12 @@ class Plasma2D(utils.ToFuObject):
             idq2dR, idq2dPhi, idq2dZ = None, None, None
             ani = False
         else:
-            idq2dR, idq2dPhi, idq2dZ = self._get_quantrefkeys(q2dR,
-                                                              q2dPhi, q2dZ)
+            idq2dR, msg   = self._get_keyingroup(q2dR, 'mesh', msgstr='quant',
+                                              raise_=True)
+            idq2dPhi, msg = self._get_keyingroup(q2dPhi, 'mesh', msgstr='quant',
+                                              raise_=True)
+            idq2dZ, msg   = self._get_keyingroup(q2dZ, 'mesh', msgstr='quant',
+                                              raise_=True)
             idquant, idref1d, idref2d = None, None, None
             ani = True
         return idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani
@@ -3683,7 +3704,7 @@ class Plasma2D(utils.ToFuObject):
         return func
 
 
-    def interp_pts2profile(self, pts=None, t=None,
+    def interp_pts2profile(self, pts=None, vect=None, t=None,
                            quant=None, ref1d=None, ref2d=None,
                            q2dR=None, q2dPhi=None, q2dZ=None,
                            interp_t=None, interp_space=None,
@@ -3744,7 +3765,7 @@ class Plasma2D(utils.ToFuObject):
                                  fill_value=fill_value, ani=ani, Type=Type)
 
         # This is the slowest step (~1.8 s)
-        val, t = func(pts, t=t)
+        val, t = func(pts, vect=vect, t=t)
         return val, t
 
 

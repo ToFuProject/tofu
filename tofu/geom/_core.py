@@ -4651,11 +4651,15 @@ class Rays(utils.ToFuObject):
         # Get ptsRZ along LOS // Which to choose ???
         pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
                                               compact=True, pts=True)
-        indpts = np.r_[0,indpts,pts.shape[1]]
+        if q2dR is None:
+            vect = None
+        else:
+            nbrep = np.r_[indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]]
+            vect = np.repeat(self.u, nbrep, axis=1)
 
         # Get quantity values at ptsRZ
         # This is the slowest step (~3.8 s with res=0.02 and interferometer)
-        val, t = plasma2d.interp_pts2profile(pts=pts, t=t,
+        val, t = plasma2d.interp_pts2profile(pts=pts, vect=vect, t=t,
                                              quant=quant, ref1d=ref1d, ref2d=ref2d,
                                              q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
                                              interp_t=interp_t, Type=Type,
@@ -4668,6 +4672,7 @@ class Rays(utils.ToFuObject):
         else:
             sig = np.full((1,self.nRays), np.nan)
 
+        indpts = np.r_[0,indpts,pts.shape[1]]
         for ii in range(0,self.nRays):
             sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
 
