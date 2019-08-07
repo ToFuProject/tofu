@@ -5,8 +5,12 @@
 *.o
 *.so
 *.c
+*.cpp
 *.nfs*
 tofu/geom/*.html
+
+# No images
+*.png
 
 # Mac stuff
 *.AppleDouble
