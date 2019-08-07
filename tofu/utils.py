@@ -889,12 +889,12 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         # Plasma2D
         if nshot == 1 and nPla == 1:
-            dout[shot[0]]['Plasma2D'][0].plot(quant=quant, X=X, bck=bck)
+            dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
         elif nshot > 1 and nPla == 1:
-            ld = [dout[ss]['Plasma2D'][0].get_Data(quant=quant, X=X,
+            ld = [dout[ss]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
                                                    plot=False)
                   for ss in shot[1:]]
-            d0 = dout[shot[0]]['Plasma2D'][0].get_Data(quant=quant, X=X,
+            d0 = dout[shot[0]]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
                                                        plot=False)
             d0.plot_compare(ld, bck=bck)
 
