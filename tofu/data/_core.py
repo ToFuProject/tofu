@@ -38,6 +38,7 @@ except Exception:
 __all__ = ['DataCam1D','DataCam2D',
            'DataCam1DSpectral','DataCam2DSpectral',
            'Plasma2D']
+_INTERPT = 'zero'
 
 
 #############################################
@@ -3059,6 +3060,247 @@ class Plasma2D(utils.ToFuObject):
         self._complement()
 
 
+    #---------------------
+    # Method for getting time of a quantity
+    #---------------------
+
+    def get_time(self, key):
+        """ Return the time vector associated to a chosen quantity (identified
+        by its key)"""
+
+        if key not in self._ddata.keys():
+            msg = "Provided key not in self.ddata.keys() !\n"
+            msg += "    - Provided: %s\n"%str(key)
+            msg += "    - Available: %s\n"%str(self._ddata.keys())
+            raise Exception(msg)
+
+        indref = self._ddata[key]['depend'][0]
+        t = [kk for kk in self._dindref[indref]['ldata']
+             if (self._ddata[kk]['depend'] == (indref,)
+                 and self._ddata[kk]['quant'] == 't')]
+        if len(t) != 1:
+            msg = "No / several macthing time vectors were identified:\n"
+            msg += "    - Provided: %s\n"%key
+            msg += "    - Found: %s"%str(t)
+            raise Exception(msg)
+        return t[0]
+
+
+    def get_time_common(self, lkeys, choose=None):
+        """ Return the common time vector to several quantities
+
+        If they do not have a common time vector, a reference one is choosen
+        according to criterion choose
+        """
+        # Check all data have time-dependency
+        dout = {kk: {'t':self.get_time(kk)} for kk in lkeys}
+        dtu = dict.fromkeys(set([vv['t'] for vv in dout.values()]))
+        for kt in dtu.keys():
+            dtu[kt] = {'ldata':[kk for kk in lkeys if dout[kk]['t'] == kt]}
+        if len(dtu) == 1:
+            tref = list(dtu.keys())[0]
+        else:
+            lt, lres = zip(*[(kt,np.mean(np.diff(self._ddata[kt]['data'])))
+                             for kt in dtu.keys()])
+            if choose is None:
+                choose  = 'min'
+            if choose == 'min':
+                tref = lt[np.argmin(lres)]
+        return dout, dtu, tref
+
+    @staticmethod
+    def _get_time_common_arrays(dins, choose=None):
+        dout = dict.fromkeys(dins.keys())
+        dtu = {}
+        for k, v in dins.items():
+            c0 = type(k) is str
+            c0 = c0 and all([ss in v.keys() for ss in ['val','t']])
+            c0 = c0 and all([type(v[ss]) is np.ndarray for ss in ['val','t']])
+            c0 = c0 and v['t'].size in v['val'].shape
+            if not c0:
+                msg = "dins must be a dict of the form (at least):\n"
+                msg += "    dins[%s] = {'val': np.ndarray,\n"%str(k)
+                msg += "                't':   np.ndarray}\n"
+                msg += "Provided: %s"%str(dins)
+                raise Exception(msg)
+
+            kt, already = id(v['t']), True
+            if kt not in dtu.keys():
+                lisclose = [kk for kk, vv in dtu.items()
+                            if (vv['val'].shape == v['t'].shape
+                                and np.allclose(vv['val'],v['t']))]
+                assert len(lisclose) <= 1
+                if len(lisclose) == 1:
+                    kt = lisclose[0]
+                else:
+                    already = False
+                    dtu[kt] = {'val':np.atleast_1d(v['t']).ravel(),
+                               'ldata':[k]}
+            if already:
+                dtu[kt]['ldata'].append(k)
+            assert dtu[kt]['val'].size == v['val'].shape[0]
+            dout[k] = {'val':v['val'], 't':kt}
+
+        if len(dtu) == 1:
+            tref = list(dtu.keys())[0]
+        else:
+            lt, lres = zip(*[(kt,np.mean(np.diff(dtu[kt]['val'])))
+                             for kt in dtu.keys()])
+            if choose is None:
+                choose  = 'min'
+            if choose == 'min':
+                tref = lt[np.argmin(lres)]
+        return dout, dtu, tref
+
+    def _interp_on_common_time(self, lkeys,
+                               choose='min', interp_t=None, t=None,
+                               fill_value=np.nan):
+        """ Return a dict of time-interpolated data """
+        dout, dtu, tref = self.get_time_common(lkeys)
+        if type(t) is np.ndarray:
+            tref = np.atleast_1d(t).ravel()
+            tr = tref
+            ltu = dtu.keys()
+        else:
+            if type(t) is str:
+                tref = t
+            tr = self._ddata[tref]['data']
+            ltu = set(dtu.keys())
+            if tref in dtu.keys():
+                ltu = ltu.difference([tref])
+
+        if interp_t is None:
+            interp_t = _INTERPT
+
+        # Interpolate
+        for tt in ltu:
+            for kk in dtu[tt]['ldata']:
+                dout[kk]['val'] = scpinterp.interp1d(self._ddata[tt]['data'],
+                                                     self._ddata[kk]['data'],
+                                                     kind=interp_t, axis=0,
+                                                     bounds_error=False,
+                                                     fill_value=fill_value)(tr)
+
+        if type(tref) is not np.ndarray and tref in dtu.keys():
+            for kk in dtu[tref]['ldata']:
+                 dout[kk]['val'] = self._ddata[kk]['data']
+
+        return dout, tref
+
+    def _interp_on_common_time_arrays(self, dins,
+                                      choose='min', interp_t=None, t=None,
+                                      fill_value=np.nan):
+        """ Return a dict of time-interpolated data """
+        dout, dtu, tref = self._get_time_common_arrays(dins)
+        if type(t) is np.ndarray:
+            tref = np.atleast_1d(t).ravel()
+            tr = tref
+            ltu = dtu.keys()
+        else:
+            if type(t) is str:
+                assert t in dout.keys()
+                tref = dout[t]['t']
+            tr = dtu[tref]['val']
+            ltu = set(dtu.keys()).difference([tref])
+
+        if interp_t is None:
+            interp_t = _INTERPT
+
+        # Interpolate
+        for tt in ltu:
+            for kk in dtu[tt]['ldata']:
+                dout[kk]['val'] = scpinterp.interp1d(dtu[tt]['val'],
+                                                     dout[kk]['val'],
+                                                     kind=interp_t, axis=0,
+                                                     bounds_error=False,
+                                                     fill_value=fill_value)(tr)
+        return dout, tref
+
+    def interp_t(self, dkeys,
+                 choose='min', interp_t=None, t=None,
+                 fill_value=np.nan):
+        # Check inputs
+        assert type(dkeys) in [list,dict]
+        if type(dkeys) is list:
+            dkeys = {kk:{'val':kk} for kk in dkeys}
+        lc = [(type(kk) is str
+               and type(vv) is dict
+               and type(vv.get('val',None)) in [str,np.ndarray])
+              for kk,vv in dkeys.items()]
+        assert all(lc), str(dkeys)
+
+        # Separate by type
+        dk0 = dict([(kk,vv) for kk,vv in dkeys.items()
+                    if type(vv['val']) is str])
+        dk1 = dict([(kk,vv) for kk,vv in dkeys.items()
+                    if type(vv['val']) is np.ndarray])
+        assert len(dkeys) == len(dk0) + len(dk1), str(dk0) + '\n' + str(dk1)
+
+
+        if len(dk0) == len(dkeys):
+            lk = [v['val'] for v in dk0.values()]
+            dout, tref = self._interp_on_common_time(lk, choose=choose,
+                                                     t=t, interp_t=interp_t,
+                                                     fill_value=fill_value)
+            dout = {kk:{'val':dout[vv['val']]['val'], 't':dout[vv['val']]['t']}
+                    for kk,vv in dk0.items()}
+        elif len(dk1) == len(dkeys):
+            dout, tref = self._interp_on_common_time_arrays(dk1, choose=choose,
+                                                            t=t, interp_t=interp_t,
+                                                            fill_value=fill_value)
+
+        else:
+            lk = [v['val'] for v in dk0.values()]
+            if type(t) is np.ndarray:
+                dout, tref =  self._interp_on_common_time(lk, choose=choose,
+                                                       t=t, interp_t=interp_t,
+                                                       fill_value=fill_value)
+                dout1, _   = self._interp_on_common_time_arrays(dk1, choose=choose,
+                                                              t=t, interp_t=interp_t,
+                                                              fill_value=fill_value)
+            else:
+                dout0, dtu0, tref0 = self.get_time_common(lk,
+                                                          choose=choose)
+                dout1, dtu1, tref1 = self._get_time_common_arrays(dk1,
+                                                                  choose=choose)
+                if type(t) is str:
+                    lc = [t in dtu0.keys(), t in dout1.keys()]
+                    if not any(lc):
+                        msg = "if t is str, it must refer to a valid key:\n"
+                        msg += "    - %s\n"%str(dtu0.keys())
+                        msg += "    - %s\n"%str(dout1.keys())
+                        msg += "Provided: %s"%t
+                        raise Exception(msg)
+                    if lc[0]:
+                        t0, t1 = t, self._ddata[t]['data']
+                    else:
+                        t0, t1 = dtu1[dout1[t]['t']]['val'], t
+                    tref = t
+                else:
+                    if choose is None:
+                        choose = 'min'
+                    if choose == 'min':
+                        t0 = self._ddata[tref0]['data']
+                        t1 = dtu1[tref1]['val']
+                        dt0 = np.mean(np.diff(t0))
+                        dt1 = np.mean(np.diff(t1))
+                        if dt0 < dt1:
+                            t0, t1, tref = tref0, t0, tref0
+                        else:
+                            t0, t1, tref = t1, tref1, tref1
+
+                dout, tref =  self._interp_on_common_time(lk, choose=choose,
+                                                          t=t0, interp_t=interp_t,
+                                                          fill_value=fill_value)
+                dout = {kk:{'val':dout[vv['val']]['val'],
+                            't':dout[vv['val']]['t']}
+                        for kk,vv in dk0.items()}
+                dout1, _   = self._interp_on_common_time_arrays(dk1, choose=choose,
+                                                                t=t1, interp_t=interp_t,
+                                                                fill_value=fill_value)
+            dout.update(dout1)
+
+        return dout, tref
 
     #---------------------
     # Methods for computing additional plasma quantities
@@ -3069,62 +3311,18 @@ class Plasma2D(utils.ToFuObject):
         for k in dins.keys():
             if type(dins[k]['val']) is str:
                 assert dins[k]['val'] in self._ddata.keys()
-                dins[k] = {'key': dins[k]['val'],
-                           'val': self._ddata[dins[k]['val']]['data']}
             else:
-                dins[k]['key'] = None
                 dins[k]['val'] = np.atleast_1d(dins[k]['val'])
-            dins[k]['shape'] = dins[k]['val'].shape
-        lc = [vv['key'] is None for vv in dins.values()]
-        if not all(lc) or not any(lc):
-            msg = "Please provide either (xor):\n"
-            msg += "    - only registered data keys\n"
-            msg += "    - only np.ndarrays\n"
-            msg += "\n    - Provided: %s"%str(dins)
-            raise Exception(msg)
+                assert dins[k]['t'] is not None
+                dins[k]['t'] = np.atleast_1d(dins[k]['t']).ravel()
+                assert dins[k]['t'].size == dins[k]['val'].shape[0]
         return dins
-
-    def interp_multi_on_common_t(self, dq,
-                                 t=None, interp_t='nearest'):
-
-        # If np.ndarrays => t is None
-        if list(dq.values())[0]['key'] is None:
-            return dq, None
-
-        # Else => check uniformity of t, interp if necessary
-        tn, ltu = self.get_tcommon([vv['key'] for vv in dq.values()])
-        if t is None:
-            t = self._ddata[tn]['data']
-            if len(ltu) > 1 and interp_t == 'nearest':
-                for tt in ltu:
-                    if tt == tn:
-                        continue
-                    tbin = 0.5*(self._ddata[tt]['data'][1:]
-                                + self._ddata[tt]['data'][:-1])
-                    indt = np.digitize(t, tbin)
-                    for qq in dq.keys():
-                        if tt in self._ddata[dq[qq]['key']]['depend']:
-                            dq[qq]['val'] = dq[qq]['val'][indt,:]
-            elif len(ltu) > 1 and interp_t == 'linear':
-                for tt in ltu:
-                    if tt == tn:
-                        continue
-                    for qq in dq.keys():
-                        if tt not in self._ddata[qq]['depend']:
-                            continue
-                        dq[qq]['val'] = scpinterp.interp1d(t,
-                                                           self._ddata[tt]['data'],
-                                                           dq[qq]['val'],
-                                                           axis=0,
-                                                           kind='linear')
-        else:
-            raise NotImplementedError
-        return dq, t
 
     @staticmethod
     def _checkformat_shapes(dins):
         shape = None
         for k in dins.keys():
+            dins[k]['shape'] = dins[k]['val'].shape
             if shape is None:
                 shape = dins[k]['shape']
             if dins[k]['shape'] != shape:
@@ -3143,7 +3341,11 @@ class Plasma2D(utils.ToFuObject):
         elif len(shape) == 2:
             for k in dins.keys():
                 if len(dins[k]['shape']) == 1:
-                    assert dins[k]['shape'][0] in [1]+list(shape)
+                    if dins[k]['shape'][0] not in [1]+list(shape):
+                        msg = "Non-conform shape for dins[%s]:\n"%k
+                        msg += "    - Expected: (%s,...) or (1,)\n"%str(shape[0])
+                        msg += "    - Provided: %s"%str(dins[k]['shape'])
+                        raise Exception(msg)
                     if dins[k]['shape'][0] == 1:
                         dins[k]['val'] = dins[k]['val'][None,:]
                     elif dins[k]['shape'][0] == shape[0]:
@@ -3157,7 +3359,9 @@ class Plasma2D(utils.ToFuObject):
 
 
 
-    def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None, t=None):
+    def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None,
+                         tTe=None, tne=None, tzeff=None, t=None,
+                         interp_t=None):
         """ Return the bremsstrahlung spectral radiance at lamb
 
         The plasma conditions are set by:
@@ -3172,14 +3376,20 @@ class Plasma2D(utils.ToFuObject):
 
         The computation requires an intermediate : gff(Te, zeff)
         """
-        dins = {'Te':{'val':Te},
-                'ne':{'val':ne},
-                'zeff':{'val':zeff}}
+        dins = {'Te':{'val':Te, 't':tTe},
+                'ne':{'val':ne, 't':tne},
+                'zeff':{'val':zeff, 't':tzeff}}
+        lc = [vv['val'] is None for vv in dins.values()]
+        if any(lc):
+            msg = "All fields should be provided:\n"
+            msg += "    - %s"%str(dins.keys())
+            raise Exception(msg)
         dins = self._fill_dins(dins)
-        dins, t = self.interp_multi_on_common_t(dins, t=t)
+        dins, t = self.interp_t(dins, t=t, interp_t=interp_t)
         lamb = np.atleast_1d(lamb)
-        dins['lamb'] = {'val':lamb, 'shape':lamb.shape}
+        dins['lamb'] = {'val':lamb}
         dins = self._checkformat_shapes(dins)
+
         val, units = _physics.compute_bremzeff(dins['Te']['val'],
                                                dins['ne']['val'],
                                                dins['zeff']['val'],
@@ -3187,7 +3397,8 @@ class Plasma2D(utils.ToFuObject):
         return val, t, units
 
     def compute_fanglev(self, BR=None, BPhi=None, BZ=None,
-                        ne=None, lamb=None, t=None):
+                        ne=None, lamb=None, t=None, interp_t=None,
+                        tBR=None, tBPhi=None, tBZ=None, tne=None):
         """ Return the vector faraday angle at lamb
 
         The plasma conditions are set by:
@@ -3201,15 +3412,16 @@ class Plasma2D(utils.ToFuObject):
 
         The vector faraday angle is returned in T / m
         """
-        dins = {'BR':{'val':BR},
-                'BPhi':{'val':BPhi},
-                'BZ':{'val':BZ},
-                'ne':{'val':ne}}
+        dins = {'BR':  {'val':BR,   't':tBR},
+                'BPhi':{'val':BPhi, 't':tBPhi},
+                'BZ':  {'val':BZ,   't':tBZ},
+                'ne':  {'val':ne,   't':tne}}
         dins = self._fill_dins(dins)
-        dins, t = self.interp_multi_on_common_t(dins, t=t)
+        dins, t = self.interp_t(dins, t=t, interp_t=interp_t)
         lamb = np.atleast_1d(lamb)
-        dins['lamb'] = {'val':lamb, 'shape':lamb.shape}
+        dins['lamb'] = {'val':lamb}
         dins = self._checkformat_shapes(dins)
+
         val, units = _physics.compute_fangle(BR=dins['BR']['val'],
                                              BPhi=dins['BPhi']['val'],
                                              BZ=dins['BZ']['val'],
@@ -3270,8 +3482,8 @@ class Plasma2D(utils.ToFuObject):
         # Get time vectors and bins
         idtq = self._ddata[idquant]['depend'][0]
         tq = self._ddata[idtq]['data']
+        tbinq = 0.5*(tq[1:]+tq[:-1])
         if idref1d is not None:
-            tbinq = 0.5*(tq[1:]+tq[:-1])
             idtr1 = self._ddata[idref1d]['depend'][0]
             tr1 = self._ddata[idtr1]['data']
             tbinr1 = 0.5*(tr1[1:]+tr1[:-1])
@@ -3308,7 +3520,8 @@ class Plasma2D(utils.ToFuObject):
 
     @staticmethod
     def _get_indtu(t=None, tall=None, tbinall=None,
-                   idref1d=None, idref2d=None):
+                   idref1d=None, idref2d=None,
+                   indtr1=None, indtr2=None):
         # Get indt (t with respect to tbinall)
         indt, indtu = None, None
         if t is not None:
@@ -3318,11 +3531,13 @@ class Plasma2D(utils.ToFuObject):
             # Update
             tall = tall[indtu]
             if idref1d is not None:
+                assert indtr1 is not None
                 indtr1 = indtr1[indtu]
             if idref2d is not None:
+                assert indtr2 is not None
                 indtr2 = indtr2[indtu]
         ntall = tall.size
-        return tall, ntall, indt, indtu
+        return tall, ntall, indt, indtu, indtr1, indtr2
 
     def get_tcommon(self, lq, prefer='finer'):
         """ Check if common t, else choose according to prefer
@@ -3357,11 +3572,16 @@ class Plasma2D(utils.ToFuObject):
                      fill_value=np.nan, ani=False, Type=None):
 
         # Get idmesh
-        if idref1d is None:
-            lidmesh = [qq for qq in self._ddata[idquant]['depend']
-                       if self._dindref[qq]['group'] == 'mesh']
+        if idquant is not None:
+            if idref1d is None:
+                lidmesh = [qq for qq in self._ddata[idquant]['depend']
+                           if self._dindref[qq]['group'] == 'mesh']
+            else:
+                lidmesh = [qq for qq in self._ddata[idref2d]['depend']
+                           if self._dindref[qq]['group'] == 'mesh']
         else:
-            lidmesh = [qq for qq in self._ddata[idref2d]['depend']
+            assert idq2dR is not None
+            lidmesh = [qq for qq in self._ddata[idq2dR]['depend']
                        if self._dindref[qq]['group'] == 'mesh']
         assert len(lidmesh) == 1
         idmesh = lidmesh[0]
@@ -3372,18 +3592,26 @@ class Plasma2D(utils.ToFuObject):
 
         # Get common time indices
         if interp_t == 'nearest':
-            out = self._get_indtmult(idquant=idquant,
-                                     idref1d=idref1d, idref2d=idref2d)
-            tall, tbinall, ntall, indtq, indtr1, indtr2 = out
+            if idquant is not None:
+                out = self._get_indtmult(idquant=idquant,
+                                         idref1d=idref1d, idref2d=idref2d)
+                tall, tbinall, ntall, indtq, indtr1, indtr2 = out
+            else:
+                tall, tbinall, ntall, indtq = self._get_indtmult(idquant=idq2dR)[:4]
 
         # # Prepare output
 
         # Interpolate
         # Note : Maybe consider using scipy.LinearNDInterpolator ?
-        vquant = self._ddata[idquant]['data']
-        if self._ddata[idmesh]['data']['ntri'] > 1:
-            vquant = np.repeat(vquant,
-                               self._ddata[idmesh]['data']['ntri'], axis=0)
+        if idquant is not None:
+            vquant = self._ddata[idquant]['data']
+            if self._ddata[idmesh]['data']['ntri'] > 1:
+                vquant = np.repeat(vquant,
+                                   self._ddata[idmesh]['data']['ntri'], axis=0)
+        else:
+            vq2dR   = self._ddata[idq2dR]['data']
+            vq2dPhi = self._ddata[idq2dPhi]['data']
+            vq2dZ   = self._ddata[idq2dZ]['data']
 
         if interp_space is None:
             interp_space = self._ddata[idmesh]['data']['ftype']
@@ -3395,8 +3623,10 @@ class Plasma2D(utils.ToFuObject):
                                          interp_t=interp_t,
                                          interp_space=interp_space,
                                          fill_value=fill_value,
-                                         idmesh=idmesh, vq2dR=vqd2R,
+                                         idmesh=idmesh, vq2dR=vq2dR,
                                          vq2dZ=vq2dZ, vq2dPhi=vq2dPhi,
+                                         tall=tall, tbinall=tbinall,
+                                         ntall=ntall,
                                          indtq=indtq, trifind=trifind,
                                          Type=Type, mpltri=mpltri)
         else:
@@ -3439,8 +3669,12 @@ class Plasma2D(utils.ToFuObject):
             idq2dR, idq2dPhi, idq2dZ = None, None, None
             ani = False
         else:
-            idq2dR, idq2dPhi, idq2dZ = self._get_quantrefkeys(q2dR,
-                                                              q2dPhi, q2dZ)
+            idq2dR, msg   = self._get_keyingroup(q2dR, 'mesh', msgstr='quant',
+                                              raise_=True)
+            idq2dPhi, msg = self._get_keyingroup(q2dPhi, 'mesh', msgstr='quant',
+                                              raise_=True)
+            idq2dZ, msg   = self._get_keyingroup(q2dZ, 'mesh', msgstr='quant',
+                                              raise_=True)
             idquant, idref1d, idref2d = None, None, None
             ani = True
         return idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani
@@ -3448,7 +3682,7 @@ class Plasma2D(utils.ToFuObject):
 
     def get_finterp2d(self, quant=None, ref1d=None, ref2d=None,
                       q2dR=None, q2dPhi=None, q2dZ=None,
-                      interp_t='nearest', interp_space=None,
+                      interp_t=None, interp_space=None,
                       fill_value=np.nan, Type=None):
         """ Return the function interpolating (X,Y,Z) pts on a 1d/2d profile
 
@@ -3472,10 +3706,10 @@ class Plasma2D(utils.ToFuObject):
         return func
 
 
-    def interp_pts2profile(self, pts=None, t=None,
+    def interp_pts2profile(self, pts=None, vect=None, t=None,
                            quant=None, ref1d=None, ref2d=None,
                            q2dR=None, q2dPhi=None, q2dZ=None,
-                           interp_t='nearest', interp_space=None,
+                           interp_t=None, interp_space=None,
                            fill_value=np.nan, Type=None):
         """ Return the value of the desired profiles_1d quantity
 
@@ -3487,8 +3721,8 @@ class Plasma2D(utils.ToFuObject):
 
         """
         # Check inputs
-        msg = "Only 'nearest' available so far for interp_t!"
-        assert interp_t == 'nearest', msg
+        # msg = "Only 'nearest' available so far for interp_t!"
+        # assert interp_t == 'nearest', msg
 
         # Check requested quant is available in 2d or 1d
         out = self._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
@@ -3533,14 +3767,14 @@ class Plasma2D(utils.ToFuObject):
                                  fill_value=fill_value, ani=ani, Type=Type)
 
         # This is the slowest step (~1.8 s)
-        val, t = func(pts, t=t)
+        val, t = func(pts, vect=vect, t=t)
         return val, t
 
 
     def calc_signal_from_Cam(self, cam, t=None,
                              quant=None, ref1d=None, ref2d=None,
                              q2dR=None, q2dPhi=None, q2dZ=None,
-                             Brightness=True, interp_t='nearest',
+                             Brightness=True, interp_t=None,
                              interp_space=None, fill_value=np.nan,
                              res=0.005, DL=None, resMode='abs', method='sum',
                              ind=None, out=object, plot=True, dataname=None,

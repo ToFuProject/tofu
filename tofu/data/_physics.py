@@ -49,6 +49,6 @@ def compute_fangle(BR=None, BPhi=None, BZ=None, ne=None, lamb=None):
     """
     const = scpct.e**3 / (8.*scpct.pi**2
                           * scpct.epsilon_0 * scpct.m_e**2 * scpct.c**3)
-    quant = const * ne * np.array([BR, BPhi, BZ])
+    quant = const * lamb**2 * ne * np.array([BR, BPhi, BZ])
     units = r'rad / m'
     return quant, units
