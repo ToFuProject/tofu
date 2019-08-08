@@ -4676,7 +4676,6 @@ class Rays(utils.ToFuObject):
         for ii in range(0,self.nRays):
             sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
 
-
         # Format output
         # this is the secod slowest step (~0.75 s)
         out  = self._calc_signal_postformat(sig, Brightness=Brightness,

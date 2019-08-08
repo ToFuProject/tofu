@@ -313,7 +313,7 @@ class MultiIDSLoader(object):
                           'dim':'angle', 'quant':'faraday angle', 'units':'rad'}},
 
                'bolometer':
-               {'tchan':{'str':'channel[chan].power.time',
+               {'t':{'str':'channel[chan].power.time',
                      'quant':'t', 'units':'s'},
                 'power':{'str':'channel[chan].power.data',
                          'dim':'power', 'quant':'power radiative', 'units':'W'},
@@ -402,14 +402,14 @@ class MultiIDSLoader(object):
                                         'Brightness':True}},
                 'bolometer':{'datacls':'DataCam1D',
                              'geomcls':'CamLOS1D',
-                             'sig':{'t':'tchan',
+                             'sig':{'t':'t',
                                     'data':'power'},
                              'synth':{'dsynth':{'quant':'core_sources.1dprad',
                                                 'ref1d':'core_sources.1drhotn',
                                                 'ref2d':'equilibrium.2drhotn'},
-                                      'dsig':{'core_profiles':['t'],
+                                      'dsig':{'core_sources':['t'],
                                               'equilibrium':['t']},
-                                      'Brightness':False}},
+                                      'Brightness':True}},
                 'soft_x_rays':{'datacls':'DataCam1D',
                                'geomcls':'CamLOS1D',
                                'sig':{'t':'t',
@@ -475,7 +475,7 @@ class MultiIDSLoader(object):
                                                ('t',np.float)])
     _RZ2array = lambda ptsR, ptsZ: np.array([ptsR,ptsZ]).T
     _losptsRZP = lambda *pt12RZP: np.swapaxes([pt12RZP[:3], pt12RZP[3:]],0,1).T
-    _add = lambda a0, a1: a0 + a1
+    _add = lambda a0, a1: np.abs(a0 + a1)
     _icmod = lambda al, ar, axis=0: np.sum(al - ar, axis=axis)
     _eqB = lambda BT, BR, BZ: np.sqrt(BT**2 + BR**2 + BZ**2)
     def _rhopn1d(psi):
@@ -2158,7 +2158,11 @@ class MultiIDSLoader(object):
                 raise Exception(msg)
 
             # Check presence of minimum
-            assert all([ss in dsig[k0] for ss in lscom])
+            lc = [ss for ss in lscom if ss not in dsig[k0]]
+            if len(lc) > 0:
+                msg = "dsig[%s] does not have %s\n"%(k0,str(lc))
+                msg += "    - dsig[%s] = %s"%(k0,str(dsig[k0]))
+                raise Exception(msg)
             if any(['2d' in ss for ss in dsig[k0]]):
                 for ss in lsmesh:
                     if ss not in dsig[k0]:
@@ -3280,7 +3284,7 @@ class MultiIDSLoader(object):
             if plot_plasma is None:
                 plot_plasma = True
             if plot_compare:
-                data = self.to_Data(ids, indch=indch, plot=False)
+                data = self.to_Data(ids, indch=indch, t0=t0, plot=False)
                 sig._dlabels = data.dlabels
                 data.plot_compare(sig)
             else:
