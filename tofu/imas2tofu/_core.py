@@ -2195,10 +2195,12 @@ class MultiIDSLoader(object):
         nfaces = indfaces.shape[0]
         nodesu = np.unique(nodes, axis=0)
         facesu = np.unique(indfaces, axis=0)
+        facesuu = np.unique(facesu)
         lc = [nodesu.shape[0] != nnodes,
-              facesu.shape[0] != nfaces]
+              facesu.shape[0] != nfaces,
+              facesuu.size != nnodes or np.any(facesuu != np.arange(0,nnodes))]
         if any(lc):
-            msg = "Non-valid mesh if ids %s:\n"%ids
+            msg = "Non-valid mesh in ids %s:\n"%ids
             if lc[0]:
                 msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
                 msg += "    - nodes.shape: %s\n"%str(nodes.shape)
@@ -2207,6 +2209,15 @@ class MultiIDSLoader(object):
                 msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
                 msg += "    - faces.shape: %s\n"%str(indfaces.shape)
                 msg += "    - unique faces.shape: %s"%str(facesu.shape)
+            if lc[2]:
+                nfu = facesuu.size
+                nodnotf = [ii for ii in range(0,nnodes) if ii not in facesuu]
+                fnotn = [ii for ii in facesuu if ii < 0 or  ii >= nnodes]
+                msg += "  Non-bijective nodes indices vs faces:\n"
+                msg += "    - nb. nodes: %s\n"%str(nnodes)
+                msg += "    - nb. unique nodes index in faces: %s\n"%str(nfu)
+                msg += "    - nodes not in faces: %s\n"%str(nodnotf)
+                msg += "    - faces ind not in nodes: %s\n"%str(fnotn)
             raise Exception(msg)
 
         # Test for unused nodes
