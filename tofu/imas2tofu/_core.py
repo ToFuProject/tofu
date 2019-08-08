@@ -3218,18 +3218,20 @@ class MultiIDSLoader(object):
             origin = 'f(equilibrium, core_profiles, polarimeter)'
             depend = ('tfangleRPZ','equilibrium.mesh')
 
-            plasma.add_quantity(key='2dfangleR', data=fangleRPZ[0,:],
+            plasma.add_quantity(key='2dfangleR', data=fangleRPZ[0,...],
                                 depend=depend, origin=origin, units=units,
                                 dim=None, quant=None, name=None)
-            plasma.add_quantity(key='2dfanglePhi', data=fangleRPZ[1,:],
+            plasma.add_quantity(key='2dfanglePhi', data=fangleRPZ[1,...],
                                 depend=depend, origin=origin, units=units,
                                 dim=None, quant=None, name=None)
-            plasma.add_quantity(key='2dfangleZ', data=fangleRPZ[2,:],
+            plasma.add_quantity(key='2dfangleZ', data=fangleRPZ[2,...],
                                 depend=depend, origin=origin, units=units,
                                 dim=None, quant=None, name=None)
+
             dq['q2dR'] = ['2dfangleR']
             dq['q2dPhi'] = ['2dfanglePhi']
             dq['q2dZ'] = ['2dfangleZ']
+            dq['Type'] = ['sca']
             ani = True
 
         for kk,vv in dq.items():

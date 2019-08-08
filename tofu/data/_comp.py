@@ -582,11 +582,11 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
 
             # Get pts in (r,z,phi)
             r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-            phi = np.arctan(pts[1,:],pts[0,:])
+            phi = np.arctan2(pts[1,:],pts[0,:])
 
             # Deduce vect in (r,z,phi)
             vR = np.cos(phi)*vect[0,:] + np.sin(phi)*vect[1,:]
-            vphi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
+            vPhi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
             vZ = vect[2,:]
 
             # Prepare output
@@ -611,10 +611,8 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                                                      trifinder=trifind)(r,z)
                 t = tall
             else:
-                import ipdb     # DB
-                ipdb.set_trace()# DB
                 ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
-                                                       tbinall=tbinall)[1:]
+                                                       tbinall=tbinall)[1:4]
                 for ii in range(0,ntall):
                     ind = indt == indtu[ii]
                     valR[ind,...]   = mplTriLinInterp(mpltri,
@@ -627,10 +625,11 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                                                       vq2dZ[indtq[ii],:],
                                                       trifinder=trifind)(r,z)
 
+
             if Type == 'sca':
-                val = valR*vR + valPhi*vPhi + valZ*vZ
+                val = valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:]
             elif Type == 'abs(sca)':
-                val = np.abs(valR*vR + valPhi*vPhi + valZ*vZ)
+                val = np.abs(valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:])
             return val, t
 
     # --------------------
@@ -644,7 +643,7 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
 
             # Get pts in (r,z,phi)
             r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-            phi = np.arctan(pts[1,:],pts[0,:])
+            phi = np.arctan2(pts[1,:],pts[0,:])
 
             # Deduce vect in (r,z,phi)
             vR = np.cos(phi)*vect[0,:] + np.sin(phi)*vect[1,:]
@@ -677,9 +676,10 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                     valR[ind,...]   = vq2dR[indtq[ii],indpts]
                     valPhi[ind,...] = vq2dPhi[indtq[ii],indpts]
                     valZ[ind,...]   = vq2dZ[indtq[ii],indpts]
+
             if Type == 'sca':
-                val = valR*vR + valPhi*vPhi + valZ*vZ
+                val = valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:]
             elif Type == 'abs(sca)':
-                val = np.abs(valR*vR + valPhi*vPhi + valZ*vZ)
+                val = np.abs(valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:])
             return val, t
     return func

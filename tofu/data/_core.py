@@ -3597,7 +3597,7 @@ class Plasma2D(utils.ToFuObject):
                                          idref1d=idref1d, idref2d=idref2d)
                 tall, tbinall, ntall, indtq, indtr1, indtr2 = out
             else:
-                indtq = self._get_indtmult(idquant=idq2dR)[3]
+                tall, tbinall, ntall, indtq = self._get_indtmult(idquant=idq2dR)[:4]
 
         # # Prepare output
 
@@ -3625,6 +3625,8 @@ class Plasma2D(utils.ToFuObject):
                                          fill_value=fill_value,
                                          idmesh=idmesh, vq2dR=vq2dR,
                                          vq2dZ=vq2dZ, vq2dPhi=vq2dPhi,
+                                         tall=tall, tbinall=tbinall,
+                                         ntall=ntall,
                                          indtq=indtq, trifind=trifind,
                                          Type=Type, mpltri=mpltri)
         else:
