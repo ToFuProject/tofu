@@ -46,30 +46,30 @@ def get_relation(c_id, infocluster):
     for tt in range(0,nt):
         #if cluster not present in frame then go to next one
         if indt[tt] == False:
-            print('no cluster \n')
+#            print('no cluster \n')
             continue
         #if clusters present in current frame and previous one
         if indt[tt] != False and indt[tt-1] != False:
             #total clusters in current frame
             curr = total[tt]
-            print('total clusters in current frame:',curr)
+#            print('total clusters in current frame:',curr)
             #total clusters in previous frame
             prev = total[tt-1]
-            print('total cluster in previous frame',prev)
-            print('cluster in both current and previous frame ...')
+#            print('total cluster in previous frame',prev)
+#            print('cluster in both current and previous frame ...')
             #looping over clusters in current frame
             for ii in range(0,curr):
                 #assigning cluster object to a variable
                 clus_ob1 = c_id[tt][ii]
-                print('cluster in current frame :', clus_ob1.get_id)
+#                print('cluster in current frame :', clus_ob1.get_id)
                 #getting the diatnce array related to the cluster in current frame
                 d_array = distance[tt-1][:,ii]
                 #getting max probability of the cluster with cluster of the previous frame
-                print('clusters being considered are',c_id[tt-1])
+#                print('clusters being considered are',c_id[tt-1])
                 max_prob, indc = get_prob(clus_ob1, c_id[tt-1], d_array, c_id)
                 print(max_prob, indc)
                 clus_ob2 = c_id[tt-1][indc]
-                print('cluster in current frame :', clus_ob2.get_id)
+#                print('cluster in current frame :', clus_ob2.get_id)
                 #getting id of the two clusters
                 id1 = clus_ob1.get_id
                 id2 = clus_ob2.get_id
@@ -94,7 +94,7 @@ def get_relation(c_id, infocluster):
                 #assigning values to the trajectory dictionary using id as key
                 traj[id1] = clus_ob1
                 traj[id2] = clus_ob2
-
+                print(traj)
     return traj                
                     
 
@@ -113,7 +113,7 @@ def get_prob(cluster1, prev_frame, d_array, c_id):
      all the clusters in the previous frame
     
     """
-    print('calculating probability\n')
+    #print('calculating probability\n')
     #total number of cluster in the previous frame
     nt = len(prev_frame)
     prob = np.zeros((nt,), dtype = float)
@@ -135,13 +135,13 @@ def get_prob(cluster1, prev_frame, d_array, c_id):
         d = d_array[tt]
         #1st term of probability function
         P1 = 5/d
-        print('p1',P1)
+       # print('p1',P1)
         P2, P3 = get_history(cluster2, c_id, cluster1)
-        print('p2,p3',P2,P3)
+        #print('p2,p3',P2,P3)
         #calculating the raw difference in area between the two clusters
         diff_area = abs(area2  - area1)
         P4 = 1/diff_area
-        print('p4',P4)
+        #print('p4',P4)
         P = P1*P2*P3*P4
         prob[tt] = P
     max_prob = prob.max()
