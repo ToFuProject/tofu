@@ -2193,8 +2193,8 @@ class MultiIDSLoader(object):
         # Check for duplicates
         nnodes = nodes.shape[0]
         nfaces = indfaces.shape[0]
-        nodesu = np.unique(nodes, axis=0)
-        facesu = np.unique(indfaces, axis=0)
+        nodesu, indnodesu = np.unique(nodes, axis=0, return_index=True)
+        facesu, indfacesu = np.unique(indfaces, axis=0, return_index=True)
         facesuu = np.unique(facesu)
         lc = [nodesu.shape[0] != nnodes,
               facesu.shape[0] != nfaces,
@@ -2202,13 +2202,17 @@ class MultiIDSLoader(object):
         if any(lc):
             msg = "Non-valid mesh in ids %s:\n"%ids
             if lc[0]:
+                noddup = [ii for ii in range(0,nnodes) if ii not indnodesu]
                 msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
                 msg += "    - nodes.shape: %s\n"%str(nodes.shape)
                 msg += "    - unique nodes.shape: %s\n"%str(nodesu.shape)
+                msg += "    - duplicate nodes indices: %s\n"%str(noddup)
             if lc[1]:
+                dupf = [ii for ii in range(0,nfaces) if ii not indfacesu]
                 msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
                 msg += "    - faces.shape: %s\n"%str(indfaces.shape)
                 msg += "    - unique faces.shape: %s"%str(facesu.shape)
+                msg += "    - duplicate facess indices: %s\n"%str(dupf)
             if lc[2]:
                 nfu = facesuu.size
                 nodnotf = [ii for ii in range(0,nnodes) if ii not in facesuu]
