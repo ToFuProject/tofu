@@ -147,7 +147,43 @@ class Cluster(object):
         """Returns the child id of the cluster"""
         return self.__child
 
-
+###################################################################
+###################################################################
+#    Class for Trajectory
+###################################################################
+    
+    
+class Trajectory(object):
+    """A class for all trajectories
+    """
+    def __init__(self, traj, area):
+        self.__np = len(traj)
+        dist = 0
+        for ii in range(0,self.__np-1):
+            x1 = traj[ii][0]
+            y1 = traj[ii][1]
+            x2 = traj[ii+1][0]
+            y2 = traj[ii+1][1]
+            d = (((x1-x2)**2)+((y1-y2)**2))**0.5
+            d = abs(d)
+            dist += d
+        self.__avg_vel = dist/self.__np
+        self.__areaevo = area
+    
+    @property
+    def np(self.__np):
+        return self.__np
+    
+    @property
+    def avg_vel(self):
+        return self.__avg_vel
+    
+    @property
+    def areaevo(self):
+        return self.__areaevo
+            
+            
+            
 ###################################################################
 ###################################################################
 #    For a collection of images
