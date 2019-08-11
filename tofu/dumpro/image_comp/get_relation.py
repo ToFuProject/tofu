@@ -34,7 +34,7 @@ def get_relation(c_id, infocluster):
     traj              dictionary
      A dictionary containing cluster objects with relation assigned to them
     """
-    
+    #getting information from infocluster
     total = infocluster.get('total')
     indt = infocluster.get('indt')
     distance = infocluster.get('distances')
@@ -46,28 +46,22 @@ def get_relation(c_id, infocluster):
     for tt in range(0,nt):
         #if cluster not present in frame then go to next one
         if indt[tt] == False:
-#            print('no cluster \n')
             continue
         #if clusters present in current frame and previous one
         if indt[tt] != False and indt[tt-1] != False:
             #total clusters in current frame
             curr = total[tt]
-#            print('total clusters in current frame:',curr)
             #total clusters in previous frame
             prev = total[tt-1]
-#            print('total cluster in previous frame',prev)
-#            print('cluster in both current and previous frame ...')
             #looping over clusters in current frame
             for ii in range(0,curr):
                 #assigning cluster object to a variable
                 clus_ob1 = c_id[tt][ii]
-#                print('cluster in current frame :', clus_ob1.get_id)
                 #getting the diatnce array related to the cluster in current frame
                 d_array = distance[tt-1][:,ii]
                 #getting max probability of the cluster with cluster of the previous frame
 #                print('clusters being considered are',c_id[tt-1])
                 max_prob, indc = get_prob(clus_ob1, c_id[tt-1], d_array, c_id)
-                print(max_prob, indc)
                 clus_ob2 = c_id[tt-1][indc]
 #                print('cluster in current frame :', clus_ob2.get_id)
                 #getting id of the two clusters
@@ -75,18 +69,14 @@ def get_relation(c_id, infocluster):
                 id2 = clus_ob2.get_id
                 #to check if they are present in the trajectory dictioanary
                 listofkeys = list(traj.keys())
-                print('before if', clus_ob1.get_id)
                 if id1 in listofkeys:
                     #if object is present replace the default object with the 
                     #object that has more information
-                    clus_ob1 = traj.get('id1')
-                print('after if',clus_ob1.get_id)
-                print('before_if', clus_ob2.get_id)
+                    clus_ob1 = traj.get(id1)
                 if id2 in listofkeys:
                     #if object is present replace the default object with the 
                     #object that has more information
-                    clus_ob2 = traj.get('id2')
-                print('after_if', clus_ob2.get_id)
+                    clus_ob2 = traj.get(id2)
                 #set child values
                 clus_ob2.set_child(clus_ob1.get_id)
                 #setting up parent for object
@@ -94,7 +84,7 @@ def get_relation(c_id, infocluster):
                 #assigning values to the trajectory dictionary using id as key
                 traj[id1] = clus_ob1
                 traj[id2] = clus_ob2
-                print(traj)
+                
     return traj                
                     
 
@@ -113,7 +103,6 @@ def get_prob(cluster1, prev_frame, d_array, c_id):
      all the clusters in the previous frame
     
     """
-    #print('calculating probability\n')
     #total number of cluster in the previous frame
     nt = len(prev_frame)
     prob = np.zeros((nt,), dtype = float)
@@ -161,7 +150,6 @@ def get_history(cluster, c_id, cluster_1):
     cen1                 array
      The position of the current cluster
     """
-    print('calculating history')
     #to keep track of trajectory
     center = []
     #to keep a track of all the id so as to get the distances later on
@@ -201,8 +189,6 @@ def get_history(cluster, c_id, cluster_1):
         list_area = np.array(list_area)[::-1]
         #get the total time step
         nt = center.shape[0]
-        #convert the time step into an iterable
-        t_step = np.arange(0,nt)
         #define the degree of the polynomial that will be used to fit the data
         deg = 1 if nt == 2 else 2
         #if total time step greater than 3 then use 3 as the limit
@@ -212,6 +198,8 @@ def get_history(cluster, c_id, cluster_1):
             list_area = list_area[-3:]
             #set total time step = 3 for calculation
             nt = 3
+        #convert the time step into an iterable
+        t_step = np.arange(0,nt)
         #calculate the area polynomial
         area_fit = np.polyfit(t_step, list_area, deg)
         #calculate the position polynomial
