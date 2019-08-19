@@ -76,7 +76,7 @@ For Windows
 ------------
 
 
-* `{Follow this link to know how to configure your Windows to code on ToFu !} <doc/Windows_README.rst>`__
+* `Follow this link to know how to configure your Windows to code on ToFu ! <doc/Windows_README.rst>`__
 
 For Ubuntu / Mac
 -----------------
