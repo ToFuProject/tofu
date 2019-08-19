@@ -15,6 +15,8 @@ Alors les prochaines étapers que je vois (ton avis est évidemment bienvenu):
 #########################
 * Autres fonctions nécessaire (inspirées de la principale):
 
+  	0/ Calculer, pour N points (R,Z) (donc cercle plat en 3D), le point le long de la LOS le plus proche du cercle: (projection de la ligne (hyperbole) ou en 3D pbm 4d), retourner k et distance
+
 	1/ Calculer uniquement kIn / kOut pour N (~1-100) polygones (ex.: des surfaces de flux)
 
 	2/ Calculer, pour N polygones, et lorsque les lignes de visée ne les traversent pas, la distance la plus courte d entre une ligne et un polygone (et le paramètre k du point associé sur la ligne). Retourner d=0 si la ligne traverse (i.e. si il existe un kIn et/ou un kout)
@@ -22,8 +24,11 @@ Alors les prochaines étapers que je vois (ton avis est évidemment bienvenu):
 	3/ Calculer, pour N points de l'espace (~10-100) s'il sont visibles par M autres points (~10^4-10^6), dans une configuration donnée (ex.: des points le long d'une trajectoire dans la chambre à vide, on veut savoir quels sont les points du plasma - échantilloné - qui rayonnent dessus). Retourner un tableau 2D (N,M) de booleens. Je calculerai l'angle solide et le vecteur directeur vectoriellement ensuite en me basant sur ce booleen. Un fonction qui retourne ce tableau est donc suffisante.
 
 	4/ Idem, mais pour N polygons 3D plans (ou quasi-plans), attention, le polygone a un sens (i.e.: une face visible, l'autre ne compte pas), seuls les points du bon coté doivent être comptés comme le voyant
+	   Eventuellement retourner plutot un tableau d'entier (flags) avec code (0=pas vu, 1=partiellement, 2=entier), avec tests sur le centre de masse et les sommets)
+	   Non-prioritaire : mattre un flag pour désactiver le calcul d'un seul côté
 
 	5/ Idem mais calculer aussi l'angle solide associé et le vecteur directeur vers le centre de masse du polygon
+	   Prioritaire : uniquement pour les polygones vu en entier
 
 	6/ Pour les fonction 3/ et 5/, dans le cas ou le champ par lequel on eut multiplier l'angle solide est axisymmétrique (toroidalement invariant), on peut le multiplier par l'intégrale toroidale de l'angle solideau lieu de faire un calcul détaillé dans tout le volume. Dans ce cas, le calcul doit aller plus vite et économiser pas mal de mémoire puisqu'on écrase sur une dimension). Il fut alors:
 		- Echantilloner le volume qui nous intéresse (fonction sample_V() existante, s'en inspirer), en faisant une boucle sur le grand rayon R (car c'est lui qui détermine le nombre d'échantillonages toroidaux), c'est cette boucle supérieure que l'on pourra ensuite parallliser..
