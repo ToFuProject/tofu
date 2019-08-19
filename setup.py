@@ -11,11 +11,18 @@ import logging
 import platform
 import subprocess
 from codecs import open
+import Cython as cth
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
 
 from distutils.command.clean import clean as Clean
+
+
+print("cython version =", cth.__version__)
+print("numpy  version =", np.__version__)
+print("cython version =", cth.__file__)
+print("numpy  version =",  np.__file__)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tofu.setup")
@@ -321,7 +328,7 @@ setup(
             'scipy',
             'matplotlib',
             poly,
-            'cython',
+            'cython>=0.26',
             'pandas',
             ] + extralib,
 
