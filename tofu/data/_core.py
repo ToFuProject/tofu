@@ -6,23 +6,39 @@ import os
 import itertools as itt
 import copy
 import warnings
-#from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod
+if sys.version[0] == '3':
+    import inspect
+else:
+    # Python 2 back-porting
+    import funcsigs as inspect
 
 # Common
 import numpy as np
+import scipy.interpolate as scpinterp
 import matplotlib.pyplot as plt
+from matplotlib.tri import Triangulation as mplTri
+
 
 # tofu
+from tofu import __version__ as __version__
 import tofu.pathfile as tfpf
 import tofu.utils as utils
 try:
+    import tofu.data._comp as _comp
     import tofu.data._plot as _plot
     import tofu.data._def as _def
+    import tofu.data._physics as _physics
 except Exception:
+    from . import _comp as _comp
     from . import _plot as _plot
     from . import _def as _def
+    from . import _physics as _physics
 
-__all__ = ['Data1D','Data2D','DataSpectro']
+__all__ = ['DataCam1D','DataCam2D',
+           'DataCam1DSpectral','DataCam2DSpectral',
+           'Plasma2D']
+_INTERPT = 'zero'
 
 
 #############################################
@@ -61,26 +77,37 @@ def _select_ind(v, ref, nRef):
     C2 = type(v) is list
     C3 = type(v) is tuple
     assert v is None or np.sum([C0,C1,C2,C3])==1
-    ind = np.zeros((nRef,),dtype=bool)
+    nnRef = 1 if ref.ndim==1 else ref.shape[0]
+    ind = np.zeros((nnRef,nRef),dtype=bool)
     if v is None:
         ind = ~ind
     elif C0 or C1:
         if C0:
             v = np.r_[v]
-        for vv in v:
-            ind[np.nanargmin(np.abs(ref-vv))] = True
+        # Traditional :
+        #for vv in v:
+        #    ind[np.nanargmin(np.abs(ref-vv))] = True
+        # Faster with digitize :
+        if ref.ndim==1:
+            ind[0,np.digitize(v, (ref[1:]+ref[:-1])/2.)] = True
+        elif ref.ndim==2:
+            for ii in range(0,ref.shape[0]):
+                ind[ii,np.digitize(v, (ref[ii,1:]+ref[ii,:-1])/2.)] = True
+
     elif C2 or C3:
         c0 = len(v)==2 and all([type(vv) in ltypes for vv in v])
-        c1 = all([(type(vv) is type(v)
+        c1 = all([(type(vv) is type(v) and len(vv)==2
                    and all([type(vvv) in ltypes for vvv in vv]))
                   for vv in v])
         assert c0!=c1
         if c0:
             v = [v]
         for vv in v:
-            ind = ind | ((ref>=v[0]) & (ref<=v[1]))
+            ind = ind | ((ref>=vv[0]) & (ref<=vv[1]))
         if C3:
             ind = ~ind
+    if ref.ndim == 1:
+        ind = np.atleast_1d(ind.squeeze())
     return ind
 
 
@@ -90,30 +117,31 @@ def _select_ind(v, ref, nRef):
 #       class
 #############################################
 
-class Data(utils.ToFuObject):
+class DataAbstract(utils.ToFuObject):
+
+    __metaclass__ = ABCMeta
 
     # Fixed (class-wise) dictionary of default properties
-    _ddef = {'Id':{'Type':'1D',
-                   'include':['Mod','Cls','Exp','Diag',
+    _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
                               'Name','shot','version']},
-             'dtreat':{'order':['mask','interp_t','interp_ch','data0','fft',
-                                'indt', 'indch']}}
+             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfit',
+                                'indt', 'indch', 'indlamb', 'interp-t']}}
 
     # Does not exist before Python 3.6 !!!
     def __init_subclass__(cls, **kwdargs):
         # Python 2
-        super(Data,cls).__init_subclass__(**kwdargs)
+        super(DataAbstract,cls).__init_subclass__(**kwdargs)
         # Python 3
         #super().__init_subclass__(**kwdargs)
-        cls._ddef = copy.deepcopy(Data._ddef)
+        cls._ddef = copy.deepcopy(DataAbstract._ddef)
         #cls._dplot = copy.deepcopy(Struct._dplot)
         #cls._set_color_ddef(cls._color)
 
 
     def __init__(self, data=None, t=None, X=None, lamb=None,
-                 dchans=None, dunits=None,
+                 dchans=None, dlabels=None, dX12='geom',
                  Id=None, Name=None, Exp=None, shot=None, Diag=None,
-                 dextra=None, lCam=None, config=None, Type=None,
+                 dextra=None, lCam=None, config=None,
                  fromdict=None, SavePath=os.path.abspath('./'),
                  SavePath_Include=tfpf.defInclude):
 
@@ -123,39 +151,37 @@ class Data(utils.ToFuObject):
             self.__class__._strip_init()
 
         # Create a dplot at instance level
-        self._dplot = copy.deepcopy(self.__class__._dplot)
+        #self._dplot = copy.deepcopy(self.__class__._dplot)
 
         kwdargs = locals()
         del kwdargs['self']
         # super()
-        super(Data,self).__init__(**kwdargs)
+        super(DataAbstract,self).__init__(**kwdargs)
 
     def _reset(self):
         # super()
-        super(Data,self)._reset()
+        super(DataAbstract,self)._reset()
         self._ddataRef = dict.fromkeys(self._get_keys_ddataRef())
-        self._ddata = dict.fromkeys(self._get_keys_ddata())
         self._dtreat = dict.fromkeys(self._get_keys_dtreat())
-        self._dunits = dict.fromkeys(self._get_keys_dunits())
+        self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self._dlabels = dict.fromkeys(self._get_keys_dlabels())
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dchans = dict.fromkeys(self._get_keys_dchans())
         self._dextra = dict.fromkeys(self._get_keys_dextra())
+        if self._is2D():
+            self._dX12 = dict.fromkeys(self._get_keys_dX12())
 
     @classmethod
     def _checkformat_inputs_Id(cls, Id=None, Name=None,
-                               Exp=None, shot=None, Type=None,
+                               Exp=None, shot=None,
                                Diag=None, include=None,
                                **kwdargs):
         if Id is not None:
             assert isinstance(Id,utils.ID)
-            Name, Exp, shot = Id.Name, Id.Exp, Id.shot
-            Type, Diag = Id.Type, Id.Diag
-        assert type(Name) is str
-        assert type(Diag) is str
-        assert type(Exp) is str
-        if Type is None:
-            Type = cls._def['Id']['Type']
-        assert Type in ['1D','2D','1DSpectral','2DSpectral']
+            Name, Exp, shot, Diag = Id.Name, Id.Exp, Id.shot, Id.Diag
+        assert type(Name) is str, Name
+        assert type(Diag) is str, Diag
+        assert type(Exp) is str, Exp
         if include is None:
             include = cls._ddef['Id']['include']
         assert shot is None or type(shot) in [int,np.int64]
@@ -166,8 +192,8 @@ class Data(utils.ToFuObject):
             shot = int(shot)
             if 'shot' not in include:
                 include.append('shot')
-        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot, 'Type':Type,
-                        'include':include})
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot,
+                        'Diag':Diag, 'include':include})
         return kwdargs
 
     ###########
@@ -188,17 +214,22 @@ class Data(utils.ToFuObject):
 
     @staticmethod
     def _get_largs_dtreat():
-        largs = []
+        largs = ['dtreat']
         return largs
 
     @staticmethod
-    def _get_largs_dunits():
-        largs = ['dunits']
+    def _get_largs_dlabels():
+        largs = ['dlabels']
         return largs
 
     @staticmethod
     def _get_largs_dgeom():
         largs = ['lCam','config']
+        return largs
+
+    @staticmethod
+    def _get_largs_dX12():
+        largs = ['dX12']
         return largs
 
     @staticmethod
@@ -220,24 +251,36 @@ class Data(utils.ToFuObject):
 
     def _checkformat_inputs_ddataRef(self, data=None, t=None,
                                      X=None, indtX=None,
-                                     lamb=None, indtlamb=None, indXlamb=None):
+                                     lamb=None, indtlamb=None,
+                                     indXlamb=None, indtXlamb=None):
         assert data is not None
-        data = np.asarray(data).sqeeze()
+        data = np.atleast_1d(np.asarray(data).squeeze())
+
+        if data.ndim == 1:
+            data = data.reshape((1,data.size))
         if t is not None:
-            t = np.asarray(t).sqeeze()
+            t = np.atleast_1d(np.asarray(t).squeeze())
         if X is not None:
-            X = np.asarray(X).sqeeze()
+            X = np.atleast_1d(np.asarray(X).squeeze())
         if indtX is not None:
-            indtX = np.asarray(indtX).sqeeze()
+            indtX = np.atleast_1d(np.asarray(indtX, dtype=int).squeeze())
         if lamb is not None:
-            lamb = np.asarray(lamb).sqeeze()
+            lamb = np.atleast_1d(np.asarray(lamb).squeeze())
         if indtlamb is not None:
-            indtlamb = np.asarray(indtlamb).sqeeze()
+            indtlamb = np.atleast_1d(np.asarray(indtlamb, dtype=int).squeeze())
         if indXlamb is not None:
-            indXlamb = np.asarray(indXlamb).sqeeze()
+            indXlamb = np.atleast_1d(np.asarray(indXlamb, dtype=int).squeeze())
+        if indtXlamb is not None:
+            indtXlamb = np.atleast_1d(np.asarray(indtXlamb,
+                                                 dtype=int).squeeze())
 
         ndim = data.ndim
         assert ndim in [2,3]
+        if not self._isSpectral():
+            msg = "self is not of spectral type"
+            msg += "\n  => the data cannot be 3D ! (ndim)"
+            assert ndim==2, msg
+
         nt = data.shape[0]
         if t is None:
             t = np.arange(0,nt)
@@ -249,14 +292,14 @@ class Data(utils.ToFuObject):
             lC = [X is None, lamb is None]
             assert any(lC)
             if all(lC):
-                if 'spectral' in self.Id.Type.lower():
+                if self._isSpectral():
                     X = np.array([0])
                     lamb = np.arange(0,n1)
                     data = data.reshape((nt,1,n1))
                 else:
                     X = np.arange(0,n1)
             elif lC[0]:
-                assert 'spectral' in self.Id.Type.lower()
+                assert self._isSpectral()
                 X = np.array([0])
                 data = data.reshape((nt,1,n1))
                 assert lamb.ndim in [1,2]
@@ -265,11 +308,11 @@ class Data(utils.ToFuObject):
                 elif lamb.ndim==2:
                     assert lamb.shape[1]==n1
             else:
-                assert 'spectral' not in self.Id.Type.lower()
+                assert not self._isSpectral()
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
         else:
-            assert 'spectral' in self.Id.Type.lower()
+            assert self._isSpectral()
             n2 = data.shape[2]
             lC = [X is None, lamb is None]
             if lC[0]:
@@ -286,57 +329,67 @@ class Data(utils.ToFuObject):
                     assert lamb.size==n2
                 else:
                     assert lamb.shape[1]==n2
+        if X.ndim==1:
+            X = np.array([X])
+        if lamb is not None and lamb.ndim==1:
+            lamb = np.array([lamb])
+
 
         # Get shapes
-        if data.ndim==2:
-            (nt,nX), nlamb = data.shape, 0
+        nt, nch = data.shape[:2]
+        nnch = X.shape[0]
+        if data.ndim==3:
+            nnlamb, nlamb = lamb.shape
         else:
-            nt, nX, nlamb = data.shape
-        nnX = 1 if X.ndim==1 else X.shape[0]
-        nnlamb = 1 if lamb.ndim==1 else lamb.shape[0]
+            nnlamb, nlamb = 0, 0
 
         # Check indices
         if indtX is not None:
             assert indtX.shape==(nt,)
-            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnX
+            assert np.min(indtX)>=0 and np.max(indtX)<=nnch
         lC = [indtlamb is None, indXlamb is None, indtXlamb is None]
         assert lC[2] or (~lC[2] and np.sum(lC[:2])==2)
         if lC[2]:
-            if ~lC[0]:
+            if not lC[0]:
                 assert indtlamb.shape==(nt,)
-                assert inp.argmin(indtlamb)>=0 and np.argmax(indtlamb)<=nnlamb
-            if ~lC[1]:
-                assert indXlamb.shape==(nX,)
-                assert inp.argmin(indXlamb)>=0 and np.argmax(indXlamb)<=nnlamb
+                assert inp.min(indtlamb)>=0 and np.max(indtlamb)<=nnlamb
+            if not lC[1]:
+                assert indXlamb.shape==(nch,)
+                assert inp.min(indXlamb)>=0 and np.max(indXlamb)<=nnlamb
         else:
-            assert indtXlamb.shape==(nt,nX)
-            assert inp.argmin(indtXlamb)>=0 and np.argmax(indtXlamb)<=nnlamb
+            assert indtXlamb.shape==(nt,nch)
+            assert inp.min(indtXlamb)>=0 and np.max(indtXlamb)<=nnlamb
 
-        l = [data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb,
+        # Check consistency X/lamb shapes vs indices
+        if X is not None and indtX is None:
+            assert nnch in [1,nt]
+            if lamb is not None:
+                if all([ii is None for ii in [indtlamb,indXlamb,indtXlamb]]):
+                    assert nnlamb in [1,nch]
+
+        l = [data, t, X, lamb, nt, nch, nlamb, nnch, nnlamb,
              indtX, indtlamb, indXlamb, indtXlamb]
         return l
 
     def _checkformat_inputs_XRef(self, X=None, indtX=None, indXlamb=None):
         if X is not None:
-            X = np.asarray(X).sqeeze()
+            X = np.atleast_1d(np.asarray(X).squeeze())
         if indtX is not None:
-            indtX = np.asarray(indtX).sqeeze()
+            indtX = np.atleast_1d(np.asarray(indtX).squeeze())
         if indXlamb is not None:
-            indXlamb = np.asarray(indXlamb).sqeeze()
+            indXlamb = np.atleast_1d(np.asarray(indXlamb).squeeze())
 
         ndim = self._ddataRef['data'].ndim
         nt, n1 = self._ddataRef['data'].shape[:2]
-        if ndim==3:
-            n2 = self._ddataRef['data'].shape[2]
 
         if ndim==2:
             if X is None:
-                if 'spectral' in self.Id.Type.lower():
+                if self._isSpectral():
                     X = np.array([0])
                 else:
                     X = np.arange(0,n1)
             else:
-                assert 'spectral' not in self.Id.Type.lower()
+                assert not self._isSpectral()
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
         else:
@@ -345,57 +398,74 @@ class Data(utils.ToFuObject):
             else:
                 assert X.ndim in [1,2]
                 assert X.shape[-1]==n1
+        if X.ndim==1:
+            X = np.array([X])
 
         # Get shapes
-        nX = X.shape[-1]
-        nnX = 1 if X.ndim==1 else X.shape[0]
+        nnch, nch = X.shape
 
         # Check indices
         if indtX is None:
             indtX = self._ddataRef['indtX']
         if indtX is not None:
             assert indtX.shape==(nt,)
-            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnX
+            assert inp.argmin(indtX)>=0 and np.argmax(indtX)<=nnch
         if indXlamb is None:
             indXlamb = self._ddataRef['indXlamb']
         if indtXlamb is None:
             indtXlamb = self._ddataRef['indtXlamb']
 
         if indtXlamb is not None:
-            assert intXlamb is None
-            assert indXlamb.shape==(nX,)
+            assert indXlamb is None
+            assert indXlamb.shape==(nch,)
             assert (np.argmin(indXlamb)>=0
                     and np.argmax(indXlamb)<=self._ddataRef['nnlamb'])
         else:
             assert indXlamb is None
-            assert indtXlamb.shape==(nt,nX)
+            assert indtXlamb.shape==(nt,nch)
             assert (np.argmin(indtXlamb)>=0
                     and np.argmax(indtXlamb)<=self._ddataRef['nnlamb'])
 
-        return X, nnX, indtX, indXlamb, indtXlamb
+        return X, nnch, indtX, indXlamb, indtXlamb
 
 
-    def _checkformat_inputs_dunits(self, dunits=None):
-        if dunits is None:
-            dunits = {}
-        assert type(dunits) is dict
+    def _checkformat_inputs_dlabels(self, dlabels=None):
+        if dlabels is None:
+            dlabels = {}
+        assert type(dlabels) is dict
         lk = ['data','t','X']
+        if self._isSpectral():
+            lk.append('lamb')
         for k in lk:
-            if not k in dunits.keys():
-                dunits[k] = 'a.u.'
-            assert type(dunits[k]) is str
-        if 'spectral' in self.Id.Type.lower():
-            if 'lamb' not in dunits.keys():
-                dunits['lamb'] = 'a.u.'
-            assert type(dunits['lamb']) is str
-        return dunits
+            if not k in dlabels.keys():
+                dlabels[k] = {'name': k, 'units':'a.u.'}
+            assert type(dlabels[k]) is dict
+            assert all([s in dlabels[k].keys() for s in ['name','units']])
+            assert type(dlabels[k]['name']) is str
+            assert type(dlabels[k]['units']) is str
+        return dlabels
 
     def _checkformat_inputs_dtreat(self, dtreat=None):
         if dtreat is None:
             dtreat = {}
         assert type(dtreat) is dict
-        if 'order' not in dtreat.keys():
-            dtreat['order'] = list(self._ddef['dtreat']['order'])
+        lk0 = self._get_keys_dtreat()
+        lk = dtreat.keys()
+        for k in lk:
+            assert k in lk0
+        for k in lk0:
+            if k not in lk:
+                if k in self._ddef['dtreat'].keys():
+                    dtreat[k] = self._ddef['dtreat'][k]
+                else:
+                    dtreat[k] = None
+            if k == 'order':
+                if dtreat[k] is None:
+                    dtreat[k] = self.__class__._ddef['dtreat']['order']
+                assert type(dtreat[k]) is list
+                assert dtreat[k][-1] == 'interp-t'
+                assert all([ss in dtreat[k][-4:-1]
+                            for ss in ['indt','indch','indlamb']])
         return dtreat
 
     def _checkformat_inputs_dgeom(self, lCam=None, config=None):
@@ -409,14 +479,12 @@ class Data(utils.ToFuObject):
                 lCam = [lCam]
             nC = len(lCam)
             # Check type consistency
-            for dd in ['1d','2d']:
-                if dd in self.Id.Type.lower():
-                    lc = [dd in cc.Id.Type.lower() for cc in lCam]
-                    if not all(lc):
-                        msg = "The following cameras have wrong class (%s)"%dd
-                        lm = ['%s: %s'%s(cc.Id.Name,cc.Id.Cls) for cc in lCam]
-                        msg += "\n    " + "\n    ".join(lm)
-                        raise Exception(msg)
+            lc = [cc._is2D() == self._is2D() for cc in lCam]
+            if not all(lc):
+                ls = ['%s : %s'%(cc.Id.Name,cc.Id.Cls) for cc in lCam]
+                msg = "%s (%s) fed wrong lCam:\n"%(self.Id.Name,self.Id.Cls)
+                msg += "    - " + "\n    - ".join(ls)
+                raise Exception(msg)
             # Check config consistency
             lconf = [cc.config for cc in lCam]
             if not all([cc is not None for cc in lconf]):
@@ -437,7 +505,7 @@ class Data(utils.ToFuObject):
 
             # Check number of channels wrt data
             nR = np.sum([cc._dgeom['nRays'] for cc in lCam])
-            if not nR==self._ddata['nX']:
+            if not nR == self._ddataRef['nch']:
                 msg = "Total nb. of rays from lCam != data.shape[1] !"
                 raise Exception(msg)
         return config, lCam, nC
@@ -458,7 +526,7 @@ class Data(utils.ToFuObject):
         else:
             for k in dchans.keys():
                 arr = np.asarray(dchans[k]).ravel()
-                assert arr.size==self._ddata['nX']
+                assert arr.size==self._ddata['nch']
                 dchans[k] = arr
         return dchans
 
@@ -466,8 +534,11 @@ class Data(utils.ToFuObject):
         assert dextra is None or isinstance(dextra,dict)
         if dextra is not None:
             for k in dextra.keys():
-                assert isinstance(dextra[k],dict)
-                assert 't' in dextra[k].keys()
+                if not (type(dextra[k]) is dict and 't' in dextra[k].keys()):
+                    msg = "All dextra values should be dict with 't':\n"
+                    msg += "    - dextra[%s] = %s"%(k,str(dextra[k]))
+                    raise Exception(msg)
+        return dextra
 
     ###########
     # Get keys of dictionnaries
@@ -475,25 +546,39 @@ class Data(utils.ToFuObject):
 
     @staticmethod
     def _get_keys_ddataRef():
-        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
+        lk = ['data', 't', 'X', 'lamb', 'nt', 'nch', 'nlamb', 'nnch', 'nnlamb',
               'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
+        return lk
 
     @staticmethod
     def _get_keys_ddata():
-        lk = ['data', 't', 'X', 'lamb', 'nt', 'nX', 'nlamb', 'nnX', 'nnlamb',
-              'indtX', 'indtlamb', 'indXlamb', 'indtXlamb']
+        lk = ['data', 't', 'X', 'lamb', 'nt', 'nch', 'nlamb', 'nnch', 'nnlamb',
+              'indtX', 'indtlamb', 'indXlamb', 'indtXlamb', 'uptodate']
+        return lk
 
     @staticmethod
     def _get_keys_dtreat():
-        lk = ['indt','indch']
+        lk = ['order','mask-ind', 'mask-val', 'interp-indt', 'interp-indch',
+              'data0-indt', 'data0-Dt', 'data0-data',
+              'dfit', 'indt',  'indch', 'indlamb', 'interp-t']
+        return lk
 
-    @staticmethod
-    def _get_keys_dunits():
-        lk = ['data','t','X','lamb']
+    @classmethod
+    def _get_keys_dlabels(cls):
+        lk = ['data','t','X']
+        if cls._isSpectral():
+            lk.append('lamb')
+        return lk
 
     @staticmethod
     def _get_keys_dgeom():
         lk = ['config', 'lCam', 'nC']
+        return lk
+
+    @staticmethod
+    def _get_keys_dX12():
+        lk = ['from', 'x1','x2','n1', 'n2',
+              'ind1', 'ind2', 'indr']
         return lk
 
     @staticmethod
@@ -510,22 +595,30 @@ class Data(utils.ToFuObject):
     # _init
     ###########
 
-    def _init(self, data=None, t=None, X=None, lamb=None, dchans=None,
-              dunits=None, dextra=None, lCam=None, config=None, **kwdargs):
+    def _init(self, data=None, t=None, X=None, lamb=None, dtreat=None, dchans=None,
+              dlabels=None, dextra=None, lCam=None, config=None, **kwargs):
+        kwdargs = locals()
+        kwdargs.update(**kwargs)
         largs = self._get_largs_ddataRef()
-        kwddataRef = self._extract_kwdargs(locals(), largs)
-        largs = self._get_largs_dunits()
-        kwdunits = self._extract_kwdargs(locals(), largs)
+        kwddataRef = self._extract_kwdargs(kwdargs, largs)
+        largs = self._get_largs_dtreat()
+        kwdtreat = self._extract_kwdargs(kwdargs, largs)
+        largs = self._get_largs_dlabels()
+        kwdlabels = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dgeom()
-        kwdgeom = self._extract_kwdargs(locals(), largs)
+        kwdgeom = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dchans()
-        kwdchans = self._extract_kwdargs(locals(), largs)
+        kwdchans = self._extract_kwdargs(kwdargs, largs)
         largs = self._get_largs_dextra()
-        kwdextra = self._extract_kwdargs(locals(), largs)
+        kwdextra = self._extract_kwdargs(kwdargs, largs)
         self._set_ddataRef(**kwddataRef)
-        self.compute_data()
-        self._set_dunits(**kwdunits)
+        self.set_dtreat(**kwdtreat)
+        self._set_ddata()
+        self._set_dlabels(**kwdlabels)
         self._set_dgeom(**kwdgeom)
+        if self._is2D():
+            kwdX12 = self._extract_kwdargs(kwdargs, self._get_largs_dX12())
+            self.set_dX12(**kwdX12)
         self.set_dchans(**kwdchans)
         self.set_dextra(**kwdextra)
         self._dstrip['strip'] = 0
@@ -540,35 +633,65 @@ class Data(utils.ToFuObject):
         kwdargs = locals()
         del kwdargs['self']
         lout = self._checkformat_inputs_ddataRef(**kwdargs)
-        data, t, X, lamb, nt, nX, nlamb, nnX, nnlamb = lout[:9]
+        data, t, X, lamb, nt, nch, nlamb, nnch, nnlamb = lout[:9]
         indtX, indtlamb, indXlamb, indtXlamb = lout[9:]
 
-        self._dataRef = {'data':data, 't':t, 'X':X, 'lamb':lamb,
-                         'nt':nt, 'nX':nX, 'nlamb':nlamb,
-                         'nnX':nnX, 'nnlamb':nnlamb,
-                         'indtX':indtX, 'indtlamb':indtlamb,
-                         'indXlamb':indXlamb, 'indtXlamb':indtXlamb}
+        self._ddataRef = {'data':data, 't':t, 'X':X, 'lamb':lamb,
+                          'nt':nt, 'nch':nch, 'nlamb':nlamb,
+                          'nnch':nnch, 'nnlamb':nnlamb,
+                          'indtX':indtX, 'indtlamb':indtlamb,
+                          'indXlamb':indXlamb, 'indtXlamb':indtXlamb}
 
     def set_dtreat(self, dtreat=None):
         dtreat = self._checkformat_inputs_dtreat(dtreat=dtreat)
         self._dtreat = dtreat
 
-    def _set_dunits(self, dunits=None):
-        dunits = self._checkformat_inputs_dunits(dunits=dunits)
-        self._dunits = dunits
+    def _set_dlabels(self, dlabels=None):
+        dlabels = self._checkformat_inputs_dlabels(dlabels=dlabels)
+        self._dlabels.update(dlabels)
 
     def _set_dgeom(self, lCam=None, config=None):
         config, lCam, nC = self._checkformat_inputs_dgeom(lCam=lCam,
                                                           config=config)
         self._dgeom = {'lCam':lCam, 'nC':nC, 'config':config}
 
-    def set_dchans(self, dchans=None):
-        dchans = self._checkformat_inputs_dchans(dchans=dchans)
-        self._dchans = dchans
+    def set_dchans(self, dchans=None, method='set'):
+        """ Set (or update) the dchans dict
 
-    def set_dextra(self, dextra=None):
+        dchans is a dict of np.ndarrays of len() = self.nch containing
+        channel-specific information
+
+        Use the kwarg 'method' to set / update the dict
+
+        """
+        assert method in ['set','update']
+        dchans = self._checkformat_inputs_dchans(dchans=dchans)
+        if method == 'set':
+            self._dchans = dchans
+        else:
+            self._dchans.update(dchans)
+
+    def set_dextra(self, dextra=None, method='set'):
+        """ Set (or update) the dextra dict
+
+        dextra is a dict of nested dict
+        It contains all extra signal that can help interpret the data
+            e.g.: heating power time traces, plasma current...
+        Each nested dict should have the following fields:
+            't'    : 1D np.ndarray (time vector)
+            'data' : 1D np.ndarray (data time trace)
+            'name' : str (used as label in legend)
+            'units': str (used n parenthesis in legend after name)
+
+        Use the kwarg 'method' to set / update the dict
+
+        """
+        assert method in ['set','update']
         dextra = self._checkformat_inputs_dextra(dextra=dextra)
-        self._dextra = dextra
+        if method == 'set':
+            self._dextra = dextra
+        else:
+            self._dextra.update(dextra)
 
     ###########
     # strip dictionaries
@@ -578,31 +701,31 @@ class Data(utils.ToFuObject):
         if self._dstrip['strip']==strip:
             return
 
-        if strip in [0,2]:
-            self.compute_data()
-        elif strip in [1,3]:
-            self.clear_data()
+        if strip in [0,1] and self._dstrip['strip'] in [2]:
+            self._set_ddata()
+        elif strip in [2] and self._dstrip['strip'] in [0,1]:
+            self.clear_ddata()
 
-    def _strip_dgeom(self, strip=0, force=False):
+    def _strip_dgeom(self, strip=0, force=False, verb=True):
         if self._dstrip['strip']==strip:
             return
 
-        if strip in [0,1] and self._dstrip['strip'] in [2,3]:
+        if strip in [0] and self._dstrip['strip'] in [1,2]:
             lC, config = None, None
             if self._dgeom['lCam'] is not None:
                 assert type(self._dgeom['lCam']) is list
                 assert all([type(ss) is str for ss in self._dgeom['lCam']])
                 lC = []
                 for ii in range(0,len(self._dgeom['lCam'])):
-                    lC.append(utils.load(self._dgeom['lCam'][ii]))
+                    lC.append(utils.load(self._dgeom['lCam'][ii], verb=verb))
 
             elif self._dgeom['config'] is not None:
                 assert type(self._dgeom['config']) is str
-                config = utils.load(self._dgeom['config'])
+                config = utils.load(self._dgeom['config'], verb=verb)
 
             self._set_dgeom(lCam=lC, config=config)
 
-        elif strip in [2,3] and self._dstrip['strip'] in [0,1]:
+        elif strip in [1,2] and self._dstrip['strip'] in [0]:
             if self._dgeom['lCam'] is not None:
                 lpfe = []
                 for cc in self._dgeom['lCam']:
@@ -662,9 +785,8 @@ class Data(utils.ToFuObject):
         cls._dstrip['allowed'] = [0,1,2,3]
         nMax = max(cls._dstrip['allowed'])
         doc = """
-                 1: clear data
-                 2: dgeom all pathfile (=> tf.geom.Rays.strip(-1))
-                 3: dgeom all pathfile + data clear
+                 1: dgeom pathfiles
+                 2: dgeom pathfiles + clear data
                  """
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
         if sys.version[0]=='2':
@@ -672,32 +794,38 @@ class Data(utils.ToFuObject):
         else:
             cls.strip.__doc__ = doc
 
-    def strip(self, strip=0):
+    def strip(self, strip=0, verb=True):
         # super()
-        super(Data,self).strip(strip=strip)
+        super(DataAbstract,self).strip(strip=strip, verb=verb)
 
-    def _strip(self, strip=0):
+    def _strip(self, strip=0, verb=True):
         self._strip_ddata(strip=strip)
-        self._strip_dgeom(strip=strip)
+        self._strip_dgeom(strip=strip, verb=verb)
 
     def _to_dict(self):
         dout = {'ddataRef':{'dict':self._ddataRef, 'lexcept':None},
                 'ddata':{'dict':self._ddata, 'lexcept':None},
                 'dtreat':{'dict':self._dtreat, 'lexcept':None},
-                'dunits':{'dict':self._dunits, 'lexcept':None},
+                'dlabels':{'dict':self._dlabels, 'lexcept':None},
                 'dgeom':{'dict':self._dgeom, 'lexcept':None},
                 'dchans':{'dict':self._dchans, 'lexcept':None},
                 'dextra':{'dict':self._dextra, 'lexcept':None}}
+        if self._is2D():
+            dout['dX12'] = {'dict':self._dX12, 'lexcept':None}
         return dout
 
     def _from_dict(self, fd):
         self._ddataRef.update(**fd['ddataRef'])
         self._ddata.update(**fd['ddata'])
         self._dtreat.update(**fd['dtreat'])
-        self._dunits.update(**fd['dunits'])
+        self._dlabels.update(**fd['dlabels'])
         self._dgeom.update(**fd['dgeom'])
-        self._dchans.update(**fd['dchans'])
         self._dextra.update(**fd['dextra'])
+        if 'dchans' not in fd.keys():
+            fd['dchans'] = {}
+        self._dchans.update(**fd['dchans'])
+        if self._is2D():
+            self._dX12.update(**fd['dX12'])
 
 
     ###########
@@ -709,13 +837,15 @@ class Data(utils.ToFuObject):
         return self._ddataRef
     @property
     def ddata(self):
+        if not self._ddata['uptodate']:
+            self._set_ddata()
         return self._ddata
     @property
     def dtreat(self):
         return self._dtreat
     @property
-    def dunits(self):
-        return self._dunits
+    def dlabels(self):
+        return self._dlabels
     @property
     def dgeom(self):
         return self._dgeom
@@ -723,58 +853,46 @@ class Data(utils.ToFuObject):
     def dextra(self):
         return self._dextra
 
+    def get_ddata(self, key):
+        if not self._ddata['uptodate']:
+            self._set_ddata()
+        return self._ddata[key]
     @property
     def data(self):
-        return self._get_data()
+        return self.get_ddata('data')
     @property
     def t(self):
-        return self._get_t()
+        return self.get_ddata('t')
     @property
     def X(self):
-        return self._get_X()
-
-
-
-
-    @property
-    def indt(self):
-        if self._indt is None:
-            return np.ones((self._Ref['nt'],),dtype=bool)
-        else:
-            return self._indt
-    @property
-    def indch(self):
-        if self._indch is None:
-            return np.ones((self._Ref['nch'],),dtype=bool)
-        else:
-            return self._indch
-    @property
-    def mask(self):
-        return self._mask
+        return self.get_ddata('X')
     @property
     def nt(self):
-        if self._nt is None:
-            return int(np.sum(self.indt))
-        else:
-            return self._nt
+        return self.get_ddata('nt')
     @property
     def nch(self):
-        return int(np.sum(self.indch))
-    @property
-    def data0(self):
-        return self._data0
-    @property
-    def LCam(self):
-        return self._get_LCam()
-    @property
-    def treatment(self):
-        d = {'indt':self.indt, 'indch':self.indch,
-             'DtRef':self._DtRef, 'fft':self._fft}
-        return d
-    @property
-    def dextra(self):
-        return self._dextra
+        return self.get_ddata('nch')
 
+    @property
+    def config(self):
+        return self._dgeom['config']
+    @property
+    def lCam(self):
+        return self._dgeom['lCam']
+
+    @property
+    def _isLOS(self):
+        c0 = self._dgeom['lCam'] is not None
+        if c0:
+            c0 = all([cc._isLOS() for cc in self.dgeom['lCam']])
+        return c0
+
+    @abstractmethod
+    def _isSpectral(self):
+        return 'spectral' in self.__class__.name.lower()
+    @abstractmethod
+    def _is2D(self):
+        return '2d' in self.__class__.__name__.lower()
 
     ###########
     # Hidden and public methods for ddata
@@ -789,9 +907,9 @@ class Data(utils.ToFuObject):
         """
         out = self._checkformat_inputs_XRef(X=X, indtX=indtX,
                                             indXlamb=indtXlamb)
-        X, nnX, indtX, indXlamb, indtXlamb = out
+        X, nnch, indtX, indXlamb, indtXlamb = out
         self._ddataRef['X'] = X
-        self._ddataRef['nnX'] = nnX
+        self._ddataRef['nnch'] = nnch
         self._ddataRef['indtX'] = indtX
         self._ddataRef['indtXlamb'] = indtXlamb
         self._ddata['uptodate'] = False
@@ -803,14 +921,15 @@ class Data(utils.ToFuObject):
         uses self.select_t(t=t) to produce it
 
         """
-        lC = [indt is None,t is None]
-        assert np.sum(lC)>=1
+        lC = [indt is not None, t is not None]
         if all(lC):
-            ind = None
-        elif C[0]:
+            msg = "Please provide either t or indt (or none)!"
+            raise Exception(msg)
+
+        if lC[1]:
             ind = self.select_t(t=t, out=bool)
-        elif C[1]:
-            ind = _format_ind(indt, n=self._Ref['nt'])
+        else:
+            ind = _format_ind(indt, n=self._ddataRef['nt'])
         self._dtreat['indt'] = ind
         self._ddata['uptodate'] = False
 
@@ -824,66 +943,69 @@ class Data(utils.ToFuObject):
         if indch is not None:
             indch = np.asarray(indch)
             assert indch.ndim==1
-            indch = _format_ind(indch, n=self._ddataRef['nX'])
+        indch = _format_ind(indch, n=self._ddataRef['nch'])
         self._dtreat['indch'] = indch
+        self._ddata['uptodate'] = False
+
+    def set_dtreat_indlamb(self, indlamb=None):
+        """ Store the desired index array for the wavelength
+
+        If None => all wavelengths
+        Must be a 1d array
+
+        """
+        if not self._isSpectral():
+            msg = "The wavelength can only be set with DataSpectral object !"
+            raise Exception(msg)
+        if indlamb is not None:
+            indlamb = np.asarray(indlamb)
+            assert indlamb.ndim==1
+            indlamb = _format_ind(indlamb, n=self._ddataRef['nlamb'])
+        self._dtreat['indlamb'] = indlamb
         self._ddata['uptodate'] = False
 
     def set_dtreat_mask(self, ind=None, val=np.nan):
         assert ind is None or hasattr(ind,'__iter__')
         assert type(val) in [int,float,np.int64,np.float64]
         if ind is not None:
-            ind = _format_ind(ind, n=self._ddataRef['nX'])
+            ind = _format_ind(ind, n=self._ddataRef['nch'])
         self._dtreat['mask-ind'] = ind
         self._dtreat['mask-val'] = val
         self._ddata['uptodate'] = False
 
     def set_dtreat_data0(self, data0=None, Dt=None, indt=None):
-        assert self._ddataRef['nt']>1, "Useless if only one data slice !"
-        C = [data0 is None, Dt is None, indt is None]
-        assert np.sum(C)>=2
-        if data0 is not None:
-            data0 = np.asarray(data0).ravel()
-            assert data0.shape==(self._ddataRef['nX'],)
-            Dt, indt = None, None
-        else:
-            if indt is not None:
-                indt = _format_ind(indt, n=self._ddataRef['nt'])
+        lC = [data0 is not None, Dt is not None, indt is not None]
+        assert np.sum(lC) <= 1
+
+        if any(lC):
+            if lC[0]:
+                data0 = np.asarray(data0)
+                if self._isSpectral():
+                    shape = (self._ddataRef['nch'],self._ddataRef['nlamb'])
+                else:
+                    shape = (self._ddataRef['nch'],)
+                    data0 = data0.ravel()
+                    if not data0.shape == shape:
+                        msg = "Provided data0 has wrong shape !\n"
+                        msg += "    - Expected: %s\n"%str(shape)
+                        msg += "    - Provided: %s"%data0.shape
+                        raise Exception(msg)
+                Dt, indt = None, None
             else:
-                indt = self.select_t(t=Dt, out=bool)
-            if np.any(indt):
-                data0 = self._ddataRef['data'][indt,:]
-                if np.sum(indt)>1:
-                    data0 = np.nanmean(data,axis=0)
+                if lC[2]:
+                    indt = _format_ind(indt, n=self._ddataRef['nt'])
+                else:
+                    indt = self.select_t(t=Dt, out=bool)
+                if np.any(indt):
+                    if self._isSpectral():
+                        data0 = self._ddataRef['data'][indt,:,:]
+                    else:
+                        data0 = self._ddataRef['data'][indt,:]
+                    if np.sum(indt)>1:
+                        data0 = np.nanmean(data0,axis=0)
         self._dtreat['data0-indt'] = indt
-        self._dtreat['data0-data'] = data0
         self._dtreat['data0-Dt'] = Dt
-        self._ddata['uptodate'] = False
-
-    def set_dtreat_interp_indch(self, indch=None):
-        """ Set the indices of the channels for which to interpolate data
-
-        The index can be provided as:
-            - A 1d np.ndarray of boolean or int indices of channels
-                => interpolate data at these channels for all times
-            - A dict with:
-                * keys = int indices of times
-                * values = array of int indices of chan. for which to interpolate
-
-        Time indices refer to self.ddataRef['t']
-        Channel indices refer to self.ddataRef['X']
-        """
-        assert indch is None or type(indch) in [np.ndarray, list, dict]
-        if isinstance(indch,dict):
-            C = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
-            assert all(C)
-            for k in indch.keys():
-                assert hasattr(indch[k],'__iter__')
-                indch[k] = _format_ind(indch[k], n=self._ddataRef['nX'])
-        else:
-            indch = np.asarray(indch)
-            assert indch.ndim==1
-            indch = _format_ind(indch, n=self._ddataRef['nX'])
-        self._dtreat['interp-indch'] = indch
+        self._dtreat['data0-data'] = data0
         self._ddata['uptodate'] = False
 
     def set_dtreat_interp_indt(self, indt=None):
@@ -899,19 +1021,75 @@ class Data(utils.ToFuObject):
         Time indices refer to self.ddataRef['t']
         Channel indices refer to self.ddataRef['X']
         """
-        assert indt is None or type(indt) in [np.ndarray, list, dict]
-        if isinstance(indt,dict):
-            C = [type(k) is int and k<self._ddataRef['nX'] for k in indt.keys()]
-            assert all(C)
+        lC = [indt is None, type(indt) in [np.ndarray,list], type(indt) is dict]
+        assert any(lC)
+        if lC[2]:
+            lc = [type(k) is int and k<self._ddataRef['nch'] for k in indt.keys()]
+            assert all(lc)
             for k in indt.keys():
                 assert hasattr(indt[k],'__iter__')
                 indt[k] = _format_ind(indt[k], n=self._ddataRef['nt'])
-        else:
+        elif lC[1]:
             indt = np.asarray(indt)
             assert indt.ndim==1
             indt = _format_ind(indt, n=self._ddataRef['nt'])
         self._dtreat['interp-indt'] = indt
         self._ddata['uptodate'] = False
+
+    def set_dtreat_interp_indch(self, indch=None):
+        """ Set the indices of the channels for which to interpolate data
+
+        The index can be provided as:
+            - A 1d np.ndarray of boolean or int indices of channels
+                => interpolate data at these channels for all times
+            - A dict with:
+                * keys = int indices of times
+                * values = array of int indices of chan. for which to interpolate
+
+        Time indices refer to self.ddataRef['t']
+        Channel indices refer to self.ddataRef['X']
+        """
+        lC = [indch is None, type(indch) in [np.ndarray,list], type(indch) is dict]
+        assert any(lC)
+        if lC[2]:
+            lc = [type(k) is int and k<self._ddataRef['nt'] for k in indch.keys()]
+            assert all(lc)
+            for k in indch.keys():
+                assert hasattr(indch[k],'__iter__')
+                indch[k] = _format_ind(indch[k], n=self._ddataRef['nch'])
+        elif lC[1]:
+            indch = np.asarray(indch)
+            assert indch.ndim==1
+            indch = _format_ind(indch, n=self._ddataRef['nch'])
+        self._dtreat['interp-indch'] = indch
+        self._ddata['uptodate'] = False
+
+    def set_dtreat_dfit(self, dfit=None):
+        """ Set the fitting dictionnary
+
+        A dict contaning all parameters for fitting the data
+        Valid dict content includes:
+            - 'type': str
+                'fft':  A fourier filtering
+                'svd':  A svd filtering
+
+        """
+        warnings.warn("Not implemented yet !, dfit forced to None")
+        dfit = None
+
+        assert dfit is None or isinstance(dfit,dict)
+        if isinstance(dfit,dict):
+            assert 'type' in dfit.keys()
+            assert dfit['type'] in ['svd','fft']
+
+        self._dtreat['dfit'] = dfit
+        self._ddata['uptodate'] = False
+
+    def set_dtreat_interpt(self, t=None):
+        """ Set the time vector on which to interpolate the data """
+        if t is not None:
+            t = np.unique(np.asarray(t, dtype=float).ravel())
+        self._dtreat['interp-t'] = t
 
     @staticmethod
     def _mask(data, mask_ind, mask_val):
@@ -955,51 +1133,94 @@ class Data(utils.ToFuObject):
     @staticmethod
     def _data0(data, data0):
         if data0 is not None:
-            if data.shape==data0.shape:
+            if data.shape == data0.shape:
                 data = data - data0
-            elif data.ndim==2:
+            elif data.ndim == 2:
                 data = data - data0[np.newaxis,:]
-            if data.ndim==3:
-                data = data - data0[np.newaxis,:,np.newaxis]
-        return data
-
-    #@staticmethod
-    #def _filter(data, ftype='svd', df=None, harm=None, dfEx=None, harmEx=None):
-
-
-
-    @staticmethod
-    def _indt(data, indt):
-        if indt is not None:
-            if data.ndim==2:
-                data = data[indt,:]
-            elif data.ndim==3:
-                data = data[indt,:,:]
+            if data.ndim == 3:
+                data = data - data0[np.newaxis,:,:]
         return data
 
     @staticmethod
-    def _indch(data, indch):
-        if indt is not None:
-            if data.ndim==2:
-                data = data[:,indch]
-            elif data.ndim==3:
-                data = data[:,indch,:]
+    def _dfit(data, dfit):
+        if dfit is not None:
+            if dfit['type']=='svd':
+                #data = _comp.()
+                pass
+            elif dfit['type']=='svd':
+                #data = _comp.()
+                pass
         return data
 
-    def _get_data(self):
-        if not self._ddata['uptodate']:
-            self._set_ddata()
-        return self._ddata['data']
+    @staticmethod
+    def _indt(data, t=None, X=None, nnch=None,
+              indtX=None, indtlamb=None, indtXlamb=None, indt=None):
+        nt0 = t.size
+        if data.ndim==2:
+            data = data[indt,:]
+        elif data.ndim==3:
+            data = data[indt,:,:]
+        if t is not None:
+            t = t[indt]
+        if X is not None and X.ndim == 2 and X.shape[0] == nt0:
+            X = X[indt,:]
+            nnch = indt.sum()
+        if indtX is not None:
+            indtX = indtX[indt]
+        if indtlamb is not None:
+            indtlamb = indtlamb[indt]
+        elif indtXlamb is not None:
+            indtXlamb = indtXlamb[indt,:]
+        return data, t, X, indtX, indtlamb, indtXlamb, nnch
 
-    def _get_t(self):
-        if not self._ddata['uptodate']:
-            self._set_ddata()
-        return self._ddata['t']
+    @staticmethod
+    def _indch(data, X=None,
+               indXlamb=None, indtXlamb=None, indch=None):
+        if data.ndim==2:
+            data = data[:,indch]
+        elif data.ndim==3:
+            data = data[:,indch,:]
+        if X is not None:
+            X = X[indch] if X.ndim==1 else X[:,indch]
+        if indXlamb is not None:
+            indXlamb = indXlamb[indch]
+        elif indtXlamb is not None:
+            indtXlamb = indtXlamb[:,indch]
+        return data, X, indXlamb, indtXlamb
 
-    def _get_X(self):
+    @staticmethod
+    def _indlamb(data, lamb=None,
+                 indlamb=None):
+        data = data[:,:,indlamb]
+        if lamb is not None:
+            lamb = lamb[indlamb] if lamb.ndim==1 else lamb[:,indlamb]
+        return data, lamb
+
+    @staticmethod
+    def _interp_t(data, t, indtX=None,
+                  indtlamb=None, indtXlamb=None, interpt=None, kind='linear'):
+        f = scp.interp1d(t, data, kind=kind, axis=0, copy=True,
+                         bounds_error=True, fill_value=np.nan, assume_sorted=False)
+        d = f(data)
+
+        lC = [indtX is not None, indtlamb is not None, indtXlamb is not None]
+        if any(lC):
+            indt = np.digitize(t, (interpt[1:]+interpt[:-1])/2.)
+            if lC[0]:
+                indtX = indtX[indt]
+            if lC[1]:
+                indtlamb = indtlamb[indt]
+            elif lC[2]:
+                indtXlamb = indtXlamb[indt,:]
+        return d, interpt, indtX, indtlamb, indtXlamb
+
+
+
+
+    def _get_ddata(self, key):
         if not self._ddata['uptodate']:
             self._set_ddata()
-        return self._ddata['X']
+        return self._ddata[key]
 
     def set_dtreat_order(self, order=None):
         """ Set the order in which the data treatment should be performed
@@ -1012,7 +1233,7 @@ class Data(utils.ToFuObject):
             - 'interp_indt' :
             - 'interp_indch' :
             - 'data0' :
-            - 'filter' :
+            - 'dfit' :
             - 'indt' :
             - 'indch' :
             - 'interp_t':
@@ -1024,9 +1245,11 @@ class Data(utils.ToFuObject):
         if order is None:
             order = list(self._ddef['dtreat']['order'])
         assert type(order) is list and all([type(ss) is str for ss in order])
-        C = [ss in ['indt','indch'] for ss in self._dtreat['order'][-2:]]
-        if not all(C):
-            msg = "indt and indch must be the last 2 treatment steps !"
+        if not all([ss in ['indt','indch','indlamb'] for ss in order][-4:-1]):
+            msg = "indt and indch must be the treatment steps -2 and -3 !"
+            raise Exception(msg)
+        if not order[-1]=='interp-t':
+            msg = "interp-t must be the last treatment step !"
             raise Exception(msg)
         self._dtreat['order'] = order
         self._ddata['uptodate'] = False
@@ -1042,18 +1265,32 @@ class Data(utils.ToFuObject):
         cancelled and the working copy returns the reference data.
 
         """
-        indt, indch = self._dtreat['interp_indt'], self._dtreat['interp_indch']
-        C0 = indch is None
-        C1 = indt is None
-        C2 = self._dtreat['fft-df'] is None
-        C3 = self._dtreat['svd-modes'] is None
-        if np.sum([C2,C3])==0:
-            msg = "You cannot do both a fft and svd filtering, choose one"
-            msg += "\n  => remove fft by self.set_fft()"
-            msg += "\n  => remove svd by self.set_svd()"
-            raise Exception(msg)
+        # --------------------
+        # Copy reference data
         d = self._ddataRef['data'].copy()
+        t, X = self._ddataRef['t'].copy(), self._ddataRef['X'].copy()
+        lamb = self._ddataRef['lamb']
+        if lamb is not None:
+            lamb = lamb.copy()
+
+        indtX = self._ddataRef['indtX']
+        if indtX is not None:
+            indtX = indtX.copy()
+        indtlamb = self._ddataRef['indtlamb']
+        if indtlamb is not None:
+            indtlamb = indtlamb.copy()
+        indXlamb = self._ddataRef['indXlamb']
+        if indXlamb is not None:
+            indXlamb = indXlamb.copy()
+        indtXlamb = self._ddataRef['indtXlamb']
+        if indtXlamb is not None:
+            indtXlamb = indtXlamb.copy()
+
+        nnch = self._ddataRef['nnch']
+        # --------------------
+        # Apply data treatment
         for kk in self._dtreat['order']:
+            # data only
             if kk=='mask' and self._dtreat['mask-ind'] is not None:
                 d = self._mask(d, self._dtreat['mask-ind'],
                                self._dtreat['mask-val'])
@@ -1064,43 +1301,95 @@ class Data(utils.ToFuObject):
                 d = self._interp_indch(d, self._dtreat['interp-indch'],
                                        self._ddataRef['X'])
             if kk=='data0':
-                d = self._data0(d, self._dtreat['data0-data'],
-                                self._dtreat['data-val'])
-            if kk=='filter':
-                d = self._filter(d, **self._dtreat['filter'])
-            if kk=='indt':
-                d = self._indt(d, self._dtreat['indt'])
-            if kk=='indch':
-                d = self._indch(d, self._dtreat['indch'])
-            if kk=='interp_t':
-                d = self._interp_t(self._dtreat['interp-t'])
-        return d
+                d = self._data0(d, self._dtreat['data0-data'])
+            if kk=='dfit' and self._dtreat['dfit'] is not None:
+                d = self._dfit(d, **self._dtreat['dfit'])
+
+            # data + others
+            if kk=='indt' and self._dtreat['indt'] is not None:
+                d,t,X, indtX,indtlamb,indtXlamb, nnch = self._indt(d, t, X,
+                                                                   nnch, indtX,
+                                                                   indtlamb, indtXlamb,
+                                                                   self._dtreat['indt'])
+            if kk=='indch' and self._dtreat['indch'] is not None:
+                d,X, indXlamb,indtXlamb = self._indch(d, X, indXlamb, indtXlamb,
+                                                      self._dtreat['indch'])
+            if kk=='indlamb' and self._dtreat['indlamb'] is not None:
+                d, lamb = self._indch(d, lamb, self._dtreat['indlamb'])
+            if kk=='interp_t' and self._dtreat['interp-t'] is not None:
+                d,t, indtX,indtlamb,indtXlamb\
+                        = self._interp_t(d, t, indtX, indtlamb, indtXlamb,
+                                         self._dtreat['interp-t'], kind='linear')
+        # --------------------
+        # Safety check
+        if d.ndim==2:
+            (nt, nch), nlamb = d.shape, 0
+        else:
+            nt, nch, nlamb = d.shape
+        lc = [d.ndim in [2,3], t.shape == (nt,), X.shape == (nnch, nch)]
+        if not all(lc):
+            msg = "Data, X, t shape unconsistency:\n"
+            msg += "    - data.shape: %s\n"%str(d.shape)
+            msg += "    - X.shape:     %s\n"%str(X.shape)
+            msg += "    - (nnch, nch): %s\n"%str((nnch,nch))
+            msg += "    - t.shape: %s\n"%str(t.shape)
+            msg += "    - nt :     %s"%str(nt)
+            raise Exception(msg)
+        if lamb is not None:
+            assert lamb.shape == (self._ddataRef['nnlamb'], nlamb)
+
+        lout = [d, t, X, lamb, nt, nch, nlamb,
+                indtX, indtlamb, indXlamb, indtXlamb, nnch]
+        return lout
 
     def _set_ddata(self):
-        data, t, X = self._get_treated_data()
-        self._ddata['data'] = data
-        self._ddata['t'] = t
-        self._ddata['X'] = X
-        self._ddata['uptodate'] = True
+        if not self._ddata['uptodate']:
+            data, t, X, lamb, nt, nch, nlamb,\
+                    indtX, indtlamb, indXlamb, indtXlamb,\
+                    nnch = self._get_treated_data()
+            self._ddata['data'] = data
+            self._ddata['t'] = t
+            self._ddata['X'] = X
+            self._ddata['lamb'] = lamb
+            self._ddata['nt'] = nt
+            self._ddata['nch'] = nch
+            self._ddata['nlamb'] = nlamb
+            self._ddata['nnch'] = nnch
+            self._ddata['nnlamb'] = self._ddataRef['nnlamb']
+            self._ddata['indtX'] = indtX
+            self._ddata['indtlamb'] = indtlamb
+            self._ddata['indXlamb'] = indXlamb
+            self._ddata['indtXlamb'] = indtXlamb
+            self._ddata['uptodate'] = True
 
 
     def clear_ddata(self):
-        """ Clear the working copy of data (keep the reference data) """
+        """ Clear the working copy of data
+
+        Harmless, as it preserves the reference copy and the treatment dict
+        Use only to free some memory
+
+        """
         self._ddata = dict.fromkeys(self._get_keys_ddata())
         self._ddata['uptodate'] = False
 
-    def clear_dtreat(self):
+    def clear_dtreat(self, force=False):
         """ Clear all treatment parameters in self.dtreat
 
         Subsequently also clear the working copy of data
         The working copy of data is thus reset to the reference data
         """
-        self.set_indch()
-        self.set_indt()
-        self.set_data0()
-        self.set_interp_t()
-        self.set_fft()
-        self.clear_data()
+        lC = [self._dtreat[k] is not None for k in self._dtreat.keys()
+              if k != 'order']
+        if any(lC) and not force:
+            msg = """BEWARE : You are about to delete the data treatment
+                              i.e.: to clear self.dtreat (and also self.ddata)
+                              Are you sure ?
+                              If yes, use self.clear_dtreat(force=True)"""
+            raise Exception(msg)
+        dtreat = dict.fromkeys(self._get_keys_dtreat())
+        self._dtreat = self._checkformat_inputs_dtreat(dtreat)
+        self.clear_ddata()
 
     def dchans(self, key=None):
         """ Return the dchans updated with indch
@@ -1158,7 +1447,7 @@ class Data(utils.ToFuObject):
 
         """
         assert out in [bool,int]
-        indt = _select_ind(t, self._ddataRef['t'], self._ddataRef['nt'])
+        ind = _select_ind(t, self._ddataRef['t'], self._ddataRef['nt'])
         if out is int:
             ind = ind.nonzero()[0]
         return ind
@@ -1215,25 +1504,25 @@ class Data(utils.ToFuObject):
         assert out in [int,bool]
         assert log in ['any','all','not']
         lc = [val is None, key is None, touch is None]
-        lC = [all(lc), all(lc[:2]) and ~lc[2],
-              ~lc[0] and all(lc[1:]), ~any(lc[:2]) and lc[2]]
+        lC = [all(lc), all(lc[:2]) and not lc[2],
+              not lc[0] and all(lc[1:]), not any(lc[:2]) and lc[2]]
         assert np.sum(lC)==1
 
         if lC[0]:
             # get all channels
-            ind = np.ones((self._ddataRef['nX'],),dtype=bool)
+            ind = np.ones((self._ddataRef['nch'],),dtype=bool)
 
         elif lC[1]:
             # get touch
             if self._dgeom['lCam'] is None:
                 msg = "self.dgeom['lCam'] must be set to use touch !"
                 raise Exception(msg)
-            if any([type(cc) is str for ss in self._dgeom['lCam']]):
+            if any([type(cc) is str for cc in self._dgeom['lCam']]):
                 msg = "self.dgeom['lCam'] contains pathfiles !"
                 msg += "\n  => Run self.strip(0)"
                 raise Exception(msg)
             ind = []
-            for cc in self._dgeom['LCam']:
+            for cc in self._dgeom['lCam']:
                 ind.append(cc.select(touch=touch, log=log, out=bool))
             if len(ind)==1:
                 ind = ind[0]
@@ -1242,17 +1531,23 @@ class Data(utils.ToFuObject):
 
         elif lC[2]:
             # get values on X
-            if self._ddataRef['nnX']==1:
-                ind = _select_ind(val, self._ddataRef['X'], self._ddataRef['nX'])
+            if self._ddataRef['nnch']==1:
+                ind = _select_ind(val, self._ddataRef['X'], self._ddataRef['nch'])
             else:
-                ind = np.zeros((self._ddataRef['nt'],self._ddataRef['nX']),dtype=bool)
-                for ii in range(0,self._ddataRef['nnX']):
+                ind = np.zeros((self._ddataRef['nt'],self._ddataRef['nch']),dtype=bool)
+                for ii in range(0,self._ddataRef['nnch']):
                     iind = self._ddataRef['indtX']==ii
                     ind[iind,:] =  _select_ind(val, self._ddataRef['X'],
-                                               self._ddataRef['nX'])[np.newaxis,:]
+                                               self._ddataRef['nch'])[np.newaxis,:]
 
         else:
-            assert type(key) is str and key in self._dchans['dchans'].keys()
+            if not (type(key) is str and key in self._dchans.keys()):
+                msg = "Provided key not valid!\n"
+                msg += "    - key: %s\n"%str(key)
+                msg += "Please provide a valid key of self.dchans():\n"
+                msg += "    - " + "\n    - ".join(self._dchans.keys())
+                raise Exception(msg)
+
             ltypes = [str,int,float,np.int64,np.float64]
             C0 = type(val) in ltypes
             C1 = type(val) in [list,tuple,np.ndarray]
@@ -1261,7 +1556,7 @@ class Data(utils.ToFuObject):
                 val = [val]
             else:
                 assert all([type(vv) in ltypes for vv in val])
-            ind = np.vstack([self.Ref['dchans'][key]==ii for ii in val])
+            ind = np.vstack([self._dchans[key]==ii for ii in val])
             if log=='any':
                 ind = np.any(ind,axis=0)
             elif log=='all':
@@ -1272,27 +1567,79 @@ class Data(utils.ToFuObject):
             ind = ind.nonzero()[0]
         return ind
 
+    def select_lamb(self, lamb=None, out=bool):
+        """ Return a wavelength index array
+
+        Return a boolean or integer index array, hereafter called 'ind'
+        The array refers to the reference time vector self.ddataRef['lamb']
+
+        Parameters
+        ----------
+        lamb :     None / float / np.ndarray / list / tuple
+            The time values to be selected:
+                - None : ind matches all wavelength values
+                - float : ind is True only for the wavelength closest to lamb
+                - np.ndarray : ind True only for the wavelength closest to lamb
+                - list (len()==2): ind True for wavelength in [lamb[0],lamb[1]]
+                - tuple (len()==2): ind True for wavelength outside ]t[0];t[1][
+        out :   type
+            Specifies the type of the output index array:
+                - bool : return a boolean array of shape (self.ddataRef['nlamb'],)
+                - int : return the array as integers indices
+
+        Return
+        ------
+        ind :   np.ndarray
+            The array of indices, of dtype specified by keywordarg out
+
+        """
+        if not self._isSpectral():
+            msg = ""
+            raise Exception(msg)
+        assert out in [bool,int]
+        ind = _select_ind(lamb, self._ddataRef['lamb'], self._ddataRef['nlamb'])
+        if out is int:
+            ind = ind.nonzero()[0]
+        return ind
 
 
-    def plot(self, key=None, invert=None, plotmethod='imshow',
-             cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
-             Bck=True, fs=None, dmargin=None, wintit=None, tit=None,
-             vmin=None, vmax=None, normt=False, draw=True, connect=True):
-        """ Plot the data content in a predefined figure  """
-        KH = _plot.Data_plot(self, key=key, invert=invert, Bck=Bck,
+
+    def plot(self, key=None,
+             cmap=None, ms=4, vmin=None, vmax=None,
+             vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
+             ntMax=None, nchMax=None, nlbdMax=3,
+             lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
+             inct=[1,10], incX=[1,5], inclbd=[1,10],
+             fmt_t='06.3f', fmt_X='01.0f',
+             invert=True, Lplot='In', dmarker=None,
+             bck=True, fs=None, dmargin=None, wintit=None, tit=None,
+             fontsize=None, labelpad=None, draw=True, connect=True):
+        """ Plot the data content in a generic interactive figure  """
+        kh = _plot.Data_plot(self, key=key, indref=0,
+                             cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                             vmin_map=vmin_map, vmax_map=vmax_map,
+                             cmap_map=cmap_map, normt_map=normt_map,
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
-                             plotmethod=plotmethod, cmap=cmap, ms=ms,
+                             lls=lls, lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
+                             inct=inct, incX=incX, inclbd=inclbd,
+                             fmt_t=fmt_t, fmt_X=fmt_X, Lplot=Lplot,
+                             invert=invert, dmarker=dmarker, bck=bck,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                             vmin=vmin, vmax=vmax, normt=normt,
+                             fontsize=fontsize, labelpad=labelpad,
                              draw=draw, connect=connect)
-        return KH
+        return kh
 
-    def plot_compare(self, lD, key=None, invert=None, plotmethod='imshow',
-                     cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
-                     Bck=True, indref=0, fs=None, dmargin=None,
-                     vmin=None, vmax=None, normt=False,
-                     wintit=None, tit=None, fontsize=None,
-                     draw=True, connect=True):
+    def plot_compare(self, lD, key=None,
+                     cmap=None, ms=4, vmin=None, vmax=None,
+                     vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
+                     ntMax=None, nchMax=None, nlbdMax=3,
+                     lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
+                     inct=[1,10], incX=[1,5], inclbd=[1,10],
+                     fmt_t='06.3f', fmt_X='01.0f', fmt_l='07.3f',
+                     invert=True, Lplot='In', dmarker=None,
+                     sharey=True, sharelamb=True,
+                     bck=True, fs=None, dmargin=None, wintit=None, tit=None,
+                     fontsize=None, labelpad=None, draw=True, connect=True):
         """ Plot several Data instances of the same diag
 
         Useful to compare :
@@ -1301,50 +1648,68 @@ class Data(utils.ToFuObject):
 
         """
         C0 = isinstance(lD,list)
-        C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
-        C1 = issubclass(lD.__class__,Data)
-        assert C0 or C1, 'Provided first arg. must be a tf.data.Data or list !'
+        C0 = C0 and all([issubclass(dd.__class__,DataAbstract) for dd in lD])
+        C1 = issubclass(lD.__class__,DataAbstract)
+        assert C0 or C1, 'Provided first arg. must be a tf.data.DataAbstract or list !'
         lD = [lD] if C1 else lD
-        KH = _plot.Data_plot([self]+lD, key=key, invert=invert, Bck=Bck,
+        kh = _plot.Data_plot([self]+lD, key=key, indref=0,
+                             cmap=cmap, ms=ms, vmin=vmin, vmax=vmax,
+                             vmin_map=vmin_map, vmax_map=vmax_map,
+                             cmap_map=cmap_map, normt_map=normt_map,
                              ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
-                             plotmethod=plotmethod, cmap=cmap, ms=ms,
+                             lls=lls, lct=lct, lcch=lcch, lclbd=lclbd, cbck=cbck,
+                             inct=inct, incX=incX, inclbd=inclbd,
+                             fmt_t=fmt_t, fmt_X=fmt_X, fmt_l=fmt_l, Lplot=Lplot,
+                             invert=invert, dmarker=dmarker, bck=bck,
+                             sharey=sharey, sharelamb=sharelamb,
                              fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                             vmin=vmin, vmax=vmax, normt=normt,
-                             fontsize=fontsize, indref=indref,
+                             fontsize=fontsize, labelpad=labelpad,
                              draw=draw, connect=connect)
-        return KH
+        return kh
 
-    def plot_combine(self, lD, key=None, invert=None, plotmethod='imshow',
-                     cmap=plt.cm.gray, ms=4, ntMax=None, nchMax=None, nlbdMax=3,
-                     Bck=True, indref=0, fs=None, dmargin=None,
-                     vmin=None, vmax=None, normt=False,
-                     wintit=None, tit=None, fontsize=None,
-                     draw=True, connect=True):
+    def plot_combine(self, lD, key=None, bck=True, indref=0,
+                  cmap=None, ms=4, vmin=None, vmax=None,
+                  vmin_map=None, vmax_map=None, cmap_map=None, normt_map=False,
+                  ntMax=None, nchMax=None, nlbdMax=3,
+                  inct=[1,10], incX=[1,5], inclbd=[1,10],
+                  lls=None, lct=None, lcch=None, lclbd=None, cbck=None,
+                  fmt_t='06.3f', fmt_X='01.0f',
+                  invert=True, Lplot='In', dmarker=None,
+                  fs=None, dmargin=None, wintit=None, tit=None, sharex=False,
+                  fontsize=None, labelpad=None, draw=True, connect=True):
         """ Plot several Data instances of different diags
 
         Useful to visualize several diags for the same shot
 
         """
         C0 = isinstance(lD,list)
-        C0 = C0 and all([issubclass(dd.__class__,Data) for dd in lD])
-        C1 = issubclass(lD.__class__,Data)
-        assert C0 or C1, 'Provided first arg. must be a tf.data.Data or list !'
+        C0 = C0 and all([issubclass(dd.__class__,DataAbstract) for dd in lD])
+        C1 = issubclass(lD.__class__,DataAbstract)
+        assert C0 or C1, 'Provided first arg. must be a tf.data.DataAbstract or list !'
         lD = [lD] if C1 else lD
-        KH = _plot.Data_plot_combine([self]+lD, key=key, invert=invert, Bck=Bck,
-                                     ntMax=ntMax, nchMax=nchMax, nlbdMax=nlbdMax,
-                                     plotmethod=plotmethod, cmap=cmap, ms=ms,
-                                     fs=fs, dmargin=dmargin, wintit=wintit, tit=tit,
-                                     vmin=vmin, vmax=vmax, normt=normt,
-                                     indref=indref, fontsize=fontsize,
-                                     draw=draw, connect=connect)
-        return KH
+        kh = _plot.Data_plot_combine([self]+lD, key=key, bck=bck,
+                                     indref=indref, cmap=cmap, ms=ms,
+                                     vmin=vmin, vmax=vmax,
+                                     vmin_map=vmin_map, vmax_map=vmax_map,
+                                     cmap_map=cmap_map, normt_map=normt_map,
+                                     ntMax=ntMax, nchMax=nchMax,
+                                     inct=inct, incX=incX,
+                                     lls=lls, lct=lct, lcch=lcch, cbck=cbck,
+                                     fmt_t=fmt_t, fmt_X=fmt_X,
+                                     invert=invert, Lplot=Lplot, sharex=sharex,
+                                     dmarker=dmarker, fs=fs, dmargin=dmargin,
+                                     wintit=wintit, tit=tit, fontsize=fontsize,
+                                     labelpad=labelpad, draw=draw,
+                                     connect=connect)
+        return kh
 
 
     def calc_spectrogram(self, fmin=None,
-                         method='scipy-fourier',
+                         method='scipy-fourier', deg=False,
                          window='hann', detrend='linear',
                          nperseg=None, noverlap=None,
-                         boundary='constant', padded=True, wave='morlet'):
+                         boundary='constant', padded=True,
+                         wave='morlet', warn=True):
         """ Return the power spectrum density for each channel
 
         The power spectrum density is computed with the chosen method
@@ -1355,6 +1720,8 @@ class Data(utils.ToFuObject):
             The minimum frequency of interest
             If None, set to 5/T, where T is the whole time interval
             Used to constrain the number of points per window
+        deg :   bool
+            Flag indicating whether to return the phase in deg (vs rad)
         method : str
             Flag indicating which method to use for computation:
                 - 'scipy-fourier':  uses scipy.signal.spectrogram()
@@ -1399,10 +1766,29 @@ class Data(utils.ToFuObject):
             list of () spectrograms
 
         """
-        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
-        return tf, f, lspect
+        if self._isSpectral():
+            msg = "spectrogram not implemented yet for spectral data class"
+            raise Exception(msg)
+        tf, f, lpsd, lang = _comp.spectrogram(self.data, self.t,
+                                              fmin=fmin, deg=deg,
+                                              method=method, window=window,
+                                              detrend=detrend, nperseg=nperseg,
+                                              noverlap=noverlap, boundary=boundary,
+                                              padded=padded, wave=wave,
+                                              warn=warn)
+        return tf, f, lpsd, lang
 
-    def plot_spectrogram():
+    def plot_spectrogram(self, fmin=None, fmax=None,
+                         method='scipy-fourier', deg=False,
+                         window='hann', detrend='linear',
+                         nperseg=None, noverlap=None,
+                         boundary='constant', padded=True, wave='morlet',
+                         invert=True, plotmethod='imshow',
+                         cmap_f=None, cmap_img=None,
+                         ms=4, ntMax=None, nfMax=None,
+                         bck=True, fs=None, dmargin=None, wintit=None,
+                         tit=None, vmin=None, vmax=None, normt=False,
+                         draw=True, connect=True, returnspect=False, warn=True):
         """ Plot the spectrogram of all channels with chosen method
 
         All non-plotting arguments are fed to self.calc_spectrogram()
@@ -1416,274 +1802,286 @@ class Data(utils.ToFuObject):
         kh :    tofu.utils.HeyHandler
             The tofu KeyHandler object handling figure interactivity
         """
-        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
-        kh = _plot.spectrogram(self, tf, f, lspect)
-        return kh
-
-    def calc_mainfreq(self):
-        """ Return the spectrogram main frequency vs time for each channel """
-        tf, f, lspect = _comp.spectrogram(self.data, self.t, method=method)
-        lf = [f[np.nanargmax(ss,axis=1)] for ss in lspect]
-        return tf, np.tile(lf).T
+        if self._isSpectral():
+            msg = "spectrogram not implemented yet for spectral data class"
+            raise Exception(msg)
+        tf, f, lpsd, lang = _comp.spectrogram(self.data, self.t,
+                                              fmin=fmin, deg=deg,
+                                              method=method, window=window,
+                                              detrend=detrend, nperseg=nperseg,
+                                              noverlap=noverlap, boundary=boundary,
+                                              padded=padded, wave=wave,
+                                              warn=warn)
+        kh = _plot.Data_plot_spectrogram(self, tf, f, lpsd, lang, fmax=fmax,
+                                         invert=invert, plotmethod=plotmethod,
+                                         cmap_f=cmap_f, cmap_img=cmap_img,
+                                         ms=ms, ntMax=ntMax,
+                                         nfMax=nfMax, bck=bck, fs=fs,
+                                         dmargin=dmargin, wintit=wintit,
+                                         tit=tit, vmin=vmin, vmax=vmax,
+                                         normt=normt, draw=draw,
+                                         connect=connect)
+        if returnspect:
+            return kh, tf, f, lpsd, lang
+        else:
+            return kh
 
     def calc_svd(self, lapack_driver='gesdd'):
         """ Return the SVD decomposition of data
 
-        Uses scipy.linalg.svd(), with:
-            full_matrices=True
-            compute_uv=True
-            overwrite_a=False
-            check_finite=True
+        The input data np.ndarray shall be of dimension 2,
+            with time as the first dimension, and the channels in the second
+            Hence data should be of shape (nt, nch)
 
-        See online doc for details
+        Uses scipy.linalg.svd(), with:
+            full_matrices = True
+            compute_uv = True
+            overwrite_a = False
+            check_finite = True
+
+        See scipy online doc for details
+
+        Return
+        ------
+        chronos:    np.ndarray
+            First arg (u) returned by scipy.linalg.svd()
+            Contains the so-called 'chronos', of shape (nt, nt)
+                i.e.: the time-dependent part of the decoposition
+        s:          np.ndarray
+            Second arg (s) returned by scipy.linalg.svd()
+            Contains the singular values, of shape (nch,)
+                i.e.: the channel-dependent part of the decoposition
+        topos:      np.ndarray
+            Third arg (v) returned by scipy.linalg.svd()
+            Contains the so-called 'topos', of shape (nch, nch)
+                i.e.: the channel-dependent part of the decoposition
 
         """
-        u, s, v = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
-        return u, s, v
+        if self._isSpectral():
+            msg = "svd not implemented yet for spectral data class"
+            raise Exception(msg)
+        chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+        return chronos, s, topos
 
-    def plot_svd(self, modes=np.arange(0,10), lapack_driver='gesdd'):
-        """ Plot the chosen svd components (topos and chronos) """
-        u, s, v = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
-        kh = _plot.plot_svd()
+
+    def extract_svd(self, modes=None, lapack_driver='gesdd', out=object):
+        """ Extract, as Data object, the filtered signal using selected modes
+
+        The svd (chronos, s, topos) is computed,
+        The selected modes are used to re-construct a filtered signal, using:
+            data = chronos[:,modes] @ (s[None,modes] @ topos[modes,:]
+
+        The result is exported a an array or a Data object on the same class
+        """
+        if self._isSpectral():
+            msg = "svd not implemented yet for spectral data class"
+            raise Exception(msg)
+        msg = None
+        if modes is not None:
+            try:
+                modes = np.r_[modes].astype(int)
+            except Exception as err:
+                msg = str(err)
+        else:
+            msg = "Arg mode cannot be None !"
+        if msg is not None:
+            msg += "\n\nArg modes must a positive int or a list of such!\n"
+            msg += "    - Provided: %s"%str(modes)
+            raise Exception(msg)
+
+        chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+        data = np.matmult(chronos[:,modes], (s[modes,None] * topos[modes,:]))
+        if out is object:
+            data = self.__class__(data=data, t=self.t, X=self.X,
+                                  lCam=self.lCam, config=self.config,
+                                  Exp=self.Id.Exp, Diag=self.Id.Diag,
+                                  shot=self.Id.shot,
+                                  Name=self.Id.Name + '-svd%s'%str(modes))
+        return data
+
+
+    def plot_svd(self, lapack_driver='gesdd', modes=None, key=None, bck=True,
+                 Lplot='In', cmap=None, vmin=None, vmax=None,
+                 cmap_topos=None, vmin_topos=None, vmax_topos=None,
+                 ntMax=None, nchMax=None, ms=4,
+                 inct=[1,10], incX=[1,5], incm=[1,5],
+                 lls=None, lct=None, lcch=None, lcm=None, cbck=None,
+                 invert=False, fmt_t='06.3f', fmt_X='01.0f', fmt_m='03.0f',
+                 fs=None, dmargin=None, labelpad=None, wintit=None, tit=None,
+                 fontsize=None, draw=True, connect=True):
+        """ Plot the chosen modes of the svd decomposition
+
+        All modes will be plotted, the keyword 'modes' is only used to
+        determine the reference modes for computing a common scale for
+        vizualisation
+
+        Runs self.calc_svd() and then plots the result in an interactive figure
+
+        """
+        if self._isSpectral():
+            msg = "svd not implemented yet for spectral data class"
+            raise Exception(msg)
+        # Computing (~0.2 s for 50 channels 1D and 1000 times)
+        chronos, s, topos = _comp.calc_svd(self.data, lapack_driver=lapack_driver)
+
+        # Plotting (~11 s for 50 channels 1D and 1000 times)
+        kh = _plot.Data_plot_svd(self, chronos, s, topos, modes=modes,
+                                 key=key, bck=bck, Lplot=Lplot,
+                                 cmap=cmap, vmin=vmin, vmax=vmax,
+                                 cmap_topos=cmap_topos, vmin_topos=vmin_topos,
+                                 vmax_topos=vmax_topos,
+                                 ntMax=ntMax, nchMax=nchMax, ms=ms,
+                                 inct=inct, incX=incX, incm=incm,
+                                 lls=lls, lct=lct, lcch=lcch, lcm=lcm, cbck=cbck,
+                                 invert=invert, fmt_t=fmt_t, fmt_X=fmt_X, fmt_m=fmt_m,
+                                 fs=fs, dmargin=dmargin, labelpad=labelpad, wintit=wintit,
+                                 tit=tit, fontsize=fontsize, draw=draw,
+                                 connect=connect)
         return kh
 
+    def save(self, path=None, name=None,
+             strip=None, deep=False, mode='npz',
+             compressed=False, verb=True, return_pfe=False):
+        if deep is False:
+            self.strip(1)
+        out = super(DataAbstract, self).save(path=path, name=name,
+                                             deep=deep, mode=mode,
+                                             strip=strip, compressed=compressed,
+                                             return_pfe=return_pfe, verb=verb)
+        return out
 
 
+    def save_to_imas(self, ids=None, shot=None, run=None, refshot=None, refrun=None,
+                     user=None, tokamak=None, version=None, occ=None,
+                     dryrun=False, deep=True, verb=True,
+                     restore_size=True, forceupdate=False,
+                     path_data=None, path_X=None,
+                     config_description_2d=None, config_occ=None):
+       import tofu.imas2tofu as _tfimas
+       _tfimas._save_to_imas(self, tfversion=__version__,
+                             shot=shot, run=run, refshot=refshot,
+                             refrun=refrun, user=user, tokamak=tokamak,
+                             version=version, occ=occ, dryrun=dryrun, verb=verb,
+                             ids=ids, deep=deep,
+                             restore_size=restore_size,
+                             forceupdate=forceupdate,
+                             path_data=path_data, path_X=path_X,
+                             config_description_2d=config_description_2d,
+                             config_occ=config_occ)
 
 
+    #----------------------------
+    # Operator overloading section
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-############################################ To be finished
-
-
-
-    def _get_LCam(self):
-        if self.geom is None or self.geom['LCam'] is None:
-            lC = None
+    @staticmethod
+    def _extract_common_params(obj0, obj1=None):
+        if obj1 is None:
+            Id = obj0.Id.copy()
+            Id._dall['Name'] += 'modified'
+            dcom = {'Id':Id,
+                    'dchans':obj0._dchans, 'dlabels':obj0.dlabels,
+                    't':obj0.t, 'X':obj0.X,
+                    'lCam':obj0.lCam, 'config':obj0.config,
+                    'dextra':obj0.dextra}
+            if dcom['lCam'] is not None:
+                dcom['config'] = None
         else:
-            if np.all(self.indch):
-                lC = self.geom['LCam']
-            else:
-                import tofu.geom as tfg
-                inds = [self.geom['LCam'][ii].nRays
-                        for ii in range(len(self.geom['LCam']-1))]
-                lind = self.indch.split(inds)
-                lC = [cc.get_subset(indch=iind) for iind in lind]
-        return lC
+            ls = ['SavePath', 'Diag', 'Exp', 'shot']
+            dcom = {ss:getattr(obj0.Id,ss) for ss in ls
+                    if getattr(obj0.Id,ss) == getattr(obj1.Id,ss)}
+            if obj0._dchans == obj1._dchans:
+                dcom['dchans'] = obj0._dchans
+            if obj0.dlabels == obj1.dlabels:
+                dcom['dlabels'] = obj0.dlabels
+            if obj0.dextra == obj1.dextra:
+                dcom['dextra'] = obj0.dextra
+            if np.allclose(obj0.t, obj1.t):
+                dcom['t'] = obj0.t
+            if np.allclose(obj0.X, obj1.X):
+                dcom['X'] = obj0.X
+            if obj0.lCam is not None and obj1.lCam is not None:
+                if all([c0 == c1 for c0, c1 in zip(obj0.lCam, obj1.lCam)]):
+                    dcom['lCam'] = obj0.lCam
+            if obj0.config == obj1.config:
+                dcom['config'] = obj0.config
+        return dcom
 
+    @staticmethod
+    def _recreatefromoperator(d0, other, opfunc):
+        if type(other) in [int,float,np.int64,np.float64]:
+            data = opfunc(d0.data, other)
+            dcom = d0._extract_common_params(d0)
+
+        elif issubclass(other.__class__, DataAbstract):
+            if other.__class__.__name__ != d0.__class__.__name__:
+                msg = 'Operator overloaded only for same-class instances:\n'
+                msg += "    - provided: %s and %s"%(d0.__class__.__name__,
+                                                    other.__class__.__name__)
+                raise Exception(msg)
+            try:
+                data = opfunc(d0.data, other.data)
+            except Exception as err:
+                msg = str(err)
+                msg += "\n\ndata shapes not matching !"
+                raise Exception(msg)
+
+            dcom = d0._extract_common_params(d0, other)
+        else:
+            msg = "Behaviour not implemented !"
+            raise NotImplementedError(msg)
+
+        return d0.__class__(data=data, Name='New', **dcom)
 
 
     def __abs__(self):
         opfunc = lambda x: np.abs(x)
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __sub__(self, other):
         opfunc = lambda x, y: x-y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __rsub__(self, other):
         opfunc = lambda x, y: x-y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __add__(self, other):
         opfunc = lambda x, y: x+y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __radd__(self, other):
         opfunc = lambda x, y: x+y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __mul__(self, other):
         opfunc = lambda x, y: x*y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __rmul__(self, other):
         opfunc = lambda x, y: x*y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __truediv__(self, other):
         opfunc = lambda x, y: x/y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
     def __pow__(self, other):
         opfunc = lambda x, y: x**y
-        data = _recreatefromoperator(self, other, opfunc)
+        data = self._recreatefromoperator(self, other, opfunc)
         return data
 
 
 
 
 
-
-
-
-
-def _compare_(ls, null=None):
-    ind = np.nonzero([ss is not null for ss in ls])[0]
-    if ind.size>0:
-        if all([ls[ind[0]]==ls[ind[ii]] for ii in range(1,len(ind))]):
-            s = ls[ind[0]]
-        else:
-            s = null
-    else:
-        s = null
-    return s
-
-def _compare_dchans(ldch):
-    ind = np.nonzero([dd is not None for dd in ldch])[0]
-    if ind.size>0:
-        All = True
-        dch = ldch[ind[0]]
-        for ii in range(1,len(ind)):
-            if any([not kk in ldch[ind[ii]].keys() for kk in dch.keys()]):
-                All = False
-                break
-            if any([not kk in dch.keys() for kk in ldch[ind[ii]].keys()]):
-                All = False
-                break
-            for kk in dch.keys():
-                if not dch[kk].shape==ldch[ind[ii]][kk].shape:
-                    All = False
-                    break
-                if not dch[kk].dtype==ldch[ind[ii]][kk].dtype:
-                    All = False
-                    break
-                C = all([dch[kk][jj]==ldch[ind[ii]][kk][jj]
-                         for jj in range(len(dch[kk]))])
-                if not C:
-                    All = False
-                    break
-            if All is False:
-                break
-
-        if All is False:
-            dch = None
-    else:
-        dch = None
-    return dch
-
-
-def _compare_lCam(ld, atol=1.e-12):
-    lLC = [dd.geom['LCam'] for dd in ld]
-    ind = np.nonzero([lc is not None for lc in lLC])[0]
-    lC = None
-    if ind.size>0:
-        All = True
-        lD = [np.concatenate(tuple([cc.D for cc in lLC[ind[ii]]]),axis=1)
-              for ii in ind]
-        lu = [np.concatenate(tuple([cc.u for cc in lLC[ind[ii]]]),axis=1)
-              for ii in ind]
-        for ii in range(1,len(ind)):
-            CD = np.any(~np.isclose(lD[0],lD[ii],
-                                    atol=atol, rtol=0., equal_nan=True))
-            Cu = np.any(~np.isclose(lu[0],lu[ii],
-                                    atol=atol, rtol=0., equal_nan=True))
-            Cind = not np.all(ld[ind[0]].indch==ld[ind[ii]].indch)
-            if CD or Cu or Cind:
-                All = False
-                break
-        if All:
-            lC = ld[ind[0]]._get_LCam()
-    return lC
-
-
-
-def _extractCommonParams(ld):
-
-    # data size
-    lnt, lnch = np.array([(dd.data.shape[0],dd.Ref['data'].shape[1]) for dd in ld]).T
-    assert all([lnt[0]==nt for nt in lnt[1:]]), "Different data.shape[0] !"
-    assert all([lnch[0]==nch for nch in lnch[1:]]), "Different data.shape[1] !"
-
-    # Time vector
-    lt = [dd.t for dd in ld]
-    ind = np.nonzero([tt is not None for tt in lt])[0]
-    if ind.size>0:
-        if all([np.allclose(lt[ind[ii]],lt[ind[0]]) for ii in range(len(ind))]):
-            t = lt[ind[0]]
-        else:
-            warnings.warn("\n Beware : the time vectors seem to differ !")
-            t = None
-    else:
-        t = None
-
-    # Channels
-    indch = np.vstack([dd.indch for dd in ld])
-    assert np.all(np.all(indch,axis=0) | np.all(~indch,axis=0)), "Different indch !"
-    LCam = _compare_lCam(ld)
-
-    if LCam is None:
-        dchans = _compare_dchans([dd.dchans() for dd in ld])
-    else:
-        dchans = None
-
-    # dunits, Id, Exp, shot, Diag, SavePath
-    dunits = _compare_([dd._dunits for dd in ld], null={})
-    Id = ' '.join([dd.Id.Name for dd in ld])
-    Exp = _compare_([dd.Id.Exp for dd in ld])
-    shot = _compare_([dd.Id.shot for dd in ld])
-    Diag = _compare_([dd.Id.Diag for dd in ld])
-    SavePath = _compare_([dd.Id.SavePath for dd in ld])
-
-    return t, LCam, dchans, dunits, Id, Exp, shot, Diag, SavePath
-
-
-
-
-def _recreatefromoperator(d0, other, opfunc):
-    if type(other) in [int,float,np.int64,np.float64]:
-        d = opfunc(d0.data, other)
-
-        #  Fix LCam and dchans
-        #t, LCam, dchans = d0.t, d0._get_LCam(), d0.dchans(d0.indch)
-        out = _extractCommonParams([d0, d0])
-        t, LCam, dchans, dunits, Id, Exp, shot, Diag, SavePath = out
-
-        #dunits = d0._dunits
-        #Id, Exp, shot = d0.Id.Name, d0.Id.Exp, d0.Id.shot
-        #Diag, SavePath = d0.Id.Diag, d0.Id.SavePath
-    elif issubclass(other.__class__, Data):
-        assert other.__class__==d0.__class__, 'Same class is expected !'
-        try:
-            d = opfunc(d0.data, other.data)
-        except Exception as err:
-            print("\n data shapes not matching !")
-            raise err
-        out = _extractCommonParams([d0, other])
-        t, LCam, dchans, dunits, Id, Exp, shot, Diag, SavePath = out
-    else:
-        raise NotImplementedError
-
-    kwdargs = dict(t=t, dchans=dchans, LCam=LCam, dunits=dunits,
-                   Id=Id, Exp=Exp, shot=shot, Diag=Diag, SavePath=SavePath)
-
-    if '1D' in d0.Id.Cls:
-        data = Data1D(d, **kwdargs)
-    elif '2D' in d0.Id.Cls:
-        data = Data2D(d, **kwdargs)
-    else:
-        data = Data(d, **kwdargs)
-    return data
 
 
 
@@ -1695,307 +2093,1877 @@ def _recreatefromoperator(d0, other, opfunc):
 #               Data1D and Data2D
 #####################################################################
 
+sig = inspect.signature(DataAbstract)
+params = sig.parameters
 
-class Data1D(Data):
+
+class DataCam1D(DataAbstract):
     """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data=None, t=None, dchans=None, dunits=None,
-                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, Ves=None, LStruct=None, fromdict=None,
-                 SavePath=os.path.abspath('./')):
-        Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
-                 Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra, CamCls='1D',
-                 LCam=LCam, Ves=Ves, LStruct=LStruct, fromdict=fromdict, SavePath=SavePath)
+    @classmethod
+    def _isSpectral(cls):  return False
+    @classmethod
+    def _is2D(cls):        return False
 
+lp = [p for p in params.values() if p.name not in ['lamb','dX12']]
+DataCam1D.__signature__ = sig.replace(parameters=lp)
 
-
-class Data2D(Data):
+class DataCam1DSpectral(DataCam1D):
     """ Data object used for 1D cameras or list of 1D cameras  """
-    def __init__(self, data=None, t=None, dchans=None, dunits=None,
-                 Id=None, Exp=None, shot=None, Diag=None, dextra=None,
-                 LCam=None, Ves=None, LStruct=None, X12=None, fromdict=None,
-                 SavePath=os.path.abspath('./')):
-        Data.__init__(self, data, t=t, dchans=dchans, dunits=dunits,
-                      Id=Id, Exp=Exp, shot=shot, Diag=Diag, dextra=dextra,
-                      LCam=LCam, Ves=Ves, LStruct=LStruct, CamCls='2D',
-                      fromdict=fromdict, SavePath=SavePath)
-        self.set_X12(X12)
+    @classmethod
+    def _isSpectral(cls):  return True
 
-    def set_X12(self, X12=None):
-        X12 = X12 if (self.geom is None or self.geom['LCam'] is None) else None
-        if X12 is not None:
-            X12 = np.asarray(X12)
-            assert X12.shape==(2,self.Ref['nch'])
-        self._X12 = X12
-
-    def get_X12(self, out='1d'):
-        if self._X12 is None:
-            C0 = self.geom is not None
-            C0 = C0 and self.geom['LCam'] is not None
-            msg = "X12 must be set for plotting if LCam not provided !"
-            assert C0, msg
-            X12, DX12 = self.geom['LCam'][0].get_X12(out=out)
-        else:
-            X12 = self._X12
-            if out.lower()=='2d':
-                x1u, x2u, ind, DX12 = utils.get_X12fromflat(X12)
-                X12 = [x1u,x2u,ind]
-            else:
-                DX12 = None
-        return X12, DX12
-
-
-
-
-
-
-
-
-
-#####################################################################
-#               DataSpectro
-#####################################################################
-
-
-
-
-
-
-
-
-class DataSpectro(Data):
-    """ data should be provided in (nt,nlamb,chan) format  """
-
-    def __init__(self, data=None, lamb=None, t=None, dchans=None, dunits=None,
-                 Id=None, Exp=None, shot=None, Diag=None, dMag=None,
-                 LCam=None, CamCls='1D', fromdict=None,
-                 SavePath=os.path.abspath('./')):
-
-        self._Done = False
-        if fromdict is None:
-            msg = "Provide either dchans or LCam !"
-            assert np.sum([dchans is None, LCam is None])>=1, msg
-            self._set_dataRef(data, lamb=lamb, t=t, dchans=dchans, dunits=dunits)
-            self._set_Id(Id, Exp=Exp, Diag=Diag, shot=shot, SavePath=SavePath)
-            self._set_LCam(LCam=LCam, CamCls=CamCls)
-            self._dMag = dMag
-        else:
-            self._fromdict(fromdict)
-        self._Done = True
-
-    @property
-    def indlamb(self):
-        if self._indlamb is None:
-            return np.ones((self._Ref['nlamb'],),dtype=bool)
-        else:
-            return self._indlamb
     @property
     def lamb(self):
-        if self._Ref['lamb'] is None:
-            return None
-        elif self._lamb is None:
-            return self._Ref['lamb'][self.indlamb]
-        else:
-            return self._lamb
+        return self.get_ddata('lamb')
     @property
     def nlamb(self):
-        return int(np.sum(self.indlamb))
+        return self.get_ddata('nlamb')
 
-    def _check_inputs(self, Id=None, data=None, lamb=None, t=None, dchans=None,
-                      dunits=None, Exp=None, shot=None, Diag=None, LCam=None,
-                      CamCls=None, SavePath=None):
-        _DataSpectro_check_inputs(data=data, lamb=lamb, t=t,
-                                  dchans=dchans, LCam=LCam)
-        _Data_check_inputs(Id=Id, dunits=dunits,
-                           Exp=Exp, shot=shot, Diag=Diag,
-                           CamCls=CamCls, SavePath=SavePath)
+lp = [p for p in params.values() if p.name not in ['dX12']]
+DataCam1D.__signature__ = sig.replace(parameters=lp)
 
-    def _set_dataRef(self, data, lamb=None, t=None, dchans=None, dunits=None):
-        self._check_inputs(data=data, lamb=lamb, t=t, dchans=dchans, dunits=dunits)
-        if data.ndim==1:
-            nt, nlamb, nch = 1, data.size, 1
-            data = data.reshape((nt,nlamb,nch))
-            if t is not None:
-                t = np.asarray(t) if hasattr(t,'__iter__') else np.asarray([t])
-            if lamb is not None:
-                lamb = np.asarray(lamb)
+
+class DataCam2D(DataAbstract):
+    """ Data object used for 2D cameras or list of 2D cameras  """
+
+    @classmethod
+    def _isSpectral(cls):  return False
+    @classmethod
+    def _is2D(cls):        return True
+
+    def _checkformat_dX12(self, dX12=None):
+        lc = [dX12 is None, dX12 == 'geom' or dX12 == {'from':'geom'},
+              isinstance(dX12, dict) and dX12 != {'from':'geom'}]
+        if not np.sum(lc) == 1:
+            msg = "dX12 must be either:\n"
+            msg += "    - None\n"
+            msg += "    - 'geom' : will be derived from the cam geometry\n"
+            msg += "    - dict : containing {'x1'  : array of coords.,\n"
+            msg += "                         'x2'  : array of coords.,\n"
+            msg += "                         'ind1': array of int indices,\n"
+            msg += "                         'ind2': array of int indices}"
+            raise Exception(msg)
+
+        if lc[1]:
+            ls = self._get_keys_dX12()
+            c0 = self._dgeom['lCam'] is not None
+            c1 = c0 and len(self._dgeom['lCam']) == 1
+            c2 = c1 and self._dgeom['lCam'][0].dX12 is not None
+            if not c2:
+                msg = "dX12 cannot be derived from dgeom['lCam'][0].dX12 !"
+                raise Exception(msg)
+            dX12 = {'from':'geom'}
+
+        elif lc[2]:
+            ls = ['x1','x2','ind1','ind2']
+            assert all([ss in dX12.keys() for ss in ls])
+            x1 = np.asarray(dX12['x1']).ravel()
+            x2 = np.asarray(dX12['x2']).ravel()
+            n1, n2 = x1.size, x2.size
+            ind1, ind2, indr = self._get_ind12r_n12(ind1=dX12['ind1'],
+                                                    ind2=dX12['ind2'],
+                                                    n1=n1, n2=n2)
+            dX12 = {'x1':x1, 'x2':x2, 'n1':n1, 'n2':n2,
+                    'ind1':ind1, 'ind2':ind2, 'indr':indr, 'from':'self'}
+        return dX12
+
+    def set_dX12(self, dX12=None):
+        dX12 = self._checkformat_dX12(dX12)
+        self._dX12.update(dX12)
+
+    @property
+    def dX12(self):
+        if self._dX12 is not None and self._dX12['from'] == 'geom':
+            dX12 = self._dgeom['lCam'][0].dX12
         else:
-            nt, nlamb, nch= data.shape
-            t = np.asarray(t)
-            lamb = np.asarray(lamb)
-        self._Ref = {'data':data, 'lamb':lamb, 't':t,
-                     'nt':nt, 'nlamb':nlamb, 'nch':nch}
-        dchans = {} if dchans is None else dchans
-        lK = sorted(dchans.keys())
-        dchans = dict([(kk,np.asarray(dchans[kk])) for kk in lK])
-        self._Ref['dchans'] = dchans
+            dX12 = self._dX12
+        return dX12
 
-        self._dunits = {} if dunits is None else dunits
-        self._data, self._t, self._lamb = None, None, None
-        self._indt, self._indlamb, self._indch = None, None, None
-        self._data0 = {'data':None,'t':None,'Dt':None}
-        self._fft, self._interp_t = None, None
-        self._indt_corr, self._indch_corr = None, None
+    def get_X12plot(self, plot='imshow'):
+        assert self.dX12 is not None
+        if plot == 'imshow':
+            x1, x2 = self.dX12['x1'], self.dX12['x2']
+            x1min, Dx1min = x1[0], 0.5*(x1[1]-x1[0])
+            x1max, Dx1max = x1[-1], 0.5*(x1[-1]-x1[-2])
+            x2min, Dx2min = x2[0], 0.5*(x2[1]-x2[0])
+            x2max, Dx2max = x2[-1], 0.5*(x2[-1]-x2[-2])
+            extent = (x1min - Dx1min, x1max + Dx1max,
+                      x2min - Dx2min, x2max + Dx2max)
+            indr = self.dX12['indr']
+            return x1, x2, indr, extent
 
-    def select_lamb(self, lamb=None, out=bool):
-        assert out in [bool,int]
-        C0 = type(lamb) in [int,float,np.int64,np.float64]
-        C1 = type(lamb) in [list,np.ndarray] and len(lamb)==2
-        C2 = type(lamb) is tuple and len(lamb)==2
-        assert lamb is None or C0 or C1 or C2
-        ind = np.zeros((self._Ref['nlamb'],),dtype=bool)
-        if lamb is None or self._Ref['lamb'] is None:
-            ind = ~ind
-        elif C0:
-            ind[np.nanargmin(np.abs(self._Ref['lamb']-lamb))] = True
-        elif C1 or C2:
-            ind[(self._Ref['lamb']>=lamb[0]) & (self._Ref['lamb']<=lamb[1])] = True
-            if C2:
-                ind = ~ind
-        if out is int:
-            ind = ind.nonzero()[0]
-        return ind
+lp = [p for p in params.values() if p.name not in ['lamb']]
+DataCam2D.__signature__ = sig.replace(parameters=lp)
 
-    def set_indtlamb(self, indlamb=None, lamb=None):
-        C = [indlamb is None, lamb is None]
-        assert np.sum(C)>=1
-        if all(C):
-            ind = np.ones((self._Ref['nlamb'],),dtype=bool)
-        elif C[0]:
-            ind = self.select_lamb(lamb=lamb, out=bool)
-        elif C[1]:
-            ind = _format_ind(indlamb, n=self._Ref['nlamb'])
-        self._indlamb = ind
 
-    def set_data0(self, data0=None, Dt=None, indt=None):
-        assert self._Ref['nt']>1, "Useless if only one data slice !"
-        C = [data0 is None, Dt is None, indt is None]
-        assert np.sum(C)>=2
-        if all(C):
-            data, t, indt = None, None, None
-        elif data0 is not None:
-            assert np.asarray(data0).shape==(self._Ref['nlamb'],self._Ref['nch'])
-            data = np.asarray(data0)
-            Dt, indt = None, None
+
+class DataCam2DSpectral(DataCam2D):
+    """ Data object used for 1D cameras or list of 1D cameras  """
+    @classmethod
+    def _isSpectral(cls):  return True
+
+    @property
+    def lamb(self):
+        return self.get_ddata('lamb')
+    @property
+    def nlamb(self):
+        return self.get_ddata('nlamb')
+
+lp = [p for p in params.values()]
+DataCam2D.__signature__ = sig.replace(parameters=lp)
+
+
+
+
+
+
+
+#####################################################################
+#####################################################################
+#####################################################################
+#               Plasma2D
+#####################################################################
+#####################################################################
+
+
+
+class Plasma2D(utils.ToFuObject):
+    """ A generic class for handling 2D (and 1D) plasma profiles
+
+    Provides:
+        - equilibrium-related quantities
+        - any 1d profile (can be remapped on 2D equilibrium)
+        - spatial interpolation methods
+
+    """
+    # Fixed (class-wise) dictionary of default properties
+    _ddef = {'Id':{'include':['Mod','Cls','Exp','Diag',
+                              'Name','shot','version']},
+             'dtreat':{'order':['mask','interp-indt','interp-indch','data0','dfit',
+                                'indt', 'indch', 'indlamb', 'interp-t']}}
+
+    # Does not exist before Python 3.6 !!!
+    def __init_subclass__(cls, **kwdargs):
+        # Python 2
+        super(Plasma2D,cls).__init_subclass__(**kwdargs)
+        # Python 3
+        #super().__init_subclass__(**kwdargs)
+        cls._ddef = copy.deepcopy(Plasma2D._ddef)
+        #cls._dplot = copy.deepcopy(Struct._dplot)
+        #cls._set_color_ddef(cls._color)
+
+
+    def __init__(self, dtime=None, dradius=None, d0d=None, d1d=None,
+                 d2d=None, dmesh=None, config=None,
+                 Id=None, Name=None, Exp=None, shot=None,
+                 fromdict=None, SavePath=os.path.abspath('./'),
+                 SavePath_Include=tfpf.defInclude):
+
+        # To replace __init_subclass__ for Python 2
+        if sys.version[0]=='2':
+            self._dstrip = utils.ToFuObjectBase._dstrip.copy()
+            self.__class__._strip_init()
+
+        # Create a dplot at instance level
+        #self._dplot = copy.deepcopy(self.__class__._dplot)
+
+        kwdargs = locals()
+        del kwdargs['self']
+        # super()
+        super(Plasma2D,self).__init__(**kwdargs)
+
+    def _reset(self):
+        # super()
+        super(Plasma2D,self)._reset()
+        self._dgroup = dict.fromkeys(self._get_keys_dgroup())
+        self._dindref = dict.fromkeys(self._get_keys_dindref())
+        self._ddata = dict.fromkeys(self._get_keys_ddata())
+        self._dgeom = dict.fromkeys(self._get_keys_dgeom())
+
+    @classmethod
+    def _checkformat_inputs_Id(cls, Id=None, Name=None,
+                               Exp=None, shot=None,
+                               include=None, **kwdargs):
+        if Id is not None:
+            assert isinstance(Id,utils.ID)
+            Name, Exp, shot = Id.Name, Id.Exp, Id.shot
+        assert type(Name) is str, Name
+        assert type(Exp) is str, Exp
+        if include is None:
+            include = cls._ddef['Id']['include']
+        assert shot is None or type(shot) in [int,np.int64]
+        if shot is None:
+            if 'shot' in include:
+                include.remove('shot')
         else:
-            if indt is not None:
-                indt = _format_ind(indt, n=self._Ref['nt'])
-            else:
-                indt = self.select_t(t=Dt, out=bool)
-            if indt is not None and np.any(indt):
-                data = self._Ref['data'][indt,:,:]
-                if np.sum(indt)>1:
-                    data = np.nanmean(data,axis=0)
-                if self._Ref['t'] is not None:
-                    Dt = [np.nanmin(self._Ref['t'][indt]),
-                          np.nanmax(self._Ref['t'][indt])]
+            shot = int(shot)
+            if 'shot' not in include:
+                include.append('shot')
+        kwdargs.update({'Name':Name, 'Exp':Exp, 'shot':shot,
+                        'include':include})
+        return kwdargs
+
+    ###########
+    # Get largs
+    ###########
+
+    @staticmethod
+    def _get_largs_dindrefdatagroup():
+        largs = ['dtime', 'dradius', 'dmesh', 'd0d', 'd1d', 'd2d']
+        return largs
+
+    @staticmethod
+    def _get_largs_dgeom():
+        largs = ['config']
+        return largs
+
+    ###########
+    # Get check and format inputs
+    ###########
+
+    #---------------------
+    # Methods for checking and formatting inputs
+    #---------------------
+
+    @staticmethod
+    def _extract_dnd(dnd, k0,
+                     dim_=None, quant_=None, name_=None,
+                     origin_=None, units_=None):
+        # Set defaults
+        dim_ =   k0 if dim_ is None else dim_
+        quant_ = k0 if quant_ is None else quant_
+        name_ =  k0 if name_ is None else name_
+        origin_ = 'unknown' if origin_ is None else origin_
+        units_ = 'a.u.' if units_ is None else units_
+
+        # Extrac
+        dim = dnd[k0].get('dim', None)
+        if dim is None:
+            dim = dim_
+        quant = dnd[k0].get('quant', None)
+        if quant is None:
+            quant = quant_
+        origin = dnd[k0].get('origin', None)
+        if origin is None:
+            origin = origin_
+        name = dnd[k0].get('name', None)
+        if name is None:
+            name = name_
+        units = dnd[k0].get('units', None)
+        if units is None:
+            units = units_
+        return dim, quant, origin, name, units
+
+    @staticmethod
+    def _checkformat_dtrm(dtime=None, dradius=None, dmesh=None,
+                          d0d=None, d1d=None, d2d=None):
+
+        dd = {'dtime':dtime, 'dradius':dradius, 'dmesh':dmesh,
+              'd0d':d0d, 'd1d':d1d, 'd2d':d2d}
+
+        # Define allowed keys for each dict
+        lkok = ['data', 'dim', 'quant', 'name', 'origin', 'units',
+                'depend']
+        lkmeshmax = ['type','ftype','nodes','faces',
+                     'nfaces','nnodes','mpltri','size','ntri']
+        lkmeshmin = ['type','ftype','nodes','faces']
+        dkok = {'dtime': {'max':lkok, 'min':['data'], 'ndim':[1]},
+                'dradius':{'max':lkok, 'min':['data'], 'ndim':[1,2]},
+                'd0d':{'max':lkok, 'min':['data'], 'ndim':[1,2,3]},
+                'd1d':{'max':lkok, 'min':['data'], 'ndim':[1,2]},
+                'd2d':{'max':lkok, 'min':['data'], 'ndim':[1,2]}}
+        dkok['dmesh'] = {'max':lkok + lkmeshmax, 'min':lkmeshmin}
+
+        # Check each dict independently
+        for dk, dv in dd.items():
+            if dv is None or len(dv) == 0:
+                dd[dk] = {}
+                continue
+            c0 = type(dv) is not dict or any([type(k0) is not str
+                                              for k0 in dv.keys()])
+            c0 = any([type(k0) is not str or type(v0) is not dict
+                      for k0, v0 in dv.items()])
+            if c0:
+                msg = "Arg %s must be a dict with:\n"
+                msg += "    - (key, values) of type (str, dict)"
+                raise Exception(msg)
+
+            for k0, v0 in  dv.items():
+                c0 = any([k1 not in dkok[dk]['max'] for k1 in v0.keys()])
+                c0 = c0 or any([v0.get(k1,None) is None
+                                for k1 in dkok[dk]['min']])
+                if c0:
+                    msg = "Arg %s[%s] must be a dict with keys in:\n"%(dk,k0)
+                    msg += "    - %s\n"%str(dkok[dk]['max'])
+                    msg += "And with at least the following keys:\n"
+                    msg += "    - %s\n"%str(dkok[dk]['min'])
+                    msg += "Provided:\n"
+                    msg += "    - %s\n"%str(v0.keys())
+                    msg += "Missing:\n"
+                    msg += "    - %s\n"%str(set(dkok[dk]['min']).difference(v0.keys()))
+                    msg += "Non-valid:\n"
+                    msg += "    - %s"%str(set(v0.keys()).difference(dkok[dk]['max']))
+                    raise Exception(msg)
+                if 'data' in dkok[dk]['min']:
+                    dd[dk][k0]['data'] = np.atleast_1d(np.squeeze(v0['data']))
+                    if dd[dk][k0]['data'].ndim not in dkok[dk]['ndim']:
+                        msg = "%s[%s]['data'] has wrong dimensions:\n"%(dk,k0)
+                        msg += "    - Expected: %s\n"%str(dkok[dk]['ndim'])
+                        msg += "    - Provided: %s"%str(dd[dk][k0]['data'].ndim)
+                        raise Exception(msg)
+                if dk == 'dmesh':
+                    dd[dk][k0]['nodes'] = np.atleast_2d(v0['nodes']).astype(float)
+                    dd[dk][k0]['faces'] = np.atleast_2d(v0['faces']).astype(int)
+                    nnodes = dd[dk][k0]['nodes'].shape[0]
+                    nfaces = dd[dk][k0]['faces'].shape[0]
+
+                    # Test for duplicates
+                    nodesu = np.unique(dd[dk][k0]['nodes'], axis=0)
+                    facesu = np.unique(dd[dk][k0]['faces'], axis=0)
+                    lc = [nodesu.shape[0] != nnodes,
+                          facesu.shape[0] != nfaces]
+                    if any(lc):
+                        msg = "Non-valid mesh %s[%s]:\n"%(dk,k0)
+                        if lc[0]:
+                            msg += "  Duplicate nodes: %s\n"%str(nnodes - nodesu.shape[0])
+                            msg += "    - nodes.shape: %s\n"%str(dd[dk][k0]['nodes'].shape)
+                            msg += "    - unique nodes.shape: %s\n"%str(nodesu.shape)
+                        if lc[1]:
+                            msg += "  Duplicate faces: %s\n"%str(nfaces - facesu.shape[0])
+                            msg += "    - faces.shape: %s\n"%str(dd[dk][k0]['faces'].shape)
+                            msg += "    - unique faces.shape: %s"%str(facesu.shape)
+                        raise Exception(msg)
+
+                    # Test for unused nodes
+                    facesu = np.unique(facesu)
+                    c0 = np.all(facesu>=0) and facesu.size == nnodes
+                    if not c0:
+                        indnot = [ii for ii in range(0,nnodes)
+                                  if ii not in facesu]
+                        msg = "Some nodes not used in mesh %s[%s]:\n"(dk,k0)
+                        msg += "    - unused nodes indices: %s"%str(indnot)
+                        warnings.warn(msg)
+
+
+                    dd[dk][k0]['nnodes'] = dd[dk][k0].get('nnodes', nnodes)
+                    dd[dk][k0]['nfaces'] = dd[dk][k0].get('nfaces', nfaces)
+
+                    assert dd[dk][k0]['nodes'].shape == (v0['nnodes'],2)
+                    assert np.max(dd[dk][k0]['faces']) < v0['nnodes']
+                    # Only triangular meshes so far
+                    assert v0['type'] in ['tri', 'quadtri'], v0['type']
+
+                    if 'tri' in v0['type']:
+                        assert dd[dk][k0]['faces'].shape == (v0['nfaces'],3)
+                        if v0.get('mpltri', None) is None:
+                            dd[dk][k0]['mpltri'] = mplTri(dd[dk][k0]['nodes'][:,0],
+                                                          dd[dk][k0]['nodes'][:,1],
+                                                          dd[dk][k0]['faces'])
+                        assert isinstance(dd[dk][k0]['mpltri'], mplTri)
+                        assert dd[dk][k0]['ftype'] in [0,1]
+                        ntri = dd[dk][k0]['ntri']
+                        if dd[dk][k0]['ftype'] == 1:
+                            dd[dk][k0]['size'] = dd[dk][k0]['nnodes']
+                        else:
+                            dd[dk][k0]['size'] = int(dd[dk][k0]['nfaces']/ntri)
+
+        # Check unicity of all keys
+        lk = [list(dv.keys()) for dv in dd.values()]
+        lk = list(itt.chain.from_iterable(lk))
+        lku = sorted(set(lk))
+        lk = ['%s : %s times'%(kk, str(lk.count(kk))) for kk in lku if lk.count(kk) > 1]
+        if len(lk) > 0:
+            msg = "Each key of (dtime,dradius,dmesh,d0d,d1d,d2d) must be unique !\n"
+            msg += "The following keys are repeated :\n"
+            msg += "    - " + "\n    - ".join(lk)
+            raise Exception(msg)
+
+        dtime, dradius, dmesh = dd['dtime'], dd['dradius'], dd['dmesh']
+        d0d, d1d, d2d = dd['d0d'], dd['d1d'], dd['d2d']
+
+        return dtime, dradius, dmesh, d0d, d1d, d2d
+
+
+    def _checkformat_inputs_dgeom(self, config=None):
+        if config is not None:
+            assert issubclass(config.__class__, utils.ToFuObject)
+        return config
+
+    ###########
+    # Get keys of dictionnaries
+    ###########
+
+    @staticmethod
+    def _get_keys_dgroup():
+        lk = ['time', 'radius', 'mesh']
+        return lk
+
+    @staticmethod
+    def _get_keys_dindref():
+        lk = []
+        return lk
+
+    @staticmethod
+    def _get_keys_ddata():
+        lk = []
+        return lk
+
+    @staticmethod
+    def _get_keys_dgeom():
+        lk = ['config']
+        return lk
+
+
+    ###########
+    # _init
+    ###########
+
+    def _init(self, dtime=None, dradius=None, dmesh=None,
+              d0d=None, d1d=None, d2d=None,
+              config=None, **kwargs):
+        kwdargs = locals()
+        kwdargs.update(**kwargs)
+        largs = self._get_largs_dindrefdatagroup()
+        kwdindrefdatagroup = self._extract_kwdargs(kwdargs, largs)
+        largs = self._get_largs_dgeom()
+        kwdgeom = self._extract_kwdargs(kwdargs, largs)
+        self._set_dindrefdatagroup(**kwdindrefdatagroup)
+        self.set_dgeom(**kwdgeom)
+        self._dstrip['strip'] = 0
+
+
+    ###########
+    # set dictionaries
+    ###########
+
+    @staticmethod
+    def _find_lref(shape=None, k0=None, dd=None, ddstr=None,
+                   dindref=None, lrefname=['t','radius']):
+        if 'depend' in dd[k0].keys():
+            lref = dd[k0]['depend']
+        else:
+            lref = [[kk for kk, vv in dindref.items()
+                     if vv['size'] == sh and vv['group'] in lrefname]
+                    for sh in shape]
+            lref = list(itt.chain.from_iterable(lref))
+            if len(lref) < len(shape):
+                msg = "Maybe not enoough references for %s[%s]:\n"%(ddstr,k0)
+                msg += "    - shape: %s\n"%str(shape)
+                msg += "    - lref:  %s"%str(lref)
+                warnings.warn(msg)
+
+        if len(lref) > len(shape):
+            msg = "Too many references for %s[%s]:\n"%(ddstr,k0)
+            msg += "    - shape: %s\n"%str(shape)
+            msg += "    - lref:  %s"%str(lref)
+            raise Exception(msg)
+        return lref
+
+
+
+
+    def _set_dindrefdatagroup(self, dtime=None, dradius=None, dmesh=None,
+                              d0d=None, d1d=None, d2d=None):
+
+        # Check dtime is not None
+        out = self._checkformat_dtrm(dtime=dtime, dradius=dradius, dmesh=dmesh,
+                                     d0d=d0d, d1d=d1d, d2d=d2d)
+        dtime, dradius, dmesh, d0d, d1d, d2d = out
+
+        dgroup, dindref, ddata = {}, {}, {}
+        empty = {}
+        # Get indt
+        if dtime is not None:
+            for k0 in dtime.keys():
+                out = self._extract_dnd(dtime,k0,
+                                        dim_='time', quant_='t',
+                                        name_=k0, units_='s')
+                dim, quant, origin, name, units = out
+
+                assert k0 not in dindref.keys()
+                dtime[k0]['data'] = np.atleast_1d(np.squeeze(dtime[k0]['data']))
+                assert dtime[k0]['data'].ndim == 1
+
+                dindref[k0] = {'size':dtime[k0]['data'].size,
+                               'group':'time'}
+
+                assert k0 not in ddata.keys()
+                ddata[k0] = {'data':dtime[k0]['data'],
+                             'dim':dim, 'quant':quant, 'name':name,
+                             'origin':origin, 'units':units, 'depend':(k0,)}
+
+        # d0d
+        if d0d is not None:
+            for k0 in d0d.keys():
+                out = self._extract_dnd(d0d,k0)
+                dim, quant, origin, name, units = out
+
+                # data
+                d0d[k0]['data'] = np.atleast_1d(np.squeeze(d0d[k0]['data']))
+                assert d0d[k0]['data'].ndim >= 1
+
+                depend = self._find_lref(d0d[k0]['data'].shape, k0, dd=d0d,
+                                         ddstr='d0d', dindref=dindref,
+                                         lrefname=['t'])
+                assert len(depend) == 1 and dindref[depend[0]]['group']=='time'
+                assert k0 not in ddata.keys()
+                ddata[k0] = {'data':d0d[k0]['data'],
+                             'dim':dim, 'quant':quant, 'name':name,
+                             'units':units, 'origin':origin, 'depend':depend}
+
+        # get radius
+        if dradius is not None:
+            for k0 in dradius.keys():
+                out = self._extract_dnd(dradius, k0, name_=k0)
+                dim, quant, origin, name, units = out
+                assert k0 not in dindref.keys()
+                data = np.atleast_1d(np.squeeze(dradius[k0]['data']))
+                assert data.ndim in [1,2]
+
+                if len(dradius[k0].get('depend',[1])) == 1:
+                    assert data.ndim == 1
+                    size = data.size
                 else:
-                    Dt = None
+                    lkt = [k for k in dtime.keys() if k in dradius[k0]['depend']]
+                    assert len(lkt) == 1
+                    axist = dradius[k0]['depend'].index(lkt[0])
+                    size = data.shape[1-axist]
+                dindref[k0] = {'size':size,
+                               'group':'radius'}
+
+                assert k0 not in ddata.keys()
+                depend = self._find_lref(data.shape, k0, dd=dradius,
+                                         ddstr='dradius', dindref=dindref,
+                                         lrefname=['t','radius'])
+                ddata[k0] = {'data':data,
+                             'dim':dim, 'quant':quant, 'name':name,
+                             'origin':origin, 'units':units, 'depend':depend}
+
+
+        # Get d1d
+        if d1d is not None:
+            for k0 in d1d.keys():
+                out = self._extract_dnd(d1d,k0)
+                dim, quant, origin, name, units = out
+
+                d1d[k0]['data'] = np.atleast_2d(np.squeeze(d1d[k0]['data']))
+                assert d1d[k0]['data'].ndim == 2
+
+                # data
+                depend = self._find_lref(d1d[k0]['data'].shape, k0, dd=d1d,
+                                         ddstr='d1d', dindref=dindref,
+                                         lrefname=['t','radius'])
+                assert k0 not in ddata.keys()
+                ddata[k0] = {'data':d1d[k0]['data'],
+                             'dim':dim, 'quant':quant, 'name':name,
+                             'units':units, 'origin':origin, 'depend':depend}
+
+        # dmesh ref
+        if dmesh is not None:
+            for k0 in dmesh.keys():
+                out = self._extract_dnd(dmesh, k0, dim_='mesh')
+                dim, quant, origin, name, units = out
+
+                assert k0 not in dindref.keys()
+                dindref[k0] = {'size':dmesh[k0]['size'],
+                               'group':'mesh'}
+
+                assert k0 not in ddata.keys()
+                ddata[k0] = {'data':dmesh[k0],
+                             'dim':dim, 'quant':quant, 'name':name,
+                             'units':units, 'origin':origin, 'depend':(k0,)}
+
+        # d2d
+        if d2d is not None:
+            for k0 in d2d.keys():
+                out = self._extract_dnd(d2d,k0)
+                dim, quant, origin, name, units = out
+
+                d2d[k0]['data'] = np.atleast_2d(np.squeeze(d2d[k0]['data']))
+                assert d2d[k0]['data'].ndim == 2
+
+                depend = self._find_lref(d2d[k0]['data'].shape, k0, dd=d2d,
+                                         ddstr='d2d', dindref=dindref,
+                                         lrefname=['t','mesh'])
+                assert k0 not in ddata.keys()
+                ddata[k0] = {'data':d2d[k0]['data'],
+                             'dim':dim, 'quant':quant, 'name':name,
+                             'units':units, 'origin':origin, 'depend':depend}
+
+        # dgroup
+        dgroup = {}
+        if len(dtime) > 0:
+            dgroup['time'] = {'dref':list(dtime.keys())[0]}
+        if len(dradius) > 0:
+            dgroup['radius'] = {'dref':list(dradius.keys())[0]}
+        if len(dmesh) > 0:
+            dgroup['mesh'] = {'dref':list(dmesh.keys())[0]}
+
+        # Update dict
+        self._dgroup = dgroup
+        self._dindref = dindref
+        self._ddata = ddata
+        # Complement
+        self._complement()
+
+
+
+    def _complement(self):
+
+        # --------------
+        # ddata
+        for k0, v0 in self.ddata.items():
+            lindout = [ii for ii in v0['depend'] if ii not in self.dindref.keys()]
+            if not len(lindout) == 0:
+                msg = "ddata[%s]['depend'] has keys not in dindref:\n"%k0
+                msg += "    - " + "\n    - ".join(lindout)
+                raise Exception(msg)
+
+            self.ddata[k0]['lgroup'] = [self.dindref[ii]['group']
+                                        for ii in v0['depend']]
+            type_ = type(v0['data'])
+            shape = tuple([self.dindref[ii]['size'] for ii in v0['depend']])
+
+            # if only one dim => mesh or iterable or unspecified
+            if len(shape) == 1 or type_ is dict:
+                c0 = type_ is dict and 'mesh' in self.ddata[k0]['lgroup']
+                c1 = not c0 and len(v0['data']) == shape[0]
+                if not (c0 or c1):
+                    msg = k0+'\n'
+                    msg += str([c0, c1, type_, len(v0['data']), shape])
+                    msg += "\n" + str(v0['data'])
             else:
-                data = None
-                Dt = None
-        self._data0 = {'indt':indt,'data':data, 'Dt':Dt}
+                assert type(v0['data']) is np.ndarray
+                assert v0['data'].shape == shape
 
-    def _calc_data_core(self):
-        # Get time interval
-        d = self._Ref['data'][self.indt,:,:]
-        # Substract reference time data
-        if self._data0['data'] is not None:
-            d = d - self._data0['data'][np.newaxis,:,:]
-        # Get desired wavelenght interval
-        d = d[:,self.indlamb,:]
-        # Get desired channels
-        d = d[:,:,self.indch]
-        return d
+        # --------------
+        # dindref
+        for k0 in self.dindref.keys():
+            self.dindref[k0]['ldata'] = [kk for kk, vv in self.ddata.items()
+                                    if k0 in vv['depend']]
+            assert self.dindref[k0]['group'] in self.dgroup.keys()
 
-    def _set_data(self):
-        if self._fft is None and self._interp_t is None:
-            d = None
+        # --------------
+        # dgroup
+        for gg, vg in self.dgroup.items():
+            lindref = [id_ for id_,vv in self.dindref.items()
+                       if vv['group'] == gg]
+            ldata = [id_ for id_ in self.ddata.keys()
+                     if any([id_ in self.dindref[vref]['ldata']
+                             for vref in lindref])]
+            #assert vg['depend'] in lidindref
+            self.dgroup[gg]['lindref'] = lindref
+            self.dgroup[gg]['ldata'] = ldata
+
+
+    def set_dgeom(self, config=None):
+        config = self._checkformat_inputs_dgeom(config=config)
+        self._dgeom = {'config':config}
+
+
+    ###########
+    # strip dictionaries
+    ###########
+
+    def _strip_ddata(self, strip=0):
+        pass
+
+
+    def _strip_dgeom(self, strip=0, force=False, verb=True):
+        if self._dstrip['strip']==strip:
+            return
+
+        if strip in [0] and self._dstrip['strip'] in [1]:
+            config = None
+            if self._dgeom['config'] is not None:
+                assert type(self._dgeom['config']) is str
+                config = utils.load(self._dgeom['config'], verb=verb)
+
+            self._set_dgeom(config=config)
+
+        elif strip in [1] and self._dstrip['strip'] in [0]:
+            if self._dgeom['config'] is not None:
+                path = self._dgeom['config'].Id.SavePath
+                name = self._dgeom['config'].Id.SaveName
+                pfe = os.path.join(path, name+'.npz')
+                lf = os.listdir(path)
+                lf = [ff for ff in lf if name+'.npz' in ff]
+                exist = len(lf)==1
+                if not exist:
+                    msg = """BEWARE:
+                        You are about to delete the config object
+                        Only the path/name to saved a object will be kept
+
+                        But it appears that the following object has no
+                        saved file where specified (obj.Id.SavePath)
+                        Thus it won't be possible to retrieve it
+                        (unless available in the current console:"""
+                    msg += "\n    - {0}".format(pfe)
+                    if force:
+                        warning.warn(msg)
+                    else:
+                        raise Exception(msg)
+                self._dgeom['config'] = pfe
+
+    ###########
+    # _strip and get/from dict
+    ###########
+
+    @classmethod
+    def _strip_init(cls):
+        cls._dstrip['allowed'] = [0,1]
+        nMax = max(cls._dstrip['allowed'])
+        doc = """
+                 1: dgeom pathfiles
+                 """
+        doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
+        if sys.version[0]=='2':
+            cls.strip.__func__.__doc__ = doc
         else:
-            d = self._calc_data_core()
-            # Get fft
-            if self._fft is not None:
-                d = _comp.get_fft(d, **self._fft)
-            if self._interp_t is not None:
-                t = self._interp_t
-                dn = np.full((t.size,d.shape[1],d.shape[2]),np.nan)
-                for ii in range(d.shape[2]):
-                    for jj in range(0,d.shape[1]):
-                        dn[:,jj,ii] = np.interp(t, self.t, d[:,jj,ii],
-                                                left=np.nan, right=np.nan)
-                d = dn
-                self._t = t
+            cls.strip.__doc__ = doc
+
+    def strip(self, strip=0, verb=True):
+        # super()
+        super(Plasma2D,self).strip(strip=strip, verb=verb)
+
+    def _strip(self, strip=0, verb=True):
+        self._strip_dgeom(strip=strip, verb=verb)
+
+    def _to_dict(self):
+        dout = {'dgroup':{'dict':self._dgroup, 'lexcept':None},
+                'dindref':{'dict':self._dindref, 'lexcept':None},
+                'ddata':{'dict':self._ddata, 'lexcept':None},
+                'dgeom':{'dict':self._dgeom, 'lexcept':None}}
+        return dout
+
+    def _from_dict(self, fd):
+        self._dgroup.update(**fd['dgroup'])
+        self._dindref.update(**fd['dindref'])
+        self._ddata.update(**fd['ddata'])
+        self._dgeom.update(**fd['dgeom'])
+
+
+    ###########
+    # properties
+    ###########
+
+    @property
+    def dgroup(self):
+        return self._dgroup
+    @property
+    def dindref(self):
+        return self._dindref
+    @property
+    def ddata(self):
+        return self._ddata
+    @property
+    def dtime(self):
+        return dict([(kk, self._ddata[kk]) for kk,vv in self._dindref.items()
+                     if vv['group'] == 'time'])
+    @property
+    def dradius(self):
+        return dict([(kk, self._ddata[kk]) for kk,vv in self._dindref.items()
+                     if vv['group'] == 'radius'])
+    @property
+    def dmesh(self):
+        return dict([(kk, self._ddata[kk]) for kk,vv in self._dindref.items()
+                     if vv['group'] == 'mesh'])
+    @property
+    def config(self):
+        return self._dgeom['config']
+
+    #---------------------
+    # Read-only for internal use
+    #---------------------
+
+    @property
+    def _lquantboth(self):
+        """ Return list of quantities available both in 1d and 2d """
+        lq1 = [self._ddata[vd]['quant'] for vd in self._dgroup['radius']['ldata']]
+        lq2 = [self._ddata[vd]['quant'] for vd in self._dgroup['mesh']['ldata']]
+        lq = list(set(lq1).intersection(lq2))
+        return lq
+
+    def _get_ldata(self, dim=None, quant=None, name=None,
+                   units=None, origin=None,
+                   indref=None, group=None, log='all', return_key=True):
+        assert log in ['all','any','raw']
+        lid = np.array(list(self._ddata.keys()))
+        ind = np.ones((7,len(lid)),dtype=bool)
+        if dim is not None:
+            ind[0,:] = [self._ddata[id_]['dim'] == dim for id_ in lid]
+        if quant is not None:
+            ind[1,:] = [self._ddata[id_]['quant'] == quant for id_ in lid]
+        if name is not None:
+            ind[2,:] = [self._ddata[id_]['name'] == name for id_ in lid]
+        if units is not None:
+            ind[3,:] = [self._ddata[id_]['units'] == units for id_ in lid]
+        if origin is not None:
+            ind[4,:] = [self._ddata[id_]['origin'] == origin for id_ in lid]
+        if indref is not None:
+            ind[5,:] = [depend in self._ddata[id_]['depend'] for id_ in lid]
+        if group is not None:
+            ind[6,:] = [group in self._ddata[id_]['lgroup'] for id_ in lid]
+
+        if log == 'all':
+            ind = np.all(ind, axis=0)
+        elif log == 'any':
+            ind = np.any(ind, axis=0)
+
+        if return_key:
+            if np.any(ind):
+                out = lid[ind.nonzero()[0]]
             else:
-                self._t = None
-        self._data = d
+                out = np.array([],dtype=int)
+        else:
+            out = ind, lid
+        return out
+
+    def _get_keyingroup(self, str_, group=None, msgstr=None, raise_=False):
+
+        if str_ in self._ddata.keys():
+            lg = self._ddata[str_]['lgroup']
+            if group is None or group in lg:
+                return str_, None
+            else:
+                msg = "Required data key does not have matching group:\n"
+                msg += "    - ddata[%s]['lgroup'] = %s"%(str_, lg)
+                msg += "    - Expected group:  %s"%group
+                if raise_:
+                    raise Exception(msg)
+
+        ind, akeys = self._get_ldata(dim=str_, quant=str_, name=str_, units=str_,
+                                     origin=str_, group=group, log='raw',
+                                     return_key=False)
+        # Remove indref and group
+        ind = ind[:5,:] & ind[-1,:]
+
+        # Any perfect match ?
+        nind = np.sum(ind, axis=1)
+        sol = (nind == 1).nonzero()[0]
+        key, msg = None, None
+        if sol.size > 0:
+            if np.unique(sol).size == 1:
+                indkey = ind[sol[0],:].nonzero()[0]
+                key = akeys[indkey][0]
+            else:
+                lstr = "[dim,quant,name,units,origin]"
+                msg = "Several possible unique matches in %s for %s"(lstr,str_)
+        else:
+            lstr = "[dim,quant,name,units,origin]"
+            msg = "No unique match in %s for %s in group %s"%(lstr,str_,group)
+
+        if msg is not None:
+            msg += "\n\nRequested %s could not be identified !\n"%msgstr
+            msg += "Please provide a valid (unique) key/name/quant/dim:\n\n"
+            msg += '\n\n'.join(self.get_summary(verb=False, return_='msg'))
+            if raise_:
+                raise Exception(msg)
+        return key, msg
 
 
-    #def get_fft(self, DF=None, Harm=True, DFEx=None, HarmEx=True, Calc=True):
-        #self._set_data()
+    #---------------------
+    # Methods for showing data
+    #---------------------
 
-    def __sub__(self, other):
-        opfunc = lambda x, y: x-y
-        data = _recreatefromoperator(self, other, opfunc)
-        return data
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
+        """ Summary description of the object content as a pandas DataFrame """
+        # # Make sure the data is accessible
+        # msg = "The data is not accessible because self.strip(2) was used !"
+        # assert self._dstrip['strip']<2, msg
+
+        # -----------------------
+        # Build for ddata
+        col0 = ['group key', 'nb. indref']
+        ar0 = [(k0, len(v0['lindref'])) for k0,v0 in self._dgroup.items()]
+
+        # -----------------------
+        # Build for ddata
+        col1 = ['indref key', 'group', 'size']
+        ar1 = [(k0, v0['group'], v0['size']) for k0,v0 in self._dindref.items()]
+
+        # -----------------------
+        # Build for ddata
+        col2 = ['data key', 'origin', 'dim', 'quant',
+                'name', 'units', 'shape', 'depend', 'lgroup']
+        ar2 = []
+        for k0,v0 in self._ddata.items():
+            if type(v0['data']) is np.ndarray:
+                shape = str(v0['data'].shape)
+            else:
+                shape = v0['data'].__class__.__name__
+            lu = [k0, v0['origin'], v0['dim'], v0['quant'], v0['name'],
+                  v0['units'], shape,
+                  str(v0['depend']), str(v0['lgroup'])]
+            ar2.append(lu)
+
+        return self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
+                                  sep=sep, line=line, table_sep=table_sep,
+                                  verb=verb, return_=return_)
+
+    #---------------------
+    # Methods for adding ref / quantities
+    #---------------------
+
+    def add_ref(self, key=None, data=None, group=None,
+                dim=None, quant=None, units=None, origin=None, name=None):
+        """ Add a reference """
+        assert type(key) is str and key not in self._ddata.keys()
+        assert type(data) in [np.ndarray, dict]
+        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
+                                 'units':units, 'origin':origin}}, key)
+        dim, quant, origin, name, units = out
+        assert group in self._dgroup.keys()
+        if type(data) is np.ndarray:
+            size = data.shape[0]
+        else:
+            assert data['ftype'] in [0,1]
+            size = data['nnodes'] if data['ftype'] == 1 else data['nfaces']
+
+        self._dindref[key] = {'group':group, 'size':size, 'ldata':[key]}
+
+        self._ddata[key] = {'data':data,
+                            'dim':dim, 'quant':quant, 'units':units,
+                            'origin':origin, 'name':name,
+                            'depend':(key,), 'lgroup':[group]}
+        self._complement()
+
+    def add_quantity(self, key=None, data=None, depend=None,
+                     dim=None, quant=None, units=None,
+                     origin=None, name=None):
+        """ Add a quantity """
+        c0 = type(key) is str and key not in self._ddata.keys()
+        if not c0:
+            msg = "key must be a str not already in self.ddata.keys()!\n"
+            msg += "    - Provided: %s"%str(key)
+            raise Exception(msg)
+        if type(data) not in [np.ndarray, dict]:
+            msg = "data must be either:\n"
+            msg += "    - np.ndarray\n"
+            msg += "    - dict (mesh)\n"
+            msg += "\n    Provided: %s"%str(type(data))
+            raise Exception(msg)
+        out = self._extract_dnd({key:{'dim':dim, 'quant':quant, 'name':name,
+                                 'units':units, 'origin':origin}}, key)
+        dim, quant, origin, name, units = out
+        assert type(depend) in [list,str,tuple]
+        if type(depend) is str:
+            depend = (depend,)
+        for ii in range(0,len(depend)):
+            assert depend[ii] in self._dindref.keys()
+        lgroup = [self._dindref[dd]['group'] for dd in depend]
+        self._ddata[key] = {'data':data,
+                            'dim':dim, 'quant':quant, 'units':units,
+                            'origin':origin, 'name':name,
+                            'depend':tuple(depend), 'lgroup':lgroup}
+        self._complement()
 
 
-    def plot(self, key=None, invert=None, plotmethod='imshow',
-             cmap=plt.cm.gray, ms=4, Max=None,
-             fs=None, dmargin=None, wintit='tofu',
-             draw=True, connect=True):
-        """ Plot the data content in a predefined figure  """
-        dax, KH = _plot.Data_plot(self, key=key, invert=invert, Max=Max,
-                                  plotmethod=plotmethod, cmap=cmap, ms=ms,
-                                  fs=fs, dmargin=dmargin, wintit=wintit,
-                                  draw=draw, connect=connect)
-        return dax, KH
+    #---------------------
+    # Method for getting time of a quantity
+    #---------------------
+
+    def get_time(self, key):
+        """ Return the time vector associated to a chosen quantity (identified
+        by its key)"""
+
+        if key not in self._ddata.keys():
+            msg = "Provided key not in self.ddata.keys() !\n"
+            msg += "    - Provided: %s\n"%str(key)
+            msg += "    - Available: %s\n"%str(self._ddata.keys())
+            raise Exception(msg)
+
+        indref = self._ddata[key]['depend'][0]
+        t = [kk for kk in self._dindref[indref]['ldata']
+             if (self._ddata[kk]['depend'] == (indref,)
+                 and self._ddata[kk]['quant'] == 't')]
+        if len(t) != 1:
+            msg = "No / several macthing time vectors were identified:\n"
+            msg += "    - Provided: %s\n"%key
+            msg += "    - Found: %s"%str(t)
+            raise Exception(msg)
+        return t[0]
+
+
+    def get_time_common(self, lkeys, choose=None):
+        """ Return the common time vector to several quantities
+
+        If they do not have a common time vector, a reference one is choosen
+        according to criterion choose
+        """
+        # Check all data have time-dependency
+        dout = {kk: {'t':self.get_time(kk)} for kk in lkeys}
+        dtu = dict.fromkeys(set([vv['t'] for vv in dout.values()]))
+        for kt in dtu.keys():
+            dtu[kt] = {'ldata':[kk for kk in lkeys if dout[kk]['t'] == kt]}
+        if len(dtu) == 1:
+            tref = list(dtu.keys())[0]
+        else:
+            lt, lres = zip(*[(kt,np.mean(np.diff(self._ddata[kt]['data'])))
+                             for kt in dtu.keys()])
+            if choose is None:
+                choose  = 'min'
+            if choose == 'min':
+                tref = lt[np.argmin(lres)]
+        return dout, dtu, tref
+
+    @staticmethod
+    def _get_time_common_arrays(dins, choose=None):
+        dout = dict.fromkeys(dins.keys())
+        dtu = {}
+        for k, v in dins.items():
+            c0 = type(k) is str
+            c0 = c0 and all([ss in v.keys() for ss in ['val','t']])
+            c0 = c0 and all([type(v[ss]) is np.ndarray for ss in ['val','t']])
+            c0 = c0 and v['t'].size in v['val'].shape
+            if not c0:
+                msg = "dins must be a dict of the form (at least):\n"
+                msg += "    dins[%s] = {'val': np.ndarray,\n"%str(k)
+                msg += "                't':   np.ndarray}\n"
+                msg += "Provided: %s"%str(dins)
+                raise Exception(msg)
+
+            kt, already = id(v['t']), True
+            if kt not in dtu.keys():
+                lisclose = [kk for kk, vv in dtu.items()
+                            if (vv['val'].shape == v['t'].shape
+                                and np.allclose(vv['val'],v['t']))]
+                assert len(lisclose) <= 1
+                if len(lisclose) == 1:
+                    kt = lisclose[0]
+                else:
+                    already = False
+                    dtu[kt] = {'val':np.atleast_1d(v['t']).ravel(),
+                               'ldata':[k]}
+            if already:
+                dtu[kt]['ldata'].append(k)
+            assert dtu[kt]['val'].size == v['val'].shape[0]
+            dout[k] = {'val':v['val'], 't':kt}
+
+        if len(dtu) == 1:
+            tref = list(dtu.keys())[0]
+        else:
+            lt, lres = zip(*[(kt,np.mean(np.diff(dtu[kt]['val'])))
+                             for kt in dtu.keys()])
+            if choose is None:
+                choose  = 'min'
+            if choose == 'min':
+                tref = lt[np.argmin(lres)]
+        return dout, dtu, tref
+
+    def _interp_on_common_time(self, lkeys,
+                               choose='min', interp_t=None, t=None,
+                               fill_value=np.nan):
+        """ Return a dict of time-interpolated data """
+        dout, dtu, tref = self.get_time_common(lkeys)
+        if type(t) is np.ndarray:
+            tref = np.atleast_1d(t).ravel()
+            tr = tref
+            ltu = dtu.keys()
+        else:
+            if type(t) is str:
+                tref = t
+            tr = self._ddata[tref]['data']
+            ltu = set(dtu.keys())
+            if tref in dtu.keys():
+                ltu = ltu.difference([tref])
+
+        if interp_t is None:
+            interp_t = _INTERPT
+
+        # Interpolate
+        for tt in ltu:
+            for kk in dtu[tt]['ldata']:
+                dout[kk]['val'] = scpinterp.interp1d(self._ddata[tt]['data'],
+                                                     self._ddata[kk]['data'],
+                                                     kind=interp_t, axis=0,
+                                                     bounds_error=False,
+                                                     fill_value=fill_value)(tr)
+
+        if type(tref) is not np.ndarray and tref in dtu.keys():
+            for kk in dtu[tref]['ldata']:
+                 dout[kk]['val'] = self._ddata[kk]['data']
+
+        return dout, tref
+
+    def _interp_on_common_time_arrays(self, dins,
+                                      choose='min', interp_t=None, t=None,
+                                      fill_value=np.nan):
+        """ Return a dict of time-interpolated data """
+        dout, dtu, tref = self._get_time_common_arrays(dins)
+        if type(t) is np.ndarray:
+            tref = np.atleast_1d(t).ravel()
+            tr = tref
+            ltu = dtu.keys()
+        else:
+            if type(t) is str:
+                assert t in dout.keys()
+                tref = dout[t]['t']
+            tr = dtu[tref]['val']
+            ltu = set(dtu.keys()).difference([tref])
+
+        if interp_t is None:
+            interp_t = _INTERPT
+
+        # Interpolate
+        for tt in ltu:
+            for kk in dtu[tt]['ldata']:
+                dout[kk]['val'] = scpinterp.interp1d(dtu[tt]['val'],
+                                                     dout[kk]['val'],
+                                                     kind=interp_t, axis=0,
+                                                     bounds_error=False,
+                                                     fill_value=fill_value)(tr)
+        return dout, tref
+
+    def interp_t(self, dkeys,
+                 choose='min', interp_t=None, t=None,
+                 fill_value=np.nan):
+        # Check inputs
+        assert type(dkeys) in [list,dict]
+        if type(dkeys) is list:
+            dkeys = {kk:{'val':kk} for kk in dkeys}
+        lc = [(type(kk) is str
+               and type(vv) is dict
+               and type(vv.get('val',None)) in [str,np.ndarray])
+              for kk,vv in dkeys.items()]
+        assert all(lc), str(dkeys)
+
+        # Separate by type
+        dk0 = dict([(kk,vv) for kk,vv in dkeys.items()
+                    if type(vv['val']) is str])
+        dk1 = dict([(kk,vv) for kk,vv in dkeys.items()
+                    if type(vv['val']) is np.ndarray])
+        assert len(dkeys) == len(dk0) + len(dk1), str(dk0) + '\n' + str(dk1)
+
+
+        if len(dk0) == len(dkeys):
+            lk = [v['val'] for v in dk0.values()]
+            dout, tref = self._interp_on_common_time(lk, choose=choose,
+                                                     t=t, interp_t=interp_t,
+                                                     fill_value=fill_value)
+            dout = {kk:{'val':dout[vv['val']]['val'], 't':dout[vv['val']]['t']}
+                    for kk,vv in dk0.items()}
+        elif len(dk1) == len(dkeys):
+            dout, tref = self._interp_on_common_time_arrays(dk1, choose=choose,
+                                                            t=t, interp_t=interp_t,
+                                                            fill_value=fill_value)
+
+        else:
+            lk = [v['val'] for v in dk0.values()]
+            if type(t) is np.ndarray:
+                dout, tref =  self._interp_on_common_time(lk, choose=choose,
+                                                       t=t, interp_t=interp_t,
+                                                       fill_value=fill_value)
+                dout1, _   = self._interp_on_common_time_arrays(dk1, choose=choose,
+                                                              t=t, interp_t=interp_t,
+                                                              fill_value=fill_value)
+            else:
+                dout0, dtu0, tref0 = self.get_time_common(lk,
+                                                          choose=choose)
+                dout1, dtu1, tref1 = self._get_time_common_arrays(dk1,
+                                                                  choose=choose)
+                if type(t) is str:
+                    lc = [t in dtu0.keys(), t in dout1.keys()]
+                    if not any(lc):
+                        msg = "if t is str, it must refer to a valid key:\n"
+                        msg += "    - %s\n"%str(dtu0.keys())
+                        msg += "    - %s\n"%str(dout1.keys())
+                        msg += "Provided: %s"%t
+                        raise Exception(msg)
+                    if lc[0]:
+                        t0, t1 = t, self._ddata[t]['data']
+                    else:
+                        t0, t1 = dtu1[dout1[t]['t']]['val'], t
+                    tref = t
+                else:
+                    if choose is None:
+                        choose = 'min'
+                    if choose == 'min':
+                        t0 = self._ddata[tref0]['data']
+                        t1 = dtu1[tref1]['val']
+                        dt0 = np.mean(np.diff(t0))
+                        dt1 = np.mean(np.diff(t1))
+                        if dt0 < dt1:
+                            t0, t1, tref = tref0, t0, tref0
+                        else:
+                            t0, t1, tref = t1, tref1, tref1
+
+                dout, tref =  self._interp_on_common_time(lk, choose=choose,
+                                                          t=t0, interp_t=interp_t,
+                                                          fill_value=fill_value)
+                dout = {kk:{'val':dout[vv['val']]['val'],
+                            't':dout[vv['val']]['t']}
+                        for kk,vv in dk0.items()}
+                dout1, _   = self._interp_on_common_time_arrays(dk1, choose=choose,
+                                                                t=t1, interp_t=interp_t,
+                                                                fill_value=fill_value)
+            dout.update(dout1)
+
+        return dout, tref
+
+    #---------------------
+    # Methods for computing additional plasma quantities
+    #---------------------
+
+
+    def _fill_dins(self, dins):
+        for k in dins.keys():
+            if type(dins[k]['val']) is str:
+                assert dins[k]['val'] in self._ddata.keys()
+            else:
+                dins[k]['val'] = np.atleast_1d(dins[k]['val'])
+                assert dins[k]['t'] is not None
+                dins[k]['t'] = np.atleast_1d(dins[k]['t']).ravel()
+                assert dins[k]['t'].size == dins[k]['val'].shape[0]
+        return dins
+
+    @staticmethod
+    def _checkformat_shapes(dins):
+        shape = None
+        for k in dins.keys():
+            dins[k]['shape'] = dins[k]['val'].shape
+            if shape is None:
+                shape = dins[k]['shape']
+            if dins[k]['shape'] != shape:
+                if dins[k]['val'].ndim > len(shape):
+                    shape = dins[k]['shape']
+
+        # Check shape consistency for broadcasting
+        assert len(shape) in [1,2]
+        if len(shape) == 1:
+            for k in dins.keys():
+                assert dins[k]['shape'][0] in [1,shape[0]]
+                if dins[k]['shape'][0] < shape[0]:
+                    dins[k]['val'] = np.full((shape[0],), dins[k]['val'][0])
+                    dins[k]['shape'] = dins[k]['val'].shape
+
+        elif len(shape) == 2:
+            for k in dins.keys():
+                if len(dins[k]['shape']) == 1:
+                    if dins[k]['shape'][0] not in [1]+list(shape):
+                        msg = "Non-conform shape for dins[%s]:\n"%k
+                        msg += "    - Expected: (%s,...) or (1,)\n"%str(shape[0])
+                        msg += "    - Provided: %s"%str(dins[k]['shape'])
+                        raise Exception(msg)
+                    if dins[k]['shape'][0] == 1:
+                        dins[k]['val'] = dins[k]['val'][None,:]
+                    elif dins[k]['shape'][0] == shape[0]:
+                        dins[k]['val'] = dins[k]['val'][:,None]
+                    else:
+                        dins[k]['val'] = dins[k]['val'][None,:]
+                else:
+                    assert dins[k]['shape'] == shape
+                dins[k]['shape'] = dins[k]['val'].shape
+        return dins
 
 
 
+    def compute_bremzeff(self, Te=None, ne=None, zeff=None, lamb=None,
+                         tTe=None, tne=None, tzeff=None, t=None,
+                         interp_t=None):
+        """ Return the bremsstrahlung spectral radiance at lamb
+
+        The plasma conditions are set by:
+            - Te   (eV)
+            - ne   (/m3)
+            - zeff (adim.)
+
+        The wavelength is set by the diagnostics
+            - lamb (m)
+
+        The vol. spectral emis. is returned in ph / (s.m3.sr.m)
+
+        The computation requires an intermediate : gff(Te, zeff)
+        """
+        dins = {'Te':{'val':Te, 't':tTe},
+                'ne':{'val':ne, 't':tne},
+                'zeff':{'val':zeff, 't':tzeff}}
+        lc = [vv['val'] is None for vv in dins.values()]
+        if any(lc):
+            msg = "All fields should be provided:\n"
+            msg += "    - %s"%str(dins.keys())
+            raise Exception(msg)
+        dins = self._fill_dins(dins)
+        dins, t = self.interp_t(dins, t=t, interp_t=interp_t)
+        lamb = np.atleast_1d(lamb)
+        dins['lamb'] = {'val':lamb}
+        dins = self._checkformat_shapes(dins)
+
+        val, units = _physics.compute_bremzeff(dins['Te']['val'],
+                                               dins['ne']['val'],
+                                               dins['zeff']['val'],
+                                               dins['lamb']['val'])
+        return val, t, units
+
+    def compute_fanglev(self, BR=None, BPhi=None, BZ=None,
+                        ne=None, lamb=None, t=None, interp_t=None,
+                        tBR=None, tBPhi=None, tBZ=None, tne=None):
+        """ Return the vector faraday angle at lamb
+
+        The plasma conditions are set by:
+            - BR    (T) , array of R component of B
+            - BRPhi (T) , array of phi component of B
+            - BZ    (T) , array of Z component of B
+            - ne    (/m3)
+
+        The wavelength is set by the diagnostics
+            - lamb (m)
+
+        The vector faraday angle is returned in T / m
+        """
+        dins = {'BR':  {'val':BR,   't':tBR},
+                'BPhi':{'val':BPhi, 't':tBPhi},
+                'BZ':  {'val':BZ,   't':tBZ},
+                'ne':  {'val':ne,   't':tne}}
+        dins = self._fill_dins(dins)
+        dins, t = self.interp_t(dins, t=t, interp_t=interp_t)
+        lamb = np.atleast_1d(lamb)
+        dins['lamb'] = {'val':lamb}
+        dins = self._checkformat_shapes(dins)
+
+        val, units = _physics.compute_fangle(BR=dins['BR']['val'],
+                                             BPhi=dins['BPhi']['val'],
+                                             BZ=dins['BZ']['val'],
+                                             ne=dins['ne']['val'],
+                                             lamb=dins['lamb']['val'])
+        return val, t, units
 
 
-def _DataSpectro_check_inputs(data=None, lamb=None, t=None,
-                              dchans=None, LCam=None):
-    if data is not None:
-        assert type(data) is np.ndarray and data.ndim ==3
+
+    #---------------------
+    # Methods for interpolation
+    #---------------------
+
+
+    def _get_quantrefkeys(self, qq, ref1d=None, ref2d=None):
+
+        # Get relevant lists
+        kq, msg = self._get_keyingroup(qq, 'mesh', msgstr='quant', raise_=False)
+        if kq is not None:
+            k1d, k2d = None, None
+        else:
+            kq, msg = self._get_keyingroup(qq, 'radius', msgstr='quant', raise_=True)
+            if ref1d is None and ref2d is None:
+                msg = "quant %s needs refs (1d and 2d) for interpolation\n"%qq
+                msg += "  => ref1d and ref2d cannot be both None !"
+                raise Exception(msg)
+            if ref1d is None:
+                ref1d = ref2d
+            k1d, msg = self._get_keyingroup(ref1d, 'radius',
+                                            msgstr='ref1d', raise_=False)
+            if k1d is None:
+                msg += "\n\nInterpolation of %s:\n"%qq
+                msg += "  ref could not be identified among 1d quantities\n"
+                msg += "    - ref1d : %s"%ref1d
+                raise Exception(msg)
+            if ref2d is None:
+                ref2d = ref1d
+            k2d, msg = self._get_keyingroup(ref2d, 'mesh',
+                                            msgstr='ref2d', raise_=False)
+            if k2d is None:
+                msg += "\n\nInterpolation of %s:\n"
+                msg += "  ref could not be identified among 2d quantities\n"
+                msg += "    - ref2d: %s"%ref2d
+                raise Exception(msg)
+
+            q1d, q2d = self._ddata[k1d]['quant'], self._ddata[k2d]['quant']
+            if q1d != q2d:
+                msg = "ref1d and ref2d must be of the same quantity !\n"
+                msg += "    - ref1d (%s):   %s\n"%(ref1d, q1d)
+                msg += "    - ref2d (%s):   %s"%(ref2d, q2d)
+                raise Exception(msg)
+
+        return kq, k1d, k2d
+
+
+    def _get_indtmult(self, idquant=None, idref1d=None, idref2d=None):
+
+        # Get time vectors and bins
+        idtq = self._ddata[idquant]['depend'][0]
+        tq = self._ddata[idtq]['data']
+        tbinq = 0.5*(tq[1:]+tq[:-1])
+        if idref1d is not None:
+            idtr1 = self._ddata[idref1d]['depend'][0]
+            tr1 = self._ddata[idtr1]['data']
+            tbinr1 = 0.5*(tr1[1:]+tr1[:-1])
+        if idref2d is not None and idref2d != idref1d:
+            idtr2 = self._ddata[idref2d]['depend'][0]
+            tr2 = self._ddata[idtr2]['data']
+            tbinr2 = 0.5*(tr2[1:]+tr2[:-1])
+
+        # Get tbinall and tall
+        if idref1d is None:
+            tbinall = tbinq
+            tall = tq
+        else:
+            if idref2d is None:
+                tbinall = np.unique(np.r_[tbinq,tbinr1])
+            else:
+                tbinall = np.unique(np.r_[tbinq,tbinr1,tbinr2])
+            tall = np.r_[tbinall[0] - 0.5*(tbinall[1]-tbinall[0]),
+                         0.5*(tbinall[1:]+tbinall[:-1]),
+                         tbinall[-1] + 0.5*(tbinall[-1]-tbinall[-2])]
+
+        # Get indtqr1r2 (tall with respect to tq, tr1, tr2)
+        indtq, indtr1, indtr2 = None, None, None
+        indtq = np.digitize(tall, tbinq)
+        if idref1d is None:
+            assert np.all(indtq == np.arange(0,tall.size))
+        if idref1d is not None:
+            indtr1 = np.digitize(tall, tbinr1)
+        if idref2d is not None:
+            indtr2 = np.digitize(tall, tbinr2)
+
+        ntall = tall.size
+        return tall, tbinall, ntall, indtq, indtr1, indtr2
+
+    @staticmethod
+    def _get_indtu(t=None, tall=None, tbinall=None,
+                   idref1d=None, idref2d=None,
+                   indtr1=None, indtr2=None):
+        # Get indt (t with respect to tbinall)
+        indt, indtu = None, None
         if t is not None:
-            assert data.shape[0]==t.size
-        if lamb is not None:
-            assert data.shape[1]==lamb.size
-    if t is not None:
-        assert type(t) is np.ndarray and t.ndim==1
-        if data is not None:
-                assert data.shape[0]==t.size
-    if lamb is not None:
-        assert type(lamb) is np.ndarray and lamb.ndim==1 and lamb.size>1
-        if data is not None:
-            assert data.shape[1]==lamb.size
-    if dchans is not None:
-        assert type(dchans) is dict
-        if data is not None:
-            for kk in dchans.keys():
-                assert hasattr(dchans[kk],'__iter__')
-                assert len(dchans[kk])==data.shape[-1]
-    if LCam is not None:
-        assert type(LCam) is list or issubclass(LCam.__class__,object)
-        if type(LCam) is list:
-            lCls = ['LOSCam1D','Cam1D','LOSCam2D','Cam2D']
-            assert all([cc.Id.Cls in lCls for cc in LCam])
-            assert all([issubclass(cc.__class__,object) for cc in LCam])
-            if len(LCam)>1:
-                msg = "Cannot associate mulitple 2D cameras !"
-                assert all([c.Id.Cls in ['LOSCam1D','Cam1D'] for c in LCam]),msg
-                msg = "Cannot associate cameras of different types !"
-                assert all([cc.Id.Cls==LCam[0].Id.Cls for cc in LCam]), msg
-                lVes = [cc.Ves for cc in LCam]
-                C0 = all([vv is None for vv in lVes])
-                C1 = all([tfu.dict_cmp(vv._todict(),lVes[0]._todict())
-                          for vv in lVes])
-                assert C0 or C1
-                lK = [sorted(cc.dchans.keys() for cc in LCam)]
-                assert all([lk==lK[0] for lk in lK])
-            if data is not None:
-                assert np.sum([cc.nRays for cc in LCam])==data.shape[-1]
+            indt = np.digitize(t, tbinall)
+            indtu = np.unique(indt)
+
+            # Update
+            tall = tall[indtu]
+            if idref1d is not None:
+                assert indtr1 is not None
+                indtr1 = indtr1[indtu]
+            if idref2d is not None:
+                assert indtr2 is not None
+                indtr2 = indtr2[indtu]
+        ntall = tall.size
+        return tall, ntall, indt, indtu, indtr1, indtr2
+
+    def get_tcommon(self, lq, prefer='finer'):
+        """ Check if common t, else choose according to prefer
+
+        By default, prefer the finer time resolution
+
+        """
+        if type(lq) is str:
+            lq = [lq]
+        t = []
+        for qq in lq:
+            ltr = [kk for kk in self._ddata[qq]['depend']
+                   if self._dindref[kk]['group'] == 'time']
+            assert len(ltr) <= 1
+            if len(ltr) > 0 and ltr[0] not in t:
+                t.append(ltr[0])
+        assert len(t) >= 1
+        if len(t) > 1:
+            dt = [np.nanmean(np.diff(self._ddata[tt]['data'])) for tt in t]
+            if prefer == 'finer':
+                ind = np.argmin(dt)
+            else:
+                ind = np.argmax(dt)
         else:
-            assert LCam.Id.Cls in ['LOSCam1D','LOSCam2D','Cam1D','Cam2D']
-            if data is not None:
-                assert LCam.nRays==data.shape[-1]
+            ind = 0
+        return t[ind], t
+
+    def _get_finterp(self,
+                     idquant=None, idref1d=None, idref2d=None,
+                     idq2dR=None, idq2dPhi=None, idq2dZ=None,
+                     interp_t='nearest', interp_space=None,
+                     fill_value=np.nan, ani=False, Type=None):
+
+        # Get idmesh
+        if idquant is not None:
+            if idref1d is None:
+                lidmesh = [qq for qq in self._ddata[idquant]['depend']
+                           if self._dindref[qq]['group'] == 'mesh']
+            else:
+                lidmesh = [qq for qq in self._ddata[idref2d]['depend']
+                           if self._dindref[qq]['group'] == 'mesh']
+        else:
+            assert idq2dR is not None
+            lidmesh = [qq for qq in self._ddata[idq2dR]['depend']
+                       if self._dindref[qq]['group'] == 'mesh']
+        assert len(lidmesh) == 1
+        idmesh = lidmesh[0]
+
+        # Get mesh
+        mpltri = self._ddata[idmesh]['data']['mpltri']
+        trifind = mpltri.get_trifinder()
+
+        # Get common time indices
+        if interp_t == 'nearest':
+            if idquant is not None:
+                out = self._get_indtmult(idquant=idquant,
+                                         idref1d=idref1d, idref2d=idref2d)
+                tall, tbinall, ntall, indtq, indtr1, indtr2 = out
+            else:
+                tall, tbinall, ntall, indtq = self._get_indtmult(idquant=idq2dR)[:4]
+
+        # # Prepare output
+
+        # Interpolate
+        # Note : Maybe consider using scipy.LinearNDInterpolator ?
+        if idquant is not None:
+            vquant = self._ddata[idquant]['data']
+            if self._ddata[idmesh]['data']['ntri'] > 1:
+                vquant = np.repeat(vquant,
+                                   self._ddata[idmesh]['data']['ntri'], axis=0)
+        else:
+            vq2dR   = self._ddata[idq2dR]['data']
+            vq2dPhi = self._ddata[idq2dPhi]['data']
+            vq2dZ   = self._ddata[idq2dZ]['data']
+
+        if interp_space is None:
+            interp_space = self._ddata[idmesh]['data']['ftype']
+
+        # get interpolation function
+        if ani:
+            # Assuming same mesh and time vector for all 3 components
+            func = _comp.get_finterp_ani(self, idq2dR, idq2dPhi, idq2dZ,
+                                         interp_t=interp_t,
+                                         interp_space=interp_space,
+                                         fill_value=fill_value,
+                                         idmesh=idmesh, vq2dR=vq2dR,
+                                         vq2dZ=vq2dZ, vq2dPhi=vq2dPhi,
+                                         tall=tall, tbinall=tbinall,
+                                         ntall=ntall,
+                                         indtq=indtq, trifind=trifind,
+                                         Type=Type, mpltri=mpltri)
+        else:
+            func = _comp.get_finterp_isotropic(self, idquant, idref1d, idref2d,
+                                               interp_t=interp_t,
+                                               interp_space=interp_space,
+                                               fill_value=fill_value,
+                                               idmesh=idmesh, vquant=vquant,
+                                               tall=tall, tbinall=tbinall,
+                                               ntall=ntall, mpltri=mpltri,
+                                               indtq=indtq, indtr1=indtr1,
+                                               indtr2=indtr2, trifind=trifind)
+
+
+        return func
+
+
+    def _checkformat_qr12RPZ(self, quant=None, ref1d=None, ref2d=None,
+                             q2dR=None, q2dPhi=None, q2dZ=None):
+        lc0 = [quant is None, ref1d is None, ref2d is None]
+        lc1 = [q2dR is None, q2dPhi is None, q2dZ is None]
+        if np.sum([all(lc0), all(lc1)]) != 1:
+            msg = "Please provide either (xor):\n"
+            msg += "    - a scalar field (isotropic emissivity):\n"
+            msg += "        quant : scalar quantity to interpolate\n"
+            msg += "                if quant is 1d, intermediate reference\n"
+            msg += "                fields are necessary for 2d interpolation\n"
+            msg += "        ref1d : 1d reference field on which to interpolate\n"
+            msg += "        ref2d : 2d reference field on which to interpolate\n"
+            msg += "    - a vector (R,Phi,Z) field (anisotropic emissivity):\n"
+            msg += "        q2dR :  R component of the vector field\n"
+            msg += "        q2dPhi: R component of the vector field\n"
+            msg += "        q2dZ :  Z component of the vector field\n"
+            msg += "        => all components have teh same time and mesh !\n"
+            raise Exception(msg)
+
+        # Check requested quant is available in 2d or 1d
+        if all(lc1):
+            idquant, idref1d, idref2d = self._get_quantrefkeys(quant, ref1d, ref2d)
+            idq2dR, idq2dPhi, idq2dZ = None, None, None
+            ani = False
+        else:
+            idq2dR, msg   = self._get_keyingroup(q2dR, 'mesh', msgstr='quant',
+                                              raise_=True)
+            idq2dPhi, msg = self._get_keyingroup(q2dPhi, 'mesh', msgstr='quant',
+                                              raise_=True)
+            idq2dZ, msg   = self._get_keyingroup(q2dZ, 'mesh', msgstr='quant',
+                                              raise_=True)
+            idquant, idref1d, idref2d = None, None, None
+            ani = True
+        return idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani
+
+
+    def get_finterp2d(self, quant=None, ref1d=None, ref2d=None,
+                      q2dR=None, q2dPhi=None, q2dZ=None,
+                      interp_t=None, interp_space=None,
+                      fill_value=np.nan, Type=None):
+        """ Return the function interpolating (X,Y,Z) pts on a 1d/2d profile
+
+        Can be used as input for tf.geom.CamLOS1D/2D.calc_signal()
+
+        """
+        # Check inputs
+        msg = "Only 'nearest' available so far for interp_t!"
+        assert interp_t == 'nearest', msg
+        out = self._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                        q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ)
+        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = out
+
+
+        # Interpolation (including time broadcasting)
+        func = self._get_finterp(idquant=idquant, idref1d=idref1d,
+                                 idref2d=idref2d, idq2dR=idq2dR,
+                                 idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
+                                 interp_t=interp_t, interp_space=interp_space,
+                                 fill_value=fill_value, ani=ani, Type=Type)
+        return func
+
+
+    def interp_pts2profile(self, pts=None, vect=None, t=None,
+                           quant=None, ref1d=None, ref2d=None,
+                           q2dR=None, q2dPhi=None, q2dZ=None,
+                           interp_t=None, interp_space=None,
+                           fill_value=np.nan, Type=None):
+        """ Return the value of the desired profiles_1d quantity
+
+        For the desired inputs points (pts):
+            - pts are in (R,Z) coordinates
+            - space interpolation is linear on the 1d profiles
+        At the desired input times (t):
+            - using a nearest-neighbourg approach for time
+
+        """
+        # Check inputs
+        # msg = "Only 'nearest' available so far for interp_t!"
+        # assert interp_t == 'nearest', msg
+
+        # Check requested quant is available in 2d or 1d
+        out = self._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                        q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ)
+        idquant, idref1d, idref2d, idq2dR, idq2dPhi, idq2dZ, ani = out
+
+        # Check the pts is (2,...) array of floats
+        if pts is None:
+            if ani:
+                idmesh = [id_ for id_ in self._ddata[idq2dR]['depend']
+                          if self._dindref[id_]['group'] == 'mesh'][0]
+            else:
+                if idref1d is None:
+                    idmesh = [id_ for id_ in self._ddata[idquant]['depend']
+                              if self._dindref[id_]['group'] == 'mesh'][0]
+                else:
+                    idmesh = [id_ for id_ in self._ddata[idref2d]['depend']
+                              if self._dindref[id_]['group'] == 'mesh'][0]
+            pts = self.dmesh[idmesh]['data']['nodes']
+            pts = np.array([pts[:,0], np.zeros((pts.shape[0],)), pts[:,1]])
+
+        pts = np.atleast_2d(pts)
+        if pts.shape[0] != 3:
+            msg = "pts must be np.ndarray of (X,Y,Z) points coordinates\n"
+            msg += "Can be multi-dimensional, but the 1st dimension is (X,Y,Z)\n"
+            msg += "    - Expected shape : (3,...)\n"
+            msg += "    - Provided shape : %s"%str(pts.shape)
+            raise Exception(msg)
+
+        # Check t
+        lc = [t is None, type(t) is str, type(t) is np.ndarray]
+        assert any(lc)
+        if lc[1]:
+            assert t in self._ddata.keys()
+            t = self._ddata[t]['data']
+
+        # Interpolation (including time broadcasting)
+        # this is the second slowest step (~0.08 s)
+        func = self._get_finterp(idquant=idquant, idref1d=idref1d, idref2d=idref2d,
+                                 idq2dR=idq2dR, idq2dPhi=idq2dPhi, idq2dZ=idq2dZ,
+                                 interp_t=interp_t, interp_space=interp_space,
+                                 fill_value=fill_value, ani=ani, Type=Type)
+
+        # This is the slowest step (~1.8 s)
+        val, t = func(pts, vect=vect, t=t)
+        return val, t
+
+
+    def calc_signal_from_Cam(self, cam, t=None,
+                             quant=None, ref1d=None, ref2d=None,
+                             q2dR=None, q2dPhi=None, q2dZ=None,
+                             Brightness=True, interp_t=None,
+                             interp_space=None, fill_value=np.nan,
+                             res=0.005, DL=None, resMode='abs', method='sum',
+                             ind=None, out=object, plot=True, dataname=None,
+                             fs=None, dmargin=None, wintit=None, invert=True,
+                             units=None, draw=True, connect=True):
+
+        if 'Cam' not in cam.__class__.__name__:
+            msg = "Arg cam must be tofu Camera instance (CamLOS1D, CamLOS2D...)"
+            raise Exception(msg)
+
+        return cam.calc_signal_from_Plasma2D(self, t=t,
+                                             quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                             q2dR=q2dR, q2dPhi=q2dPhi,
+                                             q2dZ=q2dZ,
+                                             Brightness=Brightness,
+                                             interp_t=interp_t,
+                                             interp_space=interp_space,
+                                             fill_value=fill_value, res=res,
+                                             DL=DL, resMode=resMode,
+                                             method=method, ind=ind, out=out,
+                                             pot=plot, dataname=dataname,
+                                             fs=fs, dmargin=dmargin,
+                                             wintit=wintit, invert=intert,
+                                             units=units, draw=draw,
+                                             connect=connect)
+
+
+    #---------------------
+    # Methods for getting data
+    #---------------------
+
+    def get_dextra(self, dextra=None):
+        lc = [dextra is None, dextra == 'all', type(dextra) is dict,
+              type(dextra) is str, type(dextra) is list]
+        assert any(lc)
+        if dextra is None:
+            dextra = {}
+
+        if dextra == 'all':
+            dextra = [k for k in self._dgroup['time']['ldata']
+                      if (self._ddata[k]['lgroup'] == ['time']
+                          and k not in self._dindref.keys())]
+
+        if type(dextra) is str:
+            dextra = [dextra]
+
+        # get data
+        if type(dextra) is list:
+            for ii in range(0,len(dextra)):
+                if type(dextra[ii]) is tuple:
+                    ee, cc = dextra[ii]
+                else:
+                    ee, cc = dextra[ii], None
+                ee, msg = self._get_keyingroup(ee, 'time', raise_=True)
+                if self._ddata[ee]['lgroup'] != ['time']:
+                    msg = "time-only dependent signals allowed in dextra!\n"
+                    msg += "    - %s : %s"%(ee,str(self._ddata[ee]['lgroup']))
+                    raise Exception(msg)
+                idt = self._ddata[ee]['depend'][0]
+                key = 'data' if self._ddata[ee]['data'].ndim == 1 else 'data2D'
+                dd = {key: self._ddata[ee]['data'],
+                      't': self._ddata[idt]['data'],
+                      'label': self._ddata[ee]['name'],
+                      'units': self._ddata[ee]['units']}
+                if cc is not None:
+                    dd['c'] = cc
+                dextra[ii] = (ee, dd)
+            dextra = dict(dextra)
+        return dextra
+
+    def get_Data(self, lquant, X=None, ref1d=None, ref2d=None,
+                 remap=False, res=0.01, interp_space=None, dextra=None):
+
+        try:
+            import tofu.data as tfd
+        except Exception:
+            from .. import data as tfd
+
+        # Check and format input
+        assert type(lquant) in [str,list]
+        if type(lquant) is str:
+            lquant = [lquant]
+        nquant = len(lquant)
+
+        # Get X if common
+        c0 = type(X) is str
+        c1 = type(X) is list and (len(X) == 1 or len(X) == nquant)
+        if not (c0 or c1):
+            msg = "X must be specified, either as :\n"
+            msg += "    - a str (name or quant)\n"
+            msg += "    - a list of str\n"
+            msg += "    Provided: %s"%str(X)
+            raise Exception(msg)
+        if c1 and len(X) == 1:
+            X = X[0]
+
+        if type(X) is str:
+            idX, msg = self._get_keyingroup(X, 'radius', msgstr='X', raise_=True)
+
+        # prepare remap pts
+        if remap:
+            assert self.config is not None
+            refS = list(self.config.dStruct['dObj']['Ves'].values())[0]
+            ptsRZ, x1, x2, extent = refS.get_sampleCross(res, mode='imshow')
+            dmap = {'t':None, 'data2D':None, 'extent':extent}
+            if ref is None and X in self._lquantboth:
+                ref = X
+
+        # Define Data
+        dcommon = dict(Exp=self.Id.Exp, shot=self.Id.shot,
+                       Diag='profiles1d', config=self.config)
+
+        # dextra
+        dextra = self.get_dextra(dextra)
+
+        # Get output
+        lout = [None for qq in lquant]
+        for ii in range(0,nquant):
+            qq = lquant[ii]
+            if remap:
+                # Check requested quant is available in 2d or 1d
+                idq, idrefd1, idref2d = self._get_quantrefkeys(qq, ref1d, ref2d)
+            else:
+                idq, msg = self._get_keyingroup(qq, 'radius',
+                                                msgstr='quant', raise_=True)
+            if idq not in self._dgroup['radius']['ldata']:
+                msg = "Only 1d quantities can be turned into tf.data.Data !\n"
+                msg += "    - %s is not a radius-dependent quantity"%qq
+                raise Exception(msg)
+            idt = self._ddata[idq]['depend'][0]
+
+            if type(X) is list:
+                idX, msg = self._get_keyingroup(X[ii], 'radius',
+                                                msgstr='X', raise_=True)
+
+            dlabels = {'data':{'name': self._ddata[idq]['name'],
+                               'units': self._ddata[idq]['units']},
+                       'X':{'name': self._ddata[idX]['name'],
+                            'units': self._ddata[idX]['units']},
+                       't':{'name': self._ddata[idt]['name'],
+                            'units': self._ddata[idt]['units']}}
+
+            dextra_ = dict(dextra)
+            if remap:
+                dmapii = dict(dmap)
+                val, tii = self.interp_pts2profile(qq, ptsRZ=ptsRZ, ref=ref,
+                                                   interp_space=interp_space)
+                dmapii['data2D'], dmapii['t'] = val, tii
+                dextra_['map'] = dmapii
+            lout[ii] = DataCam1D(Name = qq,
+                                 data = self._ddata[idq]['data'],
+                                 t = self._ddata[idt]['data'],
+                                 X = self._ddata[idX]['data'],
+                                 dextra = dextra_, dlabels=dlabels, **dcommon)
+        if nquant == 1:
+            lout = lout[0]
+        return lout
+
+
+    #---------------------
+    # Methods for plotting data
+    #---------------------
+
+    def plot(self, lquant, X=None,
+             ref1d=None, ref2d=None,
+             remap=False, res=0.01, interp_space=None,
+             sharex=False, bck=True):
+        lDat = self.get_Data(lquant, X=X, remap=remap,
+                             ref1d=ref1d, ref2d=ref2d,
+                             res=res, interp_space=interp_space)
+        if type(lDat) is list:
+            kh = lDat[0].plot_combine(lDat[1:], sharex=sharex, bck=bck)
+        else:
+            kh = lDat.plot(bck=bck)
+        return kh
+
+    def plot_combine(self, lquant, lData=None, X=None,
+                     ref1d=None, ref2d=None,
+                     remap=False, res=0.01, interp_space=None,
+                     sharex=False, bck=True):
+        """ plot combining several quantities from the Plasma2D itself and
+        optional extra list of Data instances """
+        lDat = self.get_Data(lquant, X=X, remap=remap,
+                             ref1d=ref1d, ref2d=ref2d,
+                             res=res, interp_space=interp_space)
+        if lData is not None:
+            if type(lDat) is list:
+                lData = lDat[1:] + lData
+            else:
+                lData = lDat[1:] + [lData]
+        kh = lDat[0].plot_combine(lData, sharex=sharex, bck=bck)
+        return kh

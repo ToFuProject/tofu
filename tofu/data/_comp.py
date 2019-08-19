@@ -8,9 +8,11 @@ import numpy as np
 import scipy.signal as scpsig
 import scipy.interpolate as scpinterp
 import scipy.linalg as scplin
+import scipy.stats as scpstats
+from matplotlib.tri import LinearTriInterpolator as mplTriLinInterp
 
 _fmin_coef = 5.
-
+_ANITYPE = 'sca'
 
 
 #############################################
@@ -22,16 +24,18 @@ _fmin_coef = 5.
 
 
 def spectrogram(data, t,
-                fmin=None, method='',
-                **kwdargs):
+                fmin=None, method='scipy-fourier', deg=False,
+                window='hann', detrend='linear',
+                nperseg=None, noverlap=None,
+                boundary='constant', padded=True, wave='morlet', warn=True):
 
     # Format/check inputs
-    lm = ['scipy-fourier', 'scipy-stft', 'scipy-wavelet']
+    lm = ['scipy-fourier', 'scipy-stft']#, 'scipy-wavelet']
     if not method in lm:
         msg = "Alowed methods are:"
         msg += "\n    - scipy-fourier: scipy.signal.spectrogram()"
         msg += "\n    - scipy-stft: scipy.signal.stft()"
-        msg += "\n    - scpipy-wavelet: scipy.signal.cwt()"
+        #msg += "\n    - scpipy-wavelet: scipy.signal.cwt()"
         raise Exception(msg)
 
     nt, nch = data.shape
@@ -47,26 +51,29 @@ def spectrogram(data, t,
 
     # Compute
     if method in ['scipy-fourier', 'scipy-stft']:
-        lkwds = ['window','nperseg','noverlap','detrend',
-                 'boundary','padded']
-        kwdargs = locals()
-        kwdargs = dict([(nn,kwdargs[nn]) for nn in lkwds])
         stft = 'stft' in method
-        f, tf, lspect = _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=fmin,
-                                                   stft=stft, **kwdargs)
+        f, tf, lpsd, lang = _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=fmin,
+                                                       stft=stft, deg=deg,
+                                                       window=window,
+                                                       nperseg=nperseg,
+                                                       noverlap=noverlap,
+                                                       detrend=detrend,
+                                                       boundary=boundary,
+                                                       padded=padded, warn=warn)
+        tf = tf + t[0]
     elif method=='scipy-wavelet':
         f, lspect = _spectrogram_scipy_wavelet(data, fs, nt, nch,
-                                               fmin=fmin, wave=wave)
+                                               fmin=fmin, wave=wave, warn=warn)
         tf = t.copy()
 
-    return tf, f, lspect
+    return tf, f, lpsd, lang
 
 
 def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
-                               window=('tukey', 0.25),
+                               window=('tukey', 0.25), deg=False,
                                nperseg=None, noverlap=None,
                                detrend='linear', stft=False,
-                               boundary='constant', padded=True):
+                               boundary='constant', padded=True, warn=True):
     """ Return a spectrogram for each channel, and a common frequency vector
 
     The min frequency of interest fmin fixes the nb. of pt. per seg. (if None)
@@ -83,8 +90,11 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
     # Check inputs
     if nperseg is None and fmin is None:
         fmin = _fmin_coef*(fs/nt)
-        msg = "nperseg and fmin were not provided, fmin set to 10.*fs/nt"
-        raise Exception(msg)
+        if warn:
+            msg = "nperseg and fmin were not provided\n"
+            msg += "    => fmin automatically set to 10.*fs/nt:\n"
+            msg += "       fmin = 10.*{0} / {1} = {2} Hz".format(fs,nt,fmin)
+            warnings.warn(msg)
 
     # Format inputs
     if nperseg is None:
@@ -105,22 +115,25 @@ def _spectrogram_scipy_fourier(data, fs, nt, nch, fmin=None,
                                  noverlap=noverlap, nfft=nfft, detrend=detrend,
                                  return_onesided=True, boundary=boundary,
                                  padded=padded, axis=0)
-        ssx = np.abs(ssx)**2
     else:
         f, tf, ssx = scpsig.spectrogram(data, fs=fs,
                                         window=window, nperseg=nperseg,
                                         noverlap=noverlap, nfft=nfft,
                                         detrend=detrend, return_onesided=True,
-                                        scaling='density', axis=0, mode='psd')
+                                        scaling='density', axis=0,
+                                        mode='complex')
 
     # Split in list (per channel)
-    lssx = np.split(ssx, np.arange(0,nch), axis=1)
-    lssx = [ss.squeeze() for ss in lssx]
+    lssx = np.split(ssx, np.arange(1,nch), axis=1)
+    lssx = [ss.squeeze().T for ss in lssx]
+    lpsd = [np.abs(ss)**2 for ss in lssx]
+    lang = [np.angle(ss, deg=deg) for ss in lssx]
 
-    return f, tf, lssx
+    return f, tf, lpsd, lang
 
 
-def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):
+def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet',
+                               warn=True):
 
     if wave!='morlet':
         msg = "Only the morlet wavelet implmented so far !"
@@ -130,8 +143,9 @@ def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):
     # Check inputs
     if fmin is None:
         fmin = _fmin_coef*(fs/nt)
-        msg = "fmin was not provided => set to 10.*fs/nt"
-        raise Exception(msg)
+        if warn:
+            msg = "fmin was not provided => set to 10.*fs/nt"
+            warnings.warn(msg)
 
     nw = int((1./fmin-2./fs)*fs)
     widths = 2.*np.pi*np.linspace(fmin,fs/2.,nw)
@@ -153,11 +167,29 @@ def _spectrogram_scipy_wavelet(data, fs, nt, nch, fmin=None, wave='morlet'):
 #############################################
 #############################################
 
-def calc_svd(data, lapack_driver='gesdd')
-    u, s, v = scplin.svd(data, full_matrices=True, compute_uv=True,
-                         overwrite_a=False, check_finite=True,
-                         lapack_driver=lapack_driver)
-    return u, s, v
+def calc_svd(data, lapack_driver='gesdd'):
+    chronos, s, topos = scplin.svd(data, full_matrices=True, compute_uv=True,
+                                   overwrite_a=False, check_finite=True,
+                                   lapack_driver=lapack_driver)
+
+    # Test if reversed correlation
+    lind = [np.nanargmax(np.std(data,axis=0)),
+            np.nanargmax(np.mean(data,axis=0)),
+            0, data.shape[1]//2, -1]
+
+    corr = np.zeros((len(lind),2))
+    for ii in range(0,len(lind)):
+        corr[ii,:] = scpstats.pearsonr(chronos[:,0], data[:,lind[ii]])
+
+    ind = corr[:,1] < 0.05
+    if np.any(ind):
+        corr = corr[ind,0]
+        if corr[np.argmax(np.abs(corr))] < 0.:
+            chronos, topos = -chronos, -topos
+
+    return chronos, s, topos
+
+
 
 
 
@@ -324,10 +356,10 @@ def filter_svd(data, lapack_driver='gesdd', modes=[]):
     Provide the indices of the modes desired
 
     """
-     # Check input
-     modes = np.asarray(modes,dtype=int)
-     assert modes.ndim==1
-     assert modes.size>=1, "No modes selected !"
+    # Check input
+    modes = np.asarray(modes,dtype=int)
+    assert modes.ndim==1
+    assert modes.size>=1, "No modes selected !"
 
     u, s, v = scplin.svd(data, full_matrices=False, compute_uv=True,
                          overwrite_a=False, check_finite=True,
@@ -338,3 +370,316 @@ def filter_svd(data, lapack_driver='gesdd', modes=[]):
     data_in = np.dot(u[:,modes]*s[modes],v[modes,:])
     data_out = np.dot(u[:,indout]*s[indout],v[indout,:])
     return data_in, data_out
+
+
+
+#############################################
+#############################################
+#############################################
+#       Interpolating
+#############################################
+#############################################
+
+
+def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
+                          interp_t='nearest', interp_space=None,
+                          fill_value=np.nan,
+                          idmesh=None, mpltri=None, vquant=None,
+                          tall=None, tbinall=None, ntall=None,
+                          indtq=None, indtr1=None, indtr2=None,
+                          trifind=None):
+
+    # -----------------------------------
+    # Interpolate directly on 2d quantity
+    # -----------------------------------
+    if idref1d is None:
+
+        # --------------------
+        # Linear interpolation
+        if interp_space == 1:
+
+            def func(ptsi, vect=None, t=None, ntall=ntall,
+                     mplTriLinInterp=mplTriLinInterp,
+                     mpltri=mpltri, trifind=trifind,
+                     vquant=vquant, indtq=indtq,
+                     tall=tall, tbinall=tbinall,
+                     idref1d=idref1d, idref2d=idref2d):
+
+                r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                shapeval = list(pts.shape)
+                shapeval[0] = ntall if t is None else t.size
+                val = np.full(tuple(shapeval), np.nan)
+                if t is None:
+                    for ii in range(0,ntall):
+                        val[ii,...] = mplTriLinInterp(mpltri,
+                                                      vquant[indtq[ii],:],
+                                                      trifinder=trifind)(r,z)
+                    t = tall
+                else:
+                    ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
+                                                           tbinall=tbinall,
+                                                           idref1d=idref1d,
+                                                           idref2d=idref2d)[1:-2]
+                    for ii in range(0,ntall):
+                        ind = indt == indtu[ii]
+                        val[ind,...] = mplTriLinInterp(mpltri,
+                                                       vquant[indtq[ii],:],
+                                                       trifinder=trifind)(r,z)
+                return val, t
+
+        # --------------------
+        # Degree 0 interpolation
+        else:
+            def func(ptsi, vect=None, t=None, ntall=ntall,
+                     trifind=trifind,
+                     vquant=vquant, indtq=indtq,
+                     tall=tall, tbinall=tbinall,
+                     idref1d=idref1d, idref2d=idref2d):
+
+                r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                shapeval = list(pts.shape)
+                shapeval[0] = ntall if t is None else t.size
+                val = np.full(tuple(shapeval), np.nan)
+
+                indpts = trifind(r,z)
+                if t is None:
+                    for ii in range(0,ntall):
+                        val[ii,...] = vquant[indtq[ii],indpts]
+                    t = tall
+                else:
+                    ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
+                                                           tbinall=tbinall,
+                                                           idref1d=idref1d,
+                                                           idref2d=idref2d)[1:-2]
+                    for ii in range(0,ntall):
+                        ind = indt == indtu[ii]
+                        val[ind,...] = vquant[indtq[ii],indpts]
+                return val, t
+
+
+    else:
+        vr2 = plasma._ddata[idref2d]['data']
+        vr1 = plasma._ddata[idref1d]['data']
+
+        if interp_space == 1:
+
+            def func(pts, vect=None, t=None, ntall=ntall,
+                     mplTriLinInterp=mplTriLinInterp,
+                     mpltri=mpltri, trifind=trifind,
+                     vquant=vquant, indtq=indtq,
+                     interp_space=interp_space, fill_value=fill_value,
+                     vr1=vr1, indtr1=indtr1, vr2=vr2, indtr2=indtr2,
+                     tall=tall, tbinall=tbinall,
+                     idref1d=idref1d, idref2d=idref2d):
+
+                r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                shapeval = list(pts.shape)
+                shapeval[0] = ntall if t is None else t.size
+                val = np.full(tuple(shapeval), np.nan)
+                t0tri, t0int = 0., 0.
+                if t is None:
+                    for ii in range(0,ntall):
+                        # get ref values for mapping
+                        # this is the slowest step (~1.8 s)
+                        vii = mplTriLinInterp(mpltri,
+                                              vr2[indtr2[ii],:],
+                                              trifinder=trifind)(r,z)
+
+                        # interpolate 1d
+                        # This is reasonable (~0.15 s)
+                        val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                         vquant[indtq[ii],:],
+                                                         kind='linear',
+                                                         bounds_error=False,
+                                                         fill_value=fill_value)(np.asarray(vii))
+                    t = tall
+                else:
+                    out = plasma._get_indtu(t=t, tall=tall, tbinall=tbinall,
+                                            idref1d=idref1d, idref2d=idref2d,
+                                            indtr1=indtr1, indtr2=indtr2)[1:]
+                    ntall, indt, indtu, indtr1, indtr2 = out
+                    for ii in range(0,ntall):
+                        # get ref values for mapping
+                        vii = mplTriLinInterp(mpltri,
+                                              vr2[indtr2[ii],:],
+                                              trifinder=trifind)(r,z)
+
+                        # interpolate 1d
+                        ind = indt == indtu[ii]
+                        val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                          vquant[indtq[ii],:],
+                                                          kind='linear',
+                                                          bounds_error=False,
+                                                          fill_value=fill_value)(np.asarray(vii))
+
+                return val, t
+
+        else:
+            def func(pts, vect=None, t=None, ntall=ntall,
+                     trifind=trifind,
+                     vquant=vquant, indtq=indtq,
+                     interp_space=interp_space, fill_value=fill_value,
+                     vr1=vr1, indtr1=indtr1, vr2=vr2, indtr2=indtr2,
+                     tall=tall, tbinall=tbinall,
+                     idref1d=idref1d, idref2d=idref2d):
+
+                r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+                shapeval = list(pts.shape)
+                shapeval[0] = ntall if t is None else t.size
+                val = np.full(tuple(shapeval), np.nan)
+                indpts = trifind(r,z)
+                if t is None:
+                    for ii in range(0,ntall):
+                        # interpolate 1d
+                        val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                         vquant[indtq[ii],:],
+                                                         kind='linear',
+                                                         bounds_error=False,
+                                                         fill_value=fill_value)(vr2[indtr2[ii],indpts])
+                    t = tall
+                else:
+                    out = plasma._get_indtu(t=t, tall=tall, tbinall=tbinall,
+                                            idref1d=idref1d, idref2d=idref2d,
+                                            indtr1=indtr1, indtr2=indtr2)[1:]
+                    ntall, indt, indtu, indtr1, indtr2 = out
+                    for ii in range(0,ntall):
+                        # interpolate 1d
+                        ind = indt == indtu[ii]
+                        val[ind,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
+                                                          vquant[indtq[ii],:],
+                                                          kind='linear',
+                                                          bounds_error=False,
+                                                          fill_value=fill_value)(vr2[indtr2[ii],indpt])
+                return val, t
+    return func
+
+
+def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
+                    interp_t='nearest', interp_space=None,
+                    fill_value=np.nan, mpltri=None,
+                    idmesh=None, vq2dR=None,
+                    vq2dPhi=None, vq2dZ=None,
+                    tall=None, tbinall=None, ntall=None,
+                    indtq=None, trifind=None, Type=None):
+
+    # -----------------------------------
+    # Interpolate directly on 2d quantity
+    # -----------------------------------
+
+    if Type is None:
+        Type = _ANITYPE
+
+    # --------------------
+    # Linear interpolation
+    if interp_space == 1:
+
+        def func(pts, vect=None, t=None, ntall=ntall,
+                 mplTriLinInterp=mplTriLinInterp,
+                 mpltri=mpltri, trifind=trifind,
+                 vq2dR=vq2dR, vq2dPhi=vq2dPhi,
+                 vq2dZ=vq2dZ, indtq=indtq,
+                 tall=tall, tbinall=tbinall):
+
+            # Get pts in (r,z,phi)
+            r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+            phi = np.arctan2(pts[1,:],pts[0,:])
+
+            # Deduce vect in (r,z,phi)
+            vR = np.cos(phi)*vect[0,:] + np.sin(phi)*vect[1,:]
+            vPhi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
+            vZ = vect[2,:]
+
+            # Prepare output
+            shapeval = list(pts.shape)
+            shapeval[0] = ntall if t is None else t.size
+            valR = np.full(tuple(shapeval), np.nan)
+            valPhi = np.full(tuple(shapeval), np.nan)
+            valZ = np.full(tuple(shapeval), np.nan)
+            val = np.full(tuple(shapeval), np.nan)
+
+            # Interpolate
+            if t is None:
+                for ii in range(0,ntall):
+                    valR[ii,...]   = mplTriLinInterp(mpltri,
+                                                     vq2dR[indtq[ii],:],
+                                                     trifinder=trifind)(r,z)
+                    valPhi[ii,...] = mplTriLinInterp(mpltri,
+                                                     vq2dPhi[indtq[ii],:],
+                                                     trifinder=trifind)(r,z)
+                    valZ[ii,...]   = mplTriLinInterp(mpltri,
+                                                     vq2dZ[indtq[ii],:],
+                                                     trifinder=trifind)(r,z)
+                t = tall
+            else:
+                ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
+                                                       tbinall=tbinall)[1:4]
+                for ii in range(0,ntall):
+                    ind = indt == indtu[ii]
+                    valR[ind,...]   = mplTriLinInterp(mpltri,
+                                                      vq2dR[indtq[ii],:],
+                                                      trifinder=trifind)(r,z)
+                    valPhi[ind,...] = mplTriLinInterp(mpltri,
+                                                      vq2dPhi[indtq[ii],:],
+                                                      trifinder=trifind)(r,z)
+                    valZ[ind,...]   = mplTriLinInterp(mpltri,
+                                                      vq2dZ[indtq[ii],:],
+                                                      trifinder=trifind)(r,z)
+
+
+            if Type == 'sca':
+                val = valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:]
+            elif Type == 'abs(sca)':
+                val = np.abs(valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:])
+            return val, t
+
+    # --------------------
+    # Degree 0 interpolation
+    else:
+        def func(pts, vect=None, t=None, ntall=ntall,
+                 trifind=trifind,
+                 vq2dR=vq2dR, vq2dPhi=vq2dPhi,
+                 vq2dZ=vq2dZ, indtq=indtq,
+                 tall=tall, tbinall=tbinall):
+
+            # Get pts in (r,z,phi)
+            r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+            phi = np.arctan2(pts[1,:],pts[0,:])
+
+            # Deduce vect in (r,z,phi)
+            vR = np.cos(phi)*vect[0,:] + np.sin(phi)*vect[1,:]
+            vphi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
+            vZ = vect[2,:]
+
+            # Prepare output
+            shapeval = list(pts.shape)
+            shapeval[0] = ntall if t is None else t.size
+            valR = np.full(tuple(shapeval), np.nan)
+            valPhi = np.full(tuple(shapeval), np.nan)
+            valZ = np.full(tuple(shapeval), np.nan)
+            val = np.full(tuple(shapeval), np.nan)
+
+            # Interpolate
+            indpts = trifind(r,z)
+            if t is None:
+                for ii in range(0,ntall):
+                    valR[ii,...]   = vq2dR[indtq[ii],indpts]
+                    valPhi[ii,...] = vq2dPhi[indtq[ii],indpts]
+                    valZ[ii,...]   = vq2dZ[indtq[ii],indpts]
+                t = tall
+            else:
+                ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
+                                                       tbinall=tbinall,
+                                                       idref1d=idref1d,
+                                                       idref2d=idref2d)[1:]
+                for ii in range(0,ntall):
+                    ind = indt == indtu[ii]
+                    valR[ind,...]   = vq2dR[indtq[ii],indpts]
+                    valPhi[ind,...] = vq2dPhi[indtq[ii],indpts]
+                    valZ[ind,...]   = vq2dZ[indtq[ii],indpts]
+
+            if Type == 'sca':
+                val = valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:]
+            elif Type == 'abs(sca)':
+                val = np.abs(valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:])
+            return val, t
+    return func

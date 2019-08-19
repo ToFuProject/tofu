@@ -1,0 +1,210 @@
+\documentclass[a4paper,11pt,twoside,titlepage,openright]{book}
+
+\usepackage[english]{babel}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\numberwithin{equation}{section}
+\usepackage[margin=3cm]{geometry}
+\usepackage{hyperref}
+\usepackage{epsfig,amsfonts}
+\usepackage{transparent}
+\usepackage{cases}
+
+%
+\usepackage{xcolor,import}
+
+
+\pagestyle{plain}
+
+\newcommand{\ud}[1]{\underline{#1}}
+\newcommand{\lt}{\left}
+\newcommand{\rt}{\right}
+\DeclareMathOperator{\e0}{\epsilon_0}
+\newcommand{\wdg}{\wedge}
+\newcommand{\emis}{\emph{emissivity}}
+\newcommand{\ema}{\epsilon^{\eta}}
+\newcommand{\hypot}[1]{\textbf{\textcolor{green}{#1}}}
+
+
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+
+
+\begin{document}
+
+\title{ToFu geometric tools\\ Intersection of a LOS with a cone}
+\author{Didier VEZINET \and Laura S. Mendoza}
+\date{02.06.2017}
+\maketitle
+
+%\tableofcontents
+
+
+
+
+\chapter{Definitions}
+
+\section{Geometry definition in ToFu}
+
+The definition of a fusion device in ToFu is done by defining the edge of a poloidal plane as a set of segments in a 2D plane. The 3D volume is obtained by an extrusion for cylinders or a revolution for tori.
+We consider an orthonormal direct cylindrical coordinate system $(O,\ud{e}_R,\ud{e}_{\theta},\ud{e}_Z)$ associated to the orthonormal direct cartesian coordinate system $(O,\ud{e}_X,\ud{e}_Y,\ud{e}_Z)$. We suppose that all poloidal planes live in $(R,Z)$ and can be obtained after a revolution around the $Z$ axis of the user-defined poloidal plane at $\theta=0$, $\mathcal{P}_0$. Thus, the torus is axisymmetric around the $(O,Z)$ axis (see Figure~\ref{fig:tok-ab}).
+
+
+
+
+\begin{figure}[h]
+\centering{
+\def\svgwidth{0.75\linewidth}
+\import{figures/}{tore_cones12.pdf_tex}
+\caption{Two examples of a circular torus approximated by a revolved octagon. For each segment $\overline{AB}$ of the octagon there is a cone with origin on the $(O,Z)$ axis.}
+\label{fig:tok-ab}
+}
+\end{figure}
+
+\section{Notations}
+
+In order to simplify the computations, let $A$ and $B$ be the end points of a segment $\mathcal{S}_i$ such that $A\neq B$ and $\mathcal{P} = \cup_{i=1}^{n} \mathcal{S}_i = \cup_{i=1}^n \overline{{\rm A}_i{\rm B}_i}$ with $n$ the number of segments given by the user defining the plane $\mathcal{P}$. We define a right circular cone $\mathcal{C}$ of origin $P = ({\rm A},{\rm B}) \cap ({\rm O}, {\rm Z})$ of generatrix $(A,B)$ and of axis $(O,Z)$ (see Figure~\ref{fig:tok-ab}). Thus we can define the edge of the torus as the union of the edges of the frustums $\mathcal{F}_i$ defined by truncating the cones $\mathcal{C}_i$ to the segment $\overline{AB}_i$.
+
+
+
+Then, any point $M$ with coordinates $(X,Y,Z)$ or $(R,\theta,Z)$ belongs to the frustum $\mathcal{F}$ if and only if
+$$
+\exists q \in [0;1] /
+\left\{ \begin{array}{ll}
+R-R_A = q(R_B-R_A)\\
+Z-Z_A = q(Z_B-Z_A)
+\end{array}\right.
+$$
+
+
+Now let us consider a LOS $L$ (i.e.: a half-infinite line) defined by a point $D$ and a normalized directing vector $u$, of respective coordinates $(X_D,Y_D,Z_D)$ or $(R_D,\theta_D,Z_D)$ and $(u_X,u_Y,u_Z)$.
+Then, point M belongs to $L$ if and only if:
+$$
+\exists k \in [0;\infty[ / \ud{DM} = k\ud{u}
+$$
+
+
+%===================================================================
+
+\chapter{Computing shortest distance between LOS and Frustum}
+
+
+We want to calculate the shortest distance between a 3D ray $\mathcal{R}$ defined by its origin $\vec{D}$ and its unit directional vector $\vec{u}$ and a frustum $\mathcal{F}$ defined by a segment $AB$ extruded around the axis $\vec{N}$ of coordinates $(0,0,1)$.
+We want to compute the shortest distance between a point $P$ on the ray $\mathcal{R}$ and a point $Q$ on the frustum $\mathcal{F}$.
+
+
+\begin{figure}[h]
+\centering{
+\def\svgwidth{0.3\linewidth}
+\import{figures/}{inter_LOS_Poly.pdf_tex}~
+\def\svgwidth{0.45\linewidth}
+\import{figures/}{inter_LOS_Poly_plane.pdf_tex}
+\caption{Example of closest point between ray and Frustum: 3D space and (R,Q) plane.}
+\label{fig:hoz-frus-hoz-los}
+}
+\end{figure}
+
+
+First, let us write some of the equations that $Q$ respects
+
+\begin{align*}
+(Q-C) \cdot N &= \norm{Q-C} \cos(\tau_\mathcal{C})\\
+R_q-R_A &= q(R_B-R_A)\\
+Z_q-Z_A &= q(Z_B-Z_A)
+\end{align*}
+
+where $\tau_\mathcal{C}$ is the angle between $\vec{AB}$ and $-\vec{N}$. 
+
+\begin{align*}
+-\vec{N}\cdot\vec{AB} & = \norm{N} \norm{AB} \cos(\tau_\mathcal{C})\\
+z_A - z_B &= \norm{AB} \cos(\tau_\mathcal{C})\\
+\tau_\mathcal{C} &= \arccos\left(\dfrac{z_A - z_B}{\norm{AB}}\right)
+\end{align*}
+
+We are looking to minimize the distance between $P$ and $Q$ which is equivalent to solve the following system.
+
+
+\begin{numcases}{}
+\dfrac{\partial}{\partial k} \norm{P-Q}^2 = 0\\[0.2cm]
+\label{eq:201}
+\dfrac{\partial}{\partial q} \norm{P-Q}^2 = 0
+\label{eq:202}
+\end{numcases}
+
+
+with
+
+\begin{align*}
+\norm{P-Q}^2 &= (x_p - x_q)^2 + (y_p - y_q)^2 + (z_p - z_q)^2 \\
+	& = x_p^2 + y_p^2 + z_p^2 - 2(x_p x_q + y_p y_q + z_p z_q) + x_q^2 + y_q^2 + z_q^2\\
+	& = \norm{P}^2 - 2<P, Q> + \norm{Q}^2
+\end{align*}
+
+and
+
+\begin{numcases}{}
+\dfrac{\partial}{\partial k} <P, Q> = \dfrac{\partial}{\partial k} \left(  (x_D + k u_x) x_q + (y_D + k u_y) y_q + (z_D + k u_z) z_q \right)\\[0.2cm]
+\label{eq:eq203}
+\dfrac{\partial}{\partial q} <P, Q> = \dfrac{\partial}{\partial q} \left(x_p R_q \cos(\theta_q) + y_p R_q \sin(\theta_q) + z_p (q(z_B-z_A) - z_A)\right)
+\label{eq:eq204}
+\end{numcases}
+
+\begin{figure}[h]
+\centering{
+
+\def\svgwidth{0.35\linewidth}
+\import{figures/}{inter_above.pdf_tex}
+\caption{Example of closest point between ray and Frustum:  (X,Y) plane.}
+\label{fig:inter-above}
+}
+\end{figure}
+
+We can see in Figure~\ref{fig:inter-above}, that $\theta_q = \theta_p$. By definition $cos(\theta_p) = x_p/R_p$ and $sin(\theta_p) = y_p/R_p$. Thus $x_p \cos(\theta_q) + y_p \sin(\theta_q) = (x_p^2 + y_p^2)/R_p = R_p$. We introduce this in Equation~\eqref{eq:eq204}. The derivation of Equation~\eqref{eq:eq203} is straightforward. We obtain
+
+\begin{numcases}{}
+\dfrac{\partial}{\partial k} <P, Q> = u_x x_q + u_y y_q + u_z z_q = \, <u, Q>\\[0.2cm]
+\label{eq:eq205}
+\dfrac{\partial}{\partial q} <P, Q> = R_p (R_B - R_A) + Z_p (Z_B - Z_A)
+\label{eq:eq206}
+\end{numcases}
+
+Now, let us derivate the remaining terms in $\norm{P-Q}^2$
+
+$$
+\begin{cases}{}
+\dfrac{\partial}{\partial k} \norm{P}^2 &= \dfrac{\partial}{\partial k} \left(  (x_D + k u_x)^2 + (y_D + k u_y)^2 + (z_D + k u_z)^2 \right)\\[0.2cm]
+\label{eq:eq207}
+\dfrac{\partial}{\partial q} \norm{Q}^2 &= \dfrac{\partial}{\partial q} \left( R_q^2 + Z_q^2\right) \\[0.2cm]
+&= \dfrac{\partial}{\partial q} \left( (q(R_B-R_A)+R_A)^2 + (q(Z_B-Z_A)+Z_A)^2\right)
+\label{eq:eq208}
+\end{cases}
+$$
+
+$$
+\begin{cases}{}
+\dfrac{\partial}{\partial k} \norm{P}^2 &= 2k(u_x + u_y + u_z) + 2(u_x x_D + u_y y_D + u_z z_D)\\[0.2cm]
+& = 2k \norm{u}^2 + 2 <u, D>\\[0.2cm]
+\dfrac{\partial}{\partial q} \norm{Q}^2 &= 2q((R_B - R_A)^2 + (Z_B - Z_A)^2) + 2(R_A(R_B-R_A) + Z_A(Z_B-Z_A))\\[0.2cm]
+& = 2q \norm{AB}^2 + 2 <OA, AB>
+\end{cases}
+$$
+
+Thus, Equations~\eqref{eq:201}-\eqref{eq:202} become
+
+$$
+\begin{cases}{}
+\dfrac{\partial}{\partial k} \norm{P-Q}^2 &= 2k \norm{u}^2 + 2 <u, D> - 2 <u, Q> = 0\\[0.2cm]
+\dfrac{\partial}{\partial q} \norm{P-Q}^2 &=2q \norm{AB}^2 + 2 <OA, AB> - 2(R_p (R_B - R_A) +Z_p (Z_B - Z_A)) = 0
+\end{cases}
+$$
+
+$$
+\begin{cases}{}
+k &= \dfrac{<u, Q> - <u, D>}{\norm{u}^2}\\[0.2cm]
+q  &=  \dfrac{(R_p (R_B - R_A) +Z_p (Z_B - Z_A)) - <OA, AB>}{\norm{AB}^2}
+\end{cases}
+$$
+
+
+
+\end{document}

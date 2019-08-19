@@ -5,7 +5,12 @@
 *.o
 *.so
 *.c
+*.cpp
 *.nfs*
+tofu/geom/*.html
+
+# No images
+*.png
 
 # Mac stuff
 *.AppleDouble
@@ -32,7 +37,12 @@ conda-bld/
 dist/
 tofu.egg-info/
 build/
-Notes_Upgrades/
+
+#Notes_Upgrades/
+
+# Tex files
+*.aux
+*.log
 
 # .gitignore
 1
@@ -43,3 +53,9 @@ Details
 
 # Include travis
 !.travis.yml
+
+# installation dir
+usr/
+
+# tests of LOS on west and ITER
+tofu/tests/tests01_geom/laura_tmp/

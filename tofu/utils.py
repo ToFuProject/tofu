@@ -4,12 +4,19 @@ import os
 import sys
 import collections
 from abc import ABCMeta, abstractmethod
+import importlib
 import getpass
+import subprocess
+import itertools as itt
+import warnings
 
 # Common
+import scipy.io as scpio
 import numpy as np
 import matplotlib as mpl
+from matplotlib.tri import Triangulation as mplTri
 import matplotlib.pyplot as plt
+
 
 # tofu-specific
 from tofu import __version__
@@ -17,6 +24,11 @@ import tofu.pathfile as tfpf
 
 _sep = '_'
 _dict_lexcept_key = []
+_pyv = int(sys.version[0])
+
+_SAVETYP = '__type__'
+_NSAVETYP = len(_SAVETYP)
+
 
 ###############################################
 #           File searching
@@ -53,7 +65,7 @@ def get_pathfileext(path=None, name=None,
     modeokstr = "["+", ".join(modeok)+"]"
 
     if name is not None:
-        C = type(name) is str and not (name[-4]=='.')
+        C = type(name) is str and not '.' in name
         assert C, "name should not include the extension !"
     assert path is None or type(path) is str, "Arg path must be None or a str !"
     assert mode in modeok, "Arg mode must be in {0}".format(modeokstr)
@@ -68,66 +80,91 @@ def get_pathfileext(path=None, name=None,
 
 
 #############################################
+#       figure size
+#############################################
+
+def get_figuresize(fs, fsdef=(12,6),
+                   orient='landscape', method='xrandr'):
+    """ Generic function to return figure size in inches
+
+        Useful for str-based flags such as:
+            - 'a4'  : use orient='portrait' or 'landscape'
+            - 'full': to get screen size
+                use method='xrandr' (recommended),
+                as 'xdpyinfo' tends to be wrong
+    """
+
+    assert fs is None or type(fs) in [str,tuple]
+    if fs is None:
+        fs = fsdef
+    elif type(fs) is str:
+        if fs=='a4':
+            fs = (8.27,11.69)
+            if orient=='landscape':
+                fs = (fs[1],fs[0])
+        elif fs=='full':
+            assert method in ['xrandr','xdpyinfo']
+            if method=='xrandr':
+                cmd0 = "xrandr"
+                #cmd1 = "grep '*'"
+                out = subprocess.check_output(cmd0.split())
+                s = [o for o in out.decode('utf-8').split('\n') if 'mm x ' in o]
+                assert len(s)==1
+                s = [ss for ss in s[0].split(' ') if 'mm' in ss]
+                assert len(s)==2
+                fsmm = [int(ss.replace('mm','')) for ss in s]
+            else:
+                cmd0 = 'xdpyinfo'
+                out = subprocess.check_output(cmd0.split())
+                s = [o for o in out.decode('utf-8').split('\n')
+                     if 'dimensions' in o]
+                assert len(s)==1
+                s = s[0][s[0].index('(')+1:s[0].index(' millimeters')]
+                fsmm = [int(ss) for ss in s.split('x')]
+            fs = (fsmm[0]/(10*2.54), fsmm[1]/(10*2.54))
+    assert type(fs) is tuple and len(fs)==2
+    return fs
+
+
+
+
+
+
+#############################################
 #       todict formatting
 #############################################
 
 
-def flatten_dict(d, parent_key='', sep=_sep, rec=False,
+def flatten_dict(d, parent_key='', sep=_sep, deep='ref',
                  lexcept_key=_dict_lexcept_key):
 
     items = []
-    if rec:
-        if lexcept_key is None:
-            for k, v in d.items():
-                new_key = parent_key + sep + k if parent_key else k
-                if issubclass(v.__class__, ToFuObjectBase):
-                    v = v.to_dict()
-                if isinstance(v, collections.MutableMapping):
-                    items.extend(flatten_dict(v, new_key,
-                                              rec=rec, sep=sep).items())
-                else:
-                    items.append((new_key, v))
-        else:
-            for k, v in d.items():
-                if k not in lexcept_key:
-                    if issubclass(v.__class__, ToFuObjectBase):
-                        v = v.to_dict()
-                    new_key = parent_key + sep + k if parent_key else k
-                    if isinstance(v, collections.MutableMapping):
-                        items.extend(flatten_dict(v, new_key,
-                                                  rec=rec, sep=sep).items())
-                    else:
-                        items.append((new_key, v))
-    else:
-        if lexcept_key is None:
-            for k, v in d.items():
-                new_key = parent_key + sep + k if parent_key else k
-                if isinstance(v, collections.MutableMapping):
-                    items.extend(flatten_dict(v, new_key,
-                                              rec=rec, sep=sep).items())
-                else:
-                    items.append((new_key, v))
-        else:
-            for k, v in d.items():
-                if k not in lexcept_key:
-                    new_key = parent_key + sep + k if parent_key else k
-                    if isinstance(v, collections.MutableMapping):
-                        items.extend(flatten_dict(v, new_key,
-                                                  rec=rec, sep=sep).items())
-                    else:
-                        items.append((new_key, v))
+    lexcept_key = [] if lexcept_key is None else lexcept_key
+    for k, v in d.items():
+        if k not in lexcept_key:
+            if issubclass(v.__class__, ToFuObjectBase):
+                if deep=='dict':
+                    v = v.to_dict(deep='dict')
+                elif deep=='copy':
+                    v = v.copy(deep='copy')
+            new_key = parent_key + sep + k if parent_key else k
+            if isinstance(v, collections.MutableMapping):
+                items.extend(flatten_dict(v, new_key,
+                                          deep=deep, sep=sep).items())
+            else:
+                items.append((new_key, v))
     return dict(items)
 
 def _reshape_dict(ss, vv, dinit={}, sep=_sep):
     ls = ss.split(sep)
     k = ss if len(ls)==1 else ls[0]
-    if len(ls)==2:
+    if len(ls) == 2:
         dk = {ls[1]:vv}
         if k not in dinit.keys():
             dinit[k] = {}
         assert isinstance(dinit[k],dict)
         dinit[k].update({ls[1]:vv})
-    elif len(ls)>2:
+    elif len(ls) > 2:
         if k not in dinit.keys():
             dinit[k] = {}
         _reshape_dict(sep.join(ls[1:]), vv, dinit=dinit[k], sep=sep)
@@ -135,7 +172,7 @@ def _reshape_dict(ss, vv, dinit={}, sep=_sep):
         assert k not in dinit.keys()
         dinit[k] = vv
 
-def reshape_dict(d, sep=_sep):
+def reshape_dict(d, sep=_sep, lcls=[]):
     # Get all individual keys
     out = {}
     for ss, vv in d.items():
@@ -208,8 +245,8 @@ def _set_arrayorder(obj, arrayorder='C'):
 #       save / load
 #############################################
 
-def save(obj, path=None, name=None, mode='npz',
-         strip=None, compressed=False, verb=True):
+def save(obj, path=None, name=None, sep=_sep, deep=False, mode='npz',
+         strip=None, compressed=False, verb=True, return_pfe=False):
     """ Save the ToFu object
 
     ToFu provides built-in saving and loading functions for ToFu objects.
@@ -234,6 +271,21 @@ def save(obj, path=None, name=None, mode='npz',
     strip:      int
         Flag indicating how stripped the saved object should be
         See docstring of self.strip()
+    deep:       bool
+        Flag, used when the object has other tofu objects as attributes
+        Indicated whether these attribute object should be:
+            - True: converted to dict themselves in order to be saved inside
+                the same file as attributes
+                (-> uses self.to_dict(deep='dict'))
+            - False: not converted, in that the strategy would be to save them
+                separately and store only the reference to the saved files
+                instead of the objects themselves.
+                To do this, you must:
+                    1/ Save all object attributes independently
+                    2/ Store only the reference by doing self.strip(-1)
+                       The strip() method will check they have been saved
+                       before removing them, and throw an Exception otherwise
+                    3/ self.save(deep=False)
     compressed :    bool
         Flag indicating whether to compress the file (slower, not recommended)
     verb :          bool
@@ -264,7 +316,8 @@ def save(obj, path=None, name=None, mode='npz',
         obj._Id.set_SaveName(name)
 
     # Get stripped dictionnary
-    dd = obj.to_dict(strip=strip)
+    deep = 'dict' if deep else 'ref'
+    dd = obj.to_dict(strip=strip, sep=sep, deep=deep)
 
     pathfileext = os.path.join(path,name+'.'+mode)
 
@@ -278,73 +331,72 @@ def save(obj, path=None, name=None, mode='npz',
         msg = "Saved in :\n"
         msg += "    "+pathfileext
         print(msg)
+    if return_pfe:
+        return pathfileext
 
-def _save_npz(dd, pathfileext, compressed=False):
 
-    func = np.savez_compressed if compressed else np.savez
+def _save_npzmat_dict(dd):
     msg = "How to deal with:"
     msg += "\n SaveName : {0}".format(dd['dId_dall_SaveName'])
     msg += "\n Attributes:"
     err = False
-    dt = {}
+    dnpzmat, dt = {}, {}
     for k in dd.keys():
-        kt = k+'_type'
+        kt = k + _SAVETYP
         dt[kt] = np.asarray([type(dd[k]).__name__])
         if dd[k] is None:
-            dd[k] = np.asarray([None])
-        elif type(dd[k]) in [int,float,np.int64,np.float64,bool,str]:
-            dd[k] = np.asarray([dd[k]])
-        elif type(dd[k]) in [list,tuple]:
-            dd[k] = np.asarray(dd[k])
-        elif not isinstance(dd[k],np.ndarray):
-            msg += "\n    {0} : {1}".format(k,str(type(dd[k])))
-            err = True
-    if err:
-        raise Exception(msg)
-    dd.update(**dt)
-    func(pathfileext, **dd)
-
-def _save_mat(dd, pathfileext, compressed=False):
-    # Create intermediate dict to make sure to get rid of None values
-    dmat = {}
-    msg = "How to deal with:"
-    msg += "\n SaveName : {0}".format(dd['dId_dall_SaveName'])
-    msg += "\n Attributes:"
-    err = False
-    dt = {}
-    for k in dd.keys():
-        kt = k+'_type'
-        dt[kt] = np.asarray([type(d[k]).__name__])
-        if type(dd[k]) in [int,float,np.int64,np.float64,bool]:
-            dmat[k] = np.asarray([dd[k]])
+            # save only the type, because:
+            #     - .mat cannot handle None
+            #     - save disk
+            # None will be recreated at load time
+            pass
+        elif (type(dd[k]) in [int,float,bool,str]
+              or issubclass(dd[k].__class__,np.int)
+              or issubclass(dd[k].__class__,np.float)
+              or issubclass(dd[k].__class__,np.bool_)):
+            dnpzmat[k] = np.asarray([dd[k]])
         elif type(dd[k]) in [tuple,list]:
-            dmat[k] = np.asarray(dd[k])
-        elif isinstance(dd[k],str):
-            dmat[k] = np.asarray([dd[k]])
+            dnpzmat[k] = np.asarray(dd[k])
         elif type(dd[k]) is np.ndarray:
-            dmat[k] = dd[k]
+            dnpzmat[k] = dd[k]
         else:
             msg += "\n    {0} : {1}".format(k,str(type(dd[k])))
             err = True
     if err:
         raise Exception(msg)
-    dmat.update(**dt)
-    scpio.savemat(pathfileext, dmat, do_compression=compressed, format='5')
+    dnpzmat.update(**dt)
+    return dnpzmat
+
+
+def _save_npz(dd, pathfileext, compressed=False):
+    func = np.savez_compressed if compressed else np.savez
+    dsave = _save_npzmat_dict(dd)
+    func(pathfileext, **dsave)
+
+def _save_mat(dd, pathfileext, compressed=False):
+    # Create intermediate dict to make sure to get rid of None values
+    dsave = _save_npzmat_dict(dd)
+    scpio.savemat(pathfileext, dsave, do_compression=compressed, format='5')
 
 
 
 
-def load(name, path=None, strip=None, verb=True):
-    """
 
-    """
-    msg = "Arg name must be a str (file name or full path+file)"
-    msg += " or a list of str patterns to be found at path"
-    C0 = isinstance(name,str)
-    C1 = isinstance(name,list) and all([isinstance(ss,str) for ss in name])
-    assert C0 or C1, msg
-    msg = "Arg path must be a str !"
-    assert path is None or isinstance(path,str), msg
+###################################
+#       loading routines
+###################################
+
+def _filefind(name, path=None, lmodes=['.npz','.mat']):
+    c0 = isinstance(name,str)
+    c1 = isinstance(name,list) and all([isinstance(ss,str) for ss in name])
+    if not (c0 or c1):
+        msg = "Arg name must be a str (file name or full path+file)"
+        msg += " or a list of str patterns to be found at pathi\n"
+        msg += "    name : %s"%name
+        raise Exception(msg)
+    if path is not None and not isinstance(path,str):
+        msg = "Arg path must be a str !"
+        raise Exception(msg)
 
     # Extract folder and file name
     if isinstance(name,str):
@@ -355,41 +407,76 @@ def load(name, path=None, strip=None, verb=True):
         elif path is None:
             path = './'
     path = os.path.normpath(os.path.abspath(path))
-    msg = "Specified folder does not exist :"
-    msg += "\n    {0}".format(path)
-    assert os.path.isdir(path), msg
+    if not os.path.isdir(path):
+        msg = "Specified folder does not exist :"
+        msg += "\n    {0}".format(path)
+        raise Exception(msg)
 
     # Check unicity of matching file
     lf = os.listdir(path)
     lf = [ff for ff in lf if all([ss in ff for ss in name])]
-    if len(lf)!=1:
+    if len(lf) != 1:
         msg = "No / several matching files found:"
         msg += "\n  folder: {0}".format(path)
         msg += "\n  for   : {0}".format('['+', '.join(name)+']')
         msg += "\n    " + "\n    ".join(lf)
         raise Exception(msg)
-    name = lf[0]
+    nameext = lf[0]
 
     # Check file extension
-    lmodes = ['.npz','.mat']
-    msg = "None / too many of the available file extensions !"
-    msg += "\n  file: {0}".format(name)
-    msg += "\n  ext.: {0}:".format('['+', '.format(lmodes)+']')
-    indend = [ss==name[-4:] for ss in lmodes]
-    indin = [ss in name for ss in lmodes]
-    assert np.sum(indend)==1 and np.sum(indin)==1, msg
+    indend = [ss==nameext[-4:] for ss in lmodes]
+    indin = [ss in nameext for ss in lmodes]
+    if np.sum(indend) != 1 or np.sum(indin) != 1:
+        msg = "None / too many of the available file extensions !"
+        msg += "\n  file: {0}".format(nameext)
+        msg += "\n  ext.: {0}:".format('['+', '.format(lmodes)+']')
+        raise Exception(msg)
 
     # load and format dict
+    name = nameext[:-4]
     mode = lmodes[np.argmax(indend)].replace('.','')
-    pathfileext = os.path.join(path,name)
-    if mode=='npz':
-        dd = _load_npz(pathfileext)
-    elif mode=='npz':
-        dd = _load_mat(pathfileext)
+    pfe = os.path.join(path,nameext)
+    return name, mode, pfe
 
-    # Recreate from dict
-    exec("import tofu.{0} as mod".format(dd['dId_dall_Mod']))
-    obj = eval("mod.{0}(fromdict=dd)".format(dd['dId_dall_Cls']))
+
+
+def load(name, path=None, strip=None, verb=True):
+    """     Load a tofu object file
+
+    Can load from .npz or .txt files
+        In future versions, will also load from .mat
+
+    The file must have been saved with tofu (i.e.: must be tofu-formatted)
+    The associated tofu object will be created and returned
+
+    Parameters
+    ----------
+    name:   str
+        Name of the file to load from, can include the path
+    path:   None / str
+        Path where the file is located (if not provided in name), defaults './'
+    strip:  None / int
+        FLag indicating whether to strip the object of some attributes
+            => see the docstring of the class strip() method for details
+    verb:   bool
+        Flag indocating whether to print a summary of the loaded file
+    """
+
+    lmodes = ['.npz','.mat','.txt']
+    name, mode, pfe = _filefind(name=name, path=path, lmodes=lmodes)
+
+    if mode == 'txt':
+        obj = _load_from_txt(name, pfe)
+    else:
+        if mode == 'npz':
+            dd = _load_npz(pfe)
+        elif mode == 'mat':
+            dd = _load_mat(pfe)
+
+        # Recreate from dict
+        mod = importlib.import_module( 'tofu.%s'%dd['dId_dall_Mod'] )
+        cls = getattr( mod, dd['dId_dall_Cls'] )
+        obj = cls(fromdict=dd)
 
     if strip is not None:
         obj.strip(strip=strip)
@@ -397,57 +484,639 @@ def load(name, path=None, strip=None, verb=True):
     # print
     if verb:
         msg = "Loaded from:\n"
-        msg += "    "+pathfileext
+        msg += "    "+pfe
         print(msg)
     return obj
 
-def _load_npz(pathfileext):
 
-    try:
-        out = np.load(pathfileext, mmap_mode=None)
-    except UnicodeError:
-        out = np.load(pathfileext, mmap_mode=None, encoding='latin1')
-    except Exception as err:
-        raise err
+def _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[]):
 
     C = ['dId' in kk for kk in out.keys()]
-    if np.sum(C)<1:
-        msg = "There does not seem to be a dId in {0}".format(pathfileext)
+    if np.sum(C) < 1:
+        msg = "There does not seem to be a dId in {0}".format(pfe)
         msg += "\n    => Is it really a tofu-generated file ?"
         raise Exception(msg)
 
-    lk = [k for k in out.keys() if not k[-5:]=='_type']
+    lk = [k for k in out.keys()
+          if (k[-_NSAVETYP:] != _SAVETYP and k not in exclude_keys)]
+    lkt = [k for k in out.keys() if k[-_NSAVETYP:] == _SAVETYP]
     dout = dict.fromkeys(lk)
 
-    msg = "How to deal with:"
-    msg += "\n SaveName : {0}".format(out['dId_dall_SaveName'])
-    msg += "\n Attributes:"
-    err = False
-    for k in lk:
-        kt = k+'_type'
-        typ = out[kt]
+    err, msgi = False, ""
+    for kt in lkt:
+        k = kt[:-_NSAVETYP]
+        typ = out[kt][0]
+
         if typ=='NoneType':
             dout[k] = None
-        elif typ in ['int','int64']:
-            dout[k] = int(out[k][0]) if typ=='int' else out[k][0]
-        elif typ in ['float','float64']:
-            dout[k] = float(out[k][0]) if typ=='float' else out[k][0]
-        elif typ in ['bool','bool_']:
-            dout[k] = bool(out[k][0]) if typ=='bool' else out[k][0]
-        elif typ in ['str','str_']:
-            dout[k] = str(out[k][0]) if typ=='str' else out[k][0]
+        elif typ in ['int','int64','float','float64',
+                     'bool','bool_','str','str_']:
+            dout[k] = np.ravel(out[k])[0]
+            if typ == 'float':
+                dout[k] = float(dout[k])
+            elif typ == 'int':
+                dout[k] = int(dout[k])
+            elif typ == 'bool':
+                dout[k] = bool(dout[k])
+            elif typ == 'str':
+                dout[k] = str(dout[k])
         elif typ in ['list','tuple']:
-            dout[k] = out[k].tolist()
+            if mode == 'mat':
+                if out[k].ndim == 1:
+                    dout[k] = out[k].tolist()
+                else:
+                    dout[k] = np.squeeze(out[k],axis=0).tolist()
+                if type(dout[k][0]) is str:
+                    dout[k] = [kk.strip() for kk in dout[k]]
+            else:
+                dout[k] = out[k].tolist()
             if typ=='tuple':
-                dout[k] = tuple(out[k])
+                dout[k] = tuple(dout[k])
         elif typ=='ndarray':
-            dout[k] = np.array(out[k])
+            if mode == 'mat':
+                dout[k] = np.squeeze(out[k])
+                if dout[k].shape == (0,0):
+                    dout[k] = dout[k].ravel()
+            else:
+                dout[k] = out[k]
         else:
-            msg += "\n    {0} : {1}".format(k,typ)
+            msgi += "\n    {0} : {1}".format(k,typ)
             err = True
     if err:
+        msg = "How to deal with:"
+        msg += "\n SaveName : {0}".format(out['dId_dall_SaveName'][0])
+        msg += "\n Attributes:"
+        msg += msgi
         raise Exception(msg)
+
     return dout
+
+
+
+def _load_npz(pfe):
+
+    try:
+        out = np.load(pfe, mmap_mode=None)
+    except UnicodeError:
+        out = np.load(pfe, mmap_mode=None, encoding='latin1')
+    except Exception as err:
+        raise err
+
+    return _get_load_npzmat_dict(out, pfe, mode='npz', exclude_keys=[])
+
+
+def _load_mat(pfe):
+
+    try:
+        out = scpio.loadmat(pfe)
+    except Exception as err:
+        raise err
+
+    lsmat = ['__header__', '__globals__', '__version__']
+    return _get_load_npzmat_dict(out, pfe, mode='mat', exclude_keys=lsmat)
+
+
+#######
+#   tf.geom.Struct - specific
+#######
+
+def _load_from_txt(name, pfe, Name=None, Exp=None):
+
+    # Extract class
+    lk = name.split('_')
+    lCls = ['PFC','CoilPF','CoilCS','Ves','PlasmaDomain']
+    lcc = [np.sum([k == cls for k in lk]) == 1 for cls in lCls]
+    if not np.sum(lcc) == 1:
+        msg = "Provided file name does not include any known Struct subclass:\n"
+        msg += "    - Provided file name: %s\n"%name
+        msg += "     - Valid classes: [%s]"%', '.join(lCls)
+        raise Exception(msg)
+    cls = lCls[np.nonzero(lcc)[0][0]]
+
+    # Recreate object
+    import tofu.geom as mod
+    obj = getattr(mod, cls).from_txt(pfe, Name=Name, Exp=Exp)
+    return obj
+
+
+#######
+#   imas
+#######
+
+_DEF_IMAS_PLASMA_SIG = {'core_profiles':{'plot_sig':['1dTe','1dne'],
+                                         'plot_X':['1drhotn'],
+                                         'other':['t']}}
+
+def _get_exception(q, ids, qtype='quantity'):
+    msg = MultiIDSLoader._shortcuts(ids=ids,
+                                    verb=False, return_=True)
+    col = ['ids', 'shortcut', 'long version']
+    msg = MultiIDSLoader._getcharray(msg, col)
+    msg = "\nArgs quantity and quant_X must be valid shortcuts for ids %s"%ids
+    msg += "\n\nAvailable shortcuts are:\n%s"%msg
+    msg += "\n\nProvided:\n    - %s: %s\n"%(qtype,str(qq))
+    raise Exception(msg)
+
+
+def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
+                   ids=None, Name=None, out=None, tlim=None, config=None,
+                   occ=None, indch=None, indDescription=None, equilibrium=None,
+                   dsig=None, data=None, X=None, t0=None, dextra=None,
+                   plot=True, plot_sig=None, plot_X=None, sharex=False,
+                   bck=True, indch_auto=True, t=None, init=None):
+    # -------------------
+    # import imas2tofu
+    try:
+        import imas
+        import tofu.imas2tofu as imas2tofu
+    except Exception as err:
+        msg = str(err)
+        msg += "\n\n module imas2tofu does not seem available\n"
+        msg += "  => imas may not be installed ?"
+        raise Exception(msg)
+
+    lok = ['Config', 'Plasma2D', 'Cam', 'Data']
+    c0 = out is None or out in lok
+    if not c0:
+        msg = "Arg out must be in %s"%str(lok)
+        raise Exception(msg)
+
+    # -------------------
+    # Prepare ids
+    assert ids is None or type(ids) in [list,str]
+    if type(ids) is str:
+        ids = [ids]
+    if type(ids) is list:
+        assert all([ids_ is None or type(ids_) is str for ids_ in ids])
+
+    # -------------------
+    # Pre-check ids
+    lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
+    lidscustom = ['magfieldlines']
+    lidsout = [ids_ for ids_ in ids
+               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
+    if len(lidsout) > 0:
+        msg = "ids %s matched no known imas ids !\n"%str(lidsout)
+        msg += "  => Available imas ids are:\n"
+        msg += repr(lidsok)
+        raise Exception(msg)
+    nids = len(ids)
+
+    if nids > 1:
+        assert not any([ids_ in ids for ids_ in lidscustom])
+
+
+    # -------------------
+    # Prepare shot
+    shot = np.r_[shot].astype(int)
+    nshot = shot.size
+
+    # -------------------
+    # Call magfieldline if relevant
+    if ids == ['magfieldlines']:
+        assert shot.size == 1
+        import tofu.mag as tfm
+        plot = True
+        if t is None:
+            t = np.r_[38]
+        t = np.atleast_1d(t).ravel()
+        if init is None:
+            init = [[2.9],[0.],[0.]]
+
+        if False:
+            multi = imas2tofu.MultiIDSLoader(shot=shot[0], run=run, user=user,
+                                             tokamak=tokamak, version=version,
+                                             ids='wall')
+            config = multi.to_Config(plot=False)
+        else:
+            import tofu.geom as tfg
+            config = tfg.utils.create_config('B2')
+        if config.nStruct > 1:
+            config.set_colors_random()
+        trace = tfm.MagFieldLines(int(shot[0])).trace_mline(init, t,
+                                                       direction='FWD',
+                                                       length_line=None,
+                                                       stp=None)
+        refpt = np.r_[2.4,0.]
+        dax = config.plot_phithetaproj_dist(refpt)
+        for ii in range(0,len(trace)):
+            for jj in range(0,len(trace[ii])):
+                lab = r't = %s s'%str(t[ii])
+                phi = np.arctan2(np.sin(trace[ii][jj]['p']), np.cos(trace[ii][jj]['p']))
+                theta = np.arctan2(trace[ii][jj]['z']-refpt[1], trace[ii][jj]['r']-refpt[0])
+                # insert nans for clean periodicity
+                indnan = ((np.abs(np.diff(phi)) > np.pi)
+                          | (np.abs(np.diff(theta)) > np.pi)).nonzero()[0] + 1
+                dax['dist'][0].plot(np.insert(phi, indnan, np.nan),
+                                    np.insert(theta, indnan, np.nan),
+                                    label=lab)
+                dax['cross'][0].plot(trace[ii][jj]['r'], trace[ii][jj]['z'],
+                                     label=lab)
+                x = trace[ii][jj]['r']*np.cos(trace[ii][jj]['p'])
+                y = trace[ii][jj]['r']*np.sin(trace[ii][jj]['p'])
+                dax['hor'][0].plot(x, y, label=lab)
+        return dax
+
+
+    # -------------------
+    # Prepare out
+    loutok = ['Config','Plasma2D','Cam','Data']
+    c0 = out is None
+    c1 = out in loutok
+    c2 = type(out) is list and all([oo is None or oo in loutok
+                                    for oo in out])
+    assert c0 or c1 or c2
+    if c0:
+        out = [None for _ in ids]
+    elif c1:
+        out = [str(out) for _ in ids]
+
+    # Temporary caveat
+    if nids > 1:
+        if not all([ids_ in imas2tofu.MultiIDSLoader._lidsdiag
+                    for ids_ in ids]):
+            msg = "tf.load_from_imas() only handles multipe ids\n"
+            msg += "if all are diagnostics ids !"
+            raise Exception(msg)
+
+    # -------------------
+    # Prepare
+    for ii in range(0, nids):
+
+        # Config
+        if ids[ii] == 'wall':
+            assert out[ii] in [None,'Config']
+            out[ii] = 'Config'
+        if out[ii] == 'Config':
+            assert ids[ii] in [None,'wall']
+
+        # Plasma2D
+        lids = imas2tofu.MultiIDSLoader._lidsplasma
+        if ids[ii] in lids:
+            assert out[ii] in [None,'Plasma2D']
+            out[ii] = 'Plasma2D'
+        if out[ii] == 'Plasma2D':
+            assert ids[ii] in lids
+
+        # Cam or Data
+        lids = imas2tofu.MultiIDSLoader._lidsdiag
+        if ids[ii] in lids:
+            assert out[ii] in [None,'Cam','Data']
+            if out[ii] is None:
+                out[ii] = 'Data'
+        if out[ii] in ['Cam','Data']:
+            assert ids[ii] in lids
+
+    dout = {shot[jj]: {oo:[] for oo in set(out)} for jj in range(0,nshot)}
+
+    # -------------------
+    # Prepare plot_ and complement ids
+    lPla = [ii for ii in range(0,nids) if out[ii] == 'Plasma2D']
+    lCam = [ii for ii in range(0,nids) if out[ii] == 'Cam']
+    lDat = [ii for ii in range(0,nids) if out[ii] == 'Data']
+    nPla, nCam, nDat = len(lPla), len(lCam), len(lDat)
+    if nDat > 1:
+        plot_ = False
+    else:
+        plot_ = plot
+
+    # Check conformity nshot / nDat
+    lc = [nshot > 1, nDat > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several diags for several shots!\n"
+        msg += "  => Please select either several diags (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+    lc = [nshot > 1, nPla > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several plasma profles for several shots!\n"
+        msg += "  => Please select either several profiles (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+
+    lc = [nDat >= 1, nPla >= 1, nCam >= 1]
+    if np.sum(lc) > 1:
+        msg = "Can only load Cam xor Data xor Plasma2D !"
+        raise Exception(msg)
+
+    # Complement ids
+    lids = list(ids)
+    if nDat > 0 or nCam > 0 or nPla > 0:
+        if 'wall' not in lids:
+            lids.append('wall')
+        if nDat > 0 or nPla > 0 and dextra is None:
+            if 'equilibrium' not in lids:
+                lids.append('equilibrium')
+            if 'lh_antennas' not in lids:
+                lids.append('lh_antennas')
+            if 'ic_antennas' not in lids:
+                lids.append('ic_antennas')
+        if t0 not in [None, False] and (nDat > 0 or nPla > 0):
+            if 'pulse_schedule' not in lids:
+                lids.append('pulse_schedule')
+
+    # -------------------
+    # If plot and plasma, default dsig, plot_sig, plot_X
+    if plot and nPla > 0:
+        if lids[0] in _DEF_IMAS_PLASMA_SIG.keys():
+            if plot_sig is None:
+                plot_sig = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_sig']
+            if plot_X is None:
+                plot_X = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_X']
+            if dsig is None:
+                lsig = (list(plot_sig) + list(plot_X)
+                        + _DEF_IMAS_PLASMA_SIG[lids[0]]['other'])
+                dsig = {lids[0]: lsig}
+
+        if plot_sig is None or plot_X is None:
+            msg = "Trying to plot a plasma profile\n"
+            msg += "Impossible if plot_sig and plot_X not provided!\n"
+            msg += "  (resp. quantity and quant_X if calling from tofuplot)"
+            raise Exception(msg)
+
+        dq = imas2tofu.MultiIDSLoader._dshort[lids[0]]
+        lk = sorted(dq.keys())
+        for qq in plot_sig:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='quantity')
+        for qq in plot_X:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='X')
+
+
+    # -------------------
+    # load
+    for ss in shot:
+        multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids=lids)
+
+        # export to instances
+        for ii in range(0,nids):
+            if out[ii] == 'Config':
+                dout[ss]['Config'].append(multi.to_Config(Name=Name, occ=occ,
+                                                          indDescription=indDescription,
+                                                          plot=False))
+
+            elif out[ii] == 'Plasma2D':
+                dout[ss]['Plasma2D'].append(multi.to_Plasma2D(Name=Name, occ=occ,
+                                                              tlim=tlim, dsig=dsig, t0=t0,
+                                                              plot=False, plot_sig=plot_sig,
+                                                              dextra=dextra, plot_X=plot_X,
+                                                              config=config,
+                                                              bck=bck))
+            elif out[ii] == 'Cam':
+                dout[ss]['Cam'].append(multi.to_Cam(Name=Name, occ=occ,
+                                                    ids=lids[ii], indch=indch, config=config,
+                                                    plot=False))
+            elif out[ii] == "Data":
+                dout[ss]['Data'].append(multi.to_Data(Name=Name, occ=occ,
+                                                      ids=lids[ii], tlim=tlim, dsig=dsig,
+                                                      config=config, data=data, X=X, indch=indch,
+                                                      indch_auto=indch_auto, t0=t0,
+                                                      dextra=dextra,
+                                                      plot=False, bck=bck))
+
+    # -------------------
+    # plot if relevant
+    if plot == True:
+
+        # Config & Cam
+        for ss in shot:
+            for k0 in set(['Config','Cam']).intersection(out):
+                for ii in range(0, len(dout[ss][k0])):
+                    dout[ss][k0][ii].plot()
+
+        # Plasma2D
+        if nshot == 1 and nPla == 1:
+            dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
+        elif nshot > 1 and nPla == 1:
+            ld = [dout[ss]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
+                                                   plot=False)
+                  for ss in shot[1:]]
+            d0 = dout[shot[0]]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
+                                                       plot=False)
+            d0.plot_compare(ld, bck=bck)
+
+        # Data
+        elif nshot == 1 and nDat == 1:
+            dout[shot[0]]['Data'][0].plot(bck=bck)
+        elif nshot > 1 and nDat == 1:
+            ld = [dout[ss]['Data'][0] for ss in shot[1:]]
+            dout[shot[0]]['Data'][0].plot_compare(ld, bck=bck)
+        elif nshot == 1 and nDat > 1:
+            ld = dout[shot[0]]['Data'][1:]
+            dout[shot[0]]['Data'][0].plot_combine(ld, sharex=sharex, bck=bck)
+
+    # return
+    if nshot == 1 and nDat == 1:
+        dout = dout[shot[0]]['Data'][0]
+    elif nshot == 1 and nPla == 1:
+        dout = dout[shot[0]]['Plasma2D'][0]
+    return out
+
+
+
+def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
+                   ids=None, Name=None, out=None, tlim=None, config=None,
+                   occ=None, indch=None, indDescription=None, equilibrium=None,
+                   dsig=None, data=None, X=None, t0=None, dextra=None,
+                   Brightness=None, res=None, interp_t=None,
+                   plot=True, plot_compare=True, sharex=False,
+                   bck=True, indch_auto=True, t=None, init=None):
+    # -------------------
+    # import imas2tofu
+    try:
+        import imas
+        import tofu.imas2tofu as imas2tofu
+    except Exception as err:
+        msg = str(err)
+        msg += "\n\n module imas2tofu does not seem available\n"
+        msg += "  => imas may not be installed ?"
+        raise Exception(msg)
+
+    lok = ['Data']
+    c0 = out is None or out in lok
+    if not c0:
+        msg = "Arg out must be in %s"%str(lok)
+        raise Exception(msg)
+
+    # -------------------
+    # Prepare ids
+    assert ids is None or type(ids) in [list,str]
+    if type(ids) is str:
+        ids = [ids]
+    if type(ids) is list:
+        assert all([ids_ is None or type(ids_) is str for ids_ in ids])
+
+    # -------------------
+    # Pre-check ids
+    lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
+    lidscustom = []
+    lidsout = [ids_ for ids_ in ids
+               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
+    if len(lidsout) > 0:
+        msg = "ids %s matched no known imas ids !\n"%str(lidsout)
+        msg += "  => Available imas ids are:\n"
+        msg += repr(lidsok)
+        raise Exception(msg)
+    nids = len(ids)
+
+    if nids > 1:
+        assert not any([ids_ in ids for ids_ in lidscustom])
+
+
+    # -------------------
+    # Prepare shot
+    shot = np.r_[shot].astype(int)
+    nshot = shot.size
+
+
+    # -------------------
+    # Prepare out
+    loutok = ['Data']
+    c0 = out is None
+    c1 = out in loutok
+    c2 = type(out) is list and all([oo is None or oo in loutok
+                                    for oo in out])
+    assert c0 or c1 or c2
+    if c0:
+        out = [None for _ in ids]
+    elif c1:
+        out = [str(out) for _ in ids]
+
+    # Temporary caveat
+    if nids > 1:
+        if not all([ids_ in imas2tofu.MultiIDSLoader._lidsdiag
+                    for ids_ in ids]):
+            msg = "tf.load_from_imas() only handles multipe ids\n"
+            msg += "if all are diagnostics ids !"
+            raise Exception(msg)
+
+    # -------------------
+    # Prepare
+    for ii in range(0, nids):
+
+        # Cam or Data
+        lids = imas2tofu.MultiIDSLoader._lidsdiag
+        if ids[ii] in lids:
+            assert out[ii] in [None,'Cam','Data']
+            if out[ii] is None:
+                out[ii] = 'Data'
+        if out[ii] in ['Cam','Data']:
+            assert ids[ii] in lids
+
+    dout = {shot[jj]: {oo:[] for oo in set(out)} for jj in range(0,nshot)}
+
+    # -------------------
+    # Prepare plot_ and complement ids
+    lPla = [ii for ii in range(0,nids) if out[ii] == 'Plasma2D']
+    lCam = [ii for ii in range(0,nids) if out[ii] == 'Cam']
+    lDat = [ii for ii in range(0,nids) if out[ii] == 'Data']
+    nPla, nCam, nDat = len(lPla), len(lCam), len(lDat)
+    if nDat > 1:
+        plot_ = False
+    else:
+        plot_ = plot
+
+    # Check conformity nshot / nDat
+    lc = [nshot > 1, nDat > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several diags for several shots!\n"
+        msg += "  => Please select either several diags (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+    lc = [nshot > 1, nPla > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several plasma profles for several shots!\n"
+        msg += "  => Please select either several profiles (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+
+    lc = [nDat >= 1, nPla >= 1, nCam >= 1]
+    if np.sum(lc) > 1:
+        msg = "Can only load Cam xor Data xor Plasma2D !"
+        raise Exception(msg)
+
+    # Complement ids
+    lids = list(ids)
+    if nDat > 0 or nCam > 0 or nPla > 0:
+        if 'wall' not in lids:
+            lids.append('wall')
+        if nDat > 0 or nPla > 0 and dextra is None:
+            if 'equilibrium' not in lids:
+                lids.append('equilibrium')
+            if 'lh_antennas' not in lids:
+                lids.append('lh_antennas')
+            if 'ic_antennas' not in lids:
+                lids.append('ic_antennas')
+        if t0 not in [None, False] and (nDat > 0 or nPla > 0):
+            if 'pulse_schedule' not in lids:
+                lids.append('pulse_schedule')
+
+    # Complement ids in diag-specific way
+    for ids in lids:
+        if ids in imas2tofu.MultiIDSLoader._didsdiag.keys():
+            dd = imas2tofu.MultiIDSLoader._didsdiag[ids]
+            if dd.get('synth') is not None:
+                for v0 in dd['synth']['dsynth'].values():
+                    for v1 in v0:
+                        if '.' in v1:
+                            v20, v21 = v1.split('.')
+                            if v20 not in lids:
+                                lids.append(v20)
+
+    # -------------------
+    # If plot and plasma, default dsig, plot_sig, plot_X
+    if plot and nPla > 0:
+        if lids[0] in _DEF_IMAS_PLASMA_SIG.keys():
+            if plot_sig is None:
+                plot_sig = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_sig']
+            if plot_X is None:
+                plot_X = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_X']
+            if dsig is None:
+                lsig = (list(plot_sig) + list(plot_X)
+                        + _DEF_IMAS_PLASMA_SIG[lids[0]]['other'])
+                dsig = {lids[0]: lsig}
+
+        if plot_sig is None or plot_X is None:
+            msg = "Trying to plot a plasma profile\n"
+            msg += "Impossible if plot_sig and plot_X not provided!\n"
+            msg += "  (resp. quantity and quant_X if calling from tofuplot)"
+            raise Exception(msg)
+
+        dq = imas2tofu.MultiIDSLoader._dshort[lids[0]]
+        lk = sorted(dq.keys())
+        for qq in plot_sig:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='quantity')
+        for qq in plot_X:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='X')
+
+
+    # -------------------
+    # load
+    for ss in shot:
+        multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids=lids)
+
+        # export to instances
+        for ii in range(0,nids):
+            if out[ii] == "Data":
+                multi.calc_signal(ids=lids[ii],
+                                  tlim=tlim, dsig=dsig,
+                                  config=config, t=t,
+                                  res=res, indch=indch,
+                                  Brightness=Brightness,
+                                  interp_t=interp_t,
+                                  indch_auto=indch_auto,
+                                  t0=t0, dextra=dextra,
+                                  plot=True,
+                                  plot_compare=plot_compare)
+
+
 
 
 
@@ -462,6 +1131,123 @@ def _check_notNone(dd, lk):
         if k in lk:
             assert v is not None, "{0} should not be None !".format(k)
 
+def _check_InputsGeneric(ld, tab=0):
+
+    # Prepare
+    bstr0 = "\n"+"    "*tab + "Error on arg %s:"
+    bstr1 = "\n"+"    "*(tab+1) + "Expected: "
+    bstr2 = "\n"+"    "*(tab+1) + "Provided: "
+
+    ltypes_f2i = [int,float,np.integer,np.floating]
+    ltypes_i2f = [int,float,np.integer,np.floating]
+
+    # Check
+    err, msg = False, ''
+    for k in ld.keys():
+        errk, msgk = False, bstr0%k
+        if 'cls' in ld[k].keys():
+            if not isinstance(ld[k]['var'],ld[k]['cls']):
+                errk = True
+                msgk += bstr1 + "class {0}".format(ld[k]['cls'].__name__)
+                msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
+        if 'NoneOrCls' in ld[k].keys():
+            c = ld[k]['var'] is None or isinstance(ld[k]['var'],ld[k]['cls'])
+            if not c:
+                errk = True
+                msgk += bstr1 + "None or class {0}".format(ld[k]['cls'].__name__)
+                msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
+        if 'in' in ld[k].keys():
+            if not ld[k]['var'] in ld[k]['in']:
+                errk = True
+                msgk += bstr1 + "in {0}".format(ld[k]['in'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+        if 'lisfof' in ld[k].keys():
+            c0 = isinstance(ld[k]['var'], list)
+            c1 = c0 and all([isinstance(s,ld[k]['listof']) for s in ld[k]])
+            if not c1:
+                errk = True
+                msgk += bstr1 + "list of {0}".format(ld[k]['listof'].__name__)
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+        if 'iter2array' in ld[k].keys():
+            c0 = ld[k]['var'] is not None and hasattr(ld[k]['var'],'__iter__')
+            if not c0:
+                errk = True
+                msgk += bstr1 + "iterable of %s"%ld[k]['iter2array'].__name__
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = np.asarray(ld[k]['var'], dtype=ld[k]['iter2array'])
+        if 'ndim' in ld[k].keys():
+            c0 = isinstance(ld[k]['var'], np.ndarray)
+            c1 = c0 and ld[k]['var'].ndim == ld[k]['ndim']
+            if not c1:
+                errk = True
+                msgk += bstr1 + "array of {0} dimensions".format(ld[k]['ndim'])
+                msgk += bstr2 + "shape {0}".format(ld[k]['ndim'].shape)
+        if 'inshape' in ld[k].keys():
+            c0 = isinstance(ld[k]['var'], np.ndarray)
+            c1 = c0 and ld[k]['inshape'] in ld[k]['var'].shape
+            if not c1:
+                errk = True
+                msgk += bstr1 + "shape including {0}".format(ld[k]['inshape'])
+                msgk += bstr2 + "shape {0}".format(ld[k]['var'].shape)
+        if 'float2int' in ld[k].keys():
+            lc = [(issubclass(ld[k]['var'].__class__, cc)
+                   and int(ld[k]['var'])==ld[k]['var'])
+                  for cc in ltypes_f2i]
+            if not any(lc):
+                errk = True
+                msgk += bstr1 + "convertible to int from %s"%str(ltypes_f2i)
+                msgk += bstr2+"{0} ({1})".format(ld[k]['var'],
+                                                 ld[k]['var'].__class__.__name__)
+            ld[k]['var'] = int(ld[k]['var'])
+        if 'int2float' in ld[k].keys():
+            lc = [issubclass(ld[k]['var'].__class__, cc)
+                  for cc in ltypes_i2f]
+            if not any(lc):
+                errk = True
+                msgk += bstr1 + "convertible to float from %s"%str(ltypes_i2f)
+                msgk += bstr2 + "class %s"%ld[k]['var'].__class__.__name__
+            ld[k]['var'] = float(ld[k]['var'])
+        if 'NoneOrIntPos' in ld[k].keys():
+            c0 = ld[k]['var'] is None
+            lc = [(issubclass(ld[k]['var'].__class__, cc)
+                   and int(ld[k]['var'])==ld[k]['var']
+                   and ld[k]['var']>0)
+                  for cc in ltypes_f2i]
+            if not (c0 or any(lc)):
+                errk = True
+                msgk += bstr1 + "convertible to >0 int from %s"%str(ltypes_f2i)
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = None if c0 else int(ld[k]['var'])
+        if '>' in ld[k].keys():
+            if not np.all(np.greater(ld[k]['var'], ld[k]['>'])):
+                errk = True
+                msgk += bstr1 + "> {0}".format(ld[k]['>'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+        if 'vectnd' in ld[k].keys():
+            c0 = any([isinstance(ld[k]['var'],tt)
+                      for tt in [list,tuple,np.ndarray]])
+            if ld[k]['vectnd'] is not None:
+                c0 &= np.asarray(ld[k]['var']).size==ld[k]['vectnd']
+            if not c0:
+                errk = True
+                msgk += bstr1 + "array of size {0}".format(ld[k]['vectnd'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            ld[k]['var'] = np.asarray(ld[k]['var'],dtype=float).ravel()
+        if 'unitvectnd' in ld[k].keys():
+            c0 = any([isinstance(ld[k]['var'],tt)
+                      for tt in [list,tuple,np.ndarray]])
+            c1 = c0 and np.asarray(ld[k]['var']).size==ld[k]['unitvectnd']
+            if not c1:
+                errk = True
+                msgk += bstr1 + "array of size {0}".format(ld[k]['unitvectnd'])
+                msgk += bstr2 + "{0}".format(ld[k]['var'])
+            temp = np.asarray(ld[k]['var'],dtype=float).ravel()
+            ld[k]['var'] = temp/np.linalg.norm(temp)
+
+        if errk:
+            err = True
+            msg += msgk
+    return ld, err, msg
 
 def _get_attrdictfromobj(obj, dd):
     for k in dd.keys():
@@ -563,6 +1349,94 @@ class ToFuObjectBase(object):
                 msg += "Field '{0}' is missing !".format(kk)
                 raise Exception(msg)
 
+    @staticmethod
+    def _check_InputsGeneric(ld, tab=0):
+        return _check_InputsGeneric(ld, tab=tab)
+
+
+    #############################
+    #  charray and summary
+    #############################
+
+
+    @staticmethod
+    def _getcharray(ar, col=None, sep='  ', line='-', just='l', msg=True):
+
+        c0 = ar is None or len(ar) == 0
+        if c0:
+            return ''
+        ar = np.array(ar, dtype='U')
+
+        if ar.ndim == 1:
+            ar = ar.reshape((1,ar.size))
+
+        # Get just len
+        nn = np.char.str_len(ar).max(axis=0)
+        if col is not None:
+            assert len(col) in ar.shape
+            if len(col) != ar.shape[1]:
+                ar = ar.T
+                nn = np.char.str_len(ar).max(axis=0)
+            nn = np.fmax(nn, [len(cc) for cc in col])
+
+        # Apply to array
+        fjust = np.char.ljust if just == 'l' else np.char.rjust
+        out = np.array([sep.join(v) for v in fjust(ar,nn)])
+
+        # Apply to col
+        if col is not None:
+            arcol = np.array([col, [line*n for n in nn]], dtype='U')
+            arcol = np.array([sep.join(v) for v in fjust(arcol,nn)])
+            out = np.append(arcol,out)
+
+        if msg:
+            out = '\n'.join(out)
+        return out
+
+
+    @classmethod
+    def _get_summary(cls, lar, lcol,
+                     sep='  ', line='-', just='l', table_sep=None,
+                     verb=True, return_=False):
+        """ Summary description of the object content as a np.array of str """
+        if table_sep is None:
+            table_sep = '\n\n'
+
+
+        # Out
+        if verb or return_ in [True,'msg']:
+            lmsg = [cls._getcharray(ar, col, sep=sep, line=line, just=just)
+                    for ar, col in zip(*[lar,lcol])]
+            if verb:
+                msg = table_sep.join(lmsg)
+                print(msg)
+
+        if return_ != False:
+            if return_ == True:
+                out = lar, lmsg
+            elif return_ == 'array':
+                out = lar
+            elif return_ == 'msg':
+                out = lmsg
+            else:
+                lok = [False, True, 'msg', 'array']
+                raise Exception("Valid return_ values are: %s"%str(lok))
+            return out
+
+
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
+        """ Summary description of the object content as a np.array of str """
+        pass
+
+
+
+
+    #############################
+    #  strip and to/from dict
+    #############################
+
+
     def strip(self, strip=0, **kwdargs):
         """ Remove non-essential attributes to save memory / disk usage
 
@@ -596,7 +1470,7 @@ class ToFuObjectBase(object):
         self._dstrip['strip'] = strip
 
 
-    def to_dict(self, strip=None, sep=_sep, rec=False, deepcopy=False):
+    def to_dict(self, strip=None, sep=_sep, deep='ref'):
         """ Return a flat dict view of the object's attributes
 
         Useful for:
@@ -613,15 +1487,13 @@ class ToFuObjectBase(object):
             Separator char used for flattening the dict
             The output dict is flat (i.e.: no nested dict)
             Keys are created from the keys of nested dict, separated by sep
-        rec :       bool
-            Flag indicating how to deal with attributes which are themselves
-            tofu objects:
-                - True : recursively turn them to flat dict
-                - False : keep them as tofu objects
-        deepcopy:   bool
-            Flag indicating whether to populate the dict with:
-                - True : copies the object attributes
-                - False: references to the object attributes
+        deep:       str
+            Flag indicating how to behave when an attribute is itself a tofu
+            object. The associated field in the exported dict can be:
+                - 'ref' : a simple reference to the object
+                - 'copy': a tofu object itself (i.e.: a copy of the original)
+                - 'dict': the tofu object is itself exported as a dict
+                    (using also self.to_dict())
 
         Return
         ------
@@ -629,6 +1501,9 @@ class ToFuObjectBase(object):
             Flat dict containing all the objects attributes
 
         """
+        if deep not in ['ref','copy','dict']:
+            msg = "Arg deep must be a flag in ['ref','copy','dict'] !"
+            raise Exception(msg)
         if strip is None:
             strip = self._dstrip['strip']
         if self._dstrip['strip'] != strip:
@@ -644,9 +1519,11 @@ class ToFuObjectBase(object):
         dout = {}
         for k, v in dd.items():
             lexcept_key = v.get('lexcept_key', None)
+            if v['dict'] is None:
+                continue
             try:
                 d = flatten_dict(v['dict'],
-                                 parent_key='', sep=sep, rec=rec,
+                                 parent_key='', sep=sep, deep=deep,
                                  lexcept_key=lexcept_key)
             except Exception as err:
                 msg = str(err)
@@ -654,14 +1531,7 @@ class ToFuObjectBase(object):
                 msg += "\n\n\n" + str(v['dict'])
                 raise Exception(msg)
             dout[k] = d
-        dout = flatten_dict(dout, parent_key='', sep=sep, rec=rec)
-        if deepcopy:
-            lkobj = [k for k in dout.keys()
-                     if issubclass(dout[k].__class__,ToFuObjectBase)]
-            lk = [k for k in dout.keys() if k not in lkobj]
-            dout.update(**dict([(k,dout[k]) for k in lk]))
-            dout.update(**dict([(k,dout[k].copy(deepcopy=True))
-                                for k in lkobj]))
+        dout = flatten_dict(dout, parent_key='', sep=sep, deep=deep)
         return dout
 
     def _get_dId(self):
@@ -701,14 +1571,13 @@ class ToFuObjectBase(object):
         if self._dstrip['strip'] != strip:
             self.strip(strip, verb=verb)
 
-    def copy(self, strip=None, deepcopy=True):
+    def copy(self, strip=None, deep='ref'):
         """ Return another instance of the object, with the same attributes
 
         If deep=True, all attributes themselves are also copies
         """
-        dd = self.to_dict(strip=strip, deepcopy=deepcopy)
-        obj = self.__class__(fromdict=dd)
-        return obj
+        dd = self.to_dict(strip=strip, deep=deep)
+        return self.__class__(fromdict=dd)
 
     def get_nbytes(self):
         """ Compute and return the object size in bytes (i.e.: octets)
@@ -736,6 +1605,11 @@ class ToFuObjectBase(object):
                 dsize[k] = np.asarray(v).nbytes
             total += dsize[k]
         return total, dsize
+
+
+    #############################
+    #  operator overloading
+    #############################
 
 
     def __eq__(self, obj, lexcept=[], detail=True, verb=True):
@@ -789,10 +1663,19 @@ class ToFuObjectBase(object):
                     elif type(d0[k]) is np.ndarray:
                         eqk = d0[k].shape==d1[k].shape
                         if eqk:
-                            eqk = np.allclose(d0[k],d1[k], equal_nan=True)
-                            if not eqk:
-                                m0 = str(d0[k])
-                                m1 = str(d1[k])
+                            eqk = d0[k].dtype == d1[k].dtype
+                            if eqk:
+                                if (issubclass(d0[k].dtype.type, np.int)
+                                    or issubclass(d0[k].dtype.type, np.float)):
+                                    eqk = np.allclose(d0[k],d1[k], equal_nan=True)
+                                else:
+                                    eqk = np.all(d0[k]==d1[k])
+                                if not eqk:
+                                    m0 = str(d0[k])
+                                    m1 = str(d1[k])
+                            else:
+                                m0 = str(d0[k].dtype)
+                                m1 = str(d1[k].dtype)
                         else:
                             m0 = "shape {0}".format(d0[k].shape)
                             m1 = "shape {0}".format(d1[k].shape)
@@ -801,6 +1684,21 @@ class ToFuObjectBase(object):
                         if not eqk:
                             m0 = str(d0[k])
                             m1 = str(d1[k])
+                    elif isinstance(d0[k], mplTri):
+                        eqk = np.allclose(d0[k].x, d1[k].x)
+                        if not eqk:
+                            m0 = 'x ' + str(d0[k].x)
+                            m1 = 'x ' + str(d1[k].x)
+                        else:
+                            eqk = np.allclose(d0[k].y, d1[k].y)
+                            if not eqk:
+                                m0 = 'y ' + str(d0[k].y)
+                                m1 = 'y ' + str(d1[k].y)
+                            else:
+                                eqk = np.all(d0[k].triangles == d1[k].triangles)
+                                if not eqk:
+                                    m0 = 'tri ' + str(d0[k].triangles)
+                                    m1 = 'tri ' + str(d1[k].triangles)
                     else:
                         msg = "How to handle :\n"
                         msg += "    {0} is a {1}".format(k,str(type(d0[k])))
@@ -872,11 +1770,77 @@ class ToFuObject(ToFuObjectBase):
         if hasattr(self,'_Id'):
             self._Id._reset()
 
+
+    def _set_dlObj(self, lObj, din={}):
+
+        # Make sure to kill the link to the mutable being provided
+        nObj = len(lObj)
+        lCls, lorder, lerr = [], [], []
+        for obj in lObj:
+            if not issubclass(obj.__class__, ToFuObject):
+                msg = "The following obj is not a ToFuObject subclass:\n"
+                msg += str(obj)
+                raise Exception(msg)
+            cls = obj.__class__.__name__
+            name = obj.Id.Name
+            clsname = obj.Id.SaveName_Conv(Cls=cls, Name=name,
+                                           include=['Cls','Name'])
+            if cls not in lCls:
+                lCls.append(cls)
+                if clsname in lorder:
+                    lerr.append(clsname)
+            lorder.append(clsname)
+
+        if len(lerr)>0:
+            msg = "There is an ambiguity in the names :"
+            msg += "\n    - " + "\n    - ".join(lerr)
+            msg += "\n => Please clarify (choose unique Cls/Names)"
+            raise Exception(msg)
+
+        # Initialize dObj is not existing
+        if 'dObj' not in din.keys() or din['dObj'] is None:
+            din['dObj'] = dict([(k,{}) for k in lCls])
+
+        # Initisalize
+        for k in lCls:
+            if not k in din['dObj'].keys():
+                din['dObj'][k] = {}
+            lk = din['dObj'][k].keys()
+            ls = [ss for ss in lObj if ss.Id.Cls == k]
+            for ss in ls:
+                name = ss.Id.Name
+                if not name in lk:
+                    din['dObj'][k][name] = ss.copy()
+                if din['dObj'][k][name]._dstrip['strip'] != 0:
+                    din['dObj'][k][name].strip(0)
+        din.update({'nObj':nObj, 'lorder':lorder, 'lCls':lCls})
+
+    @staticmethod
+    def _get_ind12r_n12(ind1=None, ind2=None, n1=None, n2=None):
+        c0 = ind1 is None and ind2 is None
+        c1 = n1 is not None and n2 is not None
+        assert c1, "Provide n1 and n2 !"
+        if c0:
+            ind1 = np.tile(np.arange(0,n1), n2)
+            ind2 = np.repeat(np.arange(0,n2), n1)
+        else:
+            ind1 = np.asarray(ind1).ravel().astype(int)
+            ind2 = np.asarray(ind2).ravel().astype(int)
+            assert ind1.size == ind2.size
+            assert np.all(ind1>=0) and np.all(ind1<n1)
+            assert np.all(ind2>=0) and np.all(ind2<n2)
+        indr = np.zeros((n2,n1),dtype=int)
+        for ii in range(0,ind1.size):
+            indr[ind2[ii],ind1[ii]] = ii
+        return ind1, ind2, indr
+
     def save(self, path=None, name=None,
-             strip=None, sep=_sep, mode='npz',
-             compressed=False, verb=True):
-        save(self, path=path, name=name,
-             strip=strip, compressed=compressed)
+             strip=None, sep=_sep, deep=True, mode='npz',
+             compressed=False, verb=True, return_pfe=False):
+        return save(self, path=path, name=name,
+                    sep=sep, deep=deep, mode=mode,
+                    strip=strip, compressed=compressed,
+                    return_pfe=return_pfe, verb=verb)
 
 if sys.version[0]=='2':
     ToFuObject.save.__func__.__doc__ = save.__doc__
@@ -1280,6 +2244,15 @@ class ID(ToFuObjectBase):
                 self._dall['SaveName'] = SN
                 self._dall['SaveName-usr'] = False
 
+    def generate_SaveName(self, include=None):
+        SN = self.SaveName_Conv(Mod=self.Mod, Cls=self.Cls,
+                              Type=self.Type, Name=self.Name,
+                              Deg=self.Deg, Exp=self.Exp,
+                              Diag=self.Diag, shot=self.shot,
+                              version=self.version, usr=self.usr,
+                              include=include)
+        return SN
+
     def set_lObj(self, lObj=None):
         """ Set the lObj attribute, storing objects the instance depends on
 
@@ -1330,160 +2303,6 @@ class ID(ToFuObjectBase):
 #############################################
 #       Geometry
 #############################################
-
-def get_nIne1e2(P, nIn=None, e1=None, e2=None):
-    assert np.hypot(P[0],P[1])>1.e-12
-    phi = np.arctan2(P[1],P[0])
-    ephi = np.array([-np.sin(phi), np.cos(phi), 0.])
-    ez = np.array([0.,0.,1.])
-
-    if nIn is None:
-        nIn = -P
-    nIn = nIn / np.linalg.norm(nIn)
-    if e1 is None:
-        if np.abs(np.abs(nIn[2])-1.)<1.e-12:
-            e1 = ephi
-        else:
-            e1 = np.cross(nIn,ez)
-        e1 = e1 if np.sum(e1*ephi)>0. else -e1
-    e1 = e1 / np.linalg.norm(e1)
-    msg = "nIn = %s\n"%str(nIn)
-    msg += "e1 = %s\n"%str(e1)
-    msg += "np.sum(nIn*e1) = {0}".format(np.sum(nIn*e1))
-    assert np.abs(np.sum(nIn*e1))<1.e-12, msg
-    if e2 is None:
-        e2 = np.cross(nIn,e1)
-    e2 = e2 / np.linalg.norm(e2)
-    return nIn, e1, e2
-
-
-def get_X12fromflat(X12):
-    X1u, X2u = np.unique(X12[0,:]), np.unique(X12[1,:])
-    dx1 = np.nanmax(X1u)-np.nanmin(X1u)
-    dx2 = np.nanmax(X2u)-np.nanmin(X2u)
-    ds = dx1*dx2 / X12.shape[1]
-    tol = np.sqrt(ds)/100.
-    x1u, x2u = [X1u[0]], [X2u[0]]
-    for ii in X1u[1:]:
-        if np.abs(ii-x1u[-1])>tol:
-            x1u.append(ii)
-    for ii in X2u[1:]:
-        if np.abs(ii-x2u[-1])>tol:
-            x2u.append(ii)
-    Dx12 = (np.nanmean(np.diff(x1u)), np.nanmean(np.diff(x2u)))
-    x1u, x2u = np.unique(x1u), np.unique(x2u)
-    ind = np.full((x1u.size,x2u.size),np.nan)
-    for ii in range(0,X12.shape[1]):
-        i1 = (np.abs(x1u-X12[0,ii])<tol).nonzero()[0]
-        i2 = (np.abs(x2u-X12[1,ii])<tol).nonzero()[0]
-        ind[i1,i2] = ii
-    return x1u, x2u, ind, Dx12
-
-
-def create_RaysCones(Ds, us, angs=np.pi/90., nP=40):
-    # Check inputs
-    Ddim, udim = Ds.ndim, us.ndim
-    assert Ddim in [1,2]
-    assert Ds.shape[0]==3 and Ds.size%3==0
-    assert udim in [1,2]
-    assert us.shape[0]==3 and us.size%3==0
-    assert type(angs) in [int,float,np.int64,np.float64]
-    if udim==2:
-        assert Ds.shape==us.shape
-    if Ddim==1:
-        Ds = Ds.reshape((3,1))
-    nD = Ds.shape[1]
-
-    # Compute
-    phi = np.linspace(0.,2.*np.pi, nP)
-    phi = np.tile(phi,nD)[np.newaxis,:]
-    if udim==1:
-        us = us[:,np.newaxis]/np.linalg.norm(us)
-        us = us.repeat(nD,axis=1)
-    else:
-        us = us/np.sqrt(np.sum(us**2,axis=0))[np.newaxis,:]
-    us = us.repeat(nP, axis=1)
-    e1 = np.array([us[1,:],-us[0,:],np.zeros((us.shape[1],))])
-    e2 = np.array([-us[2,:]*e1[1,:], us[2,:]*e1[0,:],
-                   us[0,:]*e1[1,:]-us[1,:]*e1[0,:]])
-    ub = (us*np.cos(angs)
-          + (np.cos(phi)*e1+np.sin(phi)*e2)*np.sin(angs))
-    Db = Ds.repeat(nP,axis=1)
-    return Db, ub
-
-
-
-def create_CamLOS2D(P, F, D12, N12,
-                    nIn=None, e1=None, e2=None, VType='Tor'):
-
-    # Check/ format inputs
-    P = np.asarray(P)
-    assert P.shape==(3,)
-    assert type(F) in [int, float, np.int64, np.float64]
-    F = float(F)
-    if type(D12) in [int, float, np.int64, np.float64]:
-        D12 = np.array([D12,D12],dtype=float)
-    else:
-        assert hasattr(D12,'__iter__') and len(D12)==2
-        D12 = np.asarray(D12).astype(float)
-    if type(N12) in [int, float, np.int64, np.float64]:
-        N12 = np.array([N12,N12],dtype=int)
-    else:
-        assert hasattr(N12,'__iter__') and len(N12)==2
-        N12 = np.asarray(N12).astype(int)
-    assert type(VType) is str and VType.lower() in ['tor','lin']
-    VType = VType.lower()
-
-    # Get vectors
-    for vv in [nIn,e1,e2]:
-        if not vv is None:
-            assert hasattr(vv,'__iter__') and len(vv)==3
-            vv = np.asarray(vv).astype(float)
-    if nIn is None:
-        if VType=='tor':
-            nIn = -P
-        else:
-            nIn = np.r_[0.,-P[1],-P[2]]
-    nIn = np.asarray(nIn)
-    nIn = nIn/np.linalg.norm(nIn)
-    if e1 is None:
-       if VType=='tor':
-            phi = np.arctan2(P[1],P[0])
-            ephi = np.r_[-np.sin(phi),np.cos(phi),0.]
-            if np.abs(np.abs(nIn[2])-1.)<1.e-12:
-                e1 = ephi
-            else:
-                e1 = np.cross(nIn,np.r_[0.,0.,1.])
-                e1 = e1 if np.sum(e1*ephi)>0. else -e1
-       else:
-            if np.abs(np.abs(nIn[0])-1.)<1.e-12:
-                e1 = np.r_[0.,1.,0.]
-            else:
-                e1 = np.cross(nIn,np.r_[0.,0.,1.])
-                e1 = e1 if e1[0]>0. else -e1
-    e1 = np.asarray(e1)
-    e1 = e1/np.linalg.norm(e1)
-    assert np.abs(np.sum(nIn*e1))<1.e-12
-    if e2 is None:
-        e2 = np.cross(e1,nIn)
-    e2 = np.asarray(e2)
-    e2 = e2/np.linalg.norm(e2)
-    assert np.abs(np.sum(nIn*e2))<1.e-12
-    assert np.abs(np.sum(e1*e2))<1.e-12
-
-    # Get starting points
-    d1 = D12[0]*np.linspace(-0.5,0.5,N12[0],endpoint=True)
-    d2 = D12[1]*np.linspace(-0.5,0.5,N12[1],endpoint=True)
-    d1 = np.repeat(d1,N12[1])
-    d2 = np.tile(d2,N12[0])
-    d1 = d1[np.newaxis,:]*e1[:,np.newaxis]
-    d2 = d2[np.newaxis,:]*e2[:,np.newaxis]
-
-    Ds = P[:,np.newaxis] - F*nIn[:,np.newaxis] + d1 + d2
-    us = P[:,np.newaxis] - Ds
-    return Ds, us
-
-
 
 def dict_cmp(d1,d2):
     msg = "Different types: %s, %s"%(str(type(d1)),str(type(d2)))
@@ -1598,108 +2417,661 @@ class DChans(object):
         return ind
 
 
-
-
-
-
 ###############################################
-#           Plot KeyHandler
-################ ##############################
+#           Plot KeyHandler 2
+###############################################
 
-class KeyHandler(object):
-    """ Base class for handling event on tofu interactive figures """
 
-    def __init__(self, can=None, daxT=None, ntMax=3, nchMax=3, nlambMax=3,
-                 combine=False):
-        lk = ['t','chan','chan2D','lamb','cross','hor','colorbar','txtt','txtch','txtlamb','other']
-        assert all([kk in lk for kk in daxT.keys()]), str(daxT.keys())
-        assert all([type(dd) is list for dd in daxT.values()]), str(daxT.values())
-        self.lk = sorted(list(daxT.keys()))
+def get_indncurind(dind, linds):
+    ind = [dind['lrefid'].index(rid) for rid in linds]
+    return np.asarray(ind,dtype=int)
 
-        # Remove None axes from daxT
-        for kk in daxT.keys():
-            daxT[kk] = [dd for dd in daxT[kk] if dd['ax'] is not None]
 
+def get_indrefind(dind, linds, drefid):
+    ninds = len(linds)
+    ind = np.zeros((ninds,),dtype=int)
+    for ii in range(0,ninds):
+        i0 = dind['lrefid'].index(linds[ii])
+        ind[ii] = dind['cumsum0'][i0] + drefid[linds[ii]]
+    return ind
+
+
+def get_valf(val, lrids, linds):
+    # Python 2 vs 3:
+    # The order of arguments is reversed for lambda functions !
+    #   => use py2 convention, compatible with both, WRONG !!!
+    # Replace *li by li (which is always an array of max 3 elements
+    ninds = len(linds)
+
+    if type(val) is list:
+        assert ninds == 1 and lrids == linds
+        func = lambda li, val=val: val[li[0]]
+
+    elif type(val) is tuple:
+        assert ninds == 1 and lrids == linds
+        n1, n2 = val[0].size, val[1].size
+        # Python 2 and 3 syntax
+        def func(li, val=val, n1=n1, n2=n2):
+            i1 = li[0] % n1
+            i2 = li[0] // n1
+            return (val[0][i1], val[1][i2])
+
+    else:
+        assert type(val) is np.ndarray
+        val = val.squeeze()
+        ndim = val.ndim
+        assert ndim >= len(lrids)
+        assert len(lrids) >= ninds
+        assert ndim >= ninds
+
+        if ndim == ninds:
+            if ndim == 1:
+                func = lambda li, val=val: val[li[0]]
+
+            elif ndim == 2:
+                func = lambda li,  val=val: val[li[0],li[1]]
+
+            elif ndim == 3:
+                func = lambda li, val=val: val[li[0],li[1],li[2]]
+
+        else:
+            lord = np.r_[[lrids.index(ii) for ii in linds]].astype(int)
+            if ninds == 1:
+                if ndim == 2:
+                    if lord[0] == 0:
+                        func = lambda li, val=val: val[li[0],:]
+
+                    elif lord[0] == 1:
+                        func = lambda li, val=val: val[:,li[0]]
+
+                elif ndim == 3:
+                    if lord[0] == 0:
+                        func = lambda li, val=val: val[li[0],:,:]
+
+                    elif lord[0] == 1:
+                        func = lambda li, val=val: val[:,li[0],:]
+
+                    elif lord[0] == 2:
+                        func = lambda li, val=val: val[:,:,li[0]]
+
+            elif ninds == 2:
+                assert ndim == 3
+                args = np.argsort(lord)
+                if np.all(lord[args] == [0,1]):
+                    func = lambda  li, val=val: val[li[args[0]], li[args[1]],:]
+
+                elif np.all(lord[args] == [0,2]):
+                    func = lambda  li, val=val: val[li[args[0]], :, li[args[1]]]
+
+                if np.all(lord[args] == [1,2]):
+                    func = lambda li, val=val: val[:, li[args[0]], li[args[1]]]
+
+    return func
+
+def get_fupdate(obj, typ, n12=None, norm=None, bstr=None):
+    if typ == 'xdata':
+        f = lambda val, obj=obj: obj.set_xdata(val)
+    elif typ == 'ydata':
+        f = lambda val, obj=obj: obj.set_ydata(val)
+    elif typ in ['data']:   # Also works for imshow
+        f = lambda val, obj=obj: obj.set_data(val)
+    elif typ in ['data-reshape']:   # Also works for imshow
+        f = lambda val, obj=obj, n12=n12: obj.set_data(val.reshape(n12[1],n12[0]))
+    elif typ in ['alpha']:   # Also works for imshow
+        f = lambda val, obj=obj, norm=norm: obj.set_alpha(norm(val))
+    elif typ == 'txt':
+        f = lambda val, obj=obj, bstr=bstr: obj.set_text(bstr.format(val))
+    return f
+
+
+def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
+    assert Type in ['x','y','2d']
+
+    if Type in ['x','y']:
+        if otherid is None:
+            assert ref.size == np.max(ref.shape)
+            ref = ref.ravel()
+            if np.any(np.isnan(ref)):
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref):
+                        return np.nanargmin(np.abs(ref-val[0]))
+                else:
+                    def func(val, ind0=None, refb=refb):
+                        return np.nanargmin(np.abs(ref-val[1]))
+
+            else:
+                refb = 0.5*(ref[1:]+ref[:-1])
+                if Type == 'x':
+                    def func(val, ind0=None, refb=refb):
+                        return np.digitize([val[0]], refb)[0]
+                else:
+                    def func(val, ind0=None, refb=refb):
+                        return np.digitize([val[1]], refb)[0]
+        elif indother is None:
+            assert ref.ndim == 2
+            if np.any(np.isnan(ref)):
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref):
+                        return np.nanargmin(np.abs(ref[ind0,:]-val[0]))
+                else:
+                    def func(val, ind0=None, ref=ref):
+                        return np.nanargmin(np.abs(ref[:,ind0]-val[1]))
+
+            else:
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref):
+                        refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                        return np.digitize([val[0]], refb)[0]
+                else:
+                    def func(val, ind0=None, ref=ref):
+                        refb = 0.5*(ref[ind0,1:]+ref[ind0,:-1])
+                        return np.digitize([val[1]], refb)[0]
+        else:
+            assert ref.ndim == 2
+            if np.any(np.isnan(ref)):
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        return np.nanargmin(np.abs(ref[indother[ind0],:] - val[0]))
+                else:
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        return np.nanargmin(np.abs(ref[indother[ind0],:] - val[1]))
+            else:
+                if Type == 'x':
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                        return np.digitize([val[0]], refb)[0]
+                else:
+                    def func(val, ind0=None, ref=ref, indother=indother):
+                        refb = 0.5*(ref[indother[ind0],1:]+ref[indother[ind0],:-1])
+                        return np.digitize([val[1]], refb)[0]
+    else:
+        assert type(ref2) is tuple and len(ref2) == 2
+        n1, n2 = ref2[0].size, ref2[1].size
+        if any([np.any(np.isnan(rr)) for rr in ref2]):
+            def func(val, ind0=None, ref2=ref2, n1=n1, n2=n2):
+                i1 = np.nanargmin(np.abs(ref2[0]-val[0]))
+                i2 = np.nanargmin(np.abs(ref2[1]-val[1]))
+                return i2*n1 + i1
+        else:
+            refb1 = 0.5*(ref2[0][1:]+ref2[0][:-1])
+            refb2 = 0.5*(ref2[1][1:]+ref2[1][:-1])
+            def func(val, ind0=None, refb1=refb1, refb2=refb2, n1=n1, n2=n2):
+                i1 = np.digitize([val[0]], refb1)[0]
+                i2 = np.digitize([val[1]], refb2)[0]
+                return i2*n1 + i1
+    return func
+
+def get_pos_fromind(ref=None, ref2=None, otherid=None, indother=None):
+    if ref2 is not None:
+        assert type(ref2) is tuple and len(ref2) == 2
+        n1, n2 = ref2[0].size, ref2[1].size
+        def func(ind, ind0=None, ref2=ref2, n1=n1, n2=n2):
+            i1 = ind % n1
+            i2 = ind // n1
+            return (ref2[0][i1], ref2[1][i2])
+
+    else:
+        if otherid is None:
+            assert ref.size == np.max(ref.shape)
+            ref = ref.ravel()
+            def func(ind, ind0=None, ref=ref):
+                val = ref[ind]
+                return (val, val)
+        elif indother is None:
+            assert ref.ndim == 2
+            def func(ind, ind0, ref=ref):
+                val = ref[ind0,ind]
+                return (val, val)
+        else:
+            assert ref.ndim == 2
+            def func(ind, ind0, ref=ref, indother=indother):
+                val = ref[indother[ind0],ind]
+                return (val, val)
+    return func
+
+def get_ind_fromkey(dmovkeys={}, nn=[], is2d=False):
+    if is2d:
+        n1, n2 = nn
+        def func(movk, ind, doinc=False, dmovkeys=dmovkeys, n1=n1, n2=n2):
+            i1 = ind % n1
+            i2 = ind // n1
+            if movk in ['left','right']:
+                i1 += dmovkeys[movk][doinc]
+                i1 = i1 % n1
+            else:
+                i2 += dmovkeys[movk][doinc]
+                i2 = i2 % n2
+            return i2 * n1 + i1
+    else:
+        nx = nn[0] if len(nn)==1 else nn[1]
+        def func(movk, ind, doinc=False, dmovkeys=dmovkeys, nx=nx):
+            ind += dmovkeys[movk][doinc]
+            ind = ind % nx
+            return ind
+    return func
+
+
+
+
+class KeyHandler_mpl(object):
+
+    _msgdobj = """ Arg dobj must be a dict
+    The keys are handles to matplotlib Artist objects (e.g.: lines, imshow...)
+
+    For each object oo, dobj[oo] is itself a dict with (key,value) pairs:
+        - 'ref'   : a 1D flat np.ndarray, used as reference
+        - 'lgroup': list of int, indicating to which groups of indices oo belongs
+        - 'lind'  : list of int, indicating the index of oo in each group
+        - 'update': a callable (function), to be called when updating
+    """
+
+    _ltypesref = ['x','y','2d']
+
+
+    def __init__(self, can=None, dgroup=None, dref=None, ddata=None,
+                 dobj=None, dax=None, lax_fix=[],
+                 groupinit='time', follow=True):
+        assert issubclass(can.__class__, mpl.backend_bases.FigureCanvasBase)
         self.can = can
-        self.combine = combine
-        daxr, dh = self._make_daxr_dh(daxT)
+        out = self._checkformat_dgrouprefaxobj(dgroup, dref, dobj, dax, ddata)
+        dgroup, dref, dax, dobj, dind, ddata = out
+        self.dgroup = dgroup
+        self.dref = dref
+        self.ddata = ddata
+        self.dax = dax
+        self.dind = dind
+        self.dax.update(dict([(ax,{'fix':None, 'lobj':[]}) for ax in lax_fix
+                              if ax not in dax.keys()]))
+        self.dobj = dobj
+        self.dcur = self._get_dcur_init(dgroup, dax, groupinit)
+        dkeys = self._get_dkeys()
+        lact = set([v['action'] for v in dkeys.values()])
+        dkeys_r = dict([(aa, [k for k in dkeys.keys() if dkeys[k]['action']==aa])
+                             for aa in lact])
+        self.dkeys = dkeys
+        self.dkeys_r = dkeys_r
+        #self.init(dgroup=dgroup, dobj=dobj)
+        self.isinteractive = hasattr(can,'toolbar') and can.toolbar is not None
+        self._follow = follow
 
-        self.daxT = daxT
-        self.daxr, self.dh = daxr, dh
-        self.store_rcParams = None
-        self.lkeys = ['right','left','control','shift','alt']
-        if 'chan2D' in self.daxT.keys() and len(self.daxT['chan2D'])>0:
-            self.lkeys += ['up','down']
-        self.curax = None
-        self.ctrl = False
-        self.shift = False
-        self.alt = False
-        self.ref, dnMax = {}, {'chan':nchMax, 'chan2D':nchMax,'t':ntMax,'lamb':nlambMax}
-        for kk in self.lk:
-            if not kk in ['cross','hor','colorbar','txtt','txtch','txtlamb','other']:
-                if kk=='t':
-                    nn = ntMax
-                elif 'chan' in kk:
-                    nn = nchMax
+        self._set_dBck(self.dax.keys())
+
+    @staticmethod
+    def _get_dcur_init(dgroup, dax, groupinit='time'):
+        if not groupinit in dgroup.keys():
+            msg = "Arg groupinit must be a valid key of dgroup !\n"
+            msg += "    - Valid keys: %s\n"%str(dgroup.keys())
+            msg += "    - Provided  : %s"%groupinit
+            raise Exception(msg)
+        refid = dgroup[groupinit]['defid']
+        ax = dgroup[groupinit]['defax']
+        dcur = {'refid':refid, 'group':groupinit, 'ax':ax}
+        return dcur
+
+    def _warn_ifnotInteractive(self):
+        warn = False
+        if not self.isinteractive:
+            msg = "Not interactive backend!:\n"
+            msg += "    - backend : %s   (prefer Qt5Agg)\n"%plt.get_backend()
+            msg += "    - canvas  : %s"%self.can.__class__.__name__
+            warnings.warn(msg)
+            warn = True
+        return warn
+
+    @classmethod
+    def _get_dmovkeys(cls, Type, inc, invert=False):
+        assert Type in cls._ltypesref
+        if Type[0] == 'x':
+            dmovkeys = {'left':{False:-inc[0], True:-inc[1]},
+                        'right':{False:inc[0], True:inc[1]}}
+        elif Type[0] == 'y':
+            dmovkeys = {'down':{False:-inc[0], True:-inc[1]},
+                        'up':{False:inc[0], True:inc[1]}}
+        elif Type == '2d':
+            sig = -1 if invert else 1
+            dmovkeys = {'left':{False:-sig*inc[0], True:-sig*inc[1]},
+                        'right':{False:sig*inc[0], True:sig*inc[1]},
+                        'down':{False:-sig*inc[0], True:-sig*inc[1]},
+                        'up':{False:sig*inc[0], True:sig*inc[1]}}
+        return dmovkeys
+
+    @classmethod
+    def _checkformat_dgrouprefaxobj(cls, dgroup, dref, dobj, dax, ddata):
+        assert all([type(dd) is dict for dd in [dgroup, dref, dobj, dax]])
+
+        #---------------
+        # Preliminary checks
+
+        ls = ['nMax','key','defax']
+        for k,v in dgroup.items():
+            c0 = type(k) is str
+            c1 = type(v) is dict
+            c2 = all([s in v.keys() for s in ls])
+            if not (c0 and c1 and c2):
+                raise Exception(cls._msgdobj)
+            assert type(v['nMax']) in [int,np.int64]
+            assert type(v['key']) is str
+            assert v['defax'] in dax.keys()
+        lg = sorted(list(dgroup.keys()))
+        assert len(set(lg))==len(lg)
+
+        ls = ['val','refids']
+        for k,v in ddata.items():
+            c0 = type(k) is int
+            c1 = type(v) is dict
+            c2 = all([s in v.keys() for s in ls])
+            if not (c0 and c1 and c2):
+                raise Exception(cls._msgdobj)
+            assert all([vv in dref.keys() for vv in v['refids']])
+        ldid = sorted(list(ddata.keys()))
+        assert len(set(ldid))==len(ldid)
+
+        ls = ['group','val','inc']
+        for k,v in dref.items():
+            c0 = type(k) is int
+            c1 = type(v) is dict
+            c2 = all([s in v.keys() for s in ls])
+            if not (c0 and c1 and c2):
+                raise Exception(cls._msgdobj)
+            assert v['group'] in lg
+            assert type(v['val']) in [np.ndarray,tuple]
+            assert len(v['inc']) == 2
+            v['inc'] = np.asarray(v['inc'],dtype=int).ravel()
+        lrid = sorted(list(dref.keys()))
+        lr = [dref[rid]['val'] for rid in lrid]
+        assert len(set(lrid))==len(lrid)
+
+        ls = cls._ltypesref
+        for k,v in dax.items():
+            c0 = issubclass(k.__class__, mpl.axes.Axes)
+            c1 = type(v) is dict
+            c2 = 'ref' in v.keys() and type(v['ref']) is dict
+            c3 = all([vv in ls for vv in v['ref'].values()])
+            c4 = all([kk in lrid for kk in v['ref'].keys()])
+            lc = [c0,c1,c2,c3,c4]
+            assert all(lc), str(lc)
+            if 'defrefid' in v.keys():
+                assert v['defrefid'] in lrid
+        la = list(dax.keys())
+        assert len(set(la))==len(la)
+
+        ls = ['dupdate','drefid']
+        for k,v in dobj.items():
+            c0 = issubclass(k.__class__, mpl.artist.Artist)
+            c1 = type(v) is dict
+            c2 = any([s in v.keys() for s in ls])
+            assert (c0 and c1 and c2)
+            assert all([vv in lrid for vv in v['drefid'].keys()])
+            dobj[k]['ax'] = k.axes
+            if dobj[k]['ax'] not in dax.keys():
+                dax[dobj[k]['ax']] = {'fix':None, 'ref':{}}
+        lo = list(dobj.keys())
+        assert len(set(lo))==len(lo)
+
+        #---------------
+        # Complement
+
+        # dax
+        for ax in dax.keys():
+            lobj = [obj for obj in dobj.keys() if dobj[obj]['ax'] is ax]
+            dax[ax]['lobj'] = lobj
+            if 'invert' in dax[ax].keys():
+                assert type(dax[ax]['invert']) is bool
+                assert '2d' in dax[ax]['ref'].values()
+            else:
+                dax[ax]['invert'] = False
+
+            # Handle cases were several ref are associated to the same typ
+            lrefid = list(dax[ax]['ref'].keys())
+            ltypu = sorted(set(dax[ax]['ref'].values()))
+            dtypu = dict([(typ,[rid for rid in lrefid
+                                if dax[ax]['ref'][rid] == typ])
+                         for typ in ltypu])
+            # Check unicity of graphical ref
+            if 'graph' not in dax[ax].keys():
+                assert all([len(vv) == 1 for vv in dtypu.values()])
+                dax[ax]['graph'] = dax[ax]['ref']
+            else:
+                for typ in dtypu.keys():
+                    if len(dtypu[typ]) > 1:
+                        assert np.sum([rid in dax[ax]['graph'].keys()
+                                       for rid in dtypu[typ]]) == 1
+                    else:
+                        dax[ax]['graph'][dtypu[typ][0]] = typ
+
+            # func dict
+            dmovkeys = {}
+            for rid in lrefid:
+                dmovkeys[rid] = cls._get_dmovkeys(dax[ax]['ref'][rid],
+                                                  dref[rid]['inc'],
+                                                  invert=dax[ax]['invert'])
+            dax[ax]['dmovkeys'] = dmovkeys
+
+            # Find default refid for ax (in case of ref from several groups)
+            lrefid = list(dax[ax]['graph'].keys())
+            if len(lrefid) > 1:
+                assert 'defrefid' in dax[ax].keys()
+                assert dax[ax]['defrefid'] in lrefid
+
+
+        # dgroup
+        for g in lg:
+            dgroup[g]['indcur'] = 0
+            dgroup[g]['ncur'] = 0
+            dgroup[g]['valind'] = np.full((dgroup[g]['nMax'],2), np.nan)
+            lridg = [rid for rid in lrid if dref[rid]['group']==g]
+            dgroup[g]['lrefid'] = lridg
+            # To catch cross-dependencies:
+            # All axes of all objects with a group dependency
+            lla = []
+            for o in lo:
+                if any([dref[rid]['group']==g
+                        for rid in dobj[o]['drefid'].keys()]):
+                    if dobj[o]['ax'] not in lla:
+                        lla.append(dobj[o]['ax'])
+            dgroup[g]['lax'] = lla
+
+            # Set defid
+            ldefid = dax[dgroup[g]['defax']]['graph'].keys()
+            ldefid = [defid for defid in ldefid if dref[defid]['group'] == g]
+            assert len(ldefid) == 1
+            dgroup[g]['defid'] = ldefid[0]
+
+            # Get list of obj with their indices, for fast updates
+            lobj = [obj for obj in dobj.keys()
+                    if any([dref[rid]['group'] == g
+                            for rid in dobj[obj]['drefid'].keys()])]
+            nobj = len(lobj)
+            lind = []
+            for obj in lobj:
+                ii = [ii for rid, ii in dobj[obj]['drefid'].items()
+                      if dref[rid]['group'] == g]
+                assert len(ii) >= 1
+                if len(ii)>1:
+                    # Case when same group refered to via several refs
+                    # Only works if consistent indices !
+                    assert all([iii==ii[0] for iii in ii])
+                    ii = [ii[0]]
+                lind += ii
+            lindu = np.unique(lind)
+            assert np.all(lindu >= 0) and np.all(lindu < dgroup[g]['nMax'])
+            d2obj = dict([(ind, [lobj[ii] for ii in range(0,nobj)
+                                if lind[ii] == ind]) for ind in lindu])
+            dgroup[g]['d2obj'] = d2obj
+            dgroup[g]['lobj'] = lobj
+
+
+        # dref
+        for rid in lrid:
+            dref[rid]['ind'] = np.zeros((dgroup[dref[rid]['group']]['nMax'],),
+                                        dtype=int)
+
+            # Check consistency of otherid and indother
+            c0 = 'indother' not in dref[rid].keys()
+            c1 = not c0 and dref[rid]['indother'] is None
+            if 'otherid' not in dref[rid].keys():
+                if isinstance(dref[rid]['val'], np.ndarray):
+                    assert dref[rid]['val'].size == max(dref[rid]['val'].shape)
+                elif isinstance(dref[rid]['val'], tuple):
+                    assert len(dref[rid]['val'])==2
+                assert c0 or c1
+                dref[rid]['otherid'] = None
+                if c0:
+                    dref[rid]['indother'] = None
+            else:
+                otherid = dref[rid]['otherid']
+                assert otherid is None or otherid in dref.keys()
+                if otherid is None:
+                    assert c0 or c1
+                    if c0:
+                        dref[rid]['indother'] = None
                 else:
-                    nn = nlambMax
-                self.ref[kk] = {'ind':np.zeros((nn,),dtype=int),
-                                'val':[None for ii in range(0,dnMax[kk])],
-                                'ncur':1, 'nMax':dnMax[kk]}
+                    assert dref[rid]['val'].ndim == 2
+                    if c0 or c1:
+                        assert dref[rid]['val'].shape[0]==dref[otherid]['val'].size
+                        if c0:
+                            dref[rid]['indother'] = None
+                    else:
+                        assert dref[rid]['indother'].ndim == 1
 
-        self._set_dBck(list(self.daxr.keys()))
+            # Get nn
+            val = dref[rid]['val']
 
-    def _make_daxr_dh(self,daxT):
-        daxr, lh, dh = {}, [], {}
-        for kk in self.lk:
-            for ii in range(0,len(daxT[kk])):
-                dax = daxT[kk][ii]
-                if 'invert' in dax.keys():
-                    invert = dax['invert']
-                else:
-                    invert = None
-                if 'xref' in dax.keys():
-                    xref = dax['xref']
-                else:
-                    xref = None
-                if 'dh' in dax.keys() and dax['dh'] is not None:
-                    for tt in dax['dh'].keys():
-                        for jj in range(0,len(dax['dh'][tt])):
-                            if 'trig' not in dax['dh'][tt][jj].keys():
-                                dax['dh'][tt][jj]['trig'] = None
-                            if 'xref' not in dax['dh'][tt][jj].keys():
-                                dax['dh'][tt][jj]['xref'] = xref
-                    dhh = dax['dh']
-                else:
-                    dhh = None
-                daxr[dax['ax']] = {'Type':kk, 'invert':invert,
-                                   'xref':xref, 'Bck':None, 'dh':dhh}
-                if 'incx' in dax.keys():
-                    daxr[dax['ax']]['incx'] = dax['incx']
+            # Check if is2d
+            ltypes = []
+            for ax in dax.keys():
+                if rid in dax[ax]['ref'].keys():
+                    ltypes.append(dax[ax]['ref'][rid])
+            ltypes = sorted(set(ltypes))
+            assert ltypes == ['2d'] or not '2d' in ltypes
+            is2d = '2d' in ltypes
+            dref[rid]['is2d'] = is2d
 
-                if dhh is not None:
-                    for kh in dhh.keys():
-                        for jj in range(0,len(dhh[kh])):
-                            for ii in range(0,len(dhh[kh][jj]['h'])):
-                                hh = dhh[kh][jj]['h'][ii]
-                                if hh not in lh:
-                                    lh.append(hh)
-                                    dh[hh] = {'ax':dax['ax'],
-                                              'Type':kh, 'vis':False,
-                                              'xref':dhh[kh][jj]['xref']}
-                                    if ii==0:
-                                        dh[hh]['trig'] = dhh[kh][jj]['trig']
+            # Get functions
+            otherid = dref[rid]['otherid']
+            indother = dref[rid]['indother']
+            df_ind_pos, df_ind_key, df_pos_ind = {}, {}, {}
+            for ax in dax.keys():
+                if rid in dax[ax]['ref'].keys():
+                    typ = dax[ax]['ref'][rid]
+                    if typ == '2d':
+                        assert '2d' in dref[rid].keys()
+                        val2 = dref[rid]['2d']
+                        is2d = True
+                        nn = (val2[0].size, val2[1].size)
+                    else:
+                        val2 = None
+                        is2d = False
+                        if isinstance(val, np.ndarray):
+                            nn = val.shape
+                        elif isinstance(val, list):
+                            nn = (len(val),)
+                        else:
+                            raise Exception("Unknown val type !")
+                    df_ind_pos[ax] = get_ind_frompos(typ, val, val2,
+                                                     otherid = otherid,
+                                                     indother = indother)
+                    dmovkeys = dax[ax]['dmovkeys'][rid]
 
-        return daxr, dh
+                    df_ind_key[ax] = get_ind_fromkey(dmovkeys,
+                                                     is2d = is2d,
+                                                     nn = nn)
+                    df_pos_ind[ax] = get_pos_fromind(val, val2,
+                                                     otherid = otherid,
+                                                     indother = indother)
 
+            dref[rid]['df_ind_pos'] = df_ind_pos
+            dref[rid]['df_ind_key'] = df_ind_key
+            dref[rid]['df_pos_ind'] = df_pos_ind
+
+            # lobj
+            lobj = [oo for oo in dobj.keys()
+                    if rid in dobj[oo]['drefid'].keys()]
+            dref[rid]['lobj'] = lobj
+
+        # dind
+        lref = list(dref.keys())
+        nref = len(lref)
+        ancur = np.zeros((2,nref),dtype=int)
+        ancur[1,:] = [dgroup[dref[rid]['group']]['nMax'] for rid in lref]
+        cumsum0 = np.r_[0, np.cumsum(ancur[1,:])]
+        arefind = np.zeros((np.sum(ancur[1,:]),),dtype=int)
+        dind = {'lrefid':lref, 'anMaxcur':ancur, 'arefind':arefind,
+                'cumsum0':cumsum0}
+
+        # dobj
+        for oo in dobj.keys():
+            dobj[oo]['vis'] = False
+
+            # get functions to update
+            lrefid = list(dobj[oo]['drefid'].keys())
+            for k, v in dobj[oo]['dupdate'].items():
+                # Check consistency with ddata
+                if v['id'] not in ddata.keys():
+                    if not v['id'] in dref.keys():
+                        msg = "Missing id in ddata or dref "
+                        msg += "(vs dobj[idobj]['dupdate'][k]['id']) !\n"
+                        msg += "    idobj: %s\n"%oo
+                        msg += "    k    : %s\n"%k
+                        msg += "    id   : %s"%v['id']
+                        raise Exception(msg)
+
+                    ddata[v['id']] = {'val':dref[v['id']]['val']}
+                    if dref[v['id']]['otherid'] is None:
+                        ddata[v['id']]['refids'] = [v['id']]
+                    else:
+                        ddata[v['id']]['refids'] = [dref[v['id']]['otherid'],v['id']]
+
+                # get update tools
+                val = ddata[v['id']]['val']
+                lrefs = ddata[v['id']]['refids']
+                linds = v['lrid']
+                fgetval = get_valf(val, lrefs, linds)
+
+                lkv = [(kk,vv) for kk,vv in dobj[oo]['dupdate'][k].items()
+                       if kk not in ['id','lrid']]
+                fupdate = get_fupdate(oo, k, **dict(lkv))
+                dobj[oo]['dupdate'][k]['fgetval'] = fgetval
+                dobj[oo]['dupdate'][k]['fupdate'] = fupdate
+                indrefind = get_indrefind(dind, linds, dobj[oo]['drefid'])
+                dobj[oo]['dupdate'][k]['indrefind'] = indrefind
+
+            # linds not necessarily identical !
+            dobj[oo]['aindvis'] = np.array([dobj[oo]['drefid'][rid]
+                                            for rid in lrefid], dtype=int)
+            indncurind = get_indncurind(dind, lrefid)
+            dobj[oo]['indncurind'] = indncurind
+
+        return dgroup, dref, dax, dobj, dind, ddata
+
+
+    def _get_dkeys(self):
+        dkeys = {'shift':{'val':False, 'action':'generic'},
+                 'control':{'val':False, 'action':'generic'},
+                 'ctrl':{'val':False, 'action':'generic'},
+                 'alt':{'val':False, 'action':'generic'},
+                 'left':{'val':False, 'action':'move'},
+                 'right':{'val':False, 'action':'move'},
+                 'up':{'val':False, 'action':'move'},
+                 'down':{'val':False, 'action':'move'}}
+                 # 'pageup':{'val':False, 'action':'move'},
+                 # 'pagedown':{'val':False, 'action':'move'}}
+        dkeys.update(dict([(v['key'],{'group':k, 'val':False, 'action':'group'})
+                           for k,v in self.dgroup.items()]))
+        nMax = np.max([v['nMax'] for v in self.dgroup.values()])
+        dkeys.update(dict([(str(ii),{'ind':ii, 'val':False, 'action':'indices'})
+                          for ii in range(0,nMax)]))
+        return dkeys
 
     def disconnect_old(self, force=False):
+        if self._warn_ifnotInteractive():
+            return
         if force:
             self.can.mpl_disconnect(self.can.manager.key_press_handler_id)
         else:
             lk = [kk for kk in list(plt.rcParams.keys()) if 'keymap' in kk]
             self.store_rcParams = {}
-            for kd in self.lkeys:
+            for kd in self.dkeys.keys():
                 self.store_rcParams[kd] = []
                 for kk in lk:
                     if kd in plt.rcParams[kk]:
@@ -1708,6 +3080,8 @@ class KeyHandler(object):
         self.can.mpl_disconnect(self.can.button_pick_id)
 
     def reconnect_old(self):
+        if self._warn_ifnotInteractive():
+            return
         if self.store_rcParams is not None:
             for kd in self.store_rcParams.keys():
                 for kk in self.store_rcParams[kk]:
@@ -1715,31 +3089,234 @@ class KeyHandler(object):
                         plt.rcParams[kk].append(kd)
 
     def connect(self):
+        if self._warn_ifnotInteractive():
+            return
         keyp = self.can.mpl_connect('key_press_event', self.onkeypress)
         keyr = self.can.mpl_connect('key_release_event', self.onkeypress)
         butp = self.can.mpl_connect('button_press_event', self.mouseclic)
         res = self.can.mpl_connect('resize_event', self.resize)
         #butr = self.can.mpl_connect('button_release_event', self.mouserelease)
+        #if not plt.get_backend() == "agg":
         self.can.manager.toolbar.release = self.mouserelease
 
-        self._cid = {'keyp':keyp, 'keyr':keyr,
-                     'butp':butp, 'res':res}#, 'butr':butr}
+        self._cid = {'keyp':keyp, 'keyr':keyr, 'butp':butp, 'res':res}#, 'butr':butr}
 
     def disconnect(self):
+        if self._warn_ifnotInteractive():
+            return
         for kk in self._cid.keys():
             self.can.mpl_disconnect(self._cid[kk])
         self.can.manager.toolbar.release = lambda event: None
 
-    def home(self):
-        """ To be filled when matplotlib issue completed """
+
+    def resize(self, event):
+        self._set_dBck(self.dax.keys())
+
+    def _set_dBck(self, lax):
+        # Make all invisible
+        for ax in lax:
+            for obj in self.dax[ax]['lobj']:
+                obj.set_visible(False)
+
+        # Draw and reset Bck
+        self.can.draw()
+        for ax in lax:
+            #ax.draw(self.can.renderer)
+            self.dax[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
+
+        # Redraw
+        for ax in lax:
+            for obj in self.dax[ax]['lobj']:
+                obj.set_visible(self.dobj[obj]['vis'])
+                #ax.draw(self.can.renderer)
+        self.can.draw()
+
+    def init(self, dgroup=None, ngroup=None, dobj=None):
+        pass
+
+    def update(self, excluderef=True):
+        self._update_dcur() # 0.4 ms
+        self._update_dref(excluderef=excluderef)    # 0.1 ms
+        self._update_dobj() # 0.2 s
+
+    def _update_dcur(self):
+        group = self.dcur['group']
+        refid = self.dcur['refid']
+        assert self.dref[refid]['group'] == group
+        assert refid in self.dax[self.dcur['ax']]['graph'].keys()
+
+        # Update also dind !
+        an = [self.dgroup[self.dref[rid]['group']]['ncur']
+              for rid in self.dind['lrefid']]
+        self.dind['anMaxcur'][0,:] = an
+
+        # Update array ncur
+        for obj in self.dgroup[group]['lobj']:
+            a0 = self.dind['anMaxcur'][0,self.dobj[obj]['indncurind']]
+            a1 = self.dobj[obj]['aindvis']
+            self.dobj[obj]['vis'] = np.all( a0 >= a1 )
+
+
+    def _update_dref(self, excluderef=True):
+        group = self.dcur['group']
+        ind = self.dgroup[group]['indcur']
+        val = self.dgroup[group]['valind'][ind,:]
+
+        if excluderef and len(self.dgroup[group]['lrefid'])>1:
+            for rid in self.dgroup[group]['lrefid']:
+                if rid == self.dcur['refid']:
+                    continue
+                if self.dref[rid]['otherid'] is None:
+                    indother = None
+                else:
+                    group2 = self.dref[self.dref[rid]['otherid']]['group']
+                    ind2 = self.dgroup[group2]['indcur']
+                    indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
+                lax = list(self.dref[rid]['df_ind_pos'].keys())
+                if len(lax) == 0:
+                    msg = "A ref has no associated ax !\n"
+                    msg += "    - group: %s\n"%group
+                    msg += "    - rid  : %s"%rid
+                    raise Exception(msg)
+
+                ii = self.dref[rid]['df_ind_pos'][lax[0]](val, indother)
+                if self._follow:
+                    self.dref[rid]['ind'][ind:] = ii
+                else:
+                    self.dref[rid]['ind'][ind] = ii
+        else:
+            for rid in self.dgroup[group]['lrefid']:
+                if self.dref[rid]['otherid'] is None:
+                    indother = None
+                else:
+                    group2 = self.dref[self.dref[rid]['otherid']]['group']
+                    ind2 = self.dgroup[group2]['indcur']
+                    indother = self.dref[self.dref[rid]['otherid']]['ind'][ind2]
+                lax = list(self.dref[rid]['df_ind_pos'].keys())
+                if len(lax) == 0:
+                    msg = "A ref has no associated ax !\n"
+                    msg += "    - group: %s\n"%group
+                    msg += "    - rid  : %s"%rid
+                    raise Exception(msg)
+
+                ii = self.dref[rid]['df_ind_pos'][lax[0]](val, indother)
+                if self._follow:
+                    self.dref[rid]['ind'][ind:] = ii
+                else:
+                    self.dref[rid]['ind'][ind] = ii
+
+        # Update dind['arefind']
+        for ii in range(0,len(self.dind['lrefid'])):
+            rid = self.dind['lrefid'][ii]
+            i0 = self.dind['cumsum0'][ii]
+            i1 = i0 + self.dgroup[self.dref[rid]['group']]['nMax']
+            self.dind['arefind'][i0:i1] = self.dref[rid]['ind']
+
+
+    def _update_dobj(self):
+
+        # --- Prepare ----- 2 us
+        group = self.dcur['group']
+        refid = self.dcur['refid']
+        indcur = self.dgroup[group]['indcur']
+        lax = self.dgroup[group]['lax']
+
+        # ---- Restore backgrounds ---- 1 ms
+        for aa in lax:
+            self.can.restore_region(self.dax[aa]['Bck'])
+
+        # ---- update data of group objects ----  0.15 s
+        for obj in self.dgroup[group]['d2obj'][indcur]:
+            for k in self.dobj[obj]['dupdate'].keys():
+                ii = self.dobj[obj]['dupdate'][k]['indrefind']  # 20 us
+                li = self.dind['arefind'][ii]   # 50 us
+                val = self.dobj[obj]['dupdate'][k]['fgetval']( li )    # 0.0001 s
+                self.dobj[obj]['dupdate'][k]['fupdate']( val )  # 2 ms
+
+        # --- Redraw all objects (due to background restore) --- 25 ms
+        for obj in self.dobj.keys():
+            obj.set_visible(self.dobj[obj]['vis'])
+            self.dobj[obj]['ax'].draw_artist(obj)
+
+        # ---- blit axes ------ 5 ms
+        for aa in lax:
+            self.can.blit(aa.bbox)
+
+    def mouseclic(self,event):
+
+        # Check click is relevant
+        C0 = event.inaxes is not None and event.button == 1
+        if not C0:
+            return
+
+        self.curax_panzoom = event.inaxes   # DB ?
+
+        # Check axes is relevant and toolbar not active
+        c_activeax = 'fix' not in self.dax[event.inaxes].keys()
+        c_toolbar = self.can.manager.toolbar._active in [None,False]
+        if not all([c_activeax,c_toolbar]):
+            return
+
+        # Set self.dcur
+        self.dcur['ax'] = event.inaxes
+        lrid = list(self.dax[event.inaxes]['graph'].keys())
+        if len(lrid)>1:
+            lg = [self.dref[rid]['group'] for rid in lrid]
+            if self.dcur['group'] in lg:
+                rid = lrid[lg.index(self.dcur['group'])]
+            else:
+                rid = self.dax[event.inaxes]['defrefid']
+        else:
+            rid= lrid[0]
+        self.dcur['refid'] = rid
+        self.dcur['group'] = self.dref[self.dcur['refid']]['group']
+
+        group = self.dcur['group']
+        ax = self.dcur['ax']
+        refid = self.dcur['refid']
+
+        # Check max number of occurences not reached if shift
+        c0 = (self.dkeys['shift']['val']
+              and self.dgroup[group]['indcur'] == self.dgroup[group]['nMax']-1)
+        if c0:
+            msg = "Max nb. of plots reached ({0}) for group {1}"
+            msg  = msg.format(self.dgroup[group]['nMax'], group)
+            print(msg)
+            return
+
+        # Update indcur
+        ctrl = self.dkeys['control']['val'] or self.dkeys['ctrl']['val']
+        if ctrl:
+            nn = 0
+            ii = 0
+        elif self.dkeys['shift']['val']:
+            nn = int(self.dgroup[group]['ncur'])+1
+            ii = nn
+        else:
+            nn = int(self.dgroup[group]['ncur'])
+            ii = int(self.dgroup[group]['indcur'])
+
+        # Update dcur
+        self.dgroup[group]['ncur'] = nn
+        self.dgroup[group]['indcur'] = ii
+
+        # Update group val
+        val = (event.xdata, event.ydata)
+        if self._follow:
+            self.dgroup[group]['valind'][ii:,:] = val
+        else:
+            self.dgroup[group]['valind'][ii,:] = val
+
+        self.update(excluderef=False)
+
 
     def mouserelease(self, event):
         msg = "Make sure you release the mouse button on an axes !"
         msg += "\n Otherwise the background plot cannot be properly updated !"
-        C0 = self.can.manager.toolbar._active == 'PAN'
-        C1 = self.can.manager.toolbar._active == 'ZOOM'
+        c0 = self.can.manager.toolbar._active == 'PAN'
+        c1 = self.can.manager.toolbar._active == 'ZOOM'
 
-        if C0 or C1:
+        if c0 or c1:
             ax = self.curax_panzoom
             assert ax is not None, msg
             lax = ax.get_shared_x_axes().get_siblings(ax)
@@ -1747,269 +3324,136 @@ class KeyHandler(object):
             lax = list(set(lax))
             self._set_dBck(lax)
 
-    def resize(self, event):
-        self._set_dBck(list(self.daxr.keys()))
 
-    def _set_dBck(self, lax):
-        # Make all invisible
-        for ax in lax:
-            if self.daxr[ax]['dh'] is not None:
-                for typ in self.daxr[ax]['dh']:
-                    for ii in range(0,len(self.daxr[ax]['dh'][typ])):
-                        for hh in self.daxr[ax]['dh'][typ][ii]['h']:
-                            hh.set_visible(False)
+    def onkeypress(self, event):
 
-        # Draw and reset Bck
-        self.can.draw()
-        for ax in lax:
-            #ax.draw(self.can.renderer)
-            self.daxr[ax]['Bck'] = self.can.copy_from_bbox(ax.bbox)
+        lkey = event.key.split('+')
 
-        # Redraw
-        for ax in lax:
-            if self.daxr[ax]['dh'] is not None:
-                for typ in self.daxr[ax]['dh']:
-                    for ii in range(0,len(self.daxr[ax]['dh'][typ])):
-                        for hh in self.daxr[ax]['dh'][typ][ii]['h']:
-                            hh.set_visible(self.dh[hh]['vis'])
-                #ax.draw(self.can.renderer)
-        self.can.draw()
-
-    def _update_restore_Bck(self, lax):
-        for ax in lax:
-            self.can.restore_region(self.daxr[ax]['Bck'])
-
-    def _update_vlines_ax(self, ax, axT):
-        for jj in range(0,len(self.daxr[ax]['dh']['vline'])):
-            if (self.daxr[ax]['dh']['vline'][jj]['xref'] is
-                self.daxr[self.curax]['xref']):
-                for ii in range(0,self.ref[axT]['ncur']):
-                    hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
-                    hh.set_xdata(self.ref[axT]['val'][ii])
-                    self.dh[hh]['vis'] = True
-                    hh.set_visible(self.dh[hh]['vis'])
-                    ax.draw_artist(hh)
-            else:
-                xref = self.daxr[ax]['dh']['vline'][jj]['xref']
-                for ii in range(0,self.ref[axT]['ncur']):
-                    hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
-                    val = self.ref[axT]['val'][ii]
-                    ind = np.argmin(np.abs(xref-val))
-                    hh.set_xdata(xref[ind])
-                    self.dh[hh]['vis'] = True
-                    hh.set_visible(self.dh[hh]['vis'])
-                    ax.draw_artist(hh)
-            for ii in range(self.ref[axT]['ncur'],self.ref[axT]['nMax']):
-                hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
-                self.dh[hh]['vis'] = False
-                hh.set_visible(self.dh[hh]['vis'])
-                ax.draw_artist(hh)
-
-    def _update_vlines(self):
-        lax = []
-        axT = self.daxr[self.curax]['Type']
-        for dax in self.daxT[axT]:
-            self._update_vlines_ax(dax['ax'], axT)
-            lax.append(dax['ax'])
-        return lax
-
-    def _update_vlines_and_Eq(self):
-        axT = self.daxr[self.curax]['Type']
-        if not axT in ['t','chan','chan2D','lamb']:
-            lax = self._update_vlines()
-            return lax
-
-        lax = []
-        if self.combine and axT in ['chan','chan2D']:
-            ldAX = [dd for dd in self.daxT[axT] if self.curax==dd['ax']]
-        else:
-            ldAX = self.daxT[axT]
-        #xref = self.ref[axT]['val']
-        for dax in ldAX:
-            ax = dax['ax']
-            if self.daxr[ax]['dh'] is None:
-                continue
-            lax.append(ax)
-            dtg = self.daxr[ax]['dh']['vline'][0]['trig']
-            if dtg is None:
-                self._update_vlines_ax(ax, axT)
-                continue
-
-            for jj in range(0,len(self.daxr[ax]['dh']['vline'])):
-                dtg = self.daxr[ax]['dh']['vline'][jj]['trig']
-                xref = self.daxr[ax]['dh']['vline'][jj]['xref']
-                if xref.ndim==1:
-                    xvfunc = np.abs
-                    xvset = lambda h, v: h.set_xdata(v)
-                else:
-                    xvfunc = lambda xv: np.sum(xv**2,axis=1)
-                    xvset = lambda h, v: h.set_data(v)
-                for ii in range(0,self.ref[axT]['ncur']):
-                    hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
-                    ind = self.ref[axT]['ind'][ii]
-                    val = self.ref[axT]['val'][ii]
-                    if xref is not self.daxr[self.curax]['xref']:
-                        ind = np.argmin(xvfunc(xref-val))
-                        val = xref[ind]
-                    xvset(hh,val)
-                    #hh.set_xdata(val)
-                    self.dh[hh]['vis'] = True
-                    for kk in dtg.keys():
-                        for ll in range(0,len(dtg[kk])):
-                            h = dtg[kk][ll]['h'][ii]
-                            if dtg[kk][ll]['xref'] is xref:
-                                indh = ind
-                            else:
-                                indh = np.argmin(np.abs(dtg[kk][ll]['xref']-val))
-
-                            if 'txt' in dtg[kk][ll].keys():
-                                if 'format' in dtg[kk][ll].keys():
-                                    sss = '{0:%s}'%dtg[kk][ll]['format']
-                                    h.set_text(sss.format(dtg[kk][ll]['txt'][indh]))
-                                else:
-                                    h.set_text(dtg[kk][ll]['txt'][indh])
-                            elif 'xy' in dtg[kk][ll].keys():
-                                h.set_data(dtg[kk][ll]['xy'][indh])
-                            elif 'imshow' in dtg[kk][ll].keys():
-                                h.set_data(dtg[kk][ll]['imshow']['data'][indh,:][dtg[kk][ll]['imshow']['ind']])
-                            elif 'pcolormesh' in dtg[kk][ll].keys():
-                                ncol = dtg[kk][ll]['pcolormesh']['cm'](dtg[kk][ll]['pcolormesh']['norm'](dtg[kk][ll]['pcolormesh']['data'][indh,:]))
-                                h.set_facecolor(ncol)
-                            else:
-                                if 'x' in dtg[kk][ll].keys():
-                                    h.set_xdata(dtg[kk][ll]['x'][indh,:])
-                                if 'y' in dtg[kk][ll].keys():
-                                    h.set_ydata(dtg[kk][ll]['y'][indh,:])
-                            self.dh[h]['vis'] = True
-                            h.set_visible(self.dh[h]['vis'])
-                            #self.dh[h]['ax'].draw_artist(h)
-                            if not self.dh[h]['ax'] in lax:
-                                lax.append(self.dh[h]['ax'])
-                    hh.set_visible(self.dh[hh]['vis'])
-                    #ax.draw_artist(hh)
-                for ii in range(self.ref[axT]['ncur'],self.ref[axT]['nMax']):
-                    hh = self.daxr[ax]['dh']['vline'][jj]['h'][ii]
-                    self.dh[hh]['vis'] = False
-                    for kk in dtg.keys():
-                        for ll in range(0,len(dtg[kk])):
-                            h = dtg[kk][ll]['h'][ii]
-                            self.dh[h]['vis'] = False
-                            h.set_visible(self.dh[h]['vis'])
-                            #self.dh[h]['ax'].draw_artist(h)
-                            if not self.dh[h]['ax'] in lax:
-                                lax.append(self.dh[h]['ax'])
-                    hh.set_visible(self.dh[hh]['vis'])
-                    #ax.draw_artist(hh)
-
-        for ax in lax:
-            # Sort alphabetically to make sure vline (pix) is plotted after
-            # imshow / pcolormesh (otherwise pixel not visible)
-            for kk in sorted(list(self.daxr[ax]['dh'].keys())):
-                for ii in range(0,len(self.daxr[ax]['dh'][kk])):
-                    for h in self.daxr[ax]['dh'][kk][ii]['h']:
-                        ax.draw_artist(h)
-        return lax
-
-
-    def _update_blit(self, lax):
-        for ax in lax:
-            self.can.blit(ax.bbox)
-
-    def mouseclic(self,event):
-        C0 = event.inaxes is not None and event.button == 1
-        if not C0:
-            return
-        self.curax_panzoom = event.inaxes
-        C1 = self.daxr[event.inaxes]['Type'] in ['t','chan','chan2D']
-        C2 = self.can.manager.toolbar._active is None
-        C3 = self.daxr[event.inaxes]['Type']=='chan2D'
-        if not (C1 and C2):
-            return
-        self.curax = event.inaxes
-
-        Type = self.daxr[self.curax]['Type']
-        #Type = 'chan' if 'chan' in Type else Type
-        if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
-            print("     Max. nb. of %s plots reached !!!"%Type)
+        c0 = self.can.manager.toolbar._active is not None
+        c1 = len(lkey) not in [1,2]
+        c2 = [ss not in self.dkeys.keys() for ss in lkey]
+        if c0 or c1 or any(c2):
             return
 
-        val = self.daxr[event.inaxes]['xref']
-        if C3:
-            evxy = np.r_[event.xdata,event.ydata]
-            d2 = np.sum((val-evxy[np.newaxis,:])**2,axis=1)
-        else:
-            d2 = np.abs(event.xdata-val)
-        ind = np.nanargmin(d2)
-        val = val[ind]
-        if self.ctrl:
-            ii = 0
-        elif self.shift:
-            ii = int(self.ref[Type]['ncur'])
-        else:
-            ii = int(self.ref[Type]['ncur'])-1
-        self.ref[Type]['ind'][ii] = ind
-        self.ref[Type]['val'][ii] = val
-        self.ref[Type]['ncur'] = ii+1
-        self.update()
+        lgen = [k for k in self.dkeys_r['generic'] if k in lkey]
+        lmov = [k for k in self.dkeys_r['move'] if k in lkey]
+        lgrp = [k for k in self.dkeys_r['group'] if k in lkey]
+        lind = [k for k in self.dkeys_r['indices'] if k in lkey]
 
-    def onkeypress(self,event):
-        C0 = self.can.manager.toolbar._active is None
-        C1 = [kk in event.key for kk in self.lkeys]
-        C2 = event.name is 'key_release_event' and event.key=='shift'
-        C3 = event.name is 'key_press_event'
-        C4 = event.name is 'key_release_event' and event.key=='alt'
-        C5 = event.name is 'key_release_event' and event.key=='control'
-
-        if not (C0 and any(C1) and (C2 or C3 or C4 or C5)):
+        ngen, nmov, ngrp, nind = len(lgen), len(lmov), len(lgrp), len(lind)
+        ln = np.r_[ngen, nmov, ngrp, nind]
+        if np.any(ln>1) or np.sum(ln)>2:
+            return
+        if np.sum(ln)==2 and (ngrp==1 or nind==1):
             return
 
-        if event.key=='control':
-            self.ctrl = False if C5 else True
-            return
-        if event.key=='shift':
-            self.shift = False if C2 else True
-            return
-        if event.key=='alt':
-            self.alt = False if C4 else True
+        genk = None if ngen == 0 else lgen[0]
+        movk = None if nmov == 0 else lmov[0]
+        grpk = None if ngrp == 0 else lgrp[0]
+        indk = None if nind == 0 else lind[0]
+
+
+        if event.name == 'key_release_event':
+            if event.key == genk:
+                self.dkeys[genk]['val'] = False
             return
 
-        Type = self.daxr[self.curax]['Type']
-        #Type = 'chan' if 'chan' in Type else Type
-        if self.shift and self.ref[Type]['ncur']>=self.ref[Type]['nMax']:
-                print("     Max. nb. of %s plots reached !!!"%Type)
+        if genk is not None and event.key == genk:
+            self.dkeys[genk]['val'] = True
+            return
+
+        if grpk is not None:
+            group = self.dkeys[event.key]['group']
+            self.dcur['group'] = group
+            self.dcur['refid'] = self.dgroup[group]['defid']
+            self.dcur['ax'] = self.dgroup[group]['defax']
+            return
+
+        if indk is not None:
+            group = self.dcur['group']
+            indmax = self.dgroup[group]['ncur']
+            ii = int(event.key)
+            if ii > indmax:
+                msg = "Maximum allowed index for group {0} is {1}, set to it"
+                msg = msg.format(group, indmax)
+                print(msg)
+            ii = min(ii,indmax)
+            self.dgroup[group]['indcur'] = ii
+            return
+
+        if movk is not None:
+            group = self.dcur['group']
+            refid = self.dcur['refid']
+            ax = self.dcur['ax']
+
+            # # Debug
+            # if refid not in self.dax[ax]['dmovkeys'].keys():    # DB
+                # print(refid, self.dref[refid]['group'])  # DB
+                # print(ax, self.dax[ax]['dmovkeys']) # DB
+
+            if movk not in self.dax[ax]['dmovkeys'][refid].keys():
                 return
 
-        val = self.daxr[self.curax]['xref']
-        if self.alt:
-            inc = 50 if Type=='t' else 10
-        else:
-            inc = 1
-        if self.daxr[self.curax]['Type']=='chan2D':
-            kdir = [kk for kk in self.lkeys
-                    if (kk in event.key and not kk in ['shift','control','alt'])]
-            c = -inc if self.daxr[self.curax]['invert'] else inc
-            x12 = val[self.ref[Type]['ind'][self.ref[Type]['ncur']-1],:]
-            x12 = x12 + c*self.daxr[self.curax]['incx'][kdir[0]]
-            d2 = np.sum((val-x12[np.newaxis,:])**2,axis=1)
-            ind = np.nanargmin(d2)
-        else:
-            c = -inc if 'left' in event.key else inc
-            ind = (self.ref[Type]['ind'][self.ref[Type]['ncur']-1]+c)
-            ind = ind%val.size
-        val = val[ind]
-        if self.ctrl:
-            ii = 0
-        elif self.shift:
-            ii = self.ref[Type]['ncur']
-        else:
-            ii = self.ref[Type]['ncur']-1
-        self.ref[Type]['ind'][ii] = ind
-        self.ref[Type]['val'][ii] = val
-        self.ref[Type]['ncur'] = ii+1
-        self.update()
+            # Check max number of occurences not reached if shift
+            c0 = (self.dkeys['shift']['val']
+                  and self.dgroup[group]['indcur'] == self.dgroup[group]['nMax']-1)
+            if c0:
+                msg = "Max nb. of plots reached ({0}) for group {1}"
+                msg  = msg.format(self.dgroup[group]['nMax'], group)
+                print(msg)
+                return
 
-    ##### To be implemented for each case ####
-    def set_dBack(self):
-        """ Choose which axes need redrawing and call self._set_dBck() """
-    def update(self):
-        """ Implement basic behaviour, and call self._restore_Bck() """
+            ctrl = self.dkeys['control']['val'] or self.dkeys['ctrl']['val']
+            if ctrl:
+                nn = 0
+                ii = 0
+            elif self.dkeys['shift']['val']:
+                nn = int(self.dgroup[group]['ncur'])+1
+                ii = nn
+            else:
+                nn = int(self.dgroup[group]['ncur'])
+                ii = int(self.dgroup[group]['indcur'])
+
+            # Update dcur
+            self.dgroup[group]['ncur'] = nn
+            self.dgroup[group]['indcur'] = ii
+
+            # Update refid ind
+            ind = self.dref[refid]['df_ind_key'][ax](movk,
+                                                     self.dref[refid]['ind'][ii],
+                                                     self.dkeys['alt']['val'])
+
+            if self._follow:
+                self.dref[refid]['ind'][ii:] = ind
+            else:
+                self.dref[refid]['ind'][ii] = ind
+
+            # Update group val
+            if self.dref[refid]['otherid'] is None:
+                indother = None
+            else:
+                group2 = self.dref[self.dref[refid]['otherid']]['group']
+                ind2 = self.dgroup[group2]['indcur']
+                indother = self.dref[self.dref[refid]['otherid']]['ind'][ind2]
+            val = self.dref[refid]['df_pos_ind'][ax]( ind, indother )
+            if self._follow:
+                self.dgroup[group]['valind'][ii:,:] = val
+            else:
+                self.dgroup[group]['valind'][ii,:] = val
+
+            # Upadte all
+            self.update(excluderef=True)
+
+
+
+
+
+###################################################################
+###################################################################
+#       Start new abstract Data2DBase with indices for next version
+###################################################################
+
+class Data2DBase(ToFuObjectBase):
+    """ Provide a a dict of sequences depending on 2 indices
+    """
+    pass
