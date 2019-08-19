@@ -3551,7 +3551,8 @@ class Rays(utils.ToFuObject):
             return
 
         # dX12
-        self._dgeom = self._complete_dX12(self._dgeom)
+        if self._dgeom['nRays'] > 1:
+            self._dgeom = self._complete_dX12(self._dgeom)
 
         # Perform computation of kIn and kOut
         kIn, kOut, vperp, indout = self._compute_kInOut()
