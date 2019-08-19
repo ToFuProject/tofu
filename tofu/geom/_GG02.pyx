@@ -2973,11 +2973,17 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                         + " Options are: ['calls','memory','hybrid']"
         assert minim in ['calls','memory','hybrid'], error_message
     # -- Preformat output signal -----------------------------------------------
-    if t is None or not hasattr(t,'__iter__'):
+    if t is None:
+        if minim == 'memory':
+            minim = 'calls'
+            error_message = "If t is None !"
+            error_message += "  => there is no point in using minimize='memory'"
+            error_message += "  => switching to minimize = '%s'"%minim
+            warnings.warn(msg)
+    elif not hasattr(t,'__iter__'):
         nt = 1
         ltime = np.zeros((1))
         ltime[0] = t
-        # TODO : WHAT HAPPENS IF TIME = None ?
     else:
         nt = len(t)
         ltime = np.asarray(t,dtype=float)
@@ -3254,7 +3260,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis, **fkwdargs)
+                               t=t, vect=-usbis, **fkwdargs)
                     sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
@@ -3269,7 +3275,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis, **fkwdargs)
+                               t=t, vect=-usbis, **fkwdargs)
                     # integration
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
@@ -3286,7 +3292,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis, **fkwdargs)
+                               t=t, vect=-usbis, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
         elif dl_is_list and not ani:
@@ -3303,7 +3309,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                                   t=ltime, **fkwdargs)
+                                   t=t, **fkwdargs)
                     sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
@@ -3318,7 +3324,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                 dx=loc_eff_res[0])
             elif n_imode == 2:
@@ -3334,7 +3340,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
         elif ani:
@@ -3351,7 +3357,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis,**fkwdargs)
+                               t=t, vect=-usbis,**fkwdargs)
                     sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode==1:
                 for ii in range(nlos):
@@ -3365,7 +3371,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis,**fkwdargs)
+                               t=t, vect=-usbis,**fkwdargs)
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
             elif n_imode==2:
@@ -3380,7 +3386,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis,**fkwdargs)
+                               t=t, vect=-usbis,**fkwdargs)
                     # loop over time for integrating
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
@@ -3398,7 +3404,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     # loop over time for integrating
                     sig[:, ii] = np.sum(val,axis=1)*loc_eff_res[0]
             elif n_imode==1:
@@ -3413,7 +3419,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
             elif n_imode==2:
@@ -3428,7 +3434,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=-1,
                                               dx=loc_eff_res[0])
     if los_coeffs != NULL:
