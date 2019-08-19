@@ -33,6 +33,7 @@ When installing ``Cygwin`` you will need to install the following packages (you 
 * ``openssh``
 * ``python3`` (or ``python2``)
 * ``python3-pip`` (or ``python2-pip``, depending on the chosen python version)
+* ``python3-devel`` (or ``python2-devel``, depending on the chosen python version)
 * ``python3-setuptools`` (or ``python2-setuptools``, depending on the chosen python version)
 
   
@@ -53,4 +54,6 @@ Installing ToFu
 
 * Move to the tofu directory, probably: ``cd ~/tofu``
 * Switch to the ``git`` branch you will be working on. If you are just starting you probably want to start from the latest develop branch: ``git checkout devel``. If you are not familiar with **git** take a look at  `this tutorial (long)  <https://www.atlassian.com/git/tutorials>`__ or `this short one <https://rogerdudler.github.io/git-guide/>`__
+* Installing extra dependencies:
+ * `pip install Cython`
 * We have already defined all requisites of the library, so you can just do ``pip install .`` (it installs the library where you are, so ToFu)
