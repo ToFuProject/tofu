@@ -13,7 +13,7 @@ Before installing ToFu
 First things first: you will need a bash terminal. If you are running Windows 10, there are already some solutions
 integrated with your system. Please google "Linux bash shell on Windows 10" to see the latest solutions available.
 If you are running an older Windows, you will need to `install cygwin. <https://cygwin.com/install.html>`__
-There are other solutions available, but you should have a bash terminal with *git* and *python* by the end of this step.
+There are other solutions available, but you should have a bash terminal with **git** and **python** by the end of this step.
 
 Required packages for cygwin
 ----------------------------
