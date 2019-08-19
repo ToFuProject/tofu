@@ -5,6 +5,7 @@
 #
 # -- Python libraries imports --------------------------------------------------
 import sys
+from warnings import warn
 import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
@@ -2979,7 +2980,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
             error_message = "If t is None !"
             error_message += "  => there is no point in using minimize='memory'"
             error_message += "  => switching to minimize = '%s'"%minim
-            warnings.warn(msg)
+            warn(error_message)
     elif not hasattr(t,'__iter__'):
         nt = 1
         ltime = np.zeros((1))
@@ -4178,7 +4179,6 @@ def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
     if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
         assert False, "The function is only implemented with the simple"\
             + " algorithm and for toroidal vessels... Sorry!"
-    from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
@@ -4250,7 +4250,6 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
     This is the PYTHON function, use only if you need this computation from
     Python, if you need it from Cython, use `is_close_los_vpoly_vec_core`
     """
-    from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
     # ==========================================================================
@@ -4317,7 +4316,6 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
     This is the PYTHON function, use only if you need this computation from
     Python, if you need it from Cython, use `which_los_closer_vpoly_vec_core`
     """
-    from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
@@ -4378,7 +4376,6 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
     This is the PYTHON function, use only if you need this computation from
     Python, if you need it from Cython, use `which_vpoly_closer_los_vec_core`
     """
-    from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
     # ==========================================================================
