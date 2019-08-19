@@ -167,7 +167,7 @@ class Test01_DataCam12D(object):
         # signal as Data from lcams
         lm = ['sum', 'simps']
         lData = [lc[ii].calc_signal(emiss, t=t,
-                                    res=0.01, method=lm[ii], plot=False)
+                                    res=0.01, method=lm[ii], plot=False)[0]
                  for ii in range(0,len(lc))]
 
         # Adding concatenated sig / data and without lcam

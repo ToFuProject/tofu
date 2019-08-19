@@ -517,7 +517,8 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                if (k in [dEq_corres['x'],dEq_corres['ax']]
+                    and 'marker' not in dlextra[k][ii].keys()):
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"
@@ -1266,7 +1267,8 @@ def _DataCam12D_plot_spectral(lData, key=None,
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k in ['Ax','X'] and 'marker' not in dlextra[k][ii].keys():
+                if (k in [dEq_corres['ax'],dEq_corres['x']]
+                    and 'marker' not in dlextra[k][ii].keys()):
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"
@@ -1558,18 +1560,19 @@ def _DataCam12D_plot_spectral(lData, key=None,
     for jj in range(0,nlbdMax):
         # lambda txt
         for ll in range(0,nchMax):
-            l0 = dax['txtl'][ll].text((0.5+jj)/nlbdMax, 0., r'',
-                                      color=lclbd[jj], fontweight='bold',
-                                      fontsize=6., ha='center', va='bottom')
-            if llambother[ii] is None:
-                dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0], 'lrid':[lidlamb[0]],
-                                              'bstr':'{0:%s}'%fmt_l}},
-                            'drefid':{lidlamb[0]:jj}}
-            else:
-                dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0],
-                                              'lrid':[llambother[ii], lidlamb[0]],
-                                              'bstr':'{0:%s}'%fmt_l}},
-                            'drefid':{llambother[ii]:ll, lidlamb[0]:jj}}
+            for ii in range(0,nDat):
+                l0 = dax['txtl'][ll].text((0.5+jj)/nlbdMax, 0., r'',
+                                          color=lclbd[jj], fontweight='bold',
+                                          fontsize=6., ha='center', va='bottom')
+                if llambother[ii] is None:
+                    dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0], 'lrid':[lidlamb[0]],
+                                                  'bstr':'{0:%s}'%fmt_l}},
+                                'drefid':{lidlamb[0]:jj}}
+                else:
+                    dobj[l0] = {'dupdate':{'txt':{'id':lidlamb[0],
+                                                  'lrid':[llambother[ii], lidlamb[0]],
+                                                  'bstr':'{0:%s}'%fmt_l}},
+                                'drefid':{llambother[ii]:ll, lidlamb[0]:jj}}
 
     # -------------
     # Data-specific
@@ -1960,7 +1963,8 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
                                         if not kk == 't'])
                 dlextra[k][ii]['id'] = id(dlextra[k][ii]['data2D'])
                 dlextra[k][ii]['idt'] = idteq
-                if k != kSep and 'marker' not in dlextra[k][ii].keys():
+                if (k in [dEq_corres['ax'], dEq_corres['x']]
+                    and 'marker' not in dlextra[k][ii].keys()):
                     dlextra[k][ii]['marker'] = dmarker[k]
             if len(dteq[ii].keys()) > 1:
                 msg = "Several distinct time bases in self.dextra for:\n"

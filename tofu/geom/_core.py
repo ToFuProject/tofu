@@ -4319,7 +4319,7 @@ class Rays(utils.ToFuObject):
                                             dmethod=resMode, method=method,
                                             num_threads=num_threads, Test=Test)
         if pts:
-            nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[-1]]
+            nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
             k = np.repeat(Ds, nbrep, axis=1) + k[None,:]*np.repeat(us, nbrep, axis=1)
         if not compact:
             k = np.split(k, lind, axis=-1)
@@ -4629,8 +4629,9 @@ class Rays(utils.ToFuObject):
                                             connect=connect)
 
 
-    def calc_signal_from_Plasma2D(self, plasma2d, quant=None, t=None,
-                                  ref1d=None, ref2d=None,
+    def calc_signal_from_Plasma2D(self, plasma2d, t=None,
+                                  quant=None, ref1d=None, ref2d=None,
+                                  q2dR=None, q2dPhi=None, q2dZ=None, Type=None,
                                   Brightness=True, interp_t='nearest',
                                   interp_space=None, fill_value=np.nan,
                                   res=None, DL=None, resMode='abs', method='sum',
@@ -4650,13 +4651,18 @@ class Rays(utils.ToFuObject):
         # Get ptsRZ along LOS // Which to choose ???
         pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
                                               compact=True, pts=True)
-        indpts = np.r_[0,indpts,pts.shape[1]]
+        if q2dR is None:
+            vect = None
+        else:
+            nbrep = np.r_[indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]]
+            vect = np.repeat(self.u, nbrep, axis=1)
 
         # Get quantity values at ptsRZ
         # This is the slowest step (~3.8 s with res=0.02 and interferometer)
-        val, t = plasma2d.interp_pts2profile(quant, pts=pts, t=t,
-                                             ref1d=ref1d, ref2d=ref2d,
-                                             interp_t=interp_t,
+        val, t = plasma2d.interp_pts2profile(pts=pts, vect=vect, t=t,
+                                             quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                             q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
+                                             interp_t=interp_t, Type=Type,
                                              interp_space=interp_space,
                                              fill_value=fill_value)
 
@@ -4666,9 +4672,9 @@ class Rays(utils.ToFuObject):
         else:
             sig = np.full((1,self.nRays), np.nan)
 
+        indpts = np.r_[0,indpts,pts.shape[1]]
         for ii in range(0,self.nRays):
             sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
-
 
         # Format output
         # this is the secod slowest step (~0.75 s)

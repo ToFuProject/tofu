@@ -32,7 +32,7 @@ def compute_bremzeff(Te=None, ne=None, zeff=None, lamb=None):
     return emis, units
 
 
-def compute_fangle_vector(Bv=None, ne=None, lamb=None):
+def compute_fangle(BR=None, BPhi=None, BZ=None, ne=None, lamb=None):
     """ The the vector quantity to be integrated on LOS to get faraday angle
 
     fangle = int_LOS ( abs(sca(quant, u_LOS)) )
@@ -49,6 +49,6 @@ def compute_fangle_vector(Bv=None, ne=None, lamb=None):
     """
     const = scpct.e**3 / (8.*scpct.pi**2
                           * scpct.epsilon_0 * scpct.m_e**2 * scpct.c**3)
-    quant = const * ne * Bv
+    quant = const * lamb**2 * ne * np.array([BR, BPhi, BZ])
     units = r'rad / m'
     return quant, units
