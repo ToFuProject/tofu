@@ -18,19 +18,19 @@ There are other solutions available, but you should have a bash terminal with *g
 Required packages for cygwin
 ----------------------------
 
-When installing `Cygwin` you will need to install the following packages (you can also install them after installing Cygwin, using `MinGW Installer`)::
-  `base-cygwin`
-  `bash`
-  `cmake`
-  `curl`
-  `git`
-  `emacs` or `vim` (for editting text/code)
-  `gcc-core`
-  `gcc-g++`
-  `gdb` (debugger)
-  `make`
-  `openssh`
-  `python3` (or `python2`)
+When installing `Cygwin` you will need to install the following packages (you can also install them after installing Cygwin, using `MinGW Installer`). List of packages:
+  * `base-cygwin`
+  * `bash`
+  * `cmake`
+  * `curl`
+  * `git`
+  * `emacs` or `vim` (for editting text/code)
+  * `gcc-core`
+  * `gcc-g++`
+  * `gdb` (debugger)
+  * `make`
+  * `openssh`
+  * `python3` (or `python2`)
   
   
   
