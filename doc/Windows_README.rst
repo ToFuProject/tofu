@@ -33,6 +33,13 @@ When installing `Cygwin` you will need to install the following packages (you ca
 * `openssh`
 * `python3` (or `python2`)
   
+If you want a more in-detail documentation, we suggest `this link. <https://www.davidbaumgold.com/tutorials/set-up-python-windows/>`__
   
   
-  
+Get the repository
+==================
+
+* Create a ssh public key and add it to your GitHub account: `follow this tutorial. <https://help.github.com/en/articles/adding-a-new-ssh-key-to-your-github-account>`__
+* Go to ToFu's GitHub repository:  `here. <https://github.com/ToFuProject/tofu/>`__
+* Click on "clone or download" and swith to the option "Use SSH". Copy the link.
+* On a new `Cygwin Terminal` window: ``git clone git@github.com:ToFuProject/tofu.git``
