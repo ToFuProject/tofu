@@ -19,18 +19,19 @@ Required packages for cygwin
 ----------------------------
 
 When installing `Cygwin` you will need to install the following packages (you can also install them after installing Cygwin, using `MinGW Installer`). List of packages:
-  * `base-cygwin`
-  * `bash`
-  * `cmake`
-  * `curl`
-  * `git`
-  * `emacs` or `vim` (for editting text/code)
-  * `gcc-core`
-  * `gcc-g++`
-  * `gdb` (debugger)
-  * `make`
-  * `openssh`
-  * `python3` (or `python2`)
+
+* `base-cygwin`
+* `bash`
+* `cmake`
+* `curl`
+* `git`
+* `emacs` or `vim` (for editting text/code)
+* `gcc-core`
+* `gcc-g++`
+* `gdb` (debugger)
+* `make`
+* `openssh`
+* `python3` (or `python2`)
   
   
   
