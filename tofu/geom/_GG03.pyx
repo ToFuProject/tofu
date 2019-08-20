@@ -787,6 +787,7 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     cdef np.ndarray[double,ndim=1] Rref_arr, resol
     cdef np.ndarray[long,ndim=1] ind_arr, N_arr
     cdef np.ndarray[long,ndim=1] ind_in
+    cdef np.ndarray[np.npy_bool,ndim=1,cast=True] indin
     cdef str mode_low = mode.lower()
     cdef int mode_num = _st.get_nb_dmode(mode_low)
     # .. Testing ...............................................................
@@ -874,6 +875,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef long* lindex = NULL
     cdef long* lindex_z = NULL
     cdef int sz_r0d, sz_r, sz_z
+    cdef str out_low = Out.lower()
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -930,6 +932,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         step_rphi[ii] = _TWOPI / ncells_rphi[ii]
         inv_drphi = 1. / step_rphi[ii]
         disc_r_on_phi[ii] = step_rphi[ii] * disc_r[ii]
+        tot_nc_plane[ii] = 0 # initialization
         # Get index and cumulated indices from background
         for jj in range(ind_loc_r0, ncells_r0[0]):
             if disc_r0[jj]==disc_r[ii]:
@@ -977,15 +980,15 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # Compute Pts, dV and ind
     # This triple loop is the longest part, it takes ~90% of the CPU time
     NP = 0
-    if Out.lower()=='(x,y,z)':
-        for ii in range(0,sz_r):
+    if out_low=='(x,y,z)':
+        for ii in range(sz_r):
             # To make sure the indices are in increasing order
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
             for zz in range(0,sz_z):
                 zrphi = lindex_z[zz] * ncells_rphi[ii]
                 for jj in range(0,Phin[ii]):
                     indiijj = iii[jj]
-                    phi = -Cpi + (0.5+indiijj)*step_rphi[ii]
+                    phi = -Cpi + (0.5 + indiijj) * step_rphi[ii]
                     pts_mv[0,NP] = disc_r[ii]*Ccos(phi)
                     pts_mv[1,NP] = disc_r[ii]*Csin(phi)
                     pts_mv[2,NP] = disc_z[zz]
@@ -1007,20 +1010,21 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                     dv_mv[NP] = reso_r[0]*reso_z[0]*disc_r_on_phi[ii]
                     NP += 1
     if VPoly is not None:
-        if Out.lower()=='(x,y,z)':
+        if out_low =='(x,y,z)':
             hypot = _bgt.compute_hypot(pts_mv[0,:],pts_mv[1,:])
+            
             indin = Path(VPoly.T).contains_points(np.array([hypot,pts_mv[2,:]]).T,
                                                   transform=None, radius=0.0)
             Pts = Pts[:,indin]
-            dv_mv = dV[indin]
-            ind_mv = ind[indin]
+            dv = dV[indin]
+            ind = ind[indin]
             Ru = np.unique(hypot)
         else:
             indin = Path(VPoly.T).contains_points(pts_mv[:-1,:].T, transform=None,
                                                   radius=0.0)
             Pts = Pts[:,indin]
-            dv_mv = dV[indin]
-            ind_mv = ind[indin]
+            dV = dV[indin]
+            ind = ind[indin]
             Ru = np.unique(Pts[0,:])
         # TODO : Warning : do we need the following lines ????
         # if not np.all(Ru==disc_r):
