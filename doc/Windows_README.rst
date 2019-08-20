@@ -34,7 +34,8 @@ When installing ``Cygwin`` you will need to install the following packages (you 
 * ``python3`` (or ``python2``)
 * ``python3-pip`` (or ``python2-pip``, depending on the chosen python version)
 * ``python3-devel`` (or ``python2-devel``, depending on the chosen python version)
-* ``python3-setuptools`` (or ``python2-setuptools``, depending on the chosen python version)
+* ``python36-cython``
+* ``python36-numpy``
 
   
 If you want a more in-detail documentation, we suggest `this link. <https://www.davidbaumgold.com/tutorials/set-up-python-windows/>`__
