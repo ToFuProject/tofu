@@ -44,3 +44,17 @@ cdef void vignetting_core(double[:, ::1] ray_orig,
                           int nlos,
                           bint* goes_through,
                           int num_threads) nogil
+
+cdef int vignetting_vmesh_vpoly(int npts, bint is_cart,
+                                double[:, ::1] vpoly,
+                                double[:, ::1] pts,
+                                double[::1] vol_resol,
+                                double[::1] r_on_phi,
+                                double* disc_r,
+                                long[::1] lind,
+                                double** res_x,
+                                double** res_y,
+                                double** res_z,
+                                double** res_vres,
+                                double** res_rphi,
+                                long** res_lind) nogil

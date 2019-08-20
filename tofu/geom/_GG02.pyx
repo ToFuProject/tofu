@@ -877,7 +877,13 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef np.ndarray[double,ndim=2] pts, indI
     cdef np.ndarray[double,ndim=1] iii, dV
     cdef np.ndarray[long,ndim=1] ind
-
+    cdef double** res_x = NULL
+    cdef double** res_y = NULL
+    cdef double** res_z = NULL
+    cdef double** res_vres = NULL
+    cdef double** res_rphi = NULL
+    cdef long** res_lind = NULL
+    
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -961,7 +967,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             Phin[ii] = nPhi1+1-nPhi0
             if ii==0:
                 indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
-            for jj in range(0,Phin[ii]):
+            for jj in range(Phin[ii]):
                 indI[ii,jj] = <double>( nPhi0+jj )
         else:
             #indI.append(list(range(nPhi0,loc_nc_rphi)+list(range(0,nPhi1+1))))
@@ -1011,15 +1017,55 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                     ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
                     dv_mv[NP] = reso_r[0]*reso_z[0]*r_on_phi_mv[ii]
                     NP += 1
+    # If we only want to discretize the volume inside a certain flux surface
+    # describe by a VPoly:
     if VPoly is not None:
+        npts_vpoly = VPoly.shape[1] - 1
         if out_low =='(x,y,z)':
-            hypot = _bgt.compute_hypot(pts_mv[0,:],pts_mv[1,:])            
-            indin = Path(VPoly.T).contains_points(np.array([hypot,pts_mv[2,:]]).T,
-                                                  transform=None, radius=0.0)
-            pts = pts[:,indin]
-            dv = dV[indin]
-            ind = ind[indin]
-            Ru = np.unique(hypot)
+            # hypot = _bgt.compute_hypot(pts_mv[0,:], pts_mv[1,:], NP)
+            # are_in_poly = <int *>malloc(NP * sizeof(int))
+            # nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
+            #                                         &VPoly[0][0], &VPoly[1][0],
+            #                                         NP,
+            #                                         &hypot[0], &pts_mv[2,0],
+            #                                         are_in_poly)
+
+            # # indin = Path(VPoly.T).contains_points(np.array([hypot,pts_mv[2,:]]).T,
+            # #                                       transform=None, radius=0.0)
+            # # pts = pts[:,indin]
+            # # dv = dV[indin]
+            # # ind = ind[indin]
+            # # Ru = np.unique(hypot)
+            # pts2 = np.empty((3, nb_in_poly), dtype=float)
+            # dv2 = np.empty((nb_in_poly,), dytpe=float)
+            # ind2 = np.empty((nb_in_poly,), dtype=int)
+            # r_on_phi2 = np.empty((nb_in_poly,), dytpe=float)
+            # jj = 0
+            # for ii in range(NP):
+            #     if are_in_poly[ii]:
+            #         pts2[0,jj] = pts_mv[0,ii]
+            #         pts2[1,jj] = pts_mv[1,ii]
+            #         pts2[2,jj] = pts_mv[2,ii]
+            #         dv2[jj] = dv_mv[ii]
+            #         ind2[jj] = ind_mv[ii]
+            res_x = <double**> malloc(sizeof(double*))
+            res_y = <double**> malloc(sizeof(double*))
+            res_z = <double**> malloc(sizeof(double*))
+            res_vres = <double**> malloc(sizeof(double*))
+            res_rphi = <double**> malloc(sizeof(double*))
+            res_lind = <long**>   malloc(sizeof(long*))
+            nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, True, VPoly, pts, dv_mv,
+                                       r_on_phi_mv, disc_r, ind_mv,
+                                       res_x, res_y, res_z,
+                                       res_vres, res_rphi, res_lind)
+            pts = np.empty((3,nb_in_poly))
+            pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0])
+            pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0])
+            pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0])
+            dV = np.asarray(<double[:nb_in_poly]> res_vres[0])
+            r_on_phi = np.asarray(<double[:nb_in_poly]> res_rphi[0])
+            ind = np.asarray(<long[:nb_in_poly]> res_lind[0])
+            # TODO: free res_x, res_y, ...
         else:
             indin = Path(VPoly.T).contains_points(pts_mv[:-1,:].T, transform=None,
                                                   radius=0.0)
@@ -1027,9 +1073,12 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             dV = dV[indin]
             ind = ind[indin]
             Ru = np.unique(pts[0,:])
-        # TODO : Warning : do we need the following lines ????
+            print("is it true === ", np.all(Ru == pts[0,:]))
+        # we also take out the radii that are not in the VPoly given by the user
         # if not np.all(Ru==disc_r):
-        #     r_on_phi_mv = np.array([r_on_phi_mv[ii] for ii in range(0,len(disc_r)) \
+        #     # disc_r is NOT a numpy array....... I think the easier is to
+        #     # pass everything to C-arrays and memory views and go from there...
+        #     r_on_phi_mv = np.array([r_on_phi_mv[ii] for ii in range(0,sz_r) \
         #                        if disc_r[ii] in Ru])
 
     free(disc_r)

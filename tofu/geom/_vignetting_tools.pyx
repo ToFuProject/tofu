@@ -14,6 +14,7 @@ cimport cython
 from cython.parallel import prange
 from cython.parallel cimport parallel
 from libcpp.vector cimport vector
+from libcpp.set cimport set as setpp
 from libc.stdlib cimport malloc, free
 cimport _raytracing_tools as _rt
 cimport _basic_geom_tools as _bgt
@@ -357,3 +358,66 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
         free(invr_ray)
         free(sign_ray)
     return
+
+
+# ==============================================================================
+# =  Vignetting Vmesh with VPoly
+# ==============================================================================
+cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
+                                       double[:, ::1] vpoly,
+                                       double[:, ::1] pts,
+                                       double[::1] vol_resol,
+                                       double[::1] r_on_phi,
+                                       double* disc_r,
+                                       long[::1] lind,
+                                       double** res_x,
+                                       double** res_y,
+                                       double** res_z,
+                                       double** res_vres,
+                                       double** res_rphi,
+                                       long** res_lind) nogil:
+    cdef int ii, jj
+    cdef int npts_vpoly
+    cdef int nb_in_poly = 0
+    cdef int* are_in_poly = NULL
+    cdef double[::1] hypot
+    cdef setpp[double] set_hyp
+    cdef setpp[double] set_rphi
+    # -- initialization --------------------------------------------------------
+    are_in_poly = <int *>malloc(npts * sizeof(int))
+    npts_vpoly = vpoly.shape[1] - 1
+
+    if is_cart:
+        hypot = _bgt.compute_hypot(pts[0,:], pts[1,:], npts)
+        for ii in range(npts):
+            set_hyp.insert(hypot[ii])
+        nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
+                                                &vpoly[0][0], &vpoly[1][0],
+                                                npts,
+                                                &hypot[0], &pts[2,0],
+                                                are_in_poly)
+        # pts2 = np.empty((3, nb_in_poly), dtype=float)
+        # dv2 = np.empty((nb_in_poly,), dytpe=float)
+        # ind2 = np.empty((nb_in_poly,), dtype=int)
+        # r_on_phi2 = np.empty((nb_in_poly,), dytpe=float)
+        # We initialize the arrays:
+        res_x[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        res_z[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        res_vres[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
+        jj = 0
+        for ii in range(npts):
+            if are_in_poly[ii]:
+                res_x[0][jj] = pts[0,ii]
+                res_y[0][jj] = pts[1,ii]
+                res_z[0][jj] = pts[2,ii]
+                res_vres[0][jj] = vol_resol[ii]
+                res_lind[0][jj] = lind[ii]
+                if set_hyp.count(disc_r[ii]) > 0:
+                    set_rphi.insert(r_on_phi[ii])
+                    
+        res_rphi[0] = <double*> malloc(set_rphi.size() * sizeof(double))
+        for ii in range(set_rphi):
+            res_rphi[0][ii] = set_rphi[ii]
+    return nb_in_poly
