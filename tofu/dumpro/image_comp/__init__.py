@@ -29,3 +29,9 @@ from . import average_area
 from . import dumpro_vid
 #assign id to each cluster
 from . import get_id
+#calculating trajectories
+from . import get_relation
+#verifying trajectories
+from . import verify_traj
+#tracing trajectories
+from . import trace_traj

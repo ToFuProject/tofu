@@ -19,7 +19,8 @@ import inspect
 import numpy as np
 import scipy as scp
 import matplotlib.pyplot as plt
-import datetime
+import datetime as dt
+import time
 
 
 #more special packages
@@ -39,7 +40,7 @@ from . import image_comp as _i_comp
 from . import plotting as _plot
 
 
-__all__ = ['Img_dir', 'Video', 'Vid_img', 'Cluster']
+__all__ = ['Img_dir', 'Video', 'Vid_img', 'Cluster','Trajectory']
 
 
 ###################################################################
@@ -154,35 +155,48 @@ class Cluster(object):
     
     
 class Trajectory(object):
-    """A class for all trajectories
+    """A class for all trajectories. This creates a trajectory object that 
+    provides all the available relevant iformation for each trajectory.
     """
-    def __init__(self, traj, area):
+    def __init__(self, traj):
         self.__np = len(traj)
+        self.__trajob = traj
+        self.__points = np.array([traj[ii].center for ii in range(0, self.__np)])
         dist = 0
         for ii in range(0,self.__np-1):
-            x1 = traj[ii][0]
-            y1 = traj[ii][1]
-            x2 = traj[ii+1][0]
-            y2 = traj[ii+1][1]
+            x1 = self.__points[ii][0]
+            y1 = self.__points[ii][1]
+            x2 = self.__points[ii+1][0]
+            y2 = self.__points[ii+1][1]
             d = (((x1-x2)**2)+((y1-y2)**2))**0.5
             d = abs(d)
             dist += d
         self.__avg_vel = dist/self.__np
-        self.__areaevo = area
-    
+        self.__areaevo = (traj[ii].area for ii in range(0, self.__np))
+
+####################################################################
+#   Getters for attributes
+####################################################################
+        
     @property
-    def np(self.__np):
+    def n_points(self):
+        """Returns the number of points in the trajectory"""
         return self.__np
     
     @property
+    def points(self):
+        """Returns the points in the trajectory"""
+        return self.__points
+    
+    @property
     def avg_vel(self):
+        """Returns the average velocity of the cluster"""
         return self.__avg_vel
     
     @property
     def areaevo(self):
+        """Returns the area evolution of the trajectory"""
         return self.__areaevo
-            
-            
             
 ###################################################################
 ###################################################################
@@ -617,7 +631,8 @@ class Video(object):
         self.__infocluster = {}
         self.__reshape = {}
         self.__c_id = None
-    
+        self.__traj = {}
+
 ##############################################################################
 #   setters for class attributes
 ##############################################################################
@@ -638,6 +653,10 @@ class Video(object):
     def set_c_id(self, c_id):
         """Setter for list of cluster objects"""
         self.__c_id = c_id
+        
+    def set_traj(self, traj):
+        """Setter for trajectory objects"""
+        self.__traj = traj
 
 #############################################################################
 #     Getters for the class attributes
@@ -710,6 +729,11 @@ class Video(object):
     def c_id(self):
         """Returns the cluster id list"""
         return self.__c_id
+    
+    @property
+    def traj(self):
+        """Returns the Trajctory dictionary"""
+        return self.__traj
     
 #############################################################################
 #   Grayscale conversion method
@@ -927,7 +951,8 @@ class Vid_img(Video):
     #dumpro
     def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None, 
                blur = True, im_out = None, verb = True):
-        
+        start_time = time.perf_counter()
+        #performing preprocessing and cluster detection on the video
         infoclus, reshp, im_dir = _i_comp.dumpro_vid.dumpro_vid(self.filename,
                                                                 self.w_dir,
                                                                 self.shotname,
@@ -940,21 +965,38 @@ class Vid_img(Video):
         self.set_infocluster(infoclus)
         #setting reshape dictionary
         self.set_reshape(reshp)
-        #setting image dicrectories dictionary
+        #setting image directories dictionary
         self.set_im_dir(im_dir)
-        
+        #getting information from infocluster
         area = self.infocluster.get('area')
         t_clus = self.infocluster.get('total')
         indt = self.infocluster.get('indt')
+        #plotting dust size distribution
         _plot.area_distrib.get_distrib(area, indt, t_clus, self.w_dir, 
                                        self.shotname)
+        #plotting framewise dust density
         _plot.area_distrib.get_frame_distrib(area, indt, self.w_dir, 
                                              self.shotname)
-        
+        #converting all clusters to objects
         c_id = _i_comp.get_id.get_id(self.infocluster, Cluster)
-        
+        #setting c_id 
         self.set_c_id(c_id)
+        #calculating trajectories and assigning parent child value
+        traj = _i_comp.get_relation.get_relation(self.c_id, self.infocluster)
+        #using clusters with updated value to set c_id
+        self.set_c_id(traj)
         
+        traj_obs = _i_comp.trace_traj.trace_traj(traj)
+        n_traj = len(traj_obs)
+        trajects = {}
+        for ii in range(0,n_traj):
+            trajects[ii] = Trajectory(traj_obs.get(ii))
+        self.set_traj(trajects)
+        
+        _plot.plottraj.plot_traj(self.traj)
+
+        end_time = time.perf_counter()
+        print('---',end_time - start_time,' seconds')
         return None
     
     def play_im(self):

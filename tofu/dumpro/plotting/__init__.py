@@ -5,3 +5,5 @@ from . import playvideo
 from . import playimages
 
 from . import area_distrib
+
+from . import plottraj
