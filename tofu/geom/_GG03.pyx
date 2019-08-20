@@ -5,6 +5,7 @@
 #
 # -- Python libraries imports --------------------------------------------------
 import sys
+from warnings import warn
 import numpy as np
 import scipy.integrate as scpintg
 from matplotlib.path import Path
@@ -2973,11 +2974,17 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                         + " Options are: ['calls','memory','hybrid']"
         assert minim in ['calls','memory','hybrid'], error_message
     # -- Preformat output signal -----------------------------------------------
-    if t is None or not hasattr(t,'__iter__'):
+    if t is None:
+        if minim == 'memory':
+            minim = 'calls'
+            error_message = "If t is None !"
+            error_message += "  => there is no point in using minimize='memory'"
+            error_message += "  => switching to minimize = '%s'"%minim
+            warn(error_message)
+    elif not hasattr(t,'__iter__'):
         nt = 1
         ltime = np.zeros((1))
         ltime[0] = t
-        # TODO : WHAT HAPPENS IF TIME = None ?
     else:
         nt = len(t)
         ltime = np.asarray(t,dtype=float)
@@ -3254,7 +3261,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis, **fkwdargs)
+                               t=t, vect=-usbis, **fkwdargs)
                     sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
@@ -3269,7 +3276,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis, **fkwdargs)
+                               t=t, vect=-usbis, **fkwdargs)
                     # integration
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
@@ -3286,7 +3293,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis, **fkwdargs)
+                               t=t, vect=-usbis, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
         elif dl_is_list and not ani:
@@ -3303,7 +3310,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                                   t=ltime, **fkwdargs)
+                                   t=t, **fkwdargs)
                     sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
@@ -3318,7 +3325,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                 dx=loc_eff_res[0])
             elif n_imode == 2:
@@ -3334,7 +3341,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
         elif ani:
@@ -3351,7 +3358,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis,**fkwdargs)
+                               t=t, vect=-usbis,**fkwdargs)
                     sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode==1:
                 for ii in range(nlos):
@@ -3365,7 +3372,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis,**fkwdargs)
+                               t=t, vect=-usbis,**fkwdargs)
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
             elif n_imode==2:
@@ -3380,7 +3387,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, vect=-usbis,**fkwdargs)
+                               t=t, vect=-usbis,**fkwdargs)
                     # loop over time for integrating
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
@@ -3398,7 +3405,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     # loop over time for integrating
                     sig[:, ii] = np.sum(val,axis=1)*loc_eff_res[0]
             elif n_imode==1:
@@ -3413,7 +3420,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
             elif n_imode==2:
@@ -3428,7 +3435,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                     usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     val = func(dsbis + ksbis * usbis,
-                               t=ltime, **fkwdargs)
+                               t=t, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=-1,
                                               dx=loc_eff_res[0])
     if los_coeffs != NULL:
@@ -4172,7 +4179,6 @@ def comp_dist_los_vpoly_vec(int nvpoly, int nlos,
     if not algo_type.lower() == "simple" or not ves_type.lower() == "tor":
         assert False, "The function is only implemented with the simple"\
             + " algorithm and for toroidal vessels... Sorry!"
-    from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
@@ -4244,7 +4250,6 @@ def is_close_los_vpoly_vec(int nvpoly, int nlos,
     This is the PYTHON function, use only if you need this computation from
     Python, if you need it from Cython, use `is_close_los_vpoly_vec_core`
     """
-    from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
     # ==========================================================================
@@ -4311,7 +4316,6 @@ def which_los_closer_vpoly_vec(int nvpoly, int nlos,
     This is the PYTHON function, use only if you need this computation from
     Python, if you need it from Cython, use `which_los_closer_vpoly_vec_core`
     """
-    from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
 
@@ -4372,7 +4376,6 @@ def which_vpoly_closer_los_vec(int nvpoly, int nlos,
     This is the PYTHON function, use only if you need this computation from
     Python, if you need it from Cython, use `which_vpoly_closer_los_vec_core`
     """
-    from warnings import warn
     warn("This function supposes that the polys are nested from inner to outer",
          Warning)
     # ==========================================================================
