@@ -847,8 +847,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     Return the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (rstep,zstep,dRphi)
     """
-    cdef np.ndarray[double, ndim=1] disc_r_on_phi_arr
-    cdef double[::1] R, Z, disc_r_on_phi, dPhir, hypot
+    cdef double[::1] R, Z, r_on_phi_mv, dPhir, hypot
     cdef double dRr, dZr, min_phi, max_phi
     cdef double abs0, abs1, phi, indiijj
     cdef double inv_drphi
@@ -858,9 +857,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef int ind_loc_r0
     cdef int NR0, NR, NZ, Rn, Zn, ncells_rphi0, ii, jj, nPhi0, nPhi1, zz
     cdef int NP, loc_nc_rphi, r_ratio
-    cdef np.ndarray[double,ndim=2] Pts, indI
-    cdef np.ndarray[double,ndim=1] iii, dV
-    cdef np.ndarray[long,ndim=1] ind
     cdef double[:, ::1] pts_mv
     cdef double[::1] dv_mv
     cdef long[::1] ind_mv
@@ -877,6 +873,11 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef long* lindex_z = NULL
     cdef int sz_r0d, sz_r, sz_z
     cdef str out_low = Out.lower()
+    cdef np.ndarray[double,ndim=1] r_on_phi
+    cdef np.ndarray[double,ndim=2] Pts, indI
+    cdef np.ndarray[double,ndim=1] iii, dV
+    cdef np.ndarray[long,ndim=1] ind
+
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
     _st.cythonize_subdomain_dl(None, limits_dl) # no limits
@@ -914,8 +915,8 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     ncells_rphi = <long*>malloc(sz_r*sizeof(long))
     step_rphi   = <double*>malloc(sz_r*sizeof(double))
     tot_nc_plane = <long*>malloc(sz_r*sizeof(long))
-    disc_r_on_phi_arr = np.empty((sz_r,)) # we create the numpy array
-    disc_r_on_phi = disc_r_on_phi_arr # and its associated memoryview
+    r_on_phi = np.empty((sz_r,)) # we create the numpy array
+    r_on_phi_mv = r_on_phi # and its associated memoryview
     Phin   = np.empty((sz_r,), dtype=int)
     # .. Initialization Variables ..............................................
     ncells_rphi0 = 0
@@ -932,7 +933,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         loc_nc_rphi = ncells_rphi[ii]
         step_rphi[ii] = _TWOPI / ncells_rphi[ii]
         inv_drphi = 1. / step_rphi[ii]
-        disc_r_on_phi[ii] = step_rphi[ii] * disc_r[ii]
+        r_on_phi_mv[ii] = step_rphi[ii] * disc_r[ii]
         tot_nc_plane[ii] = 0 # initialization
         # Get index and cumulated indices from background
         for jj in range(ind_loc_r0, ncells_r0[0]):
@@ -994,7 +995,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                     pts_mv[1,NP] = disc_r[ii]*Csin(phi)
                     pts_mv[2,NP] = disc_z[zz]
                     ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
-                    dv_mv[NP] = reso_r[0]*reso_z[0]*disc_r_on_phi[ii]
+                    dv_mv[NP] = reso_r[0]*reso_z[0]*r_on_phi_mv[ii]
                     NP += 1
     else:
         for ii in range(0,sz_r):
@@ -1008,12 +1009,11 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
                     pts_mv[1,NP] = disc_z[zz]
                     pts_mv[2,NP] = -Cpi + (0.5+indiijj)*step_rphi[ii]
                     ind_mv[NP] = tot_nc_plane[ii] + zrphi + <int>indiijj
-                    dv_mv[NP] = reso_r[0]*reso_z[0]*disc_r_on_phi[ii]
+                    dv_mv[NP] = reso_r[0]*reso_z[0]*r_on_phi_mv[ii]
                     NP += 1
     if VPoly is not None:
         if out_low =='(x,y,z)':
-            hypot = _bgt.compute_hypot(pts_mv[0,:],pts_mv[1,:])
-            
+            hypot = _bgt.compute_hypot(pts_mv[0,:],pts_mv[1,:])            
             indin = Path(VPoly.T).contains_points(np.array([hypot,pts_mv[2,:]]).T,
                                                   transform=None, radius=0.0)
             Pts = Pts[:,indin]
@@ -1029,7 +1029,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
             Ru = np.unique(Pts[0,:])
         # TODO : Warning : do we need the following lines ????
         # if not np.all(Ru==disc_r):
-        #     disc_r_on_phi = np.array([disc_r_on_phi[ii] for ii in range(0,len(disc_r)) \
+        #     r_on_phi_mv = np.array([r_on_phi_mv[ii] for ii in range(0,len(disc_r)) \
         #                        if disc_r[ii] in Ru])
 
     free(disc_r)
@@ -1039,7 +1039,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
-    return Pts, dV, ind, reso_r[0], reso_z[0], disc_r_on_phi_arr
+    return Pts, dV, ind, reso_r[0], reso_z[0], r_on_phi
 
 
 def _Ves_Vmesh_Tor_SubFromInd_cython(double dR, double dZ, double dRPhi,
