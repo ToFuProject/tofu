@@ -34,13 +34,32 @@ When installing ``Cygwin`` you will need to install the following packages (you 
 * ``python3`` (or ``python2``)
 * ``python3-pip`` (or ``python2-pip``, depending on the chosen python version)
 * ``python3-devel`` (or ``python2-devel``, depending on the chosen python version)
-* ``python36-cython``
-* ``python36-numpy``
-
   
 If you want a more in-detail documentation, we suggest `this link. <https://www.davidbaumgold.com/tutorials/set-up-python-windows/>`__
-  
-  
+
+
+Installing Anaconda
+===================
+
+There are some python packages that cannot be installed via pip nor the cygwin package manager. 
+For this reason, we are going to use **Miniconda**.
+* `Get the latest version and install it. <https://docs.conda.io/en/latest/miniconda.html/>`__ 
+* Add ``conda`` to your ``$PATH`` variable (this might be slighlty different for you). In your ``.bash_profile``::
+  PATH="${HOME}/miniconda3:${PATH}" # where conda's python binary is
+  PATH="${HOME}/miniconda3/condabin:${PATH}" # where conda's conda binary is 
+  alias conda="conda.bat" # as the conda command binary is in the conda.bat exectuable
+
+Creating a conda environment
+----------------------------
+
+Now ``conda`` should be accessible from ``cygwan``::
+
+ $ conda create -n tofu3 scipy numpy cython 
+ 
+This creates a conda environment named "tofu3" and installs scipy, numpy and cython
+
+
+
 Get the repository
 ==================
 
