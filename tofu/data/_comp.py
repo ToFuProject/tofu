@@ -398,7 +398,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
         # Linear interpolation
         if interp_space == 1:
 
-            def func(pts, t=None, ntall=ntall,
+            def func(ptsi, vect=None, t=None, ntall=ntall,
                      mplTriLinInterp=mplTriLinInterp,
                      mpltri=mpltri, trifind=trifind,
                      vquant=vquant, indtq=indtq,
@@ -419,7 +419,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                     ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
                                                            tbinall=tbinall,
                                                            idref1d=idref1d,
-                                                           idref2d=idref2d)[1:]
+                                                           idref2d=idref2d)[1:-2]
                     for ii in range(0,ntall):
                         ind = indt == indtu[ii]
                         val[ind,...] = mplTriLinInterp(mpltri,
@@ -430,7 +430,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
         # --------------------
         # Degree 0 interpolation
         else:
-            def func(pts, t=None, ntall=ntall,
+            def func(ptsi, vect=None, t=None, ntall=ntall,
                      trifind=trifind,
                      vquant=vquant, indtq=indtq,
                      tall=tall, tbinall=tbinall,
@@ -450,7 +450,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                     ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
                                                            tbinall=tbinall,
                                                            idref1d=idref1d,
-                                                           idref2d=idref2d)[1:]
+                                                           idref2d=idref2d)[1:-2]
                     for ii in range(0,ntall):
                         ind = indt == indtu[ii]
                         val[ind,...] = vquant[indtq[ii],indpts]
@@ -463,7 +463,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
 
         if interp_space == 1:
 
-            def func(pts, t=None, ntall=ntall,
+            def func(pts, vect=None, t=None, ntall=ntall,
                      mplTriLinInterp=mplTriLinInterp,
                      mpltri=mpltri, trifind=trifind,
                      vquant=vquant, indtq=indtq,
@@ -486,7 +486,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                                               trifinder=trifind)(r,z)
 
                         # interpolate 1d
-                        # This i reasonable (~0.15 s)
+                        # This is reasonable (~0.15 s)
                         val[ii,...] = scpinterp.interp1d(vr1[indtr1[ii],:],
                                                          vquant[indtq[ii],:],
                                                          kind='linear',
@@ -494,10 +494,10 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                                                          fill_value=fill_value)(np.asarray(vii))
                     t = tall
                 else:
-                    ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
-                                                           tbinall=tbinall,
-                                                           idref1d=idref1d,
-                                                           idref2d=idref2d)[1:]
+                    out = plasma._get_indtu(t=t, tall=tall, tbinall=tbinall,
+                                            idref1d=idref1d, idref2d=idref2d,
+                                            indtr1=indtr1, indtr2=indtr2)[1:]
+                    ntall, indt, indtu, indtr1, indtr2 = out
                     for ii in range(0,ntall):
                         # get ref values for mapping
                         vii = mplTriLinInterp(mpltri,
@@ -515,7 +515,7 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                 return val, t
 
         else:
-            def func(pts, t=None, ntall=ntall,
+            def func(pts, vect=None, t=None, ntall=ntall,
                      trifind=trifind,
                      vquant=vquant, indtq=indtq,
                      interp_space=interp_space, fill_value=fill_value,
@@ -538,10 +538,10 @@ def get_finterp_isotropic(plasma, idquant, idref1d, idref2d,
                                                          fill_value=fill_value)(vr2[indtr2[ii],indpts])
                     t = tall
                 else:
-                    ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
-                                                           tbinall=tbinall,
-                                                           idref1d=idref1d,
-                                                           idref2d=idref2d)[1:]
+                    out = plasma._get_indtu(t=t, tall=tall, tbinall=tbinall,
+                                            idref1d=idref1d, idref2d=idref2d,
+                                            indtr1=indtr1, indtr2=indtr2)[1:]
+                    ntall, indt, indtu, indtr1, indtr2 = out
                     for ii in range(0,ntall):
                         # interpolate 1d
                         ind = indt == indtu[ii]
@@ -573,20 +573,20 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
     # Linear interpolation
     if interp_space == 1:
 
-        def func(pts, vect, t=None, ntall=ntall,
+        def func(pts, vect=None, t=None, ntall=ntall,
                  mplTriLinInterp=mplTriLinInterp,
                  mpltri=mpltri, trifind=trifind,
-                 vquant=vquant, indtq=indtq,
-                 tall=tall, tbinall=tbinall,
-                 idref1d=idref1d, idref2d=idref2d):
+                 vq2dR=vq2dR, vq2dPhi=vq2dPhi,
+                 vq2dZ=vq2dZ, indtq=indtq,
+                 tall=tall, tbinall=tbinall):
 
             # Get pts in (r,z,phi)
             r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-            phi = np.arctan(pts[1,:],pts[0,:])
+            phi = np.arctan2(pts[1,:],pts[0,:])
 
             # Deduce vect in (r,z,phi)
             vR = np.cos(phi)*vect[0,:] + np.sin(phi)*vect[1,:]
-            vphi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
+            vPhi = -np.sin(phi)*vect[0,:] + np.cos(phi)*vect[1,:]
             vZ = vect[2,:]
 
             # Prepare output
@@ -612,9 +612,7 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                 t = tall
             else:
                 ntall, indt, indtu = plasma._get_indtu(t=t, tall=tall,
-                                                       tbinall=tbinall,
-                                                       idref1d=idref1d,
-                                                       idref2d=idref2d)[1:]
+                                                       tbinall=tbinall)[1:4]
                 for ii in range(0,ntall):
                     ind = indt == indtu[ii]
                     valR[ind,...]   = mplTriLinInterp(mpltri,
@@ -627,24 +625,25 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                                                       vq2dZ[indtq[ii],:],
                                                       trifinder=trifind)(r,z)
 
+
             if Type == 'sca':
-                val = valR*vR + valPhi*vPhi + valZ*vZ
+                val = valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:]
             elif Type == 'abs(sca)':
-                val = np.abs(valR*vR + valPhi*vPhi + valZ*vZ)
+                val = np.abs(valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:])
             return val, t
 
     # --------------------
     # Degree 0 interpolation
     else:
-        def func(pts, t=None, ntall=ntall,
+        def func(pts, vect=None, t=None, ntall=ntall,
                  trifind=trifind,
-                 vquant=vquant, indtq=indtq,
-                 tall=tall, tbinall=tbinall,
-                 idref1d=idref1d, idref2d=idref2d):
+                 vq2dR=vq2dR, vq2dPhi=vq2dPhi,
+                 vq2dZ=vq2dZ, indtq=indtq,
+                 tall=tall, tbinall=tbinall):
 
             # Get pts in (r,z,phi)
             r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-            phi = np.arctan(pts[1,:],pts[0,:])
+            phi = np.arctan2(pts[1,:],pts[0,:])
 
             # Deduce vect in (r,z,phi)
             vR = np.cos(phi)*vect[0,:] + np.sin(phi)*vect[1,:]
@@ -677,8 +676,10 @@ def get_finterp_ani(plasma, idq2dR, idq2dPhi, idq2dZ,
                     valR[ind,...]   = vq2dR[indtq[ii],indpts]
                     valPhi[ind,...] = vq2dPhi[indtq[ii],indpts]
                     valZ[ind,...]   = vq2dZ[indtq[ii],indpts]
+
             if Type == 'sca':
-                val = valR*vR + valPhi*vPhi + valZ*vZ
+                val = valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:]
             elif Type == 'abs(sca)':
-                val = np.abs(valR*vR + valPhi*vPhi + valZ*vZ)
+                val = np.abs(valR*vR[None,:] + valPhi*vPhi[None,:] + valZ*vZ[None,:])
             return val, t
+    return func

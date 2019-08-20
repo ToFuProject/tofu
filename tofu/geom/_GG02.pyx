@@ -784,6 +784,7 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     cdef long* numcells = NULL
     cdef np.ndarray[double,ndim=2] PtsCross, VPolybis
     cdef np.ndarray[double,ndim=1] PtsCrossX, PtsCrossY
+    cdef np.ndarray[double,ndim=1] VPolybisX, VpolybisY
     cdef np.ndarray[double,ndim=1] Rref_arr, resol
     cdef np.ndarray[long,ndim=1] ind_arr, N_arr
     cdef np.ndarray[long,ndim=1] ind_in
@@ -803,9 +804,9 @@ def discretize_vpoly(double[:,::1] VPoly, double dL,
     PtsCrossX = np.array(<double[:sz_ot[0]]> XCross)
     PtsCrossY = np.array(<double[:sz_ot[0]]> YCross)
     PtsCross = np.array([PtsCrossX,PtsCrossY])
-
-    VPolybis = np.array([<double[:sz_vb[0]]> XPolybis,
-                           <double[:sz_vb[0]]> YPolybis])
+    VPolybisX = np.array(<double[:sz_vb[0]]> XPolybis)
+    VPolybisY = np.array(<double[:sz_vb[0]]> YPolybis)
+    VPolybis = np.array([VPolybisX, VPolybisY])
     resol = np.array(<double[:sz_ot[0]]> resolution)
     Rref_arr = np.array(<double[:sz_ot[0]]> Rref)
     ind_arr = np.array(<long[:sz_ot[0]]> ind)

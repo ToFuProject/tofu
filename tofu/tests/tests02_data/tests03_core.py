@@ -167,7 +167,7 @@ class Test01_DataCam12D(object):
         # signal as Data from lcams
         lm = ['sum', 'simps']
         lData = [lc[ii].calc_signal(emiss, t=t,
-                                    res=0.01, method=lm[ii], plot=False)
+                                    res=0.01, method=lm[ii], plot=False)[0]
                  for ii in range(0,len(lc))]
 
         # Adding concatenated sig / data and without lcam
@@ -383,13 +383,7 @@ class Test01_DataCam12D(object):
 
     def test19_plot_svd(self):
         for oo in self.lobj:
-            print(oo)
-            try:
-                kh = oo.plot_svd()
-            except Exception:
-                import ipdb         # DB
-                ipdb.set_trace()    # DB
-                pass
+            kh = oo.plot_svd()
         plt.close('all')
 
     def test20_copy_equal(self):

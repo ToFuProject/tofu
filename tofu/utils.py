@@ -889,12 +889,12 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
 
         # Plasma2D
         if nshot == 1 and nPla == 1:
-            dout[shot[0]]['Plasma2D'][0].plot(quant=quant, X=X, bck=bck)
+            dout[shot[0]]['Plasma2D'][0].plot(plot_sig, X=plot_X, bck=bck)
         elif nshot > 1 and nPla == 1:
-            ld = [dout[ss]['Plasma2D'][0].get_Data(quant=quant, X=X,
+            ld = [dout[ss]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
                                                    plot=False)
                   for ss in shot[1:]]
-            d0 = dout[shot[0]]['Plasma2D'][0].get_Data(quant=quant, X=X,
+            d0 = dout[shot[0]]['Plasma2D'][0].get_Data(plot_sig, X=plot_X,
                                                        plot=False)
             d0.plot_compare(ld, bck=bck)
 
@@ -915,6 +915,206 @@ def load_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
         dout = dout[shot[0]]['Plasma2D'][0]
     return out
 
+
+
+def calc_from_imas(shot=None, run=None, user=None, tokamak=None, version=None,
+                   ids=None, Name=None, out=None, tlim=None, config=None,
+                   occ=None, indch=None, indDescription=None, equilibrium=None,
+                   dsig=None, data=None, X=None, t0=None, dextra=None,
+                   Brightness=None, res=None, interp_t=None,
+                   plot=True, plot_compare=True, sharex=False,
+                   bck=True, indch_auto=True, t=None, init=None):
+    # -------------------
+    # import imas2tofu
+    try:
+        import imas
+        import tofu.imas2tofu as imas2tofu
+    except Exception as err:
+        msg = str(err)
+        msg += "\n\n module imas2tofu does not seem available\n"
+        msg += "  => imas may not be installed ?"
+        raise Exception(msg)
+
+    lok = ['Data']
+    c0 = out is None or out in lok
+    if not c0:
+        msg = "Arg out must be in %s"%str(lok)
+        raise Exception(msg)
+
+    # -------------------
+    # Prepare ids
+    assert ids is None or type(ids) in [list,str]
+    if type(ids) is str:
+        ids = [ids]
+    if type(ids) is list:
+        assert all([ids_ is None or type(ids_) is str for ids_ in ids])
+
+    # -------------------
+    # Pre-check ids
+    lidsok = sorted([k for k in dir(imas) if k[0] != '_'])
+    lidscustom = []
+    lidsout = [ids_ for ids_ in ids
+               if (ids_ is not None and ids_ not in lidsok+lidscustom)]
+    if len(lidsout) > 0:
+        msg = "ids %s matched no known imas ids !\n"%str(lidsout)
+        msg += "  => Available imas ids are:\n"
+        msg += repr(lidsok)
+        raise Exception(msg)
+    nids = len(ids)
+
+    if nids > 1:
+        assert not any([ids_ in ids for ids_ in lidscustom])
+
+
+    # -------------------
+    # Prepare shot
+    shot = np.r_[shot].astype(int)
+    nshot = shot.size
+
+
+    # -------------------
+    # Prepare out
+    loutok = ['Data']
+    c0 = out is None
+    c1 = out in loutok
+    c2 = type(out) is list and all([oo is None or oo in loutok
+                                    for oo in out])
+    assert c0 or c1 or c2
+    if c0:
+        out = [None for _ in ids]
+    elif c1:
+        out = [str(out) for _ in ids]
+
+    # Temporary caveat
+    if nids > 1:
+        if not all([ids_ in imas2tofu.MultiIDSLoader._lidsdiag
+                    for ids_ in ids]):
+            msg = "tf.load_from_imas() only handles multipe ids\n"
+            msg += "if all are diagnostics ids !"
+            raise Exception(msg)
+
+    # -------------------
+    # Prepare
+    for ii in range(0, nids):
+
+        # Cam or Data
+        lids = imas2tofu.MultiIDSLoader._lidsdiag
+        if ids[ii] in lids:
+            assert out[ii] in [None,'Cam','Data']
+            if out[ii] is None:
+                out[ii] = 'Data'
+        if out[ii] in ['Cam','Data']:
+            assert ids[ii] in lids
+
+    dout = {shot[jj]: {oo:[] for oo in set(out)} for jj in range(0,nshot)}
+
+    # -------------------
+    # Prepare plot_ and complement ids
+    lPla = [ii for ii in range(0,nids) if out[ii] == 'Plasma2D']
+    lCam = [ii for ii in range(0,nids) if out[ii] == 'Cam']
+    lDat = [ii for ii in range(0,nids) if out[ii] == 'Data']
+    nPla, nCam, nDat = len(lPla), len(lCam), len(lDat)
+    if nDat > 1:
+        plot_ = False
+    else:
+        plot_ = plot
+
+    # Check conformity nshot / nDat
+    lc = [nshot > 1, nDat > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several diags for several shots!\n"
+        msg += "  => Please select either several diags (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+    lc = [nshot > 1, nPla > 1]
+    if plot and all(lc):
+        msg = "Cannot plot several plasma profles for several shots!\n"
+        msg += "  => Please select either several profiles (plot_combine)\n"
+        msg += "                          several shots (plot_compare)"
+        raise Exception(msg)
+
+    lc = [nDat >= 1, nPla >= 1, nCam >= 1]
+    if np.sum(lc) > 1:
+        msg = "Can only load Cam xor Data xor Plasma2D !"
+        raise Exception(msg)
+
+    # Complement ids
+    lids = list(ids)
+    if nDat > 0 or nCam > 0 or nPla > 0:
+        if 'wall' not in lids:
+            lids.append('wall')
+        if nDat > 0 or nPla > 0 and dextra is None:
+            if 'equilibrium' not in lids:
+                lids.append('equilibrium')
+            if 'lh_antennas' not in lids:
+                lids.append('lh_antennas')
+            if 'ic_antennas' not in lids:
+                lids.append('ic_antennas')
+        if t0 not in [None, False] and (nDat > 0 or nPla > 0):
+            if 'pulse_schedule' not in lids:
+                lids.append('pulse_schedule')
+
+    # Complement ids in diag-specific way
+    for ids in lids:
+        if ids in imas2tofu.MultiIDSLoader._didsdiag.keys():
+            dd = imas2tofu.MultiIDSLoader._didsdiag[ids]
+            if dd.get('synth') is not None:
+                for v0 in dd['synth']['dsynth'].values():
+                    for v1 in v0:
+                        if '.' in v1:
+                            v20, v21 = v1.split('.')
+                            if v20 not in lids:
+                                lids.append(v20)
+
+    # -------------------
+    # If plot and plasma, default dsig, plot_sig, plot_X
+    if plot and nPla > 0:
+        if lids[0] in _DEF_IMAS_PLASMA_SIG.keys():
+            if plot_sig is None:
+                plot_sig = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_sig']
+            if plot_X is None:
+                plot_X = _DEF_IMAS_PLASMA_SIG[lids[0]]['plot_X']
+            if dsig is None:
+                lsig = (list(plot_sig) + list(plot_X)
+                        + _DEF_IMAS_PLASMA_SIG[lids[0]]['other'])
+                dsig = {lids[0]: lsig}
+
+        if plot_sig is None or plot_X is None:
+            msg = "Trying to plot a plasma profile\n"
+            msg += "Impossible if plot_sig and plot_X not provided!\n"
+            msg += "  (resp. quantity and quant_X if calling from tofuplot)"
+            raise Exception(msg)
+
+        dq = imas2tofu.MultiIDSLoader._dshort[lids[0]]
+        lk = sorted(dq.keys())
+        for qq in plot_sig:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='quantity')
+        for qq in plot_X:
+            if qq not in lk:
+                _get_exception(qq, lids[0], qtype='X')
+
+
+    # -------------------
+    # load
+    for ss in shot:
+        multi = imas2tofu.MultiIDSLoader(shot=ss, run=run, user=user,
+                                         tokamak=tokamak, version=version,
+                                         ids=lids)
+
+        # export to instances
+        for ii in range(0,nids):
+            if out[ii] == "Data":
+                multi.calc_signal(ids=lids[ii],
+                                  tlim=tlim, dsig=dsig,
+                                  config=config, t=t,
+                                  res=res, indch=indch,
+                                  Brightness=Brightness,
+                                  interp_t=interp_t,
+                                  indch_auto=indch_auto,
+                                  t0=t0, dextra=dextra,
+                                  plot=True,
+                                  plot_compare=plot_compare)
 
 
 
@@ -2387,7 +2587,7 @@ def get_ind_frompos(Type='x', ref=None, ref2=None, otherid=None, indother=None):
     else:
         assert type(ref2) is tuple and len(ref2) == 2
         n1, n2 = ref2[0].size, ref2[1].size
-        if np.any(np.isnan(ref2)):
+        if any([np.any(np.isnan(rr)) for rr in ref2]):
             def func(val, ind0=None, ref2=ref2, n1=n1, n2=n2):
                 i1 = np.nanargmin(np.abs(ref2[0]-val[0]))
                 i2 = np.nanargmin(np.abs(ref2[1]-val[1]))
