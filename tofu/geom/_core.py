@@ -57,6 +57,7 @@ _NUM_THREADS = 10
 _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
 _RES = 0.005
+_NTHREADS = 16
 
 
 """
@@ -4630,12 +4631,14 @@ class Rays(utils.ToFuObject):
                                             connect=connect)
 
 
-    def calc_signal_from_Plasma2D(self, plasma2d, t=None,
+    def calc_signal_from_Plasma2D(self, plasma2d, t=None, newcalc=False,
                                   quant=None, ref1d=None, ref2d=None,
                                   q2dR=None, q2dPhi=None, q2dZ=None, Type=None,
                                   Brightness=True, interp_t='nearest',
                                   interp_space=None, fill_value=np.nan,
-                                  res=None, DL=None, resMode='abs', method='sum',
+                                  res=None, DL=None, resMode='abs',
+                                  method='sum', minimize='calls',
+                                  num_threads=None,
                                   ind=None, out=object, plot=True, dataname=None,
                                   fs=None, dmargin=None, wintit=None, invert=True,
                                   units=None, draw=True, connect=True):
@@ -4649,33 +4652,61 @@ class Rays(utils.ToFuObject):
         if res is None:
             res = _RES
 
-        # Get ptsRZ along LOS // Which to choose ???
-        pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
-                                              compact=True, pts=True)
-        if q2dR is None:
-            vect = None
+        if newcalc:
+            func = plasma2d.get_finterp2d(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                          q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
+                                          interp_t=interp_t,
+                                          interp_space=interp_space,
+                                          fill_value=fill_value, Type=Type)
+            funcbis = lambda *args, **kwdargs: func(*args, **kwdargs)[0]
+
+            if DL is None:
+                # set to [kIn,kOut]
+                DL = None
+            ani = quant is None
+            if num_threads is None:
+                num_threads = _NTHREADS
+
+            if np.all(indok):
+                D, u = self.D, self.u
+            else:
+                D = np.ascontiguousarray(self.D[:,indok])
+                u = np.ascontiguousarray(self.u[:,indok])
+
+            # Extract time here !!!
+
+            sig = _GG.LOS_calc_signal(funcbis, D, u, res, DL,
+                                      dmethod=resMode, method=method, ani=ani,
+                                      t=t, fkwdargs={}, minimize=minimize,
+                                      Test=True, num_threads=num_threads)
         else:
-            nbrep = np.r_[indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]]
-            vect = np.repeat(self.u, nbrep, axis=1)
+            # Get ptsRZ along LOS // Which to choose ???
+            pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
+                                                  compact=True, pts=True)
+            if q2dR is None:
+                vect = None
+            else:
+                nbrep = np.r_[indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]]
+                vect = np.repeat(self.u, nbrep, axis=1)
 
-        # Get quantity values at ptsRZ
-        # This is the slowest step (~3.8 s with res=0.02 and interferometer)
-        val, t = plasma2d.interp_pts2profile(pts=pts, vect=vect, t=t,
-                                             quant=quant, ref1d=ref1d, ref2d=ref2d,
-                                             q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
-                                             interp_t=interp_t, Type=Type,
-                                             interp_space=interp_space,
-                                             fill_value=fill_value)
+            # Get quantity values at ptsRZ
+            # This is the slowest step (~3.8 s with res=0.02 and interferometer)
+            val, t = plasma2d.interp_pts2profile(pts=pts, vect=vect, t=t,
+                                                 quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                                 q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
+                                                 interp_t=interp_t, Type=Type,
+                                                 interp_space=interp_space,
+                                                 fill_value=fill_value)
 
-        # Integrate
-        if val.ndim == 2:
-            sig = np.full((val.shape[0], self.nRays), np.nan)
-        else:
-            sig = np.full((1,self.nRays), np.nan)
+            # Integrate
+            if val.ndim == 2:
+                sig = np.full((val.shape[0], self.nRays), np.nan)
+            else:
+                sig = np.full((1,self.nRays), np.nan)
 
-        indpts = np.r_[0,indpts,pts.shape[1]]
-        for ii in range(0,self.nRays):
-            sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
+            indpts = np.r_[0,indpts,pts.shape[1]]
+            for ii in range(0,self.nRays):
+                sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
 
         # Format output
         # this is the secod slowest step (~0.75 s)
