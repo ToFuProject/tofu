@@ -387,6 +387,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     cdef int* are_in_poly = NULL
     cdef double* hypot
     cdef double loc_rphi
+    cdef double loc_hypot
     cdef setpp[double] set_r
     cdef vecpp[double] vec_rphi
     cdef vecpp[double] vec_x
@@ -399,21 +400,18 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     npts_vpoly = vpoly.shape[1] - 1
     # -- Main loops by case ----------------------------------------------------
     if is_cart:
-        hypot = <double*> malloc(npts*sizeof(double))
-        _bgt.compute_hypot_ng(pts[0,:], pts[1,:], &hypot[0], npts)
-        nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
-                                                &vpoly[0][0], &vpoly[1][0],
-                                                npts,
-                                                &hypot[0], &pts[2,0],
-                                                are_in_poly)
-        # We initialize the arrays:
-        res_x[0] = <double*> malloc(nb_in_poly * sizeof(double))
-        res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
-        res_z[0] = <double*> malloc(nb_in_poly * sizeof(double))
-        res_vres[0] = <double*> malloc(nb_in_poly * sizeof(double))
-        res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
+        # hypot = <double*> malloc(npts*sizeof(double))
+        # _bgt.compute_hypot_ng(pts[0,:], pts[1,:], &hypot[0], npts)
+        # nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
+        #                                         &vpoly[0][0], &vpoly[1][0],
+        #                                         npts,
+        #                                         &hypot[0], &pts[2,0],
+        #                                         are_in_poly)
         for ii in range(npts):
-            if are_in_poly[ii]:
+            loc_hypot = Csqrt(pts[0,ii]*pts[0,ii] + pts[1,ii]*pts[1,ii])
+            if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
+                                loc_hypot, pts[2,ii]):
+                nb_in_poly += 1
                 vec_x.push_back(pts[0,ii])
                 vec_y.push_back(pts[1,ii])
                 vec_z.push_back(pts[2,ii])
@@ -421,6 +419,12 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
                 vec_lind.push_back(lind[ii])
                 # we create a set for the new radius in vpoly:
                 set_r.insert(hypot[ii])
+        # We initialize the arrays:
+        res_x[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        res_z[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        res_vres[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
         with nogil, parallel(num_threads=48):
             for ii in prange(nb_in_poly):
                 res_x[0][ii] = vec_x[ii]
@@ -439,31 +443,55 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
             for ii in prange(sz_rphi[0]):
                 res_rphi[0][ii] = vec_rphi[ii]
         # freeing malloced local array
-        free(hypot)
+        # free(hypot)
     else:
-        nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
-                                                &vpoly[0][0], &vpoly[1][0],
-                                                npts,
-                                                &pts[0,0], &pts[1,0], #R,Z
-                                                are_in_poly)
+        # nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
+        #                                         &vpoly[0][0], &vpoly[1][0],
+        #                                         npts,
+        #                                         &pts[0,0], &pts[1,0], #R,Z
+        #                                         are_in_poly)
+        # # We initialize the arrays:
+        # res_x[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        # res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        # res_z[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        # res_vres[0] = <double*> malloc(nb_in_poly * sizeof(double))
+        # res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
+        # jj = 0
+        # for ii in range(npts):
+        #     if are_in_poly[ii]:
+        #         res_x[0][jj] = pts[0,ii] # here r
+        #         res_y[0][jj] = pts[1,ii] # here z
+        #         res_z[0][jj] = pts[2,ii] # here phi
+        #         res_vres[0][jj] = vol_resol[ii]
+        #         res_lind[0][jj] = lind[ii]
+        #         # we create a set for the new radius in vpoly:
+        #         set_r.insert(pts[0,ii])
+        #         jj = jj + 1
+        # now we have to keep only the rphi in vpoly
+        for ii in range(npts):
+            if _bgt.is_point_in_path(npts_vpoly, &vpoly[0][0], &vpoly[1][0],
+                                pts[0,ii], pts[1,ii]):
+                nb_in_poly += 1
+                vec_x.push_back(pts[0,ii])
+                vec_y.push_back(pts[1,ii])
+                vec_z.push_back(pts[2,ii])
+                vec_vres.push_back(vol_resol[ii])
+                vec_lind.push_back(lind[ii])
+                # we create a set for the new radius in vpoly:
+                set_r.insert(pts[0,ii])
         # We initialize the arrays:
         res_x[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_y[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_z[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_vres[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
-        jj = 0
-        for ii in range(npts):
-            if are_in_poly[ii]:
-                res_x[0][jj] = pts[0,ii] # here r
-                res_y[0][jj] = pts[1,ii] # here z
-                res_z[0][jj] = pts[2,ii] # here phi
-                res_vres[0][jj] = vol_resol[ii]
-                res_lind[0][jj] = lind[ii]
-                # we create a set for the new radius in vpoly:
-                set_r.insert(pts[0,ii])
-                jj = jj + 1
-        # now we have to keep only the rphi in vpoly
+        with nogil, parallel(num_threads=48):
+            for ii in prange(nb_in_poly):
+                res_x[0][ii] = vec_x[ii]
+                res_y[0][ii] = vec_y[ii]
+                res_z[0][ii] = vec_z[ii]
+                res_vres[0][ii] = vec_vres[ii]
+                res_lind[0][ii] = vec_lind[ii]
         for ii in range(sz_r):
             if set_r.count(disc_r[ii]) > 0:
                 vec_rphi.push_back(r_on_phi[ii])
