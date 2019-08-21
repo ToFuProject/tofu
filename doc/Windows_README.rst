@@ -10,55 +10,26 @@ probably skip some steps.
 Before installing ToFu
 ======================
 
-First things first: you will need a bash terminal. If you are running Windows 10, there are already some solutions
-integrated with your system. Please google "Linux bash shell on Windows 10" to see the latest solutions available.
-If you are running an older Windows, you will need to `install cygwin. <https://cygwin.com/install.html>`__
-There are other solutions available, but you should have a bash terminal with **git** and **python** by the end of this step.
-
-Required packages for cygwin
-----------------------------
-
-When installing ``Cygwin`` you will need to install the following packages (you can also install them after installing Cygwin, using ``MinGW Installer``). List of packages:
-
-* ``base-cygwin``
-* ``bash``
-* ``cmake``
-* ``curl``
-* ``git``
-* ``emacs`` or ``vim`` (for editting text/code)
-* ``gcc-core``
-* ``gcc-g++``
-* ``gdb`` (debugger)
-* ``make``
-* ``openssh``
-* ``python3`` (or ``python2``)
-* ``python3-pip`` (or ``python2-pip``, depending on the chosen python version)
-* ``python3-devel`` (or ``python2-devel``, depending on the chosen python version)
-  
-If you want a more in-detail documentation, we suggest `this link. <https://www.davidbaumgold.com/tutorials/set-up-python-windows/>`__
-
-
 Installing Anaconda
-===================
+--------------------
 
-There are some python packages that cannot be installed via pip nor the cygwin package manager. 
-For this reason, we are going to use **Miniconda**.
+We will use Miniconda (light version of Anaconda, but you can also work with Anaconda) not only to install and manage the packages necessary for installing ToFu, but also to have a working bash-like Terminal.
+
 * `Get the latest version and install it. <https://docs.conda.io/en/latest/miniconda.html/>`__ 
-* Add ``conda`` to your ``$PATH`` variable (this might be slighlty different for you). In your ``.bash_profile``::
-  PATH="${HOME}/miniconda3:${PATH}" # where conda's python binary is
-  PATH="${HOME}/miniconda3/condabin:${PATH}" # where conda's conda binary is 
-  alias conda="conda.bat" # as the conda command binary is in the conda.bat exectuable
+* Follow the directions (you can use default options)
+* Open an ``Anaconda prompt``
+
 
 Creating a conda environment
 ----------------------------
 
-Now ``conda`` should be accessible from ``cygwan``::
+We are going to create an environment specific for ToFu. ::
 
- $ conda create -n tofu3 scipy numpy cython 
+ $ conda create -n tofu3 python=3.6 scipy numpy cython 
  $ conda activate tofu3
+ $ conda install m2-base # Get some basic Linux/bash commands (ls, cd, mv, ...)
  
-This creates a conda environment named "tofu3" and installs scipy, numpy and cython
-
+This creates a conda environment named "tofu3" and installs scipy, numpy and cython. The second command activates this environment.
 
 
 Get the repository
@@ -78,3 +49,4 @@ Installing ToFu
 * Compile ``python setup.py build_ext --inplace``
 * Install ``python setup.py install``
 * Make sure tests are running ``nosetests``
+ 
