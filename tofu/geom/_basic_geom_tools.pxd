@@ -43,6 +43,11 @@ cdef void compute_inv_and_sign(const double[3] ray_vdir,
 cdef array compute_hypot(const double[::1] xpts, const double[::1] ypts,
                          int npts=*)
 
+cdef void compute_hypot_ng(const double[::1] xpts,
+                           const double[::1] ypts,
+                           double* hypot,
+                           int npts) nogil
+
 cdef double comp_min_hypot(const double[::1] xpts, const double[::1] ypts,
                            int npts=*) nogil
 

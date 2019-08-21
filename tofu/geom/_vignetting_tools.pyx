@@ -380,7 +380,8 @@ cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
     cdef int npts_vpoly
     cdef int nb_in_poly = 0
     cdef int* are_in_poly = NULL
-    cdef double[::1] hypot
+    cdef double* hypot
+    cdef double loc_rphi
     cdef setpp[double] set_hyp
     cdef setpp[double] set_rphi
     # -- initialization --------------------------------------------------------
@@ -388,7 +389,8 @@ cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
     npts_vpoly = vpoly.shape[1] - 1
 
     if is_cart:
-        hypot = _bgt.compute_hypot(pts[0,:], pts[1,:], npts)
+        hypot = <double*> malloc(npts*sizeof(double))
+        _bgt.compute_hypot_ng(pts[0,:], pts[1,:], &hypot[0], npts)
         for ii in range(npts):
             set_hyp.insert(hypot[ii])
         nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
@@ -418,6 +420,8 @@ cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
                     set_rphi.insert(r_on_phi[ii])
                     
         res_rphi[0] = <double*> malloc(set_rphi.size() * sizeof(double))
-        for ii in range(set_rphi):
-            res_rphi[0][ii] = set_rphi[ii]
+        for loc_rphi in set_rphi:
+            res_rphi[0][ii] = loc_rphi
+        # freeing malloced local array
+        free(hypot)
     return nb_in_poly

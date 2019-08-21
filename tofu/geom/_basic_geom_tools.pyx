@@ -142,6 +142,20 @@ cdef inline array compute_hypot(const double[::1] xpts, const double[::1] ypts,
             ptr_hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
     return hypot
 
+
+cdef inline void compute_hypot_ng(const double[::1] xpts,
+                                  const double[::1] ypts,
+                                  double* hypot,
+                                  int npts) nogil:
+    # Compute hypothenus (as function above) but this version doesnt requires
+    # the gil
+    cdef int ii
+    for ii in range(npts):
+        hypot[ii] = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
+    return
+
+
+
 cdef inline double comp_min_hypot(const double[::1] xpts,
                                   const double[::1] ypts,
                                   int npts=-1) nogil:
