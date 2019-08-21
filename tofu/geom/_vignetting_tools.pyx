@@ -389,6 +389,11 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     cdef double loc_rphi
     cdef setpp[double] set_r
     cdef vecpp[double] vec_rphi
+    cdef vecpp[double] vec_x
+    cdef vecpp[double] vec_y
+    cdef vecpp[double] vec_z
+    cdef vecpp[double] vec_vres
+    cdef vecpp[long] vec_lind
     # -- initialization --------------------------------------------------------
     are_in_poly = <int *>malloc(npts * sizeof(int))
     npts_vpoly = vpoly.shape[1] - 1
@@ -407,17 +412,22 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         res_z[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_vres[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
-        jj = 0
         for ii in range(npts):
             if are_in_poly[ii]:
-                res_x[0][jj] = pts[0,ii]
-                res_y[0][jj] = pts[1,ii]
-                res_z[0][jj] = pts[2,ii]
-                res_vres[0][jj] = vol_resol[ii]
-                res_lind[0][jj] = lind[ii]
+                vec_x.push_back(pts[0,ii])
+                vec_y.push_back(pts[1,ii])
+                vec_z.push_back(pts[2,ii])
+                vec_vres.push_back(vol_resol[ii])
+                vec_lind.push_back(lind[ii])
                 # we create a set for the new radius in vpoly:
                 set_r.insert(hypot[ii])
-                jj = jj + 1
+        with nogil, parallel(num_threads=48):
+            for ii in prange(nb_in_poly):
+                res_x[0][ii] = vec_x[ii]
+                res_y[0][ii] = vec_y[ii]
+                res_z[0][ii] = vec_z[ii]
+                res_vres[0][ii] = vec_vres[ii]
+                res_lind[0][ii] = vec_lind[ii]
         # we have to keep only the rphi in vpoly
         for ii in range(sz_r):
             if set_r.count(disc_r[ii]) > 0:
@@ -425,8 +435,9 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         # we transform the set of rphi to an array
         sz_rphi[0] = vec_rphi.size()
         res_rphi[0] = <double*> malloc(vec_rphi.size() * sizeof(double))
-        for ii in range(sz_rphi[0]):
-            res_rphi[0][ii] = vec_rphi[ii]
+        with nogil, parallel(num_threads=48):
+            for ii in prange(sz_rphi[0]):
+                res_rphi[0][ii] = vec_rphi[ii]
         # freeing malloced local array
         free(hypot)
     else:
