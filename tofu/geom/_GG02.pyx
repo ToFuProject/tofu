@@ -1020,67 +1020,39 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # If we only want to discretize the volume inside a certain flux surface
     # describe by a VPoly:
     if VPoly is not None:
+        # initializations:
         npts_vpoly = VPoly.shape[1] - 1
-        if out_low =='(x,y,z)':
-            # hypot = _bgt.compute_hypot(pts_mv[0,:], pts_mv[1,:], NP)
-            # are_in_poly = <int *>malloc(NP * sizeof(int))
-            # nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
-            #                                         &VPoly[0][0], &VPoly[1][0],
-            #                                         NP,
-            #                                         &hypot[0], &pts_mv[2,0],
-            #                                         are_in_poly)
-
-            # # indin = Path(VPoly.T).contains_points(np.array([hypot,pts_mv[2,:]]).T,
-            # #                                       transform=None, radius=0.0)
-            # # pts = pts[:,indin]
-            # # dv = dV[indin]
-            # # ind = ind[indin]
-            # # Ru = np.unique(hypot)
-            # pts2 = np.empty((3, nb_in_poly), dtype=float)
-            # dv2 = np.empty((nb_in_poly,), dytpe=float)
-            # ind2 = np.empty((nb_in_poly,), dtype=int)
-            # r_on_phi2 = np.empty((nb_in_poly,), dytpe=float)
-            # jj = 0
-            # for ii in range(NP):
-            #     if are_in_poly[ii]:
-            #         pts2[0,jj] = pts_mv[0,ii]
-            #         pts2[1,jj] = pts_mv[1,ii]
-            #         pts2[2,jj] = pts_mv[2,ii]
-            #         dv2[jj] = dv_mv[ii]
-            #         ind2[jj] = ind_mv[ii]
-            res_x = <double**> malloc(sizeof(double*))
-            res_y = <double**> malloc(sizeof(double*))
-            res_z = <double**> malloc(sizeof(double*))
-            res_vres = <double**> malloc(sizeof(double*))
-            res_rphi = <double**> malloc(sizeof(double*))
-            res_lind = <long**>   malloc(sizeof(long*))
-            nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, True, VPoly, pts, dv_mv,
-                                       r_on_phi_mv, disc_r, ind_mv,
-                                       res_x, res_y, res_z,
-                                       res_vres, res_rphi, res_lind)
-            pts = np.empty((3,nb_in_poly))
-            pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0])
-            pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0])
-            pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0])
-            dV = np.asarray(<double[:nb_in_poly]> res_vres[0])
-            r_on_phi = np.asarray(<double[:nb_in_poly]> res_rphi[0])
-            ind = np.asarray(<long[:nb_in_poly]> res_lind[0])
-            # TODO: free res_x, res_y, ...
-        else:
-            indin = Path(VPoly.T).contains_points(pts_mv[:-1,:].T, transform=None,
-                                                  radius=0.0)
-            pts = pts[:,indin]
-            dV = dV[indin]
-            ind = ind[indin]
-            Ru = np.unique(pts[0,:])
-            print("is it true === ", np.all(Ru == pts[0,:]))
-        # we also take out the radii that are not in the VPoly given by the user
-        # if not np.all(Ru==disc_r):
-        #     # disc_r is NOT a numpy array....... I think the easier is to
-        #     # pass everything to C-arrays and memory views and go from there...
-        #     r_on_phi_mv = np.array([r_on_phi_mv[ii] for ii in range(0,sz_r) \
-        #                        if disc_r[ii] in Ru])
-
+        res_x = <double**> malloc(sizeof(double*))
+        res_y = <double**> malloc(sizeof(double*))
+        res_z = <double**> malloc(sizeof(double*))
+        res_vres = <double**> malloc(sizeof(double*))
+        res_rphi = <double**> malloc(sizeof(double*))
+        res_lind = <long**>   malloc(sizeof(long*))
+        # .. Calling main function
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, out_low =='(x,y,z)', VPoly, pts, dv_mv,
+                                                r_on_phi_mv, disc_r, ind_mv,
+                                                res_x, res_y, res_z,
+                                                res_vres, res_rphi, res_lind)
+        pts = np.empty((3,nb_in_poly))
+        pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0])
+        pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0])
+        pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0])
+        dV = np.asarray(<double[:nb_in_poly]> res_vres[0])
+        r_on_phi = np.asarray(<double[:nb_in_poly]> res_rphi[0])
+        ind = np.asarray(<long[:nb_in_poly]> res_lind[0])
+        # freeing the memory
+        free(res_x[0])
+        free(res_y[0])
+        free(res_z[0])
+        free(res_vres[0])
+        free(res_rphi[0])
+        free(res_lind[0])
+        free(res_x)
+        free(res_y)
+        free(res_z)
+        free(res_vres)
+        free(res_rphi)
+        free(res_lind)
     free(disc_r)
     free(disc_z)
     free(disc_r0)
