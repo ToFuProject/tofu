@@ -4635,7 +4635,7 @@ class Rays(utils.ToFuObject):
                                   quant=None, ref1d=None, ref2d=None,
                                   q2dR=None, q2dPhi=None, q2dZ=None, Type=None,
                                   Brightness=True, interp_t='nearest',
-                                  interp_space=None, fill_value=np.nan,
+                                  interp_space=None, fill_value=None,
                                   res=None, DL=None, resMode='abs',
                                   method='sum', minimize='calls',
                                   num_threads=None,
@@ -4653,6 +4653,17 @@ class Rays(utils.ToFuObject):
             res = _RES
 
         if newcalc:
+            # Get time vector
+            if t is None:
+                out = plasma2d._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                                    q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ)
+                t = plasma2d._get_tcom(*out[:4])[0]
+            else:
+                t = np.atleast_1d(t).ravel()
+
+            if fill_value is None:
+                fill_value = 0.
+
             func = plasma2d.get_finterp2d(quant=quant, ref1d=ref1d, ref2d=ref2d,
                                           q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
                                           interp_t=interp_t,
@@ -4672,8 +4683,6 @@ class Rays(utils.ToFuObject):
             else:
                 D = np.ascontiguousarray(self.D[:,indok])
                 u = np.ascontiguousarray(self.u[:,indok])
-
-            # Extract time here !!!
 
             sig = _GG.LOS_calc_signal(funcbis, D, u, res, DL,
                                       dmethod=resMode, method=method, ani=ani,
