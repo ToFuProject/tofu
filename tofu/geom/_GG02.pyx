@@ -863,6 +863,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double[2] limits_dl
     cdef double[1] reso_r0, reso_r, reso_z
     cdef long[1] ncells_r0, ncells_r, ncells_z
+    cdef long[1] sz_rphi
     cdef double* disc_r0 = NULL
     cdef double* disc_r  = NULL
     cdef double* disc_z  = NULL
@@ -1029,17 +1030,19 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_rphi = <double**> malloc(sizeof(double*))
         res_lind = <long**>   malloc(sizeof(long*))
         # .. Calling main function
-        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, out_low =='(x,y,z)', VPoly, pts, dv_mv,
+        print(" > dv = ", dv_mv[0])
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, out_low =='(x,y,z)', VPoly, pts, dv_mv,
                                                 r_on_phi_mv, disc_r, ind_mv,
                                                 res_x, res_y, res_z,
-                                                res_vres, res_rphi, res_lind)
+                                                res_vres, res_rphi, res_lind,
+                                                &sz_rphi[0])
         pts = np.empty((3,nb_in_poly))
-        pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0])
-        pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0])
-        pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0])
-        dV = np.asarray(<double[:nb_in_poly]> res_vres[0])
-        r_on_phi = np.asarray(<double[:nb_in_poly]> res_rphi[0])
-        ind = np.asarray(<long[:nb_in_poly]> res_lind[0])
+        ind = np.asarray(<long[:nb_in_poly]> res_lind[0]) + 0
+        dV  = np.asarray(<double[:nb_in_poly]> res_vres[0]) + 0
+        pts[0] =  np.asarray(<double[:nb_in_poly]> res_x[0]) + 0
+        pts[1] =  np.asarray(<double[:nb_in_poly]> res_y[0]) + 0
+        pts[2] =  np.asarray(<double[:nb_in_poly]> res_z[0]) + 0
+        r_on_phi = np.asarray(<double[:sz_rphi[0]]> res_rphi[0]) + 0
         # freeing the memory
         free(res_x[0])
         free(res_y[0])
@@ -1060,6 +1063,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
+    print("before return dV =", dV[0])
     return pts, dV, ind, reso_r[0], reso_z[0], r_on_phi
 
 

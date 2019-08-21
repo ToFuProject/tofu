@@ -39,8 +39,10 @@ for ii in range(0,len(LDPhi)):
                                                              Out='(R,Z,Phi)',
                                                              margin=1.e-9)
     assert Pts.ndim==2 and Pts.shape[0]==3
-    assert np.all(Pts[0,:]>=1.) and np.all(Pts[0,:]<=2.) and \
-        np.all(Pts[1,:]>=0.) and np.all(Pts[1,:]<=1.)
+    assert np.all(Pts[0,:]>=1.)
+    assert np.all(Pts[0,:]<=2.)
+    assert np.all(Pts[1,:]>=0.)
+    assert np.all(Pts[1,:]<=1.)
     marg = np.abs(np.arctan(np.mean(dRPhir)/np.min(VPoly[1,:])))
     if not LDPhi[ii] is None:
         LDPhi[ii][0] = np.arctan2(np.sin(LDPhi[ii][0]),np.cos(LDPhi[ii][0]))
@@ -55,19 +57,14 @@ for ii in range(0,len(LDPhi)):
     assert ind.shape == (Pts.shape[1],)
     assert ind.dtype==int
     assert np.unique(ind).size==ind.size
-    print(np.unique(ind).size, ind.size)
-    print(np.unique(ind)[:5])
-    print(ind[:5])
     assert np.all(ind==np.unique(ind))
     assert np.all(ind>=0)
-        
     assert all([ind.shape==(Pts.shape[1],),
                 ind.dtype==int,
                 np.unique(ind).size==ind.size,
                 np.all(ind==np.unique(ind)),
                 np.all(ind>=0)])
     assert dRPhir.ndim==1
-
     Ptsi, \
         dVi, dRri, dZri,\
         dRPhiri = GG._Ves_Vmesh_Tor_SubFromInd_cython(dR, dZ, dRPhi,
@@ -77,4 +74,4 @@ for ii in range(0,len(LDPhi)):
     assert np.allclose(Pts,Ptsi)
     assert np.allclose(dV,dVi)
     assert dRr==dRri and dZr==dZri
-    assert np.allclose(dRPhir,dRPhiri)
+    assert np.allclose(dRPhir, np.unique(dRPhiri))

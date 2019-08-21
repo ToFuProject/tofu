@@ -366,23 +366,8 @@ cdef inline void vignetting_core(double[:, ::1] ray_orig,
 # ==============================================================================
 # =  Vignetting Vmesh with VPoly
 # ==============================================================================
-# utility function
-cdef inline void compute_hypot_ng_set(const double[::1] xpts,
-                                      const double[::1] ypts,
-                                      double* hypot,
-                                      setpp[double] set_hyp,
-                                      int npts) nogil:
-    # Compute hypothenus but this version doesnt requires
-    # the gil and sets the results in a c++:std:set and a pointer
-    cdef int ii
-    cdef double loc_r
-    for ii in range(npts):
-        loc_r = Csqrt(xpts[ii]*xpts[ii] + ypts[ii]*ypts[ii])
-        set_hyp.insert(loc_r)
-        hypot[ii] = loc_r
-    return
-
-cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
+cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
+                                       bint is_cart,
                                        double[:, ::1] vpoly,
                                        double[:, ::1] pts,
                                        double[::1] vol_resol,
@@ -394,7 +379,8 @@ cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
                                        double** res_z,
                                        double** res_vres,
                                        double** res_rphi,
-                                       long** res_lind) nogil:
+                                       long** res_lind,
+                                       long* sz_rphi) nogil:
     cdef int ii, jj
     cdef int npts_vpoly
     cdef int nb_in_poly = 0
@@ -402,7 +388,6 @@ cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
     cdef double* hypot
     cdef double loc_rphi
     cdef setpp[double] set_r
-    cdef setpp[double] set_hyp
     cdef setpp[double] set_rphi
     # -- initialization --------------------------------------------------------
     are_in_poly = <int *>malloc(npts * sizeof(int))
@@ -410,7 +395,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
     # -- Main loops by case ----------------------------------------------------
     if is_cart:
         hypot = <double*> malloc(npts*sizeof(double))
-        compute_hypot_ng_set(pts[0,:], pts[1,:], &hypot[0], set_hyp, npts)
+        _bgt.compute_hypot_ng(pts[0,:], pts[1,:], &hypot[0], npts)
         nb_in_poly  = _bgt.is_point_in_path_vec(npts_vpoly,
                                                 &vpoly[0][0], &vpoly[1][0],
                                                 npts,
@@ -430,12 +415,20 @@ cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
                 res_z[0][jj] = pts[2,ii]
                 res_vres[0][jj] = vol_resol[ii]
                 res_lind[0][jj] = lind[ii]
-                if set_hyp.count(disc_r[ii]) > 0:
-                    set_rphi.insert(r_on_phi[ii])
-                    
+                # we create a set for the new radius in vpoly:
+                set_r.insert(hypot[ii])
+                jj = jj + 1
+        # we have to keep only the rphi in vpoly
+        for ii in range(sz_r):
+            if set_r.count(disc_r[ii]) > 0:
+                set_rphi.insert(r_on_phi[ii])
+        # we transform the set of rphi to an array
+        sz_rphi[0] = set_rphi.size()
         res_rphi[0] = <double*> malloc(set_rphi.size() * sizeof(double))
+        ii = 0
         for loc_rphi in set_rphi:
             res_rphi[0][ii] = loc_rphi
+            ii = ii + 1
         # freeing malloced local array
         free(hypot)
     else:
@@ -451,20 +444,25 @@ cdef inline int vignetting_vmesh_vpoly(int npts, bint is_cart,
         res_vres[0] = <double*> malloc(nb_in_poly * sizeof(double))
         res_lind[0] = <long*> malloc(nb_in_poly * sizeof(long))
         jj = 0
-        # We create a std::set for fast memory access
-        for ii in range(npts):
-            set_r.insert(pts[0,ii])
         for ii in range(npts):
             if are_in_poly[ii]:
-                res_x[0][jj] = pts[0,ii]
-                res_y[0][jj] = pts[1,ii]
-                res_z[0][jj] = pts[2,ii]
+                res_x[0][jj] = pts[0,ii] # here r
+                res_y[0][jj] = pts[1,ii] # here z
+                res_z[0][jj] = pts[2,ii] # here phi
                 res_vres[0][jj] = vol_resol[ii]
                 res_lind[0][jj] = lind[ii]
-                if set_r.count(disc_r[ii]) > 0:
-                    set_rphi.insert(r_on_phi[ii])
-                    
+                # we create a set for the new radius in vpoly:
+                set_r.insert(pts[0,ii])
+                jj = jj + 1
+        # now we have to keep only the rphi in vpoly
+        for ii in range(sz_r):
+            if set_r.count(disc_r[ii]) > 0:
+                set_rphi.insert(r_on_phi[ii])
+        # we transform the set of rphi to an array
+        sz_rphi[0] = set_rphi.size()
         res_rphi[0] = <double*> malloc(set_rphi.size() * sizeof(double))
+        ii = 0
         for loc_rphi in set_rphi:
             res_rphi[0][ii] = loc_rphi
+            ii = ii + 1
     return nb_in_poly
