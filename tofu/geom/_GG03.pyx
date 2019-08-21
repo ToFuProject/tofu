@@ -851,22 +851,23 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef int ind_loc_r0
     cdef int ncells_rphi0, nphi0, nphi1
     cdef int NP, loc_nc_rphi, r_ratio
-    cdef double[::1] R, Z, r_on_phi_mv, dPhir, hypot
+    cdef int sz_r0d, sz_r, sz_z
+    cdef str out_low = Out.lower()
+    cdef bint is_cart = out_low == '(x,y,z)'
+    cdef long zrphi
     cdef double dRr, dZr, min_phi, max_phi
     cdef double abs0, abs1, phi, indiijj
     cdef double inv_drphi
     cdef double twopi_over_dphi
-    cdef long zrphi
+    cdef long[::1] ind_mv    
     cdef long[::1] indR0, indR, indZ, Phin
-    cdef double[:, ::1] pts_mv
     cdef double[::1] dv_mv
-    cdef long[::1] ind_mv
-    cdef double[2] limits_dl
-    cdef double[1] reso_r0, reso_r, reso_z
+    cdef double[::1] R, Z, r_on_phi_mv, dPhir, hypot
+    cdef double[:, ::1] pts_mv
     cdef long[1] ncells_r0, ncells_r, ncells_z
     cdef long[1] sz_rphi
-    cdef int sz_r0d, sz_r, sz_z
-    cdef str out_low = Out.lower()
+    cdef double[2] limits_dl
+    cdef double[1] reso_r0, reso_r, reso_z
     cdef long*  ncells_rphi  = NULL
     cdef long*  tot_nc_plane = NULL
     cdef long*  lindex   = NULL
@@ -881,7 +882,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double** res_z  = NULL
     cdef double** res_vres = NULL
     cdef double** res_rphi = NULL
-    
     cdef np.ndarray[long,ndim=1] ind
     cdef np.ndarray[double,ndim=1] r_on_phi
     cdef np.ndarray[double,ndim=2] pts, indI
@@ -991,7 +991,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     # Compute pts, dV and ind
     # This triple loop is the longest part, it takes ~90% of the CPU time
     NP = 0
-    if out_low=='(x,y,z)':
+    if is_cart:
         for ii in range(sz_r):
             # To make sure the indices are in increasing order
             iii = np.sort(indI[ii,~np.isnan(indI[ii,:])])
@@ -1032,8 +1032,7 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         res_rphi = <double**> malloc(sizeof(double*))
         res_lind = <long**>   malloc(sizeof(long*))
         # .. Calling main function
-        print(" > dv = ", dv_mv[0])
-        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, out_low =='(x,y,z)', VPoly, pts, dv_mv,
+        nb_in_poly = _vt.vignetting_vmesh_vpoly(NP, sz_r, is_cart, VPoly, pts, dv_mv,
                                                 r_on_phi_mv, disc_r, ind_mv,
                                                 res_x, res_y, res_z,
                                                 res_vres, res_rphi, res_lind,
@@ -1065,7 +1064,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     free(step_rphi)
     free(ncells_rphi)
     free(tot_nc_plane)
-    print("before return dV =", dV[0])
     return pts, dV, ind, reso_r[0], reso_z[0], r_on_phi
 
 
