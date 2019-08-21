@@ -847,6 +847,10 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     Return the desired submesh indicated by the limits (DR,DZ,DPhi),
     for the desired resolution (rstep,zstep,dRphi)
     """
+    cdef int ii, jj, zz
+    cdef int ind_loc_r0
+    cdef int ncells_rphi0, nphi0, nphi1
+    cdef int NP, loc_nc_rphi, r_ratio
     cdef double[::1] R, Z, r_on_phi_mv, dPhir, hypot
     cdef double dRr, dZr, min_phi, max_phi
     cdef double abs0, abs1, phi, indiijj
@@ -854,9 +858,6 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double twopi_over_dphi
     cdef long zrphi
     cdef long[::1] indR0, indR, indZ, Phin
-    cdef int ind_loc_r0
-    cdef int NR0, NR, NZ, Rn, Zn, ncells_rphi0, ii, jj, nPhi0, nPhi1, zz
-    cdef int NP, loc_nc_rphi, r_ratio
     cdef double[:, ::1] pts_mv
     cdef double[::1] dv_mv
     cdef long[::1] ind_mv
@@ -864,26 +865,27 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
     cdef double[1] reso_r0, reso_r, reso_z
     cdef long[1] ncells_r0, ncells_r, ncells_z
     cdef long[1] sz_rphi
+    cdef int sz_r0d, sz_r, sz_z
+    cdef str out_low = Out.lower()
+    cdef long*  ncells_rphi  = NULL
+    cdef long*  tot_nc_plane = NULL
+    cdef long*  lindex   = NULL
+    cdef long*  lindex_z = NULL
+    cdef long** res_lind = NULL
     cdef double* disc_r0 = NULL
     cdef double* disc_r  = NULL
     cdef double* disc_z  = NULL
-    cdef double* step_rphi   = NULL
-    cdef long* ncells_rphi = NULL
-    cdef long* tot_nc_plane = NULL
-    cdef long* lindex = NULL
-    cdef long* lindex_z = NULL
-    cdef int sz_r0d, sz_r, sz_z
-    cdef str out_low = Out.lower()
+    cdef double* step_rphi = NULL
+    cdef double** res_x  = NULL
+    cdef double** res_y  = NULL
+    cdef double** res_z  = NULL
+    cdef double** res_vres = NULL
+    cdef double** res_rphi = NULL
+    
+    cdef np.ndarray[long,ndim=1] ind
     cdef np.ndarray[double,ndim=1] r_on_phi
     cdef np.ndarray[double,ndim=2] pts, indI
     cdef np.ndarray[double,ndim=1] iii, dV
-    cdef np.ndarray[long,ndim=1] ind
-    cdef double** res_x = NULL
-    cdef double** res_y = NULL
-    cdef double** res_z = NULL
-    cdef double** res_vres = NULL
-    cdef double** res_rphi = NULL
-    cdef long** res_lind = NULL
     
     # Get the actual R and Z resolutions and mesh elements
     # .. First we discretize R without limits ..................................
@@ -954,31 +956,31 @@ def _Ves_Vmesh_Tor_SubFromD_cython(double rstep, double zstep, double phistep,
         # Get the extreme indices of the mesh elements that really need to
         # be created within those limits
         if abs0 - step_rphi[ii]*Cfloor(abs0 * inv_drphi) < margin*step_rphi[ii]:
-            nPhi0 = int(Cround((min_phi + Cpi) * inv_drphi))
+            nphi0 = int(Cround((min_phi + Cpi) * inv_drphi))
         else:
-            nPhi0 = int(Cfloor((min_phi + Cpi) * inv_drphi))
+            nphi0 = int(Cfloor((min_phi + Cpi) * inv_drphi))
         abs1 = Cabs(max_phi + Cpi)
         if abs1-step_rphi[ii]*Cfloor(abs1 * inv_drphi) < margin*step_rphi[ii]:
-            nPhi1 = int(Cround((max_phi+Cpi) * inv_drphi)-1)
+            nphi1 = int(Cround((max_phi+Cpi) * inv_drphi)-1)
         else:
-            nPhi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
+            nphi1 = int(Cfloor((max_phi+Cpi) * inv_drphi))
 
         if min_phi < max_phi:
-            #indI.append(list(range(nPhi0,nPhi1+1)))
-            Phin[ii] = nPhi1+1-nPhi0
+            #indI.append(list(range(nphi0,nphi1+1)))
+            Phin[ii] = nphi1+1-nphi0
             if ii==0:
                 indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
             for jj in range(Phin[ii]):
-                indI[ii,jj] = <double>( nPhi0+jj )
+                indI[ii,jj] = <double>( nphi0+jj )
         else:
-            #indI.append(list(range(nPhi0,loc_nc_rphi)+list(range(0,nPhi1+1))))
-            Phin[ii] = nPhi1+1+loc_nc_rphi-nPhi0
+            #indI.append(list(range(nphi0,loc_nc_rphi)+list(range(0,nphi1+1))))
+            Phin[ii] = nphi1+1+loc_nc_rphi-nphi0
             if ii==0:
                 indI = np.nan*np.ones((sz_r,Phin[ii]*r_ratio+1))
-            for jj in range(0,loc_nc_rphi-nPhi0):
-                indI[ii,jj] = <double>( nPhi0+jj )
-            for jj in range(loc_nc_rphi-nPhi0,Phin[ii]):
-                indI[ii,jj] = <double>( jj- (loc_nc_rphi-nPhi0) )
+            for jj in range(0,loc_nc_rphi-nphi0):
+                indI[ii,jj] = <double>( nphi0+jj )
+            for jj in range(loc_nc_rphi-nphi0,Phin[ii]):
+                indI[ii,jj] = <double>( jj- (loc_nc_rphi-nphi0) )
         NP += sz_z * Phin[ii]
     pts = np.empty((3,NP))
     ind = np.empty((NP,), dtype=int)
@@ -1326,7 +1328,7 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
     cdef double dRr, dZr, DPhi0, DPhi1, DDPhi, DPhiMinMax
     cdef double abs0, abs1, phi, indiijj
     cdef long[::1] indR0, indR, indZ, Phin, NRPhi0, Indin
-    cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj0=0, jj, nPhi0, nPhi1
+    cdef int NR0, NR, NZ, Rn, Zn, nRPhi0, indR0ii, ii, jj0=0, jj, nphi0, nphi1
     cdef int zz, NP, NRPhi_int, Rratio, Ln
     cdef np.ndarray[double,ndim=2] pts, indI, ptsCross, VPbis
     cdef np.ndarray[double,ndim=1] R0, dS, ind, dLr, Rref, dRPhir, iii
@@ -1413,17 +1415,17 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
             for kk in range(0,nBounds):
                 abs0 = BC[kk][0]-PhiMinMax[0]
                 if abs0-dPhir[ii]*Cfloor(abs0/dPhir[ii])<margin*dPhir[ii]:
-                    nPhi0 = int(Cround(abs0/dPhir[ii]))
+                    nphi0 = int(Cround(abs0/dPhir[ii]))
                 else:
-                    nPhi0 = int(Cfloor(abs0/dPhir[ii]))
+                    nphi0 = int(Cfloor(abs0/dPhir[ii]))
                 abs1 = BC[kk][1]-PhiMinMax[0]
                 if abs1-dPhir[ii]*Cfloor(abs1/dPhir[ii])<margin*dPhir[ii]:
-                    nPhi1 = int(Cround(abs1/dPhir[ii])-1)
+                    nphi1 = int(Cround(abs1/dPhir[ii])-1)
                 else:
-                    nPhi1 = int(Cfloor(abs1/dPhir[ii]))
-                indBounds[0,kk] = nPhi0
-                indBounds[1,kk] = nPhi1
-                Phin[ii] += nPhi1+1-nPhi0
+                    nphi1 = int(Cfloor(abs1/dPhir[ii]))
+                indBounds[0,kk] = nphi0
+                indBounds[1,kk] = nphi1
+                Phin[ii] += nphi1+1-nphi0
 
             if ii==0:
                 indI = np.nan*np.ones((Ln,Phin[ii]*Rratio+1))

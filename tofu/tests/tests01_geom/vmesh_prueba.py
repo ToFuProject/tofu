@@ -74,4 +74,4 @@ for ii in range(0,len(LDPhi)):
     assert np.allclose(Pts,Ptsi)
     assert np.allclose(dV,dVi)
     assert dRr==dRri and dZr==dZri
-    assert np.allclose(dRPhir, np.unique(dRPhiri))
+    assert np.allclose(dRPhir, dRPhiri)

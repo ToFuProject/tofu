@@ -13,7 +13,7 @@
 cimport cython
 from cython.parallel import prange
 from cython.parallel cimport parallel
-from libcpp.vector cimport vector
+from libcpp.vector cimport vector as vecpp
 from libcpp.set cimport set as setpp
 from libc.stdlib cimport malloc, free
 from libc.math cimport sqrt as Csqrt
@@ -113,7 +113,7 @@ cdef inline bint is_pt_in_tri(double[3] v0, double[3] v1,
 cdef inline int get_one_ear(double* polygon,
                             double* diff,
                             bint* lref,
-                            vector[int] working_index,
+                            vecpp[int] working_index,
                             int nvert, int orig_nvert) nogil:
     """
     A polygon's "ear" is defined as a triangle of vert_i-1, vert_i, vert_i+1,
@@ -193,7 +193,7 @@ cdef inline void earclipping_poly(double* vignett,
     cdef int ii, jj
     cdef int wi, wim1, wip1
     cdef int iear
-    cdef vector[int] working_index
+    cdef vecpp[int] working_index
     # .. First computing the edges coodinates .................................
     # .. and checking if the angles defined by the edges are reflex or not.....
     # initialization of working index tab:
@@ -388,7 +388,7 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
     cdef double* hypot
     cdef double loc_rphi
     cdef setpp[double] set_r
-    cdef setpp[double] set_rphi
+    cdef vecpp[double] vec_rphi
     # -- initialization --------------------------------------------------------
     are_in_poly = <int *>malloc(npts * sizeof(int))
     npts_vpoly = vpoly.shape[1] - 1
@@ -421,14 +421,12 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         # we have to keep only the rphi in vpoly
         for ii in range(sz_r):
             if set_r.count(disc_r[ii]) > 0:
-                set_rphi.insert(r_on_phi[ii])
+                vec_rphi.push_back(r_on_phi[ii])
         # we transform the set of rphi to an array
-        sz_rphi[0] = set_rphi.size()
-        res_rphi[0] = <double*> malloc(set_rphi.size() * sizeof(double))
-        ii = 0
-        for loc_rphi in set_rphi:
-            res_rphi[0][ii] = loc_rphi
-            ii = ii + 1
+        sz_rphi[0] = vec_rphi.size()
+        res_rphi[0] = <double*> malloc(vec_rphi.size() * sizeof(double))
+        for ii in range(sz_rphi[0]):
+            res_rphi[0][ii] = vec_rphi[ii]
         # freeing malloced local array
         free(hypot)
     else:
@@ -457,12 +455,10 @@ cdef inline int vignetting_vmesh_vpoly(int npts, int sz_r,
         # now we have to keep only the rphi in vpoly
         for ii in range(sz_r):
             if set_r.count(disc_r[ii]) > 0:
-                set_rphi.insert(r_on_phi[ii])
+                vec_rphi.push_back(r_on_phi[ii])
         # we transform the set of rphi to an array
-        sz_rphi[0] = set_rphi.size()
-        res_rphi[0] = <double*> malloc(set_rphi.size() * sizeof(double))
-        ii = 0
-        for loc_rphi in set_rphi:
-            res_rphi[0][ii] = loc_rphi
-            ii = ii + 1
+        sz_rphi[0] = vec_rphi.size()
+        res_rphi[0] = <double*> malloc(vec_rphi.size() * sizeof(double))
+        for ii in range(sz_rphi[0]):
+            res_rphi[0][ii] = vec_rphi[ii]
     return nb_in_poly
