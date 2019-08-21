@@ -4597,8 +4597,8 @@ class Rays(utils.ToFuObject):
         # Format input
 
         indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, DL=DL,
-                                                                out=out,
-                                                                Brightness=Brightness)
+                                                           out=out,
+                                                           Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4607,9 +4607,36 @@ class Rays(utils.ToFuObject):
 
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
-        s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
-                                dmethod=resMode, method=method,
-                                t=t, ani=ani, fkwdargs=fkwdargs, Test=True)
+        if newcalc:
+            s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
+                                    dmethod=resMode, method=method,
+                                    t=t, ani=ani, fkwdargs=fkwdargs, Test=True)
+        else:
+            # Get ptsRZ along LOS // Which to choose ???
+            pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
+                                                  compact=True, pts=True)
+            if q2dR is None:
+                vect = None
+            else:
+                nbrep = np.r_[indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]]
+                vect = np.repeat(self.u, nbrep, axis=1)
+
+            # Get quantity values at ptsRZ
+            # This is the slowest step (~3.8 s with res=0.02 and interferometer)
+            val = func(pts, t=t)
+
+            # Integrate
+            if val.ndim == 2:
+                sig = np.full((val.shape[0], self.nRays), np.nan)
+            else:
+                sig = np.full((1,self.nRays), np.nan)
+
+            indpts = np.r_[0,indpts,pts.shape[1]]
+            for ii in range(0,self.nRays):
+                sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
+
+
+
 
         # Integrate
         if s.ndim == 2:
