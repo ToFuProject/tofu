@@ -15,9 +15,10 @@ import tofu as tf
 # Defining defaults
 ###################
 
-_LRES = [-1,-2,0]
-_LLOS = [1,3,0]
-_LT = [1,2,0]
+_LRES = [-1,-2,1]
+_LLOS = [1,3,1]
+_LT = [1,3,0]
+_NREP = 3
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
 _DT = abs(_LT[1] - _LT[0])
@@ -42,7 +43,6 @@ _DALGO = {'ref-sum':{'newcalc':False},
           # 'memory-simps': {'newcalc':True,  'minimize':'memory', 'method':'simps'},
           # 'memory-romb':  {'newcalc':True,  'minimize':'memory', 'method':'romb'},
          }
-_NREP = 1
 _DCAM = {'P':[3.4,0.,0.], 'F':0.1, 'D12':0.1,
          'angs':[1.05*np.pi, np.pi/4, np.pi/4]}
 
@@ -91,6 +91,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     nres = len(res)
     if nlos is None:
         nlos = _NLOS
+    nlos = np.array(nlos, dtype=int)
     nnlos = len(nlos)
 
     # dalgo
@@ -115,16 +116,32 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     # Prepare output
     t_av = np.full((nalgo, nnlos, nres, nnt), np.nan)
     t_std = np.full((nalgo, nnlos, nres, nnt), np.nan)
+    memerr = np.zeros((nalgo, nnlos, nres, nnt), dtype=bool)
     win = np.zeros((nnlos, nres, nnt), dtype=int)
+
+    #---------------
+    # Prepare saving params
+    if save:
+        if name is None:
+            lvar = [('nalgo',nalgo), ('nnlos',nnlos),
+                    ('nres',nres), ('nnt',nnt)]
+            name = 'benchmark_LOScalcsignal_'
+            name += '_'.join(['%s%s'%(nn,vv)
+                              for nn,vv in lvar])
+        if path is None:
+            path = _PATH
+        pfe = os.path.join(path,name+'.npz')
 
     #------------
     # Start loop
 
-    names = [[len('%s-%s'%(lalgo[ii],int(nlos[jj]))) for jj in range(nnlos)]
-             for ii in range(nalgo)]
-    lennames = np.max(names)
-    msg = "\n-------------------------------\n"
-    msg += "Benchmark about to be run with:\n"
+    names = np.array([['%s  los = %s'%(lalgo[ii],int(nlos[jj]))
+                       for jj in range(nnlos)]
+                      for ii in range(nalgo)])
+    lennames = np.max(np.char.str_len(names))
+    msg = "\n###################################"*2
+    msg += "\nBenchmark about to be run with:"
+    msg += "\n-------------------------------\n\n"
     msg += "lalgo = %s\n"%str(lalgo)
     msg += "nlos = %s\n"%str(nlos)
     msg += "res  = %s\n"%str(res)
@@ -134,17 +151,15 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     print(msg)
 
     err0 = None
-
     for ii in range(nalgo):
         print('')
         for jj in range(nnlos):
-            namei = '%s-%s'%(lalgo[ii],int(nlos[jj]))
             cam = tf.geom.utils.create_CamLOS1D(N12=nlos[jj],
                                                 config=config,
-                                                Name=namei, Exp='dummy',
+                                                Name=str(names[ii,jj]), Exp='dummy',
                                                 Diag='Dummy',
                                                 **_DCAM)
-            msg = "    %s"%(namei.ljust(lennames))
+            msg = "    %s"%(names[ii,jj].ljust(lennames))
             print(msg)
 
             for ll in range(nres):
@@ -174,6 +189,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
                                 dt[rr] = (dtm.datetime.now()-t0).total_seconds()
                         except MemoryError as err:
                             dt[rr] = -1
+                            memerr[ii,jj,ll,tt] = True
                         except Exception as err:
                             if err0 is None:
                                 err0 = err
@@ -183,30 +199,37 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
 
                 msgi = ': %s\n'%str(t_av[ii,jj,ll,:])
                 print(msg + msgi, end='', flush=True)
-    win = np.argmin(t_av, axis=0)
+
+    t_av[memerr] = np.nan
+    win = np.nanargmin(t_av, axis=0)
     ncase = win.size
 
     # Print synthesis
-    msg = "\n  --- Synthesis ---"
-    msg += "\n  Speed: (algo ... is fastest in...):\n    "
-    msg += "\n    ".join(["%s : %s"%(lalgo[ii],100.*np.sum(win==ii)/ncase) +' %'
+    ln = np.max([len(aa) for aa in lalgo])
+    msg = "\n  --------------------\n  --- Synthesis ---"
+    msg += "\n\n  Speed score:\n    "
+    msg += "\n    ".join(["%s : %s"%(lalgo[ii].ljust(ln),
+                                     100.*np.sum(win==ii)/ncase) +' %'
                           for ii in range(nalgo)])
-    msg += "\n  Memory: (algo ... has no memory error in...):\n    "
-    msg += "\n    ".join(["%s : %s"%(lalgo[ii],
+
+    winname = np.char.rjust(np.asarray(lalgo)[win], ln)
+    lsblocks = ['nlos = %s'%str(nlos[jj]) + "\n        "
+                 + "\n        ".join([('res %s/%s    '%(ll,nres)
+                                       + str(winname[jj,ll,:]))
+                                      for ll in range(nres)])
+                for jj in range(nnlos)]
+    msg += "\n" +  "\n    " + "\n    ".join(lsblocks)
+
+
+    msg += "\n\n  Memory score:\n    "
+    msg += "\n    ".join(["%s : %s"%(lalgo[ii].ljust(ln),
                                      100.*np.sum(t_av[ii,...]>=0)/ncase) + ' %'
                           for ii in range(nalgo)])
     print(msg)
 
+
     if err0 is not None:
-        msg = str(err0)
-        lind = np.where(np.isnan(t_av))
-        lind = [ii[0] for ii in lind]
-        msg += "\n\n The above error occured for:\n"
-        msg += "algo %s nlos %s/%s, res %s/%s, nt %s/%s"%(lalgo[lind[0]],
-                                                          lind[1], nnlos,
-                                                          lind[2], nres,
-                                                          lind[3], nnt)
-        warnings.warn(msg)
+        raise err0
 
     #-------------
     # Plot / save
@@ -221,15 +244,6 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
         plot_benchmark(**out)
 
     if save:
-        if name is None:
-            lvar = [('nalgo',nalgo), ('nnlos',nnlos),
-                    ('nres',nres), ('nnt',nnt)]
-            name = 'benchmark_LOScalcsignal_'
-            name += '_'.join(['%s%s'%(nn,vv)
-                              for nn,vv in lvar])
-        if path is None:
-            path = _PATH
-        pfe = os.path.join(path,name+'.npz')
         np.savez(pfe, **out)
         print('Saved in:\n    %s'%pfe)
     return out
@@ -248,5 +262,32 @@ def plot_benchmark(fname=None, **kwdargs):
         out = np.load(fname)
     else:
         out = kwdargs
+
+    # Prepare inputs
+    # --------------
+    if fs is None:
+        fs = (14,10)
+    if dmargin is None:
+        dmargin = {}
+
+    indok = out['t_av'] >= 0.
+    vmin, vmax = np.nanmin(out['t_av'][indok]), np.nanmax(out['t_av'][indok])
+
+
+    # Plotting
+    # --------------
+    fig = plt.figure(figsize=fs)
+    # axarr = GridSpec(1,4, **dmargin)
+    # ax0 = fig.add_subplot(axarr[0,0])
+    # ax1 =
+    # ax2 =
+    # ax3 =
+    ax0 = fig.add_axes([0.1,0.1,0.8,0.8])
+
+    ax0.scatter(out['nlos'], out['res'], out['nt'],
+                c=out['t_av'][0,...], s=8, marker='o')
+
+
+
 
     return
