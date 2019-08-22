@@ -16,10 +16,10 @@ import tofu as tf
 # Defining defaults
 ###################
 
-_LRES = [-1,-2,1]
-_LLOS = [1,2,1]
-_LT = [1,2,0]
-_NREP = 2
+_LRES = [-1,-3,1]
+_LLOS = [1,5,1]
+_LT = [1,4,1]
+_NREP = 5
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
 _DT = abs(_LT[1] - _LT[0])
