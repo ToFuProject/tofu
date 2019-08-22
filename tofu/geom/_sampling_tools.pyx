@@ -530,22 +530,24 @@ cdef inline void middle_rule_abs_var_step2(int num_los, double* resolutions,
     cdef double loc_resol
     cdef double seg_length
     # ...
-    for ii in range(num_los):
-        if ii == 0:
-            first_index = 0
-        else:
-            first_index = los_ind[ii-1]
-        loc_resol = seg_length / num_raf
-        loc_resol = los_resolution[ii]
-        middle_rule_abs_var_single(num_raf,
-                                   loc_resol,
-                                   los_kmin[ii],
-                                   &los_coeffs[0][first_index])
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(num_los):
+            if ii == 0:
+                first_index = 0
+            else:
+                first_index = los_ind[ii-1]
+            loc_resol = los_resolution[ii]
+            seg_length = los_kmax[ii] - los_kmin[ii]
+            num_raf = <int>(Cceil(seg_length/resolutions[ii]))
+            middle_rule_abs_var_single(num_raf,
+                                       loc_resol,
+                                       los_kmin[ii],
+                                       &los_coeffs[0][first_index])
     return
 
 
 
-cdef inline void middle_rule_abs_var_2s(int num_los, double* resolutions,
+cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
                                      double* los_kmin,
                                      double* los_kmax,
                                      double* los_resolution,
@@ -562,6 +564,7 @@ cdef inline void middle_rule_abs_var_2s(int num_los, double* resolutions,
     middle_rule_abs_var_step1(num_los, resolutions, los_kmin, los_kmax,
                               los_resolution, los_coeffs,
                               los_ind, num_threads)
+    los_coeffs[0] = <double*>malloc(los_ind[num_los-1]*sizeof(double))
     middle_rule_abs_var_step2(num_los, resolutions, los_kmin, los_kmax,
                               los_resolution, los_coeffs,
                               los_ind, num_threads)
@@ -570,15 +573,13 @@ cdef inline void middle_rule_abs_var_2s(int num_los, double* resolutions,
     return
 
 
-cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
+cdef inline void middle_rule_abs_var_old(int num_los, double* resolutions,
                                      double* los_kmin,
                                      double* los_kmax,
                                      double* los_resolution,
                                      double** los_coeffs,
                                      long* los_ind,
                                      int num_threads) nogil:
-    with gil:
-        print("........................ here ........................")
     # Middle quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
     cdef Py_ssize_t ii
