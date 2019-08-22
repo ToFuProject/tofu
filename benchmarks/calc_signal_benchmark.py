@@ -6,6 +6,7 @@ import os
 import datetime as dtm
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
 # tofu
 import tofu as tf
@@ -16,9 +17,9 @@ import tofu as tf
 ###################
 
 _LRES = [-1,-2,1]
-_LLOS = [1,3,1]
-_LT = [1,3,0]
-_NREP = 3
+_LLOS = [1,2,1]
+_LT = [1,2,0]
+_NREP = 2
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
 _DT = abs(_LT[1] - _LT[0])
@@ -49,6 +50,13 @@ _DCAM = {'P':[3.4,0.,0.], 'F':0.1, 'D12':0.1,
 _PATH = os.path.abspath(os.path.dirname(__file__))
 
 
+_FS = (14,10)
+_DMARGIN = {'left':0.05, 'right':0.95,
+            'bottom':0.05, 'top':0.95,
+            'wspace':0.1, 'hspace':0.1}
+
+
+
 ###################
 # Main function
 ###################
@@ -58,7 +66,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
               quant=None, ref1d=None, ref2d=None,
               res=None, nlos=None, nt=None, t=None,
               dalgo=None, nrep=None,
-              plot=True, save=True, path=None, name=None):
+              plot=False, save=True, path=None, name=None):
 
     # --------------
     # Prepare inputs
@@ -241,7 +249,10 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     out = {kk:vv for kk,vv in locals().items() if kk in lk}
 
     if plot:
-        plot_benchmark(**out)
+        try:
+            plot_benchmark(**out)
+        except Exception:
+            pass
 
     if save:
         np.savez(pfe, **out)
@@ -255,20 +266,20 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
 ###################
 
 
-def plot_benchmark(fname=None, **kwdargs):
+def plot_benchmark(fname=None, fs=None, dmargin=None, **kwdargs):
 
     if fname is not None:
         assert type(fname) is str
-        out = np.load(fname)
+        out = dict(np.load(fname))
     else:
         out = kwdargs
 
     # Prepare inputs
     # --------------
     if fs is None:
-        fs = (14,10)
+        fs = _FS
     if dmargin is None:
-        dmargin = {}
+        dmargin = _DMARGIN
 
     indok = out['t_av'] >= 0.
     vmin, vmax = np.nanmin(out['t_av'][indok]), np.nanmax(out['t_av'][indok])
@@ -286,8 +297,5 @@ def plot_benchmark(fname=None, **kwdargs):
 
     ax0.scatter(out['nlos'], out['res'], out['nt'],
                 c=out['t_av'][0,...], s=8, marker='o')
-
-
-
 
     return
