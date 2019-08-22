@@ -2994,6 +2994,9 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     n_imode = _st.get_nb_imode(imode)
     # Initialization result
     sig = np.empty((nt,nlos),dtype=float)
+    # Initialization utility array
+    los_coeffs = <double**>malloc(sizeof(double*))
+    los_coeffs[0] = NULL
     # --------------------------------------------------------------------------
     # Minimize function calls: sample (vect), call (once) and integrate
     if minim == 'calls':
@@ -3033,8 +3036,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         if dl_is_list and ani:
             if n_imode == 0:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii],
                                                          n_dmode, n_imode,
@@ -3050,8 +3051,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii],
                                                          n_dmode, n_imode,
@@ -3068,8 +3067,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii],
                                                          n_dmode, n_imode,
@@ -3087,8 +3084,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         elif dl_is_list and not ani:
             if n_imode == 0:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii],
                                                          n_dmode, n_imode,
@@ -3103,8 +3098,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii], n_dmode,
                                                          n_imode,
@@ -3120,8 +3113,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii], n_dmode,
                                                          n_imode,
@@ -3139,8 +3130,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             # dl is not a list: constant resolution
             if n_imode==0:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3155,8 +3144,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
             elif n_imode==1:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3172,8 +3159,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                     dx=loc_eff_res[0])
             elif n_imode==2:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3191,8 +3176,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             # dl is not a list: constant resolution
             if n_imode==0:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3206,8 +3189,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
             elif n_imode==1:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3222,8 +3203,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                     dx=loc_eff_res[0])
             elif n_imode==2:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3245,8 +3224,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         if dl_is_list and ani:
             if n_imode == 0:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii],
                                                          n_dmode, n_imode,
@@ -3260,8 +3237,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii],
                                                          n_dmode, n_imode,
@@ -3277,8 +3252,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii],
                                                          n_dmode, n_imode,
@@ -3294,8 +3267,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         elif dl_is_list and not ani:
             if n_imode == 0:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii],
                                                          n_dmode, n_imode,
@@ -3308,8 +3279,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii], n_dmode,
                                                          n_imode,
@@ -3323,8 +3292,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                 dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res[ii], n_dmode,
                                                          n_imode,
@@ -3340,8 +3307,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             # dl is not a list: constant resolution
             if n_imode==0:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3354,8 +3319,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode==1:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3369,8 +3332,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                dx=loc_eff_res[0])
             elif n_imode==2:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3387,8 +3348,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             # dl is not a list: constant resolution
             if n_imode==0:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3401,8 +3360,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     sig[:, ii] = np.sum(val,axis=1)*loc_eff_res[0]
             elif n_imode==1:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
@@ -3415,8 +3372,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                dx=loc_eff_res[0])
             elif n_imode==2:
                 for ii in range(nlos):
-                    los_coeffs = <double**>malloc(sizeof(double*))
-                    los_coeffs[0] = NULL
                     sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
                                                          res, n_dmode, n_imode,
                                                          &loc_eff_res[0],
