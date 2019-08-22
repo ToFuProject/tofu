@@ -48,7 +48,8 @@ Installing ToFu
 * Move to the tofu directory, probably: ``cd ~/tofu``
 * Switch to the ``git`` branch you will be working on. If you are just starting you probably want to start from the latest develop branch: ``git checkout devel``. If you are not familiar with **git** take a look at  `this tutorial (long)  <https://www.atlassian.com/git/tutorials>`__ or `this short one <https://rogerdudler.github.io/git-guide/>`__
 * Compile ``python setup.py build_ext --inplace``
-* Install ``python setup.py install --prefix=$TOFU_DIR``
+* We suggest you installing python inside ``tofu/usr``, you will have to modify your ``$PYTHONPATH`` to include this path.  `How to modify environment variables on Windows <https://superuser.com/questions/1360611/editing-system-environment-variables-is-allowed-only-when-opened-through-control/>`__ 
+* ``python setup.py install --prefix=$TOFU_DIR\\usr``
 * Make sure tests are running ``nosetests``
  
  
