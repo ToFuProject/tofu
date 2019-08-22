@@ -11,11 +11,18 @@ import logging
 import platform
 import subprocess
 from codecs import open
+import Cython as cth
 from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 import numpy as np
 
 from distutils.command.clean import clean as Clean
+
+
+print("cython version =", cth.__version__)
+print("numpy  version =", np.__version__)
+print("cython version =", cth.__file__)
+print("numpy  version =",  np.__file__)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("tofu.setup")
@@ -30,6 +37,10 @@ except:
     from distutils.extension import Extension
     stp = False
 import _updateversion as up
+
+is_platform_windows = False
+if platform.system() == "Windows":
+    is_platform_windows = True
 
 if platform.system() == "Darwin":
     # make sure you are using Homebrew's compiler
@@ -133,7 +144,10 @@ def check_for_openmp(cc_var):
     return result
 
 # ....... Using function
-not_openmp_installed = check_for_openmp(os.environ['CC'])
+if is_platform_windows:
+    openmp_installed = False
+else:
+    openmp_installed = check_for_openmp(os.environ['CC'])
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6','3.7']:
@@ -206,7 +220,7 @@ with open(os.path.join(_HERE, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 #  ... Compiling files .........................................................
-if not not_openmp_installed :
+if not openmp_installed :
     extra_compile_args=["-O0", "-Wall", "-fopenmp"]
     extra_link_args = ["-fopenmp"]
 else:
@@ -318,7 +332,7 @@ setup(
             'scipy',
             'matplotlib',
             poly,
-            'cython',
+            'cython>=0.26',
             'pandas',
             ] + extralib,
 
