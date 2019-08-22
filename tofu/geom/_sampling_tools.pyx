@@ -351,8 +351,7 @@ cdef inline void middle_rule_rel_single(int num_raf,
     # Middle quadrature rule with relative resolution step
     # for a single particle
     cdef Py_ssize_t jj
-
-    for jj in prange(num_raf):
+    for jj in range(num_raf):
         los_coeffs[jj] = los_kmin + (0.5 + jj)*loc_resol
     return
 
@@ -370,17 +369,17 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
     cdef double inv_nraf
     cdef double loc_resol
     inv_nraf = 1./num_raf
-
-    for ii in range(num_los):
-        if ii == 0:
-            los_ind[ii] = num_raf
-        else:
-            los_ind[ii] = num_raf + los_ind[ii-1]
-            loc_resol = (los_kmax[ii] - los_kmin[ii])*inv_nraf
-            los_resolution[ii] = loc_resol
-            first_index = ii*num_raf
-            middle_rule_rel_single(num_raf, los_kmin[ii],
-                                   loc_resol, &los_coeffs[first_index])
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(num_los):
+            if ii == 0:
+                los_ind[ii] = num_raf
+            else:
+                los_ind[ii] = num_raf + los_ind[ii-1]
+                loc_resol = (los_kmax[ii] - los_kmin[ii])*inv_nraf
+                los_resolution[ii] = loc_resol
+                first_index = ii*num_raf
+                middle_rule_rel_single(num_raf, los_kmin[ii],
+                                       loc_resol, &los_coeffs[first_index])
     return
 
 cdef inline void middle_rule_abs_1_single(double inv_resol,
@@ -437,8 +436,7 @@ cdef inline void middle_rule_abs_2_single(long num_raf,
     # First step of the function, this function should be called
     # before middle_rule_abs_2, this function computes the coeffs
     cdef Py_ssize_t jj
-
-    for jj in prange(num_raf):
+    for jj in range(num_raf):
         los_coeffs[jj] = loc_x + (0.5 + jj) * loc_resol
     return
 
@@ -458,17 +456,18 @@ cdef inline void middle_rule_abs_2(int num_los,
     cdef double loc_resol
     cdef double loc_x
     # filling tab......
-    for ii in range(num_los):
-        num_raf = ind_cum[ii]
-        if ii==0:
-            first_index = 0
-        else:
-            first_index = ind_cum[ii-1]
-            ind_cum[ii] = first_index + ind_cum[ii]
-        loc_resol = los_resolution[ii]
-        loc_x = los_kmin[ii]
-        middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
-                                 &los_coeffs[first_index])
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(num_los):
+            num_raf = ind_cum[ii]
+            if ii==0:
+                first_index = 0
+            else:
+                first_index = ind_cum[ii-1]
+                ind_cum[ii] = first_index + ind_cum[ii]
+            loc_resol = los_resolution[ii]
+            loc_x = los_kmin[ii]
+            middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
+                                     &los_coeffs[first_index])
     return
 
 
@@ -480,17 +479,18 @@ cdef inline void middle_rule_abs_var_single(int num_raf,
     # for one LOS
     cdef Py_ssize_t jj
     # ...
-    for jj in prange(num_raf):
+    for jj in range(num_raf):
         los_coeffs[jj] = los_kmin + (0.5 + jj) * loc_resol
     return
 
-cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
-                                     double* los_kmin,
-                                     double* los_kmax,
-                                     double* los_resolution,
-                                     double** los_coeffs,
-                                     long* los_ind,
-                                     int num_threads) nogil:
+
+cdef inline void middle_rule_abs_var_step1(int num_los, double* resolutions,
+                                           double* los_kmin,
+                                           double* los_kmax,
+                                           double* los_resolution,
+                                           double** los_coeffs,
+                                           long* los_ind,
+                                           int num_threads) nogil:
     # Middle quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
     cdef Py_ssize_t ii
@@ -506,18 +506,70 @@ cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
         los_resolution[ii] = loc_resol
         if ii == 0:
             los_ind[ii] = num_raf
-            los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
             first_index = 0
         else:
             first_index = los_ind[ii-1]
             los_ind[ii] = num_raf + first_index
-            los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                          los_ind[ii] * sizeof(double))
+    return
+
+
+
+
+cdef inline void middle_rule_abs_var_step2(int num_los, double* resolutions,
+                                     double* los_kmin,
+                                     double* los_kmax,
+                                     double* los_resolution,
+                                     double** los_coeffs,
+                                     long* los_ind,
+                                     int num_threads) nogil:
+    # Middle quadrature rule with absolute variable resolution step
+    # for SEVERAL LOS
+    cdef Py_ssize_t ii
+    cdef int num_raf
+    cdef int first_index
+    cdef double loc_resol
+    cdef double seg_length
+    # ...
+    for ii in range(num_los):
+        if ii == 0:
+            first_index = 0
+        else:
+            first_index = los_ind[ii-1]
+        loc_resol = seg_length / num_raf
+        loc_resol = los_resolution[ii]
         middle_rule_abs_var_single(num_raf,
                                    loc_resol,
                                    los_kmin[ii],
-                                       &los_coeffs[0][first_index])
+                                   &los_coeffs[0][first_index])
     return
+
+
+
+cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
+                                     double* los_kmin,
+                                     double* los_kmax,
+                                     double* los_resolution,
+                                     double** los_coeffs,
+                                     long* los_ind,
+                                     int num_threads) nogil:
+    # Middle quadrature rule with absolute variable resolution step
+    # for SEVERAL LOS
+    cdef Py_ssize_t ii
+    cdef int num_raf
+    cdef int first_index
+    cdef double loc_resol
+    cdef double seg_length
+    middle_rule_abs_var(num_los, double* resolutions,
+                                     double* los_kmin,
+                                     double* los_kmax,
+                                     double* los_resolution,
+                                     double** los_coeffs,
+                                     long* los_ind,
+                                     int num_threads)
+    # ...
+    return
+
+
 
 cdef inline void middle_rule_rel_var_single(int num_raf,
                                             double loc_resol,
