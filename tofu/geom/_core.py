@@ -57,6 +57,7 @@ _NUM_THREADS = 10
 _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
 _RES = 0.005
+_NTHREADS = 16
 
 
 """
@@ -3551,7 +3552,8 @@ class Rays(utils.ToFuObject):
             return
 
         # dX12
-        self._dgeom = self._complete_dX12(self._dgeom)
+        if self._dgeom['nRays'] > 1:
+            self._dgeom = self._complete_dX12(self._dgeom)
 
         # Perform computation of kIn and kOut
         kIn, kOut, vperp, indout = self._compute_kInOut()
@@ -4553,11 +4555,12 @@ class Rays(utils.ToFuObject):
 
 
 
-    def calc_signal(self, ff, t=None, ani=None, fkwdargs={}, Brightness=True,
+    def calc_signal(self, func, t=None, ani=None, fkwdargs={}, Brightness=True,
                     res=None, DL=None, resMode='abs', method='sum',
+                    minimize='calls', num_threads=16,
                     ind=None, out=object, plot=True, dataname=None,
                     fs=None, dmargin=None, wintit=None, invert=True,
-                    units=None, draw=True, connect=True):
+                    units=None, draw=True, connect=True, newcalc=True):
         """ Return the line-integrated emissivity
 
         Beware, by default, Brightness=True and it is only a line-integral !
@@ -4575,12 +4578,20 @@ class Rays(utils.ToFuObject):
             - 'simps':  using :meth:`scipy.integrate.simps`
             - 'romb':   using :meth:`scipy.integrate.romb`
 
-        Except ff, arguments common to :meth:`~tofu.geom.LOS.get_sample`
+        Except func, arguments common to :meth:`~tofu.geom.LOS.get_sample`
 
         Parameters
         ----------
-        ff :    callable
-            The user-provided
+        func :    callable
+            The user-provided emissivity function
+            Shall take at least:
+                func(pts, t=None, vect=None)
+            where:
+                - pts : (3,N) np.ndarray, (X,Y,Z) coordinates of points
+                - t   : None / (nt,) np.ndarray, time vector
+                - vect: None / (3,N) np.ndarray, unit direction vectors (X,Y,Z)
+            Should return at least:
+                - val : (N,) np.ndarray, local emissivity values
 
         Returns
         -------
@@ -4595,8 +4606,8 @@ class Rays(utils.ToFuObject):
         # Format input
 
         indok, Ds, us, DL, E = self._calc_signal_preformat(ind=ind, DL=DL,
-                                                                out=out,
-                                                                Brightness=Brightness)
+                                                           out=out,
+                                                           Brightness=Brightness)
 
         if Ds is None:
             return None
@@ -4605,20 +4616,46 @@ class Rays(utils.ToFuObject):
 
         # Launch    # NB : find a way to exclude cases with DL[0,:]>=DL[1,:] !!
         # Exclude Rays not seeing the plasma
-        s = _GG.LOS_calc_signal(ff, Ds, us, res, DL,
-                                dmethod=resMode, method=method,
-                                t=t, ani=ani, fkwdargs=fkwdargs, Test=True)
+        if newcalc:
+            s = _GG.LOS_calc_signal(func, Ds, us, res, DL,
+                                    dmethod=resMode, method=method, ani=ani,
+                                    t=t, fkwdargs=fkwdargs, minimize=minimize,
+                                    num_threads=num_threads, Test=True)
 
-        # Integrate
-        if s.ndim == 2:
-            sig = np.full((s.shape[0], self.nRays), np.nan)
-        else:
-            sig = np.full((1,self.nRays), np.nan)
+            # Integrate
+            if s.ndim == 2:
+                sig = np.full((s.shape[0], self.nRays), np.nan)
+            else:
+                sig = np.full((1,self.nRays), np.nan)
 
-        if t is None or len(t)==1:
-            sig[0,indok] = s
+            if t is None or len(t)==1:
+                sig[0,indok] = s
+            else:
+                sig[:,indok] = s
         else:
-            sig[:,indok] = s
+            # Get ptsRZ along LOS // Which to choose ???
+            pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
+                                                  compact=True, pts=True)
+            if ani:
+                nbrep = np.r_[indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]]
+                vect = np.repeat(self.u, nbrep, axis=1)
+            else:
+                vect = None
+
+            # Get quantity values at ptsRZ
+            # This is the slowest step (~3.8 s with res=0.02 and interferometer)
+            val = func(pts, t=t, vect=vect)
+
+            # Integrate
+            if val.ndim == 2:
+                sig = np.full((val.shape[0], self.nRays), np.nan)
+            else:
+                sig = np.full((1,self.nRays), np.nan)
+
+            indpts = np.r_[0,indpts,pts.shape[1]]
+            for ii in range(0,self.nRays):
+                sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
+
 
         # Format output
         return self._calc_signal_postformat(sig, Brightness=Brightness,
@@ -4629,12 +4666,14 @@ class Rays(utils.ToFuObject):
                                             connect=connect)
 
 
-    def calc_signal_from_Plasma2D(self, plasma2d, t=None,
+    def calc_signal_from_Plasma2D(self, plasma2d, t=None, newcalc=False,
                                   quant=None, ref1d=None, ref2d=None,
                                   q2dR=None, q2dPhi=None, q2dZ=None, Type=None,
                                   Brightness=True, interp_t='nearest',
-                                  interp_space=None, fill_value=np.nan,
-                                  res=None, DL=None, resMode='abs', method='sum',
+                                  interp_space=None, fill_value=None,
+                                  res=None, DL=None, resMode='abs',
+                                  method='sum', minimize='calls',
+                                  num_threads=16,
                                   ind=None, out=object, plot=True, dataname=None,
                                   fs=None, dmargin=None, wintit=None, invert=True,
                                   units=None, draw=True, connect=True):
@@ -4648,33 +4687,70 @@ class Rays(utils.ToFuObject):
         if res is None:
             res = _RES
 
-        # Get ptsRZ along LOS // Which to choose ???
-        pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
-                                              compact=True, pts=True)
-        if q2dR is None:
-            vect = None
+        if newcalc:
+            # Get time vector
+            if t is None:
+                out = plasma2d._checkformat_qr12RPZ(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                                    q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ)
+                t = plasma2d._get_tcom(*out[:4])[0]
+            else:
+                t = np.atleast_1d(t).ravel()
+
+            if fill_value is None:
+                fill_value = 0.
+
+            func = plasma2d.get_finterp2d(quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                          q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
+                                          interp_t=interp_t,
+                                          interp_space=interp_space,
+                                          fill_value=fill_value, Type=Type)
+            funcbis = lambda *args, **kwdargs: func(*args, **kwdargs)[0]
+
+            if DL is None:
+                # set to [kIn,kOut]
+                DL = None
+            ani = quant is None
+            if num_threads is None:
+                num_threads = _NTHREADS
+
+            if np.all(indok):
+                D, u = self.D, self.u
+            else:
+                D = np.ascontiguousarray(self.D[:,indok])
+                u = np.ascontiguousarray(self.u[:,indok])
+
+            sig = _GG.LOS_calc_signal(funcbis, D, u, res, DL,
+                                      dmethod=resMode, method=method, ani=ani,
+                                      t=t, fkwdargs={}, minimize=minimize,
+                                      Test=True, num_threads=num_threads)
         else:
-            nbrep = np.r_[indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]]
-            vect = np.repeat(self.u, nbrep, axis=1)
+            # Get ptsRZ along LOS // Which to choose ???
+            pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
+                                                  compact=True, pts=True)
+            if q2dR is None:
+                vect = None
+            else:
+                nbrep = np.r_[indpts[0], np.diff(indpts), pts.shape[1] - indpts[-1]]
+                vect = np.repeat(self.u, nbrep, axis=1)
 
-        # Get quantity values at ptsRZ
-        # This is the slowest step (~3.8 s with res=0.02 and interferometer)
-        val, t = plasma2d.interp_pts2profile(pts=pts, vect=vect, t=t,
-                                             quant=quant, ref1d=ref1d, ref2d=ref2d,
-                                             q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
-                                             interp_t=interp_t, Type=Type,
-                                             interp_space=interp_space,
-                                             fill_value=fill_value)
+            # Get quantity values at ptsRZ
+            # This is the slowest step (~3.8 s with res=0.02 and interferometer)
+            val, t = plasma2d.interp_pts2profile(pts=pts, vect=vect, t=t,
+                                                 quant=quant, ref1d=ref1d, ref2d=ref2d,
+                                                 q2dR=q2dR, q2dPhi=q2dPhi, q2dZ=q2dZ,
+                                                 interp_t=interp_t, Type=Type,
+                                                 interp_space=interp_space,
+                                                 fill_value=fill_value)
 
-        # Integrate
-        if val.ndim == 2:
-            sig = np.full((val.shape[0], self.nRays), np.nan)
-        else:
-            sig = np.full((1,self.nRays), np.nan)
+            # Integrate
+            if val.ndim == 2:
+                sig = np.full((val.shape[0], self.nRays), np.nan)
+            else:
+                sig = np.full((1,self.nRays), np.nan)
 
-        indpts = np.r_[0,indpts,pts.shape[1]]
-        for ii in range(0,self.nRays):
-            sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
+            indpts = np.r_[0,indpts,pts.shape[1]]
+            for ii in range(0,self.nRays):
+                sig[:,ii] = np.nansum(val[:,indpts[ii]:indpts[ii+1]], axis=-1)*reseff[ii]
 
         # Format output
         # this is the secod slowest step (~0.75 s)

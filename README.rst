@@ -93,7 +93,7 @@ Install dependencies.::
     numpy
     scipy
     matplotlib
-    cython
+    cython >= 0.26
     nose
     pygments
     pandas

@@ -39,27 +39,27 @@ _cbck = (0.8,0.8,0.8)
 _lcch = [plt.cm.tab20.colors[ii] for ii in [6,8,10,7,9,11]]
 
 # Generic
-def _check_Lax(Lax=None, n=2):
+def _check_Lax(lax=None, n=2):
     assert n in [1,2]
-    C0 = Lax is None
-    C1 = issubclass(Lax.__class__,Axes)
-    C2 = type(Lax) in [list,tuple]
-    if C2:
-        C2 = all([aa is None or issubclass(aa.__class__,Axes) for aa in Lax])
-        C2 = C2 and len(Lax) in [1,2]
+    c0 = lax is None
+    c1 = issubclass(lax.__class__,Axes)
+    c2 = hasattr(lax, '__iter__')
+    if c2:
+        c2 = all([aa is None or issubclass(aa.__class__,Axes) for aa in lax])
+        c2 = c2 and len(lax) in [1,2]
     if n==1:
-        assert C0 or C1, "Arg ax must be None or a plt.Axes instance !"
+        assert c0 or c1, "Arg ax must be None or a plt.Axes instance !"
     else:
-        assert C0 or C1 or C2, "Arg Lax must be an Axes or a list/tuple of such !"
-        if C0:
-            Lax = [None,None]
-        elif C1:
-            Lax = [Lax,None]
-        elif C2 and len(Lax)==1:
-            Lax = [Lax[0],None]
+        assert c0 or c1 or c2, "Arg lax must be an Axes or a list/tuple of such !"
+        if c0:
+            lax = [None,None]
+        elif c1:
+            lax = [lax,None]
+        elif c2 and len(lax)==1:
+            lax = [lax[0],None]
         else:
-            Lax = list(Lax)
-    return Lax, C0, C1, C2
+            lax = list(lax)
+    return lax, c0, c1, c2
 
 
 
