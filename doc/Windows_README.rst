@@ -25,7 +25,7 @@ Creating a conda environment
 
 We are going to create an environment specific for ToFu. ::
 
- $ conda create -n tofu3 python=3.6 scipy numpy cython git
+ $ conda create -n tofu3 python=3.6 scipy numpy cython git pandas
  $ conda activate tofu3
  $ conda install m2-base # Get some basic Linux/bash commands (ls, cd, mv, ...)
  
@@ -48,16 +48,11 @@ Installing ToFu
 * Move to the tofu directory, probably: ``cd ~/tofu``
 * Switch to the ``git`` branch you will be working on. If you are just starting you probably want to start from the latest develop branch: ``git checkout devel``. If you are not familiar with **git** take a look at  `this tutorial (long)  <https://www.atlassian.com/git/tutorials>`__ or `this short one <https://rogerdudler.github.io/git-guide/>`__
 * Compile ``python setup.py build_ext --inplace``
-* Install ``python setup.py install``
+* Install ``python setup.py install --prefix=$TOFU_DIR``
 * Make sure tests are running ``nosetests``
  
  
  Contribute
  ===========
 
-If you wish to contribute, you will probably need a text editor::
-
- # you can choose emacs or vim as a text editor:
- conda install -c conda-forge emacs 
- conda install -c conda-forge vim 
-
+If you wish to contribute, you will probably need a text editor, you can use Visual Studio's editor.
