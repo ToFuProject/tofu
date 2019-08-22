@@ -1,6 +1,4 @@
 
-import sys
-
 # Common
 import datetime as dtm
 import numpy as np
@@ -128,8 +126,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
                 dt = np.zeros((nrep,))
                 for rr in range(nrep):
                     msgi = msg + "   res %s/%s  rep %s/%s"%(ll+1,nres,rr+1,nrep)
-                    sys.stdout.write(msgi)
-                    sys.stdout.flush()
+                    print(msgi, end='', flush=True)
 
                     if func is None:
                         t0 = dtm.datetime.now()
@@ -152,8 +149,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
                 t_std[ii,jj,ll] = np.std(dt)
 
             msgi = msg + ': %s\n'%str(t_av[ii,jj,:])
-            sys.stdout.write(msgi)
-            sys.stdout.flush()
+            print(msgi, end='', flush=True)
     win = np.argmin(t_av, axis=0)
 
     #-------------
