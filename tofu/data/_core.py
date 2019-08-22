@@ -3565,6 +3565,16 @@ class Plasma2D(utils.ToFuObject):
             ind = 0
         return t[ind], t
 
+    def _get_tcom(self, idquant=None, idref1d=None,
+                  idref2d=None, idq2dR=None):
+        if idquant is not None:
+            out = self._get_indtmult(idquant=idquant,
+                                     idref1d=idref1d, idref2d=idref2d)
+        else:
+            out = self._get_indtmult(idquant=idq2dR)
+        return out
+
+
     def _get_finterp(self,
                      idquant=None, idref1d=None, idref2d=None,
                      idq2dR=None, idq2dPhi=None, idq2dZ=None,
@@ -3592,12 +3602,8 @@ class Plasma2D(utils.ToFuObject):
 
         # Get common time indices
         if interp_t == 'nearest':
-            if idquant is not None:
-                out = self._get_indtmult(idquant=idquant,
-                                         idref1d=idref1d, idref2d=idref2d)
-                tall, tbinall, ntall, indtq, indtr1, indtr2 = out
-            else:
-                tall, tbinall, ntall, indtq = self._get_indtmult(idquant=idq2dR)[:4]
+             out = self._get_tcom(idquant,idref1d, idref2d, idq2dR)
+             tall, tbinall, ntall, indtq, indtr1, indtr2= out
 
         # # Prepare output
 
