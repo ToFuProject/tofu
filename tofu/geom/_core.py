@@ -4557,7 +4557,7 @@ class Rays(utils.ToFuObject):
 
     def calc_signal(self, func, t=None, ani=None, fkwdargs={}, Brightness=True,
                     res=None, DL=None, resMode='abs', method='sum',
-                    minimize=None, num_threads=16,
+                    minimize='calls', num_threads=16,
                     ind=None, out=object, plot=True, dataname=None,
                     fs=None, dmargin=None, wintit=None, invert=True,
                     units=None, draw=True, connect=True, newcalc=True):
