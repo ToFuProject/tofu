@@ -376,7 +376,6 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
             los_ind[ii] = num_raf
         else:
             los_ind[ii] = num_raf + los_ind[ii-1]
-        with nogil, parallel(num_threads=num_threads):
             loc_resol = (los_kmax[ii] - los_kmin[ii])*inv_nraf
             los_resolution[ii] = loc_resol
             first_index = ii*num_raf
@@ -468,9 +467,8 @@ cdef inline void middle_rule_abs_2(int num_los,
             ind_cum[ii] = first_index + ind_cum[ii]
         loc_resol = los_resolution[ii]
         loc_x = los_kmin[ii]
-        with nogil, parallel(num_threads=num_threads):
-            middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
-                                     &los_coeffs[first_index])
+        middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
+                                 &los_coeffs[first_index])
     return
 
 
