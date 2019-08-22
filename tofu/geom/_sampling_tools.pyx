@@ -17,7 +17,9 @@ from cython.parallel import prange
 from cython.parallel cimport parallel
 from cpython.array cimport array, clone
 from _basic_geom_tools cimport _VSMALL
-
+# for utility functions:
+cimport numpy as np
+import numpy as np
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
@@ -374,7 +376,6 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
             los_ind[ii] = num_raf
         else:
             los_ind[ii] = num_raf + los_ind[ii-1]
-        with nogil, parallel(num_threads=num_threads):
             loc_resol = (los_kmax[ii] - los_kmin[ii])*inv_nraf
             los_resolution[ii] = loc_resol
             first_index = ii*num_raf
@@ -466,9 +467,8 @@ cdef inline void middle_rule_abs_2(int num_los,
             ind_cum[ii] = first_index + ind_cum[ii]
         loc_resol = los_resolution[ii]
         loc_x = los_kmin[ii]
-        with nogil, parallel(num_threads=num_threads):
-            middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
-                                     &los_coeffs[first_index])
+        middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
+                                 &los_coeffs[first_index])
     return
 
 
@@ -499,24 +499,23 @@ cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
     cdef double loc_resol
     cdef double seg_length
     # ...
-    with nogil, parallel(num_threads=num_threads):
-        for ii in range(num_los):
-            seg_length = los_kmax[ii] - los_kmin[ii]
-            num_raf = <int>(Cceil(seg_length/resolutions[ii]))
-            loc_resol = seg_length / num_raf
-            los_resolution[ii] = loc_resol
-            if ii == 0:
-                los_ind[ii] = num_raf
-                los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
-                first_index = 0
-            else:
-                first_index = los_ind[ii-1]
-                los_ind[ii] = num_raf + first_index
-                los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                              los_ind[ii] * sizeof(double))
-            middle_rule_abs_var_single(num_raf,
-                                       loc_resol,
-                                       los_kmin[ii],
+    for ii in range(num_los):
+        seg_length = los_kmax[ii] - los_kmin[ii]
+        num_raf = <int>(Cceil(seg_length/resolutions[ii]))
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            los_ind[ii] = num_raf
+            los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
+            first_index = 0
+        else:
+            first_index = los_ind[ii-1]
+            los_ind[ii] = num_raf + first_index
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                          los_ind[ii] * sizeof(double))
+        middle_rule_abs_var_single(num_raf,
+                                   loc_resol,
+                                   los_kmin[ii],
                                        &los_coeffs[0][first_index])
     return
 
@@ -548,21 +547,20 @@ cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
     cdef double loc_resol
     # ...
     for ii in range(num_los):
-        with nogil, parallel(num_threads=num_threads):
-            num_raf = <int>(Cceil(1./resolutions[ii]))
-            loc_resol = 1./num_raf
-            los_resolution[ii] = loc_resol
-            if ii == 0:
-                first_index = 0
-                los_ind[ii] = num_raf
-                los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
-            else:
-                first_index = los_ind[ii-1]
-                los_ind[ii] = num_raf + first_index
-                los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                              los_ind[ii] * sizeof(double))
-            middle_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
-                                       &los_coeffs[0][first_index])
+        num_raf = <int>(Cceil(1./resolutions[ii]))
+        loc_resol = 1./num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            first_index = 0
+            los_ind[ii] = num_raf
+            los_coeffs[0] = <double*>malloc(num_raf * sizeof(double))
+        else:
+            first_index = los_ind[ii-1]
+            los_ind[ii] = num_raf + first_index
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                          los_ind[ii] * sizeof(double))
+        middle_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
+                                   &los_coeffs[0][first_index])
     return
 
 # -- Quadrature Rules : Left Rule ----------------------------------------------
@@ -683,23 +681,22 @@ cdef inline void romb_left_rule_abs(int num_los, double resol,
     cdef double inv_resol = 1./resol
     # ...
     for ii in range(num_los):
-        with nogil, parallel(num_threads=num_threads):
-            seg_length = los_kmax[ii] - los_kmin[ii]
-            num_raf = <int>(Cceil(seg_length*inv_resol))
-            num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
-            loc_resol = seg_length / num_raf
-            los_resolution[ii] = loc_resol
-            if ii == 0:
-                first_index = 0
-                los_ind[ii] = num_raf + 1
-                los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
-            else:
-                first_index = los_ind[ii-1]
-                los_ind[ii] = num_raf +  1 + first_index
-                los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                                 los_ind[ii] * sizeof(double))
-            romb_left_rule_abs_single(num_raf, loc_resol, los_kmin[ii],
-                                      &los_coeffs[0][first_index])
+        seg_length = los_kmax[ii] - los_kmin[ii]
+        num_raf = <int>(Cceil(seg_length*inv_resol))
+        num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            first_index = 0
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            first_index = los_ind[ii-1]
+            los_ind[ii] = num_raf +  1 + first_index
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        romb_left_rule_abs_single(num_raf, loc_resol, los_kmin[ii],
+                                  &los_coeffs[0][first_index])
     return
 
 
@@ -730,23 +727,22 @@ cdef inline void simps_left_rule_rel_var(int num_los, double* resolutions,
     cdef double loc_resol
     # ...
     for ii in range(num_los):
-        with nogil, parallel(num_threads=num_threads):
-            num_raf = <int>(Cceil(1./resolutions[ii]))
-            if num_raf%2==1:
-                num_raf = num_raf+1
-            loc_resol = 1. / num_raf
-            los_resolution[ii] = loc_resol
-            if ii == 0:
-                first_index = 0
-                los_ind[ii] = num_raf + 1
-                los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
-            else:
-                first_index = los_ind[ii-1]
-                los_ind[ii] = num_raf +  1 + first_index
-                los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                                 los_ind[ii] * sizeof(double))
-            simps_left_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
-                                           &los_coeffs[0][first_index])
+        num_raf = <int>(Cceil(1./resolutions[ii]))
+        if num_raf%2==1:
+            num_raf = num_raf+1
+        loc_resol = 1. / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            first_index = 0
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            first_index = los_ind[ii-1]
+            los_ind[ii] = num_raf +  1 + first_index
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        simps_left_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
+                                       &los_coeffs[0][first_index])
     return
 
 
@@ -779,25 +775,24 @@ cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
     cdef double loc_resol
     # ...
     for ii in range(num_los):
-        with nogil, parallel(num_threads=num_threads):
-            seg_length = los_kmax[ii] - los_kmin[ii]
-            num_raf = <int>(Cceil(seg_length/resolutions[ii]))
-            if num_raf%2==1:
-                num_raf = num_raf+1
-            loc_resol = seg_length / num_raf
-            los_resolution[ii] = loc_resol
-            if ii == 0:
-                first_index = 0
-                los_ind[ii] = num_raf + 1
-                los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
-            else:
-                first_index = los_ind[ii-1]
-                los_ind[ii] = num_raf +  1 + first_index
-                los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                                 los_ind[ii] * sizeof(double))
-            simps_left_rule_abs_var_single(num_raf, loc_resol,
-                                           los_kmin[ii],
-                                           &los_coeffs[0][first_index])
+        seg_length = los_kmax[ii] - los_kmin[ii]
+        num_raf = <int>(Cceil(seg_length/resolutions[ii]))
+        if num_raf%2==1:
+            num_raf = num_raf+1
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            first_index = 0
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            first_index = los_ind[ii-1]
+            los_ind[ii] = num_raf +  1 + first_index
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        simps_left_rule_abs_var_single(num_raf, loc_resol,
+                                       los_kmin[ii],
+                                       &los_coeffs[0][first_index])
     return
 
 cdef inline void romb_left_rule_rel_var_single(int num_raf,
@@ -828,22 +823,21 @@ cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
     cdef double loc_resol
     # ...
     for ii in range(num_los):
-        with nogil, parallel(num_threads=num_threads):
-            num_raf = <int>(Cceil(1./resolutions[ii]))
-            num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
-            loc_resol = 1. / num_raf
-            los_resolution[ii] = loc_resol
-            if ii == 0:
-                first_index = 0
-                los_ind[ii] = num_raf + 1
-                los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
-            else:
-                first_index = los_ind[ii-1]
-                los_ind[ii] = num_raf +  1 + first_index
-                los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                                 los_ind[ii] * sizeof(double))
-            romb_left_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
-                                          &los_coeffs[0][first_index])
+        num_raf = <int>(Cceil(1./resolutions[ii]))
+        num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
+        loc_resol = 1. / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            first_index = 0
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            first_index = los_ind[ii-1]
+            los_ind[ii] = num_raf +  1 + first_index
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
+        romb_left_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
+                                      &los_coeffs[0][first_index])
     return
 
 
@@ -875,24 +869,23 @@ cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
     cdef double loc_resol
     # ...
     for ii in range(num_los):
-        with nogil, parallel(num_threads=num_threads):
-            seg_length = los_kmax[ii] - los_kmin[ii]
-            num_raf = <int>(Cceil(seg_length/resolutions[ii]))
-            num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
-            loc_resol = seg_length / num_raf
-            los_resolution[ii] = loc_resol
-            if ii == 0:
-                first_index = 0
-                los_ind[ii] = num_raf + 1
-                los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
-            else:
-                first_index = los_ind[ii-1]
-                los_ind[ii] = num_raf +  1 + first_index
-                los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                                 los_ind[ii] * sizeof(double))
+        seg_length = los_kmax[ii] - los_kmin[ii]
+        num_raf = <int>(Cceil(seg_length/resolutions[ii]))
+        num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
+        loc_resol = seg_length / num_raf
+        los_resolution[ii] = loc_resol
+        if ii == 0:
+            first_index = 0
+            los_ind[ii] = num_raf + 1
+            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
+        else:
+            first_index = los_ind[ii-1]
+            los_ind[ii] = num_raf +  1 + first_index
+            los_coeffs[0] = <double*>realloc(los_coeffs[0],
+                                             los_ind[ii] * sizeof(double))
 
-            romb_left_rule_abs_var_single(num_raf, loc_resol, los_kmin[ii],
-                                          &los_coeffs[0][first_index])
+        romb_left_rule_abs_var_single(num_raf, loc_resol, los_kmin[ii],
+                                      &los_coeffs[0][first_index])
     return
 
 # -- Get number of integration mode --------------------------------------------
@@ -1010,3 +1003,77 @@ cdef inline int LOS_get_sample_single(double los_kmin, double los_kmax,
                                       &coeffs[0][0])
             return nraf + 1
     return -1
+
+
+# ==============================================================================
+# == Utility functions for signal computation (LOS_calc_signal)
+# ==============================================================================
+
+# -- anisotropic case ----------------------------------------------------
+cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
+                                       double resol,
+                                       int n_dmode, int n_imode,
+                                       double[1] eff_res,
+                                       double[:,::1] ray_orig,
+                                       double[:,::1] ray_vdir):
+    # This function doesn't compute anything new.
+    # It's a utility function for LOS_calc_signal to avoid reptitions
+    # It samples a LOS and recreates the points on that LOS
+    # plus this is for the anisotropic version so it also compute usbis
+    cdef int sz_coeff
+    cdef double** los_coeffs = NULL
+    cdef np.ndarray[double,ndim=1,mode='c'] ksbis
+    cdef np.ndarray[double,ndim=2,mode='c'] usbis
+    cdef np.ndarray[double,ndim=2,mode='c'] pts
+
+    # Initialization utility array
+    los_coeffs = <double**>malloc(sizeof(double*))
+    los_coeffs[0] = NULL
+    # Sampling
+    sz_coeff = LOS_get_sample_single(los_kmin, los_kmax,
+                                     resol,
+                                     n_dmode, n_imode,
+                                     &eff_res[0],
+                                     &los_coeffs[0])
+    # computing points
+    usbis = np.repeat(ray_vdir, sz_coeff, axis=1)
+    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+    pts = ray_orig + ksbis[None,:] * usbis
+    if los_coeffs != NULL:
+        if los_coeffs[0] != NULL:
+            free(los_coeffs[0])
+        free(los_coeffs)
+    return pts, usbis
+
+# -- not anisotropic ------------------------------------------------------
+cdef inline call_get_sample_single(double los_kmin, double los_kmax,
+                                   double resol,
+                                   int n_dmode, int n_imode,
+                                   double[1] eff_res,
+                                   double[:,::1] ray_orig,
+                                   double[:,::1] ray_vdir):
+    # This function doesn't compute anything new.
+    # It's a utility function for LOS_calc_signal to avoid reptitions
+    # It samples a LOS and recreates the points on that LOS
+    # plus this is for the anisotropic version so it also compute usbis
+    cdef int sz_coeff
+    cdef double** los_coeffs = NULL
+    cdef np.ndarray[double,ndim=2,mode='c'] pts
+
+    # Initialization utility array
+    los_coeffs = <double**>malloc(sizeof(double*))
+    los_coeffs[0] = NULL
+    # Sampling
+    sz_coeff = LOS_get_sample_single(los_kmin, los_kmax,
+                                     resol,
+                                     n_dmode, n_imode,
+                                     &eff_res[0],
+                                     &los_coeffs[0])
+    # computing points
+    pts = ray_orig + np.asarray(<double[:sz_coeff]>los_coeffs[0]) * np.repeat(ray_vdir, sz_coeff, axis=1)
+    if los_coeffs != NULL:
+        if los_coeffs[0] != NULL:
+            free(los_coeffs[0])
+        free(los_coeffs)
+    return pts
+
