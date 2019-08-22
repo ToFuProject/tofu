@@ -199,3 +199,18 @@ cdef int get_nb_dmode(str dmode)
 cdef int LOS_get_sample_single(double los_kmin, double los_kmax,
                                double resol, int imethod, int imode,
                                double[1] eff_res, double** coeffs) nogil
+
+# -- Calc signal utility function ---------------------------------------------
+cdef call_get_sample_single_ani(double los_kmin, double los_kmax,
+                                double resol,
+                                int n_dmode, int n_imode,
+                                double[1] eff_res,
+                                double[:,::1] ray_orig,
+                                double[:,::1] ray_vdir)
+
+cdef call_get_sample_single(double los_kmin, double los_kmax,
+                            double resol,
+                            int n_dmode, int n_imode,
+                            double[1] eff_res,
+                            double[:,::1] ray_orig,
+                            double[:,::1] ray_vdir)
