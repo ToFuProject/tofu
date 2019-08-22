@@ -95,7 +95,8 @@ cdef void middle_rule_abs_1(int num_los, double resol,
 cdef void middle_rule_abs_2_single(long num_raf,
                                    double los_kmin,
                                    double loc_resol,
-                                   double* los_coeffs) nogil
+                                   double* los_coeffs,
+                                   int num_threads) nogil
 
 cdef void middle_rule_abs_2(int num_los,
                             double* los_lims_x,
@@ -196,7 +197,7 @@ cdef int get_nb_imode(str imode)
 
 cdef int get_nb_dmode(str dmode)
 
-cdef int LOS_get_sample_single(double los_kmin, double los_kmax,
+cdef int los_get_sample_single(double los_kmin, double los_kmax,
                                double resol, int imethod, int imode,
                                double[1] eff_res, double** coeffs) nogil
 
