@@ -2937,6 +2937,7 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
     cdef unsigned int nlos
     cdef unsigned int nt=0, axm, ii, jj
     cdef np.ndarray[double,ndim=2] usbis, dsbis, ksbis
+    cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=2] sig
     cdef np.ndarray[double,ndim=1] reseff
     cdef np.ndarray[double,ndim=1] k
@@ -3039,12 +3040,13 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                                                          n_dmode, n_imode,
                                                          &loc_eff_res[0],
                                                          &los_coeffs[0])
-                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    # dsbis = np.repeat(Ds[:,ii:ii+1], sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii:ii+1], sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+                    pts = Ds[:,ii:ii+1] + ksbis[None,:] * us[:,ii:ii+1]
                     # loop over time for calling and integrating
                     for jj in range(nt):
-                        val = func(dsbis + ksbis * usbis,
+                        val = func(pts,
                                    t=ltime[jj], vect=-usbis, **fkwdargs)
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
             elif n_imode == 1:
@@ -3056,8 +3058,8 @@ def LOS_calc_signal(func, double[:,::1] Ds, double[:,::1] us, dL,
                                                          n_dmode, n_imode,
                                                          &loc_eff_res[0],
                                                          &los_coeffs[0])
-                    dsbis = np.repeat(Ds[:,ii].reshape((3,1)), sz_coeff, axis=1)
-                    usbis = np.repeat(us[:,ii].reshape((3,1)), sz_coeff, axis=1)
+                    dsbis = np.repeat(Ds[:,ii:ii+1], sz_coeff, axis=1)
+                    usbis = np.repeat(us[:,ii:ii+1], sz_coeff, axis=1)
                     ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
                     # loop over time for calling and integrating
                     for jj in range(nt):

@@ -865,7 +865,7 @@ class Test03_Rays(object):
                            is not None)
                 out = obj.calc_signal(ff, t=t, ani=True, fkwdargs={},
                                       res=0.01, DL=None, resMode='abs',
-                                      method='simps', ind=ind,
+                                      method='simps', minimize="memory", ind=ind,
                                       plot=False, out=np.ndarray,
                                       fs=(12,6), connect=connect)
                 sig, units = out
