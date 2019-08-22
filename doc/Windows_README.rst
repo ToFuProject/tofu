@@ -15,7 +15,7 @@ Installing Anaconda
 
 We will use Miniconda (light version of Anaconda, but you can also work with Anaconda) not only to install and manage the packages necessary for installing ToFu, but also to have a working bash-like Terminal.
 
-* `Get the latest version and install it. <https://docs.conda.io/en/latest/miniconda.html/>`__ 
+* `Get the latest version and install it. <https://docs.conda.io/en/latest/miniconda.html/>`__
 * Follow the directions (you can use default options)
 * Open an ``Anaconda prompt``
 
@@ -28,7 +28,7 @@ We are going to create an environment specific for ToFu. ::
  $ conda create -n tofu3 python=3.6 scipy numpy cython git pandas
  $ conda activate tofu3
  $ conda install m2-base # Get some basic Linux/bash commands (ls, cd, mv, ...)
- 
+
 This creates a conda environment named "tofu3" and installs scipy, numpy and cython. The second command activates this environment.
 
 
@@ -48,11 +48,11 @@ Installing ToFu
 * Move to the tofu directory, probably: ``cd ~/tofu``
 * Switch to the ``git`` branch you will be working on. If you are just starting you probably want to start from the latest develop branch: ``git checkout devel``. If you are not familiar with **git** take a look at  `this tutorial (long)  <https://www.atlassian.com/git/tutorials>`__ or `this short one <https://rogerdudler.github.io/git-guide/>`__
 * Compile ``python setup.py build_ext --inplace``
-* We suggest you installing python inside ``tofu/usr``, you will have to modify your ``$PYTHONPATH`` to include this path.  `How to modify environment variables on Windows <https://superuser.com/questions/1360611/editing-system-environment-variables-is-allowed-only-when-opened-through-control/>`__ 
+* We suggest you installing python inside ``tofu/usr``, you will have to modify your ``$PYTHONPATH`` to include this path.  `How to modify environment variables on Windows <https://superuser.com/questions/1360611/editing-system-environment-variables-is-allowed-only-when-opened-through-control/>`__
 * ``python setup.py install --prefix=$TOFU_DIR\\usr``
 * Make sure tests are running ``nosetests``
- 
- 
+
+
  Contribute
  ===========
 
