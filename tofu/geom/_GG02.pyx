@@ -2930,10 +2930,8 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef int sz1_us, sz2_us
     cdef int sz1_dls, sz2_dls
     cdef int n_imode, n_dmode
-    cdef int sz_coeff
-    cdef bint dl_is_list
+    cdef bint res_is_list
     cdef bint C0, C1
-    cdef double** los_coeffs = NULL
     cdef unsigned int nlos
     cdef unsigned int nt=0, axm, ii, jj
     cdef np.ndarray[double,ndim=2] usbis
@@ -2942,15 +2940,14 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef np.ndarray[double,ndim=1] reseff
     cdef np.ndarray[double,ndim=1] k, ksbis
     cdef np.ndarray[double,ndim=1] ltime
+    cdef np.ndarray[double,ndim=1] res_arr
     cdef np.ndarray[long,ndim=1] ind
     cdef double[1] loc_eff_res
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
     sz2_ds = ray_orig.shape[1]
     nlos = sz2_ds
-    resr = np.zeros((nlos,), dtype=float)
-    los_ind = np.zeros((nlos,), dtype=int)
-    dl_is_list = hasattr(res, '__iter__')
+    res_is_list = hasattr(res, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
         sz1_us = ray_vdir.shape[0]
@@ -2962,8 +2959,8 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         assert sz1_dls == 2, "Dim 0 of arg lims should be 2"
         error_message = "Args ray_orig, ray_vdir, lims should have same dimension 1"
         assert sz2_ds == sz2_us == sz2_dls, error_message
-        C0 = not dl_is_list and res > 0.
-        C1 = dl_is_list and len(res)==sz2_ds and np.all(res>0.)
+        C0 = not res_is_list and res > 0.
+        C1 = res_is_list and len(res)==sz2_ds and np.all(res>0.)
         assert C0 or C1, "Arg res must be a double or a List, and all res >0.!"
         error_message = "Argument dmethod (discretization method) should be in"\
                         +" ['abs','rel'], for absolute or relative."
@@ -2989,19 +2986,22 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     else:
         nt = len(t)
         ltime = np.asarray(t,dtype=float)
+    # -- Inizializations -------------------------------------------------------
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
     # Initialization result
     sig = np.empty((nt,nlos),dtype=float)
-    # Initialization utility array
-    los_coeffs = <double**>malloc(sizeof(double*))
-    los_coeffs[0] = NULL
+    # If the resolution is the same for every LOS, we create a tab
+    if res_is_list :
+        res_arr = np.asarray(res)
+    else:
+        res_arr = np.ones((nlos,), dtype=float) * res
     # --------------------------------------------------------------------------
     # Minimize function calls: sample (vect), call (once) and integrate
     if minim == 'calls':
         # Discretize all LOS
-        k, reseff, ind = LOS_get_sample(nlos, res, lims,
+        k, reseff, ind = LOS_get_sample(nlos, res_arr, lims,
                                         dmethod=dmode, method=imode,
                                         num_threads=num_threads, Test=Test)
         nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[nlos-2]]
@@ -3033,186 +3033,83 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     # then pts then time
     elif minim == 'memory':
         # loop over LOS and parallelize
-        if dl_is_list and ani:
+        if ani:
             if n_imode == 0:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii],
-                                                         n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1)
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
+                    pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
+                                                                res_arr[ii],
+                                                                n_dmode, n_imode,
+                                                                &loc_eff_res[0],
+                                                                ray_orig[:,ii:ii+1],
+                                                                ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
                     for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], vect=-usbis, **fkwdargs)
+                        val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii],
-                                                         n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1)
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
+                    pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
+                                                                res_arr[ii],
+                                                                n_dmode, n_imode,
+                                                                &loc_eff_res[0],
+                                                                ray_orig[:,ii:ii+1],
+                                                                ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
                     for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], vect=-usbis, **fkwdargs)
+                        val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
                         sig[jj, ii] = scpintg.simps(val, x=None,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii],
-                                                         n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1)
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
+                    pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
+                                                                res_arr[ii],
+                                                                n_dmode, n_imode,
+                                                                &loc_eff_res[0],
+                                                                ray_orig[:,ii:ii+1],
+                                                                ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
                     for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], vect=-usbis, **fkwdargs)
+                        val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
                         sig[jj, ii] = scpintg.romb(val, show=False,
                                                    dx=loc_eff_res[0])
-        elif dl_is_list and not ani:
+        else:
+            # -- not anisotropic ------------------------------------------------------
             if n_imode == 0:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii],
-                                                         n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
+                    pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
+                                                     res_arr[ii],
+                                                     n_dmode, n_imode,
+                                                     &loc_eff_res[0],
+                                                     ray_orig[:,ii:ii+1],
+                                                     ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
                     for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], **fkwdargs)
+                        val = func(pts, t=ltime[jj], **fkwdargs)
                         sig[jj, ii] = np.sum(val)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii], n_dmode,
-                                                         n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
+                    pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
+                                                     res_arr[ii],
+                                                     n_dmode, n_imode,
+                                                     &loc_eff_res[0],
+                                                     ray_orig[:,ii:ii+1],
+                                                     ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
                     for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], **fkwdargs)
+                        val = func(pts, t=ltime[jj], **fkwdargs)
                         sig[jj, ii] = scpintg.simps(val, x=None,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii], n_dmode,
-                                                         n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
+                    pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
+                                                     res_arr[ii],
+                                                     n_dmode, n_imode,
+                                                     &loc_eff_res[0],
+                                                     ray_orig[:,ii:ii+1],
+                                                     ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
                     for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], **fkwdargs)
-                        sig[jj, ii] = scpintg.romb(val, show=False,
-                                                   dx=loc_eff_res[0])
-        elif ani: # but with dlimits
-            # dl is not a list: constant resolution
-            if n_imode==0:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    # loop over time for calling and integrating
-                    for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], vect=-usbis,**fkwdargs)
-                        sig[jj, ii] = np.sum(val)*loc_eff_res[0]
-            elif n_imode==1:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    # loop over time for calling and integrating
-                    for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], vect=-usbis,**fkwdargs)
-                        sig[jj, ii] = scpintg.simps(val, x=None,
-                                                    dx=loc_eff_res[0])
-            elif n_imode==2:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    # loop over time for calling and integrating
-                    for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], vect=-usbis,**fkwdargs)
-                        sig[jj, ii] = scpintg.romb(val, show=False,
-                                                   dx=loc_eff_res[0])
-        elif not ani:
-            # dl is not a list: constant resolution
-            if n_imode==0:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    # loop over time for calling and integrating
-                    for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], **fkwdargs)
-                        sig[jj, ii] = np.sum(val)*loc_eff_res[0]
-            elif n_imode==1:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    # loop over time for calling and integrating
-                    for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], **fkwdargs)
-                        sig[jj, ii] = scpintg.simps(val, x=None,
-                                                    dx=loc_eff_res[0])
-            elif n_imode==2:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])  
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    # loop over time for calling and integrating
-                    for jj in range(nt):
-                        val = func(pts,
-                                   t=ltime[jj], **fkwdargs)
+                        val = func(pts, t=ltime[jj], **fkwdargs)
                         sig[jj, ii] = scpintg.romb(val, show=False,
                                                    dx=loc_eff_res[0])
     # --------------------------------------------------------------------------
@@ -3220,177 +3117,76 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     # starting with LOS, call func only once for each los (treat all times)
     # loop over time for integrals
     else:
-        # loop over LOS and parallelize
-        if dl_is_list and ani:
+        # loop over LOS
+        if ani:
             if n_imode == 0:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii],
-                                                         n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, vect=-usbis, **fkwdargs)
+                    pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
+                                                                res_arr[ii],
+                                                                n_dmode, n_imode,
+                                                                &loc_eff_res[0],
+                                                                ray_orig[:,ii:ii+1],
+                                                                ray_vdir[:,ii:ii+1])
+                    val = func(pts, t=t, vect=-usbis, **fkwdargs)
                     sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii],
-                                                         n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, vect=-usbis, **fkwdargs)
+                    pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
+                                                                res_arr[ii],
+                                                                n_dmode, n_imode,
+                                                                &loc_eff_res[0],
+                                                                ray_orig[:,ii:ii+1],
+                                                                ray_vdir[:,ii:ii+1])
+                    val = func(pts, t=t, vect=-usbis, **fkwdargs)
                     # integration
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii],
-                                                         n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])  
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1) 
-                    val = func(pts,
-                               t=t, vect=-usbis, **fkwdargs)
+                    pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
+                                                                res_arr[ii],
+                                                                n_dmode, n_imode,
+                                                                &loc_eff_res[0],
+                                                                ray_orig[:,ii:ii+1],
+                                                                ray_vdir[:,ii:ii+1])
+                    val = func(pts, t=t, vect=-usbis, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
-        elif dl_is_list and not ani:
+        else:
+            # -- not anisotropic ------------------------------------------------------
             if n_imode == 0:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii],
-                                                         n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])  
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                                   t=t, **fkwdargs)
+                    pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
+                                                     res_arr[ii],
+                                                     n_dmode, n_imode,
+                                                     &loc_eff_res[0],
+                                                     ray_orig[:,ii:ii+1],
+                                                     ray_vdir[:,ii:ii+1])
+                    val = func(pts, t=t, **fkwdargs)
                     sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii], n_dmode,
-                                                         n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])  
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, **fkwdargs)
+                    pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
+                                                     res_arr[ii],
+                                                     n_dmode, n_imode,
+                                                     &loc_eff_res[0],
+                                                     ray_orig[:,ii:ii+1],
+                                                     ray_vdir[:,ii:ii+1])
+                    val = func(pts, t=t, **fkwdargs)
                     sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                 dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res[ii], n_dmode,
-                                                         n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0])  
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, **fkwdargs)
+                    pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
+                                                     res_arr[ii],
+                                                     n_dmode, n_imode,
+                                                     &loc_eff_res[0],
+                                                     ray_orig[:,ii:ii+1],
+                                                     ray_vdir[:,ii:ii+1])
+                    val = func(pts, t=t, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
-        elif ani:
-            # dl is not a list: constant resolution
-            if n_imode==0:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, vect=-usbis,**fkwdargs)
-                    sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
-            elif n_imode==1:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, vect=-usbis,**fkwdargs)
-                    sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
-                                               dx=loc_eff_res[0])
-            elif n_imode==2:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    usbis = np.repeat(ray_vdir[:,ii:ii+1], sz_coeff, axis=1) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, vect=-usbis,**fkwdargs)
-                    # loop over time for integrating
-                    sig[:, ii] = scpintg.romb(val, show=False, axis=1,
-                                               dx=loc_eff_res[0])
-        elif not ani:
-            # dl is not a list: constant resolution
-            if n_imode==0:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, **fkwdargs)
-                    # loop over time for integrating
-                    sig[:, ii] = np.sum(val,axis=1)*loc_eff_res[0]
-            elif n_imode==1:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, **fkwdargs)
-                    sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
-                                               dx=loc_eff_res[0])
-            elif n_imode==2:
-                for ii in range(nlos):
-                    sz_coeff = _st.LOS_get_sample_single(lims[0,0], lims[1,0],
-                                                         res, n_dmode, n_imode,
-                                                         &loc_eff_res[0],
-                                                         &los_coeffs[0]) 
-                    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
-                    pts = ray_orig[:,ii:ii+1] + ksbis[None,:] * ray_vdir[:,ii:ii+1]
-                    val = func(pts,
-                               t=t, **fkwdargs)
-                    sig[:, ii] = scpintg.romb(val, show=False, axis=-1,
-                                              dx=loc_eff_res[0])
-    if los_coeffs != NULL:
-        if los_coeffs[0] != NULL:
-            free(los_coeffs[0])
-        free(los_coeffs)
     return sig
-
-
-
-
 
 
 ######################################################################

@@ -17,7 +17,9 @@ from cython.parallel import prange
 from cython.parallel cimport parallel
 from cpython.array cimport array, clone
 from _basic_geom_tools cimport _VSMALL
-
+# for utility functions:
+cimport numpy as np
+import numpy as np
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
@@ -1010,3 +1012,77 @@ cdef inline int LOS_get_sample_single(double los_kmin, double los_kmax,
                                       &coeffs[0][0])
             return nraf + 1
     return -1
+
+
+# ==============================================================================
+# == Utility functions for signal computation (LOS_calc_signal)
+# ==============================================================================
+
+# -- anisotropic case ----------------------------------------------------
+cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
+                                       double resol,
+                                       int n_dmode, int n_imode,
+                                       double[1] eff_res,
+                                       double[:,::1] ray_orig,
+                                       double[:,::1] ray_vdir):
+    # This function doesn't compute anything new.
+    # It's a utility function for LOS_calc_signal to avoid reptitions
+    # It samples a LOS and recreates the points on that LOS
+    # plus this is for the anisotropic version so it also compute usbis
+    cdef int sz_coeff
+    cdef double** los_coeffs = NULL
+    cdef np.ndarray[double,ndim=1,mode='c'] ksbis
+    cdef np.ndarray[double,ndim=2,mode='c'] usbis
+    cdef np.ndarray[double,ndim=2,mode='c'] pts
+
+    # Initialization utility array
+    los_coeffs = <double**>malloc(sizeof(double*))
+    los_coeffs[0] = NULL
+    # Sampling
+    sz_coeff = LOS_get_sample_single(los_kmin, los_kmax,
+                                     resol,
+                                     n_dmode, n_imode,
+                                     &eff_res[0],
+                                     &los_coeffs[0])
+    # computing points
+    usbis = np.repeat(ray_vdir, sz_coeff, axis=1)
+    ksbis = np.asarray(<double[:sz_coeff]>los_coeffs[0])
+    pts = ray_orig + ksbis[None,:] * usbis
+    if los_coeffs != NULL:
+        if los_coeffs[0] != NULL:
+            free(los_coeffs[0])
+        free(los_coeffs)
+    return pts, usbis
+
+# -- not anisotropic ------------------------------------------------------
+cdef inline call_get_sample_single(double los_kmin, double los_kmax,
+                                   double resol,
+                                   int n_dmode, int n_imode,
+                                   double[1] eff_res,
+                                   double[:,::1] ray_orig,
+                                   double[:,::1] ray_vdir):
+    # This function doesn't compute anything new.
+    # It's a utility function for LOS_calc_signal to avoid reptitions
+    # It samples a LOS and recreates the points on that LOS
+    # plus this is for the anisotropic version so it also compute usbis
+    cdef int sz_coeff
+    cdef double** los_coeffs = NULL
+    cdef np.ndarray[double,ndim=2,mode='c'] pts
+
+    # Initialization utility array
+    los_coeffs = <double**>malloc(sizeof(double*))
+    los_coeffs[0] = NULL
+    # Sampling
+    sz_coeff = LOS_get_sample_single(los_kmin, los_kmax,
+                                     resol,
+                                     n_dmode, n_imode,
+                                     &eff_res[0],
+                                     &los_coeffs[0])
+    # computing points
+    pts = ray_orig + np.asarray(<double[:sz_coeff]>los_coeffs[0]) * np.repeat(ray_vdir, sz_coeff, axis=1)
+    if los_coeffs != NULL:
+        if los_coeffs[0] != NULL:
+            free(los_coeffs[0])
+        free(los_coeffs)
+    return pts
+
