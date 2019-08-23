@@ -13,10 +13,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import socket
 import getpass
 
-
 # tofu
 # test if in a tofu git repo
-
 _HERE = os.path.abspath(os.path.dirname(__file__))
 istofugit = False
 heresplit = _HERE.split(os.path.sep)
@@ -26,7 +24,6 @@ if 'benchmarks' in heresplit:
     lf = os.listdir(pp)
     if '.git' in lf and 'tofu' in lf:
         istofugit = True
-
 
 if istofugit:
     # Make sure we load the corresponding tofu
@@ -42,19 +39,9 @@ np.set_printoptions(linewidth=200)
 
 
 ###################
-# Emissivity
-###################
-
-def emiss(pts, t=None, vect=None):
-    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
-    e = np.exp(-(r-2.4)**2/0.2**2 - z**2/0.2**2)
-    if t is not None:
-        e = np.cos(np.atleast_1d(t))[:,None] * e[None,:]
-    return e
-
-###################
 # Defining defaults
 ###################
+
 
 # # Mine @LM
 # _LRES = [-1,-3,0]
@@ -68,7 +55,7 @@ _LT = [1,3,2]
 _NREP = 3
 #
 _LRES = [-1,-3,0]
-_LLOS = [1,4,0]
+_LLOS = [1,3,0]
 _LT = [1,3,0]
 _NREP = 3
 #
@@ -112,6 +99,17 @@ _DMARGIN = {'left':0.05, 'right':0.95,
             'wspace':0.1, 'hspace':0.1}
 
 
+
+###################
+# Emissivity
+###################
+
+def emiss(pts, t=None, vect=None):
+    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+    e = np.exp(-(r-2.4)**2/0.2**2 - z**2/0.2**2)
+    if t is not None:
+        e = np.cos(np.atleast_1d(t))[:,None] * e[None,:]
+    return e
 
 ###################
 # Main function
@@ -168,8 +166,10 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
         name += '_'+nameappend
 
     # printing file
+    stdout = False
     if txtfile is None:
         txtfile = sys.stdout
+        stdout = True
     elif type(txtfile) is str:
         txtfile = open(os.path.join(path,txtfile), 'w')
     elif txtfile is True:
@@ -240,7 +240,7 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
 
     err0 = None
     for ii in range(nalgo):
-        print('', file=txtfile)
+        print('', file=txtfile, flush=True)
         for jj in range(nnlos):
             cam = tf.geom.utils.create_CamLOS1D(N12=nlos[jj],
                                                 config=config,
@@ -248,15 +248,16 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                                                 Diag='Dummy',
                                                 **_DCAM)
             msg = "    %s"%(names[ii,jj].ljust(lennames))
-            print(msg, file=txtfile)
+            print(msg, file=txtfile, flush=True)
 
             for ll in range(nres):
-                msg = "\r        res %s/%s"%(ll+1, nres)
+                msg = "        res %s/%s"%(ll+1, nres)
                 for tt in range(nnt):
                     dt = np.zeros((nrep,))
                     for rr in range(nrep):
-                        msgi = msg + "   nt %s/%s    rep %s/%s"%(tt+1,nnt,rr+1,nrep)
-                        print(msg + msgi, end='', file=txtfile, flush=True)
+                        if stdout:
+                            msgi = "\r" + msg + "   nt %s/%s    rep %s/%s"%(tt+1,nnt,rr+1,nrep)
+                            print(msgi, end='', file=txtfile, flush=True)
 
                         try:
                             if func is None:
@@ -288,8 +289,10 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                     t_av[ii,jj,ll,tt] = np.mean(dt)
                     t_std[ii,jj,ll,tt] = np.std(dt)
 
-                msgi = ': %s\n'%str(t_av[ii,jj,ll,:])
-                print(msg + msgi, end='', file=txtfile, flush=True)
+                msgi = msg + ': %s'%str(t_av[ii,jj,ll,:])
+                if stdout:
+                    msgi = '\r'+msgi
+                print(msgi, file=txtfile, flush=True)
             if save:
                 out = {kk:vv for kk,vv in locals().items() if kk in lk}
                 np.savez(pfe, **out)
