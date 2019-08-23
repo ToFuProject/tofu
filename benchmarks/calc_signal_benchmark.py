@@ -15,11 +15,28 @@ import getpass
 
 
 # tofu
-import tofu as tf
+# test if in a tofu git repo
+
+_HERE = os.path.abspath(os.path.dirname(__file__))
+istofugit = False
+heresplit = _HERE.split(os.path.sep)
+if 'benchmarks' in heresplit:
+    ind = heresplit[::-1].index('benchmarks')
+    pp = os.path.sep + os.path.join(*heresplit[:-ind-1])
+    lf = os.listdir(pp)
+    if '.git' in lf and 'tofu' in lf:
+        istofugit = True
+
+
+if istofugit:
+    # Make sure we load the corresponding tofu
+    sys.path.insert(1,pp)
+    import tofu as tf
+    _ = sys.path.pop(1)
+else:
+    import tofu as tf
 tforigin = tf.__file__
 tfversion = tf.__version__
-msg = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
-print(msg)
 
 np.set_printoptions(linewidth=200)
 
@@ -76,7 +93,7 @@ _DALGO = {'ref-sum':{'newcalc':False},
 _DCAM = {'P':[3.4,0.,0.], 'F':0.1, 'D12':0.1,
          'angs':[1.05*np.pi, np.pi/4, np.pi/4]}
 
-_PATH = os.path.abspath(os.path.dirname(__file__))
+_PATH = _HERE
 _FUNC = True
 _TXTFILE = None
 _SAVE = True
@@ -103,30 +120,6 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
 
     # --------------
     # Prepare inputs
-
-    # config
-    if config is None:
-        config = 'B2'
-    if type(config) is str:
-        config = tf.geom.utils.create_config(config)
-
-    # func vs plasma
-    if func == True:
-        func = emiss
-    elif func is None:
-        if plasma is None:
-            if ids is None:
-                ids = _IDS
-            if shot is None:
-                shot = _SHOT
-            didd = tf.imas2tofu.MultiIDSLoader(shot=shot, ids=ids)
-            plasma = didd.to_Plasma2D()
-
-        # quant, ref1d, ref2d
-        if quant is None:
-            quant = _QUANT
-            ref1d = _REF1D
-            ref2d = _REF2D
 
     # res and los
     if res is None:
@@ -167,6 +160,41 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     if nameappend is not None:
         name += '_'+nameappend
 
+    # printing file
+    if txtfile is None:
+        txtfile = sys.stdout
+    elif type(txtfile) is str:
+        txtfile = open(os.path.join(path,txtfile), 'w')
+    elif txtfile is True:
+        txtfile = open(os.path.join(path,name+'.txt'), 'w')
+    msg = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
+    print(msg, file=txtfile)
+
+
+    # config
+    if config is None:
+        config = 'B2'
+    if type(config) is str:
+        config = tf.geom.utils.create_config(config)
+
+    # func vs plasma
+    if func == True:
+        func = emiss
+    elif func is None:
+        if plasma is None:
+            if ids is None:
+                ids = _IDS
+            if shot is None:
+                shot = _SHOT
+            didd = tf.imas2tofu.MultiIDSLoader(shot=shot, ids=ids)
+            plasma = didd.to_Plasma2D()
+
+        # quant, ref1d, ref2d
+        if quant is None:
+            quant = _QUANT
+            ref1d = _REF1D
+            ref2d = _REF2D
+
     #---------------
     # Prepare output
 
@@ -175,14 +203,6 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
     t_std = np.full((nalgo, nnlos, nres, nnt), np.nan)
     memerr = np.zeros((nalgo, nnlos, nres, nnt), dtype=bool)
     win = np.zeros((nnlos, nres, nnt), dtype=int)
-
-    # printing file
-    if txtfile is None:
-        txtfile = sys.stdout
-    elif type(txtfile) is str:
-        txtfile = open(os.path.join(path,txtfile), 'w')
-    elif txtfile is True:
-        txtfile = open(os.path.join(path,name+'.txt'), 'w')
 
     #---------------
     # Prepare saving params
