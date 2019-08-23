@@ -1,25 +1,78 @@
+#!/usr/bin/env python
 
 # Built-in
 import os
+import sys
+import argparse
 
 # Common
 import datetime as dtm
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import socket
+import getpass
+
 
 # tofu
-import tofu as tf
+# test if in a tofu git repo
 
+_HERE = os.path.abspath(os.path.dirname(__file__))
+istofugit = False
+heresplit = _HERE.split(os.path.sep)
+if 'benchmarks' in heresplit:
+    ind = heresplit[::-1].index('benchmarks')
+    pp = os.path.sep + os.path.join(*heresplit[:-ind-1])
+    lf = os.listdir(pp)
+    if '.git' in lf and 'tofu' in lf:
+        istofugit = True
+
+
+if istofugit:
+    # Make sure we load the corresponding tofu
+    sys.path.insert(1,pp)
+    import tofu as tf
+    _ = sys.path.pop(1)
+else:
+    import tofu as tf
+tforigin = tf.__file__
+tfversion = tf.__version__
+
+np.set_printoptions(linewidth=200)
+
+
+###################
+# Emissivity
+###################
+
+def emiss(pts, t=None, vect=None):
+    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+    e = np.exp(-(r-2.4)**2/0.2**2 - z**2/0.2**2)
+    if t is not None:
+        e = np.cos(np.atleast_1d(t))[:,None] * e[None,:]
+    return e
 
 ###################
 # Defining defaults
 ###################
 
-_LRES = [-1,-3,0]
-_LLOS = [1,4,0]
+# # Mine @LM
+# _LRES = [-1,-3,0]
+# _LLOS = [1,4,0]
+# _LT = [1,2,0]
+# _NREP = 4
+# @DV
+_LRES = [-1,-3,2]
+_LLOS = [1,5,1]
+_LT = [1,3,2]
+_NREP = 3
+#
+_LRES = [-1,-2,0]
+_LLOS = [1,2,0]
 _LT = [1,2,0]
-_NREP = 4
+_NREP = 1
+#
+
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
 _DT = abs(_LT[1] - _LT[0])
@@ -47,8 +100,11 @@ _DALGO = {'ref-sum':{'newcalc':False},
 _DCAM = {'P':[3.4,0.,0.], 'F':0.1, 'D12':0.1,
          'angs':[1.05*np.pi, np.pi/4, np.pi/4]}
 
-_PATH = os.path.abspath(os.path.dirname(__file__))
-
+_PATH = _HERE
+_FUNC = True
+_TXTFILE = None
+_SAVE = True
+_PLOT = False
 
 _FS = (14,10)
 _DMARGIN = {'left':0.05, 'right':0.95,
@@ -62,36 +118,15 @@ _DMARGIN = {'left':0.05, 'right':0.95,
 ###################
 
 
-def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
+def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
               quant=None, ref1d=None, ref2d=None,
               res=None, nlos=None, nt=None, t=None,
-              dalgo=None, nrep=None,
-              plot=False, save=True, path=None, name=None):
+              dalgo=None, nrep=None, txtfile=None,
+              path=None, name=None, nameappend=None,
+              plot=_PLOT, save=_SAVE):
 
     # --------------
     # Prepare inputs
-
-    # config
-    if config is None:
-        config = 'B2'
-    if type(config) is str:
-        config = tf.geom.utils.create_config(config)
-
-    # plasma
-    if func is None:
-        if plasma is None:
-            if ids is None:
-                ids = _IDS
-            if shot is None:
-                shot = _SHOT
-            didd = tf.imas2tofu.MultiIDSLoader(shot=shot, ids=ids)
-            plasma = didd.to_Plasma2D()
-
-        # quant, ref1d, ref2d
-        if quant is None:
-            quant = _QUANT
-            ref1d = _REF1D
-            ref2d = _REF2D
 
     # res and los
     if res is None:
@@ -120,8 +155,57 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
         lt = [np.atleast_1d(t).ravel()]
     nnt = len(lt)
 
+    if path is None:
+        path = _PATH
+    if name is None:
+        lvar = [('nalgo',nalgo), ('nnlos',nnlos),
+                ('nres',nres), ('nnt',nnt),
+                ('Host',socket.gethostname()), ('USR',getpass.getuser())]
+        name = 'benchmark_LOScalcsignal_'
+        name += '_'.join(['%s%s'%(nn,vv)
+                          for nn,vv in lvar])
+    if nameappend is not None:
+        name += '_'+nameappend
+
+    # printing file
+    if txtfile is None:
+        txtfile = sys.stdout
+    elif type(txtfile) is str:
+        txtfile = open(os.path.join(path,txtfile), 'w')
+    elif txtfile is True:
+        txtfile = open(os.path.join(path,name+'.txt'), 'w')
+    msg = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
+    print(msg, file=txtfile)
+
+
+    # config
+    if config is None:
+        config = 'B2'
+    if type(config) is str:
+        config = tf.geom.utils.create_config(config)
+
+    # func vs plasma
+    if func == True:
+        func = emiss
+    elif func is None:
+        if plasma is None:
+            if ids is None:
+                ids = _IDS
+            if shot is None:
+                shot = _SHOT
+            didd = tf.imas2tofu.MultiIDSLoader(shot=shot, ids=ids)
+            plasma = didd.to_Plasma2D()
+
+        # quant, ref1d, ref2d
+        if quant is None:
+            quant = _QUANT
+            ref1d = _REF1D
+            ref2d = _REF2D
+
     #---------------
     # Prepare output
+
+    # data
     t_av = np.full((nalgo, nnlos, nres, nnt), np.nan)
     t_std = np.full((nalgo, nnlos, nres, nnt), np.nan)
     memerr = np.zeros((nalgo, nnlos, nres, nnt), dtype=bool)
@@ -130,15 +214,11 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     #---------------
     # Prepare saving params
     if save:
-        if name is None:
-            lvar = [('nalgo',nalgo), ('nnlos',nnlos),
-                    ('nres',nres), ('nnt',nnt)]
-            name = 'benchmark_LOScalcsignal_'
-            name += '_'.join(['%s%s'%(nn,vv)
-                              for nn,vv in lvar])
-        if path is None:
-            path = _PATH
         pfe = os.path.join(path,name+'.npz')
+        lk = ['tforigin', 'tfversion', 't_std', 'nnt', 'lt', 'nalgo', 'nres',
+              'name', 'path', 'save', 'plot', 'nrep', 'dalgo', 't', 'nt',
+              'res', 'ref2d', 'ref1d', 'quant', 'ids', 'shot',
+              'win', 't_av', 'nnlos', 'nlos', 'ncase', 'lalgo']
 
     #------------
     # Start loop
@@ -156,11 +236,11 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     msg += "nt   = %s\n"%str(nt)
     msg += "rep  = %s\n\n"%str(nrep)
     msg += "    algo:".ljust(lennames) + '  times:'
-    print(msg)
+    print(msg, file=txtfile)
 
     err0 = None
     for ii in range(nalgo):
-        print('')
+        print('', file=txtfile)
         for jj in range(nnlos):
             cam = tf.geom.utils.create_CamLOS1D(N12=nlos[jj],
                                                 config=config,
@@ -168,7 +248,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
                                                 Diag='Dummy',
                                                 **_DCAM)
             msg = "    %s"%(names[ii,jj].ljust(lennames))
-            print(msg)
+            print(msg, file=txtfile)
 
             for ll in range(nres):
                 msg = "\r        res %s/%s"%(ll+1, nres)
@@ -176,24 +256,27 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
                     dt = np.zeros((nrep,))
                     for rr in range(nrep):
                         msgi = msg + "   nt %s/%s    rep %s/%s"%(tt+1,nnt,rr+1,nrep)
-                        print(msg + msgi, end='', flush=True)
+                        print(msg + msgi, end='', file=txtfile, flush=True)
 
                         try:
                             if func is None:
                                 t0 = dtm.datetime.now()
-                                out = cam.calc_signal_from_Plasma2D(plasma, quant=quant,
-                                                                    ref1d=ref1d,
-                                                                    ref2d=ref2d,
-                                                                    res=res[ll],
-                                                                    resMode='abs',
-                                                                    plot=False,
-                                                                    t = lt[tt],
-                                                                    **dalgo[lalgo[ii]])
+                                _ = cam.calc_signal_from_Plasma2D(plasma,
+                                                                  quant=quant,
+                                                                  ref1d=ref1d,
+                                                                  ref2d=ref2d,
+                                                                  res=res[ll],
+                                                                  resMode='abs',
+                                                                  plot=False,
+                                                                  t = lt[tt],
+                                                                  **dalgo[lalgo[ii]])
                                 dt[rr] = (dtm.datetime.now()-t0).total_seconds()
                             else:
                                 t0 = dtm.datetime.now()
-                                out = cam.calc_signal(func, res=res[ll], resMode='abs',
-                                                      plot=False, t = lt[tt], **dalgo[lalgo[ii]])
+                                _ = cam.calc_signal(func, res=res[ll],
+                                                    resMode='abs', plot=False,
+                                                    t = lt[tt],
+                                                    **dalgo[lalgo[ii]])
                                 dt[rr] = (dtm.datetime.now()-t0).total_seconds()
                         except MemoryError as err:
                             dt[rr] = -1
@@ -206,7 +289,13 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
                     t_std[ii,jj,ll,tt] = np.std(dt)
 
                 msgi = ': %s\n'%str(t_av[ii,jj,ll,:])
-                print(msg + msgi, end='', flush=True)
+                print(msg + msgi, end='', file=txtfile, flush=True)
+            if save:
+                out = {kk:vv for kk,vv in locals().items() if kk in lk}
+                np.savez(pfe, **out)
+                print("        (saved)", file=txtfile)
+
+
 
     t_av[memerr] = np.nan
     win = np.nanargmin(t_av, axis=0)
@@ -233,7 +322,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     msg += "\n    ".join(["%s : %s"%(lalgo[ii].ljust(ln),
                                      100.*np.sum(t_av[ii,...]>=0)/ncase) + ' %'
                           for ii in range(nalgo)])
-    print(msg)
+    print(msg, file=txtfile)
 
 
     if err0 is not None:
@@ -242,21 +331,19 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     #-------------
     # Plot / save
 
-    lk = ['t_std', 'nnt', 'lt', 'nalgo',
-          'nres', 'name', 'path', 'save', 'plot', 'nrep', 'dalgo', 't', 'nt',
-          'res', 'ref2d', 'ref1d', 'quant', 'ids', 'shot',
-          'win', 't_av', 'nnlos', 'nlos', 'ncase', 'lalgo']
-    out = {kk:vv for kk,vv in locals().items() if kk in lk}
+
+    if save:
+        out = {kk:vv for kk,vv in locals().items() if kk in lk}
+        np.savez(pfe, **out)
+        print('Saved in:\n    %s'%pfe, file=txtfile)
 
     if plot:
         try:
             plot_benchmark(**out)
         except Exception:
             pass
-
-    if save:
-        np.savez(pfe, **out)
-        print('Saved in:\n    %s'%pfe)
+    if txtfile != sys.stdout:
+        txtfile.close()
     return out
 
 
@@ -299,3 +386,42 @@ def plot_benchmark(fname=None, fs=None, dmargin=None, **kwdargs):
                 c=out['t_av'][0,...], s=8, marker='o')
 
     return
+
+
+
+###################
+#   Bash interface
+###################
+
+if __name__ == '__main__':
+
+    # Parse input arguments
+    msg = \
+    """ Launch benchmark for _GG.LOS_calc_signal
+
+    This is a bash wrapper around the function benchmark()
+    """
+    parser = argparse.ArgumentParser(description = msg)
+
+    parser.add_argument('-f', '--func', type=bool,
+                        help='emissivity function', required=False, default=_FUNC)
+    parser.add_argument('-tf', '--txtfile', type=bool,
+                        help='write to txt file ?', required=False,
+                        default=_TXTFILE)
+    parser.add_argument('-na', '--nameappend', type=str,
+                        help='str to be appended to the name', required=False,
+                        default=None)
+    parser.add_argument('-s', '--save', type=bool,
+                        help='save results ?', required=False,
+                        default=_SAVE)
+    parser.add_argument('-p', '--plot', type=bool,
+                        help='plot results ?', required=False,
+                        default=_PLOT)
+    parser.add_argument('-pa', '--path', type=str,
+                        help='path where to save results', required=False,
+                        default=_PATH)
+
+    args = parser.parse_args()
+
+    # Call wrapper function
+    benchmark(**dict(args._get_kwargs()))

@@ -144,10 +144,12 @@ def check_for_openmp(cc_var):
     return result
 
 # ....... Using function
+print("................ checking if openmp installed...")
 if is_platform_windows:
     openmp_installed = False
 else:
-    openmp_installed = check_for_openmp(os.environ['CC'])
+    openmp_installed = not check_for_openmp(os.environ['CC'])
+print("................ checking if openmp installed... > ", openmp_installed)
 
 # To compile the relevant version
 if sys.version[:3] in ['2.7','3.6','3.7']:
@@ -220,12 +222,13 @@ with open(os.path.join(_HERE, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
 #  ... Compiling files .........................................................
-if not openmp_installed :
+if openmp_installed :
     extra_compile_args=["-O0", "-Wall", "-fopenmp"]
     extra_link_args = ["-fopenmp"]
 else:
     extra_compile_args=["-O0", "-Wall"]
     extra_link_args = []
+
 extensions = [ Extension(name="tofu.geom."+gg,
                          sources=["tofu/geom/"+gg+".pyx"],
                          extra_compile_args=extra_compile_args,
@@ -252,6 +255,7 @@ extensions = [ Extension(name="tofu.geom."+gg,
                         extra_compile_args=extra_compile_args,
                         extra_link_args=extra_link_args),
               ]
+
 extensions = cythonize(extensions, annotate=True)
 
 
