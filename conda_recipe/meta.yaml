@@ -29,7 +29,6 @@ requirements:
     - cython >=0.26
     - nose
     - pygments
-    - pandas
     - polygon2 # [py27]
     - polygon3 # [not py27]
     - funcsigs # [py27]
@@ -46,7 +45,6 @@ requirements:
     - cython >=0.26
     - nose
     - pygments
-    - pandas
     - polygon2 # [py27]
     - polygon3 # [not py27]
     - funcsigs # [py27]
