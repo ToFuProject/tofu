@@ -31,9 +31,9 @@ def emiss(pts, t=None, vect=None):
 # Defining defaults
 ###################
 
-_LRES = [-1,-2,0]
-_LLOS = [1,2,0]
-_LT = [1,2,0]
+_LRES = [-1,-3,2]
+_LLOS = [1,5,1]
+_LT = [1,3,2]
 _NREP = 3
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
