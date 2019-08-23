@@ -8,6 +8,9 @@ import datetime as dtm
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import socket
+import getpass
+
 
 # tofu
 import tofu as tf
@@ -35,6 +38,12 @@ _LRES = [-1,-3,2]
 _LLOS = [1,5,1]
 _LT = [1,3,2]
 _NREP = 3
+#
+_LRES = [-1,-2,0]
+_LLOS = [1,2,0]
+_LT = [1,2,0]
+_NREP = 1
+#
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
 _DT = abs(_LT[1] - _LT[0])
@@ -142,7 +151,8 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
         path = _PATH
     if name is None:
         lvar = [('nalgo',nalgo), ('nnlos',nnlos),
-                ('nres',nres), ('nnt',nnt)]
+                ('nres',nres), ('nnt',nnt),
+                ('Host',socket.gethostname()), ('USR',getpass.getuser())]
         name = 'benchmark_LOScalcsignal_'
         name += '_'.join(['%s%s'%(nn,vv)
                           for nn,vv in lvar])
