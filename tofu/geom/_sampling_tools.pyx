@@ -567,6 +567,7 @@ cdef inline void middle_rule_abs_var(int num_los, double* resolutions,
                               los_ind, los_nraf, num_threads)
 
     # ...
+    free(los_nraf)
     return
 
 
@@ -661,7 +662,7 @@ cdef inline void middle_rule_rel_var(int num_los, double* resolutions,
                               los_ind,
                               los_nraf,
                               num_threads)
-
+    free(los_nraf)
     return
 
 # -- Quadrature Rules : Left Rule ----------------------------------------------
@@ -803,6 +804,7 @@ cdef inline void simps_left_rule_abs(int num_los, double resol,
                               los_ind,
                               los_nraf,
                               num_threads)
+    free(los_nraf)
     return
 
 cdef inline void romb_left_rule_abs_single(int num_raf,
@@ -900,6 +902,7 @@ cdef inline void romb_left_rule_abs(int num_los, double resol,
                               los_ind,
                               los_nraf,
                               num_threads)
+    free(los_nraf)
     return
 
 
@@ -958,15 +961,16 @@ cdef inline void simps_left_rule_rel_var_s2(int num_los, double* resolutions,
     cdef int first_index
     cdef double loc_resol
     # ...
-    for ii in range(num_los):
-        num_raf = los_nraf[ii]
-        loc_resol = los_resolution[ii]
-        if ii == 0:
-            first_index = 0
-        else:
-            first_index = los_ind[ii-1]
-        simps_left_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
-                                       &los_coeffs[0][first_index])
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(num_los):
+            num_raf = los_nraf[ii]
+            loc_resol = los_resolution[ii]
+            if ii == 0:
+                first_index = 0
+            else:
+                first_index = los_ind[ii-1]
+            simps_left_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
+                                           &los_coeffs[0][first_index])
     return
 
 
@@ -996,6 +1000,7 @@ cdef inline void simps_left_rule_rel_var(int num_los, double* resolutions,
                               los_ind,
                               los_nraf,
                               num_threads)
+    free(los_nraf)
     return
 
 
@@ -1012,12 +1017,11 @@ cdef inline void simps_left_rule_abs_var_single(int num_raf,
         los_coeffs[jj] = los_kmin + jj * loc_resol
     return
 
-cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
+cdef inline void simps_left_rule_abs_var_s1(int num_los, double* resolutions,
                                          double* los_kmin,
                                          double* los_kmax,
                                          double* los_resolution,
-                                         double** los_coeffs,
-                                         long* los_ind,
+                                         long* los_ind, long* los_nraf,
                                          int num_threads) nogil:
     # Simpson left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
@@ -1034,18 +1038,72 @@ cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
             num_raf = num_raf+1
         loc_resol = seg_length / num_raf
         los_resolution[ii] = loc_resol
+        los_nraf[ii] = num_raf
         if ii == 0:
             first_index = 0
             los_ind[ii] = num_raf + 1
-            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
         else:
             first_index = los_ind[ii-1]
             los_ind[ii] = num_raf +  1 + first_index
-            los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                             los_ind[ii] * sizeof(double))
-        simps_left_rule_abs_var_single(num_raf, loc_resol,
-                                       los_kmin[ii],
-                                       &los_coeffs[0][first_index])
+    return
+
+
+cdef inline void simps_left_rule_abs_var_s2(int num_los, double* resolutions,
+                                         double* los_kmin,
+                                         double* los_kmax,
+                                         double* los_resolution,
+                                         double** los_coeffs,
+                                         long* los_ind, long* los_nraf,
+                                         int num_threads) nogil:
+    # Simpson left quadrature rule with absolute variable resolution step
+    # for SEVERAL LOS
+    cdef Py_ssize_t ii, jj
+    cdef int num_raf
+    cdef int first_index
+    cdef double seg_length
+    cdef double loc_resol
+    # ...
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(num_los):
+            loc_resol = los_resolution[ii]
+            num_raf = los_nraf[ii]
+            if ii == 0:
+                first_index = 0
+            else:
+                first_index = los_ind[ii-1]
+            simps_left_rule_abs_var_single(num_raf, loc_resol,
+                                           los_kmin[ii],
+                                           &los_coeffs[0][first_index])
+    return
+
+
+cdef inline void simps_left_rule_abs_var(int num_los, double* resolutions,
+                                         double* los_kmin,
+                                         double* los_kmax,
+                                         double* los_resolution,
+                                         double** los_coeffs,
+                                         long* los_ind,
+                                         int num_threads) nogil:
+    # Simpson left quadrature rule with absolute variable resolution step
+    # for SEVERAL LOS
+    cdef long* los_nraf
+    # ...
+    los_nraf = <long*> malloc(num_los * sizeof(long))
+    simps_left_rule_abs_var_s1(num_los, resolutions,
+                           los_kmin, los_kmax,
+                           los_resolution,
+                           los_ind,
+                           los_nraf,
+                           num_threads)
+    los_coeffs[0] = <double*>malloc(los_ind[num_los-1]*sizeof(double))
+    simps_left_rule_abs_var_s2(num_los, resolutions,
+                              los_resolution,
+                              los_kmin, los_kmax,
+                              los_coeffs,
+                              los_ind,
+                              los_nraf,
+                              num_threads)
+    free(los_nraf)
     return
 
 cdef inline void romb_left_rule_rel_var_single(int num_raf,
@@ -1061,12 +1119,11 @@ cdef inline void romb_left_rule_rel_var_single(int num_raf,
     return
 
 
-cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
+cdef inline void romb_left_rule_rel_var_s1(int num_los, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
                                         double* los_resolution,
-                                        double** los_coeffs,
-                                        long* los_ind,
+                                        long* los_ind, long* los_nraf,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with relative variable resolution step
     # for SEVERAL LOS
@@ -1080,17 +1137,70 @@ cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
         num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
         loc_resol = 1. / num_raf
         los_resolution[ii] = loc_resol
+        los_nraf[ii] = num_raf
         if ii == 0:
             first_index = 0
             los_ind[ii] = num_raf + 1
-            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
         else:
             first_index = los_ind[ii-1]
             los_ind[ii] = num_raf +  1 + first_index
-            los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                             los_ind[ii] * sizeof(double))
-        romb_left_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
-                                      &los_coeffs[0][first_index])
+    return
+
+
+cdef inline void romb_left_rule_rel_var_s2(int num_los, double* resolutions,
+                                        double* los_kmin,
+                                        double* los_kmax,
+                                        double* los_resolution,
+                                        double** los_coeffs,
+                                        long* los_ind, long* los_nraf,
+                                        int num_threads) nogil:
+    # Romboid left quadrature rule with relative variable resolution step
+    # for SEVERAL LOS
+    cdef Py_ssize_t ii, jj
+    cdef int num_raf
+    cdef int first_index
+    cdef double loc_resol
+    # ...
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(num_los):
+            loc_resol = los_resolution[ii]
+            num_raf = los_nraf[ii]
+            if ii == 0:
+                first_index = 0
+            else:
+                first_index = los_ind[ii-1]
+            romb_left_rule_rel_var_single(num_raf, loc_resol, los_kmin[ii],
+                                          &los_coeffs[0][first_index])
+    return
+
+
+cdef inline void romb_left_rule_rel_var(int num_los, double* resolutions,
+                                        double* los_kmin,
+                                        double* los_kmax,
+                                        double* los_resolution,
+                                        double** los_coeffs,
+                                        long* los_ind,
+                                        int num_threads) nogil:
+    # Romboid left quadrature rule with relative variable resolution step
+    # for SEVERAL LOS
+    cdef long* los_nraf
+    # ...
+    los_nraf = <long*> malloc(num_los * sizeof(long))
+    romb_left_rule_rel_var_s1(num_los, resolutions,
+                           los_kmin, los_kmax,
+                           los_resolution,
+                           los_ind,
+                           los_nraf,
+                           num_threads)
+    los_coeffs[0] = <double*>malloc(los_ind[num_los-1]*sizeof(double))
+    romb_left_rule_rel_var_s2(num_los, resolutions,
+                              los_resolution,
+                              los_kmin, los_kmax,
+                              los_coeffs,
+                              los_ind,
+                              los_nraf,
+                              num_threads)
+    free(los_nraf)
     return
 
 
@@ -1106,12 +1216,11 @@ cdef inline void romb_left_rule_abs_var_single(int num_raf,
         los_coeffs[jj] = los_kmin + jj * loc_resol
     return
 
-cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
+cdef inline void romb_left_rule_abs_var_s1(int num_los, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
                                         double* los_resolution,
-                                        double** los_coeffs,
-                                        long* los_ind,
+                                        long* los_ind, long* los_nraf,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with absolute variable resolution step
     # for SEVERAL LOS
@@ -1127,18 +1236,70 @@ cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
         num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
         loc_resol = seg_length / num_raf
         los_resolution[ii] = loc_resol
+        los_nraf[ii] = num_raf
         if ii == 0:
             first_index = 0
             los_ind[ii] = num_raf + 1
-            los_coeffs[0] = <double*>malloc((num_raf + 1) * sizeof(double))
         else:
             first_index = los_ind[ii-1]
             los_ind[ii] = num_raf +  1 + first_index
-            los_coeffs[0] = <double*>realloc(los_coeffs[0],
-                                             los_ind[ii] * sizeof(double))
+    return
 
-        romb_left_rule_abs_var_single(num_raf, loc_resol, los_kmin[ii],
-                                      &los_coeffs[0][first_index])
+cdef inline void romb_left_rule_abs_var_s2(int num_los, double* resolutions,
+                                        double* los_kmin,
+                                        double* los_kmax,
+                                        double* los_resolution,
+                                        double** los_coeffs,
+                                        long* los_ind, long* los_nraf,
+                                        int num_threads) nogil:
+    # Romboid left quadrature rule with absolute variable resolution step
+    # for SEVERAL LOS
+    cdef Py_ssize_t ii, jj
+    cdef int num_raf
+    cdef int first_index
+    cdef double seg_length
+    cdef double loc_resol
+    # ...
+    with nogil, parallel(num_threads=num_threads):
+        for ii in range(num_los):
+            loc_resol = los_resolution[ii]
+            num_raf = los_nraf[ii]
+            if ii == 0:
+                first_index = 0
+            else:
+                first_index = los_ind[ii-1]
+            romb_left_rule_abs_var_single(num_raf, loc_resol, los_kmin[ii],
+                                          &los_coeffs[0][first_index])
+    return
+
+
+cdef inline void romb_left_rule_abs_var(int num_los, double* resolutions,
+                                        double* los_kmin,
+                                        double* los_kmax,
+                                        double* los_resolution,
+                                        double** los_coeffs,
+                                        long* los_ind,
+                                        int num_threads) nogil:
+    # Romboid left quadrature rule with absolute variable resolution step
+    # for SEVERAL LOS
+    cdef long* los_nraf
+    # ...
+    los_nraf = <long*> malloc(num_los * sizeof(long))
+    romb_left_rule_abs_var_s1(num_los, resolutions,
+                           los_kmin, los_kmax,
+                           los_resolution,
+                           los_ind,
+                           los_nraf,
+                           num_threads)
+    los_coeffs[0] = <double*>malloc(los_ind[num_los-1]*sizeof(double))
+    romb_left_rule_abs_var_s2(num_los, resolutions,
+                              los_resolution,
+                              los_kmin, los_kmax,
+                              los_coeffs,
+                              los_ind,
+                              los_nraf,
+                              num_threads)
+    free(los_nraf)
     return
 
 # -- Get number of integration mode --------------------------------------------
