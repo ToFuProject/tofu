@@ -1,6 +1,7 @@
 
 # Built-in
 import os
+import sys
 
 # Common
 import datetime as dtm
@@ -12,14 +13,28 @@ from mpl_toolkits.mplot3d import Axes3D
 import tofu as tf
 
 
+np.set_printoptions(linewidth=200)
+
+
+###################
+# Emissivity
+###################
+
+def emiss(pts, t=None, vect=None):
+    r, z = np.hypot(pts[0,:],pts[1,:]), pts[2,:]
+    e = np.exp(-(r-2.4)**2/0.2**2 - z**2/0.2**2)
+    if t is not None:
+        e = np.cos(np.atleast_1d(t))[:,None] * e[None,:]
+    return e
+
 ###################
 # Defining defaults
 ###################
 
-_LRES = [-1,-3,1]
-_LLOS = [1,5,1]
-_LT = [1,4,1]
-_NREP = 5
+_LRES = [-1,-2,0]
+_LLOS = [1,2,0]
+_LT = [1,2,0]
+_NREP = 3
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
 _DT = abs(_LT[1] - _LT[0])
@@ -65,8 +80,9 @@ _DMARGIN = {'left':0.05, 'right':0.95,
 def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
               quant=None, ref1d=None, ref2d=None,
               res=None, nlos=None, nt=None, t=None,
-              dalgo=None, nrep=None,
-              plot=False, save=True, path=None, name=None):
+              dalgo=None, nrep=None, txtfile=None,
+              path=None, name=None, nameappend=None,
+              plot=False, save=True):
 
     # --------------
     # Prepare inputs
@@ -77,8 +93,10 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     if type(config) is str:
         config = tf.geom.utils.create_config(config)
 
-    # plasma
-    if func is None:
+    # func vs plasma
+    if func == True:
+        func = emiss
+    elif func is None:
         if plasma is None:
             if ids is None:
                 ids = _IDS
@@ -120,25 +138,42 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
         lt = [np.atleast_1d(t).ravel()]
     nnt = len(lt)
 
+    if path is None:
+        path = _PATH
+    if name is None:
+        lvar = [('nalgo',nalgo), ('nnlos',nnlos),
+                ('nres',nres), ('nnt',nnt)]
+        name = 'benchmark_LOScalcsignal_'
+        name += '_'.join(['%s%s'%(nn,vv)
+                          for nn,vv in lvar])
+    if nameappend is not None:
+        name += '_'+nameappend
+
     #---------------
     # Prepare output
+
+    # data
     t_av = np.full((nalgo, nnlos, nres, nnt), np.nan)
     t_std = np.full((nalgo, nnlos, nres, nnt), np.nan)
     memerr = np.zeros((nalgo, nnlos, nres, nnt), dtype=bool)
     win = np.zeros((nnlos, nres, nnt), dtype=int)
 
+    # printing file
+    if txtfile is None:
+        txtfile = sys.stdout
+    elif type(txtfile) is str:
+        txtfile = open(os.path.join(path,txtfile), 'w')
+    elif txtfile is True:
+        txtfile = open(os.path.join(path,name+'.txt'), 'w')
+
     #---------------
     # Prepare saving params
     if save:
-        if name is None:
-            lvar = [('nalgo',nalgo), ('nnlos',nnlos),
-                    ('nres',nres), ('nnt',nnt)]
-            name = 'benchmark_LOScalcsignal_'
-            name += '_'.join(['%s%s'%(nn,vv)
-                              for nn,vv in lvar])
-        if path is None:
-            path = _PATH
         pfe = os.path.join(path,name+'.npz')
+        lk = ['t_std', 'nnt', 'lt', 'nalgo', 'nres',
+              'name', 'path', 'save', 'plot', 'nrep', 'dalgo', 't', 'nt',
+              'res', 'ref2d', 'ref1d', 'quant', 'ids', 'shot',
+              'win', 't_av', 'nnlos', 'nlos', 'ncase', 'lalgo']
 
     #------------
     # Start loop
@@ -156,11 +191,11 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     msg += "nt   = %s\n"%str(nt)
     msg += "rep  = %s\n\n"%str(nrep)
     msg += "    algo:".ljust(lennames) + '  times:'
-    print(msg)
+    print(msg, file=txtfile)
 
     err0 = None
     for ii in range(nalgo):
-        print('')
+        print('', file=txtfile)
         for jj in range(nnlos):
             cam = tf.geom.utils.create_CamLOS1D(N12=nlos[jj],
                                                 config=config,
@@ -168,7 +203,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
                                                 Diag='Dummy',
                                                 **_DCAM)
             msg = "    %s"%(names[ii,jj].ljust(lennames))
-            print(msg)
+            print(msg, file=txtfile)
 
             for ll in range(nres):
                 msg = "\r        res %s/%s"%(ll+1, nres)
@@ -176,24 +211,27 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
                     dt = np.zeros((nrep,))
                     for rr in range(nrep):
                         msgi = msg + "   nt %s/%s    rep %s/%s"%(tt+1,nnt,rr+1,nrep)
-                        print(msg + msgi, end='', flush=True)
+                        print(msg + msgi, end='', file=txtfile, flush=True)
 
                         try:
                             if func is None:
                                 t0 = dtm.datetime.now()
-                                out = cam.calc_signal_from_Plasma2D(plasma, quant=quant,
-                                                                    ref1d=ref1d,
-                                                                    ref2d=ref2d,
-                                                                    res=res[ll],
-                                                                    resMode='abs',
-                                                                    plot=False,
-                                                                    t = lt[tt],
-                                                                    **dalgo[lalgo[ii]])
+                                _ = cam.calc_signal_from_Plasma2D(plasma,
+                                                                  quant=quant,
+                                                                  ref1d=ref1d,
+                                                                  ref2d=ref2d,
+                                                                  res=res[ll],
+                                                                  resMode='abs',
+                                                                  plot=False,
+                                                                  t = lt[tt],
+                                                                  **dalgo[lalgo[ii]])
                                 dt[rr] = (dtm.datetime.now()-t0).total_seconds()
                             else:
                                 t0 = dtm.datetime.now()
-                                out = cam.calc_signal(func, res=res[ll], resMode='abs',
-                                                      plot=False, t = lt[tt], **dalgo[lalgo[ii]])
+                                _ = cam.calc_signal(func, res=res[ll],
+                                                    resMode='abs', plot=False,
+                                                    t = lt[tt],
+                                                    **dalgo[lalgo[ii]])
                                 dt[rr] = (dtm.datetime.now()-t0).total_seconds()
                         except MemoryError as err:
                             dt[rr] = -1
@@ -206,7 +244,13 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
                     t_std[ii,jj,ll,tt] = np.std(dt)
 
                 msgi = ': %s\n'%str(t_av[ii,jj,ll,:])
-                print(msg + msgi, end='', flush=True)
+                print(msg + msgi, end='', file=txtfile, flush=True)
+            if save:
+                out = {kk:vv for kk,vv in locals().items() if kk in lk}
+                np.savez(pfe, **out)
+                print("        (saved)", file=txtfile)
+
+
 
     t_av[memerr] = np.nan
     win = np.nanargmin(t_av, axis=0)
@@ -233,7 +277,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     msg += "\n    ".join(["%s : %s"%(lalgo[ii].ljust(ln),
                                      100.*np.sum(t_av[ii,...]>=0)/ncase) + ' %'
                           for ii in range(nalgo)])
-    print(msg)
+    print(msg, file=txtfile)
 
 
     if err0 is not None:
@@ -242,21 +286,19 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     #-------------
     # Plot / save
 
-    lk = ['t_std', 'nnt', 'lt', 'nalgo',
-          'nres', 'name', 'path', 'save', 'plot', 'nrep', 'dalgo', 't', 'nt',
-          'res', 'ref2d', 'ref1d', 'quant', 'ids', 'shot',
-          'win', 't_av', 'nnlos', 'nlos', 'ncase', 'lalgo']
-    out = {kk:vv for kk,vv in locals().items() if kk in lk}
+
+    if save:
+        out = {kk:vv for kk,vv in locals().items() if kk in lk}
+        np.savez(pfe, **out)
+        print('Saved in:\n    %s'%pfe, file=txtfile)
 
     if plot:
         try:
             plot_benchmark(**out)
         except Exception:
             pass
-
-    if save:
-        np.savez(pfe, **out)
-        print('Saved in:\n    %s'%pfe)
+    if txtfile != sys.stdout:
+        txtfile.close()
     return out
 
 
