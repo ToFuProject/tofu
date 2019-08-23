@@ -161,8 +161,10 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
         name += '_'+nameappend
 
     # printing file
+    stdout = False
     if txtfile is None:
         txtfile = sys.stdout
+        stdout = True
     elif type(txtfile) is str:
         txtfile = open(os.path.join(path,txtfile), 'w')
     elif txtfile is True:
@@ -233,7 +235,7 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
 
     err0 = None
     for ii in range(nalgo):
-        print('', file=txtfile)
+        print('', file=txtfile, flush=True)
         for jj in range(nnlos):
             cam = tf.geom.utils.create_CamLOS1D(N12=nlos[jj],
                                                 config=config,
@@ -241,15 +243,16 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                                                 Diag='Dummy',
                                                 **_DCAM)
             msg = "    %s"%(names[ii,jj].ljust(lennames))
-            print(msg, file=txtfile)
+            print(msg, file=txtfile, flush=True)
 
             for ll in range(nres):
-                msg = "\r        res %s/%s"%(ll+1, nres)
+                msg = "        res %s/%s"%(ll+1, nres)
                 for tt in range(nnt):
                     dt = np.zeros((nrep,))
                     for rr in range(nrep):
-                        msgi = msg + "   nt %s/%s    rep %s/%s"%(tt+1,nnt,rr+1,nrep)
-                        print(msg + msgi, end='', file=txtfile, flush=True)
+                        if stdout:
+                            msgi = "\r" + msg + "   nt %s/%s    rep %s/%s"%(tt+1,nnt,rr+1,nrep)
+                            print(msg + msgi, end='', file=txtfile, flush=True)
 
                         try:
                             if func is None:
@@ -281,8 +284,8 @@ def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
                     t_av[ii,jj,ll,tt] = np.mean(dt)
                     t_std[ii,jj,ll,tt] = np.std(dt)
 
-                msgi = ': %s\n'%str(t_av[ii,jj,ll,:])
-                print(msg + msgi, end='', file=txtfile, flush=True)
+                msgi = ': %s'%str(t_av[ii,jj,ll,:])
+                print(msg + msgi, file=txtfile, flush=True)
             if save:
                 out = {kk:vv for kk,vv in locals().items() if kk in lk}
                 np.savez(pfe, **out)
