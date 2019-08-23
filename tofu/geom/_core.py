@@ -21,15 +21,6 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import datetime as dtm
-try:
-    import pandas as pd
-except Exception:
-    lm = ['tf.geom.Config.get_description()']
-    msg = "Could not import pandas, "
-    msg += "the following may not work :"
-    msg += "\n    - ".join(lm)
-    warnings.warn(msg)
-
 
 # ToFu-specific
 from tofu import __version__ as __version__
