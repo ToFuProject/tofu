@@ -469,15 +469,16 @@ cdef inline void middle_rule_abs_2(int num_los,
                              &los_coeffs[first_index],
                              num_threads)
     # filling tab......
-    for ii in range(1, num_los):
-        num_raf = ind_cum[ii]
-        first_index = ind_cum[ii-1]
-        ind_cum[ii] = first_index + ind_cum[ii]
-        loc_resol = los_resolution[ii]
-        loc_x = los_kmin[ii]
-        middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
-                                 &los_coeffs[first_index],
-                                 num_threads)
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(1, num_los):
+            num_raf = ind_cum[ii]
+            first_index = ind_cum[ii-1]
+            ind_cum[ii] = first_index + ind_cum[ii]
+            loc_resol = los_resolution[ii]
+            loc_x = los_kmin[ii]
+            middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
+                                     &los_coeffs[first_index],
+                                     num_threads)
     return
 
 
@@ -911,7 +912,7 @@ cdef inline void romb_left_rule_abs_s2(int num_los, double resol,
                               &los_coeffs[0][first_index])
     # ... Treating the rest of the los ..........................
     with nogil, parallel(num_threads=num_threads):
-        for ii in range(1,num_los):
+        for ii in prange(1,num_los):
             num_raf = los_nraf[ii]
             loc_resol = los_resolution[ii]
             first_index = los_ind[ii-1]
@@ -1332,7 +1333,7 @@ cdef inline void romb_left_rule_abs_var_s2(int num_los, double* resolutions,
                                   &los_coeffs[0][first_index])
     # ...
     with nogil, parallel(num_threads=num_threads):
-        for ii in range(1,num_los):
+        for ii in prange(1,num_los):
             loc_resol = los_resolution[ii]
             num_raf = los_nraf[ii]
             first_index = los_ind[ii-1]
