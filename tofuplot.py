@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # Built-in
+import sys
 import argparse
 
 # Generic
@@ -8,13 +9,30 @@ import matplotlib.pyplot as plt
 plt.switch_backend('Qt5Agg')
 plt.ioff()
 
-# tofu-specific
-import tofu as tf
-from tofu.imas2tofu import MultiIDSLoader
+# tofu
+# test if in a tofu git repo
+_HERE = os.path.abspath(os.path.dirname(__file__))
+istofugit = False
+heresplit = _HERE.split(os.path.sep)
+if 'tofu' in heresplit:
+    ind = heresplit[::-1].index('benchmarks')
+    pp = os.path.sep + os.path.join(*heresplit[:-ind-1])
+    lf = os.listdir(pp)
+    if '.git' in lf and 'tofu' in lf:
+        istofugit = True
 
-# if tf.__version__ < '1.4.1':
-    # msg = "tofuplot only works with tofu >= 1.4.1"
-    # raise Exception(msg)
+if istofugit:
+    # Make sure we load the corresponding tofu
+    sys.path.insert(1,pp)
+    import tofu as tf
+    from tofu.imas2tofu import MultiIDSLoader
+    _ = sys.path.pop(1)
+else:
+    import tofu as tf
+    from tofu.imas2tofu import MultiIDSLoader
+tforigin = tf.__file__
+tfversion = tf.__version__
+
 
 if 'imas2tofu' not in dir(tf):
     msg = "imas does not seem to be available\n"
