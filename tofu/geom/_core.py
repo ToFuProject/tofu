@@ -21,15 +21,6 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import datetime as dtm
-try:
-    import pandas as pd
-except Exception:
-    lm = ['tf.geom.Config.get_description()']
-    msg = "Could not import pandas, "
-    msg += "the following may not work :"
-    msg += "\n    - ".join(lm)
-    warnings.warn(msg)
-
 
 # ToFu-specific
 from tofu import __version__ as __version__
@@ -2362,15 +2353,23 @@ class Config(utils.ToFuObject):
                 ii += 1
             self._dStruct['dObj'][k0][k1].set_color(col)
 
-    def get_summary(self, verb=False, max_columns=100, width=1000):
-        """ Summary description of the object content as a pandas DataFrame """
-        # Make sure the data is accessible
-        msg = "The data is not accessible because self.strip(2) was used !"
-        assert self._dstrip['strip']<2, msg
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
+        """ Summary description of the object content """
 
-        # Build the list
+        # -----------------------
+        # Build overview
+        col0 = ['tot. Struct', 'tot. occur', 'tot. points']
+        noccur = np.sum([max(1,ss._dgeom['noccur']) for ss in self.lStruct])
+        npts = np.sum([ss._dgeom['nP'] for ss in self.lStruct])
+        ar0 = [(self.nStruct, noccur, npts)]
+
+        # -----------------------
+        # Build detailed view
+        col1 = ['class', 'Name', 'SaveName', 'nP', 'noccur',
+                'mobile', 'color'] + self._dextraprop['lprop']
         d = self._dStruct['dObj']
-        data = []
+        ar1 = []
         for k in self._ddef['dStruct']['order']:
             if k not in d.keys():
                 continue
@@ -2378,24 +2377,17 @@ class Config(utils.ToFuObject):
                 lu = [k,
                       self._dStruct['dObj'][k][kk]._Id._dall['Name'],
                       self._dStruct['dObj'][k][kk]._Id._dall['SaveName'],
-                      self._dStruct['dObj'][k][kk]._dgeom['nP'],
-                      self._dStruct['dObj'][k][kk]._dgeom['noccur'],
-                      self._dStruct['dObj'][k][kk]._dgeom['mobile'],
-                      self._dStruct['dObj'][k][kk]._dmisc['color']]
+                      str(self._dStruct['dObj'][k][kk]._dgeom['nP']),
+                      str(self._dStruct['dObj'][k][kk]._dgeom['noccur']),
+                      str(self._dStruct['dObj'][k][kk]._dgeom['mobile']),
+                      str(self._dStruct['dObj'][k][kk]._dmisc['color'])]
                 for pp in self._dextraprop['lprop']:
                     lu.append(self._dextraprop['d'+pp][k][kk])
-                data.append(lu)
+                ar1.append(lu)
 
-        # Build the pandas DataFrame
-        col = ['class', 'Name', 'SaveName', 'nP', 'noccur',
-               'mobile', 'color'] + self._dextraprop['lprop']
-        df = pd.DataFrame(data, columns=col)
-        pd.set_option('display.max_columns',max_columns)
-        pd.set_option('display.width',width)
-
-        if verb:
-            print(df)
-        return df
+        return self._get_summary([ar0, ar1], [col0, col1],
+                                  sep=sep, line=line, table_sep=table_sep,
+                                  verb=verb, return_=return_)
 
     def _get_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
                                theta=None, phi=None):
