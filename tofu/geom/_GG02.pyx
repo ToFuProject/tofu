@@ -3122,6 +3122,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         # loop over LOS
         if ani:
             if n_imode == 0:
+                print("about to use new method")
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
                                                                 res_arr[ii],
@@ -3130,13 +3131,13 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    # val_mv = val
-                    # vsum = <double*>malloc(nlos*sizeof(double))
-                    # _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0], val.shape[0], val.shape[1])
-                    # for jj in range(nt):
-                    #     sig[jj, ii] = vsum[jj] * loc_eff_res[0]
-                    # free(vsum)
-                    sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
+                    val_mv = val
+                    vsum = <double*>malloc(nlos*sizeof(double))
+                    _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0], val.shape[0], val.shape[1])
+                    for jj in range(nt):
+                        sig[jj, ii] = vsum[jj] * loc_eff_res[0]
+                    free(vsum)
+                    # sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
@@ -3163,6 +3164,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         else:
             # -- not anisotropic ------------------------------------------------------
             if n_imode == 0:
+                vsum = <double*>malloc(nt*sizeof(double))
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
                                                      res_arr[ii],
@@ -3171,7 +3173,12 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
-                    sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
+                    val_mv = val
+                    _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0], val.shape[0], val.shape[1])
+                    for jj in range(nt):
+                        sig[jj, ii] = vsum[jj] * loc_eff_res[0]
+                    # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
+                free(vsum)
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],

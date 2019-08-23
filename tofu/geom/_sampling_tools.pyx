@@ -1558,3 +1558,5 @@ cdef inline call_get_sample_single(double los_kmin, double los_kmax,
         free(los_coeffs)
     return pts
 
+
+# -- calling sampling and intergrating with sum -----------------------------------
