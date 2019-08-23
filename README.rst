@@ -72,6 +72,15 @@ It is in this geometrical sense that tofu enables a synthetic diagnostic approac
 Installing tofu
 ***************
 
+For Windows
+------------
+
+
+* `Follow this link to know how to configure your Windows to code on ToFu ! <doc/Windows_README.rst>`__
+
+For Ubuntu / Mac
+-----------------
+
 - **Standard mode**::
 
     conda install -c tofuproject tofu 
