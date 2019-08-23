@@ -69,7 +69,7 @@ _IDS = ['core_profiles', 'equilibrium', 'core_sources']
 _QUANT = 'core_profiles.1dne'
 _REF1D = 'core_profiles.1drhotn'
 _REF2D = 'equilibrium.2drhotn'
-_DALGO = {'ref-sum':{'newcalc':False},
+_DALGO = {# 'ref-sum':{'newcalc':False},
           #'calls-sum':    {'newcalc':True,  'minimize':'calls', 'method':'sum'},
           # 'calls-simps':  {'newcalc':True,  'minimize':'calls', 'method':'simps'},
           # 'calls-romb':   {'newcalc':True,  'minimize':'calls', 'method':'romb'},

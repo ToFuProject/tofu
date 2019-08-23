@@ -3132,11 +3132,9 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)
                     val_mv = val
-                    vsum = <double*>malloc(nlos*sizeof(double))
-                    _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0], val.shape[0], val.shape[1])
-                    for jj in range(nt):
-                        sig[jj, ii] = vsum[jj] * loc_eff_res[0]
-                    free(vsum)
+                    _st.integrate_c_sum(val_mv, sig[:,ii], nt,
+                                        val_mv.shape[0], val_mv.shape[1],
+                                        loc_eff_res[0], 48)
                     # sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
@@ -3164,7 +3162,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         else:
             # -- not anisotropic ------------------------------------------------------
             if n_imode == 0:
-                vsum = <double*>malloc(nt*sizeof(double))
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
                                                      res_arr[ii],
@@ -3174,11 +3171,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
                     val_mv = val
-                    _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0], val.shape[0], val.shape[1])
-                    for jj in range(nt):
-                        sig[jj, ii] = vsum[jj] * loc_eff_res[0]
+                    _st.integrate_c_sum(val_mv, sig[:,ii], nt,
+                                        val_mv.shape[0], val_mv.shape[1],
+                                        loc_eff_res[0], 48)
                     # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
-                free(vsum)
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],

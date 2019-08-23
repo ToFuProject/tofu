@@ -9,6 +9,9 @@ void sum_rows_blocks(double *orig, double *out, int n_rows, int n_cols){
        double res[MAX]={0.0};        //initialize to 0.0
        for(j=0;j<n_cols;j++){
            for(i=0;i<MAX;i++){   //calculate sum for MAX-rows simultaniously
+	     // if (b==n_blocks-1) {
+	     // printf("i =%d",(b*MAX+i)*n_cols+j);
+	     // }
               res[i]+=orig[(b*MAX+i)*n_cols+j];
            }
        }

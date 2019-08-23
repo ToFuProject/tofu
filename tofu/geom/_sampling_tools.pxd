@@ -215,3 +215,9 @@ cdef call_get_sample_single(double los_kmin, double los_kmax,
                             double[1] eff_res,
                             double[:,::1] ray_orig,
                             double[:,::1] ray_vdir)
+
+cdef void integrate_c_sum(double[:,::1] val_mv,
+                                 double[:] sig,
+                                 int nt, int nrows, int ncols,
+                                 double loc_eff_res,
+                                 int num_threads) nogil

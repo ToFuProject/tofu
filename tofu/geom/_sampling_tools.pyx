@@ -18,6 +18,8 @@ from _basic_geom_tools cimport _VSMALL
 # for utility functions:
 import numpy as np
 cimport numpy as cnp
+# tofu libs
+cimport _basic_geom_tools as _bgt
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
@@ -1551,7 +1553,9 @@ cdef inline call_get_sample_single(double los_kmin, double los_kmax,
                                      &eff_res[0],
                                      &los_coeffs[0])
     # computing points
-    pts = ray_orig + np.asarray(<double[:sz_coeff]>los_coeffs[0]) * np.repeat(ray_vdir, sz_coeff, axis=1)
+    pts = ray_orig \
+          + np.asarray(<double[:sz_coeff]>los_coeffs[0]) \
+          * np.repeat(ray_vdir, sz_coeff, axis=1)
     if los_coeffs != NULL:
         if los_coeffs[0] != NULL:
             free(los_coeffs[0])
@@ -1559,4 +1563,20 @@ cdef inline call_get_sample_single(double los_kmin, double los_kmax,
     return pts
 
 
-# -- calling sampling and intergrating with sum -----------------------------------
+# -- calling sampling and intergrating with sum --------------------------------
+cdef inline void integrate_c_sum(double[:,::1] val_mv,
+                                 double[:] sig,
+                                 int nt, int nrows, int ncols,
+                                 double loc_eff_res,
+                                 int num_threads) nogil:
+    cdef double* vsum
+    cdef int jj
+    # ...
+    with nogil, parallel(num_threads=num_threads):
+        vsum = <double*>malloc(nrows*sizeof(double))
+        _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0],
+                             nrows, ncols)
+        for jj in prange(nt):
+            sig[jj] = vsum[jj] * loc_eff_res
+        free(vsum)
+    return

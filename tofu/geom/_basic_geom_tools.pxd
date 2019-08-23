@@ -19,7 +19,7 @@ cdef double _VSMALL
 cdef double _SMALL
 
 cdef extern from "_fast_sum.c":
-    void sum_rows_blocks(double *orig, double *out, int n_rows, int n_cols)
+    void sum_rows_blocks(double *orig, double *out, int n_rows, int n_cols) nogil
 
 # ==============================================================================
 # == Redifinition of functions
