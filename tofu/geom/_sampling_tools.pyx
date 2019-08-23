@@ -440,9 +440,8 @@ cdef inline void middle_rule_abs_2_single(long num_raf,
     # First step of the function, this function should be called
     # before middle_rule_abs_2, this function computes the coeffs
     cdef Py_ssize_t jj
-    with nogil, parallel(num_threads=num_threads):
-        for jj in prange(num_raf):
-            los_coeffs[jj] = loc_x + (0.5 + jj) * loc_resol
+    for jj in range(num_raf):
+        los_coeffs[jj] = loc_x + (0.5 + jj) * loc_resol
     return
 
 cdef inline void middle_rule_abs_2(int num_los,
@@ -468,17 +467,16 @@ cdef inline void middle_rule_abs_2(int num_los,
     middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
                              &los_coeffs[first_index],
                              num_threads)
-    # filling tab......
-    with nogil, parallel(num_threads=num_threads):
-        for ii in prange(1, num_los):
-            num_raf = ind_cum[ii]
-            first_index = ind_cum[ii-1]
-            ind_cum[ii] = first_index + ind_cum[ii]
-            loc_resol = los_resolution[ii]
-            loc_x = los_kmin[ii]
-            middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
-                                     &los_coeffs[first_index],
-                                     num_threads)
+    # filling tab...... CANNOT BE PARALLEL !!
+    for ii in range(1, num_los):
+        num_raf = ind_cum[ii]
+        first_index = ind_cum[ii-1]
+        ind_cum[ii] = first_index + ind_cum[ii]
+        loc_resol = los_resolution[ii]
+        loc_x = los_kmin[ii]
+        middle_rule_abs_2_single(num_raf, loc_x, loc_resol,
+                                 &los_coeffs[first_index],
+                                 num_threads)
     return
 
 
@@ -600,7 +598,7 @@ cdef inline void middle_rule_rel_var_single(int num_raf,
     # for one LOS
     cdef Py_ssize_t jj
     # ...
-    for jj in prange(num_raf):
+    for jj in range(num_raf):
         los_coeffs[jj] = los_kmin + (0.5 + jj) * loc_resol
     return
 
@@ -741,7 +739,7 @@ cdef inline void simps_left_rule_abs_single(int num_raf,
     # for one LOS
     cdef Py_ssize_t jj
     # ...
-    for jj in prange(num_raf + 1):
+    for jj in range(num_raf + 1):
         los_coeffs[jj] = los_kmin + jj * loc_resol
     return
 
@@ -851,7 +849,7 @@ cdef inline void romb_left_rule_abs_single(int num_raf,
     # for one LOS
     cdef Py_ssize_t jj
     # ...
-    for jj in prange(num_raf + 1):
+    for jj in range(num_raf + 1):
         los_coeffs[jj] = los_kmin + jj * loc_resol
     return
 
@@ -958,7 +956,7 @@ cdef inline void simps_left_rule_rel_var_single(int num_raf,
     # for one LOS
     cdef Py_ssize_t jj
     # ...
-    for jj in prange(num_raf + 1):
+    for jj in range(num_raf + 1):
         los_coeffs[jj] = los_kmin + jj * loc_resol
     return
 
@@ -1063,7 +1061,7 @@ cdef inline void simps_left_rule_abs_var_single(int num_raf,
     # for one LOS
     cdef Py_ssize_t jj
     # ...
-    for jj in prange(num_raf + 1):
+    for jj in range(num_raf + 1):
         los_coeffs[jj] = los_kmin + jj * loc_resol
     return
 
@@ -1172,7 +1170,7 @@ cdef inline void romb_left_rule_rel_var_single(int num_raf,
     # for ONE LOS
     cdef Py_ssize_t jj
     # ...
-    for jj in prange(num_raf + 1):
+    for jj in range(num_raf + 1):
         los_coeffs[jj] = los_kmin + jj * loc_resol
     return
 
@@ -1275,7 +1273,7 @@ cdef inline void romb_left_rule_abs_var_single(int num_raf,
     # for ONE LOS
     cdef Py_ssize_t jj
     # ...
-    for jj in prange(num_raf + 1):
+    for jj in range(num_raf + 1):
         los_coeffs[jj] = los_kmin + jj * loc_resol
     return
 
