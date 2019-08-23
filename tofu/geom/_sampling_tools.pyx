@@ -1327,7 +1327,7 @@ cdef inline void romb_left_rule_abs_var_s2(int num_los, double* resolutions,
     cdef double loc_resol
     loc_resol = los_resolution[0]
     num_raf = los_nraf[0]
-    first_index = los_ind[0-1]
+    first_index = 0
     romb_left_rule_abs_var_single(num_raf, loc_resol, los_kmin[0],
                                   &los_coeffs[0][first_index])
     # ...
