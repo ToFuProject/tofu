@@ -2968,7 +2968,7 @@ class Plasma2D(utils.ToFuObject):
 
     def get_summary(self, sep='  ', line='-', just='l',
                     table_sep=None, verb=True, return_=False):
-        """ Summary description of the object content as a pandas DataFrame """
+        """ Summary description of the object content """
         # # Make sure the data is accessible
         # msg = "The data is not accessible because self.strip(2) was used !"
         # assert self._dstrip['strip']<2, msg
