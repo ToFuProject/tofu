@@ -16,10 +16,10 @@ import tofu as tf
 # Defining defaults
 ###################
 
-_LRES = [-1,-3,1]
-_LLOS = [1,5,1]
-_LT = [1,4,1]
-_NREP = 5
+_LRES = [-1,-3,0]
+_LLOS = [1,4,0]
+_LT = [1,2,0]
+_NREP = 4
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
 _DT = abs(_LT[1] - _LT[0])
@@ -40,7 +40,7 @@ _DALGO = {'ref-sum':{'newcalc':False},
           'hybrid-sum':   {'newcalc':True,  'minimize':'hybrid', 'method':'sum'},
           # 'hybrid-simps': {'newcalc':True,  'minimize':'hybrid', 'method':'simps'},
           # 'hybrid-romb':  {'newcalc':True,  'minimize':'hybrid', 'method':'romb'},
-          'memory-sum':   {'newcalc':True,  'minimize':'memory', 'method':'sum'},
+          #@LM 'memory-sum':   {'newcalc':True,  'minimize':'memory', 'method':'sum'},
           # 'memory-simps': {'newcalc':True,  'minimize':'memory', 'method':'simps'},
           # 'memory-romb':  {'newcalc':True,  'minimize':'memory', 'method':'romb'},
          }
