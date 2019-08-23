@@ -1,7 +1,9 @@
+#!/usr/bin/env python
 
 # Built-in
 import os
 import sys
+import argparse
 
 # Common
 import datetime as dtm
@@ -14,7 +16,10 @@ import getpass
 
 # tofu
 import tofu as tf
-
+tforigin = tf.__file__
+tfversion = tf.__version__
+msg = "\ntofu %s loaded from:\n    %s\n"%(tfversion,tforigin)
+print(msg)
 
 np.set_printoptions(linewidth=200)
 
@@ -72,7 +77,10 @@ _DCAM = {'P':[3.4,0.,0.], 'F':0.1, 'D12':0.1,
          'angs':[1.05*np.pi, np.pi/4, np.pi/4]}
 
 _PATH = os.path.abspath(os.path.dirname(__file__))
-
+_FUNC = True
+_TXTFILE = None
+_SAVE = True
+_PLOT = False
 
 _FS = (14,10)
 _DMARGIN = {'left':0.05, 'right':0.95,
@@ -86,12 +94,12 @@ _DMARGIN = {'left':0.05, 'right':0.95,
 ###################
 
 
-def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
+def benchmark(config=None, func=_FUNC, plasma=None, shot=None, ids=None,
               quant=None, ref1d=None, ref2d=None,
               res=None, nlos=None, nt=None, t=None,
               dalgo=None, nrep=None, txtfile=None,
               path=None, name=None, nameappend=None,
-              plot=False, save=True):
+              plot=_PLOT, save=_SAVE):
 
     # --------------
     # Prepare inputs
@@ -180,7 +188,7 @@ def benchmark(config=None, func=None, plasma=None, shot=None, ids=None,
     # Prepare saving params
     if save:
         pfe = os.path.join(path,name+'.npz')
-        lk = ['t_std', 'nnt', 'lt', 'nalgo', 'nres',
+        lk = ['tforigin', 'tfversion', 't_std', 'nnt', 'lt', 'nalgo', 'nres',
               'name', 'path', 'save', 'plot', 'nrep', 'dalgo', 't', 'nt',
               'res', 'ref2d', 'ref1d', 'quant', 'ids', 'shot',
               'win', 't_av', 'nnlos', 'nlos', 'ncase', 'lalgo']
@@ -351,3 +359,42 @@ def plot_benchmark(fname=None, fs=None, dmargin=None, **kwdargs):
                 c=out['t_av'][0,...], s=8, marker='o')
 
     return
+
+
+
+###################
+#   Bash interface
+###################
+
+if __name__ == '__main__':
+
+    # Parse input arguments
+    msg = \
+    """ Launch benchmark for _GG.LOS_calc_signal
+
+    This is a bash wrapper around the function benchmark()
+    """
+    parser = argparse.ArgumentParser(description = msg)
+
+    parser.add_argument('-f', '--func', type=bool,
+                        help='emissivity function', required=False, default=_FUNC)
+    parser.add_argument('-tf', '--txtfile', type=bool,
+                        help='write to txt file ?', required=False,
+                        default=_TXTFILE)
+    parser.add_argument('-na', '--nameappend', type=str,
+                        help='str to be appended to the name', required=False,
+                        default=None)
+    parser.add_argument('-s', '--save', type=bool,
+                        help='save results ?', required=False,
+                        default=_SAVE)
+    parser.add_argument('-p', '--plot', type=bool,
+                        help='plot results ?', required=False,
+                        default=_PLOT)
+    parser.add_argument('-pa', '--path', type=str,
+                        help='path where to save results', required=False,
+                        default=_PATH)
+
+    args = parser.parse_args()
+
+    # Call wrapper function
+    benchmark(**dict(args._get_kwargs()))
