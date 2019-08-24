@@ -2,6 +2,7 @@
 
 # Built-in
 import sys
+import os
 import argparse
 
 # Generic
@@ -13,17 +14,12 @@ plt.ioff()
 # test if in a tofu git repo
 _HERE = os.path.abspath(os.path.dirname(__file__))
 istofugit = False
-heresplit = _HERE.split(os.path.sep)
-if 'tofu' in heresplit:
-    ind = heresplit[::-1].index('benchmarks')
-    pp = os.path.sep + os.path.join(*heresplit[:-ind-1])
-    lf = os.listdir(pp)
-    if '.git' in lf and 'tofu' in lf:
-        istofugit = True
+if '.git' in _HERE and 'tofu' in _HERE:
+    istofugit = True
 
 if istofugit:
     # Make sure we load the corresponding tofu
-    sys.path.insert(1,pp)
+    sys.path.insert(1,_HERE)
     import tofu as tf
     from tofu.imas2tofu import MultiIDSLoader
     _ = sys.path.pop(1)
