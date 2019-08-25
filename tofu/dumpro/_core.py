@@ -54,20 +54,20 @@ class Cluster(object):
     child
     Input:
     --------------------------------------------
-    num:          integer
+    num           integer
      cluster number in the current frame
-    frame:        integer
+    frame         integer
      frame in which the cluster is present
-    center:       tuple
+    center        tuple
      position of the cluster in the current frame
-    angle:        float
+    angle         float
      the orientation of the cluster
-    area:         float
+    area          float
      the pixel size of the cluster
-    parent:       tuple
+    parent        tuple
      id number of the parent of the cluster. If value is zero, the this is the
      start of the trajectory.
-    child:        tuple
+    child         tuple
      id number of the child. If value is zeroi then this is the end of the 
      trajectory
     
@@ -156,8 +156,34 @@ class Cluster(object):
     
 class Trajectory(object):
     """A class for all trajectories. This creates a trajectory object that 
-    provides all the available relevant iformation for each trajectory.
-    """
+    provides all the available relevant information for each trajectory.
+    
+    Input:
+    --------------------------------------------
+    traj             list
+     A list of all the cluster objects that make up the trajectory
+     
+    Attributes:
+    --------------------------------------------
+    __np             integer
+     Number of points in the trajectory
+    __trajob         list
+     A list of all the cluster objects that make up the trajectory
+    __points         2D Numpy Array
+     A 2D array with all the points that make up the trajectory
+    __avg_vel        float
+     The average velocity of the trajectory in terms of pixels per frame
+    __areaevo        array
+     An array containing information on the size evolution of the cluster
+     in terms number of pixels.
+    
+    Getters:
+    --------------------------------------------
+    n_points = Returns the number of points in the trajectory
+    points   = Returns all the points in the trajectory
+    avg_vel  = Returns the average velocity of the trajectory
+    areaevo  = Returns the area evolution of the trajectory
+     """
     def __init__(self, traj):
         self.__np = len(traj)
         self.__trajob = traj
@@ -951,6 +977,7 @@ class Vid_img(Video):
     #dumpro
     def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None, 
                blur = True, im_out = None, verb = True):
+        #starting time counter
         start_time = time.perf_counter()
         #performing preprocessing and cluster detection on the video
         infoclus, reshp, im_dir = _i_comp.dumpro_vid.dumpro_vid(self.filename,
@@ -967,16 +994,11 @@ class Vid_img(Video):
         self.set_reshape(reshp)
         #setting image directories dictionary
         self.set_im_dir(im_dir)
-        #getting information from infocluster
-        area = self.infocluster.get('area')
-        t_clus = self.infocluster.get('total')
-        indt = self.infocluster.get('indt')
-        #plotting dust size distribution
-        _plot.area_distrib.get_distrib(area, indt, t_clus, self.w_dir, 
-                                       self.shotname)
-        #plotting framewise dust density
-        _plot.area_distrib.get_frame_distrib(area, indt, self.w_dir, 
-                                             self.shotname)
+        
+        ######################################################################
+        #### Processing information on clusters                           ####
+        ######################################################################
+        
         #converting all clusters to objects
         c_id = _i_comp.get_id.get_id(self.infocluster, Cluster)
         #setting c_id 
@@ -986,17 +1008,39 @@ class Vid_img(Video):
         #using clusters with updated value to set c_id
         self.set_c_id(traj)
         
+        ######################################################################
+        #### Calculating trajectories                                     ####
+        ######################################################################
+        
+        #getting a dictionary of trajectory objects
         traj_obs = _i_comp.trace_traj.trace_traj(traj)
+        #l=getting all the keys as a list
+        listofkeys = list(traj_obs.keys())
         n_traj = len(traj_obs)
+        print(n_traj)
         trajects = {}
         for ii in range(0,n_traj):
-            trajects[ii] = Trajectory(traj_obs.get(ii))
+            trajects[ii] = Trajectory(traj_obs.get(listofkeys[ii]))
         self.set_traj(trajects)
-        
-        _plot.plottraj.plot_traj(self.traj)
 
         end_time = time.perf_counter()
         print('---',end_time - start_time,' seconds')
+        
+        ######################################################################
+        #### Plotting trajctories and distribution                        ####
+        ######################################################################
+        
+        #plotting dust size distribution
+        _plot.area_distrib.get_distrib(self.infocluster, self.w_dir, 
+                                       self.shotname)
+        #plotting framewise dust size distribution
+        _plot.area_distrib.get_frame_distrib(self.infocluster, self.w_dir, 
+                                             self.shotname)
+        #plotting framewise dust distribution
+        _plot.f_density_dist.num_dist(self.infocluster, self.w_dir, self.shotname)
+        #plotting trajectories
+        _plot.plottraj.plot_traj(self.traj, self.w_dir, self.shotname)
+        
         return None
     
     def play_im(self):
