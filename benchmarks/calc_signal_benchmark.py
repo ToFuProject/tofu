@@ -50,7 +50,7 @@ np.set_printoptions(linewidth=200)
 # _NREP = 4
 # @DV
 _LRES = [-1,-3,0]
-_LLOS = [1,5,1]
+_LLOS = [1,4,0]
 _LT = [1,3,0]
 _NREP = 3
 #
