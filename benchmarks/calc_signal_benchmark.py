@@ -50,7 +50,7 @@ np.set_printoptions(linewidth=200)
 # _NREP = 4
 # @DV
 _LRES = [-1,-3,0]
-_LLOS = [1,4,0]
+_LLOS = [1,5,1]
 _LT = [1,3,0]
 _NREP = 3
 #
@@ -69,14 +69,14 @@ _IDS = ['core_profiles', 'equilibrium', 'core_sources']
 _QUANT = 'core_profiles.1dne'
 _REF1D = 'core_profiles.1drhotn'
 _REF2D = 'equilibrium.2drhotn'
-_DALGO = {# 'ref-sum':{'newcalc':False},
+_DALGO = {#'ref-sum':{'newcalc':False},
           #'calls-sum':    {'newcalc':True,  'minimize':'calls', 'method':'sum'},
           # 'calls-simps':  {'newcalc':True,  'minimize':'calls', 'method':'simps'},
           # 'calls-romb':   {'newcalc':True,  'minimize':'calls', 'method':'romb'},
           'hybrid-sum':   {'newcalc':True,  'minimize':'hybrid', 'method':'sum'},
           # 'hybrid-simps': {'newcalc':True,  'minimize':'hybrid', 'method':'simps'},
           # 'hybrid-romb':  {'newcalc':True,  'minimize':'hybrid', 'method':'romb'},
-          #@LM 'memory-sum':   {'newcalc':True,  'minimize':'memory', 'method':'sum'},
+          #'memory-sum':   {'newcalc':True,  'minimize':'memory', 'method':'sum'},
           # 'memory-simps': {'newcalc':True,  'minimize':'memory', 'method':'simps'},
           # 'memory-romb':  {'newcalc':True,  'minimize':'memory', 'method':'romb'},
          }

@@ -91,3 +91,9 @@ cdef void compute_diff_div(const double[:, ::1] vec1,
                            const double* div,
                            const int npts,
                            double[:, ::1] res) nogil
+
+# ==============================================================================
+# == Matrix sum (np.sum)
+# ==============================================================================
+cdef void sum_by_rows(double *orig, double *out,
+                      int n_rows, int n_cols) nogil

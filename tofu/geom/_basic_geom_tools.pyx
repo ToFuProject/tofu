@@ -10,6 +10,7 @@ from libc.math cimport atan2 as Catan2
 from libc.math cimport sqrt as Csqrt
 from libc.math cimport fabs as Cabs
 from libc.math cimport NAN as Cnan
+from libc.stdlib cimport malloc, free
 #
 cdef double _VSMALL = 1.e-9
 cdef double _SMALL = 1.e-6
@@ -311,4 +312,36 @@ cdef inline void compute_diff_div(const double[:, ::1] vec1,
         res[0, ii] = (vec1[0,ii] - vec2[0,ii]) * invd
         res[1, ii] = (vec1[1,ii] - vec2[1,ii]) * invd
         res[2, ii] = (vec1[2,ii] - vec2[2,ii]) * invd
+    return
+
+# ==============================================================================
+# == Matrix sum (np.sum)
+# ==============================================================================
+cdef inline void sum_by_rows(double *orig, double *out,
+                             int n_rows, int n_cols) nogil:
+    cdef int b, i, j
+    cdef int left
+    cdef int max_r = 8
+    cdef int n_blocks = n_rows/max_r
+    cdef double* res
+    # .. initialization
+    res = <double*>malloc(max_r*sizeof(double))
+    for b in range(n_blocks):
+        for i in range(max_r):
+            res[i] = 0
+        for j in range(n_cols):
+            for i in range(max_r): #calculate sum for max_r-rows simultaniously
+                res[i]+=orig[(b*max_r+i)*n_cols+j]
+        for i in range(max_r):
+            out[b*max_r+i]=res[i]
+    # left_overs:
+    left = n_rows - n_blocks*max_r;
+    for i in range(max_r):
+        res[i] = 0
+    for j in range(n_cols):
+        for i in range(left): #calculate sum for left rows simultaniously
+            res[i]+=orig[(n_blocks*max_r)*n_cols+j]
+    for i in range(left):
+        out[n_blocks*max_r+i]=res[i]
+    free(res)
     return
