@@ -3804,12 +3804,23 @@ class Rays(utils.ToFuObject):
     ###########
 
     def get_reflections_as_cam(self, Type=None, Name=None):
+        """ Return a camera made of reflected LOS
+
+        Reflected LOS can be of 3 types:
+            - 'speculiar':  standard mirror-like reflection
+            - 'diffusive':  random reflection
+            - 'ccube':      corner-cube reflection (ray goes back its way)
+
+        As opposed to self.add_reflections(), the reflected rays are
+        return as an independent camera (CamLOS1D)
+
+        """
         Ds = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
         us, Types = self.config._reflect_geom(self.u, self._dgeom['vperp'],
                                               Type=Type)
-        clas = Rays if self.__class__.__name__ == Rays else CamLOS1D
         if Name is None:
             Name = self.Id.Name + '_Reflect%s'%str(Type)
+        clas = Rays if self.__class__.__name__ == Rays else CamLOS1D
         return clas(dgeom=(Ds,us), config=self.config,
                     Exp=self.Id.Exp, Diag=self.Id.Diag,
                     Name=Name, shot=self.Id.shot)
@@ -3819,9 +3830,12 @@ class Rays(utils.ToFuObject):
         """ Add relfected LOS to the camera
 
         Reflected LOS can be of 3 types:
-            - 'speculiar'
-            - 'diffusive'
-            - 'corer cube'
+            - 'speculiar':  standard mirror-like reflection
+            - 'diffusive':  random reflection
+            - 'ccube':      corner-cube reflection (ray goes back its way)
+
+        As opposed to self.get_reflections_as_cam(), the reflected rays are
+        stored in the camera object
 
         """
 
@@ -3838,26 +3852,29 @@ class Rays(utils.ToFuObject):
             assert np.all(coefs >= 0.) and np.all(coefs <= 1.)
 
         # Get info from config
-        Types = []
-        # Ds =
-        # us =
-        # indouts =
-        # kouts =
-        # vperp =
-        # coefs =
+        nRays = self.Rays
+        Types = np.full((nb,nRays), 0, dtype=int)
+        us = np.full((nb,3,nRays), np.nan, dtype=float)
+        kouts = np.full((nb,nRays), np.nan, dtype=float)
+        indouts = np.full((nb,3,nRays), 0, dtype=int)
+        vperp = np.full((nb,3,nRays), np.nan, dtype=float)
 
-        Ds[0,:,:] = self.D + self._dgeom['kOut'][None,:] * self.u
-        us[0,:,:] = self.config._reflect_geom(Ds[ii-1,:,:])
-        # kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
-        coefs[ii,:] = self.config._get_reflections_coefs()
+        # Prepare inputs
+        largs, dkwd = self._prepare_inputs_kInOut()
+
+        Ds[0,:,:] = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
+        us[0,:,:], Types[0,:] = self.config._reflect_geom(self.u,
+                                                          self._dgeom['vperp'],
+                                                          Type=Type)
+        outi = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[1:]
+        kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = outi
 
         for ii in range(1,nb):
-            Ds[ii,:,:], us[ii,:,:] = self.config._reflect_geom(Ds[ii-1,:,:])
-            # kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
-            coefs[ii,:] = self.config._reflect_coefs(coefs=coefs,
-                                                     indout=indouts[ii,:,:])
+            Ds = self.config._reflect_geom(Ds[ii-1,:,:])
+            kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
 
-        self._dgeom['dreflect'] = None
+        self._dgeom['dreflect'] = {'nb':nb, 'Type':Type, 'Types':Types,
+                                   'us':us, 'kouts':kouts, 'indouts':indouts}
 
 
 
