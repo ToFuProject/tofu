@@ -3190,7 +3190,7 @@ class Rays(utils.ToFuObject):
         lk = ['D','u','pinhole', 'nRays',
               'kIn', 'kOut', 'PkIn', 'PkOut', 'vperp', 'indout',
               'kRMin', 'PRMin', 'RMin', 'isImage',
-              'Etendues', 'Surfaces', 'dX12']
+              'Etendues', 'Surfaces', 'dX12', 'dreflect']
         return lk
 
     @staticmethod
@@ -3463,26 +3463,35 @@ class Rays(utils.ToFuObject):
 
 
 
-    def _prepare_inputs_kInOut(self):
-        if self._method=='ref':
-            # Prepare input
+    def _prepare_inputs_kInOut(self, D=None, u=None):
+
+        # Prepare input
+        if D is None:
             D = np.ascontiguousarray(self.D)
+        else:
+            D = np.ascontiguousarray(D)
+        if u is None:
             u = np.ascontiguousarray(self.u)
+        else:
+            u = np.ascontiguousarray(u)
+        assert D.shape == u.shape
 
-            # Get reference
-            lS = self.lStruct_computeInOut
+        # Get reference
+        lS = self.lStruct_computeInOut
 
-            lSIn = [ss for ss in lS if ss._InOut=='in']
-            if len(lSIn)==0:
-                msg = "self.config must have at least a StructIn subclass !"
-                assert len(lSIn)>0, msg
-            elif len(lSIn)>1:
-                S = lSIn[np.argmin([ss.dgeom['Surf'] for ss in lSIn])]
-            else:
-                S = lSIn[0]
+        lSIn = [ss for ss in lS if ss._InOut=='in']
+        if len(lSIn)==0:
+            msg = "self.config must have at least a StructIn subclass !"
+            assert len(lSIn) > 0, msg
+        iref = np.argmin([ss.dgeom['Surf'] for ss in lSIn])
+        S = lSIn[iref]
 
-            VPoly = S.Poly_closed
-            VVIn =  S.dgeom['VIn']
+        VPoly = S.Poly_closed
+        VVIn = S.dgeom['VIn']
+        largs = [D, u, VPoly, VVIn]
+
+        if self._method=='ref':
+
             Lim = S.Lim
             nLim = S.noccur
             VType = self.config.Id.Type
@@ -3494,7 +3503,6 @@ class Rays(utils.ToFuObject):
                 lSVIn.append(ss.dgeom['VIn'])
                 lSLim.append(ss.Lim)
                 lSnLim.append(ss.noccur)
-            largs = [D, u, VPoly, VVIn]
             dkwd = dict(Lim=Lim, nLim=nLim,
                         LSPoly=lSPoly, LSLim=lSLim,
                         lSnLim=lSnLim, LSVIn=lSVIn, VType=VType,
@@ -3502,23 +3510,7 @@ class Rays(utils.ToFuObject):
                         EpsA=1.e-9, EpsB=1.e-9, EpsPlane=1.e-9, Test=True)
 
         elif self._method=='optimized':
-            # Prepare input
-            D = np.ascontiguousarray(self.D)
-            u = np.ascontiguousarray(self.u)
-            # Get reference
-            lS = self.lStruct_computeInOut
 
-            lSIn = [ss for ss in lS if ss._InOut=='in']
-            if len(lSIn)==0:
-                msg = "self.config must have at least a StructIn subclass !"
-                assert len(lSIn)>0, msg
-            elif len(lSIn)>1:
-                S = lSIn[np.argmin([ss.dgeom['Surf'] for ss in lSIn])]
-            else:
-                S = lSIn[0]
-
-            VPoly = S.Poly_closed
-            VVIn =  S.dgeom['VIn']
             if np.size(np.shape(S.Lim)) > 1 :
                 Lim = np.asarray([S.Lim[0][0], S.Lim[0][1]])
             else:
@@ -3560,7 +3552,6 @@ class Rays(utils.ToFuObject):
             lSVInx = np.asarray(lSVInx)
             lSVIny = np.asarray(lSVIny)
 
-            largs = [D, u, VPoly, VVIn]
             dkwd = dict(ves_lims=Lim,
                         nstruct_tot=num_tot_structs,
                         nstruct_lim=num_lim_structs,
@@ -3574,12 +3565,6 @@ class Rays(utils.ToFuObject):
                         ves_type=VType,
                         rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
                         eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
-
-        else:
-            # --------------------------------
-            # Here I can prepare the inputs as requested by your routine
-            pass
-            # --------------------------------
 
         return largs, dkwd
 
@@ -3803,7 +3788,7 @@ class Rays(utils.ToFuObject):
     # Reflections
     ###########
 
-    def get_reflections_as_cam(self, Type=None, Name=None):
+    def get_reflections_as_cam(self, Type=None, Name=None, nb=None):
         """ Return a camera made of reflected LOS
 
         Reflected LOS can be of 3 types:
@@ -3815,15 +3800,45 @@ class Rays(utils.ToFuObject):
         return as an independent camera (CamLOS1D)
 
         """
+        # Check inputs
+        if nb is None:
+            nb = 1
+        nb = int(nb)
+        assert nb > 0
         Ds = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
         us, Types = self.config._reflect_geom(self.u, self._dgeom['vperp'],
                                               Type=Type)
         if Name is None:
             Name = self.Id.Name + '_Reflect%s'%str(Type)
         clas = Rays if self.__class__.__name__ == Rays else CamLOS1D
-        return clas(dgeom=(Ds,us), config=self.config,
+
+        # Run first iteration
+        Types = np.full((nb,self.nRays), 0, dtype=int)
+        Ds = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
+        us, Types[0,:] = self.config._reflect_geom(self.u,
+                                                   self._dgeom['vperp'],
+                                                   Type=Type)
+        lcam = [clas(dgeom=(Ds,us), config=self.config,
                     Exp=self.Id.Exp, Diag=self.Id.Diag,
-                    Name=Name, shot=self.Id.shot)
+                    Name=Name, shot=self.Id.shot)]
+        if nb == 1:
+            return lcam[0], Types[0,:]
+
+        largs, dkwd = self._prepare_inputs_kInOut(D=Ds, u=us)
+        kouts, vperps, indouts = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[1:]
+
+        # Run other iterations
+        for ii in range(1,nb):
+            Ds = Ds + (kouts[None,:]-1.e-12) * us
+            us, Types[ii,:] = self.config._reflect_geom(us, vperps,
+                                                        Type=Type)
+            kouts, vperps, indouts = _GG.LOS_Calc_PInOut_VesStruct(Ds, us,
+                                                                   *largs[2:],
+                                                                   **dkwd)[1:]
+            lcam.append(clas(dgeom=(Ds,us), config=self.config,
+                             Exp=self.Id.Exp, Diag=self.Id.Diag,
+                             Name=Name, shot=self.Id.shot))
+        return lcam, Types
 
 
     def add_reflections(self, Type=None, nb=None, coefs=None):
@@ -3851,27 +3866,32 @@ class Rays(utils.ToFuObject):
             assert coefs.shape == (self.nRays,)
             assert np.all(coefs >= 0.) and np.all(coefs <= 1.)
 
-        # Get info from config
-        nRays = self.Rays
+        # Prepare output
+        nRays = self.nRays
         Types = np.full((nb,nRays), 0, dtype=int)
         us = np.full((nb,3,nRays), np.nan, dtype=float)
         kouts = np.full((nb,nRays), np.nan, dtype=float)
         indouts = np.full((nb,3,nRays), 0, dtype=int)
-        vperp = np.full((nb,3,nRays), np.nan, dtype=float)
+        vperps = np.full((nb,3,nRays), np.nan, dtype=float)
 
-        # Prepare inputs
-        largs, dkwd = self._prepare_inputs_kInOut()
-
-        Ds[0,:,:] = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
+        # Run first iteration
+        Ds = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
         us[0,:,:], Types[0,:] = self.config._reflect_geom(self.u,
                                                           self._dgeom['vperp'],
                                                           Type=Type)
+        largs, dkwd = self._prepare_inputs_kInOut(D=Ds, u=us[0,:,:])
         outi = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[1:]
-        kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = outi
+        kouts[0,:], vperps[0,:,:], indouts[0,:,:] = outi
 
+        # Run other iterations
         for ii in range(1,nb):
-            Ds = self.config._reflect_geom(Ds[ii-1,:,:])
-            kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
+            Ds = Ds + (kouts[ii-1:ii,:]-1.e-12) * us[ii-1,:,:]
+            us[ii,:,:], Types[ii,:] = self.config._reflect_geom(us[ii-1,:,:],
+                                                                vperps[ii-1,:,:],
+                                                                Type=Type)
+            outi = _GG.LOS_Calc_PInOut_VesStruct(Ds, us[ii,:,:],
+                                                 *largs[2:], **dkwd)[1:]
+            kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = outi
 
         self._dgeom['dreflect'] = {'nb':nb, 'Type':Type, 'Types':Types,
                                    'us':us, 'kouts':kouts, 'indouts':indouts}
