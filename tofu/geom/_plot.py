@@ -1264,7 +1264,7 @@ def Rays_plot_touch(cam, key=None, ind=None, quant='lengths', cdef=_cdef,
 
     assert type(quant) in [str,np.ndarray]
     if type(quant) is str:
-        lok = ['lengths','indices','Etendues','Surfaces']
+        lok = ['lengths', 'indices', 'angles', 'Etendues', 'Surfaces']
         if not quant in lok:
             msg = "Valid flags for kwarg quant are:\n"
             msg += "    [" + ", ".join(lok) + "]\n"
@@ -1426,6 +1426,10 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
         elif quant == 'indices':
             Dlab = r'index' + r' ($a.u.$)'
             data = np.arange(0,cam.nRays)
+        elif quant == 'angles':
+            Dlab = r'angle of incidence (rad.)'
+            data = np.arccos(-np.sum(cam.u*cam.dgeom['vperp'], axis=0))
+            assert np.all(data >= 0.) and np.all(data <= np.pi/2.)
         else:
             data = getattr(cam, quant)
             Dlab = quant
