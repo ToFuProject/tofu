@@ -3803,6 +3803,18 @@ class Rays(utils.ToFuObject):
     # Reflections
     ###########
 
+    def get_reflections_as_cam(self, Type=None, Name=None):
+        Ds = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
+        us, Types = self.config._reflect_geom(self.u, self._dgeom['vperp'],
+                                              Type=Type)
+        clas = Rays if self.__class__.__name__ == Rays else CamLOS1D
+        if Name is None:
+            Name = self.Id.Name + '_Reflect%s'%str(Type)
+        return clas(dgeom=(Ds,us), config=self.config,
+                    Exp=self.Id.Exp, Diag=self.Id.Diag,
+                    Name=Name, shot=self.Id.shot)
+
+
     def add_reflections(self, Type=None, nb=None, coefs=None):
         """ Add relfected LOS to the camera
 
