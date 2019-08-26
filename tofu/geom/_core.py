@@ -3389,8 +3389,8 @@ class Rays(utils.ToFuObject):
                 if dgeom['dX12'] is None:
                     dgeom['dX12'] = {}
                 dgeom['dX12'].update({'e1':e1, 'x1':x1, 'n1':x1.size})
-            else:
 
+            elif self._is2D():
                 ind = np.nanargmax(vect2)
                 v1 = van[:,ind]
                 nn = np.cross(v0,v1)
@@ -3401,6 +3401,7 @@ class Rays(utils.ToFuObject):
                     # check nIn orientation
                     sca = np.sum(self.u*nn[:,np.newaxis],axis=0)
                     lc = [np.all(sca>=0.), np.all(sca<=0.)]
+
                     assert any(lc)
                     nIn = nn if lc[0] else -nn
                     e1 = v0
