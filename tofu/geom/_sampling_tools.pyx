@@ -1529,10 +1529,11 @@ cdef inline call_get_sample_single_ani(double los_kmin, double los_kmax,
     return pts, usbis
 
 # -- not anisotropic ------------------------------------------------------
-cdef inline call_get_sample_single(double los_kmin, double los_kmax,
+cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double los_kmin, double los_kmax,
                                    double resol,
                                    int n_dmode, int n_imode,
                                    double[1] eff_res,
+                                   long[1] nb_rows,
                                    double[:,::1] ray_orig,
                                    double[:,::1] ray_vdir):
     # This function doesn't compute anything new.
@@ -1540,9 +1541,10 @@ cdef inline call_get_sample_single(double los_kmin, double los_kmax,
     # It samples a LOS and recreates the points on that LOS
     # plus this is for the anisotropic version so it also compute usbis
     cdef int sz_coeff
+    cdef int ii, jj
     cdef double** los_coeffs = NULL
     cdef cnp.ndarray[double,ndim=2,mode='c'] pts
-
+    cdef double[:,::1] pts_mv
     # Initialization utility array
     los_coeffs = <double**>malloc(sizeof(double*))
     los_coeffs[0] = NULL
@@ -1552,10 +1554,16 @@ cdef inline call_get_sample_single(double los_kmin, double los_kmax,
                                      n_dmode, n_imode,
                                      &eff_res[0],
                                      &los_coeffs[0])
+    nb_rows[0] = sz_coeff
     # computing points
-    pts = ray_orig \
-          + np.asarray(<double[:sz_coeff]>los_coeffs[0]) \
-          * np.repeat(ray_vdir, sz_coeff, axis=1)
+    # pts = ray_orig \
+    #       + np.asarray(<double[:sz_coeff]>los_coeffs[0]) \
+    #       * np.repeat(ray_vdir, sz_coeff, axis=1)
+    pts = np.empty((3,sz_coeff))
+    pts_mv = pts
+    for ii in range(3):
+        for jj in range(sz_coeff):
+            pts_mv[ii,jj] = ray_orig[ii,0] + los_coeffs[0][jj] * ray_vdir[ii,0]
     if los_coeffs != NULL:
         if los_coeffs[0] != NULL:
             free(los_coeffs[0])

@@ -2,6 +2,7 @@
 # cython: wraparound=False
 # cython: cdivision=True
 #
+cimport numpy as cnp
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
@@ -209,10 +210,11 @@ cdef call_get_sample_single_ani(double los_kmin, double los_kmax,
                                 double[:,::1] ray_orig,
                                 double[:,::1] ray_vdir)
 
-cdef call_get_sample_single(double los_kmin, double los_kmax,
+cdef cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double los_kmin, double los_kmax,
                             double resol,
                             int n_dmode, int n_imode,
                             double[1] eff_res,
+                            long[1] nb_rows,
                             double[:,::1] ray_orig,
                             double[:,::1] ray_vdir)
 

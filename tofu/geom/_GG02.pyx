@@ -2894,7 +2894,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
            with pts : ndarray (3, npts) - points where function is evaluated
                 vect : ndarray(3, npts) - if anisotropic signal vector of emiss.
                 t: ndarray(m) - times where to compute the function
-           returns: data : ndarray(n) if t is None, else ndarray(m,n)
+           returns: data : ndarray(nlos) if t is None, else ndarray(nt,nraf)
                            values of func at pts, at given time
            func is the function to be integrated along the LOS
     ray_orig: ndarray (3, nlos) LOS origins
@@ -2944,7 +2944,9 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef np.ndarray[long,ndim=1] ind
     cdef double[1] loc_eff_res
     cdef double[:,::1] val_mv
+    cdef double[:] sig_mv
     cdef double* vsum
+    cdef long[1] nb_rows
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
     sz2_ds = ray_orig.shape[1]
@@ -3082,6 +3084,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      res_arr[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3094,6 +3097,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      res_arr[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3107,6 +3111,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      res_arr[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3167,12 +3172,14 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      res_arr[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
                     val_mv = val
-                    _st.integrate_c_sum(val_mv, sig[:,ii], nt,
-                                        val_mv.shape[0], val_mv.shape[1],
+                    sig_mv = sig[:,ii]
+                    _st.integrate_c_sum(val_mv, sig_mv, nt,
+                                        nt, nb_rows[0],
                                         loc_eff_res[0], 48)
                     # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
@@ -3181,6 +3188,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      res_arr[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
@@ -3192,6 +3200,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      res_arr[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
