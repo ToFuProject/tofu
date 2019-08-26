@@ -2601,9 +2601,9 @@ class Config(utils.ToFuObject):
 
             if np.any(inddiff):
                 # Compute u2 for diffusive
-                sca = np.random.random((1,inddiff.sum()))
-                u2[:,inddiff] = (sca * vperp[:,inddiff]
-                                 + np.sqrt(1.-sca**2) * vpar[:,inddiff])
+                sca = 2.*(np.random.random((1,inddiff.sum()))-0.5)
+                u2[:,inddiff] = (np.sqrt(1.-sca**2) * vperp[:,inddiff]
+                                 + sca * vpar[:,inddiff])
 
         if np.any(indcorn):
             u2[:,indcorn] = -u[:,indcorn]
