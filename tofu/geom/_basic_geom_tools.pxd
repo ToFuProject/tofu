@@ -97,3 +97,6 @@ cdef void compute_diff_div(const double[:, ::1] vec1,
 # ==============================================================================
 cdef void sum_by_rows(double *orig, double *out,
                       int n_rows, int n_cols) nogil
+
+cdef void sum_naive_rows(double* orig, double* out,
+                         int n_rows, int n_cols) nogil

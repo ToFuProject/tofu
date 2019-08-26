@@ -345,3 +345,13 @@ cdef inline void sum_by_rows(double *orig, double *out,
         out[n_blocks*max_r+i]=res[i]
     free(res)
     return
+
+cdef inline void sum_naive_rows(double* orig, double* out,
+                                int n_rows, int n_cols) nogil:
+    cdef int ii, jj
+    for ii in range(n_rows):
+        out[ii] = 0
+        for jj in range(n_cols):
+            out[ii] += orig[ii*n_cols + jj]
+
+    return
