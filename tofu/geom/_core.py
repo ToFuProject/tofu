@@ -2544,6 +2544,64 @@ class Config(utils.ToFuObject):
             return -min(distRZ,distPhi)
 
 
+    # Method handling reflections
+
+    def _reflect_Types(self, indout=None, Type=None):
+        """ Return an array indicating the Type of reflection for each LOS
+
+        Return a (nRays,) np.ndarray of int indices, each index corresponds to:
+            - 0: specular reflections
+            - 1: diffusive reflections
+            - 2: corner cube reflections
+
+        If indout is provided, the Types are computed according to the
+        information stored in each corresponding Struct
+
+        If Type is provided, the Type is forced (user-defined) for all LOS
+
+        """
+        nRays = u.shape[1]
+        if Type is not None:
+            assert Type in ['specular', 'diffusive', 'corner cube']
+            Types = np.full((nRays,), _DREFLECT[Type],, dtype=int)
+        else:
+            Types = None
+        return Types
+
+
+    def _reflect_geom(self, u, vperp, indout=None, Type=None):
+
+        # Get Types of relection for each Ray
+        Types = self._reflect_Types(indout=indout, Type=Type)
+
+        # Get indices of each Type
+        indspec = Types == 0
+        inddiff = Types == 1
+        indcorn = Types == 2
+
+        if np.any(np.logical_or(indspec,inddiff)):
+            sca = np.sum(u*vperp, axis=0)
+            vpar = np.array([u[1,:]*vperp[2,:] - u[2,:]*vpepr[1,:],
+                             u[2,:]*vperp[0,:] - u[0,:]*vperp[2,:],
+                             u[0,:]*vperp[1,:] - u[1,:]*vperp[0,:]])
+
+            if np.any(indspec):
+                # Compute u2 for specular
+                sca = np.sum(u[:,indspec]*vperp[:,indspec],axis=0,keepdims=True)
+                sca2 = np.sum(u[:,indspec]*vpar[:,indspec],axis=0,keepdims=True)
+                u2[:,indspec] = - sca*vperp[:,indspec] + sca2*vpar[:,indspec]
+
+            if np.any(inddiff):
+                # Compute u2 for diffusive
+                sca = np.random.random((1,inddiff.sum()))
+                u2[:,inddiff] = (sca * vperp[:,inddiff]
+                                 + np.sqrt(1.-sca**2) * vpar[:,inddiff])
+
+        if np.any(indcorn):
+            u2[:,indcorn] = -u[:,indcorn]
+        return u2, Types
+
+
 
     def plot(self, lax=None, proj='all', element='P', dLeg=_def.TorLegd,
              indices=False, Lim=None, Nstep=None,
@@ -3730,6 +3788,59 @@ class Rays(utils.ToFuObject):
 
     def _set_dmisc(self, color=None):
         self._set_color(color)
+
+
+    ###########
+    # Reflections
+    ###########
+
+    def add_reflections(self, Type=None, nb=None, coefs=None):
+        """ Add relfected LOS to the camera
+
+        Reflected LOS can be of 3 types:
+            - 'speculiar'
+            - 'diffusive'
+            - 'corer cube'
+
+        """
+
+        # Check inputs
+        if Type is not None:
+            assert Type in ['speculiar', 'diffusive', 'corner cube']
+        if nb is None:
+            nb = 1
+        nb = int(nb)
+        assert nb > 0
+        if coefs is not None:
+            coefs = np.atleast_1d(coefs).astype(float).ravel()
+            if coefs.size == 1:
+                coefs = np.repeat(coefs, self.nRays)
+            assert coefs.shape == (self.nRays,)
+            assert np.all(coefs >= 0.) and np.all(coefs <= 1.)
+
+        # Get info from config
+        Types = []
+        # Ds =
+        # us =
+        # indouts =
+        # kouts =
+        # vperp =
+        # coefs =
+
+        Ds[0,:,:] = self.D + self._dgeom['kOut'][None,:] * self.u
+        us[0,:,:] = self.config._reflect_geom(Ds[ii-1,:,:])
+        kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
+        coefs[ii,:] = self.config._get_reflections_coefs()
+
+        for ii in range(1,nb):
+            Ds[ii,:,:], us[ii,:,:] = self.config._reflect_geom(Ds[ii-1,:,:])
+            kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
+            coefs[ii,:] = self.config._reflect_coefs(coefs=coefs,
+                                                     indout=indouts[ii,:,:])
+
+        self._dgeom['dreflect'] = None
+
+
 
     ###########
     # strip dictionaries
