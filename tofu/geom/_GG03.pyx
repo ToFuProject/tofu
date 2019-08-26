@@ -2937,7 +2937,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef np.ndarray[double,ndim=2] val_2d
     cdef np.ndarray[double,ndim=2] usbis
     cdef np.ndarray[double,ndim=2] pts
-    cdef np.ndarray[double,ndim=2] sig
+    cdef np.ndarray[double,ndim=2, mode='fortran'] sig
     cdef np.ndarray[double,ndim=1] reseff
     cdef np.ndarray[double,ndim=1] k, ksbis
     cdef np.ndarray[double,ndim=1] ltime
@@ -2996,7 +2996,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
     # Initialization result
-    sig = np.empty((nt,nlos),dtype=float)
+    sig = np.empty((nt,nlos),dtype=float,order='F')
     # If the resolution is the same for every LOS, we create a tab
     if res_is_list :
         res_arr = np.asarray(res)
@@ -3137,7 +3137,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    _st.integrate_c_sum(&val_2d[0,0], sig[:,ii], nt,
+                    _st.integrate_c_sum(&val_2d[0,0], &sig[0,ii], nt,
                                         nt, nb_rows[0],                
                                         loc_eff_res[0], 48)
                     # sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
@@ -3176,8 +3176,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val_2d = func(pts, t=t, **fkwdargs)
-                    sig_mv = sig[:,ii]
-                    _st.integrate_c_sum(&val_2d[0,0], sig_mv, nt,
+                    _st.integrate_c_sum(&val_2d[0,0], &sig[0,ii], nt,
                                         nt, nb_rows[0],
                                         loc_eff_res[0], num_threads)
                     # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
