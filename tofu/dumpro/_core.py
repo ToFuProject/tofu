@@ -40,7 +40,7 @@ from . import image_comp as _i_comp
 from . import plotting as _plot
 
 
-__all__ = ['Img_dir', 'Video', 'Vid_img', 'Cluster','Trajectory']
+__all__ = ['Img_dir', 'Vid_img', 'Cluster','Trajectory']
 
 
 ###################################################################
@@ -541,15 +541,17 @@ Img_dir.to_bin.__doc__ = _i_comp.to_binary.bin_thresh.__doc__
 Img_dir.play.__doc__ = _plot.playimages.play_img.__doc__
 Img_dir.dumpro.__doc__ = _i_comp.dumpro_img.dumpro_img.__doc__                  
 
-##########################################################
-##########################################################
-#               Video Class
-##########################################################
+#####################################################################
+#####################################################################
+#   A class for handling videos and images 
+#####################################################################
 
-class Video(object):
-    """ A Video class that will pe preocessed using the various methods
-    defined below.
-
+class Vid_img(object):
+    """This is a derived class from Video class. This is an intermediate 
+    approach, between working completely with videos and completely with
+    images. This class was maily created beacause it follows a more 
+    computationally robust way of detecting dust particles.
+    
     Input:
     --------------------------------------------
     filename = video file along with the path
@@ -557,24 +559,29 @@ class Video(object):
     Attributes:
     --------------------------------------------
     __filename     = Path of the file along with its name and extension
-    __w_dir        = A path to a working directory for storage during 
+    __w_dir        = A path to a working directory for storage during
                      processing
-    __frame_width  = width of the video
-    __frame_height = height of the video
-    __video_time   = time length of the video
-    __N_frames     =  total number of frames in the video
-    __fps          = number of frames per second 
-    __meta_data    = dictionary containing total frames, fps and frame size of
-                     video
-    __reshape      = dictionary containing the croping and time slicing of the
-                     video
-    __infocluster  = dictionary contaning information on the clusters
-
+    __shot_name    = Information on the shot being processed
+    __im_dir       = Dictionary containing path of images created during 
+                     preprocessing 
+    __frame_width  = Width of the video
+    __frame_height = Height of the video
+    __N_frames     =  Total number of frames in the video
+    __fps          = Number of frames per second 
+    __fourcc       = The four character code of the video
+    __meta_data    = Dictionary containing total frames, fps and frame size 
+                     of video
+    __reshape      = Dictionary containing the croping and time slicing 
+                     of the video
+    __infocluster  = Dictionary containing all the information regarding 
+                     clusters
+    
     Setters:
     --------------------------------------------
     set_w_dir       = Sets value for w_dir attribute
     set_reshape     = Sets value for reshape dictionary attribute
     set_infocluster = Sets value for infocluster dictionary attribute
+    set_im_dir      = Setter for Image directory dictionary
     
     Getters:
     --------------------------------------------
@@ -591,11 +598,8 @@ class Video(object):
     
     Methods:
     --------------------------------------------
-    grayscale
-    
-    
     """
-
+        
     def __init__(self, filename, w_dir = None, verb=True):
 
         #checking if the file provided exists or not
@@ -658,11 +662,17 @@ class Video(object):
         self.__reshape = {}
         self.__c_id = None
         self.__traj = {}
-
-##############################################################################
-#   setters for class attributes
-##############################################################################
- 
+        self.__im_dir = {}
+        
+#############################################################################
+#     Setters for the class attributes
+#############################################################################
+    
+    #setter for im_dir dictionary
+    def set_im_dir(self, imdir):
+        """Setter for im_dir dictionary"""
+        self.__im_dir = imdir
+    
     def set_w_dir(self, w_dir):
         """Setter function for Working Directory"""
         #getting user input
@@ -683,11 +693,14 @@ class Video(object):
     def set_traj(self, traj):
         """Setter for trajectory objects"""
         self.__traj = traj
-
 #############################################################################
 #     Getters for the class attributes
 #############################################################################
-        
+    @property
+    def imdir(self):
+        """Returns im_dir dictionary"""
+        return self.__im_dir
+
     #defining a getter for the path of the video file
     @property
     def filename(self):
@@ -700,8 +713,8 @@ class Video(object):
         """Returns the shotname of the video"""
         return self.__shot_name
     
-    
     #defining a getter for the video resolution
+    @property
     def resolution(self):
         """Returns the size of frame of the video"""
         #getting width and height
@@ -760,219 +773,10 @@ class Video(object):
     def traj(self):
         """Returns the Trajctory dictionary"""
         return self.__traj
-    
-#############################################################################
-#   Grayscale conversion method
-#############################################################################
-        
-    def grayscale(self, output_name = None, output_type = None, verb = True):
-
-        #gray will contain the video path and meta_data will contain the 
-        #size of frames, total number of frames and the fps of the video
-        gray, meta_data = _comp.colorgray.convertgray(self.__filename,
-                                                      self.__meta_data,
-                                                      self.__w_dir,
-                                                      output_name,
-                                                      output_type,
-                                                      verb)
-        #returning the grayscale converted video as a new instance 
-        return self.__class__(gray, self.__w_dir)
-    
-#############################################################################
-#   background removal method
-#############################################################################
-
-    def removebackground(self, output_name = None, output_type = None, verb = True):
-               
-        #applying the background removal operation
-        foreground, meta_data = _comp.background_removal.remove_background(self.__filename, 
-                                                                           self.__meta_data, 
-                                                                           self.__w_dir, 
-                                                                           output_name, 
-                                                                           output_type,
-                                                                           verb)
-        return self.__class__(foreground, self.__w_dir)
-    
-#############################################################################
-#   binary conversion method
-#############################################################################
-    
-    def applybinary(self, output_name = None,output_type = None, verb = True):
-        
-        #applying the method of binary conversion
-        out = _comp.binarythreshold.binary_threshold(self.__filename,
-                                                     self.__meta_data,
-                                                     self.__w_dir,
-                                                     output_name,
-                                                     output_type,
-                                                     verb)
-        #returning the binary converted video as a new instance
-        return self.__class__(out[0], self.__w_dir)
-    
-#############################################################################
-#   edge detection method
-#############################################################################
-
-    def detectedge(self, output_name = None, output_type = None, verb = True):
-        
-        #applying the edge detection method
-        edge, meta_data = _comp.edge_detection.detect_edge(self.__filename,
-                                                           self.__meta_data,
-                                                           self.__w_dir,
-                                                           output_name,
-                                                           output_type,
-                                                           verb)
-        #returns the edge detected video as a new instance
-        return self.__class__(edge, self.__w_dir)
-    
-#############################################################################
-#   video to image conversion method
-#############################################################################
-    
-    def convert2image(self, image_name = None, image_type = None, verb = True):
-        
-        #applying the video to image conversion method
-        directory, meta_data = _comp.video_to_img.video2img(self.__filename,
-                                                 self.__meta_data,
-                                                 self.__w_dir,
-                                                 image_name,
-                                                 image_type,
-                                                 verb)
-        
-        #returning the directory in which the video is stored
-        return Vid_img(directory, self.__w_dir),Vid_img(directory).set_meta_data(meta_data)
-    
-#############################################################################
-#   video to numpy arraay conversion method
-#############################################################################
-
-    def convert2pixel(self, verb = True):
-        
-        #applying the video to array conversion method
-        pixel, meta_data = _comp.video_to_array.video_to_pixel(self.__filename,
-                                                               self.__meta_data,
-                                                               verb)
-        
-        return pixel, meta_data
-
-#############################################################################
-#   displaying a video
-#############################################################################
-    def playvideo(self):
-
-        #calling play video function from plotting library
-        _plot.playvideo.play_video(self.__filename)
-
-
-    
-    def dumpro(self, output_name = None, output_type = None, verb = True):
-        
-        
-        
-        return None
-        
-        
-#sig = inspect.signature(_comp.colorgray.convertgray)
-#lp = [p for p in sig.parameters.values() if p.name != 'video_file']
-#Video.grayscale.__signature__ = sig.replace(parameters = lp)
-#############################################################################
-#   Docstrings for video class methods
-#############################################################################
-Video.grayscale.__doc__ = _comp.colorgray.convertgray.__doc__
-Video.removebackground.__doc__ = _comp.background_removal.remove_background.__doc__
-Video.applybinary.__doc__ = _comp.binarythreshold.binary_threshold.__doc__
-Video.detectedge.__doc__ = _comp.edge_detection.detect_edge.__doc__
-Video.convert2pixel.__doc__ = _comp.video_to_array.video_to_pixel.__doc__
-Video.convert2image.__doc__ = _comp.video_to_img.video2img.__doc__
-Video.playvideo.__doc__ = _plot.playvideo.play_video.__doc__
-
-
-#####################################################################
-#####################################################################
-#   A class for handling videos and images 
-#####################################################################
-
-class Vid_img(Video):
-    """This is a derived class from Video class. This is an intermediate 
-    approach, between working completely with videos and completely with
-    images. This class was maily created beacause it follows a more 
-    computationally robust way of detecting dust particles.
-    
-    Input:
-    --------------------------------------------
-    filename = video file along with the path
-    
-    Attributes:
-    --------------------------------------------
-    __filename     = Path of the file along with its name and extension
-    __w_dir        = A path to a working directory for storage during
-                     processing
-    __shot_name    = Information on the shot being processed
-    __im_dir       = Dictionary containing path of images created during 
-                     preprocessing 
-    __frame_width  = Width of the video
-    __frame_height = Height of the video
-    __N_frames     =  Total number of frames in the video
-    __fps          = Number of frames per second 
-    __fourcc       = The four character code of the video
-    __meta_data    = Dictionary containing total frames, fps and frame size 
-                     of video
-    __reshape      = Dictionary containing the croping and time slicing 
-                     of the video
-    __infocluster  = Dictionary containing all the information regarding 
-                     clusters
-    
-    Setters:
-    --------------------------------------------
-    set_w_dir       = Sets value for w_dir attribute
-    set_reshape     = Sets value for reshape dictionary attribute
-    set_infocluster = Sets value for infocluster dictionary attribute
-    set_im_dir      = Setter for Image directory dictionary
-    
-    Getters:
-    --------------------------------------------
-    filename    = Returns the path of the video
-    shotname    = Returns the shotname of the video
-    resolution  = Returns the resolution of the video
-    N_frames    = Returns the total number of frames of the video 
-    fps         = Returns the frames per second of the video
-    fourcc      = Returns the four character code of the video
-    w_dir       = Returns the working directory of the video
-    meta_data   = Returns the meta data of the video
-    infocluster = Returns the infocluster dictionary of the video
-    reshape     = Returns the rehsape dictionary of the video
-    
-    Methods:
-    --------------------------------------------
-    """
-    
-    def __init__(self, filename, w_dir = None, verb = True):
-        """defining the init from Video class. The only new parameter is the 
-        dictionary im_dir"""
-        Video.__init__(self, filename, w_dir, verb)
-        self.__im_dir = {}
-
-#############################################################################
-#     Getters for the class attributes
-#############################################################################
-    #setter for im_dir dictionary
-    def set_im_dir(self, imdir):
-        """Setter for im_dir dictionary"""
-        self.__im_dir = imdir
-        
-#############################################################################
-#     Getters for the class attributes
-#############################################################################
-    @property
-    def imdir(self):
-        """Returns im_dir dictionary"""
-        return self.__im_dir
 
 #############################################################################
 #     Video to image converter method
 #############################################################################
-    def vid2img(self):
-        return None
     
     #dumpro
     def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None, 
@@ -1024,7 +828,7 @@ class Vid_img(Video):
         self.set_traj(trajects)
 
         end_time = time.perf_counter()
-        print('---',end_time - start_time,' seconds')
+        print('---',end_time - start_time,' seconds ---')
         
         ######################################################################
         #### Plotting trajctories and distribution                        ####
