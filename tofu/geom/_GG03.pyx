@@ -2934,6 +2934,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef bint C0, C1
     cdef unsigned int nlos
     cdef unsigned int nt=0, axm, ii, jj
+    cdef np.ndarray[double,ndim=2] val_2d
     cdef np.ndarray[double,ndim=2] usbis
     cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=2] sig
@@ -3135,10 +3136,9 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 &loc_eff_res[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
-                    val = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    val_mv = val
-                    _st.integrate_c_sum(val_mv, sig[:,ii], nt,
-                                        val_mv.shape[0], val_mv.shape[1],
+                    val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
+                    _st.integrate_c_sum(&val_2d[0,0], sig[:,ii], nt,
+                                        nt, nb_rows[0],                
                                         loc_eff_res[0], 48)
                     # sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
@@ -3175,12 +3175,11 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
-                    val = func(pts, t=t, **fkwdargs)
-                    val_mv = val
+                    val_2d = func(pts, t=t, **fkwdargs)
                     sig_mv = sig[:,ii]
-                    _st.integrate_c_sum(val_mv, sig_mv, nt,
+                    _st.integrate_c_sum(&val_2d[0,0], sig_mv, nt,
                                         nt, nb_rows[0],
-                                        loc_eff_res[0], 48)
+                                        loc_eff_res[0], num_threads)
                     # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):

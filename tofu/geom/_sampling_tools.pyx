@@ -1566,7 +1566,7 @@ cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double lo
 
 
 # -- calling sampling and intergrating with sum --------------------------------
-cdef inline void integrate_c_sum(double[:,::1] val_mv,
+cdef inline void integrate_c_sum(double* val_mv,
                                  double[:] sig,
                                  int nt, int nrows, int ncols,
                                  double loc_eff_res,
@@ -1576,12 +1576,11 @@ cdef inline void integrate_c_sum(double[:,::1] val_mv,
     # ...
     with nogil, parallel(num_threads=num_threads):
         vsum = <double*>malloc(nrows*sizeof(double))
-        _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0],
+        _bgt.sum_rows_blocks(val_mv, &vsum[0],
                              nrows, ncols)
         # _bgt.sum_by_rows(&val_mv[0,0], &vsum[0],
         #                  nrows, ncols)
-        # _bgt.sum_naive_rows(&val_mv[0,0], &vsum[0],
-        #                     nrows, ncols)
+        
         for jj in prange(nt):
             sig[jj] = vsum[jj] * loc_eff_res
         free(vsum)
