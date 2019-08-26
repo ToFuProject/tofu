@@ -1544,7 +1544,6 @@ cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double lo
     cdef int ii, jj
     cdef double** los_coeffs = NULL
     cdef cnp.ndarray[double,ndim=2,mode='c'] pts
-    cdef double[:,::1] pts_mv
     # Initialization utility array
     los_coeffs = <double**>malloc(sizeof(double*))
     los_coeffs[0] = NULL
@@ -1556,14 +1555,9 @@ cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double lo
                                      &los_coeffs[0])
     nb_rows[0] = sz_coeff
     # computing points
-    # pts = ray_orig \
-    #       + np.asarray(<double[:sz_coeff]>los_coeffs[0]) \
-    #       * np.repeat(ray_vdir, sz_coeff, axis=1)
-    pts = np.empty((3,sz_coeff))
-    pts_mv = pts
-    for ii in range(3):
-        for jj in range(sz_coeff):
-            pts_mv[ii,jj] = ray_orig[ii,0] + los_coeffs[0][jj] * ray_vdir[ii,0]
+    pts = ray_orig \
+          + np.asarray(<double[:sz_coeff]>los_coeffs[0]) \
+          * np.repeat(ray_vdir, sz_coeff, axis=1)
     if los_coeffs != NULL:
         if los_coeffs[0] != NULL:
             free(los_coeffs[0])
