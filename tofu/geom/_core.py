@@ -4965,7 +4965,22 @@ class Rays(utils.ToFuObject):
     def plot_touch(self, key=None, quant='lengths', invert=None, ind=None,
                    Bck=True, fs=None, wintit=None, tit=None,
                    connect=True, draw=True):
+        """ Interactive plot of the camera and the structures it touches
 
+        The camera LOS are plotted in poloidal and horizontal projections
+        The associated Config is also plotted
+        The plot shows which strutural element is touched by each LOS
+
+        In addition, an extra quantity is plotted, depending on quant:
+            - 'lengths' (default): the length of each LOS
+            - 'angles' : the angle of incidence of each LOS
+                         (with respect to the normal of the surface touched,
+                          useful for assessing reflection probabilities)
+            - 'indices': the index of each LOS
+                         (useful for checking numbering)
+            - 'Etendues': the étendue associated to each LOS (user-provided)
+            - 'Surfaces': the surfaces associated to each LOS (user-provided)
+        """
         out = _plot.Rays_plot_touch(self, key=key, Bck=Bck,
                                     quant=quant, ind=ind, invert=invert,
                                     connect=connect, fs=fs, wintit=wintit,
