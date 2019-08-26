@@ -49,7 +49,7 @@ _PHITHETAPROJ_NPHI = 2000
 _PHITHETAPROJ_NTHETA = 1000
 _RES = 0.005
 _NTHREADS = 16
-
+_DREFLECT = {'specular':0, 'diffusive':1, 'ccube':2}
 
 """
 ###############################################################################
@@ -2546,13 +2546,13 @@ class Config(utils.ToFuObject):
 
     # Method handling reflections
 
-    def _reflect_Types(self, indout=None, Type=None):
+    def _reflect_Types(self, indout=None, Type=None, nRays=None):
         """ Return an array indicating the Type of reflection for each LOS
 
         Return a (nRays,) np.ndarray of int indices, each index corresponds to:
             - 0: specular reflections
             - 1: diffusive reflections
-            - 2: corner cube reflections
+            - 2: ccube reflections (corner cube)
 
         If indout is provided, the Types are computed according to the
         information stored in each corresponding Struct
@@ -2560,35 +2560,43 @@ class Config(utils.ToFuObject):
         If Type is provided, the Type is forced (user-defined) for all LOS
 
         """
-        nRays = u.shape[1]
         if Type is not None:
-            assert Type in ['specular', 'diffusive', 'corner cube']
-            Types = np.full((nRays,), _DREFLECT[Type],, dtype=int)
+            assert Type in ['specular', 'diffusive', 'ccube']
+            Types = np.full((nRays,), _DREFLECT[Type], dtype=int)
         else:
             Types = None
         return Types
 
 
     def _reflect_geom(self, u, vperp, indout=None, Type=None):
+        assert u.shape == vperp.shape and u.shape[0] == 3
+        if indout is not None:
+            assert indout.shape == (3,u.shape[1])
 
         # Get Types of relection for each Ray
-        Types = self._reflect_Types(indout=indout, Type=Type)
+        Types = self._reflect_Types(indout=indout, Type=Type, nRays=u.shape[1])
 
         # Get indices of each Type
         indspec = Types == 0
         inddiff = Types == 1
         indcorn = Types == 2
 
+        u2 = np.full(u.shape, np.nan)
         if np.any(np.logical_or(indspec,inddiff)):
-            sca = np.sum(u*vperp, axis=0)
-            vpar = np.array([u[1,:]*vperp[2,:] - u[2,:]*vpepr[1,:],
-                             u[2,:]*vperp[0,:] - u[0,:]*vperp[2,:],
-                             u[0,:]*vperp[1,:] - u[1,:]*vperp[0,:]])
+            vpar = np.array([vperp[1,:]*u[2,:] - vperp[2,:]*u[1,:],
+                             vperp[2,:]*u[0,:] - vperp[0,:]*u[2,:],
+                             vperp[0,:]*u[1,:] - vperp[1,:]*u[0,:]])
+            vpar = np.array([vpar[1,:]*vperp[2,:] - vpar[2,:]*vperp[1,:],
+                             vpar[2,:]*vperp[0,:] - vpar[0,:]*vperp[2,:],
+                             vpar[0,:]*vperp[1,:] - vpar[1,:]*vperp[0,:]])
+            vpar = vpar / np.sqrt(np.sum(vpar**2, axis=0))[None,:]
 
             if np.any(indspec):
                 # Compute u2 for specular
                 sca = np.sum(u[:,indspec]*vperp[:,indspec],axis=0,keepdims=True)
                 sca2 = np.sum(u[:,indspec]*vpar[:,indspec],axis=0,keepdims=True)
+                assert np.all(sca<=0.) and np.all(sca>=-1.)
+                assert np.all(sca2>=0.) and np.all(sca<=1.)
                 u2[:,indspec] = - sca*vperp[:,indspec] + sca2*vpar[:,indspec]
 
             if np.any(inddiff):
@@ -3805,8 +3813,6 @@ class Rays(utils.ToFuObject):
         """
 
         # Check inputs
-        if Type is not None:
-            assert Type in ['speculiar', 'diffusive', 'corner cube']
         if nb is None:
             nb = 1
         nb = int(nb)
@@ -3829,12 +3835,12 @@ class Rays(utils.ToFuObject):
 
         Ds[0,:,:] = self.D + self._dgeom['kOut'][None,:] * self.u
         us[0,:,:] = self.config._reflect_geom(Ds[ii-1,:,:])
-        kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
+        # kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
         coefs[ii,:] = self.config._get_reflections_coefs()
 
         for ii in range(1,nb):
             Ds[ii,:,:], us[ii,:,:] = self.config._reflect_geom(Ds[ii-1,:,:])
-            kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
+            # kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = self.
             coefs[ii,:] = self.config._reflect_coefs(coefs=coefs,
                                                      indout=indouts[ii,:,:])
 
