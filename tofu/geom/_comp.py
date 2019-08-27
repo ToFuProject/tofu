@@ -449,7 +449,7 @@ def _get_phithetaproj_dist(poly_closed, ax, Dtheta, nDtheta,
 ###############################################################################
 """
 
-def LOS_PRMin(Ds, us, kPOut=None, Eps=1.e-12, squeeze=True, Test=True):
+def LOS_PRMin(Ds, us, kOut=None, Eps=1.e-12, squeeze=True, Test=True):
     """  Compute the point on the LOS where the major radius is minimum """
     if Test:
         assert Ds.ndim in [1,2,3] and 3 in Ds.shape and Ds.shape == us.shape
@@ -463,8 +463,9 @@ def LOS_PRMin(Ds, us, kPOut=None, Eps=1.e-12, squeeze=True, Test=True):
     elif Ds.ndim == 2:
         Ds, us = Ds[:,:,None], us[:,:,None]
     if kOut is not None:
-        kOut = kOut[:,None]
-    nref, _, nlos = Ds.shape
+        if kOut.ndim == 1:
+            kOut = kOut[:,None]
+    _, nlos, nref = Ds.shape
 
     kRMin = np.full((nlos,nref), np.nan)
     uparN = np.sqrt(us[0,:,:]**2 + us[1,:,:]**2)
@@ -492,107 +493,94 @@ def LOS_PRMin(Ds, us, kPOut=None, Eps=1.e-12, squeeze=True, Test=True):
     return kRMin
 
 
-def LOS_CrossProj(VType, Ds, us, kIns, kOuts, kRMins,
-                  proj='All', multi=False):
+def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
+                  num_threads=16, Test=True):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
     assert type(VType) is str and VType.lower() in ['tor','lin']
-    assert Lplot.lower() in ['tot','in']
-    assert type(proj) is str
-    proj = proj.lower()
-    assert proj in ['cross','hor','all','3d']
-    lc = [Ds.ndim in [2,3], Ds.shape == us.shape]
+    dproj = {'cross':('R','Z'), 'hor':('x,y'), 'all':('R','Z','x','y'),
+             '3d':('x','y','z')}
+    assert type(proj) in [str, tuple]
+    if type(proj) is tuple:
+        assert all([type(pp) is str for pp in proj])
+        lcoords = proj
+    else:
+        proj = proj.lower()
+        assert proj in dproj.keys()
+        lcoords = dproj[proj]
+
+    lc = [Ds.ndim == 3, Ds.shape == us.shape]
     if not all(lc):
         msg = "Ds and us must have the same shape and dim in [2,3]:\n"
         msg += "    - provided Ds.shape: %s\n"%str(Ds.shape)
         msg += "    - provided us.shape: %s"%str(us.shape)
         raise Exception(msg)
-    lc = [kIns.shape == (Ds.shape[-1],),
-          kOuts.shape[-1] == Ds.shape[-1], kOuts.ndim == Ds.ndim-1]
+    lc = [kOuts.size == Ds.size/3, kOuts.shape == Ds.shape[1:]]
     if not all(lc):
-        msg = "kIns and kOuts must have the same shape and ndim = Ds.ndim-1:\n"
+        msg = "kOuts must have the same shape and ndim = Ds.ndim-1:\n"
         msg += "    - Ds.shape    : %s\n"%str(Ds.shape)
-        msg += "    - kIns.shape  : %s\n"%str(kIns.shape)
         msg += "    - kOutss.shape: %s"%str(kOuts.shape)
         raise Exception(msg)
 
     # Prepare inputs
-    if Ds.ndim == 2:
-        Ds = np.array([Ds])
-        us = np.array([us])
-        kOuts = np.array([kOuts])
+    _, nlos, nseg = Ds.shape
 
-    nref, _, nL = Ds.shape
+    # Detailed sampling for 'tor' and ('cross' or 'all')
+    R, Z = None, None
+    if 'R' in lcoords or 'Z' in lcoords:
+        angcross = np.arccos(np.sqrt(us[0,...]**2 + us[1,...]**2)
+                             /np.sqrt(np.sum(us**2, axis=0)))
+        resnk = np.ceil(25.*(1 - (angcross/(np.pi/4)-1)**2) + 5)
+        resnk = 1./resnk.ravel()
 
-    #k0 = kIns if Lplot.lower() == 'in' else np.zeros((nL,))
+        # Use optimized get sample
+        DL = np.vstack((np.zeros((nlos*nseg,),dtype=float), kOuts.ravel()))
+        k, reseff, lind = _GG.LOS_get_sample(nlos*nseg, resnk, DL,
+                                             dmethod='rel', method='simps',
+                                             num_threads=num_threads, Test=Test)
 
-    if VType.lower()=='tor' and proj in ['cross','all']:
-        CrossProjAng = np.arccos(np.sqrt(us[:,0,:]**2+us[:,1,:]**2)
-                                 /np.sqrt(np.sum(us**2,axis=0)))
-        nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
-        #ks = np.max([kRMins,kIns],axis=0) if Lplot.lower()=='in' else kRMins
-        pts0 = []
+        assert lind.size == nseg*nlos - 1
+        ind = lind[::nseg]
+        nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
+        pts = (np.repeat(Ds.reshape((3,nlos*nseg)), nbrep, axis=1)
+               + k[None,:] * np.repeat(us.reshape((3,nlos*nseg)), nbrep,
+                                       axis=1))
+        import ipdb         # DB
+        ipdb.set_trace()    # DB
+
         if multi:
-            for ii in range(0,nL):
-                for jj in range(0,nref):
-                    if np.isnan(kOuts[jj,ii]):
-                        pts0.append( np.array([[np.nan,np.nan],
-                                               [np.nan,np.nan]]) )
-                    else:
-                        k = np.linspace(k0[ii], kOuts[jj,ii], nkp[ii], endpoint=True)
-                        k = np.unique(np.append(k,ks[ii]))
-                        pp = Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1]
-                        pts0.append( np.array([np.hypot(pp[0,:],pp[1,:]),pp[2,:]])  )
+            if 'R' in lcoords:
+                R = np.hypot(pts[0,:],pts[1,:]).split(ind)
+            if 'Z' in lcoords:
+                Z = pts[2,:].split(ind)
         else:
-            for ii in range(0,nL):
-                if np.isnan(kOuts[ii]):
-                    pts0.append(np.array([[np.nan,np.nan,np.nan],
-                                          [np.nan,np.nan,np.nan],
-                                          [np.nan,np.nan,np.nan]]))
-                else:
-                    k = np.linspace(k0[ii],kOuts[ii],nkp[ii],endpoint=True)
-                    k = np.append(np.unique(np.append(k,ks[ii])),np.nan)
-                    pts0.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
-            pts0 = np.concatenate(tuple(pts0),axis=1)
-            pts0 = np.array([np.hypot(pts0[0,:],pts0[1,:]),pts0[2,:]])
+            if 'R' in lcoords:
+                R = np.insert(np.hypot(pts[0,:],pts[1,:]), ind, np.nan)
+            if 'Z' in lcoords:
+                Z = np.insert(pts[2,:], ind, np.nan)
 
-    if not (VType.lower()=='tor' and proj=='cross'):
-        pts = []
+    # Normal sampling => pts
+    # unnecessary only if 'tor' and 'cross'
+    x, y, z = None, None, None
+    if 'x' in lcoords or 'y' in lcoords or 'z' in lcoords:
+        Ds = np.concatenate((Ds, Ds[:,:,-1:] + kOuts[None,:,-1:]*us[:,:,-1:]),
+                            axis=-1)
         if multi:
-            for ii in range(0,nL):
-                if np.isnan(kOuts[ii]):
-                    pts.append( np.array([[np.nan,np.nan],
-                                          [np.nan,np.nan],
-                                          [np.nan,np.nan]]) )
-                else:
-                    k = np.array([k0[ii],kOuts[ii]])
-                    pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
+            if 'x' in lcoords:
+                x = Ds[0,...]
+            if 'y' in lcoords:
+                y = Ds[1,...]
+            if 'z' in lcoords:
+                z = Ds[2,...]
         else:
-            for ii in range(0,nL):
-                if np.isnan(kOuts[ii]):
-                    pts.append(np.array([[np.nan,np.nan,np.nan],
-                                         [np.nan,np.nan,np.nan],
-                                         [np.nan,np.nan,np.nan]]))
-                else:
-                    k = np.array([k0[ii],kOuts[ii],np.nan])
-                    pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
-            pts = np.concatenate(tuple(pts),axis=1)
-
-    if proj=='hor':
-        pts = [pp[:2,:] for pp in pts] if multi else pts[:2,:]
-    elif proj=='cross':
-        if VType.lower()=='tor':
-            pts = pts0
-        else:
-            pts = [pp[1:,:] for pp in pts] if multi else pts[1:,:]
-    elif proj=='all':
-        if multi:
-            if VType.lower()=='tor':
-                pts = [(p0,pp[:2,:]) for (p0,pp) in zip(*[pts0,pts])]
-            else:
-                pts = (pts[1:,:],pts[:2,:])
-        else:
-            pts = (pts0,pts[:2,:]) if VType.lower()=='tor' else (pts[1:,:],pts[:2,:])
-    return pts
+            nancoords = np.full((3,nlos,1), np.nan)
+            Ds = np.concatenate((Ds,nancoords), axis=-1)
+            if 'x' in lcoords:
+                x = Ds[0,...].ravel()
+            if 'y' in lcoords:
+                y = Ds[1,...].ravel()
+            if 'z' in lcoords:
+                z = Ds[2,...].ravel()
+    return R, Z, x, y, z
 
 
 

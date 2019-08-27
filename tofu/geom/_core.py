@@ -3646,14 +3646,16 @@ class Rays(utils.ToFuObject):
     def _compute_dgeom_kRMin(self):
         # Get RMin if Type is Tor
         if self.config.Id.Type=='Tor':
-            kRMin = _comp.LOS_PRMin(self.D, self.u, kPOut=self.kOut, Eps=1.e-12)
+            kRMin = np.atleast_1d(_comp.LOS_PRMin(self.D, self.u,
+                                                  kOut=self.kOut,
+                                                  Eps=1.e-12, squeeze=True))
         else:
             kRMin = None
         self._dgeom.update({'kRMin':kRMin})
 
     def _compute_dgeom_extra1(self):
         if self._dgeom['kRMin'] is not None:
-            PRMin = self.D + self._dgeom['kRMin'][np.newaxis,:]*self.u
+            PRMin = self.D + self._dgeom['kRMin'][None,:]*self.u
             RMin = np.hypot(PRMin[0,:],PRMin[1,:])
         else:
             PRMin, RMin = None, None
@@ -3862,7 +3864,7 @@ class Rays(utils.ToFuObject):
 
         # Prepare output
         nRays = self.nRays
-        Types = np.full((Rays,nb), 0, dtype=int)
+        Types = np.full((nRays,nb), 0, dtype=int)
         Ds = np.full((3,nRays,nb), np.nan, dtype=float)
         us = np.full((3,nRays,nb), np.nan, dtype=float)
         kouts = np.full((nRays,nb), np.nan, dtype=float)
@@ -3880,13 +3882,14 @@ class Rays(utils.ToFuObject):
 
         # Run other iterations
         for ii in range(1,nb):
-            Ds[:,:,ii] = Ds[:,:,ii-1] + (kouts[:,ii-1:ii]-1.e-12) * us[:,:,ii-1]
-            us[:,:,ii], Types[:,ii] = self.config._reflect_geom(us[:,:,ii-1],
-                                                                vperps[:,:,ii-1],
-                                                                Type=Type)
-            outi = _GG.LOS_Calc_PInOut_VesStruct(Ds[:,:,ii], us[:,:,ii],
+            Dsi = Ds[:,:,ii-1] + (kouts[None,:,ii-1]-1.e-12) * us[:,:,ii-1]
+            usi, Types[:,ii] = self.config._reflect_geom(us[:,:,ii-1],
+                                                         vperps[:,:,ii-1],
+                                                         Type=Type)
+            outi = _GG.LOS_Calc_PInOut_VesStruct(Dsi, usi,
                                                  *largs[2:], **dkwd)[1:]
             kouts[:,ii], vperps[:,:,ii], indouts[:,:,ii] = outi
+            Ds[:,:,ii], us[:,:,ii] = Dsi, usi
 
         self._dgeom['dreflect'] = {'nb':nb, 'Type':Type, 'Types':Types,
                                    'Ds':Ds, 'us':us, 'kouts':kouts, 'indouts':indouts}
@@ -4358,11 +4361,12 @@ class Rays(utils.ToFuObject):
         """ Get the (R,Z) coordinates of the cross-section projections """
         ind = self._check_indch(ind)
         if ind.size > 0:
+            us = self.u[:,ind]
             if Lplot.lower() == 'tot':
                 Ds = self.D[:,ind]
             else:
-                Ds = self.D[:,ind] + self.kIn[None,ind] * self.u[:,ind]
-                kOuts = np.atleast_1d(self.kOut[ind])[:,None]
+                Ds = self.D[:,ind] + self.kIn[None,ind] * us
+            kOuts = np.atleast_1d(self.kOut[ind])[:,None]
             if ind.size == 1:
                 Ds, us = Ds[:,None], us[:,None]
             Ds, us = Ds[:,:,None], us[:,:,None]
@@ -4377,23 +4381,22 @@ class Rays(utils.ToFuObject):
                 kOutsadd = self._dgeom['dreflect']['kouts'][ind,:]
                 if ind.size == 1:
                     Dsadd, usadd = Dsadd[:,None,:], usadd[:,None,:]
-                    kOutsadd = kOutsadd[:,None,:]
+                    kOutsadd = kOutsadd[None,:]
                 Ds = np.concatenate((Ds, Dsadd), axis=-1)
                 us = np.concatenate((us, usadd), axis=-1)
                 kOuts = np.concatenate((kOuts, kOutsadd), axis=-1)
                 if self.config.Id.Type == 'Tor':
-                    kRMin = _comp.LOS_PRMin(Ds, us, kPOut=kOuts,
+                    kRMin = _comp.LOS_PRMin(Ds, us, kOut=kOuts,
                                             Eps=1.e-12, squeeze=False)
 
             elif self.config.Id.Type == 'Tor':
                 kRMin = self._dgeom['kRMin'][ind][:,None]
 
-            pts = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
-                                      kOuts, kRMin, proj=proj,
-                                      Lplot=Lplot, multi=multi)
+            R, Z, x, y, z = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
+                                                kOuts, proj=proj, multi=multi)
         else:
-            pts = None
-        return pts
+            R, Z, x, y, z = None, None, None, None, None
+        return R, Z, x, y, z
 
     def get_sample(self, res=None, resMode='abs', DL=None, method='sum', ind=None,
                    pts=False, compact=True, num_threads=_NUM_THREADS, Test=True):

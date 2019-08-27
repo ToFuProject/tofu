@@ -972,12 +972,13 @@ def _Rays_plot_Cross(L,Leg=None, reflections=True,
                                        Type=L.Ves.Type)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='Cross', ind=ind, multi=multi)
+        R, Z, _, _, _ = L._get_plotL(Lplot=Lplot, proj='Cross',
+                                     reflections=reflections, ind=ind, multi=multi)
         if multi:
-            for ii in range(0,len(pts)):
-                ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
+            for ii in range(0,len(R)):
+                ax.plot(R[ii], Z[ii], label=Leg[ii], **dL)
         else:
-            ax.plot(pts[0,:], pts[1,:], label=Leg, **dL)
+            ax.plot(R, Z, label=Leg, **dL)
 
     for kk in dPts.keys():
         if kk in Elt:
@@ -1008,7 +1009,8 @@ def _Rays_plot_Cross(L,Leg=None, reflections=True,
 
 
 
-def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
+def _Rays_plot_Hor(L, Leg=None, reflections=True,
+                   Lplot='Tot', Elt='LDIORP',ax=None,
                    dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                    dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                    dLeg=_def.TorLegd, multi=False, ind=None,
@@ -1021,12 +1023,13 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
         ax = _def.Plot_LOSProj_DefAxes('Hor', fs=fs,
                                        wintit=wintit, Type=L.Ves.Type)
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='hor', ind=ind, multi=multi)
+        _, _, x, y, _ = L._get_plotL(Lplot=Lplot, proj='hor',
+                                     reflections=reflections, ind=ind, multi=multi)
         if multi:
-            for ii in range(0,len(pts)):
-                ax.plot(pts[ii][0,:], pts[ii][1,:], label=Leg[ii], **dL)
+            for ii in range(0,len(x)):
+                ax.plot(x[ii], y[ii], label=Leg[ii], **dL)
         else:
-            ax.plot(pts[0,:], pts[1,:], label=Leg, **dL)
+            ax.plot(x, y, label=Leg, **dL)
 
     for kk in dPts.keys():
         if kk in Elt:
@@ -1053,7 +1056,8 @@ def _Rays_plot_Hor(L, Leg=None, Lplot='Tot', Elt='LDIORP',ax=None,
 
 
 
-def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
+def  _Rays_plot_3D(L, Leg=None, reflections=True,
+                   Lplot='Tot',Elt='LDIORr',ax=None,
                    dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                    dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                    dLeg=_def.TorLegd, multi=False, ind=None,
@@ -1066,13 +1070,14 @@ def  _Rays_plot_3D(L,Leg=None,Lplot='Tot',Elt='LDIORr',ax=None,
         ax = _def.Plot_3D_plt_Tor_DefAxes(fs=fs, wintit=wintit)
 
     if 'L' in Elt:
-        pts = L._get_plotL(Lplot=Lplot, proj='3d', ind=ind, multi=multi)
+        _, _, x, y, z = L._get_plotL(Lplot=Lplot, proj='3d',
+                                     reflections=reflections, ind=ind, multi=multi)
         if multi:
-            for ii in range(0,len(pts)):
-                ax.plot(pts[ii][0,:], pts[ii][1,:], pts[ii][2,:],
+            for ii in range(0,len(x)):
+                ax.plot(x[ii], y[ii], z[ii],
                         label=Leg[ii], **dL)
         else:
-            ax.plot(pts[0,:], pts[1,:], pts[2,:], label=Leg, **dL)
+            ax.plot(x, y, z, label=Leg, **dL)
 
     for kk in dPts.keys():
         if kk in Elt:
