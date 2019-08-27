@@ -326,7 +326,7 @@ cdef inline void sum_by_rows(double *orig, double *out,
     cdef double* res
     # .. initialization
     res = <double*>malloc(max_r*sizeof(double))
-    for b in range(n_blocks):
+    for b in prange(n_blocks):
         for i in range(max_r):
             res[i] = 0
         for j in range(n_cols):
@@ -338,10 +338,10 @@ cdef inline void sum_by_rows(double *orig, double *out,
     left = n_rows - n_blocks*max_r;
     for i in prange(max_r):
         res[i] = 0
-    for j in range(n_cols):
+    for j in prange(n_cols):
         for i in range(left): #calculate sum for left rows simultaniously
             res[i]+=orig[(n_blocks*max_r)*n_cols+j]
-    for i in range(left):
+    for i in prange(left):
         out[n_blocks*max_r+i]=res[i]
     free(res)
     return
@@ -352,9 +352,17 @@ cdef inline void sum_by_rows(double *orig, double *out,
 cdef inline void sum_naive_rows(double* orig, double* out,
                                 int n_rows, int n_cols) nogil:
     cdef int ii, jj
-    for ii in range(n_rows):
+    for ii in prange(n_rows):
         out[ii] = 0
         for jj in range(n_cols):
             out[ii] += orig[ii*n_cols + jj]
 
     return
+
+
+cdef inline double sum_naive(double* orig, int n_cols) nogil:
+    cdef int ii
+    cdef double out = 0.
+    for ii in prange(n_cols):
+        out += orig[ii]
+    return out
