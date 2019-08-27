@@ -252,13 +252,11 @@ cdef inline int triangulate_polys(double** vignett_poly,
     """
     cdef int ivign, ii
     cdef int nvert
-    cdef double* diff
-    cdef bint* lref
+    cdef double* diff = NULL
+    cdef bint* lref = NULL
     # ...
     # -- Defining parallel part ------------------------------------------------
     with nogil, parallel(num_threads=num_threads):
-        diff = NULL
-        lref = NULL
         for ivign in prange(nvign):
             nvert = lnvert[ivign]
             diff = <double*>malloc(3*nvert*sizeof(double))
