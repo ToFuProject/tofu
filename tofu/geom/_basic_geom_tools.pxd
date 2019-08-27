@@ -107,3 +107,5 @@ cdef void sum_by_rows(double *orig, double *out,
 cdef void sum_naive_rows(double* orig, double* out,
                          int n_rows, int n_cols) nogil
 cdef double sum_naive(double* orig, int n_cols) nogil
+
+cdef long sum_naive_int(long* orig, int n_cols) nogil

@@ -1565,19 +1565,90 @@ cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double lo
     return pts
 
 
+cdef inline int los_get_sample_core_const_res(int nlos,
+                                              double* los_lim_min,
+                                              double* los_lim_max,
+                                              int n_dmode, int n_imode,
+                                              double val_resol,
+                                              double** coeff_ptr,
+                                              double* dLr,
+                                              long** los_ind,
+                                              int num_threads) nogil:
+    # ...
+    cdef int N
+    cdef int ntmp
+    if n_dmode==1:
+        #         return coeff_arr, dLr, los_ind[:nlos-1]
+        N = <int> Cceil(1./val_resol)
+        los_ind[0] = <long*>malloc((nlos-1)*sizeof(long))
+        if n_imode==0: # sum
+            #coeff_arr = np.empty((N*nlos,), dtype=float)
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*N*nlos)
+            middle_rule_rel(nlos, N, los_lim_min, los_lim_max,
+                                &dLr[0], coeff_ptr[0], los_ind[0],
+                                num_threads=num_threads)
+            return N*nlos
+        elif n_imode==1: #simps
+            N = N if N%2==0 else N+1
+            # coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
+            left_rule_rel(nlos, N,
+                              los_lim_min, los_lim_max, &dLr[0],
+                              coeff_ptr[0], los_ind[0],
+                              num_threads=num_threads)
+            return (N+1)*nlos
+        elif n_imode==2: #romb
+            N = 2**(<int>Cceil(Clog2(N)))
+            # coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
+            left_rule_rel(nlos, N,
+                              los_lim_min, los_lim_max,
+                              &dLr[0], coeff_ptr[0], los_ind[0],
+                              num_threads=num_threads)
+            return (N+1)*nlos
+    else:
+        los_ind[0] = <long*>malloc((nlos)*sizeof(long))
+        if n_imode==0: #sum
+            middle_rule_abs_1(nlos, val_resol, los_lim_min, los_lim_max,
+                                  &dLr[0], los_ind[0],
+                                  num_threads=num_threads)
+            #ntmp = np.sum(los_ind)
+            #coeff_arr = np.empty((ntmp,), dtype=float)
+            ntmp = _bgt.sum_naive_int(los_ind[0], nlos)
+            coeff_ptr[0] = <double*>malloc(sizeof(double)*ntmp)
+            middle_rule_abs_2(nlos, los_lim_min, los_ind[0],
+                                  &dLr[0], coeff_ptr[0],
+                                  num_threads=num_threads)
+            return ntmp
+        elif n_imode==1:# simps
+            simps_left_rule_abs(nlos, val_resol,
+                                    los_lim_min, los_lim_max,
+                                    &dLr[0], coeff_ptr, los_ind[0],
+                                    num_threads=num_threads)
+            return los_ind[0][nlos-1]
+        else:# romb
+            romb_left_rule_abs(nlos, val_resol,
+                                   los_lim_min, los_lim_max,
+                                   &dLr[0], coeff_ptr, los_ind[0],
+                                   num_threads=num_threads)
+            return los_ind[0][nlos-1]
+    return -1
+
+
 # -- calling sampling and intergrating with sum --------------------------------
-cdef inline void integrate_c_sum_nlos(double* val_mv,
-                                      double[::1,:] sig,
-                                      long[:] indis,
-                                      int nlos, int nres, int nt,
-                                      double* loc_eff_res,
-                                      int num_threads) nogil:
-    cdef int ilos
-    for ilos in range(nlos):
-        integrate_c_sum_mat(&val_mv[0, indbis[ii]],
-                            &sig[:,ii], nt, nres, nt,
-                            loc_eff_res[ii], num_threads)
-    return
+# cdef inline void integrate_c_sum_nlos(double* val_mv,
+#                                       double[::1,:] sig,
+#                                       long[:] indis,
+#                                       int nlos, int nres, int nt,
+#                                       double* loc_eff_res,
+#                                       long* indbis,
+#                                       int num_threads) nogil:
+#     cdef int ilos
+#     for ilos in range(nlos):
+#         integrate_c_sum_mat(&val_mv[0, indbis[ii]],
+#                             &sig[:,ii], nt, nres, nt,
+#                             loc_eff_res[ii], num_threads)
+#     return
 
 cdef inline void integrate_c_sum_mat(double* val_mv,
                                     double* sig,

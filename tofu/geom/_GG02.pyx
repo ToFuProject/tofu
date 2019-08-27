@@ -2626,7 +2626,7 @@ def vignetting(double[:, ::1] ray_orig,
 #                                  LOS SAMPLING
 #
 # ==============================================================================
-def LOS_get_sample(int nlos, dL, double[:,::1] DLs, str dmethod='abs',
+def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                    str method='sum', bint Test=True, int num_threads=16):
     """
     Return the sampled line, with the specified method
@@ -2641,7 +2641,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] DLs, str dmethod='abs',
         If dL is a single double: discretization step for all LOS.
         Else dL should be a list of size nlos with the discretization
         step for each nlos.
-    DLs: (2, nlos) double array
+    los_lims: (2, nlos) double array
         For each nlos, it given the maximum and minimum limits of the ray
     dmethod: string
         type of discretization step: 'abs' for absolute or 'rel' for relative
@@ -2662,6 +2662,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] DLs, str dmethod='abs',
     cdef str imode = method.lower()
     cdef int sz1_dls, sz2_dls
     cdef int N
+    cdef int sz_coeff
     cdef int n_imode, n_dmode
     cdef long ntmp
     cdef bint dl_is_list
@@ -2673,16 +2674,18 @@ def LOS_get_sample(int nlos, dL, double[:,::1] DLs, str dmethod='abs',
     cdef np.ndarray[long,ndim=1] los_ind
     cdef long* tmp_arr
     cdef double* los_coeffs = NULL
+    cdef double** coeff_ptr = NULL
+    cdef long** los_ind_ptr = NULL
     # .. ray_orig shape needed for testing and in algo .........................
     dLr = np.zeros((nlos,), dtype=float)
     los_ind = np.zeros((nlos,), dtype=int)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
-        sz1_dls = DLs.shape[0]
-        sz2_dls = DLs.shape[1]
-        assert sz1_dls == 2, "Dim 0 of arg DLs should be 2"
-        error_message = "Args DLs should have dim 1 = nlos"
+        sz1_dls = los_lims.shape[0]
+        sz2_dls = los_lims.shape[1]
+        assert sz1_dls == 2, "Dim 0 of arg los_lims should be 2"
+        error_message = "Args los_lims should have dim 1 = nlos"
         assert nlos == sz2_dls, error_message
         bool1 = not dl_is_list and dL > 0.
         bool2 = dl_is_list and len(dL)==nlos and np.all(dL>0.)
@@ -2693,89 +2696,75 @@ def LOS_get_sample(int nlos, dL, double[:,::1] DLs, str dmethod='abs',
         error_message = "Wrong method of integration." \
                         + " Options are: ['sum','simps','romb', 'linspace']"
         assert imode in ['sum','simps','romb','linspace'], error_message
-
+    # Init
+    coeff_ptr = <double**> malloc(sizeof(double*))
+    los_ind_ptr = <long**> malloc(sizeof(long*))
+    coeff_ptr[0] = NULL
+    los_ind_ptr[0] = NULL
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
-    # Case with unique dL
+    # Case with unique discretization step dL
     if not dl_is_list:
         val_resol = dL
-        if n_dmode==1:
-            N = <int> Cceil(1./val_resol)
-            if n_imode==0: # sum
-                coeff_arr = np.empty((N*nlos,), dtype=float)
-                _st.middle_rule_rel(nlos, N, &DLs[0,0], &DLs[1, 0],
-                                    &dLr[0], &coeff_arr[0], &los_ind[0],
-                                    num_threads=num_threads)
-            elif n_imode==1: #simps
-                N = N if N%2==0 else N+1
-                coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
-                _st.left_rule_rel(nlos, N,
-                                  &DLs[0,0], &DLs[1, 0], &dLr[0],
-                                  &coeff_arr[0], &los_ind[0],
-                                  num_threads=num_threads)
-            elif n_imode==2: #romb
-                N = 2**(int(Cceil(Clog2(N))))
-                coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
-                _st.left_rule_rel(nlos, N,
-                                  &DLs[0,0], &DLs[1, 0],
-                                  &dLr[0], &coeff_arr[0], &los_ind[0],
-                                  num_threads=num_threads)
-            return coeff_arr, dLr, los_ind[:nlos-1]
-        else:
-            if n_imode==0: #sum
-                _st.middle_rule_abs_1(nlos, val_resol, &DLs[0,0], &DLs[1, 0],
-                                      &dLr[0], &los_ind[0],
-                                      num_threads=num_threads)
-                ntmp = np.sum(los_ind)
-                coeff_arr = np.empty((ntmp,), dtype=float)
-                _st.middle_rule_abs_2(nlos, &DLs[0,0], &los_ind[0],
-                                      &dLr[0], &coeff_arr[0],
-                                      num_threads=num_threads)
-                return coeff_arr, dLr, los_ind[0:nlos-1]
-            elif n_imode==1:# simps
-                _st.simps_left_rule_abs(nlos, val_resol,
-                                        &DLs[0,0], &DLs[1, 0],
-                                        &dLr[0], &los_coeffs, &los_ind[0],
-                                        num_threads=num_threads)
-            else:# romb
-                _st.romb_left_rule_abs(nlos, val_resol,
-                                       &DLs[0,0], &DLs[1, 0],
-                                       &dLr[0], &los_coeffs, &los_ind[0],
-                                       num_threads=num_threads)
+        sz_coeff = _st.los_get_sample_core_const_res(nlos,
+                                                     &los_lims[0,0],
+                                                     &los_lims[1, 0],
+                                                     n_dmode, n_imode,
+                                                     val_resol,
+                                                     &coeff_ptr[0],
+                                                     &dLr[0],
+                                                     &los_ind_ptr[0],
+                                                     num_threads)
+        print("dl_is list = ", dl_is_list, n_dmode)
+        print("coeffs 0 ", coeff_ptr[0][0])
+        print("lind 0 ", los_ind_ptr[0][0], los_ind_ptr[0][1])
+        coeffs = np.copy(np.asarray(<double[:sz_coeff]> coeff_ptr[0]))
+        indices = np.copy(np.asarray(<long[:nlos-1]> los_ind_ptr[0]).astype(int))
+        if not los_ind_ptr == NULL:
+            if not los_ind_ptr[0] == NULL:
+                free(los_ind_ptr[0])
+            free(los_ind_ptr)
+        if not coeff_ptr == NULL:
+            if not coeff_ptr[0] == NULL:
+                free(coeff_ptr[0])
+            free(coeff_ptr)
+        print("coeffs 0 ", coeffs[0])
+        print("indices 0 ", indices[0], indices[1])
+        return coeffs, dLr, indices
     # Case with different resolution for each LOS
     else:
         dl_view=dL
         if n_dmode==0:
             if n_imode==0: # sum
                 _st.middle_rule_abs_var(nlos, &dl_view[0],
-                                        &DLs[0,0], &DLs[1, 0],
+                                        &los_lims[0,0], &los_lims[1, 0],
                                         &dLr[0], &los_coeffs, &los_ind[0],
                                         num_threads=num_threads)
             elif n_imode==1:# simps
                 _st.simps_left_rule_abs_var(nlos, &dl_view[0],
-                                            &DLs[0,0], &DLs[1, 0],
+                                            &los_lims[0,0], &los_lims[1, 0],
                                             &dLr[0], &los_coeffs, &los_ind[0],
                                             num_threads=num_threads)
             else: # romb
                 _st.romb_left_rule_abs_var(nlos, &dl_view[0],
-                                           &DLs[0,0], &DLs[1, 0],
+                                           &los_lims[0,0], &los_lims[1, 0],
                                            &dLr[0], &los_coeffs, &los_ind[0],
                                            num_threads=num_threads)
         else:
             if n_imode==0: # sum
                 _st.middle_rule_rel_var(nlos, &dl_view[0],
-                                        &DLs[0,0], &DLs[1, 0],
+                                        &los_lims[0,0], &los_lims[1, 0],
                                         &dLr[0], &los_coeffs, &los_ind[0],
                                         num_threads=num_threads)
             elif n_imode==1: # simps
                 _st.simps_left_rule_rel_var(nlos, &dl_view[0],
-                                            &DLs[0,0], &DLs[1, 0],
+                                            &los_lims[0,0], &los_lims[1, 0],
                                             &dLr[0], &los_coeffs, &los_ind[0],
                                             num_threads=num_threads)
             else: # romb
                 _st.romb_left_rule_rel_var(nlos, &dl_view[0],
-                                           &DLs[0,0], &DLs[1, 0],
+                                           &los_lims[0,0], &los_lims[1, 0],
                                            &dLr[0], &los_coeffs, &los_ind[0],
                                            num_threads=num_threads)
     return np.asarray(<double[:los_ind[nlos-1]]> los_coeffs),\

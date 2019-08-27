@@ -218,12 +218,23 @@ cdef cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double los_kmin,
                             double[:,::1] ray_orig,
                             double[:,::1] ray_vdir)
 
-cdef void integrate_c_sum_nlos(double* val_mv,
-                                      double[::1,:] sig,
-                                      long[:] indis,
-                                      int nlos, int nres, int nt,
-                                      double* loc_eff_res,
-                                      int num_threads) nogil
+cdef int los_get_sample_core_const_res(int nlos,
+                                       double* los_lim_min,
+                                       double* los_lim_max,
+                                       int n_dmode, int n_imode,
+                                       double val_resol,
+                                       double** coeff_ptr,
+                                       double* dLr,
+                                       long** los_ind,
+                                       int num_threads) nogil
+
+# -- Integrations utility function ---------------------------------------------
+# cdef void integrate_c_sum_nlos(double* val_mv,
+#                                       double[::1,:] sig,
+#                                       long[:] indis,
+#                                       int nlos, int nres, int nt,
+#                                       double* loc_eff_res,
+#                                       int num_threads) nogil
 
 cdef void integrate_c_sum_mat(double* val_mv,
                               double* sig,

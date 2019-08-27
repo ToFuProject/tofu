@@ -366,3 +366,10 @@ cdef inline double sum_naive(double* orig, int n_cols) nogil:
     for ii in prange(n_cols):
         out += orig[ii]
     return out
+
+cdef inline long sum_naive_int(long* orig, int n_cols) nogil:
+    cdef int ii
+    cdef long out = 0
+    for ii in prange(n_cols):
+        out += orig[ii]
+    return out
