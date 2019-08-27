@@ -567,10 +567,12 @@ cdef inline void middle_rule_abs_var(int nlos, double* resolutions,
 
 
 cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
-                                           double* los_resolution,
-                                           long* los_ind,
-                                           long* los_nraf,
-                                           int num_threads) nogil:
+                                        double* los_kmin,
+                                        double* los_kmax,
+                                        double* los_resolution,
+                                        long* los_ind,
+                                        long* los_nraf,
+                                        int num_threads) nogil:
     # Middle quadrature rule with relative variable resolution step
     # for SEVERAL LOS
     cdef Py_ssize_t ii
@@ -580,7 +582,7 @@ cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
     cdef double loc_resol
     # ... Treating the first los .....................................
     num_raf = <int>(Cceil(1./resolutions[0]))
-    loc_resol = 1./num_raf
+    loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
     los_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
@@ -588,7 +590,7 @@ cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
     # .. Treating the rest of los ....................................
     for ii in range(1,nlos):
         num_raf = <int>(Cceil(1./resolutions[ii]))
-        loc_resol = 1./num_raf
+        loc_resol = (los_kmax[ii] - los_kmin[ii])/num_raf
         los_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
@@ -638,10 +640,11 @@ cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
     # ...
     los_nraf = <long*> malloc(nlos * sizeof(long))
     middle_rule_rel_var_s1(nlos, resolutions,
-                              los_resolution,
-                              los_ind,
-                              los_nraf,
-                              num_threads)
+                           los_resolution,
+                           los_kmin, los_kmax,
+                           los_ind,
+                           los_nraf,
+                           num_threads)
     los_coeffs[0] = <double*>malloc(los_ind[nlos-1]*sizeof(double))
     middle_rule_rel_var_s2(nlos, resolutions,
                            los_resolution,
@@ -874,7 +877,7 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
     num_raf = <int>(Cceil(1./resolutions[0]))
     if num_raf%2==1:
         num_raf = num_raf+1
-    loc_resol = 1. / num_raf
+    loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
     los_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
@@ -884,7 +887,7 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
         num_raf = <int>(Cceil(1./resolutions[ii]))
         if num_raf%2==1:
             num_raf = num_raf+1
-        loc_resol = 1. / num_raf
+        loc_resol = (los_kmax[ii] - los_kmin[ii])/num_raf
         los_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
@@ -1034,7 +1037,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
     cdef double loc_resol
     num_raf = <int>(Cceil(1./resolutions[0]))
     num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
-    loc_resol = 1. / num_raf
+    loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
     los_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
@@ -1043,7 +1046,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
     for ii in range(1,nlos):
         num_raf = <int>(Cceil(1./resolutions[ii]))
         num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
-        loc_resol = 1. / num_raf
+        loc_resol = (los_kmax[ii] - los_kmin[ii])/num_raf
         los_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
