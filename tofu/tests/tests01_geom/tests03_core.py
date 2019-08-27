@@ -925,6 +925,26 @@ class Test03_Rays(object):
                 # Just to check the loaded version works fine
                 obj2.strip(0, verb=verb)
                 os.remove(pfe)
+    def test15_get_sample_same_res_unit(self):
+        dmeths = ['rel', 'abs']
+        qmeths = ['simps', 'romb', 'sum']
+
+        dL = 0.25
+        DL = np.array([[1.,10.],[2.,20.]])
+
+        for dm in dmeths:
+            for qm in qmeths:
+                print("============ for: ", dm, " -", qm, "=======")
+                out = _GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
+                k = out[0]
+                lind = out[2]
+                print(" k =", k)
+                print("lind =", lind)
+                assert np.all(k[:lind[0]] >= DL[0][0])
+                assert np.all(k[:lind[0]] <= DL[1][0])
+                assert np.all(k[lind[0]:] >= DL[0][1])
+                assert np.all(k[lind[0]:] <= DL[1][1])
+                print("================= OK =======================")
 
 
 """
