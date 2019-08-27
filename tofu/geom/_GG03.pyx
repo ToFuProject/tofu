@@ -2894,7 +2894,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
            with pts : ndarray (3, npts) - points where function is evaluated
                 vect : ndarray(3, npts) - if anisotropic signal vector of emiss.
                 t: ndarray(m) - times where to compute the function
-           returns: data : ndarray(nlos) if t is None, else ndarray(nt,nraf)
+           returns: data : ndarray(nt,nraf) if nt = 1, the array must be 2D
                            values of func at pts, at given time
            func is the function to be integrated along the LOS
     ray_orig: ndarray (3, nlos) LOS origins
@@ -2934,7 +2934,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef bint C0, C1
     cdef unsigned int nlos
     cdef unsigned int nt=0, axm, ii, jj
-    cdef np.ndarray[double,ndim=2] val_2d
+    cdef np.ndarray[double,ndim=2, mode='c'] val_2d
     cdef np.ndarray[double,ndim=2] usbis
     cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=2, mode='fortran'] sig
@@ -2944,8 +2944,8 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef np.ndarray[double,ndim=1] res_arr
     cdef np.ndarray[long,ndim=1] ind
     cdef double[1] loc_eff_res
-    cdef double[:,::1] val_mv
     cdef double[:] sig_mv
+    cdef double[:,::1] val_mv
     cdef double* vsum
     cdef long[1] nb_rows
     # .. ray_orig shape needed for testing and in algo ...............................
@@ -3021,6 +3021,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         indbis = np.concatenate(([0],ind,[k.size]))
         # Integrate
         if method=='sum':
+            val_mv = val
             for ii in range(nlos):
                 sig[:,ii] = np.sum(val[:,indbis[ii]:indbis[ii+1]],
                                    axis=-1)*reseff[ii]
@@ -3137,9 +3138,13 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    _st.integrate_c_sum(&val_2d[0,0], &sig[0,ii], nt,
-                                        nt, nb_rows[0],                
-                                        loc_eff_res[0], 48)
+                    # this should be the quickest solution... but isn't
+                    # for a question of time, we'll investigate some time
+                    # how to make it faster, and for the time being we leave it
+                    # commented
+                    _st.integrate_c_sum_mat(&val_2d[0,0], &sig[0,ii], nt,
+                                            nt, nb_rows[0],                
+                                            loc_eff_res[0], num_threads)
                     # sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
@@ -3176,9 +3181,13 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val_2d = func(pts, t=t, **fkwdargs)
-                    _st.integrate_c_sum(&val_2d[0,0], &sig[0,ii], nt,
-                                        nt, nb_rows[0],
-                                        loc_eff_res[0], num_threads)
+                    # this should be the quickest solution... but isn't
+                    # for a question of time, we'll investigate some time
+                    # how to make it faster, and for the time being we leave it
+                    # commented
+                    _st.integrate_c_sum_mat(&val_2d[0,0], &sig[0,ii], nt,
+                                            nt, nb_rows[0],
+                                            loc_eff_res[0], num_threads)
                     # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
@@ -3204,7 +3213,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     val = func(pts, t=t, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
-    return np.ascontiguousarray(sig)
+    return sig
 
 
 ######################################################################
