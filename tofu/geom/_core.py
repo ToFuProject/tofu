@@ -3841,7 +3841,7 @@ class Rays(utils.ToFuObject):
         return lcam, Types
 
 
-    def add_reflections(self, Type=None, nb=None, coefs=None):
+    def add_reflections(self, Type=None, nb=None):
         """ Add relfected LOS to the camera
 
         Reflected LOS can be of 3 types:
@@ -3859,42 +3859,37 @@ class Rays(utils.ToFuObject):
             nb = 1
         nb = int(nb)
         assert nb > 0
-        if coefs is not None:
-            coefs = np.atleast_1d(coefs).astype(float).ravel()
-            if coefs.size == 1:
-                coefs = np.repeat(coefs, self.nRays)
-            assert coefs.shape == (self.nRays,)
-            assert np.all(coefs >= 0.) and np.all(coefs <= 1.)
 
         # Prepare output
         nRays = self.nRays
-        Types = np.full((nb,nRays), 0, dtype=int)
-        us = np.full((nb,3,nRays), np.nan, dtype=float)
-        kouts = np.full((nb,nRays), np.nan, dtype=float)
-        indouts = np.full((nb,3,nRays), 0, dtype=int)
-        vperps = np.full((nb,3,nRays), np.nan, dtype=float)
+        Types = np.full((Rays,nb), 0, dtype=int)
+        Ds = np.full((3,nRays,nb), np.nan, dtype=float)
+        us = np.full((3,nRays,nb), np.nan, dtype=float)
+        kouts = np.full((nRays,nb), np.nan, dtype=float)
+        indouts = np.full((3,nRays,nb), 0, dtype=int)
+        vperps = np.full((3,nRays,nb), np.nan, dtype=float)
 
         # Run first iteration
-        Ds = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
-        us[0,:,:], Types[0,:] = self.config._reflect_geom(self.u,
+        Ds[:,:,0] = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
+        us[:,:,0], Types[:,0] = self.config._reflect_geom(self.u,
                                                           self._dgeom['vperp'],
                                                           Type=Type)
-        largs, dkwd = self._prepare_inputs_kInOut(D=Ds, u=us[0,:,:])
+        largs, dkwd = self._prepare_inputs_kInOut(D=Ds[:,:,0], u=us[:,:,0])
         outi = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[1:]
-        kouts[0,:], vperps[0,:,:], indouts[0,:,:] = outi
+        kouts[:,0], vperps[:,:,0], indouts[:,:,0] = outi
 
         # Run other iterations
         for ii in range(1,nb):
-            Ds = Ds + (kouts[ii-1:ii,:]-1.e-12) * us[ii-1,:,:]
-            us[ii,:,:], Types[ii,:] = self.config._reflect_geom(us[ii-1,:,:],
-                                                                vperps[ii-1,:,:],
+            Ds[:,:,ii] = Ds[:,:,ii-1] + (kouts[:,ii-1:ii]-1.e-12) * us[:,:,ii-1]
+            us[:,:,ii], Types[:,ii] = self.config._reflect_geom(us[:,:,ii-1],
+                                                                vperps[:,:,ii-1],
                                                                 Type=Type)
-            outi = _GG.LOS_Calc_PInOut_VesStruct(Ds, us[ii,:,:],
+            outi = _GG.LOS_Calc_PInOut_VesStruct(Ds[:,:,ii], us[:,:,ii],
                                                  *largs[2:], **dkwd)[1:]
-            kouts[ii,:], vperps[ii,:,:], indouts[ii,:,:] = outi
+            kouts[:,ii], vperps[:,:,ii], indouts[:,:,ii] = outi
 
         self._dgeom['dreflect'] = {'nb':nb, 'Type':Type, 'Types':Types,
-                                   'us':us, 'kouts':kouts, 'indouts':indouts}
+                                   'Ds':Ds, 'us':us, 'kouts':kouts, 'indouts':indouts}
 
 
 
@@ -4358,30 +4353,44 @@ class Rays(utils.ToFuObject):
             obj = self.__class__(fromdict=dd)
         return obj
 
-    def _get_plotL(self, reflections=True, Lplot='Tot', proj='All', ind=None, multi=False):
+    def _get_plotL(self, reflections=True, Lplot='Tot',
+                   proj='All', ind=None, multi=False):
         """ Get the (R,Z) coordinates of the cross-section projections """
         ind = self._check_indch(ind)
-        if ind.size>0:
-            Ds, us = self.D[:,ind], self.u[:,ind]
-            if ind.size==1:
-                Ds, us = Ds.reshape((3,1)), us.reshape((3,1))
-            kPIn, kPOut = self.kIn[ind], self.kOut[ind]
-            if self.config.Id.Type=='Tor':
-                kRMin = self._dgeom['kRMin'][ind]
+        if ind.size > 0:
+            if Lplot.lower() == 'tot':
+                Ds = self.D[:,ind]
             else:
-                kRMin = None
+                Ds = self.D[:,ind] + self.kIn[None,ind] * self.u[:,ind]
+                kOuts = np.atleast_1d(self.kOut[ind])[:,None]
+            if ind.size == 1:
+                Ds, us = Ds[:,None], us[:,None]
+            Ds, us = Ds[:,:,None], us[:,:,None]
+            kRMin = None
 
             # Add reflections ?
             c0 = (reflections and self._dgeom.get('dreflect') is not None
                   and self._dgeom['dreflect'].get('us') is not None)
             if c0:
-                pts = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
-                                          kPIn, kPOut, kRMin, proj=proj,
-                                          Lplot=Lplot, multi=multi)
-            else:
-                pts = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
-                                          kPIn, kPOut, kRMin, proj=proj,
-                                          Lplot=Lplot, multi=multi)
+                Dsadd = self._dgeom['dreflect']['Ds'][:,ind,:]
+                usadd = self._dgeom['dreflect']['us'][:,ind,:]
+                kOutsadd = self._dgeom['dreflect']['kouts'][ind,:]
+                if ind.size == 1:
+                    Dsadd, usadd = Dsadd[:,None,:], usadd[:,None,:]
+                    kOutsadd = kOutsadd[:,None,:]
+                Ds = np.concatenate((Ds, Dsadd), axis=-1)
+                us = np.concatenate((us, usadd), axis=-1)
+                kOuts = np.concatenate((kOuts, kOutsadd), axis=-1)
+                if self.config.Id.Type == 'Tor':
+                    kRMin = _comp.LOS_PRMin(Ds, us, kPOut=kOuts,
+                                            Eps=1.e-12, squeeze=False)
+
+            elif self.config.Id.Type == 'Tor':
+                kRMin = self._dgeom['kRMin'][ind][:,None]
+
+            pts = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
+                                      kOuts, kRMin, proj=proj,
+                                      Lplot=Lplot, multi=multi)
         else:
             pts = None
         return pts

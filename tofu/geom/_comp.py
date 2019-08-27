@@ -449,41 +449,51 @@ def _get_phithetaproj_dist(poly_closed, ax, Dtheta, nDtheta,
 ###############################################################################
 """
 
-def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
+def LOS_PRMin(Ds, us, kPOut=None, Eps=1.e-12, squeeze=True, Test=True):
     """  Compute the point on the LOS where the major radius is minimum """
     if Test:
-        assert Ds.ndim in [1,2] and 3 in Ds.shape and Ds.shape==dus.shape
-        assert kPOut is None or (Ds.ndim==1 and not hasattr(kPOut,'__iter__')) or (Ds.ndim==2 and kPOut.shape==(Ds.size/3,))
+        assert Ds.ndim in [1,2,3] and 3 in Ds.shape and Ds.shape == us.shape
+    if kOut is not None:
+        kOut = np.atleast_1d(kOut)
+        assert kOut.size == Ds.size/3
 
-    v = Ds.ndim==1
-    if v:
-        Ds = Ds.reshape((3,1))
-        dus = dus.reshape((3,1))
-        if kPOut is not None:
-            kPOut = np.array([kPOut])
+    v = Ds.ndim == 1
+    if Ds.ndim == 1:
+        Ds, us = Ds[:,None,None], us[:,None,None]
+    elif Ds.ndim == 2:
+        Ds, us = Ds[:,:,None], us[:,:,None]
+    if kOut is not None:
+        kOut = kOut[:,None]
+    nref, _, nlos = Ds.shape
 
-    kRMin = np.nan*np.ones((Ds.shape[1],))
-    uparN = np.sqrt(dus[0,:]**2 + dus[1,:]**2)
+    kRMin = np.full((nlos,nref), np.nan)
+    uparN = np.sqrt(us[0,:,:]**2 + us[1,:,:]**2)
 
     # Case with u vertical
-    ind = uparN>Eps
+    ind = uparN > Eps
     kRMin[~ind] = 0.
 
     # Else
-    kRMin[ind] = -(dus[0,ind]*Ds[0,ind]+dus[1,ind]*Ds[1,ind])/uparN[ind]**2
+    kRMin[ind] = -(us[0,ind]*Ds[0,ind] + us[1,ind]*Ds[1,ind]) / uparN[ind]**2
 
     # Check
-    kRMin[kRMin<=0.] = 0.
-    if kPOut is not None:
-        kRMin[kRMin>kPOut] = kPOut[kRMin>kPOut]
+    kRMin[kRMin <= 0.] = 0.
+    if kOut is not None:
+        kRMin[kRMin > kOut] = kOut[kRMin > kOut]
 
-    if v:
-        kRMin = kRMin[0]
+    # squeeze
+    if squeeze:
+        if nref == 1 and nlos == 11:
+            kRMin = kRMin[0,0]
+        elif nref == 1:
+            kRMin = kRMin[:,0]
+        elif nlos == 1:
+            kRMin = kRMin[0,:]
     return kRMin
 
 
 def LOS_CrossProj(VType, Ds, us, kIns, kOuts, kRMins,
-                  Lplot='In', proj='All', multi=False):
+                  proj='All', multi=False):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
     assert type(VType) is str and VType.lower() in ['tor','lin']
     assert Lplot.lower() in ['tot','in']
@@ -496,8 +506,8 @@ def LOS_CrossProj(VType, Ds, us, kIns, kOuts, kRMins,
         msg += "    - provided Ds.shape: %s\n"%str(Ds.shape)
         msg += "    - provided us.shape: %s"%str(us.shape)
         raise Exception(msg)
-    lc = [kIns.shape == kOuts.shape,
-          kIns.shape[-1] == Ds.shape[-1], kIns.ndim == Ds.ndim-1]
+    lc = [kIns.shape == (Ds.shape[-1],),
+          kOuts.shape[-1] == Ds.shape[-1], kOuts.ndim == Ds.ndim-1]
     if not all(lc):
         msg = "kIns and kOuts must have the same shape and ndim = Ds.ndim-1:\n"
         msg += "    - Ds.shape    : %s\n"%str(Ds.shape)
@@ -509,18 +519,17 @@ def LOS_CrossProj(VType, Ds, us, kIns, kOuts, kRMins,
     if Ds.ndim == 2:
         Ds = np.array([Ds])
         us = np.array([us])
-        kIns = np.array([kIns])
         kOuts = np.array([kOuts])
 
     nref, _, nL = Ds.shape
 
-    k0 = kIns if Lplot.lower() == 'in' else np.zeros((nL,))
+    #k0 = kIns if Lplot.lower() == 'in' else np.zeros((nL,))
 
     if VType.lower()=='tor' and proj in ['cross','all']:
         CrossProjAng = np.arccos(np.sqrt(us[:,0,:]**2+us[:,1,:]**2)
                                  /np.sqrt(np.sum(us**2,axis=0)))
         nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
-        ks = np.max([kRMins,kIns],axis=0) if Lplot.lower()=='in' else kRMins
+        #ks = np.max([kRMins,kIns],axis=0) if Lplot.lower()=='in' else kRMins
         pts0 = []
         if multi:
             for ii in range(0,nL):
