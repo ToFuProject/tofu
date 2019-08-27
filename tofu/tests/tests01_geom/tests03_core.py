@@ -928,8 +928,7 @@ class Test03_Rays(object):
     def test15_get_sample_same_res_unit(self):
         dmeths = ['rel', 'abs']
         qmeths = ['simps', 'romb', 'sum']
-
-        list_res = [0.25, [0.2, 0.5]]
+        list_res = [0.25, np.r_[0.2, 0.5]]
         DL = np.array([[1.,10.],[2.,20.]])
 
         for dL in list_res:
