@@ -2709,7 +2709,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
         val_resol = dL
         sz_coeff = _st.los_get_sample_core_const_res(nlos,
                                                      &los_lims[0,0],
-                                                     &los_lims[1, 0],
+                                                     &los_lims[1,0],
                                                      n_dmode, n_imode,
                                                      val_resol,
                                                      &coeff_ptr[0],
