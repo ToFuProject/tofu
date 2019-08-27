@@ -482,7 +482,7 @@ def LOS_PRMin(Ds, dus, kPOut=None, Eps=1.e-12, Test=True):
     return kRMin
 
 
-def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
+def LOS_CrossProj(VType, Ds, us, kIns, kOuts, kRMins,
                   Lplot='In', proj='All', multi=False):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
     assert type(VType) is str and VType.lower() in ['tor','lin']
@@ -490,34 +490,57 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
     assert type(proj) is str
     proj = proj.lower()
     assert proj in ['cross','hor','all','3d']
-    assert Ds.ndim==2 and Ds.shape==us.shape
-    nL = Ds.shape[1]
-    k0 = kPIns if Lplot.lower()=='in' else np.zeros((nL,))
+    lc = [Ds.ndim in [2,3], Ds.shape == us.shape]
+    if not all(lc):
+        msg = "Ds and us must have the same shape and dim in [2,3]:\n"
+        msg += "    - provided Ds.shape: %s\n"%str(Ds.shape)
+        msg += "    - provided us.shape: %s"%str(us.shape)
+        raise Exception(msg)
+    lc = [kIns.shape == kOuts.shape,
+          kIns.shape[-1] == Ds.shape[-1], kIns.ndim == Ds.ndim-1]
+    if not all(lc):
+        msg = "kIns and kOuts must have the same shape and ndim = Ds.ndim-1:\n"
+        msg += "    - Ds.shape    : %s\n"%str(Ds.shape)
+        msg += "    - kIns.shape  : %s\n"%str(kIns.shape)
+        msg += "    - kOutss.shape: %s"%str(kOuts.shape)
+        raise Exception(msg)
+
+    # Prepare inputs
+    if Ds.ndim == 2:
+        Ds = np.array([Ds])
+        us = np.array([us])
+        kIns = np.array([kIns])
+        kOuts = np.array([kOuts])
+
+    nref, _, nL = Ds.shape
+
+    k0 = kIns if Lplot.lower() == 'in' else np.zeros((nL,))
 
     if VType.lower()=='tor' and proj in ['cross','all']:
-        CrossProjAng = np.arccos(np.sqrt(us[0,:]**2+us[1,:]**2)
+        CrossProjAng = np.arccos(np.sqrt(us[:,0,:]**2+us[:,1,:]**2)
                                  /np.sqrt(np.sum(us**2,axis=0)))
         nkp = np.ceil(25.*(1 - (CrossProjAng/(np.pi/4)-1)**2) + 2)
-        ks = np.max([kRMins,kPIns],axis=0) if Lplot.lower()=='in' else kRMins
+        ks = np.max([kRMins,kIns],axis=0) if Lplot.lower()=='in' else kRMins
         pts0 = []
         if multi:
             for ii in range(0,nL):
-                if np.isnan(kPOuts[ii]):
-                    pts0.append( np.array([[np.nan,np.nan],
-                                           [np.nan,np.nan]]) )
-                else:
-                    k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
-                    k = np.unique(np.append(k,ks[ii]))
-                    pp = Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1]
-                    pts0.append( np.array([np.hypot(pp[0,:],pp[1,:]),pp[2,:]])  )
+                for jj in range(0,nref):
+                    if np.isnan(kOuts[jj,ii]):
+                        pts0.append( np.array([[np.nan,np.nan],
+                                               [np.nan,np.nan]]) )
+                    else:
+                        k = np.linspace(k0[ii], kOuts[jj,ii], nkp[ii], endpoint=True)
+                        k = np.unique(np.append(k,ks[ii]))
+                        pp = Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1]
+                        pts0.append( np.array([np.hypot(pp[0,:],pp[1,:]),pp[2,:]])  )
         else:
             for ii in range(0,nL):
-                if np.isnan(kPOuts[ii]):
+                if np.isnan(kOuts[ii]):
                     pts0.append(np.array([[np.nan,np.nan,np.nan],
                                           [np.nan,np.nan,np.nan],
                                           [np.nan,np.nan,np.nan]]))
                 else:
-                    k = np.linspace(k0[ii],kPOuts[ii],nkp[ii],endpoint=True)
+                    k = np.linspace(k0[ii],kOuts[ii],nkp[ii],endpoint=True)
                     k = np.append(np.unique(np.append(k,ks[ii])),np.nan)
                     pts0.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
             pts0 = np.concatenate(tuple(pts0),axis=1)
@@ -527,21 +550,21 @@ def LOS_CrossProj(VType, Ds, us, kPIns, kPOuts, kRMins,
         pts = []
         if multi:
             for ii in range(0,nL):
-                if np.isnan(kPOuts[ii]):
+                if np.isnan(kOuts[ii]):
                     pts.append( np.array([[np.nan,np.nan],
                                           [np.nan,np.nan],
                                           [np.nan,np.nan]]) )
                 else:
-                    k = np.array([k0[ii],kPOuts[ii]])
+                    k = np.array([k0[ii],kOuts[ii]])
                     pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
         else:
             for ii in range(0,nL):
-                if np.isnan(kPOuts[ii]):
+                if np.isnan(kOuts[ii]):
                     pts.append(np.array([[np.nan,np.nan,np.nan],
                                          [np.nan,np.nan,np.nan],
                                          [np.nan,np.nan,np.nan]]))
                 else:
-                    k = np.array([k0[ii],kPOuts[ii],np.nan])
+                    k = np.array([k0[ii],kOuts[ii],np.nan])
                     pts.append( Ds[:,ii:ii+1] + k[np.newaxis,:]*us[:,ii:ii+1] )
             pts = np.concatenate(tuple(pts),axis=1)
 

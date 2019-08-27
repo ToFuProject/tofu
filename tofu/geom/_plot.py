@@ -862,8 +862,8 @@ def Get_FieldsFrom_LLOS(L,Fields):
 
 
 
-def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
-              element='LDIORP', element_config='P',
+def Rays_plot(GLos, Lax=None, Proj='all', reflections=True,
+              Lplot=_def.LOSLplot, element='LDIORP', element_config='P',
               Leg=None, dL=None, dPtD=_def.LOSMd,
               dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
               dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False,
@@ -918,7 +918,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
 
     if len(ind)>0 and not element=='':
         if Proj=='3d':
-            Lax[0] = _Rays_plot_3D(GLos, ax=Lax[0], Elt=element, Lplot=Lplot,
+            Lax[0] = _Rays_plot_3D(GLos, ax=Lax[0],
+                                   reflections=reflections,
+                                   Elt=element, Lplot=Lplot,
                                    Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                    dPtO=dPtO, dPtR=dPtR, dPtP=dPtP, dLeg=None,
                                    multi=multi, ind=ind,
@@ -929,7 +931,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
                                                      fs=fs, wintit=wintit,
                                                      Type=GLos.config.Type))
             if Proj in ['cross','all']:
-                Lax[0] = _Rays_plot_Cross(GLos, ax=Lax[0], Elt=element, Lplot=Lplot,
+                Lax[0] = _Rays_plot_Cross(GLos, ax=Lax[0],
+                                          reflections=reflections,
+                                          Elt=element, Lplot=Lplot,
                                           Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                           dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
                                           dLeg=None, multi=multi, ind=ind,
@@ -937,7 +941,9 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
                                           Test=Test)
             if Proj in ['hor','all']:
                 ii = 0 if Proj=='hor' else 1
-                Lax[ii] = _Rays_plot_Hor(GLos, ax=Lax[ii], Elt=element, Lplot=Lplot,
+                Lax[ii] = _Rays_plot_Hor(GLos, ax=Lax[ii],
+                                         reflections=reflections,
+                                         Elt=element, Lplot=Lplot,
                                          Leg=Leg, dL=dL, dPtD=dPtD, dPtI=dPtI,
                                          dPtO=dPtO, dPtR=dPtR, dPtP=dPtP,
                                          dLeg=None, multi=multi, ind=ind,
@@ -952,7 +958,8 @@ def Rays_plot(GLos, Lax=None, Proj='all', Lplot=_def.LOSLplot,
 
 
 
-def _Rays_plot_Cross(L,Leg=None,Lplot='Tot', Elt='LDIORP',ax=None,
+def _Rays_plot_Cross(L,Leg=None, reflections=True,
+                     Lplot='Tot', Elt='LDIORP',ax=None,
                      dL=_def.LOSLd, dPtD=_def.LOSMd, dPtI=_def.LOSMd,
                      dPtO=_def.LOSMd, dPtR=_def.LOSMd, dPtP=_def.LOSMd,
                      dLeg=_def.TorLegd, multi=False, ind=None,

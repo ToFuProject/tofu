@@ -3920,12 +3920,12 @@ class Rays(utils.ToFuObject):
             if strip==1:
                 lkeep = ['D','u','pinhole','nRays',
                          'kIn','kOut','vperp','indout', 'kRMin',
-                         'Etendues','Surfaces','isImage','dX12']
+                         'Etendues','Surfaces','isImage','dX12', 'dreflect']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
             elif self._dstrip['strip']<=1 and strip>=2:
                 lkeep = ['D','u','pinhole','nRays',
                          'kIn','kOut','vperp','indout',
-                         'Etendues','Surfaces','isImage','dX12']
+                         'Etendues','Surfaces','isImage','dX12', 'dreflect']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
     def _strip_dconfig(self, strip=0, verb=True):
@@ -4358,7 +4358,7 @@ class Rays(utils.ToFuObject):
             obj = self.__class__(fromdict=dd)
         return obj
 
-    def _get_plotL(self, Lplot='Tot', proj='All', ind=None, multi=False):
+    def _get_plotL(self, reflections=True, Lplot='Tot', proj='All', ind=None, multi=False):
         """ Get the (R,Z) coordinates of the cross-section projections """
         ind = self._check_indch(ind)
         if ind.size>0:
@@ -4370,9 +4370,18 @@ class Rays(utils.ToFuObject):
                 kRMin = self._dgeom['kRMin'][ind]
             else:
                 kRMin = None
-            pts = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
-                                      kPIn, kPOut, kRMin, proj=proj,
-                                      Lplot=Lplot, multi=multi)
+
+            # Add reflections ?
+            c0 = (reflections and self._dgeom.get('dreflect') is not None
+                  and self._dgeom['dreflect'].get('us') is not None)
+            if c0:
+                pts = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
+                                          kPIn, kPOut, kRMin, proj=proj,
+                                          Lplot=Lplot, multi=multi)
+            else:
+                pts = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
+                                          kPIn, kPOut, kRMin, proj=proj,
+                                          Lplot=Lplot, multi=multi)
         else:
             pts = None
         return pts
@@ -4923,7 +4932,8 @@ class Rays(utils.ToFuObject):
 
 
 
-    def plot(self, lax=None, proj='all', Lplot=_def.LOSLplot, element='L',
+    def plot(self, lax=None, proj='all', reflections=True,
+             Lplot=_def.LOSLplot, element='L',
              element_config='P', Leg='', dL=None, dPtD=_def.LOSMd,
              dPtI=_def.LOSMd, dPtO=_def.LOSMd, dPtR=_def.LOSMd,
              dPtP=_def.LOSMd, dLeg=_def.TorLegd, multi=False, ind=None,
@@ -4937,15 +4947,18 @@ class Rays(utils.ToFuObject):
 
         Parameters
         ----------
-        Lax :       list / plt.Axes
+        lax :       list / plt.Axes
             The axes for plotting (list of 2 axes if Proj='All')
             If None a new figure with new axes is created
-        Proj :      str
+        proj :      str
             Flag specifying the kind of projection:
                 - 'Cross' : cross-section
                 - 'Hor' : horizontal
                 - 'All' : both cross-section and horizontal (on 2 axes)
                 - '3d' : a (matplotlib) 3d plot
+        projections:bool
+            Flag indicating whether to plot also the reflected rays
+            Assuming some reflected rays are present (self.add_reflections())
         element :   str
             Flag specifying which elements to plot
             Each capital letter corresponds to an element:
@@ -5004,7 +5017,8 @@ class Rays(utils.ToFuObject):
 
         """
 
-        return _plot.Rays_plot(self, Lax=lax, Proj=proj, Lplot=Lplot,
+        return _plot.Rays_plot(self, Lax=lax, Proj=proj,
+                               reflections=reflections, Lplot=Lplot,
                                element=element, element_config=element_config, Leg=Leg,
                                dL=dL, dPtD=dPtD, dPtI=dPtI, dPtO=dPtO, dPtR=dPtR,
                                dPtP=dPtP, dLeg=dLeg, multi=multi, ind=ind,
