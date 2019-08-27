@@ -1354,7 +1354,7 @@ cdef inline int los_get_sample_core_const_res(int nlos,
     if n_dmode==1: # relative
         #         return coeff_arr, dLr, los_ind[:nlos-1]
         N = <int> Cceil(1./val_resol)
-        los_ind[0] = <long*>malloc((nlos-1)*sizeof(long))
+        los_ind[0] = <long*>malloc((nlos)*sizeof(long))
         if n_imode==0: # sum
             #coeff_arr = np.empty((N*nlos,), dtype=float)
             coeff_ptr[0] = <double*>malloc(sizeof(double)*N*nlos)

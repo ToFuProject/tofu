@@ -2717,7 +2717,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                                                      &los_ind_ptr[0],
                                                      num_threads)
         coeffs = np.copy(np.asarray(<double[:sz_coeff]> coeff_ptr[0]))
-        indices = np.copy(np.asarray(<long[:nlos-1]> los_ind_ptr[0]).astype(int))
+        indices = np.copy(np.asarray(<long[:nlos]> los_ind_ptr[0]).astype(int))[:nlos-1]
         if not los_ind_ptr == NULL:
             if not los_ind_ptr[0] == NULL:
                 free(los_ind_ptr[0])
