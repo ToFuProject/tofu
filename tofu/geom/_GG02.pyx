@@ -2894,7 +2894,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef bint C0, C1
     cdef unsigned int nlos
     cdef unsigned int nt=0, axm, ii, jj
-    cdef np.ndarray[double,ndim=2, mode='c'] val_2d
+    cdef double[:,::1] val_2d
     cdef np.ndarray[double,ndim=2] usbis
     cdef np.ndarray[double,ndim=2] pts
     cdef np.ndarray[double,ndim=2, mode='fortran'] sig
@@ -2973,26 +2973,32 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         # get pts and values
         usbis = np.repeat(ray_vdir, nbrep, axis=1)
         if ani:
-            val = func(np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis,
+            val_2d = func(np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis,
                        t=t, vect=-usbis, **fkwdargs)
         else:
-            val = func(np.repeat(ray_orig,nbrep,axis=1) + k[None,:]*usbis,
+            val_2d = func(np.repeat(ray_orig,nbrep,axis=1) + k[None,:]*usbis,
                        t=t, **fkwdargs)
         indbis = np.concatenate(([0],ind,[k.size]))
         # Integrate
+        nb_rows[0] = val_2d.shape[0]
         if method=='sum':
-            val_mv = val
             for ii in range(nlos):
-                sig[:,ii] = np.sum(val[:,indbis[ii]:indbis[ii+1]],
-                                   axis=-1)*reseff[ii]
+                # sig[:,ii] = np.sum(val[:,indbis[ii]:indbis[ii+1]],
+                #                    axis=-1)*reseff[ii]
+                sig_mv = val_2d[:,indbis[ii]]
+                _st.integrate_c_sum_mat(&sig_mv[0],
+                                        &sig[0,ii], nt,
+                                        nt, nb_rows[0],
+                                        reseff[ii], num_threads)
+
         elif method=='simps':
             for ii in range(nlos):
-                sig[:,ii] = scpintg.simps(val[:,indbis[ii]:indbis[ii+1]],
+                sig[:,ii] = scpintg.simps(val_2d[:,indbis[ii]:indbis[ii+1]],
                                           x=None, dx=reseff[ii], axis=-1)
         else:
             axm = 1
             for ii in range(nlos):
-                sig[:,ii] = scpintg.romb(val[:,indbis[ii]:indbis[ii+1]],
+                sig[:,ii] = scpintg.romb(val_2d[:,indbis[ii]:indbis[ii+1]],
                                          dx=reseff[ii], axis=axm, show=False)
     # --------------------------------------------------------------------------
     # Minimize memory use: loop everything, starting with LOS
@@ -3006,6 +3012,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 res_arr[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3018,6 +3025,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 res_arr[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3031,6 +3039,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 res_arr[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3095,6 +3104,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 res_arr[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
@@ -3112,6 +3122,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 res_arr[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)
@@ -3124,6 +3135,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 res_arr[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)

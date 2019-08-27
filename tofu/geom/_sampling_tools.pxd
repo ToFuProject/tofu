@@ -178,6 +178,7 @@ cdef call_get_sample_single_ani(double los_kmin, double los_kmax,
                                 double resol,
                                 int n_dmode, int n_imode,
                                 double[1] eff_res,
+                                long[1] nb_rows,
                                 double[:,::1] ray_orig,
                                 double[:,::1] ray_vdir)
 
