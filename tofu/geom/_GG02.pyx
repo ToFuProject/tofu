@@ -2730,7 +2730,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                 free(coeff_ptr[0])
             free(coeff_ptr)
         print("coeffs 0 ", coeffs[0])
-        print("indices 0 ", indices[0], indices[1])
+        print("indices 0 ", indices[0])
         return coeffs, dLr, indices
     # Case with different resolution for each LOS
     else:
