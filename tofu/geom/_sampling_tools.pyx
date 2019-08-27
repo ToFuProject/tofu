@@ -819,7 +819,7 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
     first_index = 0
     los_ind[0] = num_raf + 1
     # ... Treating the rest of the los ..............................
-    for ii in range(nlos):
+    for ii in range(1, nlos):
         seg_length = los_kmax[ii] - los_kmin[ii]
         num_raf = <int>(Cceil(seg_length*inv_resol))
         num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
@@ -1402,9 +1402,9 @@ cdef inline int los_get_sample_core_const_res(int nlos,
             return los_ind[0][nlos-1]
         else:# romb
             romb_left_rule_abs(nlos, val_resol,
-                                   los_lim_min, los_lim_max,
-                                   &dLr[0], coeff_ptr, los_ind[0],
-                                   num_threads=num_threads)
+                               los_lim_min, los_lim_max,
+                               &dLr[0], coeff_ptr, los_ind[0],
+                               num_threads=num_threads)
             return los_ind[0][nlos-1]
     return -1
 

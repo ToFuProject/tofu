@@ -2707,10 +2707,6 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     # Case with unique discretization step dL
     if not dl_is_list:
         val_resol = dL
-        print("__________________________________________",
-              los_lims[0,0], los_lims[0,1])
-        print("__________________________________________",
-              los_lims[1,0], los_lims[1,1])
         sz_coeff = _st.los_get_sample_core_const_res(nlos,
                                                      &los_lims[0,0],
                                                      &los_lims[1,0],
@@ -2720,9 +2716,6 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                                                      &dLr[0],
                                                      &los_ind_ptr[0],
                                                      num_threads)
-        print("dl_is list = ", dl_is_list, n_dmode)
-        print("coeffs 0 ", coeff_ptr[0][0])
-        print("lind 0 ", los_ind_ptr[0][0], los_ind_ptr[0][1])
         coeffs = np.copy(np.asarray(<double[:sz_coeff]> coeff_ptr[0]))
         indices = np.copy(np.asarray(<long[:nlos-1]> los_ind_ptr[0]).astype(int))
         if not los_ind_ptr == NULL:
@@ -2733,8 +2726,6 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
             if not coeff_ptr[0] == NULL:
                 free(coeff_ptr[0])
             free(coeff_ptr)
-        print("coeffs 0 ", coeffs[0])
-        print("indices 0 ", indices[0])
         return coeffs, dLr, indices
     # Case with different resolution for each LOS
     else:
