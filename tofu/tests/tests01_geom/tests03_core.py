@@ -935,7 +935,7 @@ class Test03_Rays(object):
         for dm in dmeths:
             for qm in qmeths:
                 print("============ for: ", dm, " -", qm, "=======")
-                out = _GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
+                out = geom._GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
                 k = out[0]
                 lind = out[2]
                 print(" k =", k)
