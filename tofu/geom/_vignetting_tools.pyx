@@ -256,26 +256,25 @@ cdef inline int triangulate_polys(double** vignett_poly,
     cdef bint* lref
     # ...
     # -- Defining parallel part ------------------------------------------------
-    # with nogil, parallel(num_threads=num_threads):
-        # diff = NULL
-        # lref = NULL
-        # for ivign in prange(nvign):
-    for ivign in range(nvign):
-        nvert = lnvert[ivign]
-        diff = <double*>malloc(3*nvert*sizeof(double))
-        lref = <bint*>malloc(nvert*sizeof(bint))
-        ltri[ivign] = <long*>malloc((nvert-2)*3*sizeof(long))
-        if not diff or not lref or not ltri[ivign]:
-            with gil:
-                raise MemoryError()
-        try:
-            compute_diff3d(vignett_poly[ivign], nvert, &diff[0])
-            are_points_reflex(nvert, diff, &lref[0])
-            earclipping_poly(vignett_poly[ivign], &ltri[ivign][0],
-                             &diff[0], &lref[0], nvert)
-        finally:
-            free(diff)
-            free(lref)
+    with nogil, parallel(num_threads=num_threads):
+        diff = NULL
+        lref = NULL
+        for ivign in prange(nvign):
+            nvert = lnvert[ivign]
+            diff = <double*>malloc(3*nvert*sizeof(double))
+            lref = <bint*>malloc(nvert*sizeof(bint))
+            ltri[ivign] = <long*>malloc((nvert-2)*3*sizeof(long))
+            if not diff or not lref or not ltri[ivign]:
+                with gil:
+                    raise MemoryError()
+            try:
+                compute_diff3d(vignett_poly[ivign], nvert, &diff[0])
+                are_points_reflex(nvert, diff, &lref[0])
+                earclipping_poly(vignett_poly[ivign], &ltri[ivign][0],
+                                 &diff[0], &lref[0], nvert)
+            finally:
+                free(diff)
+                free(lref)
 
     return 0
 
