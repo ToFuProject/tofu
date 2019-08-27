@@ -2661,13 +2661,10 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     cdef str dmode = dmethod.lower()
     cdef str imode = method.lower()
     cdef int sz1_dls, sz2_dls
-    cdef int N
     cdef int sz_coeff
     cdef int n_imode, n_dmode
-    cdef long ntmp
     cdef bint dl_is_list
     cdef bint bool1, bool2
-    cdef double val_resol
     cdef double[::1] dl_view
     cdef np.ndarray[double,ndim=1] dLr
     cdef np.ndarray[double,ndim=1] coeff_arr
@@ -2704,68 +2701,43 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
-    # Case with unique discretization step dL
+    # -- Core functions --------------------------------------------------------
     if not dl_is_list:
-        val_resol = dL
+        # Case with unique discretization step dL
         sz_coeff = _st.los_get_sample_core_const_res(nlos,
                                                      &los_lims[0,0],
                                                      &los_lims[1,0],
                                                      n_dmode, n_imode,
-                                                     val_resol,
+                                                     <double>dL,
                                                      &coeff_ptr[0],
                                                      &dLr[0],
                                                      &los_ind_ptr[0],
                                                      num_threads)
-        coeffs = np.copy(np.asarray(<double[:sz_coeff]> coeff_ptr[0]))
-        indices = np.copy(np.asarray(<long[:nlos]> los_ind_ptr[0]).astype(int))[:nlos-1]
-        if not los_ind_ptr == NULL:
-            if not los_ind_ptr[0] == NULL:
-                free(los_ind_ptr[0])
-            free(los_ind_ptr)
-        if not coeff_ptr == NULL:
-            if not coeff_ptr[0] == NULL:
-                free(coeff_ptr[0])
-            free(coeff_ptr)
-        return coeffs, dLr, indices
-    # Case with different resolution for each LOS
     else:
+        # Case with different resolution for each LOS
         dl_view=dL
-        if n_dmode==0:
-            if n_imode==0: # sum
-                _st.middle_rule_abs_var(nlos, &dl_view[0],
-                                        &los_lims[0,0], &los_lims[1, 0],
-                                        &dLr[0], &los_coeffs, &los_ind[0],
-                                        num_threads=num_threads)
-            elif n_imode==1:# simps
-                _st.simps_left_rule_abs_var(nlos, &dl_view[0],
-                                            &los_lims[0,0], &los_lims[1, 0],
-                                            &dLr[0], &los_coeffs, &los_ind[0],
-                                            num_threads=num_threads)
-            else: # romb
-                _st.romb_left_rule_abs_var(nlos, &dl_view[0],
-                                           &los_lims[0,0], &los_lims[1, 0],
-                                           &dLr[0], &los_coeffs, &los_ind[0],
-                                           num_threads=num_threads)
-        else:
-            if n_imode==0: # sum
-                _st.middle_rule_rel_var(nlos, &dl_view[0],
-                                        &los_lims[0,0], &los_lims[1, 0],
-                                        &dLr[0], &los_coeffs, &los_ind[0],
-                                        num_threads=num_threads)
-            elif n_imode==1: # simps
-                _st.simps_left_rule_rel_var(nlos, &dl_view[0],
-                                            &los_lims[0,0], &los_lims[1, 0],
-                                            &dLr[0], &los_coeffs, &los_ind[0],
-                                            num_threads=num_threads)
-            else: # romb
-                _st.romb_left_rule_rel_var(nlos, &dl_view[0],
-                                           &los_lims[0,0], &los_lims[1, 0],
-                                           &dLr[0], &los_coeffs, &los_ind[0],
-                                           num_threads=num_threads)
-    return np.asarray(<double[:los_ind[nlos-1]]> los_coeffs),\
-        dLr, los_ind[0:nlos-1]
-
-
+        _st.los_get_sample_core_var_res(nlos,
+                                        &los_lims[0,0],
+                                        &los_lims[1,0],
+                                        n_dmode, n_imode,
+                                        &dl_view[0],
+                                        &coeff_ptr[0],
+                                        &dLr[0],
+                                        &los_ind_ptr[0],
+                                        num_threads)
+        sz_coeff = los_ind_ptr[0][nlos-1]
+    coeffs = np.copy(np.asarray(<double[:sz_coeff]>coeff_ptr[0]))
+    indices = np.copy(np.asarray(<long[:nlos]>los_ind_ptr[0]).astype(int))
+    # -- freeing -----------------------------------------------------------
+    if not los_ind_ptr == NULL:
+        if not los_ind_ptr[0] == NULL:
+            free(los_ind_ptr[0])
+        free(los_ind_ptr)
+    if not coeff_ptr == NULL:
+        if not coeff_ptr[0] == NULL:
+            free(coeff_ptr[0])
+        free(coeff_ptr)
+    return coeffs, dLr, indices[:nlos-1]
 
 
 

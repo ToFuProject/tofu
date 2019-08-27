@@ -176,7 +176,7 @@ def ffT(Pts, t=None, vect=None):
     return E
 
 ind = None#[0,10,20,30,40]
-minimize = ["hybrid"]#["memory", "calls", "hybrid"]
+minimize = ["calls", "hybrid", "memory"]
 for mmz in minimize:
     for typ in dobj.keys():
         for c in dobj[typ].keys():

@@ -199,6 +199,16 @@ cdef int los_get_sample_core_const_res(int nlos,
                                        long** los_ind,
                                        int num_threads) nogil
 
+cdef void los_get_sample_core_var_res(int nlos,
+                                     double* los_lim_min,
+                                     double* los_lim_max,
+                                     int n_dmode, int n_imode,
+                                     double* resol,
+                                     double** coeff_ptr,
+                                     double* dLr,
+                                     long** los_ind,
+                                     int num_threads) nogil
+
 # -- Integrations utility function ---------------------------------------------
 # cdef void integrate_c_sum_nlos(double* val_mv,
 #                                       double[::1,:] sig,
