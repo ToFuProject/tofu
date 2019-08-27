@@ -3204,7 +3204,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     val = func(pts, t=t, **fkwdargs)
                     sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
-    return sig
+    return np.ascontiguousarray(sig)
 
 
 ######################################################################
@@ -3697,7 +3697,8 @@ def comp_dist_los_circle_vec(int nlos, int ncircles,
                              np.ndarray[double,ndim=2,mode='c'] oris,
                              np.ndarray[double,ndim=1,mode='c'] circle_radius,
                              np.ndarray[double,ndim=1,mode='c'] circle_z,
-                             np.ndarray[double,ndim=1,mode='c'] norm_dir = None):
+                             np.ndarray[double,ndim=1,mode='c'] norm_dir = None,
+                             int num_threads=48):
     """
     This function computes the intersection of a Ray (or Line Of Sight)
     and a circle in 3D. It returns `kmin`, the coefficient such that the
@@ -3731,7 +3732,7 @@ def comp_dist_los_circle_vec(int nlos, int ncircles,
                                       <double*>circle_radius.data,
                                       <double*>circle_z.data,
                                       <double*>norm_dir.data,
-                                      kmin_tab, dist_tab)
+                                      kmin_tab, dist_tab, num_threads)
     return np.asarray(kmin_tab).reshape(nlos, ncircles), \
         np.asarray(dist_tab).reshape(nlos, ncircles)
 
@@ -3763,7 +3764,8 @@ def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
                              np.ndarray[double,ndim=2,mode='c'] oris,
                              np.ndarray[double,ndim=1,mode='c'] circle_radius,
                              np.ndarray[double,ndim=1,mode='c'] circle_z,
-                             np.ndarray[double,ndim=1,mode='c'] norm_dir=None):
+                             np.ndarray[double,ndim=1,mode='c'] norm_dir=None,
+                             int num_threads=48):
     """
     This function checks if at maximum a LOS is at a distance epsilon
     form a cirlce. Vectorial version
@@ -3783,7 +3785,7 @@ def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
                                      <double*>circle_radius.data,
                                      <double*>circle_z.data,
                                      <double*>norm_dir.data,
-                                     res)
+                                     res, num_threads)
     return np.asarray(res, dtype=bool).reshape(nlos, ncircles)
 
 # ==============================================================================
