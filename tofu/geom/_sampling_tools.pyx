@@ -887,7 +887,7 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
         num_raf = <int>(Cceil(1./resolutions[ii]))
         if num_raf%2==1:
             num_raf = num_raf+1
-        loc_resol = (los_kmax[ii] - los_kmin[ii])/num_raf
+        loc_resol = (los_kmax[ii] - los_kmin[ii]) / num_raf
         los_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
@@ -1046,7 +1046,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
     for ii in range(1,nlos):
         num_raf = <int>(Cceil(1./resolutions[ii]))
         num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
-        loc_resol = (los_kmax[ii] - los_kmin[ii])/num_raf
+        loc_resol = (los_kmax[ii] - los_kmin[ii]) / num_raf
         los_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]

@@ -929,23 +929,24 @@ class Test03_Rays(object):
     def test15_get_sample_same_res_unit(self):
         dmeths = ['rel', 'abs']
         qmeths = ['simps', 'romb', 'sum']
-
-        dL = 0.25
+        list_res = [0.25, np.r_[0.2, 0.5]]
         DL = np.array([[1.,10.],[2.,20.]])
 
-        for dm in dmeths:
-            for qm in qmeths:
-                print("============ for: ", dm, " -", qm, "=======")
-                out = tfg._GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
-                k = out[0]
-                lind = out[2]
-                print(" k =", k)
-                print("lind =", lind)
-                assert np.all(k[:lind[0]] >= DL[0][0])
-                assert np.all(k[:lind[0]] <= DL[1][0])
-                assert np.all(k[lind[0]:] >= DL[0][1])
-                assert np.all(k[lind[0]:] <= DL[1][1])
-                print("================= OK =======================")
+        for dL in list_res:
+            for dm in dmeths:
+                for qm in qmeths:
+                    print("============ for: ", dm, " -", qm, "=======")
+                    print("================= dl", dL," ================")
+                    out = tfg._GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
+                    k = out[0]
+                    lind = out[2]
+                    print(" k =", k)
+                    print("lind =", lind)
+                    assert np.all(k[:lind[0]] >= DL[0][0])
+                    assert np.all(k[:lind[0]] <= DL[1][0])
+                    assert np.all(k[lind[0]:] >= DL[0][1])
+                    assert np.all(k[lind[0]:] <= DL[1][1])
+                    print("================= OK =======================")
 
 
 """
