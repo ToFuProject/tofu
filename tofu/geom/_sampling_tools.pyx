@@ -399,12 +399,12 @@ cdef inline void middle_rule_abs_1_single(double inv_resol,
     # First step of the function, this function should be called
     # before middle_rule_abs_2, this function computes the resolutions
     # and the right indices
-    cdef long num_raf
+    cdef int num_raf
     cdef double seg_length
     cdef double loc_resol
     # ...
     seg_length = los_kmax - los_kmin
-    num_raf = <long>(Cceil(seg_length*inv_resol))
+    num_raf = <int>(Cceil(seg_length*inv_resol))
     loc_resol = seg_length / num_raf
     los_resolution[0] = loc_resol
     ind_cum[0] = num_raf
