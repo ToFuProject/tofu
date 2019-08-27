@@ -1566,23 +1566,49 @@ cdef inline cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double lo
 
 
 # -- calling sampling and intergrating with sum --------------------------------
-cdef inline void integrate_c_sum(double* val_mv,
-                                 double* sig,
-                                 int nt, int nrows, int ncols,
-                                 double loc_eff_res,
-                                 int num_threads) nogil:
+cdef inline void integrate_c_sum_nlos(double* val_mv,
+                                      double[::1,:] sig,
+                                      long[:] indis,
+                                      int nlos, int nres, int nt,
+                                      double* loc_eff_res,
+                                      int num_threads) nogil:
+    cdef int ilos
+    for ilos in range(nlos):
+        integrate_c_sum_mat(&val_mv[0, indbis[ii]],
+                            &sig[:,ii], nt, nres, nt,
+                            loc_eff_res[ii], num_threads)
+    return
+
+cdef inline void integrate_c_sum_mat(double* val_mv,
+                                    double* sig,
+                                    int nt, int nrows, int ncols,
+                                    double loc_eff_res,
+                                    int num_threads) nogil:
     cdef double* vsum
     cdef int jj
     # ...
     vsum = <double*>malloc(nrows*sizeof(double))
     # _bgt.sum_rows_blocks(val_mv, &vsum[0],
     #                      nrows, ncols)
-    _bgt.sum_by_rows(val_mv, &vsum[0],
-                     nrows, ncols)
+    # _bgt.sum_by_rows(val_mv, &vsum[0],
+    #                  nrows, ncols)
     # _bgt.sum_naive_rows(val_mv, &vsum[0],
     #                     nrows, ncols)
+    _bgt.sum_par_mat(val_mv, &vsum[0],
+                     nrows, ncols)
     with nogil, parallel(num_threads=num_threads):
         for jj in prange(nt):
             sig[jj] = vsum[jj] * loc_eff_res
     free(vsum)
     return
+
+
+cdef inline double integrate_c_sum_vec(double* val_mv,
+                                       int nsz,
+                                       double loc_eff_res,
+                                       int num_threads) nogil:
+    cdef double vsum
+    cdef int jj
+    # ...
+    vsum = _bgt.sum_par_one_row(val_mv, nsz)
+    return vsum * loc_eff_res

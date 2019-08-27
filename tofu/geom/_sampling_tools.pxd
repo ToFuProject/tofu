@@ -218,8 +218,20 @@ cdef cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double los_kmin,
                             double[:,::1] ray_orig,
                             double[:,::1] ray_vdir)
 
-cdef void integrate_c_sum(double* val_mv,
-                          double* sig,
-                          int nt, int nrows, int ncols,
-                          double loc_eff_res,
-                          int num_threads) nogil
+cdef void integrate_c_sum_nlos(double* val_mv,
+                                      double[::1,:] sig,
+                                      long[:] indis,
+                                      int nlos, int nres, int nt,
+                                      double* loc_eff_res,
+                                      int num_threads) nogil
+
+cdef void integrate_c_sum_mat(double* val_mv,
+                              double* sig,
+                              int nt, int nrows, int ncols,
+                              double loc_eff_res,
+                              int num_threads) nogil
+
+cdef double integrate_c_sum_vec(double* val_mv,
+                                int nza,
+                                double loc_eff_res,
+                                int num_threads) nogil
