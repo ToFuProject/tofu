@@ -376,11 +376,12 @@ cdef inline void middle_rule_rel(int num_los, int num_raf,
             los_ind[ii] = num_raf
         else:
             los_ind[ii] = num_raf + los_ind[ii-1]
-            loc_resol = (los_kmax[ii] - los_kmin[ii])*inv_nraf
-            los_resolution[ii] = loc_resol
-            first_index = ii*num_raf
-            middle_rule_rel_single(num_raf, los_kmin[ii],
-                                   loc_resol, &los_coeffs[first_index])
+        loc_resol = (los_kmax[ii] - los_kmin[ii])*inv_nraf
+        los_resolution[ii] = loc_resol
+        first_index = ii*num_raf
+        middle_rule_rel_single(num_raf, los_kmin[ii],
+                               loc_resol, &los_coeffs[first_index])
+
     return
 
 cdef inline void middle_rule_abs_1_single(double inv_resol,
