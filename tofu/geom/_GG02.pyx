@@ -3187,10 +3187,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    # this should be the quickest solution... but isn't
-                    # for a question of time, we'll investigate some time
-                    # how to make it faster, and for the time being we leave it
-                    # commented
+                    # this is almost always the quickest solution... but can
+                    # probably be better. We'll investigate some time
+                    # how to make it faster, and for the time being we leave
+                    # the numpy alternative commented
                     _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii], nt,
                                             nb_rows[0],
                                             loc_eff_res[0], num_threads)
@@ -3232,10 +3232,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val_2d = func(pts, t=t, **fkwdargs)
-                    # this should be the quickest solution... but isn't
-                    # for a question of time, we'll investigate some time
-                    # how to make it faster, and for the time being we leave it
-                    # commented
+                    # this is almost always the quickest solution... but can
+                    # probably be better. We'll investigate some time
+                    # how to make it faster, and for the time being we leave
+                    # the numpy alternative commented
                     _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii],
                                             nt, nb_rows[0],
                                             loc_eff_res[0], num_threads)
