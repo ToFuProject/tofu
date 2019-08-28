@@ -2896,23 +2896,19 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef str dmode = dmethod.lower()
     cdef str imode = method.lower()
     cdef str minim = minimize.lower()
-    cdef int sz1_ds, sz2_ds
+    cdef int jjp1
+    cdef int sz1_ds
     cdef int sz1_us, sz2_us
     cdef int sz1_dls, sz2_dls
     cdef int n_imode, n_dmode
     cdef bint res_is_list
     cdef bint C0, C1
-    cdef unsigned int nlos
-    cdef unsigned int nt=0, axm, ii, jj
-    cdef double[:,::1] val_2d
-    cdef np.ndarray[double,ndim=2] usbis
-    cdef np.ndarray[double,ndim=2] pts
-    cdef np.ndarray[double,ndim=2, mode='fortran'] sig
-    cdef np.ndarray[double,ndim=1] reseff
-    cdef np.ndarray[double,ndim=1] k, ksbis
     cdef list ltime
-    cdef np.ndarray[double,ndim=1] res_arr
-    cdef np.ndarray[long,ndim=1] ind
+    cdef double loc_r
+    cdef unsigned int nlos
+    cdef unsigned int nt=0, ii, jj
+    cdef long[1] nb_rows
+    cdef long[::1] indbis
     cdef double[1] loc_eff_res
     cdef double[::1] reseff_mv
     cdef double[::1] res_mv
@@ -2920,21 +2916,20 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef double[:,::1] val_mv
     cdef double[:,::1] pts_mv
     cdef double[:,::1] usbis_mv
-    cdef double* vsum
-    cdef long[1] nb_rows
-    cdef long[::1] indbis
-    cdef int jjp1
-    cdef double* reseff_arr = NULL
+    cdef double[:,::1] val_2d
+    cdef np.ndarray[double,ndim=2] usbis
+    cdef np.ndarray[double,ndim=2] pts
+    cdef np.ndarray[double,ndim=2, mode='fortran'] sig
+    cdef np.ndarray[double,ndim=1] reseff
+    cdef np.ndarray[double,ndim=1] k
+    cdef np.ndarray[double,ndim=1] res_arr
+    cdef np.ndarray[long,ndim=1] ind
     cdef long* ind_arr = NULL
-    cdef double** ptx = NULL
-    cdef double** pty = NULL
-    cdef double** ptz = NULL
+    cdef double* reseff_arr = NULL
     cdef double** coeff_ptr = NULL
-    cdef double loc_r
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
-    sz2_ds = ray_orig.shape[1]
-    nlos = sz2_ds
+    nlos = ray_orig.shape[1]
     res_is_list = hasattr(res, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -2946,9 +2941,9 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         assert sz1_us == 3, "Dim 0 of arg ray_vdir should be 3"
         assert sz1_dls == 2, "Dim 0 of arg lims should be 2"
         error_message = "Args ray_orig, ray_vdir, lims should have same dimension 1"
-        assert sz2_ds == sz2_us == sz2_dls, error_message
+        assert nlos == sz2_us == sz2_dls, error_message
         C0 = not res_is_list and res > 0.
-        C1 = res_is_list and len(res)==sz2_ds and np.all(res>0.)
+        C1 = res_is_list and len(res)==nlos and np.all(res>0.)
         assert C0 or C1, "Arg res must be a double or a List, and all res >0.!"
         error_message = "Argument dmethod (discretization method) should be in"\
                         +" ['abs','rel'], for absolute or relative."
@@ -3081,10 +3076,9 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                 sig[:,ii] = scpintg.simps(val_mv,
                                              x=None, dx=loc_r, axis=-1)
         else:
-            axm = 1
             for ii in range(nlos):
                 sig[:,ii] = scpintg.romb(val_2d[:,indbis[ii]:indbis[ii+1]],
-                                         dx=reseff_mv[ii], axis=axm, show=False)
+                                         dx=reseff_mv[ii], axis=1, show=False)
     # --------------------------------------------------------------------------
     # Minimize memory use: loop everything, starting with LOS
     # then pts then time
