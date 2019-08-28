@@ -1509,7 +1509,7 @@ cdef inline void los_get_sample_pts(int nlos,
 # -- calling sampling and intergrating with sum --------------------------------
 cdef inline void integrate_c_sum_mat(double* val_mv,
                                     double* sig,
-                                    int nt, int nrows, int ncols,
+                                    int nrows, int ncols,
                                     double loc_eff_res,
                                     int num_threads) nogil:
     cdef double* vsum
@@ -1525,7 +1525,7 @@ cdef inline void integrate_c_sum_mat(double* val_mv,
     # _bgt.sum_par_mat(val_mv, &vsum[0],
     #                  nrows, ncols)
     with nogil, parallel(num_threads=num_threads):
-        for jj in prange(nt):
+        for jj in prange(nrows):
             sig[jj] = vsum[jj] * loc_eff_res
     free(vsum)
     return

@@ -135,7 +135,7 @@ cdef void los_get_sample_pts(int nlos,
 
 cdef void integrate_c_sum_mat(double* val_mv,
                               double* sig,
-                              int nt, int nrows, int ncols,
+                              int nrows, int ncols,
                               double loc_eff_res,
                               int num_threads) nogil
 
