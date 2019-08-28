@@ -572,12 +572,13 @@ def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
         pts = np.concatenate((Ds, Ds[:,:,-1:] + kOuts[None,:,-1:]*us[:,:,-1:]),
                             axis=-1)
 
-        pts = pts.reshape((3,nlos*(nseg+1)))
         if multi:
             ind = np.arange(1,nlos)*(nseg+1)
+            pts = pts.reshape((3,nlos*(nseg+1)))
         else:
             nancoords = np.full((3,nlos,1), np.nan)
             pts = np.concatenate((pts,nancoords), axis=-1)
+            pts = pts.reshape((3,nlos*(nseg+2)))
 
         if return_pts:
             assert proj in ['hor','3d']

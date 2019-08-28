@@ -551,7 +551,7 @@ class Struct(utils.ToFuObject):
     def _strip_dphys(self, lkeep=['lSymbols']):
         utils.ToFuObject._strip_dict(self._dphys, lkeep=lkeep)
 
-    def _strip_dreflect(self, lkeep=['lSymbols']):
+    def _strip_dreflect(self, lkeep=['Types','coefs']):
         utils.ToFuObject._strip_dict(self._dreflect, lkeep=lkeep)
 
     def _strip_dmisc(self, lkeep=['color']):
@@ -585,7 +585,7 @@ class Struct(utils.ToFuObject):
                                                    lkeep=lkeep, dname='dphys')
             self.set_dphys(lSymbols=self.dphys['lSymbols'])
 
-    def _rebuild_dreflect(self, lkeep=['lSymbols']):
+    def _rebuild_dreflect(self, lkeep=['Types','coefs']):
         reset = utils.ToFuObject._test_Rebuild(self._dreflect, lkeep=lkeep)
         if reset:
             utils.ToFuObject._check_Fields4Rebuild(self._dreflect,
