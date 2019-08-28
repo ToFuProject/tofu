@@ -112,6 +112,20 @@ cdef void los_get_sample_core_var_res(int nlos,
                                      long* los_ind,
                                      int num_threads) nogil
 
+cdef void los_get_sample_pts(int nlos,
+                             double* los_lim_min,
+                             double* los_lim_max,
+                             int n_dmode, int n_imode,
+                             double* resol,
+                             double** ptx,
+                             double** pty,
+                             double** ptz,
+                             double[:,::1] ray_orig,
+                             double[:,::1] ray_vdir,
+                             double* eff_res,
+                             long* los_ind,
+                             int num_threads) nogil
+
 # -- Integrations utility function ---------------------------------------------
 # cdef void integrate_c_sum_nlos(double* val_mv,
 #                                       double[::1,:] sig,

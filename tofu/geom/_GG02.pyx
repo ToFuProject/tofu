@@ -2909,6 +2909,11 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef long[1] nb_rows
     cdef long[::1] indbis
     cdef int jjp1
+    cdef double* reseff_arr = NULL
+    cdef long* ind_arr = NULL
+    cdef double** ptx = NULL
+    cdef double** pty = NULL
+    cdef double** ptz = NULL
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
     sz2_ds = ray_orig.shape[1]
@@ -2976,22 +2981,33 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             # get pts and values
             usbis = np.repeat(ray_vdir, nbrep, axis=1)
             pts = np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis
+            # memory view:
+            reseff_mv = reseff
         else:
-            # Discretize all LOS
-            k, reseff, ind = LOS_get_sample(nlos, res_arr, lims,
-                                            dmethod=dmode, method=imode,
-                                            num_threads=num_threads, Test=Test)
-            nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[nlos-2]]
-            # get pts and values
-            usbis = np.repeat(ray_vdir, nbrep, axis=1)
-            pts = np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis
-            
+            reseff_arr = <double*>malloc(nlos*sizeof(double))
+            ind_arr = <long*>malloc(nlos*sizeof(long))
+            ptx = <double**>malloc(sizeof(double*))
+            pty = <double**>malloc(sizeof(double*))
+            ptz = <double**>malloc(sizeof(double*))
+            ptx[0] = NULL
+            pty[0] = NULL
+            ptz[0] = NULL
+            _st.los_get_sample_pts(nlos, &lims[0,0], &lims[1,0],
+                                   n_dmode, n_imode,
+                                   &res_arr[0],
+                                   &ptx[0], &pty[0], &ptz[0],
+                                   ray_orig, ray_vdir,
+                                   &reseff_arr[0], &ind_arr[0],
+                                   num_threads)
+            sz_coeff = ind_arr[nlos-1]
+            pts = np.empty((3,sz_coeff))
+            pts[0] = np.asarray(<double[:sz_coeff]>ptx[0])
+            pts[1] = np.asarray(<double[:sz_coeff]>pty[0])
+            pts[2] = np.asarray(<double[:sz_coeff]>ptz[0])
         if ani:
             val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
         else:
             val_2d = func(pts, t=t, **fkwdargs)
-        # memory view:
-            reseff_mv = reseff
         # Integrate
         if method=='sum':
             # # .. original version .....................................
@@ -3000,33 +3016,24 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             #     sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
             #                        axis=-1)*reseff_mv[ii]
             # # ..........................................................
-            indbis = ind
             # first los:
             jj = 0
-            jjp1 = indbis[1]
+            jjp1 = ind_arr[1]
             val_mv = val_2d[:,jj:jjp1]
             _st.integrate_c_sum_mat(&val_mv[0,0],
                                     &sig_mv[0,0], nt,
                                     nt, jjp1 - jj,
-                                    reseff_mv[0], num_threads)
-            for ii in range(1,nlos-1):
+                                    reseff_arr[0], num_threads)
+            for ii in range(1,nlos):
                 # sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
                 #                    axis=-1)*reseff_mv[ii]
-                jj = indbis[ii]
-                jjp1 = indbis[ii + 1]
+                jj = ind_arr[ii-1]
+                jjp1 = ind_arr[ii]
                 val_mv = val_2d[:,jj:jjp1]
                 _st.integrate_c_sum_mat(&val_mv[0,0],
                                         &sig_mv[0,ii], nt,
                                         nt, jjp1 - jj,
-                                        reseff_mv[ii], num_threads)
-            # last nlos
-            jj = indbis[nlos-2]
-            jjp1 = k.size
-            val_mv = val_2d[:,jj:jjp1]
-            _st.integrate_c_sum_mat(&val_mv[0,0],
-                                    &sig_mv[0,nlos-1], nt,
-                                    nt, jjp1 - jj,
-                                    reseff_mv[nlos-1], num_threads)
+                                        reseff_arr[ii], num_threads)
         elif method=='simps':
             indbis = np.concatenate(([0],ind,[k.size]))
             for ii in range(nlos):

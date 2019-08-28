@@ -1515,6 +1515,10 @@ cdef inline void los_get_sample_pts(int nlos,
             ptx[0][ii] = loc_ox + coeff_ptr[0][ii] + loc_vx
             pty[0][ii] = loc_oy + coeff_ptr[0][ii] + loc_vy
             ptz[0][ii] = loc_oz + coeff_ptr[0][ii] + loc_vz
+    if not coeff_ptr == NULL:
+        if not coeff_ptr[0] == NULL:
+            free(coeff_ptr[0])
+        free(coeff_ptr)
     return
 
 
