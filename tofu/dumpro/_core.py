@@ -32,8 +32,8 @@ except ImportError:
 #import tf.__version__ as __version__
 
 # dumpro-specific
-#video computation
-from . import video_comp as _comp
+##video computation
+#from . import video_comp as _comp
 #image computation
 from . import image_comp as _i_comp
 #ploting file
@@ -330,7 +330,9 @@ class Img_dir(object):
         #centers, distances between clusters in two adjascent frames, and index
         self.__infocluster = {}
         self.__c_id = None
-
+        self.__traj = {}
+        self.__im_col = {}
+        
 ####################################################################
 #   setters for attributes
 ####################################################################
@@ -357,128 +359,141 @@ class Img_dir(object):
     def set_c_id(self, c_id):
         """Setter for list of cluster objects"""
         self.__c_id = c_id
+
+    def set_traj(self, traj):
+        """Setter for trajectory objects"""
+        self.__traj = traj
+    
+    def set_im_col(self, im_col):
+        """Setter for image path collection"""
+        self.__im_col = im_col
         
 ####################################################################
 #   getters for attribiutes
 ####################################################################
-    #defining getter for im_dir
     @property
     def im_dir(self):
+        """Returns the path of the original images"""
         return self.__im_dir
     
-    #defining getter for w_dir
     @property
     def w_dir(self):
+        """Returns the working dicrectory for dumpro"""
         return self.__w_dir
     
-    #defining getter for shotname
     @property
-    def shot_name(self):
+    def shotname(self):
+        """Returns the shotname"""
         return self.__shot_name
     
-    #define getter for meta_data
     @property
     def meta_data(self):
+        """Returns the meta data dictionary"""
         return self.__meta_data
     
-    #define getter for resolution
     @property
     def resolution(self):
+        """Returns the size of the frames"""
         height = self.__meta_data.get('frame_height')
         width = self.__meta_data.get('frame_width')
         return height,width
     
-    #define getter for reshape dictionary
     @property
     def reshape(self):
+        """Returns the reshape dictionary"""
         return self.__reshape
     
-    #define getter for infocluster
     @property
-    def infoclusters(self):
+    def infocluster(self):
+        """Returns the infocluster dictionary"""
         return self.__infocluster
     
     @property
     def c_id(self):
+        """Returns the cluster id list"""
         return self.__c_id
 
-###################################################################
-#   image slicing method
-###################################################################    
+    @property
+    def traj(self):
+        """Returns the Trajctory dictionary"""
+        return self.__traj
     
-    def crop_im(self, tlim, height, width, im_out = None, verb = True):
-        #cropping the images for faster computation
-        out_path, reshape = _i_comp.reshape_image.reshape_image(self.im_dir,
-                                                                self.w_dir,
-                                                                self.shot_name,
-                                                                tlim, height,
-                                                                width, im_out, 
-                                                                verb)
-        new = self.__class__(out_path)
-        new.set_meta_data = self.meta_data
-        new.__reshape = reshape
-        return new
-        
-    
-###################################################################
-#   grayscale conversion method
-###################################################################
-    
-    def to_gray(self, im_out = None, verb = True):
-        #grayscale function
-        out_path = _i_comp.conv_gray.conv_gray(self.im_dir, 
-                                               self.w_dir, 
-                                               self.shot_name, im_out, verb)
-        return self.__class__(out_path)
-    
-####################################################################
-#   Background removal method
-####################################################################
-    
-    def remove_backgrd(self, rate = None, im_out = None, verb = True):
-        #background removal
-        out_path = _i_comp.rm_background.rm_back(self.im_dir,
-                                                 self.w_dir,
-                                                 self.shot_name,
-                                                 rate, im_out,
-                                                 verb)
-        return self.__class__(out_path)
-    
-####################################################################
-#   denoising method for grayscale images
-####################################################################
-        
-    def denoise_gray(self, im_out = None, verb = True):
-        #denoising grayscale images
-        out_path = _i_comp.denoise.denoise(self.im_dir,
-                                           self.w_dir,
-                                           self.shot_name,
-                                           im_out, verb)
-        return self.__class__(out_path)
+    @property
+    def im_col(self):
+        """Returns image path collection dictionary"""
+        return self.__im_col
     
 #####################################################################
-#  denoising method for color images
-#####################################################################
+#   dumpro
+#####################################################################        
         
-    def denoise_col(self, im_out = None, verb = True):
-        #denoising coloured images
-        out_path = _i_comp.denoise_col.denoise_col(self.im_dir,
-                                                   self.w_dir,
-                                                   self.shot_name,
-                                                   im_out, verb)
-        return self.__class__(out_path)
+    def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None, blur = True,
+               im_out = None, verb = True):
+        
+        #starting time counter
+        start_time = time.perf_counter()
+        #performing DUMPRO 
+        infocluster, reshape, im_col = _i_comp.dumpro_img.dumpro_img(self.im_dir, 
+                                                                     self.w_dir,
+                                                                     self.shotname, 
+                                                                     rate, tlim, 
+                                                                     hlim, wlim, blur,
+                                                                     im_out, verb)
+        #setting infocluster dictionary
+        self.set_infocluster(infocluster)
+        #setting reshape dictionary
+        self.set_reshape(reshape)
+        #setting up the image directories dictioanary
+        self.set_im_col(im_col)
+        
+        ######################################################################
+        #### Processing information on clusters                           ####
+        ######################################################################
+        
+        #converting all clusters to objects
+        c_id = _i_comp.get_id.get_id(self.infocluster, Cluster)
+        #setting c_id 
+        self.set_c_id(c_id)
+        #calculating trajectories and assigning parent child value
+        traj = _i_comp.get_relation.get_relation(self.c_id, self.infocluster)
+        #using clusters with updated value to set c_id
+        self.set_c_id(traj)
+        
+        ######################################################################
+        #### Calculating trajectories                                     ####
+        ######################################################################
+        
+        #getting a dictionary of trajectory objects
+        traj_obs = _i_comp.trace_traj.trace_traj(traj)
+        #l=getting all the keys as a list
+        listofkeys = list(traj_obs.keys())
+        n_traj = len(traj_obs)
+        trajects = {}
+        for ii in range(0,n_traj):
+            trajects[ii] = Trajectory(traj_obs.get(listofkeys[ii]))
+        self.set_traj(trajects)
 
-#####################################################################
-#   binary conversion method
-#####################################################################
+        end_time = time.perf_counter()
+        if verb == True:
+            print('Execution time :')
+            print('---',end_time - start_time,' seconds ---\n')
         
-    def to_bin(self, im_out = None, verb = True):
-        #converting to binary images
-        out_path = _i_comp.to_binary.bin_thresh(self.im_dir,
-                                                self.w_dir,
-                                                self.shot_name,
-                                                im_out, verb)
-        return self.__class__(out_path)
+        ######################################################################
+        #### Plotting trajctories and distribution                        ####
+        ######################################################################
+        
+        #plotting dust size distribution
+        _plot.area_distrib.get_distrib(self.infocluster, self.w_dir, 
+                                       self.shotname)
+        #plotting framewise dust size distribution
+        _plot.area_distrib.get_frame_distrib(self.infocluster, self.w_dir, 
+                                             self.shotname)
+        #plotting framewise dust distribution
+        _plot.f_density_dist.num_dist(self.infocluster, self.w_dir, self.shotname)
+        #plotting trajectories
+        _plot.plottraj.plot_traj(self.traj, self.reshape, self.w_dir, self.shotname)
+        
+        return None        
 
 #####################################################################
 #   playing of the images
@@ -488,56 +503,11 @@ class Img_dir(object):
         #play images as a video
         _plot.playimages.play_img(self.__im_dir)
         
-#####################################################################
-#   cluster detection
-#####################################################################
-        
-    def det_cluster(self, im_out = None, verb = True):
-        #cluster detection subroutine        
-        out_path, centers, area, total, angle, indt = _i_comp.cluster_det.det_cluster(self.im_dir,
-                                                                                      self.w_dir,
-                                                                                      self.shot_name,
-                                                                                      im_out, verb)
-        infocluster = {}
-        infocluster['center'] =  centers
-        infocluster['area'] =  area
-        infocluster['total'] =  total
-        infocluster['angle'] =  angle
-        infocluster['indt'] =  indt
-        #setting infocluster dictionary
-        self.set_infocluster(infocluster)
-        return out_path
-        
-#####################################################################
-#   dumpro
-#####################################################################        
-        
-    def dumpro(self, rate = None, tlim = None, hlim = None, wlim = None, blur = True,
-               im_out = None, verb = True):
-        #performing DUMPRO 
-        infocluster, reshape, im_col = _i_comp.dumpro_img.dumpro_img(self.im_dir, 
-                                                                     self.w_dir,
-                                                                     self.shot_name, 
-                                                                     rate, tlim, 
-                                                                     hlim, wlim, blur,
-                                                                     im_out, verb)
-        self.set_infocluster(infocluster)
-        self.set_reshape(reshape)
-        
-        
-        
-        
-        return None
-       
 
 #############################################################################
 #   Docstrings for image class methods
 #############################################################################
-Img_dir.to_gray.__doc__ = _i_comp.conv_gray.conv_gray.__doc__
-Img_dir.denoise_col.__doc__ = _i_comp.denoise_col.denoise_col.__doc__
-Img_dir.denoise_gray.__doc__ = _i_comp.denoise.denoise.__doc__
-Img_dir.remove_backgrd.__doc__ = _i_comp.rm_background.rm_back.__doc__
-Img_dir.to_bin.__doc__ = _i_comp.to_binary.bin_thresh.__doc__
+        
 Img_dir.play.__doc__ = _plot.playimages.play_img.__doc__
 Img_dir.dumpro.__doc__ = _i_comp.dumpro_img.dumpro_img.__doc__                  
 
@@ -595,9 +565,8 @@ class Vid_img(object):
     meta_data   = Returns the meta data of the video
     infocluster = Returns the infocluster dictionary of the video
     reshape     = Returns the rehsape dictionary of the video
-    
-    Methods:
-    --------------------------------------------
+    c_id        = Returns the Cluster objects of the video 
+    traj        = Returns the trajectory objects of the video
     """
         
     def __init__(self, filename, w_dir = None, verb=True):
@@ -821,14 +790,15 @@ class Vid_img(object):
         #l=getting all the keys as a list
         listofkeys = list(traj_obs.keys())
         n_traj = len(traj_obs)
-        print(n_traj)
         trajects = {}
         for ii in range(0,n_traj):
             trajects[ii] = Trajectory(traj_obs.get(listofkeys[ii]))
         self.set_traj(trajects)
 
         end_time = time.perf_counter()
-        print('---',end_time - start_time,' seconds ---')
+        if verb == True:
+            print('Execution time :')
+            print('---',end_time - start_time,' seconds ---\n')
         
         ######################################################################
         #### Plotting trajctories and distribution                        ####
@@ -843,7 +813,7 @@ class Vid_img(object):
         #plotting framewise dust distribution
         _plot.f_density_dist.num_dist(self.infocluster, self.w_dir, self.shotname)
         #plotting trajectories
-        _plot.plottraj.plot_traj(self.traj, self.w_dir, self.shotname)
+        _plot.plottraj.plot_traj(self.traj, self.reshape, self.w_dir, self.shotname)
         
         return None
     
