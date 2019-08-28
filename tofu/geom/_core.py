@@ -416,10 +416,10 @@ class Struct(utils.ToFuObject):
         assert type(Types) in [str, np.ndarray]
         if type(Types) is str:
             assert Types in self._DREFLECT_DTYPES.keys()
-            Types = np.full((self.nseg,), self._DREFLECT_DTYPES[Types], dtype=int)
+            Types = np.full((self.nseg+2,), self._DREFLECT_DTYPES[Types], dtype=int)
         else:
             Types = Types.astype(int).ravel()
-            assert Types.shape == ()
+            assert Types.shape == (self.nseg+2,)
             Typesu = np.unique(Types)
             lc = np.array([Typesu == vv
                            for vv in self._DREFLECT_DTYPES.values()])
@@ -1013,21 +1013,8 @@ class Struct(utils.ToFuObject):
 
         return dist, nDphi, Dphi, nDtheta, Dtheta
 
-
-    def get_reflections(self, u, vperp, indout2=None, lamb=None):
-        """ Return the reflected unit vectors from input unit vectors and vperp
-
-        The reflected unit vector depends on the incoming LOS (u),
-        the local normal unit vector (vperp), and the polygon segment hit
-        (indout2)
-        Future releases: dependence on lambda
-
-        Also return per-LOS reflection Types (0:specular, 1:diffusive, 2:ccube)
-
-        """
-
-        # Get per-LOS reflection Types and associated indices
-        Types = self._dreflect['Types'][indout2]
+    @staticmethod
+    def _get_reflections_ufromTypes(u, vperp, Types):
         indspec = Types == 0
         inddiff = Types == 1
         indcorn = Types == 2
@@ -1059,7 +1046,27 @@ class Struct(utils.ToFuObject):
 
         if np.any(indcorn):
             u2[:,indcorn] = -u[:,indcorn]
-        return u2, Types
+        return u2
+
+    def get_reflections(self, indout2, u=None, vperp=None):
+        """ Return the reflected unit vectors from input unit vectors and vperp
+
+        The reflected unit vector depends on the incoming LOS (u),
+        the local normal unit vector (vperp), and the polygon segment hit
+        (indout2)
+        Future releases: dependence on lambda
+
+        Also return per-LOS reflection Types (0:specular, 1:diffusive, 2:ccube)
+
+        """
+
+        # Get per-LOS reflection Types and associated indices
+        Types = self._dreflect['Types'][indout2]
+        u2 = None
+        if u is not None:
+            assert vperp is not None
+            u2 = self._get_reflections_ufromTypes(u, vperp, Types)
+        return Types, u2
 
 
 
@@ -2500,6 +2507,34 @@ class Config(utils.ToFuObject):
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
 
+    def get_reflections(self, indout, u=None, vperp=None):
+
+        # Get global Types array
+        lS = self.lStruct
+
+        # Version only usable when indout returns npts+1 and npts+2 instead of
+        # -1 and -2
+        # ls = [ss._dreflect['Types'].size for ss in lS]
+        # Types = np.empty((len(lS), np.max(ls)), dtype=int)
+        # for ii,ss in enumerate(lS):
+            # Types[ii,:ls[ii]] = ss._dreflect['Types']
+        # # Deduce Types
+        # Types = Types[indout[0,:], indout[2,:]]
+
+        iu = np.unique(indout[0,:])
+        Types = np.empty((indout.shape[1],), dtype=int)
+        for ii in iu:
+            ind = indout[0,:] == ii
+            Types[ind] = lS[ii]._dreflect['Types'][indout[2,ind]]
+
+        # Deduce u2
+        u2 = None
+        if u is not None:
+            assert vperp is not None
+            u2 = Struct._get_reflections_ufromTypes(u, vperp, Types)
+        return Types, u2
+
+
     def _get_phithetaproj_dist(self, refpt=None, ntheta=None, nphi=None,
                                theta=None, phi=None):
         # Prepare repf
@@ -2675,11 +2710,11 @@ class Config(utils.ToFuObject):
             assert Type in ['specular', 'diffusive', 'ccube']
             Types = np.full((nRays,), _DREFLECT[Type], dtype=int)
         else:
-            Types = None
+            Types = self.get_reflections(indout)[0]
         return Types
 
 
-    def _reflect_geom(self, u, vperp, indout=None, Type=None):
+    def _reflect_geom(self, u=None, vperp=None, indout=None, Type=None):
         assert u.shape == vperp.shape and u.shape[0] == 3
         if indout is not None:
             assert indout.shape == (3,u.shape[1])
@@ -2687,37 +2722,8 @@ class Config(utils.ToFuObject):
         # Get Types of relection for each Ray
         Types = self._reflect_Types(indout=indout, Type=Type, nRays=u.shape[1])
 
-        # Get indices of each Type
-        indspec = Types == 0
-        inddiff = Types == 1
-        indcorn = Types == 2
-
-        u2 = np.full(u.shape, np.nan)
-        if np.any(np.logical_or(indspec,inddiff)):
-            vpar = np.array([vperp[1,:]*u[2,:] - vperp[2,:]*u[1,:],
-                             vperp[2,:]*u[0,:] - vperp[0,:]*u[2,:],
-                             vperp[0,:]*u[1,:] - vperp[1,:]*u[0,:]])
-            vpar = np.array([vpar[1,:]*vperp[2,:] - vpar[2,:]*vperp[1,:],
-                             vpar[2,:]*vperp[0,:] - vpar[0,:]*vperp[2,:],
-                             vpar[0,:]*vperp[1,:] - vpar[1,:]*vperp[0,:]])
-            vpar = vpar / np.sqrt(np.sum(vpar**2, axis=0))[None,:]
-
-            if np.any(indspec):
-                # Compute u2 for specular
-                sca = np.sum(u[:,indspec]*vperp[:,indspec],axis=0,keepdims=True)
-                sca2 = np.sum(u[:,indspec]*vpar[:,indspec],axis=0,keepdims=True)
-                assert np.all(sca<=0.) and np.all(sca>=-1.)
-                assert np.all(sca2>=0.) and np.all(sca<=1.)
-                u2[:,indspec] = - sca*vperp[:,indspec] + sca2*vpar[:,indspec]
-
-            if np.any(inddiff):
-                # Compute u2 for diffusive
-                sca = 2.*(np.random.random((1,inddiff.sum()))-0.5)
-                u2[:,inddiff] = (np.sqrt(1.-sca**2) * vperp[:,inddiff]
-                                 + sca * vpar[:,inddiff])
-
-        if np.any(indcorn):
-            u2[:,indcorn] = -u[:,indcorn]
+        # Deduce u2
+        u2 = Struct._get_reflections_ufromTypes(u, vperp, Types)
         return u2, Types
 
 
@@ -3299,7 +3305,7 @@ class Rays(utils.ToFuObject):
     @staticmethod
     def _get_keys_dgeom():
         lk = ['D','u','pinhole', 'nRays',
-              'kIn', 'kOut', 'PkIn', 'PkOut', 'vperp', 'indout',
+              'kIn', 'kOut', 'PkIn', 'PkOut', 'vperp', 'indout', 'indStruct',
               'kRMin', 'PRMin', 'RMin', 'isImage',
               'Etendues', 'Surfaces', 'dX12', 'dreflect']
         return lk
@@ -3574,9 +3580,9 @@ class Rays(utils.ToFuObject):
 
 
 
-    def _prepare_inputs_kInOut(self, D=None, u=None):
+    def _prepare_inputs_kInOut(self, D=None, u=None, indStruct=None):
 
-        # Prepare input
+        # Prepare input: D, u
         if D is None:
             D = np.ascontiguousarray(self.D)
         else:
@@ -3587,8 +3593,10 @@ class Rays(utils.ToFuObject):
             u = np.ascontiguousarray(u)
         assert D.shape == u.shape
 
-        # Get reference
-        lS = self.lStruct_computeInOut
+        # Get reference: lS
+        if indStruct is None:
+            indStruct = self.indStruct_computeInOut
+        lS = [ss for ii,ss in enumerate(self.config.lStruct) if ii in indStruct]
 
         lSIn = [ss for ss in lS if ss._InOut=='in']
         if len(lSIn)==0:
@@ -3677,12 +3685,17 @@ class Rays(utils.ToFuObject):
                         rmin=-1, forbid=True, eps_uz=1.e-6, eps_vz=1.e-9,
                         eps_a=1.e-9, eps_b=1.e-9, eps_plane=1.e-9, test=True)
 
-        return largs, dkwd
+        return indStruct, largs, dkwd
 
-    def _compute_kInOut(self):
+    def _compute_kInOut(self, largs=None, dkwd=None, indStruct=None):
 
         # Prepare inputs
-        largs, dkwd = self._prepare_inputs_kInOut()
+        if largs is None:
+            indStruct, largs, dkwd =\
+                    self._prepare_inputs_kInOut(indStruct=indStruct)
+        else:
+            assert dkwd is not None
+            assert indStruct is not None
 
         if self._method=='ref':
             # call the dedicated function
@@ -3696,7 +3709,10 @@ class Rays(utils.ToFuObject):
             kIn, kOut, vperp, indout = out
         else:
             pass
-        return kIn, kOut, vperp, indout
+
+        # Make sure indices refer to lStruct
+        indout[0,:] = indStruct[indout[0,:]]
+        return kIn, kOut, vperp, indout, indStruct
 
 
     def compute_dgeom(self, extra=True, plotdebug=True):
@@ -3711,7 +3727,7 @@ class Rays(utils.ToFuObject):
             self._dgeom = self._complete_dX12(self._dgeom)
 
         # Perform computation of kIn and kOut
-        kIn, kOut, vperp, indout = self._compute_kInOut()
+        kIn, kOut, vperp, indout, indStruct = self._compute_kInOut()
 
         # Clean up (in case of nans)
         ind = np.isnan(kIn)
@@ -3746,7 +3762,8 @@ class Rays(utils.ToFuObject):
         kIn[ind] = 0.
 
         # Update dgeom
-        dd = {'kIn':kIn, 'kOut':kOut, 'vperp':vperp, 'indout':indout}
+        dd = {'kIn':kIn, 'kOut':kOut, 'vperp':vperp,
+              'indout':indout, 'indStruct':indStruct}
         self._dgeom.update(dd)
 
         # Run extra computations
@@ -3918,9 +3935,6 @@ class Rays(utils.ToFuObject):
             nb = 1
         nb = int(nb)
         assert nb > 0
-        Ds = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
-        us, Types = self.config._reflect_geom(self.u, self._dgeom['vperp'],
-                                              Type=Type)
         if Name is None:
             Name = self.Id.Name + '_Reflect%s'%str(Type)
         clas = Rays if self.__class__.__name__ == Rays else CamLOS1D
@@ -3928,8 +3942,9 @@ class Rays(utils.ToFuObject):
         # Run first iteration
         Types = np.full((nb,self.nRays), 0, dtype=int)
         Ds = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
-        us, Types[0,:] = self.config._reflect_geom(self.u,
-                                                   self._dgeom['vperp'],
+        us, Types[0,:] = self.config._reflect_geom(u=self.u,
+                                                   vperp=self._dgeom['vperp'],
+                                                   indout=self._dgeom['indout'],
                                                    Type=Type)
         lcam = [clas(dgeom=(Ds,us), config=self.config,
                     Exp=self.Id.Exp, Diag=self.Id.Diag,
@@ -3937,17 +3952,19 @@ class Rays(utils.ToFuObject):
         if nb == 1:
             return lcam[0], Types[0,:]
 
-        largs, dkwd = self._prepare_inputs_kInOut(D=Ds, u=us)
-        kouts, vperps, indouts = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[1:]
+        indStruct, largs, dkwd = self._prepare_inputs_kInOut(D=Ds, u=us,
+                                                             indStruct=self._dgeom['indStruct'])
+        outi = self._compute_kInOut(largs=largs, dkwd=dkwd, indStruct=indStruct)
+        kouts, vperps, indouts = outi[1:-1]
 
         # Run other iterations
         for ii in range(1,nb):
             Ds = Ds + (kouts[None,:]-1.e-12) * us
-            us, Types[ii,:] = self.config._reflect_geom(us, vperps,
-                                                        Type=Type)
-            kouts, vperps, indouts = _GG.LOS_Calc_PInOut_VesStruct(Ds, us,
-                                                                   *largs[2:],
-                                                                   **dkwd)[1:]
+            us, Types[ii,:] = self.config._reflect_geom(u=us, vperp=vperps,
+                                                        indout=indouts, Type=Type)
+            outi = self._compute_kInOut(largs=[Dsi,usi,largs[2],largs[3]],
+                                        dkwd=dkwd, indStruct=indStruct)
+            kouts, vperps, indouts = outi[1:-1]
             lcam.append(clas(dgeom=(Ds,us), config=self.config,
                              Exp=self.Id.Exp, Diag=self.Id.Diag,
                              Name=Name, shot=self.Id.shot))
@@ -3984,22 +4001,25 @@ class Rays(utils.ToFuObject):
 
         # Run first iteration
         Ds[:,:,0] = self.D + (self._dgeom['kOut'][None,:]-1.e-12) * self.u
-        us[:,:,0], Types[:,0] = self.config._reflect_geom(self.u,
-                                                          self._dgeom['vperp'],
+        us[:,:,0], Types[:,0] = self.config._reflect_geom(u=self.u,
+                                                          vperp=self._dgeom['vperp'],
+                                                          indout=self._dgeom['indout'],
                                                           Type=Type)
-        largs, dkwd = self._prepare_inputs_kInOut(D=Ds[:,:,0], u=us[:,:,0])
-        outi = _GG.LOS_Calc_PInOut_VesStruct(*largs, **dkwd)[1:]
-        kouts[:,0], vperps[:,:,0], indouts[:,:,0] = outi
+        indStruct, largs, dkwd = self._prepare_inputs_kInOut(D=Ds[:,:,0], u=us[:,:,0],
+                                                     indStruct=self._dgeom['indStruct'])
+        outi = self._compute_kInOut(largs=largs, dkwd=dkwd, indStruct=indStruct)
+        kouts[:,0], vperps[:,:,0], indouts[:,:,0] = outi[1:-1]
 
         # Run other iterations
         for ii in range(1,nb):
             Dsi = Ds[:,:,ii-1] + (kouts[None,:,ii-1]-1.e-12) * us[:,:,ii-1]
-            usi, Types[:,ii] = self.config._reflect_geom(us[:,:,ii-1],
-                                                         vperps[:,:,ii-1],
+            usi, Types[:,ii] = self.config._reflect_geom(u=us[:,:,ii-1],
+                                                         vperp=vperps[:,:,ii-1],
+                                                         indout=indouts[:,:,ii-1],
                                                          Type=Type)
-            outi = _GG.LOS_Calc_PInOut_VesStruct(Dsi, usi,
-                                                 *largs[2:], **dkwd)[1:]
-            kouts[:,ii], vperps[:,:,ii], indouts[:,:,ii] = outi
+            outi = self._compute_kInOut(largs=[Dsi,usi,largs[2],largs[3]],
+                                        dkwd=dkwd, indStruct=indStruct)
+            kouts[:,ii], vperps[:,:,ii], indouts[:,:,ii] = outi[1:-1]
             Ds[:,:,ii], us[:,:,ii] = Dsi, usi
 
         self._dgeom['dreflect'] = {'nb':nb, 'Type':Type, 'Types':Types,
@@ -4028,12 +4048,12 @@ class Rays(utils.ToFuObject):
             # strip
             if strip==1:
                 lkeep = ['D','u','pinhole','nRays',
-                         'kIn','kOut','vperp','indout', 'kRMin',
+                         'kIn','kOut','vperp','indout', 'indStruct', 'kRMin',
                          'Etendues','Surfaces','isImage','dX12', 'dreflect']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
             elif self._dstrip['strip']<=1 and strip>=2:
                 lkeep = ['D','u','pinhole','nRays',
-                         'kIn','kOut','vperp','indout',
+                         'kIn','kOut','vperp','indout','indStruct',
                          'Etendues','Surfaces','isImage','dX12', 'dreflect']
                 utils.ToFuObject._strip_dict(self._dgeom, lkeep=lkeep)
 
@@ -4214,17 +4234,17 @@ class Rays(utils.ToFuObject):
         return self._dconfig['Config']
 
     @property
-    def lStruct_computeInOut(self):
+    def indStruct_computeInOut(self):
         compute = self.config.get_compute()
         lS = self.config.lStruct
-        lSI, lSO = [], []
-        for ii in range(0,self._dconfig['Config']._dStruct['nObj']):
+        iI, iO = [], []
+        for ii in range(0,len(lS)):
             if compute[ii]:
-                if lS[ii]._InOut=='in':
-                    lSI.append(lS[ii])
-                elif lS[ii]._InOut=='out':
-                    lSO.append(lS[ii])
-        return lSI+lSO
+                if lS[ii]._InOut == 'in':
+                    iI.append(ii)
+                elif lS[ii]._InOut == 'out':
+                    iO.append(ii)
+        return np.r_[iI + iO]
 
     @property
     def Etendues(self):
@@ -4331,7 +4351,7 @@ class Rays(utils.ToFuObject):
             Tuple indicating you want the rays that are touching some specific elements of self.config:
                 - touch[0] : str / int or list of such
                     str : a 'Cls_Name' string indicating the element
-                    int : the index of the element in self.lStruct_computeInOut
+                    int : the index of the element in self.config.lStruct
                 - touch[1] : int / list of int
                     Indices of the desired segments on the polygon
                     (i.e.: of the cross-section polygon of the above element)
@@ -4406,10 +4426,10 @@ class Rays(utils.ToFuObject):
                         raise Exception(msg)
 
                     if cS:
-                        lS = self.lStruct_computeInOut
                         k0, k1 = touch[ii].split('_')
-                        ind = [jj for jj in range(0,len(lS))
-                               if lS[jj].Id.Cls==k0 and lS[jj].Id.Name==k1]
+                        lS = self.config.lStruct
+                        ind = [jj for jj,ss in enumerate(lS)
+                               if ss.Id.Cls == k0 and ss.Id.Name == k1]
                         assert len(ind)==1
                         touch[ii] = [ind[0]]
                     elif c0:
@@ -4727,8 +4747,8 @@ class Rays(utils.ToFuObject):
                 largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
                                                           lVIn=[lVIn[ii]])
                 out = _GG.SLOW_LOS_Calc_PInOut_VesStruct(*largs, **dkwd)
-                PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out
-                kIn[:,ii], kOut[:,ii] = kin, kout
+                # PIn, POut, kin, kout, VperpIn, vperp, IIn, indout = out[]
+                kIn[:,ii], kOut[:,ii] = out[2], out[3]
         elif self._method=="optimized":
             for ii in range(0,nPoly):
                 largs, dkwd = self._kInOut_IsoFlux_inputs([lPoly[ii]],
@@ -5234,9 +5254,10 @@ class Rays(utils.ToFuObject):
             raise Exception(msg)
 
         dElt = {}
+        lS = self.config.lStruct
         ind = self._check_indch(ind, out=bool)
-        for ss in self.lStruct_computeInOut:
-            kn = "%s_%s"%(ss.__class__.__name__, ss.Id.Name)
+        for ii in self.indStruct_computeInOut:
+            kn = "%s_%s"%(lS[ii].__class__.__name__, lS[ii].Id.Name)
             indtouch = self.select(touch=kn, out=bool)
             if np.any(indtouch):
                 indok  = indtouch & ind
@@ -5246,7 +5267,7 @@ class Rays(utils.ToFuObject):
                         indok  = indok.nonzero()[0]
                         indout = indout.nonzero()[0]
                     dElt[kn] = {'indok':indok, 'indout':indout,
-                                'col':ss.get_color()}
+                                'col':lS[ii].get_color()}
         return dElt
 
     def get_touch_colors(self, ind=None, dElt=None,
@@ -5334,9 +5355,9 @@ class CamLOS1D(Rays):
                 ar1.append( [str(vv) for vv in v] )
 
         # call base method
-        self._get_summary([ar0, ar1], [col0, col1],
-                          sep=sep, line=line, table_sep=table_sep,
-                          verb=verb, return_=return_)
+        return self._get_summary([ar0, ar1], [col0, col1],
+                                  sep=sep, line=line, table_sep=table_sep,
+                                  verb=verb, return_=return_)
 
     def __add__(self, other):
         if not other.__class__.__name__ == self.__class__.__name__:

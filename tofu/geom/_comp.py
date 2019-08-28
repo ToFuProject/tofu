@@ -536,6 +536,7 @@ def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
 
         # Use optimized get sample
         DL = np.vstack((np.zeros((nlos*nseg,),dtype=float), kOuts.ravel()))
+
         k, reseff, lind = _GG.LOS_get_sample(nlos*nseg, resnk, DL,
                                              dmethod='rel', method='simps',
                                              num_threads=num_threads, Test=Test)
