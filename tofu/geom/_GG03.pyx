@@ -3034,11 +3034,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                    coeff_ptr[0],
                                    ind_arr,
                                    num_threads)
-            # Cleaning up...
-            free(coeff_ptr[0])
-            free(coeff_ptr)
-            free(reseff_arr)
-            free(ind_arr)
         if ani:
             val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
         else:
@@ -3053,10 +3048,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             # # ..........................................................
             # first los:
             jj = 0
-            jjp1 = ind_arr[1]
+            jjp1 = ind_arr[0]
             val_mv = val_2d[:,jj:jjp1]
             _st.integrate_c_sum_mat(&val_mv[0,0],
-                                    &sig_mv[0,0], nt,
+                                    &sig_mv[0,0],
                                     nt, jjp1 - jj,
                                     reseff_arr[0], num_threads)
             for ii in range(1,nlos):
@@ -3066,9 +3061,14 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                 jjp1 = ind_arr[ii]
                 val_mv = val_2d[:,jj:jjp1]
                 _st.integrate_c_sum_mat(&val_mv[0,0],
-                                        &sig_mv[0,ii], nt,
+                                        &sig_mv[0,ii],
                                         nt, jjp1 - jj,
                                         reseff_arr[ii], num_threads)
+            # Cleaning up...
+            free(coeff_ptr[0])
+            free(coeff_ptr)
+            free(reseff_arr)
+            free(ind_arr)
         elif method=='simps':
             for ii in range(nlos):
                 jj = indbis[ii]
@@ -3195,7 +3195,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # how to make it faster, and for the time being we leave it
                     # commented
                     _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii], nt,
-                                            nt, nb_rows[0],
+                                            nb_rows[0],
                                             loc_eff_res[0], num_threads)
                     # sig_mv[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
@@ -3239,7 +3239,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # for a question of time, we'll investigate some time
                     # how to make it faster, and for the time being we leave it
                     # commented
-                    _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii], nt,
+                    _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii],
                                             nt, nb_rows[0],
                                             loc_eff_res[0], num_threads)
                     # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
