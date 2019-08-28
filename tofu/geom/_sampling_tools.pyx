@@ -1467,17 +1467,21 @@ cdef inline void los_get_sample_pts(int nlos,
                                     double** ptx,
                                     double** pty,
                                     double** ptz,
+                                    double[:,::1] ray_orig,
+                                    double[:,::1] ray_vdir,
                                     double* eff_res,
                                     long* los_ind,
                                     int num_threads) nogil:
     cdef double** coeff_ptr = NULL
+    cdef double loc_ox, loc_oy, loc_oz
+    cdef double loc_vx, loc_vy, loc_vz
     cdef int ii, jj, kk
     coeff_ptr = <double**>malloc(sizeof(double*))
     coeff_ptr[0] = NULL
     # we sample lines of sight
     los_get_sample_core_var_res(nlos,
-                                los_lims_min
-                                los_lims_max,
+                                los_lim_min,
+                                los_lim_max,
                                 n_dmode, n_imode,
                                 resol,
                                 &coeff_ptr[0],
@@ -1488,7 +1492,30 @@ cdef inline void los_get_sample_pts(int nlos,
     ptx[0] = <double*>malloc(sizeof(double)*los_ind[nlos-1])
     pty[0] = <double*>malloc(sizeof(double)*los_ind[nlos-1])
     ptz[0] = <double*>malloc(sizeof(double)*los_ind[nlos-1])
-    for 
+    # Initialization
+    loc_ox = ray_orig[0,0]
+    loc_oy = ray_orig[1,0]
+    loc_oz = ray_orig[2,0]
+    loc_vx = ray_vdir[0,0]
+    loc_vy = ray_vdir[1,0]
+    loc_vz = ray_vdir[2,0]
+    for ii in range(los_ind[0]):
+        ptx[0][ii] = loc_ox + coeff_ptr[0][ii] + loc_vx
+        pty[0][ii] = loc_oy + coeff_ptr[0][ii] + loc_vy
+        ptz[0][ii] = loc_oz + coeff_ptr[0][ii] + loc_vz
+    # Other lines of sights:
+    for jj in range(1, nlos):
+        loc_ox = ray_orig[0,jj]
+        loc_oy = ray_orig[1,jj]
+        loc_oz = ray_orig[2,jj]
+        loc_vx = ray_vdir[0,jj]
+        loc_vy = ray_vdir[1,jj]
+        loc_vz = ray_vdir[2,jj]
+        for ii in range(los_ind[jj-1], los_ind[jj]):
+            ptx[0][ii] = loc_ox + coeff_ptr[0][ii] + loc_vx
+            pty[0][ii] = loc_oy + coeff_ptr[0][ii] + loc_vy
+            ptz[0][ii] = loc_oz + coeff_ptr[0][ii] + loc_vz
+    return
 
 
 # -- calling sampling and intergrating with sum --------------------------------
