@@ -2908,7 +2908,8 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef double[:,::1] val_mv
     cdef double* vsum
     cdef long[1] nb_rows
-    cdef long[::1] ind_bis
+    cdef long[::1] indbis
+    cdef int jjp1
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
     sz2_ds = ray_orig.shape[1]
@@ -2977,20 +2978,21 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             val_2d = func(np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis,
                        t=t, vect=-usbis, **fkwdargs)
         else:
-            val_2d = func(np.repeat(ray_orig,nbrep,axis=1) + k[None,:]*usbis,
+            pts = np.repeat(ray_orig,nbrep,axis=1) + k[None,:]*usbis
+            val_2d = func(pts,
                        t=t, **fkwdargs)
         indbis = np.concatenate(([0],ind,[k.size]))
         # Integrate
-        nb_rows[0] = val_2d.shape[0]
         if method=='sum':
             for ii in range(nlos):
-                # sig[:,ii] = np.sum(val[:,indbis[ii]:indbis[ii+1]],
+                # sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
                 #                    axis=-1)*reseff[ii]
                 jj = indbis[ii]
-                sig_mv = val_2d[:,jj]
-                _st.integrate_c_sum_mat(&sig_mv[0],
+                jjp1 = indbis[ii + 1]
+                val_mv = val_2d[:,jj:jjp1]
+                _st.integrate_c_sum_mat(&val_mv[0,0],
                                         &sig[0,ii], nt,
-                                        nt, nb_rows[0],
+                                        nt, jjp1 - jj,
                                         reseff[ii], num_threads)
 
         elif method=='simps':
