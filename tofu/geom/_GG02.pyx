@@ -2929,7 +2929,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef double** ptx = NULL
     cdef double** pty = NULL
     cdef double** ptz = NULL
-    cdef double** coef_ptr = NULL
+    cdef double** coeff_ptr = NULL
     cdef double loc_r
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
@@ -2974,7 +2974,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         ltime = [t]
     else:
         nt = len(t)
-        ltime = t
+        if isinstance(t, list):
+            ltime = t
+        else:
+            lime = t.tolist()
     # -- Inizializations -------------------------------------------------------
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
