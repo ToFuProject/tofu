@@ -1353,12 +1353,11 @@ cdef inline int los_get_sample_core_const_res(int nlos,
                                               double val_resol,
                                               double** coeff_ptr,
                                               double* dLr,
-                                              long** los_ind,
+                                              long* los_ind,
                                               int num_threads) nogil:
     # ...
     cdef int N
     cdef int ntmp
-    los_ind[0] = <long*>malloc((nlos)*sizeof(long))
     if n_dmode==1: # relative
         #         return coeff_arr, dLr, los_ind[:nlos-1]
         N = <int> Cceil(1./val_resol)
@@ -1421,9 +1420,8 @@ cdef inline void los_get_sample_core_var_res(int nlos,
                                             double* resol,
                                             double** coeff_ptr,
                                             double* eff_res,
-                                            long** los_ind,
+                                            long* los_ind,
                                             int num_threads) nogil:
-    los_ind[0] = <long*>malloc((nlos)*sizeof(long))
     if n_dmode==0: #absolute
         if n_imode==0: # sum
             middle_rule_abs_var(nlos,
@@ -1457,6 +1455,21 @@ cdef inline void los_get_sample_core_var_res(int nlos,
                                    los_lim_min, los_lim_max,
                                    &eff_res[0], coeff_ptr, los_ind[0],
                                    num_threads=num_threads)
+    return
+
+
+# # -- utility for calc signal ---------------------------------------------------
+# cdef inline void los_get_sample_pts(int nlos,
+#                                     double* los_lim_min,
+#                                     double* los_lim_max,
+#                                     int n_dmode, int n_imode,
+#                                     double* resol,
+#                                     double** ptx,
+#                                     double** pty,
+#                                     double** ptz,
+#                                     double* eff_res,
+#                                     long** los_ind,
+#                                     int num_threads) nogil:
 
 
 # -- calling sampling and intergrating with sum --------------------------------
@@ -1469,14 +1482,14 @@ cdef inline void integrate_c_sum_mat(double* val_mv,
     cdef int jj
     # ...
     vsum = <double*>malloc(nrows*sizeof(double))
-    # _bgt.sum_rows_blocks(val_mv, &vsum[0],
-    #                      nrows, ncols)
+    _bgt.sum_rows_blocks(val_mv, &vsum[0],
+                         nrows, ncols)
     # _bgt.sum_by_rows(val_mv, &vsum[0],
     #                  nrows, ncols)
     # _bgt.sum_naive_rows(val_mv, &vsum[0],
     #                     nrows, ncols)
-    _bgt.sum_par_mat(val_mv, &vsum[0],
-                     nrows, ncols)
+    # _bgt.sum_par_mat(val_mv, &vsum[0],
+    #                  nrows, ncols)
     with nogil, parallel(num_threads=num_threads):
         for jj in prange(nt):
             sig[jj] = vsum[jj] * loc_eff_res

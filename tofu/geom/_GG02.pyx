@@ -2672,7 +2672,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     cdef long* tmp_arr
     cdef double* los_coeffs = NULL
     cdef double** coeff_ptr = NULL
-    cdef long** los_ind_ptr = NULL
+    cdef long* los_ind_ptr = NULL
     # .. ray_orig shape needed for testing and in algo .........................
     dLr = np.zeros((nlos,), dtype=float)
     los_ind = np.zeros((nlos,), dtype=int)
@@ -2695,9 +2695,8 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
         assert imode in ['sum','simps','romb','linspace'], error_message
     # Init
     coeff_ptr = <double**> malloc(sizeof(double*))
-    los_ind_ptr = <long**> malloc(sizeof(long*))
+    los_ind_pr = <long*> malloc(nlos*sizeof(long))
     coeff_ptr[0] = NULL
-    los_ind_ptr[0] = NULL
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
@@ -2725,13 +2724,11 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                                         &dLr[0],
                                         &los_ind_ptr[0],
                                         num_threads)
-        sz_coeff = los_ind_ptr[0][nlos-1]
+        sz_coeff = los_ind_ptr[nlos-1]
     coeffs = np.copy(np.asarray(<double[:sz_coeff]>coeff_ptr[0]))
-    indices = np.copy(np.asarray(<long[:nlos]>los_ind_ptr[0]).astype(int))
+    indices = np.copy(np.asarray(<long[:nlos]>los_ind_ptr).astype(int))
     # -- freeing -----------------------------------------------------------
     if not los_ind_ptr == NULL:
-        if not los_ind_ptr[0] == NULL:
-            free(los_ind_ptr[0])
         free(los_ind_ptr)
     if not coeff_ptr == NULL:
         if not coeff_ptr[0] == NULL:
@@ -2904,8 +2901,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef np.ndarray[double,ndim=1] res_arr
     cdef np.ndarray[long,ndim=1] ind
     cdef double[1] loc_eff_res
+    cdef double[::1] reseff_mv
     cdef double[::1,:] sig_mv
     cdef double[:,::1] val_mv
+    cdef double[:,::1] pts_mv
     cdef double* vsum
     cdef long[1] nb_rows
     cdef long[::1] indbis
@@ -2968,21 +2967,39 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     # --------------------------------------------------------------------------
     # Minimize function calls: sample (vect), call (once) and integrate
     if minim == 'calls':
-        # Discretize all LOS
-        k, reseff, ind = LOS_get_sample(nlos, res_arr, lims,
-                                        dmethod=dmode, method=imode,
-                                        num_threads=num_threads, Test=Test)
-        nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[nlos-2]]
-        # get pts and values
-        usbis = np.repeat(ray_vdir, nbrep, axis=1)
-        if ani:
-            val_2d = func(np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis,
-                       t=t, vect=-usbis, **fkwdargs)
+        if not method=='sum':
+            # Discretize all LOS
+            k, reseff, ind = LOS_get_sample(nlos, res_arr, lims,
+                                            dmethod=dmode, method=imode,
+                                            num_threads=num_threads, Test=Test)
+            nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[nlos-2]]
+            # get pts and values
+            usbis = np.repeat(ray_vdir, nbrep, axis=1)
+            pts = np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis
         else:
-            val_2d = func(np.repeat(ray_orig,nbrep,axis=1) + k[None,:]*usbis,
-                       t=t, **fkwdargs)
+            # Discretize all LOS
+            k, reseff, ind = LOS_get_sample(nlos, res_arr, lims,
+                                            dmethod=dmode, method=imode,
+                                            num_threads=num_threads, Test=Test)
+            nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[nlos-2]]
+            # get pts and values
+            usbis = np.repeat(ray_vdir, nbrep, axis=1)
+            pts = np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis
+            
+        if ani:
+            val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
+        else:
+            val_2d = func(pts, t=t, **fkwdargs)
+        # memory view:
+            reseff_mv = reseff
         # Integrate
         if method=='sum':
+            # # .. original version .....................................
+            # indbis = np.concatenate(([0],ind,[k.size]))
+            # for ii in range(1,nlos):
+            #     sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
+            #                        axis=-1)*reseff_mv[ii]
+            # # ..........................................................
             indbis = ind
             # first los:
             jj = 0
@@ -2991,17 +3008,17 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             _st.integrate_c_sum_mat(&val_mv[0,0],
                                     &sig_mv[0,0], nt,
                                     nt, jjp1 - jj,
-                                    reseff[0], num_threads)
+                                    reseff_mv[0], num_threads)
             for ii in range(1,nlos-1):
                 # sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
-                #                    axis=-1)*reseff[ii]
+                #                    axis=-1)*reseff_mv[ii]
                 jj = indbis[ii]
                 jjp1 = indbis[ii + 1]
                 val_mv = val_2d[:,jj:jjp1]
                 _st.integrate_c_sum_mat(&val_mv[0,0],
                                         &sig_mv[0,ii], nt,
                                         nt, jjp1 - jj,
-                                        reseff[ii], num_threads)
+                                        reseff_mv[ii], num_threads)
             # last nlos
             jj = indbis[nlos-2]
             jjp1 = k.size
@@ -3009,20 +3026,18 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             _st.integrate_c_sum_mat(&val_mv[0,0],
                                     &sig_mv[0,nlos-1], nt,
                                     nt, jjp1 - jj,
-                                    reseff[nlos-1], num_threads)
-                
-
+                                    reseff_mv[nlos-1], num_threads)
         elif method=='simps':
             indbis = np.concatenate(([0],ind,[k.size]))
             for ii in range(nlos):
                 sig_mv[:,ii] = scpintg.simps(val_2d[:,indbis[ii]:indbis[ii+1]],
-                                          x=None, dx=reseff[ii], axis=-1)
+                                          x=None, dx=reseff_mv[ii], axis=-1)
         else:
             indbis = np.concatenate(([0],ind,[k.size]))
             axm = 1
             for ii in range(nlos):
                 sig_mv[:,ii] = scpintg.romb(val_2d[:,indbis[ii]:indbis[ii+1]],
-                                         dx=reseff[ii], axis=axm, show=False)
+                                         dx=reseff_mv[ii], axis=axm, show=False)
     # --------------------------------------------------------------------------
     # Minimize memory use: loop everything, starting with LOS
     # then pts then time
