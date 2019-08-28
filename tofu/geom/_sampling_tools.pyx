@@ -1373,18 +1373,18 @@ cdef inline int los_get_sample_core_const_res(int nlos,
             # coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
             coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
             left_rule_rel(nlos, N,
-                              los_lim_min, los_lim_max, &dLr[0],
-                              coeff_ptr[0], los_ind,
-                              num_threads=num_threads)
+                          los_lim_min, los_lim_max, &dLr[0],
+                          coeff_ptr[0], los_ind,
+                          num_threads=num_threads)
             return (N+1)*nlos
         elif n_imode==2: #romb
             N = 2**(<int>Cceil(Clog2(N)))
             # coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
             coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
             left_rule_rel(nlos, N,
-                              los_lim_min, los_lim_max,
-                              &dLr[0], coeff_ptr[0], los_ind,
-                              num_threads=num_threads)
+                          los_lim_min, los_lim_max,
+                          &dLr[0], coeff_ptr[0], los_ind,
+                          num_threads=num_threads)
             return (N+1)*nlos
     else: # absolute
         if n_imode==0: #sum
