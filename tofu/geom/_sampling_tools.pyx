@@ -1460,38 +1460,20 @@ cdef inline void los_get_sample_core_var_res(int nlos,
 
 # # -- utility for calc signal ---------------------------------------------------
 cdef inline void los_get_sample_pts(int nlos,
-                                    double* los_lim_min,
-                                    double* los_lim_max,
-                                    int n_dmode, int n_imode,
-                                    double* resol,
-                                    double** ptx,
-                                    double** pty,
-                                    double** ptz,
+                                    double* ptx,
+                                    double* pty,
+                                    double* ptz,
+                                    double* usx,
+                                    double* usy,
+                                    double* usz,
                                     double[:,::1] ray_orig,
                                     double[:,::1] ray_vdir,
-                                    double* eff_res,
+                                    double* coeff_ptr,
                                     long* los_ind,
                                     int num_threads) nogil:
-    cdef double** coeff_ptr = NULL
     cdef double loc_ox, loc_oy, loc_oz
     cdef double loc_vx, loc_vy, loc_vz
-    cdef int ii, jj, kk
-    coeff_ptr = <double**>malloc(sizeof(double*))
-    coeff_ptr[0] = NULL
-    # we sample lines of sight
-    los_get_sample_core_var_res(nlos,
-                                los_lim_min,
-                                los_lim_max,
-                                n_dmode, n_imode,
-                                resol,
-                                &coeff_ptr[0],
-                                eff_res,
-                                los_ind,
-                                num_threads)
-    # we compute points coordinates
-    ptx[0] = <double*>malloc(sizeof(double)*los_ind[nlos-1])
-    pty[0] = <double*>malloc(sizeof(double)*los_ind[nlos-1])
-    ptz[0] = <double*>malloc(sizeof(double)*los_ind[nlos-1])
+    cdef int ii, jj
     # Initialization
     loc_ox = ray_orig[0,0]
     loc_oy = ray_orig[1,0]
@@ -1500,9 +1482,12 @@ cdef inline void los_get_sample_pts(int nlos,
     loc_vy = ray_vdir[1,0]
     loc_vz = ray_vdir[2,0]
     for ii in range(los_ind[0]):
-        ptx[0][ii] = loc_ox + coeff_ptr[0][ii] + loc_vx
-        pty[0][ii] = loc_oy + coeff_ptr[0][ii] + loc_vy
-        ptz[0][ii] = loc_oz + coeff_ptr[0][ii] + loc_vz
+        ptx[ii] = loc_ox + coeff_ptr[ii] + loc_vx
+        pty[ii] = loc_oy + coeff_ptr[ii] + loc_vy
+        ptz[ii] = loc_oz + coeff_ptr[ii] + loc_vz
+        usx[ii] = loc_vx
+        usy[ii] = loc_vy
+        usz[ii] = loc_vz
     # Other lines of sights:
     for jj in range(1, nlos):
         loc_ox = ray_orig[0,jj]
@@ -1512,13 +1497,12 @@ cdef inline void los_get_sample_pts(int nlos,
         loc_vy = ray_vdir[1,jj]
         loc_vz = ray_vdir[2,jj]
         for ii in range(los_ind[jj-1], los_ind[jj]):
-            ptx[0][ii] = loc_ox + coeff_ptr[0][ii] + loc_vx
-            pty[0][ii] = loc_oy + coeff_ptr[0][ii] + loc_vy
-            ptz[0][ii] = loc_oz + coeff_ptr[0][ii] + loc_vz
-    if not coeff_ptr == NULL:
-        if not coeff_ptr[0] == NULL:
-            free(coeff_ptr[0])
-        free(coeff_ptr)
+            ptx[ii] = loc_ox + coeff_ptr[ii] + loc_vx
+            pty[ii] = loc_oy + coeff_ptr[ii] + loc_vy
+            ptz[ii] = loc_oz + coeff_ptr[ii] + loc_vz
+            usx[ii] = loc_vx
+            usy[ii] = loc_vy
+            usz[ii] = loc_vz
     return
 
 

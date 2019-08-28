@@ -2905,6 +2905,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef double[::1,:] sig_mv
     cdef double[:,::1] val_mv
     cdef double[:,::1] pts_mv
+    cdef double[:,::1] usbis_mv
     cdef double* vsum
     cdef long[1] nb_rows
     cdef long[::1] indbis
@@ -2914,6 +2915,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef double** ptx = NULL
     cdef double** pty = NULL
     cdef double** ptz = NULL
+    cdef double** coef_ptr = NULL
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
     sz2_ds = ray_orig.shape[1]
@@ -2984,26 +2986,36 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             # memory view:
             reseff_mv = reseff
         else:
+            coeff_ptr = <double**>malloc(sizeof(double*))
+            coeff_ptr[0] = NULL
             reseff_arr = <double*>malloc(nlos*sizeof(double))
             ind_arr = <long*>malloc(nlos*sizeof(long))
-            ptx = <double**>malloc(sizeof(double*))
-            pty = <double**>malloc(sizeof(double*))
-            ptz = <double**>malloc(sizeof(double*))
-            ptx[0] = NULL
-            pty[0] = NULL
-            ptz[0] = NULL
-            _st.los_get_sample_pts(nlos, &lims[0,0], &lims[1,0],
-                                   n_dmode, n_imode,
-                                   &res_arr[0],
-                                   &ptx[0], &pty[0], &ptz[0],
-                                   ray_orig, ray_vdir,
-                                   &reseff_arr[0], &ind_arr[0],
-                                   num_threads)
+            # we sample lines of sight
+            _st.los_get_sample_core_var_res(nlos,
+                                            &lims[0,0],
+                                            &lims[1,0],
+                                            n_dmode, n_imode,
+                                            &res_arr[0],
+                                            &coeff_ptr[0],
+                                            &reseff_arr[0],
+                                            &ind_arr[0],
+                                            num_threads)
             sz_coeff = ind_arr[nlos-1]
             pts = np.empty((3,sz_coeff))
-            pts[0] = np.asarray(<double[:sz_coeff]>ptx[0])
-            pts[1] = np.asarray(<double[:sz_coeff]>pty[0])
-            pts[2] = np.asarray(<double[:sz_coeff]>ptz[0])
+            usbis = np.empty((3,sz_coeff))
+            usbis_mv = usbis
+            pts_mv = pts
+            _st.los_get_sample_pts(nlos,
+                                   &pts_mv[0,0],
+                                   &pts_mv[1,0],
+                                   &pts_mv[2,0],
+                                   &usbis_mv[0,0],
+                                   &usbis_mv[1,0],
+                                   &usbis_mv[2,0],
+                                   ray_orig, ray_vdir,
+                                   coeff_ptr[0],
+                                   ind_arr,
+                                   num_threads)
         if ani:
             val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
         else:
