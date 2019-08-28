@@ -562,8 +562,10 @@ def _DataCam12D_plot(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
         if c1 and 'LOS' in lData[0]._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
             for cc in lData[0]._dgeom['lCam']:
-                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross',
+                                        return_pts=True, multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor',
+                                      return_pts=True, multi=True)
                 if bck and nD == 2:
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
@@ -1312,8 +1314,10 @@ def _DataCam12D_plot_spectral(lData, key=None,
         if c1 and 'LOS' in lData[0]._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
             for cc in lData[0]._dgeom['lCam']:
-                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross',
+                                        return_pts=True, multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor',
+                                      return_pts=True, multi=True)
                 if bck and nD == 2:
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
@@ -2040,8 +2044,10 @@ def _DataCam12D_plot_combine(lData, key=None, nchMax=_nchMax, ntMax=_ntMax,
             llHor[ii] = [None for jj in range(0,len(lData[ii]._dgeom['lCam']))]
             for jj in range(0,len(lData[ii]._dgeom['lCam'])):
                 cc = lData[ii]._dgeom['lCam'][jj]
-                llCross[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                llHor[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+                llCross[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='cross',
+                                                return_pts=True, multi=True)
+                llHor[ii][jj] = cc._get_plotL(Lplot=Lplot, proj='hor',
+                                              return_pts=True, multi=True)
 
         if c2 and lis2D[ii] and bck:
             indbck = np.r_[lindr[ii][0,0], lindr[ii][0,-1],
@@ -2635,8 +2641,10 @@ def _Data1D_plot_spectrogram(Data, tf, f, lpsd, lang,
         if c1 and 'LOS' in Data._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
             for cc in Data._dgeom['lCam']:
-                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross',
+                                        return_pts=True, multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor',
+                                      return_pts=True, multi=True)
                 if bck and cc._is2D():
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]
@@ -3291,8 +3299,10 @@ def _Data_plot_svd(Data, chronos, s, topos, modes=None,
         if c1 and 'LOS' in Data._dgeom['lCam'][0].Id.Cls:
             lCross, lHor, llab = [], [], []
             for cc in Data._dgeom['lCam']:
-                lCross += cc._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-                lHor += cc._get_plotL(Lplot=Lplot, proj='hor', multi=True)
+                lCross += cc._get_plotL(Lplot=Lplot, proj='cross',
+                                        return_pts=True, multi=True)
+                lHor += cc._get_plotL(Lplot=Lplot, proj='hor',
+                                      return_pts=True, multi=True)
                 if bck and cc._is2D():
                     crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                                 lCross[indbck[2]],nan2,lCross[indbck[3]]]

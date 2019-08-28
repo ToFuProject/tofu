@@ -2956,7 +2956,7 @@ class Plasma2D(utils.ToFuObject):
         if msg is not None:
             msg += "\n\nRequested %s could not be identified !\n"%msgstr
             msg += "Please provide a valid (unique) key/name/quant/dim:\n\n"
-            msg += '\n\n'.join(self.get_summary(verb=False, return_='msg'))
+            msg += self.get_summary(verb=False, return_='msg')
             if raise_:
                 raise Exception(msg)
         return key, msg
@@ -3001,6 +3001,7 @@ class Plasma2D(utils.ToFuObject):
         return self._get_summary([ar0,ar1,ar2], [col0, col1, col2],
                                   sep=sep, line=line, table_sep=table_sep,
                                   verb=verb, return_=return_)
+
 
     #---------------------
     # Methods for adding ref / quantities

@@ -1455,8 +1455,10 @@ class MultiIDSLoader(object):
     #---------------------
 
     def get_summary(self, sep='  ', line='-', just='l',
-                    verb=True, return_=False):
+                    table_sep=None, verb=True, return_=False):
         """ Summary description of the object content as a np.array of str """
+        if table_sep is None:
+            table_sep = '\n\n'
 
         # -----------------------
         # idd
@@ -1502,7 +1504,7 @@ class MultiIDSLoader(object):
             else:
                 msg1 = ''
             if verb:
-                msg = '\n\n'.join([msg0,msg1])
+                msg = table_sep.join([msg0,msg1])
                 print(msg)
         if return_ != False:
             if return_ == True:
@@ -1510,12 +1512,17 @@ class MultiIDSLoader(object):
             elif return_ == 'array':
                 out = (a0, a1)
             elif return_ == 'msg':
-                out = (msg0, msg1)
+                out = table_sep.join([msg0,msg1])
             else:
                 lok = [False, True, 'msg', 'array']
                 raise Exception("Valid return_ values are: %s"%str(lok))
             return out
 
+    def __repr__(self):
+        if hasattr(self, 'get_summary'):
+            return self.get_summary(return_='msg', verb=False)
+        else:
+            return object.__repr__(self)
 
     #---------------------
     # Methods for returning data
