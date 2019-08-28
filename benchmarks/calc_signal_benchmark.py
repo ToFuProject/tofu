@@ -42,19 +42,10 @@ np.set_printoptions(linewidth=200)
 # Defining defaults
 ###################
 
-
-# # Mine @LM
-# _LRES = [-1,-3,0]
-# _LLOS = [1,4,0]
-# _LT = [1,2,0]
-# _NREP = 4
-# @DV
 _LRES = [-1,-3,0]
-_LLOS = [1,4,0]
+_LLOS = [1,3,0]
 _LT = [1,3,0]
-_NREP = 3
-#
-
+_NREP = 2
 
 _DRES = abs(_LRES[1] - _LRES[0])
 _DLOS = abs(_LLOS[1] - _LLOS[0])
@@ -69,14 +60,14 @@ _IDS = ['core_profiles', 'equilibrium', 'core_sources']
 _QUANT = 'core_profiles.1dne'
 _REF1D = 'core_profiles.1drhotn'
 _REF2D = 'equilibrium.2drhotn'
-_DALGO = {#'ref-sum':{'newcalc':False},
+_DALGO = {'ref-sum':{'newcalc':False},
           'calls-sum':    {'newcalc':True,  'minimize':'calls', 'method':'sum'},
           # 'calls-simps':  {'newcalc':True,  'minimize':'calls', 'method':'simps'},
           # 'calls-romb':   {'newcalc':True,  'minimize':'calls', 'method':'romb'},
-          # 'hybrid-sum':   {'newcalc':True,  'minimize':'hybrid', 'method':'sum'},
+          'hybrid-sum':   {'newcalc':True,  'minimize':'hybrid', 'method':'sum'},
           # 'hybrid-simps': {'newcalc':True,  'minimize':'hybrid', 'method':'simps'},
           # 'hybrid-romb':  {'newcalc':True,  'minimize':'hybrid', 'method':'romb'},
-          # 'memory-sum':   {'newcalc':True,  'minimize':'memory', 'method':'sum'},
+          'memory-sum':   {'newcalc':True,  'minimize':'memory', 'method':'sum'},
           # 'memory-simps': {'newcalc':True,  'minimize':'memory', 'method':'simps'},
           # 'memory-romb':  {'newcalc':True,  'minimize':'memory', 'method':'romb'},
          }
