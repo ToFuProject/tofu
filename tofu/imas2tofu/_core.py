@@ -1516,6 +1516,11 @@ class MultiIDSLoader(object):
                 raise Exception("Valid return_ values are: %s"%str(lok))
             return out
 
+    def __repr__(self):
+        if hasattr(self, 'get_summary'):
+            return self.get_summary(return_='msg', verb=False)
+        else:
+            return object.__repr__(self)
 
     #---------------------
     # Methods for returning data
