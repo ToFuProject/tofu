@@ -4871,6 +4871,7 @@ class Rays(utils.ToFuObject):
     def calc_signal(self, func, t=None, ani=None, fkwdargs={}, Brightness=True,
                     res=None, DL=None, resMode='abs', method='sum',
                     minimize='calls', num_threads=16,
+                    reflections=True, coefs=None,
                     ind=None, out=object, plot=True, dataname=None,
                     fs=None, dmargin=None, wintit=None, invert=True,
                     units=None, draw=True, connect=True, newcalc=True):
@@ -4934,6 +4935,18 @@ class Rays(utils.ToFuObject):
                                     dmethod=resMode, method=method, ani=ani,
                                     t=t, fkwdargs=fkwdargs, minimize=minimize,
                                     num_threads=num_threads, Test=True)
+            c0 = (reflections and self._dgeom['dreflect'] is not None
+                  and self._dgeom['dreflect'].get('nb',0) > 0)
+            if c0:
+                if coefs is None:
+                    coefs = 1.
+                for ii in range(self._dgeom['dreflect']['nb']):
+                    Dsi = np.ascontiguousarray(self._dgeom['dreflect']['Ds'][:,:,ii])
+                    usi = np.ascontiguousarray(self._dgeom['dreflect']['us'][:,:,ii])
+                    s += coefs*_GG.LOS_calc_signal(func, Dsi, usi, res, DL,
+                                                   dmethod=resMode, method=method, ani=ani,
+                                                   t=t, fkwdargs=fkwdargs, minimize=minimize,
+                                                   num_threads=num_threads, Test=True)
 
             # Integrate
             if s.ndim == 2:
@@ -4987,6 +5000,7 @@ class Rays(utils.ToFuObject):
                                   res=None, DL=None, resMode='abs',
                                   method='sum', minimize='calls',
                                   num_threads=16,
+                                  reflections=True, coefs=None,
                                   ind=None, out=object, plot=True, dataname=None,
                                   fs=None, dmargin=None, wintit=None, invert=True,
                                   units=None, draw=True, connect=True):
@@ -5036,6 +5050,18 @@ class Rays(utils.ToFuObject):
                                       dmethod=resMode, method=method, ani=ani,
                                       t=t, fkwdargs={}, minimize=minimize,
                                       Test=True, num_threads=num_threads)
+            c0 = (reflections and self._dgeom['dreflect'] is not None
+                  and self._dgeom['dreflect'].get('nb',0) > 0)
+            if c0:
+                if coefs is None:
+                    coefs = 1.
+                for ii in range(self._dgeom['dreflect']['nb']):
+                    Dsi = np.ascontiguousarray(self._dgeom['dreflect']['Ds'][:,:,ii])
+                    usi = np.ascontiguousarray(self._dgeom['dreflect']['us'][:,:,ii])
+                    sig += coefs*_GG.LOS_calc_signal(funcbis, Dsi, usi, res, DL,
+                                                     dmethod=resMode, method=method, ani=ani,
+                                                     t=t, fkwdargs=fkwdargs, minimize=minimize,
+                                                     num_threads=num_threads, Test=True)
         else:
             # Get ptsRZ along LOS // Which to choose ???
             pts, reseff, indpts = self.get_sample(res, resMode=resMode, DL=DL, method=method, ind=ind,
