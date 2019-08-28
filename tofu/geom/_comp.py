@@ -494,7 +494,7 @@ def LOS_PRMin(Ds, us, kOut=None, Eps=1.e-12, squeeze=True, Test=True):
 
 
 def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
-                  num_threads=16, Test=True):
+                  num_threads=16, return_pts=False, Test=True):
     """ Compute the parameters to plot the poloidal projection of the LOS  """
     assert type(VType) is str and VType.lower() in ['tor','lin']
     dproj = {'cross':('R','Z'), 'hor':('x,y'), 'all':('R','Z','x','y'),
@@ -507,6 +507,8 @@ def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
         proj = proj.lower()
         assert proj in dproj.keys()
         lcoords = dproj[proj]
+    if return_pts:
+        assert proj in ['cross','hor', '3d']
 
     lc = [Ds.ndim == 3, Ds.shape == us.shape]
     if not all(lc):
@@ -534,8 +536,9 @@ def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
 
         # Use optimized get sample
         DL = np.vstack((np.zeros((nlos*nseg,),dtype=float), kOuts.ravel()))
+        # TBF: should be 'rel', but 'abs' for debugging, until Issue160 fixed
         k, reseff, lind = _GG.LOS_get_sample(nlos*nseg, resnk, DL,
-                                             dmethod='rel', method='simps',
+                                             dmethod='abs', method='simps',
                                              num_threads=num_threads, Test=Test)
 
         assert lind.size == nseg*nlos - 1
@@ -544,19 +547,23 @@ def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
         pts = (np.repeat(Ds.reshape((3,nlos*nseg)), nbrep, axis=1)
                + k[None,:] * np.repeat(us.reshape((3,nlos*nseg)), nbrep,
                                        axis=1))
-        import ipdb         # DB
-        ipdb.set_trace()    # DB
-
-        if multi:
-            if 'R' in lcoords:
-                R = np.hypot(pts[0,:],pts[1,:]).split(ind)
-            if 'Z' in lcoords:
-                Z = pts[2,:].split(ind)
+        if return_pts:
+            pts = np.array([np.hypot(pts[0,:],pts[1,:]), pts[2,:]])
+            if multi:
+                pts = pts.split(ind)
+            else:
+                pts = np.insert(pts, ind, np.nan)
         else:
-            if 'R' in lcoords:
-                R = np.insert(np.hypot(pts[0,:],pts[1,:]), ind, np.nan)
-            if 'Z' in lcoords:
-                Z = np.insert(pts[2,:], ind, np.nan)
+            if multi:
+                if 'R' in lcoords:
+                    R = np.hypot(pts[0,:],pts[1,:]).split(ind)
+                if 'Z' in lcoords:
+                    Z = pts[2,:].split(ind)
+            else:
+                if 'R' in lcoords:
+                    R = np.insert(np.hypot(pts[0,:],pts[1,:]), ind, np.nan)
+                if 'Z' in lcoords:
+                    Z = np.insert(pts[2,:], ind, np.nan)
 
     # Normal sampling => pts
     # unnecessary only if 'tor' and 'cross'
@@ -580,7 +587,11 @@ def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
                 y = Ds[1,...].ravel()
             if 'z' in lcoords:
                 z = Ds[2,...].ravel()
-    return R, Z, x, y, z
+
+    if return_pts:
+        return pts
+    else:
+        return R, Z, x, y, z
 
 
 
