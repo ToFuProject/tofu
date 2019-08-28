@@ -176,23 +176,21 @@ def ffT(Pts, t=None, vect=None):
     return E
 
 ind = None#[0,10,20,30,40]
-minimize = ["calls", "hybrid", "memory"]
+minimize = ["memory", "calls", "hybrid"]
 for mmz in minimize:
     for typ in dobj.keys():
         for c in dobj[typ].keys():
             print("Testing = ", mmz, typ, c)
-            if typ == "Tor":
-                obj = dobj[typ][c]
-                ff = ffT if obj.config.Id.Type=='Tor' else ffL
-                t = np.arange(0,10,10)
-                connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
-                           and getattr(plt.get_current_fig_manager(),'toolbar')
-                           is not None)
-                out = obj.calc_signal(ff, t=t, ani=True, fkwdargs={},
-                                      res=0.01, DL=None, resMode='abs',
-                                      method='sum', minimize=mmz, ind=ind,
-                                      plot=False, out=np.ndarray,
-                                      fs=(12,6), connect=connect)
-                sig, units = out
-                assert not np.all(np.isnan(sig)), str(ii)
-plt.close('all')
+            obj = dobj[typ][c]
+            ff = ffT if obj.config.Id.Type=='Tor' else ffL
+            t = np.arange(0,10,10)
+            connect = (hasattr(plt.get_current_fig_manager(),'toolbar')
+                       and getattr(plt.get_current_fig_manager(),'toolbar')
+                       is not None)
+            out = obj.calc_signal(ff, t=t, ani=True, fkwdargs={},
+                                  res=0.01, DL=None, resMode='abs',
+                                  method='simps', minimize=mmz, ind=ind,
+                                  plot=False, out=np.ndarray,
+                                  fs=(12,6), connect=connect)
+            sig, units = out
+            assert not np.all(np.isnan(sig)), str(ii)

@@ -2916,6 +2916,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef double** pty = NULL
     cdef double** ptz = NULL
     cdef double** coef_ptr = NULL
+    cdef double loc_r
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
     sz2_ds = ray_orig.shape[1]
@@ -3049,8 +3050,12 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         elif method=='simps':
             indbis = np.concatenate(([0],ind,[k.size]))
             for ii in range(nlos):
-                sig_mv[:,ii] = scpintg.simps(val_2d[:,indbis[ii]:indbis[ii+1]],
-                                          x=None, dx=reseff_mv[ii], axis=-1)
+                jj = indbis[ii]
+                jjp1 = indbis[ii+1]
+                val_mv = val_2d[:,jj:jjp1]
+                loc_r = reseff_mv[ii]
+                sig_mv[:,ii] = scpintg.simps(val_mv,
+                                             x=None, dx=loc_r, axis=-1)
         else:
             indbis = np.concatenate(([0],ind,[k.size]))
             axm = 1
