@@ -536,29 +536,29 @@ def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
 
         # Use optimized get sample
         DL = np.vstack((np.zeros((nlos*nseg,),dtype=float), kOuts.ravel()))
-        # TBF: should be 'rel', but 'abs' for debugging, until Issue160 fixed
         k, reseff, lind = _GG.LOS_get_sample(nlos*nseg, resnk, DL,
-                                             dmethod='abs', method='simps',
+                                             dmethod='rel', method='simps',
                                              num_threads=num_threads, Test=Test)
 
         assert lind.size == nseg*nlos - 1
-        ind = lind[::nseg]
+        ind = lind[nseg-1::nseg]
         nbrep = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
         pts = (np.repeat(Ds.reshape((3,nlos*nseg)), nbrep, axis=1)
                + k[None,:] * np.repeat(us.reshape((3,nlos*nseg)), nbrep,
                                        axis=1))
+
         if return_pts:
             pts = np.array([np.hypot(pts[0,:],pts[1,:]), pts[2,:]])
             if multi:
-                pts = pts.split(ind)
+                pts = np.split(pts, ind, axis=1)
             else:
-                pts = np.insert(pts, ind, np.nan)
+                pts = np.insert(pts, ind, np.nan, axis=1)
         else:
             if multi:
                 if 'R' in lcoords:
-                    R = np.hypot(pts[0,:],pts[1,:]).split(ind)
+                    R = np.split(np.hypot(pts[0,:],pts[1,:]), ind)
                 if 'Z' in lcoords:
-                    Z = pts[2,:].split(ind)
+                    Z = np.split(pts[2,:], ind)
             else:
                 if 'R' in lcoords:
                     R = np.insert(np.hypot(pts[0,:],pts[1,:]), ind, np.nan)
@@ -569,24 +569,41 @@ def LOS_CrossProj(VType, Ds, us, kOuts, proj='All', multi=False,
     # unnecessary only if 'tor' and 'cross'
     x, y, z = None, None, None
     if 'x' in lcoords or 'y' in lcoords or 'z' in lcoords:
-        Ds = np.concatenate((Ds, Ds[:,:,-1:] + kOuts[None,:,-1:]*us[:,:,-1:]),
+        pts = np.concatenate((Ds, Ds[:,:,-1:] + kOuts[None,:,-1:]*us[:,:,-1:]),
                             axis=-1)
+
+        pts = pts.reshape((3,nlos*(nseg+1)))
         if multi:
-            if 'x' in lcoords:
-                x = Ds[0,...]
-            if 'y' in lcoords:
-                y = Ds[1,...]
-            if 'z' in lcoords:
-                z = Ds[2,...]
+            ind = np.arange(1,nlos)*(nseg+1)
         else:
             nancoords = np.full((3,nlos,1), np.nan)
-            Ds = np.concatenate((Ds,nancoords), axis=-1)
-            if 'x' in lcoords:
-                x = Ds[0,...].ravel()
-            if 'y' in lcoords:
-                y = Ds[1,...].ravel()
-            if 'z' in lcoords:
-                z = Ds[2,...].ravel()
+            pts = np.concatenate((pts,nancoords), axis=-1)
+
+        if return_pts:
+            assert proj in ['hor','3d']
+            if multi:
+                if proj == 'hor':
+                    pts = np.split(pts[:2,:], ind, axis=1)
+                else:
+                    pts = np.split(pts, ind, axis=1)
+            elif proj == 'hor':
+                pts = pts[:2,:]
+
+        else:
+            if multi:
+                if 'x' in lcoords:
+                    x = np.split(pts[0,:], ind)
+                if 'y' in lcoords:
+                    y = np.split(pts[1,:], ind)
+                if 'z' in lcoords:
+                    z = np.split(pts[2,:], ind)
+            else:
+                if 'x' in lcoords:
+                    x = pts[0,:]
+                if 'y' in lcoords:
+                    y = pts[1,:]
+                if 'z' in lcoords:
+                    z = pts[2,:]
 
     if return_pts:
         return pts

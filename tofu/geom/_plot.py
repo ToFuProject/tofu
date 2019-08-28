@@ -1489,10 +1489,10 @@ def _Cam12D_plottouch(cam, key=None, ind=None, quant='lengths', nchMax=_nchMax,
         dax['cross'][0], dax['hor'][0] = out
 
     if cam._isLOS():
-        # lCross = cam._get_plotL(Lplot=Lplot, proj='cross', multi=True)
-        lR, lZ = cam._get_plotL(Lplot=Lplot, proj='cross', multi=True)[:2]
-        # lHor = cam._get_plotL(Lplot=Lplot, proj='hor', multi=True)
-        lx, ly = cam._get_plotL(Lplot=Lplot, proj='hor', multi=True)[2:4]
+        lCross = cam._get_plotL(Lplot=Lplot, proj='cross',
+                                return_pts=True, multi=True)
+        lHor = cam._get_plotL(Lplot=Lplot, proj='hor',
+                              return_pts=True, multi=True)
         if Bck and nD == 2:
             crossbck = [lCross[indbck[0]],nan2,lCross[indbck[1]],nan2,
                         lCross[indbck[2]],nan2,lCross[indbck[3]]]

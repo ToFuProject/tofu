@@ -4357,16 +4357,17 @@ class Rays(utils.ToFuObject):
         return obj
 
     def _get_plotL(self, reflections=True, Lplot='Tot',
-                   proj='All', ind=None, multi=False):
+                   proj='All', ind=None, return_pts=False, multi=False):
         """ Get the (R,Z) coordinates of the cross-section projections """
         ind = self._check_indch(ind)
         if ind.size > 0:
             us = self.u[:,ind]
+            kOuts = np.atleast_1d(self.kOut[ind])[:,None]
             if Lplot.lower() == 'tot':
                 Ds = self.D[:,ind]
             else:
                 Ds = self.D[:,ind] + self.kIn[None,ind] * us
-            kOuts = np.atleast_1d(self.kOut[ind])[:,None]
+                kOuts = kOuts - np.atleast_1d(self.kIn[ind])[:,None]
             if ind.size == 1:
                 Ds, us = Ds[:,None], us[:,None]
             Ds, us = Ds[:,:,None], us[:,:,None]
@@ -4392,11 +4393,12 @@ class Rays(utils.ToFuObject):
             elif self.config.Id.Type == 'Tor':
                 kRMin = self._dgeom['kRMin'][ind][:,None]
 
-            R, Z, x, y, z = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
-                                                kOuts, proj=proj, multi=multi)
+            out = _comp.LOS_CrossProj(self.config.Id.Type, Ds, us,
+                                      kOuts, proj=proj,
+                                      return_pts=return_pts, multi=multi)
         else:
-            R, Z, x, y, z = None, None, None, None, None
-        return R, Z, x, y, z
+            out = None
+        return out
 
     def get_sample(self, res=None, resMode='abs', DL=None, method='sum', ind=None,
                    pts=False, compact=True, num_threads=_NUM_THREADS, Test=True):
