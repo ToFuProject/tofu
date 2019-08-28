@@ -1471,6 +1471,7 @@ cdef inline void los_get_sample_pts(int nlos,
                                     long* los_ind,
                                     int num_threads) nogil:
     cdef double** coeff_ptr = NULL
+    cdef int ii, jj, kk
     coeff_ptr = <double**>malloc(sizeof(double*))
     coeff_ptr[0] = NULL
     # we sample lines of sight
@@ -1484,6 +1485,10 @@ cdef inline void los_get_sample_pts(int nlos,
                                 los_ind,
                                 num_threads)
     # we compute points coordinates
+    ptx[0] = <double*>malloc(sizeof(double)*los_ind[nlos-1])
+    pty[0] = <double*>malloc(sizeof(double)*los_ind[nlos-1])
+    ptz[0] = <double*>malloc(sizeof(double)*los_ind[nlos-1])
+    for 
 
 
 # -- calling sampling and intergrating with sum --------------------------------
