@@ -2902,6 +2902,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef np.ndarray[long,ndim=1] ind
     cdef double[1] loc_eff_res
     cdef double[::1] reseff_mv
+    cdef double[::1] res_mv
     cdef double[::1,:] sig_mv
     cdef double[:,::1] val_mv
     cdef double[:,::1] pts_mv
@@ -2972,6 +2973,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         res_arr = np.asarray(res)
     else:
         res_arr = np.ones((nlos,), dtype=float) * res
+    res_mv = res_arr
     # --------------------------------------------------------------------------
     # Minimize function calls: sample (vect), call (once) and integrate
     if minim == 'calls':
