@@ -3071,7 +3071,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             if n_imode == 0:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
                                                                 &nb_rows[0],
@@ -3084,7 +3084,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
                                                                 &nb_rows[0],
@@ -3098,7 +3098,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 2:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
                                                                 &nb_rows[0],
@@ -3114,7 +3114,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             if n_imode == 0:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
@@ -3127,7 +3127,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
@@ -3141,7 +3141,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 2:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
@@ -3163,7 +3163,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                 print("about to use new method")
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
                                                                 &nb_rows[0],
@@ -3181,7 +3181,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
                                                                 &nb_rows[0],
@@ -3194,7 +3194,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 2:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
                                                                 &nb_rows[0],
@@ -3208,7 +3208,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             if n_imode == 0:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
@@ -3226,7 +3226,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
@@ -3238,7 +3238,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 2:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
                                                      &nb_rows[0],
