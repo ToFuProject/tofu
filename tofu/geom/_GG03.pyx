@@ -492,17 +492,19 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     N : int64
         Number of points on LMinMax segment
     """
-    cdef str err_mess
     cdef int mode_num
-    cdef long sz_ld
-    cdef long[1] N
-    cdef double[2] dl_array
-    cdef double[1] resolution
-    cdef double* ldiscret = NULL
-    cdef long* lindex = NULL
+    cdef str err_mess
     cdef str mode_low = mode.lower()
     cdef bint mode_is_abs = mode_low == 'abs'
     cdef bint mode_is_rel = mode_low == 'rel'
+    cdef long sz_ld
+    cdef long[1] N
+    cdef long* lindex = NULL
+    cdef double* ldiscret = NULL
+    cdef double[2] dl_array
+    cdef double[1] resolution
+    cdef np.ndarray[double,ndim=1] ld_arr
+    cdef np.ndarray[long,ndim=1] li_arr
     # .. Testing ...............................................................
     err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
     assert mode_is_abs or mode_is_rel, err_mess
@@ -528,8 +530,11 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
                                        mode_num, margin, &ldiscret, resolution,
                                        &lindex, N)
     #.. converting and returning................................................
-    return np.asarray(<double[:sz_ld]> ldiscret), resolution[0],\
-        np.asarray(<long[:sz_ld]>lindex), N[0]
+    ld_arr = np.copy(np.asarray(<double[:sz_ld]> ldiscret))
+    li_arr = np.copy(np.asarray(<long[:sz_ld]>lindex)).astype(int)
+    free(ldiscret)
+    free(lindex)
+    return ld_arr, resolution[0], li_arr, N[0]
 
 
 # ==============================================================================
@@ -2558,6 +2563,8 @@ def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
     _vt.are_points_reflex(nvert, diff, lref)
     # Calling core function.....................................................
     _vt.earclipping_poly(&poly[0,0], &ltri[0], diff, lref, nvert)
+    free(diff)
+    free(lref)
     return ltri
 
 def vignetting(double[:, ::1] ray_orig,
@@ -2610,8 +2617,8 @@ def vignetting(double[:, ::1] ray_orig,
                         ltri, nvign, nlos, &bool_res[0],num_threads)
     for ii in range(nlos*nvign):
         goes_through[ii] = bool_res[ii]
-    free(bool_res)
     # -- Cleaning up -----------------------------------------------------------
+    free(bool_res)
     free(lbounds)
     # We have to free each array for each vignett:
     for ii in range(nvign):
@@ -2725,7 +2732,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                                         &los_ind_ptr[0],
                                         num_threads)
         sz_coeff = los_ind_ptr[nlos-1]
-    coeffs = np.copy(np.asarray(<double[:sz_coeff]>coeff_ptr[0]))
+    coeffs  = np.copy(np.asarray(<double[:sz_coeff]>coeff_ptr[0]))
     indices = np.copy(np.asarray(<long[:nlos]>los_ind_ptr).astype(int))
     # -- freeing -----------------------------------------------------------
     if not los_ind_ptr == NULL:
@@ -3020,6 +3027,11 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                    coeff_ptr[0],
                                    ind_arr,
                                    num_threads)
+            # Cleaning up...
+            free(coeff_ptr[0])
+            free(coeff_ptr)
+            free(reseff_arr)
+            free(ind_arr)
         if ani:
             val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
         else:
