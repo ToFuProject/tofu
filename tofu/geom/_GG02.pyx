@@ -2988,6 +2988,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             pts = np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis
             # memory view:
             reseff_mv = reseff
+            indbis = np.concatenate(([0],ind,[k.size]))
         else:
             coeff_ptr = <double**>malloc(sizeof(double*))
             coeff_ptr[0] = NULL
@@ -3050,19 +3051,17 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                         nt, jjp1 - jj,
                                         reseff_arr[ii], num_threads)
         elif method=='simps':
-            indbis = np.concatenate(([0],ind,[k.size]))
             for ii in range(nlos):
                 jj = indbis[ii]
                 jjp1 = indbis[ii+1]
                 val_mv = val_2d[:,jj:jjp1]
                 loc_r = reseff_mv[ii]
-                sig_mv[:,ii] = scpintg.simps(val_mv,
+                sig[:,ii] = scpintg.simps(val_mv,
                                              x=None, dx=loc_r, axis=-1)
         else:
-            indbis = np.concatenate(([0],ind,[k.size]))
             axm = 1
             for ii in range(nlos):
-                sig_mv[:,ii] = scpintg.romb(val_2d[:,indbis[ii]:indbis[ii+1]],
+                sig[:,ii] = scpintg.romb(val_2d[:,indbis[ii]:indbis[ii+1]],
                                          dx=reseff_mv[ii], axis=axm, show=False)
     # --------------------------------------------------------------------------
     # Minimize memory use: loop everything, starting with LOS
@@ -3082,7 +3081,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
-                        sig_mv[jj, ii] = np.sum(val)*loc_eff_res[0]
+                        sig[jj, ii] = np.sum(val)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
@@ -3095,7 +3094,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
-                        sig_mv[jj, ii] = scpintg.simps(val, x=None,
+                        sig[jj, ii] = scpintg.simps(val, x=None,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
@@ -3109,7 +3108,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], vect=-usbis, **fkwdargs)
-                        sig_mv[jj, ii] = scpintg.romb(val, show=False,
+                        sig[jj, ii] = scpintg.romb(val, show=False,
                                                    dx=loc_eff_res[0])
         else:
             # -- not anisotropic ------------------------------------------------------
@@ -3125,7 +3124,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], **fkwdargs)
-                        sig_mv[jj, ii] = np.sum(val)*loc_eff_res[0]
+                        sig[jj, ii] = np.sum(val)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
@@ -3138,7 +3137,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], **fkwdargs)
-                        sig_mv[jj, ii] = scpintg.simps(val, x=None,
+                        sig[jj, ii] = scpintg.simps(val, x=None,
                                                     dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
@@ -3152,7 +3151,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # loop over time for calling and integrating
                     for jj in range(nt):
                         val = func(pts, t=ltime[jj], **fkwdargs)
-                        sig_mv[jj, ii] = scpintg.romb(val, show=False,
+                        sig[jj, ii] = scpintg.romb(val, show=False,
                                                    dx=loc_eff_res[0])
     # --------------------------------------------------------------------------
     # HYBRID method: Minimize memory and calls (compromise): loop everything,
@@ -3191,7 +3190,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)
                     # integration
-                    sig_mv[:, ii] = scpintg.simps(val, x=None, axis=-1,
+                    sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
@@ -3203,7 +3202,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    sig_mv[:, ii] = scpintg.romb(val, show=False, axis=1,
+                    sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
         else:
             # -- not anisotropic ------------------------------------------------------
@@ -3224,7 +3223,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii], nt,
                                             nt, nb_rows[0],
                                             loc_eff_res[0], num_threads)
-                    # sig_mv[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
+                    # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
@@ -3235,7 +3234,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
-                    sig_mv[:, ii] = scpintg.simps(val, x=None, axis=-1,
+                    sig[:, ii] = scpintg.simps(val, x=None, axis=-1,
                                                 dx=loc_eff_res[0])
             elif n_imode == 2:
                 for ii in range(nlos):
@@ -3247,7 +3246,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
-                    sig_mv[:, ii] = scpintg.romb(val, show=False, axis=1,
+                    sig[:, ii] = scpintg.romb(val, show=False, axis=1,
                                                dx=loc_eff_res[0])
     return sig
 
