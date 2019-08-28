@@ -607,8 +607,8 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef long nind2
     cdef int[1] nL0_1
     cdef int[1] nL0_2
-    cdef long[1] num_cells1
-    cdef long[1] num_cells2
+    cdef long[1] ncells1
+    cdef long[1] ncells2
     cdef double[2] dl1_array
     cdef double[2] dl2_array
     cdef double[2] resolutions
@@ -665,12 +665,12 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     nind1 = _st.discretize_line1d_core(&LMinMax1[0], dstep1, dl1_array,
                                        True, mode_num, margin,
                                        &ldiscret1_arr, &resolutions[0],
-                                       &lindex1_arr, num_cells1)
+                                       &lindex1_arr, ncells1)
     # .. Discretizing on the second direction ..................................
     nind2 = _st.discretize_line1d_core(&LMinMax2[0], dstep2, dl2_array,
                                        True, mode_num, margin,
                                        &ldiscret2_arr, &resolutions[1],
-                                       &lindex2_arr, num_cells2)
+                                       &lindex2_arr, ncells2)
     #....
     if VPoly is not None:
         ndisc = nind1 * nind2
@@ -744,7 +744,7 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     cdef int i1, i2
     cdef np.ndarray[double,ndim=2] Pts = np.empty((2,NP))
     cdef np.ndarray[double,ndim=1] dS
-    cdef long[2] num_cells
+    cdef long[2] ncells
     cdef double[2] resolution
     cdef double[2] dl_array
     cdef double* X1 = NULL
@@ -769,14 +769,14 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     #.. calling cython function.................................................
     _st.discretize_line1d_core(&MinMax1[0], d1, dl_array, True, mode_num,
                                margin, &X1, &resolution[0], &dummy,
-                               &num_cells[0])
+                               &ncells[0])
     _st.discretize_line1d_core(&MinMax2[0], d2, dl_array, True, mode_num,
                                margin, &X2, &resolution[1], &dummy,
-                               &num_cells[1])
+                               &ncells[1])
     d1r = resolution[0]
     d2r = resolution[1]
-    N1 = num_cells[0]
-    N2 = num_cells[1]
+    N1 = ncells[0]
+    N2 = ncells[1]
     dS = d1r*d2r*np.ones((NP,))
     for ii in range(0,NP):
         i2 = ind[ii] // N1

@@ -53,7 +53,7 @@ cdef inline long discretize_line1d_core(double* lminmax, double dstep,
 cdef inline void first_discretize_line1d_core(double* lminmax,
                                               double dstep,
                                               double[1] resolution,
-                                              long[1] num_cells,
+                                              long[1] ncells,
                                               long[1] nind,
                                               int[1] nl0,
                                               double[2] dl,
@@ -73,10 +73,10 @@ cdef inline void first_discretize_line1d_core(double* lminmax,
 
     # .. Computing "real" discretization step, depending on `mode`..............
     if mode == 1: # absolute
-        num_cells[0] = <int>Cceil((lminmax[1] - lminmax[0]) / dstep)
+        ncells[0] = <int>Cceil((lminmax[1] - lminmax[0]) / dstep)
     else: # relative
-        num_cells[0] = <int>Cceil(1./dstep)
-    resolution[0] = (lminmax[1] - lminmax[0]) / num_cells[0]
+        ncells[0] = <int>Cceil(1./dstep)
+    resolution[0] = (lminmax[1] - lminmax[0]) / ncells[0]
     # .. Computing desired limits ..............................................
     if Cisnan(dl[0]) and Cisnan(dl[1]):
         desired_limits[0] = lminmax[0]
@@ -144,25 +144,25 @@ cdef inline void simple_discretize_line1d(double[2] lminmax, double dstep,
     - WITHOUT max boundary
     """
     cdef int ii
-    cdef int numcells
+    cdef int ncells
     cdef double resol
     cdef double first = lminmax[0]
 
     if mode == 1: # absolute
-        numcells = <int>Cceil((lminmax[1] - first) / dstep)
+        ncells = <int>Cceil((lminmax[1] - first) / dstep)
     else: # relative
-        num_cells = <int>Cceil(1./dstep)
-    if num_cells < 1 :
-        num_cells = 1
-    resol = (lminmax[1] - first) / numcells
+        ncells = <int>Cceil(1./dstep)
+    if ncells < 1 :
+        ncells = 1
+    resol = (lminmax[1] - first) / ncells
     resolution[0] = resol
-    n[0] = numcells
+    n[0] = ncells
     if ldiscret_arr[0] == NULL:
         ldiscret_arr[0] = <double *>malloc(n[0] * sizeof(double))
     else:
         ldiscret_arr[0] = <double *>realloc(ldiscret_arr[0],
 							n[0] * sizeof(double))
-    for ii in range(numcells):
+    for ii in range(ncells):
         ldiscret_arr[0][ii] = first + resol * ii
     return
 
@@ -175,7 +175,7 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
                                        double[:, ::1] ves_vin,
                                        double** xcross, double** ycross,
                                        double** reso, long** ind,
-                                       long** numcells, double** rref,
+                                       long** ncells, double** rref,
                                        double** xpolybis, double** ypolybis,
                                        int[1] tot_sz_vb, int[1] tot_sz_ot,
                                        int np) nogil:
@@ -198,7 +198,7 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
     lminmax[0] = 0.
     dl_array[0] = Cnan
     dl_array[1] = Cnan
-    numcells[0] = <long*>malloc((np-1)*sizeof(long))
+    ncells[0] = <long*>malloc((np-1)*sizeof(long))
     #.. Filling arrays..........................................................
     if Cabs(din) < _VSMALL:
         for ii in range(np-1):
@@ -208,17 +208,17 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             inv_norm = 1. / lminmax[1]
             discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
-                                   &lindex, &numcells[0][ii])
+                                   &lindex, &ncells[0][ii])
             # .. preparing Poly bis array......................................
             last_sz_vbis = sz_vbis
-            sz_vbis += 1 + numcells[0][ii]
+            sz_vbis += 1 + ncells[0][ii]
             xpolybis[0] = <double*>realloc(xpolybis[0], sz_vbis*sizeof(double))
             ypolybis[0] = <double*>realloc(ypolybis[0], sz_vbis*sizeof(double))
-            xpolybis[0][sz_vbis - (1 + numcells[0][ii])] = ves_poly[0, ii]
-            ypolybis[0][sz_vbis - (1 + numcells[0][ii])] = ves_poly[1, ii]
+            xpolybis[0][sz_vbis - (1 + ncells[0][ii])] = ves_poly[0, ii]
+            ypolybis[0][sz_vbis - (1 + ncells[0][ii])] = ves_poly[1, ii]
             # .. preparing other arrays ........................................
             last_sz_othr = sz_others
-            sz_others += numcells[0][ii]
+            sz_others += ncells[0][ii]
             reso[0] = <double*>realloc(reso[0], sizeof(double)*sz_others)
             rref[0] = <double*>realloc(rref[0], sizeof(double)*sz_others)
             xcross[0] = <double*>realloc(xcross[0], sizeof(double)*sz_others)
@@ -229,7 +229,7 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             v1 = v1 * inv_norm
             rv0 = loc_resolu[0]*v0
             rv1 = loc_resolu[0]*v1
-            for jj in range(numcells[0][ii]):
+            for jj in range(ncells[0][ii]):
                 ind[0][last_sz_othr + jj] = last_sz_othr + jj
                 reso[0][last_sz_othr + jj] = loc_resolu[0]
                 rref[0][last_sz_othr + jj] = ves_poly[0,ii] + ldiscret[jj] * v0
@@ -251,17 +251,17 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             inv_norm = 1. / lminmax[1]
             discretize_line1d_core(lminmax, dstep, dl_array, True,
                                    mode, margin, &ldiscret, loc_resolu,
-                                   &lindex, &numcells[0][ii])
+                                   &lindex, &ncells[0][ii])
             # .. prepaaring Poly bis array......................................
             last_sz_vbis = sz_vbis
-            sz_vbis += 1 + numcells[0][ii]
+            sz_vbis += 1 + ncells[0][ii]
             xpolybis[0] = <double*>realloc(xpolybis[0], sz_vbis*sizeof(double))
             ypolybis[0] = <double*>realloc(ypolybis[0], sz_vbis*sizeof(double))
-            xpolybis[0][sz_vbis - (1 + numcells[0][ii])] = ves_poly[0, ii]
-            ypolybis[0][sz_vbis - (1 + numcells[0][ii])] = ves_poly[1, ii]
+            xpolybis[0][sz_vbis - (1 + ncells[0][ii])] = ves_poly[0, ii]
+            ypolybis[0][sz_vbis - (1 + ncells[0][ii])] = ves_poly[1, ii]
             # .. preparing other arrays ........................................
             last_sz_othr = sz_others
-            sz_others += numcells[0][ii]
+            sz_others += ncells[0][ii]
             reso[0]  = <double*>realloc(reso[0],  sizeof(double)*sz_others)
             rref[0]   = <double*>realloc(rref[0],   sizeof(double)*sz_others)
             xcross[0] = <double*>realloc(xcross[0], sizeof(double)*sz_others)
@@ -274,7 +274,7 @@ cdef inline void discretize_vpoly_core(double[:, ::1] ves_poly, double dstep,
             rv1 = loc_resolu[0]*v1
             shiftx = din*ves_vin[0,ii]
             shifty = din*ves_vin[1,ii]
-            for jj in range(numcells[0][ii]):
+            for jj in range(ncells[0][ii]):
                 ind[0][last_sz_othr] = last_sz_othr
                 reso[0][last_sz_othr] = loc_resolu[0]
                 rref[0][last_sz_othr]   = ves_poly[0,ii] + ldiscret[jj]*v0
@@ -312,7 +312,7 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] ves_poly,
     cdef double inv_norm
     cdef double[1] loc_resolu
     cdef double[2] lminmax
-    cdef long[1] numcells
+    cdef long[1] ncells
     cdef double* ldiscret = NULL
     #.. initialization..........................................................
     lminmax[0] = 0.
@@ -323,16 +323,16 @@ cdef inline void simple_discretize_vpoly_core(double[:, ::1] ves_poly,
         lminmax[1] = Csqrt(v0 * v0 + v1 * v1)
         inv_norm = 1. / lminmax[1]
         simple_discretize_line1d(lminmax, dstep, mode, margin,
-                                 &ldiscret, loc_resolu, &numcells[0])
+                                 &ldiscret, loc_resolu, &ncells[0])
         # .. preparing other arrays ........................................
         last_sz_othr = sz_others
-        sz_others += numcells[0]
+        sz_others += ncells[0]
         xcross[0] = <double*>realloc(xcross[0], sizeof(double)*sz_others)
         ycross[0] = <double*>realloc(ycross[0], sizeof(double)*sz_others)
         # ...
         v0 = v0 * inv_norm
         v1 = v1 * inv_norm
-        for jj in range(numcells[0]):
+        for jj in range(ncells[0]):
             xcross[0][last_sz_othr + jj] = ves_poly[0,ii] + ldiscret[jj] * v0
             ycross[0][last_sz_othr + jj] = ves_poly[1,ii] + ldiscret[jj] * v1
     # We close the polygon of VPolybis
