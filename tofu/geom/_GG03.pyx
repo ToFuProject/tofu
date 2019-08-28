@@ -2672,7 +2672,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
     cdef long* tmp_arr
     cdef double* los_coeffs = NULL
     cdef double** coeff_ptr = NULL
-    cdef long** los_ind_ptr = NULL
+    cdef long* los_ind_ptr = NULL
     # .. ray_orig shape needed for testing and in algo .........................
     dLr = np.zeros((nlos,), dtype=float)
     los_ind = np.zeros((nlos,), dtype=int)
@@ -2695,9 +2695,8 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
         assert imode in ['sum','simps','romb','linspace'], error_message
     # Init
     coeff_ptr = <double**> malloc(sizeof(double*))
-    los_ind_ptr = <long**> malloc(sizeof(long*))
+    los_ind_pr = <long*> malloc(nlos*sizeof(long))
     coeff_ptr[0] = NULL
-    los_ind_ptr[0] = NULL
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
@@ -2725,13 +2724,11 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                                         &dLr[0],
                                         &los_ind_ptr[0],
                                         num_threads)
-        sz_coeff = los_ind_ptr[0][nlos-1]
+        sz_coeff = los_ind_ptr[nlos-1]
     coeffs = np.copy(np.asarray(<double[:sz_coeff]>coeff_ptr[0]))
-    indices = np.copy(np.asarray(<long[:nlos]>los_ind_ptr[0]).astype(int))
+    indices = np.copy(np.asarray(<long[:nlos]>los_ind_ptr).astype(int))
     # -- freeing -----------------------------------------------------------
     if not los_ind_ptr == NULL:
-        if not los_ind_ptr[0] == NULL:
-            free(los_ind_ptr[0])
         free(los_ind_ptr)
     if not coeff_ptr == NULL:
         if not coeff_ptr[0] == NULL:

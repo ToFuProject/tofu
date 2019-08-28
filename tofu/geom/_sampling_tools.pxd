@@ -99,7 +99,7 @@ cdef int los_get_sample_core_const_res(int nlos,
                                        double val_resol,
                                        double** coeff_ptr,
                                        double* dLr,
-                                       long** los_ind,
+                                       long* los_ind,
                                        int num_threads) nogil
 
 cdef void los_get_sample_core_var_res(int nlos,
@@ -109,7 +109,7 @@ cdef void los_get_sample_core_var_res(int nlos,
                                      double* resol,
                                      double** coeff_ptr,
                                      double* dLr,
-                                     long** los_ind,
+                                     long* los_ind,
                                      int num_threads) nogil
 
 # -- Integrations utility function ---------------------------------------------
