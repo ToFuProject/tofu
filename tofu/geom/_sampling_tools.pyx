@@ -1365,7 +1365,7 @@ cdef inline int los_get_sample_core_const_res(int nlos,
             #coeff_arr = np.empty((N*nlos,), dtype=float)
             coeff_ptr[0] = <double*>malloc(sizeof(double)*N*nlos)
             middle_rule_rel(nlos, N, los_lim_min, los_lim_max,
-                                &dLr[0], coeff_ptr[0], los_ind[0],
+                                &dLr[0], coeff_ptr[0], los_ind,
                                 num_threads=num_threads)
             return N*nlos
         elif n_imode==1: #simps
@@ -1374,7 +1374,7 @@ cdef inline int los_get_sample_core_const_res(int nlos,
             coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
             left_rule_rel(nlos, N,
                               los_lim_min, los_lim_max, &dLr[0],
-                              coeff_ptr[0], los_ind[0],
+                              coeff_ptr[0], los_ind,
                               num_threads=num_threads)
             return (N+1)*nlos
         elif n_imode==2: #romb
@@ -1383,34 +1383,34 @@ cdef inline int los_get_sample_core_const_res(int nlos,
             coeff_ptr[0] = <double*>malloc(sizeof(double)*(N+1)*nlos)
             left_rule_rel(nlos, N,
                               los_lim_min, los_lim_max,
-                              &dLr[0], coeff_ptr[0], los_ind[0],
+                              &dLr[0], coeff_ptr[0], los_ind,
                               num_threads=num_threads)
             return (N+1)*nlos
     else: # absolute
         if n_imode==0: #sum
             middle_rule_abs_s1(nlos, val_resol, los_lim_min, los_lim_max,
-                              &dLr[0], los_ind[0],
+                              &dLr[0], los_ind,
                               num_threads=num_threads)
             #ntmp = np.sum(los_ind)
             #coeff_arr = np.empty((ntmp,), dtype=float)
-            ntmp = _bgt.sum_naive_int(los_ind[0], nlos)
+            ntmp = _bgt.sum_naive_int(los_ind, nlos)
             coeff_ptr[0] = <double*>malloc(sizeof(double)*ntmp)
             middle_rule_abs_s2(nlos, los_lim_min, &dLr[0],
-                              los_ind[0], coeff_ptr[0],
+                              los_ind, coeff_ptr[0],
                               num_threads=num_threads)
             return ntmp
         elif n_imode==1:# simps
             simps_left_rule_abs(nlos, val_resol,
                                 los_lim_min, los_lim_max,
-                                &dLr[0], coeff_ptr, los_ind[0],
+                                &dLr[0], coeff_ptr, los_ind,
                                 num_threads=num_threads)
-            return los_ind[0][nlos-1]
+            return los_ind[nlos-1]
         else:# romb
             romb_left_rule_abs(nlos, val_resol,
                                los_lim_min, los_lim_max,
-                               &dLr[0], coeff_ptr, los_ind[0],
+                               &dLr[0], coeff_ptr, los_ind,
                                num_threads=num_threads)
-            return los_ind[0][nlos-1]
+            return los_ind[nlos-1]
     return -1
 
 cdef inline void los_get_sample_core_var_res(int nlos,
@@ -1427,33 +1427,33 @@ cdef inline void los_get_sample_core_var_res(int nlos,
             middle_rule_abs_var(nlos,
                                 los_lim_min, los_lim_max,
                                 resol, &eff_res[0],
-                                coeff_ptr, los_ind[0],
+                                coeff_ptr, los_ind,
                                 num_threads=num_threads)
         elif n_imode==1:# simps
             simps_left_rule_abs_var(nlos, resol,
                                     los_lim_min, los_lim_max,
-                                    &eff_res[0], coeff_ptr, los_ind[0],
+                                    &eff_res[0], coeff_ptr, los_ind,
                                     num_threads=num_threads)
         else: # romb
             romb_left_rule_abs_var(nlos, resol,
                                    los_lim_min, los_lim_max,
-                                   &eff_res[0], coeff_ptr, los_ind[0],
+                                   &eff_res[0], coeff_ptr, los_ind,
                                    num_threads=num_threads)
     else: # relative
         if n_imode==0: # sum
             middle_rule_rel_var(nlos, resol,
                                 los_lim_min, los_lim_max,
-                                &eff_res[0], coeff_ptr, los_ind[0],
+                                &eff_res[0], coeff_ptr, los_ind,
                                 num_threads=num_threads)
         elif n_imode==1: # simps
             simps_left_rule_rel_var(nlos, resol,
                                     los_lim_min, los_lim_max,
-                                    &eff_res[0], coeff_ptr, los_ind[0],
+                                    &eff_res[0], coeff_ptr, los_ind,
                                     num_threads=num_threads)
         else: # romb
             romb_left_rule_rel_var(nlos, resol,
                                    los_lim_min, los_lim_max,
-                                   &eff_res[0], coeff_ptr, los_ind[0],
+                                   &eff_res[0], coeff_ptr, los_ind,
                                    num_threads=num_threads)
     return
 
