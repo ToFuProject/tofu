@@ -46,7 +46,7 @@ double sum_par_one_row(const double *a, size_t n)
 
 
 
-void sum_par_mat(double *a, double *res, int nr, int nc)
+void sum_par_mat(double *a, double *res, size_t nr, size_t nc)
 {
   size_t j;
   for (j = 0; j < nr; j++) {

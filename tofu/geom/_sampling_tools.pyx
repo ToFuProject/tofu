@@ -360,7 +360,7 @@ cdef inline void middle_rule_single(int num_raf,
 cdef inline void middle_rule_rel(int nlos, int num_raf,
                                  double* los_kmin,
                                  double* los_kmax,
-                                 double* los_resolution,
+                                 double* eff_resolution,
                                  double* los_coeffs,
                                  long* los_ind,
                                  int num_threads) nogil:
@@ -374,7 +374,7 @@ cdef inline void middle_rule_rel(int nlos, int num_raf,
     # doing special case ilos = 0:
     los_ind[0] = num_raf
     loc_resol = (los_kmax[0] - los_kmin[0])*inv_nraf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     first_index = 0
     middle_rule_single(num_raf, los_kmin[0],
                        loc_resol, &los_coeffs[first_index])
@@ -383,21 +383,21 @@ cdef inline void middle_rule_rel(int nlos, int num_raf,
         for ii in prange(1, nlos):
             los_ind[ii] = num_raf + los_ind[ii-1]
             loc_resol = (los_kmax[ii] - los_kmin[ii])*inv_nraf
-            los_resolution[ii] = loc_resol
+            eff_resolution[ii] = loc_resol
             first_index = ii*num_raf
             middle_rule_single(num_raf, los_kmin[ii],
                                loc_resol, &los_coeffs[first_index])
     return
 
-cdef inline void middle_rule_abs_1_single(double inv_resol,
+cdef inline void middle_rule_abs_s1_single(double inv_resol,
                                           double los_kmin,
                                           double los_kmax,
-                                          double* los_resolution,
+                                          double* eff_resolution,
                                           long* ind_cum) nogil:
     # Middle quadrature rule with absolute resolution step
     # for one LOS
     # First step of the function, this function should be called
-    # before middle_rule_abs_2, this function computes the resolutions
+    # before middle_rule_abs_s2, this function computes the resolutions
     # and the right indices
     cdef int num_raf
     cdef double seg_length
@@ -406,21 +406,21 @@ cdef inline void middle_rule_abs_1_single(double inv_resol,
     seg_length = los_kmax - los_kmin
     num_raf = <int>(Cceil(seg_length*inv_resol))
     loc_resol = seg_length / num_raf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     ind_cum[0] = num_raf
     return
 
 
-cdef inline void middle_rule_abs_1(int nlos, double resol,
+cdef inline void middle_rule_abs_s1(int nlos, double resol,
                                    double* los_kmin,
                                    double* los_kmax,
-                                   double* los_resolution,
+                                   double* eff_resolution,
                                    long* ind_cum,
                                    int num_threads) nogil:
     # Middle quadrature rule with absolute resolution step
     # for SEVERAL LOS
     # First step of the function, this function should be called
-    # before middle_rule_abs_2, this function computes the resolutions
+    # before middle_rule_abs_s2, this function computes the resolutions
     # and the right indices
     cdef Py_ssize_t ii
     cdef double inv_resol
@@ -428,22 +428,22 @@ cdef inline void middle_rule_abs_1(int nlos, double resol,
     with nogil, parallel(num_threads=num_threads):
         inv_resol = 1./resol
         for ii in prange(nlos):
-            middle_rule_abs_1_single(inv_resol, los_kmin[ii],
+            middle_rule_abs_s1_single(inv_resol, los_kmin[ii],
                                      los_kmax[ii],
-                                     &los_resolution[ii],
+                                     &eff_resolution[ii],
                                      &ind_cum[ii])
     return
 
-cdef inline void middle_rule_abs_2(int nlos,
+cdef inline void middle_rule_abs_s2(int nlos,
                                    double* los_kmin,
+                                   double* eff_resolution,
                                    long* ind_cum,
-                                   double* los_resolution,
                                    double* los_coeffs,
                                    int num_threads) nogil:
     # Middle quadrature rule with absolute resolution step
     # for SEVERAL LOS
     # First step of the function, this function should be called
-    # before middle_rule_abs_2, this function computes the coeffs
+    # before middle_rule_abs_s2, this function computes the coeffs
     cdef Py_ssize_t ii
     cdef long num_raf
     cdef long first_index
@@ -452,7 +452,7 @@ cdef inline void middle_rule_abs_2(int nlos,
     # Treating the first ilos seperately
     num_raf = ind_cum[0]
     first_index = 0
-    loc_resol = los_resolution[0]
+    loc_resol = eff_resolution[0]
     loc_x = los_kmin[0]
     middle_rule_single(num_raf, loc_x, loc_resol,
                        &los_coeffs[first_index])
@@ -461,17 +461,18 @@ cdef inline void middle_rule_abs_2(int nlos,
         num_raf = ind_cum[ii]
         first_index = ind_cum[ii-1]
         ind_cum[ii] = first_index + ind_cum[ii]
-        loc_resol = los_resolution[ii]
+        loc_resol = eff_resolution[ii]
         loc_x = los_kmin[ii]
         middle_rule_single(num_raf, loc_x, loc_resol,
                            &los_coeffs[first_index])
     return
 
 
-cdef inline void middle_rule_abs_var_s1(int nlos, double* resolutions,
+cdef inline void middle_rule_abs_var_s1(int nlos,
                                         double* los_kmin,
                                         double* los_kmax,
-                                        double* los_resolution,
+                                        double* resolutions,
+                                        double* eff_resolution,
                                         long* los_ind,
                                         long* los_nraf,
                                         int num_threads) nogil:
@@ -488,7 +489,7 @@ cdef inline void middle_rule_abs_var_s1(int nlos, double* resolutions,
     loc_resol = seg_length / num_raf
     # keeping values
     los_nraf[0] = num_raf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     los_ind[0] = num_raf
     first_index = 0
     # Now the rest ...................................................
@@ -498,7 +499,7 @@ cdef inline void middle_rule_abs_var_s1(int nlos, double* resolutions,
         loc_resol = seg_length / num_raf
         # keeping values
         los_nraf[ii] = num_raf
-        los_resolution[ii] = loc_resol
+        eff_resolution[ii] = loc_resol
         first_index = los_ind[ii-1]
         los_ind[ii] = num_raf + first_index
     return
@@ -506,10 +507,10 @@ cdef inline void middle_rule_abs_var_s1(int nlos, double* resolutions,
 
 
 
-cdef inline void middle_rule_abs_var_s2(int nlos, double* resolutions,
+cdef inline void middle_rule_abs_var_s2(int nlos,
                                         double* los_kmin,
                                         double* los_kmax,
-                                        double* los_resolution,
+                                        double* eff_resolution,
                                         double** los_coeffs,
                                         long* los_ind, long* los_nraf,
                                         int num_threads) nogil:
@@ -522,7 +523,7 @@ cdef inline void middle_rule_abs_var_s2(int nlos, double* resolutions,
 
     # Treting ilos= 0 first .......................................
     first_index = 0
-    loc_resol = los_resolution[0]
+    loc_resol = eff_resolution[0]
     num_raf = los_nraf[0]
     middle_rule_single(num_raf,
                        los_kmin[0],
@@ -532,7 +533,7 @@ cdef inline void middle_rule_abs_var_s2(int nlos, double* resolutions,
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(1, nlos):
             first_index = los_ind[ii-1]
-            loc_resol = los_resolution[ii]
+            loc_resol = eff_resolution[ii]
             num_raf = los_nraf[ii]
             middle_rule_single(num_raf,
                                los_kmin[ii],
@@ -541,10 +542,11 @@ cdef inline void middle_rule_abs_var_s2(int nlos, double* resolutions,
     return
 
 
-cdef inline void middle_rule_abs_var(int nlos, double* resolutions,
+cdef inline void middle_rule_abs_var(int nlos,
                                      double* los_kmin,
                                      double* los_kmax,
-                                     double* los_resolution,
+                                     double* resolutions,
+                                     double* eff_resolution,
                                      double** los_coeffs,
                                      long* los_ind,
                                      int num_threads) nogil:
@@ -552,12 +554,12 @@ cdef inline void middle_rule_abs_var(int nlos, double* resolutions,
     # for SEVERAL LOS
     cdef long* los_nraf
     los_nraf = <long*> malloc(nlos * sizeof(long))
-    middle_rule_abs_var_s1(nlos, resolutions, los_kmin, los_kmax,
-                              los_resolution, los_ind, &los_nraf[0],
-                              num_threads)
+    middle_rule_abs_var_s1(nlos, los_kmin, los_kmax, resolutions,
+                           eff_resolution, los_ind, &los_nraf[0],
+                           num_threads)
     los_coeffs[0] = <double*>malloc(los_ind[nlos-1]*sizeof(double))
-    middle_rule_abs_var_s2(nlos, resolutions, los_kmin, los_kmax,
-                           los_resolution, los_coeffs,
+    middle_rule_abs_var_s2(nlos, los_kmin, los_kmax,
+                           eff_resolution, los_coeffs,
                            los_ind, los_nraf, num_threads)
 
     # ...
@@ -569,7 +571,7 @@ cdef inline void middle_rule_abs_var(int nlos, double* resolutions,
 cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
-                                        double* los_resolution,
+                                        double* eff_resolution,
                                         long* los_ind,
                                         long* los_nraf,
                                         int num_threads) nogil:
@@ -583,7 +585,7 @@ cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
     # ... Treating the first los .....................................
     num_raf = <int>(Cceil(1./resolutions[0]))
     loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
     los_ind[0] = num_raf
@@ -591,7 +593,7 @@ cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
     for ii in range(1,nlos):
         num_raf = <int>(Cceil(1./resolutions[ii]))
         loc_resol = (los_kmax[ii] - los_kmin[ii])/num_raf
-        los_resolution[ii] = loc_resol
+        eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
         los_ind[ii] = num_raf + first_index
@@ -601,7 +603,7 @@ cdef inline void middle_rule_rel_var_s1(int nlos, double* resolutions,
 cdef inline void middle_rule_rel_var_s2(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
-                                        double* los_resolution,
+                                        double* eff_resolution,
                                         double** los_coeffs,
                                         long* los_ind, long* los_nraf,
                                         int num_threads) nogil:
@@ -613,7 +615,7 @@ cdef inline void middle_rule_rel_var_s2(int nlos, double* resolutions,
     cdef double loc_resol
     # .. Treating first los .........................................
     num_raf = los_nraf[0]
-    loc_resol = los_resolution[0]
+    loc_resol = eff_resolution[0]
     first_index = 0
     middle_rule_single(num_raf, los_kmin[0], loc_resol,
                        &los_coeffs[0][first_index])
@@ -621,7 +623,7 @@ cdef inline void middle_rule_rel_var_s2(int nlos, double* resolutions,
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(1, nlos):
             num_raf = los_nraf[ii]
-            loc_resol = los_resolution[ii]
+            loc_resol = eff_resolution[ii]
             first_index = los_ind[ii-1]
             middle_rule_single(num_raf, los_kmin[ii], loc_resol,
                                &los_coeffs[0][first_index])
@@ -630,7 +632,7 @@ cdef inline void middle_rule_rel_var_s2(int nlos, double* resolutions,
 cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
                                      double* los_kmin,
                                      double* los_kmax,
-                                     double* los_resolution,
+                                     double* eff_resolution,
                                      double** los_coeffs,
                                      long* los_ind,
                                      int num_threads) nogil:
@@ -640,15 +642,15 @@ cdef inline void middle_rule_rel_var(int nlos, double* resolutions,
     # ...
     los_nraf = <long*> malloc(nlos * sizeof(long))
     middle_rule_rel_var_s1(nlos, resolutions,
-                           los_resolution,
                            los_kmin, los_kmax,
+                           eff_resolution,
                            los_ind,
                            los_nraf,
                            num_threads)
     los_coeffs[0] = <double*>malloc(los_ind[nlos-1]*sizeof(double))
     middle_rule_rel_var_s2(nlos, resolutions,
-                           los_resolution,
                            los_kmin, los_kmax,
+                           eff_resolution,
                            los_coeffs,
                            los_ind,
                            los_nraf,
@@ -673,7 +675,7 @@ cdef inline void left_rule_single(int num_raf,
 cdef inline void left_rule_rel(int nlos, int num_raf,
                                double* los_kmin,
                                double* los_kmax,
-                               double* los_resolution,
+                               double* eff_resolution,
                                double* los_coeffs,
                                long* los_ind, int num_threads) nogil:
     # Left quadrature rule with relative resolution step
@@ -689,7 +691,7 @@ cdef inline void left_rule_rel(int nlos, int num_raf,
         for ii in prange(nlos):
             loc_x = los_kmin[ii]
             loc_resol = (los_kmax[ii] - loc_x)*inv_nraf
-            los_resolution[ii] = loc_resol
+            eff_resolution[ii] = loc_resol
             first_index = ii*(num_raf + 1)
             los_ind[ii] = first_index + num_raf + 1
             left_rule_single(num_raf, loc_x, loc_resol,
@@ -700,7 +702,7 @@ cdef inline void left_rule_rel(int nlos, int num_raf,
 cdef inline void simps_left_rule_abs_s1(int nlos, double resol,
                                         double* los_kmin,
                                         double* los_kmax,
-                                        double* los_resolution,
+                                        double* eff_resolution,
                                         long* los_ind, long* los_nraf,
                                         int num_threads) nogil:
     # Simpson left quadrature rule with absolute resolution step
@@ -717,7 +719,7 @@ cdef inline void simps_left_rule_abs_s1(int nlos, double resol,
     if num_raf%2==1:
         num_raf = num_raf + 1
     loc_resol = seg_length / num_raf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
     los_ind[0] = num_raf + 1
@@ -728,7 +730,7 @@ cdef inline void simps_left_rule_abs_s1(int nlos, double resol,
         if num_raf%2==1:
             num_raf = num_raf + 1
         loc_resol = seg_length / num_raf
-        los_resolution[ii] = loc_resol
+        eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii -1]
         los_ind[ii] = num_raf +  1 + first_index
@@ -737,7 +739,7 @@ cdef inline void simps_left_rule_abs_s1(int nlos, double resol,
 cdef inline void left_rule_abs_s2(int nlos, double resol,
                                   double* los_kmin,
                                   double* los_kmax,
-                                  double* los_resolution,
+                                  double* eff_resolution,
                                   double** los_coeffs,
                                   long* los_ind, long* los_nraf,
                                   int num_threads) nogil:
@@ -749,7 +751,7 @@ cdef inline void left_rule_abs_s2(int nlos, double resol,
     cdef double loc_resol
     # ... Treating the first los .........................................
     num_raf = los_nraf[0]
-    loc_resol = los_resolution[0]
+    loc_resol = eff_resolution[0]
     first_index = 0
     left_rule_single(num_raf, los_kmin[0], loc_resol,
                      &los_coeffs[0][first_index])
@@ -757,7 +759,7 @@ cdef inline void left_rule_abs_s2(int nlos, double resol,
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(1,nlos):
             num_raf = los_nraf[ii]
-            loc_resol = los_resolution[ii]
+            loc_resol = eff_resolution[ii]
             first_index = los_ind[ii -1]
             left_rule_single(num_raf, los_kmin[ii], loc_resol,
                              &los_coeffs[0][first_index])
@@ -767,7 +769,7 @@ cdef inline void left_rule_abs_s2(int nlos, double resol,
 cdef inline void simps_left_rule_abs(int nlos, double resol,
                                      double* los_kmin,
                                      double* los_kmax,
-                                     double* los_resolution,
+                                     double* eff_resolution,
                                      double** los_coeffs,
                                      long* los_ind,
                                      int num_threads) nogil:
@@ -778,7 +780,7 @@ cdef inline void simps_left_rule_abs(int nlos, double resol,
     los_nraf = <long*> malloc(nlos * sizeof(long))
     simps_left_rule_abs_s1(nlos, resol,
                            los_kmin, los_kmax,
-                           los_resolution,
+                           eff_resolution,
                            los_ind,
                            los_nraf,
                            num_threads)
@@ -788,7 +790,7 @@ cdef inline void simps_left_rule_abs(int nlos, double resol,
     los_coeffs[0][2] = -1.
     left_rule_abs_s2(nlos, resol,
                      los_kmin, los_kmax,
-                     los_resolution,
+                     eff_resolution,
                      los_coeffs,
                      los_ind,
                      los_nraf,
@@ -800,7 +802,7 @@ cdef inline void simps_left_rule_abs(int nlos, double resol,
 cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
                                     double* los_kmin,
                                     double* los_kmax,
-                                    double* los_resolution,
+                                    double* eff_resolution,
                                     long* los_ind, long* los_nraf,
                                     int num_threads) nogil:
     # Romboid left quadrature rule with relative resolution step
@@ -816,7 +818,7 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
     num_raf = <int>(Cceil(seg_length*inv_resol))
     num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
     loc_resol = seg_length / num_raf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
     los_ind[0] = num_raf + 1
@@ -826,7 +828,7 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
         num_raf = <int>(Cceil(seg_length*inv_resol))
         num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
         loc_resol = seg_length / num_raf
-        los_resolution[ii] = loc_resol
+        eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
         los_ind[ii] = num_raf +  1 + first_index
@@ -836,7 +838,7 @@ cdef inline void romb_left_rule_abs_s1(int nlos, double resol,
 cdef inline void romb_left_rule_abs(int nlos, double resol,
                                     double* los_kmin,
                                     double* los_kmax,
-                                    double* los_resolution,
+                                    double* eff_resolution,
                                     double** los_coeffs,
                                     long* los_ind, int num_threads) nogil:
     # Romboid left quadrature rule with relative resolution step
@@ -846,14 +848,14 @@ cdef inline void romb_left_rule_abs(int nlos, double resol,
     los_nraf = <long*> malloc(nlos * sizeof(long))
     romb_left_rule_abs_s1(nlos, resol,
                            los_kmin, los_kmax,
-                           los_resolution,
+                           eff_resolution,
                            los_ind,
                            los_nraf,
                            num_threads)
     los_coeffs[0] = <double*>malloc(los_ind[nlos-1]*sizeof(double))
     left_rule_abs_s2(nlos, resol,
                      los_kmin, los_kmax,
-                     los_resolution,
+                     eff_resolution,
                      los_coeffs,
                      los_ind,
                      los_nraf,
@@ -865,7 +867,7 @@ cdef inline void romb_left_rule_abs(int nlos, double resol,
 cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
                                             double* los_kmin,
                                             double* los_kmax,
-                                            double* los_resolution,
+                                            double* eff_resolution,
                                             long* los_ind, long* los_nraf,
                                             int num_threads) nogil:
     # Simpson left quadrature rule with variable relative resolution step
@@ -878,7 +880,7 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
     if num_raf%2==1:
         num_raf = num_raf+1
     loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
     los_ind[0] = num_raf + 1
@@ -888,7 +890,7 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
         if num_raf%2==1:
             num_raf = num_raf+1
         loc_resol = (los_kmax[ii] - los_kmin[ii]) / num_raf
-        los_resolution[ii] = loc_resol
+        eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
         los_ind[ii] = num_raf +  1 + first_index
@@ -898,7 +900,7 @@ cdef inline void simps_left_rule_rel_var_s1(int nlos, double* resolutions,
 cdef inline void left_rule_rel_var_s2(int nlos, double* resolutions,
                                       double* los_kmin,
                                       double* los_kmax,
-                                      double* los_resolution,
+                                      double* eff_resolution,
                                       double** los_coeffs,
                                       long* los_ind, long* los_nraf,
                                       int num_threads) nogil:
@@ -910,7 +912,7 @@ cdef inline void left_rule_rel_var_s2(int nlos, double* resolutions,
     cdef double loc_resol
     # .. Treating first los .........................................
     num_raf = los_nraf[0]
-    loc_resol = los_resolution[0]
+    loc_resol = eff_resolution[0]
     first_index = 0
     left_rule_single(num_raf, los_kmin[0], loc_resol,
                      &los_coeffs[0][first_index])
@@ -918,7 +920,7 @@ cdef inline void left_rule_rel_var_s2(int nlos, double* resolutions,
     with nogil, parallel(num_threads=num_threads):
         for ii in prange(1,nlos):
             num_raf = los_nraf[ii]
-            loc_resol = los_resolution[ii]
+            loc_resol = eff_resolution[ii]
             first_index = los_ind[ii-1]
             left_rule_single(num_raf, los_kmin[ii], loc_resol,
                              &los_coeffs[0][first_index])
@@ -928,7 +930,7 @@ cdef inline void left_rule_rel_var_s2(int nlos, double* resolutions,
 cdef inline void simps_left_rule_rel_var(int nlos, double* resolutions,
                                          double* los_kmin,
                                          double* los_kmax,
-                                         double* los_resolution,
+                                         double* eff_resolution,
                                          double** los_coeffs,
                                          long* los_ind,
                                          int num_threads) nogil:
@@ -939,14 +941,14 @@ cdef inline void simps_left_rule_rel_var(int nlos, double* resolutions,
     los_nraf = <long*> malloc(nlos * sizeof(long))
     simps_left_rule_rel_var_s1(nlos, resolutions,
                            los_kmin, los_kmax,
-                           los_resolution,
+                           eff_resolution,
                            los_ind,
                            los_nraf,
                            num_threads)
     los_coeffs[0] = <double*>malloc(los_ind[nlos-1]*sizeof(double))
     left_rule_rel_var_s2(nlos, resolutions,
-                         los_resolution,
                          los_kmin, los_kmax,
+                         eff_resolution,
                          los_coeffs,
                          los_ind,
                          los_nraf,
@@ -958,7 +960,7 @@ cdef inline void simps_left_rule_rel_var(int nlos, double* resolutions,
 cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
                                          double* los_kmin,
                                          double* los_kmax,
-                                         double* los_resolution,
+                                         double* eff_resolution,
                                          long* los_ind, long* los_nraf,
                                          int num_threads) nogil:
     # Simpson left quadrature rule with absolute variable resolution step
@@ -973,7 +975,7 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
     if num_raf%2==1:
         num_raf = num_raf+1
     loc_resol = seg_length / num_raf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
     los_ind[0] = num_raf + 1
@@ -984,7 +986,7 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
         if num_raf%2==1:
             num_raf = num_raf+1
         loc_resol = seg_length / num_raf
-        los_resolution[ii] = loc_resol
+        eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
         los_ind[ii] = num_raf +  1 + first_index
@@ -996,7 +998,7 @@ cdef inline void simps_left_rule_abs_var_s1(int nlos, double* resolutions,
 cdef inline void simps_left_rule_abs_var(int nlos, double* resolutions,
                                          double* los_kmin,
                                          double* los_kmax,
-                                         double* los_resolution,
+                                         double* eff_resolution,
                                          double** los_coeffs,
                                          long* los_ind,
                                          int num_threads) nogil:
@@ -1007,14 +1009,14 @@ cdef inline void simps_left_rule_abs_var(int nlos, double* resolutions,
     los_nraf = <long*> malloc(nlos * sizeof(long))
     simps_left_rule_abs_var_s1(nlos, resolutions,
                            los_kmin, los_kmax,
-                           los_resolution,
+                           eff_resolution,
                            los_ind,
                            los_nraf,
                            num_threads)
     los_coeffs[0] = <double*>malloc(los_ind[nlos-1]*sizeof(double))
     left_rule_rel_var_s2(nlos, resolutions,
-                         los_resolution,
                          los_kmin, los_kmax,
+                         eff_resolution,
                          los_coeffs,
                          los_ind,
                          los_nraf,
@@ -1026,7 +1028,7 @@ cdef inline void simps_left_rule_abs_var(int nlos, double* resolutions,
 cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
-                                        double* los_resolution,
+                                        double* eff_resolution,
                                         long* los_ind, long* los_nraf,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with relative variable resolution step
@@ -1038,7 +1040,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
     num_raf = <int>(Cceil(1./resolutions[0]))
     num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
     loc_resol = (los_kmax[0] - los_kmin[0])/num_raf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
     los_ind[0] = num_raf + 1
@@ -1047,7 +1049,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
         num_raf = <int>(Cceil(1./resolutions[ii]))
         num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
         loc_resol = (los_kmax[ii] - los_kmin[ii]) / num_raf
-        los_resolution[ii] = loc_resol
+        eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
         los_ind[ii] = num_raf +  1 + first_index
@@ -1057,7 +1059,7 @@ cdef inline void romb_left_rule_rel_var_s1(int nlos, double* resolutions,
 cdef inline void romb_left_rule_rel_var(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
-                                        double* los_resolution,
+                                        double* eff_resolution,
                                         double** los_coeffs,
                                         long* los_ind,
                                         int num_threads) nogil:
@@ -1068,14 +1070,14 @@ cdef inline void romb_left_rule_rel_var(int nlos, double* resolutions,
     los_nraf = <long*> malloc(nlos * sizeof(long))
     romb_left_rule_rel_var_s1(nlos, resolutions,
                            los_kmin, los_kmax,
-                           los_resolution,
+                           eff_resolution,
                            los_ind,
                            los_nraf,
                            num_threads)
     los_coeffs[0] = <double*>malloc(los_ind[nlos-1]*sizeof(double))
     left_rule_rel_var_s2(nlos, resolutions,
-                         los_resolution,
                          los_kmin, los_kmax,
+                         eff_resolution,
                          los_coeffs,
                          los_ind,
                          los_nraf,
@@ -1087,7 +1089,7 @@ cdef inline void romb_left_rule_rel_var(int nlos, double* resolutions,
 cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
-                                        double* los_resolution,
+                                        double* eff_resolution,
                                         long* los_ind, long* los_nraf,
                                         int num_threads) nogil:
     # Romboid left quadrature rule with absolute variable resolution step
@@ -1101,7 +1103,7 @@ cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
     num_raf = <int>(Cceil(seg_length/resolutions[0]))
     num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
     loc_resol = seg_length / num_raf
-    los_resolution[0] = loc_resol
+    eff_resolution[0] = loc_resol
     los_nraf[0] = num_raf
     first_index = 0
     los_ind[0] = num_raf + 1
@@ -1111,7 +1113,7 @@ cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
         num_raf = <int>(Cceil(seg_length/resolutions[ii]))
         num_raf = 2**(<int>(Cceil(Clog2(num_raf))))
         loc_resol = seg_length / num_raf
-        los_resolution[ii] = loc_resol
+        eff_resolution[ii] = loc_resol
         los_nraf[ii] = num_raf
         first_index = los_ind[ii-1]
         los_ind[ii] = num_raf +  1 + first_index
@@ -1121,7 +1123,7 @@ cdef inline void romb_left_rule_abs_var_s1(int nlos, double* resolutions,
 cdef inline void romb_left_rule_abs_var(int nlos, double* resolutions,
                                         double* los_kmin,
                                         double* los_kmax,
-                                        double* los_resolution,
+                                        double* eff_resolution,
                                         double** los_coeffs,
                                         long* los_ind,
                                         int num_threads) nogil:
@@ -1132,14 +1134,14 @@ cdef inline void romb_left_rule_abs_var(int nlos, double* resolutions,
     los_nraf = <long*> malloc(nlos * sizeof(long))
     romb_left_rule_abs_var_s1(nlos, resolutions,
                            los_kmin, los_kmax,
-                           los_resolution,
+                           eff_resolution,
                            los_ind,
                            los_nraf,
                            num_threads)
     los_coeffs[0] = <double*>malloc(los_ind[nlos-1]*sizeof(double))
     left_rule_rel_var_s2(nlos, resolutions,
-                         los_resolution,
                          los_kmin, los_kmax,
+                         eff_resolution,
                          los_coeffs,
                          los_ind,
                          los_nraf,
@@ -1234,7 +1236,7 @@ cdef inline int los_get_sample_single(double los_kmin, double los_kmax,
         if n_imode==0:
             # 'sum' quad
             invresol = 1./resol
-            middle_rule_abs_1_single(invresol, los_kmin, los_kmax,
+            middle_rule_abs_s1_single(invresol, los_kmin, los_kmax,
                                          &eff_res[0], &ind_cum[0])
             coeffs[0] = <double*>malloc((ind_cum[0])*sizeof(double))
             middle_rule_single(ind_cum[0], los_kmin, eff_res[0],
@@ -1387,16 +1389,16 @@ cdef inline int los_get_sample_core_const_res(int nlos,
             return (N+1)*nlos
     else: # absolute
         if n_imode==0: #sum
-            middle_rule_abs_1(nlos, val_resol, los_lim_min, los_lim_max,
-                                  &dLr[0], los_ind[0],
-                                  num_threads=num_threads)
+            middle_rule_abs_s1(nlos, val_resol, los_lim_min, los_lim_max,
+                              &dLr[0], los_ind[0],
+                              num_threads=num_threads)
             #ntmp = np.sum(los_ind)
             #coeff_arr = np.empty((ntmp,), dtype=float)
             ntmp = _bgt.sum_naive_int(los_ind[0], nlos)
             coeff_ptr[0] = <double*>malloc(sizeof(double)*ntmp)
-            middle_rule_abs_2(nlos, los_lim_min, los_ind[0],
-                                  &dLr[0], coeff_ptr[0],
-                                  num_threads=num_threads)
+            middle_rule_abs_s2(nlos, los_lim_min, &dLr[0],
+                              los_ind[0], coeff_ptr[0],
+                              num_threads=num_threads)
             return ntmp
         elif n_imode==1:# simps
             simps_left_rule_abs(nlos, val_resol,
@@ -1418,41 +1420,42 @@ cdef inline void los_get_sample_core_var_res(int nlos,
                                             int n_dmode, int n_imode,
                                             double* resol,
                                             double** coeff_ptr,
-                                            double* dLr,
+                                            double* eff_res,
                                             long** los_ind,
                                             int num_threads) nogil:
     los_ind[0] = <long*>malloc((nlos)*sizeof(long))
-    if n_dmode==0:
+    if n_dmode==0: #absolute
         if n_imode==0: # sum
-            middle_rule_abs_var(nlos, resol,
+            middle_rule_abs_var(nlos,
                                 los_lim_min, los_lim_max,
-                                &dLr[0], coeff_ptr, los_ind[0],
+                                resol, &eff_res[0],
+                                coeff_ptr, los_ind[0],
                                 num_threads=num_threads)
         elif n_imode==1:# simps
             simps_left_rule_abs_var(nlos, resol,
                                     los_lim_min, los_lim_max,
-                                    &dLr[0], coeff_ptr, los_ind[0],
+                                    &eff_res[0], coeff_ptr, los_ind[0],
                                     num_threads=num_threads)
         else: # romb
             romb_left_rule_abs_var(nlos, resol,
                                    los_lim_min, los_lim_max,
-                                   &dLr[0], coeff_ptr, los_ind[0],
+                                   &eff_res[0], coeff_ptr, los_ind[0],
                                    num_threads=num_threads)
-    else:
+    else: # relative
         if n_imode==0: # sum
             middle_rule_rel_var(nlos, resol,
                                 los_lim_min, los_lim_max,
-                                &dLr[0], coeff_ptr, los_ind[0],
+                                &eff_res[0], coeff_ptr, los_ind[0],
                                 num_threads=num_threads)
         elif n_imode==1: # simps
             simps_left_rule_rel_var(nlos, resol,
                                     los_lim_min, los_lim_max,
-                                    &dLr[0], coeff_ptr, los_ind[0],
+                                    &eff_res[0], coeff_ptr, los_ind[0],
                                     num_threads=num_threads)
         else: # romb
             romb_left_rule_rel_var(nlos, resol,
                                    los_lim_min, los_lim_max,
-                                   &dLr[0], coeff_ptr, los_ind[0],
+                                   &eff_res[0], coeff_ptr, los_ind[0],
                                    num_threads=num_threads)
 
 

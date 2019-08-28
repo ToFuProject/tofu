@@ -2908,6 +2908,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef double[:,::1] val_mv
     cdef double* vsum
     cdef long[1] nb_rows
+    cdef long[::1] ind_bis
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
     sz2_ds = ray_orig.shape[1]
@@ -2985,7 +2986,8 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             for ii in range(nlos):
                 # sig[:,ii] = np.sum(val[:,indbis[ii]:indbis[ii+1]],
                 #                    axis=-1)*reseff[ii]
-                sig_mv = val_2d[:,indbis[ii]]
+                jj = indbis[ii]
+                sig_mv = val_2d[:,jj]
                 _st.integrate_c_sum_mat(&sig_mv[0],
                                         &sig[0,ii], nt,
                                         nt, nb_rows[0],

@@ -940,7 +940,8 @@ class Test03_Rays(object):
                     out = tfg._GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
                     k = out[0]
                     lind = out[2]
-                    print(" k =", k)
+                    print(" k1 =", k[:lind[0]])
+                    print(" k2 =", k[lind[0]:])
                     print("lind =", lind)
                     assert np.all(k[:lind[0]] >= DL[0][0])
                     assert np.all(k[:lind[0]] <= DL[1][0])
