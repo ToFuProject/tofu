@@ -1402,7 +1402,6 @@ class ToFuObjectBase(object):
         if table_sep is None:
             table_sep = '\n\n'
 
-
         # Out
         if verb or return_ in [True,'msg']:
             lmsg = [cls._getcharray(ar, col, sep=sep, line=line, just=just)
@@ -1417,23 +1416,19 @@ class ToFuObjectBase(object):
             elif return_ == 'array':
                 out = lar
             elif return_ == 'msg':
-                out = table_sep.join(lmsg)
+                out = lmsg
             else:
                 lok = [False, True, 'msg', 'array']
                 raise Exception("Valid return_ values are: %s"%str(lok))
             return out
 
 
-    # def get_summary(self, sep='  ', line='-', just='l',
-                    # table_sep=None, verb=True, return_=False):
-        # """ Summary description of the object content as a np.array of str """
-        # pass
+    def get_summary(self, sep='  ', line='-', just='l',
+                    table_sep=None, verb=True, return_=False):
+        """ Summary description of the object content as a np.array of str """
+        pass
 
-    def __repr__(self):
-        if hasattr(self, 'get_summary'):
-            return self.get_summary(return_='msg', verb=False)
-        else:
-            return object.__repr__(self)
+
 
 
     #############################
