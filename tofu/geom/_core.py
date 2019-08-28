@@ -122,6 +122,7 @@ class Struct(utils.ToFuObject):
              'dgeom':{'Type':'Tor', 'Lim':[], 'arrayorder':'C'},
              'dsino':{},
              'dphys':{},
+             'dreflect':{'Type':'specular'},
              'dmisc':{'color':'k'}}
     _dplot = {'cross':{'Elt':'P',
                        'dP':{'color':'k','lw':2},
@@ -141,7 +142,7 @@ class Struct(utils.ToFuObject):
                           'linewidth':0., 'antialiased':False},
                     'Lim':None,
                     'Nstep':50}}
-
+    _DREFLECT_DTYPES = {'specular':0, 'diffusive':1, 'ccube':2}
 
     # Does not exist beofre Python 3.6 !!!
     def __init_subclass__(cls, color='k', **kwdargs):
@@ -184,6 +185,7 @@ class Struct(utils.ToFuObject):
         self._dgeom = dict.fromkeys(self._get_keys_dgeom())
         self._dsino = dict.fromkeys(self._get_keys_dsino())
         self._dphys = dict.fromkeys(self._get_keys_dphys())
+        self._dreflect = dict.fromkeys(self._get_keys_dreflect())
         self._dmisc = dict.fromkeys(self._get_keys_dmisc())
         #self._dplot = copy.deepcopy(self.__class__._ddef['dplot'])
 
@@ -235,6 +237,11 @@ class Struct(utils.ToFuObject):
     @staticmethod
     def _get_largs_dphys():
         largs = ['lSymbols']
+        return largs
+
+    @staticmethod
+    def _get_largs_dreflect():
+        largs = ['Types', 'coefs']
         return largs
 
     @staticmethod
@@ -402,6 +409,25 @@ class Struct(utils.ToFuObject):
             lSymbols = np.asarray(lSymbols,dtype=str)
         return lSymbols
 
+    def _checkformat_inputs_dreflect(self, Types=None, coefs=None):
+        if Types is None:
+            Types = self._ddef['dreflect']['Type']
+
+        assert type(Types) in [str, np.ndarray]
+        if type(Types) is str:
+            assert Types in self._DREFLECT_DTYPES.keys()
+            Types = np.full((self.nseg,), self._DREFLECT_DTYPES[Types], dtype=int)
+        else:
+            Types = Types.astype(int).ravel()
+            assert Types.shape == ()
+            Typesu = np.unique(Types)
+            lc = np.array([Typesu == vv
+                           for vv in self._DREFLECT_DTYPES.values()])
+            assert np.all(np.any(Types, axis=0))
+
+        assert coefs is None
+        return Types, coefs
+
     @classmethod
     def _checkformat_inputs_dmisc(cls, color=None):
         if color is None:
@@ -433,6 +459,11 @@ class Struct(utils.ToFuObject):
         return lk
 
     @staticmethod
+    def _get_keys_dreflect():
+        lk = ['Types', 'coefs']
+        return lk
+
+    @staticmethod
     def _get_keys_dmisc():
         lk = ['color']
         return lk
@@ -450,10 +481,13 @@ class Struct(utils.ToFuObject):
         kwdgeom = self._extract_kwdargs(allkwds, largs)
         largs = self._get_largs_dphys()
         kwdphys = self._extract_kwdargs(allkwds, largs)
+        largs = self._get_largs_dreflect()
+        kwdreflect = self._extract_kwdargs(allkwds, largs)
         largs = self._get_largs_dmisc()
         kwdmisc = self._extract_kwdargs(allkwds, largs)
         self._set_dgeom(**kwdgeom)
         self.set_dphys(**kwdphys)
+        self.set_dreflect(**kwdreflect)
         self._set_dmisc(**kwdmisc)
         self._dstrip['strip'] = 0
 
@@ -489,6 +523,11 @@ class Struct(utils.ToFuObject):
         lSymbols = self._checkformat_inputs_dphys(lSymbols)
         self._dphys['lSymbols'] = lSymbols
 
+    def set_dreflect(self, Types=None, coefs=None):
+        Types, coefs = self._checkformat_inputs_dreflect(Types=Types, coefs=coefs)
+        self._dreflect['Types'] = Types
+        self._dreflect['coefs'] = coefs
+
     def _set_color(self, color=None):
         color = self._checkformat_inputs_dmisc(color=color)
         self._dmisc['color'] = color
@@ -511,6 +550,9 @@ class Struct(utils.ToFuObject):
 
     def _strip_dphys(self, lkeep=['lSymbols']):
         utils.ToFuObject._strip_dict(self._dphys, lkeep=lkeep)
+
+    def _strip_dreflect(self, lkeep=['lSymbols']):
+        utils.ToFuObject._strip_dict(self._dreflect, lkeep=lkeep)
 
     def _strip_dmisc(self, lkeep=['color']):
         utils.ToFuObject._strip_dict(self._dmisc, lkeep=lkeep)
@@ -543,6 +585,14 @@ class Struct(utils.ToFuObject):
                                                    lkeep=lkeep, dname='dphys')
             self.set_dphys(lSymbols=self.dphys['lSymbols'])
 
+    def _rebuild_dreflect(self, lkeep=['lSymbols']):
+        reset = utils.ToFuObject._test_Rebuild(self._dreflect, lkeep=lkeep)
+        if reset:
+            utils.ToFuObject._check_Fields4Rebuild(self._dreflect,
+                                                   lkeep=lkeep, dname='dreflect')
+            self.set_dreflect(Types=self.dreflect['Types'],
+                              coefs=self.dreflect['coefs'])
+
     def _rebuild_dmisc(self, lkeep=['color']):
         reset = utils.ToFuObject._test_Rebuild(self._dmisc, lkeep=lkeep)
         if reset:
@@ -560,7 +610,7 @@ class Struct(utils.ToFuObject):
         nMax = max(cls._dstrip['allowed'])
         doc = """
                  1: Remove dsino expendables
-                 2: Remove also dgeom, dphys and dmisc expendables"""
+                 2: Remove also dgeom, dphys, dreflect and dmisc expendables"""
         doc = utils.ToFuObjectBase.strip.__doc__.format(doc,nMax)
         if sys.version[0]=='2':
             cls.strip.__func__.__doc__ = doc
@@ -576,22 +626,26 @@ class Struct(utils.ToFuObject):
             self._rebuild_dgeom()
             self._rebuild_dsino()
             self._rebuild_dphys()
+            self._rebuild_dreflect()
             self._rebuild_dmisc()
         elif strip==1:
             self._strip_dsino()
             self._rebuild_dgeom()
             self._rebuild_dphys()
+            self._rebuild_dreflect()
             self._rebuild_dmisc()
         else:
             self._strip_dsino()
             self._strip_dgeom()
             self._strip_dphys()
+            self._strip_dreflect()
             self._strip_dmisc()
 
     def _to_dict(self):
         dout = {'dgeom':{'dict':self.dgeom, 'lexcept':None},
                 'dsino':{'dict':self.dsino, 'lexcept':None},
                 'dphys':{'dict':self.dphys, 'lexcept':None},
+                'dreflect':{'dict':self.dreflect, 'lexcept':None},
                 'dmisc':{'dict':self.dmisc, 'lexcept':None},
                 'dplot':{'dict':self._dplot, 'lexcept':None}}
         return dout
@@ -600,6 +654,7 @@ class Struct(utils.ToFuObject):
         self._dgeom.update(**fd['dgeom'])
         self._dsino.update(**fd['dsino'])
         self._dphys.update(**fd['dphys'])
+        self._dreflect.update(**fd['dreflect'])
         self._dmisc.update(**fd['dmisc'])
         if 'dplot' in fd.keys():
             self._dplot.update(**fd['dplot'])
@@ -623,6 +678,10 @@ class Struct(utils.ToFuObject):
     def Poly_closed(self):
         """ Returned the closed polygon """
         return np.hstack((self._dgeom['Poly'],self._dgeom['Poly'][:,0:1]))
+    @property
+    def nseg(self):
+        """ Retunr the number of segmnents constituting the closed polygon """
+        return self._dgeom['Poly'].shape[1]
     @property
     def pos(self):
         return self._dgeom['pos']
@@ -648,6 +707,9 @@ class Struct(utils.ToFuObject):
     @property
     def dphys(self):
         return self._dphys
+    @property
+    def dreflect(self):
+        return self._dreflect
     @property
     def dmisc(self):
         return self._dmisc
@@ -952,11 +1014,60 @@ class Struct(utils.ToFuObject):
         return dist, nDphi, Dphi, nDtheta, Dtheta
 
 
+    def get_reflections(self, u, vperp, indout2=None, lamb=None):
+        """ Return the reflected unit vectors from input unit vectors and vperp
+
+        The reflected unit vector depends on the incoming LOS (u),
+        the local normal unit vector (vperp), and the polygon segment hit
+        (indout2)
+        Future releases: dependence on lambda
+
+        Also return per-LOS reflection Types (0:specular, 1:diffusive, 2:ccube)
+
+        """
+
+        # Get per-LOS reflection Types and associated indices
+        Types = self._dreflect['Types'][indout2]
+        indspec = Types == 0
+        inddiff = Types == 1
+        indcorn = Types == 2
+
+        # Get reflected unit vectors
+        u2 = np.full(u.shape, np.nan)
+        if np.any(np.logical_or(indspec,inddiff)):
+            vpar = np.array([vperp[1,:]*u[2,:] - vperp[2,:]*u[1,:],
+                             vperp[2,:]*u[0,:] - vperp[0,:]*u[2,:],
+                             vperp[0,:]*u[1,:] - vperp[1,:]*u[0,:]])
+            vpar = np.array([vpar[1,:]*vperp[2,:] - vpar[2,:]*vperp[1,:],
+                             vpar[2,:]*vperp[0,:] - vpar[0,:]*vperp[2,:],
+                             vpar[0,:]*vperp[1,:] - vpar[1,:]*vperp[0,:]])
+            vpar = vpar / np.sqrt(np.sum(vpar**2, axis=0))[None,:]
+
+            if np.any(indspec):
+                # Compute u2 for specular
+                sca = np.sum(u[:,indspec]*vperp[:,indspec],axis=0,keepdims=True)
+                sca2 = np.sum(u[:,indspec]*vpar[:,indspec],axis=0,keepdims=True)
+                assert np.all(sca<=0.) and np.all(sca>=-1.)
+                assert np.all(sca2>=0.) and np.all(sca<=1.)
+                u2[:,indspec] = - sca*vperp[:,indspec] + sca2*vpar[:,indspec]
+
+            if np.any(inddiff):
+                # Compute u2 for diffusive
+                sca = 2.*(np.random.random((1,inddiff.sum()))-0.5)
+                u2[:,inddiff] = (np.sqrt(1.-sca**2) * vperp[:,inddiff]
+                                 + sca * vpar[:,inddiff])
+
+        if np.any(indcorn):
+            u2[:,indcorn] = -u[:,indcorn]
+        return u2, Types
+
+
+
     def plot(self, lax=None, proj='all', element='PIBsBvV',
              dP=None, dI=_def.TorId, dBs=_def.TorBsd, dBv=_def.TorBvd,
              dVect=_def.TorVind, dIHor=_def.TorITord, dBsHor=_def.TorBsTord,
              dBvHor=_def.TorBvTord, Lim=None, Nstep=_def.TorNTheta,
-             dLeg=_def.TorLegd, indices=False,
+             dLeg=_def.TorLegd, indices=True,
              draw=True, fs=None, wintit=None, Test=True):
         """ Plot the polygon defining the vessel, in chosen projection
 
