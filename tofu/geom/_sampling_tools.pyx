@@ -1459,17 +1459,31 @@ cdef inline void los_get_sample_core_var_res(int nlos,
 
 
 # # -- utility for calc signal ---------------------------------------------------
-# cdef inline void los_get_sample_pts(int nlos,
-#                                     double* los_lim_min,
-#                                     double* los_lim_max,
-#                                     int n_dmode, int n_imode,
-#                                     double* resol,
-#                                     double** ptx,
-#                                     double** pty,
-#                                     double** ptz,
-#                                     double* eff_res,
-#                                     long** los_ind,
-#                                     int num_threads) nogil:
+cdef inline void los_get_sample_pts(int nlos,
+                                    double* los_lim_min,
+                                    double* los_lim_max,
+                                    int n_dmode, int n_imode,
+                                    double* resol,
+                                    double** ptx,
+                                    double** pty,
+                                    double** ptz,
+                                    double* eff_res,
+                                    long* los_ind,
+                                    int num_threads) nogil:
+    cdef double** coeff_ptr = NULL
+    coeff_ptr = <double**>malloc(sizeof(double*))
+    coeff_ptr[0] = NULL
+    # we sample lines of sight
+    los_get_sample_core_var_res(nlos,
+                                los_lims_min
+                                los_lims_max,
+                                n_dmode, n_imode,
+                                resol,
+                                &coeff_ptr[0],
+                                eff_res,
+                                los_ind,
+                                num_threads)
+    # we compute points coordinates
 
 
 # -- calling sampling and intergrating with sum --------------------------------
