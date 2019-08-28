@@ -2977,7 +2977,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         if isinstance(t, list):
             ltime = t
         else:
-            lime = t.tolist()
+            ltime = t.tolist()
     # -- Inizializations -------------------------------------------------------
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
