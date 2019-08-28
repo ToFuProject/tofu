@@ -3027,11 +3027,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                                    coeff_ptr[0],
                                    ind_arr,
                                    num_threads)
-            # Cleaning up...
-            free(coeff_ptr[0])
-            free(coeff_ptr)
-            free(reseff_arr)
-            free(ind_arr)
         if ani:
             val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
         else:
@@ -3048,7 +3043,6 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             jj = 0
             jjp1 = ind_arr[0]
             val_mv = val_2d[:,jj:jjp1]
-            print("............... size 0 :", jjp1 - jj, val_mv.shape[1])
             _st.integrate_c_sum_mat(&val_mv[0,0],
                                     &sig_mv[0,0],
                                     nt, jjp1 - jj,
@@ -3059,11 +3053,15 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                 jj = ind_arr[ii-1]
                 jjp1 = ind_arr[ii]
                 val_mv = val_2d[:,jj:jjp1]
-                print("............... size ii :", ii, jjp1 - jj, val_mv.shape[1])
                 _st.integrate_c_sum_mat(&val_mv[0,0],
                                         &sig_mv[0,ii],
                                         nt, jjp1 - jj,
                                         reseff_arr[ii], num_threads)
+            # Cleaning up...
+            free(coeff_ptr[0])
+            free(coeff_ptr)
+            free(reseff_arr)
+            free(ind_arr)
         elif method=='simps':
             for ii in range(nlos):
                 jj = indbis[ii]
