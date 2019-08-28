@@ -525,6 +525,8 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
         mode_num = 1
     elif mode_is_rel:
         mode_num = 2
+    else:
+        mode_num = -1 # error
     #.. calling cython function.................................................
     sz_ld = _st.discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim,
                                        mode_num, margin, &ldiscret, resolution,
@@ -1311,6 +1313,8 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
     cdef np.ndarray[double,ndim=1] R0, dS, ind, dLr, Rref, dRPhir, iii
     cdef np.ndarray[long,ndim=1] indL, NL, indok
 
+    # To avoid warnings:
+    indI = np.empty((1,1))
     # Pre-format input
     if PhiMinMax is None:
         PhiMinMax = [-Cpi,Cpi]
@@ -2766,6 +2770,8 @@ cdef get_insp(ff):
 
 def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
     cdef bool ani
+    cdef int nt = -1
+    # ...
     stre = "Input emissivity function (ff)"
     assert hasattr(ff,'__call__'), stre+" must be a callable (function)!"
     na, kw = get_insp(ff)
@@ -2904,7 +2910,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef np.ndarray[double,ndim=2, mode='fortran'] sig
     cdef np.ndarray[double,ndim=1] reseff
     cdef np.ndarray[double,ndim=1] k, ksbis
-    cdef np.ndarray[double,ndim=1] ltime
+    cdef list ltime
     cdef np.ndarray[double,ndim=1] res_arr
     cdef np.ndarray[long,ndim=1] ind
     cdef double[1] loc_eff_res
@@ -2961,13 +2967,14 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             error_message += "  => there is no point in using minimize='memory'"
             error_message += "  => switching to minimize = '%s'"%minim
             warn(error_message)
+        nt = 1
+        ltime = [None]
     elif not hasattr(t,'__iter__'):
         nt = 1
-        ltime = np.zeros((1))
-        ltime[0] = t
+        ltime = [t]
     else:
         nt = len(t)
-        ltime = np.asarray(t,dtype=float)
+        ltime = t
     # -- Inizializations -------------------------------------------------------
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
@@ -3424,7 +3431,9 @@ cdef inline void NEW_los_sino_tor_vec(int nlos,
     cdef double* orig
     cdef double* res
     cdef double normu, normu_sq
-    cdef double kPMin, PMin2norm, vP0, vP1, Theta
+    cdef double kPMin, PMin2norm, Theta
+    cdef double vP0 = 0.0
+    cdef double vP1 = 0.0
     cdef double eTheta0
     cdef double eTheta1
     cdef double normu0
