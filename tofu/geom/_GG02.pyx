@@ -2695,7 +2695,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
         assert imode in ['sum','simps','romb','linspace'], error_message
     # Init
     coeff_ptr = <double**> malloc(sizeof(double*))
-    los_ind_pr = <long*> malloc(nlos*sizeof(long))
+    los_ind_ptr = <long*> malloc(nlos*sizeof(long))
     coeff_ptr[0] = NULL
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
