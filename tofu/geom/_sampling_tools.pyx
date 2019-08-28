@@ -1460,20 +1460,6 @@ cdef inline void los_get_sample_core_var_res(int nlos,
 
 
 # -- calling sampling and intergrating with sum --------------------------------
-# cdef inline void integrate_c_sum_nlos(double* val_mv,
-#                                       double[::1,:] sig,
-#                                       long[:] indis,
-#                                       int nlos, int nres, int nt,
-#                                       double* loc_eff_res,
-#                                       long* indbis,
-#                                       int num_threads) nogil:
-#     cdef int ilos
-#     for ilos in range(nlos):
-#         integrate_c_sum_mat(&val_mv[0, indbis[ii]],
-#                             &sig[:,ii], nt, nres, nt,
-#                             loc_eff_res[ii], num_threads)
-#     return
-
 cdef inline void integrate_c_sum_mat(double* val_mv,
                                     double* sig,
                                     int nt, int nrows, int ncols,
