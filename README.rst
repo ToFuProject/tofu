@@ -96,6 +96,16 @@ tofu is relevant for all diagnostics integrating, in a finitie field of view or 
    :alt: Built-in basic data treatment and interactive plotting: svd and spectrograms
    :align: right
 
+.. figure:: /README_figures/54300_1dTe_svd.pdf
+    :width: 200px
+    :align: center
+    :height: 100px
+    :alt: alternate text
+    :figclass: align-center
+
+    figure are like images but with a caption
+
+
 tofu provides the user with a series of python classes for creating, handling and visualizing a diagnostic geometry, meshes and basis functions, 
 geometry matrices, pre-treating experimental data and computing tomographic inversions.
 
