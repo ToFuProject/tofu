@@ -61,8 +61,11 @@ def _Struct_set_Poly(Poly, pos=None, extent=None, arrayorder='C',
     BaryP = np.sum(Poly[:,:-1],axis=1,keepdims=False)/(Poly.shape[1]-1)
     BaryL = np.array([(P1Max[0]+P1Min[0])/2., (P2Max[1]+P2Min[1])/2.])
     TorP = plg.Polygon(Poly.T)
-    Surf = TorP.area()
-    BaryS = np.array(TorP.center()).flatten()
+    Surf2 = _GG.poly_area(Poly, NP)
+    BaryS2 = np.array(TorP.center()).flatten()
+    BaryS, Surf = _GG.poly_area_and_barycenter(Poly, NP)
+    print("im here and....... surf =", Surf - Surf2)
+    print("im here and......... Barys =", BaryS - BaryS2)
 
     # Get lim-related indicators
     noccur = int(pos.size)
@@ -82,8 +85,7 @@ def _Struct_set_Poly(Poly, pos=None, extent=None, arrayorder='C',
 
     # Compute the normalised vectors directed inwards
     Vin = np.array([Vect[1,:],-Vect[0,:]])
-    if not _GG.Poly_isClockwise(Poly):
-        Vin = -Vin
+    Vin = -Vin # Poly is Counter Clock-wise as defined above
     Vin = Vin/np.hypot(Vin[0,:],Vin[1,:])[np.newaxis,:]
     Vin = fPfmt(Vin)
 
