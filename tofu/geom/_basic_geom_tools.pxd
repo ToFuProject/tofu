@@ -6,7 +6,7 @@
 # Utility functions for basic geometry :
 #   - vector calculus (cross product, dot product, norm, ...)
 #   - cythonization of matplotlib path functions (is point in a path?)
-#   - cythonization of some numpy functions (hypotenus, tile)
+#   - cythonization of some numpy functions (hypotenus, tile, sum)
 ################################################################################
 cimport cython
 from cpython.array cimport array, clone
@@ -17,6 +17,15 @@ from cpython.array cimport array, clone
 # Values defined in the *.pyx file
 cdef double _VSMALL
 cdef double _SMALL
+
+cdef extern from "_fast_sum.c":
+    void sum_rows_blocks(double *orig, double *out, int n_rows, int n_cols) nogil
+
+cdef extern from "_fast_sum.c":
+    void sum_par_mat(double *orig, double *out, int n_rows, int n_cols) nogil
+
+cdef extern from "_fast_sum.c":
+    double sum_par_one_row(double *orig, int n_rows) nogil
 
 # ==============================================================================
 # == Redifinition of functions
@@ -88,3 +97,15 @@ cdef void compute_diff_div(const double[:, ::1] vec1,
                            const double* div,
                            const int npts,
                            double[:, ::1] res) nogil
+
+# ==============================================================================
+# == Matrix sum (np.sum)
+# ==============================================================================
+cdef void sum_by_rows(double *orig, double *out,
+                      int n_rows, int n_cols) nogil
+
+cdef void sum_naive_rows(double* orig, double* out,
+                         int n_rows, int n_cols) nogil
+cdef double sum_naive(double* orig, int n_cols) nogil
+
+cdef long sum_naive_int(long* orig, int n_cols) nogil

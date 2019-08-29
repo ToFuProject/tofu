@@ -223,10 +223,10 @@ with open(os.path.join(_HERE, 'README.rst'), encoding='utf-8') as f:
 
 #  ... Compiling files .........................................................
 if openmp_installed :
-    extra_compile_args=["-O0", "-Wall", "-fopenmp"]
+    extra_compile_args=["-O3", "-Wall", "-fopenmp", "-fno-wrapv"]
     extra_link_args = ["-fopenmp"]
 else:
-    extra_compile_args=["-O0", "-Wall"]
+    extra_compile_args=["-O3", "-Wall", "-fno-wrapv"]
     extra_link_args = []
 
 extensions = [ Extension(name="tofu.geom."+gg,

@@ -2,6 +2,7 @@
 # cython: wraparound=False
 # cython: cdivision=True
 #
+cimport numpy as cnp
 # ==============================================================================
 # =  LINEAR MESHING
 # ==============================================================================
@@ -65,138 +66,12 @@ cdef void simple_discretize_vpoly_core(double[:, ::1] VPoly,
 # == LOS sampling
 # ==============================================================================
 
-# -- Quadrature Rules : Middle Rule --------------------------------------------
-cdef void middle_rule_rel_single(int num_raf,
-                                 double los_kmin,
-                                 double loc_resol,
-                                 double* los_coeffs) nogil
-
-cdef void middle_rule_rel(int num_los, int num_raf,
-                          double* los_lims_x,
-                          double* los_lims_y,
-                          double* los_resolution,
-                          double* los_coeffs,
-                          long* los_ind,
-                          int num_threads) nogil
-
-cdef void middle_rule_abs_1_single(double inv_resol,
-                                   double los_kmin,
-                                   double los_kmax,
-                                   double* loc_resol,
-                                   long* ind) nogil
-
-cdef void middle_rule_abs_1(int num_los, double resol,
-                            double* los_lims_x,
-                            double* los_lims_y,
-                            double* los_resolution,
-                            long* ind_cum,
-                            int num_threads) nogil
-
-cdef void middle_rule_abs_2_single(long num_raf,
-                                   double los_kmin,
-                                   double loc_resol,
-                                   double* los_coeffs) nogil
-
-cdef void middle_rule_abs_2(int num_los,
-                            double* los_lims_x,
-                            long* ind_cum,
-                            double* los_resolution,
-                            double* los_coeffs,
-                            int num_threads) nogil
-
-cdef void middle_rule_abs_var(int num_los, double* resolutions,
-                              double* los_lims_x,
-                              double* los_lims_y,
-                              double* los_resolution,
-                              double** los_coeffs,
-                              long* los_ind,
-                              int num_threads) nogil
-
-cdef void middle_rule_rel_var(int num_los, double* resolutions,
-                              double* los_lims_x,
-                              double* los_lims_y,
-                              double* los_resolution,
-                              double** los_coeffs,
-                              long* los_ind,
-                              int num_threads) nogil
-
-# -- Quadrature Rules : Left Rule ----------------------------------------------
-cdef void left_rule_rel_single(int num_raf,
-                               double inv_nraf,
-                               double los_kmin,
-                               double loc_resol,
-                               double* los_coeffs) nogil
-
-cdef void left_rule_rel(int num_los, int num_raf,
-                        double* los_lims_x,
-                        double* los_lims_y,
-                        double* los_resolution,
-                        double* los_coeffs,
-                        long* los_ind, int num_threads) nogil
-
-cdef void simps_left_rule_abs_single(int num_raf,
-                                     double loc_resol,
-                                     double los_kmin,
-                                     double* los_coeffs) nogil
-
-cdef void simps_left_rule_abs(int num_los, double resol,
-                              double* los_lims_x,
-                              double* los_lims_y,
-                              double* los_resolution,
-                              double** los_coeffs,
-                              long* los_ind,
-                              int num_threads) nogil
-
-cdef void romb_left_rule_abs_single(int num_raf,
-                                    double loc_resol,
-                                    double los_kmin,
-                                    double* los_coeffs) nogil
-
-cdef void romb_left_rule_abs(int num_los, double resol,
-                             double* los_lims_x,
-                             double* los_lims_y,
-                             double* los_resolution,
-                             double** los_coeffs,
-                             long* los_ind, int num_threads) nogil
-
-cdef void simps_left_rule_rel_var(int num_los, double* resolutions,
-                                  double* los_lims_x,
-                                  double* los_lims_y,
-                                  double* los_resolution,
-                                  double** los_coeffs,
-                                  long* los_ind,
-                                  int num_threads) nogil
-
-cdef void simps_left_rule_abs_var(int num_los, double* resolutions,
-                                  double* los_lims_x,
-                                  double* los_lims_y,
-                                  double* los_resolution,
-                                  double** los_coeffs,
-                                  long* los_ind,
-                                  int num_threads) nogil
-
-cdef void romb_left_rule_rel_var(int num_los, double* resolutions,
-                                 double* los_lims_x,
-                                 double* los_lims_y,
-                                 double* los_resolution,
-                                 double** los_coeffs,
-                                 long* los_ind,
-                                 int num_threads) nogil
-
-cdef void romb_left_rule_abs_var(int num_los, double* resolutions,
-                                 double* los_lims_x,
-                                 double* los_lims_y,
-                                 double* los_resolution,
-                                 double** los_coeffs,
-                                 long* los_ind,
-                                 int num_threads) nogil
-
 # -- LOS sampling for a single ray ---------------------------------------------
 cdef int get_nb_imode(str imode)
 
 cdef int get_nb_dmode(str dmode)
 
-cdef int LOS_get_sample_single(double los_kmin, double los_kmax,
+cdef int los_get_sample_single(double los_kmin, double los_kmax,
                                double resol, int imethod, int imode,
                                double[1] eff_res, double** coeffs) nogil
 
@@ -205,12 +80,59 @@ cdef call_get_sample_single_ani(double los_kmin, double los_kmax,
                                 double resol,
                                 int n_dmode, int n_imode,
                                 double[1] eff_res,
+                                long[1] nb_rows,
                                 double[:,::1] ray_orig,
                                 double[:,::1] ray_vdir)
 
-cdef call_get_sample_single(double los_kmin, double los_kmax,
+cdef cnp.ndarray[double,ndim=2,mode='c'] call_get_sample_single(double los_kmin, double los_kmax,
                             double resol,
                             int n_dmode, int n_imode,
                             double[1] eff_res,
+                            long[1] nb_rows,
                             double[:,::1] ray_orig,
                             double[:,::1] ray_vdir)
+
+cdef int los_get_sample_core_const_res(int nlos,
+                                       double* los_lim_min,
+                                       double* los_lim_max,
+                                       int n_dmode, int n_imode,
+                                       double val_resol,
+                                       double** coeff_ptr,
+                                       double* dLr,
+                                       long* los_ind,
+                                       int num_threads) nogil
+
+cdef void los_get_sample_core_var_res(int nlos,
+                                     double* los_lim_min,
+                                     double* los_lim_max,
+                                     int n_dmode, int n_imode,
+                                     double* resol,
+                                     double** coeff_ptr,
+                                     double* dLr,
+                                     long* los_ind,
+                                     int num_threads) nogil
+
+cdef void los_get_sample_pts(int nlos,
+                             double* ptx,
+                             double* pty,
+                             double* ptz,
+                             double* usx,
+                             double* usy,
+                             double* usz,
+                             double[:,::1] ray_orig,
+                             double[:,::1] ray_vdir,
+                             double* coeff_ptr,
+                             long* los_ind,
+                             int num_threads) nogil
+
+# -- Integrations utility function ---------------------------------------------
+cdef void integrate_c_sum_mat(double* val_mv,
+                              double* sig,
+                              int nrows, int ncols,
+                              double loc_eff_res,
+                              int num_threads) nogil
+
+cdef double integrate_c_sum_vec(double* val_mv,
+                                int nza,
+                                double loc_eff_res,
+                                int num_threads) nogil

@@ -492,17 +492,19 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
     N : int64
         Number of points on LMinMax segment
     """
-    cdef str err_mess
     cdef int mode_num
-    cdef long sz_ld
-    cdef long[1] N
-    cdef double[2] dl_array
-    cdef double[1] resolution
-    cdef double* ldiscret = NULL
-    cdef long* lindex = NULL
+    cdef str err_mess
     cdef str mode_low = mode.lower()
     cdef bint mode_is_abs = mode_low == 'abs'
     cdef bint mode_is_rel = mode_low == 'rel'
+    cdef long sz_ld
+    cdef long[1] N
+    cdef long* lindex = NULL
+    cdef double* ldiscret = NULL
+    cdef double[2] dl_array
+    cdef double[1] resolution
+    cdef np.ndarray[double,ndim=1] ld_arr
+    cdef np.ndarray[long,ndim=1] li_arr
     # .. Testing ...............................................................
     err_mess = "Mode has to be 'abs' (absolute) or 'rel' (relative)"
     assert mode_is_abs or mode_is_rel, err_mess
@@ -523,13 +525,18 @@ def discretize_line1d(double[::1] LMinMax, double dstep,
         mode_num = 1
     elif mode_is_rel:
         mode_num = 2
+    else:
+        mode_num = -1 # error
     #.. calling cython function.................................................
     sz_ld = _st.discretize_line1d_core(&LMinMax[0], dstep, dl_array, Lim,
                                        mode_num, margin, &ldiscret, resolution,
                                        &lindex, N)
     #.. converting and returning................................................
-    return np.asarray(<double[:sz_ld]> ldiscret), resolution[0],\
-        np.asarray(<long[:sz_ld]>lindex), N[0]
+    ld_arr = np.copy(np.asarray(<double[:sz_ld]> ldiscret))
+    li_arr = np.copy(np.asarray(<long[:sz_ld]>lindex)).astype(int)
+    free(ldiscret)
+    free(lindex)
+    return ld_arr, resolution[0], li_arr, N[0]
 
 
 # ==============================================================================
@@ -600,8 +607,8 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     cdef long nind2
     cdef int[1] nL0_1
     cdef int[1] nL0_2
-    cdef long[1] num_cells1
-    cdef long[1] num_cells2
+    cdef long[1] ncells1
+    cdef long[1] ncells2
     cdef double[2] dl1_array
     cdef double[2] dl2_array
     cdef double[2] resolutions
@@ -658,12 +665,12 @@ def discretize_segment2d(double[::1] LMinMax1, double[::1] LMinMax2,
     nind1 = _st.discretize_line1d_core(&LMinMax1[0], dstep1, dl1_array,
                                        True, mode_num, margin,
                                        &ldiscret1_arr, &resolutions[0],
-                                       &lindex1_arr, num_cells1)
+                                       &lindex1_arr, ncells1)
     # .. Discretizing on the second direction ..................................
     nind2 = _st.discretize_line1d_core(&LMinMax2[0], dstep2, dl2_array,
                                        True, mode_num, margin,
                                        &ldiscret2_arr, &resolutions[1],
-                                       &lindex2_arr, num_cells2)
+                                       &lindex2_arr, ncells2)
     #....
     if VPoly is not None:
         ndisc = nind1 * nind2
@@ -737,7 +744,7 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     cdef int i1, i2
     cdef np.ndarray[double,ndim=2] Pts = np.empty((2,NP))
     cdef np.ndarray[double,ndim=1] dS
-    cdef long[2] num_cells
+    cdef long[2] ncells
     cdef double[2] resolution
     cdef double[2] dl_array
     cdef double* X1 = NULL
@@ -762,14 +769,14 @@ def _Ves_meshCross_FromInd(double[::1] MinMax1, double[::1] MinMax2, double d1,
     #.. calling cython function.................................................
     _st.discretize_line1d_core(&MinMax1[0], d1, dl_array, True, mode_num,
                                margin, &X1, &resolution[0], &dummy,
-                               &num_cells[0])
+                               &ncells[0])
     _st.discretize_line1d_core(&MinMax2[0], d2, dl_array, True, mode_num,
                                margin, &X2, &resolution[1], &dummy,
-                               &num_cells[1])
+                               &ncells[1])
     d1r = resolution[0]
     d2r = resolution[1]
-    N1 = num_cells[0]
-    N2 = num_cells[1]
+    N1 = ncells[0]
+    N2 = ncells[1]
     dS = d1r*d2r*np.ones((NP,))
     for ii in range(0,NP):
         i2 = ind[ii] // N1
@@ -1306,6 +1313,8 @@ def _Ves_Smesh_Tor_SubFromD_cython(double dL, double dRPhi,
     cdef np.ndarray[double,ndim=1] R0, dS, ind, dLr, Rref, dRPhir, iii
     cdef np.ndarray[long,ndim=1] indL, NL, indok
 
+    # To avoid warnings:
+    indI = np.empty((1,1))
     # Pre-format input
     if PhiMinMax is None:
         PhiMinMax = [-Cpi,Cpi]
@@ -2558,6 +2567,8 @@ def triangulate_by_earclipping(np.ndarray[double,ndim=2] poly):
     _vt.are_points_reflex(nvert, diff, lref)
     # Calling core function.....................................................
     _vt.earclipping_poly(&poly[0,0], &ltri[0], diff, lref, nvert)
+    free(diff)
+    free(lref)
     return ltri
 
 def vignetting(double[:, ::1] ray_orig,
@@ -2610,8 +2621,8 @@ def vignetting(double[:, ::1] ray_orig,
                         ltri, nvign, nlos, &bool_res[0],num_threads)
     for ii in range(nlos*nvign):
         goes_through[ii] = bool_res[ii]
-    free(bool_res)
     # -- Cleaning up -----------------------------------------------------------
+    free(bool_res)
     free(lbounds)
     # We have to free each array for each vignett:
     for ii in range(nvign):
@@ -2626,7 +2637,7 @@ def vignetting(double[:, ::1] ray_orig,
 #                                  LOS SAMPLING
 #
 # ==============================================================================
-def LOS_get_sample(int nlos, dL, double[:,::1] DLs, str dmethod='abs',
+def LOS_get_sample(int nlos, dL, double[:,::1] los_lims, str dmethod='abs',
                    str method='sum', bint Test=True, int num_threads=16):
     """
     Return the sampled line, with the specified method
@@ -2641,7 +2652,7 @@ def LOS_get_sample(int nlos, dL, double[:,::1] DLs, str dmethod='abs',
         If dL is a single double: discretization step for all LOS.
         Else dL should be a list of size nlos with the discretization
         step for each nlos.
-    DLs: (2, nlos) double array
+    los_lims: (2, nlos) double array
         For each nlos, it given the maximum and minimum limits of the ray
     dmethod: string
         type of discretization step: 'abs' for absolute or 'rel' for relative
@@ -2661,27 +2672,28 @@ def LOS_get_sample(int nlos, dL, double[:,::1] DLs, str dmethod='abs',
     cdef str dmode = dmethod.lower()
     cdef str imode = method.lower()
     cdef int sz1_dls, sz2_dls
-    cdef int N
-    cdef long ntmp
+    cdef int sz_coeff
+    cdef int n_imode, n_dmode
     cdef bint dl_is_list
     cdef bint bool1, bool2
-    cdef double val_resol
     cdef double[::1] dl_view
     cdef np.ndarray[double,ndim=1] dLr
     cdef np.ndarray[double,ndim=1] coeff_arr
     cdef np.ndarray[long,ndim=1] los_ind
     cdef long* tmp_arr
     cdef double* los_coeffs = NULL
+    cdef double** coeff_ptr = NULL
+    cdef long* los_ind_ptr = NULL
     # .. ray_orig shape needed for testing and in algo .........................
     dLr = np.zeros((nlos,), dtype=float)
     los_ind = np.zeros((nlos,), dtype=int)
     dl_is_list = hasattr(dL, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
-        sz1_dls = DLs.shape[0]
-        sz2_dls = DLs.shape[1]
-        assert sz1_dls == 2, "Dim 0 of arg DLs should be 2"
-        error_message = "Args DLs should have dim 1 = nlos"
+        sz1_dls = los_lims.shape[0]
+        sz2_dls = los_lims.shape[1]
+        assert sz1_dls == 2, "Dim 0 of arg los_lims should be 2"
+        error_message = "Args los_lims should have dim 1 = nlos"
         assert nlos == sz2_dls, error_message
         bool1 = not dl_is_list and dL > 0.
         bool2 = dl_is_list and len(dL)==nlos and np.all(dL>0.)
@@ -2692,92 +2704,48 @@ def LOS_get_sample(int nlos, dL, double[:,::1] DLs, str dmethod='abs',
         error_message = "Wrong method of integration." \
                         + " Options are: ['sum','simps','romb', 'linspace']"
         assert imode in ['sum','simps','romb','linspace'], error_message
-
-    # Case with unique dL
+    # Init
+    coeff_ptr = <double**> malloc(sizeof(double*))
+    los_ind_ptr = <long*> malloc(nlos*sizeof(long))
+    coeff_ptr[0] = NULL
+    # Getting number of modes:
+    n_dmode = _st.get_nb_dmode(dmode)
+    n_imode = _st.get_nb_imode(imode)
+    # -- Core functions --------------------------------------------------------
     if not dl_is_list:
-        val_resol = dL
-        if dmode=='rel':
-            N = <int> Cceil(1./val_resol)
-            if imode=='sum':
-                coeff_arr = np.empty((N*nlos,), dtype=float)
-                _st.middle_rule_rel(nlos, N, &DLs[0,0], &DLs[1, 0],
-                                    &dLr[0], &coeff_arr[0], &los_ind[0],
-                                    num_threads=num_threads)
-            elif imode=='simps':
-                N = N if N%2==0 else N+1
-                coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
-                _st.left_rule_rel(nlos, N,
-                                  &DLs[0,0], &DLs[1, 0], &dLr[0],
-                                  &coeff_arr[0], &los_ind[0],
-                                  num_threads=num_threads)
-            elif imode=='romb':
-                N = 2**(int(Cceil(Clog2(N))))
-                coeff_arr = np.empty(((N+1)*nlos,), dtype=float)
-                _st.left_rule_rel(nlos, N,
-                                  &DLs[0,0], &DLs[1, 0],
-                                  &dLr[0], &coeff_arr[0], &los_ind[0],
-                                  num_threads=num_threads)
-            return coeff_arr, dLr, los_ind[:nlos-1]
-        else:
-            if imode=='sum':
-                _st.middle_rule_abs_1(nlos, val_resol, &DLs[0,0], &DLs[1, 0],
-                                      &dLr[0], &los_ind[0],
-                                      num_threads=num_threads)
-                ntmp = np.sum(los_ind)
-                coeff_arr = np.empty((ntmp,), dtype=float)
-                _st.middle_rule_abs_2(nlos, &DLs[0,0], &los_ind[0],
-                                      &dLr[0], &coeff_arr[0],
-                                      num_threads=num_threads)
-                return coeff_arr, dLr, los_ind[0:nlos-1]
-            elif imode=='simps':
-                _st.simps_left_rule_abs(nlos, val_resol,
-                                        &DLs[0,0], &DLs[1, 0],
-                                        &dLr[0], &los_coeffs, &los_ind[0],
-                                        num_threads=num_threads)
-            else:
-                _st.romb_left_rule_abs(nlos, val_resol,
-                                       &DLs[0,0], &DLs[1, 0],
-                                       &dLr[0], &los_coeffs, &los_ind[0],
-                                       num_threads=num_threads)
-    # Case with different resolution for each LOS
+        # Case with unique discretization step dL
+        sz_coeff = _st.los_get_sample_core_const_res(nlos,
+                                                     &los_lims[0,0],
+                                                     &los_lims[1,0],
+                                                     n_dmode, n_imode,
+                                                     <double>dL,
+                                                     &coeff_ptr[0],
+                                                     &dLr[0],
+                                                     &los_ind_ptr[0],
+                                                     num_threads)
     else:
+        # Case with different resolution for each LOS
         dl_view=dL
-        if dmode=='abs':
-            if imode=='sum':
-                _st.middle_rule_abs_var(nlos, &dl_view[0],
-                                        &DLs[0,0], &DLs[1, 0],
-                                        &dLr[0], &los_coeffs, &los_ind[0],
-                                        num_threads=num_threads)
-            elif imode=='simps':
-                _st.simps_left_rule_abs_var(nlos, &dl_view[0],
-                                            &DLs[0,0], &DLs[1, 0],
-                                            &dLr[0], &los_coeffs, &los_ind[0],
-                                            num_threads=num_threads)
-            else:
-                _st.romb_left_rule_abs_var(nlos, &dl_view[0],
-                                           &DLs[0,0], &DLs[1, 0],
-                                           &dLr[0], &los_coeffs, &los_ind[0],
-                                           num_threads=num_threads)
-        else:
-            if imode=='sum':
-                _st.middle_rule_rel_var(nlos, &dl_view[0],
-                                        &DLs[0,0], &DLs[1, 0],
-                                        &dLr[0], &los_coeffs, &los_ind[0],
-                                        num_threads=num_threads)
-            elif imode=='simps':
-                _st.simps_left_rule_rel_var(nlos, &dl_view[0],
-                                            &DLs[0,0], &DLs[1, 0],
-                                            &dLr[0], &los_coeffs, &los_ind[0],
-                                            num_threads=num_threads)
-            else:
-                _st.romb_left_rule_rel_var(nlos, &dl_view[0],
-                                           &DLs[0,0], &DLs[1, 0],
-                                           &dLr[0], &los_coeffs, &los_ind[0],
-                                           num_threads=num_threads)
-    return np.asarray(<double[:los_ind[nlos-1]]> los_coeffs),\
-        dLr, los_ind[0:nlos-1]
-
-
+        _st.los_get_sample_core_var_res(nlos,
+                                        &los_lims[0,0],
+                                        &los_lims[1,0],
+                                        n_dmode, n_imode,
+                                        &dl_view[0],
+                                        &coeff_ptr[0],
+                                        &dLr[0],
+                                        &los_ind_ptr[0],
+                                        num_threads)
+        sz_coeff = los_ind_ptr[nlos-1]
+    coeffs  = np.copy(np.asarray(<double[:sz_coeff]>coeff_ptr[0]))
+    indices = np.copy(np.asarray(<long[:nlos]>los_ind_ptr).astype(int))
+    # -- freeing -----------------------------------------------------------
+    if not los_ind_ptr == NULL:
+        free(los_ind_ptr)
+    if not coeff_ptr == NULL:
+        if not coeff_ptr[0] == NULL:
+            free(coeff_ptr[0])
+        free(coeff_ptr)
+    return coeffs, dLr, indices[:nlos-1]
 
 
 
@@ -2802,6 +2770,8 @@ cdef get_insp(ff):
 
 def check_ff(ff, t=None, Ani=None, bool Vuniq=False):
     cdef bool ani
+    cdef int nt = -1
+    # ...
     stre = "Input emissivity function (ff)"
     assert hasattr(ff,'__call__'), stre+" must be a callable (function)!"
     na, kw = get_insp(ff)
@@ -2894,7 +2864,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
            with pts : ndarray (3, npts) - points where function is evaluated
                 vect : ndarray(3, npts) - if anisotropic signal vector of emiss.
                 t: ndarray(m) - times where to compute the function
-           returns: data : ndarray(n) if t is None, else ndarray(m,n)
+           returns: data : ndarray(nt,nraf) if nt = 1, the array must be 2D
                            values of func at pts, at given time
            func is the function to be integrated along the LOS
     ray_orig: ndarray (3, nlos) LOS origins
@@ -2926,27 +2896,40 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
     cdef str dmode = dmethod.lower()
     cdef str imode = method.lower()
     cdef str minim = minimize.lower()
-    cdef int sz1_ds, sz2_ds
+    cdef int jjp1
+    cdef int sz1_ds
     cdef int sz1_us, sz2_us
     cdef int sz1_dls, sz2_dls
     cdef int n_imode, n_dmode
     cdef bint res_is_list
     cdef bint C0, C1
+    cdef list ltime
+    cdef double loc_r
     cdef unsigned int nlos
-    cdef unsigned int nt=0, axm, ii, jj
+    cdef unsigned int nt=0, ii, jj
+    cdef long[1] nb_rows
+    cdef long[::1] indbis
+    cdef double[1] loc_eff_res
+    cdef double[::1] reseff_mv
+    cdef double[::1] res_mv
+    cdef double[::1,:] sig_mv
+    cdef double[:,::1] val_mv
+    cdef double[:,::1] pts_mv
+    cdef double[:,::1] usbis_mv
+    cdef double[:,::1] val_2d
     cdef np.ndarray[double,ndim=2] usbis
     cdef np.ndarray[double,ndim=2] pts
-    cdef np.ndarray[double,ndim=2] sig
+    cdef np.ndarray[double,ndim=2, mode='fortran'] sig
     cdef np.ndarray[double,ndim=1] reseff
-    cdef np.ndarray[double,ndim=1] k, ksbis
-    cdef np.ndarray[double,ndim=1] ltime
+    cdef np.ndarray[double,ndim=1] k
     cdef np.ndarray[double,ndim=1] res_arr
     cdef np.ndarray[long,ndim=1] ind
-    cdef double[1] loc_eff_res
+    cdef long* ind_arr = NULL
+    cdef double* reseff_arr = NULL
+    cdef double** coeff_ptr = NULL
     # .. ray_orig shape needed for testing and in algo ...............................
     sz1_ds = ray_orig.shape[0]
-    sz2_ds = ray_orig.shape[1]
-    nlos = sz2_ds
+    nlos = ray_orig.shape[1]
     res_is_list = hasattr(res, '__iter__')
     # .. verifying arguments ...................................................
     if Test:
@@ -2958,9 +2941,9 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         assert sz1_us == 3, "Dim 0 of arg ray_vdir should be 3"
         assert sz1_dls == 2, "Dim 0 of arg lims should be 2"
         error_message = "Args ray_orig, ray_vdir, lims should have same dimension 1"
-        assert sz2_ds == sz2_us == sz2_dls, error_message
+        assert nlos == sz2_us == sz2_dls, error_message
         C0 = not res_is_list and res > 0.
-        C1 = res_is_list and len(res)==sz2_ds and np.all(res>0.)
+        C1 = res_is_list and len(res)==nlos and np.all(res>0.)
         assert C0 or C1, "Arg res must be a double or a List, and all res >0.!"
         error_message = "Argument dmethod (discretization method) should be in"\
                         +" ['abs','rel'], for absolute or relative."
@@ -2979,55 +2962,123 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             error_message += "  => there is no point in using minimize='memory'"
             error_message += "  => switching to minimize = '%s'"%minim
             warn(error_message)
+        nt = 1
+        ltime = [None]
     elif not hasattr(t,'__iter__'):
         nt = 1
-        ltime = np.zeros((1))
-        ltime[0] = t
+        ltime = [t]
     else:
         nt = len(t)
-        ltime = np.asarray(t,dtype=float)
+        if isinstance(t, list):
+            ltime = t
+        else:
+            ltime = t.tolist()
     # -- Inizializations -------------------------------------------------------
     # Getting number of modes:
     n_dmode = _st.get_nb_dmode(dmode)
     n_imode = _st.get_nb_imode(imode)
     # Initialization result
-    sig = np.empty((nt,nlos),dtype=float)
+    sig = np.empty((nt,nlos),dtype=float,order='F')
+    sig_mv = sig
     # If the resolution is the same for every LOS, we create a tab
     if res_is_list :
         res_arr = np.asarray(res)
     else:
         res_arr = np.ones((nlos,), dtype=float) * res
+    res_mv = res_arr
     # --------------------------------------------------------------------------
     # Minimize function calls: sample (vect), call (once) and integrate
     if minim == 'calls':
-        # Discretize all LOS
-        k, reseff, ind = LOS_get_sample(nlos, res_arr, lims,
-                                        dmethod=dmode, method=imode,
-                                        num_threads=num_threads, Test=Test)
-        nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[nlos-2]]
-        # get pts and values
-        usbis = np.repeat(ray_vdir, nbrep, axis=1)
-        if ani:
-            val = func(np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis,
-                       t=t, vect=-usbis, **fkwdargs)
+        if not method=='sum':
+            # Discretize all LOS
+            k, reseff, ind = LOS_get_sample(nlos, res_arr, lims,
+                                            dmethod=dmode, method=imode,
+                                            num_threads=num_threads, Test=Test)
+            nbrep = np.r_[ind[0], np.diff(ind), k.size - ind[nlos-2]]
+            # get pts and values
+            usbis = np.repeat(ray_vdir, nbrep, axis=1)
+            pts = np.repeat(ray_orig, nbrep, axis=1) + k[None,:]*usbis
+            # memory view:
+            reseff_mv = reseff
+            indbis = np.concatenate(([0],ind,[k.size]))
         else:
-            val = func(np.repeat(ray_orig,nbrep,axis=1) + k[None,:]*usbis,
-                       t=t, **fkwdargs)
-        indbis = np.concatenate(([0],ind,[k.size]))
+            coeff_ptr = <double**>malloc(sizeof(double*))
+            coeff_ptr[0] = NULL
+            reseff_arr = <double*>malloc(nlos*sizeof(double))
+            ind_arr = <long*>malloc(nlos*sizeof(long))
+            # we sample lines of sight
+            _st.los_get_sample_core_var_res(nlos,
+                                            &lims[0,0],
+                                            &lims[1,0],
+                                            n_dmode, n_imode,
+                                            &res_arr[0],
+                                            &coeff_ptr[0],
+                                            &reseff_arr[0],
+                                            &ind_arr[0],
+                                            num_threads)
+            sz_coeff = ind_arr[nlos-1]
+            pts = np.empty((3,sz_coeff))
+            usbis = np.empty((3,sz_coeff))
+            usbis_mv = usbis
+            pts_mv = pts
+            _st.los_get_sample_pts(nlos,
+                                   &pts_mv[0,0],
+                                   &pts_mv[1,0],
+                                   &pts_mv[2,0],
+                                   &usbis_mv[0,0],
+                                   &usbis_mv[1,0],
+                                   &usbis_mv[2,0],
+                                   ray_orig, ray_vdir,
+                                   coeff_ptr[0],
+                                   ind_arr,
+                                   num_threads)
+        if ani:
+            val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
+        else:
+            val_2d = func(pts, t=t, **fkwdargs)
         # Integrate
         if method=='sum':
-            for ii in range(nlos):
-                sig[:,ii] = np.sum(val[:,indbis[ii]:indbis[ii+1]],
-                                   axis=-1)*reseff[ii]
+            # # .. original version .....................................
+            # indbis = np.concatenate(([0],ind,[k.size]))
+            # for ii in range(1,nlos):
+            #     sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
+            #                        axis=-1)*reseff_mv[ii]
+            # # ..........................................................
+            # first los:
+            jj = 0
+            jjp1 = ind_arr[0]
+            val_mv = val_2d[:,jj:jjp1]
+            _st.integrate_c_sum_mat(&val_mv[0,0],
+                                    &sig_mv[0,0],
+                                    nt, jjp1 - jj,
+                                    reseff_arr[0], num_threads)
+            for ii in range(1,nlos):
+                # sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
+                #                    axis=-1)*reseff_mv[ii]
+                jj = ind_arr[ii-1]
+                jjp1 = ind_arr[ii]
+                val_mv = val_2d[:,jj:jjp1]
+                _st.integrate_c_sum_mat(&val_mv[0,0],
+                                        &sig_mv[0,ii],
+                                        nt, jjp1 - jj,
+                                        reseff_arr[ii], num_threads)
+            # Cleaning up...
+            free(coeff_ptr[0])
+            free(coeff_ptr)
+            free(reseff_arr)
+            free(ind_arr)
         elif method=='simps':
             for ii in range(nlos):
-                sig[:,ii] = scpintg.simps(val[:,indbis[ii]:indbis[ii+1]],
-                                          x=None, dx=reseff[ii], axis=-1)
+                jj = indbis[ii]
+                jjp1 = indbis[ii+1]
+                val_mv = val_2d[:,jj:jjp1]
+                loc_r = reseff_mv[ii]
+                sig[:,ii] = scpintg.simps(val_mv,
+                                             x=None, dx=loc_r, axis=-1)
         else:
-            axm = 1
             for ii in range(nlos):
-                sig[:,ii] = scpintg.romb(val[:,indbis[ii]:indbis[ii+1]],
-                                         dx=reseff[ii], axis=axm, show=False)
+                sig[:,ii] = scpintg.romb(val_2d[:,indbis[ii]:indbis[ii+1]],
+                                         dx=reseff_mv[ii], axis=1, show=False)
     # --------------------------------------------------------------------------
     # Minimize memory use: loop everything, starting with LOS
     # then pts then time
@@ -3037,9 +3088,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             if n_imode == 0:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3049,9 +3101,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3062,9 +3115,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 2:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3077,9 +3131,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             if n_imode == 0:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3089,9 +3144,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3102,9 +3158,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 2:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     # loop over time for calling and integrating
@@ -3120,21 +3177,31 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
         # loop over LOS
         if ani:
             if n_imode == 0:
+                print("about to use new method")
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
-                    val = func(pts, t=t, vect=-usbis, **fkwdargs)
-                    sig[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
+                    val_2d = func(pts, t=t, vect=-usbis, **fkwdargs)
+                    # this is almost always the quickest solution... but can
+                    # probably be better. We'll investigate some time
+                    # how to make it faster, and for the time being we leave
+                    # the numpy alternative commented
+                    _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii], nt,
+                                            nb_rows[0],
+                                            loc_eff_res[0], num_threads)
+                    # sig_mv[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)
@@ -3144,9 +3211,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 2:
                 for ii in range(nlos):
                     pts, usbis = _st.call_get_sample_single_ani(lims[0,0], lims[1,0],
-                                                                res_arr[ii],
+                                                                res_mv[ii],
                                                                 n_dmode, n_imode,
                                                                 &loc_eff_res[0],
+                                                                &nb_rows[0],
                                                                 ray_orig[:,ii:ii+1],
                                                                 ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, vect=-usbis, **fkwdargs)
@@ -3157,19 +3225,28 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             if n_imode == 0:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
-                    val = func(pts, t=t, **fkwdargs)
-                    sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
+                    val_2d = func(pts, t=t, **fkwdargs)
+                    # this is almost always the quickest solution... but can
+                    # probably be better. We'll investigate some time
+                    # how to make it faster, and for the time being we leave
+                    # the numpy alternative commented
+                    _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii],
+                                            nt, nb_rows[0],
+                                            loc_eff_res[0], num_threads)
+                    # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
             elif n_imode == 1:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
@@ -3178,9 +3255,10 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             elif n_imode == 2:
                 for ii in range(nlos):
                     pts = _st.call_get_sample_single(lims[0,0], lims[1,0],
-                                                     res_arr[ii],
+                                                     res_mv[ii],
                                                      n_dmode, n_imode,
                                                      &loc_eff_res[0],
+                                                     &nb_rows[0],
                                                      ray_orig[:,ii:ii+1],
                                                      ray_vdir[:,ii:ii+1])
                     val = func(pts, t=t, **fkwdargs)
@@ -3350,7 +3428,9 @@ cdef inline void NEW_los_sino_tor_vec(int nlos,
     cdef double* orig
     cdef double* res
     cdef double normu, normu_sq
-    cdef double kPMin, PMin2norm, vP0, vP1, Theta
+    cdef double kPMin, PMin2norm, Theta
+    cdef double vP0 = 0.0
+    cdef double vP1 = 0.0
     cdef double eTheta0
     cdef double eTheta1
     cdef double normu0
@@ -3679,7 +3759,8 @@ def comp_dist_los_circle_vec(int nlos, int ncircles,
                              np.ndarray[double,ndim=2,mode='c'] oris,
                              np.ndarray[double,ndim=1,mode='c'] circle_radius,
                              np.ndarray[double,ndim=1,mode='c'] circle_z,
-                             np.ndarray[double,ndim=1,mode='c'] norm_dir = None):
+                             np.ndarray[double,ndim=1,mode='c'] norm_dir = None,
+                             int num_threads=48):
     """
     This function computes the intersection of a Ray (or Line Of Sight)
     and a circle in 3D. It returns `kmin`, the coefficient such that the
@@ -3713,7 +3794,7 @@ def comp_dist_los_circle_vec(int nlos, int ncircles,
                                       <double*>circle_radius.data,
                                       <double*>circle_z.data,
                                       <double*>norm_dir.data,
-                                      kmin_tab, dist_tab)
+                                      kmin_tab, dist_tab, num_threads)
     return np.asarray(kmin_tab).reshape(nlos, ncircles), \
         np.asarray(dist_tab).reshape(nlos, ncircles)
 
@@ -3745,7 +3826,8 @@ def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
                              np.ndarray[double,ndim=2,mode='c'] oris,
                              np.ndarray[double,ndim=1,mode='c'] circle_radius,
                              np.ndarray[double,ndim=1,mode='c'] circle_z,
-                             np.ndarray[double,ndim=1,mode='c'] norm_dir=None):
+                             np.ndarray[double,ndim=1,mode='c'] norm_dir=None,
+                             int num_threads=48):
     """
     This function checks if at maximum a LOS is at a distance epsilon
     form a cirlce. Vectorial version
@@ -3765,7 +3847,7 @@ def is_close_los_circle_vec(int nlos, int ncircles, double epsilon,
                                      <double*>circle_radius.data,
                                      <double*>circle_z.data,
                                      <double*>norm_dir.data,
-                                     res)
+                                     res, num_threads)
     return np.asarray(res, dtype=bool).reshape(nlos, ncircles)
 
 # ==============================================================================

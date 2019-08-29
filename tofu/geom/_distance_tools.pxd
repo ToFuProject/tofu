@@ -28,7 +28,8 @@ cdef void comp_dist_los_circle_vec_core(int num_los, int num_cir,
                                                double* circle_z,
                                                double* norm_dir_tab,
                                                double[::1] res_k,
-                                               double[::1] res_dist) nogil
+                                               double[::1] res_dist,
+                                               int num_threads) nogil
 
 # ==============================================================================
 # == TEST CLOSENESS CIRCLE - LOS
@@ -39,13 +40,13 @@ cdef bint is_close_los_circle_core(const double[3] direct,
                                           double norm_dir, double eps) nogil
 
 cdef void is_close_los_circle_vec_core(int num_los, int num_cir,
-                                              double eps,
-                                              double* los_directions,
-                                              double* los_origins,
-                                              double* circle_radius,
-                                              double* circle_z,
-                                              double* norm_dir_tab,
-                                              int[::1] res) nogil
+                                       double eps,
+                                       double* los_directions,
+                                       double* los_origins,
+                                       double* circle_radius,
+                                       double* circle_z,
+                                       double* norm_dir_tab,
+                                       int[::1] res, int num_threads) nogil
 
 # ==============================================================================
 # == DISTANCE BETWEEN LOS AND EXT-POLY
