@@ -54,58 +54,59 @@ tofu is relevant for all diagnostics integrating, in a finitie field of view or 
 
 ----
 
-.. image:: README_figures/CamLOS1D_touch.pdf
+.. figure:: README_figures/CamLOS1D_touch.png
    :height: 10 px
    :width: 20 px
    :scale: 50 %
    :alt: Built-in one-liners for interactive camera geometry visualization
    :align: right
 
-.. image:: ./README_figures/CamLOS2D_touch_refelect.pdf
+   Built-in one-liners for interactive camera geometry visualization
+
+.. figure:: ./README_figures/CamLOS2D_touch_refelect.png
    :height: 100px
    :width: 200 px
    :scale: 10 %
    :alt: ...both for 1D and 2D cameras, including the basics for multiple reflections handling
    :align: right
 
-.. image:: /README_figures/CamLOS1D_sino.pdf
+   ...both for 1D and 2D cameras, including the basics for multiple reflections handling
+
+.. figure:: /README_figures/CamLOS1D_sino.png
    :height: 100px
    :width: 200 px
    :scale: 50 %
    :alt: Built-in plotting of sinograms
    :align: right
 
-.. image:: README_figures/MagfieldLines.pdf
+   Built-in plotting of sinograms
+
+.. figure:: README_figures/MagfieldLines.png
    :height: 100px
    :width: 200 px
    :scale: 50 %
    :alt: Basic magnetic field line tracing
    :align: right
 
-.. image:: ./README_figures/Plasma2D_1dneTe.png
+   Basic magnetic field line tracing
+
+.. figure:: ./README_figures/Plasma2D_1dneTe.png
    :height: 100px
    :width: 200 px
    :scale: 50 %
    :alt: Multiple 1d profiles interactive plotting
    :align: right
 
-.. image:: /README_figures/54300_1dTe_svd.png
+   Multiple 1d profiles interactive plotting
+
+.. figure:: /README_figures/54300_1dTe_svd.png
    :height: 100px
    :width: 200 px
    :scale: 50 %
    :alt: Built-in basic data treatment and interactive plotting: svd and spectrograms
    :align: right
 
-Intermediate text for test ??
-
-.. figure:: /README_figures/54300_1dTe_svd.png
-    :width: 20px
-    :align: center
-    :height: 10px
-    :alt: alternate text
-    :figclass: align-center
-
-    figure are like images but with a caption
+   Built-in basic data treatment and interactive plotting: svd and spectrograms
 
 
 tofu provides the user with a series of python classes for creating, handling and visualizing a diagnostic geometry, meshes and basis functions, 
