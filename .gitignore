@@ -10,7 +10,7 @@
 tofu/geom/*.html
 
 # No images
-*.png
+#*.png
 
 # Mac stuff
 *.AppleDouble
