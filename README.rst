@@ -26,6 +26,10 @@
     :target: https://badge.fury.io/py/tofu
 
 
+.. _documentation: https://ToFuProject.github.io/tofu/index.html
+.. _Github: https://github.com/ToFuProject/tofu
+
+
 tofu
 ====
 
@@ -40,8 +44,7 @@ synthetic diagnostic (direct problem) and tomography (inverse problem).
 It was first created at the Max-Planck Institute for Plasma Physics (IPP) in Garching, Germany, 
 by Didier Vezinet, and is now maintained / debugged / updated by a team of contributors.
 
-A sphinx-generated documentation can be found at [the tofu documentation page](https://ToFuProject.github.io/tofu/index.html),
-and the code itself is hosted on [GitHub](https://github.com/ToFuProject/tofu).
+A sphinx-generated documentation_ (to be updated soon), and the code itself is hosted on GitHub_.
 
 tofu is command-line oriented, for maximum flexibility and scriptability.
 The absence of a GUI is compensated by built-in one-liners for interactive plots.
@@ -51,7 +54,7 @@ tofu is relevant for all diagnostics integrating, in a finitie field of view or 
 
 ----
 
-.. image:: README_figures/CamLOS1D_touch.png
+.. image:: README_figures/CamLOS1D_touch.pdf
    :height: 100px
    :width: 200 px
    :scale: 50 %
