@@ -1507,7 +1507,33 @@ cdef inline void los_get_sample_pts(int nlos,
 
 
 # -- calling sampling and intergrating with sum --------------------------------
-cdef inline void integrate_c_sum_mat(double* val_mv,
+cdef inline void integrate_sum_nlos(int nlos, int nt,
+                                    double[:,::1] val_2d,
+                                    double[::1,:] sig_mv,
+                                    long* ind_arr,
+                                    double* reseff_arr,
+                                    int num_threads) nogil:
+    cdef int ii, jj
+    cdef int jjp1
+    jj = 0
+    jjp1 = ind_arr[0]
+    integrate_c_sum_mat(val_2d[:,jj:jjp1],
+                        &sig_mv[0,0],
+                        nt, jjp1 - jj,
+                        reseff_arr[0], num_threads)
+    with nogil, parallel(num_threads=num_threads):
+        for ii in prange(1,nlos):
+            # sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
+            #                    axis=-1)*reseff_mv[ii]
+            jj = ind_arr[ii-1]
+            jjp1 = ind_arr[ii]
+            integrate_c_sum_mat(val_2d[:,jj:jjp1],
+                                &sig_mv[0,ii],
+                                nt, jjp1 - jj,
+                                reseff_arr[ii], num_threads)
+    return
+
+cdef inline void integrate_c_sum_mat(double[:,::1] val_mv,
                                     double* sig,
                                     int nrows, int ncols,
                                     double loc_eff_res,
@@ -1516,7 +1542,7 @@ cdef inline void integrate_c_sum_mat(double* val_mv,
     cdef int jj
     # ...
     vsum = <double*>malloc(nrows*sizeof(double))
-    _bgt.sum_rows_blocks(val_mv, &vsum[0],
+    _bgt.sum_rows_blocks(&val_mv[0,0], &vsum[0],
                          nrows, ncols)
     # _bgt.sum_by_rows(val_mv, &vsum[0],
     #                  nrows, ncols)
@@ -1524,9 +1550,8 @@ cdef inline void integrate_c_sum_mat(double* val_mv,
     #                     nrows, ncols)
     # _bgt.sum_par_mat(val_mv, &vsum[0],
     #                  nrows, ncols)
-    with nogil, parallel(num_threads=num_threads):
-        for jj in prange(nrows):
-            sig[jj] = vsum[jj] * loc_eff_res
+    for jj in range(nrows):
+        sig[jj] = vsum[jj] * loc_eff_res
     free(vsum)
     return
 
