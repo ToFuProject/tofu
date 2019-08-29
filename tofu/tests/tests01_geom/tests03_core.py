@@ -757,7 +757,6 @@ class Test03_Rays(object):
                 # nbrepet = np.r_[lind[0], np.diff(lind), k.size - lind[-1]]
                 # kus = k * np.repeat(us, nbrepet, axis=1)
                 # Pts = np.repeat(Ds, nbrepet, axis=1) + kus
-                print(lind[0])
                 k = np.asarray(np.split(k, lind))
                 assert len(res)==len(k)==obj.nRays
                 for ii in range(0,len(k)):
@@ -944,9 +943,6 @@ class Test03_Rays(object):
                     out = tfg._GG.LOS_get_sample(2, dL, DL, dmethod=dm, method=qm)
                     k = out[0]
                     lind = out[2]
-                    print(" k1 =", k[:lind[0]])
-                    print(" k2 =", k[lind[0]:])
-                    print("lind =", lind)
                     assert np.all(k[:lind[0]] >= DL[0][0])
                     assert np.all(k[:lind[0]] <= DL[1][0])
                     assert np.all(k[lind[0]:] >= DL[0][1])
