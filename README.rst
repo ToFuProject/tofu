@@ -61,14 +61,14 @@ tofu is relevant for all diagnostics integrating, in a finitie field of view or 
    :alt: Built-in one-liners for interactive camera geometry visualization
    :align: right
 
-.. image:: README_figures/CamLOS2D_touch_refelect.png
+.. image:: ./README_figures/CamLOS2D_touch_refelect.pdf
    :height: 100px
    :width: 200 px
    :scale: 50 %
    :alt: ...both for 1D and 2D cameras, including the basics for multiple reflections handling
    :align: right
 
-.. image:: README_figures/CamLOS1D_sino.png
+.. image:: /README_figures/CamLOS1D_sino.pdf
    :height: 100px
    :width: 200 px
    :scale: 50 %
@@ -82,14 +82,14 @@ tofu is relevant for all diagnostics integrating, in a finitie field of view or 
    :alt: Basic magnetic field line tracing
    :align: right
 
-.. image:: README_figures/Plasma2D_1dneTe.png
+.. image:: ./README_figures/Plasma2D_1dneTe.png
    :height: 100px
    :width: 200 px
    :scale: 50 %
    :alt: Multiple 1d profiles interactive plotting
    :align: right
 
-.. image:: README_figures/54300_1dTe_svd.png
+.. image:: /README_figures/54300_1dTe_svd.png
    :height: 100px
    :width: 200 px
    :scale: 50 %
