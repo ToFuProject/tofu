@@ -96,10 +96,12 @@ tofu is relevant for all diagnostics integrating, in a finitie field of view or 
    :alt: Built-in basic data treatment and interactive plotting: svd and spectrograms
    :align: right
 
+Intermediate text for test ??
+
 .. figure:: /README_figures/54300_1dTe_svd.pdf
-    :width: 200px
+    :width: 20px
     :align: center
-    :height: 100px
+    :height: 10px
     :alt: alternate text
     :figclass: align-center
 
