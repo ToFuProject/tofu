@@ -82,14 +82,14 @@ tofu is relevant for all diagnostics integrating, in a finitie field of view or 
    :alt: Basic magnetic field line tracing
    :align: right
 
-.. image:: ./README_figures/Plasma2D_1dneTe.pdf
+.. image:: ./README_figures/Plasma2D_1dneTe.png
    :height: 100px
    :width: 200 px
    :scale: 50 %
    :alt: Multiple 1d profiles interactive plotting
    :align: right
 
-.. image:: /README_figures/54300_1dTe_svd.pdf
+.. image:: /README_figures/54300_1dTe_svd.png
    :height: 100px
    :width: 200 px
    :scale: 50 %
@@ -98,7 +98,7 @@ tofu is relevant for all diagnostics integrating, in a finitie field of view or 
 
 Intermediate text for test ??
 
-.. figure:: /README_figures/54300_1dTe_svd.pdf
+.. figure:: /README_figures/54300_1dTe_svd.png
     :width: 20px
     :align: center
     :height: 10px
