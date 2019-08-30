@@ -1,40 +1,19 @@
-.. image:: https://img.shields.io/travis/ToFuProject/tofu.svg?label=Travis-CI
-    :target: https://travis-ci.org/ToFuProject/tofu
-
-.. image:: https://anaconda.org/tofuproject/tofu/badges/version.svg
-   :target: https://anaconda.org/tofuproject/tofu/badges/
-
-.. image:: https://anaconda.org/tofuproject/tofu/badges/downloads.svg
-      :target: https://anaconda.org/tofuproject/tofu/badges/
-
-.. image:: https://anaconda.org/tofuproject/tofu/badges/latest_release_date.svg
-      :target: https://anaconda.org/tofuproject/tofu/badges/
-
-.. image:: https://anaconda.org/tofuproject/tofu/badges/platforms.svg
-      :target: https://anaconda.org/tofuproject/tofu/badges/
-
-.. image:: https://anaconda.org/tofuproject/tofu/badges/license.svg
-      :target: https://anaconda.org/tofuproject/tofu/badges/
-
-.. image:: https://anaconda.org/tofuproject/tofu/badges/installer/conda.svg
-      :target: https://anaconda.org/tofuproject/tofu/badges/
-
-.. image:: https://codecov.io/gh/ToFuProject/tofu/branch/master/graph/badge.svg
-      :target: https://codecov.io/gh/ToFuProject/tofu
-
-.. image:: https://badge.fury.io/py/tofu.svg
-    :target: https://badge.fury.io/py/tofu
-
-
-.. _documentation: https://ToFuProject.github.io/tofu/index.html
-.. _Github: https://github.com/ToFuProject/tofu
+[![Travis-CI](https://travis-ci.org/ToFuProject/tofu.svg?branch=master)](https://travis-ci.org/ToFuProject/tofu)
+[![Conda]( https://anaconda.org/tofuproject/tofu/badges/version.svg)](https://anaconda.org/tofuproject/tofu/badges/)
+[![](https://anaconda.org/tofuproject/tofu/badges/downloads.svg)](https://anaconda.org/tofuproject/tofu/badges/)
+[![](https://anaconda.org/tofuproject/tofu/badges/latest_release_date.svg)](https://anaconda.org/tofuproject/tofu/badges/)
+[![](https://anaconda.org/tofuproject/tofu/badges/platforms.svg)](https://anaconda.org/tofuproject/tofu/badges/)
+[![](https://anaconda.org/tofuproject/tofu/badges/license.svg)](https://anaconda.org/tofuproject/tofu/badges/)
+[![](https://anaconda.org/tofuproject/tofu/badges/installer/conda.svg)](https://anaconda.org/tofuproject/tofu/badges/)
+[![](https://codecov.io/gh/ToFuProject/tofu/branch/master/graph/badge.svg)](https://codecov.io/gh/ToFuProject/tofu)
+[![](https://badge.fury.io/py/tofu.svg)](https://badge.fury.io/py/tofu)
 
 
 tofu
 ====
 
 
-**tofu** stands for **To**\ mography for **Fu**\ sion, it is an IMAS-compatible open-source machine-independent python library
+**tofu** stands for **To**mography for **Fu**sion, it is an IMAS-compatible open-source machine-independent python library
 with non-open source plugins containing all machine-dependent routines.
 
 It aims at providing the **fusion** and **plasma** community with an object-oriented, transparent and documented tool for designing **tomography diagnostics**, computing **synthetic signal** (direct problem) as well as **tomographic inversions** (inverse problem). It gives access to a full 3D description of the diagnostic geometry, thus reducing the impact of geometrical approximations on the direct and, most importantly, on the inverse problem.
@@ -45,26 +24,20 @@ It aims at providing the **fusion** and **plasma** community with an object-orie
 The absence of a GUI is compensated by built-in one-liners for interactive plots.
 
 
-A sphinx-generated documentation_ (to be updated soon), and the code itself is hosted on GitHub_.
+A sphinx-generated [documentation](https://tofuproject.github.io/tofu/index.html) (to be updated soon), and the code itself is hosted on [GitHub](https://github.com/ToFuProject/tofu).
 
 
 
 
-Examples Gallery
-**********************
+## Examples Gallery
+
 
 Here are some examples of what **tofu** can do
 
 
+<div style="text-align:center"><img src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/CamLOS1D_touch.png" width="600" alt="Built-in one-liners for interactive camera geometry visualization"/></div>
 
-.. figure:: README_figures/CamLOS1D_touch.png
-   :height: 10 px
-   :width: 20 px
-   :scale: 50 %
-   :alt: Built-in one-liners for interactive camera geometry visualization
-   :align: right
-
-   Built-in one-liners for interactive camera geometry visualization
+   **Built-in one-liners for interactive camera geometry visualization**
 
 .. figure:: ./README_figures/CamLOS2D_touch_refelect.png
    :height: 100px
