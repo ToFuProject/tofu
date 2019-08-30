@@ -15,9 +15,6 @@ if sys.version[0]=='3':
 elif sys.version[0]=='2':
     from inspect import getargspec as insp
 
-# Less common libraries
-import Polygon as plg
-
 # ToFu-specific
 try:
     import tofu.geom._def as _def
@@ -60,12 +57,8 @@ def _Struct_set_Poly(Poly, pos=None, extent=None, arrayorder='C',
     P2Min = Poly[:,np.argmin(Poly[1,:])]
     BaryP = np.sum(Poly[:,:-1],axis=1,keepdims=False)/(Poly.shape[1]-1)
     BaryL = np.array([(P1Max[0]+P1Min[0])/2., (P2Max[1]+P2Min[1])/2.])
-    TorP = plg.Polygon(Poly.T)
-    Surf2 = _GG.poly_area(Poly, NP)
-    BaryS2 = np.array(TorP.center()).flatten()
     BaryS, Surf = _GG.poly_area_and_barycenter(Poly, NP)
-    print("im here and....... surf =", Surf - Surf2)
-    print("im here and......... Barys =", BaryS - BaryS2)
+
 
     # Get lim-related indicators
     noccur = int(pos.size)

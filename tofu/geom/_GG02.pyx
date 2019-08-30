@@ -314,13 +314,14 @@ def poly_area(double[:,::1] poly, int npts):
     # # 2 A(P) = sum_{i=1}^{n} ( x_i  (y_{i+1} - y_{i-1}) )
     for ii in range(1,npts):
         area += poly[0,ii] * (poly[1,ii+1] - poly[1,ii-1])
-    area += poly[0,0] * (poly[1,1] - poly[1,npts-2])
+    area += poly[0,0] * (poly[1,1] - poly[1,npts-1])
     return area/2
 
 def poly_area_and_barycenter(double[:,::1] poly, int npts):
     cdef int ii
     cdef double a2
     cdef double area
+    cdef double inva6
     cdef np.ndarray[double,ndim=1] cg = np.zeros((2,))
     cdef double[::1] cg_mv = cg
     cdef double[2] p1, p2
@@ -330,11 +331,12 @@ def poly_area_and_barycenter(double[:,::1] poly, int npts):
         p2[0] = poly[0,ii+1]
         p2[1] = poly[1,ii+1]
         a2 = p1[0]*p2[1] - p2[0]*p1[1]
-        cg_mv[0] += (p1[0] + p2[0])*a2
-        cg_mv[1] += (p1[1] + p2[1])*a2
+        cg[0] += (p1[0] + p2[0])*a2
+        cg[1] += (p1[1] + p2[1])*a2
     area = poly_area(poly, npts)
-    cg_mv[0] = cg_mv[0] / area / 6
-    cg_mv[1] = cg_mv[1] / area / 6
+    inva6 = 1. / area / 6.
+    cg[0] = cg[0] * inva6
+    cg[1] = cg[1] * inva6
     return cg, area
 
 cdef inline double area2(double[2] a, double[2] b, double[2] c) nogil:
