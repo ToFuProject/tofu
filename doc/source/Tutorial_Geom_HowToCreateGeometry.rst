@@ -121,7 +121,7 @@ A configuration, short for geometrical configuration is a set of vessel, and str
 >>> config = tf.geom.Config(Name="test", Exp="Misc", lStruct=[ves,s1,s2])
 >>> config.set_colors_random() # to see different colors
 >>> config.plot()
-
+>>> config.save()
 
 .. figure:: figures_doc/config_plot.png
    :height: 300px
@@ -178,61 +178,19 @@ We can easily define two different polygons for two different apertures
 ToFu allows you to save the apertures, if you wish, but if you created then only to pass tem on to detectors, you can also skip saving them. Indeed, once the detector associated to these apertures is created, you will save the detector object instead, and ToFu will automatically store all information about the apertures (everything necessary to re-create them when loading the detector object).
 
 
+Creating cameras
+----------------
 
-Creating, plotting and saving detectors objects
------------------------------------------------
+Creating 1D cameras
 
-A detector object is defined in the same way as an aperture, except that it needs to know which optics it is associated to. The optics can be either a converging spherical lens or, as in this case, a list of apertures.
-In the folloing we will thus create two detectors (re-using the same planes as for the apertures for simplicity, but they could lie in any plane).
+>>> cam1d = tf.geom.utils.create_CamLOS1D(config=config, P=[3.,0,-0.5], N12=100, F=0.1, D12=0.1, angs=[np.pi,0,0], Name='', Exp='Misc', Diag='') 
+>>> cam1d.plot()
+>>> cam1d.plot_touch() # for an interactive plot (helpful to see each LOS)
 
->>> # Choose different reference points for the 2 planes
->>> Od1, Od2 = (3.05,0.00,0.54), (3.05,0.00,0.50)
->>> # Implement the planar polygons 2D coordinates
->>> pd1_2D = 0.005*np.array([[-1.,1.,1.,-1],[-1.,-1.,1.,1.]])
->>> pd2_2D = 0.005*np.array([[-1.,1.,1.,-1],[-1.,-1.,1.,1.]])
->>> # Compute the 3D coordinates
->>> pd1 = [Od1[0] + e11[0]*pd1_2D[0,:] + e12[0]*pd1_2D[1,:], Od1[1] + e11[1]*pd1_2D[0,:] + e12[1]*pd1_2D[1,:], Od1[2] + e11[2]*pd1_2D[0,:] + e12[2]*pd1_2D[1,:]]
->>> pd2 = [Od2[0] + e21[0]*pd2_2D[0,:] + e22[0]*pd2_2D[1,:], Od2[1] + e21[1]*pd2_2D[0,:] + e22[1]*pd2_2D[1,:], Od2[2] + e21[2]*pd2_2D[0,:] + e22[2]*pd2_2D[1,:]]
->>> # Create the detectors, specifying also the diagnostic and the Optics
->>> d1 = tfg.Detect('D1', pd1, Optics=[a1,a2], Ves=ves, Exp='Misc', shot=0, Diag='misc')
->>> d2 = tfg.Detect('D2', pd2, Optics=[a2], Ves=ves, Exp='Misc', shot=0, Diag='misc')
+Creating 2D cameras. We are going to create a 2D camera with a slight rotation of the angles of sight to have a more tangential view of the tokamak and the structures.
 
-The computation of the detectors may take a while (~3 min) because ToFu automatically computes the natural Line Of Sight (LOS) and its etendue, the Volume Of Sight (VOS), a pre-computed 3D grid of the VOS for faster computation of synthetic signal...
-Some of these automatic computations can be de-activacted using the proper keyword arguments, or the resolution of the discretization can downgraded for faster computation (see :class:`~tofu.geom.Detect` for details).
-
-A Detect object is at the core of the added value of ToFu: all relevant quantities are automatically computed, and can be obtained and plotted via attributes and methods. 
-
->>> # Plot the detectors, specifying we want not only the polygon but also the perpendicular vector and the viewing cone ('C'), as well as elements of the LOS, Optics and vessel
->>> Lax = d1.plot(Elt='PVC', EltOptics='P', EltLOS='L', EltVes='P')
->>> Lax = d2.plot(Lax=Lax, Elt='PVC', EltOptics='P', EltLOS='L')
-
-.. figure:: figures_doc/Fig_Tutor_Geom_Basic_05.png
-   :height: 300px
-   :width: 600 px
-   :scale: 100 %
-   :alt: The created detectors, with associated apertures and vessel, on both projections
-   :align: center
-
-   The created detectors, with associated apertures and vessel, on both projections
-
-Using d1.save() would save detector 1 and all necessary info about its associated optics (i.e.:apertures) will also be included in the file so it is not necessary to save the apertures separately (unless you need to for something else).
-Usually, tomography diagnostics do not have a few but many different detectors, grouped in cameras (often a group of detectors sharing a common aperture).
-ToFu provides an GDetect object that allows you to group a list of detectors and treat them like a single object (each method is automatically applied to all the detectors included in the GDetect object).
-
-
-
-Creating, plotting and saving GDetect objects
----------------------------------------------
-
-Once several Detect objects are created, they can be fed to a GDetect object to be handle as a single object.
-
->>> # Create the group of detectors by feeding a list of detectors
->>> gd = tfg.GDetect('GD', [d1,d2], Exp='Misc', shot=0)
->>> # Plot the group of detectors as a single set
->>> Lax = gd.plot(Elt='PVC', EltOptics='P', EltLOS='L', EltVes='P')
-
-The last command yields the same result as the previous figure.
-
+>>> cam2 = tf.geom.utils.create_CamLOS2D(config=config, P=[3.,0,-0.5], N12=100, F=0.1, D12=0.1, angs=[np.pi,0.2,0], Name='', Exp='Misc', Diag='')
+>>> cam2.plot_touch() # also interactive ! click on the left plot and see for yourself!
 
 Congratulations ! You completed the basic tutorial for getting started and creating your own geometry, take you time now to explore all the methods and attributes of the classes introduced in :mod:`tofu.geom`.
 
