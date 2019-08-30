@@ -187,10 +187,31 @@ Creating 1D cameras
 >>> cam1d.plot()
 >>> cam1d.plot_touch() # for an interactive plot (helpful to see each LOS)
 
+.. figure:: figures_doc/cam1d_plot.png
+   :height: 300px
+   :width: 600 px
+   :scale: 100 %
+   :alt: Plot of a 1D Camera
+   :align: center
+
+.. figure:: figures_doc/cam1d_plot_touch.png
+   :height: 300px
+   :width: 600 px
+   :scale: 100 %
+   :alt: Interactive plot of a 1D Camera
+   :align: center
+
 Creating 2D cameras. We are going to create a 2D camera with a slight rotation of the angles of sight to have a more tangential view of the tokamak and the structures.
 
 >>> cam2 = tf.geom.utils.create_CamLOS2D(config=config, P=[3.,0,-0.5], N12=100, F=0.1, D12=0.1, angs=[np.pi,0.2,0], Name='', Exp='Misc', Diag='')
 >>> cam2.plot_touch() # also interactive ! click on the left plot and see for yourself!
+
+.. figure:: figures_doc/cam2d_plot_touch.png
+   :height: 300px
+   :width: 600 px
+   :scale: 100 %
+   :alt: Interactive plot of a 2D Camera
+   :align: center
 
 Congratulations ! You completed the basic tutorial for getting started and creating your own geometry, take you time now to explore all the methods and attributes of the classes introduced in :mod:`tofu.geom`.
 
