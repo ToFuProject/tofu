@@ -450,11 +450,14 @@ $\longrightarrow$ \textcolor{SchoolColor}{Reputation for low reproducibility / r
 
 	To reconstruct emissivity we need to take account:
 	\begin{itemize}
-	\item \textcolor{myblue}{Geometry defined with minimal data\\ \hspace{1cm} polygon $(R,Z)$ extruded along $\varphi$}
-	\item \textcolor{myblue}{Symmetry of vessel along $\varphi$}
 	\item Up to hundreds of structural elements in vessel
 	\item Scale of the vessel:
 	$10^4$ bigger than smaller structural detail
+	\setbeamertemplate{itemize item}{$\Rightarrow$}
+
+	\item Geometry defined with minimal data polygon $(R,Z)$\\ extruded along $\varphi$
+	\item Symmetry of vessel along $\varphi$
+	
 	\end{itemize}
 	
 	\vspace{0.5cm}
@@ -646,14 +649,14 @@ For the integration along a line of sight:
     \label{tab:LOS_init_sirrah}
     % Visionner le code LaTeX du paragraphe 0
 	\sisetup{round-mode=places}
-     \begin{tabular}{@{}llllll@{}}
+     \begin{tabular}{@{}lllll@{}}
        \toprule
-       \textbf{LOS} &  {$10$} & {$10^2$} & {$10^3$} & {$10^4$} & {$10^5$}\\
+       \textbf{LOS} &  {$10$} & {$10^2$} & {$10^3$} & {$10^4$} \\% & {$10^5$}\\
        \midrule
-       original       & 0.46 & 2.24 & 18.1 & x & x \\
-       memory   & 0.9 & 8.9 &  & 96 & 945 (6Gb)\\
-       calls   & 0.207 & 0.53 & 4.32 & x & x \\
-       hybrid & 0.08 & 0.44 & 4.2 & 40.3 & 612 (32Gb)\\
+       original       & 0.46 & 2.24 & 18.1 & x \\%& x \\
+       memory   & 0.9 & 8.9 & 96 & 945 (6Gb)\\
+       calls   & 0.207 & 0.53 & 4.32 & x \\
+       hybrid & 0.08 & 0.44 & 4.2 & 40.3 (32Gb) \\%& 612 (32Gb)\\
        \bottomrule
      \end{tabular}
 \end{table}
@@ -737,33 +740,7 @@ For the integration along a line of sight:
 %% =================================
 
 
-% =================================
-\subsection*{Splines interpolation}
-\begin{frame}
-	\frametitle{B(asis)-Splines basis*}
 
-	B-Splines of degree $d$ are defined by the \textbf{recursion} formula: 
-
-	\begin{equation}
-	B_j^{d+1}(x)= \dfrac{x - x_j}{x_{j+d}-x_j} B_j^d(x)+ \dfrac{x_{j+1} - x}{x_{j+d+1} - x_{j+1}} B_{j+1}^d (x)
-	\end{equation}
-
-	Some important properties about B-splines:
-
-	\begin{itemize}
-		\item Piece-wise polynomials of degree $d \quad \Rightarrow$ \textbf{smoothness} 
-		\item Compact support $\Rightarrow$ \textbf{sparse matrix system}
-		\item Partition of unity $\sum_j Bj (x) = 1$, $\forall x \quad \Rightarrow$ \textbf{conservation laws}
-	\end{itemize}
-
-	\begin{center}
-		\includegraphics[width = 0.3\textwidth]{\figurespath/bsplines1.png}
-		\includegraphics[width = 0.3\textwidth]{\figurespath/bsplines3.png}
-		\includegraphics[width = 0.3\textwidth]{\figurespath/bsplines5.png}
-	\end{center}
-
-\end{frame}
-% =================================
 
 
 % =================================
@@ -846,6 +823,35 @@ For direct and inverse problem:
 \centering
 \Huge{Thank you for your attention!}
 %\includegraphics[width=\linewidth]{figures/cones.png}
+\end{frame}
+% =================================
+
+
+% =================================
+\subsection*{Splines interpolation}
+\begin{frame}
+	\frametitle{B(asis)-Splines basis*}
+
+	B-Splines of degree $d$ are defined by the \textbf{recursion} formula: 
+
+	\begin{equation}
+	B_j^{d+1}(x)= \dfrac{x - x_j}{x_{j+d}-x_j} B_j^d(x)+ \dfrac{x_{j+1} - x}{x_{j+d+1} - x_{j+1}} B_{j+1}^d (x)
+	\end{equation}
+
+	Some important properties about B-splines:
+
+	\begin{itemize}
+		\item Piece-wise polynomials of degree $d \quad \Rightarrow$ \textbf{smoothness} 
+		\item Compact support $\Rightarrow$ \textbf{sparse matrix system}
+		\item Partition of unity $\sum_j Bj (x) = 1$, $\forall x \quad \Rightarrow$ \textbf{conservation laws}
+	\end{itemize}
+
+	\begin{center}
+		\includegraphics[width = 0.3\textwidth]{\figurespath/bsplines1.png}
+		\includegraphics[width = 0.3\textwidth]{\figurespath/bsplines3.png}
+		\includegraphics[width = 0.3\textwidth]{\figurespath/bsplines5.png}
+	\end{center}
+
 \end{frame}
 % =================================
 
