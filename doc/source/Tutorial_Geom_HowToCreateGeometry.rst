@@ -66,20 +66,20 @@ Now let's feed this 2D polygon to the appropriate ToFu class and specify that it
 ToFu also asks for a name to be associated to this instance, and an experiment ('Exp') and a shot number (useful when the same experiment changes geometry in time).
 
 >>> # Create a toroidal Ves instance with name 'World', associated to experiment 'Misc' (for 'Miscellaneous') and shot number 0
->>> ves = tfg.Ves('HelloWorld', [poly_R,poly_Z], Type='Tor', Exp='Misc', shot=0) 
+>>> ves = tfg.Ves(Name='HelloWorld', Poly=[poly_R,poly_Z], Type='Tor', Exp='Misc', shot=0) 
 
 Now the vessel instance is created. I provides you with several key attributes and methods (see :class:`~tofu.geom.Ves` for details).
 Among them the Id attribute is itself a class instance that contains all useful information about this vessel instance for identification, saving... In particular, that's where the name, the default saving path, the Type, the experiment, the shot number... are all stored. 
 A default name for saving was also created that automatically includes not only the name you gave but also the module from which this instance was created (tofu.geom or tfg), the type of object, the experiment, the shot number...
 This recommended default pattern is useful for quick identification of saved object, it is advised not to modify it.
 
->>> print ves.Id.SaveName
+>>> print(ves.Id.SaveName)
 TFG_VesTor_Misc_World_sh0
 
 Now, we can simply visualise the created vessel by using the dedicated method (keyword argument 'Elt' specifies the elements of the instance we want to plot, typically one letter corresponds to one element, here we just want the polygon):
 
 >>> # Plot the polygon, by default in two projections (cross-section and horizontal) and return the list of axes
->>> Lax = ves.plot(Elt='P')
+>>> Lax = ves.plot(element='P')
 
 .. figure:: figures_doc/Fig_Tutor_Geom_Basic_02.png
    :height: 300px
@@ -100,28 +100,30 @@ While it is highly recommended to stick to the default value for the SaveName, b
 
 
 
-Creating, plotting and saving structural elements
--------------------------------------------------
+Creating, plotting and saving structural elements and configurations
+---------------------------------------------------------------------
 
 Unlike the vessel, which is important for physics reasons, the structural elements that ToFu allows to create are purely for illustrative purposes. They are entirely passive and have no effect whatsoever on the computation of the volume of sight of the detectors or on the plasma volume and are just made available for illustrations.
 
 Like for a vessel, a structural element is mostly defined by a 2D polygon. If a vessel instance is provided, the type of the structural element (toroidal or linear) is automatically the same as the type of the vessel, otherwise the type must be specified.
-For plotting, structural elements that enclose the entirety of a vessel are automatically transparent, and gray if they don't.
+
+A configuration, short for geometrical configuration is a set of vessel, and structural elements.
 
 >>> # Define two polygons, one that does not enclose the vessel and one that does
 >>> thet = np.linspace(0.,2.*np.pi,100)
 >>> poly1 = [[2.5,3.5,3.5,2.5],[0.,0.,0.5,0.5]]
 >>> poly2 = [R0+1.5*np.cos(thet),1.5*np.sin(thet)]
 >>> # Create the structural elements with the appropriate ToFu class, specifying the experiment and a shot number for keeping track of changes
->>> s1 = tfg.Struct('S1', poly1, Ves=ves, Exp='Misc', shot=0)
->>> s2 = tfg.Struct('S2', poly2, Ves=ves, Exp='Misc', shot=0)
->>> # Plot them on top of the vessel
->>> Lax = ves.plot(Elt='P')
->>> # Re-use the same list of axes to overlay the plots
->>> Lax = s1.plot(Lax=Lax)
->>> Lax = s2.plot(Lax=Lax)
+>>> s1 = tfg.PFC(Name='S1', Poly=poly1, Exp='Misc', shot=0)
+>>> # now we create a structure that is not continuous along phi
+>>> s2 = tfg.PFC(Name='S2', Poly=poly2, Exp='Misc', shot=0, Lim=[[0., np.pi], [np.pi/2.,np.pi*3./2.]]) 
+>>> # Creating a configuration with vessel and structures
+>>> config = tf.geom.Config(Name="test", Exp="Misc", lStruct=[ves,s1,s2])
+>>> config.set_colors_random() # to see different colors
+>>> config.plot()
 
-.. figure:: figures_doc/Fig_Tutor_Geom_Basic_03.png
+
+.. figure:: figures_doc/config_plot.png
    :height: 300px
    :width: 600 px
    :scale: 100 %
