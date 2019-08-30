@@ -34,15 +34,9 @@ tofu
 ====
 
 
-tofu stands for Tomography for Fusion, it is an IMAS-compatible open-source machine-independent python library
+tofu stands for **To**mography for **Fu**sion, it is an IMAS-compatible open-source machine-independent python library
 with non-open source plugins containing all machine-dependent routines.
 
-It is distributed under the MIT license and aims at providing the fusion community with 
-a transparent and modular tool for creating / designing diagnostics and using them for 
-synthetic diagnostic (direct problem) and tomography (inverse problem).
-
-It was first created at the Max-Planck Institute for Plasma Physics (IPP) in Garching, Germany, 
-by Didier Vezinet, and is now maintained / debugged / updated by a team of contributors.
 
 A sphinx-generated documentation_ (to be updated soon), and the code itself is hosted on GitHub_.
 
@@ -177,6 +171,18 @@ Checkout the tofu git repository and from the top directory::
     
     python setup.py build_ext --inplace
     python setup.py install
+
+-----
+**Licensing** 
+
+It is distributed under the MIT license and aims at providing the fusion community with 
+a transparent and modular tool for creating / designing diagnostics and using them for 
+synthetic diagnostic (direct problem) and tomography (inverse problem).
+
+**History**
+
+It was first created at the Max-Planck Institute for Plasma Physics (IPP) in Garching, Germany, 
+by Didier Vezinet, and is now maintained / debugged / updated by a team of contributors.
 
 
 -----
