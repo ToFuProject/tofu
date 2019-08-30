@@ -34,55 +34,39 @@ A sphinx-generated [documentation](https://tofuproject.github.io/tofu/index.html
 
 Here are some examples of what **tofu** can do
 
+#### Built-in one-liners for interactive camera geometry visualization
+<p align="center">
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/CamLOS1D_touch.png" width="600" alt="Built-in one-liners for interactive camera geometry visualization"/>
+</p>
 
-<div style="text-align:center"><img src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/CamLOS1D_touch.png" width="600" alt="Built-in one-liners for interactive camera geometry visualization"/></div>
+#### ...both for 1D and 2D cameras, including the basics for multiple reflections handling
+<p align="center">
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/CamLOS2D_touch_refelect.png" width="600" alt="...both for 1D and 2D cameras, including the basics for multiple reflections handling"/>
+</p>
 
-   **Built-in one-liners for interactive camera geometry visualization**
+####    Built-in plotting of sinograms
 
-.. figure:: ./README_figures/CamLOS2D_touch_refelect.png
-   :height: 100px
-   :width: 200 px
-   :scale: 10 %
-   :alt: ...both for 1D and 2D cameras, including the basics for multiple reflections handling
-   :align: right
+<p align="center">
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/CamLOS1D_sino.png" width="600" alt="Built-in plotting of sinograms"/>
+</p>
 
-   ...both for 1D and 2D cameras, including the basics for multiple reflections handling
+####    Basic magnetic field line tracing
 
-.. figure:: /README_figures/CamLOS1D_sino.png
-   :height: 100px
-   :width: 200 px
-   :scale: 50 %
-   :alt: Built-in plotting of sinograms
-   :align: right
+<p align="center">
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/MagfieldLines.png" width="600" alt="Basic magnetic field line tracing"/>
+</p>
 
-   Built-in plotting of sinograms
 
-.. figure:: README_figures/MagfieldLines.png
-   :height: 100px
-   :width: 200 px
-   :scale: 50 %
-   :alt: Basic magnetic field line tracing
-   :align: right
+####    Multiple 1d profiles interactive plotting
+<p align="center">
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/Plasma2D_1dneTe.png" width="600" alt="Multiple 1d profiles interactive plotting"/>
+</p>
 
-   Basic magnetic field line tracing
+####    Built-in basic data treatment and interactive plotting: svd and spectrograms
+<p align="center">
+<img align="middle" src="https://github.com/ToFuProject/tofu/blob/Issue165_READMEFigures/README_figures/Plasma2D_1dneTe.png" width="600" alt="Built-in basic data treatment and interactive plotting: svd and spectrograms"/>
+</p>
 
-.. figure:: ./README_figures/Plasma2D_1dneTe.png
-   :height: 100px
-   :width: 200 px
-   :scale: 50 %
-   :alt: Multiple 1d profiles interactive plotting
-   :align: right
-
-   Multiple 1d profiles interactive plotting
-
-.. figure:: /README_figures/54300_1dTe_svd.png
-   :height: 100px
-   :width: 200 px
-   :scale: 50 %
-   :alt: Built-in basic data treatment and interactive plotting: svd and spectrograms
-   :align: right
-
-   Built-in basic data treatment and interactive plotting: svd and spectrograms
 
 
 tofu provides the user with a series of python classes for creating, handling and visualizing a diagnostic geometry, meshes and basis functions, 
@@ -104,8 +88,9 @@ This geometry module allows in particular:
 
 It is in this geometrical sense that tofu enables a synthetic diagnostic approach, it does not provide the tools for simulating the emissivity (that should be an input, provided by another code).
 
-IMAS-compatibility
-==================
+
+## IMAS-compatibility
+
 
 IMAS is a standardized data structure, it comes as an extra layer on the database of any Tokamak to provide a machine-independent way of accessing scientific data.
 tofu has built-in advanced classes for handling the interface with IMAS, hold in the imas2tofu sub-package.
@@ -119,17 +104,15 @@ All tofu objects have methods to facailitate in-python-console introspection, th
 ----
 
 
-Installing tofu
-***************
+## Installing tofu
 
-For Windows
-------------
+
+### For Windows
 
 
 * `Follow this link to know how to configure your Windows to code on ToFu ! <doc/Windows_README.rst>`__
 
-For Ubuntu / Mac
------------------
+### For Ubuntu / Mac
 
 - **Standard mode**::
 
