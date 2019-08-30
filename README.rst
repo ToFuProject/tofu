@@ -34,21 +34,28 @@ tofu
 ====
 
 
-tofu stands for **To**\ mography for **Fu**\ sion, it is an IMAS-compatible open-source machine-independent python library
+**tofu** stands for **To**\ mography for **Fu**\ sion, it is an IMAS-compatible open-source machine-independent python library
 with non-open source plugins containing all machine-dependent routines.
 
 It aims at providing the **fusion** and **plasma** community with an object-oriented, transparent and documented tool for designing **tomography diagnostics**, computing **synthetic signal** (direct problem) as well as **tomographic inversions** (inverse problem). It gives access to a full 3D description of the diagnostic geometry, thus reducing the impact of geometrical approximations on the direct and, most importantly, on the inverse problem.
 
-tofu is relevant for all diagnostics integrating, in a finitie field of view or along a set of lines of sight, a quantity (scalar or vector) for which the plasma can be considered transparent (e.g.: light in the visible, UV, soft and hard X-ray ranges, or electron density for interferometers).
+**tofu** is relevant for all diagnostics integrating, in a finitie field of view or along a set of lines of sight, a quantity (scalar or vector) for which the plasma can be considered transparent (e.g.: light in the visible, UV, soft and hard X-ray ranges, or electron density for interferometers).
 
-tofu is **command-line oriented**, for maximum flexibility and scriptability.
+**tofu** is **command-line oriented**, for maximum flexibility and scriptability.
 The absence of a GUI is compensated by built-in one-liners for interactive plots.
 
 
 A sphinx-generated documentation_ (to be updated soon), and the code itself is hosted on GitHub_.
 
 
-----
+
+
+Examples Gallery
+**********************
+
+Here are some examples of what **tofu** can do
+
+
 
 .. figure:: README_figures/CamLOS1D_touch.png
    :height: 10 px
