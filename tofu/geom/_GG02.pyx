@@ -305,8 +305,6 @@ def Poly_VolAngTor(np.ndarray[double,ndim=2,mode='c'] Poly):
                                Ri0**2*Zi1*(Zi1+2.*Zi0))/4.) / (6.*V)
     return V, np.array([BV0,BV1])
 
-cdef compute
-
 
 def poly_area(double[:,::1] poly, int npts):
     cdef int ii
@@ -338,19 +336,6 @@ def poly_area_and_barycenter(double[:,::1] poly, int npts):
     cg[0] = cg[0] * inva6
     cg[1] = cg[1] * inva6
     return cg, area
-
-cdef inline double area2(double[2] a, double[2] b, double[2] c) nogil:
-    cdef double res
-    res = (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1])
-    return res
-
-cdef inline void centroid3_tri(double[2] p1, double[2] p2, double[2] p3,
-                               double[2] c):
-    """Returns three times the centroid of a tri.  The factor of 3 is
-    left in to permit division to be avoided until later."""
-    c[0] = p1[0] + p2[0] + p3[0]
-    c[1] = p1[1] + p2[1] + p3[1]
-    return
 
 """
 ###############################################################################
