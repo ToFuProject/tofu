@@ -100,6 +100,7 @@ If IMAS is not available, tofu will simply display a warning stating that the im
 tofu can thus easily load and handle multiple IDSs (IMAS data structure units) and provide command-line tools for exporting IMAS data to other general tofu classes (e.g.: Cameras, Plasma2D...) and for interactive plotting.
 All tofu objects have methods to facailitate in-python-console introspection, the ``__repr__`` method is overloaded to display relevant information, an dthis is widely used to explore the data loaded from IMAS.
 
+Do you want to use **tofu** on IMAS and don't know where to start? [See our wiki.](https://github.com/ToFuProject/tofu/wiki/Using-tofu-on-IMAS-server)
 
 ----
 
@@ -110,7 +111,7 @@ All tofu objects have methods to facailitate in-python-console introspection, th
 ### For Windows
 
 
-- [Follow this link to know how to configure your Windows to code on ToFu !](doc/Windows_README.rst)
+- [Follow this link to know how to configure your Windows to code on ToFu !](https://github.com/ToFuProject/tofu/wiki/Installing-tofu-on-windows)
 
 ### For Ubuntu / Mac
 
@@ -141,6 +142,9 @@ Checkout the tofu git repository and from the top directory
     python setup.py install
 
 
+## Getting Started
+
+See our wiki's page: [Getting started](https://github.com/ToFuProject/tofu/wiki/Getting-started)
 
 -----
 
