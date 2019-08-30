@@ -69,7 +69,7 @@ Here are some examples of what **tofu** can do
 
 
 
-tofu provides the user with a series of python classes for creating, handling and visualizing a diagnostic geometry, meshes and basis functions, 
+**tofu** provides the user with a series of python classes for creating, handling and visualizing a diagnostic geometry, meshes and basis functions, 
 geometry matrices, pre-treating experimental data and computing tomographic inversions.
 
 Each one of these main tasks is accomplished by a dedicated module in the larger tofu package.
@@ -98,7 +98,7 @@ It pre-supposes, of course, that IMAS is installed and operational next to your 
 If IMAS is not available, tofu will simply display a warning stating that the imas2tofu sub-package is not usable.
 
 tofu can thus easily load and handle multiple IDSs (IMAS data structure units) and provide command-line tools for exporting IMAS data to other general tofu classes (e.g.: Cameras, Plasma2D...) and for interactive plotting.
-All tofu objects have methods to facailitate in-python-console introspection, the __repr__ method is overloaded to display relevant information, an dthis is widely used to explore the data loaded from IMAS.
+All tofu objects have methods to facailitate in-python-console introspection, the ``__repr__`` method is overloaded to display relevant information, an dthis is widely used to explore the data loaded from IMAS.
 
 
 ----
@@ -110,17 +110,18 @@ All tofu objects have methods to facailitate in-python-console introspection, th
 ### For Windows
 
 
-* `Follow this link to know how to configure your Windows to code on ToFu ! <doc/Windows_README.rst>`__
+- [Follow this link to know how to configure your Windows to code on ToFu !](doc/Windows_README.rst)
 
 ### For Ubuntu / Mac
 
-- **Standard mode**::
+#### Standard mode
 
-    conda install -c tofuproject tofu 
+   ``` conda install -c tofuproject tofu ```
 
-- **Developer mode**
+#### Developer mode
 
-Install dependencies.::
+Install dependencies
+
 
     python (2.7 or 3)
     numpy
@@ -132,10 +133,13 @@ Install dependencies.::
     pandas
     polygon3 (or polygon2 if you are using python 2.7)
 
-Checkout the tofu git repository and from the top directory::
-    
+
+Checkout the tofu git repository and from the top directory
+
+
     python setup.py build_ext --inplace
     python setup.py install
+
 
 
 -----
