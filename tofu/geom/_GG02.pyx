@@ -50,6 +50,7 @@ __all__ = ['CoordShift',
            "which_vpoly_closer_los_vec",
            "LOS_sino_findRootkPMin_Tor",
            'Poly_isClockwise', 'Poly_Order', 'Poly_VolAngTor',
+           'poly_area', "poly_area_and_barycenter",
            'Sino_ImpactEnv', 'ConvertImpact_Theta2Xi',
            '_Ves_isInside',
            'discretize_line1d',
@@ -204,30 +205,18 @@ def Poly_isClockwise(np.ndarray[double,ndim=2] Poly):
     product (of just the right edges) suffices.  Code for this is
     available at ftp://cs.smith.edu/pub/code/polyorient.C (2K).
     """
-    cdef int ii, NP=Poly.shape[1]
-    cdef double Sum=0.
-    for ii in range(0,NP-1):
-        # Slightly faster solution: (to check)  and try above solution ?
-        # TODO : @LM > Test on of this sols:
-        # Sol 1 (unit test time = 2.7)
-        # Sum += (Poly[0,ii+1]-Poly[0,ii])*(Poly[1,ii+1]+Poly[1,ii])
-        # Sol 2 (unit test time = 1.9)
-        #     p1 = [0, 0]
-        # p2 = [1, 0]
-        # p3 = [.5, .5]
-        # p4 = [1, 1]
-        # p5 = [0,1]
-        # p6 = [0,0]
-        # points = [p1, p2, p3, p4, p5, p6]
-        # idmin = points.index(min(points)) #0.99
-        # idm1 = idmin - 1
-        # idp1 = idmin + 1 % 7
-        # res = points[idm1][0] * (points[idmin][1] - points[idp1][1]) + \
-        #   points[idmin][0] * (points[idp1][1] - points[idm1][1]) + \
-        #   points[idp1][0] * (points[idm1][1] - points[idmin][1])
-        # Sol DV (unit test time = 2.9)
-        Sum += Poly[0,ii]*Poly[1,ii+1]-Poly[0,ii+1]*Poly[1,ii]
-    return Sum < 0.
+    cdef double res
+    cdef double[:,::1] mv_poly = np.ascontiguousarray(Poly)
+    cdef int npts = mv_poly.shape[1]
+    cdef double[::1] mvx = mv_poly[0,:]
+    cdef double[::1] mvy = mv_poly[1,:]
+    cdef int idmin = _bgt.find_ind_lowerright_corner(mvx, mvy, npts)
+    cdef int idm1 = (idmin - 1) % npts
+    cdef int idp1 = (idmin + 1) % npts
+    res = mvx[idm1]  * (mvy[idmin] - mvy[idp1]) + \
+          mvx[idmin] * (mvy[idp1]  - mvy[idm1]) + \
+          mvx[idp1]  * (mvy[idm1]  - mvy[idmin])
+    return res < 0.
 
 
 def Poly_Order(np.ndarray[double,ndim=2] Poly, str order='C', Clock=False,
@@ -317,6 +306,36 @@ def Poly_VolAngTor(np.ndarray[double,ndim=2,mode='c'] Poly):
     return V, np.array([BV0,BV1])
 
 
+def poly_area(double[:,::1] poly, int npts):
+    cdef int ii
+    cdef double area = 0.
+    # # 2 A(P) = sum_{i=1}^{n} ( x_i  (y_{i+1} - y_{i-1}) )
+    for ii in range(1,npts):
+        area += poly[0,ii] * (poly[1,ii+1] - poly[1,ii-1])
+    area += poly[0,0] * (poly[1,1] - poly[1,npts-1])
+    return area/2
+
+def poly_area_and_barycenter(double[:,::1] poly, int npts):
+    cdef int ii
+    cdef double a2
+    cdef double area
+    cdef double inva6
+    cdef np.ndarray[double,ndim=1] cg = np.zeros((2,))
+    cdef double[::1] cg_mv = cg
+    cdef double[2] p1, p2
+    for ii in range(npts):
+        p1[0] = poly[0,ii]
+        p1[1] = poly[1,ii]
+        p2[0] = poly[0,ii+1]
+        p2[1] = poly[1,ii+1]
+        a2 = p1[0]*p2[1] - p2[0]*p1[1]
+        cg[0] += (p1[0] + p2[0])*a2
+        cg[1] += (p1[1] + p2[1])*a2
+    area = poly_area(poly, npts)
+    inva6 = 1. / area / 6.
+    cg[0] = cg[0] * inva6
+    cg[1] = cg[1] * inva6
+    return cg, area
 
 """
 ###############################################################################
@@ -3044,24 +3063,13 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
             #     sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
             #                        axis=-1)*reseff_mv[ii]
             # # ..........................................................
-            # first los:
-            jj = 0
-            jjp1 = ind_arr[0]
-            val_mv = val_2d[:,jj:jjp1]
-            _st.integrate_c_sum_mat(&val_mv[0,0],
-                                    &sig_mv[0,0],
-                                    nt, jjp1 - jj,
-                                    reseff_arr[0], num_threads)
-            for ii in range(1,nlos):
-                # sig[:,ii] = np.sum(val_2d[:,indbis[ii]:indbis[ii+1]],
-                #                    axis=-1)*reseff_mv[ii]
-                jj = ind_arr[ii-1]
-                jjp1 = ind_arr[ii]
-                val_mv = val_2d[:,jj:jjp1]
-                _st.integrate_c_sum_mat(&val_mv[0,0],
-                                        &sig_mv[0,ii],
-                                        nt, jjp1 - jj,
-                                        reseff_arr[ii], num_threads)
+            # Calling integration function
+            _st.integrate_sum_nlos(nlos, nt,
+                                   val_2d,
+                                   sig_mv,
+                                   ind_arr,
+                                   reseff_arr,
+                                   num_threads)
             # Cleaning up...
             free(coeff_ptr[0])
             free(coeff_ptr)
@@ -3191,7 +3199,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # probably be better. We'll investigate some time
                     # how to make it faster, and for the time being we leave
                     # the numpy alternative commented
-                    _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii], nt,
+                    _st.integrate_c_sum_mat(val_2d, &sig_mv[0,ii], nt,
                                             nb_rows[0],
                                             loc_eff_res[0], num_threads)
                     # sig_mv[:, ii] = np.sum(val, axis=-1)*loc_eff_res[0]
@@ -3236,7 +3244,7 @@ def LOS_calc_signal(func, double[:,::1] ray_orig, double[:,::1] ray_vdir, res,
                     # probably be better. We'll investigate some time
                     # how to make it faster, and for the time being we leave
                     # the numpy alternative commented
-                    _st.integrate_c_sum_mat(&val_2d[0,0], &sig_mv[0,ii],
+                    _st.integrate_c_sum_mat(val_2d, &sig_mv[0,ii],
                                             nt, nb_rows[0],
                                             loc_eff_res[0], num_threads)
                     # sig[:, ii] = np.sum(val,axis=-1)*loc_eff_res[0]
