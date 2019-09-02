@@ -286,7 +286,7 @@ Integrated measurements $\longrightarrow$ Reconstructed emissivity \\
 \frametitle{Tomography diagnostics - numerical context}
 
     $$M_i(t) = \iiint\limits_{V_i} \vv{\varepsilon(x,t)}\cdot\vv{n} \,\Omega_i \;{d}V$$
-    \vspace{-0.75cm}
+    \vspace{-1cm}
 \begin{columns}
     	\begin{column}{0.325\textwidth}
     	
@@ -307,8 +307,9 @@ Integrated measurements $\longrightarrow$ Reconstructed emissivity \\
 	\end{itemize}
 	\end{block}
    		%\textbf{Direct problem} (synthetic diagnostic):\\
-Simulated emissivity $\longrightarrow$ integrated measurements\\
-	\textcolor{SchoolColor}{Spatial integration}\\
+Simulated emissivity $\longrightarrow$ measurements\\
+	\alert{Spatial integration}
+    \vspace{-0.5cm}
 
 	%INVERSE PROBLEM
    	\begin{block}{}
@@ -319,7 +320,7 @@ Simulated emissivity $\longrightarrow$ integrated measurements\\
 	\end{block}
    		%\textbf{Direct problem} (synthetic diagnostic):\\
 Integrated measurements $\longrightarrow$ Reconstructed emissivity \\
-	\textcolor{SchoolColor}{Mesh and basis functions construction, spatial integration, data filtering, inversion routines, etc.}
+	 \alert{Mesh and basis functions construction, spatial integration, data filtering, inversion routines, etc.}
    	
    	\end{center}
 	
@@ -328,11 +329,11 @@ Integrated measurements $\longrightarrow$ Reconstructed emissivity \\
 \end{columns}
 
 \pause
-
+\vspace{-0.5cm}
 \begin{block}{}
 \begin{center}
 Tomography very sensitive to errors, noise and bias\\
-$\longrightarrow$ \textcolor{SchoolColor}{Reputation for low reproducibility / reliability }
+$\longrightarrow$  \alert{Reputation for low reproducibility / reliability }
 \end{center}
 	\end{block}
 \end{frame}
@@ -345,7 +346,7 @@ $\longrightarrow$ \textcolor{SchoolColor}{Reputation for low reproducibility / r
 
 % =================================
 \begin{frame}
-\frametitle{``Current" state}
+\frametitle{Motvation: ``current" state}
 
 	In the fusion community, codes for synthetic diagnostic are developed:
 	\begin{itemize}
@@ -408,16 +409,20 @@ $\longrightarrow$ \textcolor{SchoolColor}{Reputation for low reproducibility / r
 \begin{column}{0.65\textwidth}
 \begin{itemize}
 	\item Created in 2014
-	\item Open Source: MIT license
-	\item Works with: Python 2.7 and Python 3
-	\item Core functions written in Cython
-	\item Hosted on GitHub
-	\item Continuous integration: Travis CI
-	\item Packaging: Conda, pip
+	\item Open Source:\textbf{ MIT license}
+	\item Python 2.7 and \textbf{Python} 3 + \textbf{Cython}
+	\item Continuous integration: \textbf{Travis} CI
+	\item \textbf{conda}, \textbf{pip}
 	\item Two (main) developers:
 	\begin{itemize}
-		\item Didier Vezinet (creator)
-		\item Laura S. Mendoza (since June 2018)
+		\item Didier Vezinet (creator, PhD in Physics)
+		\item Laura S. Mendoza (since June 2018, PhD in Applied Mathematics)
+	\end{itemize}
+	\item Contributors:
+	\begin{itemize}
+		\item Jorge Morales (PhD in Physics)
+		\item Florian Le Bourdais
+		\item Arpan Khandelwal (intern)
 	\end{itemize}
 \end{itemize}
 \end{column}
@@ -427,8 +432,88 @@ $\longrightarrow$ \textcolor{SchoolColor}{Reputation for low reproducibility / r
 \end{center}
 \end{column}
 \end{columns}
+\begin{center}
+    	\includegraphics[width=\textwidth]{figures/badges.png}
+\end{center}
+
+\end{frame}
+% =================================
+
+% Tofu peut:
+%  Modeliser geom simplifiée
+%  Modeliser geom 3D d'une camera 1D
+%  Modeliser geom 3D d'une camera 2D
+%  Handle basics of Reflexions
+%  Calculer signal synthetic
+% and next : meshing and basis functions, tomographic inversion
+
+% =================================
+
+% =================================
+\begin{frame}
+\frametitle{What ToFu can do: modeling of simplified geometry}
 	
 \end{frame}
+% =================================
+
+% =================================
+\begin{frame}
+\frametitle{What ToFu can do: 3D modeling of a 1D camera}
+	
+\end{frame}
+% =================================
+
+% =================================
+\begin{frame}
+\frametitle{What ToFu can do: 3D modeling of a 2D camera}
+	
+\end{frame}
+% =================================
+
+% =================================
+\begin{frame}
+\frametitle{What ToFu can do: handle basic reflexions}
+	
+\end{frame}
+% =================================
+
+% =================================
+\begin{frame}
+\frametitle{What ToFu can do: computing synthetic signals}
+	
+\end{frame}
+% =================================
+
+% =================================
+\begin{frame}
+\frametitle{What ToFu can do}
+ToFu can:
+\begin{itemize}
+	\item Modeling of simplified geometry
+	\item 3D modeling of a 1D camera
+	\item 3D modeling of a 2D camera
+	\item Handle basic reflexions
+	\item Computing synthetic signals
+	\item ...and soon:
+		\begin{itemize}
+			\item meshing and basis functions
+			\item tomographic inversion
+			\item dust particle trajectory tracking
+			\item faster Matplotlib + PyQtGraph visualization
+			\item magnetic field line tracing
+			\item data visualization and statistical tools (pandas)
+		\end{itemize}
+\end{itemize}
+\end{frame}
+% =================================
+\section{Demo}
+
+% =================================
+{\setbeamercolor{palette primary}{fg=black, bg=yellow}
+\begin{frame}[standout]
+  Demo
+\end{frame}
+}
 % =================================
 
 % =================================
@@ -536,7 +621,7 @@ Cone-Ray intersection algorithm:
 	\item Parallelization over ray-loop (\textbf{prange} loops)
 	\end{itemize}
 
-
+% TODO : moins de texte au dessus
 \begin{table}[h] % just use this specifier if really needed.
     \centering
     \label{tab:LOS_init_sirrah}
@@ -575,8 +660,8 @@ Cone-Ray intersection algorithm:
 \begin{frame}
 \frametitle{Optimization of spatial integration routines}
 
-For the integration along a line of sight:
-
+For the integration along a LOS:
+% rajouter equation et redire que fonction definie par utilisateur
 	\begin{itemize}
 	\item Sample (discretization) of a 3D ray:
 		\begin{itemize}
@@ -670,7 +755,6 @@ For the integration along a line of sight:
   \end{frame}
 % =================================
 
-\section{Demo}
 
 \section{What's next}
 
@@ -748,16 +832,20 @@ For the integration along a line of sight:
 \frametitle{On geometry discretization: meshing}
 
 
+\begin{columns}
+\begin{column}{0.6\textwidth}
 Several options for poloidal cut meshing:
 
 \begin{itemize}
-	\item Naive approach: Cartesian mesh
+	\item Cartesian mesh
 	\item Polar mesh
 	\item Adaptive polar mesh
 	\item Hexagonal mesh
 	\item Triangular mesh
 \end{itemize}
 
+\end{column}
+\begin{column}{0.4\textwidth}
 
 For basis functions:
 
@@ -767,13 +855,15 @@ For basis functions:
 	\item NURBS
 	\item Box-splines
 \end{itemize}
+\end{column}
+\end{columns}
 
 
-\vspace{-1.5cm}
 
-\begin{flushright}
-    	\includegraphics[width=0.7\linewidth]{figures/meshes.png}
-\end{flushright}
+\begin{center}
+    	\includegraphics[width=0.85\linewidth]{figures/meshes.png}
+\end{center}
+\vspace{-0.5cm}
 \end{frame}
 % =================================
 
